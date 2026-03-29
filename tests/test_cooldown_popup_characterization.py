@@ -203,8 +203,8 @@ class TestPopupPassthroughCharacterization:
     def test_dialogue_queue_auto_pop(self):
         """When pending_diplomatic_dialogue is cleared, next pops from queue."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = None
-        world.pending_dialogue_queue = [
+        world.dialogue_manager.pop()
+        world.dialogue_manager._queue = [
             {"type": "incoming_proposal", "data": "p1"},
             {"type": "alliance_paradox", "data": "p2"},
         ]
@@ -212,7 +212,7 @@ class TestPopupPassthroughCharacterization:
         # alliance_paradox has higher priority (0) than incoming_proposal (4)
         assert world.pending_diplomatic_dialogue is not None
         assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
-        assert len(world.pending_dialogue_queue) == 1
+        assert len(world.dialogue_manager._queue) == 1
 
     def test_active_wars_included(self):
         """active_wars field included in response."""

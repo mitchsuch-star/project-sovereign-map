@@ -279,20 +279,9 @@ def _include_popup_passthroughs(response: dict, world) -> None:
             else:
                 response[response_key] = None
 
-    # V2-89: Auto-pop next dialogue from queue when current is cleared
-    if (world.pending_diplomatic_dialogue is None
-            and hasattr(world, 'pending_dialogue_queue')
-            and world.pending_dialogue_queue):
-        # Sort by priority before popping
-        _DIALOGUE_PRIORITY = {
-            "alliance_paradox": 0, "vassal_rebellion_imminent": 1,
-            "sabotage_confrontation": 2, "talleyrand_redemption": 3,
-            "incoming_proposal": 4,
-        }
-        world.pending_dialogue_queue.sort(
-            key=lambda d: _DIALOGUE_PRIORITY.get(d.get("type", ""), 99)
-        )
-        world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+    # V2-89 → R12C: Auto-promote from queue handled by dialogue_manager.pop() auto-promote.
+    # Explicit promote_if_empty() covers the case where current is already None.
+    world.dialogue_manager.promote_if_empty()
 
     # War status panel data — embedded in every response (N4f)
     if "active_wars" not in response:

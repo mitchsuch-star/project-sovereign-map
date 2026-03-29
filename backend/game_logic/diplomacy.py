@@ -1086,8 +1086,8 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                 "defender_alliance": target_state,
                 "message": paradox_msg,
             }
-            # V2-89: Append to queue instead of overwriting
-            world.pending_dialogue_queue.append({
+            # V2-89 → R12C: push() auto-queues if another dialogue is active
+            world.dialogue_manager.push({
                 "type": "alliance_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,

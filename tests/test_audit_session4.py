@@ -131,11 +131,11 @@ class TestTurnManagerIntegration:
         game_state = {"world": world}
 
         # Pre-set a blocking dialogue
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "options": [],
-        }
+        })
 
         # Set conditions for P1 trigger
         key = world._make_diplo_key("France", "Prussia")
@@ -261,8 +261,8 @@ class TestCounterOfferEdgeCases:
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
 
         # Counter (option 3)
         counter_result = executor.handle_diplomatic_dialogue_response(3, game_state)
@@ -311,7 +311,7 @@ class TestAdvisoryBoundary:
         """Advisory sets pending_diplomatic_dialogue with blocking=False."""
         world = make_world()
         advisory = generate_advisory("Prussia", "assess_nation", world)
-        world.pending_diplomatic_dialogue = advisory
+        world.dialogue_manager.replace(advisory)
         assert world.pending_diplomatic_dialogue["blocking"] is False
 
     def test_how_do_we_detect(self):
@@ -351,21 +351,21 @@ class TestDispatchTalleyrandEdgeCases:
         """Talleyrand report suppressed when ANY incoming_proposal type is pending."""
         world = make_world()
         # Set a blocking incoming_proposal from any source
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "target_nation": "Austria",
-        }
+        })
         dispatch = build_morning_dispatch(world)
         assert dispatch["talleyrand_report"] == []
 
     def test_not_suppressed_by_advisory_dialogue(self):
         """Talleyrand report NOT suppressed when advisory dialogue is pending."""
         world = make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "advisory",
             "blocking": False,
-        }
+        })
         dispatch = build_morning_dispatch(world)
         # Should NOT be suppressed — advisory is not incoming_proposal
         assert isinstance(dispatch["talleyrand_report"], list)
@@ -465,16 +465,16 @@ class TestConflictAlertWiring:
         }
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
 
         # Accept (option 1)
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result["success"] is True
         # Should show conflict alert, NOT ratify immediately
         # V2-89: conflict_alert may be queued; pop if needed
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
         assert dialogue["type"] == "conflict_alert"
@@ -491,8 +491,8 @@ class TestConflictAlertWiring:
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
 
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result["success"] is True
@@ -530,14 +530,14 @@ class TestConflictAlertWiring:
         }
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
 
         # First accept → conflict_alert
         executor.handle_diplomatic_dialogue_response(1, game_state)
         # V2-89: conflict_alert may be queued; pop if needed
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
         assert world.pending_diplomatic_dialogue["type"] == "conflict_alert"
 
         # Second accept → "Accept anyway" (option 1)

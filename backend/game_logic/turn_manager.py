@@ -154,10 +154,10 @@ class TurnManager:
             debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
 
         # ════════════════════════════════════════════════════════════
-        # V2-89: POP FIRST DIALOGUE FROM QUEUE → pending_diplomatic_dialogue
+        # V2-89 → R12C: Promote from queue if current slot is empty
         # Priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal
         # ════════════════════════════════════════════════════════════
-        self._pop_dialogue_queue()
+        self.world.dialogue_manager.promote_if_empty()
 
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
@@ -242,34 +242,8 @@ class TurnManager:
 
         return result
 
-    # V2-89: Dialogue type priority (lower = higher priority)
-    _DIALOGUE_TYPE_PRIORITY = {
-        "alliance_paradox": 0,
-        "vassal_rebellion_imminent": 1,
-        "sabotage_confrontation": 2,
-        "talleyrand_redemption": 3,
-        "incoming_proposal": 4,
-    }
-
-    def _pop_dialogue_queue(self) -> None:
-        """V2-89: Pop highest-priority dialogue from queue into pending field.
-
-        Only pops if pending_diplomatic_dialogue is not already set.
-        Sorts queue by type priority before popping.
-        """
-        world = self.world
-        if world.pending_diplomatic_dialogue is not None:
-            return  # Already have an active dialogue
-        if not world.pending_dialogue_queue:
-            return
-
-        # Sort by priority (lowest number = highest priority)
-        world.pending_dialogue_queue.sort(
-            key=lambda d: self._DIALOGUE_TYPE_PRIORITY.get(d.get("type", ""), 99)
-        )
-        world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
-        debug_print(f"[V2-89] Popped dialogue from queue: {world.pending_diplomatic_dialogue.get('type')}, "
-                    f"{len(world.pending_dialogue_queue)} remaining")
+    # R12C: _pop_dialogue_queue() replaced by world.dialogue_manager.promote_if_empty()
+    # Priority dict consolidated into DialogueManager.DIALOGUE_PRIORITY
 
     def _flush_pending_popups_into(self, result: Dict) -> None:
         """V2-86: Copy pending popup fields from world into result dict.

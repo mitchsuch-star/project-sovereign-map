@@ -628,7 +628,7 @@ def _setup_proposal_dialogue(world, target_nation="Prussia", proposal_type="armi
     """Set up a proposal_confirm dialogue with modify options, as the initial path produces."""
     from backend.game_logic.diplomatic_templates import generate_suggested_terms
     suggested = generate_suggested_terms(target_nation, proposal_type, world)
-    world.pending_diplomatic_dialogue = {
+    world.dialogue_manager.replace({
         "type": "proposal_confirm",
         "target_nation": target_nation,
         "talleyrand_text": "Test proposal dialogue.",
@@ -656,7 +656,7 @@ def _setup_proposal_dialogue(world, target_nation="Prussia", proposal_type="armi
         "context": {},
         "turn_created": int(world.current_turn),
         "blocking": False,
-    }
+    })
 
 
 _ENRICHMENT_FIELDS = [
@@ -764,7 +764,7 @@ class TestReviewCounterEnrichment:
             "demands": [{"type": "gold_per_turn", "value": 50}],
             "clauses": [],
         }
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_received",
             "target_nation": source_nation,
             "talleyrand_text": f"{source_nation} has proposed a counter-offer.",
@@ -782,7 +782,7 @@ class TestReviewCounterEnrichment:
             },
             "turn_created": int(world.current_turn),
             "blocking": False,
-        }
+        })
 
     def test_review_counter_has_enrichment(self):
         world = _make_world()
@@ -1001,7 +1001,7 @@ class TestBugfix_ModifyIterationCap:
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[diplo_key] = "WAR"
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -1019,7 +1019,7 @@ class TestBugfix_ModifyIterationCap:
             ],
             "context": {"modify_count": 1, "proposal_type": "peace"},
             "turn_created": 5,
-        }
+        })
         gs = _make_game_state(world)
         # Choice "2" selects "Even harsher"
         result = executor.handle_diplomatic_dialogue_response(2, gs)
@@ -1037,7 +1037,7 @@ class TestBugfix_ModifyIterationCap:
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[diplo_key] = "WAR"
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -1055,7 +1055,7 @@ class TestBugfix_ModifyIterationCap:
             ],
             "context": {"modify_count": 1, "proposal_type": "peace"},
             "turn_created": 5,
-        }
+        })
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response(2, gs)
         new_dialogue = result.get("diplomatic_dialogue", {})
@@ -1072,7 +1072,7 @@ class TestBugfix_ModifyIterationCap:
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[diplo_key] = "WAR"
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -1090,7 +1090,7 @@ class TestBugfix_ModifyIterationCap:
             ],
             "context": {"proposal_type": "peace"},  # No modify_count yet
             "turn_created": 5,
-        }
+        })
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response(2, gs)
         new_dialogue = result.get("diplomatic_dialogue", {})
@@ -1215,7 +1215,7 @@ class TestBugfix_SafetyValve:
         from backend.main import _include_popup_passthroughs
 
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Austria",
             "talleyrand_text": "An envoy arrives.",
@@ -1228,7 +1228,7 @@ class TestBugfix_SafetyValve:
                     "sweeteners": [],
                 },
             },
-        }
+        })
         response = {}
         _include_popup_passthroughs(response, world)
         proposal = response.get("incoming_proposal")
@@ -1258,7 +1258,7 @@ def _setup_terms_guidance_dialogue(world, actions_and_labels):
     options = []
     for action, label in actions_and_labels:
         options.append({"label": label, "description": f"Test {action}", "action": action})
-    world.pending_diplomatic_dialogue = {
+    world.dialogue_manager.replace({
         "type": "terms_guidance",
         "target_nation": "Prussia",
         "talleyrand_text": "Test terms guidance.",
@@ -1276,7 +1276,7 @@ def _setup_terms_guidance_dialogue(world, actions_and_labels):
         },
         "turn_created": int(world.current_turn),
         "blocking": False,
-    }
+    })
 
 
 class TestTermsGuidanceActionRouting:

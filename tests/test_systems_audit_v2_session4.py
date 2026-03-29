@@ -117,12 +117,12 @@ class TestV2_86_VictoryFlushesPopups:
     def test_victory_includes_pending_dialogue(self):
         """When victory fires, pending_diplomatic_dialogue is in result."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "blocking": True,
             "turn_created": 1,
-        }
+        })
 
         # Give France near-total control for victory
         total = len(world.regions)
@@ -321,79 +321,74 @@ class TestV2_16_DiplomaticTrustCapSerialization:
 # ============================================================================
 
 class TestV2_89_DialogueQueue:
-    """V2-89: pending_dialogue_queue collects advance_turn dialogues."""
+    """V2-89: dialogue_manager._queue collects advance_turn dialogues."""
 
     def test_queue_field_exists_and_serializes(self):
-        """pending_dialogue_queue field exists and roundtrips."""
+        """dialogue_manager._queue field exists and roundtrips."""
         world = _make_world()
-        assert hasattr(world, 'pending_dialogue_queue')
-        assert world.pending_dialogue_queue == []
+        assert hasattr(world, 'dialogue_manager')
+        assert world.dialogue_manager._queue == []
 
-        world.pending_dialogue_queue.append({"type": "incoming_proposal", "target_nation": "Austria"})
+        # push() sets _current when empty; push a second to actually queue
+        world.dialogue_manager.push({"type": "sabotage_confrontation", "target_nation": "Prussia"})
+        world.dialogue_manager.push({"type": "incoming_proposal", "target_nation": "Austria"})
+        assert len(world.dialogue_manager._queue) == 1
+
         data = world.to_dict()
-        assert len(data["pending_dialogue_queue"]) == 1
+        dm_data = data.get("dialogue_manager", {})
+        assert dm_data.get("current", {}).get("type") == "sabotage_confrontation"
+        assert len(dm_data.get("queue", [])) == 1
 
         restored = WorldState.from_dict(data)
-        assert len(restored.pending_dialogue_queue) == 1
-        assert restored.pending_dialogue_queue[0]["type"] == "incoming_proposal"
+        assert restored.pending_diplomatic_dialogue["type"] == "sabotage_confrontation"
+        assert len(restored.dialogue_manager._queue) == 1
+        assert restored.dialogue_manager._queue[0]["type"] == "incoming_proposal"
 
     def test_queue_priority_ordering(self):
-        """Alliance paradox pops before vassal rebellion before AI proposal."""
+        """Alliance paradox promotes before vassal rebellion before AI proposal."""
         world = _make_world()
-        world.pending_dialogue_queue = [
+        world.dialogue_manager._queue = [
             {"type": "incoming_proposal", "target_nation": "Britain"},
             {"type": "alliance_paradox", "target_nation": ""},
             {"type": "vassal_rebellion_imminent", "target_nation": "Saxony"},
         ]
 
-        tm = TurnManager(world)
-        tm._pop_dialogue_queue()
+        world.dialogue_manager.promote_if_empty()
 
-        # Alliance paradox should have been popped (highest priority)
+        # Alliance paradox should have been promoted (highest priority)
         assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
         # 2 remaining in queue
-        assert len(world.pending_dialogue_queue) == 2
+        assert len(world.dialogue_manager._queue) == 2
 
     def test_queue_does_not_pop_when_dialogue_active(self):
-        """If pending_diplomatic_dialogue is already set, queue doesn't pop."""
+        """If current dialogue is already set, promote_if_empty is a no-op."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {"type": "existing", "blocking": True}
-        world.pending_dialogue_queue = [
+        world.dialogue_manager.replace({"type": "existing", "blocking": True})
+        world.dialogue_manager._queue = [
             {"type": "incoming_proposal", "target_nation": "Austria"},
         ]
 
-        tm = TurnManager(world)
-        tm._pop_dialogue_queue()
+        world.dialogue_manager.promote_if_empty()
 
         # Should NOT have overwritten the existing dialogue
         assert world.pending_diplomatic_dialogue["type"] == "existing"
-        assert len(world.pending_dialogue_queue) == 1
+        assert len(world.dialogue_manager._queue) == 1
 
     def test_auto_pop_after_clearing_dialogue(self):
-        """After clearing dialogue in main.py passthrough, next item auto-pops."""
+        """After clearing dialogue, promote_if_empty pops next from queue."""
         world = _make_world()
         # Simulate: dialogue just cleared, queue has items
-        world.pending_diplomatic_dialogue = None
-        world.pending_dialogue_queue = [
+        world.dialogue_manager.pop()
+        world.dialogue_manager._queue = [
             {"type": "vassal_rebellion_imminent", "target_nation": "Saxony"},
             {"type": "incoming_proposal", "target_nation": "Austria"},
         ]
 
-        # Simulate the auto-pop logic from _include_popup_passthroughs
-        _DIALOGUE_PRIORITY = {
-            "alliance_paradox": 0, "vassal_rebellion_imminent": 1,
-            "sabotage_confrontation": 2, "talleyrand_redemption": 3,
-            "incoming_proposal": 4,
-        }
-        if (world.pending_diplomatic_dialogue is None
-                and world.pending_dialogue_queue):
-            world.pending_dialogue_queue.sort(
-                key=lambda d: _DIALOGUE_PRIORITY.get(d.get("type", ""), 99)
-            )
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        # R12C: promote_if_empty replaces the old manual auto-pop logic
+        world.dialogue_manager.promote_if_empty()
 
         assert world.pending_diplomatic_dialogue["type"] == "vassal_rebellion_imminent"
-        assert len(world.pending_dialogue_queue) == 1
+        assert len(world.dialogue_manager._queue) == 1
 
 
 # ============================================================================

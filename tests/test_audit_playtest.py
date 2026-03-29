@@ -146,7 +146,7 @@ class TestCheatBypassDialogue:
     def test_cheat_bypasses_dialogue_guard(self, executor, game_state, world):
         """Cheat should work even when a diplomatic dialogue is pending."""
         # Set up a blocking dialogue
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Saxony",
             "talleyrand_text": "Test proposal",
@@ -156,7 +156,7 @@ class TestCheatBypassDialogue:
             ],
             "blocking": True,
             "turn_created": 1,
-        }
+        })
 
         # Execute cheat command
         parsed = {
@@ -175,7 +175,7 @@ class TestCheatBypassDialogue:
 
     def test_non_cheat_blocked_by_dialogue(self, executor, game_state, world):
         """Regular commands should still be blocked by dialogue."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Saxony",
             "talleyrand_text": "Test proposal",
@@ -185,7 +185,7 @@ class TestCheatBypassDialogue:
             ],
             "blocking": True,
             "turn_created": 1,
-        }
+        })
 
         parsed = {
             "success": True,
@@ -267,7 +267,7 @@ class TestDialogueRoutingOrder:
 
     def test_dialogue_handler_accepts_send(self, executor, game_state, world):
         """handle_diplomatic_dialogue_response should process 'send'."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Saxony",
             "talleyrand_text": "Test",
@@ -295,13 +295,13 @@ class TestDialogueRoutingOrder:
             "context": {"war_score": 0, "relation": 40, "threat": 0, "current_state": "OPEN_BORDERS"},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response("send", game_state)
         assert result["success"] is True
 
     def test_dialogue_handler_accepts_reconsider(self, executor, game_state, world):
         """handle_diplomatic_dialogue_response should process 'reconsider'."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Saxony",
             "talleyrand_text": "Test",
@@ -324,7 +324,7 @@ class TestDialogueRoutingOrder:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response("reconsider", game_state)
         assert result["success"] is True
         assert world.pending_diplomatic_dialogue is None  # Cleared
@@ -374,14 +374,14 @@ class TestCheatDialogueIntegration:
 
     def test_cheat_set_threat_during_dialogue(self, executor, game_state, world):
         """Cheat set_threat should work with pending dialogue."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Austria",
             "talleyrand_text": "Test",
             "options": [{"label": "Accept", "action": "accept_ai_proposal"}],
             "blocking": True,
             "turn_created": 1,
-        }
+        })
         old_threat = world.threat_level
 
         parsed = {
@@ -400,14 +400,14 @@ class TestCheatDialogueIntegration:
 
     def test_cheat_give_dp_during_dialogue(self, executor, game_state, world):
         """Cheat give_dp should work with pending dialogue."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [{"label": "Reject", "action": "reject_ai_proposal"}],
             "blocking": True,
             "turn_created": 1,
-        }
+        })
         old_dp = world.diplomatic_points
 
         parsed = {
@@ -425,14 +425,14 @@ class TestCheatDialogueIntegration:
 
     def test_dialogue_still_blocking_after_cheat(self, executor, game_state, world):
         """Pending dialogue should still be active after a cheat."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Austria",
             "talleyrand_text": "Test",
             "options": [{"label": "Accept", "action": "accept_ai_proposal"}],
             "blocking": True,
             "turn_created": 1,
-        }
+        })
 
         parsed = {
             "success": True,

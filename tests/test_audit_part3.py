@@ -132,8 +132,8 @@ class TestAcceptanceCooldown:
         }
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
-        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
-            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
 
         # Accept via handle_diplomatic_dialogue_response (same path as main.py)
         game_state = _make_game_state(world)
@@ -153,11 +153,11 @@ class TestPendingProposalDedup:
     def test_has_pending_from_active_dialogue(self):
         """_has_pending_proposal_from detects proposal in active dialogue."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "context": {"source_nation": "Saxony"},
-        }
+        })
         assert _has_pending_proposal_from("Saxony", world) is True
         assert _has_pending_proposal_from("Prussia", world) is False
 
@@ -182,11 +182,11 @@ class TestPendingProposalDedup:
         _set_relation(world, "France", "Saxony", 40)
 
         # Set up a pending dialogue from Saxony
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "context": {"source_nation": "Saxony"},
-        }
+        })
 
         # Saxony should NOT generate a new proposal
         proposal = process_diplomatic_phase("Saxony", world)
@@ -215,11 +215,11 @@ class TestPendingProposalDedup:
         _set_relation(world, "France", "Austria", 40)
 
         # Saxony has pending dialogue
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "context": {"source_nation": "Saxony"},
-        }
+        })
 
         # Saxony blocked, Austria can still generate (queued due to blocking)
         saxony_proposal = process_diplomatic_phase("Saxony", world)

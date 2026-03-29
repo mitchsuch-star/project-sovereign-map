@@ -358,8 +358,8 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
             })
-            # V2-89: Append to queue instead of overwriting (multiple vassals can trigger)
-            world.pending_dialogue_queue.append({
+            # V2-89 → R12C: push() auto-queues if another dialogue is active
+            world.dialogue_manager.push({
                 "type": "vassal_rebellion_imminent",
                 "target_nation": vassal_name,
                 "talleyrand_text": (
@@ -883,18 +883,11 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
             p for p in world.vassal_rebellion_imminent_popups
             if p.get("nation") != vassal_name
         ]
-    if getattr(world, 'pending_diplomatic_dialogue', None):
-        dialogue = world.pending_diplomatic_dialogue
-        if (dialogue.get("type") == "vassal_rebellion_imminent"
-                and dialogue.get("context", {}).get("vassal_name") == vassal_name):
-            world.pending_diplomatic_dialogue = None
-    # V2-89: Also clear from dialogue queue
-    if hasattr(world, 'pending_dialogue_queue'):
-        world.pending_dialogue_queue = [
-            d for d in world.pending_dialogue_queue
-            if not (d.get("type") == "vassal_rebellion_imminent"
-                    and d.get("context", {}).get("vassal_name") == vassal_name)
-        ]
+    # R12C: Clear vassal rebellion dialogues for this vassal from current + queue
+    world.dialogue_manager.remove_matching(
+        lambda d: (d.get("type") == "vassal_rebellion_imminent"
+                   and d.get("context", {}).get("vassal_name") == vassal_name)
+    )
 
     # R14: Set release cooldown (blocks treaty re-vassalization for 5 turns)
     if not hasattr(world, 'vassal_release_cooldowns'):

@@ -844,8 +844,8 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "blocking": True,
     }
 
-    # V2-89: Append to queue instead of overwriting (multiple writers during advance_turn)
-    world.pending_dialogue_queue.append(dialogue)
+    # V2-89 → R12C: push() auto-queues if another dialogue is active
+    world.dialogue_manager.push(dialogue)
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event

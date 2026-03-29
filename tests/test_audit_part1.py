@@ -47,7 +47,7 @@ class TestSection1PopupFlow:
     def test_end_turn_guard_includes_dialogue_data(self):
         """Bug C fix: end-turn blocking guard includes dialogue data for frontend."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "blocking": True,
@@ -56,7 +56,7 @@ class TestSection1PopupFlow:
                 {"label": "Accept", "action": "accept_ai_proposal"},
                 {"label": "Reject", "action": "reject_ai_proposal"},
             ],
-        }
+        })
         executor = _make_executor()
         gs = _make_game_state(world)
         result = executor._execute_end_turn({}, gs)
@@ -70,7 +70,7 @@ class TestSection1PopupFlow:
     def test_end_turn_guard_without_dialogue(self):
         """End-turn proceeds normally when no dialogue pending."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         executor = _make_executor()
         gs = _make_game_state(world)
         result = executor._execute_end_turn({}, gs)
@@ -81,7 +81,7 @@ class TestSection1PopupFlow:
     def test_dialogue_response_routing_accept(self):
         """Dialogue routing: 'accept' keyword routes to handle_diplomatic_dialogue_response."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "blocking": True,
@@ -101,7 +101,7 @@ class TestSection1PopupFlow:
                 "source_nation": "Prussia",
                 "acceptance_score": 55,
             },
-        }
+        })
         executor = _make_executor()
         gs = _make_game_state(world)
         # Route "accept" through handle_diplomatic_dialogue_response
@@ -112,7 +112,7 @@ class TestSection1PopupFlow:
     def test_dialogue_response_routing_reject(self):
         """Dialogue routing: 'reject' keyword clears the dialogue."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "blocking": True,
@@ -126,7 +126,7 @@ class TestSection1PopupFlow:
                 "source_nation": "Prussia",
                 "acceptance_score": 55,
             },
-        }
+        })
         executor = _make_executor()
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response("reject", gs)
@@ -136,7 +136,7 @@ class TestSection1PopupFlow:
     def test_executor_guard_blocks_non_dialogue_commands(self):
         """Executor dialogue guard blocks regular commands when dialogue pending."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "blocking": True,
@@ -144,7 +144,7 @@ class TestSection1PopupFlow:
             "options": [
                 {"label": "Accept", "action": "accept_ai_proposal"},
             ],
-        }
+        })
         executor = _make_executor()
         gs = _make_game_state(world)
         # Try to execute a regular command
@@ -193,7 +193,7 @@ class TestSection1PopupFlow:
         world = _make_world()
         # Popup was cleared (e.g., after first response), but dialogue still pending
         world.incoming_proposal_popup = None
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Austria",
             "blocking": True,
@@ -201,7 +201,7 @@ class TestSection1PopupFlow:
                 "proposal": {"type": "peace"},
                 "diplomat_name": "Metternich",
             },
-        }
+        })
         response = {}
         _include_popup_passthroughs(response, world)
         # Should re-derive from dialogue
@@ -220,11 +220,11 @@ class TestSection2BlockingLifecycle:
         """C-1: Blocking dialogue >2 turns old is force-cleared."""
         world = _make_world()
         world.current_turn = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 7,  # 3 turns ago (10 - 7 = 3 > 2)
-        }
+        })
         world.advance_turn()
         # After advance_turn, the stale dialogue should be cleared
         assert world.pending_diplomatic_dialogue is None
@@ -233,11 +233,11 @@ class TestSection2BlockingLifecycle:
         """C-1: Recent blocking dialogue (≤2 turns old) is NOT cleared."""
         world = _make_world()
         world.current_turn = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 9,  # 1 turn ago (10 - 9 = 1 ≤ 2)
-        }
+        })
         world.advance_turn()
         # Should still be present
         assert world.pending_diplomatic_dialogue is not None
@@ -246,11 +246,11 @@ class TestSection2BlockingLifecycle:
         """C-1: Dialogue exactly 2 turns old is NOT cleared (boundary)."""
         world = _make_world()
         world.current_turn = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 8,  # 2 turns ago (10 - 8 = 2, NOT > 2)
-        }
+        })
         world.advance_turn()
         # turn_created + 2 = 10, current_turn after advance = 11
         # 8 + 2 = 10 < 11, so it SHOULD be cleared
@@ -260,11 +260,11 @@ class TestSection2BlockingLifecycle:
         """Non-blocking dialogue older than current turn is auto-cleared."""
         world = _make_world()
         world.current_turn = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "advisory",
             "blocking": False,
             "turn_created": 9,
-        }
+        })
         world.advance_turn()
         assert world.pending_diplomatic_dialogue is None
 
@@ -272,11 +272,11 @@ class TestSection2BlockingLifecycle:
         """Non-blocking dialogue from current turn is NOT auto-cleared."""
         world = _make_world()
         world.current_turn = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "advisory",
             "blocking": False,
             "turn_created": 10,
-        }
+        })
         world.advance_turn()
         # turn_created (10) < current_turn after advance (11), so it gets cleared
         assert world.pending_diplomatic_dialogue is None
@@ -284,10 +284,10 @@ class TestSection2BlockingLifecycle:
     def test_cheat_clear_dialogue_with_pending(self):
         """C-2: Cheat command clears stuck dialogue."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
-        }
+        })
         world.incoming_proposal_popup = {"from_nation": "Prussia"}
         executor = _make_executor()
         gs = _make_game_state(world)
@@ -307,7 +307,7 @@ class TestSection2BlockingLifecycle:
     def test_cheat_clear_dialogue_without_pending(self):
         """C-2: Cheat command reports when no dialogue pending."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         executor = _make_executor()
         gs = _make_game_state(world)
         command = {
@@ -619,10 +619,10 @@ class TestQueueLifecycle:
             "priority": 1,
             "turn_queued": int(world.current_turn),
         }, world)
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
-        }
+        })
         result = try_deliver_queued_proposal(world)
         assert result is None  # Blocked
 
@@ -637,12 +637,12 @@ class TestAuditSerialization:
     def test_world_round_trip_with_blocking_dialogue(self):
         """Blocking dialogue survives save/load cycle."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 5,
             "target_nation": "Prussia",
-        }
+        })
         data = world.to_dict()
         restored = WorldState.from_dict(data)
         assert restored.pending_diplomatic_dialogue is not None
@@ -652,7 +652,7 @@ class TestAuditSerialization:
     def test_world_round_trip_without_dialogue(self):
         """No dialogue serializes as None."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         data = world.to_dict()
         restored = WorldState.from_dict(data)
         assert restored.pending_diplomatic_dialogue is None

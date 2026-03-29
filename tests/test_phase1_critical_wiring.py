@@ -370,14 +370,14 @@ class TestR37SabotageConfrontation:
         world = _make_world()
         talleyrand = _make_talleyrand(trust=50)
         world.diplomats = {"France": talleyrand}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "sabotage_confrontation",
             "options": [
                 {"label": "Confront", "action": "confront_sabotage"},
                 {"label": "Overlook", "action": "overlook_sabotage"},
             ],
             "context": {},
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("confront", game_state)
@@ -410,7 +410,7 @@ class TestR41Redemption:
         world = _make_world()
         talleyrand = _make_talleyrand(trust=20)
         world.diplomats = {"France": talleyrand}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "talleyrand_redemption",
             "options": [
                 {"label": "Apologize", "action": "redemption_apologize"},
@@ -418,7 +418,7 @@ class TestR41Redemption:
                 {"label": "Continue", "action": "redemption_continue"},
             ],
             "context": {"current_trust": 20},
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("apologize", game_state)
@@ -454,7 +454,7 @@ class TestR74VassalRebellionDialogue:
             "lord": "France", "loyalty": 10,
             "autonomy": 0, "tribute_rate": 0.1,
         }}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": "Saxony",
             "options": [
@@ -463,7 +463,7 @@ class TestR74VassalRebellionDialogue:
                 {"label": "Accept", "action": "accept_vassal_rebellion"},
             ],
             "context": {"vassal_name": "Saxony", "loyalty": 10},
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("invest", game_state)
@@ -477,14 +477,14 @@ class TestR74VassalRebellionDialogue:
             "autonomy": 0, "tribute_rate": 0.1,
         }}
         world.actions_remaining = 5
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": "Saxony",
             "options": [
                 {"label": "Garrison", "action": "garrison_vassal_rebellion"},
             ],
             "context": {"vassal_name": "Saxony", "loyalty": 10},
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("garrison", game_state)
@@ -494,14 +494,14 @@ class TestR74VassalRebellionDialogue:
 
     def test_executor_handles_accept(self):
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": "Saxony",
             "options": [
                 {"label": "Accept", "action": "accept_vassal_rebellion"},
             ],
             "context": {"vassal_name": "Saxony", "loyalty": 10},
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("accept", game_state)
@@ -519,7 +519,7 @@ class TestR42SendOverride:
         talleyrand = _make_talleyrand(trust=50)
         world.diplomats = {"France": talleyrand}
         world.diplomatic_points = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "options": [
@@ -533,7 +533,7 @@ class TestR42SendOverride:
                 "original_proposal": {"proposal_type": "non_aggression"},
                 "suggested_terms": {"proposal_type": "non_aggression"},
             },
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("send", game_state)
@@ -595,7 +595,7 @@ class TestR2CounterOffer:
             "demands": [],
             "clauses": [],
         }
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Prussia",
             "options": [
@@ -607,7 +607,7 @@ class TestR2CounterOffer:
                 "original_proposal": {"type": "alliance"},
                 "counter_terms": counter_terms,
             },
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("accept", game_state)
@@ -619,7 +619,7 @@ class TestR2CounterOffer:
         world.enemy_nations = ["Prussia", "Austria", "Britain", "Russia", "Saxony"]
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 20
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Prussia",
             "options": [
@@ -630,7 +630,7 @@ class TestR2CounterOffer:
                 "original_proposal": {"type": "alliance"},
                 "counter_terms": {"type": "non_aggression"},
             },
-        }
+        })
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("reject", game_state)

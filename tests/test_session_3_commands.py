@@ -305,7 +305,7 @@ class TestDialogueGeneration:
 
 class TestDialogueBlocking:
     def test_pending_dialogue_blocks_other_commands(self, executor, world, game_state):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -313,7 +313,7 @@ class TestDialogueBlocking:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         parsed = {
             "success": True,
             "command": {"action": "attack", "marshal": "Ney", "target": "Belgium"},
@@ -323,7 +323,7 @@ class TestDialogueBlocking:
         assert "talleyrand" in result["message"].lower() or "awaits" in result["message"].lower()
 
     def test_non_blocking_dialogue_auto_dismisses_on_end_turn(self, world):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -331,18 +331,18 @@ class TestDialogueBlocking:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         # Simulate advance_turn where current_turn > turn_created
         world.current_turn = 2
         # The auto-dismiss happens in advance_turn
         if (world.pending_diplomatic_dialogue
                 and not world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is None
 
     def test_blocking_dialogue_prevents_end_turn(self, executor, world, game_state):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -350,7 +350,7 @@ class TestDialogueBlocking:
             "context": {},
             "turn_created": 1,
             "blocking": True,
-        }
+        })
         parsed = {
             "success": True,
             "command": {"action": "end_turn"},
@@ -369,7 +369,7 @@ class TestProposalExecution:
     def test_proposal_deducts_dp_and_sets_transit(self, executor, world, game_state):
         """Player picks execute_proposal → DP deducted, Talleyrand IN_TRANSIT."""
         world.diplomatic_points = 4
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "options": [{
@@ -386,7 +386,7 @@ class TestProposalExecution:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result["success"]
         assert world.talleyrand_state == "IN_TRANSIT"
@@ -665,7 +665,7 @@ class TestFeasibility:
 class TestMissions:
     def test_mission_start(self, executor, world, game_state):
         """Start a mission via dialogue response."""
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "mission",
             "target_nation": "Austria",
             "options": [{
@@ -676,7 +676,7 @@ class TestMissions:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result["success"]
         assert world.active_diplomatic_mission is not None
@@ -778,7 +778,7 @@ class TestMissions:
         }
         world.talleyrand_state = "ON_MISSION"
         world.diplomatic_points = 4
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
             "options": [{
@@ -795,7 +795,7 @@ class TestMissions:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         executor.handle_diplomatic_dialogue_response(1, game_state)
         assert world.active_diplomatic_mission["paused"] is True
         assert world.talleyrand_state == "IN_TRANSIT"
@@ -896,7 +896,7 @@ class TestInTransitBlocking:
 
 class TestEndpoint:
     def test_dialogue_response_by_index(self, executor, world, game_state):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "options": [
@@ -906,20 +906,20 @@ class TestEndpoint:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result["success"]
         assert world.pending_diplomatic_dialogue is None
 
     def test_dialogue_response_invalid_index(self, executor, world, game_state):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "options": [{"label": "A", "action": "dismiss", "description": ""}],
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response(5, game_state)
         assert not result["success"]
 
@@ -929,7 +929,7 @@ class TestEndpoint:
         assert "no diplomatic" in result["message"].lower()
 
     def test_keyword_matching(self, executor, world, game_state):
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "options": [
@@ -941,7 +941,7 @@ class TestEndpoint:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         world.diplomatic_points = 4
         result = executor.handle_diplomatic_dialogue_response("dismiss", game_state)
         assert result["success"]
@@ -955,7 +955,7 @@ class TestEndpoint:
 class TestSerialization:
     def test_pending_diplomatic_dialogue_roundtrip(self):
         world = WorldState(player_nation="France")
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_options",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
@@ -963,7 +963,7 @@ class TestSerialization:
             "context": {"war_score": 10},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
         data = world.to_dict()
         restored = WorldState.from_dict(data)
         assert restored.pending_diplomatic_dialogue is not None

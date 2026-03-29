@@ -66,7 +66,7 @@ def _respond(executor, game_state, choice):
 
 def _setup_adjust_dialogue(world, target="Austria", proposal_type="peace"):
     """Set up a dialogue with adjust_terms option available."""
-    world.pending_diplomatic_dialogue = {
+    world.dialogue_manager.replace({
         "type": "proposal_confirm",
         "target_nation": target,
         "talleyrand_text": "Test proposal.",
@@ -83,7 +83,7 @@ def _setup_adjust_dialogue(world, target="Austria", proposal_type="peace"):
         "context": {"proposal_type": proposal_type},
         "turn_created": int(world.current_turn),
         "blocking": False,
-    }
+    })
 
 
 # ═══════════════════════════════════════════════
@@ -580,7 +580,7 @@ class TestIntegration:
     def test_existing_harsh_generous_still_works(self, world, executor, game_state):
         """Legacy harsh/generous options still function alongside adjust_terms."""
         _set_war(world, "Austria")
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Austria",
             "talleyrand_text": "Test proposal.",
@@ -608,7 +608,7 @@ class TestIntegration:
             "context": {},
             "turn_created": int(world.current_turn),
             "blocking": False,
-        }
+        })
         result = _respond(executor, game_state, "harsh")
         assert result["success"]
         # Should still work as before

@@ -590,11 +590,11 @@ class TestSection12Serialization:
     def test_ae3_pending_dialogue_roundtrip(self):
         """AE-3: pending_diplomatic_dialogue survives save/load."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 5,
-        }
+        })
         data = world.to_dict()
         world2 = WorldState.from_dict(data)
         assert world2.pending_diplomatic_dialogue is not None
@@ -638,12 +638,12 @@ class TestSection12Serialization:
     def test_af1_blocking_dialogue_restored(self):
         """AF-1: Blocking dialogue restored after save/load."""
         world = _make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "turn_created": 5,
             "target_nation": "Prussia",
-        }
+        })
         world.incoming_proposal_popup = {"nation": "Prussia", "terms": []}
         data = world.to_dict()
         world2 = WorldState.from_dict(data)

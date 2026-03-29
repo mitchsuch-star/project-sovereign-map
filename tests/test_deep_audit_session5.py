@@ -288,7 +288,7 @@ class TestFix6DiplomaticDefiancePipeline:
         world.diplomatic_points = 100
         world.talleyrand_defiance_cooldown = 0
         world.talleyrand_state = "AVAILABLE"
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "target_nation": "Austria",
             "proposal_type": "non_aggression",
             "proposal": {
@@ -298,7 +298,7 @@ class TestFix6DiplomaticDefiancePipeline:
                 "sweeteners": [],
                 "clauses": [],
             },
-        }
+        })
 
         from backend.models.diplomat import DiplomaticRepresentative
         talleyrand = DiplomaticRepresentative(

@@ -309,10 +309,10 @@ class TestFix8ReleaseVassalClearsPopup:
     def test_release_clears_stale_popup(self):
         world = _make_vassal_world(loyalty=5)
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony", "loyalty": 5}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "context": {"vassal_name": "Saxony"},
-        }
+        })
 
         release_vassal(world, "Saxony")
 
@@ -332,10 +332,10 @@ class TestFix8ReleaseVassalClearsPopup:
         world.diplomatic_states[dk2] = "VASSAL"
 
         world.vassal_rebellion_imminent_popup = {"nation": "Bavaria", "loyalty": 5}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "context": {"vassal_name": "Bavaria"},
-        }
+        })
 
         release_vassal(world, "Saxony")
 
@@ -402,7 +402,7 @@ class TestFix11GarrisonRemovedVassal:
         world.marshals.clear()
         world.actions_remaining = 5
         # Set up dialogue as if popup was shown for Saxony
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": "Saxony",
             "options": [
@@ -412,7 +412,7 @@ class TestFix11GarrisonRemovedVassal:
             ],
             "context": {"vassal_name": "Saxony"},
             "blocking": True,
-        }
+        })
         # But Saxony is NOT in vassals (removed between popup and response)
         world.vassals = {}
 
@@ -488,7 +488,7 @@ class TestFix14RebellionHandlerClearsPopup:
     def _setup_rebellion_dialogue(self, world, choice_index):
         """Set up rebellion dialogue and respond via handle_diplomatic_dialogue_response."""
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony", "loyalty": 5}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": "Saxony",
             "options": [
@@ -501,7 +501,7 @@ class TestFix14RebellionHandlerClearsPopup:
             ],
             "context": {"vassal_name": "Saxony"},
             "blocking": True,
-        }
+        })
         executor = CommandExecutor()
         game_state = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response(choice_index, game_state)

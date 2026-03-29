@@ -138,7 +138,7 @@ class TestBug2NotificationDismiss:
             "Prussia proposes peace.",
             int(world.current_turn),
         ))
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "talleyrand_text": "Prussia proposes peace.",
@@ -160,7 +160,7 @@ class TestBug2NotificationDismiss:
             },
             "turn_created": 1,
             "blocking": True,
-        }
+        })
         world.incoming_proposal_popup = {
             "from_nation": "Prussia",
             "diplomat_name": "Prussian envoy",
@@ -268,7 +268,7 @@ class TestBug5CommentaryRegeneration:
         terms = generate_suggested_terms(target, "peace", world)
         terms["proposal_type"] = "peace"
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": target,
             "talleyrand_text": "Test terms",
@@ -281,7 +281,7 @@ class TestBug5CommentaryRegeneration:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
 
     def test_harsh_regenerates_commentary(self):
         """modify_harsh produces fresh commentary matching actual terms."""
@@ -468,7 +468,7 @@ class TestBug1ProposalDeferred:
         result = {"ai_proposal": {"nation": "Saxony", "type": "non_aggression"}}
 
         world = _make_world()
-        world.pending_diplomatic_dialogue = {"type": "incoming_proposal"}
+        world.dialogue_manager.replace({"type": "incoming_proposal"})
 
         if not response.get("enemy_phase"):
             if result.get("ai_proposal"):
@@ -505,7 +505,7 @@ class TestNotificationDismissGaps:
         world.diplomats["France"] = DiplomaticRepresentative(
             name="Talleyrand", nation="France", personality="cunning", skill=8,
         )
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "sabotage_discovery",
             "target_nation": "Prussia",
             "talleyrand_text": "Sabotage discovered.",
@@ -516,7 +516,7 @@ class TestNotificationDismissGaps:
             "context": {},
             "turn_created": 1,
             "blocking": True,
-        }
+        })
 
     def test_confront_sabotage_dismisses_notification(self):
         """Confronting sabotage dismisses SABOTAGE_DISCOVERED notification."""
@@ -560,7 +560,7 @@ class TestNotificationDismissGaps:
             int(world.current_turn),
         ))
         world.vassals[vassal_name] = {"loyalty": 8, "autonomy": 50, "lord": "France"}
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "vassal_rebellion_imminent",
             "target_nation": vassal_name,
             "talleyrand_text": f"{vassal_name} is on the brink of rebellion.",
@@ -572,7 +572,7 @@ class TestNotificationDismissGaps:
             "context": {"vassal_name": vassal_name},
             "turn_created": 1,
             "blocking": True,
-        }
+        })
 
     def test_invest_vassal_rebellion_dismisses_notification(self):
         """Investing in vassal dismisses VASSAL_REBELLION_IMMINENT notification."""
@@ -634,7 +634,7 @@ class TestNotificationDismissGaps:
             "Prussia has counter-proposed.",
             int(world.current_turn),
         ))
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer",
             "target_nation": "Prussia",
             "talleyrand_text": "Prussia counter-proposes.",
@@ -656,7 +656,7 @@ class TestNotificationDismissGaps:
             },
             "turn_created": 1,
             "blocking": True,
-        }
+        })
         world.incoming_proposal_popup = {
             "from_nation": "Prussia",
             "diplomat_name": "Prussian envoy",
@@ -719,7 +719,7 @@ class TestNotificationDismissGaps:
             "attacker": "Saxony",
             "defender": "Austria",
         }
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "alliance_paradox",
             "target_nation": "Austria",
             "talleyrand_text": "Alliance conflict!",
@@ -732,7 +732,7 @@ class TestNotificationDismissGaps:
             "context": {},
             "turn_created": 1,
             "blocking": True,
-        }
+        })
 
     def test_honor_defender_dismisses_notification(self):
         """Honoring alliance dismisses ALLIANCE_CASCADE_WAR notification."""
@@ -775,7 +775,7 @@ class TestSmartCommentary:
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
         terms = generate_suggested_terms(target, "peace", world)
         terms["proposal_type"] = "peace"
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": target,
             "talleyrand_text": "Test terms",
@@ -788,7 +788,7 @@ class TestSmartCommentary:
             "context": {},
             "turn_created": 1,
             "blocking": False,
-        }
+        })
 
     def test_harsh_uses_nation_specific_commentary(self):
         """modify_harsh uses TALLEYRAND_COMMENTARY for the target nation."""
@@ -918,7 +918,7 @@ class TestCounterOfferPopupField:
             "talleyrand_assessment": "Test",
         }
         # Set up the AI proposal dialogue
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "talleyrand_text": "Prussia proposes peace.",
@@ -940,7 +940,7 @@ class TestCounterOfferPopupField:
             },
             "turn_created": 1,
             "blocking": True,
-        }
+        })
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}

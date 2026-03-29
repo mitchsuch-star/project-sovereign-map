@@ -37,7 +37,7 @@ def _make_executor():
 
 def _set_dialogue(world, dtype, options, target_nation="Prussia", context=None):
     """Set a pending diplomatic dialogue on the world."""
-    world.pending_diplomatic_dialogue = {
+    world.dialogue_manager.replace({
         "type": dtype,
         "target_nation": target_nation,
         "talleyrand_text": "Test dialogue.",
@@ -45,7 +45,7 @@ def _set_dialogue(world, dtype, options, target_nation="Prussia", context=None):
         "context": context or {},
         "turn_created": int(world.current_turn),
         "blocking": False,
-    }
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════════

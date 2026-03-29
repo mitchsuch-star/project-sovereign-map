@@ -216,19 +216,19 @@ class TestDialogueQueuePreservation:
         """When a dialogue is already pending, confrontation goes to queue."""
         world = make_world()
         # Set up existing pending dialogue
-        world.pending_diplomatic_dialogue = {"type": "incoming_proposal", "from": "Austria"}
+        world.dialogue_manager.replace({"type": "incoming_proposal", "from": "Austria"})
 
         # Simulate what dispatch.py does on sabotage discovery
         confrontation = {"type": "sabotage_discovery", "target": "Prussia"}
         if world.pending_diplomatic_dialogue:
-            world.pending_dialogue_queue.append(confrontation)
+            world.dialogue_manager.push(confrontation)
         else:
-            world.pending_diplomatic_dialogue = confrontation
+            world.dialogue_manager.replace(confrontation)
 
         # Original dialogue should be preserved
         assert world.pending_diplomatic_dialogue["type"] == "incoming_proposal"
-        assert len(world.pending_dialogue_queue) == 1
-        assert world.pending_dialogue_queue[0]["type"] == "sabotage_discovery"
+        assert len(world.dialogue_manager._queue) == 1
+        assert world.dialogue_manager._queue[0]["type"] == "sabotage_discovery"
 
     def test_sabotage_discovery_sets_when_no_dialogue(self):
         """When no dialogue pending, confrontation is set directly."""
@@ -237,12 +237,12 @@ class TestDialogueQueuePreservation:
 
         confrontation = {"type": "sabotage_discovery", "target": "Prussia"}
         if world.pending_diplomatic_dialogue:
-            world.pending_dialogue_queue.append(confrontation)
+            world.dialogue_manager.push(confrontation)
         else:
-            world.pending_diplomatic_dialogue = confrontation
+            world.dialogue_manager.replace(confrontation)
 
         assert world.pending_diplomatic_dialogue["type"] == "sabotage_discovery"
-        assert len(world.pending_dialogue_queue) == 0
+        assert len(world.dialogue_manager._queue) == 0
 
 
 # ═══════════════════════════════════════════════════════

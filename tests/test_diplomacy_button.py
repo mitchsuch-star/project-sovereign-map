@@ -365,13 +365,13 @@ class TestPreviewResponseShape:
 
     def test_dialogue_pending_flag(self):
         world = _make_world()
-        world.pending_diplomatic_dialogue = {"type": "test"}
+        world.dialogue_manager.replace({"type": "test"})
         preview = get_diplomatic_preview(world, "Prussia")
         assert preview["dialogue_pending"] is True
 
     def test_dialogue_not_pending(self):
         world = _make_world()
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         preview = get_diplomatic_preview(world, "Prussia")
         assert preview["dialogue_pending"] is False
 
@@ -1105,7 +1105,7 @@ class TestAuditFixes:
         """Step 2 preview should include dialogue_pending flag."""
         world = _make_world()
         world.diplomatic_points = 3
-        world.pending_diplomatic_dialogue = {"type": "test"}
+        world.dialogue_manager.replace({"type": "test"})
         preview = get_diplomatic_preview(world, "Prussia")
         assert preview["dialogue_pending"] is True
 
@@ -1187,7 +1187,7 @@ class TestEdgeCaseFixes:
         """When pending_diplomatic_dialogue is set, all actions should be empty."""
         world = _make_world()
         world.diplomatic_points = 10
-        world.pending_diplomatic_dialogue = {"type": "test_dialogue"}
+        world.dialogue_manager.replace({"type": "test_dialogue"})
         _set_diplo_state(world, "France", "Prussia", "PEACE")
         actions = get_available_diplomatic_actions(world, "Prussia")
         assert actions == []

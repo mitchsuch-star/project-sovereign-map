@@ -594,24 +594,8 @@ class WorldState:
 
     @property
     def pending_diplomatic_dialogue(self):
-        """Transparent wrapper — returns manager's current slot."""
+        """Read-only — returns manager's current slot (R12C: setter removed)."""
         return self._dialogue_manager._current
-
-    @pending_diplomatic_dialogue.setter
-    def pending_diplomatic_dialogue(self, value):
-        """Transparent wrapper — directly sets manager's current slot.
-        No push/pop logic; exact match of old raw-field behavior."""
-        self._dialogue_manager._current = value
-
-    @property
-    def pending_dialogue_queue(self):
-        """Transparent wrapper — returns manager's queue list."""
-        return self._dialogue_manager._queue
-
-    @pending_dialogue_queue.setter
-    def pending_dialogue_queue(self, value):
-        """Transparent wrapper — directly sets manager's queue."""
-        self._dialogue_manager._queue = list(value) if value else []
 
     # ========================================
     # R6: POPUP BACKWARD-COMPATIBLE PROPERTIES
@@ -3049,11 +3033,11 @@ class WorldState:
             "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
 
-            # ═══════ DIPLOMACY Session 3 (R12: DialogueManager) ═══════
+            # ═══════ DIPLOMACY Session 3 (R12C: DialogueManager) ═══════
             "dialogue_manager": self._dialogue_manager.to_dict(),
             # Backward-compat keys for older loaders / external tools
             "pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,
-            "pending_dialogue_queue": [copy.deepcopy(d) for d in self.pending_dialogue_queue],
+            "pending_dialogue_queue": [copy.deepcopy(d) for d in self._dialogue_manager._queue],
             "active_diplomatic_mission": self.active_diplomatic_mission,
             "talleyrand_state": self.talleyrand_state,
             "proposal_in_transit": self.proposal_in_transit,
@@ -4083,27 +4067,12 @@ class WorldState:
         tactical_events.extend(ai_ai_events)
 
         # ════════════════════════════════════════════════════════════
-        # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
+        # R12C: STALE DIALOGUE CLEARING (consolidates non-blocking auto-dismiss
+        # + blocking safety valve into DialogueManager.clear_stale)
         # ════════════════════════════════════════════════════════════
-        if (self.pending_diplomatic_dialogue
-                and not self.pending_diplomatic_dialogue.get("blocking")
-                and self.pending_diplomatic_dialogue.get("turn_created", 0) < self.current_turn):
-            self.pending_diplomatic_dialogue = None
+        cleared = self._dialogue_manager.clear_stale(self.current_turn)
+        if cleared:
             self.incoming_proposal_popup = None  # Fix 8: Clear paired popup too
-
-        # ════════════════════════════════════════════════════════════
-        # BLOCKING DIALOGUE SAFETY VALVE (Audit fix C-1)
-        # If a blocking dialogue is >2 turns old, force-clear it.
-        # Prevents permanent stuck states from bugs or save/load edge cases.
-        # ════════════════════════════════════════════════════════════
-        if (self.pending_diplomatic_dialogue
-                and self.pending_diplomatic_dialogue.get("blocking")
-                and self.pending_diplomatic_dialogue.get("turn_created", 0) + 2 < self.current_turn):
-            print(f"[SAFETY VALVE] Force-clearing stale blocking dialogue "
-                  f"(created turn {self.pending_diplomatic_dialogue.get('turn_created')}, "
-                  f"current turn {self.current_turn})")
-            self.pending_diplomatic_dialogue = None
-            self.incoming_proposal_popup = None
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
@@ -4375,8 +4344,9 @@ class WorldState:
                         f"They could not accept our terms, but offer an alternative:\n{summary}"
                     ),
                 })
-                # Set up dialogue for player response (no cooldowns yet — pending decision)
-                self.pending_diplomatic_dialogue = {
+                # R12C: push() instead of overwrite — fixes latent bug where counter-offer
+                # could silently overwrite an active blocking dialogue during advance_turn
+                self.dialogue_manager.push({
                     "type": "counter_offer_response",
                     "target_nation": target,
                     "talleyrand_text": (
@@ -4403,7 +4373,7 @@ class WorldState:
                     },
                     "turn_created": int(self.current_turn),
                     "blocking": True,
-                }
+                })
                 # Set popup for Godot — must match incoming_proposal_popup.gd show_proposal() fields
                 diplomat = self.diplomats.get(target)
                 diplomat_name = diplomat.name if diplomat else f"{target} envoy"

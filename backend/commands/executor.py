@@ -6140,7 +6140,7 @@ RETREAT RECOVERY (3 turns):
         # ── clear_dialogue (Audit fix C-2) ──
         if cheat_type == "clear_dialogue":
             had_dialogue = world.pending_diplomatic_dialogue is not None
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.incoming_proposal_popup = None
             if had_dialogue:
                 return {"success": True, "message": "Cleared stuck diplomatic dialogue."}

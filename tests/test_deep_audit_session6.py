@@ -138,11 +138,11 @@ class TestFix8NonBlockingClearsProposalPopup:
     def test_non_blocking_dismiss_clears_incoming_popup(self):
         """When non-blocking dialogue expires, incoming_proposal_popup is also cleared."""
         world = _make_world(current_turn=5)
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "some_dialogue",
             "blocking": False,
             "turn_created": 3,  # Created 2 turns ago, < current_turn
-        }
+        })
         world.incoming_proposal_popup = {
             "from_nation": "Prussia",
             "proposal_type": "ALLIANCE",
@@ -153,7 +153,7 @@ class TestFix8NonBlockingClearsProposalPopup:
         if (world.pending_diplomatic_dialogue
                 and not world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.incoming_proposal_popup = None  # Fix 8
 
         assert world.pending_diplomatic_dialogue is None

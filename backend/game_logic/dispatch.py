@@ -826,11 +826,7 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             dispatch["talleyrand_discovery"] = confrontation
 
             # Also set on world for the dialogue system to pick up
-            if world.pending_diplomatic_dialogue:
-                # Queue instead of overwriting existing dialogue
-                world.pending_dialogue_queue.append(confrontation)
-            else:
-                world.pending_diplomatic_dialogue = confrontation
+            world.dialogue_manager.push(confrontation)
 
             # Notification: sabotage discovered (Session 8C)
             from backend.notifications import (
@@ -891,25 +887,24 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
         dispatch["talleyrand_override_note"] = override_note
 
     # ── 3. Redemption Event Check ──
-    # Only fire if no other dialogue is pending
-    if not world.pending_diplomatic_dialogue:
-        from backend.commands.diplomatic_defiance import (
-            check_talleyrand_redemption, build_redemption_dialogue,
-        )
-        if check_talleyrand_redemption(talleyrand, world):
-            redemption = build_redemption_dialogue(talleyrand, world)
-            dispatch["talleyrand_redemption"] = redemption
-            world.pending_diplomatic_dialogue = redemption
+    # push() auto-queues if another dialogue is active
+    from backend.commands.diplomatic_defiance import (
+        check_talleyrand_redemption, build_redemption_dialogue,
+    )
+    if check_talleyrand_redemption(talleyrand, world):
+        redemption = build_redemption_dialogue(talleyrand, world)
+        dispatch["talleyrand_redemption"] = redemption
+        world.dialogue_manager.push(redemption)
 
-            # Set popup data for Godot (Session 8C)
-            trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-            world.talleyrand_redemption_popup = {
-                "trust": int(trust),
-                "trigger_reason": f"Trust has fallen to {int(trust)}.",
-                "option_apologize": {"effect": "Trust +15, Authority -5"},
-                "option_replace": {"effect": "Skill drops to 6, Trust resets to 50, Schemer->Loyalist (irreversible)"},
-                "option_continue": {"effect": "Trust unchanged, Authority -10"},
-            }
+        # Set popup data for Godot (Session 8C)
+        trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
+        world.talleyrand_redemption_popup = {
+            "trust": int(trust),
+            "trigger_reason": f"Trust has fallen to {int(trust)}.",
+            "option_apologize": {"effect": "Trust +15, Authority -5"},
+            "option_replace": {"effect": "Skill drops to 6, Trust resets to 50, Schemer->Loyalist (irreversible)"},
+            "option_continue": {"effect": "Trust unchanged, Authority -10"},
+        }
 
 
 def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:

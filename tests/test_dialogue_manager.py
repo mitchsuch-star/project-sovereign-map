@@ -33,56 +33,53 @@ class TestDialogueCharacterization:
         world = WorldFactory.basic()
         d1 = self._make_dialogue("incoming_proposal")
         d2 = self._make_dialogue("sabotage_confrontation")
-        world.pending_diplomatic_dialogue = d1
+        world.dialogue_manager.replace(d1)
         assert world.pending_diplomatic_dialogue["type"] == "incoming_proposal"
-        world.pending_diplomatic_dialogue = d2
+        world.dialogue_manager.replace(d2)
         assert world.pending_diplomatic_dialogue["type"] == "sabotage_confrontation"
 
     def test_none_clears_current(self):
         """Setting to None clears the dialogue."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue()
+        world.dialogue_manager.replace(self._make_dialogue())
         assert world.pending_diplomatic_dialogue is not None
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is None
 
     def test_queue_append(self):
-        """Queue items can be appended directly."""
+        """push() sets current when empty, queues when occupied."""
         world = WorldFactory.basic()
-        world.pending_dialogue_queue.append(self._make_dialogue("vassal_rebellion_imminent"))
-        world.pending_dialogue_queue.append(self._make_dialogue("incoming_proposal"))
-        assert len(world.pending_dialogue_queue) == 2
+        world.dialogue_manager.push(self._make_dialogue("vassal_rebellion_imminent"))
+        # First push goes to _current (was empty)
+        assert world.pending_diplomatic_dialogue["type"] == "vassal_rebellion_imminent"
+        world.dialogue_manager.push(self._make_dialogue("incoming_proposal"))
+        # Second push goes to queue (current occupied)
+        assert len(world.dialogue_manager._queue) == 1
 
     # ── Auto-Pop (turn_manager path) ──
 
     def test_auto_pop_promotes_by_priority_turn_manager(self):
-        """turn_manager._pop_dialogue_queue promotes highest priority from queue."""
-        from backend.game_logic.turn_manager import TurnManager
-
+        """dialogue_manager.promote_if_empty() promotes highest priority from queue."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()  # Ensure empty
         # Queue: incoming_proposal (4) and vassal_rebellion (1)
-        world.pending_dialogue_queue = [
+        world.dialogue_manager._queue = [
             self._make_dialogue("incoming_proposal"),
             self._make_dialogue("vassal_rebellion_imminent"),
         ]
-        tm = TurnManager(world)
-        tm._pop_dialogue_queue()
+        world.dialogue_manager.promote_if_empty()
         # Vassal rebellion has higher priority (lower number)
         assert world.pending_diplomatic_dialogue["type"] == "vassal_rebellion_imminent"
-        assert len(world.pending_dialogue_queue) == 1
+        assert len(world.dialogue_manager._queue) == 1
 
     def test_auto_pop_skips_if_current_set(self):
-        """turn_manager._pop_dialogue_queue does nothing if current is already set."""
-        from backend.game_logic.turn_manager import TurnManager
-
+        """dialogue_manager.promote_if_empty() does nothing if current is already set."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue("alliance_paradox")
-        world.pending_dialogue_queue = [self._make_dialogue("incoming_proposal")]
-        tm = TurnManager(world)
-        tm._pop_dialogue_queue()
+        world.dialogue_manager.replace(self._make_dialogue("alliance_paradox"))
+        world.dialogue_manager._queue = [self._make_dialogue("incoming_proposal")]
+        world.dialogue_manager.promote_if_empty()
         assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
-        assert len(world.pending_dialogue_queue) == 1
+        assert len(world.dialogue_manager._queue) == 1
 
     # ── Blocking ──
 
@@ -91,9 +88,9 @@ class TestDialogueCharacterization:
         from backend.commands.executor import CommandExecutor
 
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue(
+        world.dialogue_manager.replace(self._make_dialogue(
             "incoming_proposal", blocking=True, turn=1
-        )
+        ))
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor._execute_end_turn({}, game_state)
@@ -106,44 +103,44 @@ class TestDialogueCharacterization:
         """Non-blocking dialogue auto-dismisses when turn_created < current_turn."""
         world = WorldFactory.basic()
         world.current_turn = 1
-        world.pending_diplomatic_dialogue = self._make_dialogue(
+        world.dialogue_manager.replace(self._make_dialogue(
             "incoming_proposal", blocking=False, turn=1
-        )
+        ))
         # Advance turn increments current_turn, then auto-dismiss fires
         world.current_turn = 2
         # Simulate the auto-dismiss logic from advance_turn
         if (world.pending_diplomatic_dialogue
                 and not world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is None
 
     def test_blocking_safety_valve_clears_after_2_turns(self):
         """Blocking dialogue force-clears when turn_created + 2 < current_turn."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue(
+        world.dialogue_manager.replace(self._make_dialogue(
             "incoming_proposal", blocking=True, turn=1
-        )
+        ))
         # turn_created=1, current_turn=4: 1 + 2 < 4 → True → clear
         world.current_turn = 4
         if (world.pending_diplomatic_dialogue
                 and world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) + 2 < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is None
 
     def test_blocking_safety_valve_keeps_if_not_old_enough(self):
         """Blocking dialogue stays if turn_created + 2 >= current_turn."""
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue(
+        world.dialogue_manager.replace(self._make_dialogue(
             "incoming_proposal", blocking=True, turn=1
-        )
+        ))
         # turn_created=1, current_turn=3: 1 + 2 < 3 → False → keep
         world.current_turn = 3
         if (world.pending_diplomatic_dialogue
                 and world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) + 2 < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is not None
 
     # ── Serialization ──
@@ -153,16 +150,16 @@ class TestDialogueCharacterization:
         from backend.models.world_state import WorldState
 
         world = WorldFactory.basic()
-        world.pending_diplomatic_dialogue = self._make_dialogue("incoming_proposal", turn=3)
-        world.pending_dialogue_queue = [
+        world.dialogue_manager.replace(self._make_dialogue("incoming_proposal", turn=3))
+        world.dialogue_manager._queue = [
             self._make_dialogue("vassal_rebellion_imminent", turn=2),
             self._make_dialogue("sabotage_confrontation", turn=3),
         ]
         data = world.to_dict()
         loaded = WorldState.from_dict(data)
         assert loaded.pending_diplomatic_dialogue["type"] == "incoming_proposal"
-        assert len(loaded.pending_dialogue_queue) == 2
-        assert loaded.pending_dialogue_queue[0]["type"] == "vassal_rebellion_imminent"
+        assert len(loaded.dialogue_manager._queue) == 2
+        assert loaded.dialogue_manager._queue[0]["type"] == "vassal_rebellion_imminent"
 
     # ── Paired Popup Clearing ──
 
@@ -170,16 +167,16 @@ class TestDialogueCharacterization:
         """incoming_proposal_popup clears when dialogue auto-dismisses."""
         world = WorldFactory.basic()
         world.current_turn = 1
-        world.pending_diplomatic_dialogue = self._make_dialogue(
+        world.dialogue_manager.replace(self._make_dialogue(
             "incoming_proposal", blocking=False, turn=1
-        )
+        ))
         world.incoming_proposal_popup = {"from_nation": "Austria"}
         # Simulate advance_turn auto-dismiss
         world.current_turn = 2
         if (world.pending_diplomatic_dialogue
                 and not world.pending_diplomatic_dialogue.get("blocking")
                 and world.pending_diplomatic_dialogue.get("turn_created", 0) < world.current_turn):
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.incoming_proposal_popup = None
         assert world.pending_diplomatic_dialogue is None
         assert world.incoming_proposal_popup is None
@@ -191,27 +188,27 @@ class TestDialogueCharacterization:
         world = WorldFactory.basic()
         existing = self._make_dialogue("incoming_proposal")
         confrontation = self._make_dialogue("sabotage_confrontation")
-        world.pending_diplomatic_dialogue = existing
+        world.dialogue_manager.replace(existing)
         # Simulate dispatch.py pattern (lines 829-833)
         if world.pending_diplomatic_dialogue:
-            world.pending_dialogue_queue.append(confrontation)
+            world.dialogue_manager.push(confrontation)
         else:
-            world.pending_diplomatic_dialogue = confrontation
+            world.dialogue_manager.replace(confrontation)
         assert world.pending_diplomatic_dialogue["type"] == "incoming_proposal"
-        assert len(world.pending_dialogue_queue) == 1
-        assert world.pending_dialogue_queue[0]["type"] == "sabotage_confrontation"
+        assert len(world.dialogue_manager._queue) == 1
+        assert world.dialogue_manager._queue[0]["type"] == "sabotage_confrontation"
 
     def test_dispatch_conditional_sets_when_empty(self):
         """dispatch.py sets confrontation directly when slot is empty."""
         world = WorldFactory.basic()
         confrontation = self._make_dialogue("sabotage_confrontation")
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         if world.pending_diplomatic_dialogue:
-            world.pending_dialogue_queue.append(confrontation)
+            world.dialogue_manager.push(confrontation)
         else:
-            world.pending_diplomatic_dialogue = confrontation
+            world.dialogue_manager.replace(confrontation)
         assert world.pending_diplomatic_dialogue["type"] == "sabotage_confrontation"
-        assert len(world.pending_dialogue_queue) == 0
+        assert len(world.dialogue_manager._queue) == 0
 
 
 # ════════════════════════════════════════════════════════════════════════════════

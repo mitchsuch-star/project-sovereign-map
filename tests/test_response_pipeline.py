@@ -321,11 +321,11 @@ class TestOtherEndpointDiplomaticFields:
 
     def test_diplomatic_dialogue_has_diplomatic_fields(self, client, fresh_world):
         """Diplomatic dialogue response should include diplomatic fields."""
-        fresh_world.pending_diplomatic_dialogue = {
+        fresh_world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "target_nation": "Prussia",
             "options": [{"label": "Accept", "value": "accept"}],
-        }
+        })
         response = client.post("/respond_to_diplomatic_dialogue",
                                json={"choice": "accept"})
         data = response.json()

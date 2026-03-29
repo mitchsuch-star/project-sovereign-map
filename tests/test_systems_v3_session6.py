@@ -442,10 +442,10 @@ class TestCancelOrderDialogueGuard:
         )
 
         # Set dialogue state
-        w.pending_diplomatic_dialogue = {
+        w.dialogue_manager.replace({
             "type": "incoming_proposal",
             "from_nation": "Prussia",
-        }
+        })
 
         # Inject world into main module
         old_world = main_mod.world

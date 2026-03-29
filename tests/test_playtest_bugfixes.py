@@ -266,7 +266,7 @@ class TestWarOnTreatyAlly:
         world.diplomatic_points = 5
 
         # Simulate the pending dialogue that the treaty warning creates
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "force_declare_war_confirmation",
             "target_nation": target,
             "message": "Treaty warning...",
@@ -276,7 +276,7 @@ class TestWarOnTreatyAlly:
             ],
             "turn_created": int(world.current_turn),
             "blocking": True,
-        }
+        })
 
         # Player chooses "proceed" (force_declare_war)
         selected = {"action": "force_declare_war", "target_nation": target}

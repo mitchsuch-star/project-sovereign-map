@@ -278,7 +278,7 @@ class TestCounterOfferDialogueHandlers:
         game_state = _make_game_state(world)
 
         # Set up counter-offer dialogue (as set by _process_proposal_in_transit)
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "talleyrand_text": "Sire, Saxony has returned with modified terms.",
@@ -299,7 +299,7 @@ class TestCounterOfferDialogueHandlers:
             },
             "turn_created": int(world.current_turn),
             "blocking": True,
-        }
+        })
 
         result = executor.handle_diplomatic_dialogue_response("accept", game_state)
         assert result["success"] is True
@@ -312,7 +312,7 @@ class TestCounterOfferDialogueHandlers:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "talleyrand_text": "Modified terms from Saxony.",
@@ -331,7 +331,7 @@ class TestCounterOfferDialogueHandlers:
             },
             "turn_created": int(world.current_turn),
             "blocking": True,
-        }
+        })
 
         result = executor.handle_diplomatic_dialogue_response("reject", game_state)
         assert result["success"] is True
@@ -489,7 +489,7 @@ class TestBlockingDialogue:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "talleyrand_text": "Sire, respond to Saxony.",
@@ -500,7 +500,7 @@ class TestBlockingDialogue:
             "context": {"source_nation": "Saxony"},
             "turn_created": int(world.current_turn),
             "blocking": True,
-        }
+        })
 
         result = executor._execute_end_turn({}, game_state)
         assert result["success"] is False
@@ -513,7 +513,7 @@ class TestBlockingDialogue:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "blocking": True,
@@ -523,7 +523,7 @@ class TestBlockingDialogue:
             ],
             "context": {"source_nation": "Saxony"},
             "turn_created": int(world.current_turn),
-        }
+        })
 
         # Simulate a normal command through executor
         parsed = {
@@ -541,7 +541,7 @@ class TestBlockingDialogue:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "blocking": True,
@@ -551,7 +551,7 @@ class TestBlockingDialogue:
             ],
             "context": {"source_nation": "Saxony"},
             "turn_created": int(world.current_turn),
-        }
+        })
 
         parsed = {"success": True, "command": {"action": "status"}}
         result = executor.execute(parsed, game_state)
@@ -621,7 +621,7 @@ class TestCounterOfferFullFlow:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "blocking": True,
@@ -639,7 +639,7 @@ class TestCounterOfferFullFlow:
                 },
             },
             "turn_created": int(world.current_turn),
-        }
+        })
         world.incoming_proposal_popup = {
             "from_nation": "Saxony",
             "diplomat_name": "Envoy",
@@ -663,7 +663,7 @@ class TestCounterOfferFullFlow:
         executor = _make_executor()
         game_state = _make_game_state(world)
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer_response",
             "target_nation": "Saxony",
             "blocking": True,
@@ -677,7 +677,7 @@ class TestCounterOfferFullFlow:
                 "counter_terms": {},
             },
             "turn_created": int(world.current_turn),
-        }
+        })
         world.incoming_proposal_popup = {
             "from_nation": "Saxony",
             "is_counter_offer": True,

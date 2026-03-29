@@ -100,7 +100,7 @@ class DiplomaticExecutor:
 
         if not target_nation:
             # No target — ask which nation
-            world.pending_diplomatic_dialogue = {
+            world.dialogue_manager.replace({
                 "type": "proposal_options",
                 "target_nation": "",
                 "talleyrand_text": "Sire, which nation shall I approach? Our diplomatic landscape includes Britain, Prussia, Austria, and Saxony.",
@@ -117,7 +117,7 @@ class DiplomaticExecutor:
                 "context": {},
                 "turn_created": int(world.current_turn),
                 "blocking": False,
-            }
+            })
             return {
                 "success": True,
                 "message": world.pending_diplomatic_dialogue["talleyrand_text"],
@@ -195,7 +195,7 @@ class DiplomaticExecutor:
         dialogue = generate_dialogue(intent, diplomatic_data, world)
 
         # Set pending dialogue
-        world.pending_diplomatic_dialogue = dialogue
+        world.dialogue_manager.replace(dialogue)
 
         return {
             "success": True,
@@ -218,7 +218,7 @@ class DiplomaticExecutor:
 
         if not target_nation or not mission_type:
             dialogue = generate_mission_dialogue(diplomatic_data, world)
-            world.pending_diplomatic_dialogue = dialogue
+            world.dialogue_manager.replace(dialogue)
             return {
                 "success": True,
                 "message": dialogue.get("talleyrand_text", ""),
@@ -258,7 +258,7 @@ class DiplomaticExecutor:
 
         # Generate mission confirmation dialogue
         dialogue = generate_mission_dialogue(diplomatic_data, world)
-        world.pending_diplomatic_dialogue = dialogue
+        world.dialogue_manager.replace(dialogue)
         return {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
@@ -278,7 +278,7 @@ class DiplomaticExecutor:
         from backend.game_logic.diplomacy import calculate_acceptance
 
         dialogue = generate_feasibility_dialogue(diplomatic_data, world)
-        world.pending_diplomatic_dialogue = dialogue
+        world.dialogue_manager.replace(dialogue)
 
         # R31: Run acceptance formula to get component breakdown
         target_nation = diplomatic_data.get("target_nation", "")
@@ -335,7 +335,7 @@ class DiplomaticExecutor:
             advisory_type = "assess_nation" if target_nation else "compare_threats"
 
         dialogue = generate_advisory(target_nation or None, advisory_type, world)
-        world.pending_diplomatic_dialogue = dialogue
+        world.dialogue_manager.replace(dialogue)
         return {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
@@ -472,7 +472,7 @@ class DiplomaticExecutor:
             from backend.display_names import PROPOSAL_TYPE_DISPLAY
             _display_proposal_type = lambda pt: PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
             treaty_display = _display_proposal_type(treaty_type)
-            world.pending_diplomatic_dialogue = {
+            world.dialogue_manager.replace({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
                 "message": (f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
@@ -485,7 +485,7 @@ class DiplomaticExecutor:
                 ],
                 "turn_created": int(world.current_turn),
                 "blocking": True,
-            }
+            })
             return {
                 "success": True,
                 "message": world.pending_diplomatic_dialogue["message"],
@@ -866,17 +866,17 @@ class DiplomaticExecutor:
         target_nation = dialogue.get("target_nation", "")
 
         if action == "dismiss":
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {"success": True, "message": "Very well, Sire."}
 
         elif action == "reconsider":
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {"success": True, "message": "Of course, Sire. Take your time."}
 
         elif action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty
             from backend.game_logic.diplomacy import declare_war
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             fw_target = selected.get("target_nation") or target_nation
             if not fw_target:
                 return {"success": False, "message": "No target nation specified."}
@@ -921,7 +921,7 @@ class DiplomaticExecutor:
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
             if world.diplomatic_points < cost:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
@@ -987,7 +987,7 @@ class DiplomaticExecutor:
             queue_dispatch_event(world, "diplomatic_proposal_sent",
                                 {"nation": target_nation}, "always")
 
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": (
@@ -1075,7 +1075,7 @@ class DiplomaticExecutor:
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
             new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.pending_diplomatic_dialogue = new_dialogue
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
@@ -1173,7 +1173,7 @@ class DiplomaticExecutor:
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
             new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.pending_diplomatic_dialogue = new_dialogue
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
@@ -1185,7 +1185,7 @@ class DiplomaticExecutor:
             terms = selected.get("terms", {})
             expand_target = terms.get("target_nation", target_nation)
             if not expand_target:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": True, "message": "Very well, Sire."}
 
             # Re-route as a vague proposal with the target set
@@ -1200,13 +1200,12 @@ class DiplomaticExecutor:
                 "tone": "propose",
                 "raw_text": f"propose to {expand_target}",
             }
-            world.pending_diplomatic_dialogue = None  # Clear current
             from backend.game_logic.diplomatic_dialogue import (
                 classify_diplomatic_intent, generate_dialogue,
             )
             intent = classify_diplomatic_intent(diplomatic_data, world)
             new_dialogue = generate_dialogue(intent, diplomatic_data, world)
-            world.pending_diplomatic_dialogue = new_dialogue
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue.get("talleyrand_text", ""),
@@ -1275,7 +1274,7 @@ class DiplomaticExecutor:
                         "turn_created": int(world.current_turn),
                         "blocking": False,
                     }
-                    world.pending_diplomatic_dialogue = new_dialogue
+                    world.dialogue_manager.replace(new_dialogue)
                     return {
                         "success": True,
                         "message": new_dialogue["talleyrand_text"],
@@ -1311,7 +1310,7 @@ class DiplomaticExecutor:
                     "turn_created": int(world.current_turn),
                     "blocking": False,
                 }
-                world.pending_diplomatic_dialogue = new_dialogue
+                world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -1358,7 +1357,7 @@ class DiplomaticExecutor:
                     "turn_created": int(world.current_turn),
                     "blocking": False,
                 }
-                world.pending_diplomatic_dialogue = new_dialogue
+                world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -1394,7 +1393,7 @@ class DiplomaticExecutor:
                     "turn_created": int(world.current_turn),
                     "blocking": False,
                 }
-                world.pending_diplomatic_dialogue = new_dialogue
+                world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -1419,7 +1418,7 @@ class DiplomaticExecutor:
                     "turn_created": int(world.current_turn),
                     "blocking": False,
                 }
-                world.pending_diplomatic_dialogue = new_dialogue
+                world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -1484,13 +1483,13 @@ class DiplomaticExecutor:
             mission_target = terms.get("target_nation", target_nation)
 
             if not mission_target:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "Which nation, Sire?"}
 
             # Check DP
             cost = MISSION_DP_COSTS.get(mission_type, 1)
             if world.diplomatic_points < cost:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": f"Insufficient DP. Mission costs {int(cost)} DP per turn.",
@@ -1514,7 +1513,7 @@ class DiplomaticExecutor:
                 "target": mission_target,
             })
 
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": f"Talleyrand begins efforts to {description} {mission_target}. ({int(cost)} DP/turn)",
@@ -1523,12 +1522,12 @@ class DiplomaticExecutor:
         elif action == "cancel_mission":
             existing = getattr(world, 'active_diplomatic_mission', None)
             if not existing:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "No active mission to cancel."}
             old_target = existing.get("target", "unknown")
             world.active_diplomatic_mission = None
             world.talleyrand_state = "IDLE"
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": f"Talleyrand's mission to {old_target} has been cancelled.",
@@ -1547,7 +1546,7 @@ class DiplomaticExecutor:
             # Advisory drill-down: re-route to proposal dialogue for a nation
             expand_target = dialogue.get("target_nation", target_nation)
             if not expand_target:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": True, "message": "Very well, Sire."}
             diplomatic_data = {
                 "action": "diplomatic_proposal",
@@ -1560,13 +1559,12 @@ class DiplomaticExecutor:
                 "tone": "propose",
                 "raw_text": f"propose to {expand_target}",
             }
-            world.pending_diplomatic_dialogue = None
             from backend.game_logic.diplomatic_dialogue import (
                 classify_diplomatic_intent, generate_dialogue as gen_dlg,
             )
             intent = classify_diplomatic_intent(diplomatic_data, world)
             new_dialogue = gen_dlg(intent, diplomatic_data, world)
-            world.pending_diplomatic_dialogue = new_dialogue
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue.get("talleyrand_text", ""),
@@ -1586,7 +1584,7 @@ class DiplomaticExecutor:
             counter_terms = context.get("counter_terms", {})
             source_nation = context.get("source_nation", target_nation)
             if not counter_terms:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": True, "message": "No counter-offer terms to review, Sire."}
             # Build a new confirmation dialogue showing the counter terms
             from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
@@ -1616,7 +1614,7 @@ class DiplomaticExecutor:
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
             new_dialogue = _enrich_proposal_summary(new_dialogue, source_nation, proposal_type, world)
-            world.pending_diplomatic_dialogue = new_dialogue
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
@@ -1634,16 +1632,16 @@ class DiplomaticExecutor:
             from backend.commands.diplomatic_defiance import resolve_confrontation
             talleyrand = world.diplomats.get("France")
             if not talleyrand:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "No diplomat available."}
             try:
                 result = resolve_confrontation(action, talleyrand, world)
             except Exception:
                 import logging
                 logging.getLogger(__name__).exception("Error in sabotage confrontation")
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "An error occurred resolving the confrontation."}
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.diplomatic_sabotage = None
             # Dismiss stale sabotage notification
             from backend.notifications import SABOTAGE_DISCOVERED
@@ -1660,16 +1658,16 @@ class DiplomaticExecutor:
             from backend.commands.diplomatic_defiance import apply_redemption_choice
             talleyrand = world.diplomats.get("France")
             if not talleyrand:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "No diplomat available."}
             try:
                 result = apply_redemption_choice(action, talleyrand, world)
             except Exception:
                 import logging
                 logging.getLogger(__name__).exception("Error in Talleyrand redemption")
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "An error occurred processing the redemption."}
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.talleyrand_redemption = None
             return {
                 "success": True,
@@ -1712,7 +1710,7 @@ class DiplomaticExecutor:
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
             if world.diplomatic_points < cost:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
@@ -1754,7 +1752,7 @@ class DiplomaticExecutor:
             queue_dispatch_event(world, "diplomatic_proposal_sent",
                                 {"nation": target_nation}, "always")
 
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             override_note = " despite Talleyrand's objections" if action == "send_override" else " with Talleyrand's suggested terms"
             return {
                 "success": True,
@@ -1772,7 +1770,7 @@ class DiplomaticExecutor:
             counter_terms = context.get("counter_terms", {})
             source_nation = context.get("source_nation", target_nation)
             if not source_nation or not counter_terms:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: counter-offer data missing."}
             # Ratify treaty with counter terms (0 DP cost — already paid on original proposal)
             if "proposer_nation" not in counter_terms:
@@ -1780,7 +1778,7 @@ class DiplomaticExecutor:
             if "target_nation" not in counter_terms:
                 counter_terms["target_nation"] = world.player_nation
             treaty_event = world._ratify_treaty(counter_terms)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
@@ -1807,7 +1805,7 @@ class DiplomaticExecutor:
                 world.player_proposal_cooldowns[source_nation] = 3
                 if ptype:
                     world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
@@ -1829,11 +1827,11 @@ class DiplomaticExecutor:
             context = dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             if not vassal_name:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
             from backend.game_logic.vassal import invest_in_vassal
             result = invest_in_vassal(world, vassal_name)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
@@ -1844,16 +1842,16 @@ class DiplomaticExecutor:
             context = dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             if not vassal_name:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
             # Guard: vassal may have been removed between popup and response
             if vassal_name not in world.vassals:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 world.vassal_rebellion_imminent_popup = None
                 return {"success": False, "message": f"{vassal_name} is no longer a vassal."}
             # Deploy garrison: +10 loyalty, costs 2 AP
             if world.actions_remaining < 2:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": f"Insufficient AP. Garrison deployment costs 2 AP, you have {int(world.actions_remaining)}.",
@@ -1862,7 +1860,7 @@ class DiplomaticExecutor:
             vassal_state = world.vassals.get(vassal_name, {})
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
@@ -1876,7 +1874,7 @@ class DiplomaticExecutor:
             }
 
         elif action == "accept_vassal_rebellion":
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
@@ -1899,12 +1897,12 @@ class DiplomaticExecutor:
             attacker_nation = terms.get("attacker", "")
             defender_nation = terms.get("defender", "")
             if not attacker_nation or not defender_nation:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
             from backend.game_logic.diplomacy import declare_war as _paradox_declare_war
             # Honor alliance with defender: declare war on attacker
             war_result = _paradox_declare_war(world, world.player_nation, attacker_nation)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.alliance_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
@@ -1921,7 +1919,7 @@ class DiplomaticExecutor:
             attacker_nation = terms.get("attacker", "")
             defender_nation = terms.get("defender", "")
             if not attacker_nation or not defender_nation:
-                world.pending_diplomatic_dialogue = None
+                world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
             from backend.game_logic.diplomacy import execute_downgrade as _paradox_downgrade
             # Break alliance with defender: downgrade step by step to PEACE
@@ -1936,7 +1934,7 @@ class DiplomaticExecutor:
             # Also remove active treaty
             active_treaties = getattr(world, 'active_treaties', {})
             active_treaties.pop(diplo_key, None)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             world.alliance_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
@@ -1950,7 +1948,7 @@ class DiplomaticExecutor:
             }
 
         else:
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {"success": False, "message": f"Unknown dialogue action: {action}"}
 
     # ═══════════════════════════════════════════════════════════
@@ -1997,7 +1995,7 @@ class DiplomaticExecutor:
             "turn_created": int(world.current_turn),
             "blocking": False,
         }
-        world.pending_diplomatic_dialogue = new_dialogue
+        world.dialogue_manager.replace(new_dialogue)
         return {
             "success": True,
             "message": new_dialogue["talleyrand_text"],
@@ -2024,7 +2022,7 @@ class DiplomaticExecutor:
             "turn_created": int(world.current_turn),
             "blocking": False,
         }
-        world.pending_diplomatic_dialogue = new_dialogue
+        world.dialogue_manager.replace(new_dialogue)
         return {
             "success": True,
             "message": new_dialogue["talleyrand_text"],
@@ -2086,7 +2084,7 @@ class DiplomaticExecutor:
             "blocking": False,
         }
         new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-        world.pending_diplomatic_dialogue = new_dialogue
+        world.dialogue_manager.replace(new_dialogue)
         return {
             "success": True,
             "message": new_dialogue["talleyrand_text"],
@@ -2106,7 +2104,7 @@ class DiplomaticExecutor:
         source_nation = context.get("source_nation", "")
 
         if not source_nation or not terms:
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {"success": False, "message": "Error: proposal data missing."}
 
         proposal_type = terms.get("type", "")
@@ -2119,7 +2117,7 @@ class DiplomaticExecutor:
             new_state = proposal_type.upper()
             conflict = check_alliance_conflict(source_nation, new_state, world)
             if conflict:
-                world.pending_diplomatic_dialogue = {
+                world.dialogue_manager.replace({
                     "type": "conflict_alert",
                     "target_nation": source_nation,
                     "talleyrand_text": conflict["message"],
@@ -2138,7 +2136,7 @@ class DiplomaticExecutor:
                     "context": context,
                     "turn_created": int(world.current_turn),
                     "blocking": True,
-                }
+                })
                 return {
                     "success": True,
                     "message": conflict["message"],
@@ -2151,7 +2149,7 @@ class DiplomaticExecutor:
         if "target_nation" not in terms:
             terms["target_nation"] = world.player_nation
         treaty_event = world._ratify_treaty(terms)
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
         from backend.notifications import DIPLOMATIC_PROPOSAL
         world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
@@ -2189,7 +2187,7 @@ class DiplomaticExecutor:
         if source_nation:
             apply_rejection_cooldowns(source_nation, proposal_type, world)
 
-        world.pending_diplomatic_dialogue = None
+        world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
         from backend.notifications import DIPLOMATIC_PROPOSAL
         world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
@@ -2220,7 +2218,7 @@ class DiplomaticExecutor:
         source_nation = context.get("source_nation", "")
 
         if not source_nation or not terms:
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             return {"success": False, "message": "Error: proposal data missing."}
 
         # Counter-offer costs 1 DP
@@ -2237,7 +2235,7 @@ class DiplomaticExecutor:
         if counter_terms is None:
             # Counter failed (score < 30) — auto-reject
             apply_rejection_cooldowns(source_nation, terms.get("type", "unknown"), world)
-            world.pending_diplomatic_dialogue = None
+            world.dialogue_manager.pop()
             # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
             world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
@@ -2267,7 +2265,7 @@ class DiplomaticExecutor:
         if world.incoming_proposal_popup:
             world.incoming_proposal_popup["is_counter_offer"] = True
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "counter_offer",
             "target_nation": source_nation,
             "talleyrand_text": (
@@ -2294,7 +2292,7 @@ class DiplomaticExecutor:
             },
             "turn_created": int(world.current_turn),
             "blocking": True,
-        }
+        })
 
         return {
             "success": True,

@@ -1,6 +1,7 @@
 # R12B Migration Audit: diplomatic_executor.py
 
 **Created:** March 28, 2026 (Phase 0 pre-migration audit)
+**Completed:** March 29, 2026 (Phase 2 migration — all 65 write ops migrated, 7755 tests passing)
 **Purpose:** Line-by-line classification of all 73 `pending_diplomatic_dialogue` operations for migration to DialogueManager API. This file is the single source of truth for the migration — any new context/session should read this + grep for remaining operations.
 
 **Design Decision:** ALL 22 SETs use `replace()`, not `push()`. Rationale: every SET in diplomatic_executor.py is a synchronous response to player input (either a fresh command or a dialogue step progression). The player expects to see the result immediately. `push()` would queue behind existing dialogue — wrong UX. `replace()` matches old overwrite behavior exactly. `push()` semantics are reserved for async/external sources (AI proposals, vassal popups) in 12C.

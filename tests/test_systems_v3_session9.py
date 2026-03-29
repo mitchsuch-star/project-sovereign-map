@@ -253,13 +253,13 @@ class TestConfrontationErrorHandling:
         )
 
         # Set up dialogue state
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "sabotage_discovery",
             "options": [
                 {"label": "Confront", "action": "confront_sabotage"},
                 {"label": "Overlook", "action": "overlook_sabotage"},
             ],
-        }
+        })
 
         # Monkey-patch to force an exception
         import backend.commands.diplomatic_defiance as dd
@@ -290,12 +290,12 @@ class TestConfrontationErrorHandling:
             name="Talleyrand", nation="France", personality="shrewd", skill=8
         )
 
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "talleyrand_redemption",
             "options": [
                 {"label": "Apologize", "action": "redemption_apologize"},
             ],
-        }
+        })
 
         import backend.commands.diplomatic_defiance as dd
         original = dd.apply_redemption_choice

@@ -133,22 +133,22 @@ class TestVoidDialogueOnCoalition:
     def test_dialogue_voided(self):
         from backend.game_logic.coalition import form_coalition
         world = make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal",
             "target_nation": "Austria",
             "blocking": True,
-        }
+        })
         form_coalition(["Austria"], world)
         assert world.pending_diplomatic_dialogue is None
 
     def test_unrelated_dialogue_kept(self):
         from backend.game_logic.coalition import form_coalition
         world = make_world()
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal",
             "target_nation": "Saxony",
             "blocking": True,
-        }
+        })
         form_coalition(["Austria"], world)
         # Saxony is not a coalition member, dialogue should be kept
         assert world.pending_diplomatic_dialogue is not None

@@ -496,7 +496,7 @@ class TestR29DiplomaticHistory:
     def test_proposal_sent_logged(self, executor, world, game_state):
         """Sending a proposal creates a history entry."""
         world.diplomatic_points = 10
-        world.pending_diplomatic_dialogue = {
+        world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Austria",
             "options": [
@@ -516,7 +516,7 @@ class TestR29DiplomaticHistory:
             "turn_created": 1,
             "blocking": False,
             "talleyrand_text": "Test",
-        }
+        })
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
         assert result.get("success"), result.get("message")
         found = [e for e in world.diplomatic_history if e["type"] == "proposal_sent"]
