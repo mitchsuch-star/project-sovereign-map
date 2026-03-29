@@ -13,7 +13,7 @@ from backend.commands.objection_v2 import (
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
     concern_to_legacy_severity,
 )
-from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES
+from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES, get_strategic_display
 
 
 def _action_display_name(action: str) -> str:
@@ -630,12 +630,13 @@ class StrategicExecutor:
                             from backend.commands.disobedience import _get_aggressive_preferred, _build_strategic_options
                             preferred = _get_aggressive_preferred(marshal, world) if marshal.personality == 'aggressive' else None
                             compromise = {"action": strategic_type.lower(), "max_turns": 3}
+                            display_type = get_strategic_display(strategic_type)
                             v1_options = _build_strategic_options(
                                 marshal,
                                 preferred,
                                 compromise,
-                                f"Proceed with {strategic_type}",
-                                f"Accept: Timed {strategic_type} (3 turns)",
+                                f"Proceed with {display_type}",
+                                f"Accept: Timed {display_type} (3 turns)",
                                 strategic_type
                             )
 

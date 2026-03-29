@@ -23,7 +23,6 @@ var current_target: String = ""
 var current_recklessness: int = 0
 
 # Napoleonic color palette
-const COLOR_GOLD = "d9c08c"
 const COLOR_TEXT = "eee"
 const COLOR_DANGER = "ff4444"
 const COLOR_CAVALRY = "8b4513"  # Saddle brown for cavalry theme

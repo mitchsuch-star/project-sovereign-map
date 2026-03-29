@@ -16,10 +16,6 @@ signal cancelled
 @onready var message_label = $PanelContainer/VBoxContainer/MessageLabel
 @onready var button_container = $PanelContainer/VBoxContainer/ButtonContainer
 
-# Color palette
-const COLOR_GOLD = "d9c08c"
-const COLOR_TEXT = "eeeeee"
-
 # Current clarification data
 var current_marshal: String = ""
 var current_strategic_type: String = ""

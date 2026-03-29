@@ -455,16 +455,7 @@ def _build_manpower(world, player: str) -> dict:
 # ORDERS SECTION
 # ============================================================================
 
-_ORDER_DISPLAY_NAMES = {
-    "MOVE_TO": "Move To",
-    "PURSUE": "Pursue",
-    "HOLD": "Hold",
-    "SUPPORT": "Support",
-}
-
-
-def _derive_order_display_name(command_type: str) -> str:
-    return _ORDER_DISPLAY_NAMES.get(command_type, command_type)
+from backend.display_names import get_strategic_display as _derive_order_display_name
 
 
 def _derive_condition_text(order, world) -> str:

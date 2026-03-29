@@ -97,6 +97,24 @@ DEFIANCE_DISPLAY = {
 }
 
 # ============================================================================
+# STRATEGIC ORDER DISPLAY — player-facing names for strategic order types
+# Source: ledger.py _ORDER_DISPLAY_NAMES (R15 centralization)
+# ============================================================================
+
+STRATEGIC_ORDER_DISPLAY = {
+    "MOVE_TO": "March",
+    "PURSUE": "Pursue",
+    "HOLD": "Hold",
+    "SUPPORT": "Support",
+}
+
+
+def get_strategic_display(order_type: str) -> str:
+    """Return player-facing name for a strategic order type."""
+    return STRATEGIC_ORDER_DISPLAY.get(order_type, order_type.replace("_", " ").title())
+
+
+# ============================================================================
 # PROPOSAL TYPE DISPLAY — treaty/proposal type labels
 # Source: diplomatic_dialogue.py PROPOSAL_TYPE_DISPLAY
 # ============================================================================

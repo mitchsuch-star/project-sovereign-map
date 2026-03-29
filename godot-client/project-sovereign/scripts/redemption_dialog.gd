@@ -26,7 +26,6 @@ signal choice_made(choice: String)
 var current_marshal: String = ""
 
 # Napoleonic color palette
-const COLOR_GOLD = "d9c08c"
 const COLOR_TEXT = "eee"
 const COLOR_WARNING = "cd6b6b"
 const COLOR_PANEL = "1a1a2e"

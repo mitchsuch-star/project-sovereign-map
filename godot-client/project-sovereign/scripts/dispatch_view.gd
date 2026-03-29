@@ -17,15 +17,6 @@ signal closed
 @onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
 @onready var content_label = $PanelContainer/VBoxContainer/ScrollContainer/ContentLabel
 
-# Color palette (duplicated from main.gd — tech debt)
-const COLOR_GOLD = "d9c08c"
-const COLOR_SUCCESS = "8fbc8f"
-const COLOR_ERROR = "cd6b6b"
-const COLOR_BATTLE = "daa06d"
-const COLOR_INFO = "a0a0a8"
-const COLOR_BERTHIER = "B8860B"
-const COLOR_OBSERVATION = "DAA520"
-
 func _ready():
 	close_button.pressed.connect(close_view)
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -33,7 +24,7 @@ func _ready():
 
 func open(api_client):
 	"""Fetch dispatch from backend and display it."""
-	content_label.text = "[color=#" + COLOR_INFO + "]Loading dispatch...[/color]"
+	content_label.text = "[color=#" + Utils.COLOR_INFO + "]Loading dispatch...[/color]"
 	show()
 	api_client.get_dispatch(_on_dispatch_received)
 
@@ -49,12 +40,12 @@ func _on_dispatch_received(response):
 		return
 
 	if not response.get("success", false):
-		content_label.text = "[color=#" + COLOR_ERROR + "]Failed to load dispatch.[/color]"
+		content_label.text = "[color=#" + Utils.COLOR_ERROR + "]Failed to load dispatch.[/color]"
 		return
 
 	var data = response.get("dispatch", {})
 	if data.is_empty():
-		content_label.text = "[color=#" + COLOR_INFO + "]No dispatch available yet.\nThe morning dispatch appears at the start of each turn.[/color]"
+		content_label.text = "[color=#" + Utils.COLOR_INFO + "]No dispatch available yet.\nThe morning dispatch appears at the start of each turn.[/color]"
 		return
 
 	# Build BBCode — same format as main.gd _display_morning_dispatch()
@@ -66,14 +57,14 @@ func _on_dispatch_received(response):
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# ═══ DISPATCH HEADER ═══
-	bbcode += "[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
-	bbcode += "[color=#" + COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]\n"
-	bbcode += "[color=#" + COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
-	bbcode += "[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	bbcode += "\n"
 
 	# ═══ SITUATION ═══
-	bbcode += "[color=#" + COLOR_BERTHIER + "]SITUATION[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
 	var player_regions = int(situation.get("player_regions", 0))
 	var enemy_regions = int(situation.get("enemy_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
@@ -82,28 +73,28 @@ func _on_dispatch_received(response):
 	var strength_pct = int(situation.get("strength_ratio_pct", 0))
 
 	var delta_sign = "+" if treasury_delta >= 0 else ""
-	var delta_color = COLOR_SUCCESS if treasury_delta >= 0 else COLOR_ERROR
-	bbcode += "[color=#" + COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]\n"
+	var delta_color = Utils.COLOR_SUCCESS if treasury_delta >= 0 else Utils.COLOR_ERROR
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]\n"
 
 	if bankrupt:
-		bbcode += "[color=#" + COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"
 	else:
-		bbcode += "[color=#" + COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]\n"
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
 	var authority_label = str(situation.get("authority_label", "Normal"))
-	var auth_color = COLOR_INFO
+	var auth_color = Utils.COLOR_INFO
 	if authority >= 80:
-		auth_color = COLOR_SUCCESS
+		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
-		auth_color = COLOR_ERROR
-	bbcode += "[color=#" + COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
+		auth_color = Utils.COLOR_ERROR
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
 	bbcode += "\n"
 
 	# ═══ MARSHAL STATUS ═══
 	if marshals_list.size() > 0:
-		bbcode += "[color=#" + COLOR_BERTHIER + "]MARSHAL STATUS[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]MARSHAL STATUS[/color]\n"
 		for m in marshals_list:
 			var m_name = str(m.get("name", "?"))
 			var m_loc = str(m.get("location", "?"))
@@ -157,21 +148,21 @@ func _on_dispatch_received(response):
 				line += " Morale:" + str(m_morale) + "%"
 
 			# Color based on status
-			var line_color = COLOR_INFO
+			var line_color = Utils.COLOR_INFO
 			if m_status == "broken":
-				line_color = COLOR_ERROR
+				line_color = Utils.COLOR_ERROR
 			elif m_status == "retreating":
-				line_color = COLOR_ERROR
+				line_color = Utils.COLOR_ERROR
 			elif m_status == "idle_restless":
-				line_color = COLOR_BATTLE
+				line_color = Utils.COLOR_BATTLE
 
 			bbcode += "[color=#" + line_color + "]" + line + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ INTELLIGENCE ═══
-	bbcode += "[color=#" + COLOR_BERTHIER + "]INTELLIGENCE[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]INTELLIGENCE[/color]\n"
 	if intel_list.size() == 0:
-		bbcode += "[color=#" + COLOR_INFO + "]  No enemy forces in observation range.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  No enemy forces in observation range.[/color]\n"
 	else:
 		for intel_entry in intel_list:
 			var i_name = str(intel_entry.get("name", "?"))
@@ -181,20 +172,20 @@ func _on_dispatch_received(response):
 			var i_turn = int(intel_entry.get("intel_turn", 0))
 
 			var vis_label = ""
-			var vis_color = COLOR_INFO
+			var vis_color = Utils.COLOR_INFO
 			match i_vis:
 				"full":
 					vis_label = "[confirmed]"
-					vis_color = COLOR_SUCCESS
+					vis_color = Utils.COLOR_SUCCESS
 				"partial":
 					vis_label = "[partial]"
-					vis_color = COLOR_INFO
+					vis_color = Utils.COLOR_INFO
 				"stale":
 					vis_label = "[stale - T" + str(i_turn) + "]"
-					vis_color = COLOR_BATTLE
+					vis_color = Utils.COLOR_BATTLE
 				"last_known":
 					vis_label = "[last known - T" + str(i_turn) + "]"
-					vis_color = COLOR_ERROR
+					vis_color = Utils.COLOR_ERROR
 				_:
 					vis_label = ""
 
@@ -206,45 +197,45 @@ func _on_dispatch_received(response):
 				intel_line += " "
 			intel_line += i_strength
 
-			bbcode += "[color=#" + COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]\n"
 	bbcode += "\n"
 
 	# ═══ TURN EVENTS ═══
 	var turn_events = data.get("turn_events", [])
 	if turn_events.size() > 0:
-		bbcode += "[color=#" + COLOR_BERTHIER + "]TURN EVENTS[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]TURN EVENTS[/color]\n"
 		for evt in turn_events:
 			var evt_msg = str(evt.get("message", ""))
 			var evt_sev = str(evt.get("severity", "info"))
-			var evt_color = COLOR_INFO
+			var evt_color = Utils.COLOR_INFO
 			if evt_sev == "warning":
-				evt_color = COLOR_ERROR
+				evt_color = Utils.COLOR_ERROR
 			elif evt_sev == "good":
-				evt_color = COLOR_SUCCESS
+				evt_color = Utils.COLOR_SUCCESS
 			bbcode += "[color=#" + evt_color + "]  " + evt_msg + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ DIPLOMATIC EVENTS (Session 8D) ═══
 	var diplo_events = data.get("diplomatic_events", [])
 	if diplo_events.size() > 0:
-		bbcode += "[color=#" + COLOR_BERTHIER + "]DIPLOMATIC EVENTS[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC EVENTS[/color]\n"
 		for de in diplo_events:
 			var de_text = str(de.get("text", ""))
 			var de_priority = str(de.get("priority", "MEDIUM"))
-			var de_color = COLOR_INFO  # default grey
+			var de_color = Utils.COLOR_INFO  # default grey
 			match de_priority:
 				"HIGH":
-					de_color = COLOR_BATTLE  # amber
+					de_color = Utils.COLOR_BATTLE  # amber
 				"MEDIUM":
-					de_color = COLOR_INFO    # grey
+					de_color = Utils.COLOR_INFO    # grey
 				"LOW":
 					de_color = "808088"      # dim grey
 			bbcode += "[color=#" + de_color + "]  " + de_text + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ BERTHIER'S NOTE ═══
-	bbcode += "[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
-	bbcode += "[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
 	content_label.text = bbcode
 

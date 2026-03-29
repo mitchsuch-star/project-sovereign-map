@@ -119,20 +119,6 @@ var command_history: Array = []
 var history_index: int = -1  # -1 means "new command mode"
 const MAX_HISTORY = 10
 
-# Color palette (Napoleonic theme)
-const COLOR_GOLD = "d9c08c"        # Gold for titles, important text
-const COLOR_COMMAND = "7eb8da"     # Light blue for player commands
-const COLOR_SUCCESS = "8fbc8f"     # Soft green for success
-const COLOR_ERROR = "cd6b6b"       # Muted red for errors
-const COLOR_BATTLE = "daa06d"      # Orange/amber for battle results
-const COLOR_INFO = "a0a0a8"        # Gray for system info
-const COLOR_MARSHAL = "c9b8e0"     # Lavender for marshal responses
-const COLOR_CONQUEST = "90d890"    # Bright green for conquests
-const COLOR_FEEDBACK = "b8a0d9"    # Soft purple/lavender for AI feedback
-const COLOR_DISPATCH = "c9b878"    # Warm gold for field dispatches (MILD flavor)
-const COLOR_BERTHIER = "B8860B"    # Dark goldenrod for Berthier dispatch headers
-const COLOR_OBSERVATION = "DAA520"  # Goldenrod for Berthier closing notes
-
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
 var message_count = 0
@@ -453,23 +439,23 @@ func _ready():
 func _show_welcome():
 	"""Display welcome message with proper formatting."""
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
-	add_output("[color=#" + COLOR_GOLD + "][b]        IMPERIAL HEADQUARTERS[/b][/color]")
-	add_output("[color=#" + COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "][b]        IMPERIAL HEADQUARTERS[/b][/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
 	add_output("")
-	add_output("[color=#" + COLOR_INFO + "]June 1815 — The Hundred Days Campaign[/color]")
-	add_output("[color=#" + COLOR_INFO + "]You are Napoleon Bonaparte.[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]June 1815 — The Hundred Days Campaign[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]You are Napoleon Bonaparte.[/color]")
 	add_output("")
 
 func test_connection():
 	"""Test if backend is running."""
-	add_output("[color=#" + COLOR_INFO + "]Establishing connection to headquarters...[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Establishing connection to headquarters...[/color]")
 	api_client.test_connection(_on_connection_test)
 
 func _on_connection_test(response):
 	"""Handle connection test response."""
 	if response.success:
-		add_output("[color=#" + COLOR_SUCCESS + "]✓ Communications established![/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]✓ Communications established![/color]")
 		add_output("")
 
 		# Update status from server
@@ -496,19 +482,19 @@ func _on_connection_test(response):
 			print("⚠️  MAIN: Connection test - NO map_data in response!")
 
 		# Show instructions
-		add_output("[color=#" + COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
 		add_output("")
-		add_output("[color=#" + COLOR_INFO + "]Commands:[/color]")
-		add_output("[color=#" + COLOR_INFO + "]  • \"Ney, attack Wellington\"[/color]")
-		add_output("[color=#" + COLOR_INFO + "]  • \"scout Rhine\" or \"move to Belgium\"[/color]")
-		add_output("[color=#" + COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Wellington\"[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Rhine\" or \"move to Belgium\"[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
 		add_output("")
 		_add_separator()
 		
 		set_input_enabled(true)
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
-		add_output("[color=#" + COLOR_INFO + "]Start the Python server: python backend/main.py[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python backend/main.py[/color]")
 		add_output("")
 
 func _on_send_button_pressed():
@@ -696,7 +682,7 @@ func _execute_end_turn():
 
 	# Display the command
 	add_output("")
-	add_output("[color=#" + COLOR_COMMAND + "]► end turn[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► end turn[/color]")
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -716,7 +702,7 @@ func _execute_command():
 
 	# Display player command with prompt styling
 	add_output("")
-	add_output("[color=#" + COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
 
 	# Clear input
 	command_input.text = ""
@@ -926,7 +912,7 @@ func _on_command_result(response):
 				for event in events:
 					var msg = str(event.get("message", ""))
 					if msg != "":
-						add_output("[color=#" + COLOR_INFO + "]" + msg + "[/color]")
+						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
 
 		# Update notification bar with any pending notifications
 		# (must be before enemy_phase dialog check — that returns early)
@@ -975,7 +961,7 @@ func _on_command_result(response):
 		_show_pending_dispatch()
 
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	# N4i: Update war status HUD on every response
 	_process_active_wars(response)
@@ -1001,7 +987,7 @@ func _display_result(response):
 			var parts = message.split("\n\n", true, 1)
 			if parts.size() == 2:
 				 # Color explanation differently
-				add_output("[color=#" + COLOR_INFO + "]" + parts[0] + "[/color]")
+				add_output("[color=#" + Utils.COLOR_INFO + "]" + parts[0] + "[/color]")
 				add_output("")
 				message = parts[1]  # Rest of message
 
@@ -1010,22 +996,22 @@ func _display_result(response):
 		"battle":
 			_display_battle_result(message, events[0], action_info)
 		"bombardment":
-			add_output("[color=#" + COLOR_BATTLE + "]" + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_BATTLE + "]" + message + "[/color]")
 			_show_action_cost(action_info)
 		"conquest":
-			add_output("[color=#" + COLOR_CONQUEST + "]⚑ " + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_CONQUEST + "]⚑ " + message + "[/color]")
 			_show_action_cost(action_info)
 		"move":
-			add_output("[color=#" + COLOR_SUCCESS + "]→ " + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]→ " + message + "[/color]")
 			_show_action_cost(action_info)
 		"scout":
-			add_output("[color=#" + COLOR_INFO + "]👁 " + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]👁 " + message + "[/color]")
 			_show_action_cost(action_info)
 		"recruit":
-			add_output("[color=#" + COLOR_SUCCESS + "]+ " + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]+ " + message + "[/color]")
 			_show_action_cost(action_info)
 		"defend":
-			add_output("[color=#" + COLOR_SUCCESS + "]⛨ " + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]⛨ " + message + "[/color]")
 			_show_action_cost(action_info)
 		"turn_end":
 			_display_turn_change(events[0])
@@ -1033,7 +1019,7 @@ func _display_result(response):
 			if response.has("morning_dispatch"):
 				pending_dispatch_data = response.morning_dispatch
 		_:
-			add_output("[color=#" + COLOR_SUCCESS + "]" + message + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + message + "[/color]")
 			_show_action_cost(action_info)
 
 	# Reinforcement inline-dramatic display (Session 66) — before Berthier report
@@ -1055,7 +1041,7 @@ func _display_result(response):
 	# Berthier's Bombardment Advisory — shown when artillery crumbles enemy forts
 	var bombardment_advisory = response.get("bombardment_advisory", "")
 	if bombardment_advisory != "" and bombardment_advisory != null:
-		add_output("[color=#" + COLOR_DISPATCH + "]  Berthier: \"" + str(bombardment_advisory) + "\"[/color]")
+		add_output("[color=#" + Utils.COLOR_DISPATCH + "]  Berthier: \"" + str(bombardment_advisory) + "\"[/color]")
 	
 	# Check for turn advancement
 	if action_info.get("turn_advanced", false):
@@ -1074,33 +1060,31 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 
 	# Battle header - use battle_name if available
 	var battle_name = event.get("battle_name", "BATTLE")
-	add_output("[color=#" + COLOR_BATTLE + "]⚔ " + battle_name + " ⚔[/color]")
+	add_output("[color=#" + Utils.COLOR_BATTLE + "]⚔ " + battle_name + " ⚔[/color]")
 	
 	# Main result
-	add_output("[color=#" + COLOR_BATTLE + "]" + message + "[/color]")
+	add_output("[color=#" + Utils.COLOR_BATTLE + "]" + message + "[/color]")
 
 	# Cavalry terrain flavor (Phase 6.1: separate colored line for cavalry effectiveness)
 	var cav_terrain_msg = event.get("cavalry_terrain_message", "")
 	if cav_terrain_msg != "" and cav_terrain_msg != null:
-		add_output("[color=#" + COLOR_DISPATCH + "]   🐴 " + cav_terrain_msg + "[/color]")
+		add_output("[color=#" + Utils.COLOR_DISPATCH + "]   🐴 " + cav_terrain_msg + "[/color]")
 
 	# Special notifications
 	if enemy_destroyed:
-		add_output("[color=#" + COLOR_CONQUEST + "]   ★ Enemy army destroyed! ★[/color]")
+		add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ★ Enemy army destroyed! ★[/color]")
 	
 	if region_conquered:
 		var region_name = event.get("region_name", "territory")
-		add_output("[color=#" + COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
+		add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
 	
 	_show_action_cost(action_info)
 
 func _display_berthier_report(report: Dictionary):
 	"""Display Berthier's After-Action Report with modifier breakdown and observation."""
-	var COLOR_BERTHIER = "B8860B"   # Dark goldenrod for header
 	var COLOR_REPORT = "CCCCCC"     # Light gray for report lines
-	var COLOR_OBSERVATION = "DAA520" # Goldenrod for Berthier's quote
 
-	add_output("[color=#" + COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
 
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
@@ -1141,7 +1125,7 @@ func _display_berthier_report(report: Dictionary):
 	# Berthier's observation
 	var observation = str(report.get("observation", ""))
 	if observation != "":
-		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
 
 	add_output("")
 
@@ -1193,17 +1177,15 @@ func _display_coordination_tutorial(tutorial: Dictionary):
 
 func _display_bombardment_report(result: Dictionary):
 	"""Display Berthier's bombardment report with casualty summary and observation."""
-	var COLOR_BERTHIER = "B8860B"   # Dark goldenrod for header
 	var COLOR_CASUALTY = "a0a0a8"   # Info gray for stats
 	var COLOR_ENEMY_CAS = "cd5c5c"  # Red for enemy casualties
 	var COLOR_OWN_CAS = "8fbc8f"    # Muted green for own (low) casualties
 	var COLOR_TERRAIN = "b0a890"    # Warm gray for terrain info
 	var COLOR_FORT = "daa06d"       # Battle orange for fort degradation
-	var COLOR_OBSERVATION = "DAA520" # Goldenrod for Berthier's quote
 	var COLOR_FRIENDLY = "cd6b6b"   # Muted red for friendly fire
 	var COLOR_REMAINING = "a0a0a8"  # Info gray for remaining count
 
-	add_output("[color=#" + COLOR_BERTHIER + "]--- Bombardment Report ---[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Bombardment Report ---[/color]")
 
 	# Attacker (artillery) casualties
 	var atk = result.get("attacker", {})
@@ -1267,7 +1249,7 @@ func _display_bombardment_report(result: Dictionary):
 	# Berthier's observation
 	var obs = str(result.get("berthier_observation", ""))
 	if obs != "" and obs != "null":
-		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + obs + "\"[/color]")
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + obs + "\"[/color]")
 
 	add_output("")
 
@@ -1282,27 +1264,27 @@ func _display_defiance_result(response: Dictionary):
 
 	# Defiance header — distinct from normal objection
 	add_output("")
-	add_output("[color=#" + COLOR_ERROR + "]┌─────── DEFIANCE ───────┐[/color]")
+	add_output("[color=#" + Utils.COLOR_ERROR + "]┌─────── DEFIANCE ───────┐[/color]")
 
 	# Main message (e.g. "Despite your insistence, Ney attacked instead!")
 	if message != "":
-		add_output("[color=#" + COLOR_MARSHAL + "]  " + message + "[/color]")
+		add_output("[color=#" + Utils.COLOR_MARSHAL + "]  " + message + "[/color]")
 
 	# Outcome label with color coding
-	var outcome_color = COLOR_INFO
+	var outcome_color = Utils.COLOR_INFO
 	var outcome_label = ""
 	match outcome:
 		"right":
-			outcome_color = COLOR_SUCCESS
+			outcome_color = Utils.COLOR_SUCCESS
 			outcome_label = "VINDICATED — Marshal was right"
 		"wrong":
-			outcome_color = COLOR_ERROR
+			outcome_color = Utils.COLOR_ERROR
 			outcome_label = "FAILURE — Marshal was wrong"
 		"inconclusive":
-			outcome_color = COLOR_INFO
+			outcome_color = Utils.COLOR_INFO
 			outcome_label = "INCONCLUSIVE — No clear result"
 		"failed_roll":
-			outcome_color = COLOR_DISPATCH
+			outcome_color = Utils.COLOR_DISPATCH
 			outcome_label = "DISCIPLINE HELD — Marshal obeyed reluctantly"
 
 	if outcome_label != "":
@@ -1312,11 +1294,11 @@ func _display_defiance_result(response: Dictionary):
 	var stat_parts = []
 	if trust_change != 0:
 		var sign = "+" if trust_change > 0 else ""
-		var tc_color = COLOR_SUCCESS if trust_change > 0 else COLOR_ERROR
+		var tc_color = Utils.COLOR_SUCCESS if trust_change > 0 else Utils.COLOR_ERROR
 		stat_parts.append("[color=#" + tc_color + "]Trust " + sign + str(trust_change) + "[/color]")
 	if authority_change != 0:
 		var sign = "+" if authority_change > 0 else ""
-		var ac_color = COLOR_SUCCESS if authority_change > 0 else COLOR_ERROR
+		var ac_color = Utils.COLOR_SUCCESS if authority_change > 0 else Utils.COLOR_ERROR
 		stat_parts.append("[color=#" + ac_color + "]Authority " + sign + str(authority_change) + "[/color]")
 
 	if stat_parts.size() > 0:
@@ -1324,9 +1306,9 @@ func _display_defiance_result(response: Dictionary):
 
 	# Berthier's flavor text
 	if berthier_text != "" and berthier_text != "null":
-		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_text + "\"[/color]")
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_text + "\"[/color]")
 
-	add_output("[color=#" + COLOR_ERROR + "]└────────────────────────┘[/color]")
+	add_output("[color=#" + Utils.COLOR_ERROR + "]└────────────────────────┘[/color]")
 	add_output("")
 
 func _display_authority_event(authority_event: Dictionary):
@@ -1336,12 +1318,12 @@ func _display_authority_event(authority_event: Dictionary):
 	var authority = int(authority_event.get("authority", 0))
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]┌─── AUTHORITY ───┐[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]  " + title + "[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]┌─── AUTHORITY ───┐[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]  " + title + "[/color]")
 	if message != "":
-		add_output("[color=#" + COLOR_DISPATCH + "]  " + message + "[/color]")
-	add_output("[color=#" + COLOR_INFO + "]  Authority: " + str(authority) + "[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]└─────────────────┘[/color]")
+		add_output("[color=#" + Utils.COLOR_DISPATCH + "]  " + message + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  Authority: " + str(authority) + "[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]└─────────────────┘[/color]")
 	add_output("")
 
 func _display_turn_change(event: Dictionary):
@@ -1367,23 +1349,23 @@ func _display_turn_change(event: Dictionary):
 		spent_str = " | Spent: " + str(int(spent)) + "g"
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_SUCCESS + "]Income: " + str(int(income)) + "g | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning
 	var bankruptcy_turns = int(event.get("bankruptcy_turns", 0))
 	if bankruptcy_turns > 0:
 		if bankruptcy_turns >= 3:
-			add_output("[color=#" + COLOR_ERROR + "]BANKRUPTCY: Troops are deserting! (" + str(bankruptcy_turns) + " turns in deficit)[/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]BANKRUPTCY: Troops are deserting! (" + str(bankruptcy_turns) + " turns in deficit)[/color]")
 		elif bankruptcy_turns >= 2:
-			add_output("[color=#" + COLOR_ERROR + "]WARNING: Treasury in deficit! Troops grow restless![/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]WARNING: Treasury in deficit! Troops grow restless![/color]")
 		else:
-			add_output("[color=#" + COLOR_ERROR + "]WARNING: Treasury in deficit! Upkeep costs halved as mercy.[/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]WARNING: Treasury in deficit! Upkeep costs halved as mercy.[/color]")
 
-	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
 
 func _display_morning_dispatch(data: Dictionary):
@@ -1399,14 +1381,14 @@ func _display_morning_dispatch(data: Dictionary):
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# ═══ DISPATCH HEADER ═══
-	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]")
-	add_output("[color=#" + COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]")
-	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
 	add_output("")
 
 	# ═══ SITUATION ═══
-	add_output("[color=#" + COLOR_BERTHIER + "]SITUATION[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]")
 	var player_regions = int(situation.get("player_regions", 0))
 	var enemy_regions = int(situation.get("enemy_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
@@ -1416,29 +1398,29 @@ func _display_morning_dispatch(data: Dictionary):
 
 	# Treasury line
 	var delta_sign = "+" if treasury_delta >= 0 else ""
-	var delta_color = COLOR_SUCCESS if treasury_delta >= 0 else COLOR_ERROR
-	add_output("[color=#" + COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]")
+	var delta_color = Utils.COLOR_SUCCESS if treasury_delta >= 0 else Utils.COLOR_ERROR
+	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]")
 
 	# Enemy regions + estimated strength
 	if bankrupt:
-		add_output("[color=#" + COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]")
 	else:
-		add_output("[color=#" + COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]")
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
 	var authority_label = str(situation.get("authority_label", "Normal"))
-	var auth_color = COLOR_INFO
+	var auth_color = Utils.COLOR_INFO
 	if authority >= 80:
-		auth_color = COLOR_SUCCESS
+		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
-		auth_color = COLOR_ERROR
-	add_output("[color=#" + COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]")
+		auth_color = Utils.COLOR_ERROR
+	add_output("[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]")
 	add_output("")
 
 	# ═══ MARSHAL STATUS ═══
 	if marshals_list.size() > 0:
-		add_output("[color=#" + COLOR_BERTHIER + "]MARSHAL STATUS[/color]")
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]MARSHAL STATUS[/color]")
 		for m in marshals_list:
 			var m_name = str(m.get("name", "?"))
 			var m_loc = str(m.get("location", "?"))
@@ -1493,21 +1475,21 @@ func _display_morning_dispatch(data: Dictionary):
 				line += " Morale:" + str(m_morale) + "%"
 
 			# Color based on status
-			var line_color = COLOR_INFO
+			var line_color = Utils.COLOR_INFO
 			if m_status == "broken":
-				line_color = COLOR_ERROR
+				line_color = Utils.COLOR_ERROR
 			elif m_status == "retreating":
-				line_color = COLOR_ERROR
+				line_color = Utils.COLOR_ERROR
 			elif m_status == "idle_restless":
-				line_color = COLOR_BATTLE
+				line_color = Utils.COLOR_BATTLE
 
 			add_output("[color=#" + line_color + "]" + line + "[/color]")
 		add_output("")
 
 	# ═══ INTELLIGENCE ═══
-	add_output("[color=#" + COLOR_BERTHIER + "]INTELLIGENCE[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]INTELLIGENCE[/color]")
 	if intel_list.size() == 0:
-		add_output("[color=#" + COLOR_INFO + "]  No enemy forces in observation range.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  No enemy forces in observation range.[/color]")
 	else:
 		for intel in intel_list:
 			var i_name = str(intel.get("name", "?"))
@@ -1517,20 +1499,20 @@ func _display_morning_dispatch(data: Dictionary):
 			var i_turn = int(intel.get("intel_turn", 0))
 
 			var vis_label = ""
-			var vis_color = COLOR_INFO
+			var vis_color = Utils.COLOR_INFO
 			match i_vis:
 				"full":
 					vis_label = "[confirmed]"
-					vis_color = COLOR_SUCCESS
+					vis_color = Utils.COLOR_SUCCESS
 				"partial":
 					vis_label = "[partial]"
-					vis_color = COLOR_INFO
+					vis_color = Utils.COLOR_INFO
 				"stale":
 					vis_label = "[stale - T" + str(i_turn) + "]"
-					vis_color = COLOR_BATTLE
+					vis_color = Utils.COLOR_BATTLE
 				"last_known":
 					vis_label = "[last known - T" + str(i_turn) + "]"
-					vis_color = COLOR_ERROR
+					vis_color = Utils.COLOR_ERROR
 				_:
 					vis_label = ""
 
@@ -1542,21 +1524,21 @@ func _display_morning_dispatch(data: Dictionary):
 				intel_line += " "
 			intel_line += i_strength
 
-			add_output("[color=#" + COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]")
 	add_output("")
 
 	# ═══ TURN EVENTS ═══
 	var turn_events = data.get("turn_events", [])
 	if turn_events.size() > 0:
-		add_output("[color=#" + COLOR_BERTHIER + "]TURN EVENTS[/color]")
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]TURN EVENTS[/color]")
 		for evt in turn_events:
 			var evt_msg = str(evt.get("message", ""))
 			var evt_sev = str(evt.get("severity", "info"))
-			var evt_color = COLOR_INFO
+			var evt_color = Utils.COLOR_INFO
 			if evt_sev == "warning":
-				evt_color = COLOR_ERROR
+				evt_color = Utils.COLOR_ERROR
 			elif evt_sev == "good":
-				evt_color = COLOR_SUCCESS
+				evt_color = Utils.COLOR_SUCCESS
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
@@ -1566,18 +1548,18 @@ func _display_morning_dispatch(data: Dictionary):
 		var tlw_msg = str(turn_limit_warning.get("message", ""))
 		var tlw_sev = str(turn_limit_warning.get("severity", "warning"))
 		if tlw_msg != "":
-			var tlw_color = COLOR_ERROR if tlw_sev == "critical" else COLOR_BATTLE
+			var tlw_color = Utils.COLOR_ERROR if tlw_sev == "critical" else Utils.COLOR_BATTLE
 			add_output("[color=#" + tlw_color + "]  " + tlw_msg + "[/color]")
 			add_output("")
 
 	# ═══ TALLEYRAND REPORT ═══
 	var talleyrand_report = data.get("talleyrand_report", [])
 	if talleyrand_report is Array and talleyrand_report.size() > 0:
-		add_output("[color=#" + COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]")
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]")
 		for tal_entry in talleyrand_report:
 			var tal_msg = str(tal_entry.get("message", "")) if tal_entry is Dictionary else str(tal_entry)
 			if tal_msg != "":
-				add_output("[color=#" + COLOR_INFO + "]  " + tal_msg + "[/color]")
+				add_output("[color=#" + Utils.COLOR_INFO + "]  " + tal_msg + "[/color]")
 		add_output("")
 
 	# ═══ COALITION STATUS ═══
@@ -1586,23 +1568,23 @@ func _display_morning_dispatch(data: Dictionary):
 		var threat_level = int(coalition_status.get("threat_level", 0))
 		var tier = str(coalition_status.get("tier", ""))
 		if threat_level > 0:
-			add_output("[color=#" + COLOR_BERTHIER + "]COALITION THREAT[/color]")
-			var tier_color = COLOR_ERROR if tier == "CRITICAL" or tier == "HIGH" else COLOR_BATTLE
+			add_output("[color=#" + Utils.COLOR_BERTHIER + "]COALITION THREAT[/color]")
+			var tier_color = Utils.COLOR_ERROR if tier == "CRITICAL" or tier == "HIGH" else Utils.COLOR_BATTLE
 			add_output("[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]")
 			var brewing = coalition_status.get("brewing", null)
 			if brewing != null and brewing is Dictionary:
 				var brew_turns = int(brewing.get("turns_remaining", 0))
-				add_output("[color=#" + COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]")
+				add_output("[color=#" + Utils.COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]")
 			var active_coal = coalition_status.get("active_coalition", null)
 			if active_coal != null and active_coal is Dictionary:
 				var coal_name = str(active_coal.get("name", "Coalition"))
 				var coal_leader = str(active_coal.get("leader", "?"))
-				add_output("[color=#" + COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
+				add_output("[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
 			add_output("")
 
 	# ═══ BERTHIER'S NOTE ═══
-	add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
-	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
 	add_output("")
 
 func _show_pending_dispatch():
@@ -1619,9 +1601,9 @@ func _display_turn_advance(action_info: Dictionary):
 
 	var new_turn = int(action_info.get("new_turn", current_turn + 1))
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]  Actions exhausted — Turn " + str(int(new_turn)) + " begins[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]  Actions exhausted — Turn " + str(int(new_turn)) + " begins[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
 func _show_game_over_screen(game_state: Dictionary):
@@ -1634,33 +1616,33 @@ func _show_game_over_screen(game_state: Dictionary):
 	add_output("")
 
 	# Dramatic separator
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
 	# Victory or defeat title
 	var victory_status = game_state.get("victory", "defeat")
 	if victory_status == "victory":
-		add_output("[center][color=#" + COLOR_GOLD + "][b][font_size=28]⚜ VICTOIRE! ⚜[/font_size][/b][/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_GOLD + "][b][font_size=28]⚜ VICTOIRE! ⚜[/font_size][/b][/color][/center]")
 		add_output("")
-		add_output("[center][color=#" + COLOR_SUCCESS + "]The Empire Triumphant![/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_SUCCESS + "]The Empire Triumphant![/color][/center]")
 		add_output("")
-		add_output("[color=#" + COLOR_INFO + "]Europe bends the knee before the French Eagle.[/color]")
-		add_output("[color=#" + COLOR_INFO + "]Your marshals have conquered all who opposed them.[/color]")
-		add_output("[color=#" + COLOR_INFO + "]History will remember this as the height of Imperial glory![/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Europe bends the knee before the French Eagle.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals have conquered all who opposed them.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]History will remember this as the height of Imperial glory![/color]")
 	else:
-		add_output("[center][color=#" + COLOR_ERROR + "][b][font_size=28]⚔ DÉFAITE ⚔[/font_size][/b][/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_ERROR + "][b][font_size=28]⚔ DÉFAITE ⚔[/font_size][/b][/color][/center]")
 		add_output("")
-		add_output("[center][color=#" + COLOR_ERROR + "]The Empire Has Fallen[/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_ERROR + "]The Empire Has Fallen[/color][/center]")
 		add_output("")
-		add_output("[color=#" + COLOR_INFO + "]The enemies of France have prevailed.[/color]")
-		add_output("[color=#" + COLOR_INFO + "]Your marshals fought bravely, but it was not enough.[/color]")
-		add_output("[color=#" + COLOR_INFO + "]The eagles are furled. The Grande Armée is no more.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]The enemies of France have prevailed.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals fought bravely, but it was not enough.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]The eagles are furled. The Grande Armée is no more.[/color]")
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]─────────────────────────────────────[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]         FINAL STATISTICS[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]─────────────────────────────────────[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]─────────────────────────────────────[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]         FINAL STATISTICS[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]─────────────────────────────────────[/color]")
 
 	# Display final statistics
 	var final_turn = int(game_state.get("turn", current_turn))
@@ -1668,34 +1650,34 @@ func _show_game_over_screen(game_state: Dictionary):
 	var total_regions = int(game_state.get("total_regions", 13))
 	var final_gold = int(game_state.get("gold", gold))
 
-	add_output("[color=#" + COLOR_INFO + "]Campaign Duration: " + str(final_turn) + " turns[/color]")
-	add_output("[color=#" + COLOR_INFO + "]Regions Controlled: " + str(regions_controlled) + "/" + str(total_regions) + "[/color]")
-	add_output("[color=#" + COLOR_INFO + "]Imperial Treasury: " + _format_number(final_gold) + " gold[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Campaign Duration: " + str(final_turn) + " turns[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Regions Controlled: " + str(regions_controlled) + "/" + str(total_regions) + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Imperial Treasury: " + _format_number(final_gold) + " gold[/color]")
 
 	# Marshal status if available
 	if game_state.has("marshals"):
 		var marshals = game_state.marshals
 		add_output("")
-		add_output("[color=#" + COLOR_MARSHAL + "]Marshal Status:[/color]")
+		add_output("[color=#" + Utils.COLOR_MARSHAL + "]Marshal Status:[/color]")
 		for marshal_name in marshals:
 			var marshal = marshals[marshal_name]
 			var strength = int(marshal.get("strength", 0))
 			var location = marshal.get("location", "Unknown")
 			if strength > 0:
-				add_output("[color=#" + COLOR_INFO + "]  • " + marshal_name + ": " + _format_number(strength) + " troops at " + location + "[/color]")
+				add_output("[color=#" + Utils.COLOR_INFO + "]  • " + marshal_name + ": " + _format_number(strength) + " troops at " + location + "[/color]")
 			else:
-				add_output("[color=#" + COLOR_ERROR + "]  • " + marshal_name + ": Destroyed[/color]")
+				add_output("[color=#" + Utils.COLOR_ERROR + "]  • " + marshal_name + ": Destroyed[/color]")
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
 	# Closing message
 	if victory_status == "victory":
-		add_output("[center][color=#" + COLOR_GOLD + "]Vive l'Empereur![/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_GOLD + "]Vive l'Empereur![/color][/center]")
 	else:
-		add_output("[center][color=#" + COLOR_INFO + "]The game is over, but the legend endures...[/color][/center]")
+		add_output("[center][color=#" + Utils.COLOR_INFO + "]The game is over, but the legend endures...[/color][/center]")
 
 	add_output("")
 
@@ -1705,7 +1687,7 @@ func _show_action_cost(action_info: Dictionary):
 	var remaining = int(action_info.get("remaining", actions_remaining))
 	
 	if cost > 0:
-		add_output("[color=#" + COLOR_INFO + "]   [" + str(int(remaining)) + "/" + str(int(max_actions)) + " actions remaining][/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]   [" + str(int(remaining)) + "/" + str(int(max_actions)) + " actions remaining][/color]")
 
 func _update_status(action_summary: Dictionary):
 	"""Update header status displays.
@@ -1829,7 +1811,7 @@ func _format_number(num) -> String:
 
 func _add_separator():
 	"""Add a visual separator line."""
-	add_output("[color=#" + COLOR_INFO + "]─────────────────────────────────────[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]─────────────────────────────────────[/color]")
 
 func add_output(text: String):
 	"""Add text to output display with message limit."""
@@ -1852,11 +1834,11 @@ func _display_feedback(feedback: Dictionary):
 
 	# Strategic feedback (eloquence/inspiration)
 	if feedback.has("strategic") and feedback.strategic != "":
-		add_output("[color=#" + COLOR_FEEDBACK + "][i]" + feedback.strategic + "[/i][/color]")
+		add_output("[color=#" + Utils.COLOR_FEEDBACK + "][i]" + feedback.strategic + "[/i][/color]")
 
 	# Ambiguity feedback (clarity)
 	if feedback.has("ambiguity") and feedback.ambiguity != "":
-		add_output("[color=#" + COLOR_FEEDBACK + "][i]" + feedback.ambiguity + "[/i][/color]")
+		add_output("[color=#" + Utils.COLOR_FEEDBACK + "][i]" + feedback.ambiguity + "[/i][/color]")
 
 func _trim_old_messages():
 	"""Remove oldest messages to prevent infinite growth.
@@ -1869,7 +1851,7 @@ func _trim_old_messages():
 	var new_lines = lines.slice(keep_from)
 
 	output_display.clear()
-	output_display.append_text("[color=#" + COLOR_INFO + "][...earlier messages trimmed...][/color]\n\n")
+	output_display.append_text("[color=#" + Utils.COLOR_INFO + "][...earlier messages trimmed...][/color]\n\n")
 	output_display.append_text("\n".join(new_lines))
 
 	message_count = new_lines.size()
@@ -1894,7 +1876,7 @@ func _show_objection_dialog(response):
 	var marshal_name = objection.get("marshal", response.get("marshal", "Unknown"))
 
 	add_output("")
-	add_output("[color=#" + COLOR_MARSHAL + "]⚠ Marshal " + marshal_name + " raises concerns...[/color]")
+	add_output("[color=#" + Utils.COLOR_MARSHAL + "]⚠ Marshal " + marshal_name + " raises concerns...[/color]")
 	add_output("")
 
 	# Prepare objection data for dialog
@@ -1922,7 +1904,7 @@ func _show_objection_dialog(response):
 
 	if objection_dialog == null:
 		push_error("objection_dialog is NULL! Cannot show dialog.")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Dialog not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Dialog not loaded![/color]")
 		set_input_enabled(true)
 		return
 
@@ -1943,7 +1925,7 @@ func _on_objection_choice_made(choice: String):
 		"compromise":
 			choice_text = "You seek a middle ground with your marshal."
 
-	add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 	add_output("")
 
 	# Send choice to backend
@@ -1999,8 +1981,8 @@ func _on_objection_response(response):
 	# CHECK FOR DISOBEY (V1): Marshal refused to obey
 	# ════════════════════════════════════════════════════════════
 	if response.get("disobeyed", false):
-		add_output("[color=#" + COLOR_ERROR + "]⚠ DISOBEDIENCE![/color]")
-		add_output("[color=#" + COLOR_MARSHAL + "]" + str(response.get("message", "The marshal refuses.")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]⚠ DISOBEDIENCE![/color]")
+		add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + str(response.get("message", "The marshal refuses.")) + "[/color]")
 		add_output("")
 
 		# Update status even on disobey
@@ -2087,7 +2069,7 @@ func _on_objection_response(response):
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	_update_war_panel_visibility()
 	add_output("")
@@ -2102,14 +2084,14 @@ func _show_redemption_dialog(redemption_event: Dictionary):
 
 	# Show brief notification in log
 	add_output("")
-	add_output("[color=#" + COLOR_ERROR + "]⚠ " + marshal_name + " requests an urgent audience...[/color]")
+	add_output("[color=#" + Utils.COLOR_ERROR + "]⚠ " + marshal_name + " requests an urgent audience...[/color]")
 	add_output("")
 
 	# Check if dialog exists
 	if redemption_dialog == null:
 		print("❌ ERROR: redemption_dialog is NULL!")
 		push_error("redemption_dialog is NULL! Cannot show dialog.")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Redemption dialog not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Redemption dialog not loaded![/color]")
 		# Fallback to text commands
 		_show_redemption_text_fallback(redemption_event)
 		return
@@ -2123,12 +2105,12 @@ func _show_redemption_text_fallback(redemption_event: Dictionary):
 	"""Fallback text display if dialog fails to load."""
 	var options = redemption_event.get("options", [])
 
-	add_output("[color=#" + COLOR_INFO + "]You must decide how to handle this:[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]You must decide how to handle this:[/color]")
 	for opt in options:
-		add_output("[color=#" + COLOR_INFO + "]  • " + opt.get("id", "?") + ": " + opt.get("text", "Unknown") + "[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • " + opt.get("id", "?") + ": " + opt.get("text", "Unknown") + "[/color]")
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]Type: 'grant_autonomy', 'dismiss', or 'demand_obedience'[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Type: 'grant_autonomy', 'dismiss', or 'demand_obedience'[/color]")
 	add_output("")
 
 	pending_redemption = true
@@ -2154,7 +2136,7 @@ func _on_redemption_choice_made(choice: String):
 		"demand_obedience":
 			choice_text = "You demand continued obedience despite the broken trust."
 
-	add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 	add_output("")
 
 	# Send choice to backend
@@ -2190,32 +2172,32 @@ func _on_redemption_response(response):
 
 		var msg = str(response.get("message", ""))
 		if choice == "grant_autonomy":
-			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
-			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
 			var turns = int(response.get("autonomy_turns", 3))
-			add_output("[color=#" + COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
 
 		elif choice == "dismiss":
-			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_ERROR + "]   MARSHAL DISMISSED[/color]")
-			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]   MARSHAL DISMISSED[/color]")
+			add_output("[color=#" + Utils.COLOR_ERROR + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
 
 		elif choice == "demand_obedience":
-			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_GOLD + "]   OBEDIENCE DEMANDED[/color]")
-			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
-			add_output("[color=#" + COLOR_INFO + "]Warning: High chance of future disobedience.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]   OBEDIENCE DEMANDED[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]Warning: High chance of future disobedience.[/color]")
 
 		else:
-			add_output("[color=#" + COLOR_SUCCESS + "]" + msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
 
 		add_output("")
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
 
 	_update_diplomatic_top_bar(response)
@@ -2250,12 +2232,12 @@ func _show_mild_dispatches(response):
 	var concerns = response.mild_concerns
 	if concerns is Array and concerns.size() > 0:
 		add_output("")
-		add_output("[color=#" + COLOR_DISPATCH + "]━━ Field Dispatches ━━[/color]")
+		add_output("[color=#" + Utils.COLOR_DISPATCH + "]━━ Field Dispatches ━━[/color]")
 		for concern in concerns:
 			var marshal_name = concern.get("marshal", "Unknown")
 			var msg = concern.get("message", "")
 			if msg != "":
-				add_output("[color=#" + COLOR_DISPATCH + "]  " + msg + "[/color]")
+				add_output("[color=#" + Utils.COLOR_DISPATCH + "]  " + msg + "[/color]")
 		add_output("")
 
 
@@ -2315,7 +2297,7 @@ func _show_capture_choice_dialog(response):
 
 	# Show the capture message in log first
 	if response.has("message"):
-		add_output("[color=#" + COLOR_CONQUEST + "]" + str(response.get("message", "")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_CONQUEST + "]" + str(response.get("message", "")) + "[/color]")
 
 	# Update status/map from the response
 	if response.has("action_summary"):
@@ -2329,12 +2311,12 @@ func _show_capture_choice_dialog(response):
 		map_area.update_all_regions(response.game_state.map_data)
 
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]Your forces await orders: Plunder or Secure?[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Your forces await orders: Plunder or Secure?[/color]")
 	add_output("")
 
 	if capture_choice_dialog == null:
 		push_error("capture_choice_dialog is NULL! Cannot show dialog.")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Capture choice dialog not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Capture choice dialog not loaded![/color]")
 		set_input_enabled(true)
 		return
 
@@ -2348,10 +2330,10 @@ func _on_capture_choice_made(choice: String):
 	var choice_text = ""
 	if choice == "plunder":
 		choice_text = "You order your troops to plunder the region!"
-		add_output("[color=#" + COLOR_BATTLE + "]" + choice_text + "[/color]")
+		add_output("[color=#" + Utils.COLOR_BATTLE + "]" + choice_text + "[/color]")
 	else:
 		choice_text = "You order your troops to secure the region."
-		add_output("[color=#" + COLOR_SUCCESS + "]" + choice_text + "[/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + choice_text + "[/color]")
 	add_output("")
 
 	api_client.send_capture_choice_response(choice, _on_capture_choice_response)
@@ -2372,7 +2354,7 @@ func _on_capture_choice_response(response):
 		if response.has("game_state") and response.game_state.has("map_data"):
 			map_area.update_all_regions(response.game_state.map_data)
 
-		add_output("[color=#" + COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
 
 		# Update diplomatic displays after capture choice (may change threat/territory)
 		_update_diplomatic_top_bar(response)
@@ -2382,7 +2364,7 @@ func _on_capture_choice_response(response):
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	_update_war_panel_visibility()
 	add_output("")
@@ -2396,7 +2378,7 @@ func _on_capture_choice_response(response):
 func _show_load_dialog():
 	"""Fetch saves from backend and show load dialog."""
 	if load_dialog == null:
-		add_output("[color=#" + COLOR_ERROR + "]Load dialog not available.[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Load dialog not available.[/color]")
 		return
 	api_client.list_saves(_on_saves_listed)
 
@@ -2405,13 +2387,13 @@ func _on_saves_listed(response):
 	if response.success and response.has("saves"):
 		load_dialog.show_saves(response.saves)
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]Failed to list saves.[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Failed to list saves.[/color]")
 		set_input_enabled(true)
 
 func _on_load_save_selected(filename: String):
 	"""Player selected a save to load."""
 	set_input_enabled(false)
-	add_output("[color=#" + COLOR_INFO + "]Loading save...[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Loading save...[/color]")
 	api_client.load_game(filename, _on_load_result)
 
 func _on_load_result(response):
@@ -2457,10 +2439,10 @@ func _on_load_result(response):
 		_update_diplomatic_top_bar(response)
 		_process_active_wars(response)
 
-		add_output("[color=#" + COLOR_SUCCESS + "]Game loaded successfully.[/color]")
-		add_output("[color=#" + COLOR_INFO + "]" + response.get("message", "") + "[/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]Game loaded successfully.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]" + response.get("message", "") + "[/color]")
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]Load failed: " + response.get("message", "Unknown error") + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Load failed: " + response.get("message", "Unknown error") + "[/color]")
 	add_output("")
 	command_input.grab_focus()
 
@@ -2499,15 +2481,15 @@ func _show_glorious_charge_dialog(response):
 
 	# Show notification in log
 	add_output("")
-	add_output("[color=#" + COLOR_BATTLE + "]🐴 " + pending_charge_marshal + "'s blood is up![/color]")
-	add_output("[color=#" + COLOR_INFO + "]Recklessness at " + str(int(recklessness)) + "/4 - Glorious Charge available![/color]")
+	add_output("[color=#" + Utils.COLOR_BATTLE + "]🐴 " + pending_charge_marshal + "'s blood is up![/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Recklessness at " + str(int(recklessness)) + "/4 - Glorious Charge available![/color]")
 	add_output("")
 
 	# Check if dialog exists
 	if glorious_charge_dialog == null:
 		print("❌ ERROR: glorious_charge_dialog is NULL!")
 		push_error("glorious_charge_dialog is NULL! Cannot show dialog.")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Glorious Charge dialog not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Glorious Charge dialog not loaded![/color]")
 		# Fallback to text
 		_show_glorious_charge_text_fallback()
 		return
@@ -2525,15 +2507,15 @@ func _show_glorious_charge_dialog(response):
 
 func _show_glorious_charge_text_fallback():
 	"""Fallback text display if dialog fails to load."""
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]         GLORIOUS CHARGE![/color]")
-	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]         GLORIOUS CHARGE![/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
-	add_output("[color=#" + COLOR_ERROR + "]⚠ Glorious Charge deals 2x damage but also TAKES 2x damage![/color]")
-	add_output("[color=#" + COLOR_INFO + "]Target: " + pending_charge_target + "[/color]")
+	add_output("[color=#" + Utils.COLOR_ERROR + "]⚠ Glorious Charge deals 2x damage but also TAKES 2x damage![/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Target: " + pending_charge_target + "[/color]")
 	add_output("")
-	add_output("[color=#" + COLOR_INFO + "]Type 'charge' to execute Glorious Charge[/color]")
-	add_output("[color=#" + COLOR_INFO + "]Type 'restrain' for normal attack[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Type 'charge' to execute Glorious Charge[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Type 'restrain' for normal attack[/color]")
 	add_output("")
 
 	set_input_enabled(true)
@@ -2552,10 +2534,10 @@ func _on_glorious_charge_choice_made(choice: String):
 	var choice_text = ""
 	if choice == "charge":
 		choice_text = pending_charge_marshal + " unleashes a GLORIOUS CHARGE!"
-		add_output("[color=#" + COLOR_BATTLE + "]🐴⚔ " + choice_text + " ⚔🐴[/color]")
+		add_output("[color=#" + Utils.COLOR_BATTLE + "]🐴⚔ " + choice_text + " ⚔🐴[/color]")
 	else:
 		choice_text = "You restrain " + pending_charge_marshal + " - normal attack."
-		add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+		add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 
 	add_output("")
 
@@ -2599,7 +2581,7 @@ func _on_glorious_charge_response(response):
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
@@ -2629,19 +2611,19 @@ func _show_strategic_reports(response):
 
 	# Log reports to output too
 	add_output("")
-	add_output("[color=#" + COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
 	for report in reports:
 		var marshal_name = report.get("marshal", "")
 		var msg = report.get("message", "")
 		if msg:
-			add_output("[color=#" + COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
 		# Log sally battle details to output
 		var battle_msg = report.get("battle_message", "")
 		if battle_msg:
-			add_output("[color=#" + COLOR_BATTLE + "]  " + battle_msg + "[/color]")
+			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + battle_msg + "[/color]")
 		var outcome = report.get("outcome", "")
 		if outcome:
-			var outcome_color = COLOR_SUCCESS if outcome == "victory" else COLOR_ERROR if outcome == "defeat" else COLOR_BATTLE
+			var outcome_color = Utils.COLOR_SUCCESS if outcome == "victory" else Utils.COLOR_ERROR if outcome == "defeat" else Utils.COLOR_BATTLE
 			add_output("[color=#" + outcome_color + "]  Result: " + outcome.capitalize() + "[/color]")
 	add_output("")
 
@@ -2701,12 +2683,12 @@ func _show_interrupt_popup(interrupt_data: Dictionary):
 
 	if interrupt_popup == null:
 		push_error("interrupt_popup is NULL!")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Interrupt popup not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Interrupt popup not loaded![/color]")
 		_process_next_interrupt()
 		return
 
 	var marshal_name = interrupt_data.get("marshal", "Marshal")
-	add_output("[color=#" + COLOR_BATTLE + "]" + marshal_name + " awaits your orders![/color]")
+	add_output("[color=#" + Utils.COLOR_BATTLE + "]" + marshal_name + " awaits your orders![/color]")
 
 	interrupt_popup.show_interrupt(interrupt_data)
 
@@ -2717,7 +2699,7 @@ func _on_interrupt_choice_made(marshal_name: String, response_type: String, choi
 		print("Interrupt choice: marshal=%s, type=%s, choice=%s" % [marshal_name, response_type, choice])
 	set_input_enabled(false)
 
-	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ": " + choice.replace("_", " ") + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + marshal_name + ": " + choice.replace("_", " ") + "[/color]")
 
 	# Send to backend
 	api_client.send_strategic_response(marshal_name, response_type, choice, _on_interrupt_response)
@@ -2727,7 +2709,7 @@ func _on_interrupt_response(response):
 	"""Handle backend response to interrupt choice."""
 	if response.success:
 		var msg = response.get("message", "Order acknowledged.")
-		add_output("[color=#" + COLOR_SUCCESS + "]" + msg + "[/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
 
 		# Update UI state
 		if response.has("action_summary"):
@@ -2740,7 +2722,7 @@ func _on_interrupt_response(response):
 		if response.has("game_state") and response.game_state.has("map_data"):
 			map_area.update_all_regions(response.game_state.map_data)
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
 
 	# Update diplomatic displays after interrupt resolution
 	_update_diplomatic_top_bar(response)
@@ -2788,12 +2770,12 @@ func _show_clarification_popup(response):
 
 	if clarification_popup == null:
 		push_error("clarification_popup is NULL!")
-		add_output("[color=#" + COLOR_ERROR + "]ERROR: Clarification popup not loaded![/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]ERROR: Clarification popup not loaded![/color]")
 		set_input_enabled(true)
 		return
 
 	var marshal_name = data.get("marshal", "Marshal")
-	add_output("[color=#" + COLOR_MARSHAL + "]" + marshal_name + " requests clarification...[/color]")
+	add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + marshal_name + " requests clarification...[/color]")
 
 	clarification_popup.show_clarification(data)
 
@@ -2802,7 +2784,7 @@ func _on_clarification_choice_made(marshal_name: String, chosen_target: String, 
 	"""Handle player selecting a clarification target."""
 	if DEBUG_VERBOSE:
 		print("Clarification choice: marshal=%s, target=%s, type=%s" % [marshal_name, chosen_target, strategic_type])
-	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
 
 	# Reissue with correct strategic keyword for the command type
 	var keyword_map = {
@@ -2819,7 +2801,7 @@ func _on_clarification_choice_made(marshal_name: String, chosen_target: String, 
 
 func _on_clarification_cancelled():
 	"""Handle player cancelling a clarification."""
-	add_output("[color=#" + COLOR_INFO + "]Order cancelled.[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Order cancelled.[/color]")
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -2911,7 +2893,7 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 		set_input_enabled(true)
 		command_input.grab_focus()
 	else:
-		add_output("[color=#" + COLOR_INFO + "]Proposal cancelled.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Proposal cancelled.[/color]")
 		set_input_enabled(false)
 		api_client.send_command("Talleyrand, dismiss", _on_command_result)
 
@@ -2946,10 +2928,10 @@ func _on_alliance_paradox_choice(choice: String, data: Dictionary):
 	var attacker = str(data.get("attacker", "unknown"))
 	set_input_enabled(false)
 	if choice == "honor_defender":
-		add_output("[color=#" + COLOR_GOLD + "]Honoring alliance with %s — declaring war on %s![/color]" % [defender, attacker])
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Honoring alliance with %s — declaring war on %s![/color]" % [defender, attacker])
 		api_client.send_dialogue_response(1, _on_command_result)  # Option 1: honor_defender
 	elif choice == "break_defender_alliance":
-		add_output("[color=#" + COLOR_ERROR + "]Breaking alliance with %s — siding with %s.[/color]" % [defender, attacker])
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Breaking alliance with %s — siding with %s.[/color]" % [defender, attacker])
 		api_client.send_dialogue_response(2, _on_command_result)  # Option 2: break_defender_alliance
 
 
@@ -3064,7 +3046,7 @@ func _on_wizard_command_selected(command: String):
 
 	# Display the command in terminal
 	add_output("")
-	add_output("[color=#" + COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -3125,7 +3107,7 @@ func _on_war_target_clicked(nation: String):
 
 func _on_war_ended_notification(message: String):
 	"""Fix 10: Display feedback when war ends while detail popup is open."""
-	add_output("[color=#" + COLOR_INFO + "]" + message + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]" + message + "[/color]")
 
 
 func _find_war_data(nation: String):
@@ -3159,15 +3141,15 @@ func _process_active_wars(response: Dictionary):
 
 func _on_pause_save_requested():
 	"""Handle Save Game from pause menu."""
-	add_output("[color=#" + COLOR_INFO + "]Saving game...[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Saving game...[/color]")
 	api_client.save_game("quicksave", _on_pause_save_result)
 
 func _on_pause_save_result(response):
 	"""Handle save result from pause menu."""
 	if response.success:
-		add_output("[color=#" + COLOR_SUCCESS + "]Game saved successfully.[/color]")
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]Game saved successfully.[/color]")
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]Save failed: " + str(response.get("message", "Unknown error")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Save failed: " + str(response.get("message", "Unknown error")) + "[/color]")
 	add_output("")
 
 func _on_pause_load_requested():

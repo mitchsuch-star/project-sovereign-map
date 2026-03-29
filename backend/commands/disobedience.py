@@ -1823,8 +1823,8 @@ def check_strategic_objection(
                     marshal,
                     preferred,
                     compromise,
-                    "Proceed with HOLD",
-                    "Accept: Timed HOLD (3 turns)",
+                    "Proceed with Hold",
+                    "Accept: Timed Hold (3 turns)",
                     strategic_type
                 )
             }
@@ -1852,8 +1852,8 @@ def check_strategic_objection(
                     marshal,
                     preferred,
                     compromise,
-                    "Proceed with HOLD",
-                    "Accept: Timed HOLD (3 turns)",
+                    "Proceed with Hold",
+                    "Accept: Timed Hold (3 turns)",
                     strategic_type
                 )
             }
@@ -1913,7 +1913,7 @@ def check_strategic_objection(
                             marshal,
                             preferred,
                             compromise,
-                            "Proceed with PURSUE",
+                            "Proceed with Pursue",
                             "Accept: Cautious PURSUE (auto-cancel if odds drop)",
                             strategic_type
                         )
@@ -1952,7 +1952,7 @@ def check_strategic_objection(
                             marshal,
                             preferred,
                             compromise,
-                            "Proceed with PURSUE",
+                            "Proceed with Pursue",
                             "Accept: Cautious PURSUE (auto-cancel if odds drop)",
                             strategic_type
                         )
@@ -1989,7 +1989,7 @@ def check_strategic_objection(
                             marshal,
                             preferred,
                             compromise,
-                            "Proceed with PURSUE",
+                            "Proceed with Pursue",
                             "Accept: Cautious PURSUE (scout first if possible)",
                             strategic_type
                         )

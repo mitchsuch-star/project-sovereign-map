@@ -1,7 +1,7 @@
-extends CanvasLayer
+extends PopupBase
 
 # =============================================================================
-# PROJECT SOVEREIGN - Alliance Paradox Popup (Deep Audit Session 8)
+# PROJECT SOVEREIGN - Alliance Paradox Popup (Deep Audit Session 8, R15 migrated)
 # =============================================================================
 # Shown when an attack would violate an alliance. Player must choose:
 # honor the defender (cancel attack) or break the alliance.
@@ -39,7 +39,7 @@ func show_paradox(data: Dictionary):
 		bbcode += message + "\n\n"
 	else:
 		bbcode += "Attacking %s would violate our %s.\n\n" % [defender, defender_alliance]
-	bbcode += "[color=gray]Talleyrand: \"A delicate situation, Sire. We cannot attack an ally without consequences.\"[/color]"
+	bbcode += Utils.bbcode_color("Talleyrand: \"A delicate situation, Sire. We cannot attack an ally without consequences.\"", Utils.COLOR_INFO)
 
 	honor_button.text = "Honor " + defender
 	break_button.text = "Break " + defender + " Alliance"
@@ -50,14 +50,10 @@ func show_paradox(data: Dictionary):
 
 
 func _on_honor_pressed():
-	honor_button.disabled = true
-	break_button.disabled = true
-	hide()
+	close_popup()
 	choice_made.emit("honor_defender", _data)
 
 
 func _on_break_pressed():
-	honor_button.disabled = true
-	break_button.disabled = true
-	hide()
+	close_popup()
 	choice_made.emit("break_defender_alliance", _data)

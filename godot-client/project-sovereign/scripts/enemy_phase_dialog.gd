@@ -17,16 +17,10 @@ signal dismissed
 @onready var continue_button = $PanelContainer/VBoxContainer/ContinueButton
 
 # Color palette (matching main.gd)
-const COLOR_GOLD = "d9c08c"
-const COLOR_TEXT = "eeeeee"
 const COLOR_ERROR = "cd5c5c"
-const COLOR_SUCCESS = "8fbc8f"
-const COLOR_BATTLE = "daa06d"
-const COLOR_INFO = "a0a0a8"
 const COLOR_NATION_BRITAIN = "cd5c5c"  # Red for Britain
 const COLOR_NATION_PRUSSIA = "6495ed"  # Blue for Prussia
 const COLOR_NATION_AUSTRIA = "f0e68c"  # Yellow for Austria
-const COLOR_CONQUEST = "90d890"
 
 func _ready():
 	# Connect button signal
@@ -64,7 +58,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			print("[GODOT_ENEMY_PHASE]     [", i, "] has events=", act.has("events"), " count=", act.get("events", []).size() if act.has("events") else 0)
 
 	if total_actions == 0:
-		content = "[color=#" + COLOR_INFO + "]No enemy actions this turn.[/color]"
+		content = "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
 	else:
 		for nation in nations:
 			var nation_data = nations[nation]
@@ -73,7 +67,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			# Nation header with colored name
 			var nation_color = _get_nation_color(nation)
 			content += "[color=#" + nation_color + "][b]" + nation.to_upper() + "[/b][/color]\n"
-			content += "[color=#" + COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
+			content += "[color=#" + Utils.COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
 
 			# Process each action
 			var actions = nation_data.get("actions", [])
@@ -151,7 +145,7 @@ func _format_action(action: Dictionary) -> String:
 			if target:
 				action_str += " " + target
 
-	result += "[color=#" + COLOR_TEXT + "]- " + action_str + "[/color]\n"
+	result += "[color=#" + Utils.COLOR_TEXT + "]- " + action_str + "[/color]\n"
 
 	# Check for battle events
 	var events = action.get("events", [])
@@ -173,7 +167,7 @@ func _format_action(action: Dictionary) -> String:
 				choice_str = " (plundered)"
 			elif capture_choice == "secure":
 				choice_str = " (secured)"
-			result += "[color=#" + COLOR_CONQUEST + "]    Region captured: " + region + choice_str + "[/color]\n"
+			result += "[color=#" + Utils.COLOR_CONQUEST + "]    Region captured: " + region + choice_str + "[/color]\n"
 
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
@@ -188,7 +182,7 @@ func _format_action(action: Dictionary) -> String:
 		var reinf_msgs = action.get("reinforcement_messages", [])
 		for msg in reinf_msgs:
 			var msg_text = str(msg)
-			var reinf_color = COLOR_SUCCESS if msg_text.find("arrived") >= 0 else COLOR_ERROR
+			var reinf_color = Utils.COLOR_SUCCESS if msg_text.find("arrived") >= 0 else COLOR_ERROR
 			result += "[color=#" + reinf_color + "]    " + msg_text + "[/color]\n"
 
 	return result
@@ -214,23 +208,23 @@ func _format_battle(event: Dictionary) -> String:
 
 	# Battle header - use battle_name if available, fallback to attacker vs defender
 	var battle_title = event.get("battle_name", attacker_name + " vs " + defender_name)
-	result += "[color=#" + COLOR_BATTLE + "]    " + battle_title + "[/color]\n"
-	result += "[color=#" + COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
+	result += "[color=#" + Utils.COLOR_BATTLE + "]    " + battle_title + "[/color]\n"
+	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
 
 	# Casualties
-	result += "[color=#" + COLOR_INFO + "]    " + attacker_name + ": "
+	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": "
 	result += _format_number(attacker_casualties) + " casualties, "
 	result += _format_number(attacker_remaining) + " remaining[/color]\n"
 
-	result += "[color=#" + COLOR_INFO + "]    " + defender_name + ": "
+	result += "[color=#" + Utils.COLOR_INFO + "]    " + defender_name + ": "
 	result += _format_number(defender_casualties) + " casualties, "
 	result += _format_number(defender_remaining) + " remaining[/color]\n"
 
 	# Outcome
 	var outcome_text = _get_outcome_text(outcome)
-	var outcome_color = COLOR_INFO
+	var outcome_color = Utils.COLOR_INFO
 	if victor:
-		outcome_color = COLOR_SUCCESS if _is_player_marshal(defender_name) else COLOR_ERROR
+		outcome_color = Utils.COLOR_SUCCESS if _is_player_marshal(defender_name) else COLOR_ERROR
 
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
@@ -239,12 +233,12 @@ func _format_battle(event: Dictionary) -> String:
 
 	# Check for enemy destroyed
 	if event.get("enemy_destroyed", false):
-		result += "[color=#" + COLOR_CONQUEST + "]    ARMY DESTROYED![/color]\n"
+		result += "[color=#" + Utils.COLOR_CONQUEST + "]    ARMY DESTROYED![/color]\n"
 
 	# Check for region conquered
 	if event.get("region_conquered", false):
 		var region = event.get("region_name", "territory")
-		result += "[color=#" + COLOR_CONQUEST + "]    " + region + " CAPTURED![/color]\n"
+		result += "[color=#" + Utils.COLOR_CONQUEST + "]    " + region + " CAPTURED![/color]\n"
 
 	# Check for forced retreat
 	if attacker.get("forced_retreat", false):
@@ -257,20 +251,18 @@ func _format_battle(event: Dictionary) -> String:
 		var fort_old = int(event.get("fortification_old", 0) * 100)
 		var fort_new = int(event.get("fortification_new", 0) * 100)
 		if fort_new <= 0:
-			result += "[color=#" + COLOR_INFO + "]    Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]\n"
+			result += "[color=#" + Utils.COLOR_INFO + "]    Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]\n"
 		else:
-			result += "[color=#" + COLOR_INFO + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
+			result += "[color=#" + Utils.COLOR_INFO + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
 
 	return result
 
 func _format_berthier_report(report: Dictionary) -> String:
 	"""Format Berthier's After-Action Report for enemy phase dialog."""
 	var result = ""
-	var COLOR_BERTHIER = "B8860B"
 	var COLOR_RPT = "AAAAAA"
-	var COLOR_OBS = "DAA520"
 
-	result += "[color=#" + COLOR_BERTHIER + "]    --- Berthier's Report ---[/color]\n"
+	result += "[color=#" + Utils.COLOR_BERTHIER + "]    --- Berthier's Report ---[/color]\n"
 
 	# Modifier lines
 	var breakdown = report.get("modifier_breakdown", {})
@@ -297,16 +289,13 @@ func _format_berthier_report(report: Dictionary) -> String:
 	# Observation
 	var observation = report.get("observation", "")
 	if observation != "":
-		result += "[color=#" + COLOR_OBS + "]    Berthier: \"" + observation + "\"[/color]\n"
+		result += "[color=#" + Utils.COLOR_OBSERVATION + "]    Berthier: \"" + observation + "\"[/color]\n"
 
 	return result
 
 func _format_bombardment(event: Dictionary) -> String:
 	"""Format bombardment event details."""
 	var result = ""
-	var COLOR_BOMBARD = "daa06d"  # Same as COLOR_BATTLE
-	var COLOR_CASUALTY = "a0a0a8"  # Same as COLOR_INFO
-
 	var attacker_name = str(event.get("attacker", "Artillery"))
 	var defender_name = str(event.get("defender", "Enemy"))
 	var atk_location = str(event.get("attacker_location", ""))
@@ -314,30 +303,28 @@ func _format_bombardment(event: Dictionary) -> String:
 	var def_casualties = int(event.get("defender_casualties", 0))
 	var atk_casualties = int(event.get("attacker_casualties", 0))
 
-	result += "[color=#" + COLOR_BOMBARD + "]    Bombardment of " + def_location + "[/color]\n"
-	result += "[color=#" + COLOR_CASUALTY + "]    " + attacker_name + " fires from " + atk_location + " on " + defender_name + "[/color]\n"
+	result += "[color=#" + Utils.COLOR_BATTLE + "]    Bombardment of " + def_location + "[/color]\n"
+	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " fires from " + atk_location + " on " + defender_name + "[/color]\n"
 	result += "[color=#" + COLOR_ERROR + "]    " + defender_name + ": " + _format_number(def_casualties) + " casualties[/color]\n"
-	result += "[color=#" + COLOR_CASUALTY + "]    " + attacker_name + ": " + _format_number(atk_casualties) + " return fire[/color]\n"
+	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": " + _format_number(atk_casualties) + " return fire[/color]\n"
 
 	# Fort degradation
 	if event.get("fort_degraded", false):
 		var fort_old = int(event.get("fort_old", 0) * 100)
 		var fort_new = int(event.get("fort_new", 0) * 100)
 		if fort_new <= 0:
-			result += "[color=#" + COLOR_BOMBARD + "]    Fortifications DESTROYED![/color]\n"
+			result += "[color=#" + Utils.COLOR_BATTLE + "]    Fortifications DESTROYED![/color]\n"
 		else:
-			result += "[color=#" + COLOR_CASUALTY + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
+			result += "[color=#" + Utils.COLOR_INFO + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
 
 	return result
 
 func _format_bombardment_report(bombard_result: Dictionary) -> String:
 	"""Format bombardment result details for enemy phase dialog."""
 	var result = ""
-	var COLOR_BERTHIER = "B8860B"
 	var COLOR_RPT = "AAAAAA"
-	var COLOR_OBS = "DAA520"
 
-	result += "[color=#" + COLOR_BERTHIER + "]    --- Bombardment Report ---[/color]\n"
+	result += "[color=#" + Utils.COLOR_BERTHIER + "]    --- Bombardment Report ---[/color]\n"
 
 	var atk = bombard_result.get("attacker", {})
 	var defn = bombard_result.get("defender", {})
@@ -356,7 +343,7 @@ func _format_bombardment_report(bombard_result: Dictionary) -> String:
 	# Berthier observation
 	var obs = str(bombard_result.get("berthier_observation", ""))
 	if obs != "" and obs != "null":
-		result += "[color=#" + COLOR_OBS + "]    Berthier: \"" + obs + "\"[/color]\n"
+		result += "[color=#" + Utils.COLOR_OBSERVATION + "]    Berthier: \"" + obs + "\"[/color]\n"
 
 	return result
 
@@ -386,7 +373,7 @@ func _get_nation_color(nation: String) -> String:
 		"austria":
 			return COLOR_NATION_AUSTRIA
 		_:
-			return COLOR_TEXT
+			return Utils.COLOR_TEXT
 
 func _is_player_marshal(name: String) -> bool:
 	"""Check if marshal belongs to player (France)."""

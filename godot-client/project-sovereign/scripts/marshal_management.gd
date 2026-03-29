@@ -16,16 +16,7 @@ signal closed
 @onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
 @onready var content_area = $PanelContainer/VBoxContainer/ScrollContainer/ContentArea
 
-# Color palette (duplicated across dispatch_view.gd, strategic_ledger.gd,
-# marshal_management.gd — consolidate into shared utils.gd during Map Renderer refactor)
-const COLOR_GOLD = "d9c08c"
-const COLOR_SUCCESS = "8fbc8f"
-const COLOR_ERROR = "cd6b6b"
-const COLOR_INFO = "a0a0a8"
-const COLOR_BLUE = "6495ed"
-const COLOR_ORANGE = "daa06d"
-const COLOR_GREY = "808080"
-const COLOR_HEADER = "B8860B"
+# File-specific colors (not in Utils)
 const COLOR_DIM = "666670"
 const COLOR_DEVOTED = "ffd700"
 
@@ -75,7 +66,7 @@ func _input(event):
 
 func open(api_client):
 	"""Fetch marshal overview from backend and display it."""
-	content_area.text = "[color=#" + COLOR_INFO + "]Loading marshal data...[/color]"
+	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
 	show()
 	api_client.get_marshal_overview(_on_data_received)
 
@@ -93,12 +84,12 @@ func _on_data_received(response):
 		return
 
 	if not response.get("success", false):
-		content_area.text = "[color=#" + COLOR_ERROR + "]Failed to load marshal data.[/color]"
+		content_area.text = "[color=#" + Utils.COLOR_ERROR + "]Failed to load marshal data.[/color]"
 		return
 
 	cached_data = response.get("marshals", [])
 	if cached_data.size() == 0:
-		content_area.text = "[color=#" + COLOR_INFO + "]No marshals available.[/color]"
+		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]"
 		return
 
 	_render_all_cards()
@@ -112,7 +103,7 @@ func _render_all_cards():
 		var m = cached_data[i]
 		bbcode += _render_card(m, i)
 		if i < cached_data.size() - 1:
-			bbcode += "[color=#" + COLOR_GREY + "]────────────────────────────────────────[/color]\n\n"
+			bbcode += "[color=#" + Utils.COLOR_GREY + "]────────────────────────────────────────[/color]\n\n"
 
 	content_area.text = bbcode
 
@@ -128,18 +119,18 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var personality = str(m.get("personality", "?"))
 
 	# Unit type badge color
-	var type_color = COLOR_INFO
+	var type_color = Utils.COLOR_INFO
 	match unit_type:
 		"Cavalry":
-			type_color = COLOR_ORANGE
+			type_color = Utils.COLOR_ORANGE
 		"Artillery":
-			type_color = COLOR_ERROR
+			type_color = Utils.COLOR_ERROR
 
 	var key_hint = "[" + str(index + 1) + "] "
-	bbcode += "[color=#" + COLOR_GREY + "]" + key_hint + "[/color]"
-	bbcode += "[color=#" + COLOR_GOLD + "]" + name + "[/color]"
+	bbcode += "[color=#" + Utils.COLOR_GREY + "]" + key_hint + "[/color]"
+	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
 	bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
-	bbcode += "  [color=#" + COLOR_GREY + "]" + nation + "[/color]\n"
+	bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + nation + "[/color]\n"
 
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))
@@ -149,10 +140,10 @@ func _render_card(m: Dictionary, index: int) -> String:
 	# ═══════ PERSONALITY & UNIT TYPE ═══════
 	var pers_desc = str(m.get("personality_description", ""))
 	if pers_desc != "":
-		bbcode += "[color=#" + COLOR_INFO + "]" + pers_desc + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + pers_desc + "[/color]\n"
 	var type_desc = str(m.get("unit_type_description", ""))
 	if type_desc != "":
-		bbcode += "[color=#" + COLOR_INFO + "]" + type_desc + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + type_desc + "[/color]\n"
 
 	bbcode += "\n"
 
@@ -163,13 +154,13 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var move_range = int(m.get("movement_range", 1))
 
 	# Strength color based on losses
-	var str_color = COLOR_INFO
+	var str_color = Utils.COLOR_INFO
 	if starting > 0:
 		var ratio = float(strength) / float(starting)
 		if ratio < 0.3:
-			str_color = COLOR_ERROR
+			str_color = Utils.COLOR_ERROR
 		elif ratio < 0.6:
-			str_color = COLOR_ORANGE
+			str_color = Utils.COLOR_ORANGE
 
 	bbcode += "  Strength: [color=#" + str_color + "]" + _format_number(strength) + "[/color]"
 	bbcode += " / " + _format_number(starting)
@@ -191,9 +182,9 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var ab_active = m.get("ability_active", false)
 
 	if ab_active and ab_name != "":
-		bbcode += "  [color=#" + COLOR_GOLD + "]" + ab_name + "[/color]"
+		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
 		if ab_effect != "":
-			bbcode += "  [color=#" + COLOR_INFO + "]" + ab_effect + "[/color]"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
 		bbcode += "\n\n"
 
 	# ═══════ TRUST & RECORD ═══════
@@ -208,7 +199,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += "  Vindication: " + _vindication_colored(vindication)
 	bbcode += "  Record: " + str(won) + "W/" + str(lost) + "L"
 	if overridden > 0:
-		bbcode += "  [color=#" + COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
+		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
 	bbcode += "\n"
 
 	# ═══════ CURRENT STATUS ═══════
@@ -221,12 +212,12 @@ func _render_card(m: Dictionary, index: int) -> String:
 	# Status flags
 	var flags = []
 	if m.get("is_broken", false):
-		flags.append("[color=#" + COLOR_ERROR + "]BROKEN (recovery: " + str(int(m.get("broken_recovery", 0))) + ")[/color]")
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]BROKEN (recovery: " + str(int(m.get("broken_recovery", 0))) + ")[/color]")
 	if m.get("is_retreating", false):
-		flags.append("[color=#" + COLOR_ERROR + "]RETREATING (stage: " + str(int(m.get("retreat_recovery", 0))) + ")[/color]")
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]RETREATING (stage: " + str(int(m.get("retreat_recovery", 0))) + ")[/color]")
 	if m.get("is_fortified", false):
 		var def_bonus = int(m.get("defense_bonus", 0))
-		flags.append("[color=#" + COLOR_BLUE + "]FORTIFIED +" + str(def_bonus) + "%[/color]")
+		flags.append("[color=#" + Utils.COLOR_BLUE + "]FORTIFIED +" + str(def_bonus) + "%[/color]")
 	if m.get("is_drilling", false):
 		var drill_txt = "DRILLING"
 		if m.get("drilling_locked", false):
@@ -234,16 +225,16 @@ func _render_card(m: Dictionary, index: int) -> String:
 		var shock = int(m.get("shock_bonus", 0))
 		if shock > 0:
 			drill_txt += " (+" + str(shock * 10) + "% shock)"
-		flags.append("[color=#" + COLOR_BLUE + "]" + drill_txt + "[/color]")
+		flags.append("[color=#" + Utils.COLOR_BLUE + "]" + drill_txt + "[/color]")
 	if m.get("square_formation", false):
-		flags.append("[color=#" + COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
+		flags.append("[color=#" + Utils.COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
 	if m.get("is_autonomous", false):
 		var reason = str(m.get("autonomy_reason", ""))
-		flags.append("[color=#" + COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
+		flags.append("[color=#" + Utils.COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
 
 	var idle = int(m.get("idle_turns", 0))
 	if idle >= 2:
-		flags.append("[color=#" + COLOR_GREY + "]IDLE " + str(idle) + " turns[/color]")
+		flags.append("[color=#" + Utils.COLOR_GREY + "]IDLE " + str(idle) + " turns[/color]")
 
 	if flags.size() > 0:
 		bbcode += "\n  " + " | ".join(flags)
@@ -253,7 +244,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if strat != null and strat is Dictionary:
 		var cmd = str(strat.get("command_type", "?"))
 		var target = str(strat.get("target", "?"))
-		bbcode += "\n  [color=#" + COLOR_BLUE + "]Order: " + cmd + " → " + target + "[/color]"
+		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]Order: " + cmd + " → " + target + "[/color]"
 
 	bbcode += "\n"
 
@@ -261,14 +252,14 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var specifics = []
 	if m.get("cavalry", false):
 		if m.get("counter_punch_available", false):
-			specifics.append("[color=#" + COLOR_SUCCESS + "]Counter-Punch READY[/color]")
+			specifics.append("[color=#" + Utils.COLOR_SUCCESS + "]Counter-Punch READY[/color]")
 		if m.get("holding_position", false):
-			specifics.append("[color=#" + COLOR_BLUE + "]Holding Position[/color]")
+			specifics.append("[color=#" + Utils.COLOR_BLUE + "]Holding Position[/color]")
 	if m.get("artillery", false):
 		var bombards = int(m.get("bombardments_this_turn", 0))
 		specifics.append("Bombardments: " + str(bombards) + "/2")
 		if m.get("moved_this_turn", false):
-			specifics.append("[color=#" + COLOR_ORANGE + "]Moved (cannot fire)[/color]")
+			specifics.append("[color=#" + Utils.COLOR_ORANGE + "]Moved (cannot fire)[/color]")
 
 	if specifics.size() > 0:
 		bbcode += "  " + " | ".join(specifics) + "\n"
@@ -308,65 +299,65 @@ func _format_number(n: int) -> String:
 
 
 func _morale_colored(morale: int) -> String:
-	var color = COLOR_INFO
+	var color = Utils.COLOR_INFO
 	if morale < 40:
-		color = COLOR_ERROR
+		color = Utils.COLOR_ERROR
 	elif morale < 60:
-		color = COLOR_ORANGE
+		color = Utils.COLOR_ORANGE
 	return "[color=#" + color + "]" + str(morale) + "%[/color]"
 
 
 func _skill_colored(label: String, val: int) -> String:
-	var color = COLOR_INFO
+	var color = Utils.COLOR_INFO
 	if val >= 8:
-		color = COLOR_SUCCESS
+		color = Utils.COLOR_SUCCESS
 	elif val <= 3:
-		color = COLOR_ERROR
+		color = Utils.COLOR_ERROR
 	elif val <= 5:
-		color = COLOR_GREY
+		color = Utils.COLOR_GREY
 	return label + ":[color=#" + color + "]" + str(val) + "[/color]"
 
 
 func _trust_colored(val: int, label: String) -> String:
-	var color = COLOR_INFO
+	var color = Utils.COLOR_INFO
 	if val < 30:
-		color = COLOR_ERROR
+		color = Utils.COLOR_ERROR
 	elif val < 55:
-		color = COLOR_ORANGE
+		color = Utils.COLOR_ORANGE
 	elif val >= 80:
-		color = COLOR_SUCCESS
+		color = Utils.COLOR_SUCCESS
 	return "[color=#" + color + "]" + str(val) + " (" + label + ")[/color]"
 
 
 func _vindication_colored(val: int) -> String:
-	var color = COLOR_INFO
+	var color = Utils.COLOR_INFO
 	if val > 0:
-		color = COLOR_SUCCESS
+		color = Utils.COLOR_SUCCESS
 	elif val < 0:
-		color = COLOR_ERROR
+		color = Utils.COLOR_ERROR
 	var sign = "+" if val > 0 else ""
 	return "[color=#" + color + "]" + sign + str(val) + "[/color]"
 
 
 func _stance_colored(stance: String) -> String:
-	var color = COLOR_INFO
+	var color = Utils.COLOR_INFO
 	match stance:
 		"aggressive":
-			color = COLOR_ERROR
+			color = Utils.COLOR_ERROR
 		"defensive":
-			color = COLOR_BLUE
+			color = Utils.COLOR_BLUE
 	return "[color=#" + color + "]" + stance.capitalize() + "[/color]"
 
 
 func _relationship_colored(val: int, label: String) -> String:
-	var color = COLOR_GREY
+	var color = Utils.COLOR_GREY
 	match val:
 		-2:
-			color = COLOR_ERROR
+			color = Utils.COLOR_ERROR
 		-1:
-			color = COLOR_ORANGE
+			color = Utils.COLOR_ORANGE
 		1:
-			color = COLOR_SUCCESS
+			color = Utils.COLOR_SUCCESS
 		2:
 			color = COLOR_DEVOTED
 	var sign = "+" if val > 0 else ""

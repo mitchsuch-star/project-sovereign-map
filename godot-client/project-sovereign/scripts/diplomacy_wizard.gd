@@ -34,14 +34,6 @@ var _selected_nation: String = ""
 var _dp_available: int = 0
 
 # Color palette
-const COLOR_GOLD = "d9c08c"
-const COLOR_RED = "cd6b6b"
-const COLOR_GREEN = "8fbc8f"
-const COLOR_BLUE = "6495ed"
-const COLOR_GREY = "808080"
-const COLOR_INFO = "a0a0a8"
-const COLOR_HEADER = "B8860B"
-const COLOR_AMBER = "daa06d"
 const COLOR_LIGHT_GREEN = "a0d0a0"
 const COLOR_LIGHT_RED = "d9a0a0"
 const COLOR_ORANGE = "d9a060"
@@ -49,12 +41,12 @@ const COLOR_YELLOW = "d9d080"
 
 # Likelihood color mapping (§3a) — keys must match get_likelihood_descriptor() exactly
 var _likelihood_colors: Dictionary = {
-	"Almost Certain": COLOR_GREEN,
+	"Almost Certain": Utils.COLOR_SUCCESS,
 	"Favorable": COLOR_LIGHT_GREEN,
 	"Uncertain — may counter": COLOR_YELLOW,
 	"Doubtful — expect counter": COLOR_ORANGE,
 	"Unlikely": COLOR_LIGHT_RED,
-	"Hopeless": COLOR_RED,
+	"Hopeless": Utils.COLOR_ERROR,
 }
 
 
@@ -80,7 +72,7 @@ func open():
 	_current_step = 1
 	_selected_nation = ""
 	title_label.text = "DIPLOMACY"
-	assessment_panel.text = "[color=#" + COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
+	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
 	back_button.visible = false
 	dp_label.text = ""
 	_clear_content_list()
@@ -99,7 +91,7 @@ func open_for_nation(nation: String):
 	_selected_nation = nation
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + nation
-	assessment_panel.text = "[color=#" + COLOR_INFO + "]Loading assessment...[/color]"
+	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_clear_content_list()
 	_add_loading_label()
 	show()
@@ -122,7 +114,7 @@ func _go_back():
 		_selected_nation = ""
 		back_button.visible = false
 		title_label.text = "DIPLOMACY"
-		assessment_panel.text = "[color=#" + COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
+		assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
 		_clear_content_list()
 		_add_loading_label()
 		_fetch_nations()
@@ -201,7 +193,7 @@ func _show_error(msg: String):
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = "[color=#" + COLOR_RED + "]" + msg + "[/color]"
+	lbl.text = "[color=#" + Utils.COLOR_ERROR + "]" + msg + "[/color]"
 	content_list.add_child(lbl)
 
 
@@ -220,7 +212,7 @@ func _render_nations(data: Dictionary):
 		_close_wizard()
 		# Show message in terminal so player sees it after wizard closes
 		get_node("/root/Main").add_output(
-			"[color=#" + COLOR_AMBER + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
+			"[color=#" + Utils.COLOR_ORANGE + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
 		return
 
 	var categories = data.get("categories", {})
@@ -230,7 +222,7 @@ func _render_nations(data: Dictionary):
 	var at_war = categories.get("at_war", [])
 	if at_war.size() > 0:
 		has_any = true
-		_add_category_header("At War (" + str(at_war.size()) + ")", COLOR_RED)
+		_add_category_header("At War (" + str(at_war.size()) + ")", Utils.COLOR_ERROR)
 		for n in at_war:
 			_add_nation_button(n)
 
@@ -238,7 +230,7 @@ func _render_nations(data: Dictionary):
 	var treaties = categories.get("treaties", [])
 	if treaties.size() > 0:
 		has_any = true
-		_add_category_header("Treaties (" + str(treaties.size()) + ")", COLOR_BLUE)
+		_add_category_header("Treaties (" + str(treaties.size()) + ")", Utils.COLOR_BLUE)
 		for n in treaties:
 			_add_nation_button(n)
 
@@ -246,7 +238,7 @@ func _render_nations(data: Dictionary):
 	var vassals = categories.get("vassals", [])
 	if vassals.size() > 0:
 		has_any = true
-		_add_category_header("Vassals (" + str(vassals.size()) + ")", COLOR_GOLD)
+		_add_category_header("Vassals (" + str(vassals.size()) + ")", Utils.COLOR_GOLD)
 		for n in vassals:
 			_add_nation_button(n)
 
@@ -254,7 +246,7 @@ func _render_nations(data: Dictionary):
 	var neutral = categories.get("neutral", [])
 	if neutral.size() > 0:
 		has_any = true
-		_add_category_header("Neutral (" + str(neutral.size()) + ")", COLOR_GREY)
+		_add_category_header("Neutral (" + str(neutral.size()) + ")", Utils.COLOR_GREY)
 		for n in neutral:
 			_add_nation_button(n)
 
@@ -302,7 +294,7 @@ func _on_nation_selected(nation: String):
 	_current_step = 2
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + nation
-	assessment_panel.text = "[color=#" + COLOR_INFO + "]Loading assessment...[/color]"
+	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_preview(nation)
@@ -323,7 +315,7 @@ func _render_preview(data: Dictionary):
 	if dialogue_pending:
 		_close_wizard()
 		get_node("/root/Main").add_output(
-			"[color=#" + COLOR_AMBER + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
+			"[color=#" + Utils.COLOR_ORANGE + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
 		return
 
 	# Build assessment panel
@@ -335,23 +327,23 @@ func _render_preview(data: Dictionary):
 	var is_vassal = data.get("is_vassal", false)
 
 	var rel_sign = "+" if relation > 0 else ""
-	var rel_color = COLOR_INFO
+	var rel_color = Utils.COLOR_INFO
 	if relation < -29:
-		rel_color = COLOR_RED
+		rel_color = Utils.COLOR_ERROR
 	elif relation >= 30:
-		rel_color = COLOR_GREEN
+		rel_color = Utils.COLOR_SUCCESS
 
-	var state_color = COLOR_INFO
+	var state_color = Utils.COLOR_INFO
 	match str(data.get("current_state", "")):
 		"WAR":
-			state_color = COLOR_RED
+			state_color = Utils.COLOR_ERROR
 		"ALLIANCE", "DEFENSIVE_ALLIANCE":
-			state_color = COLOR_GREEN
+			state_color = Utils.COLOR_SUCCESS
 		"OPEN_BORDERS", "NON_AGGRESSION":
-			state_color = COLOR_BLUE
+			state_color = Utils.COLOR_BLUE
 
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + _selected_nation.to_upper() + "[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + _selected_nation.to_upper() + "[/color]\n"
 	bbcode += "Status: [color=#" + state_color + "]" + state_display + "[/color]"
 	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
 
@@ -367,20 +359,20 @@ func _render_preview(data: Dictionary):
 		elif trend == "falling":
 			trend_arrow = "↓"
 
-		var loyalty_color = COLOR_GREEN
+		var loyalty_color = Utils.COLOR_SUCCESS
 		if loyalty < 25:
-			loyalty_color = COLOR_RED
+			loyalty_color = Utils.COLOR_ERROR
 		elif loyalty < 50:
-			loyalty_color = COLOR_AMBER
+			loyalty_color = Utils.COLOR_ORANGE
 
 		bbcode += "Loyalty: [color=#" + loyalty_color + "]" + str(loyalty) + " " + trend_arrow + "[/color]"
 		bbcode += "   Autonomy: " + autonomy
 		bbcode += "   Tribute: " + str(tribute) + "g\n"
 
 	if assessment_text:
-		bbcode += "\n[color=#" + COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
 	if recommendation:
-		bbcode += "[color=#" + COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
 
 	# W3: Acceptance preview — key factors
 	var acceptance_preview = data.get("acceptance_preview")
@@ -388,22 +380,22 @@ func _render_preview(data: Dictionary):
 		var positives = acceptance_preview.get("positive", [])
 		var negatives = acceptance_preview.get("negative", [])
 		if positives.size() > 0 or negatives.size() > 0:
-			bbcode += "\n[color=#" + COLOR_HEADER + "]KEY FACTORS[/color]\n"
+			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]KEY FACTORS[/color]\n"
 			for p in positives:
 				var p_label = str(p.get("label", "?"))
 				var p_val = int(p.get("value", 0))
-				bbcode += "  [color=#" + COLOR_GREEN + "]+ " + p_label + " (+" + str(p_val) + ")[/color]\n"
+				bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]+ " + p_label + " (+" + str(p_val) + ")[/color]\n"
 			for neg in negatives:
 				var neg_label = str(neg.get("label", "?"))
 				var neg_val = int(neg.get("value", 0))
-				bbcode += "  [color=#" + COLOR_RED + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
+				bbcode += "  [color=#" + Utils.COLOR_ERROR + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
 
 	# W4: Cooldown pre-check warning
 	var actions_list = data.get("actions", [])
 	for act in actions_list:
 		var disabled_reason = str(act.get("disabled_reason", ""))
 		if "cooldown" in disabled_reason.to_lower() or "Cooldown" in disabled_reason:
-			bbcode += "\n[color=#" + COLOR_AMBER + "]\"We must exercise patience, Sire. " + disabled_reason + " before we may approach them again.\"[/color]\n"
+			bbcode += "\n[color=#" + Utils.COLOR_ORANGE + "]\"We must exercise patience, Sire. " + disabled_reason + " before we may approach them again.\"[/color]\n"
 			break
 
 	assessment_panel.text = bbcode
@@ -415,7 +407,7 @@ func _render_preview(data: Dictionary):
 		lbl.bbcode_enabled = true
 		lbl.fit_content = true
 		lbl.scroll_active = false
-		lbl.text = "[color=#" + COLOR_GREY + "]No diplomatic actions available.[/color]"
+		lbl.text = "[color=#" + Utils.COLOR_GREY + "]No diplomatic actions available.[/color]"
 		content_list.add_child(lbl)
 		return
 
@@ -533,6 +525,6 @@ func _clear_content_list():
 func _add_loading_label():
 	var lbl = Label.new()
 	lbl.text = "Loading..."
-	lbl.add_theme_color_override("font_color", Color("#" + COLOR_INFO))
+	lbl.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
 	lbl.add_theme_font_size_override("font_size", 12)
 	content_list.add_child(lbl)

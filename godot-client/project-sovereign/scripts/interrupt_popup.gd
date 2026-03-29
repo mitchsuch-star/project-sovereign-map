@@ -1,7 +1,7 @@
-extends CanvasLayer
+extends PopupBase
 
 # =============================================================================
-# PROJECT SOVEREIGN - Strategic Interrupt Popup
+# PROJECT SOVEREIGN - Strategic Interrupt Popup (R15 migrated)
 # =============================================================================
 # Displays when a marshal's strategic order hits an interrupt requiring
 # player input: cannon fire, blocked path, contact, ally moving.
@@ -14,11 +14,6 @@ signal choice_made(marshal_name: String, response_type: String, choice: String)
 @onready var title_label = $PanelContainer/VBoxContainer/TitleLabel
 @onready var message_label = $PanelContainer/VBoxContainer/MessageLabel
 @onready var button_container = $PanelContainer/VBoxContainer/ButtonContainer
-
-# Color palette (matching main.gd)
-const COLOR_GOLD = "d9c08c"
-const COLOR_TEXT = "eeeeee"
-const COLOR_WARNING = "e0c060"
 
 # Current interrupt data
 var current_marshal: String = ""
@@ -83,7 +78,5 @@ func show_interrupt(interrupt_data: Dictionary):
 
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""
-	for btn in button_container.get_children():
-		btn.disabled = true
-	hide()
+	close_popup()
 	choice_made.emit(current_marshal, current_response_type, option_id)

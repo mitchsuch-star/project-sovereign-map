@@ -28,7 +28,6 @@ var has_alternative: bool = false
 var has_compromise: bool = false
 
 # Napoleonic color palette
-const COLOR_GOLD = "d9c08c"
 const COLOR_TEXT = "eee"
 const COLOR_BACKGROUND = "16213e"
 const COLOR_PANEL = "1a1a2e"

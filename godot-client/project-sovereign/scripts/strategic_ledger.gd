@@ -22,17 +22,6 @@ signal closed
 @onready var manpower_tab = $PanelContainer/VBoxContainer/SubTabRow/ManpowerTab
 @onready var orders_tab = $PanelContainer/VBoxContainer/SubTabRow/OrdersTab
 
-# Color palette (duplicated across dispatch_view.gd, strategic_ledger.gd,
-# marshal_management.gd — consolidate into shared utils.gd during Map Renderer refactor)
-const COLOR_GOLD = "d9c08c"
-const COLOR_SUCCESS = "8fbc8f"
-const COLOR_ERROR = "cd6b6b"
-const COLOR_INFO = "a0a0a8"
-const COLOR_BLUE = "6495ed"
-const COLOR_ORANGE = "daa06d"
-const COLOR_GREY = "808080"
-const COLOR_HEADER = "B8860B"
-
 # State
 var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders
 var cached_data: Dictionary = {}
@@ -103,7 +92,7 @@ var _api_client_ref = null
 func open(api_client):
 	"""Fetch ledger from backend and display it."""
 	_api_client_ref = api_client
-	content_area.text = "[color=#" + COLOR_INFO + "]Loading ledger...[/color]"
+	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading ledger...[/color]"
 	current_tab = 0
 	show()
 	_update_tab_highlights()
@@ -123,12 +112,12 @@ func _on_ledger_received(response):
 		return
 
 	if not response.get("success", false):
-		content_area.text = "[color=#" + COLOR_ERROR + "]Failed to load ledger.[/color]"
+		content_area.text = "[color=#" + Utils.COLOR_ERROR + "]Failed to load ledger.[/color]"
 		return
 
 	cached_data = response.get("ledger", {})
 	if cached_data.is_empty():
-		content_area.text = "[color=#" + COLOR_INFO + "]No ledger data available.[/color]"
+		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No ledger data available.[/color]"
 		return
 
 	_render_current_tab()
@@ -180,20 +169,20 @@ func _render_current_tab():
 func _render_forces():
 	var forces = cached_data.get("forces", [])
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ FORCES ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n\n"
 
 	# Authority — global player stat (V2b)
 	var authority = int(cached_data.get("authority", 100))
 	var authority_label = str(cached_data.get("authority_label", "Normal"))
-	var auth_color = COLOR_INFO
+	var auth_color = Utils.COLOR_INFO
 	if authority >= 80:
-		auth_color = COLOR_SUCCESS
+		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
-		auth_color = COLOR_ERROR
+		auth_color = Utils.COLOR_ERROR
 	bbcode += "Authority: [color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n\n"
 
 	if forces.size() == 0:
-		bbcode += "[color=#" + COLOR_INFO + "]No marshals available.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"
 		content_area.text = bbcode
 		return
 
@@ -213,17 +202,17 @@ func _render_forces():
 
 		# Name + type tag
 		var type_tag = "[" + unit_type.substr(0, 3).to_upper() + "]"
-		bbcode += "[color=#" + COLOR_GOLD + "]" + name + " " + type_tag + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + " " + type_tag + "[/color]\n"
 
 		# Status with color coding
-		var status_color = COLOR_INFO
+		var status_color = Utils.COLOR_INFO
 		match status:
 			"broken", "retreating":
-				status_color = COLOR_ERROR
+				status_color = Utils.COLOR_ERROR
 			"drilling":
-				status_color = COLOR_BLUE
+				status_color = Utils.COLOR_BLUE
 			"idle":
-				status_color = COLOR_GREY
+				status_color = Utils.COLOR_GREY
 
 		bbcode += "  Status: [color=#" + status_color + "]" + status + "[/color]"
 		bbcode += "  Location: " + loc + "\n"
@@ -231,17 +220,17 @@ func _render_forces():
 		bbcode += "  Stance: " + stance + "\n"
 
 		# Trust + morale with color thresholds
-		var trust_color = COLOR_INFO
+		var trust_color = Utils.COLOR_INFO
 		if trust < 30:
-			trust_color = COLOR_ERROR
+			trust_color = Utils.COLOR_ERROR
 		elif trust < 55:
-			trust_color = COLOR_ORANGE
+			trust_color = Utils.COLOR_ORANGE
 
-		var morale_color = COLOR_INFO
+		var morale_color = Utils.COLOR_INFO
 		if morale < 40:
-			morale_color = COLOR_ERROR
+			morale_color = Utils.COLOR_ERROR
 		elif morale < 60:
-			morale_color = COLOR_ORANGE
+			morale_color = Utils.COLOR_ORANGE
 
 		bbcode += "  Trust: [color=#" + trust_color + "]" + str(trust) + "[/color]"
 		bbcode += "  Morale: [color=#" + morale_color + "]" + str(morale) + "%[/color]"
@@ -262,7 +251,7 @@ func _render_forces():
 		if flags.get("exhausted", false):
 			flag_parts.append("EXHAUSTED")
 		if flag_parts.size() > 0:
-			bbcode += "  [color=#" + COLOR_ORANGE + "]" + " | ".join(flag_parts) + "[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]" + " | ".join(flag_parts) + "[/color]\n"
 
 		bbcode += "\n"
 
@@ -272,10 +261,10 @@ func _render_forces():
 func _render_territories():
 	var territories = cached_data.get("territories", [])
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n\n"
 
 	if territories.size() == 0:
-		bbcode += "[color=#" + COLOR_INFO + "]No territories controlled.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]No territories controlled.[/color]\n"
 		content_area.text = bbcode
 		return
 
@@ -292,7 +281,7 @@ func _render_territories():
 		var income = int(t.get("income", 0))
 		var buildings = t.get("buildings", [])
 
-		bbcode += "[color=#" + COLOR_GOLD + "]" + name + "[/color]"
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
 		bbcode += " [" + rtype.replace("_", " ") + ", " + terrain.replace("_", " ") + "]\n"
 
 		bbcode += "  Income: " + str(income) + "g"
@@ -302,9 +291,9 @@ func _render_territories():
 		bbcode += "\n"
 
 		# Supply status
-		var supply_color = COLOR_INFO
+		var supply_color = Utils.COLOR_INFO
 		if supply_status == "Over capacity":
-			supply_color = COLOR_ERROR
+			supply_color = Utils.COLOR_ERROR
 		bbcode += "  Supply: [color=#" + supply_color + "]" + supply_status + "[/color]"
 		bbcode += " (" + str(occupants) + " marshals, cap " + _format_number(supply_cap) + ")"
 		if garrison > 0:
@@ -320,9 +309,9 @@ func _render_territories():
 				if bstatus == "built":
 					bld_parts.append(bname)
 				elif bstatus == "damaged":
-					bld_parts.append("[color=#" + COLOR_ERROR + "]" + bname + " (damaged)[/color]")
+					bld_parts.append("[color=#" + Utils.COLOR_ERROR + "]" + bname + " (damaged)[/color]")
 				else:
-					bld_parts.append("[color=#" + COLOR_BLUE + "]" + bname + " (" + bstatus + ")[/color]")
+					bld_parts.append("[color=#" + Utils.COLOR_BLUE + "]" + bname + " (" + bstatus + ")[/color]")
 			bbcode += "  Buildings: " + ", ".join(bld_parts) + "\n"
 
 		bbcode += "\n"
@@ -333,7 +322,7 @@ func _render_territories():
 func _render_economy():
 	var econ = cached_data.get("economy", {})
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ ECONOMY ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ECONOMY ═══[/color]\n\n"
 
 	var treasury = int(econ.get("treasury", 0))
 	var income = int(econ.get("income", 0))
@@ -349,17 +338,17 @@ func _render_economy():
 		bbcode += "  Trade:    +" + str(trade) + "g\n"
 	bbcode += "  Upkeep:   -" + str(upkeep) + "g\n"
 
-	var net_color = COLOR_SUCCESS if net >= 0 else COLOR_ERROR
+	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
 	var net_sign = "+" if net >= 0 else ""
 	bbcode += "  Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color]\n"
 
 	if bankruptcy > 0:
-		bbcode += "  [color=#" + COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
 
 	# Income breakdown
 	var breakdown = econ.get("income_breakdown", [])
 	if breakdown.size() > 0:
-		bbcode += "\n[color=#" + COLOR_HEADER + "]Income by Region[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]Income by Region[/color]\n"
 		for entry in breakdown:
 			var rname = str(entry.get("region", "?"))
 			var rincome = int(entry.get("income", 0))
@@ -369,7 +358,7 @@ func _render_economy():
 	# Construction
 	var queue = econ.get("construction_queue", [])
 	if queue.size() > 0:
-		bbcode += "\n[color=#" + COLOR_HEADER + "]Under Construction[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]Under Construction[/color]\n"
 		for item in queue:
 			var cregion = str(item.get("region", "?"))
 			var cbuilding = str(item.get("building", "?"))
@@ -382,15 +371,15 @@ func _render_economy():
 func _render_intel():
 	var intel_data = cached_data.get("intel", {})
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]\n\n"
 
 	var enemies = intel_data.get("known_enemies", [])
 	var unknown_count = int(intel_data.get("unknown_region_count", 0))
 
 	if enemies.size() == 0:
-		bbcode += "[color=#" + COLOR_INFO + "]No enemy forces in observation range.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]No enemy forces in observation range.[/color]\n"
 	else:
-		bbcode += "[color=#" + COLOR_HEADER + "]Known Enemy Forces[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]Known Enemy Forces[/color]\n"
 		for e in enemies:
 			var ename = str(e.get("name", "?"))
 			var enation = str(e.get("nation", "?"))
@@ -398,20 +387,20 @@ func _render_intel():
 			var estr = str(e.get("strength_display", "?"))
 			var evis = str(e.get("visibility", "unknown"))
 
-			var vis_color = COLOR_INFO
+			var vis_color = Utils.COLOR_INFO
 			var vis_label = ""
 			match evis:
 				"full":
-					vis_color = COLOR_SUCCESS
+					vis_color = Utils.COLOR_SUCCESS
 					vis_label = "[confirmed]"
 				"partial":
-					vis_color = COLOR_INFO
+					vis_color = Utils.COLOR_INFO
 					vis_label = "[partial]"
 				"stale":
-					vis_color = COLOR_ORANGE
+					vis_color = Utils.COLOR_ORANGE
 					vis_label = "[stale]"
 				"last_known":
-					vis_color = COLOR_ERROR
+					vis_color = Utils.COLOR_ERROR
 					vis_label = "[last known]"
 
 			bbcode += "  " + ename + " (" + enation + ") at " + eloc + " — " + estr
@@ -420,7 +409,7 @@ func _render_intel():
 	# Nation summaries
 	var summaries = intel_data.get("nation_summaries", [])
 	if summaries.size() > 0:
-		bbcode += "\n[color=#" + COLOR_HEADER + "]Nation Summary[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]Nation Summary[/color]\n"
 		for s in summaries:
 			var sname = str(s.get("nation", "?"))
 			var smarshals = int(s.get("known_marshals", 0))
@@ -431,7 +420,7 @@ func _render_intel():
 			bbcode += ", " + str(sregions) + " regions\n"
 
 	if unknown_count > 0:
-		bbcode += "\n[color=#" + COLOR_GREY + "]" + str(unknown_count) + " region(s) with no intel.[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]" + str(unknown_count) + " region(s) with no intel.[/color]\n"
 
 	content_area.text = bbcode
 
@@ -439,7 +428,7 @@ func _render_intel():
 func _render_manpower():
 	var mp = cached_data.get("manpower", {})
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ MANPOWER ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ MANPOWER ═══[/color]\n\n"
 
 	for pool_type in ["infantry", "cavalry", "artillery"]:
 		var pool = mp.get(pool_type, {})
@@ -451,14 +440,14 @@ func _render_manpower():
 		var cost_note = str(pool.get("cost_note", ""))
 		var turns_full = int(pool.get("turns_until_full", 0))
 
-		bbcode += "[color=#" + COLOR_GOLD + "]" + pool_type.to_upper() + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + pool_type.to_upper() + "[/color]\n"
 
 		# Pool bar with color coding
-		var pool_color = COLOR_INFO
+		var pool_color = Utils.COLOR_INFO
 		if current == 0:
-			pool_color = COLOR_ERROR
+			pool_color = Utils.COLOR_ERROR
 		elif current < recruit_amt:
-			pool_color = COLOR_ORANGE
+			pool_color = Utils.COLOR_ORANGE
 
 		bbcode += "  Pool: [color=#" + pool_color + "]" + _format_number(current) + "[/color]"
 		bbcode += " / " + _format_number(max_val) + "\n"
@@ -483,15 +472,15 @@ func _render_orders():
 	var ap_remaining = int(cached_data.get("actions_remaining", 1))
 	var can_cancel = ap_remaining > 0
 	var bbcode = ""
-	bbcode += "[color=#" + COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n\n"
 
 	if orders.size() == 0:
-		bbcode += "[color=#" + COLOR_INFO + "]No marshals available.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"
 		content_area.text = bbcode
 		return
 
 	if not can_cancel:
-		bbcode += "[color=#" + COLOR_GREY + "]No actions remaining — cancel unavailable this turn.[/color]\n\n"
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]No actions remaining — cancel unavailable this turn.[/color]\n\n"
 
 	var has_active = false
 	var has_idle = false
@@ -508,7 +497,7 @@ func _render_orders():
 		var condition = str(o.get("condition", ""))
 		var path_left = int(o.get("path_remaining", 0))
 
-		bbcode += "  [color=#" + COLOR_GOLD + "]" + mname + "[/color]"
+		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + mname + "[/color]"
 		bbcode += " at " + location + "\n"
 
 		bbcode += "    " + order_type.to_upper()
@@ -521,9 +510,9 @@ func _render_orders():
 		bbcode += "  │ " + condition
 
 		if can_cancel:
-			bbcode += "  [url=cancel:" + mname + "][color=#" + COLOR_ERROR + "][Cancel][/color][/url]"
+			bbcode += "  [url=cancel:" + mname + "][color=#" + Utils.COLOR_ERROR + "][Cancel][/color][/url]"
 		else:
-			bbcode += "  [color=#" + COLOR_GREY + "][Cancel][/color]"
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "][Cancel][/color]"
 		bbcode += "\n\n"
 
 	# Separator between active and idle
@@ -533,7 +522,7 @@ func _render_orders():
 				has_idle = true
 				break
 		if has_idle:
-			bbcode += "[color=#" + COLOR_GREY + "]─────────────────────────────────────────────────────[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_GREY + "]─────────────────────────────────────────────────────[/color]\n"
 
 	# Idle marshals
 	for o in orders:
@@ -541,7 +530,7 @@ func _render_orders():
 			continue
 		var mname = str(o.get("marshal", "?"))
 		var location = str(o.get("location", "?"))
-		bbcode += "  [color=#" + COLOR_GREY + "]" + mname
+		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + mname
 		bbcode += " at " + location
 		bbcode += "  │ No active orders"
 		bbcode += "[/color]\n"

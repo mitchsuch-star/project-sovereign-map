@@ -1,7 +1,7 @@
-extends CanvasLayer
+extends PopupBase
 
 # =============================================================================
-# PROJECT SOVEREIGN - Coalition Declaration Popup (Session 8C)
+# PROJECT SOVEREIGN - Coalition Declaration Popup (Session 8C, R15 migrated)
 # =============================================================================
 # Dramatic reveal when a coalition forms against France.
 # Single [Continue] button — informational only.
@@ -43,13 +43,12 @@ func show_coalition(data: Dictionary):
 			var we = int(float(member.get("war_exhaustion", 0)))
 			bbcode += "  - %s: %s — War Exhaustion: %d/100\n" % [nation, strength, we]
 
-	bbcode += "\n[color=gray]Talleyrand: \"The courts of Europe have united against us, Sire.\"[/color]"
+	bbcode += "\n" + Utils.bbcode_color("Talleyrand: \"The courts of Europe have united against us, Sire.\"", Utils.COLOR_INFO)
 
 	content_label.text = ""
 	content_label.append_text(bbcode)
 	show()
 
 func _on_continue_pressed():
-	continue_btn.disabled = true
-	hide()
+	close_popup()
 	dismissed.emit()
