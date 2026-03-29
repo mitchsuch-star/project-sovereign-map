@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-12C COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager). executor.py 14,802→6,148 lines. 7,755 tests passing. **NEXT: R13A** (Executor Split Phase 3a — vassal/capture/economy/tactical, executor.py→~4,432 lines), **R13B** (Phase 3b — movement/meta/objection, executor.py→~1,519 lines), **R17** (HTTP timeout + api_client consolidation, CRITICAL), **R15** (utils.gd + PopupBase), **R14a-d** (AI Fog, 4 sessions, CRITICAL). See plan for full details.
+- **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-13A COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager, R13A executor split vassal/capture/economy/tactical). executor.py 14,802→4,483 lines. 7,755 tests passing. **NEXT: R13B** (Phase 3b — movement/meta/objection, executor.py→~1,519 lines), **R17** (HTTP timeout + api_client consolidation, CRITICAL), **R15** (utils.gd + PopupBase), **R14a-d** (AI Fog, 4 sessions, CRITICAL). See plan for full details.
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
@@ -64,10 +64,14 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | File | Purpose |
 |------|---------|
 | `backend/main.py` | FastAPI endpoints, response formatting |
-| `backend/commands/executor.py` | Action execution, dispatch, objection routing (~6.1k lines) |
+| `backend/commands/executor.py` | Action execution, dispatch, objection routing (~4.5k lines) |
 | `backend/commands/combat_executor.py` | Combat execution + coordination: attack, bombardment, charge, garrison, form_square, post-combat pipeline, multi-marshal coordination, reinforcements, overwatch, auto-dispatch combat (~4.7k lines, R10A+R10B) |
 | `backend/commands/strategic_executor.py` | Strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objection messages, target resolution, first-step blocking (~1.8k lines, R11) |
 | `backend/commands/diplomatic_executor.py` | Diplomatic execution: proposals, dialogue state machine, missions, trust reactions, AI proposal accept/reject/counter, terms guidance wizard (~2.3k lines, R11) |
+| `backend/commands/economy_executor.py` | Economy execution: economy report, recruit, garrison, build, watchtower, repair (~800 lines, R13A) |
+| `backend/commands/tactical_executor.py` | Tactical execution: defend, wait, drill, fortify, unfortify, stance_change, restrain, auto_break_square (~715 lines, R13A) |
+| `backend/commands/vassal_executor.py` | Vassal management: invest, change_autonomy, make_vassal, release_vassal (~147 lines, R13A) |
+| `backend/commands/capture_executor.py` | Post-capture plunder/secure choice handling (~94 lines, R13A) |
 | `backend/commands/parser.py` | Command parsing, fuzzy matching |
 | `backend/commands/disobedience.py` | V1 objection system, trust values |
 | `backend/commands/objection_v2.py` | V2a objection system (ConcernLevel triggers) |
@@ -145,7 +149,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `combat_executor.py` (_calculate_coordination_context, _calculate_reinforcements, _calculate_overwatch), `marshal.py` (transient bonus fields) |
 | Combat execution (attack/bombard/charge) | `combat_executor.py` (CombatExecutor: all combat _execute_* methods, post-combat pipeline, garrison, forced retreat, capture, coordination, reinforcements, overwatch, auto-dispatch). Accesses non-combat executor methods via `self._executor.X` |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py`, `docs/ADDING_CONTENT.md` (wiring checklist), `marshal_overview.py` (_WIRED_ABILITY_MARSHALS) |
-| Fortify/Drill mechanics | `executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
+| Fortify/Drill mechanics | `tactical_executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Cavalry limits | `world_state.py` (_check_cavalry_limits), `marshal.py` (cavalry counters) |
 | Terrain system | `region.py` (constants, Region class), `combat.py` (_get_terrain_bonus), `combat_executor.py` (resolve_battle calls, charge blocking) |
@@ -154,14 +158,14 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `combat_executor.py` (_handle_forced_retreat, _apply_forced_retreat_or_break) |
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Capital garrison | `combat_executor.py` (_resolve_garrison_combat), `world_state.py` (garrison init/regen), `enemy_ai.py` (P4.25) |
-| Player garrison | `executor.py` (_execute_garrison), `region.py` (garrison_detachment), `world_state.py` (regen exclusion) |
+| Player garrison | `economy_executor.py` (_execute_garrison), `region.py` (garrison_detachment), `world_state.py` (regen exclusion) |
 | Fort degradation | `combat.py` (resolve_combat degradation block), `battle_report.py` (P6c observations) |
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `strategic_executor.py` (_execute_strategic_command, _execute_cancel, objection handling) |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons). **R5:** Use `world.get_visible_enemies(nation)` for player-facing queries, `get_enemies_of_nation()` only for omniscient operations (combat, AI, mechanics) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
-| Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
+| Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `economy_executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
 | Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral, `_distribute_casualties` 50% reduction with non-artillery), `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus) |
 | Bombardment collateral | `combat_executor.py` (`_execute_bombardment` collateral loop), `trust.py` (modify), `disobedience.py` (_create_redemption_event), `main.py` (redemption pass-through) |
 | Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
@@ -169,7 +173,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
-| Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `combat_executor.py` (form_square, break_square), `executor.py` (auto-bombardment, overwatch calc) |
+| Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `combat_executor.py` (form_square, break_square), `tactical_executor.py` (_auto_break_square), `executor.py` (auto-bombardment, overwatch calc) |
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
 | Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI, `open_for_nation()`), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |

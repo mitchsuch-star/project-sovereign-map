@@ -454,8 +454,8 @@ class TestAdminAPBonusAlignment:
         """Economy report display string says 'x 25', not 'x 75'."""
         # Read the source file directly to verify the display string
         import os
-        executor_path = os.path.join(os.path.dirname(__file__), "..", "backend", "commands", "executor.py")
-        with open(executor_path, "r", encoding="utf-8") as f:
+        economy_path = os.path.join(os.path.dirname(__file__), "..", "backend", "commands", "economy_executor.py")
+        with open(economy_path, "r", encoding="utf-8") as f:
             source = f.read()
         assert "unused AP x 25" in source
         assert "unused AP x 75" not in source

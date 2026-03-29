@@ -1616,8 +1616,9 @@ Before extracting anything new, verify 10A left no loose ends:
 | **Priority** | MINOR |
 | **Effort** | ~2-3 hours |
 | **Risk** | LOW (pattern well-established; 4 self-contained modules with no cross-dependencies) |
-| **Impact** | executor.py 6,148 → ~4,432 lines (~1,716 lines extracted) |
+| **Impact** | executor.py 6,148 → 4,483 lines (~1,665 lines extracted) |
 | **Dependencies** | Session 12 (R12) complete |
+| **Status** | **COMPLETE** — 4 sub-executors extracted. VassalExecutor (147 lines, 4 methods), CaptureExecutor (94 lines, 1 method), EconomyExecutor (804 lines, 6 methods + 2 helpers + 5 class constants), TacticalExecutor (715 lines, 9 methods). Delegation sets + `__getattr__` wiring added. Class-level constant delegation for backward compat (GARRISON_*, WATCHTOWER_*). Enforcement suite updated to scan all 8 executor files. 1 test fix (source file path for display string check). 7,755 tests passing (no new tests — pure restructuring). |
 
 **Rationale for split:** Original R13 created 6 files in one session. While total line count (~4,600) is comparable to R10A or R11, those created 1-2 files. 6 files means 6× the wiring overhead (class boilerplate, delegation sets, `__getattr__` updates, dispatch routing, `_execute_post_objection` routing, enforcement suite updates, test monkeypatch fixes). R13A handles 4 smaller self-contained modules; R13B handles the 2 complex ones.
 

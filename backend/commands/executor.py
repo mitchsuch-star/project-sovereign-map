@@ -15,12 +15,7 @@ TODO (Future): Multi-Army Battles
 """
 import random
 from typing import Dict, List, Optional, Tuple
-from backend.models.world_state import (
-    WorldState,
-    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
-    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE, ARTILLERY_RECRUIT_GOLD_COST_BASE,
-    INFANTRY_BASE_REGEN,
-)
+from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import CombatResolver
@@ -41,6 +36,10 @@ from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES
 from backend.commands.combat_executor import CombatExecutor
 from backend.commands.strategic_executor import StrategicExecutor
 from backend.commands.diplomatic_executor import DiplomaticExecutor
+from backend.commands.vassal_executor import VassalExecutor
+from backend.commands.capture_executor import CaptureExecutor
+from backend.commands.economy_executor import EconomyExecutor
+from backend.commands.tactical_executor import TacticalExecutor
 
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
@@ -91,6 +90,31 @@ _DIPLOMATIC_DELEGATED = {
     '_copy_guidance_context', '_build_gold_step', '_build_ap_step',
     '_build_confirm_step', '_handle_accept_ai_proposal',
     '_handle_reject_ai_proposal', '_handle_counter_ai_proposal',
+}
+
+# Vassal methods delegated to VassalExecutor (R13A backward compat)
+_VASSAL_DELEGATED = {
+    '_execute_invest_vassal', '_execute_change_autonomy',
+    '_execute_make_vassal', '_execute_release_vassal',
+}
+
+# Capture methods delegated to CaptureExecutor (R13A backward compat)
+_CAPTURE_DELEGATED = {
+    'handle_capture_choice',
+}
+
+# Economy methods delegated to EconomyExecutor (R13A backward compat)
+_ECONOMY_DELEGATED = {
+    '_execute_economy', '_execute_recruit', '_execute_garrison',
+    '_execute_build', '_execute_build_watchtower', '_execute_repair',
+    '_calculate_recruit_cost', '_extract_building_type',
+}
+
+# Tactical methods delegated to TacticalExecutor (R13A backward compat)
+_TACTICAL_DELEGATED = {
+    '_execute_defend', '_execute_wait', '_execute_drill',
+    '_execute_fortify', '_auto_break_square', '_execute_unfortify',
+    '_get_stance_change_cost', '_execute_stance_change', '_execute_restrain',
 }
 
 
@@ -147,6 +171,13 @@ class CommandExecutor:
     ARTILLERY_CASUALTY_FACTOR = CombatExecutor.ARTILLERY_CASUALTY_FACTOR
     PLUNDER_GOLD_MULTIPLIER = CombatExecutor.PLUNDER_GOLD_MULTIPLIER
 
+    # Class-level constants delegated from EconomyExecutor (R13A backward compat)
+    GARRISON_DETACHMENT_SIZE = EconomyExecutor.GARRISON_DETACHMENT_SIZE
+    GARRISON_MIN_MARSHAL_STRENGTH = EconomyExecutor.GARRISON_MIN_MARSHAL_STRENGTH
+    GARRISON_MAX_PER_NATION = EconomyExecutor.GARRISON_MAX_PER_NATION
+    WATCHTOWER_GOLD_COST = EconomyExecutor.WATCHTOWER_GOLD_COST
+    WATCHTOWER_BUILD_TIME = EconomyExecutor.WATCHTOWER_BUILD_TIME
+
     def __init__(self):
         """Initialize the command executor."""
         self.combat_resolver = CombatResolver()
@@ -154,16 +185,28 @@ class CommandExecutor:
         self._combat = CombatExecutor(self)
         self._strategic = StrategicExecutor(self)
         self._diplomatic = DiplomaticExecutor(self)
+        self._vassal = VassalExecutor(self)
+        self._capture = CaptureExecutor(self)
+        self._economy = EconomyExecutor(self)
+        self._tactical = TacticalExecutor(self)
         print("Command Executor initialized")
 
     def __getattr__(self, name):
-        """Delegate methods to sub-executors (R10A/R11 backward compat)."""
+        """Delegate methods to sub-executors (R10A/R11/R13A backward compat)."""
         if name in _COMBAT_DELEGATED and '_combat' in self.__dict__:
             return getattr(self._combat, name)
         if name in _STRATEGIC_DELEGATED and '_strategic' in self.__dict__:
             return getattr(self._strategic, name)
         if name in _DIPLOMATIC_DELEGATED and '_diplomatic' in self.__dict__:
             return getattr(self._diplomatic, name)
+        if name in _VASSAL_DELEGATED and '_vassal' in self.__dict__:
+            return getattr(self._vassal, name)
+        if name in _CAPTURE_DELEGATED and '_capture' in self.__dict__:
+            return getattr(self._capture, name)
+        if name in _ECONOMY_DELEGATED and '_economy' in self.__dict__:
+            return getattr(self._economy, name)
+        if name in _TACTICAL_DELEGATED and '_tactical' in self.__dict__:
+            return getattr(self._tactical, name)
         raise AttributeError(f"'{type(self).__name__}' has no attribute '{name}'")
 
     def _fuzzy_match_marshal(self, marshal_name: str, world: WorldState) -> Tuple[Optional[object], Optional[Dict]]:
@@ -1585,26 +1628,26 @@ RETREAT RECOVERY (3 turns):
         elif action == "help":
             result = self._execute_help(command, game_state)
         elif action == "recruit":
-            result = self._execute_recruit(command, game_state)
+            result = self._economy._execute_recruit(command, game_state)
         elif action == "build":
-            result = self._execute_build(command, game_state)
+            result = self._economy._execute_build(command, game_state)
         elif action == "repair":
-            result = self._execute_repair(command, game_state)
+            result = self._economy._execute_repair(command, game_state)
         elif action in ("economy", "treasury", "finances"):
-            result = self._execute_economy(command, game_state)
+            result = self._economy._execute_economy(command, game_state)
         elif action == "garrison":
-            result = self._execute_garrison(command, game_state)
+            result = self._economy._execute_garrison(command, game_state)
         elif action == "end_turn":
             result = self._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
         # TACTICAL STATE ACTIONS (Phase 2.6)
         # ════════════════════════════════════════════════════════════
         elif action == "drill":
-            result = self._execute_drill(command, game_state)
+            result = self._tactical._execute_drill(command, game_state)
         elif action == "fortify":
-            result = self._execute_fortify(command, game_state)
+            result = self._tactical._execute_fortify(command, game_state)
         elif action == "unfortify":
-            result = self._execute_unfortify(command, game_state)
+            result = self._tactical._execute_unfortify(command, game_state)
         elif action == "form_square":
             result = self._combat._execute_form_square(command, game_state)
         elif action == "break_square":
@@ -1613,7 +1656,7 @@ RETREAT RECOVERY (3 turns):
         # STANCE SYSTEM (Phase 2.7)
         # ════════════════════════════════════════════════════════════
         elif action == "stance_change":
-            result = self._execute_stance_change(command, game_state)
+            result = self._tactical._execute_stance_change(command, game_state)
         # ════════════════════════════════════════════════════════════
         # CHEAT COMMANDS (Phase 8 Session 8A)
         # ════════════════════════════════════════════════════════════
@@ -1630,7 +1673,7 @@ RETREAT RECOVERY (3 turns):
         elif action == "charge":
             result = self._combat._execute_charge(command, game_state)
         elif action == "restrain":
-            result = self._execute_restrain(command, game_state)
+            result = self._tactical._execute_restrain(command, game_state)
         elif action == "cancel":
             result = self._strategic._execute_cancel(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -1646,13 +1689,13 @@ RETREAT RECOVERY (3 turns):
         # VASSAL COMMANDS (Phase 8 Session 5)
         # ════════════════════════════════════════════════════════════
         elif action == "invest_vassal":
-            result = self._execute_invest_vassal(command, game_state)
+            result = self._vassal._execute_invest_vassal(command, game_state)
         elif action == "change_autonomy":
-            result = self._execute_change_autonomy(command, game_state)
+            result = self._vassal._execute_change_autonomy(command, game_state)
         elif action == "make_vassal":
-            result = self._execute_make_vassal(command, game_state)
+            result = self._vassal._execute_make_vassal(command, game_state)
         elif action == "release_vassal":
-            result = self._execute_release_vassal(command, game_state)
+            result = self._vassal._execute_release_vassal(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -1882,14 +1925,14 @@ RETREAT RECOVERY (3 turns):
         if action == "attack":
             return self._combat._execute_attack(marshal, target, world, game_state)
         elif action == "defend":
-            return self._execute_defend(marshal, world, game_state)
+            return self._tactical._execute_defend(marshal, world, game_state)
         elif action == "hold":
             # V2-58: "hold" routes to defend (tactical). Strategic HOLD (2 AP)
             # is handled by strategic parser. Grouchy Immovable is in strategic HOLD path.
-            return self._execute_defend(marshal, world, game_state)
+            return self._tactical._execute_defend(marshal, world, game_state)
         elif action == "wait":
             # Wait is a free action - marshal passes turn
-            return self._execute_wait(marshal, world, game_state)
+            return self._tactical._execute_wait(marshal, world, game_state)
         elif action == "move":
             return self._execute_move(marshal, target, world, game_state)
         elif action == "scout":
@@ -1897,17 +1940,17 @@ RETREAT RECOVERY (3 turns):
         elif action == "retreat":
             return self._execute_retreat_action(marshal, world, game_state)
         elif action == "drill":
-            return self._execute_drill(command, game_state)
+            return self._tactical._execute_drill(command, game_state)
         elif action == "fortify":
-            return self._execute_fortify(command, game_state)
+            return self._tactical._execute_fortify(command, game_state)
         elif action == "unfortify":
-            return self._execute_unfortify(command, game_state)
+            return self._tactical._execute_unfortify(command, game_state)
         elif action == "form_square":
             return self._combat._execute_form_square(command, game_state)
         elif action == "break_square":
             return self._combat._execute_break_square(command, game_state)
         elif action == "stance_change":
-            return self._execute_stance_change(command, game_state)
+            return self._tactical._execute_stance_change(command, game_state)
         elif action == "cheat":
             return self._execute_cheat(command, game_state)
         elif action == "debug":
@@ -2005,158 +2048,9 @@ RETREAT RECOVERY (3 turns):
         }
 
 
-    def _execute_defend(self, marshal, world, game_state) -> Dict:
-        """
-        Smart defend - context-aware defensive behavior.
-
-        Maps "defend" to appropriate action based on current stance:
-        - If NEUTRAL → change to DEFENSIVE stance (1 action)
-        - If DEFENSIVE and not fortified → execute fortify
-        - If DEFENSIVE and already fortified → return info message
-        - If AGGRESSIVE → change to DEFENSIVE stance (2 actions)
-
-        This makes "defend" an intuitive command that always moves
-        the marshal toward a more defensive posture.
-        """
-        # ════════════════════════════════════════════════════════════
-        # DRILL STATE CHECK: Handle drilling marshal trying to defend
-        # ════════════════════════════════════════════════════════════
-        drill_cancelled_message = ""
-        if getattr(marshal, 'drilling', False):
-            if getattr(marshal, 'drilling_locked', False):
-                # Turn 2: Locked in drill, cannot defend
-                return {
-                    "success": False,
-                    "message": f"{marshal.name} is locked in drill formation and cannot change to defensive stance. Only RETREAT is allowed.",
-                    "drilling_locked": True
-                }
-            else:
-                # Turn 1: Can defend but drill is cancelled
-                marshal.drilling = False
-                marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
-
-        # ════════════════════════════════════════════════════════════
-        # SMART DEFEND: Context-aware routing based on stance
-        # ════════════════════════════════════════════════════════════
-        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
-
-        # Case 1: Already in DEFENSIVE stance
-        if current_stance == Stance.DEFENSIVE:
-            # Check if already fortified
-            if getattr(marshal, 'fortified', False):
-                current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-                return {
-                    "success": False,
-                    "message": f"{marshal.name} is already defending and fortified at {marshal.location} (+{current_bonus}% defense). "
-                              f"No further defensive action needed.",
-                }
-
-            # Not fortified yet - execute fortify
-            command = {"marshal": marshal.name}
-            fortify_result = self._execute_fortify(command, game_state)
-
-            # Prepend drill cancelled message if applicable
-            if drill_cancelled_message and fortify_result.get("success"):
-                fortify_result["message"] = drill_cancelled_message + fortify_result.get("message", "")
-                fortify_result["drill_cancelled"] = True
-
-            return fortify_result
-
-        # Case 2: In NEUTRAL or AGGRESSIVE stance - change to DEFENSIVE
-        action_cost = self._get_stance_change_cost(current_stance, Stance.DEFENSIVE)
-
-        # Check if player has enough actions
-        if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
-            return {
-                "success": False,
-                "message": f"Switching {marshal.name} to defensive stance requires {action_cost} action(s), "
-                          f"but only {world.actions_remaining} remaining."
-            }
-
-        # Execute the stance change
-        old_stance = current_stance
-        marshal.stance = Stance.DEFENSIVE
-
-        # Build message
-        if old_stance == Stance.AGGRESSIVE:
-            defend_message = f"{marshal.name} abandons aggressive posture and shifts to DEFENSIVE stance. "
-            defend_message += f"Effect: -10% attack, +15% defense. (Cost: {action_cost} actions)"
-        else:
-            defend_message = f"{marshal.name} shifts to DEFENSIVE stance at {marshal.location}. "
-            defend_message += "Effect: -10% attack, +15% defense."
-
-        if drill_cancelled_message:
-            defend_message = drill_cancelled_message + defend_message
-
-        events = [{
-            "type": "stance_change",
-            "marshal": marshal.name,
-            "from_stance": old_stance.value,
-            "to_stance": "defensive",
-            "action_cost": action_cost
-        }]
-
-        # Add drill_cancelled event if drill was interrupted
-        if drill_cancelled_message:
-            events.insert(0, {
-                "type": "drill_cancelled",
-                "marshal": marshal.name,
-                "reason": "defend"
-            })
-
-        return {
-            "success": True,
-            "message": defend_message,
-            "drill_cancelled": bool(drill_cancelled_message),
-            "variable_action_cost": action_cost,  # Variable cost based on stance transition
-            "events": events,
-            "new_state": game_state
-        }
-
     # V2-58: _execute_hold() removed — was dead code. Bare "hold" is intercepted by
     # strategic parser (upgrades to strategic HOLD, 2 AP). Tactical "hold" routes to
     # _execute_defend(). Grouchy Immovable bonus is in strategic HOLD path (line ~6116).
-
-    def _execute_wait(self, marshal, world, game_state) -> Dict:
-        """
-        Execute a wait order - free action (costs 0 actions).
-
-        "Wait" means the marshal passes their turn without acting.
-        This is useful when:
-        - Conserving actions for other marshals
-        - Waiting for a better tactical moment
-        - Maintaining position without committing
-
-        Unlike defend/hold, wait does NOT change stance or provide bonuses.
-        The marshal simply does nothing this action.
-
-        NOTE: In future updates, "wait" may support conditional orders like
-        "wait for Davout to attack, then move to support" but for now it's
-        a simple pass action.
-        """
-        # Wait is always successful and costs nothing
-        wait_message = f"{marshal.name} holds position at {marshal.location}, awaiting further orders."
-
-        # Add context about current stance
-        current_stance = getattr(marshal, 'stance', None)
-        if current_stance:
-            stance_name = current_stance.value if hasattr(current_stance, 'value') else str(current_stance)
-            wait_message += f" (Current stance: {stance_name})"
-
-        return {
-            "success": True,
-            "message": wait_message,
-            "variable_action_cost": 0,  # FREE ACTION - costs nothing
-            "events": [{
-                "type": "wait",
-                "marshal": marshal.name,
-                "location": marshal.location,
-                "action_cost": 0
-            }],
-            "new_state": game_state
-        }
-
 
     # Strategic methods (target resolution, strategic command, objection, first-step blocked) delegated to StrategicExecutor (R11)
 
@@ -2714,1146 +2608,8 @@ RETREAT RECOVERY (3 turns):
         routed_command["type"] = "specific"
         return self._execute_specific(routed_command, game_state)
 
-    # ═══════════════════════════════════════════════════════════════════
-    # ECONOMY COMMAND (Phase 6.2.G)
-    # Free action showing treasury, income, upkeep breakdown
-    # ═══════════════════════════════════════════════════════════════════
-
-    def _execute_economy(self, command: Dict, game_state: Dict) -> Dict:
-        """Display economy summary: treasury, income, upkeep, net.
-
-        Free action (0 AP). Shows same data as end-of-turn financial report.
-        Aliases: economy, treasury, finances.
-        """
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No world state"}
-
-        nation = world.player_nation
-        income_data = world.calculate_turn_income(nation)
-        upkeep_data = world.calculate_turn_upkeep(nation)
-        admin_bonus = world.admin_actions_remaining * 75  # Potential bonus if saved
-
-        net = income_data["income"] - upkeep_data["total"] + admin_bonus
-        treasury = world.nation_gold.get(nation, 0)
-
-        # Build detailed report
-        lines = []
-        lines.append("═══════════════════════════════════")
-        lines.append(f"  {nation.upper()} TREASURY REPORT")
-        lines.append("═══════════════════════════════════")
-
-        # Income breakdown
-        region_details = income_data["breakdown"]["region_details"]
-        lines.append(f"  Income:  {income_data['income']}g  ({len(region_details)} regions)")
-        for rd in region_details:
-            effective = rd["effective_income"]
-            base = rd["base_income"]
-            modifiers = []
-            if rd.get("stability_label") and rd["stability_label"] != "Stable":
-                modifiers.append(rd["stability_label"].lower())
-            if rd.get("war_damage", 0) > 0:
-                modifiers.append(f"{rd['war_damage']}% damaged")
-            mod_str = f" ({', '.join(modifiers)})" if modifiers else ""
-            if effective != base:
-                lines.append(f"    {rd['region']}: {effective}g / {base}g base{mod_str}")
-            else:
-                lines.append(f"    {rd['region']}: {effective}g")
-
-        # Upkeep breakdown
-        upkeep_breakdown = upkeep_data["breakdown"]
-        lines.append(f"\n  Upkeep: -{upkeep_data['total']}g  ({len(upkeep_breakdown)} marshals)")
-        if upkeep_data.get("halved"):
-            lines.append("    (HALVED - bankruptcy mercy)")
-        for ub in upkeep_breakdown:
-            lines.append(f"    {ub['marshal']} ({ub['strength']:,} troops): -{ub['upkeep']}g")
-
-        # Admin bonus
-        if admin_bonus > 0:
-            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 25)")
-        else:
-            lines.append("\n  Admin bonus: 0g  (all AP used)")
-
-        # Spending this turn
-        spent = world.gold_spent_this_turn.get(nation, 0)
-        if spent > 0:
-            lines.append(f"\n  Spent this turn: -{spent}g")
-
-        # Net and treasury
-        net_sign = "+" if net >= 0 else ""
-        lines.append(f"\n  Projected net: {net_sign}{net}g")
-        lines.append(f"  Treasury: {treasury:,}g")
-
-        # Bankruptcy warning
-        bankruptcy = world.nation_bankruptcy_turns.get(nation, 0)
-        if bankruptcy > 0:
-            lines.append(f"\n  WARNING: Bankrupt for {bankruptcy} turn{'s' if bankruptcy > 1 else ''}!")
-            if bankruptcy >= 3:
-                lines.append("  Desertion active: -5% strength per marshal per turn!")
-
-        # Manpower pools (Phase 6)
-        pool = world.manpower_pools.get(nation, {})
-        inf_pool = pool.get("infantry", 0)
-        cav_pool = pool.get("cavalry", 0)
-        art_pool = pool.get("artillery", 0)
-        cav_regen = world.get_cavalry_regen_rate(nation)
-        art_regen = world.get_artillery_regen_rate(nation)
-
-        lines.append("\n  ═══════ MANPOWER ═══════")
-        lines.append(f"  Infantry Pool:  {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
-        lines.append(f"  Cavalry Pool:   {cav_pool:,} (+{cav_regen:,}/turn)")
-        lines.append(f"  Artillery Pool: {art_pool:,} (+{art_regen:,}/turn)")
-        if cav_pool < CAVALRY_RECRUIT_AMOUNT:
-            lines.append(f"  Berthier warns: 'Cavalry reserves dangerously low, Sire.' (need {CAVALRY_RECRUIT_AMOUNT:,} to recruit)")
-        if art_pool < ARTILLERY_RECRUIT_AMOUNT:
-            lines.append(f"  Berthier warns: 'Artillery reserves dangerously low, Sire.' (need {ARTILLERY_RECRUIT_AMOUNT:,} to recruit)")
-
-        lines.append("═══════════════════════════════════")
-
-        message = "\n".join(lines)
-
-        return {
-            "success": True,
-            "message": message,
-            "events": [{
-                "type": "economy_report",
-                "income": int(income_data["income"]),
-                "upkeep": int(upkeep_data["total"]),
-                "admin_bonus": int(admin_bonus),
-                "net": int(net),
-                "treasury": int(treasury),
-                "bankruptcy_turns": int(bankruptcy),
-            }],
-            "new_state": game_state
-        }
-
-    def _calculate_recruit_cost(self, region, world, base_cost: int = 200) -> int:
-        """Calculate recruitment gold cost based on region properties.
-
-        Priority: Capital discount wins over settling premium.
-        Parameterized base_cost: 200 for infantry, 300 for cavalry.
-        """
-        # Capital discount: 25% off (checked first — always wins)
-        if region.region_type == "capital":
-            return int(base_cost * 0.75)
-
-        # Settling stability premium: 50% more (stability 51-75)
-        if 51 <= region.stability <= 75:
-            return int(base_cost * 1.50)
-
-        return base_cost
-
-    def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
-        """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.
-
-        Phase 6: Manpower Pools — recruit type auto-determined from marshal.cavalry.
-        - Infantry marshals: 10,000 troops from infantry pool at 200g base
-        - Cavalry marshals: 5,000 troops from cavalry pool at 300g base
-        - Green conscripts have 40% base morale (dilutes veteran armies)
-        - Stability gates: blocked in Hostile/Unrest regions (stability <= 50)
-        - Capital discount: 25% off at capital
-        - Settling premium: 50% more at stability 51-75
-        - Admin AP cost handled by executor routing layer (not here)
-        """
-        # Base recruit morale — upgraded by Training Ground (Phase 6.2.E)
-        RECRUIT_MORALE = 40   # Green conscripts base morale
-
-        marshal_specified = command.get("marshal")
-        location_specified = command.get("target")
-        requested_type = command.get("requested_type")  # Optional: for soft correction
-
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {
-                "success": False,
-                "message": "Error: No world state available"
-            }
-
-        # Determine which marshal gets the troops and where recruitment happens
-        if marshal_specified:
-            # Use fuzzy matching for marshal lookup
-            marshal, error = self._fuzzy_match_marshal(marshal_specified, world)
-            if error:
-                return error
-
-            recipient = marshal.name
-            recruitment_location = marshal.location
-
-        elif location_specified:
-            result = world.find_nearest_marshal_to_region(location_specified)
-
-            if not result:
-                return {
-                    "success": False,
-                    "message": f"Berthier scans the dispatches. 'No marshal is available to receive reinforcements at {location_specified}, Sire.'"
-                }
-
-            marshal, distance = result
-            recipient = marshal.name
-            recruitment_location = location_specified
-
-        else:
-            from backend.models.region import NATION_CAPITALS
-            capital = world.player_capital or NATION_CAPITALS.get(world.player_nation, "Paris")
-            result = world.find_nearest_marshal_to_region(capital)
-
-            if not result:
-                return {
-                    "success": False,
-                    "message": "Berthier scans the dispatches. 'No marshal is available to receive reinforcements, Sire.'"
-                }
-
-            marshal, distance = result
-            recipient = marshal.name
-            recruitment_location = capital
-
-        # --- Determine recruit type from marshal ---
-        recruit_marshal = world.get_marshal(recipient)
-        # Auto-break square formation (Session 67)
-        if recruit_marshal:
-            self._auto_break_square(recruit_marshal, "recruit")
-        if getattr(recruit_marshal, 'artillery', False):
-            recruit_type = "artillery"
-        elif getattr(recruit_marshal, 'cavalry', False):
-            recruit_type = "cavalry"
-        else:
-            recruit_type = "infantry"
-
-        # Set batch size and cost based on type
-        if recruit_type == "artillery":
-            NEW_TROOPS = ARTILLERY_RECRUIT_AMOUNT     # 3,000
-        elif recruit_type == "cavalry":
-            NEW_TROOPS = CAVALRY_RECRUIT_AMOUNT       # 5,000
-        else:
-            NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
-
-        # Build base_message with correct type and amount
-        type_label = recruit_type
-        if marshal_specified:
-            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} at {recruit_marshal.location}"
-        elif location_specified:
-            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({distance} regions away)"
-        else:
-            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} (nearest to capital)"
-
-        # Soft correction: player asked for wrong type
-        soft_correction = ""
-        if requested_type and requested_type != recruit_type:
-            soft_correction = f"Berthier notes: 'Marshal {recruit_marshal.name} commands {recruit_type}, Sire.' "
-
-        # --- Location validation (Phase 6.2.D) ---
-        region = world.get_region(recruitment_location)
-        if not region:
-            return {"success": False, "message": f"Unknown region: {recruitment_location}"}
-
-        # Must be controlled by acting nation (player or AI)
-        acting_nation = world.player_nation
-        if recruit_marshal:
-            acting_nation = recruit_marshal.nation
-        if region.controller != acting_nation:
-            return {
-                "success": False,
-                "message": f"Berthier frowns. 'We do not control {recruitment_location}, Your Majesty. Recruitment is impossible there.'"
-            }
-
-        # Stability gate: block entire Unrest tier (stability <= 50).
-        if region.stability <= 50:
-            label = region.get_stability_label()
-            return {
-                "success": False,
-                "message": f"Berthier advises caution. '{recruitment_location} is in {label} (stability {region.stability}/100). The populace will not answer our call until stability exceeds 50.'"
-            }
-
-        # --- Manpower pool check (BEFORE gold check) ---
-        pool = world.manpower_pools.get(acting_nation, {})
-        available = pool.get(recruit_type, 0)
-        if available < NEW_TROOPS:
-            if recruit_type == "artillery":
-                regen_rate = world.get_artillery_regen_rate(acting_nation)
-            elif recruit_type == "cavalry":
-                regen_rate = world.get_cavalry_regen_rate(acting_nation)
-            else:
-                regen_rate = world.get_manpower_regen_rates(acting_nation)["infantry"]
-            turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
-            plural = "s" if turns_until > 1 else ""
-            return {
-                "success": False,
-                "message": f"Berthier consults his ledgers. 'Sire, our {recruit_type} reserves are insufficient. "
-                           f"Pool: {available:,}, need: {NEW_TROOPS:,}. "
-                           f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} turn{plural}.'"
-            }
-
-        # --- Gold cost calculation ---
-        if recruit_type == "artillery":
-            cost_base = ARTILLERY_RECRUIT_GOLD_COST_BASE
-        elif recruit_type == "cavalry":
-            cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE
-        else:
-            cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
-        gold_cost = self._calculate_recruit_cost(region, world, base_cost=cost_base)
-
-        nation_treasury = world.nation_gold.get(acting_nation, 0)
-        if nation_treasury < gold_cost:
-            return {
-                "success": False,
-                "message": f"Berthier shakes his head. 'The treasury cannot support this, Sire. Need {gold_cost} gold, have {nation_treasury}.'"
-            }
-
-        # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%
-        if region.has_building("training_ground"):
-            RECRUIT_MORALE = 70
-
-        # --- Draw from manpower pool ---
-        world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
-        pool_after = world.manpower_pools[acting_nation][recruit_type]
-
-        # Trigger 6: Manpower pool depleted notification
-        if pool_after == 0 and acting_nation == getattr(world, 'player_nation', 'France'):
-            from backend.notifications import (
-                create_notification, NotificationPriority, MANPOWER_DEPLETED,
-            )
-            world.notifications.add(create_notification(
-                notification_type=MANPOWER_DEPLETED,
-                priority=NotificationPriority.HIGH,
-                title=f"{recruit_type.title()} pool exhausted",
-                message=f"Our {recruit_type} manpower reserves are completely spent. Recruitment will be unavailable until reserves regenerate.",
-                turn_created=int(world.current_turn),
-                details={"pool_type": recruit_type, "nation": acting_nation},
-            ))
-
-        # --- Morale dilution ---
-        marshal = world.get_marshal(recipient)
-        old_strength = marshal.strength
-        old_morale = marshal.morale
-
-        # Weighted average: existing troops at current morale + new troops at RECRUIT_MORALE
-        new_morale = int(
-            (old_strength * old_morale + NEW_TROOPS * RECRUIT_MORALE)
-            / (old_strength + NEW_TROOPS)
-        )
-
-        # Set morale BEFORE add_troops (add_troops only modifies strength)
-        marshal.morale = new_morale
-        marshal.add_troops(NEW_TROOPS)
-        world.nation_gold[acting_nation] = int(nation_treasury - gold_cost)
-        world.record_gold_spent(acting_nation, gold_cost)
-
-        # --- Build result message ---
-        is_capital_discount = region.region_type == "capital"
-        is_stability_premium = (51 <= region.stability <= 75) and not is_capital_discount
-
-        cost_note = ""
-        if is_capital_discount:
-            cost_note = " (capital discount)"
-        elif is_stability_premium:
-            cost_note = " (unstable region premium)"
-
-        # Pool status line
-        pool_line = f"\n{recruit_type.title()} pool: {available:,} -> {pool_after:,}"
-
-        # --- Morale warning (Session 31) ---
-        morale_warning = ""
-        if new_morale < 25:
-            morale_warning = f" [DANGER] Morale critically low at {new_morale}% — troops may break in combat!"
-        elif new_morale < 40:
-            morale_warning = f" [WARNING] Morale dropped to {new_morale}% — consider drilling before battle."
-
-        # Log recruitment event
-        world.log_event({
-            "type": "recruitment",
-            "marshal": recipient,
-            "nation": acting_nation,
-            "amount": int(NEW_TROOPS),
-            "recruit_type": recruit_type,
-            "location": recruitment_location,
-        })
-
-        return {
-            "success": True,
-            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{pool_line}{morale_warning}",
-            "events": [{
-                "type": "recruit",
-                "marshal": recipient,
-                "location": recruitment_location,
-                "recruit_type": recruit_type,
-                "troops_added": int(NEW_TROOPS),
-                "gold_cost": int(gold_cost),
-                "morale_before": int(old_morale),
-                "morale_after": int(new_morale),
-                "new_strength": int(marshal.strength),
-                "stability_premium": is_stability_premium,
-                "capital_discount": is_capital_discount,
-                "pool_before": int(available),
-                "pool_after": int(pool_after),
-            }],
-            "new_state": game_state
-        }
-
-    # ========================================
-    # BUILDING SYSTEM (Phase 6.2.E)
-    # ========================================
-
-    def _extract_building_type(self, command: Dict) -> str:
-        """Extract building type from command text or target field.
-
-        Simple keyword matching — full parser rework in 6.2.G.
-        """
-        raw = (command.get("raw_command") or command.get("target") or "").lower()
-        # Also check the original raw_input if available
-        if not raw:
-            raw = ""
-        if "supply" in raw or "depot" in raw:
-            return "supply_depot"
-        elif "fort" in raw or "wall" in raw or "defense" in raw:
-            return "fortification"
-        elif "train" in raw:
-            return "training_ground"
-        elif "market" in raw or "trade" in raw:
-            return "market"
-        elif "stable" in raw or "horse" in raw:
-            return "stables"
-        elif "watch" in raw or "tower" in raw:
-            return "watchtower"
-        # Try building_type field directly (set by tests)
-        bt = command.get("building_type")
-        if bt:
-            return bt
-        return ""
-
-    # ════════════════════════════════════════════════════════════════════════════
-    # GARRISON COMMAND (Session 31): Detach troops to defend a region
-    # ════════════════════════════════════════════════════════════════════════════
-
-    GARRISON_DETACHMENT_SIZE = 3000
-    GARRISON_MIN_MARSHAL_STRENGTH = 8000
-    GARRISON_MAX_PER_NATION = 3  # Cap includes capital garrisons
-
-    def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
-        """Detach troops to garrison the marshal's current region.
-
-        Session 31: Detachment garrisons use the same garrison_strength field as
-        capital garrisons, but with garrison_detachment=True. Detachment garrisons
-        don't regen and fight to destruction (no 5k collapse threshold).
-
-        Used by both player and AI (Building Blocks principle). AI heuristic in
-        enemy_ai.py P6.75: garrison behind front lines with excess strength.
-        """
-        world: WorldState = game_state.get("world")
-        marshal_name = (command.get("marshal") or "").strip()
-
-        if not marshal_name:
-            return {
-                "success": False,
-                "message": "Berthier clears his throat. 'Which marshal should garrison, Your Majesty?'"
-            }
-
-        marshal = world.marshals.get(marshal_name)
-        if not marshal:
-            return {
-                "success": False,
-                "message": f"Berthier frowns. 'I know no marshal named {marshal_name}, Your Majesty.'"
-            }
-
-        # Auto-break square formation (Session 67)
-        self._auto_break_square(marshal, "garrison")
-
-        region_name = marshal.location
-        region = world.regions.get(region_name)
-        if not region:
-            return {
-                "success": False,
-                "message": f"{marshal_name} is in an unknown region, Your Majesty."
-            }
-
-        # Validation: region must be owned by marshal's nation
-        if region.controller != marshal.nation:
-            return {
-                "success": False,
-                "message": f"We do not control {region_name}, Your Majesty. We cannot garrison enemy territory."
-            }
-
-        # Validation: no enemy marshals present
-        enemies_present = [m for m in world.marshals.values()
-                          if m.location == region_name and m.nation != marshal.nation and m.strength > 0
-                          and world.is_at_war(marshal.nation, m.nation)]
-        if enemies_present:
-            return {
-                "success": False,
-                "message": f"Enemy forces contest {region_name}. We cannot garrison while under threat, Your Majesty."
-            }
-
-        # Validation: region doesn't already have a garrison
-        if region.garrison_strength > 0:
-            return {
-                "success": False,
-                "message": f"A garrison already holds {region_name}, Your Majesty."
-            }
-
-        # Validation: nation garrison cap (includes capital garrisons)
-        nation_garrisons = sum(
-            1 for r in world.regions.values()
-            if r.garrison_strength > 0 and r.controller == marshal.nation
-        )
-        if nation_garrisons >= self.GARRISON_MAX_PER_NATION:
-            return {
-                "success": False,
-                "message": (f"Berthier shakes his head. 'We already maintain {nation_garrisons} garrisons, "
-                           f"Your Majesty. Our supply lines cannot support another. "
-                           f"Maximum {self.GARRISON_MAX_PER_NATION} garrisons per nation.'")
-            }
-
-        # Validation: marshal has enough troops
-        if marshal.strength < self.GARRISON_MIN_MARSHAL_STRENGTH:
-            return {
-                "success": False,
-                "message": (f"{marshal_name}'s forces are too depleted to spare a garrison, Your Majesty. "
-                           f"We need at least {self.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave troops behind.")
-            }
-
-        # Execute: detach troops
-        marshal.strength -= self.GARRISON_DETACHMENT_SIZE
-        region.garrison_strength = self.GARRISON_DETACHMENT_SIZE
-        region.garrison_detachment = True
-
-        # Event log
-        world.log_event({
-            "type": "garrison_placed",
-            "marshal": marshal_name,
-            "region": region_name,
-            "troops": int(self.GARRISON_DETACHMENT_SIZE),
-            "marshal_remaining": int(marshal.strength),
-        })
-
-        return {
-            "success": True,
-            "message": (f"{marshal_name} detaches {self.GARRISON_DETACHMENT_SIZE:,} troops to garrison {region_name}. "
-                       f"Army strength: {marshal.strength:,}."),
-            "action_info": {"remaining": world.actions_remaining},
-        }
-
-    def _execute_build(self, command: Dict, game_state: Dict) -> Dict:
-        """Build a building at a region. Costs admin AP + gold.
-
-        Phase 6.2.E: supply_depot (300g/2t), fortification (400g/3t), training_ground (250g/2t).
-        Phase 6 Fog: watchtower (250g/2t) — dedicated field, bypasses slot system.
-        """
-        from backend.models.region import BUILDING_TYPES
-
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No world state available"}
-
-        region_name = command.get("target")
-        building_type = command.get("building_type") or self._extract_building_type(command)
-
-        if not region_name:
-            return {"success": False, "message": "Specify a region. Example: 'build supply depot at Lyon'"}
-
-        # ════════════════════════════════════════════════════════════
-        # WATCHTOWER: Dedicated field, bypasses slot system (Phase 6 Fog - Session 35)
-        # Every region type can have exactly one watchtower.
-        # ════════════════════════════════════════════════════════════
-        if building_type == "watchtower":
-            return self._execute_build_watchtower(command, game_state, region_name)
-
-        if not building_type or building_type not in BUILDING_TYPES:
-            return {
-                "success": False,
-                "message": f"Unknown building type. Valid types: {', '.join(BUILDING_TYPES.keys())}, watchtower"
-            }
-
-        region = world.get_region(region_name)
-        if not region:
-            return {"success": False, "message": f"Unknown region: {region_name}"}
-
-        # Determine acting nation: from _acting_nation (AI), marshal, or player default
-        build_acting_nation = command.get("_acting_nation") or world.player_nation
-        if not command.get("_acting_nation"):
-            build_marshal_name = command.get("marshal")
-            if build_marshal_name:
-                build_marshal_obj = world.get_marshal(build_marshal_name)
-                if build_marshal_obj:
-                    build_acting_nation = build_marshal_obj.nation
-        if region.controller != build_acting_nation:
-            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {build_acting_nation}"}
-
-        # Region type must allow buildings
-        if region.max_building_slots() == 0:
-            return {"success": False, "message": f"Cannot build in {region_name} — {region.region_type} regions don't support buildings (need city or larger)"}
-
-        # Allowed region type for this building
-        btype_info = BUILDING_TYPES[building_type]
-        if region.region_type not in btype_info["allowed_in"]:
-            return {"success": False, "message": f"Cannot build {building_type.replace('_', ' ')} in {region.region_type} region"}
-
-        # Already constructing (check before slot count since construction uses a slot)
-        if region.building_under_construction:
-            return {"success": False, "message": f"Already constructing {region.building_under_construction['type'].replace('_', ' ')} in {region_name}"}
-
-        # Available slots
-        if region.available_building_slots() <= 0:
-            return {"success": False, "message": f"No building slots available in {region_name} ({len(region.buildings)}/{region.max_building_slots()})"}
-
-        # Stability gate (same as recruit: need > 50)
-        if region.stability <= 50:
-            return {"success": False, "message": f"Cannot build in {region_name} — region stability too low ({region.stability}/100). Need 51+."}
-
-        # Duplicate check
-        if region.has_building(building_type, functional_only=False):
-            return {"success": False, "message": f"{region_name} already has a {building_type.replace('_', ' ')}"}
-
-        # Gold check (use acting nation's treasury)
-        gold_cost = btype_info["gold_cost"]
-        build_treasury = world.nation_gold.get(build_acting_nation, 0)
-        if build_treasury < gold_cost:
-            return {"success": False, "message": f"Insufficient gold! Need {gold_cost}, have {build_treasury}"}
-
-        # Start construction
-        region.building_under_construction = {
-            "type": building_type,
-            "turns_remaining": btype_info["build_time"]
-        }
-        world.nation_gold[build_acting_nation] = int(build_treasury - gold_cost)
-        world.record_gold_spent(build_acting_nation, gold_cost)
-
-        display_name = building_type.replace('_', ' ').title()
-
-        # Log building_started event
-        world.log_event({
-            "type": "building_started",
-            "region": region_name,
-            "building": building_type,
-            "nation": build_acting_nation,
-        })
-
-        return {
-            "success": True,
-            "message": f"Construction started: {display_name} in {region_name} ({btype_info['build_time']} turns, {gold_cost} gold)",
-            "events": [{
-                "type": "build_started",
-                "region": region_name,
-                "building": building_type,
-                "gold_cost": int(gold_cost),
-                "turns": btype_info["build_time"],
-            }],
-            "new_state": game_state
-        }
-
-    # Watchtower cost constants (Phase 6 Fog - Session 35)
-    WATCHTOWER_GOLD_COST = 250
-    WATCHTOWER_BUILD_TIME = 2
-
-    def _execute_build_watchtower(self, command: Dict, game_state: Dict, region_name: str) -> Dict:
-        """Build a watchtower at a region. Dedicated field, bypasses slot system.
-
-        Phase 6 Fog of War - Session 35:
-        - Cost: 250 gold, 2 turns construction
-        - No slot required — every region type can have one
-        - Provides PARTIAL visibility on all adjacent regions when active
-        """
-        world: WorldState = game_state.get("world")
-
-        region = world.get_region(region_name)
-        if not region:
-            return {"success": False, "message": f"Unknown region: {region_name}"}
-
-        # Determine acting nation
-        build_acting_nation = command.get("_acting_nation") or world.player_nation
-        if not command.get("_acting_nation"):
-            build_marshal_name = command.get("marshal")
-            if build_marshal_name:
-                build_marshal_obj = world.get_marshal(build_marshal_name)
-                if build_marshal_obj:
-                    build_acting_nation = build_marshal_obj.nation
-
-        # Control check
-        if region.controller != build_acting_nation:
-            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {build_acting_nation}"}
-
-        # Already has watchtower (active or damaged)
-        if region.watchtower in ("active", "damaged"):
-            status = "an active" if region.watchtower == "active" else "a damaged"
-            return {"success": False, "message": f"{region_name} already has {status} watchtower"}
-
-        # Already constructing watchtower
-        if region.watchtower == "under_construction":
-            return {"success": False, "message": f"Already constructing a watchtower in {region_name}"}
-
-        # Stability gate
-        if region.stability <= 50:
-            return {"success": False, "message": f"Cannot build in {region_name} — region stability too low ({region.stability}/100). Need 51+."}
-
-        # Gold check
-        build_treasury = world.nation_gold.get(build_acting_nation, 0)
-        if build_treasury < self.WATCHTOWER_GOLD_COST:
-            return {"success": False, "message": f"Insufficient gold! Need {self.WATCHTOWER_GOLD_COST}, have {build_treasury}"}
-
-        # Start construction
-        region.watchtower = "under_construction"
-        region.watchtower_turns_remaining = self.WATCHTOWER_BUILD_TIME
-        world.nation_gold[build_acting_nation] = int(build_treasury - self.WATCHTOWER_GOLD_COST)
-        world.record_gold_spent(build_acting_nation, self.WATCHTOWER_GOLD_COST)
-
-        # Log event
-        world.log_event({
-            "type": "building_started",
-            "region": region_name,
-            "building": "watchtower",
-            "nation": build_acting_nation,
-        })
-
-        return {
-            "success": True,
-            "message": f"Construction started: Watchtower in {region_name} ({self.WATCHTOWER_BUILD_TIME} turns, {self.WATCHTOWER_GOLD_COST} gold)",
-            "events": [{
-                "type": "build_started",
-                "region": region_name,
-                "building": "watchtower",
-                "gold_cost": int(self.WATCHTOWER_GOLD_COST),
-                "turns": self.WATCHTOWER_BUILD_TIME,
-            }],
-            "new_state": game_state
-        }
-
-    def _execute_repair(self, command: Dict, game_state: Dict) -> Dict:
-        """Repair war damage or a damaged building. Costs admin AP + 150 gold.
-
-        Phase 6.2.E: 1 admin AP + 150 gold.
-        - No building_type: repair war damage (-0.15)
-        - With building_type: repair that building (damaged -> functional)
-        """
-        REPAIR_COST = 150
-
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No world state available"}
-
-        region_name = command.get("target")
-        if not region_name:
-            return {"success": False, "message": "Specify a region. Example: 'repair Lyon'"}
-
-        region = world.get_region(region_name)
-        if not region:
-            return {"success": False, "message": f"Unknown region: {region_name}"}
-
-        # Determine acting nation: from _acting_nation (AI), marshal, or player default
-        repair_acting_nation = command.get("_acting_nation") or world.player_nation
-        if not command.get("_acting_nation"):
-            repair_marshal_name = command.get("marshal")
-            if repair_marshal_name:
-                repair_marshal_obj = world.get_marshal(repair_marshal_name)
-                if repair_marshal_obj:
-                    repair_acting_nation = repair_marshal_obj.nation
-
-        if region.controller != repair_acting_nation:
-            return {"success": False, "message": f"Cannot repair in {region_name} — not controlled by {repair_acting_nation}"}
-
-        repair_treasury = world.nation_gold.get(repair_acting_nation, 0)
-        if repair_treasury < REPAIR_COST:
-            return {"success": False, "message": f"Insufficient gold! Need {REPAIR_COST}, have {repair_treasury}"}
-
-        # Check if repairing a building or war damage
-        building_type = command.get("building_type") or self._extract_building_type(command)
-
-        if building_type:
-            # Watchtower repair (Phase 6 Fog - Session 35): dedicated field, not in buildings list
-            if building_type == "watchtower":
-                wt = getattr(region, 'watchtower', 'none')
-                if wt != "damaged":
-                    return {"success": False, "message": f"No damaged watchtower in {region_name}"}
-                region.watchtower = "under_construction"
-                region.watchtower_turns_remaining = 2  # Same as build time
-                world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
-                world.record_gold_spent(repair_acting_nation, REPAIR_COST)
-                return {
-                    "success": True,
-                    "message": f"Watchtower repair started in {region_name} (2 turns, {REPAIR_COST} gold)",
-                    "events": [{"type": "repair_building", "region": region_name, "building": "watchtower"}],
-                    "new_state": game_state
-                }
-
-            # Find the damaged building
-            for b in region.buildings:
-                if b["type"] == building_type and b.get("damaged", False):
-                    b["damaged"] = False
-                    world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
-                    world.record_gold_spent(repair_acting_nation, REPAIR_COST)
-                    return {
-                        "success": True,
-                        "message": f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)",
-                        "events": [{"type": "repair_building", "region": region_name, "building": building_type}],
-                        "new_state": game_state
-                    }
-            return {"success": False, "message": f"No damaged {building_type.replace('_', ' ')} in {region_name}"}
-
-        # Repair war damage
-        if region.war_damage <= 0:
-            return {"success": False, "message": f"No war damage to repair in {region_name}"}
-
-        region.recover_war_damage(0.15)
-        world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
-        world.record_gold_spent(repair_acting_nation, REPAIR_COST)
-        return {
-            "success": True,
-            "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",
-            "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": int(region.war_damage * 100)}],
-            "new_state": game_state
-        }
-
-    # ========================================
-    # TACTICAL STATE ACTIONS (Phase 2.6)
-    # ========================================
-
-    def _execute_drill(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Execute drill order - 2-turn commitment for +20% attack bonus.
-
-        Turn N: Order drill → drilling = True
-        Turn N+1: Locked (drilling_locked = True, cannot receive orders)
-        Turn N+2+: drill_complete_turn reached → shock_bonus = 2 (+20% attack)
-
-        The bonus persists until the marshal enters combat (first attack clears it).
-        """
-        marshal_name = command.get("marshal")
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Error: No world state available"}
-
-        # Use fuzzy matching for marshal lookup
-        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
-        if error:
-            return error
-
-        # Auto-break square formation (Session 67)
-        self._auto_break_square(marshal, "drill")
-
-        # Check if already drilling
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already engaged in drill exercises."
-            }
-
-        # Check if fortified (can't drill while fortified)
-        if getattr(marshal, 'fortified', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is fortified and cannot drill. Abandon fortification first."
-            }
-
-        # Check if retreating (can't drill while recovering)
-        if getattr(marshal, 'retreating', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot drill yet."
-            }
-
-        # Check for enemies at current location (can't drill with enemy present)
-        # Use nation-aware lookup so enemies can drill too (not just player marshals)
-        enemy_at_location = world.get_enemy_at_location_for_nation(marshal.location, marshal.nation)
-        if enemy_at_location and enemy_at_location.strength > 0:
-            return {
-                "success": False,
-                "message": f"{marshal.name} cannot drill with enemy forces ({enemy_at_location.name}) present at {marshal.location}!"
-            }
-
-        # Check for enemies in adjacent regions (too risky to drill)
-        # Use nation-aware lookup so enemies can drill too
-        current_region = world.get_region(marshal.location)
-        if current_region:
-            for adj_name in current_region.adjacent_regions:
-                for enemy in world.get_enemies_of_nation(marshal.nation):
-                    if enemy.location == adj_name and enemy.strength > 0:
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name} cannot drill with enemy forces nearby! "
-                                      f"{enemy.name} is at {adj_name}, just one region away."
-                        }
-
-        # Start drilling - will be locked next turn
-        marshal.drilling = True
-        marshal.drilling_locked = False  # Not locked yet (locked on turn advance)
-        # Timeline: Turn N order → End N locks → Turn N+1 locked → End N+1 completes → Turn N+2 ready
-        marshal.drill_complete_turn = world.current_turn + 1  # Completes at end of NEXT turn
-
-        return {
-            "success": True,
-            "message": f"{marshal.name} begins intensive drill exercises at {marshal.location}. "
-                      f"Troops will be locked in training next turn, "
-                      f"bonus ready turn {marshal.drill_complete_turn + 1}.",
-            "events": [{
-                "type": "drill_started",
-                "marshal": marshal.name,
-                "location": marshal.location,
-                "complete_turn": int(marshal.drill_complete_turn),
-                "ready_turn": int(marshal.drill_complete_turn + 1)
-            }],
-            "new_state": game_state
-        }
-
-    def _execute_fortify(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Execute fortify order - Defensive lockdown with growing defense bonus.
-
-        REQUIRES DEFENSIVE STANCE:
-        - If AGGRESSIVE: Block with error message
-        - If NEUTRAL: Auto-transition to DEFENSIVE first (+1 action cost)
-        - If DEFENSIVE: Execute fortify
-
-        While fortified:
-        - Cannot move or attack
-        - Starts at +2% defense, grows +2% per turn (max 15%)
-        - Permanent until ordered to un-fortify
-        """
-        marshal_name = command.get("marshal")
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Error: No world state available"}
-
-        # Use fuzzy matching for marshal lookup
-        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
-        if error:
-            return error
-
-        # Auto-break square formation (Session 67) — fortify replaces square
-        self._auto_break_square(marshal, "fortify")
-
-        # Check if already fortified
-        if getattr(marshal, 'fortified', False):
-            current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
-            }
-
-        # Check if drilling (can't fortify while drilling)
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is engaged in drill exercises and cannot fortify."
-            }
-
-        # Check if retreating (can't fortify while recovering)
-        if getattr(marshal, 'retreating', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot fortify yet."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # ENGAGEMENT CHECK: Cannot fortify while engaged with enemy
-        # ════════════════════════════════════════════════════════════
-        enemies_in_region = [
-            m for m in world.marshals.values()
-            if m.location == marshal.location
-            and m.nation != marshal.nation
-            and m.strength > 0
-            and world.is_at_war(marshal.nation, m.nation)
-        ]
-        if enemies_in_region:
-            enemy_names = [e.name for e in enemies_in_region]
-            return {
-                "success": False,
-                "message": f"{marshal.name} cannot fortify while engaged with enemy forces! "
-                          f"Enemy present: {', '.join(enemy_names)}. "
-                          f"Attack or retreat first."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # STANCE CHECK: Fortify requires defensive stance
-        # ════════════════════════════════════════════════════════════
-        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
-        stance_transition_cost = 0
-        stance_message = ""
-
-        if current_stance == Stance.AGGRESSIVE:
-            # Block - aggressive marshals cannot fortify
-            return {
-                "success": False,
-                "message": f"{marshal.name} is in AGGRESSIVE stance and cannot fortify! "
-                          f"An aggressive posture is incompatible with defensive preparations. "
-                          f"Use 'defend' to switch to defensive stance first.",
-                "suggestion": f"Try: '{marshal.name}, defend' to change stance, then fortify"
-            }
-        elif current_stance == Stance.NEUTRAL:
-            # Auto-transition to defensive (costs 1 extra action)
-            stance_transition_cost = 1
-            total_cost = 1 + stance_transition_cost  # fortify + stance change
-
-            # Check if player has enough actions
-            if marshal.nation == world.player_nation and world.actions_remaining < total_cost:
-                return {
-                    "success": False,
-                    "message": f"Fortifying from neutral stance requires {total_cost} actions "
-                              f"(1 for stance change + 1 for fortify), but only {world.actions_remaining} remaining."
-                }
-
-            # Execute stance change first
-            marshal.stance = Stance.DEFENSIVE
-            stance_message = "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] "
-
-        # ════════════════════════════════════════════════════════════
-        # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)
-        # ════════════════════════════════════════════════════════════
-        from backend.models.personality_modifiers import (
-            get_max_fortify_bonus, get_fortify_rate, get_instant_fortify_bonus
-        )
-
-        personality = getattr(marshal, 'personality', 'unknown')
-        max_fortify = get_max_fortify_bonus(personality)
-        fortify_rate = get_fortify_rate(personality)
-        instant_bonus = get_instant_fortify_bonus(personality)
-
-        # Enter fortified state
-        marshal.fortified = True
-        # Base +2% plus instant bonus (Davout gets +5% instant = +7% total on first fortify)
-        base_bonus = 0.02
-        marshal.defense_bonus = base_bonus + instant_bonus
-
-        # Build message with personality-specific info
-        personality_message = ""
-        if personality == "cautious":
-            personality_message = f" (Iron Marshal: +{int(instant_bonus * 100)}% instant, +{int(fortify_rate * 100)}%/turn, max {int(max_fortify * 100)}%)"
-        elif personality == "aggressive":
-            personality_message = f" (Aggressive: max {int(max_fortify * 100)}% only)"
-
-        current_bonus_pct = int(marshal.defense_bonus * 100)
-        rate_pct = int(fortify_rate * 100)
-        max_pct = int(max_fortify * 100)
-
-        message = stance_message + f"{marshal.name} fortifies position at {marshal.location}. "
-        message += f"Defense bonus: +{current_bonus_pct}% (grows +{rate_pct}% per turn, max {max_pct}%){personality_message}. "
-        message += "Cannot move or attack while fortified. Use 'unfortify' to become mobile."
-
-        events = [{
-            "type": "fortified",
-            "marshal": marshal.name,
-            "location": marshal.location,
-            "defense_bonus": current_bonus_pct,  # Display as percentage
-            "personality_bonus": personality_message
-        }]
-
-        # Add stance change event if transitioned
-        if stance_transition_cost > 0:
-            events.insert(0, {
-                "type": "stance_change",
-                "marshal": marshal.name,
-                "from_stance": "neutral",
-                "to_stance": "defensive",
-                "action_cost": stance_transition_cost,
-                "auto_transition": True
-            })
-
-        # Return with variable action cost if stance transition occurred
-        result = {
-            "success": True,
-            "message": message,
-            "events": events,
-            "new_state": game_state
-        }
-
-        if stance_transition_cost > 0:
-            # Total cost = fortify (1) + stance change (1) = 2
-            # But main execute() will add 1 for fortify, so we signal extra 1
-            result["variable_action_cost"] = 1 + stance_transition_cost
-
-        return result
-
-    # ════════════════════════════════════════════════════════════════════════
-    # SQUARE FORMATION (Phase 7b, Session 67) — Tactical Triangle Part A
-    # ════════════════════════════════════════════════════════════════════════
-
-    def _auto_break_square(self, marshal, action_name: str = "") -> str:
-        """Auto-break square formation when marshal takes an active action.
-
-        Called at the TOP of _execute_attack, _execute_move, _execute_fortify,
-        _execute_drill, _execute_recruit, _execute_garrison, _execute_stance_change,
-        _execute_glorious_charge. NOT called for form_square, break_square, wait, end_turn.
-
-        Returns message string if square was broken, empty string otherwise.
-        """
-        if not getattr(marshal, 'square_formation', False):
-            return ""
-        marshal.square_formation = False
-        # Cancel any strategic order (breaking formation to act)
-        if getattr(marshal, 'strategic_order', None):
-            marshal.strategic_order = None
-            # [7A-6] Clear holding state when square break cancels strategic order
-            marshal.holding_position = False
-            marshal.hold_region = ""
-        display = _action_display_name(action_name) if action_name else "act"
-        msg = f"\n[Square broken — {marshal.name} breaks formation to {display}]"
-        # Store for execute() to prepend to result message
-        self._pending_square_break_msg = msg
-        return msg
-
-
-    def _execute_unfortify(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Remove fortification from a marshal.
-
-        DAVOUT FREE UNFORTIFY (Phase 2.8):
-        - Davout (cautious) can unfortify for free
-        - Other marshals pay 1 action
-        """
-        marshal_name = command.get("marshal")
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Error: No world state available"}
-
-        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
-        if error:
-            return error
-
-        if not getattr(marshal, 'fortified', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is not currently fortified."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # DAVOUT FREE UNFORTIFY (Phase 2.8)
-        # Cautious marshals can efficiently break camp
-        # ════════════════════════════════════════════════════════════
-        personality = getattr(marshal, 'personality', '')
-        is_free_unfortify = personality == 'cautious'
-
-        # Remove fortification
-        marshal.fortified = False
-        marshal.defense_bonus = 0
-        marshal.turns_fortified = 0  # Reset display counter
-        # V2-27: Do NOT reset cumulative_fortification_turns — it persists through
-        # unfortify/refortify cycles to prevent decay timer reset exploit
-
-        # Build message with ability note
-        if is_free_unfortify:
-            message = f"{marshal.name} efficiently breaks camp. (Free Unfortify: no action cost) "
-            message += "Army is now mobile."
-        else:
-            message = f"{marshal.name} abandons fortified position at {marshal.location}. "
-            message += "Army is now mobile."
-
-        result = {
-            "success": True,
-            "message": message,
-            "events": [{
-                "type": "unfortified",
-                "marshal": marshal.name,
-                "location": marshal.location,
-                "free_ability": is_free_unfortify
-            }],
-            "new_state": game_state
-        }
-
-        # Mark as free action for Davout
-        if is_free_unfortify:
-            result["free_action"] = True
-
-        return result
+    # Economy/garrison/building/repair delegated to EconomyExecutor (R13A)
+    # Tactical state actions (drill/fortify/unfortify/square/stance) delegated to TacticalExecutor (R13A)
 
     # ========================================
     # DEBUG COMMANDS (Phase 2.8)
@@ -4723,206 +3479,7 @@ RETREAT RECOVERY (3 turns):
                           "Use /debug without args to see all commands."
             }
 
-    # ========================================
-    # STANCE SYSTEM (Phase 2.7)
-    # ========================================
-
-    def _get_stance_change_cost(self, current_stance: Stance, target_stance: Stance) -> int:
-        """
-        Calculate action cost for stance transition.
-
-        Action Costs:
-        - Any → Neutral: FREE (0 actions)
-        - Neutral → Defensive: 1 action
-        - Neutral → Aggressive: 1 action
-        - Defensive ↔ Aggressive: 2 actions (must go through neutral mentally)
-
-        Args:
-            current_stance: Marshal's current stance
-            target_stance: Target stance to transition to
-
-        Returns:
-            Action cost (0, 1, or 2)
-        """
-        if current_stance == target_stance:
-            return 0  # No change needed
-
-        # Returning to neutral is always free
-        if target_stance == Stance.NEUTRAL:
-            return 0
-
-        # From neutral to any stance costs 1
-        if current_stance == Stance.NEUTRAL:
-            return 1
-
-        # Direct transition between defensive and aggressive costs 2
-        # (Defensive ↔ Aggressive without going through neutral)
-        return 2
-
-    def _execute_stance_change(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Execute stance change order.
-
-        Stance transitions affect combat modifiers:
-        - NEUTRAL: 0% attack, 0% defense (default)
-        - DEFENSIVE: -10% attack, +15% defense
-        - AGGRESSIVE: +15% attack, -10% defense
-
-        The action cost is calculated dynamically:
-        - Any → Neutral: FREE
-        - Neutral → Def/Agg: 1 action
-        - Def ↔ Agg: 2 actions
-        """
-        marshal_name = command.get("marshal")
-        # Support both "target_stance" and "target" as parameter names
-        # (AI uses "target", player commands may use "target_stance")
-        # Parse results may have None fields — guard before .lower()/.strip()
-        target_stance_str = command.get("target_stance") or command.get("target")
-        if not target_stance_str:
-            return {
-                "success": False,
-                "message": "No stance specified. Valid stances: neutral, defensive, aggressive"
-            }
-        target_stance_str = target_stance_str.lower()
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Error: No world state available"}
-
-        # Use fuzzy matching for marshal lookup
-        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
-        if error:
-            return error
-
-        # Auto-break square formation (Session 67)
-        self._auto_break_square(marshal, "stance_change")
-
-        # Parse target stance
-        stance_map = {
-            "neutral": Stance.NEUTRAL,
-            "defensive": Stance.DEFENSIVE,
-            "defense": Stance.DEFENSIVE,
-            "defend": Stance.DEFENSIVE,
-            "aggressive": Stance.AGGRESSIVE,
-            "attack": Stance.AGGRESSIVE,
-            "offense": Stance.AGGRESSIVE,
-        }
-        target_stance = stance_map.get(target_stance_str)
-
-        if not target_stance:
-            return {
-                "success": False,
-                "message": f"Unknown stance: '{target_stance_str}'. Valid stances: neutral, defensive, aggressive"
-            }
-
-        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
-
-        # Check if already in target stance
-        if current_stance == target_stance:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already in {target_stance.value.upper()} stance."
-            }
-
-        # Check if drilling (can't change stance while drilling)
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is engaged in drill exercises and cannot change stance."
-            }
-
-        # Check if retreating (can't change to aggressive while recovering)
-        if getattr(marshal, 'retreating', False) and target_stance == Stance.AGGRESSIVE:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot adopt aggressive stance."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # CAVALRY RECKLESSNESS CHECK (Phase 3)
-        # High recklessness blocks defensive/neutral stances
-        # ════════════════════════════════════════════════════════════
-        can_use, block_reason = marshal.can_use_stance(target_stance.value)
-        if not can_use:
-            return {
-                "success": False,
-                "message": block_reason,
-                "recklessness": getattr(marshal, 'recklessness', 0)
-            }
-
-        # Calculate action cost
-        action_cost = self._get_stance_change_cost(current_stance, target_stance)
-
-        # Check if player has enough actions (for non-free transitions)
-        if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
-            return {
-                "success": False,
-                "message": f"Stance change requires {action_cost} action(s), but only {world.actions_remaining} remaining."
-            }
-
-        # Execute the stance change
-        old_stance = current_stance
-        marshal.stance = target_stance
-
-        # Build descriptive message
-        stance_effects = {
-            Stance.NEUTRAL: "balanced posture (no modifiers)",
-            Stance.DEFENSIVE: "-10% attack, +15% defense",
-            Stance.AGGRESSIVE: "+15% attack, -10% defense"
-        }
-
-        message = f"{marshal.name} shifts from {old_stance.value.upper()} to {target_stance.value.upper()} stance. "
-        message += f"Effect: {stance_effects[target_stance]}."
-
-        if action_cost == 0:
-            message += " (Free action)"
-        elif action_cost == 2:
-            message += f" (Cost: {action_cost} actions - major tactical shift)"
-
-        # NOTE: Action consumption is handled by the main execute() method
-        # We return a special flag to indicate variable action cost
-        return {
-            "success": True,
-            "message": message,
-            "variable_action_cost": action_cost,  # Special: variable cost
-            "events": [{
-                "type": "stance_change",
-                "marshal": marshal.name,
-                "from_stance": old_stance.value,
-                "to_stance": target_stance.value,
-                "action_cost": action_cost
-            }],
-            "new_state": game_state
-        }
-
-    # ════════════════════════════════════════════════════════════
-    # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
-    # ════════════════════════════════════════════════════════════
-
-
-    def _execute_restrain(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Execute restrain - choose normal attack instead of Glorious Charge.
-
-        This is used when the player types 'restrain' to respond to a
-        Glorious Charge popup with a normal attack instead.
-        """
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Game state error in _execute_restrain: world state unavailable"}
-
-        # Look for marshal with pending charge
-        for m in world.marshals.values():
-            if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
-                # Found pending charge - route to respond handler
-                return self._combat.respond_to_glorious_charge("restrain", world)
-
-        return {
-            "success": False,
-            "message": "No pending Glorious Charge to restrain. Use 'attack' for normal attacks."
-        }
-
+    # Stance/restrain delegated to TacticalExecutor (R13A)
     # _execute_cancel delegated to StrategicExecutor (R11)
 
     def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict) -> Dict:
@@ -5142,98 +3699,8 @@ RETREAT RECOVERY (3 turns):
 
     # _handle_strategic_objection_from_endpoint delegated to StrategicExecutor (R11)
 
-    # ============================================================
-    # CAPTURE CHOICE SYSTEM (Phase 6.2.E)
-    # ============================================================
-
-    def handle_capture_choice(self, choice: str, game_state: Dict) -> Dict:
-        """Handle player's plunder/secure choice after capturing a region.
-
-        Args:
-            choice: 'plunder' or 'secure'
-            game_state: Current game state dict with 'world' key
-
-        Returns:
-            Result dict with effects applied
-        """
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No world state available"}
-
-        pending = world.pending_capture_choice
-        if not pending:
-            return {"success": False, "message": "No pending capture choice."}
-
-        region_name = pending["region"]
-        capturer_name = pending["capturer"]
-        region = world.get_region(region_name)
-
-        if not region:
-            world.pending_capture_choice = None
-            return {"success": False, "message": f"Region {region_name} not found."}
-
-        if choice == "plunder":
-            result = self._combat._apply_plunder(region, world)
-            world.pending_capture_choice = None
-            # Log region_captured event
-            world.log_event({
-                "type": "region_captured",
-                "region": region_name,
-                "captured_by": world.player_nation,
-                "captured_from": pending.get("previous_controller", ""),
-                "method": "plunder",
-            })
-            return {
-                "success": True,
-                "message": (f"{capturer_name}'s troops plunder {region_name}! "
-                            f"Gained {result['gold_gained']} gold. "
-                            f"Buildings destroyed. Stability set to 10."),
-                "events": [{
-                    "type": "plunder",
-                    "region": region_name,
-                    "capturer": capturer_name,
-                    "gold_gained": result["gold_gained"],
-                }],
-                "capture_choice": "plunder",
-            }
-        elif choice == "secure":
-            self._combat._apply_secure(region)
-            world.pending_capture_choice = None
-            damaged_count = len([b for b in region.buildings if b.get("damaged")])
-            # Log region_captured event
-            world.log_event({
-                "type": "region_captured",
-                "region": region_name,
-                "captured_by": world.player_nation,
-                "captured_from": pending.get("previous_controller", ""),
-                "method": "secure",
-            })
-            return {
-                "success": True,
-                "message": (f"{capturer_name} secures {region_name}. "
-                            f"Stability set to 25. Order is maintained."
-                            + (f" {damaged_count} building(s) damaged." if damaged_count else "")),
-                "events": [{
-                    "type": "secure",
-                    "region": region_name,
-                    "capturer": capturer_name,
-                }],
-                "capture_choice": "secure",
-            }
-        else:
-            return {
-                "success": False,
-                "message": f"Invalid choice: '{choice}'. Choose 'plunder' or 'secure'."
-            }
-
-    # Plunder Gold Multiplier (Phase 6.2 Audit Fix #4)
-    # 1.75x creates genuine short-term vs long-term tradeoff:
-    # Paris plundered: 300 * 1.75 = 525 gold immediately, but 0 income for ~9 turns
-    # Paris secured: 0 gold immediately, but ~75/turn from turn 1 (stability 25 = 25%)
-    # Breakeven: ~7 turns — plunder pays off in short campaigns, secure in long ones
-
-
-    # Diplomatic methods (_execute_diplomatic through _handle_counter_ai_proposal) delegated to DiplomaticExecutor (R11)
+    # Capture choice delegated to CaptureExecutor (R13A)
+    # Diplomatic methods delegated to DiplomaticExecutor (R11)
 
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """
@@ -5715,7 +4182,7 @@ RETREAT RECOVERY (3 turns):
         elif action == "defend":
             marshal = world.get_marshal(marshal_name)
             if marshal:
-                result = self._execute_defend(marshal, world, game_state)
+                result = self._tactical._execute_defend(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "move":
@@ -5731,20 +4198,20 @@ RETREAT RECOVERY (3 turns):
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "recruit":
-            result = self._execute_recruit(command, game_state)
+            result = self._economy._execute_recruit(command, game_state)
         elif action == "build":
-            result = self._execute_build(command, game_state)
+            result = self._economy._execute_build(command, game_state)
         elif action == "repair":
-            result = self._execute_repair(command, game_state)
+            result = self._economy._execute_repair(command, game_state)
         # ════════════════════════════════════════════════════════════
         # TACTICAL ACTIONS (Phase 2.6) - Must work via objection Insist
         # ════════════════════════════════════════════════════════════
         elif action == "fortify":
-            result = self._execute_fortify(command, game_state)
+            result = self._tactical._execute_fortify(command, game_state)
         elif action == "drill":
-            result = self._execute_drill(command, game_state)
+            result = self._tactical._execute_drill(command, game_state)
         elif action == "unfortify":
-            result = self._execute_unfortify(command, game_state)
+            result = self._tactical._execute_unfortify(command, game_state)
         elif action == "form_square":
             result = self._combat._execute_form_square(command, game_state)
         elif action == "break_square":
@@ -5757,18 +4224,18 @@ RETREAT RECOVERY (3 turns):
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         # BUG-005 FIX: Handle stance_change in post-objection execution
         elif action == "stance_change":
-            result = self._execute_stance_change(command, game_state)
+            result = self._tactical._execute_stance_change(command, game_state)
         elif action == "hold":
             marshal = world.get_marshal(marshal_name)
             if marshal:
-                result = self._execute_hold(marshal, world, game_state)
+                result = self._tactical._execute_defend(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "wait":
             # _execute_wait takes (marshal, world, game_state) — not (command, game_state)
             marshal = world.get_marshal(marshal_name)
             if marshal:
-                result = self._execute_wait(marshal, world, game_state)
+                result = self._tactical._execute_wait(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "bombardment":
@@ -5786,7 +4253,7 @@ RETREAT RECOVERY (3 turns):
         elif action == "garrison":
             # GAP fix: garrison handler (unreachable today, but prevents silent
             # "Unknown action" if future alternatives/compromises produce it)
-            result = self._execute_garrison(command, game_state)
+            result = self._economy._execute_garrison(command, game_state)
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 
@@ -5844,139 +4311,7 @@ RETREAT RECOVERY (3 turns):
 
         return result
 
-    # ════════════════════════════════════════════════════════════
-    # VASSAL COMMANDS (Phase 8 Session 5)
-    # ════════════════════════════════════════════════════════════
-
-    def _execute_invest_vassal(self, command: Dict, game_state: Dict) -> Dict:
-        """Invest in a vassal: 1 DP + 200g → +10 loyalty."""
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No active game."}
-
-        target = (command.get("target") or "").strip()
-        if not target:
-            return {"success": False, "message": "Specify which vassal to invest in."}
-
-        from backend.game_logic.vassal import invest_in_vassal
-        result = invest_in_vassal(world, target)
-        if result.get("success"):
-            result["new_state"] = game_state
-        return result
-
-    def _execute_change_autonomy(self, command: Dict, game_state: Dict) -> Dict:
-        """Change vassal autonomy level."""
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No active game."}
-
-        target = (command.get("target") or "").strip()
-        if not target:
-            return {"success": False, "message": "Specify which vassal."}
-
-        # Parse autonomy level from command
-        from backend.game_logic.vassal import (
-            AUTONOMY_PUPPET, AUTONOMY_SATELLITE, AUTONOMY_AUTONOMOUS,
-            change_vassal_autonomy
-        )
-        raw_text = (command.get("raw_input") or command.get("original_command") or "").lower()
-        if "puppet" in raw_text:
-            new_level = AUTONOMY_PUPPET
-        elif "satellite" in raw_text:
-            new_level = AUTONOMY_SATELLITE
-        elif "autonomous" in raw_text:
-            new_level = AUTONOMY_AUTONOMOUS
-        elif "increase" in raw_text:
-            # Direction-based: increase by one level
-            vassals = getattr(world, 'vassals', {})
-            v = vassals.get(target, {})
-            current = v.get("autonomy", AUTONOMY_SATELLITE)
-            if current >= AUTONOMY_AUTONOMOUS:
-                return {"success": False, "message": f"{target} is already at maximum autonomy."}
-            new_level = current + 1
-        elif "decrease" in raw_text:
-            # Direction-based: decrease by one level
-            vassals = getattr(world, 'vassals', {})
-            v = vassals.get(target, {})
-            current = v.get("autonomy", AUTONOMY_SATELLITE)
-            if current <= AUTONOMY_PUPPET:
-                return {"success": False, "message": f"{target} is already at minimum autonomy."}
-            new_level = current - 1
-        else:
-            return {
-                "success": False,
-                "message": "Specify autonomy level: puppet, satellite, or autonomous."
-            }
-
-        result = change_vassal_autonomy(world, target, new_level)
-        if result.get("success"):
-            result["new_state"] = game_state
-        return result
-
-    def _execute_make_vassal(self, command: Dict, game_state: Dict) -> Dict:
-        """Create a vassal from treaty or conquest path."""
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No active game."}
-
-        target = (command.get("target") or "").strip()
-        if not target:
-            return {"success": False, "message": "Specify which nation to vassalize."}
-
-        player = getattr(world, 'player_nation', 'France')
-
-        from backend.game_logic.vassal import (
-            create_vassal_treaty, create_vassal_conquest,
-            assimilate_vassal_marshals, AUTONOMY_PUPPET, AUTONOMY_SATELLITE
-        )
-
-        # Determine path: if at WAR → conquest, if OPEN_BORDERS+ → treaty
-        current_state = world.get_diplomatic_state(player, target)
-        if current_state == "WAR":
-            result = create_vassal_conquest(world, player, target)
-        else:
-            result = create_vassal_treaty(world, player, target)
-
-        if result.get("success"):
-            # Assimilate marshals for PUPPET/SATELLITE
-            vassal_state = world.vassals.get(target, {})
-            autonomy = vassal_state.get("autonomy", AUTONOMY_SATELLITE)
-            if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
-                assimilated = assimilate_vassal_marshals(world, target)
-                if assimilated:
-                    result["message"] += (
-                        f" Marshals assimilated: {', '.join(assimilated)}."
-                    )
-            result["new_state"] = game_state
-
-            # R23: Marshal trust reactions for vassal creation
-            self._apply_diplomatic_trust_reactions(world, "vassal_created", target)
-
-        return result
-
-    def _execute_release_vassal(self, command: Dict, game_state: Dict) -> Dict:
-        """Release a vassal nation. Costs 1 DP."""
-        world: WorldState = game_state.get("world")
-        if not world:
-            return {"success": False, "message": "No active game."}
-
-        target = (command.get("target") or "").strip()
-        if not target:
-            return {"success": False, "message": "Specify which vassal to release."}
-
-        vassals = getattr(world, 'vassals', {})
-        if target not in vassals:
-            return {"success": False, "message": f"{target} is not a vassal."}
-
-        if world.diplomatic_points < 1:
-            return {"success": False, "message": "Insufficient Diplomatic Points. Releasing a vassal costs 1 DP."}
-
-        from backend.game_logic.vassal import release_vassal
-        result = release_vassal(world, target)
-        if result.get("success"):
-            world.diplomatic_points -= 1
-            result["new_state"] = game_state
-        return result
+    # Vassal commands delegated to VassalExecutor (R13A)
 
     # ========================================
     # CHEAT COMMANDS (Phase 8 Session 8A)
