@@ -1899,7 +1899,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 
 ## Phase E: Godot Frontend (Sessions 14-16)
 
-### Session 14: R17 — HTTP Timeout + api_client Consolidation
+### Session 14: R17 — HTTP Timeout + api_client Consolidation — COMPLETE
 
 | Field | Value |
 |-------|-------|
@@ -1909,6 +1909,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 | **Risk** | LOW — mechanical refactoring |
 | **Bugs Prevented** | Infinite client hang on server timeout (CRITICAL gap) |
 | **Dependencies** | None |
+| **Status** | **COMPLETE** — 348→122 lines (-65%). 30s timeout, `_get()`/`_post()` helpers, timeout+error result handling. 7,755 tests passing. |
 
 **Problem:** NO timeout in api_client.gd. If server hangs, Godot hangs indefinitely. `_request_in_flight` never clears. All subsequent requests fail with "Request already in progress." Additionally, 25+ HTTP methods with identical boilerplate (~250 of 347 lines).
 
