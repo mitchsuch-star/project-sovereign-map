@@ -19,7 +19,8 @@ from pydantic import BaseModel, Field  # noqa: F401
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
-from backend.models.intel import FULL, PARTIAL
+from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
+from backend.commands.meta_executor import _filter_tactical_events_by_fog
 from backend.save_manager import save_game, load_game, list_saves, delete_save
 
 # ════════════════════════════════════════════════════════════
@@ -404,63 +405,7 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     return filtered_phase
 
 
-def _filter_tactical_events_by_visibility(events: list, world_state) -> list:
-    """
-    Fog of War (Session 34B): Filter tactical events by player visibility.
-
-    Rules:
-    - Player nation events -> always show
-    - Auto-charge results -> always show (involve player marshal)
-    - Enemy events in visible regions (PARTIAL+) -> show
-    - Enemy events in fogged regions -> suppress
-    """
-    if not events:
-        return events
-
-    player_nation = world_state.player_nation
-    filtered = []
-
-    for event in events:
-        if not isinstance(event, dict):
-            filtered.append(event)
-            continue
-
-        # Player nation events always shown
-        event_nation = event.get("nation", "")
-        event_marshal = event.get("marshal", "")
-
-        # Check if this is a player-side event
-        is_player_event = False
-        if event_nation == player_nation:
-            is_player_event = True
-        elif event_marshal:
-            pm = world_state.get_marshal(event_marshal)
-            if pm and pm.nation == player_nation:
-                is_player_event = True
-
-        # Auto-charge and reckless events always involve player
-        event_type = event.get("type", "")
-        if event_type in ("auto_charge", "reckless_cavalry"):
-            is_player_event = True
-
-        # Fog events (intel_updated, intel_decayed, target_not_found) always shown
-        if event_type in ("intel_updated", "intel_decayed", "target_not_found"):
-            is_player_event = True
-
-        if is_player_event:
-            filtered.append(event)
-            continue
-
-        # Enemy event — check region visibility
-        event_location = event.get("location", "") or event.get("region", "")
-        if event_location:
-            intel = world_state.get_region_intel(event_location)
-            if intel.visibility in (FULL, PARTIAL):
-                filtered.append(event)
-                continue
-        # No location or below PARTIAL -> suppress
-
-    return filtered
+_filter_tactical_events_by_visibility = _filter_tactical_events_by_fog  # P3-2: consolidated alias
 
 
 # Allow Godot to connect

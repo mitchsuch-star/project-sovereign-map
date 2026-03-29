@@ -2198,14 +2198,16 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 
 ---
 
-## Phase F: AI Fog Integration (Sessions 17-20)
+## Phase F: AI Fog Integration (Sessions 17-20) — DEFERRED
+
+> **DEFERRED (March 29, 2026).** At 19 regions, AI omniscience is acceptable — the roadmap (line 698) explicitly says "at 19 regions, AI omniscience is fine." This is a scaling concern for 80+ regions. When revisited, this needs its own dedicated spec (not just refactoring steps) covering: difficulty tiers, AI compensation mechanics, behavioral tuning, and playtesting at scale. See `ROADMAP.md` §AI Fog of War for design notes.
 
 ### Session 17: R14a — AI Fog Foundation
 
 | Field | Value |
 |-------|-------|
 | **Root Cause** | Scaling B: AI Omniscience |
-| **Priority** | CRITICAL (pre-80-region) |
+| **Priority** | ~~CRITICAL (pre-80-region)~~ DEFERRED — 19 regions, omniscience acceptable |
 | **Effort** | ~3 hours |
 | **Risk** | HIGH — changes AI behavior significantly |
 | **Dependencies** | **Session 8 (R9 scaling index) must be complete** |

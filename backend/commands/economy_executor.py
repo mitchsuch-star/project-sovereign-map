@@ -42,7 +42,7 @@ class EconomyExecutor:
         nation = world.player_nation
         income_data = world.calculate_turn_income(nation)
         upkeep_data = world.calculate_turn_upkeep(nation)
-        admin_bonus = world.admin_actions_remaining * 75  # Potential bonus if saved
+        admin_bonus = world.admin_actions_remaining * 25  # Potential bonus if saved
 
         net = income_data["income"] - upkeep_data["total"] + admin_bonus
         treasury = world.nation_gold.get(nation, 0)

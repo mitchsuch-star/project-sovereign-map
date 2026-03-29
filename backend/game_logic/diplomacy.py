@@ -750,7 +750,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     deal_balance = sweetener_total + demand_total
 
     # ── Diplomat Skill Bonus ──
-    diplomat_skill_bonus = max(-8, (proposer_skill - target_skill) * 2)
+    diplomat_skill_bonus = max(-8, min(12, (proposer_skill - target_skill) * 2))
 
     # ── Personality Modifier ──
     peace_mod, harsh_mod = PERSONALITY_MODIFIERS.get(target_personality, (0, 0))

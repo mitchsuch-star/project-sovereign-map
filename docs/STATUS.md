@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7755** (7755 passed, 1 skipped) |
 
-| **Current Phase** | **Architecture Refactoring — R16 COMPLETE. Next: R14a-d (AI Fog, 4 sessions, CRITICAL).** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-23. |
+| **Current Phase** | **Architecture Refactoring — R16 COMPLETE. R14a-d (AI Fog) DEFERRED to 80+ regions.** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-23. Phase F deferred; Phase G (R19 modding) independent. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 

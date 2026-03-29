@@ -216,11 +216,14 @@ class TacticalExecutor:
             }
 
         # Check for enemies in adjacent regions (too risky to drill)
-        # Use nation-aware lookup so enemies can drill too
+        # Use fog-filtered lookup for player marshals to avoid leaking fogged enemy info (P2-2)
         current_region = world.get_region(marshal.location)
         if current_region:
+            is_player = marshal.nation == world.player_nation
+            enemies = (world.get_visible_enemies(marshal.nation) if is_player
+                       else world.get_enemies_of_nation(marshal.nation))
             for adj_name in current_region.adjacent_regions:
-                for enemy in world.get_enemies_of_nation(marshal.nation):
+                for enemy in enemies:
                     if enemy.location == adj_name and enemy.strength > 0:
                         return {
                             "success": False,

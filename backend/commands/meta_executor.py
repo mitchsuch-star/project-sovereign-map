@@ -18,38 +18,76 @@ from backend.display_names import action_display_name as _action_display_name
 from backend.display_names import proposal_display_name as _proposal_display_name
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
+# Single source of truth — imported by executor.py (P3-1 consolidation)
 ADMIN_ACTIONS = {"recruit", "build", "repair"}
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:
-    """FINAL-7: Filter tactical events by fog of war.
+    """Filter tactical events by fog of war (P3-2 consolidated).
+
+    Single source of truth — used by end_turn, auto-advance, and /command response.
 
     Keep events where:
-    - The marshal belongs to the player, OR
+    - The marshal belongs to the player nation, OR
+    - The event type is player-relevant (auto_charge, reckless_cavalry, intel, target), OR
     - The event's region has PARTIAL+ visibility
     """
+    if not events:
+        return events
+
     from backend.models.intel import FULL, PARTIAL
     filtered = []
     player_nation = getattr(world, 'player_nation', 'France')
+
     for event in events:
-        # Player marshal events always visible
-        marshal_nation = event.get("nation", "") or event.get("attacker_nation", "")
-        if marshal_nation == player_nation:
+        if not isinstance(event, dict):
             filtered.append(event)
             continue
-        # Check defender nation too (player defending)
+
+        # ── Player-side detection ──
+        is_player_event = False
+
+        # Direct nation match
+        event_nation = event.get("nation", "") or event.get("attacker_nation", "")
+        if event_nation == player_nation:
+            is_player_event = True
+
+        # Defender nation (player defending)
         if event.get("defender_nation", "") == player_nation:
+            is_player_event = True
+
+        # Marshal lookup for ownership
+        event_marshal = event.get("marshal", "")
+        if not is_player_event and event_marshal:
+            pm = world.get_marshal(event_marshal)
+            if pm and pm.nation == player_nation:
+                is_player_event = True
+
+        # Auto-charge/reckless events always involve player
+        event_type = event.get("type", "")
+        if event_type in ("auto_charge", "reckless_cavalry"):
+            is_player_event = True
+
+        # Fog system events always shown to player
+        if event_type in ("intel_updated", "intel_decayed", "target_not_found"):
+            is_player_event = True
+
+        if is_player_event:
             filtered.append(event)
             continue
-        # Events with no marshal/location (e.g. intel events) — keep
-        location = event.get("location") or event.get("region") or event.get("from", "")
+
+        # ── Enemy event — check region visibility ──
+        location = (event.get("location") or event.get("region")
+                    or event.get("from", ""))
         if not location:
+            # No location info — keep (e.g. system events)
             filtered.append(event)
             continue
-        # Check fog on event location
+
         intel = world.get_region_intel(location)
         if intel.visibility in (FULL, PARTIAL):
             filtered.append(event)
+
     return filtered
 
 

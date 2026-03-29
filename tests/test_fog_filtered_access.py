@@ -650,23 +650,39 @@ class TestExecutorResolveGenericTargetFog:
 class TestOmniscientCallersUnaffected:
     """Verify that combat/mechanic/debug callers still use omniscient access."""
 
-    def test_drill_checks_all_enemies_regardless_of_fog(self):
-        """Drill adjacent-enemy check uses omniscient — can't drill near real enemies
-        even if fogged."""
+    def test_drill_uses_fog_filtered_enemies_for_player(self):
+        """P2-2: Player drill adjacent-enemy check uses fog-filtered enemies.
+        Fogged enemies should NOT block player drill (and should not leak info)."""
         from backend.commands.executor import CommandExecutor
 
         executor = CommandExecutor()
-        # Paris is adjacent to Belgium — place enemy there
+        # Paris is adjacent to Belgium — place enemy there but fogged
         world = _make_war_world_with_fog(
             enemy_marshals=[("Blucher", "Belgium", 20000)],
             visibility_map={"Belgium": UNKNOWN},
         )
-        # Ney is in Paris, Belgium is adjacent to Paris
+        # Ney is in Paris, Belgium is adjacent to Paris but UNKNOWN
         game_state = {"world": world}
         command = {"marshal": "Ney"}
 
         result = executor._execute_drill(command, game_state)
-        # Should be blocked — Blucher is adjacent even though fogged
+        # Should NOT be blocked — Blucher is fogged, player can't see him
+        assert result["success"] is True
+
+    def test_drill_blocks_on_visible_adjacent_enemy(self):
+        """Drill is still blocked when adjacent enemy is visible (PARTIAL+)."""
+        from backend.commands.executor import CommandExecutor
+        from backend.models.intel import PARTIAL
+
+        executor = CommandExecutor()
+        world = _make_war_world_with_fog(
+            enemy_marshals=[("Blucher", "Belgium", 20000)],
+            visibility_map={"Belgium": PARTIAL},
+        )
+        game_state = {"world": world}
+        command = {"marshal": "Ney"}
+
+        result = executor._execute_drill(command, game_state)
         assert result["success"] is False
         assert "enemy forces nearby" in result["message"].lower()
 

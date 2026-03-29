@@ -35,11 +35,7 @@ from backend.commands.capture_executor import CaptureExecutor
 from backend.commands.economy_executor import EconomyExecutor
 from backend.commands.tactical_executor import TacticalExecutor
 from backend.commands.movement_executor import MovementExecutor
-from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog
-
-
-# Actions that consume Admin AP instead of CP (Phase 6.2.B)
-ADMIN_ACTIONS = {"recruit", "build", "repair"}
+from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 
 # Combat methods delegated to CombatExecutor (R10A+R10B backward compat)
 _COMBAT_DELEGATED = {

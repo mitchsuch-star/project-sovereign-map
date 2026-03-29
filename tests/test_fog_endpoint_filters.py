@@ -324,18 +324,18 @@ class TestFilterTacticalEvents:
         result = _filter_tactical_events(events, world)
         assert len(result) == 0
 
-    def test_enemy_event_no_location_suppressed(self):
-        """Enemy events without a location should be suppressed (safe default)."""
+    def test_enemy_event_no_location_kept(self):
+        """Enemy events without a location are kept (can't fog-filter without location)."""
         world = WorldState()
 
         events = [{
             "type": "unknown",
             "nation": "Britain",
             "marshal": "Wellington"
-            # No location or region key
+            # No location or region key — kept as safe default
         }]
         result = _filter_tactical_events(events, world)
-        assert len(result) == 0
+        assert len(result) == 1
 
     def test_non_dict_events_passthrough(self):
         """Non-dict events (strings, etc.) should pass through."""
