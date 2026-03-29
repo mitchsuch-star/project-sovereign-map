@@ -22,6 +22,7 @@ from backend.models.intel import (
     get_strength_band
 )
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
+from backend.models.dialogue_manager import DialogueManager
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -398,12 +399,9 @@ class WorldState:
         # ============================================================
         # DIPLOMACY - Session 3: Dialogue, missions, treaties, proposals
         # ============================================================
-        # Pending diplomatic dialogue (like pending_objection but for Talleyrand)
-        self.pending_diplomatic_dialogue: Optional[Dict] = None
-        # V2-89: Dialogue queue — multiple dialogues during advance_turn are queued
-        # After advance_turn, first item pops to pending_diplomatic_dialogue.
-        # When player clears a dialogue, next item auto-pops.
-        self.pending_dialogue_queue: List[Dict] = []
+        # R12: DialogueManager centralizes all dialogue SET/CLEAR/QUEUE ops.
+        # Transparent properties below maintain backward compat (12A).
+        self._dialogue_manager = DialogueManager()
 
         # Active diplomatic mission (Talleyrand's ongoing assignment)
         self.active_diplomatic_mission: Optional[Dict] = None
@@ -584,6 +582,36 @@ class WorldState:
     @talleyrand_defiance_cooldown.setter
     def talleyrand_defiance_cooldown(self, value: int):
         self._cooldown_manager.set_scalar("talleyrand_defiance", int(value))
+
+    # ========================================
+    # R12: DIALOGUE BACKWARD-COMPATIBLE PROPERTIES
+    # ========================================
+
+    @property
+    def dialogue_manager(self) -> DialogueManager:
+        """Direct access to DialogueManager for push/pop/peek operations."""
+        return self._dialogue_manager
+
+    @property
+    def pending_diplomatic_dialogue(self):
+        """Transparent wrapper — returns manager's current slot."""
+        return self._dialogue_manager._current
+
+    @pending_diplomatic_dialogue.setter
+    def pending_diplomatic_dialogue(self, value):
+        """Transparent wrapper — directly sets manager's current slot.
+        No push/pop logic; exact match of old raw-field behavior."""
+        self._dialogue_manager._current = value
+
+    @property
+    def pending_dialogue_queue(self):
+        """Transparent wrapper — returns manager's queue list."""
+        return self._dialogue_manager._queue
+
+    @pending_dialogue_queue.setter
+    def pending_dialogue_queue(self, value):
+        """Transparent wrapper — directly sets manager's queue."""
+        self._dialogue_manager._queue = list(value) if value else []
 
     # ========================================
     # R6: POPUP BACKWARD-COMPATIBLE PROPERTIES
@@ -3021,9 +3049,11 @@ class WorldState:
             "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
 
-            # ═══════ DIPLOMACY Session 3 ═══════
+            # ═══════ DIPLOMACY Session 3 (R12: DialogueManager) ═══════
+            "dialogue_manager": self._dialogue_manager.to_dict(),
+            # Backward-compat keys for older loaders / external tools
             "pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,
-            "pending_dialogue_queue": [d.copy() for d in self.pending_dialogue_queue],
+            "pending_dialogue_queue": [copy.deepcopy(d) for d in self.pending_dialogue_queue],
             "active_diplomatic_mission": self.active_diplomatic_mission,
             "talleyrand_state": self.talleyrand_state,
             "proposal_in_transit": self.proposal_in_transit,
@@ -3248,9 +3278,17 @@ class WorldState:
         world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}
         world.turns_below_threshold = {k: int(v) for k, v in data.get("turns_below_threshold", {}).items()}
 
-        # ═══════ DIPLOMACY Session 3 ═══════
-        world.pending_diplomatic_dialogue = data.get("pending_diplomatic_dialogue", None)
-        world.pending_dialogue_queue = [d.copy() for d in data.get("pending_dialogue_queue", [])]
+        # ═══════ DIPLOMACY Session 3 (R12: DialogueManager) ═══════
+        if "dialogue_manager" in data:
+            world._dialogue_manager = DialogueManager.from_dict(data["dialogue_manager"])
+        else:
+            # Legacy save format — load from old flat keys
+            dm = DialogueManager()
+            pending = data.get("pending_diplomatic_dialogue")
+            if pending:
+                dm._current = copy.deepcopy(pending)
+            dm._queue = [copy.deepcopy(d) for d in data.get("pending_dialogue_queue", [])]
+            world._dialogue_manager = dm
         world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
         world.talleyrand_state = data.get("talleyrand_state", "IDLE")
         world.proposal_in_transit = data.get("proposal_in_transit", None)
