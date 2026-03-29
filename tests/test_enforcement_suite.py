@@ -61,15 +61,17 @@ def _get_free_actions():
 
 
 def _get_executor_method_names():
-    """Extract all _execute_* method names from executor source."""
-    executor_path = os.path.join(
-        os.path.dirname(__file__), '..', 'backend', 'commands', 'executor.py'
-    )
-    executor_path = os.path.normpath(executor_path)
-    with open(executor_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    """Extract all _execute_* method names from executor + combat_executor source."""
     pattern = re.compile(r'def (_execute_\w+)\(')
-    return set(pattern.findall(content))
+    methods = set()
+    for filename in ('executor.py', 'combat_executor.py'):
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'backend', 'commands', filename
+        )
+        path = os.path.normpath(path)
+        with open(path, 'r', encoding='utf-8') as f:
+            methods.update(pattern.findall(f.read()))
+    return methods
 
 
 def _get_executor_dispatch_actions():

@@ -301,7 +301,8 @@ class TestAutoBombardmentAdvanced:
         world.marshals["TestArt2"] = art2
 
         # Patch _execute_bombardment to kill the defender on first call
-        original_bombard = CommandExecutor._execute_bombardment
+        from backend.commands.combat_executor import CombatExecutor
+        original_bombard = CombatExecutor._execute_bombardment
         call_count = [0]
 
         def killing_bombardment(self_exec, art_marshal, defender, w, gs):
@@ -317,7 +318,7 @@ class TestAutoBombardmentAdvanced:
                 "message": f"{art_marshal.name} destroys {defender.name}!"
             }
 
-        with patch.object(CommandExecutor, '_execute_bombardment', killing_bombardment):
+        with patch.object(CombatExecutor, '_execute_bombardment', killing_bombardment):
             result = _execute_attack(world, "Ney", "Wellington")
 
         # Dead-defender early exit: only 1 bombardment should have fired
