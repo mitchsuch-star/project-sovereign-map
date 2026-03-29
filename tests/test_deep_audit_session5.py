@@ -308,7 +308,7 @@ class TestFix6DiplomaticDefiancePipeline:
         world.diplomats["France"] = talleyrand
 
         # Mock random to always trigger defiance
-        with patch("backend.commands.executor.random") as mock_random:
+        with patch("backend.commands.meta_executor.random") as mock_random:
             mock_random.random.return_value = 0.0  # Below any defiance chance
 
             # We test the sabotage result is stored

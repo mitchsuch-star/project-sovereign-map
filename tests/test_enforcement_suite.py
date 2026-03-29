@@ -68,6 +68,7 @@ def _get_executor_method_names():
         'executor.py', 'combat_executor.py', 'strategic_executor.py',
         'diplomatic_executor.py', 'economy_executor.py', 'tactical_executor.py',
         'vassal_executor.py', 'capture_executor.py',
+        'movement_executor.py', 'meta_executor.py',
     )
     for filename in executor_files:
         path = os.path.join(
@@ -92,9 +93,9 @@ def _get_executor_dispatch_actions():
     with open(executor_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Find the _execute_specific method body
+    # Find the _execute_specific method body (R13B: may be last method in class)
     pattern = re.compile(
-        r'def _execute_specific\(.*?\n(.*?)(?=\n    def |\nclass )',
+        r'def _execute_specific\(.*?\n(.*?)(?=\n    def |\nclass |\Z)',
         re.DOTALL
     )
     match = pattern.search(content)
@@ -520,33 +521,31 @@ class TestFreeActionsConsistency:
     """The free_actions lists in executor must be consistent."""
 
     def test_executor_free_actions_lists_match(self):
-        """The two free_actions lists in executor (execute + _execute_post_objection)
-        must contain the same entries."""
-        executor_path = os.path.join(
-            os.path.dirname(__file__), '..', 'backend', 'commands', 'executor.py'
+        """The free_actions lists in executor.py (execute) and meta_executor.py
+        (_execute_post_objection) must contain the same entries."""
+        # Scan both executor.py and meta_executor.py (R13B split)
+        commands_dir = os.path.join(
+            os.path.dirname(__file__), '..', 'backend', 'commands'
         )
-        executor_path = os.path.normpath(executor_path)
-        with open(executor_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        # Find all free_actions = [...] declarations
+        action_lists = []
         pattern = re.compile(
             r'free_actions\s*=\s*\[(.*?)\]',
             re.DOTALL,
         )
-        matches = pattern.findall(content)
-
-        # Extract action names from each list
-        action_lists = []
-        for match_content in matches:
-            # Skip defiance_free_actions (small 2-item lists)
-            if match_content.count('"') <= 6:
-                continue
-            actions = set(re.findall(r'"(\w+)"', match_content))
-            action_lists.append(actions)
+        for filename in ('executor.py', 'meta_executor.py'):
+            path = os.path.normpath(os.path.join(commands_dir, filename))
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            matches = pattern.findall(content)
+            for match_content in matches:
+                # Skip defiance_free_actions (small 2-item lists)
+                if match_content.count('"') <= 6:
+                    continue
+                actions = set(re.findall(r'"(\w+)"', match_content))
+                action_lists.append(actions)
 
         assert len(action_lists) >= 2, (
-            f"Expected at least 2 free_actions lists in executor, found {len(action_lists)}"
+            f"Expected at least 2 free_actions lists across executor+meta_executor, found {len(action_lists)}"
         )
 
         # All free_actions lists should be identical
@@ -554,7 +553,7 @@ class TestFreeActionsConsistency:
             diff_a = action_lists[0] - action_lists[i]
             diff_b = action_lists[i] - action_lists[0]
             assert not diff_a and not diff_b, (
-                f"free_actions list mismatch in executor.py: "
+                f"free_actions list mismatch: "
                 f"list[0] has extra {sorted(diff_a)}, "
                 f"list[{i}] has extra {sorted(diff_b)}. "
                 f"Both lists must stay in sync."

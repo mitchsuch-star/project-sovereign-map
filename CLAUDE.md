@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-13A COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager, R13A executor split vassal/capture/economy/tactical). executor.py 14,802→4,483 lines. 7,755 tests passing. **NEXT: R13B** (Phase 3b — movement/meta/objection, executor.py→~1,519 lines), **R17** (HTTP timeout + api_client consolidation, CRITICAL), **R15** (utils.gd + PopupBase), **R14a-d** (AI Fog, 4 sessions, CRITICAL). See plan for full details.
+- **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-13B COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager, R13A+R13B executor split all 10 sub-executors). executor.py 14,802→1,554 lines. 7,755 tests passing. **NEXT: R17** (HTTP timeout + api_client consolidation, CRITICAL), **R15** (utils.gd + PopupBase), **R14a-d** (AI Fog, 4 sessions, CRITICAL). See plan for full details.
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
@@ -64,12 +64,14 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | File | Purpose |
 |------|---------|
 | `backend/main.py` | FastAPI endpoints, response formatting |
-| `backend/commands/executor.py` | Action execution, dispatch, objection routing (~4.5k lines) |
+| `backend/commands/executor.py` | Action execution, dispatch, objection routing (~1.5k lines) |
 | `backend/commands/combat_executor.py` | Combat execution + coordination: attack, bombardment, charge, garrison, form_square, post-combat pipeline, multi-marshal coordination, reinforcements, overwatch, auto-dispatch combat (~4.7k lines, R10A+R10B) |
 | `backend/commands/strategic_executor.py` | Strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objection messages, target resolution, first-step blocking (~1.8k lines, R11) |
 | `backend/commands/diplomatic_executor.py` | Diplomatic execution: proposals, dialogue state machine, missions, trust reactions, AI proposal accept/reject/counter, terms guidance wizard (~2.3k lines, R11) |
 | `backend/commands/economy_executor.py` | Economy execution: economy report, recruit, garrison, build, watchtower, repair (~800 lines, R13A) |
 | `backend/commands/tactical_executor.py` | Tactical execution: defend, wait, drill, fortify, unfortify, stance_change, restrain, auto_break_square (~715 lines, R13A) |
+| `backend/commands/movement_executor.py` | Movement execution: move, scout, auto_assign_scout, retreat, movement attrition (~680 lines, R13B) |
+| `backend/commands/meta_executor.py` | Meta/debug/objection: end_turn, status, help, debug, cheat, handle_objection_response, post_objection (~1.9k lines, R13B) |
 | `backend/commands/vassal_executor.py` | Vassal management: invest, change_autonomy, make_vassal, release_vassal (~147 lines, R13A) |
 | `backend/commands/capture_executor.py` | Post-capture plunder/secure choice handling (~94 lines, R13A) |
 | `backend/commands/parser.py` | Command parsing, fuzzy matching |
@@ -153,7 +155,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Cavalry limits | `world_state.py` (_check_cavalry_limits), `marshal.py` (cavalry counters) |
 | Terrain system | `region.py` (constants, Region class), `combat.py` (_get_terrain_bonus), `combat_executor.py` (resolve_battle calls, charge blocking) |
-| Turn processing | `world_state.py` (advance_turn), `executor.py` (_execute_end_turn) |
+| Turn processing | `world_state.py` (advance_turn), `meta_executor.py` (_execute_end_turn) |
 | Adding new actions | See pattern below |
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `combat_executor.py` (_handle_forced_retreat, _apply_forced_retreat_or_break) |
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
@@ -172,7 +174,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
-| Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
+| Win/Loss relationships | `relationship.py` (formulas, participants, process), `combat_executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `combat_executor.py` (form_square, break_square), `tactical_executor.py` (_auto_break_square), `executor.py` (auto-bombardment, overwatch calc) |
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
@@ -193,14 +195,14 @@ For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
 ### Adding a new action
 
 1. Add to `VALID_ACTIONS` in `validation.py` (single source of truth for LLM)
-2. Add `_execute_[action]()` in `executor.py`
+2. Add `_execute_[action]()` in the appropriate sub-executor (see file reference table)
 3. Add to `valid_actions` list in `parser.py`
 4. Add cost to `_action_costs` in `world_state.py`
 5. Add keywords to mock parser in `llm_client.py` (~line 416, search "ADD NEW ACTION")
 6. Add few-shot example in `prompt_builder.py` if complex
 7. If triggerable by objection, add to `objection_actions` in `disobedience.py`
 8. Add to_dict/from_dict if new state fields needed
-9. Add to `_ACTION_DISPLAY_NAMES` in `executor.py` (line ~41)
+9. Add to `ACTION_DISPLAY` in `display_names.py`
 10. Add to `_DEFIANCE_DISPLAY` + `_OBJECTION_DISPLAY` in `campaign_log.py` (lines ~21, ~43)
 11. Add event type to `CAMPAIGN_LOG_TYPES` in `campaign_log.py` (line ~83) + format in `format_event_oneliner()`
 
@@ -216,10 +218,10 @@ For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
 
 ```
 Backend → Frontend data flow:
-  executor.py → main.py → api_client.gd → main.gd
+  sub-executor → main.py → api_client.gd → main.gd
 ```
 
-1. `executor.py`: Return field in result dict
+1. Sub-executor (e.g., `meta_executor.py`, `combat_executor.py`): Return field in result dict
 2. `main.py`: Add early return to pass through the field (most common wiring gap!)
 3. `main.gd`: Check for field in `_on_command_result()`
 4. Create dialog scene (.tscn) and script (.gd)
