@@ -354,7 +354,9 @@ world.incoming_proposal_popup = None    → keep inline (paired clearing stays)
 - Line 1203-1209: expand proposal — clear current then generate new dialogue
 - (Audit may reveal more — verify each `= None` that is NOT followed by a return)
 
-**All other SETs use `push()`. All standalone CLEARs use `pop()`.**
+**DESIGN DECISION (Phase 0 audit, Mar 28 2026): ALL 22 SETs use `replace()`, not `push()`.** Every SET in diplomatic_executor.py is a synchronous response to player input (fresh command or dialogue step progression). `replace()` matches old overwrite behavior exactly. `push()` would queue behind existing dialogue — wrong UX for player-initiated commands. `push()` semantics are reserved for async/external sources (AI proposals, vassal popups) in 12C. See `docs/R12B_MIGRATION_AUDIT.md` for the complete line-by-line classification (73 operations: 22 replace, 41 pop, 2 delete, 8 reads unchanged).
+
+**All standalone CLEARs use `pop()`.**
 
 **Commit gate:** Full suite green. `grep -c 'pending_diplomatic_dialogue\s*=' backend/commands/diplomatic_executor.py` returns 0.
 
