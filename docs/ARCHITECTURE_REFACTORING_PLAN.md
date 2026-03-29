@@ -1,9 +1,9 @@
 # Architecture Refactoring Plan
 
 **Source:** `docs/ARCHITECTURE_AUDIT_REPORT.md` (12-pass + 35 deep dives + 6 extended audits)
-**Scope:** 20 refactoring items (R1-R20) → 21 implementation sessions across 7 phases
+**Scope:** 20 refactoring items (R1-R20) → 23 implementation sessions across 7 phases
 **Goal:** Eliminate 10 structural root causes responsible for ~240 of ~450 historical bugs
-**Estimated Total Effort:** ~55-65 hours
+**Estimated Total Effort:** ~57-71 hours
 
 ---
 
@@ -13,7 +13,7 @@
 2. [Phase A: Foundations (Sessions 1-3)](#phase-a-foundations-sessions-1-3)
 3. [Phase B: Response & Data Access (Sessions 4-6)](#phase-b-response--data-access-sessions-4-6)
 4. [Phase C: Infrastructure (Sessions 7-9)](#phase-c-infrastructure-sessions-7-9)
-5. [Phase D: Executor Split (Sessions 10-13)](#phase-d-executor-split-sessions-10-13)
+5. [Phase D: Executor Split (Sessions 10-13B)](#phase-d-executor-split-sessions-10-13b)
 6. [Phase E: Godot Frontend (Sessions 14-16)](#phase-e-godot-frontend-sessions-14-16)
 7. [Phase F: AI Fog Integration (Sessions 17-20)](#phase-f-ai-fog-integration-sessions-17-20)
 8. [Phase G: Modding (Session 21)](#phase-g-modding-session-21)
@@ -36,14 +36,15 @@ R5 (fog-filtered access)    R11 (executor split: diplomatic+strategic)
 R6 (cooldown/popup)                        ↓
 R7 (display registry)       R12 (dialogue manager)
 R8 (campaign log test)                     ↓
-R9 (scaling index) ──→ R14   R13 (executor split: remaining)
-  (AI fog, 4 sessions)
+R9 (scaling index) ──→ R14   R13A (executor split: vassal/capture/economy/tactical)
+  (AI fog, 4 sessions)                    ↓
+                             R13B (executor split: movement/meta/objection)
 R15, R17, R19-R20 fully independent of each other and backend sessions
 R16 depends on R15 (popup base class needed first)
 R18 depends on R7+R8 (display/log maps needed for enforcement)
 ```
 
-**Parallelism:** Sessions 1-9, 15-16, 22 have no inter-dependencies and can be done in any order. Sessions 10A-14 are strictly sequential (10B audits 10A before proceeding). Sessions 18-21 are sequential and depend on Session 9.
+**Parallelism:** Sessions 1-9, 15-16, 22 have no inter-dependencies and can be done in any order. Sessions 10A-13B are strictly sequential (each audits the previous before proceeding). Sessions 18-21 are sequential and depend on Session 9.
 
 ---
 
@@ -1338,7 +1339,7 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 ---
 
-## Phase D: Executor Split (Sessions 10-13)
+## Phase D: Executor Split (Sessions 10-13B)
 
 ### Session 10A: R10A — Executor Split Phase 1a: Combat Core
 
@@ -1607,33 +1608,291 @@ Before extracting anything new, verify 10A left no loose ends:
 
 ---
 
-### Session 13: R13 — Executor Split Phase 3: Remaining
+### Session 13A: R13A — Executor Split Phase 3a: Vassal, Capture, Economy, Tactical
 
 | Field | Value |
 |-------|-------|
 | **Root Cause** | RC-3: Executor God Object |
 | **Priority** | MINOR |
-| **Effort** | ~3 hours |
-| **Risk** | LOW-MEDIUM (pattern well-established by now) |
-| **Impact** | executor.py ~8,200 → ~1,500 lines (router + guards + AP) |
+| **Effort** | ~2-3 hours |
+| **Risk** | LOW (pattern well-established; 4 self-contained modules with no cross-dependencies) |
+| **Impact** | executor.py 6,148 → ~4,432 lines (~1,716 lines extracted) |
 | **Dependencies** | Session 12 (R12) complete |
 
+**Rationale for split:** Original R13 created 6 files in one session. While total line count (~4,600) is comparable to R10A or R11, those created 1-2 files. 6 files means 6× the wiring overhead (class boilerplate, delegation sets, `__getattr__` updates, dispatch routing, `_execute_post_objection` routing, enforcement suite updates, test monkeypatch fixes). R13A handles 4 smaller self-contained modules; R13B handles the 2 complex ones.
+
 **Files to Create:**
-- `backend/commands/movement_executor.py` (~1,000 lines): `_execute_move`, `_execute_scout`, retreat handling, attrition
-- `backend/commands/tactical_executor.py` (~900 lines): `_execute_fortify`, `_execute_drill`, `_execute_form_square`, `_execute_change_stance`
-- `backend/commands/economy_executor.py` (~400 lines): `_execute_recruit`, `_execute_build`, `_execute_repair`
-- `backend/commands/capture_executor.py` (~400 lines): `_execute_plunder`, `_execute_secure`, AI capture choice
-- `backend/commands/vassal_executor.py` (~200 lines): `_execute_invest_vassal`, `_execute_set_autonomy`, `_execute_make_vassal`, `_execute_release_vassal`
-- `backend/commands/meta_executor.py` (~1,500 lines): `_execute_end_turn`, `_execute_help`, `_execute_debug_*`, `_execute_cheat_*`
+- `backend/commands/vassal_executor.py` (~134 lines)
+- `backend/commands/capture_executor.py` (~89 lines)
+- `backend/commands/economy_executor.py` (~786 lines)
+- `backend/commands/tactical_executor.py` (~707 lines)
 
-**Same pattern as Sessions 10-11.** By this point the extraction pattern is well-practiced. Move one module at a time, test between each.
+**Files to Modify:**
+- `backend/commands/executor.py` — extract methods, add delegation wiring
 
-**Final executor.py structure (~1,500 lines):**
-- Class definition + `__init__` with sub-executor creation
-- `execute_command()` router — dispatches to appropriate sub-executor
-- Guard methods: objection check, AP check, bypass hierarchy
-- AP accounting
-- `_execute_post_objection` routing to sub-executors
+**Same pattern as Sessions 10-11:** Each new file gets a class with `__init__(self, parent_executor)`, stores `self._executor` ref. Methods referencing non-local executor methods use `self._executor.X`. Main executor gets `__getattr__` delegation + dispatch routing updates.
+
+---
+
+#### Module 1: VassalExecutor (~134 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `_execute_invest_vassal` | 5851-5866 | 16 |
+| `_execute_change_autonomy` | 5867-5915 | 49 |
+| `_execute_make_vassal` | 5916-5956 | 41 |
+| `_execute_release_vassal` | 5957-5984 | 28 |
+
+**Cross-references:** `_execute_make_vassal` calls `self._apply_diplomatic_trust_reactions()` → remap to `self._executor._diplomatic._apply_diplomatic_trust_reactions()` (already on DiplomaticExecutor).
+
+**Wiring:**
+- Add `_VASSAL_DELEGATED` set to executor.py
+- Add `self._vassal = VassalExecutor(self)` in `__init__`
+- Update `__getattr__` to check `_VASSAL_DELEGATED`
+- Update dispatch in `execute()` (4 action cases: `invest_vassal`, `change_autonomy`, `make_vassal`, `release_vassal`) → `self._vassal.X`
+
+---
+
+#### Module 2: CaptureExecutor (~89 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `handle_capture_choice` | 5149-5237 | 89 |
+
+**Cross-references:** Calls `self._combat._apply_plunder()` and `self._combat._apply_secure()` → remap to `self._executor._combat.X`.
+
+**Wiring:**
+- Add `_CAPTURE_DELEGATED` set
+- Add `self._capture = CaptureExecutor(self)` in `__init__`
+- Update `__getattr__`
+- `handle_capture_choice` is called from `main.py` via `executor.handle_capture_choice()` — backward compat via `__getattr__` delegation handles this
+
+---
+
+#### Module 3: EconomyExecutor (~786 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `_execute_economy` | 2722-2845 | 124 |
+| `_execute_recruit` | 2846-3131 | 286 |
+| `_execute_garrison` | 3132-3234 | 103 |
+| `_execute_build` | 3235-3346 | 112 |
+| `_execute_build_watchtower` | 3347-3418 | 72 |
+| `_execute_repair` | 3419-3507 | 89 |
+
+**Cross-references:**
+- `_execute_recruit` uses `self._fuzzy_match_marshal()`, `self._fuzzy_match_region()` → remap to `self._executor.X`
+- `_execute_garrison` uses `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_execute_build` uses `self._fuzzy_match_region()` → remap to `self._executor.X`
+- `_execute_build_watchtower` uses `self._fuzzy_match_region()` → remap to `self._executor.X`
+- `_execute_recruit` imports from `world_state.py` (cost constants) — keep as module-level import in economy_executor.py
+
+**Wiring:**
+- Add `_ECONOMY_DELEGATED` set
+- Add `self._economy = EconomyExecutor(self)` in `__init__`
+- Update `__getattr__`
+- Update dispatch in `execute()`: 6 action cases (`recruit`, `build`, `repair`, `economy`/`treasury`/`finances`, `garrison`) → `self._economy.X`
+- Update `_execute_post_objection` routing: `recruit`, `build`, `repair`, `garrison` → `self._economy.X`
+
+---
+
+#### Module 4: TacticalExecutor (~707 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `_execute_defend` | 2008-2120 | 113 |
+| `_execute_wait` | 2121-2162 | 42 |
+| `_execute_drill` | 3508-3595 | 88 |
+| `_execute_fortify` | 3596-3768 | 173 |
+| `_auto_break_square` | 3769-3793 | 25 |
+| `_execute_unfortify` | 3794-3861 | 68 |
+| `_get_stance_change_cost` | 4730-4761 | 32 |
+| `_execute_stance_change` | 4762-4902 | 141 |
+| `_execute_restrain` | 4903-4927 | 25 |
+
+**Cross-references:**
+- `_execute_defend` uses `self._fuzzy_match_marshal()`, `self._combat._execute_attack()` (for engagement check) → remap to `self._executor.X`
+- `_execute_fortify` uses `self._auto_break_square()` → now local (moves together)
+- `_execute_fortify` uses `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_auto_break_square` sets `self._pending_square_break_msg` → remap to `self._executor._pending_square_break_msg`
+- `_execute_drill` uses `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_execute_stance_change` uses `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_get_stance_change_cost` is called from main `execute()` pre-objection AP check → must remain accessible via `self._executor._tactical._get_stance_change_cost()` or `__getattr__`
+- `_execute_wait` uses `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+
+**Wiring:**
+- Add `_TACTICAL_DELEGATED` set
+- Add `self._tactical = TacticalExecutor(self)` in `__init__`
+- Update `__getattr__`
+- Update dispatch in `execute()`: 7 action cases (`drill`, `fortify`, `unfortify`, `stance_change`, `restrain`) → `self._tactical.X`. `defend`/`wait` routed via `_execute_specific` (already works via `__getattr__`)
+- Update `_execute_post_objection` routing: `fortify`, `drill`, `unfortify`, `stance_change`, `defend`, `wait` → `self._tactical.X`
+- Update `_execute_specific` routing for `defend`, `hold`, `wait` → `self._tactical.X`
+
+---
+
+#### Implementation Steps
+
+1. **Extract VassalExecutor** (smallest, no dependencies). Run tests.
+2. **Extract CaptureExecutor** (simple, only calls CombatExecutor). Run tests.
+3. **Extract EconomyExecutor** (medium, some fuzzy_match cross-refs). Run tests.
+4. **Extract TacticalExecutor** (medium, interacts with stance/square). Run tests.
+5. **Update enforcement suite** (`test_enforcement_suite.py`): action dispatch scanning must cover all sub-executor files.
+6. **Final verification:** Full test suite. `grep -r "class.*Executor" backend/commands/` confirms 7 executor classes. No orphaned imports in executor.py.
+
+#### Post-R13A executor.py state (~4,432 lines):
+
+Remaining methods (to be extracted in R13B):
+- `_execute_end_turn` (184), `_apply_grouchy_ambiguity_buff` (27), `_execute_status` (20), `_execute_help` (172)
+- `_execute_debug` (868), `_execute_cheat` (163)
+- `handle_objection_response` (393), `_execute_post_objection` (220)
+- `_execute_move` (357), `_execute_scout` (139), `_execute_auto_assign_scout` (63), `_execute_retreat_action` (221)
+- `_has_depot_supply_bonus` (28), `_calculate_movement_attrition` (58)
+- `_execute_specific` (60) — router, stays in executor.py
+- `execute()` (~1,130), `__init__`, `__getattr__`, fuzzy match helpers (~160), module-level code (~140)
+
+---
+
+### Session 13B: R13B — Executor Split Phase 3b: Movement, Meta, Objection
+
+| Field | Value |
+|-------|-------|
+| **Root Cause** | RC-3: Executor God Object |
+| **Priority** | MINOR |
+| **Effort** | ~2-3 hours |
+| **Risk** | MEDIUM (meta_executor has deep objection/defiance wiring; movement has attrition helpers) |
+| **Impact** | executor.py ~4,432 → ~1,519 lines (final router + guards + AP) |
+| **Dependencies** | Session 13A (R13A) complete |
+
+**Files to Create:**
+- `backend/commands/movement_executor.py` (~866 lines)
+- `backend/commands/meta_executor.py` (~2,047 lines)
+
+**Files to Modify:**
+- `backend/commands/executor.py` — extract methods, update delegation wiring
+
+---
+
+#### Module 5: MovementExecutor (~866 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `_has_depot_supply_bonus` | 1922-1949 | 28 |
+| `_calculate_movement_attrition` | 1950-2007 | 58 |
+| `_execute_move` | 2163-2519 | 357 |
+| `_execute_scout` | 2520-2658 | 139 |
+| `_execute_auto_assign_scout` | 2659-2721 | 63 |
+| `_execute_retreat_action` | 4928-5148 | 221 |
+
+**Cross-references:**
+- `_execute_move` calls `self._fuzzy_match_region()`, `self._auto_break_square()`, `self._combat._execute_attack()` (auto-attack on move into enemy region) → remap to `self._executor.X`
+- `_execute_move` calls `self._calculate_movement_attrition()`, `self._has_depot_supply_bonus()` → now local (moves together)
+- `_execute_scout` calls `self._fuzzy_match_region()`, `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_execute_retreat_action` calls `self._calculate_movement_attrition()` → now local
+- `_execute_retreat_action` calls `self._fuzzy_match_marshal()` → remap to `self._executor.X`
+- `_execute_auto_assign_scout` uses `self._execute_scout()` → now local
+
+**Wiring:**
+- Add `_MOVEMENT_DELEGATED` set
+- Add `self._movement = MovementExecutor(self)` in `__init__`
+- Update `__getattr__`
+- Update dispatch in `execute()`: `auto_assign_scout` command_type → `self._movement.X`
+- Update `_execute_specific` routing: `move`, `scout`, `retreat` → `self._movement.X`
+- Update `_execute_post_objection` routing: `move`, `scout`, `retreat` → `self._movement.X`
+
+---
+
+#### Module 6: MetaExecutor (~2,047 lines)
+
+**Methods to extract:**
+| Method | Lines | Size |
+|--------|-------|------|
+| `_execute_end_turn` | 329-512 | 184 |
+| `_apply_grouchy_ambiguity_buff` | 513-539 | 27 |
+| `_execute_status` | 540-559 | 20 |
+| `_execute_help` | 560-731 | 172 |
+| `_execute_debug` | 3862-4729 | 868 |
+| `_execute_cheat` | 5985-6148 | 163 |
+| `handle_objection_response` | 5238-5630 | 393 |
+| `_execute_post_objection` | 5631-5850 | 220 |
+
+**This is the riskiest extraction** because:
+1. `handle_objection_response` (393 lines) contains the V2b defiance system wiring — calls into `defiance.py`, fires defiant actions via sub-executors (`self._combat._execute_attack`, `self._execute_fortify`, `self._execute_wait`, `self._combat._execute_bombardment`), manages vindication, redemption events, authority tracking.
+2. `_execute_post_objection` (220 lines) is a secondary dispatch table that routes post-objection commands to the correct sub-executor — every action type must be handled.
+3. `_execute_end_turn` calls `TurnManager`, captures pre-advance data, builds financial events.
+4. `_apply_grouchy_ambiguity_buff` is called from `execute()` in the main router — must remain accessible via delegation.
+
+**Cross-references (handle_objection_response):**
+- Calls `self._combat._execute_attack()`, `self._combat._execute_bombardment()` → remap to `self._executor._combat.X`
+- Calls `self._execute_fortify()` → remap to `self._executor._tactical._execute_fortify()` or `self._executor.X` (via `__getattr__`)
+- Calls `self._execute_wait()` → remap to `self._executor._tactical._execute_wait()` or `self._executor.X`
+- Calls `self._strategic._handle_strategic_objection_from_endpoint()` → remap to `self._executor._strategic.X`
+- Calls `_action_display_name()` — module-level function, import directly
+
+**Cross-references (_execute_post_objection):**
+- Routes to all sub-executors: `self._combat.X`, `self._tactical.X`, `self._economy.X`, `self._movement.X`
+- After R13A, some of these are already delegated; R13B remaps remaining references
+
+**Cross-references (_execute_end_turn):**
+- Uses `TurnManager`, `build_morning_dispatch`, `autosave` — all module imports
+- Uses `_filter_tactical_events_by_fog` — module-level function, keep in executor.py or move to meta_executor.py
+
+**Cross-references (_apply_grouchy_ambiguity_buff):**
+- Called from `execute()` main router → accessible via `self._meta._apply_grouchy_ambiguity_buff()` or `__getattr__`
+
+**Wiring:**
+- Add `_META_DELEGATED` set
+- Add `self._meta = MetaExecutor(self)` in `__init__`
+- Update `__getattr__`
+- Update dispatch in `execute()`: `status`, `help`, `end_turn`, `debug`, `cheat` → `self._meta.X`
+- `handle_objection_response` called from `main.py` via `executor.handle_objection_response()` → backward compat via `__getattr__`
+- Move `_filter_tactical_events_by_fog()` to meta_executor.py (only used by `_execute_end_turn` and the auto-end-turn block in `execute()`)
+
+---
+
+#### Implementation Steps
+
+1. **Extract MovementExecutor** (cleaner module, helpers move together). Run tests.
+2. **Extract MetaExecutor** — move in this order:
+   a. `_execute_status`, `_execute_help` (simple, no cross-refs). Run tests.
+   b. `_execute_debug`, `_execute_cheat` (large but self-contained). Run tests.
+   c. `_apply_grouchy_ambiguity_buff` (small, called from execute()). Run tests.
+   d. `_execute_end_turn` + `_filter_tactical_events_by_fog` (turn management). Run tests.
+   e. `_execute_post_objection` (secondary dispatch — update ALL action routes). Run tests.
+   f. `handle_objection_response` (defiance wiring — most complex). Run tests.
+3. **Update enforcement suite** (`test_enforcement_suite.py`): verify action dispatch scanning covers all 8 sub-executor files.
+4. **Final verification:** Full test suite. Confirm executor.py is ~1,519 lines (router + guards + AP + fuzzy matchers + `_execute_specific`).
+
+---
+
+#### Final executor.py structure (~1,519 lines):
+
+```
+Lines 1-100:    Imports, ADMIN_ACTIONS, 8 delegation sets, module-level helpers
+Lines 100-170:  CommandExecutor class: __init__ (9 sub-executors), __getattr__ (8-way delegation)
+Lines 170-330:  _fuzzy_match_marshal, _fuzzy_match_region, _fuzzy_match_enemy (~160 lines)
+Lines 330-390:  _execute_specific (~60 lines) — secondary action→method router
+Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection evaluation,
+                strategic interception, action dispatch, AP accounting, auto-end-turn
+```
+
+**Sub-executor summary (9 total):**
+| File | Class | Lines | Methods |
+|------|-------|-------|---------|
+| `combat_executor.py` | CombatExecutor | ~4,713 | 31 (R10A+R10B) |
+| `strategic_executor.py` | StrategicExecutor | ~1,833 | 10 (R11) |
+| `diplomatic_executor.py` | DiplomaticExecutor | ~2,303 | 19 (R11) |
+| `vassal_executor.py` | VassalExecutor | ~134 | 4 (R13A) |
+| `capture_executor.py` | CaptureExecutor | ~89 | 1 (R13A) |
+| `economy_executor.py` | EconomyExecutor | ~786 | 6 (R13A) |
+| `tactical_executor.py` | TacticalExecutor | ~707 | 9 (R13A) |
+| `movement_executor.py` | MovementExecutor | ~866 | 6 (R13B) |
+| `meta_executor.py` | MetaExecutor | ~2,047 | 8 (R13B) |
+| **executor.py (router)** | CommandExecutor | **~1,519** | **execute + guards + fuzzy** |
 
 ---
 
@@ -2156,7 +2415,8 @@ Full integration test session:
 | 10B | R10B | RC-3: Audit 10A + coordination | MAJOR | 3h | MEDIUM | S10A | cognitive load |
 | 11 | R11 | RC-3: Executor god object | MAJOR | 3h | MEDIUM | S10B | cognitive load |
 | 12 | R12 | RC-8: Dialogue chaos | MAJOR | 3h | HIGH | S11 | stuck dialogue |
-| 13 | R13 | RC-3: Executor god object | MINOR | 3h | LOW-MED | S12 | cognitive load |
+| 13A | R13A | RC-3: Executor god object | MINOR | 2-3h | LOW | S12 | cognitive load |
+| 13B | R13B | RC-3: Executor god object | MINOR | 2-3h | MEDIUM | S13A | cognitive load |
 | 14 | R17 | Integration: no timeout | CRITICAL | 1-2h | LOW | — | infinite hang |
 | 15 | R15 | Frontend: duplication | MAJOR | 2-3h | MEDIUM | — | signal consistency |
 | 16 | R16 | Frontend: Layer 100 collision | MAJOR | 2-3h | MED-HIGH | S15 | popup collision |
@@ -2166,7 +2426,7 @@ Full integration test session:
 | 20 | R14d | Scaling: AI omniscience | CRITICAL | 3h | HIGH | S19 | balance + perf |
 | 21 | R19 | Modding: low coverage | MAJOR | 3h | LOW | — | game-breaking mods |
 
-**Total: 22 sessions (~55-68 hours). Prevents ~240 historical bugs + future recurrences.**
+**Total: 23 sessions (~57-71 hours). Prevents ~240 historical bugs + future recurrences.**
 
 ---
 

@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7755** (7755 passed, 1 skipped) |
 
-| **Current Phase** | **Architecture Refactoring — R12 COMPLETE. Next: R13 (Executor Split Phase 3), R17 (HTTP Timeout), R15 (utils.gd + PopupBase).** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-22. |
+| **Current Phase** | **Architecture Refactoring — R12 COMPLETE. Next: R13A (Executor Split Phase 3a: vassal/capture/economy/tactical), R13B (Phase 3b: movement/meta/objection), R17 (HTTP Timeout), R15 (utils.gd + PopupBase).** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-23. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
