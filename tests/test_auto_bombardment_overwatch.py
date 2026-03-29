@@ -712,7 +712,8 @@ class TestOverwatchBasic:
 
     def test_overwatch_field_cleared_after_combat(self):
         """overwatch_penalty resets after combat (via COORDINATION_FIELDS cleanup)."""
-        assert 'overwatch_penalty' in CommandExecutor._COORDINATION_FIELDS
+        from backend.commands.combat_executor import CombatExecutor
+        assert 'overwatch_penalty' in CombatExecutor._COORDINATION_FIELDS
 
     def test_two_artillery_mutual_overwatch(self):
         """Artillery A provides overwatch when B is attacked."""

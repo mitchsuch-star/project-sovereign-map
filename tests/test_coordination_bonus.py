@@ -645,5 +645,7 @@ class TestEdgeCases:
 
     def test_scaling_table_class_attribute(self):
         """Verify the scaling table is accessible and correct."""
+        from backend.commands.combat_executor import CombatExecutor
         ex = CommandExecutor()
-        assert ex._RELATIONSHIP_SCALING == {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
+        # _RELATIONSHIP_SCALING moved to CombatExecutor in R10B
+        assert ex._combat._RELATIONSHIP_SCALING == {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}

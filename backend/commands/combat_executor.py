@@ -16,6 +16,532 @@ class CombatExecutor:
         self._executor = parent_executor
         self.combat_resolver = parent_executor.combat_resolver
 
+    # ════════════════════════════════════════════════════════════════════════════════
+    # MULTI-MARSHAL COORDINATION (Phase 7, Session 57+)
+    # Combined arms detection, coordination bonuses, dedicated support, adjacent support.
+    # Extracted from executor.py in R10B (Architecture Refactoring Session 10B).
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _count_unit_types(self, region: str, nation: str, world: WorldState) -> int:
+        """
+        Count distinct unit types among eligible same-nation marshals in a region.
+
+        Eligible: alive (strength > 0), not broken, not retreating, not recovering.
+        Garrison detachments do NOT count (region property, not marshal).
+        Fortified marshals DO count — their presence matters.
+
+        Returns 1-3 (infantry, cavalry, artillery).
+        """
+        types_seen = set()
+        for m in world.marshals.values():
+            if m.location != region or m.nation != nation:
+                continue
+            if m.strength <= 0:
+                continue
+            if getattr(m, 'broken', False):
+                continue
+            if getattr(m, 'retreated_this_turn', False):
+                continue
+            if getattr(m, 'retreat_recovery', 0) > 0:
+                continue
+            # Determine unit type
+            if getattr(m, 'artillery', False):
+                types_seen.add('artillery')
+            elif getattr(m, 'cavalry', False):
+                types_seen.add('cavalry')
+            else:
+                types_seen.add('infantry')
+        return len(types_seen)
+
+    def _get_combined_arms_bonus(self, type_count: int) -> tuple:
+        """
+        Get combined arms attack/defense bonus from unit type diversity.
+
+        Returns (attack_bonus, defense_bonus) as floats.
+        1 type = (0.0, 0.0), 2 types = (0.10, 0.05), 3 types = (0.20, 0.10).
+        """
+        if type_count >= 3:
+            return (0.20, 0.10)
+        elif type_count >= 2:
+            return (0.10, 0.05)
+        return (0.0, 0.0)
+
+    # Relationship → coordination scaling factors (§3 of MULTI_MARSHAL_SPEC)
+    _RELATIONSHIP_SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
+
+    def _calculate_per_ally_coordination(self, marshal, allies) -> tuple:
+        """
+        Calculate per-ally relationship-scaled coordination bonus.
+
+        Each eligible ally contributes:
+        - Attack: +3% × relationship_scaling (0.0 to 1.5)
+        - Defense: +5% × relationship_scaling (0.0 to 1.5)
+
+        Fortification rule:
+        - Fortified non-artillery: defense coordination ONLY (no attack contribution)
+        - Fortified artillery: BOTH attack and defense
+
+        Returns:
+            (total_atk, total_def) as floats (e.g. 0.03 = 3%)
+        """
+        total_atk = 0.0
+        total_def = 0.0
+
+        for ally in allies:
+            rel = marshal.get_relationship(ally.name)
+            scale = self._RELATIONSHIP_SCALING.get(rel, 1.0)
+
+            is_fortified_non_artillery = (
+                getattr(ally, 'fortified', False)
+                and not getattr(ally, 'artillery', False)
+            )
+            # Attack coordination: skip fortified non-artillery
+            if not is_fortified_non_artillery:
+                total_atk += 0.03 * scale
+
+            # Defense coordination: all eligible allies contribute
+            total_def += 0.05 * scale
+
+        return (total_atk, total_def)
+
+    def _count_adjacent_allies(self, region_name, nation, world, exclude_names=None):
+        """Count eligible same-nation marshals in regions adjacent to the battle region.
+
+        Adjacent support is ATTACK-ONLY (A-M2). +2% per adjacent ally.
+        Fortified and HOLD marshals count (physically present).
+        NOT relationship-scaled (purely positional).
+
+        Args:
+            region_name: The battle region
+            nation: The nation to filter for
+            world: WorldState
+            exclude_names: Set of marshal names to exclude (used by S61 reinforcement)
+
+        Returns:
+            tuple: (count of adjacent allies, list of adjacent ally names)
+        """
+        if exclude_names is None:
+            exclude_names = set()
+
+        region = world.get_region(region_name)
+        if not region:
+            return (0, [])
+
+        adjacent_allies = []
+        for m in world.marshals.values():
+            if (m.nation == nation
+                    and m.name not in exclude_names
+                    and m.location in region.adjacent_regions
+                    and m.location != region_name
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0):
+                adjacent_allies.append(m.name)
+
+        return (len(adjacent_allies), adjacent_allies)
+
+    def _calculate_coordination_context(self, primary, world: WorldState,
+                                         reinforcement_results=None,
+                                         exclude_from_adjacent=None) -> dict:
+        """
+        Calculate coordination bonuses for primary marshal and same-nation allies.
+
+        Session 57: Combined arms detection.
+        Session 58: Per-ally relationship-scaled coordination bonuses.
+        Session 59: Dedicated coordination bonus.
+        Session 60: Adjacent support bonus (attack-only per A-M2).
+        Session 61a: reinforcement_results parameter for A-C2 SUPPORT timing.
+
+        Each eligible marshal gets their OWN coordination total based on their
+        individual relationships (asymmetric — A→B may differ from B→A).
+
+        Sets transient fields on each eligible marshal:
+        - total_coordination_attack_bonus / total_coordination_defense_bonus (capped)
+        - _display_combined_arms_atk / _display_combined_arms_def (for battle report)
+        - _display_coordination_atk / _display_coordination_def (for battle report)
+        - _display_adjacent_atk (for battle report, attack-only)
+
+        Returns context dict for debugging/display.
+        """
+        region = primary.location
+        nation = primary.nation
+
+        # Count distinct unit types among eligible same-nation marshals in region
+        type_count = self._count_unit_types(region, nation, world)
+        combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
+
+        # Adjacent support (S60) — ATTACK ONLY per A-M2, calculated ONCE (shared value)
+        adj_count, adj_names = self._count_adjacent_allies(
+            region, nation, world, exclude_names=exclude_from_adjacent)
+        adjacent_atk = adj_count * 0.02  # +2% per adjacent ally, no defense component
+
+        # Find all eligible same-nation marshals in region
+        eligible = [m for m in world.marshals.values()
+                    if m.location == region and m.nation == nation
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0]
+
+        # Each marshal gets their OWN coordination based on their relationships
+        for m in eligible:
+            allies_for_m = [a for a in eligible if a.name != m.name]
+            coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
+
+            # Dedicated coordination bonus (S59): +5%/+5% flat if qualified
+            dedicated_atk = 0.0
+            dedicated_def = 0.0
+            if allies_for_m and self._has_dedicated_support(m, allies_for_m, world, reinforcement_results):
+                dedicated_atk = 0.05
+                dedicated_def = 0.05
+
+            # Sum all coordination sources — adjacent is attack-only (A-M2)
+            raw_atk = combined_arms_atk + coord_atk + dedicated_atk + adjacent_atk
+            raw_def = combined_arms_def + coord_def + dedicated_def  # NO adjacent_def
+
+            # Hard cap
+            capped_atk = min(raw_atk, 0.25)
+            capped_def = min(raw_def, 0.20)
+
+            m.total_coordination_attack_bonus = capped_atk
+            m.total_coordination_defense_bonus = capped_def
+            m._display_combined_arms_atk = combined_arms_atk
+            m._display_combined_arms_def = combined_arms_def
+            m._display_coordination_atk = coord_atk
+            m._display_coordination_def = coord_def
+            m._display_dedicated_atk = dedicated_atk
+            m._display_dedicated_def = dedicated_def
+            m._display_adjacent_atk = adjacent_atk
+
+        return {
+            "type_count": type_count,
+            "combined_arms_atk": combined_arms_atk,
+            "combined_arms_def": combined_arms_def,
+            "adjacent_count": adj_count,
+            "adjacent_names": adj_names,
+            "adjacent_atk": adjacent_atk,
+            "capped_atk": min(combined_arms_atk, 0.25) if not eligible else getattr(primary, 'total_coordination_attack_bonus', 0.0),
+            "capped_def": min(combined_arms_def, 0.20) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
+            "eligible_marshals": [m.name for m in eligible],
+        }
+
+    def _has_dedicated_support(self, marshal, same_region_allies, world,
+                               reinforcement_results=None) -> bool:
+        """Check if marshal qualifies for +5%/+5% dedicated coordination bonus.
+
+        Path A: Co-location with any ally for 2+ consecutive turns (both player and AI).
+        Path B: An ally has an active SUPPORT order targeting this marshal (immediate, one-directional per A-D3).
+        Path B2: An ally arrived via SUPPORT this battle (A-C2 safety net — order not yet cleared).
+        """
+        # Path A: Co-location duration (2+ turns with any ally here)
+        for ally in same_region_allies:
+            start_turn = marshal.co_location_turns.get(ally.name)
+            if start_turn is not None and world.current_turn - start_turn >= 2:
+                return True
+
+        # Path B: Active SUPPORT order from an ally targeting THIS marshal (A-D3: one-directional)
+        for ally in same_region_allies:
+            order = getattr(ally, 'strategic_order', None)
+            if (order
+                    and order.command_type == "SUPPORT"
+                    and order.target == marshal.name):
+                return True
+
+        # Path B2: Arrived via SUPPORT this battle (A-C2 safety net)
+        if reinforcement_results:
+            ally_names = {a.name for a in same_region_allies}
+            for result in reinforcement_results:
+                if (result.get("arrived_via_support")
+                        and result["marshal"] in ally_names):
+                    return True
+
+        return False
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # REINFORCEMENT SYSTEM (Phase 7, Session 61a)
+    # Adjacent marshals physically relocate to the battle region before combat.
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _is_reinforcement_eligible(self, marshal, primary, battle_region, nation, world):
+        """Check all 11 eligibility rules for adjacent reinforcement.
+
+        A marshal can reinforce if ALL conditions are met.
+        Rules are from MULTI_MARSHAL_SPEC §7 + amendments.
+        """
+        region = world.get_region(battle_region)
+        if not region:
+            return False
+
+        # Not the primary combatant
+        if marshal.name == primary.name:
+            return False
+        # Rule 1: Same nation
+        if marshal.nation != nation:
+            return False
+        # Rule 2: Adjacent region (not same region, not distant)
+        if marshal.location not in region.adjacent_regions:
+            return False
+        # Rule 3: strength > 0
+        if marshal.strength <= 0:
+            return False
+        # Rule 4: NOT broken
+        if getattr(marshal, 'broken', False):
+            return False
+        # Rule 5: NOT retreated_this_turn
+        if getattr(marshal, 'retreated_this_turn', False):
+            return False
+        # Rule 6: retreat_recovery == 0
+        if getattr(marshal, 'retreat_recovery', 0) != 0:
+            return False
+        # Rule 7: NOT fortified
+        if getattr(marshal, 'fortified', False):
+            return False
+        # Rule 8: NOT on HOLD
+        if getattr(marshal, 'holding_position', False):
+            return False
+        # Rule 9: NOT engaged (no enemy in their region)
+        marshal_region_enemies = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location
+            and m.nation != nation
+            and m.strength > 0
+            and world.is_at_war(nation, m.nation)
+        ]
+        if marshal_region_enemies:
+            return False
+        # Rule 10: NOT drilling
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return False
+        # Rule 11: NOT already reinforced this turn
+        if getattr(marshal, 'reinforced_this_turn', False):
+            return False
+        # Rule 12: NOT moved_this_turn — troops cannot force-march twice (A-D2)
+        if getattr(marshal, 'moved_this_turn', False):
+            return False
+        # Rule 15: NOT in square formation (can't march while formed square)
+        if getattr(marshal, 'square_formation', False):
+            return False
+        # Rule 13: Hostile without SUPPORT cannot auto-reinforce (A-D4)
+        # Hostile auto-reinforcement is net-negative: converts +2% adjacent to 0% coordination
+        rel = marshal.get_relationship(primary.name)
+        if rel == -2:  # Hostile
+            order = getattr(marshal, 'strategic_order', None)
+            has_support_for_primary = (
+                order is not None
+                and order.command_type == "SUPPORT"
+                and order.target == primary.name
+            )
+            if not has_support_for_primary:
+                return False
+
+        return True
+
+    def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant, world):
+        """Calculate deterministic base + components + random variance.
+
+        Formula from MULTI_MARSHAL_SPEC §7:
+        score = 50 + logistics*5 + relationship_mod + terrain_mod + personality_mod + support_bonus + variance
+        """
+        import random
+
+        base = 50
+
+        logistics = reinforcing_marshal.skills.get("logistics", 5)
+        logistics_bonus = logistics * 5
+
+        rel = reinforcing_marshal.get_relationship(primary_combatant.name)
+        RELATIONSHIP_MOD = {-2: -20, -1: -10, 0: 0, 1: +10, 2: +20}
+        rel_mod = RELATIONSHIP_MOD.get(rel, 0)
+
+        departing_region = world.get_region(reinforcing_marshal.location)
+        terrain = departing_region.terrain if departing_region else "plains"
+        TERRAIN_PENALTY = {
+            "plains": 0, "forest": -10, "hills": -5,
+            "mountains": -20, "urban": 0, "river_crossing": -5,
+        }
+        terrain_mod = TERRAIN_PENALTY.get(terrain, 0)
+
+        PERSONALITY_MOD = {
+            "aggressive": +5, "cautious": -5, "literal": 0,
+            "balanced": 0, "loyal": +3,
+        }
+        personality_mod = PERSONALITY_MOD.get(
+            getattr(reinforcing_marshal, 'personality', 'balanced'), 0
+        )
+
+        # SUPPORT order targeting combatant: +10
+        support_bonus = 0
+        order = getattr(reinforcing_marshal, 'strategic_order', None)
+        if (order
+                and order.command_type == "SUPPORT"
+                and order.target == primary_combatant.name):
+            support_bonus = 10
+
+        variance = random.randint(-8, 8)
+
+        return base + logistics_bonus + rel_mod + terrain_mod + personality_mod + support_bonus + variance
+
+    def _calculate_reinforcements(self, primary, defender, battle_region, nation, world):
+        """Check adjacent marshals for reinforcement arrival.
+
+        Returns list of result dicts with arrival/failure info.
+        Handles: Grouchy Rule, arrival score, variable threshold (A-I4),
+        fumble roll (I3), near-miss tracking (N3).
+        """
+        import random
+
+        reinforcement_results = []
+        region = world.get_region(battle_region)
+        if not region:
+            return reinforcement_results
+
+        # Find eligible adjacent marshals
+        candidates = []
+        for m in world.marshals.values():
+            if not self._is_reinforcement_eligible(m, primary, battle_region, nation, world):
+                continue
+            candidates.append(m)
+
+        for candidate in candidates:
+            # ═══ THE GROUCHY RULE ═══
+            # Check personality BEFORE calculating arrival score
+            if candidate.personality == "literal":
+                has_relevant_order = False
+                order = getattr(candidate, 'strategic_order', None)
+                if order:
+                    if (order.command_type == "SUPPORT"
+                            and order.target == primary.name):
+                        has_relevant_order = True
+                    elif order.command_type == "PURSUE":
+                        # A-D1: Region-match — if pursue target is in battle region, it counts
+                        pursue_target = world.marshals.get(order.target)
+                        if pursue_target and pursue_target.location == battle_region:
+                            has_relevant_order = True
+
+                if not has_relevant_order:
+                    reinforcement_results.append({
+                        "marshal": candidate.name,
+                        "arrived": False,
+                        "score": None,
+                        "threshold": None,
+                        "reason": "literal_personality",
+                        "near_miss": False,
+                        "near_miss_reason": "",
+                        "has_explicit_order": False,
+                        "message": (
+                            f"{candidate.name} continues to follow standing orders. "
+                            f"The sound of cannon fire grows louder behind him."
+                        ),
+                    })
+                    continue
+
+            # ═══ ARRIVAL SCORE ═══
+            score = self._calculate_arrival_score(candidate, primary, world)
+
+            # ═══ VARIABLE THRESHOLD (A-I4) ═══
+            order = getattr(candidate, 'strategic_order', None)
+            has_explicit_order = False
+            if order is not None:
+                if order.command_type == "SUPPORT" and order.target == primary.name:
+                    has_explicit_order = True
+                elif order.command_type == "PURSUE":
+                    # A-D1: Region-match for PURSUE threshold too
+                    pursue_tgt = world.marshals.get(order.target)
+                    if pursue_tgt and pursue_tgt.location == battle_region:
+                        has_explicit_order = True
+            threshold = 60 if has_explicit_order else 65
+            arrived = score > threshold
+
+            # ═══ FUMBLE ROLL (I3) ═══
+            near_miss = False
+            near_miss_reason = ""
+            if arrived and score > 80:
+                if random.randint(1, 20) == 1:  # 5% chance
+                    arrived = False
+                    near_miss = True
+                    near_miss_reason = "Even the best-laid plans can go awry at the crucial moment."
+
+            if arrived:
+                reason = "arrived"
+            elif near_miss:
+                reason = "fate_intervened"
+            else:
+                reason = "low_score"
+
+            reinforcement_results.append({
+                "marshal": candidate.name,
+                "arrived": arrived,
+                "score": int(score),
+                "threshold": int(threshold),
+                "reason": reason,
+                "near_miss": near_miss,
+                "near_miss_reason": near_miss_reason,
+                "has_explicit_order": has_explicit_order,
+            })
+
+        return reinforcement_results
+
+    # Transient coordination field names for cleanup after combat (D5 + X1)
+    _COORDINATION_FIELDS = [
+        'total_coordination_attack_bonus', 'total_coordination_defense_bonus',
+        '_display_combined_arms_atk', '_display_combined_arms_def',
+        '_display_coordination_atk', '_display_coordination_def',
+        '_display_dedicated_atk', '_display_dedicated_def',
+        '_display_adjacent_atk',
+        'overwatch_penalty',  # Session 68: enemy artillery suppression (transient)
+    ]
+
+    def _clear_coordination_fields(self, regions: set, world: WorldState) -> None:
+        """Clear all transient coordination fields from marshals in the given regions."""
+        for m in world.marshals.values():
+            if m.location in regions:
+                for attr in self._COORDINATION_FIELDS:
+                    if hasattr(m, attr):
+                        setattr(m, attr, 0.0)
+
+    def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str,
+                             world: WorldState, defender_name: str = None) -> int:
+        """Count enemy artillery in defender's region, apply overwatch penalty to all attackers.
+
+        Session 68: Artillery Overwatch — enemy artillery passively debuffs attackers
+        by -3% per gun (capped at 3 guns = -9% max).
+
+        V2-24: defender_name excludes the defending marshal from counting as its own
+        overwatch (a marshal can't provide overwatch to itself when it IS the target).
+
+        Sets transient `overwatch_penalty` on each attacking participant.
+        Returns the count of eligible overwatch artillery (for reporting).
+        """
+        enemy_artillery_count = 0
+        overwatch_artillery_names = []
+        for m in world.marshals.values():
+            if (m.location == defender_region_name
+                    and m.nation != attacker.nation
+                    and world.is_at_war(attacker.nation, m.nation)
+                    and getattr(m, 'artillery', False)
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0
+                    and not getattr(m, 'moved_this_turn', False)
+                    and (defender_name is None or m.name != defender_name)):
+                enemy_artillery_count += 1
+                overwatch_artillery_names.append(m.name)
+
+        capped = min(enemy_artillery_count, 3)  # -9% max
+        penalty = capped * 0.03
+
+        if penalty > 0:
+            # Apply to ALL attacking participants — the guns suppress the entire assault
+            all_attackers = [attacker] + [p for p in (atk_participants or []) if p.name != attacker.name]
+            for combatant in all_attackers:
+                combatant.overwatch_penalty = penalty
+            print(f"  [OVERWATCH] {capped} enemy artillery in {defender_region_name}: "
+                  f"-{int(penalty * 100)}% attack ({', '.join(overwatch_artillery_names[:3])})")
+
+        return capped
+
     # ════════════════════════════════════════════════════════════════════════════
     # CASUALTY DISTRIBUTION (Phase 7, Session 62)
     # Distributes raw casualties proportionally among participating marshals.
@@ -347,7 +873,7 @@ class CombatExecutor:
             involved = {attacker.location, battle_region}
             if defender and getattr(defender, 'strength', 0) > 0:
                 involved.add(defender.location)
-            self._executor._clear_coordination_fields(involved, world)
+            self._clear_coordination_fields(involved, world)
 
         # ── 2. Log battle event ──
         if (battle_result and not is_bombardment and not is_garrison
@@ -2103,10 +2629,10 @@ class CombatExecutor:
         # physically relocate to battle region before combat.
         # Must run BEFORE coordination context (A-C2 ordering).
         # ════════════════════════════════════════════════════════════
-        attacker_reinforcements = self._executor._calculate_reinforcements(
+        attacker_reinforcements = self._calculate_reinforcements(
             marshal, enemy_marshal, battle_region_name, marshal.nation, world
         )
-        defender_reinforcements = self._executor._calculate_reinforcements(
+        defender_reinforcements = self._calculate_reinforcements(
             enemy_marshal, marshal, battle_region_name, enemy_marshal.nation, world
         )
 
@@ -2154,11 +2680,11 @@ class CombatExecutor:
         # S61a: Pass reinforcement_results for A-C2 dedicated support,
         # exclude arrived names from adjacent count.
         # ════════════════════════════════════════════════════════════
-        attacker_coord = self._executor._calculate_coordination_context(
+        attacker_coord = self._calculate_coordination_context(
             marshal, world,
             reinforcement_results=attacker_reinforcements,
             exclude_from_adjacent=arrived_names)
-        self._executor._calculate_coordination_context(
+        self._calculate_coordination_context(
             enemy_marshal, world,
             reinforcement_results=defender_reinforcements,
             exclude_from_adjacent=arrived_names)
@@ -2197,7 +2723,7 @@ class CombatExecutor:
         # Overwatch is NOT coordination — does not count toward cap.
         # Does NOT apply to bombardment (ranged fire, separate path).
         # ════════════════════════════════════════════════════════════
-        overwatch_count = self._executor._calculate_overwatch(
+        overwatch_count = self._calculate_overwatch(
             marshal, atk_participants, battle_region_name, world,
             defender_name=enemy_marshal.name)
 
@@ -2546,7 +3072,7 @@ class CombatExecutor:
         if enemy_marshal.strength > 0:
             involved_regions.add(enemy_marshal.location)
         involved_regions.add(battle_region_name)
-        self._executor._clear_coordination_fields(involved_regions, world)
+        self._clear_coordination_fields(involved_regions, world)
 
         # Log battle event
         self._log_battle_event(battle_result, battle_region_name, world)
@@ -3394,8 +3920,8 @@ class CombatExecutor:
         charge_battle_region = target_marshal.location
 
         # [5D-3] Calculate coordination bonuses for both sides (fairness per spec)
-        self._executor._calculate_coordination_context(marshal, world)
-        self._executor._calculate_coordination_context(target_marshal, world)
+        self._calculate_coordination_context(marshal, world)
+        self._calculate_coordination_context(target_marshal, world)
 
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(
@@ -3746,7 +4272,442 @@ class CombatExecutor:
                 "message": "",
             }
 
-    # ════════════════════════════════════════════════════════════
-    # DIPLOMATIC COMMANDS (Phase 8 Session 3)
-    # ════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════════════════════
+    # AUTO-DISPATCH COMBAT METHODS (R10B)
+    # General attack, auto-assign attack/bombardment, general retreat/defensive.
+    # Extracted from executor.py in R10B (Architecture Refactoring Session 10B).
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _execute_general_attack(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute general attack - finds nearest enemy automatically.
+
+        If no marshal can attack (all out of range), moves the closest
+        marshal toward the nearest enemy instead.
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        player_marshals = world.get_player_marshals()
+
+        if not player_marshals:
+            return {"success": False, "message": "No marshals available to attack"}
+
+        # Track all combat-ready marshals and their nearest enemies
+        combat_ready = []  # [(marshal, enemy, distance)]
+        out_of_range = []  # [(marshal, enemy, distance)] - for fallback move
+        filtered_out = []  # Explanations for non-combat-ready
+
+        for marshal in player_marshals:
+            # Filter out dead/weak marshals
+            if marshal.strength <= 0:
+                filtered_out.append(f"{marshal.name} (eliminated)")
+                continue
+            elif marshal.strength < 1000:
+                filtered_out.append(f"{marshal.name} ({marshal.strength:,} troops - too weak)")
+                continue
+
+            # Check if fortified or drilling (can't attack)
+            if getattr(marshal, 'fortified', False):
+                filtered_out.append(f"{marshal.name} (fortified - unfortify first)")
+                continue
+            if getattr(marshal, 'drilling_locked', False):
+                filtered_out.append(f"{marshal.name} (locked in drill)")
+                continue
+
+            # NOTE: Phase 5.2 strategic commands are complete, but personality-aware
+            # target selection (interpret_by_personality) is not yet implemented here.
+            # Future improvement: Aggressive picks strongest, Cautious picks weakest,
+            # Literal picks nearest (current behavior for all).
+            nearest = world.find_nearest_enemy(marshal.location)
+            if nearest:
+                enemy, distance = nearest
+                # Skip dead enemies
+                if enemy.strength <= 0:
+                    continue
+
+                if distance <= 1:  # Can attack (adjacent or same region)
+                    combat_ready.append((marshal, enemy, distance))
+                else:  # Out of range but can move toward
+                    out_of_range.append((marshal, enemy, distance))
+
+        # ════════════════════════════════════════════════════════════════
+        # CASE 1: Someone can attack - execute the attack
+        # ════════════════════════════════════════════════════════════════
+        if combat_ready:
+            # Sort by distance (prefer closer), then strength (prefer stronger)
+            combat_ready.sort(key=lambda x: (x[2], -x[0].strength))
+            best_marshal, best_enemy, best_distance = combat_ready[0]
+
+            # Build explanation if others were filtered
+            explanation = ""
+            if filtered_out:
+                explanation = f"[NOTE: {', '.join(filtered_out)}]\n"
+            explanation += f"{best_marshal.name} ({best_marshal.strength:,} troops) attacks!\n\n"
+
+            # Execute the attack (rest of original logic follows below)
+            return self._execute_general_attack_combat(
+                best_marshal, best_enemy, world, explanation, game_state
+            )
+
+        # ════════════════════════════════════════════════════════════════
+        # CASE 2: No one can attack - move closest marshal toward enemy
+        # ════════════════════════════════════════════════════════════════
+        if out_of_range:
+            # Sort by distance to enemy (closest first)
+            out_of_range.sort(key=lambda x: x[2])
+            closest_marshal, target_enemy, distance = out_of_range[0]
+
+            # Find path toward enemy
+            path = world.find_path(closest_marshal.location, target_enemy.location)
+
+            if path and len(path) > 1:
+                # Move to next region on path
+                next_region = path[1]  # path[0] is current location
+
+                # Execute the move
+                old_location = closest_marshal.location
+                closest_marshal.move_to(next_region)
+
+                remaining_distance = distance - 1
+
+                message = (
+                    f"No marshals in attack range!\n\n"
+                    f"{closest_marshal.name} advances toward {target_enemy.name}:\n"
+                    f"  {old_location} -> {next_region}\n"
+                    f"  Distance to enemy: {remaining_distance} region(s)\n\n"
+                )
+
+                if remaining_distance <= 1:
+                    message += f"[{closest_marshal.name} will be in attack range next action!]"
+                else:
+                    message += f"[{remaining_distance - 1} more move(s) needed to reach attack range]"
+
+                if filtered_out:
+                    message = f"[NOTE: {', '.join(filtered_out)}]\n\n" + message
+
+                return {
+                    "success": True,
+                    "message": message,
+                    "moved": True,
+                    "marshal": closest_marshal.name,
+                    "from": old_location,
+                    "to": next_region,
+                    "target_enemy": target_enemy.name,
+                    "events": [{
+                        "type": "move_toward_enemy",
+                        "marshal": closest_marshal.name,
+                        "from": old_location,
+                        "to": next_region,
+                        "target": target_enemy.name,
+                        "distance_remaining": remaining_distance
+                    }]
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"No path found from {closest_marshal.location} to {target_enemy.location}!"
+                }
+
+        # ════════════════════════════════════════════════════════════════
+        # CASE 3: No combat-ready marshals at all
+        # ════════════════════════════════════════════════════════════════
+        if filtered_out:
+            return {
+                "success": False,
+                "message": f"No combat-ready marshals!\n{', '.join(filtered_out)}"
+            }
+
+        return {
+            "success": False,
+            "message": "No enemies found! You may have won the campaign."
+        }
+
+    def _execute_general_attack_combat(
+        self,
+        best_marshal,
+        best_enemy,
+        world: 'WorldState',
+        explanation: str,
+        game_state: Dict
+    ) -> Dict:
+        """Helper to execute the actual combat for general attack.
+        Delegates to _execute_attack() for full Phase 7 coordination,
+        reinforcements, casualty distribution, relationships, and reports.
+        (Gate 4 fix: same pattern as _execute_auto_assign_attack.)
+        """
+        # Delegate to _execute_attack with full coordination support
+        attack_result = self._execute_attack(
+            best_marshal, best_enemy.name, world, game_state)
+
+        # Prepend the explanation text (marshal selection reasoning)
+        if attack_result.get("message"):
+            attack_result["message"] = explanation + attack_result["message"]
+
+        # Tag as auto-assigned for UI display
+        if attack_result.get("events"):
+            for ev in attack_result["events"]:
+                ev["auto_assigned"] = True
+
+        return attack_result
+
+    def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute attack with auto-assigned marshal.
+        Example: "Attack Wellington" or "Attack Rhine"
+        Delegates to _execute_attack() after finding nearest marshal (Building Blocks).
+        """
+        target = command.get("target")
+        world: WorldState = game_state.get("world")
+
+        if not world or not target:
+            return {"success": False, "message": "Error: No target or world state"}
+
+        # FIRST: Try to find target as enemy marshal name
+        enemy = world.get_enemy_by_name(target)
+
+        if enemy:
+            if enemy.strength <= 0:
+                return {
+                    "success": False,
+                    "message": f"{target} has already been destroyed!"
+                }
+            # Found enemy marshal — find nearest player marshal to attack
+            result = world.find_nearest_marshal_to_region(enemy.location)
+            if not result:
+                return {"success": False, "message": f"No marshals in range of {target}"}
+            nearest_marshal, distance = result
+
+            # Delegate to _execute_attack with full coordination support
+            attack_result = self._execute_attack(nearest_marshal, target, world, game_state)
+            # Tag as auto-assigned for UI display
+            if attack_result.get("events"):
+                for ev in attack_result["events"]:
+                    ev["auto_assigned"] = True
+            return attack_result
+
+        # SECOND: Check if target is a region name with fuzzy matching
+        target_region, error = self._executor._fuzzy_match_region(target, world)
+
+        if error:
+            return error
+
+        target_name = target_region.name if hasattr(target_region, 'name') else target
+
+        # Find nearest marshal to this region
+        result = world.find_nearest_marshal_to_region(target_name)
+
+        if not result:
+            return {"success": False, "message": f"No marshals in range of {target_name}"}
+
+        nearest_marshal, distance = result
+
+        # Delegate to _execute_attack with full coordination support
+        attack_result = self._execute_attack(nearest_marshal, target_name, world, game_state)
+        # Tag as auto-assigned for UI display
+        if attack_result.get("events"):
+            for ev in attack_result["events"]:
+                ev["auto_assigned"] = True
+        return attack_result
+
+    def _execute_auto_assign_bombardment(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute bombardment with auto-assigned artillery marshal.
+        Example: "bombard Rhineland" or "bombard Wellington" (no marshal named).
+        Selects nearest artillery marshal with bombardments remaining.
+        Future-proof: supports multiple artillery marshals.
+        """
+        target = command.get("target")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        # Find all player artillery marshals
+        artillery_marshals = [
+            m for m in world.get_player_marshals()
+            if getattr(m, 'artillery', False)
+            and m.strength > 0
+        ]
+
+        if not artillery_marshals:
+            return {
+                "success": False,
+                "message": "No artillery marshals available for bombardment."
+            }
+
+        # Filter to those with bombardments remaining this turn
+        ready_artillery = [
+            m for m in artillery_marshals
+            if getattr(m, 'bombardments_this_turn', 0) < 2
+        ]
+
+        if not ready_artillery:
+            names = ", ".join(m.name for m in artillery_marshals)
+            return {
+                "success": False,
+                "message": f"All artillery marshals have used their bombardments this turn. ({names}: max 2 per turn)"
+            }
+
+        if not target:
+            # "bombard" alone with no target — pick nearest enemy for closest artillery
+            best_marshal = None
+            best_enemy = None
+            best_distance = 999
+            for m in ready_artillery:
+                nearest = world.find_nearest_enemy(m.location)
+                if nearest:
+                    enemy, dist = nearest
+                    if enemy.strength > 0 and dist <= 2 and dist < best_distance:
+                        best_marshal = m
+                        best_enemy = enemy
+                        best_distance = dist
+            if not best_marshal:
+                return {
+                    "success": False,
+                    "message": "No enemies within bombardment range of any artillery marshal.",
+                    "suggestion": "Name a target: 'bombard Rhineland' or 'bombard Wellington'"
+                }
+            target = best_enemy.name
+
+        # Route through the specific attack executor with auto-selected artillery marshal
+        # Build a command dict as if the player named the marshal
+        routed_command = dict(command)
+        # Resolve target location for distance sorting
+        target_location = None
+        enemy = world.get_enemy_by_name(target)
+        if enemy and enemy.strength > 0:
+            target_location = enemy.location
+        else:
+            target_region, error = self._executor._fuzzy_match_region(target, world)
+            if not error and target_region:
+                target_location = target_region.name if hasattr(target_region, 'name') else target
+
+        if not target_location:
+            return {
+                "success": False,
+                "message": f"Unknown bombardment target: {target}"
+            }
+
+        # Sort artillery by distance to target (nearest first), strength as tiebreaker
+        candidates = []
+        for m in ready_artillery:
+            dist = world.get_distance(m.location, target_location)
+            if dist is not None and dist <= 2:  # Bombardment range: adjacent (1) or same region
+                candidates.append((m, dist))
+
+        if not candidates:
+            names = ", ".join(f"{m.name} at {m.location}" for m in ready_artillery)
+            return {
+                "success": False,
+                "message": f"No artillery in bombardment range of {target}.",
+                "suggestion": f"Available artillery: {names}"
+            }
+
+        candidates.sort(key=lambda x: (x[1], -x[0].strength))
+        chosen_marshal = candidates[0][0]
+
+        # Route to specific attack with chosen artillery marshal
+        routed_command["marshal"] = chosen_marshal.name
+        routed_command["type"] = "specific"
+        return self._executor._execute_specific(routed_command, game_state)
+
+    def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute general retreat - retreat ALL marshals that are in danger.
+
+        BUG-003 FIX: Only retreats marshals that have enemies nearby, not all marshals.
+        BUG-010 FIX: Uses is_in_danger() to check threat properly.
+        Uses proper retreat action (sets retreating state with recovery).
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        player_marshals = world.get_player_marshals()
+
+        if not player_marshals:
+            return {"success": False, "message": "No marshals to retreat"}
+
+        # BUG-010 FIX: Find marshals that are actually in danger
+        marshals_in_danger = []
+        capital = world.player_capital
+        for marshal in player_marshals:
+            if capital and marshal.location == capital:
+                continue
+            if getattr(marshal, 'retreating', False):
+                continue  # Already retreating
+
+            # Use the new is_in_danger() method
+            if world.is_in_danger(marshal.name):
+                marshals_in_danger.append(marshal)
+
+        if not marshals_in_danger:
+            return {
+                "success": False,
+                "message": "No marshals are in danger. None need to retreat.",
+                "suggestion": "Use 'move' to reposition marshals instead."
+            }
+
+        # Execute retreat for each marshal in danger
+        retreated = []
+        failed = []
+        for marshal in marshals_in_danger:
+            result = self._executor._execute_retreat_action(marshal, world, game_state)
+            if result.get("success"):
+                retreated.append(f"{marshal.name} falling back!")
+            else:
+                # Capture failure reason (e.g., surrounded)
+                failed.append(f"{marshal.name}: {result.get('message', 'failed')}")
+
+        if not retreated:
+            fail_msg = " | ".join(failed) if failed else "Could not retreat any marshals."
+            return {
+                "success": False,
+                "message": fail_msg,
+                "events": []
+            }
+
+        message = f"General retreat ordered! {' '.join(retreated)}"
+        if failed:
+            message += f" (Failed: {', '.join([f.split(':')[0] for f in failed])})"
+
+        return {
+            "success": True,
+            "message": message,
+            "events": [{
+                "type": "general_retreat",
+                "affected_marshals": len(retreated),
+                "retreating": [m.name for m in marshals_in_danger if any(m.name in r for r in retreated)]
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_general_defensive(self, command: Dict, game_state: Dict) -> Dict:
+        """Execute general defensive stance (all forces defend)."""
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        player_marshals = world.get_player_marshals()
+
+        if not player_marshals:
+            return {"success": False, "message": "No marshals available"}
+
+        marshal_names = [m.name for m in player_marshals]
+
+        return {
+            "success": True,
+            "message": f"All forces take defensive positions: {', '.join(marshal_names)}",
+            "events": [{
+                "type": "defend",
+                "marshals": marshal_names,
+                "effect": "All regions get +30% defensive bonus next turn"
+            }],
+            "new_state": game_state
+        }
 
