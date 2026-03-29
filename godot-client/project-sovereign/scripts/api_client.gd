@@ -14,7 +14,7 @@ func _ready():
 
 # --- Generic helpers ---
 
-func _get(endpoint: String, callback: Callable):
+func _send_get(endpoint: String, callback: Callable):
 	if _request_in_flight:
 		callback.call({"success": false, "message": "Request already in progress"})
 		return
@@ -26,7 +26,7 @@ func _get(endpoint: String, callback: Callable):
 	else:
 		_request_in_flight = true
 
-func _post(endpoint: String, body: Dictionary, callback: Callable):
+func _send_post(endpoint: String, body: Dictionary, callback: Callable):
 	if _request_in_flight:
 		callback.call({"success": false, "message": "Request already in progress"})
 		return
@@ -42,66 +42,66 @@ func _post(endpoint: String, body: Dictionary, callback: Callable):
 # --- GET endpoints ---
 
 func test_connection(callback: Callable):
-	_get("/test", callback)
+	_send_get("/test", callback)
 
 func get_marshal_trust(marshal_name: String, callback: Callable):
-	_get("/marshal_trust/" + marshal_name, callback)
+	_send_get("/marshal_trust/" + marshal_name, callback)
 
 func list_saves(callback: Callable):
-	_get("/saves", callback)
+	_send_get("/saves", callback)
 
 func get_campaign_log(callback: Callable):
-	_get("/campaign_log", callback)
+	_send_get("/campaign_log", callback)
 
 func get_dispatch(callback: Callable):
-	_get("/dispatch", callback)
+	_send_get("/dispatch", callback)
 
 func get_ledger(callback: Callable):
-	_get("/ledger", callback)
+	_send_get("/ledger", callback)
 
 func get_diplomatic_ledger(callback: Callable):
-	_get("/diplomatic_ledger", callback)
+	_send_get("/diplomatic_ledger", callback)
 
 func get_marshal_overview(callback: Callable):
-	_get("/marshal_overview", callback)
+	_send_get("/marshal_overview", callback)
 
 # --- POST endpoints ---
 
 func send_command(command: String, callback: Callable):
-	_post("/command", {"command": command}, callback)
+	_send_post("/command", {"command": command}, callback)
 
 func send_objection_response(choice: String, callback: Callable):
-	_post("/respond_to_objection", {"choice": choice}, callback)
+	_send_post("/respond_to_objection", {"choice": choice}, callback)
 
 func send_redemption_response(choice: String, callback: Callable):
-	_post("/respond_to_redemption", {"choice": choice}, callback)
+	_send_post("/respond_to_redemption", {"choice": choice}, callback)
 
 func send_capture_choice_response(choice: String, callback: Callable):
-	_post("/capture_choice", {"choice": choice}, callback)
+	_send_post("/capture_choice", {"choice": choice}, callback)
 
 func send_glorious_charge_response(choice: String, callback: Callable):
-	_post("/respond_to_glorious_charge", {"choice": choice}, callback)
+	_send_post("/respond_to_glorious_charge", {"choice": choice}, callback)
 
 func save_game(save_name: String, callback: Callable):
-	_post("/save", {"save_name": save_name}, callback)
+	_send_post("/save", {"save_name": save_name}, callback)
 
 func load_game(filename: String, callback: Callable):
-	_post("/load", {"filename": filename}, callback)
+	_send_post("/load", {"filename": filename}, callback)
 
 func cancel_strategic_order(marshal_name: String, callback: Callable):
-	_post("/cancel_order", {"marshal": marshal_name}, callback)
+	_send_post("/cancel_order", {"marshal": marshal_name}, callback)
 
 func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
-	_post("/strategic_response", {"marshal_name": marshal_name, "response_type": response_type, "choice": choice}, callback)
+	_send_post("/strategic_response", {"marshal_name": marshal_name, "response_type": response_type, "choice": choice}, callback)
 
 func dismiss_notification(notification_id: String, callback: Callable):
-	_post("/notifications/dismiss", {"id": notification_id}, callback)
+	_send_post("/notifications/dismiss", {"id": notification_id}, callback)
 
 func send_dialogue_response(choice, callback: Callable):
-	_post("/respond_to_diplomatic_dialogue", {"choice": choice}, callback)
+	_send_post("/respond_to_diplomatic_dialogue", {"choice": choice}, callback)
 
 func dismiss_all_notifications(callback: Callable):
-	_post("/notifications/dismiss", {"id": "all"}, callback)
+	_send_post("/notifications/dismiss", {"id": "all"}, callback)
 
 # --- Response handler ---
 
