@@ -2113,6 +2113,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 | **Risk** | MEDIUM-HIGH — scene tree changes can break Godot |
 | **Impact** | main.gd -280 lines, Layer 100 collision eliminated |
 | **Dependencies** | Session 15 (R15) — PopupBase class needed |
+| **R15 Lesson** | Do NOT delegate .gd bulk edits to agents — they produce double-prefix bugs (`Utils.Utils.`) and miss occurrences. Do .gd edits directly or grep-verify every agent result before testing. See memory `feedback_agent_godot_verification.md`. |
 
 **Problem:** 11 popups at Layer 100 with no depth ordering — if two fire simultaneously, last added wins. 27 dialog instantiations in main.gd `_ready()` (~100+ lines of identical boilerplate).
 
