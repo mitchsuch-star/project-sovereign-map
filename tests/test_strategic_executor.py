@@ -19,7 +19,7 @@ from backend.models.world_state import WorldState
 from backend.models.marshal import (
     Marshal, StrategicOrder, StrategicCondition, Stance
 )
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.executor import CommandExecutor
 
 
@@ -48,7 +48,7 @@ def game_state(world):
 @pytest.fixture
 def strategic_executor(executor):
     """StrategicExecutor instance."""
-    return StrategicExecutor(executor)
+    return StrategicOrderProcessor(executor)
 
 
 def _suppress_output():
@@ -2095,8 +2095,8 @@ class TestFirstStepBlocked:
 
     def test_first_step_cancel_zero_trust_penalty(self, world, game_state, executor):
         """First-step cancel has 0 trust penalty."""
-        from backend.commands.strategic import StrategicExecutor
-        strategic_executor = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strategic_executor = StrategicOrderProcessor(executor)
 
         davout = world.get_marshal("Davout")
         davout.location = "Paris"
@@ -2123,8 +2123,8 @@ class TestFirstStepBlocked:
 
     def test_mid_march_cancel_has_trust_penalty(self, world, game_state, executor):
         """Mid-march cancel has -3 trust penalty (not first step)."""
-        from backend.commands.strategic import StrategicExecutor
-        strategic_executor = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strategic_executor = StrategicOrderProcessor(executor)
 
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"  # Already moved from Paris

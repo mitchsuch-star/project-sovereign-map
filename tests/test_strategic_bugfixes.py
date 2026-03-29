@@ -479,8 +479,8 @@ class TestTimedSupportArrivalTimer:
         )
         ney.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
-        strat_exec = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strat_exec = StrategicOrderProcessor(executor)
 
         # Turn 2: Ney moves to Paris and arrived_turn should be set
         world.current_turn = 2
@@ -533,8 +533,8 @@ class TestTimedSupportArrivalTimer:
         )
         davout.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
-        strat_exec = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strat_exec = StrategicOrderProcessor(executor)
 
         # Turn 2: Move toward ally (Paris -> Lyon), infantry moves 1 step
         world.current_turn = 2
@@ -581,8 +581,8 @@ class TestTimedSupportArrivalTimer:
         )
         ney.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
-        strat_exec = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strat_exec = StrategicOrderProcessor(executor)
 
         # Turn 2: first real processing — already co-located
         world.current_turn = 2

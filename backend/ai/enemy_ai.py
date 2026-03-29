@@ -1721,8 +1721,6 @@ class EnemyAI:
 
         Bug #2 Fix: Lock recovery destination on first calculation to prevent oscillation.
         """
-        retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
-
         # ════════════════════════════════════════════════════════════
         # BUG #2 FIX: Check for locked recovery destination
         # ════════════════════════════════════════════════════════════
@@ -2688,7 +2686,6 @@ class EnemyAI:
             return None
 
         from backend.models.region import TERRAIN_DEFENSE_BONUS
-        personality = self._get_effective_personality(marshal, world)
         threshold = self._get_mood_adjusted_threshold(marshal, world)
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
@@ -4049,7 +4046,6 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
-        personality = self._get_effective_personality(marshal, world)
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:

@@ -23,7 +23,7 @@ Bug fixes:
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition
 from backend.commands.executor import CommandExecutor
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.models.intel import FULL, UNKNOWN
 
 
@@ -43,7 +43,7 @@ def make_executor():
 
 
 def make_strategic_executor():
-    return StrategicExecutor(make_executor())
+    return StrategicOrderProcessor(make_executor())
 
 
 def make_marshal(name="Ney", location="Belgium", strength=30000, nation="France",

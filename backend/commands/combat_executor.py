@@ -860,7 +860,6 @@ class CombatExecutor:
 
         is_bombardment = ctx.get('is_bombardment', False)
         is_garrison = ctx.get('is_garrison', False)
-        is_glorious_charge = ctx.get('is_glorious_charge', False)
         is_auto_kill = ctx.get('is_auto_bombardment_kill', False)
 
         pipeline_out = {
@@ -1149,10 +1148,8 @@ class CombatExecutor:
             target_region.garrison_strength = 0
             target_region.garrison_detachment = False
             old_controller = target_region.controller
-            old_location = marshal.location
-
             # R1 Pipeline: centralized post-combat recording
-            pipeline_out = self._post_combat_pipeline({
+            self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
                 'defender_nation': old_controller,
@@ -1260,7 +1257,7 @@ class CombatExecutor:
                 msg += " Fortifications bolster the defense."
 
             # R1 Pipeline: centralized post-combat recording
-            pipeline_out = self._post_combat_pipeline({
+            self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
                 'defender_nation': target_region.controller,
@@ -2245,8 +2242,6 @@ class CombatExecutor:
                     return self._executor._execute_strategic_command(pursue_parsed, pursue_parsed["command"], game_state)
 
                 # Non-enemy or AI marshal — provide helpful error
-                marshal_type = "cavalry" if marshal.movement_range == 2 else "infantry"
-
                 # Find closer targets within range
                 # R5: Fog-filtered for player, omniscient for AI
                 nearby_targets = []
@@ -3267,7 +3262,6 @@ class CombatExecutor:
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         conquered = False
         conquest_msg = ""
-        attacker_moved = False
         movement_msg = ""
 
         # Check if defender retreated/fled (even in stalemate, empty territory = advance)
@@ -3299,7 +3293,6 @@ class CombatExecutor:
                 marshal.move_to(target_location)
                 # Movement attrition on post-battle advance (Phase 6.2.F)
                 attrition_info = self._executor._calculate_movement_attrition(marshal, target_location, world)
-                attacker_moved = True
                 if defender_fled and victor != marshal.name:
                     movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
                 else:

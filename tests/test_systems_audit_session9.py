@@ -14,7 +14,7 @@ import pytest
 from backend.models.world_state import WorldState
 from backend.models.marshal import StrategicOrder, StrategicCondition
 from backend.commands.vindication import VindicationTracker
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.executor import CommandExecutor
 
 
@@ -41,7 +41,7 @@ def game_state(world, executor):
 
 @pytest.fixture
 def strategic_executor(executor):
-    return StrategicExecutor(executor)
+    return StrategicOrderProcessor(executor)
 
 
 def _make_order(cmd_type, target, path=None, condition=None):

@@ -20,7 +20,7 @@ from backend.models.intel import (
 )
 from backend.models.marshal import StrategicOrder
 from backend.commands.executor import CommandExecutor
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 
 
 # ============================================================================
@@ -348,7 +348,7 @@ class TestContactInterruptFogDiscovery:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Set up Ney with a MOVE_TO order, literal personality for reroute
         ney = world.marshals["Ney"]
@@ -421,7 +421,7 @@ class TestContactInterruptFogDiscovery:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Set up Davout (cautious) at Waterloo, Wellington at Waterloo too
         davout = world.marshals["Davout"]

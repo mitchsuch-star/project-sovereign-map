@@ -300,6 +300,16 @@ _CATEGORY_MAPS = {
 }
 
 
+def action_display_name(action: str) -> str:
+    """Translate internal action name to player-readable text."""
+    return ACTION_DISPLAY.get(action, action.replace("_", " "))
+
+
+def proposal_display_name(proposal_type: str) -> str:
+    """Translate internal proposal_type to player-readable text."""
+    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+
+
 def display(category: str, internal_name: str, fallback: str = None) -> str:
     """Universal translator.  Never returns raw internal name.
 

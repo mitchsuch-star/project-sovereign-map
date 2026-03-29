@@ -24,7 +24,7 @@ from typing import List
 from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition
 from backend.models.region import Region
 from backend.models.world_state import WorldState
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.executor import CommandExecutor
 
 
@@ -113,7 +113,7 @@ def executor():
 @pytest.fixture
 def strategic_executor(executor):
     """Create a StrategicExecutor wrapping the CommandExecutor."""
-    return StrategicExecutor(executor)
+    return StrategicOrderProcessor(executor)
 
 
 @pytest.fixture

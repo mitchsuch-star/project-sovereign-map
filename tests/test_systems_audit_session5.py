@@ -15,7 +15,7 @@ import contextlib
 
 from backend.models.world_state import WorldState
 from backend.models.marshal import StrategicOrder
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.executor import CommandExecutor
 from backend.game_logic.ledger import build_strategic_ledger
 from backend.models.region import NATION_CAPITALS
@@ -115,7 +115,7 @@ class TestHoldCavalryMovement:
         """Cavalry (movement_range=2) moves 2 regions toward hold position."""
         world = _make_world()
         executor = CommandExecutor()
-        strategic_executor = StrategicExecutor(executor)
+        strategic_executor = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         ney = world.get_marshal("Ney")
@@ -145,7 +145,7 @@ class TestHoldCavalryMovement:
         """Infantry (movement_range=1) moves only 1 region toward hold position."""
         world = _make_world()
         executor = CommandExecutor()
-        strategic_executor = StrategicExecutor(executor)
+        strategic_executor = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         davout = world.get_marshal("Davout")
@@ -185,7 +185,7 @@ class TestPursuePathStorage:
         """After PURSUE processing, order.path should be populated."""
         world = _make_world()
         executor = CommandExecutor()
-        strategic_executor = StrategicExecutor(executor)
+        strategic_executor = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         ney = world.get_marshal("Ney")

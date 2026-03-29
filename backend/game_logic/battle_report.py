@@ -491,7 +491,6 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     # Determine perspective: which side is ours?
     attacker_nation = battle_result.get("attacker_nation", "")
-    defender_nation = battle_result.get("defender_nation", "")
     we_are_attacker = (attacker_nation == player_nation)
 
     # Perspective-flipped variables

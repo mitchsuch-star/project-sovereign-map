@@ -31,13 +31,13 @@ def _strategic_command_flavor(cmd_type: str) -> str:
     }.get(cmd_type, "his orders")
 
 
-class StrategicExecutor:
+class StrategicOrderProcessor:
     """
     Executes strategic orders during turn processing.
 
     Usage:
-        executor = StrategicExecutor(command_executor)
-        reports = executor.process_strategic_orders(world, game_state)
+        processor = StrategicOrderProcessor(command_executor)
+        reports = processor.process_strategic_orders(world, game_state)
     """
 
     def __init__(self, command_executor):
@@ -223,7 +223,6 @@ class StrategicExecutor:
         if choice == "investigate":
             # Cancel current order, attack or move toward battle
             cmd_flavor = _strategic_command_flavor(order.command_type)
-            original_location = marshal.location
             marshal.strategic_order = None
             # [7A-2] Clear holding state
             marshal.holding_position = False
@@ -709,7 +708,6 @@ class StrategicExecutor:
         Cavalry moves 2 regions/turn, infantry moves 1.
         """
         order = marshal.strategic_order
-        personality = marshal.personality
 
         # Determine destination (marshal snapshot or region)
         destination = order.target_snapshot_location or order.target
@@ -1140,7 +1138,6 @@ class StrategicExecutor:
 
                 if not enemies_adjacent:
                     # No enemies nearby — auto-cancel, log target_not_found
-                    events = world.get_last_tactical_events() if hasattr(world, '_last_tactical_events') else []
                     target_not_found_event = {
                         "type": "target_not_found",
                         "marshal": marshal.name,
@@ -1592,7 +1589,6 @@ class StrategicExecutor:
         Completes when ally is safe or battle won.
         """
         order = marshal.strategic_order
-        personality = marshal.personality
         ally = world.get_marshal(order.target)
 
         # Fix 13: Break SUPPORT if war declared with ally's nation

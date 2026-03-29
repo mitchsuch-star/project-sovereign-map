@@ -15,14 +15,12 @@ TODO (Future): Multi-Army Battles
 """
 from typing import Dict, Optional, Tuple
 from backend.models.world_state import WorldState
-from backend.models.marshal import Stance, StrategicOrder
+from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
-from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 # V2a Objection System imports
 from backend.commands.objection_v2 import (
-    ConcernLevel, evaluate_situation, evaluate_strategic_situation,
-    apply_mood_variance,
+    ConcernLevel, evaluate_situation, apply_mood_variance,
     get_trust_tier, get_objection_tone, get_insist_penalty,
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
     concern_to_legacy_severity,

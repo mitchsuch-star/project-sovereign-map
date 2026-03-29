@@ -68,10 +68,10 @@ class TestFix1SupportPathPersisted:
         )
         supporter.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         result = strat._execute_support(supporter, world, game_state)
@@ -98,10 +98,10 @@ class TestFix1SupportPathPersisted:
         )
         supporter.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         strat._execute_support(supporter, world, game_state)
@@ -133,10 +133,10 @@ class TestFix2HoldPathPersisted:
         )
         marshal.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         strat._execute_hold(marshal, world, game_state)
@@ -159,10 +159,10 @@ class TestFix2HoldPathPersisted:
         )
         marshal.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         strat._execute_hold(marshal, world, game_state)
@@ -592,10 +592,10 @@ class TestFix13WarStateRevalidation:
         )
         pursuer.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         result = strat._execute_pursue(pursuer, world, game_state)
@@ -624,10 +624,10 @@ class TestFix13WarStateRevalidation:
         )
         supporter.strategic_order = order
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
-        strat = StrategicExecutor(executor)
+        strat = StrategicOrderProcessor(executor)
 
         game_state = {"world": world}
         result = strat._execute_support(supporter, world, game_state)

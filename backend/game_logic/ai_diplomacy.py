@@ -1425,7 +1425,6 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
     # R15: Process AI-AI rivalry degradation first
     rivalry_events = _process_ai_ai_rivalry(world)
 
-    player = getattr(world, 'player_nation', 'France')
     enemy_nations = list(getattr(world, 'enemy_nations', []))
     treaties_this_turn = 0
     events = []

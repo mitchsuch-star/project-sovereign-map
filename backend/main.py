@@ -634,8 +634,8 @@ def execute_command(request: CommandRequest):
                 if choice:
                     print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "
                           f"{m.name} {interrupt_type} response: {choice}")
-                    from backend.commands.strategic import StrategicExecutor
-                    strategic_exec = StrategicExecutor(executor)
+                    from backend.commands.strategic import StrategicOrderProcessor
+                    strategic_exec = StrategicOrderProcessor(executor)
                     result = strategic_exec.handle_response(
                         m.name, interrupt_type, choice, world, game_state)
                     return _build_result_response(result, world)
@@ -1371,8 +1371,8 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             return build_base_response(
                 world, success=False, message="The war is over.",
                 game_over=True, victory=world.victory)
-        from backend.commands.strategic import StrategicExecutor
-        strategic_exec = StrategicExecutor(executor)
+        from backend.commands.strategic import StrategicOrderProcessor
+        strategic_exec = StrategicOrderProcessor(executor)
         result = strategic_exec.handle_response(
             request.marshal_name, request.response_type,
             request.choice, world, game_state
@@ -1626,15 +1626,15 @@ async def save_endpoint(request: SaveRequest):
     global world
     # 3D-2: Validate save filename before passing to save_game
     if request.save_name and not _validate_save_filename(request.save_name):
-        return {"success": False, "message": "Invalid save name"}
+        return build_base_response(world, success=False, message="Invalid save name")
     try:
         result = save_game(world, save_name=request.save_name)
-        return result
+        return build_base_response(world, **{k: v for k, v in result.items() if k != "new_state"})
     except Exception as e:
         print(f"[ERROR] handling save: {e}")
         import traceback
         traceback.print_exc()
-        return {"success": False, "message": f"Save failed: {str(e)}"}
+        return build_base_response(world, success=False, message=f"Save failed: {str(e)}")
 
 
 @app.post("/load")
@@ -1649,7 +1649,7 @@ async def load_endpoint(request: LoadRequest):
         world = result["world"]
         game_state["world"] = world
         return build_base_response(world, message=result["message"])
-    return {"success": False, "message": result["message"]}
+    return build_base_response(world, success=False, message=result["message"])
 
 
 @app.get("/saves")
@@ -1665,7 +1665,8 @@ async def delete_save_endpoint(request: DeleteSaveRequest):
     if not _validate_save_filename(request.filename):
         return {"success": False, "message": "Invalid save filename"}
     filepath = Path("saves") / request.filename
-    return delete_save(filepath)
+    result = delete_save(filepath)
+    return build_base_response(world, **{k: v for k, v in result.items() if k != "new_state"})
 
 
 # ════════════════════════════════════════════════════════════
@@ -1959,13 +1960,11 @@ async def debug_set_trust(request: Request):
 
     print(f"[DEBUG] Set {marshal_name} trust: {old_trust} -> {marshal.trust.value}")
 
-    return {
-        "success": True,
-        "marshal": marshal_name,
-        "old_trust": old_trust,
-        "new_trust": int(marshal.trust.value),
-        "trust_label": marshal.trust.get_label()
-    }
+    return build_base_response(world,
+        marshal=marshal_name,
+        old_trust=old_trust,
+        new_trust=int(marshal.trust.value),
+        trust_label=marshal.trust.get_label())
 
 
 @app.get("/debug/marshal_status/{marshal_name}")
@@ -2083,12 +2082,10 @@ async def debug_set_authority(request: Request):
 
     print(f"[DEBUG] Set authority: {old_authority} -> {world.authority_tracker.authority}")
 
-    return {
-        "success": True,
-        "old_authority": old_authority,
-        "new_authority": int(world.authority_tracker.authority),
-        "authority_label": world.authority_tracker.get_authority_label()
-    }
+    return build_base_response(world,
+        old_authority=old_authority,
+        new_authority=int(world.authority_tracker.authority),
+        authority_label=world.authority_tracker.get_authority_label())
 
 
 # ════════════════════════════════════════════════════════════

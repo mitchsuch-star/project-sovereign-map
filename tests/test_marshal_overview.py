@@ -644,26 +644,26 @@ class TestStance:
     """Stance display."""
 
     def test_default_stance_neutral(self):
-        """Default stance is neutral."""
+        """Default stance is neutral — display name capitalized."""
         overview = _get_overview()
         for m in overview:
-            assert m["stance"] == "neutral"
+            assert m["stance"] == "Neutral"
 
     def test_aggressive_stance(self):
-        """Aggressive stance reflected."""
+        """Aggressive stance reflected — display name capitalized."""
         world = _make_world()
         world.marshals["Ney"].stance = Stance.AGGRESSIVE
         overview = build_marshal_overview(world)
         ney = _find_marshal(overview, "Ney")
-        assert ney["stance"] == "aggressive"
+        assert ney["stance"] == "Aggressive"
 
     def test_defensive_stance(self):
-        """Defensive stance reflected."""
+        """Defensive stance reflected — display name capitalized."""
         world = _make_world()
         world.marshals["Davout"].stance = Stance.DEFENSIVE
         overview = build_marshal_overview(world)
         d = _find_marshal(overview, "Davout")
-        assert d["stance"] == "defensive"
+        assert d["stance"] == "Defensive"
 
 
 # ════════════════════════════════════════════════════════════════════════════════

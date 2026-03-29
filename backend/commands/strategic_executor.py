@@ -13,12 +13,7 @@ from backend.commands.objection_v2 import (
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
     concern_to_legacy_severity,
 )
-from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES, get_strategic_display
-
-
-def _action_display_name(action: str) -> str:
-    """Translate internal action name to player-readable text."""
-    return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
+from backend.display_names import action_display_name as _action_display_name, get_strategic_display
 
 
 class StrategicExecutor:

@@ -407,9 +407,9 @@ class TestNeyHoldCompromise:
         world.current_turn = 4  # Turn 1 + 3 = turn 4
 
         # Process strategic orders (turn manager would call this)
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
-        strategic_executor = StrategicExecutor(CommandExecutor())
+        strategic_executor = StrategicOrderProcessor(CommandExecutor())
         result = strategic_executor.process_strategic_orders(world, {"world": world})
 
         # Order should be expired
@@ -635,9 +635,9 @@ class TestDavoutPursueCompromise:
         world.current_turn = 2
 
         # Process strategic orders
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
-        strategic_executor = StrategicExecutor(CommandExecutor())
+        strategic_executor = StrategicOrderProcessor(CommandExecutor())
         result = strategic_executor.process_strategic_orders(world, {"world": world})
 
         # Order should be cancelled due to bad ratio
@@ -673,9 +673,9 @@ class TestDavoutPursueCompromise:
         world.current_turn = 2
 
         # Process strategic orders
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
-        strategic_executor = StrategicExecutor(CommandExecutor())
+        strategic_executor = StrategicOrderProcessor(CommandExecutor())
         result = strategic_executor.process_strategic_orders(world, {"world": world})
 
         # Order should NOT have been cancelled due to ratio
@@ -1409,9 +1409,9 @@ class TestEdgeCases:
         )
         ney.strength = 0  # Marshal defeated
 
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
-        strategic_executor = StrategicExecutor(CommandExecutor())
+        strategic_executor = StrategicOrderProcessor(CommandExecutor())
         result = strategic_executor.process_strategic_orders(world, {"world": world})
 
         # Dead marshal shouldn't process orders

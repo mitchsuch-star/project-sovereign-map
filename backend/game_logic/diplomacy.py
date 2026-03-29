@@ -2236,7 +2236,6 @@ def apply_continental_system(world) -> None:
 
     # Auto-join PUPPET/SATELLITE vassals
     from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
-    existing_members = list(members)
     for vassal_name, state in world.vassals.items():
         if state["lord"] == lord:
             autonomy = state.get("autonomy", AUTONOMY_SATELLITE)

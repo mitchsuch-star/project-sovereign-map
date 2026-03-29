@@ -292,7 +292,7 @@ class TestTriggerStrategicOrderComplete:
     """Test Trigger 1: Strategic order complete notification."""
 
     def test_order_complete_creates_notification(self):
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
 
         world = _make_world()
         marshal = _make_marshal("Ney", "Belgium", nation="France")
@@ -300,7 +300,7 @@ class TestTriggerStrategicOrderComplete:
         world.marshals["Ney"] = marshal
         world.current_turn = 5
 
-        se = StrategicExecutor(None)
+        se = StrategicOrderProcessor(None)
         se._complete_order(marshal, world, "arrived")
 
         assert world.notifications.has_pending()
@@ -311,14 +311,14 @@ class TestTriggerStrategicOrderComplete:
         assert notif["priority"] == int(NotificationPriority.HIGH)
 
     def test_enemy_order_complete_no_notification(self):
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
 
         world = _make_world()
         marshal = _make_marshal("Blucher", "Belgium", nation="Prussia")
         marshal.strategic_order = StrategicOrder("MOVE_TO", "Belgium", target_type="region", started_turn=1, original_command="Ney march to Belgium", path=[])
         world.marshals["Blucher"] = marshal
 
-        se = StrategicExecutor(None)
+        se = StrategicOrderProcessor(None)
         se._complete_order(marshal, world, "arrived")
 
         assert not world.notifications.has_pending()

@@ -648,8 +648,6 @@ def evaluate_pre_proposal_objection(
 
     # Get diplomatic context
     trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-    authority = world.authority_tracker.authority
-
     # War declaration on neutral → STRONG
     current_state = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
     if proposal.get("type") == "war_declaration" and current_state not in ("WAR",):

@@ -381,7 +381,6 @@ def _recommend_action(target_nation: str, world) -> Dict:
 
     if state == "WAR":
         if france_war_score > 20:
-            path = "military"
             text = (
                 f"Sire, we hold the upper hand against {target_nation}. "
                 f"War score: {int(france_war_score)}. I recommend pressing for peace "
@@ -395,7 +394,6 @@ def _recommend_action(target_nation: str, world) -> Dict:
             hints = [f"Propose peace with {target_nation}", "Continue fighting for better terms"]
             confidence = "high"
         elif france_war_score < -20:
-            path = "diplomatic"
             text = (
                 f"Sire, I must speak plainly — the war with {target_nation} "
                 f"does not favor us. War score: {int(france_war_score)}. "
@@ -407,7 +405,6 @@ def _recommend_action(target_nation: str, world) -> Dict:
             hints = [f"Propose armistice with {target_nation}", "Reinforce the front lines"]
             confidence = "high"
         else:
-            path = "combined"
             text = (
                 f"Sire, the war with {target_nation} hangs in the balance. "
                 f"War score: {int(france_war_score)}. Neither side commands a "

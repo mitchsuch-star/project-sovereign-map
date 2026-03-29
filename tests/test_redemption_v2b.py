@@ -345,7 +345,7 @@ class TestStrategicInterruptRedemption:
 
     def test_strategic_cancel_triggers_redemption(self):
         """Strategic cancel_order -3 pushing trust to 20 triggers redemption in result."""
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         from backend.models.marshal import StrategicOrder
 
@@ -361,7 +361,7 @@ class TestStrategicInterruptRedemption:
             path=["Belgium", "Rhineland"],
         )
 
-        strategic_exec = StrategicExecutor(CommandExecutor())
+        strategic_exec = StrategicOrderProcessor(CommandExecutor())
         result = strategic_exec._respond_combat_stalemate(
             ney, ney.strategic_order, "cancel_order",
             {"enemy_name": "Wellington"},
@@ -376,7 +376,7 @@ class TestStrategicInterruptRedemption:
 
     def test_strategic_cancel_no_redemption_at_24(self):
         """Strategic cancel_order -3 from trust 24 → 21, no redemption."""
-        from backend.commands.strategic import StrategicExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
         from backend.commands.executor import CommandExecutor
         from backend.models.marshal import StrategicOrder
 
@@ -390,7 +390,7 @@ class TestStrategicInterruptRedemption:
             path=["Belgium", "Rhineland"],
         )
 
-        strategic_exec = StrategicExecutor(CommandExecutor())
+        strategic_exec = StrategicOrderProcessor(CommandExecutor())
         result = strategic_exec._respond_combat_stalemate(
             ney, ney.strategic_order, "cancel_order",
             {"enemy_name": "Wellington"},

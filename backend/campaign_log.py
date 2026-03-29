@@ -724,7 +724,6 @@ def format_event_oneliner(event: dict) -> str:
         toward = event.get("toward", "Unknown")
         change = event.get("change", 0)
         new_label = event.get("new_label", "")
-        direction = event.get("direction", "")
         sign = "+" if change > 0 else ""
         label_str = f" ({new_label})" if new_label else ""
         return f"{marshal} → {toward}: {sign}{change}{label_str}"

@@ -8,10 +8,7 @@ from typing import Dict
 from backend.models.world_state import WorldState
 
 
-def _proposal_display_name(proposal_type: str) -> str:
-    """Translate internal proposal_type to player-readable text."""
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
-    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+from backend.display_names import proposal_display_name as _proposal_display_name
 
 
 class DiplomaticExecutor:

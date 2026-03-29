@@ -15,7 +15,7 @@ from backend.models.marshal import (
 )
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.objection_v2 import (
     evaluate_cautious, evaluate_aggressive, ConcernLevel,
 )
@@ -86,7 +86,7 @@ def _setup_hold_scenario(artillery_loc="Belgium", enemy_loc="Waterloo",
 
 
     executor = CommandExecutor()
-    strategic = StrategicExecutor(executor)
+    strategic = StrategicOrderProcessor(executor)
     game_state = {"world": world}
 
     return world, art, enemy, strategic, game_state
@@ -147,7 +147,7 @@ class TestHoldBombardment:
         world.current_turn = 2
 
         executor = CommandExecutor()
-        strategic = StrategicExecutor(executor)
+        strategic = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         result = strategic._execute_hold(art, world, game_state)
@@ -242,7 +242,7 @@ class TestHoldBombardment:
         world.current_turn = 2
 
         executor = CommandExecutor()
-        strategic = StrategicExecutor(executor)
+        strategic = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         result = strategic._execute_hold(art, world, game_state)
@@ -268,7 +268,7 @@ class TestHoldBombardment:
         world.current_turn = 2
 
         executor = CommandExecutor()
-        strategic = StrategicExecutor(executor)
+        strategic = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         result = strategic._execute_hold(art, world, game_state)
@@ -319,7 +319,7 @@ class TestHoldBombardment:
         world.current_turn = 2
 
         executor = CommandExecutor()
-        strategic = StrategicExecutor(executor)
+        strategic = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         result = strategic._execute_hold(inf, world, game_state)
@@ -779,7 +779,7 @@ class TestHoldBombardmentEdgeCases:
         world.current_turn = 2
 
         executor = CommandExecutor()
-        strategic = StrategicExecutor(executor)
+        strategic = StrategicOrderProcessor(executor)
         game_state = {"world": world}
 
         result = strategic._execute_hold(art, world, game_state)

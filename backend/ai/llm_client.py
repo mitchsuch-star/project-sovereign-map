@@ -568,14 +568,6 @@ class LLMClient:
             ("grouchy", "Grouchy"),
             ("drouot", "Drouot"),
         ]
-        enemy_marshals = [
-            ("archduke charles", "ArchdukeCharles"),
-            ("archduke", "ArchdukeCharles"),
-            ("schwarzenberg", "Schwarzenberg"),
-            ("gneisenau", "Gneisenau"),
-            ("reynier", "Reynier"),
-        ]
-
         # Find which PLAYER marshal appears FIRST in the command
         # V2-55: Use word-boundary regex to prevent substring matches
         # (e.g. "ney" matching inside "journey", "money")

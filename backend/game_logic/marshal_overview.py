@@ -11,6 +11,7 @@ Pattern follows ledger.py.
 from typing import Dict, Any, List
 
 from backend.models.marshal import Marshal
+from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
 
 # Relationship value → display label
 _RELATIONSHIP_LABELS = {
@@ -121,7 +122,7 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
     return {
         "name": marshal.name,
         "nation": marshal.nation,
-        "personality": marshal.personality,
+        "personality": PERSONALITY_DISPLAY.get(marshal.personality, marshal.personality.capitalize()),
         "personality_description": _PERSONALITY_DESCRIPTIONS.get(
             marshal.personality, ""
         ),
@@ -193,7 +194,7 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
 
     return {
         "location": marshal.location,
-        "stance": marshal.stance.value,
+        "stance": STANCE_DISPLAY.get(marshal.stance.value, marshal.stance.value.capitalize()),
         "strategic_order": strategic_order,
         "is_fortified": bool(marshal.fortified),
         "defense_bonus": int(marshal.defense_bonus * 100),

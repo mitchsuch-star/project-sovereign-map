@@ -284,8 +284,6 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
 
     target_nation = parsed_command.get("target_nation")
     proposal_type = parsed_command.get("proposal_type")
-    raw_text = parsed_command.get("raw_text", "")
-
     # Determine game bucket
     bucket = get_game_bucket(target_nation, world) if target_nation else "neutral"
 

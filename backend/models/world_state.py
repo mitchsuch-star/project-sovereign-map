@@ -3943,7 +3943,6 @@ class WorldState:
         if construction_events:
             tactical_events.extend(construction_events)
 
-        old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)
 
         # ════════════════════════════════════════════════════════════
@@ -4873,9 +4872,6 @@ class WorldState:
             # ENEMY AI FIX: Process tactical states for ALL marshals
             # Enemies are real generals - same drill, fortify, retreat rules
             # ════════════════════════════════════════════════════════════
-
-            # Track if this is a player marshal (for UI events only)
-            is_player_marshal = (marshal.nation == self.player_nation)
 
             # ════════════════════════════════════════════════════════════
             # OCCUPATION PROGRESSION (Phase 6.2.F)

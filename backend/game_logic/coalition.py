@@ -105,7 +105,6 @@ def add_threat(world, amount: int, source_key: str) -> int:
     """
     if amount <= 0:
         return int(world.threat_level)
-    old = world.threat_level
     world.threat_level = int(min(100, max(0, world.threat_level + amount)))
     world.threat_sources_this_turn.append({
         "source": source_key,

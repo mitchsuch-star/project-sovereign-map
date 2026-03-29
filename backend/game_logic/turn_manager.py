@@ -16,12 +16,12 @@ Strategic orders process at START of player turn:
 2. After turn advances
 3. BEFORE player can issue new commands
 
-Add _process_strategic_orders() method that calls StrategicExecutor.
+Add _process_strategic_orders() method that calls StrategicOrderProcessor.
 """
 
 from typing import Dict, Optional
 from backend.models.world_state import WorldState, VICTORY_REGION_FRACTION
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.utils.debug import debug_print
 
 
@@ -136,7 +136,7 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         strategic_reports = []
         if game_state and hasattr(self, 'executor'):
-            strategic_exec = StrategicExecutor(self.executor)
+            strategic_exec = StrategicOrderProcessor(self.executor)
             strategic_reports = strategic_exec.process_strategic_orders(
                 self.world, game_state)
 

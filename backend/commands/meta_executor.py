@@ -11,26 +11,14 @@ and the auto-end-turn block in executor.py's execute()).
 import random
 from typing import Dict
 from backend.models.world_state import WorldState
-from backend.models.marshal import Stance
-from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.commands.objection_v2 import ConcernLevel
 
 # Player-readable display names — single source in display_names.py (R7)
-from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES
+from backend.display_names import action_display_name as _action_display_name
+from backend.display_names import proposal_display_name as _proposal_display_name
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
 ADMIN_ACTIONS = {"recruit", "build", "repair"}
-
-
-def _action_display_name(action: str) -> str:
-    """Translate internal action name to player-readable text."""
-    return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
-
-
-def _proposal_display_name(proposal_type: str) -> str:
-    """Translate internal proposal_type to player-readable text."""
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
-    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:
@@ -1694,9 +1682,6 @@ RETREAT RECOVERY (3 turns):
                     "success": False,
                     "message": "No actions remaining this turn!"
                 }
-
-        # Route to appropriate handler based on action type
-        command_type = command.get("type", "specific")
 
         # Strategic commands route through strategic executor
         if command.get("is_strategic") and command.get("strategic_type"):

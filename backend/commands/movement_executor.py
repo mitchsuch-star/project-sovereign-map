@@ -4,7 +4,7 @@ Movement Executor ��� Movement and reconnaissance actions (R13B)
 Extracted from executor.py: _has_depot_supply_bonus, _calculate_movement_attrition,
 _execute_move, _execute_scout, _execute_auto_assign_scout, _execute_retreat_action.
 """
-from typing import Dict, Optional, Tuple
+from typing import Dict
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS

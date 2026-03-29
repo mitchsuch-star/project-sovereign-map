@@ -416,7 +416,6 @@ def _build_turn_events(
 
         # Filter: only show events relevant to player nation
         event_nation = event.get("nation")
-        marshal_name = event.get("marshal", "")
         if not event_nation:
             continue  # Skip events with no nation (safety net)
         if event_nation != player_nation:

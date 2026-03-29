@@ -582,9 +582,6 @@ class GroqProvider(BaseProvider):
                 confidence=0.0,
             )
 
-        # Build prompt using prompt_builder (same as Anthropic)
-        system_prompt = build_system_prompt()
-
         # Get command history from world for repetition detection
         world = game_state.get("world") if game_state else None
         command_history = world.get_command_history_for_prompt() if world else []

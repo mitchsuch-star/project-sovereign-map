@@ -21,7 +21,7 @@ from backend.models.intel import (
     get_strength_band,
 )
 from backend.commands.executor import CommandExecutor
-from backend.commands.strategic import StrategicExecutor
+from backend.commands.strategic import StrategicOrderProcessor
 from backend.models.marshal import StrategicOrder, StrategicCondition
 
 
@@ -221,7 +221,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Clear all intel so Wellington is UNKNOWN
         clear_all_intel(world)
@@ -240,7 +240,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Set stale intel: Wellington last seen at Waterloo
         clear_all_intel(world)
@@ -273,7 +273,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         pursuer, order = self._setup_pursue(world, "Davout", "Wellington")
         # Destroy Wellington
@@ -288,7 +288,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Game init has FULL on Waterloo (Grouchy is there)
         pursuer, order = self._setup_pursue(world, "Davout", "Wellington")
@@ -304,7 +304,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         clear_all_intel(world)
         # Old sighting
@@ -332,7 +332,7 @@ class TestPursueFog:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         clear_all_intel(world)
         # Set stale intel: Wellington was at Belgium
@@ -374,7 +374,7 @@ class TestSupportFogSafety:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Set up Ney supporting Davout
         ney = world.get_marshal("Ney")
@@ -422,7 +422,7 @@ class TestCautiousPathfindingFog:
         """Cautious player marshal avoids enemies at PARTIAL+ regions."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Davout is cautious
         davout = world.get_marshal("Davout")
@@ -439,7 +439,7 @@ class TestCautiousPathfindingFog:
         """fog_aware=False returns all enemy regions regardless of visibility."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         omniscient = strategic_exec._get_enemy_occupied_regions(
             "France", world, fog_aware=False)
@@ -451,7 +451,7 @@ class TestCautiousPathfindingFog:
         """fog_aware=True only includes regions with PARTIAL+ visibility."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Clear all intel
         clear_all_intel(world)
@@ -466,7 +466,7 @@ class TestCautiousPathfindingFog:
         """AI pathfinding uses fog_aware=False (omniscient)."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Get an enemy marshal (cautious personality if possible)
         for m in world.marshals.values():
@@ -1005,7 +1005,7 @@ class TestFogAwareWiringEnforcement:
         """Passing marshal= to _get_enemy_occupied_regions auto-derives fog_aware."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Player marshal — should auto-derive fog_aware=True
         davout = world.get_marshal("Davout")
@@ -1025,7 +1025,7 @@ class TestFogAwareWiringEnforcement:
         """Passing an AI marshal auto-derives fog_aware=False (omniscient)."""
         world = make_world()
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Get an enemy (AI) marshal
         wellington = world.get_marshal("Wellington")
@@ -1168,7 +1168,7 @@ class TestPursuePersonalityFogMatrix:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Davout is cautious
         davout = world.get_marshal("Davout")
@@ -1218,7 +1218,7 @@ class TestPursuePersonalityFogMatrix:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Ney is aggressive
         ney = world.get_marshal("Ney")
@@ -1263,7 +1263,7 @@ class TestPursuePersonalityFogMatrix:
         world = make_world()
         game_state = make_game_state(world)
         executor = CommandExecutor()
-        strategic_exec = StrategicExecutor(executor)
+        strategic_exec = StrategicOrderProcessor(executor)
 
         # Grouchy is literal
         grouchy = world.get_marshal("Grouchy")

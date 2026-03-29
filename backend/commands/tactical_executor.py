@@ -7,12 +7,7 @@ _execute_stance_change, _execute_restrain.
 """
 from typing import Dict
 from backend.models.marshal import Stance
-from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES
-
-
-def _action_display_name(action: str) -> str:
-    """Translate internal action name to player-readable text."""
-    return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
+from backend.display_names import action_display_name as _action_display_name
 
 
 class TacticalExecutor:
