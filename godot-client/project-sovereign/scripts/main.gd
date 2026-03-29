@@ -37,6 +37,9 @@ var top_bar = null
 # Map reference
 @onready var map_area = $MapArea
 
+# Dialog Manager (R16)
+var dialog_manager = null
+
 # Objection Dialog
 var objection_dialog = null
 
@@ -128,215 +131,106 @@ func _ready():
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
 
-	# Load and setup Objection Dialog
-	print("🔧 Loading ObjectionDialog scene...")
-	var dialog_scene = load("res://scenes/objection_dialog.tscn")
-	if dialog_scene == null:
-		push_error("❌ FAILED to load objection_dialog.tscn!")
-		print("❌ FAILED to load objection_dialog.tscn!")
-	else:
-		print("✓ Scene loaded, instantiating...")
-		objection_dialog = dialog_scene.instantiate()
-		if objection_dialog == null:
-			push_error("❌ FAILED to instantiate ObjectionDialog!")
-			print("❌ FAILED to instantiate ObjectionDialog!")
-		else:
-			print("✓ Dialog instantiated, adding to tree...")
-			add_child(objection_dialog)
-			objection_dialog.choice_made.connect(_on_objection_choice_made)
-			print("✓ ObjectionDialog ready! Node: ", objection_dialog.name)
-			print("  In tree: ", objection_dialog.is_inside_tree())
-			print("  Visible: ", objection_dialog.visible)
+	# ── Dialog Manager (R16) — centralized dialog instantiation ──
+	dialog_manager = DialogManager.new()
+	add_child(dialog_manager)
 
-	# Load and setup Redemption Dialog
-	print("🔧 Loading RedemptionDialog scene...")
-	var redemption_scene = load("res://scenes/redemption_dialog.tscn")
-	if redemption_scene == null:
-		push_error("❌ FAILED to load redemption_dialog.tscn!")
-		print("❌ FAILED to load redemption_dialog.tscn!")
-	else:
-		print("✓ Redemption scene loaded, instantiating...")
-		redemption_dialog = redemption_scene.instantiate()
-		if redemption_dialog == null:
-			push_error("❌ FAILED to instantiate RedemptionDialog!")
-			print("❌ FAILED to instantiate RedemptionDialog!")
-		else:
-			print("✓ Redemption dialog instantiated, adding to tree...")
-			add_child(redemption_dialog)
-			redemption_dialog.choice_made.connect(_on_redemption_choice_made)
-			print("✓ RedemptionDialog ready!")
+	# Modal dialogs (layers 101-118, set in .tscn files)
+	objection_dialog = dialog_manager.register("objection", "res://scenes/objection_dialog.tscn")
+	if objection_dialog:
+		objection_dialog.choice_made.connect(_on_objection_choice_made)
 
-	# Load and setup Enemy Phase Dialog
-	print("🔧 Loading EnemyPhaseDialog scene...")
-	var enemy_phase_scene = load("res://scenes/enemy_phase_dialog.tscn")
-	if enemy_phase_scene == null:
-		push_error("❌ FAILED to load enemy_phase_dialog.tscn!")
-		print("❌ FAILED to load enemy_phase_dialog.tscn!")
-	else:
-		print("✓ Enemy phase scene loaded, instantiating...")
-		enemy_phase_dialog = enemy_phase_scene.instantiate()
-		if enemy_phase_dialog == null:
-			push_error("❌ FAILED to instantiate EnemyPhaseDialog!")
-			print("❌ FAILED to instantiate EnemyPhaseDialog!")
-		else:
-			print("✓ Enemy phase dialog instantiated, adding to tree...")
-			add_child(enemy_phase_dialog)
-			enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)
-			print("✓ EnemyPhaseDialog ready!")
+	redemption_dialog = dialog_manager.register("redemption", "res://scenes/redemption_dialog.tscn")
+	if redemption_dialog:
+		redemption_dialog.choice_made.connect(_on_redemption_choice_made)
 
-	# Load and setup Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
-	print("🔧 Loading GloriousChargeDialog scene...")
-	var glorious_charge_scene = load("res://scenes/glorious_charge_dialog.tscn")
-	if glorious_charge_scene == null:
-		push_error("❌ FAILED to load glorious_charge_dialog.tscn!")
-		print("❌ FAILED to load glorious_charge_dialog.tscn!")
-	else:
-		print("✓ Glorious charge scene loaded, instantiating...")
-		glorious_charge_dialog = glorious_charge_scene.instantiate()
-		if glorious_charge_dialog == null:
-			push_error("❌ FAILED to instantiate GloriousChargeDialog!")
-			print("❌ FAILED to instantiate GloriousChargeDialog!")
-		else:
-			print("✓ Glorious charge dialog instantiated, adding to tree...")
-			add_child(glorious_charge_dialog)
-			glorious_charge_dialog.choice_made.connect(_on_glorious_charge_choice_made)
-			print("✓ GloriousChargeDialog ready!")
+	enemy_phase_dialog = dialog_manager.register("enemy_phase", "res://scenes/enemy_phase_dialog.tscn")
+	if enemy_phase_dialog:
+		enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)
 
-	# Load and setup Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
-	var capture_choice_scene = load("res://scenes/capture_choice_dialog.tscn")
-	if capture_choice_scene:
-		capture_choice_dialog = capture_choice_scene.instantiate()
-		add_child(capture_choice_dialog)
+	glorious_charge_dialog = dialog_manager.register("glorious_charge", "res://scenes/glorious_charge_dialog.tscn")
+	if glorious_charge_dialog:
+		glorious_charge_dialog.choice_made.connect(_on_glorious_charge_choice_made)
+
+	capture_choice_dialog = dialog_manager.register("capture_choice", "res://scenes/capture_choice_dialog.tscn")
+	if capture_choice_dialog:
 		capture_choice_dialog.choice_made.connect(_on_capture_choice_made)
-		print("✓ CaptureChoiceDialog ready!")
 
-	# Load and setup Load Game Dialog (Phase 6: Save/Load)
-	var load_dialog_scene = load("res://scenes/load_dialog.tscn")
-	if load_dialog_scene:
-		load_dialog = load_dialog_scene.instantiate()
-		add_child(load_dialog)
+	load_dialog = dialog_manager.register("load", "res://scenes/load_dialog.tscn")
+	if load_dialog:
 		load_dialog.save_selected.connect(_on_load_save_selected)
 		load_dialog.load_cancelled.connect(_on_load_cancelled)
-		print("LoadDialog ready!")
 
-	# Load and setup Strategic Report Popup (Phase J)
-	var strategic_report_scene = load("res://scenes/strategic_report_popup.tscn")
-	if strategic_report_scene:
-		strategic_report_popup = strategic_report_scene.instantiate()
-		add_child(strategic_report_popup)
+	strategic_report_popup = dialog_manager.register("strategic_report", "res://scenes/strategic_report_popup.tscn")
+	if strategic_report_popup:
 		strategic_report_popup.dismissed.connect(_on_strategic_report_dismissed)
-		print("✓ StrategicReportPopup ready!")
 
-	# Load and setup Interrupt Popup (Phase J)
-	var interrupt_scene = load("res://scenes/interrupt_popup.tscn")
-	if interrupt_scene:
-		interrupt_popup = interrupt_scene.instantiate()
-		add_child(interrupt_popup)
+	interrupt_popup = dialog_manager.register("interrupt", "res://scenes/interrupt_popup.tscn")
+	if interrupt_popup:
 		interrupt_popup.choice_made.connect(_on_interrupt_choice_made)
-		print("✓ InterruptPopup ready!")
 
-	# Load and setup Clarification Popup (Phase J)
-	var clarification_scene = load("res://scenes/clarification_popup.tscn")
-	if clarification_scene:
-		clarification_popup = clarification_scene.instantiate()
-		add_child(clarification_popup)
+	clarification_popup = dialog_manager.register("clarification", "res://scenes/clarification_popup.tscn")
+	if clarification_popup:
 		clarification_popup.clarification_choice.connect(_on_clarification_choice_made)
 		clarification_popup.cancelled.connect(_on_clarification_cancelled)
-		print("✓ ClarificationPopup ready!")
 
-	# ── Session 8C Diplomatic Popups ──
-	var coalition_decl_scene = load("res://scenes/coalition_declaration_popup.tscn")
-	if coalition_decl_scene:
-		coalition_declaration_popup = coalition_decl_scene.instantiate()
-		add_child(coalition_declaration_popup)
+	# Diplomatic popups
+	coalition_declaration_popup = dialog_manager.register("coalition_declaration", "res://scenes/coalition_declaration_popup.tscn")
+	if coalition_declaration_popup:
 		coalition_declaration_popup.dismissed.connect(_on_coalition_popup_dismissed)
-		print("✓ CoalitionDeclarationPopup ready!")
 
-	var incoming_prop_scene = load("res://scenes/incoming_proposal_popup.tscn")
-	if incoming_prop_scene:
-		incoming_proposal_popup = incoming_prop_scene.instantiate()
-		add_child(incoming_proposal_popup)
+	incoming_proposal_popup = dialog_manager.register("incoming_proposal", "res://scenes/incoming_proposal_popup.tscn")
+	if incoming_proposal_popup:
 		incoming_proposal_popup.choice_made.connect(_on_incoming_proposal_choice)
-		print("✓ IncomingProposalPopup ready!")
 
-	var proposal_confirm_scene = load("res://scenes/proposal_confirm_popup.tscn")
-	if proposal_confirm_scene:
-		proposal_confirm_popup = proposal_confirm_scene.instantiate()
-		add_child(proposal_confirm_popup)
+	proposal_confirm_popup = dialog_manager.register("proposal_confirm", "res://scenes/proposal_confirm_popup.tscn")
+	if proposal_confirm_popup:
 		proposal_confirm_popup.choice_made.connect(_on_proposal_confirm_choice)
-		print("✓ ProposalConfirmPopup ready!")
 
-	var talleyrand_obj_scene = load("res://scenes/talleyrand_objection_popup.tscn")
-	if talleyrand_obj_scene:
-		talleyrand_objection_popup = talleyrand_obj_scene.instantiate()
-		add_child(talleyrand_objection_popup)
+	talleyrand_objection_popup = dialog_manager.register("talleyrand_objection", "res://scenes/talleyrand_objection_popup.tscn")
+	if talleyrand_objection_popup:
 		talleyrand_objection_popup.choice_made.connect(_on_talleyrand_objection_choice)
-		print("✓ TalleyrandObjectionPopup ready!")
 
-	var sabotage_scene = load("res://scenes/sabotage_discovery_popup.tscn")
-	if sabotage_scene:
-		sabotage_discovery_popup = sabotage_scene.instantiate()
-		add_child(sabotage_discovery_popup)
+	sabotage_discovery_popup = dialog_manager.register("sabotage_discovery", "res://scenes/sabotage_discovery_popup.tscn")
+	if sabotage_discovery_popup:
 		sabotage_discovery_popup.choice_made.connect(_on_sabotage_discovery_choice)
-		print("✓ SabotageDiscoveryPopup ready!")
 
-	var redemption_scene_8c = load("res://scenes/talleyrand_redemption_popup.tscn")
-	if redemption_scene_8c:
-		talleyrand_redemption_popup = redemption_scene_8c.instantiate()
-		add_child(talleyrand_redemption_popup)
+	talleyrand_redemption_popup = dialog_manager.register("talleyrand_redemption", "res://scenes/talleyrand_redemption_popup.tscn")
+	if talleyrand_redemption_popup:
 		talleyrand_redemption_popup.choice_made.connect(_on_talleyrand_redemption_choice)
-		print("✓ TalleyrandRedemptionPopup ready!")
 
-	var vassal_rebel_scene = load("res://scenes/vassal_rebellion_popup.tscn")
-	if vassal_rebel_scene:
-		vassal_rebellion_popup = vassal_rebel_scene.instantiate()
-		add_child(vassal_rebellion_popup)
+	vassal_rebellion_popup = dialog_manager.register("vassal_rebellion", "res://scenes/vassal_rebellion_popup.tscn")
+	if vassal_rebellion_popup:
 		vassal_rebellion_popup.choice_made.connect(_on_vassal_rebellion_choice)
-		print("✓ VassalRebellionPopup ready!")
 
-	var alliance_paradox_scene = load("res://scenes/alliance_paradox_popup.tscn")
-	if alliance_paradox_scene:
-		alliance_paradox_popup = alliance_paradox_scene.instantiate()
-		add_child(alliance_paradox_popup)
+	alliance_paradox_popup = dialog_manager.register("alliance_paradox", "res://scenes/alliance_paradox_popup.tscn")
+	if alliance_paradox_popup:
 		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
-		print("✓ AllianceParadoxPopup ready!")
 
-	# ── Diplomacy Wizard (Session B) ──
-	var diplomacy_wizard_scene = load("res://scenes/diplomacy_wizard.tscn")
-	if diplomacy_wizard_scene:
-		diplomacy_wizard = diplomacy_wizard_scene.instantiate()
-		add_child(diplomacy_wizard)
+	# Diplomacy wizard
+	diplomacy_wizard = dialog_manager.register("diplomacy_wizard", "res://scenes/diplomacy_wizard.tscn")
+	if diplomacy_wizard:
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
-		print("✓ DiplomacyWizard ready!")
 
-	# ── War Status Panel (N4: HUD + Detail Popup) ──
-	var war_panel_scene = load("res://scenes/war_status_panel.tscn")
-	if war_panel_scene:
-		war_status_panel = war_panel_scene.instantiate()
-		add_child(war_status_panel)
+	# War Status Panel (N4: HUD Layer 25 + Detail Layer 30) — not modal
+	war_status_panel = dialog_manager.register("war_status_panel", "res://scenes/war_status_panel.tscn", false)
+	if war_status_panel:
 		war_status_panel.card_clicked.connect(_on_war_card_clicked)
 		war_status_panel.coalition_header_clicked.connect(_on_coalition_header_clicked)
-		print("War StatusPanel ready!")
 
-	var war_detail_scene = load("res://scenes/war_detail_popup.tscn")
-	if war_detail_scene:
-		war_detail_popup = war_detail_scene.instantiate()
-		add_child(war_detail_popup)
+	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
+	if war_detail_popup:
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
 		war_detail_popup.war_ended.connect(_on_war_ended_notification)
-		print("War DetailPopup ready!")
 
-	# Load and setup Pause Menu (Phase 6.5)
-	var pause_menu_scene = load("res://scenes/pause_menu.tscn")
-	if pause_menu_scene:
-		pause_menu = pause_menu_scene.instantiate()
-		add_child(pause_menu)
+	# Pause menu (layer 120, always on top)
+	pause_menu = dialog_manager.register("pause_menu", "res://scenes/pause_menu.tscn")
+	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
-		print("✓ PauseMenu ready!")
 
-	# Load and setup Top Bar (Session A)
+	# ── Top Bar + Screens (special setup, not managed by DialogManager) ──
 	var top_bar_scene = load("res://scenes/top_bar.tscn")
 	if top_bar_scene:
 		top_bar = top_bar_scene.instantiate()
@@ -344,56 +238,27 @@ func _ready():
 		top_bar.set_api_client(api_client)
 		top_bar.screen_changed.connect(_on_screen_changed)
 		top_bar.envoy_clicked.connect(_on_envoy_clicked)
-		print("✓ TopBar ready!")
 
-	# Load and setup Campaign Log (Phase 6.5)
-	var campaign_log_scene = load("res://scenes/campaign_log.tscn")
-	if campaign_log_scene:
-		campaign_log = campaign_log_scene.instantiate()
-		add_child(campaign_log)
-		print("✓ CampaignLog ready!")
+	# Screens registered with top bar
+	var _screen_configs = [
+		["event_log", "res://scenes/campaign_log.tscn"],
+		["dispatch", "res://scenes/dispatch_view.tscn"],
+		["ledger", "res://scenes/strategic_ledger.tscn"],
+		["generals", "res://scenes/marshal_management.tscn"],
+		["diplomatic_ledger", "res://scenes/diplomatic_ledger.tscn"],
+	]
+	for config in _screen_configs:
+		var scene = load(config[1])
+		if scene:
+			var instance = scene.instantiate()
+			add_child(instance)
+			if top_bar:
+				top_bar.register_screen(config[0], instance)
+			# Keep campaign_log reference for direct access
+			if config[0] == "event_log":
+				campaign_log = instance
 
-	# Register campaign log with top bar
-	if top_bar and campaign_log:
-		top_bar.register_screen("event_log", campaign_log)
-
-	# Load and setup Dispatch View (Session A)
-	var dispatch_view_scene = load("res://scenes/dispatch_view.tscn")
-	if dispatch_view_scene:
-		var dispatch_view = dispatch_view_scene.instantiate()
-		add_child(dispatch_view)
-		if top_bar:
-			top_bar.register_screen("dispatch", dispatch_view)
-		print("✓ DispatchView ready!")
-
-	# Load and setup Strategic Ledger (Session B)
-	var ledger_scene = load("res://scenes/strategic_ledger.tscn")
-	if ledger_scene:
-		var strategic_ledger = ledger_scene.instantiate()
-		add_child(strategic_ledger)
-		if top_bar:
-			top_bar.register_screen("ledger", strategic_ledger)
-		print("✓ StrategicLedger ready!")
-
-	# Load and setup Marshal Management (Phase 6.5)
-	var marshal_mgmt_scene = load("res://scenes/marshal_management.tscn")
-	if marshal_mgmt_scene:
-		var marshal_management = marshal_mgmt_scene.instantiate()
-		add_child(marshal_management)
-		if top_bar:
-			top_bar.register_screen("generals", marshal_management)
-		print("✓ MarshalManagement ready!")
-
-	# Load and setup Diplomatic Ledger (Session 8B)
-	var diplo_ledger_scene = load("res://scenes/diplomatic_ledger.tscn")
-	if diplo_ledger_scene:
-		var diplomatic_ledger = diplo_ledger_scene.instantiate()
-		add_child(diplomatic_ledger)
-		if top_bar:
-			top_bar.register_screen("diplomatic_ledger", diplomatic_ledger)
-		print("✓ DiplomaticLedger ready!")
-
-	# Load and setup Notification Bar (Phase 6.5) — reparented into top bar
+	# Notification bar — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
 	if notification_bar_scene:
 		notification_bar = notification_bar_scene.instantiate()
@@ -402,7 +267,6 @@ func _ready():
 		else:
 			add_child(notification_bar)
 		notification_bar.set_api_client(api_client)
-		print("✓ NotificationBar ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -2941,49 +2805,10 @@ func _on_alliance_paradox_choice(choice: String, data: Dictionary):
 
 func _is_modal_dialog_open() -> bool:
 	"""True when a modal dialog requiring player choice is visible.
-	These block EVERYTHING. Campaign log is NOT a modal — it's a screen."""
-	if objection_dialog and objection_dialog.visible:
-		return true
-	if redemption_dialog and redemption_dialog.visible:
-		return true
-	if enemy_phase_dialog and enemy_phase_dialog.visible:
-		return true
-	if glorious_charge_dialog and glorious_charge_dialog.visible:
-		return true
-	if capture_choice_dialog and capture_choice_dialog.visible:
-		return true
-	if load_dialog and load_dialog.visible:
-		return true
-	if strategic_report_popup and strategic_report_popup.visible:
-		return true
-	if interrupt_popup and interrupt_popup.visible:
-		return true
-	if clarification_popup and clarification_popup.visible:
-		return true
-	# Session 8C diplomatic popups
-	if coalition_declaration_popup and coalition_declaration_popup.visible:
-		return true
-	if incoming_proposal_popup and incoming_proposal_popup.visible:
-		return true
-	if talleyrand_objection_popup and talleyrand_objection_popup.visible:
-		return true
-	if sabotage_discovery_popup and sabotage_discovery_popup.visible:
-		return true
-	if talleyrand_redemption_popup and talleyrand_redemption_popup.visible:
-		return true
-	if vassal_rebellion_popup and vassal_rebellion_popup.visible:
-		return true
-	if proposal_confirm_popup and proposal_confirm_popup.visible:
-		return true
-	# Alliance Paradox Popup (Session 8)
-	if alliance_paradox_popup and alliance_paradox_popup.visible:
-		return true
-	# Diplomacy Wizard (Session B)
-	if diplomacy_wizard and diplomacy_wizard.visible:
-		return true
-	# War Detail Popup (N4b)
-	if war_detail_popup and war_detail_popup.visible:
-		return true
+	These block EVERYTHING. Campaign log is NOT a modal — it's a screen.
+	Delegates to DialogManager which tracks all registered modal dialogs."""
+	if dialog_manager:
+		return dialog_manager.is_any_modal_open()
 	return false
 
 func _is_screen_open() -> bool:

@@ -19,7 +19,7 @@ content_margin_right = 24.0
 content_margin_bottom = 24.0
 
 [node name="TalleyrandRedemptionPopup" type="CanvasLayer"]
-layer = 100
+layer = 114
 visible = false
 script = ExtResource("1_script")
 

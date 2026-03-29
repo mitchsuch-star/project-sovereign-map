@@ -2103,7 +2103,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 
 ---
 
-### Session 16: R16 — Dialog Manager + Layer Subdivision
+### Session 16: R16 — Dialog Manager + Layer Subdivision ✅ COMPLETE
 
 | Field | Value |
 |-------|-------|
@@ -2111,8 +2111,9 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 | **Priority** | MAJOR |
 | **Effort** | ~2-3 hours |
 | **Risk** | MEDIUM-HIGH — scene tree changes can break Godot |
-| **Impact** | main.gd -280 lines, Layer 100 collision eliminated |
+| **Impact** | main.gd -175 lines, Layer 100 collision eliminated |
 | **Dependencies** | Session 15 (R15) — PopupBase class needed |
+| **Result** | Created `dialog_manager.gd` (DialogManager class_name: register/get_dialog/is_any_modal_open/hide_all). Subdivided Layer 100 into 18 unique layers (101-118, pause_menu→120). Refactored main.gd _ready() to use DialogManager.register() (~275→~140 lines). Simplified _is_modal_dialog_open() from ~45 lines to 2-line delegation. Screen setup consolidated to config-driven loop. main.gd 3,157→2,982 lines. 7,755 tests passing. |
 | **R15 Lesson** | Do NOT delegate .gd bulk edits to agents — they produce double-prefix bugs (`Utils.Utils.`) and miss occurrences. Do .gd edits directly or grep-verify every agent result before testing. See memory `feedback_agent_godot_verification.md`. |
 
 **Problem:** 11 popups at Layer 100 with no depth ordering — if two fire simultaneously, last added wins. 27 dialog instantiations in main.gd `_ready()` (~100+ lines of identical boilerplate).
@@ -2422,7 +2423,7 @@ Full integration test session:
 | 13B | R13B | RC-3: Executor god object | MINOR | 2-3h | MEDIUM | S13A | ✅ COMPLETE |
 | 14 | R17 | Integration: no timeout | CRITICAL | 1-2h | LOW | — | infinite hang |
 | 15 | R15 | Frontend: duplication | MAJOR | 2-3h | MEDIUM | — | signal consistency |
-| 16 | R16 | Frontend: Layer 100 collision | MAJOR | 2-3h | MED-HIGH | S15 | popup collision |
+| 16 | R16 | Frontend: Layer 100 collision | MAJOR | 2-3h | MED-HIGH | S15 | ✅ COMPLETE |
 | 17 | R14a | Scaling: AI omniscience | CRITICAL | 3h | HIGH | S8 | balance + perf |
 | 18 | R14b | Scaling: AI omniscience | CRITICAL | 3h | HIGH | S17 | balance + perf |
 | 19 | R14c | Scaling: AI omniscience | CRITICAL | 3h | HIGH | S18 | balance + perf |
