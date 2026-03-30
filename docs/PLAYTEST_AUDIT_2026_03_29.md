@@ -153,6 +153,27 @@ Before adding new mechanics, note what already exists:
 
 The problem isn't missing penalties — it's missing **offensive rewards**.
 
+### Current War Score System
+
+Four components, each independently capped. Total capped at ±100. Recalculated every turn.
+
+| Component | Cap | How Earned |
+|-----------|-----|------------|
+| **Territory** | ±40 | +5 per enemy starting region you control |
+| **Battles** | ±30 | +3 per battle won (records pruned after 10 turns) |
+| **Decisive battles** | ±20 | +10 per decisive battle won |
+| **Capital** | ±30 | +20 for holding enemy capital, +10 for contesting it |
+
+**Decay:** -2/turn toward 0 when no battles for 3+ turns. Decisive battle bonuses don't decay.
+
+**How it's used:**
+- Peace deal acceptance formula: `war_score * 0.3` modifier
+- Military pressure on acceptance: `min(15, war_score * 0.15)`
+- Vassalage demands require war_score > 80
+- AI behavior shifts at ±20 (winning/losing thresholds)
+
+**What's missing:** No ticking component. A stalemate trends toward 0 via decay. Defensive wins give the same +3 as offensive wins. A turtle who wins defensive battles and holds their own territory can reach +30 battle score without ever attacking. An attacker who captures regions gets territory score but their battle score decays if they pause. The system doesn't punish passivity.
+
 ### EU4 War Score Reference
 
 EU4 uses three independent war score sources, each capped:
@@ -160,10 +181,10 @@ EU4 uses three independent war score sources, each capped:
 | Source | Cap | Mechanic |
 |--------|-----|----------|
 | **Battles** | ±40% | Based on army size destroyed. Large decisive battles matter most. |
-| **Occupation** | Based on % of total development | Forts give credit for zone of control (neighboring provinces). |
+| **Occupation** | % of enemy total development | Forts give credit for zone of control (neighboring provinces). Full occupation of all enemy land → 100% war score. |
 | **Ticking war score** | ±25% | +0.1%/month for holding the war goal province. Creates urgency — attacker who holds objective slowly wins even without fighting. |
 
-Key insight: occupation alone can't reach 100%. You need battles + occupation + time. The **ticking war score on objectives** is what makes offense mandatory — pure defense means slowly losing.
+Key insight: EU4 occupation alone CAN reach 100% if you take all their land — total conquest = total war score. But partial occupation alone can't force a peace deal; you need battles + occupation + time. The **ticking war score on objectives** is what makes offense mandatory — pure defense means slowly losing.
 
 ### Potential Design Levers
 
