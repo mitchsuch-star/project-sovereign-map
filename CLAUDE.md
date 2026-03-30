@@ -18,6 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
+- **Playtest Audit (March 29, 2026).** 3 automated playtests, 6 bugs + 1 design discussion. 2 sessions + design gate. See `docs/PLAYTEST_AUDIT_2026_03_29.md`.
 - **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-16 COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager, R13A+R13B executor split all 10 sub-executors, R17 HTTP timeout + api_client consolidation, R15 utils.gd + PopupBase, R16 DialogManager + Layer Subdivision). executor.py 14,802→1,554 lines. api_client.gd 348→122 lines. main.gd 3,157→2,982 lines. 7,755 tests passing. R14a-d (AI Fog) DEFERRED to 80+ regions — needs own spec. R19 (modding validator) remaining. See plan for full details.
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
@@ -329,6 +330,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
 | Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
 | Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). Only use `get_enemies_of_nation()` for omniscient operations (combat, AI, game mechanics). For mixed player/AI callers: `if marshal.nation == world.player_nation: get_visible_enemies() else: get_enemies_of_nation()` |
+| "Recruit infantry" gives artillery | **By design.** Marshals recruit their unit type: `artillery=True` → artillery, `cavalry=True` → cavalry, else infantry. Drouot always recruits artillery, Ney always cavalry. Player cannot override — Berthier gives a soft correction message. See `economy_executor.py` lines 221-253 |
 
 ---
 
