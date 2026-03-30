@@ -186,6 +186,32 @@ EU4 uses three independent war score sources, each capped:
 
 Key insight: EU4 occupation alone CAN reach 100% if you take all their land — total conquest = total war score. But partial occupation alone can't force a peace deal; you need battles + occupation + time. The **ticking war score on objectives** is what makes offense mandatory — pure defense means slowly losing.
 
+### War Objectives (Lightweight Alternative to Casus Belli)
+
+A full EU4-style casus belli system (fabricate claims, CB types, stability hits) would be overengineering here. The game already covers the same ground through lighter systems:
+- **Coalition threat** = aggressive expansion penalty (declaring war adds threat → coalition formation)
+- **DP cost** = political capital gate (war declaration costs 1 DP)
+- **Treaty-breaking confirmation** = unjustified war penalty (popup + trust hit for breaking armistice/non-aggression)
+- **Trust reactions** = diplomatic consequences from other nations/marshals
+
+What's actually missing is the **war goal** concept — "what are you fighting FOR?" Currently wars are just "France vs Prussia" with no objective. This matters because:
+1. It's where ticking war score attaches (hold the objective → slowly win)
+2. It defines what "winning" looks like
+3. It gives the player a clear strategic target
+
+**Proposed: automatic war objectives** — no fabrication, no claim system, no bureaucracy. The objective is set based on who started the war and why.
+
+| Objective | Set When | Ticking Target | Ticking Rate | Cap |
+|-----------|----------|----------------|--------------|-----|
+| **Conquest** | You declare war | Enemy capital | +2/turn while held | +20 |
+| **Defense** | They declare war on you | Your own capital | +1/turn while held | +15 |
+| **Liberation** | Coalition war | Any 2 enemy regions | +1/turn per region held | +20 |
+| **Subjugation** | War score > 80 | Enemy capital | +3/turn (endgame pressure) | +25 |
+
+Thematically this fits Napoleonic warfare — Napoleon didn't fabricate claims, he just attacked. The coalitions formed *in response*. The coalition system already handles that reactive side; war objectives handle the "what are you fighting for" side.
+
+**Ticking war score would become the 5th component** of `calculate_war_score()`, capped independently like the other four. This directly solves the turtle problem: a defender who never attacks slowly loses because the attacker's ticking score accumulates while holding the objective.
+
 ### Potential Design Levers
 
 1. **Momentum bonus:** Consecutive successful attacks give stacking +5% attack (resets on loss). Thematic — Napoleon's entire strategy was momentum-based. Needs cap (+15-20%) to avoid snowball.
@@ -194,7 +220,7 @@ Key insight: EU4 occupation alone CAN reach 100% if you take all their land — 
 4. ~~**Fortification degradation:**~~ **ALREADY EXISTS** — natural decay after 4-8 turns + combat/bombardment degradation. See table above.
 5. ~~**Bombardment fort counter:**~~ **ALREADY EXISTS** — -10% per bombardment. See artillery improvements below for ways to strengthen this.
 6. **Pursuit devastation:** Attacking a retreating/broken enemy should deal massive damage. Currently pursuit damage is only a base mechanic with no cavalry-specific bonus for non-ability marshals. During armistice, "Unknown target" blocks pursuit entirely (PT-5 bug).
-7. **War score for territory control (EU4-style ticking):** Holding captured enemy territory generates ongoing war score. **Needs careful tuning** — flat +1/turn per region would snowball on a 19-region map. Options: (a) only capitals/key strategic regions count, (b) diminishing returns per region, (c) 3-turn hold delay before scoring starts, (d) hard cap at +3/turn total.
+7. ~~**War score for territory control (EU4-style ticking):**~~ **Superseded by War Objectives above** — ticking war score now tied to specific objectives rather than generic territory control. Avoids snowball on 19-region map.
 
 ### Artillery Improvements (Strengthen Offensive Siege)
 
