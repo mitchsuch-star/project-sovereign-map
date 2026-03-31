@@ -10,8 +10,9 @@
 | Severity | Count | Description |
 |----------|-------|-------------|
 | CRITICAL | 1 | Turn skip (KNOWN — C3 from March playtest, still unfixed) |
-| MAJOR | 3 | Mock parser "status", armistice error messages (x2) |
-| MINOR | 2 | Emoji encoding, AP warning |
+| MAJOR | 4 | Mock parser "status", armistice error messages (x2), SUPPORT armistice vulnerability |
+| MINOR | 2 | Emoji encoding (40+ instances across 7 files), bombardment_streak dead tracking |
+| ENHANCEMENT | 1 | AP warning on end turn (new feature) |
 | DESIGN | 1 | Aggressive play balance (discussion, not code fix) |
 
 **Estimated sessions:** 2 required + 1 design discussion.
@@ -57,13 +58,13 @@ Three confirmed double-call paths:
 
 The meta_commands set at line 220 (`{"help", "debug", "end_turn", "status"}`) only controls whether `_should_try_llm()` skips LLM escalation — it does NOT affect mock parser keyword matching, which is a completely separate code path.
 
-Additionally, `parser.py` valid_actions list (lines 44-93) should be checked to confirm "status" is present there as well.
+Additionally, "status" is **confirmed missing from `parser.py` valid_actions list** (lines 44-93, 45 actions listed, no "status"). This means even in LLM mode, the parser would reject "status" as an invalid action.
 
 **Fix:**
 1. Add "status" keyword matching in `_parse_with_mock()` alongside the existing "help" and "end turn" paths. Return `{"action": "status", "marshal": None, "target": None}`.
-2. Verify "status" is in `parser.py` valid_actions list — add if missing.
+2. Add "status" to `parser.py` valid_actions list (confirmed missing).
 
-**Files:** `llm_client.py`, possibly `parser.py`
+**Files:** `llm_client.py`, `parser.py`
 **Tests:** ~4 (parse "status" in mock mode, parse "Berthier status", parse "show status", verify valid_actions includes "status")
 
 ---
@@ -72,19 +73,39 @@ Additionally, `parser.py` valid_actions list (lines 44-93) should be checked to 
 
 **Reproduction:** Playtest 3, Turn 4. Cavalry restless warning shows `"�\xa0�\udc8f Ney's horses grow restless"` — garbled surrogate pair.
 
-**Root cause:** Cavalry-related messages in `world_state.py` (lines 5186-5541) use literal Unicode emoji characters: ⚠️ (lines 5186, 5201), 🐴 (lines 5450, 5475), 🐴🔥 (line 5541). These are multi-byte characters that may not survive Windows CP-1252 encoding or JSON serialization through the FastAPI response pipeline, producing garbled surrogate pairs.
+**Root cause:** Literal Unicode emoji characters throughout the backend. Multi-byte emoji may not survive Windows CP-1252 encoding or JSON serialization through the FastAPI response pipeline, producing garbled surrogate pairs.
 
-**Fix:** Replace all emoji in cavalry warning messages with plain text markers or ASCII art. The game's aesthetic is text-based military dispatches — emoji are out of place anyway. Specific replacements:
+**Scope:** 40+ emoji occurrences across 7 backend files (not just cavalry warnings):
+
+| File | Count | Emoji Used |
+|------|-------|------------|
+| `combat_executor.py` | 13 | ⚠️, 💀, 🐴, ⛔, ⚔️, 🛡️ |
+| `world_state.py` | 15 | ⚠️, 🐴, 🔥, 💀, 🎯 |
+| `combat.py` | 9 | 🐴, ⚔️, ⚠️, 🔥 |
+| `meta_executor.py` | 2 | ⚠️, 🐴 |
+| `executor.py` | 1 | 💀 |
+| `movement_executor.py` | 1 | ⚠️ |
+| `tactical_executor.py` | 1 | ⚠️ |
+| `enemy_ai.py` | 2 | 🎯 (debug only — low priority) |
+
+**Fix:** Replace all player-facing emoji with plain text markers. The game's aesthetic is text-based military dispatches — emoji are out of place anyway. Specific replacements:
 - ⚠️ → `[!]` or `WARNING:`
 - 🐴 → `[Cavalry]`
 - 🐴🔥 → `[Cavalry Critical]`
+- 🐴⚔️ → `[Cavalry Charge]`
+- 🐴⛔ → `[Cavalry Blocked]`
+- 🐴⚠️ → `[Cavalry Warning]`
+- 💀 → `[Destroyed]`
+- ⚔️ → `[Combat]`
+- 🛡️ → `[Defend]`
+- 🎯 in `enemy_ai.py` — debug-only, can keep or replace last
 
-**Files:** `world_state.py` (lines 5186-5541, cavalry warning messages)
-**Tests:** ~2 (verify no surrogates in cavalry warning messages, verify no emoji in any world_state message strings)
+**Files:** `world_state.py`, `combat_executor.py`, `combat.py`, `meta_executor.py`, `executor.py`, `movement_executor.py`, `tactical_executor.py`
+**Tests:** ~3 (grep all backend .py files for emoji codepoints, verify no surrogates in any message strings, verify replacement markers render in Godot)
 
 ---
 
-## Session 2: Armistice Errors + AP Warning (3 bugs)
+## Session 2: Armistice Errors + AP Warning + Cleanup (5 findings)
 
 ### PT-4: "Unknown target" During Armistice — Attack (MAJOR)
 
@@ -99,30 +120,49 @@ Additionally, `parser.py` valid_actions list (lines 44-93) should be checked to 
 
 ---
 
-### PT-5: Pursue Consumes AP Then Fails During Armistice (MAJOR)
+### PT-5: Pursue/Support Use Generic Lookup — Bypass Armistice (MAJOR)
 
 **Reproduction:** Playtest 2, Turn 5. After armistice with Britain, `"Ney, pursue Wellington"` → "Wellington spotted at Waterloo! Engaging! Unknown target: Wellington" — contradictory messages, and 2 AP consumed for a failed action.
 
-**Root cause:** `strategic_executor.py` calls `world.get_marshal(target)` (line 414) which is a generic lookup without war status filtering. Wellington is found → "spotted at" message generated at `strategic_executor.py:940`. Then when trying to resolve the pursuit via war-status-aware lookup, it fails → "Unknown target" message. AP is consumed at `executor.py:1806-1809` AFTER the initial target resolution succeeds but BEFORE the war-status check fails.
+**Root cause:** `strategic_executor.py` calls `world.get_marshal(target)` at both line 415 (PURSUE) and line 459 (SUPPORT) — a generic lookup without war status filtering. For PURSUE: Wellington is found → "spotted at" message generated at line 940 → then war-status-aware combat lookup fails → "Unknown target" message. AP is consumed when the strategic order is created, before the combat-phase war-status check runs.
+
+SUPPORT has the same vulnerability at line 459: `world.get_marshal(target)` resolves any marshal regardless of diplomatic status.
 
 **Fix:**
-1. Pre-validate war status BEFORE AP consumption. In `strategic_executor.py`, check `world.is_at_war(executing_marshal.nation, target_marshal.nation)` immediately after resolving the target marshal. If not at war, return error with 0 AP cost.
-2. Use `get_enemy_by_name_for_nation()` instead of `get_marshal()` for PURSUE target resolution, or add an explicit war-status check before generating the "spotted at" message.
+1. Pre-validate diplomatic status BEFORE AP consumption. In `strategic_executor.py`, after resolving the target marshal via `get_marshal()`, check hostility: `world.is_at_war(executing_marshal.nation, target_marshal.nation)` for PURSUE, or appropriate ally check for SUPPORT. If invalid, return error with 0 AP cost.
+2. Do NOT replace `get_marshal()` with `get_enemy_by_name_for_nation()` for PURSUE — the generic lookup is fine for finding the marshal, but needs a war-status gate before proceeding.
 3. Return diplomatic-context error: "Cannot pursue Wellington — armistice with Britain is in effect."
 
-**Files:** `strategic_executor.py` (pursue validation, line ~414 + ~940)
-**Tests:** ~4 (pursue during armistice, pursue during peace, pursue during war, SUPPORT during armistice)
+**Files:** `strategic_executor.py` (line ~415 PURSUE validation, line ~459 SUPPORT validation, line ~940 "spotted at" message)
+**Tests:** ~6 (pursue during armistice, pursue during peace, pursue during war, SUPPORT during armistice, SUPPORT allied marshal during war, SUPPORT enemy marshal error)
 
 ---
 
-### PT-6: No AP Warning on End Turn (MINOR — new feature)
+### PT-6: No AP Warning on End Turn (ENHANCEMENT)
 
-**Reproduction:** Every playtest. Player types "end turn" with 4 AP remaining, turn ends silently with no warning about unused actions.
+**Observation:** Every playtest. Player types "end turn" with 4 AP remaining, turn ends silently with no warning about unused actions. This is new behavior, not a bug fix.
 
-**Fix:** In `meta_executor.py:_execute_end_turn()`, check `world.actions_remaining > 0` or `world.admin_actions_remaining > 0`. If either has remaining actions, add a warning to the response message: "Warning: {N} action(s) unused this turn." The turn still ends (no confirmation needed — that would require dialogue state), but the message alerts the player.
+**Fix:** In `meta_executor.py:_execute_end_turn()`, check `world.actions_remaining > 0` or `world.admin_actions_remaining > 0`. If either has remaining actions, add a warning to the response message: "Warning: {N} action(s) unused this turn." The turn still ends (no confirmation needed — that would require dialogue state), but the message alerts the player. Note: strategic orders (MOVE_TO, PURSUE, etc.) consume AP on issuance, not per-turn — so remaining AP genuinely means unused actions.
 
 **Files:** `meta_executor.py`
 **Tests:** ~3 (warning with AP remaining, no warning with 0 AP, warning with only admin AP remaining)
+
+---
+
+### PT-7: `bombardment_streak` Tracked But Never Used (MINOR)
+
+**Discovery:** Code review during audit. `marshal.py` initializes `bombardment_streak` (line 418), resets it per-turn (line 540), and serializes it (line 1158/1308) — but `_execute_bombardment` in `combat_executor.py` (lines 1502-1512) uses a fixed `0.10` degradation amount and never reads the streak value.
+
+**Root cause:** Field was added in anticipation of bombardment streak scaling but the mechanic was never wired. Dead tracking code wastes serialization space.
+
+**Fix:** Two options:
+1. **Remove** the field entirely (if bombardment streak scaling is deferred) — delete from `__init__`, `to_dict`, `from_dict`, turn reset.
+2. **Wire it** as part of the Design Discussion's "bombardment streak scaling" proposal — but that requires design gate approval first.
+
+**Recommendation:** Keep the field but document it as "reserved for bombardment streak scaling" in a comment. Remove if the design discussion rejects streak scaling.
+
+**Files:** `marshal.py` (lines 418, 540, 1158, 1308), `combat_executor.py` (lines 1502-1512)
+**Tests:** ~1 (verify bombardment_streak resets correctly, or verify removal doesn't break serialization)
 
 ---
 
@@ -199,18 +239,206 @@ What's actually missing is the **war goal** concept — "what are you fighting F
 2. It defines what "winning" looks like
 3. It gives the player a clear strategic target
 
-**Proposed: automatic war objectives** — no fabrication, no claim system, no bureaucracy. The objective is set based on who started the war and why.
+#### War Goal Types
+
+**Player-chosen at war declaration** (presented by Talleyrand in the declaration dialogue):
+
+| Objective | Available When | Ticking Target | Ticking Rate | Cap |
+|-----------|----------------|----------------|--------------|-----|
+| **Conquest** | Always (you declare war) | Enemy capital | +2/turn while held | +20 |
+| **Subjugation** | Target power ≤ 50% yours (Vassalage Power Cap) | Enemy capital | +3/turn while held | +25 |
+| **Forced Alliance** | Always | Enemy capital | +2/turn while held | +20 |
+
+**Auto-assigned** (no player choice):
 
 | Objective | Set When | Ticking Target | Ticking Rate | Cap |
 |-----------|----------|----------------|--------------|-----|
-| **Conquest** | You declare war | Enemy capital | +2/turn while held | +20 |
-| **Defense** | They declare war on you | Your own capital | +1/turn while held | +15 |
-| **Liberation** | Coalition war | Any 2 enemy regions | +1/turn per region held | +20 |
-| **Subjugation** | War score > 80 | Enemy capital | +3/turn (endgame pressure) | +25 |
+| **Defense** | They declare war on you | Any 1 enemy region you hold | +1/turn while held | +15 |
+| **Liberation** | Coalition war vs nation with vassals | Vassal's capital region | +1/turn per liberated region held | +20 |
 
-Thematically this fits Napoleonic warfare — Napoleon didn't fabricate claims, he just attacked. The coalitions formed *in response*. The coalition system already handles that reactive side; war objectives handle the "what are you fighting for" side.
+#### Key Design Decisions
 
-**Ticking war score would become the 5th component** of `calculate_war_score()`, capped independently like the other four. This directly solves the turtle problem: a defender who never attacks slowly loses because the attacker's ticking score accumulates while holding the objective.
+**War goals only drive ticking score, NOT peace term constraints.** What you can *demand* at the peace table is already fully dynamic through Talleyrand's `_build_base_terms()` pipeline, which scales with war score, war exhaustion, relations, and duration. A "Conquest" war goal doesn't prevent you from demanding vassalage if you hit war_score 80 and the power cap passes — Talleyrand will naturally suggest it.
+
+**War goals don't change mid-war.** Set at declaration, locked for the duration. The peace terms system already handles escalation/de-escalation dynamically. The war goal is a strategic commitment that determines ticking score, not a limit on what you can negotiate.
+
+**Ticking war score is the 5th component** of `calculate_war_score()`, capped at ±25 (matching EU4). Independent of the other four components.
+
+**Subjugation is double-gated:** Target must pass Vassalage Power Cap (≤50% of your power) AND you must hold their capital for ticking to accumulate. Ticking stacks on top of existing score but only while capital is held — lose the capital, ticking pauses (accumulated score remains).
+
+#### Forced Alliance — Napoleon's Primary War Goal
+
+Historically, Napoleon's wars were rarely about conquest — he fought to force nations into his system. Austria after Austerlitz, Russia at Tilsit, Prussia after Jena. The goal was alliance + Continental System membership, not annexation.
+
+**Forced Alliance** demands a diplomatic state transition (WAR → ALLIANCE) as a peace term. The acceptance formula already handles this via war score + duration + exhaustion. When war score is high enough, Talleyrand can propose alliance terms that the enemy must accept.
+
+**Continental System rider:** When France forces an alliance, the Continental System could be included as an automatic rider clause. The Continental System trade penalty mechanics are already implemented (`diplomacy.py:2223-2276`) — vassal auto-enrollment works, trade income reduction works — but **there is currently no way to activate it** (the mission is a skeleton with DP cost but no handler). Forced Alliance provides the missing activation path.
+
+**Implementation note:** "forced_alliance" does not exist as a clause type yet. Needs to be added to the clause system. The acceptance formula would treat it like a harsh demand (high base resistance, requiring high war score + exhaustion to force through).
+
+#### Liberation — Freeing Vassals
+
+Liberation is specifically about **freeing a vassal nation** from an overlord. If France has vassalized Saxony and a coalition forms, the coalition's war goal is "Liberate Saxony."
+
+On success (coalition holds vassal's capital region and wins peace):
+- Vassal released via existing `release_vassal()` mechanic
+- Liberated nation enters DEFENSIVE_ALLIANCE with the liberating nation (auto `set_diplomatic_state()`)
+- Liberated nation's loyalty resets (no lingering vassalage resentment)
+
+If the target nation has **no vassals**, coalition uses Conquest instead (hold enemy capital).
+
+**Ticking target:** The vassal's capital region (e.g., Dresden for Saxony). Coalition must capture and hold it. Each liberated vassal's capital held ticks +1/turn independently, up to the +20 cap.
+
+#### UX Integration — Talleyrand Dialogue Flow
+
+**Player declares war (existing dialogue, extended):**
+```
+Player: "Declare war on Prussia"
+    ↓
+Talleyrand (war_declaration dialogue):
+  "Are you certain, Sire? This will cost 1 DP.
+
+   What is our objective?
+   [1] Conquest — Hold Berlin, press for territory and concessions
+   [2] Subjugation — Force Prussia into vassalage
+       (Power: Prussia 400 ≤ 500 cap ✓)
+   [3] Forced Alliance — Compel Prussia into our system
+
+   [Cancel]"
+```
+
+Subjugation only appears if the Vassalage Power Cap passes. Forced Alliance always available.
+
+**AI declares war on you (auto-assigned, morning dispatch):**
+```
+Morning Dispatch:
+  "Prussia has declared war! Talleyrand advises we secure
+   a foothold in Prussian territory to strengthen our
+   negotiating position."
+
+   War objective: Defense (hold 1 enemy region)
+```
+
+**War status panel additions:**
+```python
+# In build_active_wars() return dict, per war:
+{
+    "war_objective": {
+        "type": "conquest",        # conquest/subjugation/forced_alliance/defense/liberation
+        "target": "Berlin",        # ticking target region
+        "ticking": True,           # currently earning ticking score?
+        "ticking_score": 6,        # accumulated so far
+        "ticking_cap": 20,         # max for this objective type
+    },
+    "breakdown": {
+        "territory": 10,
+        "battles": 5,
+        "decisive": 8,
+        "capital": 2,
+        "ticking": 6,              # NEW 5th component
+    },
+}
+```
+
+#### Talleyrand's War Progress Reports (Morning Dispatch)
+
+Talleyrand reports on war progress **abstractly** — no raw numbers. Uses existing morning dispatch system (`dispatch.py`).
+
+| Condition | Talleyrand Says |
+|-----------|----------------|
+| Ticking active, early war | "Our position at Berlin strengthens our hand in any future negotiations." |
+| Ticking active, long war | "The longer we hold Berlin, the more Prussia's resolve weakens." |
+| Enemy WE > 60 | "Their armies grow weary. I sense an overture may come soon." |
+| Enemy WE > 80 | "Prussia is near breaking. Now is the time to press our demands." |
+| Stalemate 5+ turns | "This war drags on without resolution. Perhaps terms could be arranged." |
+| War score > 60 | "We hold every advantage. A generous peace now would buy lasting goodwill — or we could press further." |
+| Short war, high demands | "We have barely drawn swords — they will not concede much at this stage." |
+| Forced Alliance ticking | "Each day we hold Berlin, the Prussian court grows more amenable to... cooperation." |
+| Liberation ticking | "The people of Saxony see their liberators at the gates of Dresden." |
+
+War duration naturally affects what Talleyrand suggests through the existing acceptance formula: `war_weariness_mod = min(20, turns_at_war * 2)`. Short wars produce low acceptance scores — Talleyrand's terms reflect this ("they will not concede much").
+
+#### Existing Systems That Support War Goals (No New Mechanics Needed)
+
+| System | Already Handles | War Goals Add |
+|--------|-----------------|---------------|
+| **War exhaustion** (0-200) | Infantry regen penalty, AI peace triggers, coalition defection | Context for Talleyrand's abstract reports |
+| **War duration** (+2/turn acceptance, cap +20) | Longer wars → easier peace deals | Short war penalty is already built in |
+| **Dynamic peace terms** (`_build_base_terms()`) | Scales demands/offers with war score | War goal doesn't constrain terms |
+| **AI peace proposals** (P1/P2/P8) | AI offers peace when losing/stalemate/winning | Unaffected by war goal type |
+| **Acceptance formula** (14 components) | War score, relations, exhaustion, duration, etc. | Ticking score feeds into war_score component |
+| **Continental System** (trade penalties) | Vassal auto-enrollment, income reduction | Forced Alliance provides activation path |
+
+#### Continental System Gap
+
+The Continental System is **half-implemented**: trade penalty mechanics work, vassal auto-enrollment works, but there is no player-facing way to activate it. Current state:
+
+| Feature | Status |
+|---------|--------|
+| Trade income reduction (members ↔ Britain) | Implemented (`diplomacy.py:2223-2276`) |
+| Vassal auto-join (puppet/satellite) | Implemented (`diplomacy.py:2237-2248`) |
+| Coalition threat decay bonus (+2 members) | Implemented (`coalition.py:160-162`) |
+| Mission activation (DP cost) | Skeleton only — no handler |
+| Treaty clause type | Not implemented |
+| Forced Alliance rider | Not implemented (proposed above) |
+
+**Recommendation:** Wire Continental System activation through Forced Alliance. When France forces an alliance, the target auto-joins the Continental System. This is historically accurate (Tilsit forced Russia into the system) and provides the missing activation path without building a separate mission system.
+
+### Vassalage Power Cap (EU4-Inspired)
+
+**Problem:** Currently vassalage demands only require war_score > 80. This means France could subjugate Austria — a 4-region great power — with the same ease as Saxony. Historically, Napoleon could puppet Saxony and Bavaria but could only force Austria into unfavorable peace terms, never full subjugation.
+
+**Solution:** Vassalage requires the target's **National Power** to be ≤ 50% of your own. Inspired by EU4's development-based vassalization cap.
+
+#### National Power Formula
+
+**National Power = sum of base income values of currently controlled regions + partial vassal contribution.**
+
+Region income values (already in `region.py`):
+- Capital: 300
+- Major City: 200
+- City: 150
+- Town: 100
+- Rural: 50
+
+Vassal contribution: **50% of vassal's power** added to lord's power. Prevents snowball (each vassal makes the next one easier) while still rewarding expansion.
+
+#### Starting Power Table
+
+| Nation | Regions | Income Breakdown | Base Power |
+|--------|---------|-----------------|------------|
+| **France** | 7 | Paris(300) + Lyon(200) + Marseille(150) + Strasbourg(150) + Normandy(50) + Bordeaux(50) + Champagne(100) | **1,000** |
+| **Austria** | 4 | Vienna(300) + Bohemia(100) + Prague(150) + Tyrol(100) | **650** |
+| **Saxony** | 2 | Dresden(300) + Leipzig(150) | **450** |
+| **Britain** | 3 | Netherlands(300) + Hannover(50) + Hamburg(100) | **450** |
+| **Prussia** | 2 | Berlin(300) + Waterloo(100) | **400** |
+
+#### Vassalage Eligibility at Game Start (France = 1,000 power, cap = 500)
+
+| Target | Power | ≤ 50% of France? | Eligible? |
+|--------|-------|-------------------|-----------|
+| Prussia | 400 | 400 ≤ 500 | YES |
+| Britain | 450 | 450 ≤ 500 | YES |
+| Saxony | 450 | 450 ≤ 500 | YES |
+| Austria | 650 | 650 ≤ 500 | **NO** |
+
+#### Dynamic Examples
+
+**France conquers 1 Austrian region (Bohemia, 100):** France power = 1,100, cap = 550. Austria power = 550. Still NO (550 ≤ 550 is borderline — use strict `<` to keep it clean).
+
+**France vassalizes Saxony first:** Saxony power = 450, 50% contribution = 225. France effective power = 1,000 + 225 = 1,225, cap = 612. Austria (650) still NO. Prevents snowball — puppeting small nations doesn't automatically unlock large ones.
+
+**France conquers 2 Austrian regions:** France power = 1,250 (base) + maybe vassals. Austria power = 350. YES — Austria is now small enough. This represents actually defeating Austria militarily, not just winning a few battles.
+
+**France loses Normandy + Bordeaux to coalition:** France power = 900, cap = 450. Now even Britain (450) is borderline. Losing territory has real consequences.
+
+#### Implementation Notes
+
+- **Where:** Gate in `vassal.py` `make_vassal()` + `validate_ap_clause()` in `diplomacy.py` (AP clause already checks war_score > 80)
+- **Calculation:** New function `calculate_national_power(world, nation)` in `diplomacy.py` or `world_state.py`. Uses current region control (dynamic), not starting regions.
+- **Existing data:** All needed data exists — `get_nation_regions()`, `Region.region_type`, `INCOME_BY_TYPE`, vassal dict with lord tracking. No new fields needed.
+- **Display:** Show in Diplomatic Ledger nations tab — "Power: 1,000" and "Vassalage eligible: Yes/No" (already has `vassal_eligible` field)
+- **Vassal contribution rate (50%)** should be a constant, not hardcoded — easy to tune later.
 
 ### Potential Design Levers
 
@@ -264,8 +492,10 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 - Base cavalry pursuit damage (+2k for all cavalry on forced retreat)
 - Momentum bonus (+5% stacking per consecutive win, cap at +15%, reset on loss)
 
-**Tier 2 (needs tuning, implement second):**
-- Ticking war score for key territory (capitals only? 3-turn delay? hard cap?)
+**Tier 2 (needs design gate, implement second):**
+- War Objectives + ticking war score (5th component, Talleyrand dialogue integration)
+- Vassalage Power Cap (50% threshold, dynamic, vassal 50% contribution)
+- Forced Alliance war goal + Continental System activation path
 - Bombardment streak scaling (-10%/-15%/-20% on consecutive bombards)
 
 **Tier 3 (nice-to-have, later):**
@@ -280,13 +510,17 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 
 | File | Session | Changes |
 |------|---------|---------|
-| `world_state.py` | 1 | Re-entrancy guard redesign + cavalry emoji removal |
+| `world_state.py` | 1 | Re-entrancy guard redesign + emoji removal (15 instances) |
 | `turn_manager.py` | 1 | Debug logging at advance_turn calls |
-| `executor.py` | 1 | Auto-end-turn path audit |
+| `executor.py` | 1 | Auto-end-turn path audit + emoji removal (1 instance) |
 | `llm_client.py` | 1 | "status" keyword in mock parser |
-| `parser.py` | 1 | Verify/add "status" to valid_actions |
-| `combat_executor.py` | 2 | Diplomatic-context attack error |
-| `strategic_executor.py` | 2 | Pursue war-status pre-validation (line ~414, ~940) |
-| `meta_executor.py` | 2 | AP warning on end turn |
+| `parser.py` | 1 | Add "status" to valid_actions |
+| `combat_executor.py` | 2 | Diplomatic-context attack error + emoji removal (13 instances) |
+| `combat.py` | 2 | Emoji removal (9 instances) |
+| `strategic_executor.py` | 2 | Pursue/Support war-status pre-validation (lines ~415, ~459, ~940) |
+| `meta_executor.py` | 2 | AP warning on end turn + emoji removal (2 instances) |
+| `movement_executor.py` | 2 | Emoji removal (1 instance) |
+| `tactical_executor.py` | 2 | Emoji removal (1 instance) |
+| `marshal.py` | 2 | bombardment_streak: document or remove |
 
-**Estimated tests:** ~30 new tests across 2 sessions.
+**Estimated tests:** ~35 new tests across 2 sessions.
