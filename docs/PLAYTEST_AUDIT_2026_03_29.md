@@ -434,11 +434,7 @@ Vassal contribution: **50% of vassal's power** added to lord's power. Prevents s
 
 #### Implementation Notes
 
-- **Where:** Gate in `vassal.py` `make_vassal()` + `validate_ap_clause()` in `diplomacy.py` (AP clause already checks war_score > 80)
-- **Calculation:** New function `calculate_national_power(world, nation)` in `diplomacy.py` or `world_state.py`. Uses current region control (dynamic), not starting regions.
-- **Existing data:** All needed data exists — `get_nation_regions()`, `Region.region_type`, `INCOME_BY_TYPE`, vassal dict with lord tracking. No new fields needed.
-- **Display:** Show in Diplomatic Ledger nations tab — "Power: 1,000" and "Vassalage eligible: Yes/No" (already has `vassal_eligible` field)
-- **Vassal contribution rate (50%)** should be a constant, not hardcoded — easy to tune later.
+See **Implementation Reference** section at end of doc for exact file:line touchpoints.
 
 ### Potential Design Levers
 
@@ -506,21 +502,154 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 
 ---
 
-## Files Modified (estimated)
+## Implementation Reference
 
-| File | Session | Changes |
-|------|---------|---------|
-| `world_state.py` | 1 | Re-entrancy guard redesign + emoji removal (15 instances) |
-| `turn_manager.py` | 1 | Debug logging at advance_turn calls |
-| `executor.py` | 1 | Auto-end-turn path audit + emoji removal (1 instance) |
-| `llm_client.py` | 1 | "status" keyword in mock parser |
-| `parser.py` | 1 | Add "status" to valid_actions |
-| `combat_executor.py` | 2 | Diplomatic-context attack error + emoji removal (13 instances) |
-| `combat.py` | 2 | Emoji removal (9 instances) |
-| `strategic_executor.py` | 2 | Pursue/Support war-status pre-validation (lines ~415, ~459, ~940) |
-| `meta_executor.py` | 2 | AP warning on end turn + emoji removal (2 instances) |
-| `movement_executor.py` | 2 | Emoji removal (1 instance) |
-| `tactical_executor.py` | 2 | Emoji removal (1 instance) |
-| `marshal.py` | 2 | bombardment_streak: document or remove |
+### Bug Fix Sessions (1-2): File Touchpoints
 
-**Estimated tests:** ~35 new tests across 2 sessions.
+| File | Session | Lines | Changes |
+|------|---------|-------|---------|
+| `world_state.py` | 1 | 3852-3875 | Re-entrancy guard in `_advance_turn_internal()` — replace `_last_advanced_turn` with `_turn_advance_in_progress` flag |
+| `world_state.py` | 1 | 5191, 5206, 5248, 5401, 5453, 5478, 5541, 5846, 5849, 5912, 5948, 5973 | Emoji removal (15 instances) |
+| `turn_manager.py` | 1 | 60, 72, 102, 151 | Debug logging at `_advanced` flag + all 3 `advance_turn()` call sites |
+| `executor.py` | 1 | 1378-1386 | Auto-end-turn creates fresh TurnManager (line 1385) — audit for double-advance |
+| `executor.py` | 1 | 737 | Emoji removal (1 instance) |
+| `llm_client.py` | 1 | ~636-639 | Add "status" keyword matching alongside "help"/"end turn" in `_parse_with_mock()` |
+| `parser.py` | 1 | 44-93 | Add "status" to `valid_actions` list (confirmed missing) |
+| `combat_executor.py` | 2 | 2307+ | Add diplomatic-context fallback after `get_enemy_by_name_for_nation()` returns None |
+| `combat_executor.py` | 2 | 1372, 1436, 1866, 1978, 2010, 2539, 2546, 2604, 2606, 2990, 2996, 3853, 4017 | Emoji removal (13 instances) |
+| `combat.py` | 2 | 510, 663, 665, 687, 690, 729, 731, 733, 735, 740 | Emoji removal (9 instances) |
+| `strategic_executor.py` | 2 | 415 | PURSUE: add `is_at_war()` gate after `get_marshal(target)` |
+| `strategic_executor.py` | 2 | 459 | SUPPORT: same `get_marshal(target)` vulnerability — add war-status check |
+| `strategic_executor.py` | 2 | 940 | "spotted at" message generated before war-status check — gate it |
+| `meta_executor.py` | 2 | end of `_execute_end_turn()` | Add AP remaining warning (new ~5 lines) |
+| `meta_executor.py` | 2 | 1013, 1127 | Emoji removal (2 instances) |
+| `movement_executor.py` | 2 | 120 | Emoji removal (1 instance) |
+| `tactical_executor.py` | 2 | 48 | Emoji removal (1 instance) |
+| `marshal.py` | 2 | 418, 540, 1158, 1308 | `bombardment_streak`: document as reserved or remove |
+
+**Estimated: ~35 new tests across 2 sessions.**
+
+---
+
+### Design Implementation: Vassalage Power Cap
+
+**New function:** `calculate_national_power(world, nation)` — recommend placing in `diplomacy.py`
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| Income source values | `region.py` | 72-78 | Read-only — `REGION_TYPE_INCOME` dict (capital:300, major_city:200, city:150, town:100, rural:50) |
+| Nation region lookup | `world_state.py` | 1146-1151 | Read-only — `get_nation_regions(nation)` returns `List[str]` |
+| Vassal dict structure | `world_state.py` | 455 | Read-only — `world.vassals[name]["lord"]` for 50% contribution calc |
+| Vassal treaty validation | `vassal.py` | 82 | Insert power cap check AFTER existing validation (line 82) in `create_vassal_treaty()` |
+| Vassal conquest validation | `vassal.py` | 152 | Insert power cap check AFTER existing validation (line 152) in `create_vassal_conquest()` |
+| AP clause validation | `diplomacy.py` | 2212-2216 | `validate_ap_clause()` currently only checks `war_score > 80` — add power cap check |
+| Vassal eligible display | `diplomatic_ledger.py` | 188-196, 275 | Add power cap to `vassal_eligible` logic + add `lord_power`/`vassal_power` to output dict |
+| Terms suggestion guard | `diplomatic_templates.py` | 1527 | `_build_base_terms()` vassalage branch — skip impossible vassalage terms if power cap fails |
+
+**No new world_state fields needed.** Power is calculated dynamically from existing region/vassal data.
+
+---
+
+### Design Implementation: Ticking War Score (5th Component)
+
+**New field:** `world.war_objectives: Dict[str, Dict] = {}` — diplo_key → `{"type": str, "target": str, "accumulated": int}`
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| **MODIFY** war score calc | `diplomacy.py` | 318-393 | `calculate_war_score()` — add 5th ticking component from `world.war_objectives[key]["accumulated"]`, cap ±25, update docstring (line 321) |
+| **MODIFY** return dict | `diplomacy.py` | 385-392 | Add `"ticking": int(ticking_score)` to `return_components=True` dict |
+| **ADD** new field | `world_state.py` | ~485 | `self.war_objectives: Dict[str, Dict] = {}` after `casus_belli` |
+| **ADD** serialization | `world_state.py` | ~3083, ~3323 | `to_dict()` and `from_dict()` for `war_objectives` |
+| **ADD** per-turn accumulation | `world_state.py` | in `advance_turn()` | Check if ticking target is held, increment `accumulated` (before war score recalc) |
+| **MODIFY** breakdown display | `war_status.py` | 59-65 | Add `"ticking": int(components["ticking"])` to breakdown dict |
+| **MODIFY** Godot display | `war_detail_popup.gd` | 275-280 | Add line: `"  Objective:  " + _signed(int(breakdown.get("ticking", 0)))` |
+| No change needed | `diplomatic_ledger.py` | 228-231 | Already int-wraps all component keys dynamically — auto-includes ticking |
+| No change needed | `main.py` | 2084-2096 | Debug endpoint passes components dict through — auto-includes ticking |
+| No change needed | 25+ call sites | various | All consumers of `get_war_score_for()` read total int only |
+
+---
+
+### Design Implementation: War Goal Selection Dialogue
+
+**Extends existing war declaration flow** — no new dialogue system needed.
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| War declaration handler | `diplomatic_executor.py` | 428-534 | `_execute_diplomatic_declare_war()` — insert war goal selection dialogue AFTER treaty confirmation (line 491) and BEFORE DP check (line 493) |
+| New dialogue type | `diplomatic_executor.py` | ~491 | Create `"war_goal_selection"` dialogue with options: Conquest, Subjugation (conditional on power cap), Forced Alliance |
+| Dialogue choice handler | `diplomatic_executor.py` | ~893 | Add `elif action in ("set_goal_conquest", "set_goal_subjugation", "set_goal_forced_alliance"):` handler in `_process_dialogue_choice()` — store goal, then call `declare_war()` |
+| Dialogue priority | `dialogue_manager.py` | 30-36 | Add `"war_goal_selection": 1` to `DIALOGUE_PRIORITY` |
+| Store goal on war start | `diplomacy.py` | 1026 | In `declare_war()` — store `world.war_objectives[diplo_key]` with selected goal type + target region |
+| Defense auto-assign | `diplomacy.py` | 1026 | When AI declares war on player — auto-set Defense objective (no dialogue needed) |
+| Wizard command | `diplomacy_wizard.gd` | 487-488 | No change — wizard already emits `"declare war on " + nation`, existing dialogue flow handles the rest |
+
+---
+
+### Design Implementation: Forced Alliance Clause Type
+
+**Every file that registers clause/proposal types** — forced_alliance follows the vassalage pattern:
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| Acceptance value (demand) | `diplomacy.py` | 157-164 | Add `"forced_alliance": -20` to `DEMAND_VALUES` (high resistance) |
+| Harshness flag | `diplomacy.py` | 757 | Add to `is_harsh` tuple: `("vassalage", "forced_alliance")` |
+| Proposal keywords | `diplomatic_dialogue.py` | 59-78 | Add `"forced_alliance": ["forced alliance", "force alliance", "compel alliance", "force into alliance"]` to `PROPOSAL_TYPE_KEYWORDS` |
+| State mapping (×4 locations) | `diplomatic_dialogue.py` | 449 | Add `"forced_alliance": "ALLIANCE"` — maps to existing ALLIANCE state |
+| | `diplomatic_executor.py` | 127, 165, 914, 1703 | Add `"forced_alliance": "ALLIANCE"` to all 4 `_state_map` dicts |
+| Description text | `diplomatic_dialogue.py` | 472-482 | Add `"forced_alliance": f"Forced Alliance ({target_nation} compelled to join our system)"` to `_base_descriptions` |
+| Display names (×3) | `display_names.py` | 122-135 | Add `"forced_alliance": "Forced Alliance"` to `PROPOSAL_TYPE_DISPLAY` |
+| Terms generation | `diplomatic_templates.py` | 1527+ | Add `elif proposal_type == "forced_alliance":` branch in `_build_base_terms()` — include Continental System rider clause |
+| Nation desires | `diplomatic_templates.py` | 1205-1241 | Add `"forced_alliance"` entries to `NATION_DESIRE_PROFILES` where relevant |
+| Talleyrand commentary | `diplomatic_templates.py` | 1243-1596 | Add context tags for forced alliance in `TALLEYRAND_COMMENTARY` |
+| AI counter-offer display | `ai_diplomacy.py` | 873-880 | Add `"forced_alliance": "Forced Alliance"` to `_CLAUSE_TYPE_DISPLAY` |
+| Ratification state map | `world_state.py` | 4461-4471 | Add `"forced_alliance": "ALLIANCE"` to `state_map` in `_ratify_treaty()` |
+| Clause execution | `world_state.py` | 4596-4632 | Add `elif ctype == "forced_alliance":` — auto-join Continental System on ratification |
+| Campaign log | `campaign_log.py` | 646-710 | No change needed — uses `.replace("_", " ")` automatically |
+
+---
+
+### Design Implementation: Liberation Mechanic
+
+**Wires existing `release_vassal()` into peace resolution.**
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| Peace ratification | `world_state.py` | 4690-4696 | In `_ratify_treaty()` — AFTER coalition member removal (line 4695), check if war goal was Liberation. If yes: call `release_vassal()` for qualifying vassals |
+| Auto-alliance | `world_state.py` | after 4695 | After `release_vassal()`, call `set_diplomatic_state(world, liberator, freed_nation, "DEFENSIVE_ALLIANCE", "liberation")` |
+| Vassal release | `vassal.py` | 850-918 | `release_vassal()` already handles all cleanup — marshals, popups, Continental System, cooldowns. Only change: pass new `reason="liberation"` to skip setting PEACE state (we want DEFENSIVE_ALLIANCE instead) |
+| Diplomatic state setter | `diplomacy.py` | 171-227 | `set_diplomatic_state()` — no changes needed, already supports DEFENSIVE_ALLIANCE |
+| Liberation target tracking | `world_state.py` | in `war_objectives` | Liberation objective stores `{"type": "liberation", "target_vassal": "Saxony", "target_region": "Dresden"}` |
+| Coalition war check | `coalition.py` | 700-772 | `check_dissolution()` / `dissolve_coalition()` — no changes needed, dissolution already fires when members peace out |
+
+---
+
+### Design Implementation: Talleyrand Dispatch Reports
+
+**Uses existing dispatch template + trigger system.**
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| Event templates | `dispatch.py` | 981-1016 | Add templates: `"war_objective_progress"`, `"war_exhaustion_abstract"`, `"war_stalemate_hint"` |
+| Event priorities | `dispatch.py` | 1019-1054 | Add priorities (MEDIUM for progress, LOW for hints) |
+| War progress trigger | `dispatch.py` | 614-787 | Add new trigger in `_build_talleyrand_report()` — check `world.war_objectives` ticking state, use cooldown (`_on_cooldown` / `_set_cooldown` pattern, every 3 turns) |
+| WE abstract trigger | `dispatch.py` | existing | WE threshold events already fire at 20/40/60/80 (coalition.py:478-489). Replace numeric template with abstract Talleyrand text |
+| Existing WE template | `dispatch.py` | 1011 | Current: `"War exhaustion grows — {nation} nears breaking point (exhaustion: {we})."` — replace with abstract: `"Their armies grow weary. I sense {nation}'s resolve is weakening."` |
+| WE threshold dispatch | `coalition.py` | 478-489 | No structural change — already queues events via `queue_dispatch_event()`. Template text change only |
+| Queue function | `dispatch.py` | 1057-1074 | `queue_dispatch_event()` — no changes needed, already supports arbitrary event types |
+| Fog filtering | `dispatch.py` | 1077-1132 | No changes — use `"always"` fog rule for war progress (player is in the war) |
+| Pending events queue | `world_state.py` | 496 | `pending_dispatch_events` — no changes, consumed automatically |
+
+---
+
+### Session Estimate (Design Implementation)
+
+| Block | Sessions | Files Touched | New Tests |
+|-------|----------|---------------|-----------|
+| Vassalage Power Cap | 1 | 5 (diplomacy, vassal, diplomatic_ledger, diplomatic_templates, region read-only) | ~10 |
+| Ticking War Score | 1-2 | 4 (diplomacy, world_state, war_status, war_detail_popup.gd) | ~12 |
+| War Goal Dialogue | 1-2 | 3 (diplomatic_executor, dialogue_manager, diplomacy) | ~8 |
+| Forced Alliance | 1-2 | 9 (diplomacy, diplomatic_dialogue, diplomatic_executor ×4 maps, display_names, diplomatic_templates, world_state) | ~10 |
+| Liberation | 1 | 3 (world_state, vassal, coalition read-only) | ~6 |
+| Dispatch Reports | 0.5 | 2 (dispatch, coalition template only) | ~4 |
+| **Total Design** | **5-8** | **~15 unique files** | **~50** |
+| **Total (bugs + design)** | **7-10** | **~20 unique files** | **~85** |
