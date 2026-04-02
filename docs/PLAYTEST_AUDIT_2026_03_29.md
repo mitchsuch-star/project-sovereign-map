@@ -438,7 +438,7 @@ See **Implementation Reference** section at end of doc for exact file:line touch
 
 ### Potential Design Levers
 
-1. **Momentum bonus:** Consecutive successful attacks give stacking +5% attack (resets on loss). Thematic — Napoleon's entire strategy was momentum-based. Needs cap (+15-20%) to avoid snowball.
+1. ~~**Momentum bonus (all units):**~~ **Superseded by Cavalry Momentum above.** Per-turn cavalry momentum (+5/+10%) replaces the generic cross-turn stacking concept. More targeted — only cavalry gets it, infantry keeps exhaustion.
 2. **Shock value:** First attack on a region not attacked in 3+ turns gets +10% surprise bonus. Interesting but niche.
 3. **Blitz capture bonus:** Capturing a region gives gold/morale/war score multiplier. Risk of snowball if combined with momentum.
 4. ~~**Fortification degradation:**~~ **ALREADY EXISTS** — natural decay after 4-8 turns + combat/bombardment degradation. See table above.
@@ -474,19 +474,71 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 - Can't be turtled (auto-unfortify after 3 turns)
 
 **Current cavalry gaps:**
+- **Exhaustion punishes cavalry offense:** The exhaustion system (`marshal.py:729-756`) penalizes ALL non-artillery units equally: -10%/-20%/-30% on 2nd/3rd/4th attacks per turn. This makes cavalry *weaker* on sustained attacks — the opposite of their historical role. At recklessness 4 (+20%), a 3rd attack nets -4% (1.20 × 0.80). Cavalry should get *stronger* with repeated charges, not weaker.
 - **No base pursuit bonus:** Pursuit damage on retreat is a generic mechanic — cavalry gets no inherent advantage over infantry when chasing broken enemies. Historically cavalry pursuit was where the real casualties happened (Waterloo, Jena).
 - **No screening/reconnaissance advantage:** Scouting isn't cavalry-specific. Could give cavalry +1 scout range or auto-reveal adjacent regions each turn.
 - **No interception:** Cavalry can't block or delay enemy movement. Historically light cavalry screened army movements and delayed enemy advances.
 - **No raiding:** Light cavalry raided supply lines and disrupted logistics. Could tie to the supply attrition system — cavalry in enemy territory increases attrition for nearby enemy marshals.
 
-**Recommended cavalry addition:** Base pursuit damage for ALL cavalry marshals (+2k casualties when forcing retreat), on top of existing personality abilities. This is the most thematic and directly rewards offensive cavalry play.
+#### Cavalry Momentum (Replaces Exhaustion for Cavalry)
+
+**Problem:** The exhaustion system (`marshal.py:729-756`) treats cavalry and infantry identically. Artillery is already exempt (line 745: "guns don't tire — sustained bombardment is their function"). Cavalry should be exempt too — horses don't tire mid-battle, they build momentum. Historically, cavalry charges were devastating precisely because they were repeated: Ney at Waterloo charged 5+ times.
+
+**Solution:** Replace cavalry exhaustion with **momentum** — each attack in a turn gives a stacking *bonus* instead of a penalty. Infantry keeps exhaustion (foot soldiers DO tire). Artillery keeps exemption.
+
+| Attack # | Infantry (exhaustion) | Cavalry (momentum) | Artillery (exempt) |
+|----------|----------------------|--------------------|--------------------|
+| 1st | 0% | 0% | 0% |
+| 2nd | -10% | **+5%** | 0% |
+| 3rd | -20% | **+10%** | 0% |
+| 4th+ | -30% | **+10% (cap)** | 0% |
+
+**Balance check — cavalry at max recklessness (4) + momentum:**
+
+| Attack # | Recklessness | Momentum | Defense Penalty | Net Attack | Net Defense |
+|----------|-------------|----------|-----------------|------------|-------------|
+| 1st | +20% | 0% | -15% | **+20%** | **-15%** |
+| 2nd | +20% | +5% | -15% | **+26%** | **-15%** |
+| 3rd | +20% | +10% | -15% | **+32%** | **-15%** |
+
++32% attack at -15% defense is strong but not broken — cavalry is a glass cannon by design. They're paying for offense with vulnerability. Infantry with exhaustion can't match this offense but doesn't pay the defense penalty.
+
+**Implementation:** 6 lines changed in `marshal.py:_get_exhaustion_penalty()` (line 729):
+
+```python
+def _get_exhaustion_penalty(self) -> float:
+    # Artillery exemption (unchanged)
+    if getattr(self, 'artillery', False):
+        return 0.0
+    # Cavalry momentum: BONUS instead of penalty
+    if getattr(self, 'cavalry', False):
+        attacks = self.attacks_this_turn
+        if attacks <= 0:
+            return 0.0
+        elif attacks == 1:
+            return -0.05  # +5% bonus (negative penalty = bonus)
+        else:
+            return -0.10  # +10% bonus (capped)
+    # Infantry exhaustion (unchanged)
+    attacks = self.attacks_this_turn
+    ...
+```
+
+The negative return value works because `get_attack_modifier()` applies it as `modifier *= (1.0 - exhaustion_penalty)`. A penalty of -0.10 becomes `1.0 - (-0.10) = 1.10` — a +10% bonus. No changes needed outside this function.
+
+**Files:** `marshal.py` (line 729-756 only)
+**Tests:** ~6 (cavalry momentum +5%/+10%/cap, infantry exhaustion unchanged, artillery exemption unchanged, momentum + recklessness interaction)
+
+**Recommended cavalry additions (Tier 1):**
+- Cavalry Momentum (replaces exhaustion — highest impact, simplest change)
+- Base pursuit damage for ALL cavalry marshals (+2k casualties when forcing retreat), on top of existing personality abilities
 
 ### Recommended Package
 
 **Tier 1 (highest impact, implement first):**
 - Fix Drouot bombardment ability gap (low-hanging fruit, arguably a bug)
+- Cavalry Momentum — replace exhaustion with stacking attack bonus (+5/+10%, 6 lines in `marshal.py:729`)
 - Base cavalry pursuit damage (+2k for all cavalry on forced retreat)
-- Momentum bonus (+5% stacking per consecutive win, cap at +15%, reset on loss)
 
 **Tier 2 (needs design gate, implement second):**
 - War Objectives + ticking war score (5th component, Talleyrand dialogue integration)
@@ -528,6 +580,21 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 | `marshal.py` | 2 | 418, 540, 1158, 1308 | `bombardment_streak`: document as reserved or remove |
 
 **Estimated: ~35 new tests across 2 sessions.**
+
+---
+
+### Design Implementation: Cavalry Momentum
+
+**Single function change** — replaces exhaustion penalty with momentum bonus for cavalry only.
+
+| What | File | Lines | Change |
+|------|------|-------|--------|
+| Exhaustion/momentum logic | `marshal.py` | 729-756 | `_get_exhaustion_penalty()` — add cavalry check after artillery exemption (line 745). Return negative values (-0.05, -0.10) for cavalry momentum. Infantry path unchanged |
+| Attack modifier application | `marshal.py` | 891-895 | No change needed — `modifier *= (1.0 - exhaustion_penalty)` already handles negative penalties correctly (negative penalty = bonus) |
+| Exhaustion display | `marshal.py` | 766-774 | `get_exhaustion_info()` — update to show "Momentum" label for cavalry instead of "Exhaustion" |
+| Combat messages | `combat.py` or `combat_executor.py` | varies | Add momentum message: "{marshal}'s cavalry builds momentum! (+5%/+10%)" — similar to existing recklessness messages |
+
+**No new fields, no serialization changes.** Uses existing `attacks_this_turn` counter and `cavalry` flag.
 
 ---
 
@@ -645,11 +712,12 @@ Cavalry combat mechanics are solid (recklessness system, terrain effectiveness, 
 
 | Block | Sessions | Files Touched | New Tests |
 |-------|----------|---------------|-----------|
+| Cavalry Momentum | 0.5 | 1 (marshal.py only) | ~6 |
 | Vassalage Power Cap | 1 | 5 (diplomacy, vassal, diplomatic_ledger, diplomatic_templates, region read-only) | ~10 |
 | Ticking War Score | 1-2 | 4 (diplomacy, world_state, war_status, war_detail_popup.gd) | ~12 |
 | War Goal Dialogue | 1-2 | 3 (diplomatic_executor, dialogue_manager, diplomacy) | ~8 |
 | Forced Alliance | 1-2 | 9 (diplomacy, diplomatic_dialogue, diplomatic_executor ×4 maps, display_names, diplomatic_templates, world_state) | ~10 |
 | Liberation | 1 | 3 (world_state, vassal, coalition read-only) | ~6 |
 | Dispatch Reports | 0.5 | 2 (dispatch, coalition template only) | ~4 |
-| **Total Design** | **5-8** | **~15 unique files** | **~50** |
-| **Total (bugs + design)** | **7-10** | **~20 unique files** | **~85** |
+| **Total Design** | **5.5-8.5** | **~15 unique files** | **~56** |
+| **Total (bugs + design)** | **7.5-10.5** | **~20 unique files** | **~91** |
