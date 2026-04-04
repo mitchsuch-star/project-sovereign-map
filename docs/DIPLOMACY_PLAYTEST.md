@@ -1,25 +1,45 @@
 # Comprehensive Diplomacy Playtest Plan
 
 **Purpose:** 100% confidence across all diplomacy features via manual UI testing in Godot.
-**Estimated Time:** 90-120 minutes (full run). Can be split into sections.
-**Prerequisites:** Backend running on port 8005 (`".venv\Scripts\python.exe" backend/main.py`), Godot client connected.
+**Estimated Time:** 120-150 minutes (full run). Can be split into sections.
+**Prerequisites:** Backend running on port 8005 with debug mode enabled, Godot client connected.
 
-> **Note on Godot Testing:** Godot has no built-in automated UI test framework. All popup rendering, button clicks, modal stacking, and screen transitions must be verified manually. The backend has 812+ dedicated diplomacy tests covering logic — this playtest covers the **UI integration layer** that automated tests cannot reach.
+> **Note on Godot Testing:** Godot has no built-in automated UI test framework. All popup rendering, button clicks, modal stacking, and screen transitions must be verified manually. The backend has 7,755+ tests covering logic — this playtest covers the **UI integration layer** that automated tests cannot reach.
 
 ---
 
 ## Setup Commands
 
 ```bash
-# Start backend
-".venv\Scripts\python.exe" backend/main.py
+# Start backend (with debug mode enabled for cheat/debug commands)
+DEBUG_MODE=true ".venv\Scripts\python.exe" backend/main.py
 
-# Useful debug/cheat commands (type in Godot terminal):
-/debug set_dp France 20          # Give France DP to work with
-/debug set_relation France Austria 50   # Set relation
-/debug set_threat 65             # Set coalition threat level
-/debug advance_turn              # Skip to next turn
-/debug set_location Ney Belgium  # Move marshal
+# Two command families (type in Godot terminal):
+#   /debug <cmd> — marshal/combat state manipulation (requires DEBUG_MODE=true)
+#   cheat <cmd>  — diplomatic state manipulation (requires DEBUG_MODE=true OR LLM_MODE=mock)
+
+# Cheat commands (diplomacy):
+cheat give_dp 20                       # Give France DP (capped at max_dp)
+cheat set_relation Austria 50          # Set France↔Austria relation
+cheat set_threat 65                    # Set coalition threat level
+cheat set_diplo_state Austria WAR      # Set diplomatic state
+cheat set_war_exhaustion Britain 80    # Set war exhaustion (0-200)
+cheat create_vassal Saxony             # Make nation a vassal of France
+cheat set_vassal_loyalty Saxony 30     # Set vassal loyalty (0-100)
+cheat set_talleyrand_trust 15          # Set Talleyrand trust level
+cheat queue_ai_proposal Britain ARMISTICE  # Queue incoming AI proposal
+cheat trigger_coalition                # Force coalition formation
+cheat clear_dialogue                   # Clear stuck diplomatic dialogue
+
+# Debug commands (combat/state):
+/debug set_location Ney Belgium        # Teleport marshal
+/debug set_strength Ney 15000          # Set troop strength
+/debug set_trust Ney 80               # Set marshal trust
+/debug set_authority 60                # Set player authority
+/debug freeze_enemies                  # Toggle freeze all enemy AI
+
+# NOTE: No direct debug for war_score or vassal_autonomy.
+# War score changes via battles. Autonomy changes via "increase/decrease autonomy" commands.
 ```
 
 ---
@@ -33,7 +53,7 @@ Press F1 (or click [Diplomacy] button)
 ```
 
 **Expected:**
-- Wizard overlay opens (CanvasLayer 100, modal)
+- Wizard overlay opens (CanvasLayer 110, modal)
 - Shows categorized nation list: "At War" (Britain, Prussia), "Treaties" (Saxony under OPEN_BORDERS), "Neutral" (Austria at PEACE)
 - Each button shows nation name + current diplomatic state
 - Input blocked behind wizard
@@ -55,7 +75,7 @@ Click on "Austria" in the wizard
 ### A3. Wizard → Conversational Diplomacy Flow
 
 ```
-/debug set_dp France 10
+cheat give_dp 10
 Press F1 → Select Austria → Click "Propose Non-Aggression (1 DP)"
 ```
 
@@ -82,7 +102,7 @@ Press F1 → Select Austria → Click "Declare War"
 ### A5. Wizard — Vassal Actions
 
 ```
-/debug set_diplo_state France Saxony VASSAL
+cheat set_diplo_state Saxony VASSAL
 Press F1 → Select Saxony
 ```
 
@@ -106,13 +126,29 @@ Press F1 → Select nation → Press [Back] → Press [Cancel]
 ### A7. Wizard — Empty/Edge States
 
 ```
-/debug set_dp France 0
+cheat give_dp 0
+# (Start game fresh or ensure DP is 0)
 Press F1 → Select Austria → Try any action
 ```
 
 **Expected:**
 - Actions requiring DP show as disabled with "Insufficient DP" reason
 - Clicking disabled button does nothing
+
+### A8. Wizard — open_for_nation() Handoff
+
+```
+# Requires active war (see Section Q for War Status Panel setup)
+cheat set_diplo_state Britain WAR
+# Wait for war status panel to show, click Britain war card
+# In war detail popup, click [Negotiate Peace]
+```
+
+**Expected:**
+- Diplomacy wizard opens directly at Step 2 for Britain (skips nation selection)
+- Correct nation name shown in wizard header
+- Assessment and action buttons load for Britain specifically
+- [Back] returns to Step 1 (nation list), not the war detail popup
 
 ---
 
@@ -121,7 +157,7 @@ Press F1 → Select Austria → Try any action
 ### B1. Propose Peace (From WAR)
 
 ```
-/debug set_dp France 5
+cheat give_dp 5
 propose armistice with Britain
 ```
 
@@ -135,8 +171,8 @@ propose armistice with Britain
 ### B2. Propose Alliance Upgrade (Sequential)
 
 ```
-/debug set_relation France Austria 50
-/debug set_dp France 10
+cheat set_relation Austria 50
+cheat give_dp 10
 propose alliance with Austria
 ```
 
@@ -150,8 +186,8 @@ propose alliance with Austria
 
 ```
 # Set up a scenario where counter is likely (score 30-49)
-/debug set_relation France Prussia -20
-/debug set_dp France 5
+cheat set_relation Prussia -20
+cheat give_dp 5
 propose armistice with Prussia
 # Proceed with proposal
 proceed
@@ -167,7 +203,7 @@ proceed
 
 ```
 # Set up hostile scenario (score < 30)
-/debug set_relation France Britain -80
+cheat set_relation Britain -80
 propose peace with Britain
 proceed
 ```
@@ -181,7 +217,7 @@ proceed
 
 ```
 # Set up a scenario where Talleyrand objects (STRONG concern)
-/debug set_relation France Austria -50
+cheat set_relation Austria -50
 declare war on Austria
 ```
 
@@ -194,7 +230,7 @@ declare war on Austria
 ### B6. Break Treaty
 
 ```
-/debug set_diplo_state France Austria NON_AGGRESSION
+cheat set_diplo_state Austria NON_AGGRESSION
 break treaty with Austria
 ```
 
@@ -207,8 +243,8 @@ break treaty with Austria
 ### B7. Downgrade Relations
 
 ```
-/debug set_diplo_state France Austria ALLIANCE
-/debug set_relation France Austria 60
+cheat set_diplo_state Austria ALLIANCE
+cheat set_relation Austria 60
 downgrade relations with Austria
 ```
 
@@ -220,7 +256,7 @@ downgrade relations with Austria
 ### B8. Send Ultimatum
 
 ```
-/debug set_dp France 5
+cheat give_dp 5
 send ultimatum to Austria
 ```
 
@@ -230,6 +266,19 @@ send ultimatum to Austria
 - If rejected: casus belli granted, can declare war without DP cost
 - Cooldown applied
 
+### B9. Casus Belli — Reduced War Cost
+
+```
+# After B8 ultimatum is rejected (casus belli granted):
+declare war on Austria
+```
+
+**Expected:**
+- War declaration costs 0 DP (instead of 1)
+- Relation penalty halved: -15 (instead of -30)
+- Threat penalty halved: +10 (instead of +20)
+- Casus belli flag consumed after use
+
 ---
 
 ## SECTION C: AI Proposals (Incoming)
@@ -237,14 +286,13 @@ send ultimatum to Austria
 ### C1. AI Proposes During End Turn
 
 ```
-# Create conditions for AI proposal: AI losing war badly
-/debug set_war_score France Britain 40
+# Queue a proposal directly to test popup:
+cheat queue_ai_proposal Britain ARMISTICE
 end turn
 ```
 
 **Expected:**
-- If AI triggers proposal (P1: war_score < -30 from AI perspective):
-- **Incoming Proposal Popup** appears (CanvasLayer 100)
+- **Incoming Proposal Popup** appears (CanvasLayer 112)
 - Shows: proposal type, terms, AI nation, envoy personality
 - Three buttons: [Accept] [Counter] [Reject]
 - Game paused until player responds
@@ -302,9 +350,9 @@ end turn (x3)
 ### C6. Multiple AI Proposals Queued
 
 ```
-# Create conditions where multiple AI nations want to propose
-/debug set_war_score France Britain 50
-/debug set_war_score France Prussia 50
+# Queue proposals from multiple nations:
+cheat queue_ai_proposal Britain ARMISTICE
+cheat queue_ai_proposal Prussia NON_AGGRESSION
 end turn
 ```
 
@@ -331,7 +379,7 @@ Press D (Diplomatic Ledger) → Threat/Coalition tab
 ### D2. Threat Increases from Actions
 
 ```
-/debug set_threat 25
+cheat set_threat 25
 declare war on Austria
 # Check threat
 Press D → Threat tab
@@ -345,10 +393,7 @@ Press D → Threat tab
 ### D3. Coalition Brewing (3-Turn Countdown)
 
 ```
-/debug set_threat 58
-# Win a battle to push threat over 60
-# OR:
-/debug set_threat 62
+cheat set_threat 62
 end turn
 ```
 
@@ -378,7 +423,7 @@ end turn    # Countdown hits 0
 ```
 
 **Expected:**
-- **Coalition Declaration Popup** appears (CanvasLayer 100, informational)
+- **Coalition Declaration Popup** appears (CanvasLayer 117, informational)
 - Shows: coalition members, leader nation, posture
 - Single [Continue] button (info-only, not a choice)
 - All coalition members enter WAR with France simultaneously
@@ -388,12 +433,12 @@ end turn    # Countdown hits 0
 ### D6. Coalition Defusal During Brewing
 
 ```
-/debug set_threat 62
+cheat set_threat 62
 end turn    # Brewing starts (3 turns)
 # Improve relations with ALL qualifying members
-/debug set_relation France Britain 0
-/debug set_relation France Prussia 0
-/debug set_relation France Austria 0
+cheat set_relation Britain 0
+cheat set_relation Prussia 0
+cheat set_relation Austria 0
 end turn
 ```
 
@@ -405,9 +450,9 @@ end turn
 ### D7. Coalition Momentum Rule
 
 ```
-/debug set_threat 62
+cheat set_threat 62
 end turn    # Brewing starts
-/debug set_threat 55    # Drop below 60 but above 40
+cheat set_threat 55    # Drop below 60 but above 40
 end turn
 ```
 
@@ -419,7 +464,7 @@ end turn
 ### D8. Instant Coalition (Threat 80+)
 
 ```
-/debug set_threat 82
+cheat set_threat 82
 end turn
 ```
 
@@ -432,7 +477,7 @@ end turn
 
 ```
 # With active coalition:
-/debug set_threat 15
+cheat set_threat 15
 end turn
 ```
 
@@ -461,9 +506,9 @@ end turn
 ### E1. Create Vassal (Treaty Path)
 
 ```
-/debug set_diplo_state France Saxony OPEN_BORDERS
-/debug set_relation France Saxony 40
-/debug set_dp France 5
+cheat set_diplo_state Saxony OPEN_BORDERS
+cheat set_relation Saxony 40
+cheat give_dp 5
 propose vassalage to Saxony
 proceed
 ```
@@ -490,8 +535,9 @@ Press D → Nations tab
 ### E3. Vassal Loyalty Degradation
 
 ```
-# With vassal Saxony (PUPPET autonomy for fastest degradation):
-/debug set_vassal_autonomy Saxony PUPPET
+# With vassal Saxony — decrease autonomy for fastest degradation:
+decrease autonomy Saxony
+# (Sets to PUPPET if currently SATELLITE)
 end turn (x5)
 ```
 
@@ -504,7 +550,7 @@ end turn (x5)
 ### E4. Vassal Investment
 
 ```
-/debug set_dp France 3
+cheat give_dp 3
 invest in Saxony
 ```
 
@@ -532,12 +578,12 @@ decrease autonomy Saxony
 
 ```
 # Get vassal loyalty critically low
-/debug set_vassal_loyalty Saxony 8
+cheat set_vassal_loyalty Saxony 8
 end turn
 ```
 
 **Expected:**
-- **Vassal Rebellion Popup** appears (CanvasLayer 100)
+- **Vassal Rebellion Popup** appears (CanvasLayer 115)
 - Shows: vassal name, current loyalty, warning text
 - Three buttons:
   - [Invest] — 1 DP + 200g → Loyalty +15, relations +5
@@ -548,7 +594,7 @@ end turn
 ### E7. Vassal Rebellion
 
 ```
-/debug set_vassal_loyalty Saxony 0
+cheat set_vassal_loyalty Saxony 0
 end turn
 ```
 
@@ -576,9 +622,9 @@ release Saxony
 
 ```
 # Get 2+ vassals with loyalty < 25
-/debug create_vassal France Bavaria
-/debug set_vassal_loyalty Saxony 20
-/debug set_vassal_loyalty Bavaria 20
+cheat create_vassal Bavaria
+cheat set_vassal_loyalty Saxony 20
+cheat set_vassal_loyalty Bavaria 20
 end turn
 ```
 
@@ -735,7 +781,7 @@ can we beat Prussia?
 ### H1. Improve Relations Mission
 
 ```
-/debug set_dp France 3
+cheat give_dp 3
 improve relations with Austria
 ```
 
@@ -787,11 +833,16 @@ undermine alliance between Britain and Prussia
 
 ```
 # Requires: Talleyrand intercepts a proposal (diplomatic_defiance.py triggers)
-# May need specific authority/trust conditions
+# Lower Talleyrand trust to increase sabotage chance:
+cheat set_talleyrand_trust 25
+cheat give_dp 5
+propose alliance with Austria
+proceed
+# May need multiple attempts — sabotage is probabilistic
 ```
 
 **Expected (if triggered):**
-- **Sabotage Discovery Popup** appears
+- **Sabotage Discovery Popup** appears (CanvasLayer 116)
 - Shows: what Talleyrand modified in the proposal
 - Two buttons: [Confront] [Overlook]
 - Confront: Trust impact, diplomatic consequences
@@ -800,15 +851,17 @@ undermine alliance between Britain and Prussia
 ### I2. Talleyrand Redemption Popup
 
 ```
-# Requires: Talleyrand trust drops below 20 (from repeated defiance/sabotage)
+# Set Talleyrand trust below 20:
+cheat set_talleyrand_trust 15
+end turn
 ```
 
 **Expected (if triggered):**
-- **Talleyrand Redemption Popup** appears
+- **Talleyrand Redemption Popup** appears (CanvasLayer 114)
 - Three buttons: [Apologize] [Replace] [Continue]
-- Apologize: Trust partially restored
-- Replace: New diplomat assigned (different personality)
-- Continue: Accept low trust, increased defiance risk
+- Apologize: Trust partially restored (+15 trust, -5 authority)
+- Replace: New diplomat assigned (different personality, irreversible)
+- Continue: Accept low trust, increased defiance risk (-10 authority)
 
 ---
 
@@ -817,7 +870,7 @@ undermine alliance between Britain and Prussia
 ### J1. Declare War
 
 ```
-/debug set_dp France 3
+cheat give_dp 3
 declare war on Austria
 ```
 
@@ -844,8 +897,9 @@ Press D → Nations tab (check war score indicator)
 ### J3. War Cascade
 
 ```
-# Austria allied with Britain. Declare war on Austria:
-/debug set_diplo_state Austria Britain ALLIANCE
+# Requires Austria allied with Britain (non-France alliance).
+# This must be set up through gameplay or backend manipulation.
+# Then declare war:
 declare war on Austria
 ```
 
@@ -859,7 +913,7 @@ declare war on Austria
 ### J4. Armistice Expiration
 
 ```
-/debug set_diplo_state France Britain ARMISTICE
+cheat set_diplo_state Britain ARMISTICE
 # Wait 5 turns:
 end turn (x5)
 ```
@@ -873,8 +927,8 @@ end turn (x5)
 ### J5. Auto-Downgrade from Relation Decay
 
 ```
-/debug set_diplo_state France Austria ALLIANCE
-/debug set_relation France Austria 39    # Below ALLIANCE threshold of 40
+cheat set_diplo_state Austria ALLIANCE
+cheat set_relation Austria 39    # Below ALLIANCE threshold of 40
 end turn
 ```
 
@@ -902,7 +956,7 @@ Press T → Economy tab (Strategic Ledger)
 ### K2. Trade Income Changes with State
 
 ```
-/debug set_diplo_state France Austria ALLIANCE
+cheat set_diplo_state Austria ALLIANCE
 end turn
 # Check economy
 Press T → Economy tab
@@ -933,9 +987,9 @@ Press T → Economy tab
 
 ```
 # Set up complex diplomatic state:
-/debug set_diplo_state France Austria NON_AGGRESSION
-/debug set_threat 45
-/debug set_dp France 8
+cheat set_diplo_state Austria NON_AGGRESSION
+cheat set_threat 45
+cheat give_dp 5
 # Save
 /save test_diplo
 ```
@@ -954,7 +1008,7 @@ Press D → Check all 4 tabs
 **Expected:**
 - Diplomatic states preserved (Austria = NON_AGGRESSION)
 - Threat level preserved (45)
-- DP preserved (8)
+- DP preserved
 - Nation relations preserved
 - Active treaties preserved
 - Vassal states preserved (if any)
@@ -975,6 +1029,23 @@ propose peace with Britain
 - Player can still respond after load
 - No "stuck state" where dialogue blocks all commands
 
+### L4. Save/Load with War Status Panel
+
+```
+# Set up active war with war status panel visible:
+cheat set_diplo_state Britain WAR
+end turn
+# Verify war panel shows, then save/load:
+/save test_war_panel
+/load test_war_panel
+```
+
+**Expected:**
+- War status panel (bottom-right HUD) reappears after load
+- War cards show correct data
+- Clicking cards still opens war detail popup
+- Panel visibility state preserved
+
 ---
 
 ## SECTION M: Edge Cases & Regression
@@ -992,7 +1063,7 @@ propose alliance with France
 ### M2. Proposal to Nation Already at Same State
 
 ```
-/debug set_diplo_state France Austria PEACE
+cheat set_diplo_state Austria PEACE
 propose peace with Austria
 ```
 
@@ -1003,7 +1074,7 @@ propose peace with Austria
 ### M3. Double War Declaration
 
 ```
-/debug set_diplo_state France Austria WAR
+cheat set_diplo_state Austria WAR
 declare war on Austria
 ```
 
@@ -1034,7 +1105,7 @@ propose vassalage to Saxony
 ### M6. DP Zero — All Actions Blocked
 
 ```
-/debug set_dp France 0
+# Ensure DP is 0 (start fresh game or spend all DP)
 propose alliance with Austria
 ```
 
@@ -1047,8 +1118,9 @@ propose alliance with Austria
 ```
 # Create conditions for multiple popups in one turn:
 # Coalition brewing + AI proposal + vassal rebellion
-/debug set_threat 62
-/debug set_vassal_loyalty Saxony 5
+cheat set_threat 62
+cheat set_vassal_loyalty Saxony 5
+cheat queue_ai_proposal Prussia ARMISTICE
 end turn
 ```
 
@@ -1066,7 +1138,7 @@ Press D, T, G, F1, R
 ```
 
 **Expected:**
-- All hotkeys blocked while modal popup is active
+- All hotkeys blocked while modal popup is active (dialog_manager.is_any_modal_open())
 - No screen can open behind popup
 - Only popup buttons respond to input
 
@@ -1134,18 +1206,34 @@ end turn
 - No stuck state
 - Player can act normally next turn
 
+### M14. Clear Stuck Dialogue (Debug Recovery)
+
+```
+propose peace with Britain
+# Dialogue stuck, use cheat to recover:
+cheat clear_dialogue
+Ney, move to Belgium
+```
+
+**Expected:**
+- `cheat clear_dialogue` clears pending diplomatic dialogue
+- Normal commands resume immediately
+- No side effects on diplomatic state
+
 ---
 
 ## SECTION N: Continental System
 
+> **STATUS: NOT FULLY IMPLEMENTED.** The Continental System trade penalties and vassal auto-enrollment are wired, but there is no player-facing activation command. The tests below document expected behavior when activation is implemented. Skip this section for now.
+
 ### N1. Enforce Continental System
 
 ```
-/debug set_dp France 3
-enforce continental system on Austria
+# NO COMMAND EXISTS YET — activation path not implemented
+# Expected future command: enforce continental system on Austria
 ```
 
-**Expected:**
+**Expected (when implemented):**
 - 1 DP/turn cost
 - Target nation loses naval/trade income (-300g/turn)
 - Requires 2+ members for full effect
@@ -1158,7 +1246,7 @@ enforce continental system on Austria
 ### O1. Coalition Threat in Dispatch
 
 ```
-/debug set_threat 45
+cheat set_threat 45
 end turn
 # Check dispatch (should auto-show, or press R)
 ```
@@ -1171,7 +1259,7 @@ end turn
 ### O2. Vassal Loyalty Warning in Dispatch
 
 ```
-/debug set_vassal_loyalty Saxony 35
+cheat set_vassal_loyalty Saxony 35
 end turn
 ```
 
@@ -1232,12 +1320,292 @@ Click on notification to dismiss
 
 ---
 
+## SECTION Q: War Status Panel HUD (Bottom-Right)
+
+> **Added DA-4.** Tests the 3-layer war display system: War Status Panel (Layer 25, always-visible HUD) → War Detail Popup (Layer 30, click-through) → Diplomacy Wizard handoff.
+
+### Q1. Panel Appears When at War
+
+```
+cheat set_diplo_state Britain WAR
+end turn
+```
+
+**Expected:**
+- War Status Panel appears at bottom-right of screen (CanvasLayer 25)
+- Shows war card for Britain with tug-of-war score bar
+- War duration shown in turns
+- Panel is non-modal — does NOT block input or hotkeys
+
+### Q2. Panel Hides When at Peace
+
+```
+# End all wars (propose peace or use cheat):
+cheat set_diplo_state Britain PEACE
+end turn
+```
+
+**Expected:**
+- War Status Panel disappears (no active wars to show)
+- No orphaned UI elements left behind
+
+### Q3. Multiple War Cards
+
+```
+cheat set_diplo_state Britain WAR
+cheat set_diplo_state Austria WAR
+end turn
+```
+
+**Expected:**
+- Panel shows 2 war cards, one per belligerent
+- Each card has its own tug-of-war bar
+- Cards stack vertically
+- Panel resizable via drag handles on left/top edges
+
+### Q4. Coalition Grouping in Panel
+
+```
+cheat trigger_coalition
+end turn
+```
+
+**Expected:**
+- Coalition header card appears at top of panel (clickable)
+- Individual member war cards indented under coalition header
+- Coalition card shows coalition name/leader
+- Non-coalition wars shown separately below
+
+### Q5. Armistice Cards in Panel
+
+```
+cheat set_diplo_state Britain ARMISTICE
+end turn
+```
+
+**Expected:**
+- Armistice card appears in panel
+- Shows remaining turns until expiration
+- Visually distinct from active war cards
+
+### Q6. Panel Resizing
+
+```
+# With war panel visible:
+Drag left edge to resize width
+Drag top edge to resize height
+```
+
+**Expected:**
+- Panel resizes smoothly
+- Content reflows to fit new size
+- Minimum size enforced (panel doesn't collapse to nothing)
+- Resize persists during session
+
+---
+
+## SECTION R: War Detail Popup (Click-Through)
+
+> **Added DA-4.** Click on war/coalition/armistice card in War Status Panel to see detailed info.
+
+### R1. War Detail — Bilateral War View
+
+```
+# With active war:
+cheat set_diplo_state Britain WAR
+end turn
+# Click Britain's war card in the War Status Panel
+```
+
+**Expected:**
+- **War Detail Popup** opens (CanvasLayer 30)
+- Shows tug-of-war score meter (bilateral war score)
+- Score breakdown: territory, battles, decisive, capital components
+- War duration in turns
+- Enemy war exhaustion level
+- Recent battles with outcomes listed
+- [Negotiate Peace] button at bottom
+
+### R2. War Detail — Coalition View
+
+```
+# With active coalition:
+cheat trigger_coalition
+end turn
+# Click coalition header card in War Status Panel
+```
+
+**Expected:**
+- Coalition detail view opens
+- Shows: coalition leader, posture (AGGRESSIVE/BALANCED/CAUTIOUS)
+- Member list with per-member: war exhaustion, army strength
+- Coordination quality between pairs
+- Weak link indicator (member most likely to break)
+- [Target X] buttons for individual coalition members
+
+### R3. War Detail — Armistice View
+
+```
+cheat set_diplo_state Britain ARMISTICE
+end turn
+# Click Britain's armistice card in War Status Panel
+```
+
+**Expected:**
+- Armistice detail view opens
+- Shows: remaining turns, relation score + descriptor
+- Trend indicator: rising/falling/stable relations
+- [Diplomatic Options] button → opens wizard for that nation
+
+### R4. War Detail — Negotiate Peace Handoff
+
+```
+# With active war detail popup open:
+Click [Negotiate Peace]
+```
+
+**Expected:**
+- War detail popup closes (or stays behind)
+- Diplomacy Wizard opens at Step 2 for that specific nation (via `open_for_nation()`)
+- Wizard shows peace/armistice options for the nation
+- This is the Layer 2 → wizard handoff
+
+### R5. War Detail — Target Coalition Member
+
+```
+# With coalition detail popup open:
+Click [Target X] for a non-leader coalition member
+```
+
+**Expected:**
+- Emits target_clicked signal for that nation
+- Opens diplomacy wizard at Step 2 for that nation (via `open_for_nation()`)
+- Player can propose separate peace / armistice with that member
+
+### R6. War Detail — Refresh in Place
+
+```
+# With war detail popup open for Britain:
+# Fight a battle or end turn (war score changes)
+end turn
+```
+
+**Expected:**
+- War detail popup updates its data without closing
+- Score breakdown refreshes to reflect new war score
+- Recent battles list updates
+- No flicker or popup re-open animation
+
+---
+
+## SECTION S: Alliance Paradox Popup
+
+> **Added Deep Audit S8.** Fires when attacking a marshal whose nation has an active alliance with France.
+
+### S1. Alliance Paradox — Attack Ally's Marshal
+
+```
+# Set up alliance with Austria:
+cheat set_diplo_state Austria ALLIANCE
+cheat set_relation Austria 60
+# Move a French marshal adjacent to an Austrian marshal:
+/debug set_location Ney Bavaria
+# Attack the Austrian:
+Ney, attack [Austrian marshal name]
+```
+
+**Expected:**
+- **Alliance Paradox Popup** appears (CanvasLayer 111)
+- Text explains: attacking would violate alliance with Austria
+- Two buttons:
+  - [Honor Austria] — cancels the attack, alliance preserved
+  - [Break Austria Alliance] — alliance broken, attack proceeds
+- No other input accepted while popup is showing
+
+### S2. Alliance Paradox — Honor Choice
+
+```
+# When alliance paradox popup shows:
+Click [Honor Austria]
+```
+
+**Expected:**
+- Attack cancelled
+- Alliance with Austria preserved
+- No relation or threat changes
+- Normal command input resumes
+
+### S3. Alliance Paradox — Break Choice
+
+```
+# When alliance paradox popup shows:
+Click [Break Austria Alliance]
+```
+
+**Expected:**
+- Alliance with Austria immediately broken
+- Diplomatic state changes (ALLIANCE → PEACE or appropriate level)
+- Relation penalty applied
+- Threat increase
+- Attack proceeds as normal against the Austrian marshal
+
+---
+
+## SECTION T: Proposal Confirm Popup
+
+> **Added Session 8C.** Final review screen before sending player-initiated diplomatic proposals.
+
+### T1. Proposal Confirm — Terms Review
+
+```
+cheat give_dp 5
+cheat set_relation Austria 30
+propose non-aggression with Austria
+# Navigate through Talleyrand dialogue to "send" step
+```
+
+**Expected:**
+- **Proposal Confirm Popup** appears (CanvasLayer 109)
+- Shows: proposed terms summary
+- Harshness level indicator (Low/Moderate/High/Very High)
+- Acceptance estimate (percentage or qualitative)
+- DP cost displayed
+- Talleyrand commentary in italic gold text (smart suggestions)
+
+### T2. Proposal Confirm — Send
+
+```
+# When proposal confirm popup shows:
+Click [Send] (or equivalent confirm button)
+```
+
+**Expected:**
+- Proposal sent to target nation
+- AI evaluates and responds: Accept/Counter/Reject
+- DP deducted
+- Popup closes
+
+### T3. Proposal Confirm — Cancel
+
+```
+# When proposal confirm popup shows:
+Click [Cancel] or [Back]
+```
+
+**Expected:**
+- Proposal cancelled, not sent
+- No DP spent
+- Returns to dialogue or closes entirely
+- No state changes
+
+---
+
 ## CHECKLIST SUMMARY
 
 | Section | Tests | Feature Area | Priority |
 |---------|-------|-------------|----------|
-| A: Diplomacy Wizard | 7 | F1 button, nation/action selection | HIGH |
-| B: Proposals | 8 | All proposal types, counter-offers, rejection | HIGH |
+| A: Diplomacy Wizard | 8 | F1 button, nation/action selection, handoff | HIGH |
+| B: Proposals | 9 | All proposal types, counter-offers, casus belli | HIGH |
 | C: AI Proposals | 6 | Incoming popups, accept/counter/reject, anti-spam | HIGH |
 | D: Coalition | 10 | Threat, brewing, declaration, dissolution, subsidy | HIGH |
 | E: Vassal | 9 | Creation, loyalty, rebellion, investment, release | HIGH |
@@ -1247,12 +1615,16 @@ Click on notification to dismiss
 | I: Sabotage/Defiance | 2 | Sabotage discovery, redemption | LOW (rare triggers) |
 | J: War Integration | 5 | Declaration, cascade, armistice, auto-downgrade | HIGH |
 | K: Economy | 3 | Trade income, tribute | MEDIUM |
-| L: Save/Load | 3 | Diplomatic state persistence | HIGH |
-| M: Edge Cases | 13 | Regression, error handling, fog, priority | HIGH |
-| N: Continental System | 1 | Trade embargo | LOW |
+| L: Save/Load | 4 | Diplomatic state persistence, war panel | HIGH |
+| M: Edge Cases | 14 | Regression, error handling, fog, priority, recovery | HIGH |
+| N: Continental System | 1 | Trade embargo (NOT IMPLEMENTED — skip) | DEFERRED |
 | O: Dispatch | 4 | Diplomatic events in morning briefing | MEDIUM |
 | P: Notifications | 2 | Persistent alert bar | MEDIUM |
-| **TOTAL** | **88** | | |
+| Q: War Status Panel | 6 | Bottom-right HUD, war/coalition/armistice cards | HIGH |
+| R: War Detail Popup | 6 | Click-through detail, score breakdown, handoff | HIGH |
+| S: Alliance Paradox | 3 | Honor/break ally choice on attack | HIGH |
+| T: Proposal Confirm | 3 | Final terms review before sending | MEDIUM |
+| **TOTAL** | **110** | | |
 
 ---
 
@@ -1260,10 +1632,10 @@ Click on notification to dismiss
 
 **Short answer: Partially, through end turns.**
 
-- **AI proposals:** Yes — advance turns until AI triggers proposal (P1-P7). Monitor incoming_proposal popup.
+- **AI proposals:** Yes — advance turns until AI triggers proposal (P1-P7). Or use `cheat queue_ai_proposal` to inject directly.
 - **AI counter-offers:** Yes — send proposals AI will counter (score 30-49). Verify M3 algorithm output.
-- **Coalition AI posture:** Partially — form coalition, advance turns, observe AI attack patterns via dispatch/map.
-- **AI-AI diplomacy:** Backend only — AI-AI proposals happen invisibly. Check via `/debug dump_relations` or diplomatic ledger treaties tab.
+- **Coalition AI posture:** Partially — form coalition via `cheat trigger_coalition`, advance turns, observe AI attack patterns via dispatch/map.
+- **AI-AI diplomacy:** Backend only — AI-AI proposals happen invisibly. Check via diplomatic ledger treaties tab.
 - **AI diplomatic personality:** Observe via counter-offer terms and rejection messages.
 - **AI enemy movement during coalition:** Observe on map — convergence bias should make coalition members approach French territory.
 
@@ -1274,4 +1646,4 @@ Click on notification to dismiss
 - War exhaustion accumulation (use pytest)
 - Sweetener cap enforcement (use pytest)
 
-**Recommendation:** Use Godot for integration/UX verification. Use pytest for numerical precision. The 812 backend tests already cover formula correctness — the playtest covers "does the player actually see the right thing."
+**Recommendation:** Use Godot for integration/UX verification. Use pytest for numerical precision. The 7,755+ backend tests already cover formula correctness — the playtest covers "does the player actually see the right thing."
