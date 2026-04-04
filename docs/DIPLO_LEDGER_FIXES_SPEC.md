@@ -1,8 +1,8 @@
 # Diplomatic Ledger Fixes Spec
 
 **Date:** 2026-04-04
-**Scope:** 3 bugs/improvements found during playtest
-**Files affected:** `diplomatic_ledger.py`, `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `diplomatic_ledger.gd`
+**Scope:** 8 bugs/improvements found during playtest + code audit
+**Files affected:** `diplomatic_ledger.py`, `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `diplomatic_ledger.gd`, `ai_diplomacy.py`, `enemy_ai.py`
 
 ---
 
@@ -182,10 +182,170 @@ else:
 
 ---
 
+## DLF-4: COURT_NATION Blowback Is Stubbed
+
+**Bug:** COURT_NATION costs 2 DP/turn (double IMPROVE_RELATIONS) because it's supposed to carry risk: a 20% chance per turn of -3 relation blowback. The blowback is defined in `MISSION_EFFECTS` but never processed — making COURT_NATION a strictly worse IMPROVE_RELATIONS (same +5/turn, double the cost, zero risk).
+
+**Root cause:** `diplomacy.py:1948` — `"COURT_NATION undermine chance: stub"`. The `undermine_chance` and `undermine_amount` fields in `MISSION_EFFECTS` are never read during `_process_mission_effects()`.
+
+**Fix:** After the relation_change block in `_process_mission_effects()`, add blowback processing:
+
+```python
+# COURT_NATION blowback: chance of negative relation hit
+undermine_chance = effects.get("undermine_chance", 0)
+undermine_amount = effects.get("undermine_amount", 0)
+if undermine_chance and undermine_amount:
+    import random
+    if random.random() < undermine_chance:
+        world.modify_nation_relation(player_nation, target, int(round(undermine_amount * multiplier)))
+        events.append({
+            "type": "diplomatic_mission_blowback",
+            "target": target,
+            "mission_type": mission_type,
+            "message": f"Talleyrand's aggressive courting of {target} has caused a diplomatic incident. Relations damaged.",
+        })
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_mission_blowback",
+                            {"nation": target}, "player_mission")
+```
+
+**Files:** `backend/game_logic/diplomacy.py`
+**Tests:**
+- Blowback applies -3 (×skill) when RNG triggers
+- Blowback generates event + dispatch
+- No blowback for non-COURT missions
+- Skill multiplier affects blowback magnitude (high skill = worse blowback, risk/reward)
+
+---
+
+## DLF-5: GATHER_INTEL Completes But Reveals Nothing (DESIGN GATE)
+
+**Bug:** GATHER_INTEL auto-completes after 3 turns with "Talleyrand has completed his intelligence gathering on {target}" but returns zero information. The player spends 3 DP for a congratulatory message.
+
+**Root cause:** `diplomacy.py:1945` — `"Stub: no intel revealed yet (Session 4+)"`. The duration-based completion works, but no payload is delivered.
+
+**Complication:** Diplomacy has no fog of war. The original design assumed an intel system that was never built and is now deferred (R14). Since all diplomatic info is already visible to the player, the mission's original purpose (reveal hidden diplomatic state) is moot.
+
+### DESIGN GATE REQUIRED
+
+This mission needs a redesign before implementation. The question is: **what should GATHER_INTEL reveal that the player can't already see?**
+
+Possible directions:
+
+**A) AI Intentions** — Reveal what the AI is planning next turn (e.g., "Prussia is considering an alliance with Austria" or "Austria is preparing to attack Saxony"). This is genuinely hidden from the player and strategically valuable.
+
+**B) Hidden Modifiers** — Reveal the exact acceptance formula breakdown for a nation (what terms they'd accept, what they covet, their diplomatic priorities). Currently the player sees relation descriptors but not the math.
+
+**C) Army Composition Details** — Reveal marshal strengths, locations, and unit types for the target nation. This overlaps with military fog but could be scoped to diplomatic context.
+
+**D) Relation Network** — Reveal the exact relation values between AI nations (currently shown as descriptors like "Friendly" but not numbers). Less impactful since DLF-3 already shows states.
+
+**E) Remove the Mission** — If no good design fits, remove GATHER_INTEL from the available missions rather than leaving a broken stub. Can re-add when there's real hidden information to reveal.
+
+**Recommendation:** Option A (AI Intentions) is the most interesting and unique. It gives Talleyrand a scouting role that no other mechanic covers. But this requires exposing AI decision-tree outputs, which is a non-trivial backend change.
+
+**Action:** Do not implement until a design direction is approved. Remove from the spec's implementation sessions or mark as blocked.
+
+**Files (once designed):** `backend/game_logic/diplomacy.py`, `backend/game_logic/diplomatic_ledger.py`, potentially `backend/ai/enemy_ai.py` or `backend/game_logic/ai_diplomacy.py`
+
+---
+
+## DLF-6: AI Doesn't Check Diplomatic State Before Move Selection
+
+**Bug:** AI pathfinding in `enemy_ai.py` (P7 strategic movement) selects adjacent regions purely by distance to the nearest enemy. It never calls `can_enter_territory()` to check whether the AI nation has diplomatic permission to enter the region. The movement executor in `movement_executor.py:196` correctly rejects the illegal move, but the AI wastes its action for the turn.
+
+With 5 nations and a small map this is minor. With 15+ nations and complex border arrangements, AI marshals will frequently get stuck bumping into borders they can't cross, wasting turns.
+
+**Root cause:** `enemy_ai.py` P7 movement logic (aggressive ~line 3414, cautious ~line 3460, stagnation fallback ~line 3556) filters for enemy occupation and visited regions but never checks `can_enter_territory()`.
+
+**Fix:** Add a diplomatic state check in the P7 movement candidate loop:
+
+```python
+from backend.game_logic.diplomacy import can_enter_territory
+
+for adj_name in marshal_region.adjacent_regions:
+    adj_region = world.get_region(adj_name)
+    # Skip regions we can't diplomatically enter
+    if adj_region.controller and adj_region.controller != nation:
+        if not can_enter_territory(world, nation, adj_region.controller):
+            continue
+    # ... existing distance/enemy checks ...
+```
+
+Apply to all three P7 paths (aggressive, cautious, stagnation fallback).
+
+**Files:** `backend/ai/enemy_ai.py`
+**Tests:**
+- AI skips regions controlled by nations at PEACE
+- AI can move through OPEN_BORDERS+ territories
+- AI can move through WAR territories (for attack positioning)
+- AI doesn't get stuck when surrounded by diplomatically blocked regions (falls through to HOLD)
+
+---
+
+## DLF-7: Eliminated Nations Included in War Cascades
+
+**Bug:** `_process_war_cascade()` in `diplomacy.py:1182` iterates all nations without filtering eliminated ones (0 regions, 0 living marshals). Dead nations can be pulled into new wars via defensive cascade, creating phantom war states.
+
+**Root cause:** `_is_nation_eliminated()` exists and is used in `process_ai_ai_diplomatic_phase()` but not in `_process_war_cascade()`.
+
+**Fix:** Filter eliminated nations at the top of the cascade loop:
+
+```python
+for nation in all_nations:
+    if nation in processed:
+        continue
+    if _is_nation_eliminated(world, nation):
+        continue
+    # ... existing cascade logic ...
+```
+
+**Files:** `backend/game_logic/diplomacy.py`
+**Tests:**
+- Eliminated nation is not pulled into defensive cascade
+- Eliminated nation is not pulled into offensive cascade
+- Non-eliminated nations still cascade normally
+
+---
+
+## DLF-8: Opportunistic Downgrade Doesn't Exclude VASSAL State
+
+**Bug:** `_process_ai_ai_rivalry()` in `ai_diplomacy.py:1381` excludes PEACE/WAR/ARMISTICE from opportunistic downgrade but not VASSAL. When an AI lord has 2x troops of its vassal (common), the code enters the downgrade path, fails to find VASSAL in `_DOWNGRADE_ORDER`, and silently exits. Harmless now but fragile — if `_DOWNGRADE_ORDER` is ever extended to include VASSAL transitions, this becomes a real bug.
+
+**Root cause:** Incomplete exclusion list in the state filter.
+
+**Fix:** Add VASSAL to the exclusion:
+
+```python
+if not both_at_war and relation < 30 and state not in ("PEACE", "WAR", "ARMISTICE", "VASSAL"):
+```
+
+**Files:** `backend/game_logic/ai_diplomacy.py`
+**Tests:**
+- Vassal state is not subject to opportunistic downgrade
+- Other states (ALLIANCE, DEFENSIVE_ALLIANCE, etc.) still downgrade normally
+
+---
+
+## Scaling Notes (Not Bugs — Future Work)
+
+These are not bugs in the current 5-nation game but will need attention for the full Europe map:
+
+- **NATION_DESIRE_PROFILES + TALLEYRAND_COMMENTARY** in `diplomatic_templates.py` are hardcoded for 4 nations. New nations fall back to generic defaults. Needs a data-driven system (YAML/JSON per-nation config).
+- **O(n²) adjacency rivalry + relation drift** in `ai_diplomacy.py` and `diplomacy.py` runs every turn for all nation pairs. ~10 pairs at 5 nations, ~105 pairs at 15 nations, with nested region adjacency checks. Will need caching or batching.
+- **CONTINENTAL_SYSTEM mission** is defined in `MISSION_DP_COSTS` only — no keywords, no effects, no description. Pure skeleton. Implement or remove.
+
+---
+
 ## Implementation Order
 
 1. **DLF-1** (vassalizable icon) — 1 line backend + tests
 2. **DLF-3** (relations filter) — small backend + Godot change + tests
-3. **DLF-2** (undermine alliance) — largest: dialogue flow, mission storage, per-turn processing, tracker display, tests
+3. **DLF-8** (VASSAL exclusion) — 1 line fix + tests
+4. **DLF-7** (eliminated nations cascade) — small fix + tests
+5. **DLF-4** (COURT_NATION blowback) — medium: RNG, events, dispatch + tests
+6. **DLF-6** (AI border check) — medium: 3 code paths in enemy_ai.py + tests
+7. **DLF-2** (undermine alliance) — largest: dialogue flow, mission storage, per-turn processing, tracker display + tests
+8. **DLF-5** (GATHER_INTEL) — **BLOCKED on design gate.** Do not implement until direction approved.
 
-**Estimated tests:** ~15-20 new tests across all three fixes.
+**Estimated tests:** ~30-35 new tests across DLF-1 through DLF-8 (excluding DLF-5).
