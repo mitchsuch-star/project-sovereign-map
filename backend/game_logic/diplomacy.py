@@ -2749,6 +2749,35 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
+    # DPF-2: Cancel mission — only if active mission targets THIS nation
+    if active_mission and active_mission.get("target") == target_nation:
+        initial = int(active_mission.get("initial_relation") or 0)
+        current_rel = int(world.nation_relations.get(
+            world._make_diplo_key(player, target_nation), 0
+        ) or 0)
+        delta = current_rel - initial
+        turns = int(active_mission.get("turns_active") or 0)
+        mission_type_raw = active_mission.get("type", "")
+
+        initial_desc = get_relation_descriptor(initial)
+        current_desc = get_relation_descriptor(current_rel)
+
+        if initial_desc != current_desc:
+            progress_text = f"{initial_desc} \u2192 {current_desc} ({'+' if delta >= 0 else ''}{delta}, {turns} turns)"
+        else:
+            progress_text = f"{current_desc} ({'+' if delta >= 0 else ''}{delta} over {turns} turns)"
+
+        actions.append({
+            "action": "cancel_mission",
+            "display_name": f"Cancel: {mission_type_raw.replace('_', ' ').title()}",
+            "dp_cost": 0,
+            "gold_cost": 0,
+            "available": True,
+            "disabled_reason": "",
+            "effect_text": progress_text,
+            "likelihood": "",
+        })
+
     return actions
 
 

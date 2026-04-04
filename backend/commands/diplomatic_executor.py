@@ -1493,12 +1493,15 @@ class DiplomaticExecutor:
                 }
 
             # Cancel existing mission
+            diplo_key = world._make_diplo_key(world.player_nation, mission_target)
             world.active_diplomatic_mission = {
                 "type": mission_type,
                 "target": mission_target,
                 "turns_active": 0,
                 "paused": False,
                 "paused_turns": 0,
+                "started_turn": int(getattr(world, 'current_turn', 1)),
+                "initial_relation": int(world.nation_relations.get(diplo_key, 0) or 0),
             }
             world.talleyrand_state = "ON_MISSION"
 

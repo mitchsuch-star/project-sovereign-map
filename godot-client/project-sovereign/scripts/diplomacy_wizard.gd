@@ -510,6 +510,8 @@ func _build_command(action_id: String, nation: String) -> String:
 			return "reassure " + nation
 		"mission_undermine":
 			return "undermine " + nation
+		"cancel_mission":
+			return "Talleyrand, cancel mission with " + nation
 	return ""
 
 

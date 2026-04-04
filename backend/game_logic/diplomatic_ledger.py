@@ -196,26 +196,21 @@ def _build_nations(world) -> List[Dict[str, Any]]:
         )
 
         # AI-AI relations: show diplomatic states with other AI nations
-        # Fog-filtered: only show if player has PARTIAL+ intel on either nation
+        # DPF-1: No fog gate — diplomatic relations are public knowledge
+        from backend.game_logic.diplomacy import get_relation_descriptor  # noqa: E402
         ai_relations = []
-        nation_vis = _get_nation_visibility(nation, world)
-        nation_vis_priority = VISIBILITY_PRIORITY.get(nation_vis, 0)
-        partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
-
         for other_ai in all_nations:
             if other_ai == nation:
                 continue
-            other_vis = _get_nation_visibility(other_ai, world)
-            other_vis_priority = VISIBILITY_PRIORITY.get(other_vis, 0)
-
-            # Show if player has PARTIAL+ on BOTH nations in the pair
-            if nation_vis_priority >= partial_priority and other_vis_priority >= partial_priority:
-                ai_diplo_key = world._make_diplo_key(nation, other_ai)
-                ai_state = world.diplomatic_states.get(ai_diplo_key, "PEACE")
-                ai_relations.append({
-                    "nation": other_ai,
-                    "state": ai_state,
-                })
+            ai_diplo_key = world._make_diplo_key(nation, other_ai)
+            ai_state = world.diplomatic_states.get(ai_diplo_key, "PEACE")
+            ai_relation_value = int(world.nation_relations.get(ai_diplo_key, 0) or 0)
+            ai_relations.append({
+                "nation": other_ai,
+                "state": ai_state,
+                "relation": ai_relation_value,
+                "relation_descriptor": get_relation_descriptor(ai_relation_value),
+            })
 
         # R17a: War score component breakdown for AT_WAR nations
         war_score_breakdown = None
@@ -584,14 +579,29 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             turns_active = int(mission.get("turns_active") or 0)
             remaining_turns = int(max(0, total_duration - turns_active))
 
+        # DPF-2: Mission progress tracking
+        from backend.game_logic.diplomacy import get_relation_descriptor as _get_rel_desc
+        mission_target = mission.get("target", "")
+        initial_relation = int(mission.get("initial_relation") or 0)
+        player = getattr(world, 'player_nation', 'France')
+        current_relation = int(world.nation_relations.get(
+            world._make_diplo_key(player, mission_target), 0
+        ) or 0)
+
         active_mission = {
             "type": mission_type,
-            "target": mission.get("target", ""),
+            "target": mission_target,
             "duration": int(mission.get("turns_active") or 0),
             "paused": mission.get("paused", False),
             "effect_text": effect_text,
             "dp_cost_per_turn": dp_cost_per_turn,
             "remaining_turns": remaining_turns,
+            "started_turn": int(mission.get("started_turn") or 0),
+            "initial_relation": initial_relation,
+            "current_relation": current_relation,
+            "relation_delta": int(current_relation - initial_relation),
+            "initial_descriptor": _get_rel_desc(initial_relation),
+            "current_descriptor": _get_rel_desc(current_relation),
         }
 
     # Proposal in transit

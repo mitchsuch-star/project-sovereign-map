@@ -162,9 +162,10 @@ class TestFix3AIAILedgerVisibility:
         nations = _build_nations(world)
         # Find Prussia's entry
         prussia = [n for n in nations if n["name"] == "Prussia"][0]
-        # AI-AI relations with Austria should be hidden (Austria is UNKNOWN)
+        # DPF-1: Diplomatic relations are public knowledge — no fog gate
+        # AI-AI relations visible regardless of visibility
         austria_relations = [r for r in prussia["ai_relations"] if r["nation"] == "Austria"]
-        assert len(austria_relations) == 0
+        assert len(austria_relations) == 1
 
     def test_ai_ai_shown_when_both_partial(self):
         """AI-AI relation shown when BOTH nations have PARTIAL+ visibility."""

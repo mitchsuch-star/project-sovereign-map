@@ -268,22 +268,29 @@ func _render_nations():
 		else:
 			bbcode += "  Treaties: [color=#" + Utils.COLOR_GREY + "]None[/color]\n"
 
-		# N1: AI-AI Relations
+		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:
 			var ai_parts = []
 			for ar in ai_relations:
 				var ar_nation = str(ar.get("nation", "?"))
 				var ar_state = str(ar.get("state", "PEACE"))
-				var ar_color = Utils.COLOR_GREY
+				var ar_relation = int(ar.get("relation", 0))
+				var ar_descriptor = str(ar.get("relation_descriptor", "Neutral"))
+				var ar_state_color = Utils.COLOR_GREY
 				match ar_state:
 					"WAR":
-						ar_color = COLOR_RED
+						ar_state_color = COLOR_RED
 					"ALLIANCE", "DEFENSIVE_ALLIANCE":
-						ar_color = Utils.COLOR_SUCCESS
+						ar_state_color = Utils.COLOR_SUCCESS
 					"NON_AGGRESSION", "OPEN_BORDERS":
-						ar_color = Utils.COLOR_BLUE
-				ai_parts.append(ar_nation + " [color=#" + ar_color + "][" + ar_state + "][/color]")
+						ar_state_color = Utils.COLOR_BLUE
+				var ar_desc_color = Utils.COLOR_GREY
+				if ar_relation > 0:
+					ar_desc_color = Utils.COLOR_SUCCESS
+				elif ar_relation < 0:
+					ar_desc_color = COLOR_RED
+				ai_parts.append(ar_nation + " [color=#" + ar_state_color + "][" + ar_state + "][/color] — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
 			bbcode += "  AI Relations: " + ", ".join(PackedStringArray(ai_parts)) + "\n"
 
 		# N2: War Score Breakdown (WAR only)
@@ -584,22 +591,39 @@ func _render_talleyrand():
 		var m_type = str(mission.get("type", "?"))
 		var m_target = str(mission.get("target", "?"))
 		var m_duration = int(mission.get("duration", 0))
-		var m_paused = mission.get("progress", false)
+		var m_paused = mission.get("paused", false)
 		var status = "Active"
 		if m_paused:
 			status = "Paused"
-		bbcode += "  " + m_type.replace("_", " ").capitalize() + " → " + m_target
-		bbcode += ", Duration: " + str(m_duration) + " turns"
-		bbcode += ", Status: " + status + "\n"
+		bbcode += "  " + m_type.replace("_", " ").capitalize() + " → " + m_target + "\n"
 
+		# DPF-2: Descriptor-based progress
+		var initial_desc = str(mission.get("initial_descriptor", ""))
+		var current_desc = str(mission.get("current_descriptor", ""))
+		var relation_delta = int(mission.get("relation_delta", 0))
+		if initial_desc != "" and current_desc != "":
+			var delta_str = str(relation_delta) if relation_delta < 0 else "+" + str(relation_delta)
+			var arrow_color = Utils.COLOR_GREY
+			if relation_delta > 0:
+				arrow_color = Utils.COLOR_SUCCESS
+			elif relation_delta < 0:
+				arrow_color = COLOR_RED
+			if initial_desc != current_desc:
+				bbcode += "  [color=#" + arrow_color + "]" + initial_desc + " → " + current_desc + " (" + delta_str + ", " + str(m_duration) + " turns)[/color]\n"
+			else:
+				bbcode += "  [color=#" + arrow_color + "]" + current_desc + " (" + delta_str + " over " + str(m_duration) + " turns)[/color]\n"
+		else:
+			bbcode += "  Progress: N/A (mission predates tracking)\n"
+
+		bbcode += "  Status: " + status
 		# TA4: Mission effect text
 		var effect_text = str(mission.get("effect_text", ""))
 		var dp_cost = int(mission.get("dp_cost_per_turn", 0))
+		if dp_cost > 0:
+			bbcode += ", Cost: " + str(dp_cost) + " DP/turn"
+		bbcode += "\n"
 		if effect_text:
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Effect: " + effect_text
-			if dp_cost > 0:
-				bbcode += ". Cost: " + str(dp_cost) + " DP/turn"
-			bbcode += ".[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Effect: " + effect_text + "[/color]\n"
 
 		# TA5: Remaining turns
 		var remaining = mission.get("remaining_turns")
