@@ -55,8 +55,12 @@ Press F1 (or click [Diplomacy] button)
 **Expected:**
 - Wizard overlay opens (CanvasLayer 110, modal)
 - Shows categorized nation list: "At War" (Britain, Prussia), "Treaties" (Saxony under OPEN_BORDERS), "Neutral" (Austria at PEACE)
+- PASS
 - Each button shows nation name + current diplomatic state
+- PASS
 - Input blocked behind wizard
+- PASS
+- ONLY NOTE IS I CANNOT TELL THEIR RELATIONSHIPS WITH EACHOTHER ANY WAY TO DO THIS? PERHAPS A WAY TO SEE NATIONS ENEMIES ALLIES ETC LIKE EUIV
 
 ### A2. Wizard Step 2 — Action Preview
 

@@ -53,7 +53,9 @@
    - **Session 2 (MAJOR):** M1 raw internal state names in UI, M2 "recruit infantry at Paris" parse failure, M3 no recruit type/amount control.
    - **Session 3 (MINOR + BALANCE):** m1-m4 minor fixes, B1 Wellington defense cap (~85% stacking), B2 supply attrition death spiral, B3 enemy action count, B4 gold accumulation with no outlet.
 3. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
-4. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 50 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
+4. **Diplomacy Playtest Fixes** — UI testing and playtest-found bugs. Blocks all Diplomacy Refinement work. See `docs/DIPLO_PLAYTEST_FIXES.md`.
+   - **Phase 1:** DPF-1 (AI-AI relations incomplete + remove incorrect fog gate) + DPF-2 (mission cancel UI in F1 wizard + progress tracking in Ledger). 1 session, ~15 tests.
+5. **Diplomacy Refinement Phase 5** — **PAUSED — blocked on Playtest Fixes + UI testing.** 50 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
    - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.
@@ -62,7 +64,7 @@
    - **Talleyrand Smart Suggestions** — `generate_suggested_terms()` rewritten as 5-stage pipeline: base terms → nation-specific injection (coveted territory, gold calibration, protection, AP) → economic feasibility caps → Talleyrand commentary → return. `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` (~45 strings). 1-line wiring in `_enrich_proposal_summary()`. 22 new tests. See `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`.
    - ~~**Wave 3: Player Feedback (partial)**~~ — **DONE** (R118 acceptance preview, R131 cooldown warning, R17d DP breakdown, R17e relation trends, R17f mission progress — 35 tests). Remaining Wave 3 items: R119 betrayal memory, R129 override feedback, R128 sabotage feedback, R132 vassal transparency.
    - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
-   - **NEXT GATE: UI Testing** — Manual playtest in Godot to verify all diplomatic screen changes render correctly. DP display investigation (R39). Then remaining Wave 3 items.
+   - **NEXT GATE: Playtest Fixes first** — Diplomacy Playtest Fixes (Phase 1+) must complete before resuming. Then manual UI testing in Godot to verify all diplomatic screen changes render correctly. DP display investigation (R39). Then remaining Wave 3 items.
 3. ~~**Phase 8: Diplomacy**~~ — **ALL SESSIONS COMPLETE** (1A through 8D). See `docs/SESSION_8_PLAN.md`.
 4. ~~**Diplomacy Audit**~~ — **COMPLETE.** 20 bugs fixed, 145 audit tests.
 5. ~~**Diplomacy Creative Audit**~~ — **COMPLETE.** 7.8/10 score.
