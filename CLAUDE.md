@@ -18,23 +18,11 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Playtest Audit (March 29, 2026).** 3 automated playtests, 6 bugs + 1 design discussion. 2 sessions + design gate. See `docs/PLAYTEST_AUDIT_2026_03_29.md`.
-- **Architecture Refactoring — IN PROGRESS.** 20 R-items, 23 sessions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`. **Sessions 1-16 COMPLETE** (R3 conftest, R1 post-combat pipeline, R2 war-state helpers, R4 response pipeline, R5 fog-filtered access, R7+R8 display names + campaign log, R6 CooldownManager + PopupQueue, R9+R20 scaling index + advance_turn guard, R18 test enforcement suite, R10A+R10B executor split combat, R11 executor split diplomatic + strategic, R12A+R12B+R12C DialogueManager, R13A+R13B executor split all 10 sub-executors, R17 HTTP timeout + api_client consolidation, R15 utils.gd + PopupBase, R16 DialogManager + Layer Subdivision). executor.py 14,802→1,554 lines. api_client.gd 348→122 lines. main.gd 3,157→2,982 lines. 7,755 tests passing. R14a-d (AI Fog) DEFERRED to 80+ regions — needs own spec. R19 (modding validator) remaining. See plan for full details.
-- **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
-- **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
-- ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
-- **Playtest Bug Fixes (March 2026 Review).** 16-turn playtest found 3 critical + 3 major + 4 minor bugs + 4 balance concerns. Session 1: armistice deadlock, self-combat, turn skip. Session 2: raw state names, parse failures. Session 3: minor fixes + balance. See `docs/PLAYTEST_REVIEW_2026_03.md`.
-- **Diplomacy Button — COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
-- **Diplomacy Refinement Phase 5: Design Depth.** Waves 1-2, 2.5 DONE. Wave 3 (Player Feedback, 8 items) next. See `docs/DIPLO_REFINEMENT.md`.
-- **Diplomacy Design Fixes (DA sessions).** DA-1, DA-2 DONE. DA-4 (N4 War Status Panel) DONE — 3-layer HUD system (war_status_panel + war_detail_popup + wizard handoff), 32 tests. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
-- **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
-- **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. See `docs/SESSION_8_PLAN.md`.
-- **Diplomacy Audits — ALL COMPLETE.** Code audit (20 bugs, 145 tests). Creative audit (7.8/10). Comprehensive creative audit (6.5/10, 41 new items → Phase 5). March 2026 deep audit (43 bugs, 112 tests). See `docs/DIPLOMACY_AUDIT_2026_03.md`.
-- **Deep Audit Fix Plan — ALL 9 SESSIONS COMPLETE.** 43 bugs fixed, 129 new tests (6,703 total). Session 9: 12 spec doc updates, 6 hardening fixes, ~900 lines dead code removed. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
-- **Systems Audit Fix Plan — ALL 12 CORE SESSIONS COMPLETE.** ~148 findings fixed, 193 new tests (6,904 total). Sessions 13-14 optional (architecture refactoring). See `docs/SYSTEMS_AUDIT_FIX_PLAN.md`.
-- **Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.** 56 confirmed bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
-- **Diplomacy Refinement Phases 1-4 — COMPLETE.** 55 items done, 326 tests. See `docs/DIPLO_REFINEMENT.md`.
+- **Bug Fixes — IN PROGRESS.** 32 consolidated bugs across 8 sessions. See `docs/BUG_FIXES.md`.
+- **Design Refinement — AFTER BUG FIXES.** 9 items ready + 25 need design gates. See `docs/DESIGN_REFINEMENT.md`.
+- **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
+- **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
+- **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.
 
 ### Design Gates
 
@@ -183,10 +171,10 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
 | Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI, `open_for_nation()`), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
-| War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/DIPLOMACY_DESIGN_FIXES.md` §N4 |
+| War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/archive/DIPLOMACY_DESIGN_FIXES.md` §N4 |
 | Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy execution (proposals/dialogue) | `diplomatic_executor.py` (DiplomaticExecutor: _execute_diplomatic*, handle_diplomatic_dialogue_response, _process_dialogue_choice, trust reactions, AI proposal handlers). Accesses non-diplomatic executor methods via `self._executor.X` |
-| Dialogue state (R12) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching), `world_state.py` (transparent properties), `docs/R12_DIALOGUE_MANAGER_SPEC.md`, `docs/R12B_MIGRATION_AUDIT.md` (line-by-line classification). **R12 COMPLETE** (12A foundation + 12B diplomatic_executor 65 ops + 12C consolidation: 9 files, 285 test ops, properties locked down). All writes go through `dialogue_manager` API. `pending_diplomatic_dialogue` is read-only |
+| Dialogue state (R12) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching), `world_state.py` (transparent properties), `docs/archive/R12_DIALOGUE_MANAGER_SPEC.md`, `docs/archive/R12B_MIGRATION_AUDIT.md` (line-by-line classification). **R12 COMPLETE** (12A foundation + 12B diplomatic_executor 65 ops + 12C consolidation: 9 files, 285 test ops, properties locked down). All writes go through `dialogue_manager` API. `pending_diplomatic_dialogue` is read-only |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
@@ -385,6 +373,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Need | Read |
 |------|------|
 | Session state / what's next | `docs/STATUS.md` |
+| **Open bugs (consolidated)** | **`docs/BUG_FIXES.md`** |
+| **Design refinement items** | **`docs/DESIGN_REFINEMENT.md`** |
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
@@ -393,13 +383,9 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
 | Diplomacy button wizard spec | `docs/DIPLOMACY_BUTTON_SPEC.md` |
-| Diplomacy refinement plan | `docs/DIPLO_REFINEMENT.md` |
 | Smart suggestions pipeline | `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
-| Diplomacy creative audit | `docs/DIPLOMACY_CREATIVE_AUDIT.md` |
-| Diplomacy design fixes + war panel spec | `docs/DIPLOMACY_DESIGN_FIXES.md` (N4 spec, DA session plan) |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
-| Session 8A-8D plan (UI + debug) | `docs/SESSION_8_PLAN.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
@@ -407,8 +393,6 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |
 | Future design concepts | `docs/FUTURE_DESIGN.md` |
 | Game vision | `docs/VISION.md` |
-| Systems Audit V2 fix plan | `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md` |
-| Playtest review + bug fix plan | `docs/PLAYTEST_REVIEW_2026_03.md` |
 | Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
 | Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |
 | Architecture audit report (findings + root causes) | `docs/ARCHITECTURE_AUDIT_REPORT.md` |
