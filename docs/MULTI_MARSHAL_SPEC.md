@@ -219,7 +219,7 @@ self.coordination_defense_bonus: float = 0.0
 
 ### Definition
 
-A flat +5% attack / +5% defense bonus representing marshals who have committed to operating together. Two paths to earn it — same mechanical bonus, different trigger:
+A flat +5% attack / +5% defense bonus representing marshals who have committed to operating together. Two paths to earn it — same mechanical bonus, different trigger. **Cross-coalition allies:** bonus is multiplied by coalition friction (N3 balance). Same-nation allies always get full bonus.
 
 ### Path A — Co-Location Duration (Both Player and AI)
 

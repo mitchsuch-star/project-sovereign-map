@@ -29,6 +29,39 @@ Consolidated reference for all game systems. Read when modifying related code.
 20. [Diplomatic Trust Reactions](#20-diplomatic-trust-reactions)
 21. [Diplomatic Reliability](#21-diplomatic-reliability)
 22. [Popup Priority Queue](#22-popup-priority-queue)
+23. [Building Blocks Principle](#23-building-blocks-principle)
+
+---
+
+## 23. Building Blocks Principle
+
+All nations use identical **SYSTEMS** — same AP spending, same DP generation formula, same economy pipeline, same combat resolution, same executor. Nations differ in their **INPUT VALUES** (AP budget, DP pool, gold income, manpower regen, marshal personalities) representing each country's bureaucratic capacity, diplomatic skill, and economic power.
+
+France may have 6 AP while Prussia has 4 — this represents Prussian bureaucratic limitations, not a different system. The rule is: **no parallel mechanics, no AI-only shortcuts.** AI nations spend AP the same way France does, just with different budgets.
+
+### What Building Blocks means in practice:
+
+| System | Same for all | Differs by nation |
+|--------|-------------|-------------------|
+| Combat | `resolve_battle()`, modifier formulas, coordination | Marshal personalities, skill values, unit types |
+| Economy | `_execute_recruit()`, building costs, income formula | Region count, starting gold, manpower pools |
+| Diplomacy | `calculate_dp()`, acceptance formula, state transitions | Diplomat skill, diplomat personality, starting relations |
+| AI Actions | Same executor, same validation, same AP cost | AP budget per nation, priority weights |
+| Coordination | Same co-location, reinforcement, flanking formulas | Relationship values, friction multipliers |
+
+### Verified compliance:
+- **DP generation:** `_process_dp_regen()` iterates all nations with same `calculate_dp()` formula
+- **Combat:** AI attacks route through same `executor.execute()` as player
+- **Admin phase:** AI uses same `_execute_recruit()`, `_execute_garrison()`, `_execute_build()`
+- **Reinforcements:** Both sides receive reinforcements via same `_calculate_reinforcements()`
+- **Coordination:** AI earns dedicated coordination through co-location duration (equivalent to player's SUPPORT order)
+
+### What Building Blocks does NOT mean:
+- AI does NOT need the same UI, parser, or strategic command system (AI uses priority tree, not NL parser)
+- AI does NOT need the same information access (fog of war applies to player, AI is omniscient for decision-making but uses same combat math)
+- AI CAN have different budget values — this is how difficulty and nation identity are expressed
+
+**Key references:** `docs/VISION.md` §2, `docs/MULTI_MARSHAL_SPEC.md` §Building Blocks, `docs/COALITION_SPEC.md` §5d
 
 ---
 
@@ -169,7 +202,7 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 | Aggressive stance defense | -5% | `stance == AGGRESSIVE` | `NEY_MODIFIERS["aggressive_stance_defense_penalty"] = 0.05` |
 | Defensive stance defense | +10% only | `stance == DEFENSIVE` | `NEY_MODIFIERS["defensive_stance_defense_penalty"] = 0.05` (reduces from +15% to +10%) |
 | Drill synergy | +5% additional | `shock_bonus > 0` | `NEY_MODIFIERS["drill_shock_bonus"] = 0.05` |
-| Max fortify cap | 10% | Impatient | `NEY_MODIFIERS["max_fortify_bonus"] = 0.10` |
+| Max fortify cap | 8% | Impatient *(B1: was 10%)* | `NEY_MODIFIERS["max_fortify_bonus"] = 0.08` |
 
 **Behavioral Traits:**
 - Objects to defensive orders (defend, wait, hold, retreat, fortify)
@@ -186,7 +219,7 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 | Aggressive stance attack | -5% | `stance == AGGRESSIVE` | `DAVOUT_MODIFIERS["aggressive_stance_attack_penalty"] = 0.05` |
 | Bad odds attack | -10% | `strength_ratio < 1.0` | `DAVOUT_MODIFIERS["bad_odds_attack_penalty"] = 0.10` |
 | Fortify rate | +3%/turn | Instead of +2% | `DAVOUT_MODIFIERS["fortify_rate_bonus"] = 0.01` |
-| Max fortify cap | 20% | Patient defender | `DAVOUT_MODIFIERS["max_fortify_bonus"] = 0.20` |
+| Max fortify cap | 12% | Patient defender *(B1: was 20%)* | `DAVOUT_MODIFIERS["max_fortify_bonus"] = 0.12` |
 | Instant fortify | +5% | First fortify turn | `DAVOUT_MODIFIERS["instant_fortify_bonus"] = 0.05` |
 | Scout range | +1 region | Extended recon | `DAVOUT_MODIFIERS["scout_range_bonus"] = 1` |
 
@@ -227,7 +260,7 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 
 - No special bonuses or penalties
 - Uses baseline stance modifiers only
-- Standard fortify rate (+2%/turn, max 15%)
+- Standard fortify rate (+2%/turn, max 12%) *(B1: was 15%)*
 - Moderate objection thresholds; will object to suicidal orders (3:1+ odds)
 
 #### LOYAL Personality
@@ -240,11 +273,12 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 
 ### Fortify Mechanics
 
-- Stored as decimal: `0.16` = 16%
-- Display: `int(value * 100)` = "16%"
+- Stored as decimal: `0.12` = 12%
+- Display: `int(value * 100)` = "12%"
 - Rate: +2%/turn standard, +3%/turn for cautious (Davout)
-- Max: 15% standard, 10% for aggressive (Ney), 20% for cautious (Davout)
+- Max: **12% standard, 8% for aggressive (Ney), 12% for cautious (Davout)** *(B1 balance: reduced from 15/10/20)*
 - Instant fortify: +5% on first turn for cautious (Davout)
+- **IMPORTANT:** Cautious personality defensive stance bonus (+5%) is a SEPARATE permanent stat from fortification. It is NOT affected by bombardment stripping. Fortification is strippable. Personality stance is not.
 
 ### Fortification Degradation (Session 31)
 
@@ -262,6 +296,25 @@ When a fortified defender is attacked, their `defense_bonus` degrades by 5% (0.0
 - Priority 6c fires between P6 (won/fort held) and P7 (won drilled)
 
 **Key code:** `combat.py::resolve_combat()` (degradation), `battle_report.py::_pick_observation()` (P6c), `battle_report.py::_OBSERVATIONS` (templates)
+
+### Bombardment Fortification Stripping (B1 Balance)
+
+Artillery bombardment strips 5% (0.05) of the defender's raw `defense_bonus` (fortification level) per hit. This is IN ADDITION to the existing degradation from regular combat above.
+
+- Applied in `combat_executor.py::_execute_bombardment()` AFTER bombardment damage resolution
+- Only triggers if `defender.defense_bonus > 0`
+- Strips 0.05 per bombardment hit (not per unit of damage)
+- Fortification level cannot go below 0
+- Result dict includes: `fortification_stripped`, `fortification_old`, `fortification_new`
+
+**What bombardment strips vs. what it does NOT:**
+- **Strips:** Marshal's `defense_bonus` (accumulated fortification from `fortify` action)
+- **Does NOT strip:** Cautious personality defensive stance bonus (+5%) — this is a permanent personality stat, not fortification
+- **Does NOT strip:** Terrain defense bonuses, ability bonuses (e.g., Wellington's Reverse Slope +5%)
+
+**Tactical implication:** Drouot (artillery) becomes the designated counter to Wellington's defensive stacking. Bombard 2-3 times to strip all fortification (12% cap / 5% per hit = 3 bombardments), then assault with infantry. This costs 3-4 AP (full turn commitment) but breaks the defensive deadlock.
+
+**Key code:** `combat_executor.py::_execute_bombardment()` (stripping), `marshal.py::defense_bonus` (fortification field)
 
 ### Drill/Shock Bonus
 
@@ -283,14 +336,14 @@ x 1.05 (drill synergy personality bonus)
 = ~1.81x attack modifier (+81%)
 ```
 
-**Davout (cautious infantry) in defensive stance, outnumbered, fortified 16%:**
+**Davout (cautious infantry) in defensive stance, outnumbered, fortified 12% (B1 cap):**
 ```
 Base: 1.0
 x 1.15 (defensive stance)
-x 1.16 (fortify bonus)
+x 1.12 (fortify bonus — B1 cap, was 1.16)
 x 1.05 (defensive stance personality bonus)
 x 1.10 (outnumbered personality bonus)
-= ~1.54x defense modifier (+54%)
+= ~1.49x defense modifier (+49%)
 ```
 
 ### Source File Reference (Combat)
@@ -1558,6 +1611,24 @@ Artillery units are a third marshal type alongside infantry and cavalry. They pr
 
 Artillery is exempt from exhaustion penalties — sustained bombardment is their core function. `_get_exhaustion_penalty()` returns 0.0 for artillery. Combat messages skip exhaustion display. Battle report snapshots skip exhaustion for artillery attackers.
 
+### Cavalry Momentum (B5 Balance)
+
+Cavalry gains momentum from repeated attacks instead of suffering exhaustion. `_get_exhaustion_penalty()` returns a NEGATIVE value (bonus) for cavalry:
+
+| Attack # | Infantry | Artillery | Cavalry |
+|----------|----------|-----------|---------|
+| 1st | 0% | 0% (exempt) | 0% |
+| 2nd | -10% | 0% (exempt) | **+5% bonus** |
+| 3rd | -20% | 0% (exempt) | **+10% bonus** |
+| 4th+ | -30% | 0% (exempt) | **+10% (cap)** |
+
+- Implemented in `marshal.py::_get_exhaustion_penalty()` — returns negative value for cavalry, applied via same `(1.0 - penalty)` formula (negative penalty = bonus)
+- Stacks with existing recklessness system for aggressive cavalry (Ney gets BOTH momentum + recklessness bonuses)
+- Balanced/cautious cavalry marshals benefit from momentum alone
+- Thematic: cavalry charges gain devastating momentum through sustained pressure. Infantry tires; cavalry accelerates.
+
+**Key code:** `marshal.py::_get_exhaustion_penalty()`, `marshal.py::attacks_this_turn`
+
 ### Bombardment Streak (Session 2)
 
 Tracks consecutive bombardments on the same target:
@@ -2338,8 +2409,8 @@ Four building types, constructed via `build <type> at <region>`:
 |-------------|---------------|
 | Capital | 50,000 |
 | Major City | 40,000 |
-| City | 30,000 |
-| Town | 25,000 |
+| City | 40,000 | *(B2: was 30,000)*
+| Town | 35,000 | *(B2: was 25,000)*
 | Rural | 15,000 |
 
 Supply depot adds +10,000 to base. Terrain modifier applied (mountains 0.5x, urban 1.2x, etc.). Capacity is a computed property — not serialized.
@@ -3330,7 +3401,7 @@ Per turn: `-(1 base + peaceful_nations)`, capped at 3 (excluding France and vass
 ### Coalition AI (§5)
 
 - **Convergence bias:** Coalition members' P7 movement scoring adds +12 (aggressive) / +4 (defensive) / +0 (cautious) toward regions adjacent to French territory.
-- **Friction:** Cross-nation coalition coordination reduced by mutual relation: ≥30 → 1.0×, ≥0 → 0.75×, ≥-20 → 0.5×, else → 0.25×.
+- **Friction:** Cross-nation coalition coordination reduced by mutual relation: ≥30 → 1.0×, ≥0 → 0.75×, ≥-20 → 0.5×, else → 0.25×. Applied to adjacency bonus AND co-location bonus (N3 balance). Flanking unaffected.
 - **Attack threshold:** Aggressive posture -0.15 threshold, cautious +0.15.
 - **is_ally replacement:** `is_coalition_member()` replaces the TODO-1805 hack for cross-nation ally detection.
 - **EC-9 member protection:** Coalition members cannot attack each other (executor block + AI target filter). Frozen bilateral conflicts resume on dissolution.

@@ -73,7 +73,7 @@ Conquered territory isn't managed through spreadsheets — it's managed through 
 ## Design Philosophy
 
 1. **LLMs explain, react, color — they never cause.** Game mechanics are deterministic. AI adds personality and narrative.
-2. **Building Blocks.** Player and enemy use the same actions, same executor, same rules.
+2. **Building Blocks.** Player and enemy use the same actions, same executor, same rules. All nations use identical systems — they differ only in input values (AP budget, DP pool, income, manpower). No parallel mechanics, no AI-only shortcuts. See `docs/SYSTEMS_REFERENCE.md` §23 for full definition.
 3. **Personality over randomness.** Marshal behavior is predictable from their character. Drama comes from character clashes, not dice rolls.
 4. **Every input gets a response.** No silent failures. The game always talks back.
 

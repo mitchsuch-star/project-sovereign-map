@@ -381,9 +381,15 @@ def get_coalition_friction(nation_a, nation_b, world):
         return 0.25   # Near-hostile "allies"
 ```
 
-Applied as a multiplier to the P4.77 adjacency bonus when the adjacent ally is from a different coalition nation. Same-nation allies always get full bonus. **Golden Rule #2:** The result of `int(adjacency_bonus * friction)` must be used — friction returns float, final value must be int() before reaching Godot.
+Applied as a multiplier to the following bonuses when the ally is from a different coalition nation:
+- **P4.77 adjacency bonus** (+2% attack per adjacent friendly marshal)
+- **Co-location bonus** (+5% attack / +5% defense per co-located ally) *(N3 balance: was unaffected by friction)*
 
-**Example:** Austria (relation +30 with Prussia) gets full adjacency bonus near Prussian marshals. But if Austria's relation with Prussia drops to -10 (perhaps France diplomatically drove a wedge), the bonus is halved. This rewards diplomatic play against the coalition.
+Same-nation allies always get full bonus (friction = 1.0). **Golden Rule #2:** The result of `int(bonus * friction)` must be used — friction returns float, final value must be int() before reaching Godot.
+
+**Flanking bonus:** Unchanged — unique attack directions are not modulated by friction. Flanking is already difficult to achieve and should not be further penalized.
+
+**Example:** Austria (relation +30 with Prussia) gets full adjacency and co-location bonus near Prussian marshals. But if Austria's relation with Prussia drops to -10 (perhaps France diplomatically drove a wedge), both bonuses are halved (friction 0.5). Co-location +5% becomes +2.5%. This rewards diplomatic play against the coalition.
 
 ### §5d. Building Blocks Compliance
 

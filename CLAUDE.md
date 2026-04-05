@@ -8,7 +8,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 2. **All numbers to Godot: `int()`** — Godot crashes on floats.
 3. **All marshals in ONE dict:** `world.marshals` (not separate player/enemy).
 4. **State clearing: AFTER reading** — get the value, use it, then clear.
-5. **Enemy AI uses SAME executor as player** (Building Blocks principle).
+5. **Enemy AI uses SAME executor as player** (Building Blocks principle — same systems, different input values. See `docs/SYSTEMS_REFERENCE.md` §23).
 6. **LLM never affects mechanics** — parsing only, executor is deterministic.
 7. **Port 8005** (not 8000!) — change in BOTH `backend/main.py` AND `godot-client/.../api_client.gd`.
 

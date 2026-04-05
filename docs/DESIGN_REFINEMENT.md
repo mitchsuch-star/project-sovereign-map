@@ -12,10 +12,11 @@
 |----------|-------|--------|
 | Player Feedback (Wave 3 remaining) | 7 | Ready for implementation |
 | Territorial Promises (Wave 3) | 1 | Needs design gate |
+| Gold Sink Options (B4) | 1 | Needs design gate |
 | Wave 4 — New Features | 17 | Needs per-item approval |
 | Wave 5 — Game Review Findings | 8 | Needs design gate |
 | Jealousy System | 1 | Needs design gate |
-| **Total** | **34** | |
+| **Total** | **35** | |
 
 ---
 
@@ -109,6 +110,38 @@ These are new feature designs. Each needs individual approval before implementat
 | R36 | Personal Summits | Face-to-face meetings, +15 acceptance 3 turns |
 | R59 | Literal Personality Triggers | Audit and wire unwired triggers |
 | R118 | Enhanced Acceptance Preview | Top 3 positive/negative components + Talleyrand hints |
+
+---
+
+## Gold Sink Options (B4 Balance — Design Gate)
+
+**Priority:** MEDIUM | **Phase:** Pre-EA refinement
+
+Gold accumulation is a known design gap (~700g/turn income vs ~250g upkeep). Manpower-gated recruitment means gold piles up with no meaningful spending options. This section tracks candidate gold sinks for evaluation.
+
+**Forced march REJECTED** — trivializes cavalry's 2-region movement advantage, which is cavalry's core identity.
+
+### Leading Candidate: Province Development
+- **Cost:** Variable (200-500g per investment)
+- **Effect:** Invest gold in controlled region to boost supply cap, income, or repair war damage faster
+- **Design appeal:** Creates invest-now-vs-save tension, rewards holding territory, ties gold to strategic positioning
+- **Needs:** Investment tiers, per-region cooldown, diminishing returns formula, AI investment priority
+
+### Other Candidates (evaluate after Province Development)
+
+| Option | Cost | Effect | Notes |
+|--------|------|--------|-------|
+| Diplomatic gifts/bribes | 200g | +5 relation (once/turn/nation) | Gold becomes diplomacy tool |
+| Mercenary garrisons | 400g | Defensive garrison without stationing marshal | Frees marshals for offense |
+| Recruitment bounties | 300g | Double manpower regen for 1 turn | Accelerates rebuilding |
+
+---
+
+## Enemy AP Rebalancing (Deferred — Post Full Map)
+
+**Priority:** LOW | **Phase:** After full 1805 map implementation
+
+Enemy AI action budget (currently 4 paid AP per nation) may need rebalancing once the full map is implemented with all nations, regions, and marshal counts at scale. Current 4-nation, 19-region map doesn't stress the action economy the same way a full campaign will. Revisit AP values, per-nation scaling, and aggregate action counts after full map playtesting.
 
 ---
 
