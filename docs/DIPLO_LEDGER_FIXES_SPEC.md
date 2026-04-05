@@ -1,8 +1,8 @@
 # Diplomatic Ledger Fixes Spec
 
 **Date:** 2026-04-04 (updated 2026-04-05)
-**Scope:** 8 bugs/improvements found during playtest + code audit
-**Files affected:** `diplomatic_ledger.py`, `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `diplomatic_ledger.gd`, `ai_diplomacy.py`, `enemy_ai.py`
+**Scope:** 12 bugs/improvements found during playtest + code audit + cross-codebase pattern analysis
+**Files affected:** `diplomatic_ledger.py`, `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `diplomatic_ledger.gd`, `ai_diplomacy.py`, `enemy_ai.py`, `world_state.py`, `vassal.py`
 
 ---
 
@@ -403,6 +403,278 @@ if not both_at_war and relation < 30 and state not in ("PEACE", "WAR", "ARMISTIC
 
 ---
 
+## DLF-9: P3 Proposal Skips Upgrade Path Validation
+
+**Bug:** P3 (Threat > 60 alliance-seeking, `ai_diplomacy.py:681-694`) proposes `defensive_alliance` or `non_aggression` directly based on relation thresholds, without checking whether the proposed state is reachable from the current diplomatic state. P4 correctly uses `_determine_upgrade_type()` (line 698) which validates the upgrade path via `upgrade_map`. P3 bypasses this entirely.
+
+**Example:** If `diplo_state == "PEACE"` and `relation > 20`, P3 proposes `defensive_alliance` — but the valid path is PEACE → OPEN_BORDERS → NON_AGGRESSION → DEFENSIVE_ALLIANCE. The proposal skips 2 intermediate states.
+
+**Secondary bug:** P3 uses `relation > 20` and `relation > 0` (exclusive), but `STATE_RELATION_REQUIREMENTS` defines thresholds as `DEFENSIVE_ALLIANCE: 20` and `NON_AGGRESSION: 0` (inclusive). Off-by-one at boundary values.
+
+**Root cause:** P3 was written before `_determine_upgrade_type()` existed (P4 was added later). The upgrade helper was never backported.
+
+### Fix
+
+Replace the manual state/relation checks with the same `_determine_upgrade_type()` call P4 uses:
+
+```python
+# ── P3: Threat > 60 AND not allied → seek alliance (R106) ──
+if proposal is None and not is_at_war:
+    threat = int(getattr(world, 'threat_level', 0))
+    if threat > 60:
+        if diplo_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            ptype = _determine_upgrade_type(nation, world)
+            if ptype and not _is_on_cooldown(nation, ptype, world, war_score):
+                terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
+                proposal = _make_proposal(nation, ptype, 3, terms, world)
+```
+
+This fixes both bugs:
+- **Path validation:** `_determine_upgrade_type()` uses `upgrade_map` to propose only the next valid step
+- **Relation thresholds:** `_determine_upgrade_type()` uses `relation < req` (exclusive lower bound = inclusive threshold), matching `STATE_RELATION_REQUIREMENTS` exactly
+
+### P7 Opportunism — Same Pattern, Already Correct
+
+P7 (line 708-716) proposes `"opportunistic"` which maps to `non_aggression`, and gates on `diplo_state in ("PEACE", "OPEN_BORDERS")`. Since both PEACE and OPEN_BORDERS are valid predecessors to NON_AGGRESSION in the upgrade path, P7 is accidentally correct — no fix needed. But add a comment noting the implicit path validity.
+
+### Files
+
+| File | Change |
+|------|--------|
+| `backend/game_logic/ai_diplomacy.py` | Replace P3 manual checks with `_determine_upgrade_type()` |
+
+### Tests
+
+- P3 at PEACE proposes OPEN_BORDERS (not defensive_alliance)
+- P3 at NON_AGGRESSION with relation=20 proposes DEFENSIVE_ALLIANCE (boundary value)
+- P3 at DEFENSIVE_ALLIANCE proposes ALLIANCE (not skipped)
+- P3 at ALLIANCE returns no proposal (already max)
+- P3 with insufficient relation returns no proposal
+- P3 still fires only when threat > 60
+
+---
+
+## DLF-10: Armistice Cooldown Gating Incomplete Exclusion
+
+**Bug:** `diplomacy.py:2544-2548` blocks proposals during armistice cooldown except for states in the allow-list. The allow-list covers all peaceful upgrade states but is missing WAR and VASSAL:
+
+```python
+if arm_cd > 0 and target_state not in ("PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
+                                         "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+    available = False
+```
+
+- **WAR** is already blocked separately by the armistice system (can't declare war during armistice), so omission is safe but confusing — the armistice check should be self-documenting.
+- **VASSAL** proposals during active armistice should be blocked. Vassalization is a major political change that would violate the spirit of an armistice.
+
+**Fix:** Rewrite as an inclusive allow-list with a comment:
+
+```python
+# U2: Armistice cooldown — only peaceful upgrades allowed during armistice
+ARMISTICE_ALLOWED_STATES = {"PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
+                            "DEFENSIVE_ALLIANCE", "ALLIANCE"}
+arm_cd = armistice_cooldowns.get(diplo_key, 0)
+if arm_cd > 0 and target_state not in ARMISTICE_ALLOWED_STATES:
+    available = False
+    reason = f"Armistice: {arm_cd} turns remaining"
+```
+
+This is functionally identical for current states but future-proofs against new states being accidentally allowed.
+
+**Files:** `backend/game_logic/diplomacy.py`
+**Tests:**
+- VASSAL proposal blocked during active armistice
+- WAR proposal blocked during active armistice (already tested, verify)
+- Peaceful upgrades (OPEN_BORDERS, etc.) allowed during armistice
+- No armistice → all proposals available
+
+---
+
+## DLF-11: Eliminated Nations Not Filtered From Game Logic (13 Sites)
+
+**Bug:** `_is_nation_eliminated()` exists in `diplomacy.py:1625` but is only called in 2 places (DP regen at line 1645, AI-AI diplomatic phase in `ai_diplomacy.py:1434`). At least 13 other nation-iteration sites process eliminated nations — applying relation changes, regenerating manpower, processing income, checking alliance conflicts, and displaying them in the ledger.
+
+At 5 nations this is mostly harmless (eliminated nations have no marshals or regions, so most operations are no-ops). At 15+ nations, phantom behavior accumulates: dead nations earn income, regen manpower, appear in the diplomatic ledger, count as shared enemies for vassal loyalty, and can trigger false alliance conflicts.
+
+### Fix: Centralized `get_active_nations()` Helper
+
+Add a method to `WorldState` that returns only non-eliminated nations:
+
+```python
+# In world_state.py
+def get_active_nations(self) -> list:
+    """Return all nations that control at least one region.
+
+    Use this for any iteration that should skip eliminated nations
+    (economy, diplomacy, display). Use get_all_nations() only when
+    you explicitly need to include dead nations (e.g., cleanup).
+    """
+    all_nations = [self.player_nation] + list(self.enemy_nations)
+    return [n for n in all_nations if any(
+        getattr(r, 'controller', '') == n for r in self.regions.values()
+    )]
+
+def get_all_nations(self) -> list:
+    """Return all nations including eliminated. Use sparingly."""
+    return [self.player_nation] + list(self.enemy_nations)
+```
+
+Then replace `all_nations = [self.player_nation] + list(self.enemy_nations)` with `self.get_active_nations()` at these sites:
+
+### Sites to Update
+
+**world_state.py (4 sites):**
+
+| Line | Context | Current | Change to |
+|------|---------|---------|-----------|
+| 2435 | `_process_manpower_regen()` | `[self.player_nation] + list(self.enemy_nations)` | `self.get_active_nations()` |
+| 3983 | Bankruptcy desertion loop | `[self.player_nation] + list(self.enemy_nations)` | `self.get_active_nations()` |
+| 4081 | Income phase loop | `all_nations` (set at 3983) | `self.get_active_nations()` |
+| 4134 | Bankruptcy check loop | `all_nations` (set at 3983) | `self.get_active_nations()` |
+
+**diplomacy.py (4 sites):**
+
+| Line | Context | Change |
+|------|---------|--------|
+| 1038 | War declaration relation penalties | Filter with `_is_nation_eliminated()` |
+| 1182 | Defensive cascade (DLF-7, already spec'd) | Filter with `_is_nation_eliminated()` |
+| 1348 | Diplomatic downgrade penalties | Filter with `_is_nation_eliminated()` |
+| 2044 | Treaty breakage penalties | Filter with `_is_nation_eliminated()` |
+
+**ai_diplomacy.py (1 site):**
+
+| Line | Context | Change |
+|------|---------|--------|
+| 1266 | Alliance conflict detection | Filter with `_is_nation_eliminated()` |
+
+**diplomatic_ledger.py (2 sites):**
+
+| Line | Context | Change |
+|------|---------|--------|
+| 143 | Nations tab — nation list | Filter eliminated nations |
+| 202 | AI relations display | Filter eliminated nations |
+
+**vassal.py (2 sites):**
+
+| Line | Context | Change |
+|------|---------|--------|
+| 198 | Vassal diplomacy reconciliation | Filter with `_is_nation_eliminated()` |
+| 269 | Vassal loyalty shared enemy bonus | Filter with `_is_nation_eliminated()` |
+
+**Note:** `vassal.py:549` (rebellion cascade) and `diplomatic_advisory.py:696` (alliance listing) are lower priority — rebellion checks against eliminated nations are no-ops, and advisory is informational only. Include if time permits.
+
+### Design Decision: Player Nation
+
+`get_active_nations()` always includes `self.player_nation` even if the player has 0 regions (game-over state should be handled separately, not by silently dropping the player from processing loops).
+
+### Files
+
+| File | Change |
+|------|--------|
+| `backend/models/world_state.py` | Add `get_active_nations()` + `get_all_nations()`, update 4 iteration sites |
+| `backend/game_logic/diplomacy.py` | Update 4 iteration sites (includes DLF-7) |
+| `backend/game_logic/ai_diplomacy.py` | Update 1 iteration site |
+| `backend/game_logic/diplomatic_ledger.py` | Update 2 iteration sites |
+| `backend/game_logic/vassal.py` | Update 2 iteration sites |
+
+### Tests
+
+- `get_active_nations()` excludes nations with 0 regions
+- `get_active_nations()` always includes player nation
+- `get_active_nations()` includes nations with 1+ regions
+- Eliminated nation not processed in manpower regen
+- Eliminated nation not processed in income phase
+- Eliminated nation not shown in diplomatic ledger Nations tab
+- Eliminated nation not counted in vassal loyalty shared enemy bonus
+- Eliminated nation not pulled into war declaration relation penalties
+- Eliminated nation not pulled into defensive cascade (DLF-7 test, moved here)
+
+---
+
+## DLF-12: AI Movement Selection Missing Diplomatic Permission Checks (13 Sites)
+
+**Bug:** `enemy_ai.py` never imports or calls `can_enter_territory()` from `diplomacy.py`. All 13 movement-selection code paths pick destinations based on enemy presence, distance, and controller ownership — but never validate whether the AI nation has diplomatic permission to enter the target region. The movement executor (`movement_executor.py:196`) correctly rejects illegal moves, so the game doesn't break, but the AI wastes its action for the turn.
+
+### Affected Sites
+
+| Line Range | Context | Existing Checks | Missing |
+|------------|---------|-----------------|---------|
+| 1629-1653 | P6.5 supply relocation | `controller != nation` skip | `can_enter_territory` |
+| 2543-2574 | P3 capital recapture pathing | `is_at_war`, enemies list | `can_enter_territory` for intermediate steps |
+| 2869-2896 | P4.75 ally support movement | enemies list only | `can_enter_territory` |
+| 2940-2978 | P7.5 stagnation escape | `is_at_war` on enemies only | `can_enter_territory` |
+| 3379-3398 | P7 artillery repositioning | `is_at_war` on enemies only | `can_enter_territory` |
+| 3414-3446 | P7 aggressive movement | `is_at_war` on enemies, visited set | `can_enter_territory` |
+| 3465-3504 | P7 cautious fallback | `is_at_war` on enemies, `controller==nation` bonus | `can_enter_territory` for non-own regions |
+| 3523-3577 | P7 cautious advance | `is_at_war` on enemies, `controller==nation` fallback | `can_enter_territory` for non-own regions |
+| 3784-3820 | P0 retreat destination | `controller==nation` preferred, fallback any | `can_enter_territory` for fallback |
+| 5094-5119 | P4.6 coordinated attack staging | `is_at_war` on enemies only | `can_enter_territory` |
+| 5197-5237 | P4.78 defensive reinforcement | `is_at_war` on enemies only | `can_enter_territory` |
+
+**Note:** P4.5 undefended capture (~line 2603) and P4.25 garrison assault (~line 2694) already check `is_at_war(nation, adj_region.controller)` which is sufficient for adjacent attack targets — no change needed.
+
+### Fix: Centralized Helper
+
+Add a validation helper at the top of `enemy_ai.py` to avoid repeating the check 13 times:
+
+```python
+from backend.game_logic.diplomacy import can_enter_territory
+
+def _can_ai_move_to(world, nation: str, region_name: str) -> bool:
+    """Check if AI nation can legally move into a region.
+
+    Returns True if:
+    - Region is controlled by this nation (own territory)
+    - Region is Neutral
+    - Nation has diplomatic permission (OPEN_BORDERS+, or WAR)
+    """
+    region = world.get_region(region_name)
+    if not region:
+        return False
+    controller = getattr(region, 'controller', None)
+    if not controller or controller == "Neutral" or controller == nation:
+        return True
+    return can_enter_territory(world, nation, controller)
+```
+
+Then add a single line at the top of each adjacent-region loop:
+
+```python
+for adj_name in marshal_region.adjacent_regions:
+    if not _can_ai_move_to(world, nation, adj_name):
+        continue
+    # ... existing logic ...
+```
+
+### Site-by-Site Application
+
+For each of the 13 sites, insert the check as the **first filter** in the adjacent region loop, before any enemy presence or distance checks. This ensures diplomatically blocked regions are eliminated immediately.
+
+**Special cases:**
+- **Capital recapture (line 2543):** The destination itself may be enemy territory (the captured capital). Only filter intermediate movement steps, not the final target assessment.
+- **Retreat (line 3784):** Apply to the fallback loop (line 3808-3816) only — the preferred loop already filters to `controller==nation`.
+- **Coordinated attack staging (line 5094):** Uses `move_adj` variable name instead of `adj_name`.
+
+### Files
+
+| File | Change |
+|------|--------|
+| `backend/ai/enemy_ai.py` | Add `_can_ai_move_to()` helper, add check to 13 movement selection sites |
+
+### Tests
+
+- AI skips regions controlled by PEACE-state nations
+- AI can move through OPEN_BORDERS territories
+- AI can move through WAR territories (attack positioning)
+- AI can move through own-controlled regions
+- AI can move through Neutral regions
+- AI retreat doesn't target diplomatically blocked regions (fallback path)
+- AI doesn't get stuck when all adjacent regions are blocked (falls through to HOLD)
+- AI coordinated staging respects diplomatic permissions
+- AI artillery repositioning respects diplomatic permissions
+
+---
+
 ## Scaling Notes (Not Bugs — Future Work)
 
 These are not bugs in the current 5-nation game but will need attention for the full Europe map:
@@ -411,18 +683,16 @@ These are not bugs in the current 5-nation game but will need attention for the 
 - **O(n²) adjacency rivalry + relation drift** in `ai_diplomacy.py` and `diplomacy.py` runs every turn for all nation pairs. ~10 pairs at 5 nations, ~105 pairs at 15 nations, with nested region adjacency checks. Will need caching or batching.
 - **CONTINENTAL_SYSTEM mission** is defined in `MISSION_DP_COSTS` only — no keywords, no effects, no description. Pure skeleton. Implement or remove.
 - **Auto-downgrade + opportunistic downgrade race condition** — both `check_auto_downgrade()` (diplomacy.py) and `_process_ai_ai_rivalry()` (ai_diplomacy.py) can target the same AI-AI pair in the same turn, potentially double-downgrading. Low risk at 5 nations but worth auditing when scaling.
+- **Schwarzenberg + Reynier placeholder abilities** — `marshal.py:1662` (coalition coordination) and `marshal.py:1686` (Saxon Discipline) have "No mechanical effect (placeholder)" despite their systems (coalition, vassal) being implemented. Defer wiring until 1805 map with full roster.
 
 ---
 
 ## Implementation Order
 
-**Session 1 — Quick fixes (DLF-1, DLF-3, DLF-7, DLF-8):**
-All small, independent, backend-only (DLF-3 has a minor Godot change). ~8 tests.
+**Session A — Fixes + filtering + missions (DLF-1, 3, 4, 5, 7, 8, 9, 10, 11):**
+Quick fixes: DLF-1 (vassalizable icon), DLF-3 (relations scaling + minor Godot change), DLF-8 (VASSAL exclusion), DLF-9 (P3 upgrade path), DLF-10 (armistice gating). Eliminated nation filtering: DLF-11 adds `get_active_nations()` to WorldState + updates 13 iteration sites across 5 files (subsumes DLF-7). Mission fixes: DLF-4 (COURT_NATION blowback RNG + events), DLF-5 (GATHER_INTEL `intel_grants` field + visibility integration). ~35 tests.
 
-**Session 2 — Mission fixes (DLF-4, DLF-5):**
-Both in `_process_mission_effects()`. DLF-4 is RNG + events. DLF-5 is new `intel_grants` field + visibility integration. ~12 tests.
+**Session B — AI permissions + UNDERMINE_ALLIANCE (DLF-12, DLF-2). Opus session:**
+DLF-12 supersedes DLF-6 (13 sites, not 4). Add `_can_ai_move_to()` helper + 13 insertion points in `enemy_ai.py`. DLF-2 is the largest item: ally-selection dialogue, `target_pair` storage, per-turn processing, auto-cancel, tracker display. ~24 tests.
 
-**Session 3 — AI + dialogue (DLF-6, DLF-2):**
-DLF-6 is enemy_ai.py border checks (4 code paths). DLF-2 is the largest item: dialogue follow-up, target_pair storage, per-turn processing, tracker display. ~15 tests.
-
-**Estimated total: ~35 new tests across 3 sessions.**
+**Estimated total: ~59 new tests across 2 sessions.**
