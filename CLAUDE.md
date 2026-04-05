@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — IN PROGRESS.** 32 consolidated bugs across 8 sessions. See `docs/BUG_FIXES.md`.
+- **Bug Fixes — IN PROGRESS.** 25 open bugs across 9 sessions (~118 tests). 8 closed by audit. See `docs/BUG_FIXES.md`.
 - **Design Refinement — AFTER BUG FIXES.** 9 items ready + 25 need design gates. See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.

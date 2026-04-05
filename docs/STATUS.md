@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 5, 2026 (Doc consolidation — created BUG_FIXES.md (32 bugs from 5 source docs) + DESIGN_REFINEMENT.md (34 design items). Simplified STATUS.md Next Steps from ~60 lines to ~20 lines)
+> **Last Updated:** April 5, 2026 (BUG_FIXES.md audit — closed 8 bugs (C1-C3, M1, M3, N2, B3, B4), expanded DLF-11 to 23 sites, confirmed PT-5/m3 root causes. 25 bugs remain across 9 sessions)
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### Current: Bug Fixes
 
-Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 32 bugs consolidated from 5 source docs (playtest reviews, diplo ledger audit, design fixes). ~8 sessions, ~165 new tests estimated.
+Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 25 open bugs (0 P0, 13 P1, 8 P2, 4 P3). 8 bugs closed by audit (C1-C3 fixed, M1/N2 fixed, M3 by-design, B3 rejected, B4 design-gated). ~9 sessions, ~118 new tests estimated. Each session has a self-contained briefing in BUG_FIXES.md — clear context and paste.
 
 ### Then: Design Refinement
 

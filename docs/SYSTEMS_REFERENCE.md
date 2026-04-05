@@ -2361,7 +2361,9 @@ new_morale = int((old_strength * old_morale + 10000 * RECRUIT_MORALE) / (old_str
 - `[WARNING]` when new morale < 40%: "consider drilling before battle"
 - `[DANGER]` when new morale < 25%: "troops may break in combat"
 
-**Key code:** `executor.py::_execute_recruit()`, `executor.py::_calculate_recruit_cost()`
+**Unit-type lock (BY DESIGN):** Marshals always recruit their own unit type — `artillery=True` marshals recruit artillery, `cavalry=True` recruit cavalry, all others recruit infantry. Player cannot override this. Berthier returns a soft correction message if the player specifies a different type. This is intentional: marshal identity is tied to unit type (Drouot is *the* artillery marshal, Ney is *the* cavalry marshal). This is NOT a bug.
+
+**Key code:** `economy_executor.py::_execute_recruit()`, `economy_executor.py::_calculate_recruit_cost()`
 
 ### Plunder/Secure Capture Choice (Phase 6.2.E)
 
