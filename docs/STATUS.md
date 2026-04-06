@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Bug Fix Session 5 complete — all 12 remaining bugs fixed: m1 trust parse, m2 counter-punch dedup, m3 bombardment morale floor, m4 adjacent route, PT-3 emoji replacement, PT-6 AP warning, PT-7 streak dead code removal, DLF-8 VASSAL downgrade, DLF-10 VASSAL armistice, B1 fortify caps, B2 supply caps, N3 friction verified. 36 new tests. 0 bugs remain.)
+> **Last Updated:** April 6, 2026 (Bug Fix spec audit complete — PL-5/6/7 playtest bugs spec'd with 8 sub-bugs, 2-session implementation plan. Session 7: backend cooldowns + dedup + type-aware harsh terms. Session 8: proposal result popup. See `docs/BUG_FIXES.md`.)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7890** (7890 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes COMPLETE** — all bugs resolved. Next: `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
+| **Current Phase** | **Bug Fixes — 3 open (PL-5/6/7).** Session 7 (backend) + Session 8 (popup) planned. See `docs/BUG_FIXES.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,13 @@
 
 ## Next Steps
 
-### Immediate: Playtest Bug Fix Session 5
+### Immediate: Bug Fix Session 7 — Backend Cooldowns (PL-5 Part B+C, PL-6, PL-7)
 
-6 items in `docs/DIPLOMACY_PLAYTEST.md` Section Z need manual verification in Godot: bombardment morale floor (Z1), emoji text markers (Z2), Wellington defense reduction (Z3), supply attrition reduction (Z4), AP warning (Z5), "trust" parse (Z6). Quick pass — most are visual confirmation only.
+Pure Python fixes for diplomacy race condition + nonsensical harsh terms. ~16 tests estimated. See `docs/BUG_FIXES.md` implementation plan.
+
+### Then: Bug Fix Session 8 — Proposal Result Popup (PL-5 Part A)
+
+Backend + Godot popup so proposal results aren't buried in dispatch text. ~4 tests + manual verification.
 
 ### Then: Design Refinement
 
@@ -36,7 +40,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes~~ — Sessions 1-5 COMPLETE. All bugs resolved (0 remaining). 154 tests across 5 sessions.
+- ~~Bug Fixes Sessions 1-6~~ — 28 bugs resolved, 163 tests. 3 new playtest bugs (PL-5/6/7) open — Sessions 7-8 planned.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests
