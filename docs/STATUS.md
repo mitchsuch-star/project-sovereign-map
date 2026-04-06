@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 5, 2026 (BUG_FIXES.md audit — closed 8 bugs (C1-C3, M1, M3, N2, B3, B4), expanded DLF-11 to 23 sites, confirmed PT-5/m3 root causes. 25 bugs remain across 9 sessions)
+> **Last Updated:** April 5, 2026 (Bug Fix Session 1 complete — DLF-11 fixed (23 eliminated-nation sites, `get_active_nations()` helper). DESIGN_REFINEMENT.md updated with 7 recovered items from archives (War Objectives, Vassalage Power Cap, Forced Alliance, Liberation, N1/A3/A4). 24 bugs remain across 8 sessions)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7755** (7755 passed, 1 skipped) |
+| **Tests Passing** | **7791** (7791 passed, 1 skipped) |
 
 | **Current Phase** | **Bug Fixes** — iterating `docs/BUG_FIXES.md` until clean, then `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
@@ -21,11 +21,11 @@
 
 ### Current: Bug Fixes
 
-Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 25 open bugs (0 P0, 13 P1, 8 P2, 4 P3). 8 bugs closed by audit (C1-C3 fixed, M1/N2 fixed, M3 by-design, B3 rejected, B4 design-gated). ~9 sessions, ~118 new tests estimated. Each session has a self-contained briefing in BUG_FIXES.md — clear context and paste.
+Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 24 open bugs (0 P0, 12 P1, 8 P2, 4 P3). Session 1 (DLF-11) COMPLETE. Next: Session 2 (DLF-7 cascade filter + DLF-12 AI movement permission, ~12 tests). ~8 sessions remaining, ~101 new tests estimated. Each session has a self-contained briefing in BUG_FIXES.md.
 
 ### Then: Design Refinement
 
-Once playtesting confirms stability, move to `docs/DESIGN_REFINEMENT.md`. 9 refinement items ready for implementation (Wave 3 remaining). 25 additional items need design gates.
+Once playtesting confirms stability, move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation, 4 War System Overhaul (EU4-inspired), 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
 ### Independent Tracks
 
