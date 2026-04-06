@@ -11,6 +11,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 5. **Enemy AI uses SAME executor as player** (Building Blocks principle — same systems, different input values. See `docs/SYSTEMS_REFERENCE.md` §23).
 6. **LLM never affects mechanics** — parsing only, executor is deterministic.
 7. **Port 8005** (not 8000!) — change in BOTH `backend/main.py` AND `godot-client/.../api_client.gd`.
+8. **Scale-ready code: NO per-region scans in hot paths** — Map is scaling to full 1805 Europe. Never iterate `world.regions.values()` in loops called multiple times per turn. Use cached helpers (e.g. `get_active_nations()` is per-turn cached, `get_nation_regions()` for region lookups). If adding a new helper that scans regions, cache the result per-turn and invalidate via `invalidate_active_nations_cache()` pattern.
 
 ## Current Phase
 
@@ -338,6 +339,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Skip AP check before objection evaluation — player should never see objection then AP failure
 - Use `get_enemies_of_nation()` for player-facing queries — use `get_visible_enemies()` instead (R5). `get_enemies_of_nation()` is omniscient and leaks fog
 - Add a new nation without updating `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py` (falls back to defaults but loses nation-specific intelligence). See `docs/ADDING_CONTENT.md` validation checklist
+- Iterate `world.regions.values()` in hot paths without caching — map is scaling to full 1805 Europe. Use `get_active_nations()` (cached), `get_nation_regions()`, or add per-turn caching for new helpers
+- Use `[world.player_nation] + list(world.enemy_nations)` for nation loops — use `world.get_active_nations()` instead (DLF-11: filters eliminated nations, cached per-turn)
 
 ---
 

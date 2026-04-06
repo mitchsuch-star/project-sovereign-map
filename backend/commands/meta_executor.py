@@ -819,6 +819,7 @@ RETREAT RECOVERY (3 turns):
                 region.controller = None
             else:
                 region.controller = nation.capitalize()
+            world.invalidate_active_nations_cache()
             new_ctrl = region.controller or "none"
             return {"success": True, "message": f"DEBUG: {region_name} controller: {old_ctrl} -> {new_ctrl}"}
 

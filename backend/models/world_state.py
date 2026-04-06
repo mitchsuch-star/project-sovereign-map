@@ -716,11 +716,25 @@ class WorldState:
         DLF-11: Use this instead of raw [player_nation] + enemy_nations
         to avoid processing eliminated nations in game logic loops.
         Vassals are always considered active even with 0 regions.
+
+        Cached per-turn — call invalidate_active_nations_cache() on region capture.
         """
+        cache = getattr(self, '_active_nations_cache', None)
+        cache_turn = getattr(self, '_active_nations_cache_turn', -1)
+        if cache is not None and cache_turn == self.current_turn:
+            return list(cache)
+
         from backend.game_logic.diplomacy import _is_nation_eliminated
         vassals = set(getattr(self, 'vassals', {}).keys())
         all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
-        return [n for n in all_nations if n in vassals or not _is_nation_eliminated(self, n)]
+        result = [n for n in all_nations if n in vassals or not _is_nation_eliminated(self, n)]
+        self._active_nations_cache = result
+        self._active_nations_cache_turn = self.current_turn
+        return list(result)
+
+    def invalidate_active_nations_cache(self):
+        """Clear get_active_nations() cache. Call after region controller changes."""
+        self._active_nations_cache = None
 
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
@@ -1555,6 +1569,7 @@ class WorldState:
 
         old_controller = region.controller
         region.controller = capturing_nation
+        self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
 
         # R16: +2 threat per captured region (non-starting territory, France only)
@@ -4632,6 +4647,8 @@ class WorldState:
                     region.controller = to_nation
                     region.stability = 50
                     transferred_count += 1
+                if transferred_count > 0:
+                    self.invalidate_active_nations_cache()
                 # Coalition threat: +8 per region ACTUALLY annexed by France (§2a)
                 if to_nation == self.player_nation and transferred_count > 0:
                     from backend.game_logic.coalition import add_threat
@@ -5793,6 +5810,7 @@ class WorldState:
                         ]
                         if not remaining and not cap_region.has_building("fortification"):
                             cap_region.controller = marshal.nation
+                            self.invalidate_active_nations_cache()
                             conquered = True
                             conquest_msg = f" {auto_charge_battle_region} captured by {marshal.nation}!"
 
