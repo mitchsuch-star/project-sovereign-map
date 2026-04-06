@@ -104,8 +104,8 @@ class TestFortifyHint:
 class TestContinuousAttritionFormula:
     """Task 2: Continuous attrition formula min(0.03, excess_ratio * 0.015)."""
 
-    def test_town_supply_base_is_25k(self):
-        assert SUPPLY_BY_TYPE["town"] == 25000
+    def test_town_supply_base_is_35k(self):
+        assert SUPPLY_BY_TYPE["town"] == 35000
 
     def test_capital_supply_unchanged(self):
         assert SUPPLY_BY_TYPE["capital"] == 50000
@@ -161,21 +161,21 @@ class TestContinuousAttritionFormula:
         # Grouchy now starts at Lyon; move him to Belgium for this test
         world.marshals["Grouchy"].location = "Belgium"
         # Ney 72k + Grouchy 28k in Belgium = 100k total
-        # Belgium: town (25k) * plains (1.0) = 25k, home 1.5x = 37.5k
-        # excess = (100k - 37.5k) / 37.5k = 1.667
-        # attrition = min(0.03, 1.667 * 0.015) = 0.025
-        # Ney: int(72000 * 0.025) = 1800
-        # Grouchy: int(28000 * 0.025) = 700
+        # Belgium: town (35k) * plains (1.0) = 35k, home 1.5x = 52.5k
+        # excess = (100k - 52.5k) / 52.5k = 0.9048
+        # base_attrition = min(0.03, 0.9048 * 0.015) = 0.01357
+        # Session 8 stacking penalty: +1% per marshal beyond 1st
+        # attrition = 0.01357 + 0.01 = 0.02357
+        # Ney: int(72000 * 0.02357) = 1697
+        # Grouchy: int(28000 * 0.02357) = 660
         events = world.process_supply_attrition()
         belgium_events = [e for e in events if e["region"] == "Belgium"]
         ney_ev = [e for e in belgium_events if e["marshal"] == "Ney"]
         grouchy_ev = [e for e in belgium_events if e["marshal"] == "Grouchy"]
         assert len(ney_ev) == 1
         assert len(grouchy_ev) == 1
-        # Session 8 stacking penalty: +1% per marshal beyond 1st
-        # attrition = min(0.03, 1.667*0.015) + 0.01 = 0.035
-        assert ney_ev[0]["losses"] == 2520  # int(72000 * 0.035)
-        assert grouchy_ev[0]["losses"] == 980  # int(28000 * 0.035)
+        assert ney_ev[0]["losses"] == 1697  # int(72000 * 0.02357)
+        assert grouchy_ev[0]["losses"] == 660  # int(28000 * 0.02357)
 
 
 # ════════════════════════════════════════════════════════════

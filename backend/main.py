@@ -645,6 +645,31 @@ def execute_command(request: CommandRequest):
                 if "Please choose an option" in msg:
                     result = executor.execute(parsed, game_state)
         else:
+            # m1: Dialogue keywords typed with no active dialogue — clear message
+            raw_lower_check = request.command.lower().strip()
+            # Only keywords that are NEVER valid game commands.
+            # Excludes: cancel (strategic order cancel), garrison, more, execute, start, yes, no
+            _DIALOGUE_ONLY_KEYWORDS = [
+                "accept", "reject", "decline", "counter",
+                "proceed", "confront", "overlook",
+                "apologize", "replace", "reconsider", "modify",
+                "honor", "side", "dismiss",
+                "harsh", "generous", "adjust",
+                "elaborate", "review", "consider",
+                "begin", "trust",
+                "agree", "never mind",
+            ]
+            if raw_lower_check in _DIALOGUE_ONLY_KEYWORDS:
+                return build_base_response(
+                    world, success=False,
+                    message="Berthier: \"There is no pending diplomatic matter to respond to, Sire.\"",
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
+
             # ════════════════════════════════════════════════════════════
             # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
             # with in-character Berthier clarification. Only fires for

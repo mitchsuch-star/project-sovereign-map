@@ -5200,7 +5200,7 @@ class WorldState:
                         "nation": marshal.nation,
                         "stage": new_stage,
                         "turns_left": turns_left,
-                        "message": f"💀 {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready."
+                        "message": f"[BROKEN] {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready."
                     })
 
                     # Check if fully recovered
@@ -5212,7 +5212,7 @@ class WorldState:
                             "type": "broken_recovered",
                             "marshal": marshal.name,
                             "nation": marshal.nation,
-                            "message": f"🎉 {marshal.name}'s army has been rebuilt and is combat ready!"
+                            "message": f"{marshal.name}'s army has been rebuilt and is combat ready!"
                         })
                         # Log marshal_recovered event
                         self.log_event({
@@ -5245,7 +5245,7 @@ class WorldState:
                             "type": "cavalry_restless_warning",
                             "marshal": marshal.name,
                             "turns": 3,
-                            "message": f"⚠️ {marshal.name}'s horses grow restless in defensive stance (3 turns - will auto-switch next turn)"
+                            "message": f"[!] {marshal.name}'s horses grow restless in defensive stance (3 turns - will auto-switch next turn)"
                         })
                 else:
                     marshal.turns_in_defensive_stance = 0  # Reset if not in defensive stance
@@ -5260,7 +5260,7 @@ class WorldState:
                             "type": "cavalry_restless_warning",
                             "marshal": marshal.name,
                             "turns": 3,
-                            "message": f"⚠️ {marshal.name}'s cavalry cannot hold fortifications (3 turns - will auto-unfortify next turn)"
+                            "message": f"[!] {marshal.name}'s cavalry cannot hold fortifications (3 turns - will auto-unfortify next turn)"
                         })
                 else:
                     marshal.turns_fortified = 0  # Reset if not fortified
@@ -5302,7 +5302,7 @@ class WorldState:
                         "type": "counter_punch_expired",
                         "marshal": marshal.name,
                         "nation": marshal.nation,
-                        "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
+                        "message": f"[!] {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
                     })
                 else:
                     debug_print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
@@ -5455,7 +5455,7 @@ class WorldState:
                     "type": "trust_warning",
                     "marshal": marshal.name,
                     "trust": int(trust_val),
-                    "message": f"⚠️ {marshal.name}'s trust is faltering ({int(trust_val)}). Consider giving them more independence."
+                    "message": f"[!] {marshal.name}'s trust is faltering ({int(trust_val)}). Consider giving them more independence."
                 })
                 debug_print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
 
@@ -5507,7 +5507,7 @@ class WorldState:
                     "action": "stance_change",
                     "from_stance": "defensive",
                     "to_stance": "aggressive",
-                    "message": f"🐴 {marshal.name}'s horses are too restless! Cavalry cannot hold defensive positions.\n"
+                    "message": f"[Cavalry] {marshal.name}'s horses are too restless! Cavalry cannot hold defensive positions.\n"
                               f"(Auto-switched to AGGRESSIVE stance. Trust: -3 for misusing cavalry)"
                 })
 
@@ -5532,7 +5532,7 @@ class WorldState:
                     "marshal": marshal.name,
                     "nation": marshal.nation,
                     "action": "unfortify",
-                    "message": f"🐴 {marshal.name}'s cavalry abandons fortifications! Horses cannot dig trenches.\n"
+                    "message": f"[Cavalry] {marshal.name}'s cavalry abandons fortifications! Horses cannot dig trenches.\n"
                               f"(Auto-unfortified. Trust: -3 for misusing cavalry)"
                 })
 
@@ -5595,7 +5595,7 @@ class WorldState:
                     "marshal": marshal.name,
                     "nation": marshal.nation,
                     "recklessness": recklessness,
-                    "message": f"🐴🔥 {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
+                    "message": f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
                 })
                 continue
 
@@ -5901,10 +5901,10 @@ class WorldState:
 
                 if charge_blocked:
                     terrain_name = auto_charge_terrain.replace("_", " ").title()
-                    charge_header = (f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n"
-                                    f"⛔ {terrain_name} terrain blocks the cavalry charge — attacking without charge bonus!\n\n")
+                    charge_header = (f"[Cavalry][Combat] AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n"
+                                    f"[Blocked] {terrain_name} terrain blocks the cavalry charge — attacking without charge bonus!\n\n")
                 else:
-                    charge_header = f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
+                    charge_header = f"[Cavalry][Combat] AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
 
                 if charge_blocked:
                     reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness unchanged ({recklessness})[/color]"
@@ -5967,7 +5967,7 @@ class WorldState:
                             "type": "reckless_blocked",
                             "marshal": marshal.name,
                             "recklessness": recklessness,
-                            "message": f"🐴⚠️ {marshal.name} wants to ride toward {enemy.name} but "
+                            "message": f"[Cavalry][!] {marshal.name} wants to ride toward {enemy.name} but "
                                        f"{next_region} is controlled by {next_region_obj.controller} — "
                                        f"diplomatic restrictions prevent entry!"
                         })
@@ -6003,7 +6003,7 @@ class WorldState:
                         "target": enemy.name,
                         "recklessness": recklessness,
                         "remaining_distance": remaining_distance,
-                        "message": f"🐴🔥 {marshal.name} rides out seeking battle! (Recklessness: {recklessness})\n"
+                        "message": f"[Cavalry][!] {marshal.name} rides out seeking battle! (Recklessness: {recklessness})\n"
                                   f"Auto-moved: {old_location} → {next_region} (toward {enemy.name})\n"
                                   f"[FREE ACTION - {remaining_distance} region(s) to target]"
                     })
@@ -6028,7 +6028,7 @@ class WorldState:
                         "type": "reckless_blocked",
                         "marshal": marshal.name,
                         "recklessness": recklessness,
-                        "message": f"🐴⚠️ {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
+                        "message": f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
                                   f"The cavalry strains at the bit but is blocked."
                     })
 

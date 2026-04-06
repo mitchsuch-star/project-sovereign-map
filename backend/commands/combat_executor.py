@@ -736,16 +736,24 @@ class CombatExecutor:
         player_nation = getattr(world, 'player_nation', 'France')
 
         # Counter-punch earned: defender earned a free attack
+        # m2: Dedup — only one counter-punch notification per marshal per turn
         if battle_result.get("counter_punch_earned"):
             if getattr(defender, 'nation', '') == player_nation:
-                world.notifications.add(create_notification(
-                    notification_type=COUNTER_PUNCH_EARNED,
-                    priority=NotificationPriority.HIGH,
-                    title=f"{defender.name} — free attack!",
-                    message=f"{defender.name} earned a free attack from their defensive victory. Use within 2 turns or the opportunity expires.",
-                    turn_created=int(world.current_turn),
-                    details={"marshal": defender.name},
-                ))
+                already_has = any(
+                    n.get("type") == COUNTER_PUNCH_EARNED
+                    and n.get("details", {}).get("marshal") == defender.name
+                    and n.get("turn_created") == int(world.current_turn)
+                    for n in world.notifications.get_pending()
+                )
+                if not already_has:
+                    world.notifications.add(create_notification(
+                        notification_type=COUNTER_PUNCH_EARNED,
+                        priority=NotificationPriority.HIGH,
+                        title=f"{defender.name} — free attack!",
+                        message=f"{defender.name} earned a free attack from their defensive victory. Use within 2 turns or the opportunity expires.",
+                        turn_created=int(world.current_turn),
+                        details={"marshal": defender.name},
+                    ))
 
         # Drill cancelled: defender's drill training destroyed
         if battle_result.get("drill_cancelled"):
@@ -983,7 +991,7 @@ class CombatExecutor:
                     game_state=world
                 )
                 if vindication_result:
-                    pipeline_out['vindication_msg'] = f"\n\n📜 {vindication_result['message']}"
+                    pipeline_out['vindication_msg'] = f"\n\n[Vindication] {vindication_result['message']}"
                     pipeline_out['vindication_result'] = vindication_result
 
         # ── 12. Authority: major victory / defeat ──
@@ -1349,10 +1357,6 @@ class CombatExecutor:
                     ))
                 marshal.strategic_order = None
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
-            # Clear artillery bombardment state — forced retreat breaks sustained fire
-            if getattr(marshal, 'artillery', False):
-                marshal.last_bombardment_target = None
-                marshal.bombardment_streak = 0
             # Movement attrition on forced retreat (Phase 6.2.F) — halved rate
             forced_retreat_attrition = self._executor._calculate_movement_attrition(marshal, retreat_to, world, is_retreat=True)
             marshal.retreating = True
@@ -1369,7 +1373,7 @@ class CombatExecutor:
                 "from": old_loc,
                 "to": retreat_to,
             })
-            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for 3 turns)"
+            return f"[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for 3 turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -1433,7 +1437,7 @@ class CombatExecutor:
                 "location": old_loc,
             })
             return (
-                f"💀 {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
+                f"[BROKEN] {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
                 f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}.{strategic_msg} "
                 f"Army is BROKEN - can only recruit for 4 turns!"
             )
@@ -1476,11 +1480,6 @@ class CombatExecutor:
         base_rate = 0.04  # 4% of defender's strength
         shock_skill = marshal.get_effective_skill("shock")
         damage_multiplier = 1.0 + (shock_skill / 15.0)
-
-        # DIMINISHING RETURNS HOOK (not active — see §14)
-        # streak = marshal.bombardment_streak
-        # if streak >= 5: damage_multiplier *= 0.50
-        # elif streak >= 3: damage_multiplier *= 0.75
 
         # SQUARE FORMATION (Session 67): +50% bombardment damage vs packed square
         square_bombardment_bonus = 1.0
@@ -1527,6 +1526,9 @@ class CombatExecutor:
         if getattr(defender, 'square_formation', False):
             bombardment_morale -= 15
         defender.adjust_morale(bombardment_morale)
+        # m3: Floor morale at forced-retreat threshold — bombardment alone shouldn't collapse armies
+        if defender.morale < FORCED_RETREAT_THRESHOLD:
+            defender.morale = FORCED_RETREAT_THRESHOLD
 
         # Capture target location before defender might be broken/moved
         target_location = defender.location
@@ -1556,6 +1558,9 @@ class CombatExecutor:
                 if collateral_casualties > 0:
                     force.take_casualties(collateral_casualties)
                     force.adjust_morale(-1)
+                    # m3: Floor morale at forced-retreat threshold for collateral too
+                    if force.morale < FORCED_RETREAT_THRESHOLD:
+                        force.morale = FORCED_RETREAT_THRESHOLD
 
                     is_friendly = (force.nation == marshal.nation)
 
@@ -1606,15 +1611,6 @@ class CombatExecutor:
                     # Collateral target destroyed
                     if force.strength <= 0 and force.name in world.marshals:
                         self._apply_forced_retreat_or_break(force, marshal, world)
-
-        # ════════════════════════════════════════════════════════════
-        # BOMBARDMENT STREAK TRACKING
-        # ════════════════════════════════════════════════════════════
-        if target_location == getattr(marshal, 'last_bombardment_target', None):
-            marshal.bombardment_streak += 1
-        else:
-            marshal.last_bombardment_target = target_location
-            marshal.bombardment_streak = 1
 
         # ════════════════════════════════════════════════════════════
         # INCREMENT COUNTERS
@@ -1863,7 +1859,7 @@ class CombatExecutor:
                 # Turn 1: Can attack but drill is cancelled
                 marshal.drilling = False
                 marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+                drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         # ════════════════════════════════════════════════════════════
         # ARTILLERY MOVEMENT CHECK: Can't attack on the turn artillery moved
@@ -1975,7 +1971,7 @@ class CombatExecutor:
                                 "blocked_target": resolved_target,
                                 "blocked_terrain": blocked_terrain_name,
                                 "message": (
-                                    f"🐴⛔ {marshal.name}'s blood is up (Recklessness: {recklessness}) "
+                                    f"[Cavalry][Blocked] {marshal.name}'s blood is up (Recklessness: {recklessness}) "
                                     f"but {blocked_terrain_name} terrain at {charge_target_marshal.location} "
                                     f"blocks the cavalry charge!\n\n"
                                     f"Alternative targets on open ground:\n{alt_text}\n\n"
@@ -2007,7 +2003,7 @@ class CombatExecutor:
                                 "marshal": marshal.name,
                                 "target": resolved_target,
                                 "recklessness": recklessness,
-                                "message": f"🐴 {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
+                                "message": f"[Cavalry] {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
                                           f"Choose:\n"
                                           f"• CHARGE: Execute Glorious Charge (2x damage dealt AND taken, resets recklessness)\n"
                                           f"• RESTRAIN: Normal attack (marshal may object next time)",
@@ -2101,8 +2097,6 @@ class CombatExecutor:
                         # [4A-1] Artillery: mark as moved (blocks attacking this turn)
                         if getattr(marshal, 'artillery', False):
                             marshal.moved_this_turn = True
-                            marshal.last_bombardment_target = None
-                            marshal.bombardment_streak = 0
 
                         # [4A-1] Reset idle tracking
                         marshal.idle_turns = 0
@@ -2541,14 +2535,14 @@ class CombatExecutor:
                 enemy_marshal = covering_ally  # Swap defender
 
                 covering_message = (
-                    f"🛡️ {covering_ally.name} steps forward to cover {original_target.name}'s retreat! "
+                    f"[Shield] {covering_ally.name} steps forward to cover {original_target.name}'s retreat! "
                     f"\"{original_target.name} is in no condition to fight - I'll handle this!\"\n\n"
                 )
                 print(f"  [ALLY COVER] {covering_ally.name} covers for retreating {original_target.name}")
             else:
                 # No covering ally - target is EXPOSED
                 covering_message = (
-                    f"⚠️ {enemy_marshal.name} is EXPOSED! (Just retreated, no ally to cover)\n\n"
+                    f"[!] {enemy_marshal.name} is EXPOSED! (Just retreated, no ally to cover)\n\n"
                 )
                 print(f"  [EXPOSED] {enemy_marshal.name} retreated and has no cover!")
 
@@ -2606,9 +2600,9 @@ class CombatExecutor:
                 # Transit intel: cavalry charging through middle region gets PARTIAL snapshot
                 if marshal.nation == world.player_nation:
                     world.update_intel_from_transit(middle, world.current_turn)
-                cavalry_charge_message = f"🐴 {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
+                cavalry_charge_message = f"[Cavalry] {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
             else:
-                cavalry_charge_message = f"🐴 {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
+                cavalry_charge_message = f"[Cavalry] {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
 
         # Read terrain from defender's region (defender chose this ground)
         defender_region = world.get_region(enemy_marshal.location)
@@ -2992,13 +2986,13 @@ class CombatExecutor:
                 if attacker_ability_name == "Pursuit Master" and getattr(marshal, 'cavalry', False):
                     pursuit_damage = 5000
                     pursuit_message = (
-                        f"🐴 {marshal.name}'s '{marshal.ability['name']}' — "
+                        f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
                         f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
                     )
                 elif attacker_ability_name == "Vorwärts!":
                     pursuit_damage = 3000
                     pursuit_message = (
-                        f"⚔️ {marshal.name}'s '{marshal.ability['name']}' — "
+                        f"[Combat] {marshal.name}'s '{marshal.ability['name']}' — "
                         f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
                     )
 
@@ -3549,17 +3543,6 @@ class CombatExecutor:
             marshal.increment_attacks_this_turn()
 
         # ════════════════════════════════════════════════════════════
-        # BOMBARDMENT STREAK TRACKING (Artillery Session 2)
-        # Track consecutive artillery attacks on same target region
-        # ════════════════════════════════════════════════════════════
-        if getattr(marshal, 'artillery', False):
-            if target_location == getattr(marshal, 'last_bombardment_target', None):
-                marshal.bombardment_streak += 1
-            else:
-                marshal.last_bombardment_target = target_location
-                marshal.bombardment_streak = 1
-
-        # ════════════════════════════════════════════════════════════
         # BERTHIER BOMBARDMENT ADVISORY (Artillery Session 2)
         # Alert when enemy fortifications are crumbling after bombardment
         # ════════════════════════════════════════════════════════════
@@ -3855,7 +3838,7 @@ class CombatExecutor:
             result["terrain"] = charge_region.terrain
             if result.get("success"):
                 result["message"] = (
-                    f"🐴⛔ {marshal.name}'s cavalry cannot charge in {terrain_name} terrain! "
+                    f"[Cavalry][Blocked] {marshal.name}'s cavalry cannot charge in {terrain_name} terrain! "
                     f"Attacking without charge bonus.\n\n{result.get('message', '')}"
                 )
             return result
@@ -4019,7 +4002,7 @@ class CombatExecutor:
         vindication_msg = pipeline_out.get('vindication_msg', '')
 
         # Build charge message - use "description" key from combat resolver
-        charge_message = f"🐴⚔️ GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
+        charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
         charge_message += combat_result.get("description", "")
         charge_message += enemy_destroyed_msg + movement_msg
         if forced_retreat_msg:

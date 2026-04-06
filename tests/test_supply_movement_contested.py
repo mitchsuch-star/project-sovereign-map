@@ -61,15 +61,15 @@ class TestSupplyCapacity:
         """City supply capacity."""
         world = fresh_world()
         milan = world.get_region("Milan")
-        # city = 30000 * urban 1.2 = 36000
-        assert milan.supply_capacity == 36000
+        # city = 40000 * urban 1.2 = 48000
+        assert milan.supply_capacity == 48000
 
     def test_town_supply_capacity(self):
         """Town supply capacity."""
         world = fresh_world()
         belgium = world.get_region("Belgium")
-        # town = 25000 * plains 1.0 = 25000
-        assert belgium.supply_capacity == 25000
+        # town = 35000 * plains 1.0 = 35000
+        assert belgium.supply_capacity == 35000
 
     def test_rural_supply_capacity(self):
         """Rural supply capacity — use Waterloo (rural, hills)."""
@@ -82,8 +82,8 @@ class TestSupplyCapacity:
         """Mountain terrain halves supply capacity."""
         world = fresh_world()
         tyrol = world.get_region("Tyrol")
-        # town = 25000 * mountains 0.5 = 12500
-        assert tyrol.supply_capacity == 12500
+        # town = 35000 * mountains 0.5 = 17500
+        assert tyrol.supply_capacity == 17500
 
     def test_supply_depot_adds_capacity(self):
         """Supply depot building adds 10,000 to base before terrain modifier."""
@@ -123,7 +123,7 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name != "Ney" and m.location == "Belgium":
                 m.location = "Lyon"
-        ney.strength = 15000  # Under Belgium's 25000 base cap (37500 with home bonus)
+        ney.strength = 15000  # Under Belgium's 35000 base cap (52500 with home bonus)
         events = world.process_supply_attrition()
         supply_events = [e for e in events if e["marshal"] == "Ney"]
         assert len(supply_events) == 0
@@ -135,7 +135,7 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name != "Ney" and m.location == "Belgium":
                 m.location = "Lyon"
-        ney.strength = 20000  # Under 37500 home bonus cap
+        ney.strength = 20000  # Under 52500 home bonus cap
         events = world.process_supply_attrition()
         supply_events = [e for e in events if e["marshal"] == "Ney"]
         assert len(supply_events) == 0
@@ -147,15 +147,15 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name != "Ney" and m.location == "Belgium":
                 m.location = "Lyon"
-        # Belgium base cap = 25000, home 1.5x = 37500.
-        # 45000 troops: excess_ratio = (45000-37500)/37500 = 0.2
-        # attrition = min(0.03, 0.2 * 0.015) = 0.003
-        # losses = int(45000 * 0.003) = 135
-        ney.strength = 45000
+        # Belgium base cap = 35000, home 1.5x = 52500.
+        # 60000 troops: excess_ratio = (60000-52500)/52500 = 0.14286
+        # attrition = min(0.03, 0.14286 * 0.015) = 0.002143
+        # losses = int(60000 * 0.002143) = 128
+        ney.strength = 60000
         events = world.process_supply_attrition()
         supply_events = [e for e in events if e["marshal"] == "Ney"]
         assert len(supply_events) == 1
-        assert supply_events[0]["losses"] == 135
+        assert supply_events[0]["losses"] == 128
 
     def test_moderate_excess_continuous(self):
         """Moderate excess over home cap: continuous attrition formula."""
@@ -164,15 +164,15 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name != "Ney" and m.location == "Belgium":
                 m.location = "Lyon"
-        # Belgium home cap = 37500. 55000 troops:
-        # excess_ratio = (55000-37500)/37500 = 0.4667
-        # attrition = min(0.03, 0.4667 * 0.015) = 0.007
-        # losses = int(55000 * 0.007) = 385
-        ney.strength = 55000
+        # Belgium home cap = 52500. 75000 troops:
+        # excess_ratio = (75000-52500)/52500 = 0.42857
+        # attrition = min(0.03, 0.42857 * 0.015) = 0.006429
+        # losses = int(75000 * 0.006429) = 482
+        ney.strength = 75000
         events = world.process_supply_attrition()
         supply_events = [e for e in events if e["marshal"] == "Ney"]
         assert len(supply_events) == 1
-        assert supply_events[0]["losses"] == 385
+        assert supply_events[0]["losses"] == 482
 
     def test_severe_excess_hits_cap(self):
         """Extreme excess hits the 3% attrition cap."""
@@ -181,15 +181,15 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name != "Ney" and m.location == "Belgium":
                 m.location = "Lyon"
-        # Belgium home cap = 37500. 120000 troops:
-        # excess_ratio = (120000-37500)/37500 = 2.2
-        # attrition = min(0.03, 2.2 * 0.015) = 0.03 (capped)
-        # losses = int(120000 * 0.03) = 3600
-        ney.strength = 120000
+        # Belgium home cap = 52500. 160000 troops:
+        # excess_ratio = (160000-52500)/52500 = 2.0476
+        # attrition = min(0.03, 2.0476 * 0.015) = 0.03 (capped)
+        # losses = int(160000 * 0.03) = 4800
+        ney.strength = 160000
         events = world.process_supply_attrition()
         supply_events = [e for e in events if e["marshal"] == "Ney"]
         assert len(supply_events) == 1
-        assert supply_events[0]["losses"] == 3600
+        assert supply_events[0]["losses"] == 4800
 
     def test_multiple_marshals_combined(self):
         """Multiple marshals in same region count together for supply check."""
@@ -199,27 +199,27 @@ class TestSupplyAttrition:
         for m in world.marshals.values():
             if m.name not in ("Ney", "Davout") and m.location == "Belgium":
                 m.location = "Lyon"
-        # Move both to Belgium (home cap = 37500)
-        ney.strength = 25000
+        # Move both to Belgium (home cap = 52500)
+        ney.strength = 35000
         davout.location = "Belgium"
-        davout.strength = 25000
-        # Total = 50000, home cap = 37500
-        # excess_ratio = (50000-37500)/37500 = 0.3333...
-        # base_attrition = min(0.03, 0.3333 * 0.015) = 0.005
+        davout.strength = 35000
+        # Total = 70000, home cap = 52500
+        # excess_ratio = (70000-52500)/52500 = 0.33333
+        # base_attrition = min(0.03, 0.33333 * 0.015) = 0.005
         # stacking_penalty = (2-1) * 0.01 = 0.01 (Session 8)
         # attrition = 0.005 + 0.01 = 0.015
-        # Each: int(25000 * 0.015) = 375
+        # Each: int(35000 * 0.015) = 525
         events = world.process_supply_attrition()
         belgium_events = [e for e in events if e["region"] == "Belgium"]
         assert len(belgium_events) == 2  # Both marshals affected
-        assert belgium_events[0]["losses"] == 375
-        assert belgium_events[1]["losses"] == 375
+        assert belgium_events[0]["losses"] == 525
+        assert belgium_events[1]["losses"] == 525
 
     def test_supply_attrition_runs_during_turn(self):
         """Supply attrition runs during turn resolution."""
         world = fresh_world()
         ney = world.get_marshal("Ney")
-        ney.strength = 50000  # Way over Belgium cap
+        ney.strength = 70000  # Way over Belgium home cap (52500)
         old_str = ney.strength
         world.advance_turn()
         # Should have lost troops to supply attrition

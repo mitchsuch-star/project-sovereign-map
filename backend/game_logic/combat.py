@@ -507,7 +507,7 @@ class CombatResolver:
         if glorious_charge:
             attacker_casualties = int(attacker_casualties * 2)
             defender_casualties = int(defender_casualties * 2)
-            glorious_charge_message = f"🐴⚔️ GLORIOUS CHARGE! {attacker.name}'s cavalry deals devastating damage - but exposes themselves! (2x casualties both ways)"
+            glorious_charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {attacker.name}'s cavalry deals devastating damage - but exposes themselves! (2x casualties both ways)"
 
         #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
@@ -660,9 +660,9 @@ class CombatResolver:
         # Add forced retreat message to description if applicable
         retreat_message = ""
         if attacker_forced_retreat:
-            retreat_message += f"\n\n⚠️ {attacker.name}'s troops are BROKEN (morale {int(attacker.morale)}%)! FORCED RETREAT!"
+            retreat_message += f"\n\n[!] {attacker.name}'s troops are BROKEN (morale {int(attacker.morale)}%)! FORCED RETREAT!"
         if defender_forced_retreat:
-            retreat_message += f"\n\n⚠️ {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
+            retreat_message += f"\n\n[!] {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
 
         # Victory flags (used by pursuit, recklessness, and result dict)
         attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
@@ -684,10 +684,10 @@ class CombatResolver:
 
             if attacker_ability_name == "Pursuit Master" and getattr(attacker, 'cavalry', False):
                 pursuit_damage = 5000
-                pursuit_message = f"🐴 {attacker.name}'s '{attacker.ability['name']}' — cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+                pursuit_message = f"[Cavalry] {attacker.name}'s '{attacker.ability['name']}' — cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
             elif attacker_ability_name == "Vorwärts!":
                 pursuit_damage = 3000
-                pursuit_message = f"⚔️ {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+                pursuit_message = f"[Combat] {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
 
             if pursuit_damage > 0 and defender.strength > 1000:
                 old_strength = defender.strength
@@ -726,18 +726,18 @@ class CombatResolver:
                 new_recklessness = getattr(attacker, 'recklessness', 0)
                 if new_recklessness > old_recklessness:
                     if new_recklessness == 1:
-                        recklessness_message = f"🐴 {attacker.name}'s blood is up! (Recklessness: {new_recklessness})"
+                        recklessness_message = f"[Cavalry] {attacker.name}'s blood is up! (Recklessness: {new_recklessness})"
                     elif new_recklessness == 2:
-                        recklessness_message = f"🐴 {attacker.name} is building momentum! (Recklessness: {new_recklessness})"
+                        recklessness_message = f"[Cavalry] {attacker.name} is building momentum! (Recklessness: {new_recklessness})"
                     elif new_recklessness == 3:
-                        recklessness_message = f"🐴⚠️ {attacker.name}'s recklessness is dangerous! Glorious Charge popup next attack. (Recklessness: {new_recklessness})"
+                        recklessness_message = f"[Cavalry][!] {attacker.name}'s recklessness is dangerous! Glorious Charge popup next attack. (Recklessness: {new_recklessness})"
                     else:  # 4+
-                        recklessness_message = f"🐴🔥 {attacker.name} is UNCONTROLLABLE! Will auto-charge at next turn start! (Recklessness: {new_recklessness})"
+                        recklessness_message = f"[Cavalry][!] {attacker.name} is UNCONTROLLABLE! Will auto-charge at next turn start! (Recklessness: {new_recklessness})"
             elif attacker_lost:
                 # Lost as attacker: reset
                 if old_recklessness > 0:
                     attacker.reset_recklessness()
-                    recklessness_message = f"🐴 {attacker.name}'s momentum broken by defeat. [color=#cd6b6b](Recklessness: {old_recklessness} → 0)[/color]"
+                    recklessness_message = f"[Cavalry] {attacker.name}'s momentum broken by defeat. [color=#cd6b6b](Recklessness: {old_recklessness} → 0)[/color]"
 
         if recklessness_message:
             retreat_message += f"\n\n{recklessness_message}"

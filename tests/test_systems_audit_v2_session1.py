@@ -69,8 +69,6 @@ class TestClearCombatTransientState:
         m.defense_bonus = 0.16
         m.turns_fortified = 3
         m.moved_this_turn = True
-        m.last_bombardment_target = "Berlin"
-        m.bombardment_streak = 3
         m.stance = Stance.AGGRESSIVE
         m.occupation_region = "Waterloo"
         m.occupation_turns_held = 2
@@ -92,8 +90,6 @@ class TestClearCombatTransientState:
         assert m.defense_bonus == 0
         assert m.turns_fortified == 0
         assert m.moved_this_turn is False
-        assert m.last_bombardment_target is None
-        assert m.bombardment_streak == 0
         assert m.stance == Stance.NEUTRAL
         assert m.occupation_region is None
         assert m.occupation_turns_held == 0

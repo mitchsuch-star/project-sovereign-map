@@ -1373,7 +1373,7 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                         })
 
             # Trigger 2: Opportunistic Downgrade — skip if fighting common enemy
-            if not both_at_war and relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE":
+            if not both_at_war and relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE" and state != "VASSAL":
                 pair_key = f"{nation_a}|{nation_b}"
                 if pair_key not in downgraded_this_turn:
                     troops_a = nation_troops.get(nation_a, 0)

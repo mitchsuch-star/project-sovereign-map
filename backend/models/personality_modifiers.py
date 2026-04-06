@@ -25,7 +25,7 @@ NEY_MODIFIERS = {
     "drill_shock_bonus": 0.05,  # +5% additional after drill (total +25% with drill's +20%)
 
     # Fortify limitations
-    "max_fortify_bonus": 0.10,  # Capped at 10% (not 15%)
+    "max_fortify_bonus": 0.08,  # B1: Capped at 8% (was 10%)
 
     # Trust modifiers (applied in disobedience system)
     "attack_order_trust_bonus": 1,  # +2 total (instead of +1)
@@ -50,7 +50,7 @@ DAVOUT_MODIFIERS = {
 
     # Fortify improvements
     "fortify_rate_bonus": 0.01,  # +1% per turn (total +3% instead of +2%)
-    "max_fortify_bonus": 0.20,  # 20% max (not 15%)
+    "max_fortify_bonus": 0.12,  # B1: 12% max (was 20%)
     "instant_fortify_bonus": 0.05,  # +5% on first fortify
 
     # Scout range bonus
@@ -211,11 +211,11 @@ def get_max_fortify_bonus(personality: str) -> float:
     mods = get_personality_modifiers(personality)
 
     if personality.lower() == "aggressive":
-        return mods.get("max_fortify_bonus", 0.10)  # Ney: capped at 10%
+        return mods.get("max_fortify_bonus", 0.08)  # Ney: capped at 8% (B1)
     elif personality.lower() == "cautious":
-        return mods.get("max_fortify_bonus", 0.20)  # Davout: up to 20%
+        return mods.get("max_fortify_bonus", 0.12)  # Davout: up to 12% (B1)
 
-    return 0.15  # Default: 15%
+    return 0.12  # Default: 12% (B1: was 15%)
 
 
 def get_fortify_rate(personality: str) -> float:

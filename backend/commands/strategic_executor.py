@@ -1030,7 +1030,11 @@ class StrategicExecutor:
         route_str = " -> ".join([marshal.location] + (order.path or []))
 
         if strategic_type == "MOVE_TO":
-            msg = f"{marshal.name} begins march to {target}. Route: {route_str}.{first_step_msg}"
+            if remaining == 0:
+                # Adjacent move — skip redundant route description
+                msg = f"{marshal.name} begins march to {target}.{first_step_msg}"
+            else:
+                msg = f"{marshal.name} begins march to {target}. Route: {route_str}.{first_step_msg}"
         elif strategic_type == "PURSUE":
             enemy_m = world.get_marshal(target)
             loc = enemy_m.location if enemy_m else "unknown"

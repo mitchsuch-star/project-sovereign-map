@@ -7,11 +7,8 @@ Covers BOMBARDMENT_SPEC.md:
   §9.6 — bombardment_target serialization
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 from backend.models.marshal import (
     Marshal, StrategicOrder, StrategicCondition,
-    create_starting_marshals, create_enemy_marshals,
 )
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
@@ -418,108 +415,15 @@ class TestArtilleryObjectionTriggers:
 
     # --- Reckless repositioning (MODERATE) ---
 
-    def test_cautious_artillery_moderate_reckless_repositioning(self):
-        """Cautious artillery MODERATE when moving with streak >= 2 and adjacent fortified target."""
-        art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 2
-
-        enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
-        enemy.defense_bonus = 0.15
-
-        world = _make_world()
-        world.marshals["Drouot"] = art
-        world.marshals["Wellington"] = enemy
-
-        game_state = {"world": world}
-        order = {"action": "move", "target": "Paris"}
-
-        concern = evaluate_cautious(art, "move", order, game_state)
-        assert concern == ConcernLevel.MODERATE
-
-    def test_cautious_artillery_no_reckless_at_low_streak(self):
-        """No reckless repositioning trigger when streak < 2."""
-        art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 1  # Below threshold
-
-        enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
-        enemy.defense_bonus = 0.15
-
-        world = _make_world()
-        world.marshals["Drouot"] = art
-        world.marshals["Wellington"] = enemy
-
-        game_state = {"world": world}
-        order = {"action": "move", "target": "Paris"}
-
-        concern = evaluate_cautious(art, "move", order, game_state)
-        assert concern == ConcernLevel.NONE
-
-    def test_cautious_artillery_no_reckless_when_target_cracked(self):
-        """No reckless repositioning when adjacent target has no defenses."""
-        art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 3
-
-        enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
-        enemy.defense_bonus = 0.0  # Cracked
-
-        world = _make_world()
-        world.marshals["Drouot"] = art
-        world.marshals["Wellington"] = enemy
-
-        game_state = {"world": world}
-        order = {"action": "move", "target": "Paris"}
-
-        concern = evaluate_cautious(art, "move", order, game_state)
-        assert concern == ConcernLevel.NONE
-
-    # --- Ordered to cease fire (MODERATE) ---
-
-    def test_cautious_artillery_moderate_cease_fire(self):
-        """Cautious artillery MODERATE when defend/fortify while adjacent fort still stands."""
-        art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 1
-
-        enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
-        enemy.defense_bonus = 0.10  # > 0.05 threshold
-
-        world = _make_world()
-        world.marshals["Drouot"] = art
-        world.marshals["Wellington"] = enemy
-
-        game_state = {"world": world}
-
-        # Test defend action
-        order = {"action": "defend"}
-        concern = evaluate_cautious(art, "defend", order, game_state)
-        assert concern == ConcernLevel.MODERATE
-
-        # Test fortify action
-        order = {"action": "fortify"}
-        concern = evaluate_cautious(art, "fortify", order, game_state)
-        assert concern == ConcernLevel.MODERATE
-
-    def test_cautious_artillery_no_cease_fire_when_no_streak(self):
-        """No cease fire trigger when no bombardment streak."""
-        art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 0
-
-        enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
-        enemy.defense_bonus = 0.20
-
-        world = _make_world()
-        world.marshals["Drouot"] = art
-        world.marshals["Wellington"] = enemy
-
-        game_state = {"world": world}
-        order = {"action": "fortify"}
-
-        concern = evaluate_cautious(art, "fortify", order, game_state)
-        assert concern == ConcernLevel.NONE
+    # test_cautious_artillery_moderate_reckless_repositioning removed — bombardment_streak objection logic removed in PT-7
+    # test_cautious_artillery_no_reckless_at_low_streak removed — same
+    # test_cautious_artillery_no_reckless_when_target_cracked removed — same
+    # test_cautious_artillery_moderate_cease_fire removed — same
+    # test_cautious_artillery_no_cease_fire_when_no_streak removed — same
 
     def test_cautious_artillery_no_cease_fire_when_fort_nearly_gone(self):
         """No cease fire trigger when enemy defense_bonus <= 0.05."""
         art = _make_artillery(location="Belgium")
-        art.bombardment_streak = 3
 
         enemy = _make_infantry(name="Wellington", location="Waterloo", nation="Britain")
         enemy.defense_bonus = 0.04  # Below threshold
@@ -723,15 +627,7 @@ class TestArtilleryFlavorText:
 class TestHoldBombardmentStreak:
     """Tests for bombardment streak accumulation during HOLD."""
 
-    def test_hold_bombardment_increments_streak(self):
-        """HOLD bombardment increments bombardment_streak."""
-        world, art, enemy, strategic, game_state = _setup_hold_scenario()
-        world.current_turn = 2
-
-        initial_streak = art.bombardment_streak
-        strategic._execute_hold(art, world, game_state)
-        # Streak should have incremented (bombardment fires on same target)
-        assert art.bombardment_streak > initial_streak or art.last_bombardment_target is not None
+    # test_hold_bombardment_increments_streak removed — bombardment_streak field removed in PT-7
 
     def test_hold_bombardment_damage_applied(self):
         """HOLD bombardment actually damages the target."""

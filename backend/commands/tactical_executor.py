@@ -45,7 +45,7 @@ class TacticalExecutor:
                 # Turn 1: Can defend but drill is cancelled
                 marshal.drilling = False
                 marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+                drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         # ════════════════════════════════════════════════════════════
         # SMART DEFEND: Context-aware routing based on stance

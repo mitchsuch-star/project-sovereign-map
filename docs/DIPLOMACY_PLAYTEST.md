@@ -1651,3 +1651,99 @@ Click [Cancel] or [Back]
 - Sweetener cap enforcement (use pytest)
 
 **Recommendation:** Use Godot for integration/UX verification. Use pytest for numerical precision. The 7,755+ backend tests already cover formula correctness — the playtest covers "does the player actually see the right thing."
+
+---
+
+## SECTION Z: Bug Fix Session 5 — Playtest Verification (Apr 6, 2026)
+
+Items from Session 5 that need manual playtest confirmation. Automated tests cover logic; these verify player-facing UX.
+
+### Z1. m3: Bombardment Morale Floor
+**Goal:** Confirm bombardment cannot collapse an army below 25% morale.
+```
+/debug set_location Drouot Belgium
+/debug set_location Wellington Belgium
+cheat set_diplo_state Britain WAR
+/debug set_strength Wellington 25000
+# Bombard repeatedly
+Drouot, bombard Wellington
+end turn
+Drouot, bombard Wellington
+Drouot, bombard Wellington
+end turn
+# Repeat until Wellington's morale is low
+```
+**Verify:** Wellington's morale never drops below 25%. Status should show morale pinned at 25, not 0 or negative. If Wellington has square formation, verify the -18 penalty still floors at 25.
+
+**Edge case:** At exactly 25% morale, does combat (not bombardment) trigger forced retreat? It should — `<= 25` is the retreat check. Bombardment pins at 25, combat pushes past.
+
+### Z2. PT-3: Emoji Replacement Renders Correctly
+**Goal:** Verify text markers render cleanly in Godot terminal.
+```
+# Trigger cavalry warnings
+/debug set_location Ney Belgium
+/debug set_stance Ney defensive
+# Wait 3 turns for cavalry stance warning
+end turn
+end turn
+end turn
+```
+**Verify:** Messages show `[Cavalry]`, `[!]`, `[Combat]` etc. instead of garbled characters or boxes. No surrogate pair errors in Godot console.
+
+Also check:
+- Attack a broken army → should show `[BROKEN]` not `💀`
+- Trigger glorious charge → should show `[Cavalry][Combat] GLORIOUS CHARGE!`
+- Forced retreat message → should show `[!]` not `⚠️`
+
+### Z3. B1: Wellington Defense Stack Reduced
+**Goal:** Confirm Wellington is no longer nearly invincible.
+```
+cheat set_diplo_state Britain WAR
+/debug set_location Ney Belgium
+/debug set_location Wellington Belgium
+/debug set_strength Ney 40000
+/debug set_strength Wellington 20000
+# Let Wellington fortify
+end turn
+end turn
+end turn
+# Attack with 2:1 advantage
+Ney, attack Wellington
+```
+**Verify:** With 2:1 numbers, Ney should deal meaningful casualties. Wellington's defense should not exceed ~50-60% total modifier (was 75-85% before). Fortification should cap at 12% for cautious personality (was 20%).
+
+### Z4. B2: Supply Attrition Reduced
+**Goal:** Confirm Belgium staging no longer destroys armies.
+```
+/debug set_location Ney Belgium
+/debug set_location Davout Belgium
+/debug set_strength Ney 30000
+/debug set_strength Davout 30000
+end turn
+```
+**Verify:** With 60k troops in a town (cap now 35k), attrition should be modest (~1-2% per marshal, not 4k+ per turn). Home territory bonus (1.5x) makes French Belgium even more sustainable.
+
+### Z5. PT-6: AP Warning on End Turn
+**Goal:** Confirm warning appears when ending turn with actions remaining.
+```
+# Fresh turn (4 AP)
+end turn
+```
+**Verify:** Message should include "(Warning: 4 action(s) unused)" before "Turn X begins!"
+
+```
+# Use all AP then end turn
+Ney, scout Belgium
+Davout, scout Lyon
+Ney, scout Belgium
+Davout, scout Lyon
+end turn
+```
+**Verify:** No warning in message (0 AP remaining).
+
+### Z6. m1: "trust" Without Dialogue
+**Goal:** Confirm typing "trust" alone gives clear feedback.
+```
+trust
+```
+**Verify:** Returns Berthier message about no pending diplomatic matter. Does NOT show a parse error or "Unknown action".

@@ -1000,36 +1000,10 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
 
     # Move action - check path danger
     if action == "move":
-        # Artillery: Reckless repositioning — moving while bombardment streak active (§7.1)
-        if getattr(marshal, 'artillery', False) and getattr(marshal, 'bombardment_streak', 0) >= 2:
-            world = _get_world(game_state)
-            if world:
-                # Check if any adjacent target still has fortifications worth bombarding
-                region = world.regions.get(marshal.location) if hasattr(world, 'regions') else None
-                if region:
-                    for adj_name in region.adjacent_regions:
-                        for m in world.marshals.values():
-                            if m.nation != getattr(marshal, 'nation', 'France') and m.location == adj_name and world.is_at_war(getattr(marshal, 'nation', 'France'), m.nation):
-                                if getattr(m, 'defense_bonus', 0) > 0:
-                                    return ConcernLevel.MODERATE  # "One more barrage and their walls crumble!"
-
         target = order.get('target')
         if target and _path_crosses_enemy(marshal, target, game_state):
             return ConcernLevel.MODERATE  # "That route goes through enemy territory"
         return ConcernLevel.NONE
-
-    # Artillery: Ordered to cease fire — defend/fortify while adjacent fort still standing (§7.1)
-    if action in ("defend", "fortify") and getattr(marshal, 'artillery', False):
-        streak = getattr(marshal, 'bombardment_streak', 0)
-        if streak >= 1:
-            world = _get_world(game_state)
-            if world:
-                region = world.get_region(marshal.location) if hasattr(world, 'get_region') else None
-                if region:
-                    for adj_name in region.adjacent_regions:
-                        for m in world.get_enemies_in_region(adj_name, marshal.nation):
-                            if getattr(m, 'defense_bonus', 0) > 0.05:
-                                return ConcernLevel.MODERATE  # "Their walls still stand — give me one more day!"
 
     # Square formation — cautious marshal notices tactical problems
     if action == "form_square":

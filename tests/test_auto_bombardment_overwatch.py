@@ -379,16 +379,7 @@ class TestAutoBombardmentAdvanced:
         # (artillery degrades 0.10 per bombardment)
         assert drouot.bombardments_this_turn >= 1
 
-    def test_bombardment_streak_increments(self):
-        """Bombardment streak increments normally."""
-        world, ney, wellington, drouot = _make_world_for_support_bombardment()
-        drouot.last_bombardment_target = "Waterloo"
-        drouot.bombardment_streak = 2
-
-        result = _execute_attack(world, "Ney", "Wellington")
-
-        # Streak should have incremented
-        assert drouot.bombardment_streak >= 3
+    # test_bombardment_streak_increments removed — bombardment_streak field removed in PT-7
 
     def test_ai_support_artillery_also_auto_bombards(self):
         """AI artillery on SUPPORT also auto-bombards (Building Blocks)."""

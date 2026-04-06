@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Bug Fix Session 4 complete — all 6 remaining P1s fixed: DLF-1 vassal icon state check, DLF-2 undermine alliance effect, DLF-3 AI relations display filter, DLF-4 court nation blowback, DLF-5 gather intel visibility grants, DLF-9 P3 upgrade path validation. 33 new tests. 12 bugs remain (0 P1, 8 P2, 4 P3))
+> **Last Updated:** April 6, 2026 (Bug Fix Session 5 complete — all 12 remaining bugs fixed: m1 trust parse, m2 counter-punch dedup, m3 bombardment morale floor, m4 adjacent route, PT-3 emoji replacement, PT-6 AP warning, PT-7 streak dead code removal, DLF-8 VASSAL downgrade, DLF-10 VASSAL armistice, B1 fortify caps, B2 supply caps, N3 friction verified. 36 new tests. 0 bugs remain.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7870** (7870 passed, 1 skipped) |
+| **Tests Passing** | **7890** (7890 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes** — iterating `docs/BUG_FIXES.md` until clean, then `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
+| **Current Phase** | **Bug Fixes COMPLETE** — all bugs resolved. Next: `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,17 +19,13 @@
 
 ## Next Steps
 
-### Current: Bug Fixes
+### Immediate: Playtest Bug Fix Session 5
 
-Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 12 open bugs (0 P0, 0 P1, 8 P2, 4 P3). Sessions 1-4 COMPLETE. All P1s resolved. Next: Session 5+ picking from remaining:
-
-**P2 (8):** m1 ("trust" parse), m2 (duplicate counter-punch notifs), m3 (artillery morale collapse from bombardment), m4 (redundant route for adjacent move), PT-3 (emoji encoding broken on Windows), PT-7 (bombardment_streak dead code), DLF-8 (opportunistic downgrade excludes VASSAL), DLF-10 (armistice cooldown missing VASSAL exclusion)
-
-**P3 (4):** PT-6 (no AP warning on end turn), B1 (Wellington defense stack ~75-85%), B2 (supply attrition death spiral), N3 (coalition friction in attack scoring)
+6 items in `docs/DIPLOMACY_PLAYTEST.md` Section Z need manual verification in Godot: bombardment morale floor (Z1), emoji text markers (Z2), Wellington defense reduction (Z3), supply attrition reduction (Z4), AP warning (Z5), "trust" parse (Z6). Quick pass — most are visual confirmation only.
 
 ### Then: Design Refinement
 
-Once playtesting confirms stability, move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation, 4 War System Overhaul (EU4-inspired), 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
+Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation, 4 War System Overhaul (EU4-inspired), 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
 ### Independent Tracks
 
@@ -40,6 +36,7 @@ Once playtesting confirms stability, move to `docs/DESIGN_REFINEMENT.md`. 42 ite
 
 All items below are done. Source docs kept for implementation detail reference.
 
+- ~~Bug Fixes~~ — Sessions 1-5 COMPLETE. All bugs resolved (0 remaining). 154 tests across 5 sessions.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests

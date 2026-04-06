@@ -301,19 +301,7 @@ class TestCoreBombardment:
         assert isinstance(br["defender"]["casualties"], int)
         assert isinstance(br["defender"]["morale"], int)
 
-    def test_bombardment_streak_tracking(self):
-        """Bombardment streak increments on same target, resets on new target."""
-        world, art, executor, gs = _setup_bombardment()
-        with patch("random.uniform", return_value=1.0):
-            executor._execute_bombardment(art, world.marshals["Wellington"], world, gs)
-        assert art.bombardment_streak == 1
-        assert art.last_bombardment_target == "Waterloo"
-
-        # Reset for second bombardment
-        art.bombardments_this_turn = 0
-        with patch("random.uniform", return_value=1.0):
-            executor._execute_bombardment(art, world.marshals["Wellington"], world, gs)
-        assert art.bombardment_streak == 2
+    # test_bombardment_streak_tracking removed — bombardment_streak field removed in PT-7
 
     def test_bombardment_event_logged(self):
         """Bombardment creates an event log entry."""

@@ -125,6 +125,11 @@ class MetaExecutor:
                 "diplomatic_dialogue": dialogue,
             }
 
+        # PT-6: Warn about unused AP (informational — turn still ends)
+        ap_warning = ""
+        if world.actions_remaining > 0:
+            ap_warning = f" (Warning: {int(world.actions_remaining)} action(s) unused)"
+
         # V2a: Capture mild concerns BEFORE end_turn clears them
         # (advance_turn resets mild_concerns_this_turn at start)
         saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
@@ -139,7 +144,7 @@ class MetaExecutor:
 
         # Build message — enemy phase text and turn events removed from terminal
         # (enemy phase shown in popup dialog, turn events absorbed into Morning Dispatch)
-        message = f"Turn {turn_result['turn_ended']} ended. Turn {turn_result['next_turn']} begins!"
+        message = f"Turn {turn_result['turn_ended']} ended.{ap_warning} Turn {turn_result['next_turn']} begins!"
 
         enemy_phase = turn_result.get("enemy_phase")
         tactical_events = turn_result.get("tactical_events", [])
@@ -1011,7 +1016,7 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s morale: {old_morale} -> {amount}\n"
-                          f"{'⚠️ BROKEN! Will force retreat in combat.' if forced_retreat else ''}"
+                          f"{'[!] BROKEN! Will force retreat in combat.' if forced_retreat else ''}"
             }
 
         elif ability == "set_trust":
@@ -1125,7 +1130,7 @@ RETREAT RECOVERY (3 turns):
             }
             return {
                 "success": True,
-                "message": f"🐴 DEBUG: {marshal.name}'s recklessness: {old_reck} -> {level}\n"
+                "message": f"[Cavalry] DEBUG: {marshal.name}'s recklessness: {old_reck} -> {level}\n"
                           f"Effect: {effects.get(level, '?')}\n"
                           f"Now try: '{marshal.name}, attack Wellington' to trigger the popup!"
             }

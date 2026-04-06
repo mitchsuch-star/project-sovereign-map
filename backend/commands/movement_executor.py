@@ -117,7 +117,7 @@ class MovementExecutor:
                 # Turn 1: Can move but drill is cancelled
                 marshal.drilling = False
                 marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+                drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         if not target:
             return {
@@ -325,11 +325,8 @@ class MovementExecutor:
         marshal.move_to(target_name)
 
         # Artillery: Mark as having moved this turn (blocks attacking)
-        # Also reset bombardment streak (repositioning breaks sustained fire)
         if getattr(marshal, 'artillery', False):
             marshal.moved_this_turn = True
-            marshal.last_bombardment_target = None
-            marshal.bombardment_streak = 0
 
         # V2a: Reset idle tracking on move
         marshal.idle_turns = 0

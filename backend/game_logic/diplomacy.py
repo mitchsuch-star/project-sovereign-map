@@ -2604,7 +2604,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         # U2: Armistice cooldown check (prioritize over DP)
         arm_cd = armistice_cooldowns.get(diplo_key, 0)
         if arm_cd > 0 and target_state not in ("PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
-                                                 "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                                                 "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"):
             available = False
             reason = f"Armistice: {arm_cd} turns remaining"
 

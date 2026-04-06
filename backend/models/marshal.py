@@ -412,10 +412,6 @@ class Marshal:
         # Artillery cannot attack on the same turn they move.
         # Set True in _execute_move on success, reset False at turn start.
         self.moved_this_turn: bool = False
-        # Bombardment streak: consecutive attacks on the same target region.
-        # Used for personality objections and Berthier advisory.
-        self.last_bombardment_target: Optional[str] = None
-        self.bombardment_streak: int = 0
         # Bombardment limit: max 2 bombardments per turn (reset at turn start)
         self.bombardments_this_turn: int = 0
 
@@ -536,8 +532,6 @@ class Marshal:
         self.defense_bonus = 0
         self.turns_fortified = 0
         self.moved_this_turn = False
-        self.last_bombardment_target = None
-        self.bombardment_streak = 0
         self.stance = Stance.NEUTRAL
         self.occupation_region = None
         self.occupation_turns_held = 0
@@ -1154,8 +1148,6 @@ class Marshal:
             # ═══════ ARTILLERY-SPECIFIC ═══════
             "artillery": self.artillery,
             "moved_this_turn": self.moved_this_turn,
-            "last_bombardment_target": self.last_bombardment_target,
-            "bombardment_streak": int(self.bombardment_streak),
             "bombardments_this_turn": int(self.bombardments_this_turn),
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
@@ -1304,8 +1296,6 @@ class Marshal:
 
         # ═══════ ARTILLERY-SPECIFIC ═══════
         marshal.moved_this_turn = data.get("moved_this_turn", False)
-        marshal.last_bombardment_target = data.get("last_bombardment_target", None)
-        marshal.bombardment_streak = data.get("bombardment_streak", 0)
         marshal.bombardments_this_turn = data.get("bombardments_this_turn", 0)
 
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════

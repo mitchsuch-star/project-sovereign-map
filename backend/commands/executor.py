@@ -792,7 +792,7 @@ class CommandExecutor:
                     if action != 'recruit':
                         return {
                             "success": False,
-                            "message": f"💀 {marshal_name}'s army is BROKEN and scattered! "
+                            "message": f"[BROKEN] {marshal_name}'s army is BROKEN and scattered! "
                                       f"Only recruitment is possible while rebuilding. "
                                       f"Recovery: {turns_remaining} turn(s) remaining.",
                             "broken": True,
