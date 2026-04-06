@@ -462,12 +462,13 @@ class TestCheatCommands:
         old_dp = world.diplomatic_points
         result = self._run_cheat(world, "give_dp", ["2"])
         assert result["success"] is True
-        assert world.diplomatic_points <= world.max_diplomatic_points
+        assert world.diplomatic_points == old_dp + 2
 
-    def test_give_dp_caps_at_max(self):
+    def test_give_dp_bypasses_cap(self):
+        """Cheat give_dp bypasses max_dp cap for testing convenience."""
         world = _make_world()
         self._run_cheat(world, "give_dp", ["100"])
-        assert world.diplomatic_points == world.max_diplomatic_points
+        assert world.diplomatic_points > world.max_diplomatic_points
 
     def test_trigger_coalition(self):
         world = _make_world()

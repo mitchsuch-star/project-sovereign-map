@@ -1710,7 +1710,7 @@ RETREAT RECOVERY (3 turns):
         action = command.get("action", "unknown")
 
         # Check action economy
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:
@@ -1931,10 +1931,9 @@ RETREAT RECOVERY (3 turns):
             if not cheat_args:
                 return {"success": False, "message": "Usage: cheat give_dp <amount>"}
             amount = int(cheat_args[0])
-            max_dp = int(getattr(world, 'max_diplomatic_points', 5))
             old = getattr(world, 'diplomatic_points', 0)
-            world.diplomatic_points = min(old + amount, max_dp)
-            return {"success": True, "message": f"DP: {old} → {world.diplomatic_points} (max {max_dp})"}
+            world.diplomatic_points = old + amount
+            return {"success": True, "message": f"DP: {old} → {world.diplomatic_points}"}
 
         if cheat_type == "trigger_coalition":
             from backend.game_logic.coalition import get_qualifying_nations, form_coalition
