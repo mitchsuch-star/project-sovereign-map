@@ -12,11 +12,13 @@
 |----------|-------|--------|
 | Player Feedback (Wave 3 remaining) | 7 | Ready for implementation |
 | Territorial Promises (Wave 3) | 1 | Needs design gate |
+| War System Overhaul (EU4-inspired) | 4 | Needs design gate |
+| AI Diplomacy Improvements | 3 | Ready (small fixes) |
 | Gold Sink Options (B4) | 1 | Needs design gate |
 | Wave 4 — New Features | 17 | Needs per-item approval |
 | Wave 5 — Game Review Findings | 8 | Needs design gate |
 | Jealousy System | 1 | Needs design gate |
-| **Total** | **35** | |
+| **Total** | **42** | |
 
 ---
 
@@ -84,6 +86,58 @@ These refine existing systems. No design gate needed.
 - **Category:** Marshal Feature
 - **Summary:** Glory Ladder targeting, personality expressions, escalation, confrontation popups.
 - **Details:** Full spec at `docs/JEALOUSY_SPEC.md`. Core design settled. Top of ladder: +1 all core stats while #1. Defeats cost glory. DO NOT CODE WITHOUT USER APPROVAL.
+
+---
+
+## War System Overhaul (EU4-Inspired — Design Gate)
+
+Full design spec in `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` lines 215-722. Addresses core balance problem: defensive play is overwhelmingly superior because no ticking score incentivizes holding territory over time.
+
+### War Objectives + Ticking War Score (5th Component)
+- **Summary:** Player-chosen war goals at war declaration (Conquest, Subjugation, Forced Alliance) and auto-assigned goals (Defense, Liberation). Each goal has a ticking target region — holding it accumulates war score over time (±25 cap).
+- **Ticking rates:** Conquest +2/turn (enemy capital), Subjugation +3/turn (enemy capital, power cap gated), Forced Alliance +2/turn (enemy capital), Defense +1/turn (any enemy region), Liberation +1/turn per vassal capital.
+- **New field:** `world.war_objectives: Dict[str, Dict]` — diplo_key to `{type, target, accumulated}`
+- **Files:** `diplomacy.py` (calculate_war_score 5th component), `world_state.py` (field + per-turn accumulation), `war_status.py` + `war_detail_popup.gd` (display), `diplomatic_executor.py` (war goal selection dialogue)
+- **Est. sessions:** 2-3, ~20 tests
+
+### Vassalage Power Cap
+- **Summary:** Gate vassalization on National Power ratio: target must be ≤ 50% of player's power. Power = sum of base income of controlled regions + partial vassal contribution.
+- **Why:** Prevents France from vassalizing Austria at war_score 80 — only small nations should be vassalizable.
+- **Files:** `vassal.py`, `diplomacy.py`, `diplomatic_ledger.py`, `diplomatic_templates.py`
+- **Est. sessions:** 1, ~10 tests
+
+### Forced Alliance Clause Type
+- **Summary:** New clause type — war goal forces enemy into ALLIANCE + Continental System on peace. Follows vassalage pattern for wiring (acceptance values, harshness, keywords, display names, state mapping).
+- **Historical:** Napoleon's primary war objective (Austerlitz, Tilsit, Jena).
+- **Files:** `diplomacy.py`, `diplomatic_dialogue.py`, `diplomatic_executor.py` (4 state maps), `display_names.py`, `diplomatic_templates.py`, `world_state.py`
+- **Est. sessions:** 1-2, ~10 tests
+
+### Liberation Mechanic
+- **Summary:** Coalition war goal — liberating vassals. On peace: `release_vassal()` + auto `DEFENSIVE_ALLIANCE` with liberator.
+- **Files:** `world_state.py` (_ratify_treaty), `vassal.py` (release reason)
+- **Est. sessions:** 1, ~6 tests
+
+---
+
+## AI Diplomacy Improvements (Ready — Small Fixes)
+
+### N1: AI Preemptive Alliance Against Rising Threat
+- **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 69-130
+- **Summary:** Trigger 5 in AI-AI diplomatic evaluation. When threat > 40, nations with negative relations toward France form defensive alliances with each other. Creates diplomatic web before coalitions.
+- **Files:** `ai_diplomacy.py`
+- **Est. tests:** ~7
+
+### A3: AI War Exhaustion Integration
+- **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 55-61
+- **Summary:** AI decision triggers (P1-P8) don't reference war exhaustion. P1: lower war_score threshold by WE // 20. P2: reduce stalemate patience by WE // 30. ~5 lines.
+- **Files:** `enemy_ai.py`
+- **Est. tests:** ~4
+
+### A4: AI Harsh Peace Gold Formula Rebalance
+- **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 47-53
+- **Summary:** Current formula `max(500, int(war_score * 8 * gold_mult))` produces unreachable demands. Fix: `max(200, int(war_score * 5 * gold_mult))`.
+- **Files:** `ai_diplomacy.py`
+- **Est. tests:** ~2
 
 ---
 
@@ -167,5 +221,6 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | Document | Items Moved Here |
 |----------|-----------------|
 | `docs/DIPLO_REFINEMENT.md` | Wave 3-5 open items, all R-IDs |
-| `docs/DIPLOMACY_DESIGN_FIXES.md` | Design discussion items |
+| `docs/DIPLOMACY_DESIGN_FIXES.md` | Design discussion items, N1/A3/A4 AI fixes |
+| `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` | War Objectives, Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation (lines 215-722) |
 | `docs/JEALOUSY_SPEC.md` | Jealousy pointer (spec kept as-is) |
