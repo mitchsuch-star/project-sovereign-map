@@ -21,7 +21,11 @@
 
 ### Current: Bug Fixes
 
-Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 12 open bugs (0 P0, 0 P1, 8 P2, 4 P3). Sessions 1-4 COMPLETE. All P1s resolved. Next: Session 5+ (P2s and P3s).
+Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 12 open bugs (0 P0, 0 P1, 8 P2, 4 P3). Sessions 1-4 COMPLETE. All P1s resolved. Next: Session 5+ picking from remaining:
+
+**P2 (8):** m1 ("trust" parse), m2 (duplicate counter-punch notifs), m3 (artillery morale collapse from bombardment), m4 (redundant route for adjacent move), PT-3 (emoji encoding broken on Windows), PT-7 (bombardment_streak dead code), DLF-8 (opportunistic downgrade excludes VASSAL), DLF-10 (armistice cooldown missing VASSAL exclusion)
+
+**P3 (4):** PT-6 (no AP warning on end turn), B1 (Wellington defense stack ~75-85%), B2 (supply attrition death spiral), N3 (coalition friction in attack scoring)
 
 ### Then: Design Refinement
 
