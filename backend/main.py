@@ -917,12 +917,23 @@ def execute_command(request: CommandRequest):
                 cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
 
             # FOG OF WAR (Session 34B): Filter enemy actions by visibility
+            raw_total = cleaned_phase.get("total_actions", 0)
+            raw_nations = list(cleaned_phase.get("nations", {}).keys())
             cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
 
-            # Only include enemy_phase if there are visible actions (or enemy victory).
-            # When fog hides all enemy actions, skip the dialog entirely rather than
-            # showing misleading "No enemy actions this turn."
+            # Include enemy_phase if there are visible actions (or enemy victory).
             if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
+                response["enemy_phase"] = cleaned_phase
+            elif raw_total > 0:
+                # PL-4: Fog hid all actions — provide Berthier fog summary so
+                # player knows enemies acted (no details leaked)
+                fog_messages = []
+                for nation in raw_nations:
+                    fog_messages.append(
+                        f"Our scouts report activity within {nation}'s borders, "
+                        f"but their formations remain beyond our sight."
+                    )
+                cleaned_phase["fog_hidden_summary"] = fog_messages
                 response["enemy_phase"] = cleaned_phase
 
             # DEBUG: Print final enemy_phase structure

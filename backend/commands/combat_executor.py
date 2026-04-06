@@ -736,13 +736,12 @@ class CombatExecutor:
         player_nation = getattr(world, 'player_nation', 'France')
 
         # Counter-punch earned: defender earned a free attack
-        # m2: Dedup — only one counter-punch notification per marshal per turn
+        # PL-2: Dedup across turns — only one counter-punch notification per marshal at a time
         if battle_result.get("counter_punch_earned"):
             if getattr(defender, 'nation', '') == player_nation:
                 already_has = any(
                     n.get("type") == COUNTER_PUNCH_EARNED
                     and n.get("details", {}).get("marshal") == defender.name
-                    and n.get("turn_created") == int(world.current_turn)
                     for n in world.notifications.get_pending()
                 )
                 if not already_has:

@@ -340,6 +340,12 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
             "threat": int(getattr(world, 'threat_level', 0)),
             "current_state": world.get_diplomatic_state("France", target_nation),
         }
+        # PL-3: Populate diplomat info so incoming_proposal popup shows real name
+        diplomats = getattr(world, 'diplomats', {})
+        diplomat = diplomats.get(target_nation)
+        if diplomat:
+            context["diplomat_name"] = diplomat.name
+            context["diplomat_personality"] = getattr(diplomat, 'personality', 'unknown')
 
     dialogue = {
         "type": intent_type,

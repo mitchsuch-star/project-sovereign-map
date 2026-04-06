@@ -32,19 +32,19 @@ def _build_tactical_prefix(
     """
     prefix = ""
     _MESSAGES = [
-        (attacker_stance_message, "\n\u2694\ufe0f "),
-        (attacker_personality_message, "\n\U0001f525 "),
-        (defender_stance_message, "\n\U0001f6e1\ufe0f "),
-        (defender_personality_message, "\n\U0001f6e1\ufe0f "),
-        (drill_bonus_message, "\n\u2694\ufe0f "),
-        (fortify_bonus_message, "\n\U0001f3f0 "),
-        (drilling_penalty_message, "\n\u26a0\ufe0f "),
-        (exhaustion_message, "\n\U0001f613 "),
-        (terrain_defense_message, "\n\U0001f3d4\ufe0f "),
-        (cavalry_terrain_message, "\n\U0001f40e "),
-        (cavalry_counter_message, "\n\U0001f40e "),
-        (square_cavalry_message, "\n\U0001f6e1\ufe0f "),
-        (square_artillery_message, "\n\U0001f4a5 "),
+        (attacker_stance_message, "\n[Combat] "),
+        (attacker_personality_message, "\n[Combat] "),
+        (defender_stance_message, "\n[Shield] "),
+        (defender_personality_message, "\n[Shield] "),
+        (drill_bonus_message, "\n[Combat] "),
+        (fortify_bonus_message, "\n[Fort] "),
+        (drilling_penalty_message, "\n[Warning] "),
+        (exhaustion_message, "\n[Alert] "),
+        (terrain_defense_message, "\n[Terrain] "),
+        (cavalry_terrain_message, "\n[Cavalry] "),
+        (cavalry_counter_message, "\n[Cavalry] "),
+        (square_cavalry_message, "\n[Shield] "),
+        (square_artillery_message, "\n[Explosion] "),
     ]
     for msg, icon in _MESSAGES:
         if msg:
@@ -56,12 +56,12 @@ def _build_tactical_prefix(
     atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
     def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
     if atk_ca > 0:
-        prefix += f"\n\u2694\ufe0f {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
+        prefix += f"\n[Combat] {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
     if def_ca > 0:
-        prefix += f"\n\U0001f6e1\ufe0f {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
+        prefix += f"\n[Shield] {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
     atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
     if atk_adj > 0:
-        prefix += f"\n\u2694\ufe0f Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
+        prefix += f"\n[Combat] Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
 
     if prefix:
         prefix += "\n"

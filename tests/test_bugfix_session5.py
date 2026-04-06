@@ -517,7 +517,11 @@ class TestPT3EmojiReplacement:
     """PT-3: No emoji in player-facing backend strings."""
 
     def _scan_file_for_emoji(self, filepath):
-        """Scan a file for emoji in non-comment, non-debug string literals."""
+        """Scan a file for emoji in non-comment, non-debug string literals.
+
+        Checks both literal emoji characters AND unicode escape sequences
+        (PL-1: escapes like \\U0001f525 bypass literal emoji detection).
+        """
         import re
 
         emoji_pattern = re.compile(
@@ -530,6 +534,14 @@ class TestPT3EmojiReplacement:
             "\u2700-\u27bf"  # Dingbats
             "]+",
             re.UNICODE,
+        )
+        # PL-1: Also detect unicode escape sequences in source text
+        escape_pattern = re.compile(
+            r'\\U0001f[0-9a-fA-F]{3}'  # \U0001fXXX emoji escapes
+            r'|\\u26[0-9a-fA-F]{2}'    # \u26XX misc symbols
+            r'|\\u27[0-9a-fA-F]{2}'    # \u27XX dingbats
+            r'|\\u2694'                 # crossed swords
+            r'|\\ufe0f'                 # variation selector
         )
         violations = []
         with open(filepath, "r", encoding="utf-8") as f:
@@ -544,6 +556,8 @@ class TestPT3EmojiReplacement:
                 ):
                     continue
                 if emoji_pattern.search(line):
+                    violations.append((i, stripped[:100]))
+                elif escape_pattern.search(line):
                     violations.append((i, stripped[:100]))
         return violations
 

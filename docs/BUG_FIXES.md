@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 5, 2026
+> **Last Updated:** April 6, 2026
 
 ---
 
@@ -15,7 +15,8 @@
 | P1 — MAJOR | 0 | All fixed (DLF-1, DLF-2, DLF-3, DLF-4, DLF-5, DLF-9 closed Session 4) |
 | P2 — MINOR | 0 | All fixed (Session 5) |
 | P3 — BALANCE | 0 | All fixed (Session 5) |
-| **Total** | **0** | All bugs resolved |
+| P2 — MINOR | 0 | All fixed (Session 6: PL-1, PL-2, PL-3, PL-4) |
+| **Total** | **0** | **All bugs resolved** |
 
 **Estimated new tests:** ~99
 
@@ -208,6 +209,35 @@ All P0 bugs resolved. See "Closed this audit" above.
 - **Files:** `diplomacy.py`
 - **Tests:** 4 in `test_bugfix_session5.py`
 
+### ~~PL-1: Emoji Regression — Unicode Escapes in Combat Prefix~~ FIXED
+- **Source:** Playtest (Apr 6)
+- **Summary:** PT-3 replaced literal emoji with text markers, but `_build_tactical_prefix()` in `combat.py:35-65` uses unicode escape sequences (`\U0001f525`, `\U0001f6e1\ufe0f`, `\U0001f613`, `\U0001f3d4\ufe0f`, `\u2694\ufe0f`, `\U0001f40e`, `\U0001f4a5`, `\U0001f3f0`, `\u26a0\ufe0f`) that render as emoji at runtime but bypass the PT-3 source-file scanner test (test reads text, escape sequences appear as ASCII). Lines 56-64 also have emoji for combined arms / adjacent ally messages.
+- **Fix:** Replaced all 16 unicode escape emoji in `_build_tactical_prefix()` with text markers (`[Combat]`, `[Shield]`, `[Fort]`, `[Warning]`, `[Alert]`, `[Terrain]`, `[Cavalry]`, `[Explosion]`). Updated PT-3 scanner to detect `\U0001f`/`\u26`/`\u27`/`\u2694`/`\ufe0f` escape sequences.
+- **Files:** `combat.py` (lines 34-64), `test_bugfix_session5.py` (scanner update)
+- **Tests:** 2 in `test_bugfix_session6.py`
+
+### ~~PL-2: Counter-Punch Notification Dedup Incomplete~~ FIXED
+- **Source:** Playtest (Apr 6)
+- **Summary:** 5 duplicate `counter_punch_earned` notifications accumulated for Davout across turns. m2 fix deduped within a single turn's combat, but notifications from different turns pile up because the dedup check only looks at same-turn events, not existing notification queue.
+- **Fix:** Removed `turn_created` from dedup check — now checks for existing COUNTER_PUNCH_EARNED notification for same marshal regardless of turn. Expiry tracked separately by `counter_punch_turns`.
+- **Files:** `combat_executor.py` (line 742)
+- **Tests:** 2 in `test_bugfix_session6.py`
+
+### ~~PL-3: Incoming AI Proposal Shows "Unknown diplomat"~~ FIXED
+- **Source:** Playtest (Apr 6)
+- **Summary:** Saxony's AI proposal popup shows `diplomat_name: "Unknown diplomat"` and `diplomat_personality: "Unknown"` instead of "Einsiedel" / "moderate". The diplomat data exists on the world state but isn't being populated into the incoming_proposal response dict.
+- **Fix:** Added diplomat lookup in `generate_dialogue()` context builder — populates `diplomat_name` and `diplomat_personality` from `world.diplomats[target_nation]`. Safety valve in main.py now reads real diplomat data.
+- **Files:** `diplomatic_dialogue.py` (line 342)
+- **Tests:** 2 in `test_bugfix_session6.py`
+
+### ~~PL-4: Enemy Phase Invisible When Fog Hides All Actions~~ FIXED
+- **Source:** Playtest (Apr 6)
+- **Summary:** When all enemy actions occur in regions with only PARTIAL visibility (e.g., enemies retreated to their homeland), `_filter_enemy_phase_by_visibility()` strips everything and `enemy_phase` is omitted entirely from the response. Player sees zero indication that enemies acted for 8+ consecutive turns, which feels like the AI is broken. Turn events (fortify_strengthened, retreat_recovery, construction_complete) prove the AI IS acting — the display just hides it.
+- **Root cause:** `main.py:925` — `if cleaned_phase.get("total_actions", 0) > 0` skips the entire enemy_phase when fog hides all actions. No fallback message.
+- **Fix:** When fog filters all actions but raw `total_actions > 0`, backend adds `fog_hidden_summary` list with per-nation Berthier messages. Godot `enemy_phase_dialog.gd` checks for `fog_hidden_summary` and renders it instead of "No enemy actions this turn."
+- **Files:** `main.py` (lines 919-935), `enemy_phase_dialog.gd` (line 60)
+- **Tests:** 3 in `test_bugfix_session6.py`
+
 ---
 
 ## P3 — BALANCE / ENHANCEMENT
@@ -273,7 +303,11 @@ All P0 bugs resolved. See "Closed this audit" above.
 | 4 | DLF-1, DLF-2, DLF-3, DLF-4, DLF-5, DLF-9 | All remaining P1s: vassal icon, undermine alliance, AI relations, blowback, intel grants, upgrade path | 33 |
 | 5 | m1, m2, m3, m4, PT-3, PT-6, PT-7, DLF-8, DLF-10, B1, B2, N3 | All 12 remaining: parse, dedup, morale floor, route, emoji, AP warning, dead code, VASSAL guards, fortify caps, supply caps, friction verification | 36 |
 
-**Total: 5 sessions, ~154 new tests. ALL BUGS RESOLVED.**
+**Sessions 1-5: 154 tests. ALL PRIOR BUGS RESOLVED.**
+
+| 6 | PL-1, PL-2, PL-3, PL-4 | Emoji escape regression, counter-punch dedup, diplomat name, fog enemy phase message | 9 |
+
+**Sessions 1-6: 163 tests. ALL BUGS RESOLVED.**
 
 **Dependencies:** Session 1 MUST complete before Session 2 (DLF-7 and DLF-12 use the helper). All other sessions are independent — run in any order after Session 2.
 
@@ -319,6 +353,10 @@ Each session is self-contained. Clear context between sessions. Paste the briefi
 #### Session 9 — Balance + AP Warning (B1, B2, N3, PT-6)
 > Read: `docs/BUG_FIXES.md` (B1/B2/N3/PT-6 entries), `docs/SYSTEMS_REFERENCE.md` §23, `docs/COALITION_SPEC.md`, `CLAUDE.md`
 > Task: B1 — fortify cap 12/8/12 + bombardment strips fortification. B2 — increase supply caps per spec. N3 — expand co-location check to include cross-nation coalition allies modulated by friction. PT-6 — AP remaining warning in `_execute_end_turn()`. Playtest after all 4. ~16 tests.
+
+#### Session 10 — Playtest Regressions (PL-1, PL-2, PL-3, PL-4)
+> Read: `docs/BUG_FIXES.md` (PL-1/2/3/4 entries), `CLAUDE.md`
+> Task: PL-1 — replace unicode escape emoji in `_build_tactical_prefix()` (combat.py:35-65) with text markers, update PT-3 test to catch escape sequences. PL-2 — dedup counter-punch notifications across turns, not just within same turn. PL-3 — populate diplomat_name/personality from world.diplomats in incoming AI proposal dict. PL-4 — when fog hides all enemy actions but raw total_actions > 0, emit Berthier fog summary per nation instead of omitting enemy_phase entirely. ~9 tests.
 
 ---
 

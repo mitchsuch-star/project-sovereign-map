@@ -57,7 +57,12 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			print("[GODOT_ENEMY_PHASE]     [", i, "] ai_action=", act.get("ai_action", {}))
 			print("[GODOT_ENEMY_PHASE]     [", i, "] has events=", act.has("events"), " count=", act.get("events", []).size() if act.has("events") else 0)
 
-	if total_actions == 0:
+	if enemy_phase.has("fog_hidden_summary"):
+		# PL-4: Fog hid all enemy actions — show Berthier fog summary
+		var fog_messages = enemy_phase.get("fog_hidden_summary", [])
+		for msg in fog_messages:
+			content += "[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]\n"
+	elif total_actions == 0:
 		content = "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
 	else:
 		for nation in nations:
