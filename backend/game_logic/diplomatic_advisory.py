@@ -239,7 +239,11 @@ def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""
     threat_entries: List[Dict] = []
     france_strength = _get_fogged_strength("France", world)
+    active = set(world.get_active_nations())  # DLF-11
+    active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
+        if nation not in active:
+            continue
         diplo_key = world._make_diplo_key("France", nation)
         state = world.get_diplomatic_state("France", nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
@@ -508,7 +512,11 @@ def _diplomatic_overview(world) -> Dict:
     most_urgent_nation = None
     most_urgent_score = -999
 
+    active = set(world.get_active_nations())  # DLF-11
+    active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
+        if nation not in active:
+            continue
         diplo_key = world._make_diplo_key("France", nation)
         state = world.get_diplomatic_state("France", nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
@@ -693,8 +701,10 @@ def _get_nation_summary(nation: str, world) -> str:
 
     # Check for alliances with other nations (coalition risk)
     allied_with = []
+    active = set(world.get_active_nations())  # DLF-11
+    active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for other in get_known_nations(world):
-        if other == nation:
+        if other not in active or other == nation:
             continue
         other_state = world.get_diplomatic_state(nation, other)
         if other_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):

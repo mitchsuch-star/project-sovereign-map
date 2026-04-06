@@ -282,7 +282,8 @@ class TurnManager:
         )
 
         world = self.world
-        enemy_nations = list(getattr(world, 'enemy_nations', []))
+        active = set(world.get_active_nations())  # DLF-11
+        enemy_nations = [n for n in getattr(world, 'enemy_nations', []) if n in active]
         delivered = None
 
         # Evaluate each AI nation
@@ -717,7 +718,10 @@ class TurnManager:
             Dict with victory info, or None if no enemy victory
         """
         victory_threshold = max(1, int(len(self.world.regions) * VICTORY_REGION_FRACTION))
+        active = set(self.world.get_active_nations())  # DLF-11
         for nation in self.world.enemy_nations:
+            if nation not in active:
+                continue
             regions = self.world.get_nation_regions(nation)
             if len(regions) >= victory_threshold:
                 return {

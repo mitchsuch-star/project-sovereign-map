@@ -1034,7 +1034,7 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
 
     # Penalty with ALL other nations (also halved with casus belli)
     indirect_penalty = int(-15 * penalty_factor)
-    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
     for nation in all_nations:
         if nation != aggressor and nation != target:
             world.modify_nation_relation(aggressor, nation, indirect_penalty)
@@ -1179,7 +1179,7 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         processed = {aggressor, target}
 
     cascade = []
-    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
 
     for nation in all_nations:
         if nation in processed:
@@ -1343,7 +1343,7 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
 
     # Relation penalties
     world.modify_nation_relation(nation_a, nation_b, penalties["relation_target"])
-    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
     if penalties["relation_all"] != 0:
         for nation in all_nations:
             if nation != nation_a and nation != nation_b:
@@ -2040,7 +2040,7 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     relation_changes.append({"nations": (breaker_nation, other), "delta": penalty})
 
     # ALL nations: -10
-    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
     for nation in all_nations:
         if nation != breaker_nation and nation != other:
             world.modify_nation_relation(breaker_nation, nation, -10)
@@ -2169,7 +2169,7 @@ def _process_relation_decay(world) -> None:
     Above +10: -1/turn. Below -10: +1/turn.
     """
     player = getattr(world, 'player_nation', 'France')
-    all_nations = [player] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
 
     # Check for active COURT_NATION mission target (player-side only)
     court_target = None

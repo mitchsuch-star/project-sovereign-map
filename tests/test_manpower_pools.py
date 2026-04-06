@@ -15,18 +15,16 @@ Testing Checklist from spec:
 - Interaction Tests (3 tests)
 """
 
-import pytest
 from backend.models.world_state import (
     WorldState,
     INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
-    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
     INFANTRY_BASE_REGEN, CAVALRY_BASE_REGEN,
     PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN,
     MAX_INFANTRY_POOL, MAX_CAVALRY_POOL,
     DEFAULT_MANPOWER_POOLS,
 )
 from backend.models.region import BUILDING_TYPES
-from backend.commands.executor import CommandExecutor, ADMIN_ACTIONS
+from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
 
@@ -230,12 +228,15 @@ class TestManpowerRegen:
         assert world.manpower_pools["France"]["infantry"] == 50000 + INFANTRY_BASE_REGEN
 
     def test_cavalry_base_regen(self):
-        """Cavalry base regen is 500/turn."""
+        """Cavalry base regen is 500/turn (base only, no plains)."""
         world = fresh_world()
-        # Remove all French regions to test base only
+        # Give France exactly one non-plains region to test base regen only
         for r in world.regions.values():
             if r.controller == "France":
                 r.controller = None
+        # Keep one region so France isn't eliminated (DLF-11)
+        first_region = next(r for r in world.regions.values() if r.terrain != "plains")
+        first_region.controller = "France"
         world.manpower_pools["France"]["cavalry"] = 5000
         world._process_manpower_regen()
         assert world.manpower_pools["France"]["cavalry"] == 5000 + CAVALRY_BASE_REGEN
@@ -334,8 +335,8 @@ class TestManpowerRegen:
         regen_after = world.manpower_pools["France"]["cavalry"]
         assert regen_after < regen_before
 
-    def test_nation_zero_regions_gets_base_regen(self):
-        """Nation with 0 regions still gets base regen."""
+    def test_nation_zero_regions_skips_regen(self):
+        """DLF-11: Eliminated nation (0 regions) gets NO regen."""
         world = fresh_world()
         for r in world.regions.values():
             if r.controller == "France":
@@ -343,8 +344,8 @@ class TestManpowerRegen:
         world.manpower_pools["France"]["cavalry"] = 0
         world.manpower_pools["France"]["infantry"] = 0
         world._process_manpower_regen()
-        assert world.manpower_pools["France"]["cavalry"] == CAVALRY_BASE_REGEN
-        assert world.manpower_pools["France"]["infantry"] == INFANTRY_BASE_REGEN
+        assert world.manpower_pools["France"]["cavalry"] == 0
+        assert world.manpower_pools["France"]["infantry"] == 0
 
     def test_get_cavalry_regen_rate_matches_regen(self):
         """get_cavalry_regen_rate returns same value as _process_manpower_regen computes."""

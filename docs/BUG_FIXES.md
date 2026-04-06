@@ -12,10 +12,10 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 — CRITICAL | 0 | All fixed |
-| P1 — MAJOR | 13 | Open |
+| P1 — MAJOR | 12 | Open (DLF-11 closed) |
 | P2 — MINOR | 8 | Open |
 | P3 — BALANCE | 4 | Open |
-| **Total** | **25** | |
+| **Total** | **24** | |
 
 **Estimated new tests:** ~118
 
@@ -30,6 +30,7 @@
 - **N2** (Offensive Alliance Cascade): FIXED — aggressor ALLIANCE cascade in diplomacy.py:1235-1280
 - **B3** (Enemy AI AP Rebalancing): REJECTED — deferred to post-full-map. See DESIGN_REFINEMENT.md
 - **B4** (Gold Accumulates): DESIGN GATE — already tracked in DESIGN_REFINEMENT.md
+- **DLF-11** (Eliminated Nations Not Filtered): FIXED — `get_active_nations()` helper on WorldState, 23 sites updated across 9 files, vassals always active. 17 new tests
 
 ---
 
@@ -120,7 +121,7 @@ All P0 bugs resolved. See "Closed this audit" above.
 - **Files:** `ai_diplomacy.py`
 - **Est. Tests:** ~6
 
-### DLF-11: Eliminated Nations Not Filtered (23 Sites)
+### ~~DLF-11: Eliminated Nations Not Filtered (23 Sites)~~ FIXED
 - **Source:** Diplo Ledger Fixes + Exhaustive Sweep (Apr 5)
 - **Summary:** 23 nation-iteration sites process eliminated nations — phantom behavior accumulates (relation changes, manpower regen, income, war cascades, UI). Helper `_is_nation_eliminated()` exists in diplomacy.py:1625 but is only used in 2 sites.
 - **Fix:** Add `get_active_nations()` helper to WorldState; replace raw nation lists at all 23 sites. Use existing `_is_nation_eliminated()` or promote to shared utility.

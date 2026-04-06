@@ -710,6 +710,18 @@ class WorldState:
         """Return list of all non-player nation names."""
         return [n for n in list(getattr(self, 'enemy_nations', [])) if n != self.player_nation]
 
+    def get_active_nations(self) -> list:
+        """Return all non-eliminated nations (control >= 1 region OR vassal).
+
+        DLF-11: Use this instead of raw [player_nation] + enemy_nations
+        to avoid processing eliminated nations in game logic loops.
+        Vassals are always considered active even with 0 regions.
+        """
+        from backend.game_logic.diplomacy import _is_nation_eliminated
+        vassals = set(getattr(self, 'vassals', {}).keys())
+        all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
+        return [n for n in all_nations if n in vassals or not _is_nation_eliminated(self, n)]
+
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
         if nation_a == nation_b:
@@ -2429,11 +2441,10 @@ class WorldState:
     def _process_manpower_regen(self):
         """Regenerate manpower pools per nation. Called during advance_turn.
 
-        Nations with 0 regions still get base regen (represents national reserves,
-        overseas recruitment, etc.). Territory bonuses require actual control.
+        DLF-11: Eliminated nations (0 regions) are skipped.
+        Territory bonuses require actual control.
         """
-        all_nations = [self.player_nation] + list(self.enemy_nations)
-        for nation in all_nations:
+        for nation in self.get_active_nations():
             if nation not in self.manpower_pools:
                 continue
 
@@ -3980,7 +3991,7 @@ class WorldState:
         # BANKRUPTCY DESERTION (Phase 6.2.B) — uses PREVIOUS turn's counter
         # Must run BEFORE income phase updates the counter
         # ════════════════════════════════════════════════════════════
-        all_nations = [self.player_nation] + list(self.enemy_nations)
+        all_nations = self.get_active_nations()  # DLF-11
         for nation in all_nations:
             bankruptcy_result = self.process_bankruptcy_desertion(nation)
             if bankruptcy_result.get("bankrupt"):
@@ -4505,7 +4516,7 @@ class WorldState:
 
         # AI-AI only: alliance conflict check
         if not is_player_treaty and target_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-            all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
+            all_nations = self.get_active_nations()  # DLF-11
             for other in all_nations:
                 if other == proposer or other == target_nation:
                     continue

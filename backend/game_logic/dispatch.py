@@ -632,7 +632,8 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
     }
 
     from backend.game_logic.diplomatic_dialogue import get_known_nations
-    known_nations = sorted(get_known_nations(world))
+    active = set(world.get_active_nations())  # DLF-11
+    known_nations = sorted(n for n in get_known_nations(world) if n in active)
 
     for nation in known_nations:
         if len(observations) >= 2:

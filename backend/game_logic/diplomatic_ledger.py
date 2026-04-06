@@ -137,7 +137,8 @@ def _format_army_strength(total_strength: int, visibility: str) -> str:
 def _build_nations(world) -> List[Dict[str, Any]]:
     """Build nations tab: per-nation diplomatic overview."""
     player = world.player_nation
-    all_nations = list(getattr(world, 'enemy_nations', []))
+    active = set(world.get_active_nations())  # DLF-11
+    all_nations = [n for n in getattr(world, 'enemy_nations', []) if n in active]
     nations = []
 
     for nation in all_nations:

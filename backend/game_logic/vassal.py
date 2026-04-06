@@ -193,7 +193,7 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
     - If vassal is at WAR with lord's allies → auto-armistice
     - If vassal is allied with lord's enemies → auto-break to PEACE
     """
-    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    all_nations = world.get_active_nations()  # DLF-11
 
     for other in all_nations:
         if other == lord or other == vassal:
@@ -265,7 +265,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                     delta += int(gold_amount) // 100
 
         # 4. Shared enemy bonus
-        all_nations = [getattr(world, 'player_nation', 'France')] + list(getattr(world, 'enemy_nations', []))
+        all_nations = world.get_active_nations()  # DLF-11
         for other_nation in all_nations:
             if other_nation == lord or other_nation == vassal_name:
                 continue
@@ -545,7 +545,7 @@ def check_defection_cascade(world) -> List[dict]:
             continue
 
         # Check if lord is in a war with war_score < -30
-        all_nations = [getattr(world, 'player_nation', 'France')] + list(getattr(world, 'enemy_nations', []))
+        all_nations = world.get_active_nations()  # DLF-11
         for enemy_nation in all_nations:
             if enemy_nation == lord or enemy_nation == vassal_name:
                 continue

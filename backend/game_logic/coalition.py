@@ -69,8 +69,8 @@ _ORDINALS = {1: "First", 2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth",
 # ════════════════════════════════════════════════════════════════
 
 def _get_all_nations(world) -> List[str]:
-    """Return all nations (player + enemy). Consistent with diplomacy.py pattern."""
-    return [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    """Return all active (non-eliminated) nations. DLF-11."""
+    return world.get_active_nations()
 
 
 def _get_diplo_key(a: str, b: str) -> str:
