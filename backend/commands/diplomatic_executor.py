@@ -1494,7 +1494,7 @@ class DiplomaticExecutor:
 
             # Cancel existing mission
             diplo_key = world._make_diplo_key(world.player_nation, mission_target)
-            world.active_diplomatic_mission = {
+            mission_dict = {
                 "type": mission_type,
                 "target": mission_target,
                 "turns_active": 0,
@@ -1503,6 +1503,11 @@ class DiplomaticExecutor:
                 "started_turn": int(getattr(world, 'current_turn', 1)),
                 "initial_relation": int(world.nation_relations.get(diplo_key, 0) or 0),
             }
+            # DLF-2: Store target_ally for UNDERMINE_ALLIANCE
+            if mission_type == "UNDERMINE_ALLIANCE":
+                target_ally = terms.get("target_ally", "")
+                mission_dict["target_ally"] = target_ally
+            world.active_diplomatic_mission = mission_dict
             world.talleyrand_state = "ON_MISSION"
 
             description = MISSION_DESCRIPTIONS.get(mission_type, "conduct diplomacy with")

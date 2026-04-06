@@ -678,20 +678,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
-    # ── P3: Threat > 60 AND not allied → seek alliance (R106) ──
+    # ── P3: Threat > 60 AND not allied → seek alliance (R106, DLF-9) ──
     if proposal is None and not is_at_war:
         threat = int(getattr(world, 'threat_level', 0))
         if threat > 60:
             if diplo_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
-                if relation > 20:
-                    ptype = "defensive_alliance"
-                elif relation > 0:
-                    ptype = "non_aggression"
-                else:
-                    ptype = None
-                if ptype and not _is_on_cooldown(nation, ptype, world, war_score):
-                    terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
-                    proposal = _make_proposal(nation, ptype, 3, terms, world)
+                upgrade_type = _determine_upgrade_type(nation, world)
+                if upgrade_type and not _is_on_cooldown(nation, upgrade_type, world, war_score):
+                    terms = _build_proposal_terms(nation, upgrade_type, 0, world, gold_mult=gold_mult)
+                    proposal = _make_proposal(nation, upgrade_type, 3, terms, world)
 
     # ── P4: Relation > +30 AND at peace → propose upgrade ──
     if proposal is None and not is_at_war and relation > 30:

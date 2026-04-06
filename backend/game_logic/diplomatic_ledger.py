@@ -187,6 +187,8 @@ def _build_nations(world) -> List[Dict[str, Any]]:
                     active_treaties.append(treaty_type)
 
         # Vassal eligibility: not already vassal, relation < -10 or at war, not France
+        # DLF-1: Must also be in a qualifying diplomatic state
+        from backend.game_logic.diplomacy import VASSAL_MIN_STATES  # noqa: E402
         vassals = getattr(world, 'vassals', {})
         is_vassal = nation in vassals
         at_war = diplomatic_state == "WAR"
@@ -194,17 +196,22 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             not is_vassal
             and (relation < -10 or at_war)
             and nation != player
+            and diplomatic_state in VASSAL_MIN_STATES
         )
 
         # AI-AI relations: show diplomatic states with other AI nations
         # DPF-1: No fog gate — diplomatic relations are public knowledge
+        # DLF-3: Filter to notable states only — hide PEACE to reduce display bloat
         from backend.game_logic.diplomacy import get_relation_descriptor  # noqa: E402
         ai_relations = []
+        notable_states = {"WAR", "ALLIANCE", "DEFENSIVE_ALLIANCE", "OPEN_BORDERS", "NON_AGGRESSION"}
         for other_ai in all_nations:
             if other_ai == nation:
                 continue
             ai_diplo_key = world._make_diplo_key(nation, other_ai)
             ai_state = world.diplomatic_states.get(ai_diplo_key, "PEACE")
+            if ai_state not in notable_states:
+                continue
             ai_relation_value = int(world.nation_relations.get(ai_diplo_key, 0) or 0)
             ai_relations.append({
                 "nation": other_ai,
@@ -604,6 +611,9 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             "initial_descriptor": _get_rel_desc(initial_relation),
             "current_descriptor": _get_rel_desc(current_relation),
         }
+        # DLF-2: Show target_ally for UNDERMINE_ALLIANCE
+        if mission_type == "UNDERMINE_ALLIANCE":
+            active_mission["target_ally"] = mission.get("target_ally", "")
 
     # Proposal in transit
     proposal_in_transit = None

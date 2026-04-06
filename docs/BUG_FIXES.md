@@ -12,10 +12,10 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 — CRITICAL | 0 | All fixed |
-| P1 — MAJOR | 6 | Open (DLF-7, DLF-11, DLF-12, M2, PT-2, PT-4, PT-5 closed) |
+| P1 — MAJOR | 0 | All fixed (DLF-1, DLF-2, DLF-3, DLF-4, DLF-5, DLF-9 closed Session 4) |
 | P2 — MINOR | 8 | Open |
 | P3 — BALANCE | 4 | Open |
-| **Total** | **18** | |
+| **Total** | **12** | |
 
 **Estimated new tests:** ~99
 
@@ -77,40 +77,40 @@ All P0 bugs resolved. See "Closed this audit" above.
 - **Files:** `strategic_executor.py`
 - **Tests:** 6 in `test_bugfix_session3.py`
 
-### DLF-1: Vassalizable Icon Shows Ineligible Nations
+### ~~DLF-1: Vassalizable Icon Shows Ineligible Nations~~ FIXED
 - **Source:** Diplo Ledger Fixes
 - **Summary:** Icon shows for any nation with relation < -10 OR at_war, ignoring diplomatic state requirements.
-- **Fix:** Add `VASSAL_MIN_STATES` check — icon only when state in {WAR, OPEN_BORDERS, NON_AGGRESSION, DEFENSIVE_ALLIANCE, ALLIANCE}.
+- **Fix:** Added `diplomatic_state in VASSAL_MIN_STATES` check to `vassal_eligible` condition.
 - **Files:** `diplomatic_ledger.py`
-- **Est. Tests:** ~2
+- **Tests:** 2 in `test_bugfix_session4.py`
 
-### DLF-2: UNDERMINE_ALLIANCE Mission Has No Effect
+### ~~DLF-2: UNDERMINE_ALLIANCE Mission Has No Effect~~ FIXED
 - **Source:** Diplo Ledger Fixes
-- **Summary:** Mission accepts commands, deducts 2 DP/turn, but per-turn effect (-3 relation between target pair) never applied. Stub at diplomacy.py:1947.
-- **Fix:** Add conversational ally-selection dialogue, store `target_pair`, apply -3/turn relation reduction, auto-cancel if alliance breaks. Update tracker display.
-- **Files:** `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_ledger.py`
-- **Est. Tests:** ~8
+- **Summary:** Mission accepts commands, deducts 2 DP/turn, but per-turn effect (-3 relation between target pair) never applied.
+- **Fix:** Added ally-selection dialogue (auto-select single, present options for multiple), `target_ally` in mission dict, -3/turn skill-scaled relation reduction between targets, auto-cancel when alliance breaks.
+- **Files:** `diplomatic_dialogue.py`, `diplomatic_executor.py`, `diplomacy.py`, `diplomatic_ledger.py`
+- **Tests:** 8 in `test_bugfix_session4.py`
 
-### DLF-3: AI-AI Relations Display Scaling
+### ~~DLF-3: AI-AI Relations Display Scaling~~ FIXED
 - **Source:** Diplo Ledger Fixes
 - **Summary:** Nations tab lists all AI relations inline — unreadable wall of text at scale.
-- **Fix:** Filter to notable states only (WAR, ALLIANCE, DEFENSIVE_ALLIANCE, OPEN_BORDERS, NON_AGGRESSION). Hide PEACE. Empty case: "At peace with all".
-- **Files:** `diplomatic_ledger.py`, `diplomatic_ledger.gd`
-- **Est. Tests:** ~3
+- **Fix:** Filtered to notable states only (WAR, ALLIANCE, DEFENSIVE_ALLIANCE, OPEN_BORDERS, NON_AGGRESSION). PEACE entries skipped.
+- **Files:** `diplomatic_ledger.py`
+- **Tests:** 3 in `test_bugfix_session4.py`
 
-### DLF-4: COURT_NATION Blowback Never Processes
+### ~~DLF-4: COURT_NATION Blowback Never Processes~~ FIXED
 - **Source:** Diplo Ledger Fixes
-- **Summary:** COURT_NATION costs 2 DP/turn for 20% blowback risk, but blowback stub never fires. Currently a strictly worse IMPROVE_RELATIONS.
-- **Fix:** Process 20% blowback in `_process_mission_effects()` — fixed -3 penalty (not skill-scaled), queue incident event.
+- **Summary:** COURT_NATION costs 2 DP/turn for 20% blowback risk, but blowback stub never fires.
+- **Fix:** Added 20% blowback roll in `_process_mission_effects()` — fixed -3 penalty (not skill-scaled), dispatch event queued, blowback event emitted.
 - **Files:** `diplomacy.py`
-- **Est. Tests:** ~7
+- **Tests:** 7 in `test_bugfix_session4.py`
 
-### DLF-5: GATHER_INTEL Completes But Reveals Nothing
+### ~~DLF-5: GATHER_INTEL Completes But Reveals Nothing~~ FIXED
 - **Source:** Diplo Ledger Fixes
 - **Summary:** Auto-completes after 3 turns with congratulations but zero intel. Player spends 3 DP for a message.
-- **Fix:** Grant temporary FULL visibility on target nation's army strength for 5 turns post-completion. New `intel_grants` field on WorldState with expiry. Serialization required.
-- **Files:** `diplomacy.py`, `diplomatic_ledger.py`, `world_state.py`
-- **Est. Tests:** ~7
+- **Fix:** Added `intel_grants` field to WorldState (serialized). On completion, grants FULL visibility on all target regions for 5 turns via `update_intel_from_scout()`. Decay protected during grant window, expired grants cleaned up.
+- **Files:** `diplomacy.py`, `world_state.py`
+- **Tests:** 7 in `test_bugfix_session4.py`
 
 ### ~~DLF-7: Eliminated Nations in War Cascades~~ FIXED
 - **Source:** Diplo Ledger Fixes
@@ -119,12 +119,12 @@ All P0 bugs resolved. See "Closed this audit" above.
 - **Files:** `diplomacy.py` (already patched by DLF-11)
 - **Tests:** 3 in `test_bugfix_session2.py`
 
-### DLF-9: P3 Proposal Skips Upgrade Path Validation
+### ~~DLF-9: P3 Proposal Skips Upgrade Path Validation~~ FIXED
 - **Source:** Diplo Ledger Fixes
-- **Summary:** P3 (Threat > 60) proposes states directly based on relation thresholds without checking valid upgrade path. Also off-by-one on boundary.
-- **Fix:** Replace manual checks with `_determine_upgrade_type()` call (same as P4).
+- **Summary:** P3 (Threat > 60) proposes states directly based on relation thresholds without checking valid upgrade path.
+- **Fix:** Replaced hardcoded relation thresholds with `_determine_upgrade_type()` call (same as P4). Follows PEACE→OPEN_BORDERS→NON_AGGRESSION→DEFENSIVE_ALLIANCE→ALLIANCE path.
 - **Files:** `ai_diplomacy.py`
-- **Est. Tests:** ~6
+- **Tests:** 6 in `test_bugfix_session4.py`
 
 ### ~~DLF-11: Eliminated Nations Not Filtered (23 Sites)~~ FIXED
 - **Source:** Diplo Ledger Fixes + Exhaustive Sweep (Apr 5)
@@ -267,14 +267,13 @@ All P0 bugs resolved. See "Closed this audit" above.
 
 ## Session Plan
 
-| Session | Items | Focus | Est. Tests |
-|---------|-------|-------|------------|
-| 1 | DLF-11 | `get_active_nations()` helper + 23-site eliminated-nation sweep | ~18 |
-| 2 | DLF-7, DLF-12 | Cascade filter (uses Session 1 helper) + AI movement permission | ~12 |
-| 3 | PT-2, PT-4, PT-5, m1 | Parse + diplomatic error messages | ~17 |
-| 4 | M2, m4 | Recruitment parse + movement message polish | ~7 |
-| 5 | DLF-2 | UNDERMINE_ALLIANCE mission (dialogue + target_pair + per-turn effect) | ~8 |
-| 6 | DLF-4, DLF-5 | COURT blowback + GATHER_INTEL visibility grant | ~14 |
+| Session | Items | Focus | Tests |
+|---------|-------|-------|-------|
+| 1 | DLF-11 | `get_active_nations()` helper + 23-site eliminated-nation sweep | 17 |
+| 2 | DLF-7, DLF-12 | Cascade filter (uses Session 1 helper) + AI movement permission | 19 |
+| 3 | PT-2, M2, PT-4, PT-5 | Parse fixes + armistice validation | 25 |
+| 4 | DLF-1, DLF-2, DLF-3, DLF-4, DLF-5, DLF-9 | All remaining P1s: vassal icon, undermine alliance, AI relations, blowback, intel grants, upgrade path | 33 |
+| 5+ | P2s + P3s | Remaining 12 bugs (8 P2, 4 P3) | TBD |
 | 7 | DLF-1, DLF-3, DLF-8, DLF-9, DLF-10 | Ledger display + diplomacy guards | ~17 |
 | 8 | PT-3, PT-7, m2, m3 | Emoji + dead code + minor fixes | ~9 |
 | 9 | B1, B2, N3, PT-6 | Balance (specs approved) + AP warning | ~16 |

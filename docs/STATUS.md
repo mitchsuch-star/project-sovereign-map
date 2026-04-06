@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Bug Fix Session 3 complete — PT-2 status parse fixed, M2 recruit-without-marshal fixed, PT-5 pursue armistice AP waste fixed, PT-4 armistice attack "Unknown target" fixed. 25 new tests. 18 bugs remain across ~6 sessions)
+> **Last Updated:** April 6, 2026 (Bug Fix Session 4 complete — all 6 remaining P1s fixed: DLF-1 vassal icon state check, DLF-2 undermine alliance effect, DLF-3 AI relations display filter, DLF-4 court nation blowback, DLF-5 gather intel visibility grants, DLF-9 P3 upgrade path validation. 33 new tests. 12 bugs remain (0 P1, 8 P2, 4 P3))
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7835** (7835 passed, 1 skipped) |
+| **Tests Passing** | **7870** (7870 passed, 1 skipped) |
 
 | **Current Phase** | **Bug Fixes** — iterating `docs/BUG_FIXES.md` until clean, then `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
@@ -21,7 +21,7 @@
 
 ### Current: Bug Fixes
 
-Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 18 open bugs (0 P0, 6 P1, 8 P2, 4 P3). Sessions 1-3 COMPLETE. Next: Session 4 (pick from remaining P1s: DLF-1 vassalizable icon, DLF-2 undermine alliance, DLF-3 AI relations display, DLF-4 court nation blowback, DLF-5 gather intel, DLF-9 P3 upgrade path). ~6 sessions remaining, ~99 new tests estimated.
+Iterate `docs/BUG_FIXES.md` sessions until all bugs are resolved. 12 open bugs (0 P0, 0 P1, 8 P2, 4 P3). Sessions 1-4 COMPLETE. All P1s resolved. Next: Session 5+ (P2s and P3s).
 
 ### Then: Design Refinement
 

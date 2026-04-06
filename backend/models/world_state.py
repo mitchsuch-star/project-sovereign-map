@@ -407,6 +407,9 @@ class WorldState:
         self.active_diplomatic_mission: Optional[Dict] = None
         # {"type": "IMPROVE_RELATIONS", "target": "Austria", "turns_active": 0, "paused": False}
 
+        # DLF-5: Temporary intel grants from GATHER_INTEL (region_name → expiry_turn)
+        self.intel_grants: Dict[str, int] = {}
+
         # Talleyrand's current state
         self.talleyrand_state: str = "IDLE"  # "IDLE" | "IN_TRANSIT" | "ON_MISSION"
 
@@ -991,11 +994,15 @@ class WorldState:
         """
         refreshed = getattr(self, '_refreshed_regions_this_turn', set())
         turn = self.current_turn
+        active_grants = getattr(self, 'intel_grants', {})
 
         decay_events: list = []
         for region_name, intel in self.intel.items():
             if region_name in refreshed:
                 continue  # Skip — already refreshed with live data
+            # DLF-5: Skip decay for regions with active intel grants
+            if region_name in active_grants and active_grants[region_name] >= turn:
+                continue
             old_visibility = intel.visibility
             intel.decay(turn)
             # Emit intel_decayed event if visibility downgraded
@@ -1006,6 +1013,10 @@ class WorldState:
                     "old_visibility": old_visibility,
                     "new_visibility": intel.visibility,
                 })
+
+        # DLF-5: Clean up expired intel grants
+        if active_grants:
+            self.intel_grants = {k: v for k, v in active_grants.items() if v >= turn}
 
         # Append decay events to the intel events list
         intel_events = getattr(self, '_intel_events_this_turn', [])
@@ -3081,6 +3092,7 @@ class WorldState:
             "pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,
             "pending_dialogue_queue": [copy.deepcopy(d) for d in self._dialogue_manager._queue],
             "active_diplomatic_mission": self.active_diplomatic_mission,
+            "intel_grants": {k: int(v) for k, v in self.intel_grants.items()},
             "talleyrand_state": self.talleyrand_state,
             "proposal_in_transit": self.proposal_in_transit,
             "player_proposal_cooldowns": {k: int(v) for k, v in self.player_proposal_cooldowns.items()},
@@ -3316,6 +3328,7 @@ class WorldState:
             dm._queue = [copy.deepcopy(d) for d in data.get("pending_dialogue_queue", [])]
             world._dialogue_manager = dm
         world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
+        world.intel_grants = {k: int(v) for k, v in data.get("intel_grants", {}).items()}
         world.talleyrand_state = data.get("talleyrand_state", "IDLE")
         world.proposal_in_transit = data.get("proposal_in_transit", None)
         world.player_proposal_cooldowns = {k: int(v) for k, v in data.get("player_proposal_cooldowns", {}).items()}

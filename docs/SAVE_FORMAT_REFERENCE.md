@@ -74,6 +74,7 @@ A future save/load system should use this as the specification.
 
   "pending_diplomatic_dialogue": null,
   "active_diplomatic_mission": null,
+  "intel_grants": {},
   "talleyrand_state": "IDLE",
   "proposal_in_transit": null,
   "player_proposal_cooldowns": {},
@@ -187,7 +188,8 @@ A future save/load system should use this as the specification.
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |
 | `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal. |
-| `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. |
+| `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. UNDERMINE_ALLIANCE adds `target_ally`. |
+| `intel_grants` | dict | {} | **BF4.** Temporary intel grants from GATHER_INTEL: {region_name: expiry_turn}. Prevents decay while active. |
 | `talleyrand_state` | str | "IDLE" | **Session 3.** "IDLE", "IN_TRANSIT", or "ON_MISSION". |
 | `proposal_in_transit` | dict/null | null | **Session 3.** Proposal sent and awaiting resolution next turn: {target, proposal, turn_sent}. |
 | `player_proposal_cooldowns` | dict | {} | **Session 3.** Cooldowns per nation (3 turns) and per type (5 turns) after rejection. |

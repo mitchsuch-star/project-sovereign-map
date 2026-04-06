@@ -11,6 +11,7 @@ Single source of truth for diplomatic mechanics:
   - Downgrade transitions
 """
 
+import random  # noqa: F401 — used in _process_mission_effects
 from typing import Dict, List
 
 # ═══════ DIPLOMATIC STATE HIERARCHY ═══════
@@ -1942,10 +1943,70 @@ def _process_mission_effects(world) -> List[Dict]:
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "diplomatic_mission_completed",
                             {"nation": target}, "player_mission")
-        # Stub: no intel revealed yet (Session 4+)
 
-    # UNDERMINE_ALLIANCE: stub (requires intel system)
-    # COURT_NATION undermine chance: stub
+        # DLF-5: Grant FULL visibility on target nation's regions for 5 turns
+        if mission_type == "GATHER_INTEL":
+            grant_expiry = int(world.current_turn) + 5
+            target_regions = [
+                r.name for r in world.regions.values()
+                if r.controller == target
+            ]
+            for region_name in target_regions:
+                world.update_intel_from_scout(region_name, int(world.current_turn))
+                world.intel_grants[region_name] = grant_expiry
+            events[-1]["regions_revealed"] = len(target_regions)
+            events[-1]["message"] = (
+                f"Talleyrand has completed his intelligence gathering on {target}. "
+                f"{len(target_regions)} region{'s' if len(target_regions) != 1 else ''} revealed for 5 turns."
+            )
+
+    # DLF-4: COURT_NATION blowback — 20% chance of -3 relation (fixed, not skill-scaled)
+    undermine_chance = effects.get("undermine_chance", 0)
+    if undermine_chance > 0:
+        if random.random() < undermine_chance:
+            undermine_amount = effects.get("undermine_amount", 0)
+            world.modify_nation_relation(player_nation, target, undermine_amount)
+            diplo_key_bl = world._make_diplo_key(player_nation, target)
+            current_relation_bl = int(world.nation_relations.get(diplo_key_bl, 0) or 0)
+            events.append({
+                "type": "diplomatic_mission_blowback",
+                "target": target,
+                "mission_type": mission_type,
+                "delta": int(undermine_amount),
+                "message": f"Diplomatic blowback! {target} discovered our scheming. ({int(undermine_amount)} relation)",
+            })
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_mission_blowback",
+                                {"nation": target, "delta": int(undermine_amount),
+                                 "value": current_relation_bl},
+                                "player_mission")
+
+    # DLF-2: UNDERMINE_ALLIANCE per-turn effect
+    if mission_type == "UNDERMINE_ALLIANCE":
+        target_ally = mission.get("target_ally", "")
+        if target_ally:
+            pair_change = effects.get("target_pair_relation_change", 0)
+            if pair_change:
+                scaled_pair = int(round(pair_change * multiplier))
+                world.modify_nation_relation(target, target_ally, scaled_pair)
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(world, "diplomatic_mission_progress",
+                                    {"nation": target, "ally": target_ally,
+                                     "delta": int(scaled_pair)},
+                                    "player_mission")
+                # Auto-cancel if alliance broke
+                if not world.are_allies(target, target_ally):
+                    mission["completed"] = True
+                    world.talleyrand_state = "IDLE"
+                    events.append({
+                        "type": "diplomatic_mission_completed",
+                        "target": target,
+                        "mission_type": mission_type,
+                        "message": f"The alliance between {target} and {target_ally} has collapsed! Mission complete.",
+                    })
+                    queue_dispatch_event(world, "diplomatic_mission_completed",
+                                        {"nation": target, "ally": target_ally},
+                                        "player_mission")
 
     return events
 

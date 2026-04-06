@@ -867,6 +867,83 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
             f"{existing['target']}."
         )
 
+    # DLF-2: UNDERMINE_ALLIANCE requires ally selection
+    if mission_type == "UNDERMINE_ALLIANCE":
+        active_nations = world.get_active_nations()
+        allies = [
+            n for n in active_nations
+            if n != target_nation and world.are_allies(target_nation, n)
+        ]
+        if not allies:
+            return {
+                "type": "mission",
+                "target_nation": target_nation,
+                "talleyrand_text": f"Sire, {target_nation} has no alliances to undermine.",
+                "options": [
+                    {"label": "Dismiss", "description": "Never mind.", "action": "dismiss"},
+                ],
+                "context": {},
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+        if len(allies) == 1:
+            # Auto-select sole ally
+            ally = allies[0]
+            text = (
+                f"Sire, I shall work to undermine the alliance between "
+                f"{target_nation} and {ally}. "
+                f"This will cost {int(dp_cost)} DP per turn.{existing_text}"
+            )
+            return {
+                "type": "mission",
+                "target_nation": target_nation,
+                "talleyrand_text": text,
+                "options": [
+                    {
+                        "label": "Begin mission",
+                        "description": f"Undermine {target_nation}-{ally} alliance.",
+                        "action": "start_mission",
+                        "terms": {
+                            "mission_type": mission_type,
+                            "target_nation": target_nation,
+                            "target_ally": ally,
+                        },
+                    },
+                    {"label": "Not now", "description": "Cancel.", "action": "dismiss"},
+                ],
+                "context": {"dp_cost_per_turn": int(dp_cost), "target_ally": ally},
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+        # Multiple allies — present selection
+        text = (
+            f"Sire, {target_nation} has multiple alliances. "
+            f"Which alliance shall I undermine? ({int(dp_cost)} DP/turn){existing_text}"
+        )
+        options = [
+            {
+                "label": f"{ally}",
+                "description": f"Undermine {target_nation}-{ally} alliance.",
+                "action": "start_mission",
+                "terms": {
+                    "mission_type": mission_type,
+                    "target_nation": target_nation,
+                    "target_ally": ally,
+                },
+            }
+            for ally in allies
+        ]
+        options.append({"label": "Not now", "description": "Cancel.", "action": "dismiss"})
+        return {
+            "type": "mission",
+            "target_nation": target_nation,
+            "talleyrand_text": text,
+            "options": options,
+            "context": {"dp_cost_per_turn": int(dp_cost)},
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
+
     text = (
         f"Sire, I shall begin efforts to {description} {target_nation}. "
         f"This will cost {int(dp_cost)} DP per turn.{existing_text}"

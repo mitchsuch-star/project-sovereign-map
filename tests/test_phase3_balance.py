@@ -625,8 +625,8 @@ class TestR11CoalitionStalemate:
 class TestR106P3AITrigger:
     """R106: AI nations seek alliances when threat > 60."""
 
-    def test_threat_70_proposes_defensive_alliance(self):
-        """Threat=70, PEACE, relation=25 → proposes defensive_alliance."""
+    def test_threat_70_proposes_upgrade_from_peace(self):
+        """Threat=70, PEACE, relation=25 → proposes open_borders (DLF-9: follows upgrade path)."""
         world = _make_world()
         world.threat_level = 70
         _set_diplo_state(world, "France", "Austria", "PEACE")
@@ -639,7 +639,7 @@ class TestR106P3AITrigger:
         from backend.game_logic.ai_diplomacy import process_diplomatic_phase
         result = process_diplomatic_phase("Austria", world)
         assert result is not None
-        assert result["proposal_type"] == "defensive_alliance"
+        assert result["proposal_type"] == "open_borders"
 
     def test_already_alliance_skips(self):
         """Already ALLIANCE → P3 doesn't trigger."""
