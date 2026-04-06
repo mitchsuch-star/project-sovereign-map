@@ -81,6 +81,9 @@ var proposal_confirm_popup = null
 # Alliance Paradox Popup (Deep Audit Session 8)
 var alliance_paradox_popup = null
 
+# Proposal Result Popup (Session 8 PL-5A)
+var proposal_result_popup = null
+
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
 
@@ -206,6 +209,10 @@ func _ready():
 	alliance_paradox_popup = dialog_manager.register("alliance_paradox", "res://scenes/alliance_paradox_popup.tscn")
 	if alliance_paradox_popup:
 		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
+
+	proposal_result_popup = dialog_manager.register("proposal_result", "res://scenes/proposal_result_popup.tscn")
+	if proposal_result_popup:
+		proposal_result_popup.dismissed.connect(_on_proposal_result_dismissed)
 
 	# Diplomacy wizard
 	diplomacy_wizard = dialog_manager.register("diplomacy_wizard", "res://scenes/diplomacy_wizard.tscn")
@@ -668,6 +675,13 @@ func _on_command_result(response):
 	if response.has("incoming_proposal") and response.incoming_proposal != null:
 		if incoming_proposal_popup:
 			incoming_proposal_popup.show_proposal(response.incoming_proposal)
+			_process_active_wars(response)
+			return
+
+	# Priority 6.25: Proposal Result Popup (PL-5A — proposal outcome)
+	if response.has("proposal_result") and response.proposal_result != null:
+		if proposal_result_popup:
+			proposal_result_popup.show_result(response.proposal_result)
 			_process_active_wars(response)
 			return
 
@@ -2139,6 +2153,17 @@ func _on_enemy_phase_dismissed():
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
+		# PL-5A: Proposal result popup (deferred from end-turn, informational)
+		if response.has("proposal_result") and response.proposal_result != null:
+			if proposal_result_popup:
+				# N4i: Update war status HUD before popup
+				_process_active_wars(response)
+				pending_enemy_phase_response = null
+				# Show morning dispatch before popup (context for the result)
+				_show_pending_dispatch()
+				proposal_result_popup.show_result(response.proposal_result)
+				return  # Don't re-enable input until dismissed
+
 		# N4i: Update war status HUD after enemy phase
 		_process_active_wars(response)
 		pending_enemy_phase_response = null
@@ -2730,6 +2755,12 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
 		set_input_enabled(false)
 		api_client.send_command(command, _on_command_result)
+
+func _on_proposal_result_dismissed():
+	"""Handle proposal result popup dismissed (PL-5A)."""
+	_process_active_wars(_last_command_response)
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal."""

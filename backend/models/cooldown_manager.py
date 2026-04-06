@@ -141,6 +141,7 @@ class PopupQueue:
         "talleyrand_redemption_popup",
         "diplomatic_objection_popup",
         "incoming_proposal_popup",
+        "proposal_result_popup",
         "alliance_paradox_popup",  # TODO: alliance_paradox_popup needs a Godot handler (M10)
     ]
 
@@ -152,6 +153,7 @@ class PopupQueue:
         "talleyrand_redemption_popup": "talleyrand_redemption",
         "diplomatic_objection_popup": "diplomatic_objection",
         "incoming_proposal_popup": "incoming_proposal",
+        "proposal_result_popup": "proposal_result",
         "alliance_paradox_popup": "alliance_paradox_popup",
     }
 

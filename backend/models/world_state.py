@@ -653,6 +653,14 @@ class WorldState:
         self._popup_queue.set("incoming_proposal_popup", value)
 
     @property
+    def proposal_result_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("proposal_result_popup")
+
+    @proposal_result_popup.setter
+    def proposal_result_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("proposal_result_popup", value)
+
+    @property
     def alliance_paradox_popup(self) -> Optional[Dict]:
         return self._popup_queue.get("alliance_paradox_popup")
 
@@ -3151,6 +3159,7 @@ class WorldState:
             "talleyrand_redemption_popup": self.talleyrand_redemption_popup,
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
+            "proposal_result_popup": self.proposal_result_popup,
 
             # V2-16: Diplomatic trust cap tracking
             "diplomatic_trust_applied": {k: int(v) for k, v in self.diplomatic_trust_applied.items()},
@@ -3392,6 +3401,7 @@ class WorldState:
         world.talleyrand_redemption_popup = data.get("talleyrand_redemption_popup", None)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
+        world.proposal_result_popup = data.get("proposal_result_popup", None)
 
         # V2-16: Diplomatic trust cap tracking
         world.diplomatic_trust_applied = {k: int(v) for k, v in data.get("diplomatic_trust_applied", {}).items()}
@@ -4347,6 +4357,15 @@ class WorldState:
                     self.player_proposal_cooldowns[f"{target}_{stale_ptype}"] = 6
                 from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
                 apply_rejection_cooldowns(target, stale_ptype, self, deferred=True)
+                # PL-5A: Proposal result popup for stale rejection
+                from backend.display_names import proposal_display_name
+                self.proposal_result_popup = {
+                    "target_nation": target,
+                    "proposal_type": proposal_display_name(stale_ptype),
+                    "outcome": "REJECT",
+                    "message": f"The diplomatic situation with {target} has changed — our proposal is no longer viable.",
+                    "feedback": "The current relations have already surpassed the proposed terms.",
+                }
                 self.proposal_in_transit = None
                 # Restore Talleyrand state (same logic as normal resolution path)
                 mission = getattr(self, 'active_diplomatic_mission', None)
@@ -4376,6 +4395,8 @@ class WorldState:
             from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
             apply_acceptance_cooldown(target, self, deferred=True)
             # Deep audit fix 11: Check ratification result before showing success
+            from backend.display_names import proposal_display_name
+            ptype_display = proposal_display_name(proposal.get("type", ""))
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
                 events.append({
                     "type": "diplomatic_proposal_returned",
@@ -4383,6 +4404,14 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"Talleyrand returns from {target}: they agreed in principle, but the diplomatic situation has changed.",
                 })
+                # PL-5A: Popup for failed ratification
+                self.proposal_result_popup = {
+                    "target_nation": target,
+                    "proposal_type": ptype_display,
+                    "outcome": "REJECT",
+                    "message": f"{target} agreed in principle, but the diplomatic situation has changed.",
+                    "feedback": feedback,
+                }
             else:
                 events.append({
                     "type": "diplomatic_proposal_returned",
@@ -4392,6 +4421,14 @@ class WorldState:
                 })
                 if treaty_event:
                     events.append(treaty_event)
+                # PL-5A: Popup for acceptance
+                self.proposal_result_popup = {
+                    "target_nation": target,
+                    "proposal_type": ptype_display,
+                    "outcome": "ACCEPT",
+                    "message": f"{target} has accepted our {ptype_display}!",
+                    "feedback": feedback,
+                }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         elif outcome == "COUNTER_OFFER":
@@ -4482,6 +4519,15 @@ class WorldState:
                 # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
                 from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
                 apply_rejection_cooldowns(target, ptype, self, deferred=True)
+                # PL-5A: Popup for failed counter-offer
+                from backend.display_names import proposal_display_name
+                self.proposal_result_popup = {
+                    "target_nation": target,
+                    "proposal_type": proposal_display_name(ptype),
+                    "outcome": "REJECT",
+                    "message": f"{target} was not entirely opposed, but could not agree to any terms.",
+                    "feedback": feedback,
+                }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         else:
@@ -4500,6 +4546,15 @@ class WorldState:
             # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
             from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
             apply_rejection_cooldowns(target, ptype, self, deferred=True)
+            # PL-5A: Popup for rejection
+            from backend.display_names import proposal_display_name
+            self.proposal_result_popup = {
+                "target_nation": target,
+                "proposal_type": proposal_display_name(ptype),
+                "outcome": "REJECT",
+                "message": f"{target} has rejected our {proposal_display_name(ptype)}.",
+                "feedback": feedback,
+            }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
 

@@ -436,9 +436,9 @@ class TestCooldownPopupEnforcement:
         assert mgr._registered_scalars == {"talleyrand_defiance"}
 
     def test_popup_priority_order_length(self):
-        """PopupQueue has exactly 7 popup types."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 7
-        assert len(PopupQueue.RESPONSE_KEYS) == 7
+        """PopupQueue has exactly 8 popup types."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 8
+        assert len(PopupQueue.RESPONSE_KEYS) == 8
 
     def test_popup_priority_order_matches_response_keys(self):
         """Every PRIORITY_ORDER entry has a RESPONSE_KEYS mapping."""

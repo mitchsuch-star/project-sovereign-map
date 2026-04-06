@@ -998,6 +998,15 @@ def execute_command(request: CommandRequest):
                 if world.pending_diplomatic_dialogue:
                     response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
             _include_popup_passthroughs(response, world)
+        else:
+            # PL-5A: Proposal result is informational ([Continue] only) — safe to
+            # include alongside enemy_phase. Godot shows it post-enemy-phase.
+            # Other popups (incoming_proposal, etc.) remain deferred because they
+            # require player choices that would block enemy_phase display.
+            prp = world.proposal_result_popup
+            if prp is not None:
+                response["proposal_result"] = prp
+                world.proposal_result_popup = None  # Consumed
 
         # Notifications — persistent alerts for Godot notification bar
         if world.notifications.has_pending():
