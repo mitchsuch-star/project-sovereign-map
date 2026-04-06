@@ -733,8 +733,9 @@ class WorldState:
         return list(result)
 
     def invalidate_active_nations_cache(self):
-        """Clear get_active_nations() cache. Call after region controller changes."""
+        """Clear nation/region caches. Call after region controller changes."""
         self._active_nations_cache = None
+        self._nation_regions_cache = None
 
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
@@ -1170,11 +1171,26 @@ class WorldState:
     # ========================================
 
     def get_nation_regions(self, nation: str) -> List[str]:
-        """Get all regions controlled by a specific nation."""
-        return [
+        """Get all regions controlled by a specific nation.
+
+        Cached per-turn — invalidated on region capture via invalidate_active_nations_cache().
+        """
+        cache = getattr(self, '_nation_regions_cache', None)
+        cache_turn = getattr(self, '_nation_regions_cache_turn', -1)
+        if cache is None or cache_turn != self.current_turn:
+            cache = {}
+            self._nation_regions_cache = cache
+            self._nation_regions_cache_turn = self.current_turn
+
+        if nation in cache:
+            return list(cache[nation])
+
+        result = [
             name for name, region in self.regions.items()
             if region.controller == nation
         ]
+        cache[nation] = result
+        return list(result)
 
     def get_player_regions(self) -> List[str]:
         """Get regions controlled by the player."""
