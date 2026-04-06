@@ -11,13 +11,34 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| P1 — MAJOR | 2 | PL-5 (5 sub-bugs, 3-part fix), PL-6 OPEN |
+| P1 — MAJOR | 2 | PL-5 (8 sub-bugs, 3-part fix), PL-6 OPEN |
 | P2 — MINOR | 1 | PL-7 OPEN (also PL-5 Part C) |
-| **Total** | **3** | **3 open (~16 est. tests)** |
+| **Total** | **3** | **3 open (~20 est. tests)** |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
-**Spec review (Apr 6):** Deep code analysis verified all root causes. PL-5 redesigned: keep 1-turn deferral (thematic), add result popup + AI dedup + cooldown fixes. Found additional sub-bugs: accept-path cooldown gap (c), AI dedup gap (e), reject_counter_offer missing AI cooldown, cooldown-decrement timing in advance_turn.
+**Spec review (Apr 6):** Deep code analysis verified all root causes. PL-5 redesigned: keep 1-turn deferral (thematic), add result popup + AI dedup + cooldown fixes. Found additional sub-bugs: accept-path cooldown gap (c), AI dedup gap (e), reject_counter_offer missing AI cooldown, cooldown-decrement timing in advance_turn, failed counter-offer cooldown gap (f), stale rejection missing all cooldowns (g), game-over leakage (h). All line numbers verified against code.
+
+---
+
+## Implementation Plan
+
+### Session 7 — Backend Cooldown Fixes (PL-5 Part B + C, PL-6, PL-7)
+Pure Python, all testable with pytest. Fixes the race condition and gameplay bugs.
+- **PL-5 Part B:** Dedup guard in `_has_pending_proposal_from`, cooldowns in all 4 resolution paths (ACCEPT/REJECT/failed-counter/stale), game-over guard, +1 cooldown compensation for decrement timing
+- **PL-5 Part C / PL-7:** `accept_counter_offer` + `reject_counter_offer` cooldown wiring in `diplomatic_executor.py`
+- **PL-6:** Type-aware `modify_harsh` — split friendship vs war resolution vs coercive categories
+- **Files:** `world_state.py`, `ai_diplomacy.py`, `diplomatic_executor.py`
+- **Est. Tests:** ~16
+
+### Session 8 — Proposal Result Popup (PL-5 Part A)
+Crosses backend/frontend. UX improvement — popup so results aren't buried in dispatch.
+- **Backend:** New `proposal_result_popup` in PopupQueue (PRIORITY_ORDER + RESPONSE_KEYS), WorldState property + serialization, set popup in all 4 resolution paths
+- **Frontend:** New `proposal_result_popup.gd` + `.tscn` (extends PopupBase, [Continue] button), register in `main.gd`, wire in `_on_command_result()`
+- **Files:** `cooldown_manager.py`, `world_state.py`, `main.gd`, new Godot scene + script
+- **Est. Tests:** ~4 + manual verification
+
+**Priority:** Session 7 is higher — eliminates the race condition and nonsensical demands. Session 8 is polish. If Session 7 ships alone, the game is correct even if results are still only in dispatch text.
 
 ---
 
@@ -39,6 +60,9 @@
   - (c) AI cooldown gap on acceptance: when player's proposal is ACCEPTED in `_process_proposal_in_transit` (world_state.py:4355-4381), NO cooldown is set at all — not `player_proposal_cooldowns`, not `ai_proposal_cooldowns`. AI can propose next upgrade immediately
   - (d) `accept_counter_offer` path (diplomatic_executor.py:1773) doesn't call `apply_acceptance_cooldown` — this is PL-7
   - (e) AI dedup gap: `_has_pending_proposal_from` (ai_diplomacy.py:267-286) checks dialogues and queue but does NOT check `proposal_in_transit`. AI can propose to a nation the player already has a proposal in transit to.
+  - (f) Failed counter-offer cooldown gap: when counter-offer generation fails (world_state.py:4454-4465), `player_proposal_cooldowns` set but NO `ai_proposal_cooldowns`. AI can immediately re-propose.
+  - (g) Stale rejection cooldown gap: when proposal rejected as stale (world_state.py:4331-4346), NO cooldowns set at all — neither player nor AI. Both can immediately re-propose.
+  - (h) Game-over leakage: `_process_proposal_in_transit` has no `game_over` guard — proposal resolves and queues a popup after victory/defeat screen.
 - **Design decision:** Keep 1-turn deferral (Talleyrand "travels" to deliver — thematic). Fix the race via dedup + cooldowns. Add a popup so the result is unmissable.
 - **Proposed fix — 3 parts:**
   - **Part A — Proposal result popup:** When `_process_proposal_in_transit` resolves (ACCEPT or REJECT), set a new `proposal_result_popup` on WorldState with the outcome. This popup fires on the next turn start via the existing PopupQueue priority system (`build_base_response` → `_include_popup_passthroughs`). Counter-offers already have a popup (incoming_proposal_popup with `is_counter_offer: true`) — no change needed for that path.
@@ -47,13 +71,15 @@
     - Add to `to_dict`/`from_dict` for serialization
     - New Godot scene: `proposal_result_popup.tscn` + `proposal_result_popup.gd` — extends `PopupBase`, informational [Continue] button, same pattern as `coalition_declaration_popup.gd`
     - Popup data: `{ "target_nation": str, "proposal_type": str, "outcome": "ACCEPT"|"REJECT", "message": str, "feedback": str }`
-    - Set in `_process_proposal_in_transit` after ACCEPT (line 4377) and REJECT (line 4474) paths
+    - Set in `_process_proposal_in_transit` after ACCEPT (line 4377), REJECT (line 4474), failed counter-offer (line 4460), AND stale rejection (line 4336) paths — all four resolution outcomes need the popup
     - Register in `main.gd` `_ready()` via `dialog_manager.register()`, wire in `_on_command_result()`
     - Dispatch events (`queue_dispatch_event`) stay as-is — dispatch is a text log, popup is the unmissable notification. No double-report concern since they serve different purposes.
   - **Part B — AI dedup + cooldowns:** Prevent the race condition.
     - `_has_pending_proposal_from` (ai_diplomacy.py:267): Add check — if `world.proposal_in_transit` exists and `proposal_in_transit["target"] == nation`, return True. Prevents AI from proposing to a nation the player already has a proposal targeting.
     - `_process_proposal_in_transit` ACCEPT path (world_state.py:4355-4381): Add `apply_acceptance_cooldown(target, self)` after `_ratify_treaty`. Uses the existing `ai_proposal_cooldowns` system so AI's `_is_on_cooldown` sees it.
     - `_process_proposal_in_transit` REJECT path (world_state.py:4468-4481): Already sets `player_proposal_cooldowns`. Additionally add AI cooldown: call `apply_rejection_cooldowns(target, ptype, self)` so the AI can't immediately re-propose the same type.
+    - `_process_proposal_in_transit` failed counter-offer path (world_state.py:4454-4465): When counter-offer generation fails (counter_terms is None), the fallback treats it as rejection and sets `player_proposal_cooldowns` but NOT `ai_proposal_cooldowns`. Add `apply_rejection_cooldowns(target, ptype, self)` after line 4465 — same pattern as full REJECT.
+    - `_process_proposal_in_transit` stale rejection path (world_state.py:4331-4346): When proposal is rejected as stale (diplomatic state changed during transit), NO cooldowns are set at all — neither player nor AI. Add `self.player_proposal_cooldowns[target] = 3` and `apply_rejection_cooldowns(target, proposal.get("type", ""), self)` before the early return at line 4346. Without this, the player can immediately re-propose and the AI can spam-propose to France after a stale rejection.
     - Both cooldown functions already exist in `ai_diplomacy.py` (lines 242-264) — just need to import and call them.
   - **Part C — PL-7 fix:** `accept_counter_offer` (diplomatic_executor.py:1785) — add `apply_acceptance_cooldown(source_nation, world)`. See PL-7 entry.
 - **Edge cases:**
@@ -62,18 +88,22 @@
   - Counter-offer path: Already uses `incoming_proposal_popup` with `is_counter_offer: true` (world_state.py:4441-4451) and pushes a blocking dialogue (line 4403). No new popup needed — counter-offers already have proper UI.
   - Counter-offer rejected by player → then what? `reject_counter_offer` (diplomatic_executor.py:1802) sets `player_proposal_cooldowns`. Should also set AI cooldown. Add `apply_rejection_cooldowns(source_nation, ptype, world)` in `reject_counter_offer` handler.
   - Cooldown timing: Cooldowns set during `advance_turn` (inside `_process_proposal_in_transit`) are decremented in the SAME `advance_turn` call at line 4074 (`decrement_all`). So NATION_ACCEPTANCE_COOLDOWN=2 effectively becomes 1 turn of protection. Check: does `_process_proposal_in_transit` (line 4066) run BEFORE `decrement_all` (line 4074)? Yes — so cooldown is set to 2, then decremented to 1 in the same call. Effective protection = 1 turn. This may be too short — consider setting NATION_ACCEPTANCE_COOLDOWN=3 for the deferred path to get 2 effective turns. Or move decrement before proposal resolution. Simpler: just set cooldown to `NATION_ACCEPTANCE_COOLDOWN + 1` in the deferred path to compensate.
-  - Stale proposal check (lines 4311-4346): Already handled — if diplomatic state changed during the deferred turn, proposal is rejected as stale. Popup should still fire for stale rejections (player needs to know).
+  - Stale proposal check (lines 4311-4346): Already handled — if diplomatic state changed during the deferred turn, proposal is rejected as stale. Popup fires for stale rejections too (player needs to know why their proposal failed). Cooldowns set in stale path (Part B) prevent immediate re-proposal.
+  - Failed counter-offer (lines 4454-4465): When counter-offer generation fails, treated as rejection. Popup fires (Part A) and AI cooldowns set (Part B) so the AI can't immediately re-propose.
   - Proposal result popup vs morning dispatch: Both fire. Dispatch is the text log ("Talleyrand returns from Saxony..."), popup is the unmissable modal. Different purposes — no conflict.
+  - Game-over state: If `world.game_over = True` during `advance_turn`, `_process_proposal_in_transit` still runs (no guard). A proposal could resolve and queue a popup after victory/defeat. Add `if self.game_over: self.proposal_in_transit = None; return []` as the first guard in `_process_proposal_in_transit` — discard in-transit proposals on game end, player won't need them.
+  - PopupQueue serialization: `PopupQueue.to_dict()`/`from_dict()` serialize the entire `_queue` dict generically. Adding `proposal_result_popup` to `PRIORITY_ORDER` and `RESPONSE_KEYS` is sufficient — no separate serialization code needed.
+  - Save/load mid-transit: `proposal_in_transit` serialized in `to_dict()` (line 3097) and `from_dict()` (line 3333). If player saves mid-transit and loads, proposal stays in transit and resolves normally on next end-turn. No bug.
 - **Files:**
-  - `world_state.py` — new `proposal_result_popup` property, set in `_process_proposal_in_transit` ACCEPT/REJECT paths, add cooldown calls, to_dict/from_dict
-  - `ai_diplomacy.py` — `_has_pending_proposal_from` dedup fix
-  - `diplomatic_executor.py` — `reject_counter_offer` add AI cooldown
+  - `world_state.py` — new `proposal_result_popup` property, set in ALL FOUR `_process_proposal_in_transit` resolution paths (ACCEPT/REJECT/failed-counter/stale), add cooldown calls in all four paths, game-over early return guard, to_dict/from_dict
+  - `ai_diplomacy.py` — `_has_pending_proposal_from` dedup fix (add `proposal_in_transit` check)
+  - `diplomatic_executor.py` — `accept_counter_offer` add acceptance cooldown, `reject_counter_offer` add AI rejection cooldown
   - `cooldown_manager.py` — add `proposal_result_popup` to PopupQueue PRIORITY_ORDER + RESPONSE_KEYS
   - `main.py` — no change needed (build_base_response handles popup passthrough automatically via R4)
   - `main.gd` — register new popup, wire in `_on_command_result`
   - New: `proposal_result_popup.gd` + `proposal_result_popup.tscn` (extends PopupBase, [Continue] button)
 - **Scope:** Medium — no core flow changes. New popup + cooldown wiring + dedup guard.
-- **Est. Tests:** ~8 new + ~4 existing tests updated
+- **Est. Tests:** ~12 new + ~4 existing tests updated
 
 ### PL-6: "Harsher" Terms on Friendship Pacts Demand Territory — Nonsensical
 - **Source:** Playtest (Apr 6)
