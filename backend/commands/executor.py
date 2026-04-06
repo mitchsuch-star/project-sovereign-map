@@ -277,6 +277,48 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
+    def _make_diplomatic_error(self, world: WorldState, from_nation: str, target_marshal) -> Optional[Dict]:
+        """Return diplomatic block error dict if target is in armistice/non-war, else None.
+        For non-armistice non-war states, returns the marshal to allow auto-war-declaration."""
+        diplo_state = world.get_diplomatic_state(from_nation, target_marshal.nation)
+        if diplo_state == "ARMISTICE":
+            diplo_key = world._make_diplo_key(from_nation, target_marshal.nation)
+            turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))
+            return {
+                "success": False,
+                "message": f"Cannot attack {target_marshal.name} — armistice with {target_marshal.nation} ({turns_left} turns remaining).",
+                "diplomatic_block": "armistice",
+            }
+        return None  # Non-armistice non-war: let auto-war-declaration handle
+
+    def _check_diplomatic_block(self, world: WorldState, from_nation: str, enemy_name: str):
+        """Exact-name lookup ignoring war status. Returns (None, error) or (marshal, None) or None."""
+        marshal = world.get_marshal(enemy_name)
+        if marshal and marshal.nation != from_nation and marshal.strength > 0:
+            error = self._make_diplomatic_error(world, from_nation, marshal)
+            if error:
+                return (None, error)
+            # Found but not at war and not armistice — return marshal for auto-war-declaration
+            return (marshal, None)
+        return None
+
+    def _broad_fuzzy_diplomatic_check(self, world: WorldState, from_nation: str, enemy_name: str):
+        """Fuzzy match against ALL non-allied marshals for diplomatic context errors."""
+        all_non_allied = [m.name for m in world.marshals.values()
+                          if m.nation != from_nation and m.strength > 0]
+        if not all_non_allied:
+            return None
+        result = self.fuzzy_matcher.match_with_context(enemy_name, all_non_allied)
+        if result["action"] in ("exact", "auto_correct"):
+            matched = world.get_marshal(result["match"])
+            if matched:
+                error = self._make_diplomatic_error(world, from_nation, matched)
+                if error:
+                    return (None, error)
+                if not world.is_at_war(from_nation, matched.nation):
+                    return (matched, None)  # Let auto-war-declaration handle
+        return None
+
     def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState, attacker_nation: str = None) -> Tuple[Optional[object], Optional[Dict]]:
         """
         Try to find enemy marshal with fuzzy matching for typo tolerance.
@@ -310,13 +352,25 @@ class CommandExecutor:
         if enemy:
             return (enemy, None)
 
+        # PT-4 FIX: Secondary search ignoring war status — target may exist
+        # but not be at war (armistice/peace). Gives diplomatic error instead
+        # of confusing "Unknown target".
+        from_nation = attacker_nation or world.player_nation
+        diplomatic_block = self._check_diplomatic_block(world, from_nation, enemy_name)
+        if diplomatic_block:
+            return diplomatic_block
+
         if not all_enemies:
+            # Also try broad fuzzy match before giving up
+            broad_block = self._broad_fuzzy_diplomatic_check(world, from_nation, enemy_name)
+            if broad_block:
+                return broad_block
             return (None, {
                 "success": False,
                 "message": "No enemies available"
             })
 
-        # Try fuzzy match
+        # Try fuzzy match against war-enemies first
         result = self.fuzzy_matcher.match_with_context(enemy_name, all_enemies)
 
         if result["action"] == "exact" or result["action"] == "auto_correct":
@@ -335,6 +389,10 @@ class CommandExecutor:
                 "score": int(result["score"] * 100)
             })
         else:
+            # PT-4 FIX: Before giving up, try broad fuzzy match for diplomatic context
+            broad_block = self._broad_fuzzy_diplomatic_check(world, from_nation, enemy_name)
+            if broad_block:
+                return broad_block
             # Low confidence - show suggestions
             suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
             return (None, {

@@ -2141,6 +2141,11 @@ class CombatExecutor:
         resolved_target = target
 
         if not enemy_by_name:
+            # PT-4 FIX: If fuzzy match returned a diplomatic block (armistice/etc),
+            # return it immediately instead of falling through to "Unknown target"
+            if enemy_error and enemy_error.get("diplomatic_block"):
+                return enemy_error
+
             # 4D-4: Check if target is a friendly marshal name
             friendly_match = None
             target_lower = target.lower()

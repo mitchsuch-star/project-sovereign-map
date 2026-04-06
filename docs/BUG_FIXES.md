@@ -12,12 +12,12 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 — CRITICAL | 0 | All fixed |
-| P1 — MAJOR | 10 | Open (DLF-7, DLF-11, DLF-12 closed) |
+| P1 — MAJOR | 6 | Open (DLF-7, DLF-11, DLF-12, M2, PT-2, PT-4, PT-5 closed) |
 | P2 — MINOR | 8 | Open |
 | P3 — BALANCE | 4 | Open |
-| **Total** | **22** | |
+| **Total** | **18** | |
 
-**Estimated new tests:** ~118
+**Estimated new tests:** ~99
 
 **Duplicates resolved:** PT-1 = C3 (merged into C3). DLF-6 superseded by DLF-12 (13-site consolidation).
 
@@ -33,6 +33,10 @@
 - **DLF-11** (Eliminated Nations Not Filtered): FIXED — `get_active_nations()` helper on WorldState, 23 sites updated across 9 files, vassals always active. 17 new tests
 - **DLF-7** (Eliminated Nations in War Cascades): FIXED — already resolved by DLF-11's `get_active_nations()` at diplomacy.py:1182. 3 verification tests added
 - **DLF-12** (AI Movement Missing Diplomatic Permission): FIXED — `_can_ai_move_to()` helper on EnemyAI wrapping `can_enter_territory()`. 17 movement destination sites patched in enemy_ai.py. Capital recapture exempt. 16 new tests
+- **M2** (Recruit Without Marshal Name): FIXED — "recruit" added to meta_actions bypass in parser.py. `requested_type` propagated. 5 tests
+- **PT-2** (Status Not Recognized): FIXED — "status" keyword added to mock parser with exact match. 4 tests
+- **PT-4** (Armistice Attack Unknown Target): FIXED — secondary fallback in `_fuzzy_match_enemy()` + diplomatic_block check in combat_executor. 4 tests
+- **PT-5** (Pursue Bypass Armistice): FIXED — war-status check before order creation in strategic_executor, `variable_action_cost: 0`. 6 tests
 
 ---
 
@@ -44,34 +48,34 @@ All P0 bugs resolved. See "Closed this audit" above.
 
 ## P1 — MAJOR
 
-### M2: "recruit infantry at Paris" Fails to Parse
+### ~~M2: "recruit infantry at Paris" Fails to Parse~~ FIXED
 - **Source:** Playtest Review (Mar 24)
 - **Summary:** Natural phrasing without marshal name fails. "Davout recruit at Paris" works.
-- **Fix:** Add "recruit [type] at [location]" pattern to mock parser; auto-assign to highest-strength marshal at location.
-- **Files:** `llm_client.py`, `parser.py`
-- **Est. Tests:** ~5
+- **Fix:** Added "recruit" to `meta_actions` in parser.py (bypasses fuzzy marshal matching). Propagated `requested_type` from LLM result to command dict.
+- **Files:** `parser.py`
+- **Tests:** 5 in `test_bugfix_session3.py`
 
-### PT-2: Mock Parser "status" Not Recognized
+### ~~PT-2: Mock Parser "status" Not Recognized~~ FIXED
 - **Source:** Playtest Audit (Mar 29)
-- **Summary:** "status" command returns Berthier confusion. Missing from mock parser and parser.py valid_actions.
-- **Fix:** Add "status" keyword to `_parse_with_mock()` and `parser.py` valid_actions.
-- **Files:** `llm_client.py`, `parser.py`
-- **Est. Tests:** ~4
+- **Summary:** "status" command returns Berthier confusion. Missing from mock parser keyword matching.
+- **Fix:** Added `elif command_lower.strip() == "status":` to `_parse_with_mock()` in llm_client.py. Exact match prevents false positives.
+- **Files:** `llm_client.py`
+- **Tests:** 4 in `test_bugfix_session3.py`
 
-### PT-4: Armistice Attack Shows "Unknown target"
+### ~~PT-4: Armistice Attack Shows "Unknown target"~~ FIXED
 - **Source:** Playtest Audit (Mar 29)
 - **Summary:** "Davout, attack Gneisenau" during armistice returns "Unknown target" instead of diplomatic context error.
-- **Fix:** After fuzzy match fails, check if target matches any marshal regardless of war status. If armistice/peace, return diplomatic error.
-- **Files:** `executor.py` (_fuzzy_match_enemy ~line 280), `combat_executor.py`
-- **Est. Tests:** ~4
+- **Fix:** Added secondary fallback in `_fuzzy_match_enemy()` (executor.py) that searches all marshals ignoring war status. Returns diplomatic error with armistice turns remaining. Added `diplomatic_block` check in `combat_executor.py` to surface the error before region fallback.
+- **Files:** `executor.py`, `combat_executor.py`
+- **Tests:** 4 in `test_bugfix_session3.py`
 
-### PT-5: Pursue/Support Bypass Armistice, Waste AP
+### ~~PT-5: Pursue/Support Bypass Armistice, Waste AP~~ FIXED
 - **Source:** Playtest Audit (Mar 29)
-- **Summary:** "Ney, pursue Wellington" during armistice consumes 2 AP before war-status check. Contradictory message ("spotted... engaging... unknown target").
-- **Root cause (CONFIRMED):** Order creation (strategic_executor.py:414-430) only checks target *existence*, not war status. AP is consumed in executor.py:1336 on successful return. War-status validation happens next turn in strategic.py:938-941, which cancels the order — but AP is already spent.
-- **Fix:** Add `world.is_at_war(marshal.nation, target.nation)` check in strategic_executor.py PURSUE/SUPPORT target validation (~line 414), BEFORE order creation. Return diplomatic error with `variable_action_cost: 0`.
-- **Files:** `strategic_executor.py` (~line 414 PURSUE validation, ~line 376 SUPPORT validation)
-- **Est. Tests:** ~6
+- **Summary:** "Ney, pursue Wellington" during armistice consumes 2 AP before war-status check.
+- **Root cause:** Order creation (strategic_executor.py) only checks target existence, not war status. AP consumed before next-turn validation cancels the order.
+- **Fix:** Added `is_at_war()` check in PURSUE validation (strategic_executor.py) before order creation. Returns diplomatic error with `variable_action_cost: 0` (no AP consumed). SUPPORT already rejects enemy targets.
+- **Files:** `strategic_executor.py`
+- **Tests:** 6 in `test_bugfix_session3.py`
 
 ### DLF-1: Vassalizable Icon Shows Ineligible Nations
 - **Source:** Diplo Ledger Fixes

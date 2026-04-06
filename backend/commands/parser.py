@@ -149,7 +149,7 @@ class CommandParser:
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
             # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat"]
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat", "recruit"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
@@ -393,6 +393,10 @@ class CommandParser:
                 # BUG-005 FIX: Preserve target_stance for stance_change action
                 if llm_result["action"] == "stance_change" and llm_result.get("target_stance"):
                     command_dict["target_stance"] = llm_result["target_stance"]
+
+                # M2 FIX: Propagate requested recruit type for soft correction message
+                if llm_result.get("requested_type"):
+                    command_dict["requested_type"] = llm_result["requested_type"]
 
                 # Phase 8 Session 8A: Preserve cheat data
                 if llm_result["action"] == "cheat":

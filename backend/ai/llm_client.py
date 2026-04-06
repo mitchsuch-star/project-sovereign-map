@@ -637,6 +637,9 @@ class LLMClient:
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
+        # PT-2 FIX: "status" keyword — exact match to prevent false positives
+        elif command_lower.strip() == "status":
+            action = "status"
         # Cancel strategic order keywords (Phase E) — must be before attack/stance
         # Fix 9: Removed "stand down" — semantically a stance change, not cancel
         elif any(kw in command_lower for kw in [

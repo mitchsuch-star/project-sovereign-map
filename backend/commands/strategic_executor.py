@@ -427,6 +427,23 @@ class StrategicExecutor:
                         "message": f"Cannot find '{target}' to pursue.",
                     }
             else:
+                # PT-5 FIX: Check war status BEFORE order creation to prevent AP waste
+                if not world.is_at_war(marshal.nation, enemy.nation):
+                    diplo_state = world.get_diplomatic_state(marshal.nation, enemy.nation)
+                    if diplo_state == "ARMISTICE":
+                        diplo_key = world._make_diplo_key(marshal.nation, enemy.nation)
+                        turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))
+                        return {
+                            "success": False,
+                            "message": f"Cannot pursue {enemy.name} — armistice with {enemy.nation} ({turns_left} turns remaining).",
+                            "variable_action_cost": 0,
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "message": f"Cannot pursue {enemy.name} — not at war with {enemy.nation}.",
+                            "variable_action_cost": 0,
+                        }
                 target_type = "marshal"
 
         # ── HOLD: default target to current location (Bug #7) ─────────
