@@ -238,6 +238,22 @@ All P0 bugs resolved. See "Closed this audit" above.
 
 ---
 
+## Suggestions (UX Polish)
+
+### S1: Clearer Feedback for Simple Commands
+- **Source:** Playtest (Apr 5)
+- **Summary:** Simple commands like "recruit" give minimal feedback. Add clearer confirmation messages showing what happened (e.g., "Davout recruited 2,000 infantry at Paris").
+- **Files:** `economy_executor.py`, `tactical_executor.py`, `movement_executor.py`
+- **Est. Tests:** ~0 (message-only)
+
+### S2: Auto-Focus Command Input on Terminal Restore
+- **Source:** Playtest (Apr 5)
+- **Summary:** When returning to the terminal from a screen/popup, the command input field doesn't auto-focus. Player must click it before typing.
+- **Files:** `main.gd`
+- **Est. Tests:** ~0 (UI-only)
+
+---
+
 ## V3 Session 11 — Optional Polish
 
 ~15 trivial items (dead code, cosmetics, dedup). No bugs, pure cleanup. See `docs/archive/SYSTEMS_AUDIT_V3_FIX_PLAN.md` Session 11 for full list. Zero new tests.
