@@ -43,6 +43,8 @@ func show_result(data: Dictionary):
 
 	content_label.text = ""
 	content_label.append_text(bbcode)
+	# Re-enable button (close_popup disables all buttons via PopupBase)
+	continue_btn.disabled = false
 	show()
 
 func _on_continue_pressed():
