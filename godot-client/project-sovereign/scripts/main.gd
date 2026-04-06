@@ -531,6 +531,7 @@ func _restore_terminal():
 	"""Expand the terminal panel, hide restore button."""
 	bottom_left_ui.visible = true
 	restore_button.visible = false
+	command_input.grab_focus()
 
 func _toggle_terminal():
 	"""Toggle terminal panel visibility."""
