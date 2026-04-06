@@ -25,6 +25,15 @@ def _make_ai():
     return ai
 
 
+def _setup_diplo_for_ai(world, nation):
+    """Set OPEN_BORDERS between AI nation and non-French nations (DLF-12 compat)."""
+    for other in ["Britain", "Prussia", "Austria", "Saxony", "Russia", "Spain"]:
+        if other != nation:
+            key = world._make_diplo_key(nation, other)
+            if key not in world.diplomatic_states or world.diplomatic_states[key] == "PEACE":
+                world.diplomatic_states[key] = "OPEN_BORDERS"
+
+
 def _lose_region(world, region_name, new_controller="France"):
     """Transfer a region from its original owner to new_controller."""
     world.regions[region_name].controller = new_controller
@@ -207,6 +216,7 @@ class TestDeathballSplitting:
         """3 co-located marshals should split to recapture 2+ different targets."""
         world = WorldState()
         ai = _make_ai()
+        _setup_diplo_for_ai(world, "Prussia")  # DLF-12: allow pathing through allied territory
         # Prussia controls: Rhineland, Berlin. Lose both.
         _lose_region(world, "Rhineland")
         _lose_region(world, "Berlin")

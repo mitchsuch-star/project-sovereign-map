@@ -1630,8 +1630,8 @@ class EnemyAI:
                     adj_region = world.get_region(adj_name)
                     if not adj_region:
                         continue
-                    if adj_region.controller and adj_region.controller != nation and adj_region.controller != "Neutral":
-                        continue
+                    if not self._can_ai_move_to(world, nation, adj_name):
+                        continue  # DLF-12: diplomatic permission check
 
                     adj_cap = adj_region.supply_capacity
                     troops_at_dest = sum(
@@ -1745,13 +1745,18 @@ class EnemyAI:
                 }
             else:
                 # Not yet arrived - continue moving toward locked destination
-                ai_debug(f"  P1 Recovery: {marshal.name} moving to locked destination {recovery_dest}")
-                print(f"  [RECOVERY LOCKED] {marshal.name} moving to {recovery_dest} (locked)")
-                return {
-                    "marshal": marshal.name,
-                    "action": "move",
-                    "target": recovery_dest
-                }
+                # DLF-12: Check diplomatic permission — armistice may have been declared
+                if not self._can_ai_move_to(world, marshal.nation, recovery_dest):
+                    ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked — clearing lock")
+                    del marshal._recovery_destination
+                else:
+                    ai_debug(f"  P1 Recovery: {marshal.name} moving to locked destination {recovery_dest}")
+                    print(f"  [RECOVERY LOCKED] {marshal.name} moving to {recovery_dest} (locked)")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": recovery_dest
+                    }
 
         # ════════════════════════════════════════════════════════════
         # No locked destination - check if enemies threatening
@@ -2543,6 +2548,9 @@ class EnemyAI:
             for adj_name in marshal_region.adjacent_regions:
                 if adj_name in visited:
                     continue
+                # DLF-12: diplomatic permission (skip for capital recapture — sovereign right)
+                if not is_capital_target and not self._can_ai_move_to(world, nation, adj_name):
+                    continue
                 # Check for enemy-occupied region
                 enemies_there = [m for m in world.marshals.values()
                                 if m.location == adj_name and m.strength > 0 and m.nation != nation]
@@ -2853,6 +2861,9 @@ class EnemyAI:
                         "target": weakest.name
                     }
                 else:
+                    # DLF-12: diplomatic permission check
+                    if not self._can_ai_move_to(world, nation, ally.location):
+                        continue
                     # Can move directly to ally
                     ai_debug(f"    -> Moving to support {ally.name} at {ally.location}")
                     print(f"    [ALLY SUPPORT] {marshal.name} moving to {ally.location} to support {ally.name}")
@@ -2880,6 +2891,8 @@ class EnemyAI:
                 ]
                 if enemies_there:
                     continue
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue  # DLF-12
 
                 dist = world.get_distance(adj_name, ally.location)
                 if dist < best_distance:
@@ -2945,6 +2958,8 @@ class EnemyAI:
                                         and world.is_at_war(nation, m.nation)]
                         if enemies_there:
                             continue  # Still don't walk into enemy-occupied regions
+                        if not self._can_ai_move_to(world, nation, adj_name):
+                            continue  # DLF-12
                         dist = world.get_distance(adj_name, nearest.location)
                         if dist < best_dist:
                             best_dest = adj_name
@@ -2967,6 +2982,7 @@ class EnemyAI:
                             and world.is_at_war(nation, m.nation)
                             for m in world.marshals.values()
                         )
+                        and self._can_ai_move_to(world, nation, adj_name)  # DLF-12
                     ]
                     if fallback_dests:
                         fallback = random.choice(fallback_dests)
@@ -3106,6 +3122,8 @@ class EnemyAI:
                             and world.is_at_war(nation, m.nation)]
             if enemies_there:
                 continue
+            if not self._can_ai_move_to(world, nation, adj_name):
+                continue  # DLF-12
 
             dist = world.get_distance(adj_name, target_ally.location)
             if dist < best_dist:
@@ -3384,6 +3402,8 @@ class EnemyAI:
                                 and world.is_at_war(nation, m.nation)]
                 if enemies_there:
                     continue
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue  # DLF-12
                 score = self._score_artillery_position(adj_name, marshal, nation, world)
                 if score > best_score:
                     best_score = score
@@ -3423,6 +3443,8 @@ class EnemyAI:
                 if enemies_there:
                     ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
                     continue
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue  # DLF-12
 
                 dist = world.get_distance(adj_name, nearest.location)
                 if dist >= current_distance:
@@ -3476,6 +3498,8 @@ class EnemyAI:
                                    and world.is_at_war(nation, m.nation)]
                     if enemies_there:
                         continue
+                    if not self._can_ai_move_to(world, nation, adj_name):
+                        continue  # DLF-12
 
                     score = 0
                     # Prefer friendly controlled regions
@@ -3529,6 +3553,8 @@ class EnemyAI:
                                         and world.is_at_war(nation, m.nation)]
                         if enemies_there:
                             continue
+                        if not self._can_ai_move_to(world, nation, adj_name):
+                            continue  # DLF-12
                         dist = world.get_distance(adj_name, nearest.location)
                         if dist >= current_dist:
                             continue  # Must reduce distance
@@ -3564,6 +3590,8 @@ class EnemyAI:
                                             and world.is_at_war(nation, m.nation)]
                             if enemies_there:
                                 continue
+                            if not self._can_ai_move_to(world, nation, adj_name):
+                                continue  # DLF-12
                             adj_region = world.get_region(adj_name)
                             if not adj_region:
                                 continue
@@ -3767,6 +3795,21 @@ class EnemyAI:
                 "action": "wait"
             }
 
+    def _can_ai_move_to(self, world, nation: str, region_name: str) -> bool:
+        """Check if nation has diplomatic permission to enter a region (DLF-12).
+
+        Wraps diplomacy.can_enter_territory with region lookup.
+        Returns True for own/unclaimed territory, WAR, or OPEN_MOVEMENT_STATES.
+        """
+        region = world.get_region(region_name)
+        if not region:
+            return False
+        controller = getattr(region, 'controller', None)
+        if not controller or controller == nation:
+            return True
+        from backend.game_logic.diplomacy import can_enter_territory
+        return can_enter_territory(world, nation, controller)
+
     def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:
         """
         Find safe retreat destination using same logic as player retreat.
@@ -3813,6 +3856,8 @@ class EnemyAI:
                 and world.is_at_war(nation, m.nation)
             ]
             if not enemies_there:
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue  # DLF-12
                 return adj_name
 
         # Surrounded - no retreat possible
@@ -4937,6 +4982,8 @@ class EnemyAI:
                             and world.is_at_war(nation, m.nation)]
             if enemies_there:
                 continue
+            if not self._can_ai_move_to(world, nation, adj_name):
+                continue  # DLF-12
             d = world.get_distance(adj_name, best_dest)
             if d < best_step_dist:
                 best_step_dist = d
@@ -5102,6 +5149,8 @@ class EnemyAI:
                     ]
                     if enemies_blocking:
                         continue
+                    if not self._can_ai_move_to(world, nation, move_adj):
+                        continue  # DLF-12
                     dist = world.get_distance(move_adj, best_ally.location)
                     current_dist = world.get_distance(marshal.location, best_ally.location)
                     if dist < current_dist:
@@ -5214,6 +5263,8 @@ class EnemyAI:
                 ]
                 if enemies_there:
                     continue
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue  # DLF-12
 
                 score = 10  # Base score for being near ally
                 # Prefer positions also adjacent to war enemy (enables own attacks)

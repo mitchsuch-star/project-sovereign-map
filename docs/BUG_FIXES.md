@@ -12,10 +12,10 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | P0 — CRITICAL | 0 | All fixed |
-| P1 — MAJOR | 12 | Open (DLF-11 closed) |
+| P1 — MAJOR | 10 | Open (DLF-7, DLF-11, DLF-12 closed) |
 | P2 — MINOR | 8 | Open |
 | P3 — BALANCE | 4 | Open |
-| **Total** | **24** | |
+| **Total** | **22** | |
 
 **Estimated new tests:** ~118
 
@@ -31,6 +31,8 @@
 - **B3** (Enemy AI AP Rebalancing): REJECTED — deferred to post-full-map. See DESIGN_REFINEMENT.md
 - **B4** (Gold Accumulates): DESIGN GATE — already tracked in DESIGN_REFINEMENT.md
 - **DLF-11** (Eliminated Nations Not Filtered): FIXED — `get_active_nations()` helper on WorldState, 23 sites updated across 9 files, vassals always active. 17 new tests
+- **DLF-7** (Eliminated Nations in War Cascades): FIXED — already resolved by DLF-11's `get_active_nations()` at diplomacy.py:1182. 3 verification tests added
+- **DLF-12** (AI Movement Missing Diplomatic Permission): FIXED — `_can_ai_move_to()` helper on EnemyAI wrapping `can_enter_territory()`. 17 movement destination sites patched in enemy_ai.py. Capital recapture exempt. 16 new tests
 
 ---
 
@@ -106,13 +108,12 @@ All P0 bugs resolved. See "Closed this audit" above.
 - **Files:** `diplomacy.py`, `diplomatic_ledger.py`, `world_state.py`
 - **Est. Tests:** ~7
 
-### DLF-7: Eliminated Nations in War Cascades
+### ~~DLF-7: Eliminated Nations in War Cascades~~ FIXED
 - **Source:** Diplo Ledger Fixes
 - **Summary:** `_process_war_cascade()` iterates all nations without filtering eliminated ones. Dead nations pulled into phantom wars.
-- **Fix:** Filter eliminated nations at cascade loop start.
-- **Files:** `diplomacy.py`
-- **Dependency:** DLF-11 helper (`get_active_nations()`) should land first.
-- **Est. Tests:** ~3
+- **Fix:** Already resolved by DLF-11 — `get_active_nations()` at diplomacy.py:1182 filters both cascade loops. 3 verification tests added.
+- **Files:** `diplomacy.py` (already patched by DLF-11)
+- **Tests:** 3 in `test_bugfix_session2.py`
 
 ### DLF-9: P3 Proposal Skips Upgrade Path Validation
 - **Source:** Diplo Ledger Fixes
@@ -136,13 +137,12 @@ All P0 bugs resolved. See "Closed this audit" above.
   - `turn_manager.py` — AI diplomatic phase ~line 289, victory check ~line 720 (2 sites)
 - **Est. Tests:** ~18
 
-### DLF-12: AI Movement Missing Diplomatic Permission (13 Sites)
+### ~~DLF-12: AI Movement Missing Diplomatic Permission (17 Sites)~~ FIXED
 - **Source:** Diplo Ledger Fixes (supersedes DLF-6)
-- **Summary:** AI never calls `can_enter_territory()` in movement selection. All 13 paths pick destinations by enemy presence/distance but skip diplomatic permission. Executor rejects, AI wastes action.
-- **Fix:** Add `_can_ai_move_to()` helper; insert as first filter in all 13 adjacent-region loops. Special cases for capital recapture, retreat fallback, coordinated staging.
-- **Note:** movement_executor.py validates at execution time, so moves fail safely — but AI wastes its action. Also affects P7 strategic movement (~lines 3420-3496 in enemy_ai.py).
-- **Files:** `enemy_ai.py`
-- **Est. Tests:** ~9
+- **Summary:** AI never calls `can_enter_territory()` in movement selection. 17 paths pick destinations by enemy presence/distance but skip diplomatic permission. Executor rejects, AI wastes action.
+- **Fix:** Added `_can_ai_move_to()` helper on EnemyAI wrapping `can_enter_territory()` with region lookup. Patched all 17 movement destination selection sites. Capital recapture exempt (sovereign right). Recovery lock clears when dest becomes blocked.
+- **Files:** `enemy_ai.py` (helper + 17 sites)
+- **Tests:** 16 in `test_bugfix_session2.py`
 
 ---
 

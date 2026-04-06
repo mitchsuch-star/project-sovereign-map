@@ -25,8 +25,13 @@ from backend.ai.enemy_ai import EnemyAI
 def _make_world(**overrides):
     """Create a WorldState with default game setup."""
     world = WorldState()
-    # Tests use "Coalition" as the AI nation — ensure it's at war with France
+    # Tests use "Coalition" as the AI nation — ensure proper diplomatic states
+    # WAR with France (enemy), OPEN_BORDERS with all other nations (DLF-12)
     world.diplomatic_states["Coalition|France"] = "WAR"
+    for nation in ["Britain", "Austria", "Prussia", "Russia", "Spain", "Saxony"]:
+        key = world._make_diplo_key("Coalition", nation)
+        if key not in world.diplomatic_states:
+            world.diplomatic_states[key] = "OPEN_BORDERS"
     for k, v in overrides.items():
         setattr(world, k, v)
     return world
