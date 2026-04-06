@@ -4304,6 +4304,11 @@ class WorldState:
         if not pit:
             return events
 
+        # PL-5B: Discard in-transit proposals on game end
+        if self.game_over:
+            self.proposal_in_transit = None
+            return events
+
         turn_sent = pit.get("turn_sent", 0)
         if turn_sent >= self.current_turn:
             return events  # Not yet — wait until next turn
@@ -4335,6 +4340,13 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"Talleyrand returns from {target}: the diplomatic situation has changed — our proposal is no longer viable.",
                 })
+                # PL-5B: Set cooldowns on stale rejection (+1 for decrement timing)
+                self.player_proposal_cooldowns[target] = 4
+                stale_ptype = proposal.get("type", "")
+                if stale_ptype:
+                    self.player_proposal_cooldowns[f"{target}_{stale_ptype}"] = 6
+                from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+                apply_rejection_cooldowns(target, stale_ptype, self, deferred=True)
                 self.proposal_in_transit = None
                 # Restore Talleyrand state (same logic as normal resolution path)
                 mission = getattr(self, 'active_diplomatic_mission', None)
@@ -4360,6 +4372,9 @@ class WorldState:
             if "target_nation" not in proposal:
                 proposal["target_nation"] = target
             treaty_event = self._ratify_treaty(proposal)
+            # PL-5B: Apply acceptance cooldown (+1 for decrement timing)
+            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
+            apply_acceptance_cooldown(target, self, deferred=True)
             # Deep audit fix 11: Check ratification result before showing success
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
                 events.append({
@@ -4459,10 +4474,14 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"Talleyrand returns from {target}. They were not entirely opposed, but could not agree to any terms. {feedback}",
                 })
-                self.player_proposal_cooldowns[target] = 3
+                # PL-5B: +1 for decrement timing compensation
+                self.player_proposal_cooldowns[target] = 4
                 ptype = proposal.get("type", "")
                 if ptype:
-                    self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+                    self.player_proposal_cooldowns[f"{target}_{ptype}"] = 6
+                # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
+                from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+                apply_rejection_cooldowns(target, ptype, self, deferred=True)
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         else:
@@ -4473,10 +4492,14 @@ class WorldState:
                 "outcome": "REJECT",
                 "message": f"Talleyrand returns from {target} empty-handed. The proposal was rejected. {feedback}",
             })
-            self.player_proposal_cooldowns[target] = 3
+            # PL-5B: +1 for decrement timing compensation
+            self.player_proposal_cooldowns[target] = 4
             ptype = proposal.get("type", "")
             if ptype:
-                self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+                self.player_proposal_cooldowns[f"{target}_{ptype}"] = 6
+            # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
+            from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+            apply_rejection_cooldowns(target, ptype, self, deferred=True)
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
 

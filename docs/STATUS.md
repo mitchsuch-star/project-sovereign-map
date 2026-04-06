@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Bug Fix spec audit complete — PL-5/6/7 playtest bugs spec'd with 8 sub-bugs, 2-session implementation plan. Session 7: backend cooldowns + dedup + type-aware harsh terms. Session 8: proposal result popup. See `docs/BUG_FIXES.md`.)
+> **Last Updated:** April 6, 2026 (Session 7 COMPLETE — PL-5B+C, PL-6, PL-7 fixed. 16 new tests, 7915 total. Session 8 remaining: proposal result popup. See `docs/BUG_FIXES.md`.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7890** (7890 passed, 1 skipped) |
+| **Tests Passing** | **7915** (7915 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 3 open (PL-5/6/7).** Session 7 (backend) + Session 8 (popup) planned. See `docs/BUG_FIXES.md`. Architecture Refactoring R19 (modding) independent track. |
+| **Current Phase** | **Bug Fixes — 1 open (PL-5 Part A).** Session 7 COMPLETE. Session 8 (popup) next. See `docs/BUG_FIXES.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,11 +19,7 @@
 
 ## Next Steps
 
-### Immediate: Bug Fix Session 7 — Backend Cooldowns (PL-5 Part B+C, PL-6, PL-7)
-
-Pure Python fixes for diplomacy race condition + nonsensical harsh terms. ~16 tests estimated. See `docs/BUG_FIXES.md` implementation plan.
-
-### Then: Bug Fix Session 8 — Proposal Result Popup (PL-5 Part A)
+### Immediate: Bug Fix Session 8 — Proposal Result Popup (PL-5 Part A)
 
 Backend + Godot popup so proposal results aren't buried in dispatch text. ~4 tests + manual verification.
 
@@ -40,7 +36,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-6~~ — 28 bugs resolved, 163 tests. 3 new playtest bugs (PL-5/6/7) open — Sessions 7-8 planned.
+- ~~Bug Fixes Sessions 1-7~~ — 28+3 bugs resolved, 179 tests. Session 7: PL-5B+C, PL-6, PL-7 (cooldowns + dedup + type-aware harsh). PL-5 Part A (popup) remains — Session 8.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests

@@ -1007,6 +1007,10 @@ class DiplomaticExecutor:
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
             suggested["type"] = suggested.get("type", proposal_type)
 
+            # PL-6: Type-aware escalation — friendship vs war/coercive categories
+            _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
+            _is_friendship = proposal_type in _FRIENDSHIP_TYPES
+
             # Escalate existing demands by 1.5x
             for d in suggested.get("demands", []):
                 if d.get("type") not in ("territory_cede",):
@@ -1014,15 +1018,20 @@ class DiplomaticExecutor:
 
             # Add a gold demand if none exist
             if not suggested.get("demands"):
-                suggested["demands"] = [{"type": "gold_per_turn", "value": 100}]
+                gold_amount = 100 if _is_friendship else 300
+                suggested["demands"] = [{"type": "gold_per_turn", "value": gold_amount}]
 
-            # Round 2 escalation: add territory demand if not already present
-            context_pre = dict(dialogue.get("context", {}))
-            round_num = context_pre.get("modify_count", 0) + 1
-            if round_num >= 2:
-                has_territory = any(d.get("type") in ("territory_cede", "territory") for d in suggested.get("demands", []))
-                if not has_territory:
-                    suggested["demands"].append({"type": "territory_cede", "value": 1})
+            # Strip territory demands from friendship types (nonsensical)
+            if _is_friendship:
+                suggested["demands"] = [d for d in suggested.get("demands", []) if d.get("type") not in ("territory_cede", "territory")]
+            else:
+                # War/coercive: Round 2 escalation — add territory demand if not already present
+                context_pre = dict(dialogue.get("context", {}))
+                round_num = context_pre.get("modify_count", 0) + 1
+                if round_num >= 2:
+                    has_territory = any(d.get("type") in ("territory_cede", "territory") for d in suggested.get("demands", []))
+                    if not has_territory:
+                        suggested["demands"].append({"type": "territory_cede", "value": 2})
 
             # Remove sweeteners (harsh = no sweeteners)
             suggested["sweeteners"] = []
@@ -1046,7 +1055,9 @@ class DiplomaticExecutor:
                     "terms": {**suggested, "proposal_type": proposal_type},
                 },
             ]
-            if modify_count < 2:
+            # PL-6: Friendship types cap at 1 modification, war/coercive at 2
+            harsh_cap = 1 if _is_friendship else 2
+            if modify_count < harsh_cap:
                 options.append({
                     "label": "Even harsher",
                     "description": "Push harder.",
@@ -1056,8 +1067,11 @@ class DiplomaticExecutor:
             options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
 
             cap_msg = ""
-            if modify_count >= 2:
-                cap_msg = " These are the harshest terms possible."
+            if modify_count >= harsh_cap:
+                if _is_friendship:
+                    cap_msg = f" A {proposal_type.replace('_', ' ')} cannot bear heavier demands, Sire."
+                else:
+                    cap_msg = " These are the harshest terms possible."
 
             new_dialogue = {
                 "type": "proposal_confirm",
@@ -1788,6 +1802,9 @@ class DiplomaticExecutor:
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
             world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            # PL-7/PL-5C: Apply acceptance cooldown (same as _handle_accept_ai_proposal)
+            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
+            apply_acceptance_cooldown(source_nation, world)
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
             world.log_event({
                 "type": "counter_offer_accepted",
@@ -1815,6 +1832,10 @@ class DiplomaticExecutor:
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
             world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            # PL-7/PL-5C: Apply AI rejection cooldown (prevents immediate re-proposal)
+            from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+            if source_nation and ptype:
+                apply_rejection_cooldowns(source_nation, ptype, world)
             world.log_event({
                 "type": "counter_offer_rejected",
                 "source": source_nation,

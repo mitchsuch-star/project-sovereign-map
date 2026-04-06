@@ -239,28 +239,38 @@ def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) 
     return False
 
 
-def apply_rejection_cooldowns(nation: str, proposal_type: str, world) -> None:
+def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *, deferred: bool = False) -> None:
     """Apply cooldowns after a proposal is rejected.
 
     Called from executor when player rejects an AI proposal.
+    Args:
+        deferred: True when called from _process_proposal_in_transit inside
+                  advance_turn — adds +1 to compensate for decrement_all running
+                  in the same advance_turn call.
     """
+    offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
     nation_key = f"{nation}|nation"
     type_key = f"{nation}|{proposal_type}"
-    cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN)
-    cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN)
+    cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN) + offset
+    cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN) + offset
     _set_cooldowns(world, cooldowns)
 
 
-def apply_acceptance_cooldown(nation: str, world) -> None:
+def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False) -> None:
     """Apply a short cooldown after a proposal is accepted.
 
     Prevents the same nation from immediately proposing the next upgrade
     on the very next turn (spam prevention).
+    Args:
+        deferred: True when called from _process_proposal_in_transit inside
+                  advance_turn — adds +1 to compensate for decrement_all running
+                  in the same advance_turn call.
     """
+    offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
     nation_key = f"{nation}|nation"
-    cooldowns[nation_key] = int(NATION_ACCEPTANCE_COOLDOWN)
+    cooldowns[nation_key] = int(NATION_ACCEPTANCE_COOLDOWN) + offset
     _set_cooldowns(world, cooldowns)
 
 
@@ -276,6 +286,11 @@ def _has_pending_proposal_from(nation: str, world) -> bool:
         context = pending.get("context", {})
         if context.get("source_nation") == nation:
             return True
+
+    # PL-5B: Check proposal_in_transit — player already has a proposal targeting this nation
+    pit = getattr(world, 'proposal_in_transit', None)
+    if pit and pit.get("target") == nation:
+        return True
 
     # Check queue
     queue = _get_queue(world)

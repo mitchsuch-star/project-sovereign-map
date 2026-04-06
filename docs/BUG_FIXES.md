@@ -11,11 +11,14 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| P1 — MAJOR | 2 | PL-5 (8 sub-bugs, 3-part fix), PL-6 OPEN |
-| P2 — MINOR | 1 | PL-7 OPEN (also PL-5 Part C) |
-| **Total** | **3** | **3 open (~20 est. tests)** |
+| P1 — MAJOR | 1 | PL-5 Part A (popup) OPEN |
+| P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
+| P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
+| **Total** | **1** | **1 open (PL-5 Part A — Session 8)** |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
+
+**Session 7 (Apr 6):** Backend cooldown fixes COMPLETE. 16 new tests (7915 total). Fixed: AI dedup gap, cooldowns in all 4 resolution paths (+1 decrement timing compensation), game-over guard, counter-offer accept/reject cooldowns, type-aware modify_harsh (friendship vs war/coercive).
 
 **Spec review (Apr 6):** Deep code analysis verified all root causes. PL-5 redesigned: keep 1-turn deferral (thematic), add result popup + AI dedup + cooldown fixes. Found additional sub-bugs: accept-path cooldown gap (c), AI dedup gap (e), reject_counter_offer missing AI cooldown, cooldown-decrement timing in advance_turn, failed counter-offer cooldown gap (f), stale rejection missing all cooldowns (g), game-over leakage (h). All line numbers verified against code.
 
@@ -23,13 +26,13 @@
 
 ## Implementation Plan
 
-### Session 7 — Backend Cooldown Fixes (PL-5 Part B + C, PL-6, PL-7)
-Pure Python, all testable with pytest. Fixes the race condition and gameplay bugs.
+### Session 7 — Backend Cooldown Fixes (PL-5 Part B + C, PL-6, PL-7) ✓ COMPLETE
+Pure Python, all testable with pytest. Fixed the race condition and gameplay bugs.
 - **PL-5 Part B:** Dedup guard in `_has_pending_proposal_from`, cooldowns in all 4 resolution paths (ACCEPT/REJECT/failed-counter/stale), game-over guard, +1 cooldown compensation for decrement timing
 - **PL-5 Part C / PL-7:** `accept_counter_offer` + `reject_counter_offer` cooldown wiring in `diplomatic_executor.py`
 - **PL-6:** Type-aware `modify_harsh` — split friendship vs war resolution vs coercive categories
 - **Files:** `world_state.py`, `ai_diplomacy.py`, `diplomatic_executor.py`
-- **Est. Tests:** ~16
+- **Tests:** 16 new (tests/test_bugfix_session7.py), 2 existing updated
 
 ### Session 8 — Proposal Result Popup (PL-5 Part A)
 Crosses backend/frontend. UX improvement — popup so results aren't buried in dispatch.

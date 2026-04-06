@@ -1585,9 +1585,10 @@ class TestProposalFullLifecycle:
         assert len(events) > 0
         if events[0]["outcome"] in ("REJECT", "COUNTER_OFFER"):
             assert "Prussia" in world.player_proposal_cooldowns
-            assert world.player_proposal_cooldowns["Prussia"] == 3
+            # PL-5B: +1 for decrement timing compensation
+            assert world.player_proposal_cooldowns["Prussia"] == 4
             assert "Prussia_peace" in world.player_proposal_cooldowns
-            assert world.player_proposal_cooldowns["Prussia_peace"] == 5
+            assert world.player_proposal_cooldowns["Prussia_peace"] == 6
 
 
 # ======================================================
@@ -1869,9 +1870,10 @@ class TestCooldownEnforcement:
         assert len(events) > 0
         if events[0]["outcome"] in ("REJECT", "COUNTER_OFFER"):
             assert "Prussia" in world.player_proposal_cooldowns
-            assert world.player_proposal_cooldowns["Prussia"] == 3
+            # PL-5B: +1 for decrement timing compensation
+            assert world.player_proposal_cooldowns["Prussia"] == 4
             assert "Prussia_peace" in world.player_proposal_cooldowns
-            assert world.player_proposal_cooldowns["Prussia_peace"] == 5
+            assert world.player_proposal_cooldowns["Prussia_peace"] == 6
     def test_cooldown_blocks_subsequent_proposal(self):
         world = make_world()
         executor = make_executor()
