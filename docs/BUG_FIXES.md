@@ -11,16 +11,18 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| P1 — MAJOR | 1 | PL-9 OPEN — acceptance mismatch (with UX mitigation) |
-| P2 — MINOR | 1 | PL-10 OPEN — "more generous" downgrades proposal type |
-| P3 — API-ONLY | 1 | PL-11 OPEN — incoming proposals hijack commands (API only, Godot unaffected) |
+| P1 — MAJOR | 0 | PL-9 FIXED (Session 10) — acceptance mismatch |
+| P2 — MINOR | 0 | PL-10 FIXED (Session 10) — "more generous" downgrades proposal type |
+| P3 — API-ONLY | 0 | PL-11 FIXED (Session 10) — incoming proposals hijack commands |
 | P1 — MAJOR | 1 | PL-5 Part A FIXED (Session 8) |
 | P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
 | P2 — MINOR | 0 | PL-8 (counter-offer UX) FIXED (Session 9) |
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
-| **Total** | **3 OPEN** | **PL-9, PL-10, PL-11** |
+| **Total** | **0 OPEN** | **ALL BUGS FIXED** |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
+
+**Session 10 (Apr 6):** All 3 remaining bugs FIXED. 13 new tests (7938 total). PL-9: Two-part fix — (A) warning text for borderline 50-75% proposals in `_enrich_proposal_summary`, (B) acceptance snapshot stored at send time + tolerance band (reject only if score drops >15 from snapshot) in `_process_proposal_in_transit`. PL-10: Force proposal type preservation in `modify_generous` and `modify_harsh` — `suggested["type"] = proposal_type` instead of `.get()` fallback that allowed `generate_suggested_terms` to override. PL-11: Improved dialogue guard error message with nation name and `/respond_to_diplomatic_dialogue` API hint.
 
 **Session 9 (Apr 6):** Counter-offer UX COMPLETE. Visual differentiation in `incoming_proposal_popup.gd`: distinct "COUNTER-OFFER" header (blue), context line ("In response to your X proposal..."), steel-blue border, adapted button labels. Redundant assessment text removed from backend. Counter-offer logic audited — M3 algorithm confirmed solid (score 30-49 triggers counter, removes worst clause, adds nation-specific sweeteners). No new backend bugs found.
 
@@ -53,7 +55,7 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 
 ## P1 — MAJOR
 
-### PL-9: Acceptance Mismatch — Displayed % Doesn't Match Resolution
+### PL-9: Acceptance Mismatch — Displayed % Doesn't Match Resolution ✓ FIXED (Session 10)
 - **Source:** Playtest (Apr 6)
 - **Summary:** Player sees 67-72% acceptance when reviewing a proposal, but the proposal is rejected because acceptance is recalculated at resolution time with changed world state. Player gets "Saxony agreed in principle, but the diplomatic situation has changed" despite high displayed odds.
 - **Root cause:** Acceptance is calculated twice — once at proposal review time (`diplomatic_dialogue.py:427`) for display, and again at turn resolution (`world_state.py:4392` inside `_process_proposal_in_transit`). Between these two calculations, `advance_turn` runs: relations decay (`diplomacy.py:2226`, ±1/turn), war scores recalculate (`diplomacy.py:437`), war weariness accumulates (+2/turn). A 67% score can easily drop below 50 after these changes.
@@ -68,7 +70,7 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Files:** `diplomatic_dialogue.py` (warning text in `_enrich_proposal_summary`), `diplomatic_executor.py` (store snapshot), `world_state.py` (`_process_proposal_in_transit` — tolerance band)
 - **Est. Tests:** ~5
 
-### PL-10: "More Generous" Downgrades Proposal Type
+### PL-10: "More Generous" Downgrades Proposal Type ✓ FIXED (Session 10)
 - **Source:** Playtest (Apr 6)
 - **Summary:** Making a vassalage or alliance proposal "more generous" converts it to a Peace Treaty — a LOWER diplomatic state than the current relationship. E.g., player has Open Borders with Saxony, proposes Alliance, clicks "more generous", proposal becomes Peace Treaty with gold sweetener. Since Peace < Open Borders, Saxony rejects with "current relations have already surpassed the proposed terms."
 - **Root cause:** The generous handler (`diplomatic_executor.py:1103-1112`) adds sweeteners but the proposal type downgrades. The `modify_generous` logic likely rebuilds the proposal using `generate_suggested_terms` or similar, which picks a "safer" proposal type at generous harshness levels. The resulting proposal type doesn't respect the floor of the current diplomatic state.
@@ -77,7 +79,7 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
 - **Est. Tests:** ~4
 
-### PL-11: Incoming AI Proposals Hijack Player Diplomatic Commands (API-Only)
+### PL-11: Incoming AI Proposals Hijack Player Diplomatic Commands (API-Only) ✓ FIXED (Session 10)
 - **Source:** Playtest (Apr 6) — curl/API playtest, NOT Godot
 - **Summary:** When player sends a diplomatic command via `/command` API while an AI incoming_proposal is pending in the dialogue queue, the dialogue guard blocks the command and returns the AI proposal instead.
 - **Godot impact: NONE.** Verified that Godot handles this correctly:

@@ -445,10 +445,21 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                 dialogue["acceptance_hint"] = ""
         else:
             dialogue["acceptance_hint"] = ""
+
+        # PL-9 Part A: Warn player when acceptance is borderline (50-75%)
+        if 50 <= score <= 75:
+            dialogue["acceptance_warning"] = (
+                "This estimate reflects current conditions, Sire. Much may change "
+                "during my journey — a battle lost, a relation soured. I would counsel "
+                "a wider margin if you wish certainty."
+            )
+        else:
+            dialogue["acceptance_warning"] = ""
     except Exception:
         dialogue["acceptance_estimate"] = -1
         dialogue["acceptance_outcome"] = "Unable to estimate"
         dialogue["acceptance_hint"] = ""
+        dialogue["acceptance_warning"] = ""
 
     # DP cost
     _state_map = {

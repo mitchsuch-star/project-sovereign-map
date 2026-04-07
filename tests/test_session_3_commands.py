@@ -320,7 +320,7 @@ class TestDialogueBlocking:
         }
         result = executor.execute(parsed, game_state)
         assert not result["success"]
-        assert "talleyrand" in result["message"].lower() or "awaits" in result["message"].lower()
+        assert "requires your attention" in result["message"].lower() or "talleyrand" in result["message"].lower() or "awaits" in result["message"].lower()
 
     def test_non_blocking_dialogue_auto_dismisses_on_end_turn(self, world):
         world.dialogue_manager.replace({

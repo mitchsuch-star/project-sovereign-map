@@ -462,9 +462,17 @@ class CommandExecutor:
             dialogue = world.pending_diplomatic_dialogue
             option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
             options_text = "  ".join(option_labels)
+            # PL-11: Improved error message — explain what's blocking and how to resolve
+            target = dialogue.get('target_nation', 'a foreign power')
+            dtype = dialogue.get('type', 'diplomatic_response')
             return {
                 "success": False,
-                "message": f"Talleyrand awaits your response regarding {dialogue.get('target_nation', 'diplomacy')}. {options_text}",
+                "message": (
+                    f"An incoming diplomatic matter from {target} requires your attention first. "
+                    f"Your command has been held — resolve the diplomatic response before issuing other orders. "
+                    f"Options: {options_text}  "
+                    f"(Use /respond_to_diplomatic_dialogue to handle it via API.)"
+                ),
                 "awaiting_diplomatic_response": True,
                 "diplomatic_dialogue": dialogue,
             }

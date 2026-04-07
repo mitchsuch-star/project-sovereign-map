@@ -533,7 +533,7 @@ class TestBlockingDialogue:
         result = executor.execute(parsed, game_state)
         assert result["success"] is False
         assert result.get("awaiting_diplomatic_response") is True
-        assert "Talleyrand awaits" in (result.get("message") or "")
+        assert "requires your attention" in (result.get("message") or "") or "Talleyrand awaits" in (result.get("message") or "")
 
     def test_blocking_guard_response_includes_dialogue_options(self):
         """Blocking guard response must include dialogue options for display."""

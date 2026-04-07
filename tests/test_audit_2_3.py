@@ -1421,7 +1421,7 @@ class TestDialogueBlockingEnforcement:
         parsed_command = {"command": {"action": "end_turn"}, "raw_input": "end turn"}
         result = executor.execute(parsed_command, game_state)
         assert result["success"] is False
-        assert "awaits" in result.get("message", "").lower()
+        assert "requires your attention" in result.get("message", "").lower() or "awaits" in result.get("message", "").lower()
 
 
 # ======================================================

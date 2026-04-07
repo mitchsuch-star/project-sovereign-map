@@ -4388,8 +4388,20 @@ class WorldState:
                     self.talleyrand_state = "IDLE"
                 return events
 
-        # Run acceptance formula
+        # Run acceptance formula with PL-9 tolerance band
         result = calculate_acceptance(proposal, self)
+        recalc_score = int(result.get("score", 0))
+        snapshot_score = pit.get("acceptance_snapshot", recalc_score)
+        # PL-9 Part B: Tolerance band — reject only if score drops more than 15
+        # below the snapshot. Prevents frustrating near-miss rejections where
+        # displayed 67% fails due to minor world-state drift during transit.
+        if snapshot_score >= 50 and recalc_score < 50 and recalc_score >= snapshot_score - 15:
+            # Within tolerance — honor the snapshot outcome
+            result["outcome"] = "ACCEPT"
+            result["feedback"] = (result.get("feedback") or "") + " (Conditions changed slightly, but the terms held.)"
+        elif snapshot_score >= 30 and recalc_score < 30 and recalc_score >= snapshot_score - 15:
+            # Snapshot was COUNTER_OFFER range, recalc dropped to REJECT but within tolerance
+            result["outcome"] = "COUNTER_OFFER"
         outcome = result.get("outcome", "REJECT")
         feedback = result.get("feedback", "")
 

@@ -953,11 +953,18 @@ class DiplomaticExecutor:
             sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
             if sabotage and sabotage.get("defiance_type") == "stalled":
                 turn_sent += 1
+
+            # PL-9 Part B: Snapshot acceptance score at send time for tolerance band
+            from backend.game_logic.diplomacy import calculate_acceptance as _calc_acceptance
+            _snapshot_result = _calc_acceptance(proposal, world)
+            _acceptance_snapshot = int(_snapshot_result.get("score", 0))
+
             world.proposal_in_transit = {
                 "target": target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
+                "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
             }
 
             # Log event
@@ -1005,7 +1012,8 @@ class DiplomaticExecutor:
             # Ensure proposal metadata
             suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
-            suggested["type"] = suggested.get("type", proposal_type)
+            # PL-10: Force proposal type to player's original choice
+            suggested["type"] = proposal_type
 
             # PL-6: Type-aware escalation — friendship vs war/coercive categories
             _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
@@ -1107,7 +1115,9 @@ class DiplomaticExecutor:
             # Ensure proposal metadata
             suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
-            suggested["type"] = suggested.get("type", proposal_type)
+            # PL-10: Force proposal type to player's original choice — generate_suggested_terms
+            # may return a different (lower) type, which would downgrade the proposal
+            suggested["type"] = proposal_type
 
             # Escalate existing sweeteners by 1.5x
             for s in suggested.get("sweeteners", []):
@@ -1749,11 +1759,18 @@ class DiplomaticExecutor:
             sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
             if sabotage and sabotage.get("defiance_type") == "stalled":
                 turn_sent += 1
+
+            # PL-9 Part B: Snapshot acceptance score at send time for tolerance band
+            from backend.game_logic.diplomacy import calculate_acceptance as _calc_acceptance
+            _snapshot_result = _calc_acceptance(proposal, world)
+            _acceptance_snapshot = int(_snapshot_result.get("score", 0))
+
             world.proposal_in_transit = {
                 "target": target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
+                "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
             }
 
             # Record override if player overrode Talleyrand's objection

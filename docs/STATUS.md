@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Playtest: 3 new bugs found — PL-9 acceptance mismatch, PL-10 generous downgrade, PL-11 dialogue hijack. New design item R160 Rivalry System. See `docs/BUG_FIXES.md`.)
+> **Last Updated:** April 6, 2026 (Session 10: All 3 remaining bugs FIXED — PL-9 acceptance mismatch, PL-10 generous downgrade, PL-11 dialogue hijack. 0 open bugs. Ready for Design Refinement.)
 
 ---
 
@@ -9,24 +9,24 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7925** (7925 passed, 1 skipped) |
+| **Tests Passing** | **7938** (7938 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 2 real bugs (PL-9 P1, PL-10 P2) + 1 API-only (PL-11 P3).** Design Refinement pending. See `docs/BUG_FIXES.md`. |
-| **Blockers** | PL-9 acceptance mismatch frustrates diplomacy. Jealousy NEEDS DESIGN GATE (separate track). |
+| **Current Phase** | **Bug Fixes COMPLETE.** All bugs fixed (Sessions 1-10). Ready for Design Refinement. See `docs/DESIGN_REFINEMENT.md`. |
+| **Blockers** | None. Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### Immediate: Bug Fixes Session 10
+### Bug Fixes Session 10 ✓ COMPLETE
 
-3 new bugs from diplomacy playtest. See `docs/BUG_FIXES.md`:
-- **PL-9 (P1):** Acceptance mismatch — displayed 67-72% but rejected. Fix: Talleyrand warning text for borderline proposals + tolerance band so marginal changes don't flip the outcome.
-- **PL-10 (P2):** "More generous" downgrades proposal type (alliance → peace treaty), making it worse than current state.
-- **PL-11 (P3, API-only):** Incoming proposals hijack commands via dialogue guard. Godot unaffected — wizard checks `dialogue_pending`, incoming proposals arrive as modal popups. Only affects curl/API usage.
+All 3 bugs FIXED. 13 new tests. See `docs/BUG_FIXES.md`:
+- **PL-9 (P1) FIXED:** Warning text for borderline 50-75% proposals + acceptance snapshot + tolerance band (reject only if >15 drop from snapshot).
+- **PL-10 (P2) FIXED:** Force `suggested["type"] = proposal_type` in modify_generous/modify_harsh — prevents `generate_suggested_terms` from overriding player's chosen proposal type.
+- **PL-11 (P3) FIXED:** Improved dialogue guard error message with nation name and `/respond_to_diplomatic_dialogue` API hint.
 
-### After Bugs: Design Refinement
+### Next: Design Refinement
 
 Move to `docs/DESIGN_REFINEMENT.md`. 43 items total: 7 ready for implementation, R160 Rivalry System (new), 4 War System Overhaul, 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
