@@ -1747,3 +1747,45 @@ end turn
 trust
 ```
 **Verify:** Returns Berthier message about no pending diplomatic matter. Does NOT show a parse error or "Unknown action".
+
+---
+
+## SECTION Z2: Cavalry Momentum (B5 Balance)
+
+### Z2-1. Cavalry Gets Momentum Bonus on Repeated Attacks
+**Goal:** Verify cavalry gains attack bonus from repeated attacks instead of exhaustion penalty.
+```
+/debug set_location Ney Belgium
+/debug set_strength Ney 20000
+/debug freeze_enemies
+# Attack an enemy twice in one turn
+Ney, attack [enemy in adjacent region]
+Ney, attack [same enemy]
+```
+**Verify:** Second attack message includes "cavalry builds momentum! (2nd charge: +5%)". Damage should be slightly HIGHER on second attack, not lower. No exhaustion penalty shown.
+
+### Z2-2. Cavalry Momentum Cap at +10%
+**Goal:** Verify momentum caps at +10% on 3rd+ attacks.
+```
+# Attack 3+ times in one turn (needs enough AP)
+Ney, attack [enemy]
+Ney, attack [enemy]
+Ney, attack [enemy]
+```
+**Verify:** Third attack shows "+10%" momentum. Fourth+ attack also shows "+10%" (cap, not increasing).
+
+### Z2-3. Infantry Still Gets Exhaustion
+**Goal:** Verify infantry marshals still suffer exhaustion penalties (unchanged).
+```
+Davout, attack [enemy]
+Davout, attack [enemy]
+```
+**Verify:** Second attack shows "exhausted from repeated attacks! (2nd attack: -10%)". Damage is LOWER on second attack.
+
+### Z2-4. Artillery Still Exempt
+**Goal:** Verify artillery shows neither exhaustion nor momentum.
+```
+Drouot, bombard [enemy]
+Drouot, bombard [enemy]
+```
+**Verify:** No exhaustion or momentum message on second bombardment. Damage unchanged.
