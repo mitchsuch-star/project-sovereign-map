@@ -11,11 +11,14 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
+| P1 — MAJOR | 1 | PL-9 OPEN — acceptance mismatch (with UX mitigation) |
+| P2 — MINOR | 1 | PL-10 OPEN — "more generous" downgrades proposal type |
+| P3 — API-ONLY | 1 | PL-11 OPEN — incoming proposals hijack commands (API only, Godot unaffected) |
 | P1 — MAJOR | 1 | PL-5 Part A FIXED (Session 8) |
 | P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
 | P2 — MINOR | 0 | PL-8 (counter-offer UX) FIXED (Session 9) |
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
-| **Total** | **0** | **ALL FIXED — PL-8 closed Session 9** |
+| **Total** | **3 OPEN** | **PL-9, PL-10, PL-11** |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -49,6 +52,46 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 ---
 
 ## P1 — MAJOR
+
+### PL-9: Acceptance Mismatch — Displayed % Doesn't Match Resolution
+- **Source:** Playtest (Apr 6)
+- **Summary:** Player sees 67-72% acceptance when reviewing a proposal, but the proposal is rejected because acceptance is recalculated at resolution time with changed world state. Player gets "Saxony agreed in principle, but the diplomatic situation has changed" despite high displayed odds.
+- **Root cause:** Acceptance is calculated twice — once at proposal review time (`diplomatic_dialogue.py:427`) for display, and again at turn resolution (`world_state.py:4392` inside `_process_proposal_in_transit`). Between these two calculations, `advance_turn` runs: relations decay (`diplomacy.py:2226`, ±1/turn), war scores recalculate (`diplomacy.py:437`), war weariness accumulates (+2/turn). A 67% score can easily drop below 50 after these changes.
+- **Reproduction:** Propose alliance to Saxony at 67-72% displayed acceptance with default relations (~40). End turn. Proposal rejected.
+- **Design note:** The recalculation is arguably correct — conditions DO change while Talleyrand travels. The real problem is player expectation: a displayed 72% that fails feels like a lie. Two-part fix:
+- **Proposed fix — Part A (UX mitigation):** Add Talleyrand warning text to the proposal confirmation screen. When acceptance is in the borderline range (50-75%), Talleyrand says something like: *"This estimate reflects current conditions, Sire. Much may change during my journey — a battle lost, a relation soured. I would counsel a wider margin if you wish certainty."* This sets player expectations that the % is a snapshot, not a guarantee. Add `acceptance_warning` field to dialogue data in `_enrich_proposal_summary` when score is 50-75%.
+- **Proposed fix — Part B (tolerance band):** Reduce the volatility gap. Options (pick one):
+  - (i) Snapshot: store `acceptance_score` in `proposal_in_transit` at send time, use it at resolution instead of recalculating. Displayed % = actual %. Simple but removes the "things changed" dynamic entirely.
+  - (ii) Tolerance band: at resolution, reject only if recalculated score drops below `displayed_score - 15` (i.e., a 67% proposal needs to drop to 52 to actually fail). Preserves dynamism but prevents marginal rejections.
+  - (iii) Weighted average: resolve with `0.7 * snapshot + 0.3 * recalculated`. Mostly honors the displayed score while allowing extreme changes to matter.
+- **Recommendation:** Part A (warning text) is quick, thematic, and always valuable. Part B option (ii) tolerance band is the best gameplay fix — keeps the system dynamic while preventing frustrating near-miss rejections.
+- **Files:** `diplomatic_dialogue.py` (warning text in `_enrich_proposal_summary`), `diplomatic_executor.py` (store snapshot), `world_state.py` (`_process_proposal_in_transit` — tolerance band)
+- **Est. Tests:** ~5
+
+### PL-10: "More Generous" Downgrades Proposal Type
+- **Source:** Playtest (Apr 6)
+- **Summary:** Making a vassalage or alliance proposal "more generous" converts it to a Peace Treaty — a LOWER diplomatic state than the current relationship. E.g., player has Open Borders with Saxony, proposes Alliance, clicks "more generous", proposal becomes Peace Treaty with gold sweetener. Since Peace < Open Borders, Saxony rejects with "current relations have already surpassed the proposed terms."
+- **Root cause:** The generous handler (`diplomatic_executor.py:1103-1112`) adds sweeteners but the proposal type downgrades. The `modify_generous` logic likely rebuilds the proposal using `generate_suggested_terms` or similar, which picks a "safer" proposal type at generous harshness levels. The resulting proposal type doesn't respect the floor of the current diplomatic state.
+- **Reproduction:** With Saxony at Open Borders (or higher), propose alliance. Click "More generous" once. Observe proposal type changes from "Full Alliance" to "Peace Treaty."
+- **Proposed fix:** In `modify_generous`, never downgrade proposal type below the current diplomatic state. If the player proposed alliance, generous terms should add sweeteners (gold, protection) while keeping the alliance type. Clamp `proposal_type` to be >= current diplomatic state in the hierarchy.
+- **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
+- **Est. Tests:** ~4
+
+### PL-11: Incoming AI Proposals Hijack Player Diplomatic Commands (API-Only)
+- **Source:** Playtest (Apr 6) — curl/API playtest, NOT Godot
+- **Summary:** When player sends a diplomatic command via `/command` API while an AI incoming_proposal is pending in the dialogue queue, the dialogue guard blocks the command and returns the AI proposal instead.
+- **Godot impact: NONE.** Verified that Godot handles this correctly:
+  - Incoming proposals arrive as **modal popups** (`incoming_proposal_popup.gd`) that block input until dismissed
+  - The **diplomacy wizard** (`diplomacy_wizard.gd:210-216`) checks `dialogue_pending` flag from `/diplomatic_preview` and **gracefully closes** before issuing commands
+  - Player input is **disabled** during popup display (`main.gd` line 2770)
+  - The dialogue guard in `executor.py:461` only triggers via raw API calls that bypass Godot's popup system
+- **Root cause:** The executor dialogue guard (`executor.py:460-470`) blocks ALL `/command` calls when `pending_diplomatic_dialogue` exists. This is correct safety behavior for the API, but confusing when using curl.
+- **Priority:** P3 (API-only). No gameplay impact. Only affects automated testing and curl playtesting.
+- **Proposed fix (low priority):** Improve the error message to say "An incoming proposal from {nation} requires your attention first. Use /respond_to_diplomatic_dialogue to handle it." Currently the message is generic and doesn't explain why the player's intended action was blocked.
+- **Files:** `executor.py` (improve guard message)
+- **Est. Tests:** ~2
+
+---
 
 ### PL-5: Player Proposal — No Feedback Popup, Race Condition with AI
 - **Source:** Playtest (Apr 6)

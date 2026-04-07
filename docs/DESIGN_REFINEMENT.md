@@ -11,6 +11,7 @@
 | Category | Count | Status |
 |----------|-------|--------|
 | Player Feedback (Wave 3 remaining) | 7 | Ready for implementation |
+| Nation Rivalry System (EU4-inspired) | 1 | Needs design gate |
 | Territorial Promises (Wave 3) | 1 | Needs design gate |
 | War System Overhaul (EU4-inspired) | 4 | Needs design gate |
 | AI Diplomacy Improvements | 3 | Ready (small fixes) |
@@ -18,7 +19,7 @@
 | Wave 4 — New Features | 17 | Needs per-item approval |
 | Wave 5 — Game Review Findings | 8 | Needs design gate |
 | Jealousy System | 1 | Needs design gate |
-| **Total** | **42** | |
+| **Total** | **43** | |
 
 ---
 
@@ -74,6 +75,23 @@ These refine existing systems. No design gate needed.
 ---
 
 ## Needs Design Gate
+
+### R160: Nation Rivalry System (EU4-Inspired)
+- **Category:** Diplomacy — Balance
+- **Source:** Playtest (Apr 6) — player befriended all 4 nations simultaneously with no friction
+- **Problem:** Nothing prevents France from being allied with everyone at once. No nation objects to France allying their historical enemy. Diplomacy has no tension — it's a one-way ramp to universal friendship. In the playtest, France achieved ALLIANCE with Britain, Prussia, and Austria while vassalizing Saxony in 7 turns. There's no strategic choice about *who* to ally because allying everyone is always optimal.
+- **Proposed design — Rivalry system:**
+  - **Rival pairs:** Nations have natural rivals (historical + dynamic). Rivals are upset when you befriend their enemy.
+    - Starting rivals: Britain↔France (colonial), Prussia↔Austria (German hegemony), Prussia↔Saxony (annexation threat)
+    - Dynamic: AI can declare rivalry when relation drops below -40 or when France allies their enemy
+  - **Alliance anger:** When France allies Nation A, nations that are rivals of A get a relation penalty (-10 to -20) and may break treaties. "Austria protests your alliance with Prussia."
+  - **Rival exclusion:** Cannot be allied with both members of a rival pair simultaneously. Choosing one means losing the other. Forces strategic branching.
+  - **Jealous AI proposals:** Nations offer alliance specifically to BLOCK you from allying their rival. "Prussia offers alliance — but only if you break ties with Austria."
+  - **Rival decay:** Rivalries fade if nations have common enemies (+2/turn at war with same target). New rivalries form from repeated wars.
+- **EU4 parallels:** Rival system, opinion penalties for allying rivals, alliance capacity limits, diplomatic reputation
+- **Design gates:** How many rivals per nation? Can the player influence rival pairs? Should there be an alliance capacity limit (max 2 allies)? How does this interact with coalitions?
+- **Files:** `diplomacy.py` (rival pairs, anger penalties), `ai_diplomacy.py` (rival-aware proposals, exclusion checks), `diplomatic_ledger.py` (display rivals), `world_state.py` (rival tracking)
+- **Est. sessions:** 2-3
 
 ### R151: Territorial Promise Clauses
 - **Category:** Diplomacy Feature

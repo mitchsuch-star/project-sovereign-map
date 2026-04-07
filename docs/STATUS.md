@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Session 9 COMPLETE — PL-8 counter-offer UX fixed. ALL BUGS CLOSED. 7925 tests. Design Refinement next. See `docs/DESIGN_REFINEMENT.md`.)
+> **Last Updated:** April 6, 2026 (Playtest: 3 new bugs found — PL-9 acceptance mismatch, PL-10 generous downgrade, PL-11 dialogue hijack. New design item R160 Rivalry System. See `docs/BUG_FIXES.md`.)
 
 ---
 
@@ -11,17 +11,24 @@
 |--------|-------|
 | **Tests Passing** | **7925** (7925 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes COMPLETE — ALL CLOSED.** Sessions 7-9 done. Design Refinement next. See `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
-| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
+| **Current Phase** | **Bug Fixes — 2 real bugs (PL-9 P1, PL-10 P2) + 1 API-only (PL-11 P3).** Design Refinement pending. See `docs/BUG_FIXES.md`. |
+| **Blockers** | PL-9 acceptance mismatch frustrates diplomacy. Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### Immediate: Design Refinement
+### Immediate: Bug Fixes Session 10
 
-Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation, 4 War System Overhaul (EU4-inspired), 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
+3 new bugs from diplomacy playtest. See `docs/BUG_FIXES.md`:
+- **PL-9 (P1):** Acceptance mismatch — displayed 67-72% but rejected. Fix: Talleyrand warning text for borderline proposals + tolerance band so marginal changes don't flip the outcome.
+- **PL-10 (P2):** "More generous" downgrades proposal type (alliance → peace treaty), making it worse than current state.
+- **PL-11 (P3, API-only):** Incoming proposals hijack commands via dialogue guard. Godot unaffected — wizard checks `dialogue_pending`, incoming proposals arrive as modal popups. Only affects curl/API usage.
+
+### After Bugs: Design Refinement
+
+Move to `docs/DESIGN_REFINEMENT.md`. 43 items total: 7 ready for implementation, R160 Rivalry System (new), 4 War System Overhaul, 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
 ### Independent Tracks
 
