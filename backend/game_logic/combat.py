@@ -288,6 +288,11 @@ class CombatResolver:
             penalty = exhaustion_info["penalty_percent"]
             attack_num = exhaustion_info["attacks_this_turn"] + 1
             exhaustion_message = f"{attacker.name}'s troops are exhausted from repeated attacks! ({ordinal(attack_num)} attack: -{penalty}%)"
+        elif exhaustion_info["penalty"] < 0:
+            # Cavalry momentum: negative penalty = bonus
+            bonus = abs(exhaustion_info["penalty_percent"])
+            attack_num = exhaustion_info["attacks_this_turn"] + 1
+            exhaustion_message = f"{attacker.name}'s cavalry builds momentum! ({ordinal(attack_num)} charge: +{bonus}%)"
 
         # ════════════════════════════════════════════════════════════
         # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply attack modifiers

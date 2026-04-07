@@ -739,6 +739,17 @@ class Marshal:
         if getattr(self, 'artillery', False):
             return 0.0
 
+        # Cavalry momentum: BONUS instead of penalty (B5 Balance)
+        # Horses don't tire mid-battle — they build momentum through sustained pressure
+        if getattr(self, 'cavalry', False):
+            attacks = self.attacks_this_turn
+            if attacks <= 0:
+                return 0.0   # 1st attack
+            elif attacks == 1:
+                return -0.05  # 2nd attack: +5% bonus
+            else:  # 2+
+                return -0.10  # 3rd+ attack: +10% bonus (cap)
+
         attacks = self.attacks_this_turn
         if attacks <= 0:
             return 0.0  # 1st attack (counter is 0 before first attack)
@@ -882,10 +893,11 @@ class Marshal:
             modifier *= 1.20  # +20%
             self.counter_punch_ready = False  # Consume after use
 
-        # Exhaustion penalty (attack spam prevention)
+        # Exhaustion penalty / cavalry momentum (attack spam prevention / B5 Balance)
         # Applied AFTER other modifiers (multiplicative with recklessness)
+        # Positive = infantry exhaustion penalty, Negative = cavalry momentum bonus
         exhaustion_penalty = self._get_exhaustion_penalty()
-        if exhaustion_penalty > 0:
+        if exhaustion_penalty != 0:
             modifier *= (1.0 - exhaustion_penalty)
 
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)

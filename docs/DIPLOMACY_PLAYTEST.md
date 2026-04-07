@@ -1,10 +1,10 @@
-# Comprehensive Diplomacy Playtest Plan
+# Diplomacy Playtest Results
 
-**Purpose:** 100% confidence across all diplomacy features via manual UI testing in Godot.
-**Estimated Time:** 120-150 minutes (full run). Can be split into sections.
+**Purpose:** Manual UI testing of all diplomacy features in Godot. Contains PASS/FAIL results from live playtesting.
 **Prerequisites:** Backend running on port 8005 with debug mode enabled, Godot client connected.
 
-> **Note on Godot Testing:** Godot has no built-in automated UI test framework. All popup rendering, button clicks, modal stacking, and screen transitions must be verified manually. The backend has 7,755+ tests covering logic — this playtest covers the **UI integration layer** that automated tests cannot reach.
+> **Note on Godot Testing:** Godot has no built-in automated UI test framework. All popup rendering, button clicks, modal stacking, and screen transitions must be verified manually. The backend has 7,900+ tests covering logic — this playtest covers the **UI integration layer** that automated tests cannot reach.
+> **Template archived:** `docs/archive/DIPLOMACY_PLAYTEST_PLAN.md`
 
 ---
 

@@ -97,11 +97,17 @@ class TestArtilleryExhaustionExemption:
         inf.attacks_this_turn = 2
         assert inf._get_exhaustion_penalty() == 0.20  # -20% on 3rd attack
 
-    def test_cavalry_still_gets_exhaustion(self):
-        """Cavalry still accumulates exhaustion penalty (unchanged)."""
+    def test_cavalry_gets_momentum_not_exhaustion(self):
+        """Cavalry gains momentum bonus instead of exhaustion penalty (B5 Balance)."""
         cav = _make_cavalry()
         cav.attacks_this_turn = 1
-        assert cav._get_exhaustion_penalty() == 0.10
+        assert cav._get_exhaustion_penalty() == -0.05  # +5% bonus on 2nd attack
+
+        cav.attacks_this_turn = 2
+        assert cav._get_exhaustion_penalty() == -0.10  # +10% bonus on 3rd attack (cap)
+
+        cav.attacks_this_turn = 3
+        assert cav._get_exhaustion_penalty() == -0.10  # Still +10% cap on 4th+
 
     def test_exhaustion_info_shows_zero_for_artillery(self):
         """get_exhaustion_info returns 0% penalty for artillery."""
