@@ -28,12 +28,16 @@ const PROPOSAL_TYPE_DISPLAY = {
 }
 
 var current_data: Dictionary = {}
+var _default_border_color: Color
+@onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
 
 func _ready():
 	hide()
 	accept_btn.pressed.connect(_on_accept)
 	counter_btn.pressed.connect(_on_counter)
 	reject_btn.pressed.connect(_on_reject)
+	# Cache default border color for normal proposals
+	_default_border_color = panel_style.border_color
 
 func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
@@ -46,13 +50,29 @@ func show_proposal(data: Dictionary):
 	var assessment = data.get("talleyrand_assessment", "")
 	var accept_hint = data.get("acceptance_hint", "")
 	var reject_hint = data.get("rejection_hint", "")
+	var is_counter = data.get("is_counter_offer", false)
 
+	var type_display = PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").capitalize())
 	var bbcode = ""
-	bbcode += "[b]DIPLOMATIC ENVOY[/b]\n"
-	var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
-	bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
-	bbcode += "[b]Proposes:[/b] %s\n" % PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").capitalize())
-	bbcode += "[b]Terms:[/b]\n"
+
+	if is_counter:
+		# Counter-offer: distinct header + context
+		bbcode += "[center][color=#7eb8da][b]COUNTER-OFFER[/b][/color][/center]\n"
+		var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
+		bbcode += "[color=#a0a0a8]In response to your %s proposal, %s offers modified terms:[/color]\n\n" % [type_display, from_nation]
+		bbcode += "[b]Revised Terms:[/b]\n"
+		# Style: blue border for counter-offers
+		panel_style.border_color = Color(0.494, 0.722, 0.855, 1.0)  # Steel blue
+	else:
+		# Normal AI proposal
+		bbcode += "[b]DIPLOMATIC ENVOY[/b]\n"
+		var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
+		bbcode += "[b]Proposes:[/b] %s\n" % type_display
+		bbcode += "[b]Terms:[/b]\n"
+		# Restore default gold border
+		panel_style.border_color = _default_border_color
 
 	for clause in clauses:
 		bbcode += "  - %s\n" % str(clause)
@@ -70,10 +90,12 @@ func show_proposal(data: Dictionary):
 
 	# Enable buttons — hide Counter for counter-offers (no counter-counter)
 	accept_btn.disabled = false
-	var is_counter = data.get("is_counter_offer", false)
 	counter_btn.visible = not is_counter
 	counter_btn.disabled = is_counter
 	reject_btn.disabled = false
+	# Button labels adapt to context
+	accept_btn.text = "Accept Terms" if is_counter else "Accept"
+	reject_btn.text = "Reject Terms" if is_counter else "Reject"
 	show()
 
 func _on_accept():

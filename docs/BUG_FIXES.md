@@ -11,12 +11,15 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| P1 — MAJOR | 1 | PL-5 Part A (popup) OPEN |
+| P1 — MAJOR | 1 | PL-5 Part A FIXED (Session 8) |
 | P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
+| P2 — MINOR | 0 | PL-8 (counter-offer UX) FIXED (Session 9) |
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
-| **Total** | **1** | **1 open (PL-5 Part A — Session 8)** |
+| **Total** | **0** | **ALL FIXED — PL-8 closed Session 9** |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
+
+**Session 9 (Apr 6):** Counter-offer UX COMPLETE. Visual differentiation in `incoming_proposal_popup.gd`: distinct "COUNTER-OFFER" header (blue), context line ("In response to your X proposal..."), steel-blue border, adapted button labels. Redundant assessment text removed from backend. Counter-offer logic audited — M3 algorithm confirmed solid (score 30-49 triggers counter, removes worst clause, adds nation-specific sweeteners). No new backend bugs found.
 
 **Session 7 (Apr 6):** Backend cooldown fixes COMPLETE. 16 new tests (7915 total). Fixed: AI dedup gap, cooldowns in all 4 resolution paths (+1 decrement timing compensation), game-over guard, counter-offer accept/reject cooldowns, type-aware modify_harsh (friendship vs war/coercive).
 
@@ -150,3 +153,15 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
   - This is also PL-5 Part C — the cooldown gaps feed into the race condition.
 - **Files:** `diplomatic_executor.py` (lines ~1786 and ~1815, inside counter-offer handlers)
 - **Est. Tests:** ~3
+
+### PL-8: Counter-Offer Popup Looks Like Unsolicited AI Proposal ✓ FIXED (Session 9)
+- **Source:** Playtest (Apr 6)
+- **Summary:** When the player sends a proposal and the AI counter-offers, the result appears via `incoming_proposal_popup` — visually identical to an unsolicited AI proposal.
+- **Fix (Session 9):** Visual differentiation in `incoming_proposal_popup.gd`:
+  - Header: "[color=#7eb8da]COUNTER-OFFER[/color]" (blue) instead of "DIPLOMATIC ENVOY"
+  - Context: "In response to your {type} proposal, {nation} offers modified terms:"
+  - Border: Steel-blue (#7eb8da) instead of default gold
+  - Labels: "Revised Terms" instead of "Terms", "Accept Terms"/"Reject Terms" buttons
+  - Counter button hidden (no counter-counter — already worked)
+  - Backend: Removed redundant "This is a counter-proposal..." from assessment text (popup itself now communicates this)
+- **Counter-offer logic audit:** M3 algorithm confirmed working correctly. Score 30-49 triggers counter. Removes clause AI hates most, adds nation-specific sweeteners from NATION_DESIRES. Personality thresholds modify behavior (hawk stricter, dove lenient). Failed counters fall through to rejection with proper cooldowns. No bugs found.

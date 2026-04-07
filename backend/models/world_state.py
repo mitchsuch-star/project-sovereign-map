@@ -4496,7 +4496,7 @@ class WorldState:
                     "diplomat_personality": diplomat_personality,
                     "proposal_type": proposal.get("type", "unknown"),
                     "clauses": clauses,
-                    "talleyrand_assessment": f"{feedback}\n\nThis is a counter-proposal to your original terms.",
+                    "talleyrand_assessment": feedback,
                     "acceptance_hint": "",
                     "rejection_hint": "",
                     "is_counter_offer": True,

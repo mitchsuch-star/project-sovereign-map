@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Session 7 COMPLETE — PL-5B+C, PL-6, PL-7 fixed. 16 new tests, 7915 total. Session 8 remaining: proposal result popup. See `docs/BUG_FIXES.md`.)
+> **Last Updated:** April 6, 2026 (Session 9 COMPLETE — PL-8 counter-offer UX fixed. ALL BUGS CLOSED. 7925 tests. Design Refinement next. See `docs/DESIGN_REFINEMENT.md`.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7915** (7915 passed, 1 skipped) |
+| **Tests Passing** | **7925** (7925 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 1 open (PL-5 Part A).** Session 7 COMPLETE. Session 8 (popup) next. See `docs/BUG_FIXES.md`. Architecture Refactoring R19 (modding) independent track. |
+| **Current Phase** | **Bug Fixes COMPLETE — ALL CLOSED.** Sessions 7-9 done. Design Refinement next. See `docs/DESIGN_REFINEMENT.md`. Architecture Refactoring R19 (modding) independent track. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,11 +19,7 @@
 
 ## Next Steps
 
-### Immediate: Bug Fix Session 8 — Proposal Result Popup (PL-5 Part A)
-
-Backend + Godot popup so proposal results aren't buried in dispatch text. ~4 tests + manual verification.
-
-### Then: Design Refinement
+### Immediate: Design Refinement
 
 Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation, 4 War System Overhaul (EU4-inspired), 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
@@ -36,7 +32,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 42 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-7~~ — 28+3 bugs resolved, 179 tests. Session 7: PL-5B+C, PL-6, PL-7 (cooldowns + dedup + type-aware harsh). PL-5 Part A (popup) remains — Session 8.
+- ~~Bug Fixes Sessions 1-9~~ — 28+4 bugs resolved, 189 tests. Session 7: PL-5B+C, PL-6, PL-7 (cooldowns + dedup + type-aware harsh). Session 8: PL-5A (proposal result popup + enemy-phase deferral). Session 9: PL-8 (counter-offer UX differentiation). ALL CLOSED.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests
