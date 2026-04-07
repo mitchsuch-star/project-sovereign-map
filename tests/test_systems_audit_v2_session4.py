@@ -114,8 +114,12 @@ class TestV2_64_AdvanceTurnNoVictoryCheck:
 class TestV2_86_VictoryFlushesPopups:
     """V2-86: Victory return includes pending popup data."""
 
-    def test_victory_includes_pending_dialogue(self):
-        """When victory fires, pending_diplomatic_dialogue is in result."""
+    def test_victory_clears_pending_dialogue(self):
+        """PL-9: When victory fires, pending dialogues are cleared (not passed through).
+
+        Dialogues become un-dismissable after game_over because /command rejects
+        all input. Clearing them prevents the stuck-popup bug.
+        """
         world = _make_world()
         world.dialogue_manager.replace({
             "type": "incoming_proposal",
@@ -133,8 +137,10 @@ class TestV2_86_VictoryFlushesPopups:
         result = tm.end_turn()
 
         assert result["victory_check"]["game_over"] is True
-        assert "pending_diplomatic_dialogue" in result
-        assert result["pending_diplomatic_dialogue"]["type"] == "incoming_proposal"
+        # PL-9: Dialogue should NOT be in result — it would be un-dismissable
+        assert "pending_diplomatic_dialogue" not in result
+        # Dialogue stack should be empty
+        assert world.dialogue_manager.peek() is None
 
     def test_victory_includes_vassal_rebellion_popup(self):
         """When victory fires, vassal_rebellion_imminent_popup is in result."""

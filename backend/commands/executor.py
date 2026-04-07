@@ -414,6 +414,12 @@ class CommandExecutor:
                 "message": "Error: No world state available"
             }
 
+        # C3: Clear auto-advance flag when player takes any non-end-turn action.
+        # This allows "end turn" to work normally on subsequent turns after auto-advance.
+        action = parsed_command.get("action", "")
+        if action != "end_turn" and hasattr(world, '_auto_advanced_to_turn'):
+            world._auto_advanced_to_turn = 0
+
         # ============================================================
         # DISOBEDIENCE CHECK: Is there a pending objection?
         # ============================================================
@@ -1442,6 +1448,11 @@ class CommandExecutor:
 
             turn_manager = TurnManager(world, executor=self)
             turn_result = turn_manager.end_turn(game_state)
+
+            # C3: Stamp that auto-advance processed this turn.
+            # Blocks a subsequent "end turn" command from double-advancing.
+            # Cleared when any non-end-turn action is taken on the new turn.
+            world._auto_advanced_to_turn = world.current_turn
 
             # Update result with turn end info
             result["action_info"]["turn_advanced"] = True

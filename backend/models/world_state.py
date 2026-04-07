@@ -100,6 +100,12 @@ class WorldState:
         # Serialized to survive save/load.
         self._last_advanced_turn: int = 0
 
+        # C3 fix: Tracks the last turn where end_turn was fully processed
+        # (either via auto-advance or explicit "end turn" command).
+        # Prevents double-end-turn when auto-advance fires on last AP,
+        # then player types "end turn" which would advance again.
+        self._auto_advanced_to_turn: int = 0
+
         # Nation starting regions — tracks original territory for homeland defense AI
         # Populated by _setup_initial_control() below
         self.nation_starting_regions: Dict[str, list] = {}
@@ -3171,6 +3177,9 @@ class WorldState:
 
             # R20: Idempotency guard — last turn that advance_turn processed
             "last_advanced_turn": int(self._last_advanced_turn),
+
+            # C3: Double-end-turn guard
+            "auto_advanced_to_turn": int(self._auto_advanced_to_turn),
         }
 
     @classmethod
@@ -3413,6 +3422,9 @@ class WorldState:
 
         # R20: Idempotency guard — restore last advanced turn
         world._last_advanced_turn = data.get("last_advanced_turn", 0)
+
+        # C3: Double-end-turn guard
+        world._auto_advanced_to_turn = data.get("auto_advanced_to_turn", 0)
 
         # R9: Rebuild transient marshal-by-region index from loaded data
         world._build_marshal_index()

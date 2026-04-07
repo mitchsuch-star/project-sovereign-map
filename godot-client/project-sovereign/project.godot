@@ -14,3 +14,7 @@ config/name="Project Sovereign"
 run/main_scene="uid://dtnggwknbevpq"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/mode=2

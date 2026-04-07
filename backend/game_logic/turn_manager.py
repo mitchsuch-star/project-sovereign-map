@@ -56,6 +56,22 @@ class TurnManager:
             game_state: Game state dict for executor (required for enemy AI)
         """
         old_turn = self.world.current_turn
+
+        # C3 fix: Prevent double end_turn when auto-advance already processed this turn.
+        # Scenario: auto-advance fires on last AP (executor.py), ending turn N → N+1.
+        # Then player's "end turn" command arrives, calling end_turn() again on turn N+1.
+        # The _auto_advanced_to_turn flag is set by auto-advance and cleared by any
+        # non-end-turn player action, so it only blocks the immediate double-end.
+        if self.world._auto_advanced_to_turn >= old_turn:
+            debug_print(f"[C3 GUARD] turn {old_turn} already auto-advanced, skipping")
+            return {
+                "turn_ended": old_turn,
+                "next_turn": self.world.current_turn,
+                "victory_check": {"game_over": False, "result": None, "reason": ""},
+                "message": f"Turn {old_turn} already ended",
+                "events": [],
+            }
+
         # C3 fix: Track whether advance_turn has been called this cycle
         _advanced = False
 
@@ -261,6 +277,13 @@ class TurnManager:
             "alliance_paradox_popup",
         ]
         for field in popup_fields:
+            # PL-9: Skip blocking dialogues when game is over — they become
+            # un-dismissable since /command rejects all input after game_over.
+            if field == "pending_diplomatic_dialogue" and self.world.game_over:
+                # Clear the dialogue stack so it doesn't persist in save state
+                while self.world.dialogue_manager.peek():
+                    self.world.dialogue_manager.pop()
+                continue
             value = getattr(self.world, field, None)
             if value is not None:
                 result[field] = value

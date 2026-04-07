@@ -142,6 +142,15 @@ class MetaExecutor:
         turn_manager = TurnManager(world, executor=self._executor)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
 
+        # C3: If turn was already ended by auto-advance, turn_ended == next_turn.
+        # Show the current turn info instead of a confusing "Turn N ended. Turn N begins!"
+        if turn_result["turn_ended"] == turn_result["next_turn"]:
+            return build_action_summary(world, {
+                "success": True,
+                "message": f"Turn {world.current_turn} is already underway!",
+                "events": [],
+            })
+
         # Build message — enemy phase text and turn events removed from terminal
         # (enemy phase shown in popup dialog, turn events absorbed into Morning Dispatch)
         message = f"Turn {turn_result['turn_ended']} ended.{ap_warning} Turn {turn_result['next_turn']} begins!"
