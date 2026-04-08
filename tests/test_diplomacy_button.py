@@ -506,7 +506,7 @@ class TestActionFilters:
     def test_ultimatum_cooldown(self):
         world = _make_world()
         world.diplomatic_points = 4
-        world.ultimatum_cooldowns = {"Prussia": 3}
+        world.ultimatum_global_cooldown = 3  # PL-14: scalar cooldown
         _set_diplo_state(world, "France", "Prussia", "PEACE")
         actions = get_available_diplomatic_actions(world, "Prussia")
         ult = [a for a in actions if a["action"] == "send_ultimatum"][0]
@@ -576,10 +576,10 @@ class TestValidationHardening:
         assert "already have" not in result.get("message", "")
 
     def test_4b_ultimatum_cooldown_blocks(self):
-        """§4b: Ultimatum with active cooldown should fail."""
+        """§4b: Ultimatum with active global cooldown should fail (PL-14)."""
         world = _make_world()
         world.diplomatic_points = 4
-        world.ultimatum_cooldowns = {"Prussia": 3}
+        world.ultimatum_global_cooldown = 3
         _set_diplo_state(world, "France", "Prussia", "PEACE")
         executor = _make_executor()
         result = executor._execute_diplomatic_ultimatum(
@@ -587,8 +587,8 @@ class TestValidationHardening:
         assert result["success"] is False
         assert "3 more turns" in result["message"]
 
-    def test_4b_ultimatum_sets_cooldown(self):
-        """§4b: After ultimatum, cooldown should be set to 5."""
+    def test_4b_ultimatum_pushes_dialogue(self):
+        """§4b: Ultimatum pushes dialogue (PL-14 rework)."""
         world = _make_world()
         world.diplomatic_points = 4
         _set_diplo_state(world, "France", "Prussia", "PEACE")
@@ -596,21 +596,23 @@ class TestValidationHardening:
         result = executor._execute_diplomatic_ultimatum(
             {"target_nation": "Prussia"}, world)
         assert result["success"] is True
-        assert world.ultimatum_cooldowns.get("Prussia") == 5
+        assert result.get("awaiting_diplomatic_response") is True
+        # Cooldown not set yet (set on delivery)
+        assert world.ultimatum_global_cooldown == 0
 
     def test_4b_ultimatum_cooldown_decrements(self):
-        """§4b: Cooldown should decrement each turn."""
+        """§4b: Global cooldown should decrement each turn (PL-14)."""
         world = _make_world()
-        world.ultimatum_cooldowns = {"Prussia": 3}
+        world.ultimatum_global_cooldown = 3
         world._cooldown_manager.decrement_all()
-        assert world.ultimatum_cooldowns["Prussia"] == 2
+        assert world.ultimatum_global_cooldown == 2
 
     def test_4b_ultimatum_cooldown_expires(self):
-        """§4b: Cooldown should be removed at 0."""
+        """§4b: Global cooldown should reach 0 (PL-14)."""
         world = _make_world()
-        world.ultimatum_cooldowns = {"Prussia": 1}
+        world.ultimatum_global_cooldown = 1
         world._cooldown_manager.decrement_all()
-        assert "Prussia" not in world.ultimatum_cooldowns
+        assert world.ultimatum_global_cooldown == 0
 
     def test_4c_break_treaty_without_treaty(self):
         """§4c: Breaking non-existent treaty should give Talleyrand message."""
@@ -665,47 +667,47 @@ class TestValidationHardening:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestUltimatumCooldownLifecycle:
+    """PL-14: Global scalar cooldown lifecycle tests."""
 
     def test_serialization_roundtrip(self):
-        """Ultimatum cooldowns survive save/load."""
+        """Ultimatum global cooldown survives save/load (PL-14)."""
         world = _make_world()
-        world.ultimatum_cooldowns = {"Prussia": 3, "Austria": 1}
+        world.ultimatum_global_cooldown = 3
         data = world.to_dict()
-        assert data["ultimatum_cooldowns"] == {"Prussia": 3, "Austria": 1}
+        assert data["ultimatum_global_cooldown"] == 3
         world2 = WorldState.from_dict(data)
-        assert world2.ultimatum_cooldowns == {"Prussia": 3, "Austria": 1}
+        assert world2.ultimatum_global_cooldown == 3
 
     def test_advance_turn_decrements(self):
-        """Cooldowns decrement during advance_turn."""
+        """Global cooldown decrements during advance_turn (PL-14)."""
         world = _make_world()
-        world.ultimatum_cooldowns = {"Prussia": 3, "Austria": 1}
+        world.ultimatum_global_cooldown = 3
         world._cooldown_manager.decrement_all()
-        assert world.ultimatum_cooldowns.get("Prussia") == 2
-        assert "Austria" not in world.ultimatum_cooldowns  # expired
+        assert world.ultimatum_global_cooldown == 2
 
     def test_full_lifecycle(self):
-        """Send ultimatum → cooldown set → decrement → expires → can send again."""
+        """Send ultimatum → dialogue → cooldown not set until delivery (PL-14)."""
         world = _make_world()
         world.diplomatic_points = 10
         _set_diplo_state(world, "France", "Prussia", "PEACE")
         executor = _make_executor()
 
-        # Send ultimatum — should succeed and set cooldown
+        # Send ultimatum — pushes dialogue, no cooldown yet
         result = executor._execute_diplomatic_ultimatum({"target_nation": "Prussia"}, world)
         assert result["success"] is True
-        assert world.ultimatum_cooldowns.get("Prussia") == 5
+        assert result.get("awaiting_diplomatic_response") is True
+        assert world.ultimatum_global_cooldown == 0
 
-        # Replenish DP for second attempt
-        world.diplomatic_points = 10
-
-        # Try again — should be blocked
+        # Global cooldown blocks when set
+        world.ultimatum_global_cooldown = 5
+        world.dialogue_manager.pop()  # Clear dialogue for next attempt
         result2 = executor._execute_diplomatic_ultimatum({"target_nation": "Prussia"}, world)
         assert result2["success"] is False
 
         # Decrement 5 times
         for _ in range(5):
             world._cooldown_manager.decrement_all()
-        assert "Prussia" not in world.ultimatum_cooldowns
+        assert world.ultimatum_global_cooldown == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -981,8 +983,8 @@ class TestEdgeCases:
         assert "declare_war" in names
         assert "break_treaty" in names
         assert "downgrade" in names
-        # No ultimatum at DEFENSIVE_ALLIANCE per §2b
-        assert "send_ultimatum" not in names
+        # PL-14: Ultimatum now available for any non-war, non-vassal target
+        assert "send_ultimatum" in names
 
     def test_non_aggression_actions(self):
         world = _make_world()

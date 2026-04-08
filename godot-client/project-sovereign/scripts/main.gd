@@ -694,10 +694,20 @@ func _on_command_result(response):
 		# in executor.py (8 instances). Without this, selecting "Adjust terms"
 		# causes a dead-end where the popup never shows and input stays disabled.
 		# See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+		# PL-14: Catch-all — show ANY diplomatic dialogue as a popup.
+		# If a new dtype is added to the backend but not listed here,
+		# it still shows as a popup instead of silently falling to terminal.
 		if dtype in ["proposal_confirm", "proposal_execute", "proposal_options",
 			"mission", "feasibility", "advisory",
 			"force_declare_war_confirmation", "conflict_alert",
-			"terms_guidance"]:
+			"terms_guidance", "ultimatum_confirm"]:
+			if proposal_confirm_popup:
+				proposal_confirm_popup.show_dialogue(dialogue)
+				_process_active_wars(response)
+				return
+		else:
+			# Unknown dialogue type — show it anyway, log warning
+			push_warning("Unknown diplomatic_dialogue dtype: '%s' — showing as popup (add to whitelist)" % dtype)
 			if proposal_confirm_popup:
 				proposal_confirm_popup.show_dialogue(dialogue)
 				_process_active_wars(response)

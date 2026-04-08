@@ -427,7 +427,7 @@ class WorldState:
         self._cooldown_manager.register_dict("player_proposal")
         self._cooldown_manager.register_dict("ai_proposal")
         self._cooldown_manager.register_dict("proactive_suggestion")
-        self._cooldown_manager.register_dict("ultimatum")
+        self._cooldown_manager.register_scalar("ultimatum_global")
         self._cooldown_manager.register_scalar("talleyrand_defiance")
 
         # R6: PopupQueue for one-shot diplomatic popups
@@ -492,7 +492,7 @@ class WorldState:
         # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
         # ============================================================
         self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
-        # ultimatum_cooldowns now managed by _cooldown_manager (R6)
+        # ultimatum_global_cooldown now managed by _cooldown_manager (R6, PL-14 migrated dict→scalar)
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
@@ -577,12 +577,12 @@ class WorldState:
         self._cooldown_manager.set_dict("proactive_suggestion", value)
 
     @property
-    def ultimatum_cooldowns(self) -> Dict[str, int]:
-        return self._cooldown_manager.get_dict("ultimatum")
+    def ultimatum_global_cooldown(self) -> int:
+        return self._cooldown_manager.get_scalar("ultimatum_global")
 
-    @ultimatum_cooldowns.setter
-    def ultimatum_cooldowns(self, value: Dict[str, int]):
-        self._cooldown_manager.set_dict("ultimatum", value)
+    @ultimatum_global_cooldown.setter
+    def ultimatum_global_cooldown(self, value: int):
+        self._cooldown_manager.set_scalar("ultimatum_global", int(value))
 
     @property
     def talleyrand_defiance_cooldown(self) -> int:
@@ -3149,7 +3149,7 @@ class WorldState:
             "war_start_turns": {k: int(v) for k, v in self.war_start_turns.items()},
             # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
             "casus_belli": self.casus_belli.copy(),
-            "ultimatum_cooldowns": {k: int(v) for k, v in self.ultimatum_cooldowns.items()},
+            "ultimatum_global_cooldown": int(self.ultimatum_global_cooldown),
             "diplomatic_reliability": {k: int(v) for k, v in self.diplomatic_reliability.items()},
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "alliance_paradox_popup": self.alliance_paradox_popup,
@@ -3394,7 +3394,14 @@ class WorldState:
 
         # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
         world.casus_belli = data.get("casus_belli", {}).copy()
-        world.ultimatum_cooldowns = {k: int(v) for k, v in data.get("ultimatum_cooldowns", {}).items()}
+        # PL-14: Global scalar cooldown (migration from per-target dict)
+        if "ultimatum_global_cooldown" in data:
+            world.ultimatum_global_cooldown = int(data.get("ultimatum_global_cooldown", 0))
+        elif "ultimatum_cooldowns" in data:
+            old_dict = data.get("ultimatum_cooldowns", {})
+            world.ultimatum_global_cooldown = max(old_dict.values(), default=0) if old_dict else 0
+        else:
+            world.ultimatum_global_cooldown = 0
         world.diplomatic_reliability = {k: int(v) for k, v in data.get("diplomatic_reliability", {}).items()}
         world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
         world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
@@ -4342,7 +4349,8 @@ class WorldState:
         # Deep audit fix 2: Reject stale proposals where state changed to make them impossible
         # (e.g., alliance proposal when war was declared, or upgrade proposal when already at higher state)
         proposer = proposal.get("proposer_nation", self.player_nation)
-        current_state = self.get_diplomatic_state(proposer, target)
+        # PL-13-A: Use snapshotted state if available (backward compat: fall back to current)
+        current_state = pit.get("diplomatic_state_at_send") or self.get_diplomatic_state(proposer, target)
         _proposal_to_state = {
             "peace": "PEACE", "armistice": "ARMISTICE",
             "armistice_losing": "ARMISTICE", "armistice_winning": "ARMISTICE",
@@ -4351,6 +4359,14 @@ class WorldState:
             "vassalage": "VASSAL",
         }
         target_state = _proposal_to_state.get(proposal.get("type", ""), "")
+        # PL-13-C: Diagnostic logging for surpassed check
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.debug(
+            "PL-13 surpassed check: target=%s, proposal_type=%s, current_state=%s (snapshot=%s), target_state=%s",
+            target, proposal.get("type", ""), self.get_diplomatic_state(proposer, target),
+            pit.get("diplomatic_state_at_send", "N/A"), target_state,
+        )
         if target_state and current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER:
             curr_idx = _UPGRADE_ORDER.index(current_state)
             tgt_idx = _UPGRADE_ORDER.index(target_state)

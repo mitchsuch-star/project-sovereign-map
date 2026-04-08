@@ -244,14 +244,24 @@ Enemy AI action budget (currently 4 paid AP per nation) may need rebalancing onc
 
 Cross-system findings from comprehensive review. Needs design gate as a batch.
 
+**HIGH PRIORITY — Diplomatic Term Novelty:** R155 + R157 are critical for diplomacy feel. Current `generate_suggested_terms` / `_build_base_terms` is purely formulaic (same inputs → same terms, no randomization, no personality variation). Terms need novelty, surprise, and diplomat personality expression to make the diplomacy loop engaging. These two items should be prioritized within Wave 5.
+
+**Implementation notes (small-medium effort — infrastructure already exists):**
+- `NATION_DESIRE_PROFILES`, `TALLEYRAND_COMMENTARY`, diplomat personalities (hawk/dove/schemer/loyalist) all exist but are display-only — none feed into `_build_base_terms()` which is the sole term generator.
+- **Randomize amounts:** ±20% jitter on gold/manpower demand values. Trivial — add `random.uniform(0.8, 1.2)` multiplier in `_build_base_terms`.
+- **Personality-driven term selection:** Hawk diplomat leans toward territory demands, dove toward gold sweeteners, schemer mixes unusual combos (e.g., offer protection + demand gold). Add personality weight table to `_build_base_terms`, read from diplomat personality.
+- **Nation desire profiles feed into terms:** If Saxony's profile says they want protection, Talleyrand suggests offering it as a sweetener. Profiles exist in `diplomatic_templates.py`, just need to read `NATION_DESIRE_PROFILES[target]` in `_build_base_terms` and bias sweetener selection.
+- **Situational "Talleyrand insight":** Recent battle victory → suggest striking harder (increase demands). Nation just lost an ally → suggest poaching them (offer protection sweetener). Check `world.turn_events` or `diplomatic_history` in `_build_base_terms` for recent context.
+- **No new systems required.** All data sources exist, all need wiring into the one function that ignores them.
+
 | ID | Item | Summary |
 |----|------|---------|
 | R152 | Authority System UI Visibility | Authority impact not visible enough to players |
 | R153 | Literal Personality Triggers | Personality-specific event triggers |
 | R154 | Combat Morale Spiral | Morale death spiral needs circuit breaker |
-| R155 | AI Proposal Personality Voice | AI proposals lack personality flavor |
+| R155 | **AI Proposal Personality Voice** | **HIGH.** AI proposals lack personality flavor — terms are deterministic formulas with no variety |
 | R156 | Diplomacy Strategic Optionality | Diplomacy feels optional vs military path |
-| R157 | Talleyrand Voice Depth | Talleyrand responses feel monotone |
+| R157 | **Talleyrand Voice Depth** | **HIGH.** Talleyrand responses feel monotone — suggested terms lack novelty/surprise |
 | R158 | NL Parser Confidence Feedback | Show parse confidence to player |
 | R159 | Information Screen Teaching | Screens don't teach mechanics |
 

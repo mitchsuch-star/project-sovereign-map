@@ -621,6 +621,7 @@ def execute_command(request: CommandRequest):
                 "send", "execute", "reconsider", "modify",
                 "honor", "side", "dismiss",
                 "harsh", "generous", "adjust",  # Proposal confirm popup actions
+                "deliver", "ultimatum",  # PL-14: Ultimatum confirm dialogue
                 "elaborate", "review", "consider",  # Template actions (GAP-1)
                 "begin", "trust",  # Mission start + send_suggested (GAP-4/6)
                 "yes", "agree", "start", "more", "no", "never mind",
@@ -1170,6 +1171,25 @@ async def respond_to_diplomatic_dialogue(request: dict):
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+        elif result.get("success") and world.proposal_result_popup is None:
+            # PL-14 safety net: If dialogue concluded (no new dialogue pushed)
+            # and handler forgot to set proposal_result_popup, create one from
+            # the result message so it shows as a Godot popup, not terminal text.
+            msg = result.get("message", "")
+            if msg and not result.get("awaiting_diplomatic_response"):
+                world.proposal_result_popup = {
+                    "target_nation": result.get("target_nation", ""),
+                    "proposal_type": "Diplomatic Action",
+                    "outcome": "ACCEPT" if result.get("accepted", True) else "REJECT",
+                    "message": msg,
+                    "feedback": "",
+                }
+                # Rebuild response to pick up the newly-set popup
+                response = build_base_response(
+                    world,
+                    success=result.get("success", False),
+                    message=result.get("message", "Response processed"),
+                )
 
         return response
     except Exception as e:

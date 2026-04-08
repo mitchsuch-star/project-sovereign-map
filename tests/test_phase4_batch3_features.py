@@ -595,8 +595,8 @@ class TestR29DiplomaticHistory:
         assert "diplomatic_reliability" in talleyrand
         assert talleyrand["diplomatic_reliability"] == -15
 
-    def test_ultimatum_already_logged(self, executor, world, game_state):
-        """Ultimatum logging from Batch 1 is still in place."""
+    def test_ultimatum_pushes_dialogue(self, executor, world, game_state):
+        """PL-14: Ultimatum pushes dialogue (history logged on delivery, not init)."""
         world.diplomatic_points = 10
         world.diplomatic_states[world._make_diplo_key("France", "Prussia")] = "PEACE"
 
@@ -609,5 +609,6 @@ class TestR29DiplomaticHistory:
         }
         result = executor._execute_diplomatic(command, game_state)
         assert result.get("success"), result.get("message")
-        found = [e for e in world.diplomatic_history if e["type"] == "ultimatum"]
-        assert len(found) >= 1
+        # PL-14: Dialogue pushed, history logged on delivery (execute_ultimatum)
+        assert world.pending_diplomatic_dialogue is not None
+        assert world.pending_diplomatic_dialogue["type"] == "ultimatum_confirm"

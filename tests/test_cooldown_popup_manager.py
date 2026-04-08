@@ -325,12 +325,12 @@ class TestCooldownManagerIntegration:
     """Verify CooldownManager integrates correctly with advance_turn."""
 
     def test_advance_turn_decrements_all_five(self):
-        """advance_turn decrements all 5 managed cooldowns."""
+        """advance_turn decrements all 5 managed cooldowns (PL-14: ultimatum is scalar)."""
         world = WorldFactory.basic()
         world.player_proposal_cooldowns = {"a": 2}
         world.ai_proposal_cooldowns = {"b": 2}
         world.proactive_suggestion_cooldowns = {"c": 2}
-        world.ultimatum_cooldowns = {"d": 2}
+        world.ultimatum_global_cooldown = 2
         world.talleyrand_defiance_cooldown = 2
 
         world._cooldown_manager.decrement_all()
@@ -338,7 +338,7 @@ class TestCooldownManagerIntegration:
         assert world.player_proposal_cooldowns == {"a": 1}
         assert world.ai_proposal_cooldowns == {"b": 1}
         assert world.proactive_suggestion_cooldowns == {"c": 1}
-        assert world.ultimatum_cooldowns == {"d": 1}
+        assert world.ultimatum_global_cooldown == 1
         assert world.talleyrand_defiance_cooldown == 1
 
     def test_advance_turn_removes_expired(self):
@@ -427,13 +427,13 @@ class TestCooldownPopupEnforcement:
         assert isinstance(world._popup_queue, PopupQueue)
 
     def test_five_cooldowns_registered(self):
-        """Exactly 5 cooldowns registered for automatic decrement."""
+        """Exactly 5 cooldowns registered for automatic decrement (PL-14: ultimatum is scalar)."""
         world = WorldFactory.basic()
         mgr = world._cooldown_manager
         assert mgr._registered_dicts == {
-            "player_proposal", "ai_proposal", "proactive_suggestion", "ultimatum"
+            "player_proposal", "ai_proposal", "proactive_suggestion"
         }
-        assert mgr._registered_scalars == {"talleyrand_defiance"}
+        assert mgr._registered_scalars == {"talleyrand_defiance", "ultimatum_global"}
 
     def test_popup_priority_order_length(self):
         """PopupQueue has exactly 8 popup types."""
@@ -458,7 +458,7 @@ class TestCooldownPopupEnforcement:
         from backend.models.world_state import WorldState
         for prop_name in [
             'player_proposal_cooldowns', 'ai_proposal_cooldowns',
-            'proactive_suggestion_cooldowns', 'ultimatum_cooldowns',
+            'proactive_suggestion_cooldowns', 'ultimatum_global_cooldown',
             'talleyrand_defiance_cooldown',
         ]:
             assert isinstance(getattr(WorldState, prop_name), property), \

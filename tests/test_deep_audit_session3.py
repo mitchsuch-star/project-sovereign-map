@@ -218,34 +218,30 @@ class TestFix3BreakTreatyWarCleanup:
 # ════════════════════════════════════════════════════════════════
 
 class TestFix4UltimatumCleanup:
-    """Ultimatum acceptance during WAR calls cleanup_war_end."""
+    """PL-14: Ultimatum now pushes dialogue instead of immediate resolution."""
 
-    def test_ultimatum_accept_clears_active_treaty(self):
-        """Accepted ultimatum clears active_treaties entry."""
-        from unittest.mock import patch
+    def test_ultimatum_pushes_dialogue(self):
+        """Ultimatum pushes ultimatum_confirm dialogue (PL-14 rework)."""
         from backend.commands.executor import CommandExecutor
 
         world = _make_world()
         diplo_key = world._make_diplo_key("France", "Austria")
-        # Non-WAR state (ultimatum blocks during WAR)
         world.diplomatic_states[diplo_key] = "PEACE"
         world.diplomatic_points = 5
-        world.active_treaties = {
-            diplo_key: {"type": "peace", "nations": ["France", "Austria"]},
-        }
 
         executor = CommandExecutor()
-        # Patch random to force acceptance (roll <= acceptance)
-        with patch("random.randint", return_value=1):
-            result = executor._execute_diplomatic_ultimatum(
-                {"target_nation": "Austria"}, world
-            )
+        result = executor._execute_diplomatic_ultimatum(
+            {"target_nation": "Austria"}, world
+        )
         assert result["success"]
-        assert "accepted" in result["message"].lower() or "bowed" in result["message"].lower()
-        # Active treaty cleared
-        assert diplo_key not in world.active_treaties
-        # State transitioned to NON_AGGRESSION
-        assert world.diplomatic_states[diplo_key] == "NON_AGGRESSION"
+        # Dialogue pushed, not immediate resolution
+        assert result.get("awaiting_diplomatic_response") is True
+        dialogue = world.pending_diplomatic_dialogue
+        assert dialogue is not None
+        assert dialogue["type"] == "ultimatum_confirm"
+        assert dialogue["target_nation"] == "Austria"
+        # DP not deducted yet (deducted on delivery)
+        assert world.diplomatic_points == 5
 
 
 # ════════════════════════════════════════════════════════════════

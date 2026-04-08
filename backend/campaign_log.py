@@ -90,6 +90,10 @@ CAMPAIGN_LOG_TYPES = {
     "garrison_placed",
     "proposal_voided_by_coalition",
     "relationship_change",
+    # PL-14: Ultimatum events
+    "ultimatum_issued",
+    "ultimatum_accepted",
+    "ultimatum_rejected",
 }
 
 # ============================================================================
@@ -146,6 +150,10 @@ CATEGORY_MAP = {
     "garrison_placed": "territory",
     "proposal_voided_by_coalition": "diplomacy",
     "relationship_change": "command",
+    # PL-14: Ultimatum events
+    "ultimatum_issued": "diplomacy",
+    "ultimatum_accepted": "diplomacy",
+    "ultimatum_rejected": "diplomacy",
 }
 
 
@@ -727,5 +735,18 @@ def format_event_oneliner(event: dict) -> str:
         sign = "+" if change > 0 else ""
         label_str = f" ({new_label})" if new_label else ""
         return f"{marshal} → {toward}: {sign}{change}{label_str}"
+
+    # PL-14: Ultimatum events
+    if event_type == "ultimatum_issued":
+        target = event.get("target", "Unknown")
+        return f"Ultimatum delivered to {target}"
+
+    if event_type == "ultimatum_accepted":
+        target = event.get("target", "Unknown")
+        return f"{target} accepted our ultimatum — concessions extracted"
+
+    if event_type == "ultimatum_rejected":
+        target = event.get("target", "Unknown")
+        return f"{target} rejected our ultimatum — casus belli granted"
 
     return f"Event: {event_type}"

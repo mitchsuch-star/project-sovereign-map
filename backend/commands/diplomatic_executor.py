@@ -538,8 +538,13 @@ class DiplomaticExecutor:
     # ════════════════════════════════════════════════════════════════════════════════
 
     def _execute_diplomatic_ultimatum(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle ultimatum command (R21). Costs 2 DP."""
-        from backend.game_logic.diplomacy import calculate_acceptance
+        """Handle ultimatum command (PL-14 rework). Pushes ultimatum_confirm dialogue.
+
+        Costs 2 DP (deducted on delivery, not here). Pure coercive extortion:
+        demands only, no state change, instant resolution.
+        """
+        from backend.game_logic.diplomatic_templates import generate_ultimatum_terms
+        from backend.game_logic.diplomatic_dialogue import _enrich_ultimatum_dialogue
 
         target_nation = diplomatic_data.get("target_nation")
         if not target_nation:
@@ -551,23 +556,31 @@ class DiplomaticExecutor:
         player = world.player_nation
         current_state = world.get_diplomatic_state(player, target_nation)
 
+        # Pre-validation: WAR blocked
         if current_state == "WAR":
             return {
                 "success": False,
-                "message": f"We are already at war with {target_nation}, Sire. An ultimatum is meaningless.",
+                "message": f"We are already at war with {target_nation}, Sire. Use a peace proposal with harsh demands instead.",
             }
 
-        # §4b: Ultimatum cooldown check (5-turn per target)
-        ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
-        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        # Pre-validation: Vassal blocked
+        vassals = getattr(world, 'vassals', {})
+        if target_nation in vassals:
+            return {
+                "success": False,
+                "message": f"{target_nation} is our vassal, Sire. Use investment or autonomy changes instead.",
+            }
+
+        # PL-14 §4: Global cooldown check (5-turn across ALL nations)
+        ult_cd = getattr(world, 'ultimatum_global_cooldown', 0)
         if ult_cd > 0:
             return {
                 "success": False,
-                "message": f"Talleyrand advises patience, Sire. Our last ultimatum to {target_nation} "
-                           f"was too recent — we must wait {ult_cd} more turns.",
+                "message": f"Talleyrand advises patience, Sire. Our last ultimatum "
+                           f"was too recent — we must wait {int(ult_cd)} more turns.",
             }
 
-        # DP check (2 DP)
+        # DP check (2 DP) — verify can afford before showing preview
         dp_cost = 2
         if world.diplomatic_points < dp_cost:
             return {
@@ -595,101 +608,122 @@ class DiplomaticExecutor:
                 "diplomatic_objection_popup": world.diplomatic_objection_popup,
             }
 
-        # Calculate military threat bonus: +15 if French marshal adjacent to target's marshal, else +10
-        military_threat = 10
-        for m_name, m_obj in world.marshals.items():
-            if m_obj.nation == player and m_obj.strength > 0:
-                m_region = world.regions.get(m_obj.location)
-                if not m_region:
-                    continue
-                for e_name, e_obj in world.marshals.items():
-                    if e_obj.nation == target_nation and e_obj.location in getattr(m_region, 'connections', []):
-                        military_threat = 15
-                        break
-                if military_threat == 15:
-                    break
+        # ── Build terms via generate_ultimatum_terms ──
+        terms = generate_ultimatum_terms(target_nation, world)
 
-        # -10 relation regardless of outcome
-        world.modify_nation_relation(player, target_nation, -10)
+        # ── Build splash damage preview (§3b) ──
+        splash_preview = []
+        _SPLASH_TIERS = {
+            "ALLIANCE": 15,
+            "DEFENSIVE_ALLIANCE": 12,
+            "NON_AGGRESSION": 8,
+            "OPEN_BORDERS": 5,
+        }
+        for nation in world.get_active_nations():
+            if nation == player or nation == target_nation:
+                continue
+            nation_state_with_target = world.get_diplomatic_state(nation, target_nation)
+            penalty = _SPLASH_TIERS.get(nation_state_with_target, 0)
+            if penalty > 0:
+                splash_preview.append({
+                    "nation": nation,
+                    "treaty_with_target": nation_state_with_target,
+                    "relation_penalty": -penalty,
+                })
 
-        # Deduct DP
-        world.diplomatic_points -= dp_cost
+        # ── Push ultimatum_confirm dialogue ──
+        dialogue = {
+            "type": "ultimatum_confirm",
+            "target_nation": target_nation,
+            "turn_created": int(world.current_turn),
+            "prompt": (f"Talleyrand presents the ultimatum terms for {target_nation}. "
+                       f"These demands are backed by military force — {target_nation} must comply or face consequences."),
+            "options": [
+                {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
+                {"label": "Harsher Demands", "action": "modify_harsh_ultimatum"},
+                {"label": "Reconsider", "action": "reconsider"},
+            ],
+            "terms": terms,
+            "splash_damage_preview": splash_preview,
+            "threat_increase_preview": "+15 threat on delivery, +5 if accepted",
+            "context": {"modify_count": 0},
+        }
 
-        # Determine acceptance (ultimatums get military_threat bonus)
-        acceptance_base = 0
-        try:
-            proposal = {
-                "type": "peace",
-                "proposer_nation": player,
-                "target_nation": target_nation,
-                "sweeteners": [],
-                "demands": [],
-                "clauses": [],
-            }
-            acceptance_result = calculate_acceptance(proposal, world)
-            acceptance_base = acceptance_result.get("score", 0) if isinstance(acceptance_result, dict) else 20
-        except Exception:
-            acceptance_base = 20
+        # Enrich with acceptance estimate
+        dialogue = _enrich_ultimatum_dialogue(dialogue, target_nation, world)
 
-        # Add military threat bonus
-        total_acceptance = acceptance_base + military_threat
-
-        import random
-        roll = random.randint(1, 100)
-        accepted = roll <= total_acceptance
-
-        diplo_key = world._make_diplo_key(player, target_nation)
-
-        if accepted:
-            # Ultimatum accepted — transition to peace or non-aggression
-            # R2: centralized setter handles war_start_turns + treaty removal on WAR
-            from backend.game_logic.diplomacy import set_diplomatic_state, cleanup_war_end
-            current = world.get_diplomatic_state(player, target_nation)
-            if current == "WAR":
-                set_diplomatic_state(world, player, target_nation, "PEACE", "ultimatum_accepted")
-                cleanup_war_end(world, diplo_key)
-                outcome_msg = f"{target_nation} has accepted our ultimatum and sued for peace!"
-            else:
-                set_diplomatic_state(world, player, target_nation, "NON_AGGRESSION", "ultimatum_accepted")
-                outcome_msg = f"{target_nation} has bowed to our ultimatum and agreed to non-aggression!"
-            # Deep audit fix 4: Clear active treaty on ultimatum acceptance
-            active_treaties = getattr(world, 'active_treaties', {})
-            active_treaties.pop(diplo_key, None)
-        else:
-            # Ultimatum rejected — casus belli granted
-            world.casus_belli[diplo_key] = True
-            outcome_msg = (f"{target_nation} has rejected our ultimatum! "
-                           f"We now have casus belli — war declaration penalties will be halved.")
-
-        # §4b: Set ultimatum cooldown (5 turns per target)
-        ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
-        ultimatum_cooldowns[target_nation] = 5
-        world.ultimatum_cooldowns = ultimatum_cooldowns
-
-        # R23: Marshal trust reactions
-        self._apply_diplomatic_trust_reactions(world, "ultimatum_issued", target_nation)
-
-        # Log diplomatic history
-        diplomatic_history = getattr(world, 'diplomatic_history', [])
-        diplomatic_history.append({
-            "turn": int(world.current_turn),
-            "type": "ultimatum",
-            "target": target_nation,
-            "accepted": accepted,
-            "military_threat": military_threat,
-        })
-        # Cap at 20 entries
-        if len(diplomatic_history) > 20:
-            diplomatic_history[:] = diplomatic_history[-20:]
-        world.diplomatic_history = diplomatic_history
+        world.dialogue_manager.push(dialogue)
 
         return {
             "success": True,
-            "message": outcome_msg,
-            "accepted": accepted,
-            "military_threat": military_threat,
-            "dp_cost": dp_cost,
+            "message": dialogue["prompt"],
+            "diplomatic_dialogue": dialogue,
+            "awaiting_diplomatic_response": True,
         }
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # ULTIMATUM DEMAND APPLICATION (PL-14 §7)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _apply_ultimatum_demands(self, demands: list, target_nation: str, world) -> list:
+        """Apply ultimatum demands immediately. Returns list of transfer descriptions."""
+        from backend.game_logic.coalition import add_threat
+
+        player = world.player_nation
+        descriptions = []
+
+        for demand in demands:
+            dtype = demand.get("type", "")
+            value = demand.get("value", 0)
+
+            if dtype == "gold_lump":
+                available = world.nation_gold.get(target_nation, 0)
+                transfer = min(int(value), max(0, available))
+                if transfer > 0:
+                    world.nation_gold[target_nation] = world.nation_gold.get(target_nation, 0) - transfer
+                    world.nation_gold[player] = world.nation_gold.get(player, 0) + transfer
+                    descriptions.append(f"{transfer} gold seized")
+
+            elif dtype == "gold_per_turn":
+                diplo_key = world._make_diplo_key(player, target_nation)
+                world.active_treaties[diplo_key] = {
+                    "nations": [player, target_nation],
+                    "type": "ultimatum_tribute",
+                    "is_ultimatum_tribute": True,
+                    "clauses": [{"type": "gold_per_turn", "from": target_nation, "to": player, "amount": int(value)}],
+                    "turn_signed": int(world.current_turn),
+                    "harshness": 1.0,
+                }
+                descriptions.append(f"{int(value)} gold/turn tribute")
+
+            elif dtype == "territory_cede":
+                region_names = demand.get("regions", [])
+                transferred = []
+                for rname in region_names:
+                    region = world.regions.get(rname)
+                    if region and region.controller == target_nation:
+                        region.controller = player
+                        region.stability = 50
+                        transferred.append(rname)
+                if transferred:
+                    world.invalidate_active_nations_cache()
+                    add_threat(world, 8 * len(transferred), "ultimatum_annex")
+                    descriptions.append(f"{', '.join(transferred)} annexed")
+
+            elif dtype == "manpower":
+                from_pool = world.manpower_pools.get(target_nation, {})
+                to_pool = world.manpower_pools.get(player, {})
+                transfer = min(int(value), from_pool.get("infantry", 0))
+                if transfer > 0 and target_nation in world.manpower_pools:
+                    world.manpower_pools[target_nation]["infantry"] = max(
+                        0, from_pool.get("infantry", 0) - transfer)
+                if transfer > 0 and player in world.manpower_pools:
+                    world.manpower_pools[player]["infantry"] = (
+                        to_pool.get("infantry", 0) + transfer)
+                if transfer > 0:
+                    descriptions.append(f"{transfer} manpower conscripted")
+
+        return descriptions
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC TRUST REACTIONS
@@ -894,7 +928,7 @@ class DiplomaticExecutor:
 
         elif action in ("execute_proposal", "send"):
             terms = selected.get("terms", {})
-            proposal_type = terms.get("proposal_type", "peace")
+            proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"  # PL-13-B
 
             # Build proposal for acceptance formula
             proposal = {
@@ -965,6 +999,7 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
+                "diplomatic_state_at_send": world.get_diplomatic_state("France", target_nation),  # PL-13-A
             }
 
             # Log event
@@ -1098,6 +1133,200 @@ class DiplomaticExecutor:
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "execute_ultimatum":
+            # PL-14 §6a: Deliver ultimatum — immediate resolution
+            from backend.game_logic.diplomacy import calculate_acceptance
+            from backend.game_logic.coalition import add_threat
+
+            terms = selected.get("terms", dialogue.get("terms", {}))
+            demands = terms.get("demands", [])
+
+            # DP check (deducted now, at delivery time)
+            dp_cost = 2
+            if world.diplomatic_points < dp_cost:
+                world.dialogue_manager.pop()
+                return {
+                    "success": False,
+                    "message": f"Insufficient Diplomatic Points. Need {dp_cost}, have {int(world.diplomatic_points)}.",
+                }
+            world.diplomatic_points -= dp_cost
+
+            player = world.player_nation
+            diplo_key = world._make_diplo_key(player, target_nation)
+
+            # §3a: -10 relation to target
+            world.modify_nation_relation(player, target_nation, -10)
+
+            # §3b: Splash damage to bystanders
+            _SPLASH_TIERS = {
+                "ALLIANCE": 15,
+                "DEFENSIVE_ALLIANCE": 12,
+                "NON_AGGRESSION": 8,
+                "OPEN_BORDERS": 5,
+            }
+            splash_applied = []
+            for nation in world.get_active_nations():
+                if nation == player or nation == target_nation:
+                    continue
+                nation_state_with_target = world.get_diplomatic_state(nation, target_nation)
+                penalty = _SPLASH_TIERS.get(nation_state_with_target, 0)
+                if penalty > 0:
+                    world.modify_nation_relation(player, nation, -penalty)
+                    splash_applied.append((nation, -penalty))
+
+            # §3c: +15 threat on delivery
+            add_threat(world, 15, "ultimatum_issued")
+
+            # §5: Calculate acceptance (deterministic, score >= 50 = ACCEPT)
+            proposal = {
+                "type": "ultimatum_demand",
+                "proposer_nation": player,
+                "target_nation": target_nation,
+                "sweeteners": [],
+                "demands": demands,
+                "clauses": [],
+            }
+            try:
+                acceptance_result = calculate_acceptance(proposal, world)
+                score = int(acceptance_result.get("score", 0))
+            except Exception:
+                score = 20
+            accepted = score >= 50
+
+            if accepted:
+                # §6: Apply demands, NO state change
+                transfer_desc = self._apply_ultimatum_demands(demands, target_nation, world)
+                add_threat(world, 5, "ultimatum_accepted")
+                world.ultimatum_global_cooldown = 5
+                desc_text = "; ".join(transfer_desc) if transfer_desc else "compliance"
+                outcome_msg = (f"{target_nation} has bowed to our ultimatum! "
+                               f"Concessions: {desc_text}. (+20 threat)")
+            else:
+                # §3a: -5 additional relation on rejection
+                world.modify_nation_relation(player, target_nation, -5)
+                world.casus_belli[diplo_key] = True
+                world.ultimatum_global_cooldown = 5
+                outcome_msg = (f"{target_nation} has rejected our ultimatum! "
+                               f"We now have casus belli — war declaration penalties will be halved. (+15 threat)")
+
+            # Pop dialogue
+            world.dialogue_manager.pop()
+
+            # R23: Marshal trust reactions
+            self._apply_diplomatic_trust_reactions(world, "ultimatum_issued", target_nation)
+
+            # Log diplomatic history
+            diplomatic_history = getattr(world, 'diplomatic_history', [])
+            diplomatic_history.append({
+                "turn": int(world.current_turn),
+                "type": "ultimatum_issued",
+                "target": target_nation,
+                "accepted": accepted,
+                "demands": len(demands),
+            })
+            if len(diplomatic_history) > 20:
+                diplomatic_history[:] = diplomatic_history[-20:]
+            world.diplomatic_history = diplomatic_history
+
+            # Log campaign event
+            event_type = "ultimatum_accepted" if accepted else "ultimatum_rejected"
+            world.log_event({
+                "type": event_type,
+                "target": target_nation,
+                "accepted": accepted,
+            })
+
+            # PL-14: Set proposal_result_popup so outcome shows as Godot popup,
+            # not terminal text. Same pattern as proposal acceptance/rejection.
+            world.proposal_result_popup = {
+                "target_nation": target_nation,
+                "proposal_type": "Ultimatum",
+                "outcome": "ACCEPT" if accepted else "REJECT",
+                "message": outcome_msg,
+                "feedback": "",
+            }
+
+            return {
+                "success": True,
+                "message": outcome_msg,
+                "accepted": accepted,
+                "dp_cost": dp_cost,
+            }
+
+        elif action == "modify_harsh_ultimatum":
+            # PL-14 §6b: Escalate ultimatum demands (dedicated handler, NOT proposal modify_harsh)
+            from backend.game_logic.diplomatic_dialogue import _enrich_ultimatum_dialogue
+            import copy
+
+            terms = copy.deepcopy(dialogue.get("terms", {}))
+            context = dict(dialogue.get("context", {}))
+            modify_count = context.get("modify_count", 0)
+
+            if modify_count >= 2:
+                return {
+                    "success": True,
+                    "message": "Cannot escalate further, Sire. These are the harshest terms possible.",
+                    "diplomatic_dialogue": dialogue,
+                }
+
+            # Escalate: multiply all demand values by 1.5
+            for d in terms.get("demands", []):
+                if d.get("type") not in ("territory_cede",):
+                    d["value"] = int(d.get("value", 0) * 1.5)
+
+            # Round 1: add territory if not present and France controls adjacent region
+            if modify_count == 0:
+                has_territory = any(d.get("type") == "territory_cede" for d in terms.get("demands", []))
+                if not has_territory:
+                    player = world.player_nation
+                    regions = getattr(world, 'regions', {})
+                    france_regions = {name for name, r in regions.items() if r.controller == player}
+                    from backend.models.region import NATION_CAPITALS
+                    for name, r in regions.items():
+                        if r.controller == target_nation and name != NATION_CAPITALS.get(target_nation):
+                            connections = getattr(r, 'connections', [])
+                            if any(c in france_regions for c in connections):
+                                terms["demands"].append({"type": "territory_cede", "value": 1, "regions": [name]})
+                                break
+
+            # Round 2: add manpower if not present
+            if modify_count == 1:
+                has_manpower = any(d.get("type") == "manpower" for d in terms.get("demands", []))
+                if not has_manpower:
+                    terms["demands"].append({"type": "manpower", "value": 3000})
+
+            modify_count += 1
+            context["modify_count"] = modify_count
+
+            # Rebuild dialogue
+            options = [
+                {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
+            ]
+            if modify_count < 2:
+                options.append({"label": "Harsher Demands", "action": "modify_harsh_ultimatum"})
+            options.append({"label": "Reconsider", "action": "reconsider"})
+
+            cap_msg = " These are the harshest terms possible." if modify_count >= 2 else ""
+
+            new_dialogue = {
+                "type": "ultimatum_confirm",
+                "target_nation": target_nation,
+                "turn_created": int(world.current_turn),
+                "prompt": f"As you wish, Sire. I have drafted harsher demands for {target_nation}.{cap_msg}",
+                "options": options,
+                "terms": terms,
+                "splash_damage_preview": dialogue.get("splash_damage_preview", []),
+                "threat_increase_preview": dialogue.get("threat_increase_preview", ""),
+                "context": context,
+            }
+            new_dialogue = _enrich_ultimatum_dialogue(new_dialogue, target_nation, world)
+            world.dialogue_manager.replace(new_dialogue)
+            return {
+                "success": True,
+                "message": new_dialogue["prompt"],
                 "diplomatic_dialogue": new_dialogue,
             }
 
@@ -1715,7 +1944,7 @@ class DiplomaticExecutor:
                 # Use original terms from context
                 terms = terms or dialogue.get("context", {}).get("original_proposal", {})
 
-            proposal_type = terms.get("proposal_type", "peace")
+            proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"  # PL-13-B
 
             # Build proposal and send (reuse execute_proposal path)
             proposal = {
@@ -1771,6 +2000,7 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
+                "diplomatic_state_at_send": world.get_diplomatic_state("France", target_nation),  # PL-13-A
             }
 
             # Record override if player overrode Talleyrand's objection

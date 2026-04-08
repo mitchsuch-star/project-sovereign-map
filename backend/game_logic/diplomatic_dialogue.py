@@ -373,6 +373,75 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     return dialogue
 
 
+def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dict:
+    """Add acceptance estimate and consequence preview to ultimatum dialogue (PL-14 §5).
+
+    Separate from _enrich_proposal_summary — ultimatums have flat DP cost,
+    no state transition, and always-coercive harshness.
+    """
+    from backend.game_logic.diplomacy import calculate_acceptance
+
+    terms = dialogue.get("terms", {})
+    demands = terms.get("demands", [])
+
+    # Build acceptance proposal struct
+    proposer = getattr(world, 'player_nation', 'France')
+    proposal = {
+        "type": "ultimatum_demand",
+        "proposer_nation": proposer,
+        "target_nation": target_nation,
+        "sweeteners": [],
+        "demands": demands,
+        "clauses": [],
+    }
+
+    # Calculate acceptance
+    try:
+        result = calculate_acceptance(proposal, world)
+        dialogue["acceptance_estimate"] = int(result.get("score", 0))
+        dialogue["acceptance_outcome"] = result.get("outcome", "REJECT")
+        # Find key obstacle for hint
+        components = result.get("components", {})
+        negative_components = {k: v for k, v in components.items() if isinstance(v, (int, float)) and v < 0}
+        if negative_components:
+            worst = min(negative_components, key=negative_components.get)
+            from backend.display_names import FEEDBACK_STRINGS
+            fb = FEEDBACK_STRINGS.get(worst, {})
+            dialogue["acceptance_hint"] = fb.get("negative", worst.replace("_", " "))
+        else:
+            dialogue["acceptance_hint"] = ""
+        dialogue["acceptance_components"] = components
+    except Exception:
+        dialogue["acceptance_estimate"] = 20
+        dialogue["acceptance_outcome"] = "REJECT"
+        dialogue["acceptance_hint"] = "Unable to estimate"
+
+    # Flat DP cost (no state transition)
+    dialogue["dp_cost"] = 2
+    dialogue["harshness_label"] = "Coercive"
+
+    # Format demands for display
+    demand_lines = []
+    for d in demands:
+        dtype = d.get("type", "")
+        value = d.get("value", 0)
+        if dtype == "gold_per_turn":
+            demand_lines.append(f"  - {int(value)} gold per turn")
+        elif dtype == "gold_lump":
+            demand_lines.append(f"  - {int(value)} gold (immediate)")
+        elif dtype == "territory_cede":
+            region_names = d.get("regions", [])
+            if region_names:
+                demand_lines.append(f"  - Cede {', '.join(region_names)}")
+            else:
+                demand_lines.append(f"  - Cede {int(value)} region(s)")
+        elif dtype == "manpower":
+            demand_lines.append(f"  - {int(value)} manpower")
+    dialogue["demands_display"] = demand_lines
+
+    return dialogue
+
+
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
     """Add proposal terms summary, acceptance estimate, harshness, and DP cost to dialogue.
 
@@ -391,6 +460,12 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     if not terms:
         terms = generate_suggested_terms(target_nation, proposal_type, world)
         terms["proposal_type"] = proposal_type
+
+    # PL-13-B: Always ensure both keys are present (covers dialogue option round-trip)
+    if "proposal_type" not in terms:
+        terms["proposal_type"] = terms.get("type", proposal_type)
+    if "type" not in terms:
+        terms["type"] = terms.get("proposal_type", proposal_type)
 
     dialogue["talleyrand_commentary"] = terms.get("talleyrand_commentary", "")
 

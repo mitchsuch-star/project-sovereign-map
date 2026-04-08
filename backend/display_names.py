@@ -34,6 +34,7 @@ ACTION_DISPLAY = {
     "restrain": "restrains",       # R18: restrain reckless cavalry
     "cancel": "cancels order",     # R18: cancel strategic order
     "economy": "reviews finances", # R18: economy info command
+    "diplomatic_ultimatum": "delivers ultimatum to",  # PL-14
 }
 
 # ============================================================================
@@ -64,6 +65,7 @@ OBJECTION_DISPLAY = {
     "restrain": "restraining",      # R18
     "cancel": "cancelling order",   # R18
     "economy": "reviewing finances",# R18
+    "diplomatic_ultimatum": "issuing ultimatum",  # PL-14
 }
 
 # ============================================================================
@@ -94,6 +96,7 @@ DEFIANCE_DISPLAY = {
     "restrain": "restrained",        # R18
     "cancel": "cancelled order",     # R18
     "economy": "reviewed finances",  # R18
+    "diplomatic_ultimatum": "issued ultimatum",  # PL-14
 }
 
 # ============================================================================
@@ -132,6 +135,7 @@ PROPOSAL_TYPE_DISPLAY = {
     "vassalage": "Vassalage",
     "opportunistic": "Non-Aggression Pact",
     "harsh_peace": "Harsh Peace Treaty",  # R18: AI-generated harsh peace proposals
+    "ultimatum_demand": "Ultimatum",  # PL-14
 }
 
 # ============================================================================
@@ -208,9 +212,13 @@ FEEDBACK_STRINGS = {
         "negative": "coalition loyalty binds them against us",
         "positive": "coalition obligations have weakened",
     },
+    "harshness_penalty": {
+        "negative": "the harshness of current demands",
+        "positive": "our reasonable terms",
+    },
     "harshness_bonus": {
-        "negative": "memory of past harsh treaties",
-        "positive": "prior harsh terms make them more pliable",
+        "negative": "prior harsh treaties breed resentment",
+        "positive": "no history of harsh terms",
     },
     "reliability_modifier": {
         "negative": "France's reputation for breaking agreements",
@@ -235,6 +243,10 @@ FEEDBACK_STRINGS = {
     "military_pressure": {
         "negative": "the military balance favors them",
         "positive": "our military pressure on their borders",
+    },
+    "ultimatum_bonus": {
+        "positive": "military threat backs demands",
+        "negative": "lack of military presence near target",
     },
 }
 

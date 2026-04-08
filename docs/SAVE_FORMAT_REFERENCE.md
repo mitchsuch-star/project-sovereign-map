@@ -103,7 +103,7 @@ A future save/load system should use this as the specification.
   "war_start_turns": {},
 
   "casus_belli": {},
-  "ultimatum_cooldowns": {},
+  "ultimatum_global_cooldown": 0,
   "diplomatic_reliability": {},
   "diplomatic_history": [],
   "alliance_paradox_popup": null,
@@ -220,7 +220,7 @@ A future save/load system should use this as the specification.
 | `we_dispatched_thresholds` | dict | {} | **Session 5 audit.** Highest WE threshold dispatched per nation. Keys: nation name. Values: int (20/40/60/80). Prevents double-firing of WE threshold dispatch events. Cleared on coalition dissolution. |
 | `war_start_turns` | Dict[str, int] | {} | **R142.** diplo_key → turn war began (R142 war weariness tracking). Cleared by `cleanup_war_end()`. |
 | `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
-| `ultimatum_cooldowns` | dict | {} | **Diplomacy Button.** Per-nation ultimatum cooldown. Keys: nation name. Values: int (turns remaining, starts at 5). Blocks re-ultimatum to same target while > 0. Decremented in `advance_turn()`. |
+| `ultimatum_global_cooldown` | int | 0 | **PL-14 Session 12.** Global ultimatum cooldown (replaces per-target dict). Blocks all ultimatums while > 0. Starts at 5 on use, decremented in `advance_turn()`. Migration: if old `ultimatum_cooldowns` dict exists and new field absent, takes `max()` of old dict values. |
 | `diplomatic_reliability` | dict | {} | **Phase 4.** Diplomatic reliability score per nation-pair. Keys: diplo_key. Values: int. +5 per 10-turn honored treaty, -10 per treaty break. Affects acceptance formula (capped +/-10). |
 | `diplomatic_history` | list | [] | **Phase 4.** Diplomatic event log (max 20 entries). Each entry: `{type, from_nation, to_nation, turn, details?}`. Types: "proposal", "war_declaration", "treaty_break", "ultimatum_accepted", "ultimatum_rejected". Displayed in Talleyrand tab. |
 | `alliance_paradox_popup` | dict\|null | null | **Phase 4.** Pending alliance paradox popup. Set when AI attack creates allied-with-both conflict. Keys: aggressor, defender, ally. Cleared after read. |

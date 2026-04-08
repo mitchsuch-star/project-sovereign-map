@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 7, 2026
+> **Last Updated:** April 7, 2026 (Session 12 COMPLETE — all bugs fixed, 0 open)
 
 ---
 
@@ -18,12 +18,16 @@
 | P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
 | P2 — MINOR | 0 | PL-8 (counter-offer UX) FIXED (Session 9) |
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
-| P1 — MAJOR | 1 | PL-12 OPEN — harshness increases acceptance |
-| P1 — MAJOR | 1 | PL-13 OPEN — viable proposal falsely rejected as "surpassed" |
-| P2 — UX | 1 | PL-14 OPEN — "send ultimatum" has no context or preview |
-| **Total** | **3 OPEN** | |
+| P1 — MAJOR | 1 | PL-12 FIXED (Session 11) — harshness increases acceptance |
+| P1 — MAJOR | 1 | PL-13 FIXED (Session 11) — viable proposal falsely rejected as "surpassed" |
+| P2 — UX | 0 | PL-14 FIXED (Session 12) — ultimatum rework: conversational flow, preview, splash damage |
+| **Total** | **0 OPEN** | |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
+
+**Session 12 (Apr 7):** PL-14 FIXED. 23 new tests (7980 total). Ultimatum rework: (A) full conversational dialogue flow — push ultimatum state, `_enrich_ultimatum_dialogue` preview with acceptance estimate, deliver/escalate/reconsider choice; (B) `modify_harsh_ultimatum` handler capped at 2 escalation rounds; (C) `generate_ultimatum_terms()` produces gold-only demands with cap, no AP clauses, no sweeteners; (D) `ultimatum_bonus` component added to `calculate_acceptance()`; (E) splash relation damage to bystanders (OPEN_BORDERS+ toward target take -5 to -15 toward France); (F) `ultimatum_cooldown` migrated from per-nation dict to scalar; (G) `proposal_result_popup` passthrough for Godot display.
+
+**Session 11 (Apr 7):** PL-12 + PL-13 FIXED. 13 new tests (7951 total). PL-12: 5-part fix — (A) new `harshness_penalty` component in `calculate_acceptance` based on `calculate_treaty_harshness`, (B) extended `calculate_treaty_harshness` to score demands not just clauses, (C) lowered `is_harsh` threshold from -10 to -3, (D) inverted `harshness_bonus` from +5 to -5, (E) increased `DEMAND_VALUES["gold_per_turn"]` from -0.02 to -0.05. PL-13: 4-part fix — (A) snapshot `diplomatic_state_at_send` in `proposal_in_transit`, surpassed check uses snapshot, (B) dual-key normalization in `_enrich_proposal_summary` + defensive fallback in `execute_proposal`, (C) diagnostic logging, (D) `_build_base_terms` now sets both `type` and `proposal_type`.
 
 **Session 10 (Apr 6):** All 3 remaining bugs FIXED. 13 new tests (7938 total). PL-9: Two-part fix — (A) warning text for borderline 50-75% proposals in `_enrich_proposal_summary`, (B) acceptance snapshot stored at send time + tolerance band (reject only if score drops >15 from snapshot) in `_process_proposal_in_transit`. PL-10: Force proposal type preservation in `modify_generous` and `modify_harsh` — `suggested["type"] = proposal_type` instead of `.get()` fallback that allowed `generate_suggested_terms` to override. PL-11: Improved dialogue guard error message with nation name and `/respond_to_diplomatic_dialogue` API hint.
 
@@ -61,14 +65,8 @@ Pure Python, all testable with pytest. Fixes the two core diplomacy formula bugs
 - **Files:** `diplomacy.py`, `diplomatic_templates.py`, `display_names.py`, `diplomatic_executor.py`, `world_state.py`, `diplomatic_dialogue.py`
 - **Est. Tests:** ~12
 
-### Session 12 — Ultimatum Rework (PL-14)
-Crosses backend/frontend. Replaces blind one-shot with coercive dialogue flow.
-- **Backend:** Route through proposal wizard, `generate_ultimatum_terms()`, splash relation damage, coalition threat, global cooldown
-- **Frontend:** Reuse existing `proposal_confirm` dialogue type (no new popup needed — ultimatum_confirm uses same enrichment)
-- **Files:** `diplomatic_executor.py`, `diplomatic_templates.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `world_state.py`, `cooldown_manager.py`, `coalition.py`, `display_names.py`, `campaign_log.py`
-- **Est. Tests:** ~10
-
-**Priority:** Session 11 first — PL-12 and PL-13 are P1/MAJOR and block the core diplomacy loop. Session 12 is a P2 rework that adds new functionality.
+### Session 12 — Ultimatum Rework (PL-14) ✓ COMPLETE
+Conversational diplomacy flow replacing blind one-shot. 23 new tests. See session summary above.
 
 ---
 
@@ -98,7 +96,7 @@ Crosses backend/frontend. Replaces blind one-shot with coercive dialogue flow.
 - **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
 - **Est. Tests:** ~4
 
-### PL-14: "Send Ultimatum" — Rework as Coercive Diplomatic Tool
+### PL-14: "Send Ultimatum" — Rework as Coercive Diplomatic Tool ✓ FIXED (Session 12)
 - **Source:** Playtest A3 (Apr 7) — typed "send ultimatum" in terminal
 - **Summary:** "Send ultimatum to X" fires immediately with no preview, no terms selection, no acceptance estimate, and no explanation of what's being demanded. The player has no idea what the ultimatum contains. Compare to `diplomatic_proposal` which has a full wizard flow (terms, harshness, sweeteners, acceptance %). The ultimatum is a blind one-shot action.
 - **Root cause (code-verified):**

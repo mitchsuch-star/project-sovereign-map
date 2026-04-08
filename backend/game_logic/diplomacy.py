@@ -115,6 +115,7 @@ BASE_DISPOSITION = {
     "vassalage": 10,
     "open_borders": 35,
     "non_aggression": 30,
+    "ultimatum_demand": 20,
 }
 
 # ═══════ PERSONALITY MODIFIERS ═══════
@@ -156,7 +157,7 @@ SWEETENER_VALUES = {
 SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated offers improve acceptance
 
 DEMAND_VALUES = {
-    "gold_per_turn": -2 / 100,     # -2 per 100g/turn demanded
+    "gold_per_turn": -5 / 100,     # -5 per 100g/turn demanded (PL-12-E: was -2)
     "manpower_per_turn": -3 / 2000, # -3 per 2000 infantry/turn demanded
     "territory": -5,                # -5 per region demanded
     "territory_cede": -5,           # alias for ratification path
@@ -757,7 +758,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     peace_mod, harsh_mod = PERSONALITY_MODIFIERS.get(target_personality, (0, 0))
     is_harsh = proposal_type in ("vassalage",)
     # Also check if demands outweigh sweeteners significantly
-    if demand_total < -10:
+    if demand_total < -3:  # PL-12-C: was -10 (100g demand = -5 now triggers)
         is_harsh = True
     personality_mod = harsh_mod if is_harsh else peace_mod
 
@@ -806,12 +807,21 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             elif ctype in target_specials:
                 special_desire_bonus += target_specials[ctype]
 
+    # ── Current Proposal Harshness Penalty (PL-12-A) ──
+    from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+    harshness_terms = {
+        "clauses": [c if isinstance(c, dict) else {"type": c} for c in proposal.get("clauses", [])],
+        "demands": proposal.get("demands", []),
+    }
+    current_harshness = calculate_treaty_harshness(harshness_terms)
+    harshness_penalty = -min(40, max(0, int((current_harshness - 0.2) * 150)))
+
     # ── Escalating Harshness (DD8-4) ──
     harshness_bonus = 0
     prev_treaties = getattr(world, 'previous_treaties', {}).get(diplo_key, [])
     for treaty in prev_treaties:
         if treaty.get("harshness", 0) > 0.3:
-            harshness_bonus = 5
+            harshness_bonus = -5  # PL-12-D: was +5 (harsh history breeds resentment)
             break
 
     # ── Diplomatic Reliability (R34) ──
@@ -819,6 +829,31 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     proposer_reliability = reliability.get(proposer, 0)
     # Cap contribution at +/-10
     reliability_modifier = max(-10, min(10, proposer_reliability // 5))
+
+    # ── Ultimatum Military Threat Bonus (PL-14 §5) ──
+    ultimatum_bonus = 0
+    if proposal_type == "ultimatum_demand":
+        ultimatum_bonus = 10  # base military threat
+        # +15 if any proposer marshal adjacent to target marshal
+        adjacency_bonus = 0
+        territory_bonus = 0
+        marshals = getattr(world, 'marshals', {})
+        regions = getattr(world, 'regions', {})
+        for m_name, m_obj in marshals.items():
+            if m_obj.nation == proposer and m_obj.strength > 0:
+                m_region = regions.get(m_obj.location)
+                if not m_region:
+                    continue
+                # +5 per proposer marshal in target territory (cap +15)
+                if m_region.controller == target:
+                    territory_bonus = min(15, territory_bonus + 5)
+                # +15 if adjacent to any target marshal
+                if adjacency_bonus == 0:
+                    for e_name, e_obj in marshals.items():
+                        if e_obj.nation == target and e_obj.location in getattr(m_region, 'connections', []):
+                            adjacency_bonus = 15
+                            break
+        ultimatum_bonus += adjacency_bonus + territory_bonus
 
     # ── Sum ──
     raw_score = (
@@ -834,8 +869,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + personality_mod
         + situational_bonus
         + special_desire_bonus
+        + harshness_penalty
         + harshness_bonus
         + reliability_modifier
+        + ultimatum_bonus
     )
 
     score = int(round(raw_score))
@@ -863,8 +900,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "battlefield_diplomacy": battlefield_diplomacy,
         "military_pressure": military_pressure,
         "special_desire_bonus": special_desire_bonus,
+        "harshness_penalty": harshness_penalty,
         "harshness_bonus": harshness_bonus,
         "reliability_modifier": reliability_modifier,
+        "ultimatum_bonus": ultimatum_bonus,
     }
 
     # ── Feedback (§6f) ──
@@ -886,8 +925,9 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "war_weariness", "stalemate_duration",
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
-        "coalition_penalty", "harshness_bonus", "reliability_modifier",
+        "coalition_penalty", "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",
+        "ultimatum_bonus",
     }
 
     largest_positive = ("", 0)
@@ -2583,7 +2623,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     # ── FOREIGN AFFAIRS (§2b) ──
     cooldowns = getattr(world, 'player_proposal_cooldowns', {})
     armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
-    ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
+    ultimatum_global_cd = getattr(world, 'ultimatum_global_cooldown', 0)
     relation = world.nation_relations.get(diplo_key, 0)
 
     def _proposal_action(action_key: str, display: str, target_state: str):
@@ -2724,7 +2764,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": war_available, "disabled_reason": war_reason})
         ult_available = True
         ult_reason = ""
-        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        ult_cd = ultimatum_global_cd
         if ult_cd > 0:
             ult_available = False
             ult_reason = f"Cooldown: {ult_cd} turns"
@@ -2748,7 +2788,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
         ult_reason = ""
-        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        ult_cd = ultimatum_global_cd
         if ult_cd > 0:
             ult_available = False
             ult_reason = f"Cooldown: {ult_cd} turns"
@@ -2772,7 +2812,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
         ult_reason = ""
-        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        ult_cd = ultimatum_global_cd
         if ult_cd > 0:
             ult_available = False
             ult_reason = f"Cooldown: {ult_cd} turns"
@@ -2798,6 +2838,17 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
+        # PL-14: Ultimatums available for any non-war, non-vassal target
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_global_cd
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
 
     elif state == "ALLIANCE":
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
@@ -2809,6 +2860,17 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
+        # PL-14: Ultimatums available for any non-war, non-vassal target
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_global_cd
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
 
     # DPF-2: Cancel mission — only if active mission targets THIS nation
     if active_mission and active_mission.get("target") == target_nation:

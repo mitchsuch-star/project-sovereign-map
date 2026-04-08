@@ -67,12 +67,12 @@ class TestCooldownDecrementCharacterization:
         self._advance_one_turn(world)
         assert world.proactive_suggestion_cooldowns == {"Prussia|war_score": 3}
 
-    def test_ultimatum_cooldowns_decrement(self):
-        """Ultimatum cooldowns decrement by 1, remove when ≤ 0."""
+    def test_ultimatum_global_cooldown_decrement(self):
+        """Ultimatum global cooldown decrements by 1, stops at 0 (PL-14 scalar migration)."""
         world = WorldFactory.basic()
-        world.ultimatum_cooldowns = {"Prussia": 5, "Austria": 1}
+        world.ultimatum_global_cooldown = 5
         self._advance_one_turn(world)
-        assert world.ultimatum_cooldowns == {"Prussia": 4}
+        assert world.ultimatum_global_cooldown == 4
 
     def test_talleyrand_defiance_cooldown_decrement(self):
         """Scalar cooldown decrements by 1, stops at 0."""
@@ -234,7 +234,7 @@ class TestCooldownSerializationCharacterization:
         world.player_proposal_cooldowns = {"Prussia": 3}
         world.ai_proposal_cooldowns = {"Austria|PEACE": 2}
         world.proactive_suggestion_cooldowns = {"Britain|war_score": 4}
-        world.ultimatum_cooldowns = {"Prussia": 5}
+        world.ultimatum_global_cooldown = 5
         world.talleyrand_defiance_cooldown = 2
 
         data = world.to_dict()
@@ -243,7 +243,7 @@ class TestCooldownSerializationCharacterization:
         assert loaded.player_proposal_cooldowns == {"Prussia": 3}
         assert loaded.ai_proposal_cooldowns == {"Austria|PEACE": 2}
         assert loaded.proactive_suggestion_cooldowns == {"Britain|war_score": 4}
-        assert loaded.ultimatum_cooldowns == {"Prussia": 5}
+        assert loaded.ultimatum_global_cooldown == 5
         assert loaded.talleyrand_defiance_cooldown == 2
 
     def test_popup_roundtrip(self):

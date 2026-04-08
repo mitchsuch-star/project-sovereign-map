@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 7, 2026 (Playtest A3: 3 new bugs found — PL-12 inverted harshness, PL-13 false surpassed rejection, PL-14 ultimatum rework. All specs junior-dev-ready. 3 open bugs.)
+> **Last Updated:** April 7, 2026 (Session 12 COMPLETE: PL-14 fixed. 23 new tests, 7980 total. 0 open bugs.)
 
 ---
 
@@ -9,28 +9,17 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7938** (7938 passed, 1 skipped) |
+| **Tests Passing** | **7980** (7980 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 3 OPEN** (PL-12, PL-13, PL-14). Specs complete, ready for Session 11-12 implementation. See `docs/BUG_FIXES.md`. |
-| **Blockers** | PL-12 + PL-13 block core diplomacy loop (P1). Jealousy NEEDS DESIGN GATE (separate track). |
+| **Current Phase** | **Bug Fixes — 0 OPEN** (all fixed). PL-14 FIXED (Session 12). See `docs/BUG_FIXES.md`. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### Bug Fixes Session 11 — Acceptance Formula + Surpassed Check (PL-12, PL-13)
-
-Pure Python, all testable with pytest. Fixes two core diplomacy formula bugs. ~12 tests.
-- **PL-12 (P1):** Harsher terms INCREASE acceptance. 5-part fix: harshness penalty in `calculate_acceptance`, extend `calculate_treaty_harshness` to include demands, lower `is_harsh` threshold, invert `harshness_bonus`, increase gold demand impact. Full spec with code snippets in BUG_FIXES.md.
-- **PL-13 (P1):** Viable proposals falsely rejected as "surpassed". 4-part fix: snapshot diplomatic state at send time, normalize dual-key proposal type, diagnostic logging, fix `_build_base_terms` source. Full spec in BUG_FIXES.md.
-
-### Bug Fixes Session 12 — Ultimatum Rework (PL-14)
-
-Backend + minor frontend. Replaces blind one-shot with coercive dialogue flow. ~12-15 tests.
-- **PL-14 (P2):** Full rework spec with 14-step implementation guide in BUG_FIXES.md §8. Key decisions: new `_enrich_ultimatum_dialogue` (not `_enrich_proposal_summary`), new `modify_harsh_ultimatum` handler (not proposal `modify_harsh`), new `_apply_ultimatum_demands` helper (not `_ratify_treaty`).
-
-### After Bugs: Design Refinement
+### Design Refinement
 
 Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation, R160 Rivalry System, R161 One-Time Trade (expanded), R162 AI Ultimatums (Building Blocks), 4 War System Overhaul, 3 AI fixes, 19 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
@@ -43,7 +32,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-10~~ — 31 bugs resolved, 202 tests. Session 10: PL-9 (acceptance mismatch), PL-10 (generous downgrade), PL-11 (dialogue hijack). ALL CLOSED.
+- ~~Bug Fixes Sessions 1-12~~ — 34 bugs resolved, 238 tests. Session 12: PL-14 (ultimatum rework, 23 new tests). Session 11: PL-12 (inverted harshness, 5-part fix), PL-13 (false surpassed rejection, 4-part fix). 13 new tests.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests
@@ -91,6 +80,20 @@ All major Phase 6 features shipped:
 - `docs/ARCHITECTURE_REFACTORING_PLAN.md` — 20 R-items, 22 sessions, 7 phases, ~55-68h estimated
 
 **Top root causes:** Post-combat pipeline duplication (RC-1, 75 bugs), missing war-state filtering (RC-2, 49 bugs), no test conftest (RC-5, 22 bugs + maintenance multiplier), ad-hoc response pipeline (RC-4, 9 bugs), fog filter scatter (RC-6, 18 bugs).
+
+### Apr 7 — Bug Fix Session 12: Ultimatum Rework (PL-14, 23 new tests)
+
+**PL-14 FIXED.** Replaced blind one-shot `_execute_diplomatic_ultimatum` with full conversational diplomacy flow: dialogue push → preview (`_enrich_ultimatum_dialogue`) → deliver/escalate/reconsider. Key changes:
+
+- **Conversational flow:** Ultimatum now routes through dialogue state machine. Player sees terms preview with acceptance estimate before delivery. `modify_harsh_ultimatum` handler caps escalation at 2 rounds (not unlimited like proposals).
+- **Deterministic acceptance:** `calculate_acceptance()` gains `ultimatum_bonus` component. Acceptance reflects coercive pressure, not just diplomatic warmth.
+- **`generate_ultimatum_terms()`:** New helper produces gold-only demands (no AP clauses, no sweeteners) with a gold cap. Terms are calibrated to be harsh but not absurd.
+- **Splash relation damage:** Bystander nations with OPEN_BORDERS+ toward target take -5 to -15 relation hit with France on delivery.
+- **Global cooldown migration:** `ultimatum_cooldown` migrated from per-nation dict to scalar on WorldState (one active ultimatum at a time).
+- **`proposal_result_popup` passthrough:** Result delivered via existing Godot popup infrastructure — no new frontend scene required.
+
+**Files:** `diplomatic_executor.py`, `diplomatic_templates.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `world_state.py`, `cooldown_manager.py`, `display_names.py`, `campaign_log.py`.
+**7980 tests passing** (7980 passed, 1 skipped, 0 regressions).
 
 ### Mar 24 — Systems Audit Sessions 11-12: Cleanup + QoL (12 fixes, 39 new tests)
 

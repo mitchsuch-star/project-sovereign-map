@@ -197,8 +197,8 @@ class TestUltimatum:
         result = client.parse_command("Talleyrand, demand peace from Prussia")
         assert result["action"] == "diplomatic_proposal"
 
-    def test_ultimatum_executor_costs_2dp(self, executor, world, game_state):
-        """Ultimatum costs 2 DP."""
+    def test_ultimatum_pushes_dialogue(self, executor, world, game_state):
+        """PL-14: Ultimatum pushes dialogue (DP deferred to delivery)."""
         initial_dp = world.diplomatic_points
         diplomatic_data = {
             "action": "diplomatic_ultimatum",
@@ -206,7 +206,9 @@ class TestUltimatum:
         }
         result = executor._execute_diplomatic_ultimatum(diplomatic_data, world)
         assert result.get("success"), result.get("message")
-        assert world.diplomatic_points == initial_dp - 2
+        assert result.get("awaiting_diplomatic_response") is True
+        # DP not deducted yet
+        assert world.diplomatic_points == initial_dp
 
     def test_ultimatum_insufficient_dp(self, executor, world, game_state):
         """Cannot issue ultimatum with < 2 DP."""
@@ -221,28 +223,30 @@ class TestUltimatum:
         result = executor._execute_diplomatic(command, game_state)
         assert not result.get("success")
 
-    def test_ultimatum_relation_penalty(self, executor, world, game_state):
-        """Ultimatum always costs -10 relation."""
-        initial = world.nation_relations.get(world._make_diplo_key("France", "Austria"), 0)
-        diplomatic_data = {
-            "action": "diplomatic_ultimatum",
-            "target_nation": "Austria",
-        }
-        executor._execute_diplomatic_ultimatum(diplomatic_data, world)
-        assert world.nation_relations.get(world._make_diplo_key("France", "Austria"), 0) == initial - 10
-
-    def test_ultimatum_rejected_grants_casus_belli(self, executor, world, game_state):
-        """Rejected ultimatum gives casus belli."""
-        import random
-        random.seed(999)  # Force rejection (high roll)
+    def test_ultimatum_dialogue_has_acceptance(self, executor, world, game_state):
+        """PL-14: Ultimatum dialogue has acceptance estimate."""
         diplomatic_data = {
             "action": "diplomatic_ultimatum",
             "target_nation": "Austria",
         }
         result = executor._execute_diplomatic_ultimatum(diplomatic_data, world)
-        if not result.get("accepted"):
-            diplo_key = world._make_diplo_key("France", "Austria")
-            assert world.casus_belli.get(diplo_key) is True
+        dialogue = world.pending_diplomatic_dialogue
+        assert "acceptance_estimate" in dialogue
+        assert "dp_cost" in dialogue
+        assert dialogue["harshness_label"] == "Coercive"
+
+    def test_ultimatum_dialogue_has_terms(self, executor, world, game_state):
+        """PL-14: Ultimatum dialogue contains demands (no sweeteners)."""
+        diplomatic_data = {
+            "action": "diplomatic_ultimatum",
+            "target_nation": "Austria",
+        }
+        executor._execute_diplomatic_ultimatum(diplomatic_data, world)
+        dialogue = world.pending_diplomatic_dialogue
+        terms = dialogue.get("terms", {})
+        assert len(terms.get("demands", [])) > 0
+        assert terms.get("sweeteners", []) == []
+        assert terms.get("type") == "ultimatum_demand"
 
     def test_ultimatum_no_target_asks(self, executor, world, game_state):
         """Ultimatum without target nation asks."""
@@ -266,18 +270,20 @@ class TestUltimatum:
         }
         result = executor._execute_diplomatic_ultimatum(diplomatic_data, world)
         assert not result.get("success")
-        assert "already at war" in result.get("message", "").lower()
+        assert "peace proposal" in result.get("message", "").lower() or "already at war" in result.get("message", "").lower()
 
-    def test_ultimatum_logs_history(self, executor, world, game_state):
-        """Ultimatum is recorded in diplomatic_history."""
+    def test_ultimatum_dialogue_options(self, executor, world, game_state):
+        """PL-14: Dialogue has [Deliver] [Harsher] [Reconsider] options."""
         diplomatic_data = {
             "action": "diplomatic_ultimatum",
             "target_nation": "Austria",
         }
         executor._execute_diplomatic_ultimatum(diplomatic_data, world)
-        assert len(world.diplomatic_history) == 1
-        assert world.diplomatic_history[0]["type"] == "ultimatum"
-        assert world.diplomatic_history[0]["target"] == "Austria"
+        dialogue = world.pending_diplomatic_dialogue
+        actions = [o["action"] for o in dialogue.get("options", [])]
+        assert "execute_ultimatum" in actions
+        assert "modify_harsh_ultimatum" in actions
+        assert "reconsider" in actions
 
 
 # ═══════ 1C: LLM PROMPT DIPLOMATIC GUIDANCE ═══════

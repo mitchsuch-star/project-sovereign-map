@@ -1306,6 +1306,81 @@ TALLEYRAND_COMMENTARY = {
 }
 
 
+# ═══════ ULTIMATUM TERMS GENERATION (PL-14 §2) ═══════
+
+def generate_ultimatum_terms(target_nation: str, world) -> Dict:
+    """Generate coercive demands based on military advantage.
+
+    Returns: {"demands": [...], "sweeteners": [], "clauses": [], "type": "ultimatum_demand"}
+    No AP demands (requires war_score > 80, impossible in peacetime).
+    No sweeteners ever — ultimatums are pure extortion.
+    No proposal_type key — uses "type" only (PL-13 lesson).
+    """
+    demands = []
+    player = getattr(world, 'player_nation', 'France')
+
+    # ── Gold demand: capped at 50% of target income ──
+    target_income = 0
+    target_gold = 0
+    for region in getattr(world, 'regions', {}).values():
+        if region.controller == target_nation:
+            target_income += getattr(region, 'income', 0)
+    target_gold = getattr(world, 'nation_gold', {}).get(target_nation, 0)
+
+    if target_income > 0:
+        gold_demand = min(300, max(50, int(target_income * 0.5)))
+        demands.append({"type": "gold_per_turn", "value": int(gold_demand)})
+    elif target_gold > 0:
+        gold_lump = min(500, max(50, int(target_gold * 0.3)))
+        demands.append({"type": "gold_lump", "value": int(gold_lump)})
+
+    # ── Territory demand: coveted regions if France controls adjacent ──
+    regions = getattr(world, 'regions', {})
+    france_regions = {name for name, r in regions.items() if r.controller == player}
+    target_regions = {name for name, r in regions.items() if r.controller == target_nation}
+
+    # Calculate military superiority
+    marshals = getattr(world, 'marshals', {})
+    player_strength = sum(m.strength for m in marshals.values() if m.nation == player and m.strength > 0)
+    target_strength = sum(m.strength for m in marshals.values() if m.nation == target_nation and m.strength > 0)
+    has_military_superiority = player_strength > target_strength * 1.2
+
+    if has_military_superiority and target_regions:
+        # Prefer regions adjacent to France-controlled territory
+        adjacent_targets = []
+        for t_name in target_regions:
+            t_region = regions.get(t_name)
+            if not t_region:
+                continue
+            # Skip capitals
+            from backend.models.region import NATION_CAPITALS
+            if t_name == NATION_CAPITALS.get(target_nation):
+                continue
+            connections = getattr(t_region, 'connections', [])
+            if any(c in france_regions for c in connections):
+                adjacent_targets.append(t_name)
+        if adjacent_targets:
+            demands.append({"type": "territory_cede", "value": 1, "regions": adjacent_targets[:1]})
+
+    # ── Manpower demand: proportional to troop advantage ──
+    troop_advantage = player_strength - target_strength
+    if troop_advantage > 5000:
+        manpower_demand = min(5000, int(troop_advantage * 0.1))
+        if manpower_demand >= 500:
+            demands.append({"type": "manpower", "value": int(manpower_demand)})
+
+    # Ensure at least one demand (gold floor)
+    if not demands:
+        demands.append({"type": "gold_lump", "value": 100})
+
+    return {
+        "demands": demands,
+        "sweeteners": [],
+        "clauses": [],
+        "type": "ultimatum_demand",
+    }
+
+
 # ═══════ SUGGESTED TERMS GENERATION ═══════
 
 def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> Dict:
@@ -1470,6 +1545,7 @@ def _build_base_terms(target_nation: str, proposal_type: str, world) -> Dict:
 
     terms = {
         "type": proposal_type,
+        "proposal_type": proposal_type,  # PL-13-D: normalize dual-key at source
         "proposer_nation": "France",
         "target_nation": target_nation,
         "sweeteners": [],
@@ -1720,9 +1796,9 @@ def resolve_enemy_response_text(template: Dict, world, target_nation: str) -> st
 
 
 def calculate_treaty_harshness(treaty: Dict) -> float:
-    """Calculate harshness score (0.0-1.0) from treaty clauses.
+    """Calculate harshness score (0.0-1.0) from treaty clauses AND demands.
 
-    Used for DD8-4 escalating harshness tracking.
+    Used for DD8-4 escalating harshness tracking and PL-12 acceptance penalty.
     """
     harshness = 0.0
     for clause in treaty.get("clauses", []):
@@ -1732,5 +1808,21 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
         elif ctype == "territory_cede":
             harshness += 0.2 * len(clause.get("regions", []))
         elif ctype == "manpower_per_turn":
+            harshness += 0.15
+    # PL-12-B: Include demands in harshness calculation
+    for demand in treaty.get("demands", []):
+        if not isinstance(demand, dict):
+            continue
+        dtype = demand.get("type", "")
+        amt = abs(demand.get("value", 0) or demand.get("amount", 0) or 0)
+        if dtype == "gold_per_turn":
+            harshness += 0.1 * (amt / 100)
+        elif dtype in ("territory_cede", "territory"):
+            regions = demand.get("regions", [])
+            count = len(regions) if regions else max(1, amt)
+            harshness += 0.2 * count
+        elif dtype == "ap_per_turn":
+            harshness += 0.3 * max(1, amt)
+        elif dtype == "manpower_per_turn":
             harshness += 0.15
     return min(1.0, harshness)
