@@ -304,6 +304,7 @@ Add two new `elif` blocks in `_process_dialogue_choice` (near `execute_proposal`
 4. Escalation logic (ultimatum-specific):
    - Round 1: multiply all existing demand values by 1.5, add territory demand if not present and France controls adjacent region
    - Round 2: multiply by 1.5 again, add manpower demand if not present
+   - **Territory guard (PL-20 §B):** When adding territory demands during escalation, apply the same elimination guard as auto-generation: filter out regions that would leave the target with ≤1 region. Use `target_regions = world.get_nation_regions(target_nation)` and only add regions where `len(target_regions) - len(already_demanded) - 1 > 1`. This prevents escalation from proposing rump/annex-level demands.
 5. Rebuild `ultimatum_confirm` dialogue with updated terms (same structure as step 4)
 6. Call `_enrich_ultimatum_dialogue()` to recalculate acceptance with new terms
 7. Increment `modify_count` in dialogue context
@@ -372,8 +373,11 @@ Verify that `_process_treaty_income()` in `world_state.py` already handles `gold
 - Gold cap: gold_per_turn capped at 50% income
 - Zero-income target: gold_lump fallback
 - Cooldown migration: old dict format → new int
+- `_process_treaty_income()` processes ultimatum tribute gold_per_turn correctly
+- Ultimatum against nation with no adjacent French territory: gold/manpower-only demands (no territory)
+- modify_harsh_ultimatum: territory escalation respects elimination guard (PL-20 §B)
 
-- **Est. Tests:** ~12-15
+- **Est. Tests:** ~15-18
 
 ---
 
@@ -945,7 +949,9 @@ New `_build_ultimatum_content(data)` reads:
       dtype = d.get("type", "")
       value = d.get("value", 0)
       if dtype in ("territory_cede", "territory"):
-          # Use income-weighted cost (same formula as PL-20 §A acceptance calc)
+          # Income-weighted cost per region (flat -5 × weight, NOT PL-20's
+          # escalating formula — PL-19 §C multiplier handles count scaling
+          # separately via demanded_count/remaining amplifiers).
           regions = d.get("regions", [])
           for r in regions:
               region = world.regions.get(r)
@@ -959,7 +965,9 @@ New `_build_ultimatum_content(data)` reads:
           rate = DEMAND_VALUES.get(dtype, 0)
           demand_penalty += rate * abs(value)   # scaled by amount
   
-  total_penalty = max(-60, min(-5, int(base_penalty + demand_penalty)))
+  # base_penalty is -10, demand_penalty ≤ 0, so sum is always ≤ -10.
+  # Clamp to [-60, -10] range (no separate -5 floor needed).
+  total_penalty = max(-60, int(base_penalty + demand_penalty))
   world.modify_nation_relation(player, target_nation, total_penalty)
   ```
 
@@ -971,7 +979,8 @@ New `_build_ultimatum_content(data)` reads:
   - Vienna (capital, 300 income): -10 + (-30) = **-40**
   - 2 towns + 5,000 infantry: -10 + -10 + -7.5 = **-28**
   - Vienna + gold + AP: -10 + -30 + -5 + -25 = **-60** (cap)
-  - Minimum (tiny gold demand): **-13** (base floor after rounding)
+  - Minimum (zero demand penalty): **-10** (base_penalty alone, demand_penalty = 0)
+  - Minimum (tiny gold demand): **-13** (base + small demand_penalty, after rounding)
   - Maximum: capped at **-60** (raised from -50 to accommodate income-weighted territory)
 
   **(B) Rejection penalty also scales:**
@@ -988,10 +997,10 @@ New `_build_ultimatum_content(data)` reads:
   The acceptance estimate in `_enrich_ultimatum_dialogue()` already shows what the AI thinks. Add a "diplomatic cost" line to the wizard preview: "Diplomatic cost: -20 relation (moderate)" / "Diplomatic cost: -45 relation (severe — allies will react strongly)"
 
   **Severity labels:**
-  - -5 to -15: "mild" (routine demand)
+  - -10 to -15: "mild" (routine demand)
   - -16 to -25: "moderate" (notable diplomatic cost)
-  - -26 to -35: "severe" (will strain all relationships)
-  - -36 to -50: "extreme" (near-war diplomatic damage)
+  - -26 to -40: "severe" (will strain all relationships)
+  - -41 to -60: "extreme" (near-war diplomatic damage)
 
   **(E) Threat scaling (optional, recommend):**
   Current: flat +15 threat on delivery, +5 on acceptance, +8/region annexed. Recommend also scaling delivery threat with demand severity: `threat = max(10, min(30, 15 + abs(demand_penalty) // 3))`. Light demands → 10-15 threat, heavy demands → 25-30 threat.
@@ -999,7 +1008,7 @@ New `_build_ultimatum_content(data)` reads:
 - **Design rationale:** The relationship scale is -100 to +100. France starts at -30 with Austria, -40 with Prussia, -80 with Britain. A flat -10 for any ultimatum means you can strip territory from a neutral nation and still only drop 10 points. With dynamic scaling, demanding territory (-20) puts you firmly into hostile range, which feels right — you just threatened to take their land. But it's still less than war declaration (-30 no CB), rewarding the "diplomacy before violence" path.
 
 - **Files:** `backend/commands/diplomatic_executor.py` (_execute_diplomatic_ultimatum lines 1157-1213, splash damage 1163-1178), `backend/game_logic/diplomatic_dialogue.py` (_enrich_ultimatum_dialogue — add cost preview), `backend/game_logic/diplomacy.py` (DEMAND_VALUES import)
-- **Est. Tests:** 8 — (1) gold-only demand ≈ -15 relation, (2) territory demand ≈ -20 per region, (3) capital territory ≈ -20 (double weight), (4) multi-demand stacks correctly, (5) clamped at -50 floor, (6) clamped at -5 ceiling, (7) rejection penalty scales, (8) splash multiplier scales with severity
+- **Est. Tests:** 10 — (1) gold-only demand ≈ -15 relation, (2) territory demand scales with income weight, (3) capital territory gets ×2 (double weight), (4) multi-demand stacks correctly, (5) clamped at -60 floor, (6) minimum penalty is -10 (base_penalty alone, no demand cost), (7) rejection penalty scales with demand_penalty, (8) splash multiplier scales with severity (1.0× at -10, 2.5× at -25+), (9) §C amplifier: ×2.5 annex / ×2.0 rump / ×1.5 for 4+ / ×1.2 for 2-3, (10) territory penalty uses flat income-weighted cost (not PL-20 escalation)
 - **Depends on:** PL-18 (typed DEMAND_VALUES keys must exist for penalty calc to work correctly)
 - **Implement with:** Session B (after PL-15 + PL-18 are stable). Backend calculation can land first, then display wiring. Wizard preview (PL-15 confirm step) should show the dynamic cost — see PL-15 test plan "PL-19 integration" note.
 
@@ -1045,36 +1054,54 @@ New `_build_ultimatum_content(data)` reads:
   # Replace flat DEMAND_VALUES territory scoring (~line 737-746) with escalating cost:
   target_regions = world.get_nation_regions(target_nation)
   demanded_regions = []
+  territory_demand_count_fallback = 0  # backward compat for demands without "regions" list
   for d in proposal.get("demands", []):
       if d.get("type") in ("territory", "territory_cede"):
-          demanded_regions.extend(d.get("regions", []))
-  demanded_count = len([r for r in demanded_regions if r in target_regions])
+          regions_list = d.get("regions", [])
+          if regions_list:
+              demanded_regions.extend(regions_list)
+          else:
+              # Old saves / AI proposals may use {"type": "territory_cede", "value": 2}
+              # without a regions list. Count via value field as fallback.
+              territory_demand_count_fallback += int(d.get("value", 0) or 0)
+  valid_demanded = [r for r in demanded_regions if r in target_regions]
+  demanded_count = len(valid_demanded) + territory_demand_count_fallback
   total_regions = len(target_regions)
   remaining = total_regions - demanded_count
 
   # ── Income-weighted escalating per-region cost (replaces flat -5) ──
-  # Each region's cost = income_weight × escalating_multiplier.
-  # Income weight: region.income / 100 (rural=0.5, town=1.0, city=1.5, major_city=2.0, capital=3.0)
-  # Escalating multiplier: -5 for 1st region, -8 for 2nd, -11 for 3rd, etc. (+3 per region)
-  # Capital bonus: 2x on top of income weight (stacks)
-  # Result: demanding Paris (income 300, capital) costs WAY more than Brittany (income 50, rural)
+  # Formula: income_weight = max(0.5, region.income / 100).
+  # Escalating base: -5 for 1st region, -8 for 2nd, -11 for 3rd, etc. (+3 per region).
+  # Region cost = escalating_base × income_weight. Capital bonus: ×2 on top.
+  # IMPORTANT: sort demanded regions by income ASCENDING before calculating.
+  # This makes the cost deterministic (cheapest regions get lowest escalation,
+  # expensive regions get highest — maximally restrictive ordering).
   territory_penalty = 0
+
+  # Sort valid demanded regions by income ascending (cheapest first = hardest total)
+  def _region_sort_key(r):
+      reg = world.regions.get(r)
+      return getattr(reg, 'income', 100) if reg else 100
+  sorted_demanded = sorted(valid_demanded, key=_region_sort_key)
+
   region_index = 0
-  for d in proposal.get("demands", []):
-      if d.get("type") not in ("territory", "territory_cede"):
-          continue
-      for r in d.get("regions", []):
-          if r not in target_regions:
-              continue
-          region = world.regions.get(r)
-          income = getattr(region, 'income', 100) if region else 100
-          income_weight = max(0.5, income / 100)    # 0.5 to 3.0
-          escalation = -5 - (3 * region_index)      # -5, -8, -11, -14, ...
-          base_cost = escalation * income_weight
-          if r == NATION_CAPITALS.get(target_nation):
-              base_cost *= 2                         # capitals always double
-          territory_penalty += base_cost
-          region_index += 1
+  for r in sorted_demanded:
+      region = world.regions.get(r)
+      income = getattr(region, 'income', 100) if region else 100
+      income_weight = max(0.5, income / 100)    # 0.5 to 3.0
+      escalation = -5 - (3 * region_index)      # -5, -8, -11, -14, ...
+      base_cost = escalation * income_weight
+      if r == NATION_CAPITALS.get(target_nation):
+          base_cost *= 2                         # capitals always double
+      territory_penalty += base_cost
+      region_index += 1
+
+  # Backward compat fallback: demands with value-only (no regions list)
+  # use flat -5 per region (no income weighting possible without region identity)
+  for _ in range(territory_demand_count_fallback):
+      escalation = -5 - (3 * region_index)
+      territory_penalty += escalation            # weight 1.0 assumed
+      region_index += 1
 
   # ── Elimination guard (stacks with escalating cost) ──
   if remaining == 0:
@@ -1088,54 +1115,69 @@ New `_build_ultimatum_content(data)` reads:
   # handle them here instead.
   ```
 
-  **Income weight reference (from `region.py` REGIONS_DATA):**
+  **IMPORTANT — applies to ALL proposal types:** This escalating cost runs inside `calculate_acceptance()`, which is called for regular peace proposals, AI proposals, armistice terms, and ultimatums. This is intentional — diplomatic elimination guards should protect against all diplomatic paths, not just ultimatums. Impact on regular proposals: 1 region costs the same (-5 for a town), 2+ regions escalate slightly faster than the old flat rate. AI self-corrects via `_reduce_p8_demands()`.
 
-  | region_type | income | weight (income/100) | Examples |
-  |-------------|--------|---------------------|---------|
-  | rural | 50 | 0.5 | Brittany, Bordeaux, Waterloo |
-  | town | 100 | 1.0 | Belgium, Rhineland, Bavaria, Normandy, Hanover, Tyrol, Dresden |
-  | city | 150 | 1.5 | Milan, Marseille, Saxony, Bohemia |
-  | major_city | 200 | 2.0 | Lyon |
-  | capital | 300 | 3.0 (× 2 capital bonus = 6.0 effective) | Paris, Vienna, Berlin |
+  **Region ordering is deterministic:** Regions are sorted by income ascending before calculating. Cheapest regions get the lowest escalation multiplier, expensive regions get the highest. This produces the maximally restrictive (hardest for the demander) total cost, and prevents players from gaming the system by reordering demands.
 
-  **Escalating cost examples (income-weighted, sorted cheapest demanded first):**
+  **Income weight formula (map-agnostic — scales automatically with new regions):**
+
+  ```
+  income_weight = max(0.5, region.income / 100)
+  if region is target's capital (NATION_CAPITALS): weight *= 2
+  ```
+
+  | income | weight | capital effective weight | Typical region_type |
+  |--------|--------|-------------------------|---------------------|
+  | 50 | 0.5 | 1.0 | rural |
+  | 100 | 1.0 | 2.0 | town |
+  | 150 | 1.5 | 3.0 | city |
+  | 200 | 2.0 | 4.0 | major_city |
+  | 300 | 3.0 | 6.0 | capital |
+
+  No hardcoded region names — the formula reads `region.income` from REGIONS_DATA. New regions added during map expansion automatically get correct weights. The `max(0.5, ...)` floor handles modded regions with income=0.
+
+  **NOTE:** Capital bonus is determined by `NATION_CAPITALS` dict (the nation's political capital), NOT by `region_type == "capital"`. A region can have `region_type: "capital"` (high-value urban terrain) without being a nation's political capital, and vice versa (e.g., a proxy capital with low income). The 2× multiplier only applies when demanding the target nation's actual capital.
+
+  **Escalating cost examples (regions sorted by income ascending — deterministic):**
 
   | Demand | Escalation | Income weight | Capital? | Region cost | Cumulative |
   |--------|-----------|--------------|----------|-------------|-----------|
-  | 1st: Brittany (rural, 50) | -5 | ×0.5 | no | **-2.5** | **-3** |
-  | 1st: Bavaria (town, 100) | -5 | ×1.0 | no | **-5** | **-5** |
-  | 1st: Bohemia (city, 150) | -5 | ×1.5 | no | **-7.5** | **-8** |
-  | 1st: Lyon (major, 200) | -5 | ×2.0 | no | **-10** | **-10** |
-  | 1st: Vienna (capital, 300) | -5 | ×3.0 ×2 | yes | **-30** | **-30** |
-  | 2nd: Bavaria after Brittany | -8 | ×1.0 | no | **-8** | **-11** |
-  | 2nd: Vienna after Bavaria | -8 | ×3.0 ×2 | yes | **-48** | **-53** |
+  | 1st: rural (income 50) | -5 | ×0.5 | no | **-2.5** | **-3** |
+  | 1st: town (income 100) | -5 | ×1.0 | no | **-5** | **-5** |
+  | 1st: city (income 150) | -5 | ×1.5 | no | **-7.5** | **-8** |
+  | 1st: major_city (income 200) | -5 | ×2.0 | no | **-10** | **-10** |
+  | 1st: capital (income 300) | -5 | ×3.0 ×2 | yes | **-30** | **-30** |
+  | 2nd: town after rural | -8 | ×1.0 | no | **-8** | **-11** |
+  | 2nd: capital (300) after town | -8 | ×3.0 ×2 | yes | **-48** | **-53** |
 
-  **Realistic scenario math (max acceptance bonus ~105):**
+  **Realistic scenario math (max acceptance bonus ~105, regions auto-sorted by income ascending):**
 
-  | Scenario | Regions (cheapest first) | Cost | Guard | Total | Net | Result |
-  |----------|------------------------|------|-------|-------|-----|--------|
-  | 1 rural from anyone | Brittany (50) | -3 | 0 | -3 | 102 | ACCEPT (easy) |
-  | 1 town from anyone | Bavaria (100) | -5 | 0 | -5 | 100 | ACCEPT |
-  | 1 city from anyone | Bohemia (150) | -8 | 0 | -8 | 97 | ACCEPT |
-  | Vienna (capital) | Vienna (300, cap) | -30 | 0 | -30 | 75 | ACCEPT (hard) |
-  | 2 towns | town+town | -5, -8 = -13 | 0 | -13 | 92 | ACCEPT |
-  | 3 mixed (town, city, town) | 100, 150, 100 | -5, -12, -11 = -28 | 0 | -28 | 77 | ACCEPT (hard) |
-  | 4 mixed | +town(100) | ..., -14 = -42 | 0 | -42 | 63 | ACCEPT (very hard) |
-  | 5 mixed | +town(100) | ..., -17 = -59 | 0 | -59 | 46 | REJECT |
-  | Vienna + 2 towns | 300cap, 100, 100 | -30, -8, -11 = -49 | 0 | -49 | 56 | BORDERLINE |
-  | 1 of 2 Saxony (city, 150) | Saxony (150) | -8 | -30 (rump) | -38 | 67 | ACCEPT (hard) |
-  | 2 of 2 Saxony (city+cap) | Saxony, Dresden | -8, -16 = -24 | -60 (annex) | -84 | 21 | REJECT |
-  | 3 of 4 Austria (cheap first) | Tyrol, Bavaria, Bohemia | -5, -8, -17 = -30 | -30 (rump) | -60 | 45 | REJECT |
-  | Paris alone (cap, 300) | Paris | -30 | varies | -30+ | 75 | ACCEPT (hard) |
+  | Scenario | Regions (income, sorted asc) | Cost | Guard | Total | Net | Result |
+  |----------|------------------------------|------|-------|-------|-----|--------|
+  | 1 rural | (50) | -3 | 0 | -3 | 102 | ACCEPT (easy) |
+  | 1 town | (100) | -5 | 0 | -5 | 100 | ACCEPT |
+  | 1 city | (150) | -8 | 0 | -8 | 97 | ACCEPT |
+  | 1 capital | (300, cap) | -30 | 0 | -30 | 75 | ACCEPT (hard) |
+  | 2 towns | (100, 100) | -5, -8 = -13 | 0 | -13 | 92 | ACCEPT |
+  | 3 mixed | (100, 100, 150) | -5, -8, -17 = -30 | 0 | -30 | 75 | ACCEPT (hard) |
+  | 4 mixed | (100, 100, 100, 150) | -5, -8, -11, -21 = -45 | 0 | -45 | 60 | ACCEPT (very hard) |
+  | 5 mixed | (100×4, 150) | -5, -8, -11, -14, -25.5 = -64 | 0 | -64 | 41 | REJECT |
+  | capital + 2 towns | (100, 100, 300cap) | -5, -8, -66 = -79 | 0 | -79 | 26 | REJECT |
+  | 1 of 2 (city non-cap) | (150) | -8 | -30 (rump) | -38 | 67 | ACCEPT (hard) |
+  | 2 of 2 (city + cap) | (150, 100cap) | -8, -16 = -24 | -60 (annex) | -84 | 21 | REJECT |
+  | 3 of 4 (cheapest 3) | (100, 100, 150) | -5, -8, -17 = -30 | -30 (rump) | -60 | 45 | REJECT |
+  | Low-income capital alone | (50, cap) | -5 | 0 | -5 | 100 | ACCEPT |
 
-  **Key design outcomes:**
-  - **Cheap frontier provinces (rural, 50 income):** Easy to demand — Brittany costs only -3. This is correct: backwater provinces are cheap in EU4 too.
-  - **Major cities (150-200 income):** Significantly more costly — Lyon alone is -10. Demanding 2-3 cities gets expensive fast.
-  - **Capitals (300 income, ×2 bonus):** Vienna/Paris/Berlin cost -30 EACH as first demand. Demanding a capital + anything else is extremely hard. This matches EU4 where capitals are the most expensive provinces.
-  - **Russia (15 regions, mixed income):** Can take 3-4 cheap frontier regions with military dominance. Taking rich cities or the capital is much harder. Taking 5+ is blocked. You need multiple wars to carve up a large empire.
-  - **Austria (4 regions, all valuable):** Bavaria (100) + Tyrol (100) = -13. Adding Bohemia (150) = -30. Adding Vienna (300, capital) pushes to -78 + -60 annex guard = -138. Full annexation impossible.
-  - **Saxony (2 regions, mid-value):** Taking Saxony region (150) costs -8 + -30 rump = -38. Hard but possible. Full annex: -24 + -60 = -84, blocked.
-  - **Absolute count + income weight means:** Taking Vienna alone costs more than taking 3 rural frontier provinces. Rich, developed regions are worth fighting harder to keep — and demand more war score to extract.
+  **NOTE on "capital + 2 towns" row:** With deterministic ascending sort, the capital (income 300) lands at the HIGHEST index (index 2), getting escalation -11 × 3.0 × 2 = -66. This is significantly more expensive than if the capital were first (-30). The ascending sort is intentionally restrictive — it prevents players from gaming demand order.
+
+  **Key design outcomes (scale-independent — holds for any map size):**
+  - **Cheap frontier provinces (rural, income 50):** Easy to demand at -3 each. Backwater provinces are cheap, matching EU4.
+  - **Cities (income 150-200):** Significantly more costly — a major city alone is -10. Demanding 2-3 cities gets expensive fast with escalation.
+  - **Capitals (income 300, ×2 bonus):** -30 EACH as first demand. With ascending sort, a capital demanded alongside other regions lands at the highest index, making it even more expensive. Demanding a capital + anything else is extremely hard.
+  - **Large nations (10+ regions, mixed income):** Can take 3-4 cheap frontier regions with military dominance. Taking rich cities or the capital is much harder. Taking 5+ is blocked. Multiple wars needed to carve up a large empire — scales correctly as map expands.
+  - **Medium nations (3-4 regions, valuable):** 2 towns = -13 (achievable). 3 regions = rump guard kicks in (-30 extra). Full annexation impossible via diplomacy.
+  - **Small nations (2 regions):** Taking 1 non-capital = -8 + rump(-30) = -38 (hard but possible). Full annex: -24 + annex(-60) = -84, blocked.
+  - **Income-weighted means:** A single capital (-30) costs more than 3-4 rural frontier provinces. Rich, developed regions are worth fighting harder to keep.
 
   The `remaining` and `demanded_count` variables are also used by §C, §D, and §E for relation/threat/warning scaling.
 
@@ -1237,11 +1279,11 @@ New `_build_ultimatum_content(data)` reads:
 
   2. **Escalating per-region cost.** Each additional region costs +3 more than the last (base: -5, -8, -11, -14...), multiplied by income weight. This means you can take 1-2 cheap provinces easily, 2-3 mixed-value provinces with military dominance, but 4+ is very hard and 5+ is blocked. Napoleon's post-Austerlitz Treaty of Pressburg took 3 regions from Austria — that's the right feel.
 
-  Together: a player with total military dominance (~105 max bonus) could take Vienna alone (-30), or 3-4 frontier towns (-28), or 2 towns + 1 city (-28). But NOT Vienna + 3 towns (-49+). Multiple wars required for large conquests, exactly like EU4.
+  Together: a player with total military dominance (~105 max bonus) could take a capital alone (-30), or 3-4 frontier towns, or 2 towns + 1 city. But NOT a capital + 3 towns. Multiple wars required for large conquests, exactly like EU4. The formula reads `region.income` dynamically — new regions added during map expansion automatically get correct weights without code changes.
 
   Combat elimination is deliberately unguarded — if you conquer their last territory in battle, that's a legitimate military outcome. The guards are only for diplomatic paths (ultimatums + treaties).
 
 - **Files:** `backend/game_logic/diplomacy.py` (calculate_acceptance — §A), `backend/game_logic/diplomatic_templates.py` (generate_ultimatum_terms — §B), `backend/commands/diplomatic_executor.py` (relation/threat amplifier — §C/D), `backend/game_logic/diplomatic_dialogue.py` (wizard warning — §E), `backend/models/world_state.py` (treaty guard — §F)
-- **Est. Tests:** 16 — (1) rural region (income 50): cost = -3 (weight 0.5 × -5), (2) town region (income 100): cost = -5 (weight 1.0 × -5), (3) city region (income 150): cost = -8 (weight 1.5 × -5), (4) capital region (income 300): cost = -30 (weight 3.0 × 2 capital × -5), (5) 2nd region escalates (+3 base), (6) 3 mixed-income regions: cumulative matches expected, (7) full annexation gets -60 elimination guard on top, (8) rump state (remaining=1) gets -30 guard, (9) auto-generation skips elimination/rump demands, (10) PL-19 relation penalty ×2.5 for annex, ×2.0 for rump, ×1.5 for 4+, (11) threat amplifier fires at count tiers, (12) treaty cession blocked below war_score 90 if would eliminate, (13) wizard shows appropriate Talleyrand warning, (14) large nation (15 regions): max ~3-4 regions with military dominance, (15) demanding Vienna alone (-30) costs more than 3 rural provinces (-11), (16) income_weight defaults to 1.0 if region has no income field
+- **Est. Tests:** 21 — (1) rural region (income 50): cost = -3 (weight 0.5 × -5), (2) town region (income 100): cost = -5 (weight 1.0 × -5), (3) city region (income 150): cost = -8 (weight 1.5 × -5), (4) capital region (income 300): cost = -30 (weight 3.0 × 2 capital × -5), (5) 2nd region escalates (+3 base), (6) 3 mixed-income regions: cumulative matches expected, (7) full annexation gets -60 elimination guard on top, (8) rump state (remaining=1) gets -30 guard, (9) auto-generation skips elimination/rump demands, (10) PL-19 relation penalty ×2.5 for annex, ×2.0 for rump, ×1.5 for 4+, (11) threat amplifier fires at count tiers, (12) treaty cession blocked below war_score 90 if would eliminate, (13) wizard shows appropriate Talleyrand warning, (14) large nation (15 regions): max ~3-4 regions with military dominance, (15) capital alone (-30) costs more than 3 rural provinces (-11), (16) income_weight defaults to 1.0 if region has no income field, (17) region sort order is deterministic (ascending income) — same regions in any demand order produce same cost, (18) backward compat: territory demand with value-only (no regions list) uses flat -5/region fallback, (19) modify_harsh_ultimatum respects elimination guard (doesn't add territory that would leave ≤1 region), (20) AI proposal with 2+ territory demands self-corrects via _reduce_p8_demands under escalating costs, (21) low-income capital (income 50, proxy) gets correct weight (0.5 × 2 = 1.0 effective)
 - **Depends on:** PL-19 (relation penalty scaling — §C multiplier applies to PL-19's demand_penalty)
 - **Implement with:** Session B (alongside PL-19). The acceptance penalty (§A) and auto-gen guard (§B) can land independently; the relation/threat amplifiers (§C/D) require PL-19's dynamic penalty to exist first.
