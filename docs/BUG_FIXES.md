@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 7, 2026 (Session 12 COMPLETE — all bugs fixed, 0 open)
+> **Last Updated:** April 7, 2026 (Session 12 follow-up — 2 new bugs from ultimatum playtest)
 
 ---
 
@@ -21,7 +21,9 @@
 | P1 — MAJOR | 1 | PL-12 FIXED (Session 11) — harshness increases acceptance |
 | P1 — MAJOR | 1 | PL-13 FIXED (Session 11) — viable proposal falsely rejected as "surpassed" |
 | P2 — UX | 0 | PL-14 FIXED (Session 12) — ultimatum rework: conversational flow, preview, splash damage |
-| **Total** | **0 OPEN** | |
+| **P1 — CRITICAL** | **1** | **PL-15 OPEN — ultimatum popup shows no demands + no demand customization** |
+| **P2 — UX** | **1** | **PL-16 OPEN (absorbed into PL-15) — Harsher Demands too aggressive; replaced by wizard** |
+| **Total** | **2 OPEN (1 fix — PL-16 absorbed into PL-15)** | |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -578,3 +580,209 @@ Verify that `_process_treaty_income()` in `world_state.py` already handles `gold
   - Counter button hidden (no counter-counter — already worked)
   - Backend: Removed redundant "This is a counter-proposal..." from assessment text (popup itself now communicates this)
 - **Counter-offer logic audit:** M3 algorithm confirmed working correctly. Score 30-49 triggers counter. Removes clause AI hates most, adds nation-specific sweeteners from NATION_DESIRES. Personality thresholds modify behavior (hawk stricter, dove lenient). Failed counters fall through to rejection with proper cooldowns. No bugs found.
+
+---
+
+### PL-15: Ultimatum Demand Wizard (CRITICAL) — OPEN
+- **Source:** Playtest (Apr 7, Session 12 follow-up)
+- **Priority:** P1 — CRITICAL (player cannot see or customize demands)
+- **Absorbs PL-16** — Harsher Demands multiplier bug is eliminated by the wizard (no more blind escalation)
+
+#### Symptoms
+1. **No demands visible:** When "send ultimatum to X" fires, `proposal_confirm_popup` shows acceptance estimate but NOT the actual demands. Player blindly clicks "Deliver Ultimatum."
+2. **No demand customization:** `generate_ultimatum_terms()` auto-generates demands. Player can only "Harsher Demands" (blind 1.5x multiplier) or "Reconsider." No way to pick what to demand.
+3. **(PL-16) Harsher Demands too aggressive:** 1.5x multiplier + territory addition on Round 1 drops acceptance ~40% instead of ~10-15%.
+
+#### Root Causes
+
+**Popup key mismatch (symptom 1):**
+- `_enrich_ultimatum_dialogue()` (`diplomatic_dialogue.py:440`) sets **`demands_display`**
+- `proposal_confirm_popup.gd:_build_content()` (line 72) reads **`proposal_terms_summary`** — different key
+- `ultimatum_confirm` dtype has no dedicated renderer — falls to `_:` default (`_build_content`), designed for proposals
+- Header says "DIPLOMATIC PROPOSAL" (line 69) instead of "ULTIMATUM"
+- `splash_damage_preview` and `threat_increase_preview` in dialogue dict but never rendered
+
+**No wizard (symptoms 2 + 3):**
+- Armistice/peace proposals have a full `terms_guidance` wizard: territory (region-by-region pick) → gold (more/less/skip) → AP → confirm (~300 lines, 12 action branches, 3 builder helpers)
+- Ultimatums have nothing equivalent — just auto-generate + blind escalation
+- The `modify_harsh_ultimatum` handler compounds a 1.5x multiplier AND adds new demand types simultaneously, which is why acceptance craters
+
+#### Fix Plan: Ultimatum Demand Wizard
+
+Model on the existing `terms_guidance` armistice wizard (`diplomatic_executor.py:1465-1728`). Same UX pattern, inverted direction: player builds **demands** (what target gives France) instead of **sweeteners** (what France offers target).
+
+**§1. Entry point — replace current `_execute_diplomatic_ultimatum` flow**
+
+Current flow: `_execute_diplomatic_ultimatum` → `generate_ultimatum_terms()` → push `ultimatum_confirm` dialogue with auto-generated terms + [Deliver | Harsher Demands | Reconsider].
+
+New flow: `_execute_diplomatic_ultimatum` → push `ultimatum_confirm` dialogue with [Customize Demands | Use Suggested | Reconsider]. Suggested terms still come from `generate_ultimatum_terms()` as a default, but now they're a starting point, not the only option.
+
+```
+dialogue = {
+    "type": "ultimatum_confirm",
+    "target_nation": target_nation,
+    "prompt": "What shall we demand of {target}, Sire?",
+    "options": [
+        {"label": "Customize Demands", "action": "adjust_ultimatum_terms"},
+        {"label": "Use Suggested Terms", "action": "execute_ultimatum", "terms": auto_terms},
+        {"label": "Reconsider", "action": "reconsider"},
+    ],
+    "terms": auto_terms,  # pre-calculated for display
+    "splash_damage_preview": splash_preview,
+    "threat_increase_preview": "+15 threat on delivery, +5 if accepted",
+    "context": {"target_nation": target_nation},
+}
+```
+
+Enrich with `_enrich_ultimatum_dialogue()` so the "Use Suggested" path still shows acceptance estimate.
+
+**§2. Wizard state machine — `adjust_ultimatum_terms` entry**
+
+New action handler in `_process_dialogue_choice`. Context tracks:
+```python
+context = {
+    "target_nation": target_nation,
+    "guidance_state": "gold",  # gold → territory → manpower → confirm
+    "approved_demands": [],     # list of demand dicts
+    "gold_amount": default_gold,
+    "manpower_amount": 0,
+}
+```
+
+**§3. Gold step** — `_build_ultimatum_gold_step()`
+
+Modeled on `_build_gold_step()` (line 2238). Calculates suggested gold from target income (same as `generate_ultimatum_terms` gold logic).
+
+```
+"Talleyrand: How much gold should we demand per turn, Sire?"
+[Demand {X} gold]  [Demand more]  [Demand less]  [Skip gold]
+```
+
+Actions: `ultimatum_gold_accept`, `ultimatum_gold_more` (1.3x), `ultimatum_gold_less` (0.7x), `ultimatum_gold_skip`.
+
+Gold floor: 25. Gold cap: 300 (same as `generate_ultimatum_terms`).
+
+**§4. Territory step** — `_build_ultimatum_territory_step()`
+
+Only offered if France has military superiority (>1.2x, same threshold as `generate_ultimatum_terms`). If not, skip to manpower.
+
+Modeled on armistice territory picker (lines 1498-1568). Picks from target's non-capital regions adjacent to France-controlled territory.
+
+```
+"Shall we demand territory, Sire?"
+[Yes, show me options]  [No, move to manpower]
+```
+
+Then region-by-region: "I suggest demanding {region}."
+[Demand this region]  [Not this one]  [That's enough territory]
+
+Actions: `ultimatum_territory_yes`, `ultimatum_offer_region`, `ultimatum_skip_region`, `ultimatum_enough_territory`, `ultimatum_territory_skip`.
+
+Uses `rank_cession_candidates()` inverted — ranks TARGET's regions by strategic value to France (adjacent, income, not capital).
+
+**§5. Manpower step** — `_build_ultimatum_manpower_step()`
+
+Only offered if troop advantage > 5000 (same threshold as `generate_ultimatum_terms`).
+
+```
+"Shall we demand conscripts, Sire? Their army is weakened."
+[Demand {X} manpower]  [Demand more]  [Demand less]  [Skip manpower]
+```
+
+Actions: `ultimatum_manpower_accept`, `ultimatum_manpower_more` (1.3x), `ultimatum_manpower_less` (0.7x), `ultimatum_manpower_skip`.
+
+Default: `int(troop_advantage * 0.1)`, capped at 5000.
+
+**§6. Confirm step** — `_build_ultimatum_confirm_step()`
+
+Assembles final demands from `context["approved_demands"]`. Shows full preview:
+
+```
+"Here are our demands for {target}:"
+  - 150 gold per turn
+  - Cede Silesia
+  - 2000 manpower
+Acceptance estimate: ~45% (UNCERTAIN)
+Splash damage: Austria (ALLIANCE): -15 relations
+Threat: +15 on delivery
+[Deliver Ultimatum]  [Start Over]  [Reconsider]
+```
+
+Calls `_enrich_ultimatum_dialogue()` on the assembled terms for acceptance calculation.
+
+"Deliver Ultimatum" action = `execute_ultimatum` with the wizard-built terms (same handler that exists today).
+"Start Over" = `adjust_ultimatum_terms` (re-enter wizard).
+"Reconsider" = pop dialogue (same as today).
+
+**§7. Remove `modify_harsh_ultimatum`**
+
+Delete the `modify_harsh_ultimatum` handler (lines 1259-1331). The wizard replaces it entirely — the player now has full control over demand amounts. No need for blind escalation.
+
+Keep `generate_ultimatum_terms()` as-is — it provides the "Use Suggested Terms" default and can be used by AI ultimatums (R162) in the future.
+
+**§8. Godot popup — dedicated ultimatum renderer**
+
+Add `"ultimatum_confirm"` case to `proposal_confirm_popup.gd` match block (line 27):
+
+```gdscript
+"ultimatum_confirm":
+    bbcode = _build_ultimatum_content(data)
+```
+
+New `_build_ultimatum_content(data)` reads:
+- Header: `[b][color=#e09040]ULTIMATUM — {target}[/color][/b]`
+- `demands_display` (list of strings) — demand line items
+- `acceptance_estimate`, `acceptance_outcome`, `acceptance_hint` — same as proposals
+- `splash_damage_preview` — format each `{nation, treaty_with_target, relation_penalty}`
+- `threat_increase_preview` — string
+- `talleyrand_text` — Talleyrand commentary
+- `dp_cost` — always 2
+
+The `terms_guidance` dtype already renders through the `_:` default path for wizard steps — this works because wizard steps only show talleyrand_text + options (no terms to display). Only the final `ultimatum_confirm` needs the dedicated renderer.
+
+#### Building Blocks Reuse
+
+| Existing | Reused for |
+|----------|-----------|
+| `_build_gold_step()` (line 2238) | Pattern for `_build_ultimatum_gold_step()` — same more/less/skip UX |
+| `_build_ap_step()` (line 2278) | Pattern for `_build_ultimatum_manpower_step()` — same accept/skip UX |
+| `_build_confirm_step()` (line 2305) | Pattern for `_build_ultimatum_confirm_step()` — assemble + enrich + preview |
+| `_copy_guidance_context()` (line 2232) | Reuse directly — same deep-copy of context dict |
+| Territory picker (lines 1540-1676) | Pattern for `ultimatum_offer_region`/`skip_region` — same region-by-region flow |
+| `rank_cession_candidates()` | Reuse inverted — rank TARGET's regions by value to France |
+| `generate_ultimatum_terms()` | Kept for "Use Suggested" default + future AI ultimatums (R162) |
+| `_enrich_ultimatum_dialogue()` | Reuse directly on confirm step — acceptance calculation |
+
+#### Effort Estimate
+
+- **~150-200 new lines** in `diplomatic_executor.py`: 3 builder helpers + ~10 action handler branches
+- **~50 lines** in `proposal_confirm_popup.gd`: dedicated ultimatum renderer
+- **Delete ~70 lines**: `modify_harsh_ultimatum` handler
+- **Net: ~130-180 lines added**
+- **No new files, no new scenes** — reuses existing `proposal_confirm_popup` and `terms_guidance` dtype
+
+#### Files to Modify
+- `backend/commands/diplomatic_executor.py` — wizard handlers + builder helpers, remove `modify_harsh_ultimatum`
+- `backend/game_logic/diplomatic_dialogue.py` — no changes (enrichment function already works)
+- `backend/game_logic/diplomatic_templates.py` — no changes (keep `generate_ultimatum_terms` for defaults)
+- `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd` — add `_build_ultimatum_content()`, add match case
+
+#### Test Plan
+- **Backend wizard flow:** Test each wizard step transitions (gold → territory → manpower → confirm)
+- **Gold more/less:** Assert 1.3x/0.7x scaling, floor 25, cap 300
+- **Territory gating:** Assert territory step only offered with >1.2x military superiority
+- **Region pick:** Assert only non-capital adjacent regions offered
+- **Manpower gating:** Assert manpower step only offered with >5000 troop advantage
+- **Confirm step:** Assert `_enrich_ultimatum_dialogue()` called, acceptance estimate present
+- **"Use Suggested":** Assert `generate_ultimatum_terms()` default still works as fast path
+- **Execute:** Assert wizard-built terms pass through to existing `execute_ultimatum` handler
+- **Remove tests:** Delete/update `TestModifyHarshUltimatum` tests (handler removed)
+- **curl test:** `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command": "send ultimatum to Prussia"}' | python -m json.tool` — verify new dialogue structure
+- **Godot visual:** Popup shows demands, splash damage, threat warning, acceptance estimate
+
+---
+
+### PL-16: Harsher Demands Multiplier Too Aggressive — ABSORBED INTO PL-15
+- **Source:** Playtest (Apr 7, Session 12 follow-up)
+- **Priority:** P2 — UX (gameplay balance)
+- **Status:** Absorbed into PL-15. The demand wizard eliminates `modify_harsh_ultimatum` entirely — the player picks their own demand amounts instead of blind escalation. No separate fix needed.

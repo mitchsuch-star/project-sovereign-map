@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 7, 2026 (Session 12 COMPLETE: PL-14 fixed. 23 new tests, 7980 total. 0 open bugs.)
+> **Last Updated:** April 7, 2026 (Session 12 follow-up: 2 new bugs from ultimatum playtest — PL-15 demand wizard, PL-16 absorbed)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7980** (7980 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 0 OPEN** (all fixed). PL-14 FIXED (Session 12). See `docs/BUG_FIXES.md`. |
+| **Current Phase** | **Bug Fixes — 2 OPEN** (PL-15 demand wizard, PL-16 absorbed). See `docs/BUG_FIXES.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,11 @@
 
 ## Next Steps
 
-### Design Refinement
+### Bug Fix Session 13: Ultimatum Demand Wizard (PL-15 + PL-16)
+
+**PL-15 (P1 CRITICAL):** Ultimatum popup shows no demands (key mismatch) + player cannot customize demands. Fix: full demand wizard modeled on armistice `terms_guidance` flow — gold (more/less) → territory (region picker) → manpower (more/less) → confirm with acceptance estimate + splash damage preview. ~150-200 new lines. **PL-16 absorbed** — `modify_harsh_ultimatum` eliminated by wizard. See `docs/BUG_FIXES.md`.
+
+### Design Refinement (AFTER BUGS)
 
 Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation, R160 Rivalry System, R161 One-Time Trade (expanded), R162 AI Ultimatums (Building Blocks), 4 War System Overhaul, 3 AI fixes, 19 Wave 4 features, 8 Wave 5 findings, plus design gates.
 

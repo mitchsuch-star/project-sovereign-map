@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — ALL FIXED.** Sessions 7-12 done. PL-12 FIXED (Session 11), PL-13 FIXED (Session 11), PL-14 FIXED (Session 12 — ultimatum rework). See `docs/BUG_FIXES.md`.
+- **Bug Fixes — 2 OPEN.** Sessions 7-12 done. **PL-15 OPEN (P1): Ultimatum demand wizard** — popup shows no demands + no customization; fix modeled on armistice terms_guidance wizard. **PL-16 absorbed into PL-15.** See `docs/BUG_FIXES.md`.
 - **Design Refinement — AFTER BUGS.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
