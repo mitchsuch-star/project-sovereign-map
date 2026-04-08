@@ -4783,6 +4783,15 @@ class WorldState:
                         self.nation_gold[to_nation] += transfer
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
+                # PL-20 §F: Treaty elimination guard — block if would eliminate and war_score < 90
+                cede_from = clause.get("from", "")
+                if cede_from and regions:
+                    cede_from_regions = set(self.get_nation_regions(cede_from))
+                    if cede_from_regions and len(cede_from_regions - set(regions)) == 0:
+                        ws_key = self._make_diplo_key(proposer, target_nation)
+                        ws = abs(getattr(self, 'war_scores', {}).get(ws_key, 0))
+                        if ws < 90:
+                            continue  # Skip this clause — insufficient war score for elimination
                 transferred_count = 0
                 for region_name in regions:
                     if region_name not in self.regions:

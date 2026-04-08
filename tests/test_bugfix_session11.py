@@ -58,8 +58,8 @@ class TestPL12HarshnessFix:
             "clauses": [],
             "demands": [{"type": "territory_cede", "value": 2}],
         })
-        # 2 regions = 0.2 * 2 = 0.4
-        assert abs(result - 0.4) < 0.01
+        # 2 regions = 0.3 * 2 = 0.6 (AM-20.1: bumped from 0.2 to 0.3)
+        assert abs(result - 0.6) < 0.01
 
     def test_harshness_penalty_applied(self):
         """Fix A: Proposals with demands get a negative harshness_penalty component."""

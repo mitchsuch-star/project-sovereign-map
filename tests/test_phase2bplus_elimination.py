@@ -178,6 +178,11 @@ class TestR81NationElimination:
 
         # Ratify treaty with territory_cede clause (Saxony cedes territory to France)
         _set_diplo_state(world, "France", "Saxony", "WAR")
+        # PL-20 §F: Elimination requires war_score >= 90
+        diplo_key = world._make_diplo_key("France", "Saxony")
+        if not hasattr(world, 'war_scores'):
+            world.war_scores = {}
+        world.war_scores[diplo_key] = 95
         proposal = {
             "type": "peace",
             "proposer_nation": "Saxony",

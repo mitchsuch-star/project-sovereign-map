@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 8, 2026 (Session A: PL-15 + PL-18 FIXED. Demand wizard + typed manpower. 33 new tests, 8015 total.)
+> **Last Updated:** April 8, 2026 (Session B: PL-19 + PL-20 FIXED. Dynamic penalties + EU4 territory scaling. 43 new tests, 8058 total.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **8015** (8015 passed, 1 skipped) |
+| **Tests Passing** | **8058** (8058 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 2 OPEN** (PL-19, PL-20). PL-15/PL-18 FIXED (Session A). See `docs/BUG_FIXES.md`. |
+| **Current Phase** | **Bug Fixes — ALL CLOSED.** PL-19/PL-20 FIXED (Session B). PL-15/PL-18 FIXED (Session A). See `docs/BUG_FIXES.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -25,11 +25,11 @@
 
 **PL-18 FIXED:** 4 new DEMAND_VALUES keys, typed manpower wizard with pool-aware type picker, `_apply_ultimatum_demands()` dispatches to correct pool, backward compat for bare `"manpower"`.
 
-### Bug Fix Session B: Dynamic Penalties + Elimination Guards (PL-19 + PL-20)
+### Bug Fix Session B: COMPLETE (PL-19 + PL-20)
 
-**PL-19 (P2):** Dynamic ultimatum relation penalty scales with demand severity (-10 to -60). Splash damage scales with multiplier (1.0x–2.5x). 5 audit amendments (AM-19.1–19.5): `math.floor()` rounding, float splash wrapping, acceptance-before-penalty ordering, `income_value` fix.
+**PL-19 FIXED:** Dynamic ultimatum relation penalty scales with demand severity (-10 to -60). Income-weighted territory penalties with capital ×2. Splash multiplier (1.0×–2.5×) scales with severity. Rejection penalty scales (-5 to -15). Dynamic threat (10-30). Acceptance calculated before penalty (AM-19.4). All 5 amendments incorporated. 43 new tests.
 
-**PL-20 (P2):** EU4-style escalating per-region acceptance cost (-5, -8, -11...) × income weight. Elimination guards (-60 annex, -30 rump). Territory amplifier on relation penalty (territory component only, per AM-20.4). 9 audit amendments (AM-20.1–20.9): harshness alignment, application-side elimination guard, safe_targets filter, split amplifier, `income_value`, dedup, treaty guard pseudocode.
+**PL-20 FIXED:** EU4-style escalating per-region acceptance cost (-5, -8, -11...) × income weight. Elimination guards (-60 annex, -30 rump). Auto-gen guard skips small nations. Treaty cession guard (war_score < 90 blocks elimination). Hard guard in `_apply_ultimatum_demands()`. Territory amplifier on relation penalty (territory component only, AM-20.4). Harshness bump 0.2→0.3. Shared `analyze_territory_demands()` helper. All 9 amendments incorporated.
 
 ### Adversarial Audit (Apr 8) — completed, all findings incorporated
 
@@ -48,7 +48,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-12 + A~~ — 36 bugs resolved, 271 tests. Session A: PL-15 (demand wizard, 33 new tests) + PL-18 (typed manpower + DEMAND_VALUES). Session 12: PL-14 (ultimatum rework, 23 new tests). Session 11: PL-12 + PL-13 (13 tests).
+- ~~Bug Fixes Sessions 1-12 + A + B~~ — 38 bugs resolved, 314 tests. Session B: PL-19 (dynamic penalties, 43 tests) + PL-20 (EU4 territory scaling). Session A: PL-15 (demand wizard, 33 tests) + PL-18 (typed manpower). Session 12: PL-14 (ultimatum rework, 23 tests).
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests

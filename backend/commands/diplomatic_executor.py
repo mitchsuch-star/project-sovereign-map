@@ -711,6 +711,11 @@ class DiplomaticExecutor:
 
             elif dtype == "territory_cede":
                 region_names = demand.get("regions", [])
+                # AM-20.2: Hard guard — refuse transfer that would eliminate nation
+                target_current = set(world.get_nation_regions(target_nation))
+                if target_current and len(target_current - set(region_names)) == 0:
+                    descriptions.append("(territory transfer refused — would eliminate nation)")
+                    continue
                 transferred = []
                 for rname in region_names:
                     region = world.regions.get(rname)
@@ -1172,33 +1177,54 @@ class DiplomaticExecutor:
                 }
             world.diplomatic_points -= dp_cost
 
+            import math
+            from backend.game_logic.diplomacy import analyze_territory_demands, DEMAND_VALUES as _DV
+
             player = world.player_nation
             diplo_key = world._make_diplo_key(player, target_nation)
 
-            # §3a: -10 relation to target
-            world.modify_nation_relation(player, target_nation, -10)
+            # ── PL-19 §A: Compute dynamic relation penalty ──
+            t_analysis = analyze_territory_demands(demands, target_nation, world)
 
-            # §3b: Splash damage to bystanders
-            _SPLASH_TIERS = {
-                "ALLIANCE": 15,
-                "DEFENSIVE_ALLIANCE": 12,
-                "NON_AGGRESSION": 8,
-                "OPEN_BORDERS": 5,
-            }
-            splash_applied = []
-            for nation in world.get_active_nations():
-                if nation == player or nation == target_nation:
+            # Territory penalty: flat -5 × income_weight per region, capital ×2
+            # (distinct from PL-20's escalating acceptance cost)
+            territory_demand_penalty = 0.0
+            for r in t_analysis["demanded_regions"]:
+                weight = t_analysis["region_income_weights"].get(r, 1.0)
+                region_cost = -5 * weight
+                if r in t_analysis["capital_regions"]:
+                    region_cost *= 2
+                territory_demand_penalty += region_cost
+
+            # PL-20 §C: Amplify territory penalty based on elimination risk
+            if t_analysis["is_annex"]:
+                territory_demand_penalty *= 2.5
+            elif t_analysis["is_rump"]:
+                territory_demand_penalty *= 2.0
+            elif t_analysis["demanded_count"] >= 4:
+                territory_demand_penalty *= 1.5
+            elif t_analysis["demanded_count"] >= 2:
+                territory_demand_penalty *= 1.2
+
+            # Other demand penalties (gold, manpower, AP)
+            other_demand_penalty = 0.0
+            for d in demands:
+                dtype = d.get("type", "")
+                if dtype in ("territory_cede", "territory"):
                     continue
-                nation_state_with_target = world.get_diplomatic_state(nation, target_nation)
-                penalty = _SPLASH_TIERS.get(nation_state_with_target, 0)
-                if penalty > 0:
-                    world.modify_nation_relation(player, nation, -penalty)
-                    splash_applied.append((nation, -penalty))
+                dvalue = d.get("value", 0)
+                rate = _DV.get(dtype, 0)
+                if isinstance(rate, (int, float)) and abs(rate) < 1:
+                    other_demand_penalty += (dvalue * rate) if dvalue is not None else 0
+                else:
+                    other_demand_penalty += rate * dvalue if dvalue is not None else rate
 
-            # §3c: +15 threat on delivery
-            add_threat(world, 15, "ultimatum_issued")
+            demand_penalty = territory_demand_penalty + other_demand_penalty
+            total_penalty = max(-60, math.floor(-10 + demand_penalty))
+            # Ensure minimum -10 (base penalty for any ultimatum)
+            total_penalty = min(total_penalty, -10)
 
-            # §5: Calculate acceptance (deterministic, score >= 50 = ACCEPT)
+            # AM-19.4: Calculate acceptance BEFORE applying relation penalty
             proposal = {
                 "type": "ultimatum_demand",
                 "proposer_nation": player,
@@ -1214,6 +1240,42 @@ class DiplomaticExecutor:
                 score = 20
             accepted = score >= 50
 
+            # §3a: Dynamic relation penalty to target (PL-19)
+            world.modify_nation_relation(player, target_nation, int(total_penalty))
+
+            # §3b: Splash damage to bystanders (PL-19 §C: severity multiplier)
+            _SPLASH_TIERS = {
+                "ALLIANCE": 15,
+                "DEFENSIVE_ALLIANCE": 12,
+                "NON_AGGRESSION": 8,
+                "OPEN_BORDERS": 5,
+            }
+            splash_multiplier = max(1.0, min(2.5, abs(total_penalty) / 10))
+            splash_applied = []
+            for nation in world.get_active_nations():
+                if nation == player or nation == target_nation:
+                    continue
+                nation_state_with_target = world.get_diplomatic_state(nation, target_nation)
+                base_splash = _SPLASH_TIERS.get(nation_state_with_target, 0)
+                if base_splash > 0:
+                    scaled_splash = int(math.floor(-base_splash * splash_multiplier))
+                    world.modify_nation_relation(player, nation, scaled_splash)
+                    splash_applied.append((nation, scaled_splash))
+
+            # §3c: Dynamic threat on delivery (PL-19 §E)
+            delivery_threat = max(10, min(30, 15 + abs(int(demand_penalty)) // 3))
+            add_threat(world, delivery_threat, "ultimatum_issued")
+
+            # PL-20 §D: Territory threat amplifier
+            if t_analysis["is_annex"]:
+                add_threat(world, 25, "ultimatum_annex_attempt")
+            elif t_analysis["is_rump"]:
+                add_threat(world, 18, "ultimatum_rump_state")
+            elif t_analysis["demanded_count"] >= 4:
+                add_threat(world, 12, "ultimatum_major_territorial")
+            elif t_analysis["demanded_count"] >= 2:
+                add_threat(world, 5, "ultimatum_significant_territorial")
+
             if accepted:
                 # §6: Apply demands, NO state change
                 transfer_desc = self._apply_ultimatum_demands(demands, target_nation, world)
@@ -1221,14 +1283,15 @@ class DiplomaticExecutor:
                 world.ultimatum_global_cooldown = 5
                 desc_text = "; ".join(transfer_desc) if transfer_desc else "compliance"
                 outcome_msg = (f"{target_nation} has bowed to our ultimatum! "
-                               f"Concessions: {desc_text}. (+20 threat)")
+                               f"Concessions: {desc_text}. (+{delivery_threat + 5} threat)")
             else:
-                # §3a: -5 additional relation on rejection
-                world.modify_nation_relation(player, target_nation, -5)
+                # PL-19 §B: Rejection penalty scales with demand severity
+                rejection_penalty = max(-15, min(-5, math.floor(-5 + demand_penalty * 0.3)))
+                world.modify_nation_relation(player, target_nation, int(rejection_penalty))
                 world.casus_belli[diplo_key] = True
                 world.ultimatum_global_cooldown = 5
                 outcome_msg = (f"{target_nation} has rejected our ultimatum! "
-                               f"We now have casus belli — war declaration penalties will be halved. (+15 threat)")
+                               f"We now have casus belli — war declaration penalties will be halved. (+{delivery_threat} threat)")
 
             # Pop dialogue
             world.dialogue_manager.pop()

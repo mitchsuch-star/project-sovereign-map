@@ -442,6 +442,75 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
             demand_lines.append(f"  - {int(value)} infantry")
     dialogue["demands_display"] = demand_lines
 
+    # PL-19 §D: Diplomatic cost preview
+    # PL-20 §E: Talleyrand territory warnings
+    import math
+    from backend.game_logic.diplomacy import analyze_territory_demands, DEMAND_VALUES as _DV
+
+    t_analysis = analyze_territory_demands(demands, target_nation, world)
+
+    # Compute preview penalty (same logic as executor Step 2)
+    territory_demand_penalty = 0.0
+    for r in t_analysis["demanded_regions"]:
+        weight = t_analysis["region_income_weights"].get(r, 1.0)
+        region_cost = -5 * weight
+        if r in t_analysis["capital_regions"]:
+            region_cost *= 2
+        territory_demand_penalty += region_cost
+
+    if t_analysis["is_annex"]:
+        territory_demand_penalty *= 2.5
+    elif t_analysis["is_rump"]:
+        territory_demand_penalty *= 2.0
+    elif t_analysis["demanded_count"] >= 4:
+        territory_demand_penalty *= 1.5
+    elif t_analysis["demanded_count"] >= 2:
+        territory_demand_penalty *= 1.2
+
+    other_demand_penalty = 0.0
+    for d in demands:
+        dtype = d.get("type", "")
+        if dtype in ("territory_cede", "territory"):
+            continue
+        dvalue = d.get("value", 0)
+        rate = _DV.get(dtype, 0)
+        if isinstance(rate, (int, float)) and abs(rate) < 1:
+            other_demand_penalty += (dvalue * rate) if dvalue is not None else 0
+        else:
+            other_demand_penalty += rate * dvalue if dvalue is not None else rate
+
+    preview_penalty = max(-60, math.floor(-10 + territory_demand_penalty + other_demand_penalty))
+    preview_penalty = min(preview_penalty, -10)
+
+    dialogue["diplomatic_cost"] = int(preview_penalty)
+    # Severity labels
+    abs_pen = abs(preview_penalty)
+    if abs_pen <= 15:
+        dialogue["diplomatic_cost_label"] = "mild"
+    elif abs_pen <= 25:
+        dialogue["diplomatic_cost_label"] = "moderate"
+    elif abs_pen <= 40:
+        dialogue["diplomatic_cost_label"] = "severe"
+    else:
+        dialogue["diplomatic_cost_label"] = "extreme"
+
+    # Talleyrand territory warnings
+    warning = ""
+    if t_analysis["is_annex"]:
+        warning = (f"Sire, demanding all of {target_nation}'s territory would erase them from the map entirely. "
+                   "Every nation in Europe will view this as an existential threat. "
+                   "The acceptance chance is near zero, and the diplomatic cost would be catastrophic.")
+    elif t_analysis["is_rump"]:
+        warning = (f"Reducing {target_nation} to their capital alone would make them desperate — "
+                   "and their allies furious. Expect heavy diplomatic consequences and a near-certain rejection.")
+    elif t_analysis["demanded_count"] >= 4:
+        warning = (f"Demanding {t_analysis['demanded_count']} regions is an extraordinary claim, Sire. "
+                   "Even after a decisive victory, such vast territorial concessions are rarely accepted. "
+                   "All of Europe will take notice.")
+    elif t_analysis["demanded_count"] >= 2:
+        warning = "A substantial territorial demand. The diplomatic cost will be significant."
+    dialogue["talleyrand_territory_warning"] = warning
+
     return dialogue
 
 

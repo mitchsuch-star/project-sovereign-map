@@ -1346,7 +1346,7 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
     target_strength = sum(m.strength for m in marshals.values() if m.nation == target_nation and m.strength > 0)
     has_military_superiority = player_strength > target_strength * 1.2
 
-    if has_military_superiority and target_regions:
+    if has_military_superiority and len(target_regions) > 2:
         # Prefer regions adjacent to France-controlled territory
         adjacent_targets = []
         for t_name in target_regions:
@@ -1850,7 +1850,7 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
         if ctype == "gold_per_turn":
             harshness += 0.1 * (clause.get("amount", 0) / 100)
         elif ctype == "territory_cede":
-            harshness += 0.2 * len(clause.get("regions", []))
+            harshness += 0.3 * len(clause.get("regions", []))
         elif ctype == "manpower_per_turn":
             harshness += 0.15
     # PL-12-B: Include demands in harshness calculation
@@ -1864,7 +1864,7 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
         elif dtype in ("territory_cede", "territory"):
             regions = demand.get("regions", [])
             count = len(regions) if regions else max(1, amt)
-            harshness += 0.2 * count
+            harshness += 0.3 * count
         elif dtype == "ap_per_turn":
             harshness += 0.3 * max(1, amt)
         elif dtype == "manpower_per_turn":

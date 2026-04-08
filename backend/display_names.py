@@ -248,6 +248,10 @@ FEEDBACK_STRINGS = {
         "positive": "military threat backs demands",
         "negative": "lack of military presence near target",
     },
+    "territory_escalation": {
+        "negative": "the sheer scale of territorial demands",
+        "positive": "modest territorial terms",
+    },
 }
 
 # ============================================================================

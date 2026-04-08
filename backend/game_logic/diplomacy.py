@@ -627,6 +627,92 @@ def cleanup_war_end(world, diplo_key: str) -> None:
 
 
 # ═══════════════════════════════════════════════════════
+# TERRITORY DEMAND ANALYSIS (PL-19/PL-20 shared helper)
+# ═══════════════════════════════════════════════════════
+
+def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
+    """Analyze territory demands for cost scaling and penalty calculations.
+
+    Shared by PL-19 (relation penalty) and PL-20 (acceptance formula).
+    Returns analysis dict with demanded regions, counts, income weights,
+    escalating costs, and elimination status.
+    """
+    from backend.models.region import NATION_CAPITALS
+
+    target_regions = world.get_nation_regions(target_nation)
+    target_capital = NATION_CAPITALS.get(target_nation)
+
+    # Collect all demanded territory regions, handling both formats
+    demanded_regions_raw = []
+    territory_demand_count_fallback = 0
+    for d in demands:
+        dtype = d.get("type", "")
+        if dtype not in ("territory_cede", "territory"):
+            continue
+        regions_list = d.get("regions")
+        if regions_list is not None:  # AM-20.6: empty [] is valid, distinct from None
+            demanded_regions_raw.extend(regions_list)
+        else:
+            # Old saves / AI proposals with value-only (no regions list)
+            territory_demand_count_fallback += int(d.get("value", 0) or 0)
+
+    # AM-20.7: Dedup while preserving first occurrence
+    valid_demanded = list(dict.fromkeys(
+        r for r in demanded_regions_raw if r in target_regions
+    ))
+
+    demanded_count = len(valid_demanded) + territory_demand_count_fallback
+    remaining = len(target_regions) - demanded_count
+    is_annex = remaining <= 0 and demanded_count > 0
+    is_rump = remaining == 1 and demanded_count > 0
+
+    # Income weights and capital detection
+    region_income_weights = {}
+    capital_regions = set()
+    regions_map = getattr(world, 'regions', {})
+    for r in valid_demanded:
+        region = regions_map.get(r)
+        income = getattr(region, 'income_value', 100) if region else 100
+        region_income_weights[r] = max(0.5, income / 100)
+        if r == target_capital:
+            capital_regions.add(r)
+
+    # Sort by income ascending for deterministic escalation (cheapest first = hardest total)
+    sorted_demanded = sorted(valid_demanded, key=lambda r: region_income_weights.get(r, 1.0))
+
+    # PL-20 §A: Compute escalating costs per region
+    # Base: -5, -8, -11, -14... (+3 per region), × income_weight, × 2 if capital
+    escalating_costs = []
+    for idx, r in enumerate(sorted_demanded):
+        escalation = -5 - (3 * idx)
+        weight = region_income_weights.get(r, 1.0)
+        cost = escalation * weight
+        if r in capital_regions:
+            cost *= 2
+        escalating_costs.append((r, cost))
+
+    # Fallback escalating costs for value-only demands (no region identity)
+    fallback_escalating_costs = []
+    for i in range(territory_demand_count_fallback):
+        idx = len(sorted_demanded) + i
+        escalation = -5 - (3 * idx)
+        fallback_escalating_costs.append(escalation)
+
+    return {
+        "demanded_regions": sorted_demanded,
+        "demanded_count": demanded_count,
+        "remaining": remaining,
+        "is_annex": is_annex,
+        "is_rump": is_rump,
+        "region_income_weights": region_income_weights,
+        "capital_regions": capital_regions,
+        "escalating_costs": escalating_costs,
+        "fallback_escalating_costs": fallback_escalating_costs,
+        "territory_demand_count_fallback": territory_demand_count_fallback,
+    }
+
+
+# ═══════════════════════════════════════════════════════
 # ACCEPTANCE FORMULA (§6)
 # ═══════════════════════════════════════════════════════
 
@@ -734,25 +820,37 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             sweetener_total += rate * svalue if svalue is not None else rate
     sweetener_total = min(SWEETENER_CAP, sweetener_total)
 
+    # PL-20 §A: Escalating territory cost (replaces flat -5/region)
+    import math
+    territory_analysis = analyze_territory_demands(
+        proposal.get("demands", []), target, world
+    )
+    territory_penalty = 0.0
+    # Sum escalating costs from analyzed regions
+    for _r, cost in territory_analysis["escalating_costs"]:
+        territory_penalty += cost
+    # Backward compat fallback for value-only demands (no regions list)
+    for fallback_cost in territory_analysis["fallback_escalating_costs"]:
+        territory_penalty += fallback_cost
+    # Elimination guards (stack with escalating cost)
+    if territory_analysis["is_annex"]:
+        territory_penalty -= 60
+    elif territory_analysis["is_rump"]:
+        territory_penalty -= 30
+    territory_penalty = math.floor(territory_penalty)
+
     demand_total = 0.0
     for d in proposal.get("demands", []):
         dtype = d.get("type", "")
         dvalue = d.get("value", 0)
         rate = DEMAND_VALUES.get(dtype, 0)
         if dtype in ("territory_cede", "territory"):
-            # Capital demands worth double (-10 vs -5)
-            regions = d.get("regions", [])
-            if not regions and dvalue is None:
-                # value=None with no regions — flat rate fallback
-                demand_total += rate
-            else:
-                capital_count = sum(1 for r in regions if r in _all_capitals)
-                normal_count = max(0, (dvalue or 0) - capital_count)
-                demand_total += rate * normal_count + rate * 2 * capital_count
+            continue  # Handled by territory_penalty above
         elif isinstance(rate, (int, float)) and abs(rate) < 1:
             demand_total += (dvalue * rate) if dvalue is not None else 0
         else:
             demand_total += rate * dvalue if dvalue is not None else rate
+    demand_total += territory_penalty
 
     deal_balance = sweetener_total + demand_total
 
@@ -909,6 +1007,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "harshness_bonus": harshness_bonus,
         "reliability_modifier": reliability_modifier,
         "ultimatum_bonus": ultimatum_bonus,
+        "territory_escalation": int(territory_penalty),
     }
 
     # ── Feedback (§6f) ──

@@ -19,8 +19,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — 2 OPEN.** Sessions 7-12 + A done. PL-15/PL-18 FIXED (Session A: demand wizard + typed manpower). PL-21/PL-22 FIXED in code. **Session B: PL-19 + PL-20.** PL-19 (P2): dynamic ultimatum relation penalty (scales with demand severity). PL-20 (P2): no guard against diplomatic elimination — last territory demands need acceptance penalty, threat/relation amplifiers, EU4-style cost scaling. See `docs/BUG_FIXES.md`.
-- **Design Refinement — AFTER BUGS.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
+- **Bug Fixes — ALL CLOSED.** Sessions 7-12 + A + B done. PL-19/PL-20 FIXED (Session B: dynamic penalties + EU4 territory scaling). PL-15/PL-18 FIXED (Session A). PL-21/PL-22 FIXED in code. See `docs/BUG_FIXES.md`.
+- **Design Refinement — NEXT.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 - **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.
