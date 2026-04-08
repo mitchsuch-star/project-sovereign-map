@@ -20,7 +20,8 @@
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
 | P1 — MAJOR | 1 | PL-12 OPEN — harshness increases acceptance |
 | P1 — MAJOR | 1 | PL-13 OPEN — viable proposal falsely rejected as "surpassed" |
-| **Total** | **2 OPEN** | |
+| P2 — UX | 1 | PL-14 OPEN — "send ultimatum" has no context or preview |
+| **Total** | **3 OPEN** | |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -80,6 +81,25 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Proposed fix:** In `modify_generous`, never downgrade proposal type below the current diplomatic state. If the player proposed alliance, generous terms should add sweeteners (gold, protection) while keeping the alliance type. Clamp `proposal_type` to be >= current diplomatic state in the hierarchy.
 - **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
 - **Est. Tests:** ~4
+
+### PL-14: "Send Ultimatum" Has No Context, Preview, or Terms Choice
+- **Source:** Playtest A3 (Apr 7) — typed "send ultimatum" in terminal
+- **Summary:** "Send ultimatum to X" fires immediately with no preview, no terms selection, no acceptance estimate, and no explanation of what's being demanded. The player has no idea what the ultimatum contains. Compare to `diplomatic_proposal` which has a full wizard flow (terms, harshness, sweeteners, acceptance %). The ultimatum is a blind one-shot action.
+- **Root cause (code-verified):**
+  - `_execute_diplomatic_ultimatum()` (diplomatic_executor.py:540-690) is a self-contained action that skips the conversational diplomacy system entirely. No dialogue, no wizard, no preview.
+  - It hardcodes the outcome: if accepted → NON_AGGRESSION (or PEACE if at war) (line 648-654). Player cannot choose what they're demanding.
+  - Acceptance is calculated using a blank `"type": "peace"` proposal (line 621-628) + military threat bonus (+10 or +15 adjacency). This means the acceptance % has nothing to do with the actual terms imposed.
+  - Costs 2 DP, -10 relation immediately (line 613), 5-turn cooldown per target (line 666).
+  - If rejected, grants casus belli (line 660) — this is the only strategic value, but the player doesn't know the acceptance odds beforehand.
+- **Priority:** P2 (UX). Action is functional but opaque. Player can't make informed decisions. Should either route through conversational diplomacy (preview + terms + acceptance estimate) or at minimum show a confirmation popup with expected outcome and acceptance odds before firing.
+- **Proposed fix options:**
+  - **(A) Lightweight:** Add a confirmation dialogue step showing target, current diplomatic state, acceptance estimate, and what will happen on accept/reject. Player confirms or cancels.
+  - **(B) Full integration:** Route ultimatum through the proposal wizard as a "coercive" proposal type with pre-filled harsh terms, giving the player the same preview/modify/send flow.
+  - **(C) Minimal:** At minimum, show acceptance % and consequences in the command response before committing (like a "are you sure?" with odds).
+- **Files:** `diplomatic_executor.py` (_execute_diplomatic_ultimatum lines 540-690), `llm_client.py` (ultimatum keyword routing lines 513-522, 1048-1053)
+- **Est. Tests:** ~3
+
+---
 
 ### PL-13: Viable Proposal Falsely Rejected as "Surpassed"
 - **Source:** Playtest A3 (Apr 7) — Proposal result popup after end turn
