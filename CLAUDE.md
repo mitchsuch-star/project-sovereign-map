@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — 4 OPEN.** Sessions 7-12 done. **Session A: PL-15 + PL-18.** PL-15 (P1): Ultimatum demand wizard. PL-18 (P2, absorbs PL-17): typed manpower demands + DEMAND_VALUES key fixes (manpower + gold_lump zero-penalty bugs). **Session B: PL-19 + PL-20.** PL-19 (P2): dynamic ultimatum relation penalty (scales with demand severity). PL-20 (P2): no guard against diplomatic elimination — last territory demands need acceptance penalty, threat/relation amplifiers, EU4-style cost scaling. PL-16→PL-15, PL-17→PL-18. See `docs/BUG_FIXES.md`.
+- **Bug Fixes — 2 OPEN.** Sessions 7-12 + A done. PL-15/PL-18 FIXED (Session A: demand wizard + typed manpower). PL-21/PL-22 FIXED in code. **Session B: PL-19 + PL-20.** PL-19 (P2): dynamic ultimatum relation penalty (scales with demand severity). PL-20 (P2): no guard against diplomatic elimination — last territory demands need acceptance penalty, threat/relation amplifiers, EU4-style cost scaling. See `docs/BUG_FIXES.md`.
 - **Design Refinement — AFTER BUGS.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
@@ -321,6 +321,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
 | Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). Only use `get_enemies_of_nation()` for omniscient operations (combat, AI, game mechanics). For mixed player/AI callers: `if marshal.nation == world.player_nation: get_visible_enemies() else: get_enemies_of_nation()` |
 | "Recruit infantry" gives artillery | **By design.** Marshals recruit their unit type: `artillery=True` → artillery, `cavalry=True` → cavalry, else infantry. Drouot always recruits artillery, Ney always cavalry. Player cannot override — Berthier gives a soft correction message. See `economy_executor.py` lines 221-253 |
+| Region attribute returns default silently | Region uses `income_value` (not `income`) and `adjacent_regions` (not `connections`). `getattr` with defaults masks the error. Always check `region.py` for exact attribute names (PL-21/PL-22) |
 
 ---
 

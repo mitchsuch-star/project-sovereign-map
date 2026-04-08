@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 7, 2026 (Session 12 follow-up: 2 new bugs from ultimatum playtest — PL-15 demand wizard, PL-16 absorbed)
+> **Last Updated:** April 8, 2026 (Session A: PL-15 + PL-18 FIXED. Demand wizard + typed manpower. 33 new tests, 8015 total.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7980** (7980 passed, 1 skipped) |
+| **Tests Passing** | **8015** (8015 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — 2 OPEN** (PL-15 demand wizard, PL-16 absorbed). See `docs/BUG_FIXES.md`. |
+| **Current Phase** | **Bug Fixes — 2 OPEN** (PL-19, PL-20). PL-15/PL-18 FIXED (Session A). See `docs/BUG_FIXES.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,21 @@
 
 ## Next Steps
 
-### Bug Fix Session 13: Ultimatum Demand Wizard (PL-15 + PL-16)
+### Bug Fix Session A: COMPLETE (PL-15 + PL-18)
 
-**PL-15 (P1 CRITICAL):** Ultimatum popup shows no demands (key mismatch) + player cannot customize demands. Fix: full demand wizard modeled on armistice `terms_guidance` flow — gold (more/less) → territory (region picker) → manpower (more/less) → confirm with acceptance estimate + splash damage preview. ~150-200 new lines. **PL-16 absorbed** — `modify_harsh_ultimatum` eliminated by wizard. See `docs/BUG_FIXES.md`.
+**PL-15 FIXED:** Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Godot popup fixed with dedicated `_build_ultimatum_content()`. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. 33 new tests.
+
+**PL-18 FIXED:** 4 new DEMAND_VALUES keys, typed manpower wizard with pool-aware type picker, `_apply_ultimatum_demands()` dispatches to correct pool, backward compat for bare `"manpower"`.
+
+### Bug Fix Session B: Dynamic Penalties + Elimination Guards (PL-19 + PL-20)
+
+**PL-19 (P2):** Dynamic ultimatum relation penalty scales with demand severity (-10 to -60). Splash damage scales with multiplier (1.0x–2.5x). 5 audit amendments (AM-19.1–19.5): `math.floor()` rounding, float splash wrapping, acceptance-before-penalty ordering, `income_value` fix.
+
+**PL-20 (P2):** EU4-style escalating per-region acceptance cost (-5, -8, -11...) × income weight. Elimination guards (-60 annex, -30 rump). Territory amplifier on relation penalty (territory component only, per AM-20.4). 9 audit amendments (AM-20.1–20.9): harshness alignment, application-side elimination guard, safe_targets filter, split amplifier, `income_value`, dedup, treaty guard pseudocode.
+
+### Adversarial Audit (Apr 8) — completed, all findings incorporated
+
+4-agent parallel audit covering 8 strategies. Found 12 FAILs + 19 WARNINGs. Two critical pre-existing bugs (PL-21 phantom `connections`, PL-22 phantom `income`) FIXED in code — territory demands and income-weighted costs were completely non-functional. All findings incorporated as amendments to PL-15/18/19/20 specs.
 
 ### Design Refinement (AFTER BUGS)
 
@@ -36,7 +48,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-12~~ — 34 bugs resolved, 238 tests. Session 12: PL-14 (ultimatum rework, 23 new tests). Session 11: PL-12 (inverted harshness, 5-part fix), PL-13 (false surpassed rejection, 4-part fix). 13 new tests.
+- ~~Bug Fixes Sessions 1-12 + A~~ — 36 bugs resolved, 271 tests. Session A: PL-15 (demand wizard, 33 new tests) + PL-18 (typed manpower + DEMAND_VALUES). Session 12: PL-14 (ultimatum rework, 23 new tests). Session 11: PL-12 + PL-13 (13 tests).
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests

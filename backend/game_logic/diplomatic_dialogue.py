@@ -435,8 +435,11 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
                 demand_lines.append(f"  - Cede {', '.join(region_names)}")
             else:
                 demand_lines.append(f"  - Cede {int(value)} region(s)")
+        elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+            unit_label = dtype.replace("manpower_", "")
+            demand_lines.append(f"  - {int(value)} {unit_label}")
         elif dtype == "manpower":
-            demand_lines.append(f"  - {int(value)} manpower")
+            demand_lines.append(f"  - {int(value)} infantry")
     dialogue["demands_display"] = demand_lines
 
     return dialogue

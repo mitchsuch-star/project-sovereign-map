@@ -563,6 +563,13 @@ class DiplomaticExecutor:
                 "message": f"We are already at war with {target_nation}, Sire. Use a peace proposal with harsh demands instead.",
             }
 
+        # Pre-validation: ARMISTICE blocked (AM-15.2)
+        if current_state == "ARMISTICE":
+            return {
+                "success": False,
+                "message": f"An armistice is in effect with {target_nation}, Sire. Honor the terms before making new demands.",
+            }
+
         # Pre-validation: Vassal blocked
         vassals = getattr(world, 'vassals', {})
         if target_nation in vassals:
@@ -639,8 +646,8 @@ class DiplomaticExecutor:
             "prompt": (f"Talleyrand presents the ultimatum terms for {target_nation}. "
                        f"These demands are backed by military force — {target_nation} must comply or face consequences."),
             "options": [
-                {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
-                {"label": "Harsher Demands", "action": "modify_harsh_ultimatum"},
+                {"label": "Customize Demands", "action": "ultimatum_customize"},
+                {"label": "Use Suggested", "action": "execute_ultimatum", "terms": terms},
                 {"label": "Reconsider", "action": "reconsider"},
             ],
             "terms": terms,
@@ -686,14 +693,20 @@ class DiplomaticExecutor:
 
             elif dtype == "gold_per_turn":
                 diplo_key = world._make_diplo_key(player, target_nation)
-                world.active_treaties[diplo_key] = {
-                    "nations": [player, target_nation],
-                    "type": "ultimatum_tribute",
-                    "is_ultimatum_tribute": True,
-                    "clauses": [{"type": "gold_per_turn", "from": target_nation, "to": player, "amount": int(value)}],
-                    "turn_signed": int(world.current_turn),
-                    "harshness": 1.0,
-                }
+                new_clause = {"type": "gold_per_turn", "from": target_nation, "to": player, "amount": int(value)}
+                existing = world.active_treaties.get(diplo_key)
+                if existing:
+                    # AM-15.1: Merge into existing treaty instead of overwriting
+                    existing.setdefault("clauses", []).append(new_clause)
+                else:
+                    world.active_treaties[diplo_key] = {
+                        "nations": [player, target_nation],
+                        "type": "ultimatum_tribute",
+                        "is_ultimatum_tribute": True,
+                        "clauses": [new_clause],
+                        "turn_signed": int(world.current_turn),
+                        "harshness": 1.0,
+                    }
                 descriptions.append(f"{int(value)} gold/turn tribute")
 
             elif dtype == "territory_cede":
@@ -710,18 +723,21 @@ class DiplomaticExecutor:
                     add_threat(world, 8 * len(transferred), "ultimatum_annex")
                     descriptions.append(f"{', '.join(transferred)} annexed")
 
-            elif dtype == "manpower":
+            elif dtype in ("manpower", "manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+                unit_type = dtype.replace("manpower_", "") if "_" in dtype else "infantry"
                 from_pool = world.manpower_pools.get(target_nation, {})
                 to_pool = world.manpower_pools.get(player, {})
-                transfer = min(int(value), from_pool.get("infantry", 0))
+                transfer = min(int(value), from_pool.get(unit_type, 0))
                 if transfer > 0 and target_nation in world.manpower_pools:
-                    world.manpower_pools[target_nation]["infantry"] = max(
-                        0, from_pool.get("infantry", 0) - transfer)
+                    world.manpower_pools[target_nation][unit_type] = max(
+                        0, from_pool.get(unit_type, 0) - transfer)
                 if transfer > 0 and player in world.manpower_pools:
-                    world.manpower_pools[player]["infantry"] = (
-                        to_pool.get("infantry", 0) + transfer)
+                    world.manpower_pools[player][unit_type] = (
+                        to_pool.get(unit_type, 0) + transfer)
                 if transfer > 0:
-                    descriptions.append(f"{transfer} manpower conscripted")
+                    type_label = {"infantry": "infantry conscripts", "cavalry": "cavalry mounts",
+                                  "artillery": "artillery batteries"}.get(unit_type, "conscripts")
+                    descriptions.append(f"{transfer} {type_label}")
 
         return descriptions
 
@@ -854,6 +870,8 @@ class DiplomaticExecutor:
                         "reject": ["reject_ai_proposal"], "decline": ["reject_ai_proposal"],
                         "counter": ["counter_ai_proposal"],
                         "thank": ["dismiss"],
+                        "customize": ["ultimatum_customize"],
+                        "deliver": ["execute_ultimatum"],
                         "trust": ["send_suggested"],
                         "elaborate": ["elaborate", "expand_to_proposal"],
                         "more": ["elaborate", "expand_to_proposal"],
@@ -1256,79 +1274,112 @@ class DiplomaticExecutor:
                 "dp_cost": dp_cost,
             }
 
-        elif action == "modify_harsh_ultimatum":
-            # PL-14 §6b: Escalate ultimatum demands (dedicated handler, NOT proposal modify_harsh)
-            from backend.game_logic.diplomatic_dialogue import _enrich_ultimatum_dialogue
-            import copy
+        elif action == "ultimatum_customize":
+            # PL-15: Enter demand wizard — gold → territory → manpower → confirm
+            return self._enter_ultimatum_wizard(dialogue, world)
 
-            terms = copy.deepcopy(dialogue.get("terms", {}))
-            context = dict(dialogue.get("context", {}))
-            modify_count = context.get("modify_count", 0)
+        elif action == "ultimatum_demand_gold":
+            context = self._copy_guidance_context(dialogue)
+            gold = int(context.get("gold_amount", 50))
+            gold_mode = context.get("gold_mode", "per_turn")
+            dtype = "gold_per_turn" if gold_mode == "per_turn" else "gold_lump"
+            context["approved_demands"].append({"type": dtype, "value": int(gold)})
+            return self._build_ultimatum_territory_step(context, world, dialogue)
 
-            if modify_count >= 2:
-                return {
-                    "success": True,
-                    "message": "Cannot escalate further, Sire. These are the harshest terms possible.",
-                    "diplomatic_dialogue": dialogue,
-                }
+        elif action == "ultimatum_more_gold":
+            context = self._copy_guidance_context(dialogue)
+            gold_mode = context.get("gold_mode", "per_turn")
+            cap = 300 if gold_mode == "per_turn" else 500
+            context["gold_amount"] = min(cap, int(context.get("gold_amount", 50) * 1.5))
+            return self._build_ultimatum_gold_step(context, world, dialogue, rebuild=True)
 
-            # Escalate: multiply all demand values by 1.5
-            for d in terms.get("demands", []):
-                if d.get("type") not in ("territory_cede",):
-                    d["value"] = int(d.get("value", 0) * 1.5)
+        elif action == "ultimatum_less_gold":
+            context = self._copy_guidance_context(dialogue)
+            context["gold_amount"] = max(25, int(context.get("gold_amount", 50) * 0.7))
+            return self._build_ultimatum_gold_step(context, world, dialogue, rebuild=True)
 
-            # Round 1: add territory if not present and France controls adjacent region
-            if modify_count == 0:
-                has_territory = any(d.get("type") == "territory_cede" for d in terms.get("demands", []))
-                if not has_territory:
-                    player = world.player_nation
-                    regions = getattr(world, 'regions', {})
-                    france_regions = {name for name, r in regions.items() if r.controller == player}
-                    from backend.models.region import NATION_CAPITALS
-                    for name, r in regions.items():
-                        if r.controller == target_nation and name != NATION_CAPITALS.get(target_nation):
-                            connections = getattr(r, 'connections', [])
-                            if any(c in france_regions for c in connections):
-                                terms["demands"].append({"type": "territory_cede", "value": 1, "regions": [name]})
-                                break
+        elif action == "ultimatum_skip_gold":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_territory_step(context, world, dialogue)
 
-            # Round 2: add manpower if not present
-            if modify_count == 1:
-                has_manpower = any(d.get("type") == "manpower" for d in terms.get("demands", []))
-                if not has_manpower:
-                    terms["demands"].append({"type": "manpower", "value": 3000})
+        elif action == "ultimatum_territory_yes":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_region_pick(context, world, dialogue)
 
-            modify_count += 1
-            context["modify_count"] = modify_count
+        elif action == "ultimatum_skip_territory":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
 
-            # Rebuild dialogue
-            options = [
-                {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
-            ]
-            if modify_count < 2:
-                options.append({"label": "Harsher Demands", "action": "modify_harsh_ultimatum"})
-            options.append({"label": "Reconsider", "action": "reconsider"})
+        elif action == "ultimatum_demand_region":
+            context = self._copy_guidance_context(dialogue)
+            ranked = context.get("ranked_candidates", [])
+            idx = context.get("candidate_index", 0)
+            if idx < len(ranked):
+                region_name = ranked[idx][0]
+                context["approved_demands"].append(
+                    {"type": "territory_cede", "value": 1, "regions": [region_name]})
+                context["territory_demanded"] = context.get("territory_demanded", 0) + 1
+                context["candidate_index"] = idx + 1
+            max_t = context.get("max_territory", 1)
+            if context.get("territory_demanded", 0) >= max_t or context.get("candidate_index", 0) >= len(ranked):
+                return self._build_ultimatum_manpower_step(context, world, dialogue)
+            return self._build_ultimatum_region_pick(context, world, dialogue)
 
-            cap_msg = " These are the harshest terms possible." if modify_count >= 2 else ""
+        elif action == "ultimatum_skip_region":
+            context = self._copy_guidance_context(dialogue)
+            context["candidate_index"] = context.get("candidate_index", 0) + 1
+            ranked = context.get("ranked_candidates", [])
+            if context["candidate_index"] >= len(ranked):
+                return self._build_ultimatum_manpower_step(context, world, dialogue)
+            return self._build_ultimatum_region_pick(context, world, dialogue)
 
-            new_dialogue = {
-                "type": "ultimatum_confirm",
-                "target_nation": target_nation,
-                "turn_created": int(world.current_turn),
-                "prompt": f"As you wish, Sire. I have drafted harsher demands for {target_nation}.{cap_msg}",
-                "options": options,
-                "terms": terms,
-                "splash_damage_preview": dialogue.get("splash_damage_preview", []),
-                "threat_increase_preview": dialogue.get("threat_increase_preview", ""),
-                "context": context,
-            }
-            new_dialogue = _enrich_ultimatum_dialogue(new_dialogue, target_nation, world)
-            world.dialogue_manager.replace(new_dialogue)
-            return {
-                "success": True,
-                "message": new_dialogue["prompt"],
-                "diplomatic_dialogue": new_dialogue,
-            }
+        elif action == "ultimatum_enough_territory":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
+
+        elif action == "ultimatum_pick_manpower_type":
+            context = self._copy_guidance_context(dialogue)
+            unit_type = (selected.get("terms") or {}).get("unit_type", "infantry")
+            context["current_manpower_type"] = unit_type
+            return self._build_ultimatum_manpower_amount_step(context, world, dialogue)
+
+        elif action == "ultimatum_demand_manpower":
+            context = self._copy_guidance_context(dialogue)
+            unit_type = context.get("current_manpower_type", "infantry")
+            amount = int(context.get("manpower_amount", 500))
+            context["approved_demands"].append(
+                {"type": f"manpower_{unit_type}", "value": int(amount)})
+            context.setdefault("demanded_manpower_types", []).append(unit_type)
+            # Check if more types available
+            return self._build_ultimatum_manpower_another(context, world, dialogue)
+
+        elif action == "ultimatum_more_manpower":
+            context = self._copy_guidance_context(dialogue)
+            unit_type = context.get("current_manpower_type", "infantry")
+            target_pool = world.manpower_pools.get(target_nation, {}).get(unit_type, 0)
+            cap = min(5000, target_pool)
+            context["manpower_amount"] = min(cap, int(context.get("manpower_amount", 500) * 1.5))
+            return self._build_ultimatum_manpower_amount_step(context, world, dialogue, rebuild=True)
+
+        elif action == "ultimatum_less_manpower":
+            context = self._copy_guidance_context(dialogue)
+            context["manpower_amount"] = max(300, int(context.get("manpower_amount", 500) * 0.7))
+            return self._build_ultimatum_manpower_amount_step(context, world, dialogue, rebuild=True)
+
+        elif action == "ultimatum_skip_manpower":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_confirm_step(context, world, dialogue)
+
+        elif action == "ultimatum_another_type":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
+
+        elif action == "ultimatum_done_manpower":
+            context = self._copy_guidance_context(dialogue)
+            return self._build_ultimatum_confirm_step(context, world, dialogue)
+
+        elif action == "ultimatum_start_over":
+            return self._enter_ultimatum_wizard(dialogue, world)
 
         elif action == "modify_generous":
             terms = selected.get("terms", {})
@@ -2361,6 +2412,344 @@ class DiplomaticExecutor:
         return {
             "success": True,
             "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    # ═══════════════════════════════════════════════════════════
+    # ULTIMATUM DEMAND WIZARD (PL-15 + PL-18)
+    # ═══════════════════════════════════════════════════════════
+
+    def _enter_ultimatum_wizard(self, dialogue: dict, world) -> dict:
+        """Entry point for ultimatum demand wizard. Computes context and starts gold step."""
+        import copy
+        context = copy.deepcopy(dialogue.get("context", {}))
+        context["target_nation"] = dialogue.get("target_nation", "")
+        context["approved_demands"] = []
+        context["demanded_manpower_types"] = []
+        context["territory_demanded"] = 0
+        context["candidate_index"] = 0
+        # Carry forward splash/threat previews
+        context["splash_damage_preview"] = dialogue.get("splash_damage_preview", [])
+        context["threat_increase_preview"] = dialogue.get("threat_increase_preview", "")
+
+        target_nation = context["target_nation"]
+        player = world.player_nation
+        regions = getattr(world, 'regions', {})
+
+        # Compute target income for gold step
+        target_income = 0
+        for rname in world.get_nation_regions(target_nation):
+            region = regions.get(rname)
+            if region:
+                target_income += getattr(region, 'income_value', 0)
+        target_gold = getattr(world, 'nation_gold', {}).get(target_nation, 0)
+
+        # Compute military strengths for territory/manpower gating
+        marshals = getattr(world, 'marshals', {})
+        player_strength = sum(m.strength for m in marshals.values()
+                              if m.nation == player and m.strength > 0)
+        target_strength = sum(m.strength for m in marshals.values()
+                              if m.nation == target_nation and m.strength > 0)
+        context["player_strength"] = int(player_strength)
+        context["target_strength"] = int(target_strength)
+
+        if target_income > 0:
+            context["gold_amount"] = min(300, max(50, int(target_income * 0.5)))
+            context["gold_mode"] = "per_turn"
+        elif target_gold > 0:
+            context["gold_amount"] = min(500, max(50, int(target_gold * 0.3)))
+            context["gold_mode"] = "lump"
+        else:
+            # No gold available — skip to territory
+            context["gold_amount"] = 0
+            context["gold_mode"] = "lump"
+            return self._build_ultimatum_territory_step(context, world, dialogue)
+
+        return self._build_ultimatum_gold_step(context, world, dialogue)
+
+    def _build_ultimatum_gold_step(self, context: dict, world, dialogue: dict,
+                                    rebuild: bool = False) -> dict:
+        """Build the gold demand dialogue step."""
+        target_nation = context.get("target_nation", "")
+        gold = int(context.get("gold_amount", 50))
+        gold_mode = context.get("gold_mode", "per_turn")
+        label_suffix = "gold/turn" if gold_mode == "per_turn" else "gold (immediate)"
+
+        text = f"How much gold shall we demand from {target_nation}, Sire? I suggest {int(gold)} {label_suffix}."
+        context["guidance_state"] = "ultimatum_gold"
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": text,
+            "options": [
+                {"label": f"Demand {int(gold)} {label_suffix}", "description": "Accept this amount.",
+                 "action": "ultimatum_demand_gold"},
+                {"label": "Demand more", "description": "Increase the gold demand.",
+                 "action": "ultimatum_more_gold"},
+                {"label": "Demand less", "description": "Decrease the gold demand.",
+                 "action": "ultimatum_less_gold"},
+                {"label": "Skip gold", "description": "Move on without demanding gold.",
+                 "action": "ultimatum_skip_gold"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_territory_step(self, context: dict, world, dialogue: dict) -> dict:
+        """Check military superiority and offer territory demands."""
+        from backend.game_logic.diplomatic_templates import rank_ultimatum_territory_candidates
+
+        target_nation = context.get("target_nation", "")
+        player = world.player_nation
+        player_strength = context.get("player_strength", 0)
+        target_strength = context.get("target_strength", 0)
+
+        if target_strength > 0 and player_strength <= target_strength * 1.2:
+            # No military superiority — skip to manpower
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
+
+        ranked = rank_ultimatum_territory_candidates(world, player, target_nation)
+        if not ranked:
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
+
+        context["ranked_candidates"] = ranked
+        context["candidate_index"] = 0
+        context["territory_demanded"] = 0
+        # Max regions: 1 if <2.0x superiority, 2 if >=2.0x
+        if target_strength > 0:
+            context["max_territory"] = 2 if player_strength >= target_strength * 2.0 else 1
+        else:
+            context["max_territory"] = 2
+        context["guidance_state"] = "ultimatum_territory"
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": (f"Our military superiority permits territorial demands, Sire. "
+                                f"I have identified {len(ranked)} region(s) we could claim."),
+            "options": [
+                {"label": "Yes, demand territory", "description": "Let me show you the candidates.",
+                 "action": "ultimatum_territory_yes"},
+                {"label": "Skip territory", "description": "Move on to manpower demands.",
+                 "action": "ultimatum_skip_territory"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_region_pick(self, context: dict, world, dialogue: dict) -> dict:
+        """Show one territory candidate for demand selection."""
+        target_nation = context.get("target_nation", "")
+        ranked = context.get("ranked_candidates", [])
+        idx = context.get("candidate_index", 0)
+
+        if idx >= len(ranked):
+            return self._build_ultimatum_manpower_step(context, world, dialogue)
+
+        region_name, reason = ranked[idx]
+        context["guidance_state"] = "ultimatum_region_pick"
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": f"I suggest demanding {region_name} — {reason}",
+            "options": [
+                {"label": f"Demand {region_name}", "description": f"Add {region_name} to our demands.",
+                 "action": "ultimatum_demand_region"},
+                {"label": "Not this one", "description": "Show me the next candidate.",
+                 "action": "ultimatum_skip_region"},
+                {"label": "Enough territory", "description": "Move on to manpower demands.",
+                 "action": "ultimatum_enough_territory"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_manpower_step(self, context: dict, world, dialogue: dict) -> dict:
+        """Check troop advantage and offer manpower type selection."""
+        target_nation = context.get("target_nation", "")
+        player_strength = context.get("player_strength", 0)
+        target_strength = context.get("target_strength", 0)
+        troop_advantage = player_strength - target_strength
+
+        if troop_advantage <= 5000:
+            return self._build_ultimatum_confirm_step(context, world, dialogue)
+
+        # Find eligible manpower types
+        target_pools = world.manpower_pools.get(target_nation, {})
+        demanded = context.get("demanded_manpower_types", [])
+        eligible = []
+        for utype in ("infantry", "cavalry", "artillery"):
+            if utype not in demanded and target_pools.get(utype, 0) >= 300:
+                eligible.append((utype, target_pools.get(utype, 0)))
+
+        if not eligible:
+            return self._build_ultimatum_confirm_step(context, world, dialogue)
+
+        context["guidance_state"] = "ultimatum_manpower_type"
+        options = []
+        for utype, pool in eligible:
+            options.append({
+                "label": f"Demand {utype} (pool: {int(pool)})",
+                "description": f"Conscript {utype} from {target_nation}.",
+                "action": "ultimatum_pick_manpower_type",
+                "terms": {"unit_type": utype},
+            })
+        options.append({
+            "label": "Skip manpower", "description": "Move on to confirm.",
+            "action": "ultimatum_skip_manpower",
+        })
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": "Our troop advantage warrants conscription demands, Sire. What type of manpower shall we demand?",
+            "options": options,
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_manpower_amount_step(self, context: dict, world, dialogue: dict,
+                                               rebuild: bool = False) -> dict:
+        """Build the manpower amount picker for the selected type."""
+        target_nation = context.get("target_nation", "")
+        unit_type = context.get("current_manpower_type", "infantry")
+        target_pool = world.manpower_pools.get(target_nation, {}).get(unit_type, 0)
+
+        if not rebuild:
+            troop_advantage = context.get("player_strength", 0) - context.get("target_strength", 0)
+            suggested = min(int(target_pool), min(5000, max(300, int(troop_advantage * 0.1))))
+            context["manpower_amount"] = suggested
+
+        amount = int(context.get("manpower_amount", 500))
+        context["guidance_state"] = "ultimatum_manpower_amount"
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": f"How many {unit_type} shall we demand? I suggest {int(amount)} (pool: {int(target_pool)}).",
+            "options": [
+                {"label": f"Demand {int(amount)} {unit_type}", "description": "Accept this amount.",
+                 "action": "ultimatum_demand_manpower"},
+                {"label": "Demand more", "description": "Increase the amount.",
+                 "action": "ultimatum_more_manpower"},
+                {"label": "Demand less", "description": "Decrease the amount.",
+                 "action": "ultimatum_less_manpower"},
+                {"label": "Skip this type", "description": "Don't demand this type.",
+                 "action": "ultimatum_skip_manpower"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_manpower_another(self, context: dict, world, dialogue: dict) -> dict:
+        """After demanding one type, check if more types are available."""
+        target_nation = context.get("target_nation", "")
+        target_pools = world.manpower_pools.get(target_nation, {})
+        demanded = context.get("demanded_manpower_types", [])
+        eligible = [utype for utype in ("infantry", "cavalry", "artillery")
+                    if utype not in demanded and target_pools.get(utype, 0) >= 300]
+
+        if not eligible:
+            return self._build_ultimatum_confirm_step(context, world, dialogue)
+
+        new_dialogue = {
+            "type": "ultimatum_demand_wizard",
+            "target_nation": target_nation,
+            "talleyrand_text": f"Demand another type of manpower, Sire? ({', '.join(eligible)} available)",
+            "options": [
+                {"label": "Yes, demand more", "description": "Choose another manpower type.",
+                 "action": "ultimatum_another_type"},
+                {"label": "No, that's enough", "description": "Move on to confirm.",
+                 "action": "ultimatum_done_manpower"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ultimatum_confirm_step(self, context: dict, world, dialogue: dict) -> dict:
+        """Assemble final demands and show confirmation with acceptance estimate."""
+        from backend.game_logic.diplomatic_dialogue import _enrich_ultimatum_dialogue
+
+        target_nation = context.get("target_nation", "")
+        demands = list(context.get("approved_demands", []))
+
+        # Empty demands guard — inject floor demand
+        if not demands:
+            demands.append({"type": "gold_lump", "value": 100})
+
+        terms = {
+            "demands": demands,
+            "sweeteners": [],
+            "clauses": [],
+            "type": "ultimatum_demand",
+        }
+
+        context["guidance_state"] = "ultimatum_confirm"
+
+        new_dialogue = {
+            "type": "ultimatum_confirm",
+            "target_nation": target_nation,
+            "turn_created": int(world.current_turn),
+            "prompt": "Here are the assembled demands, Sire. Shall we deliver this ultimatum?",
+            "options": [
+                {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
+                {"label": "Start Over", "action": "ultimatum_start_over"},
+                {"label": "Reconsider", "action": "reconsider"},
+            ],
+            "terms": terms,
+            "splash_damage_preview": context.get("splash_damage_preview", []),
+            "threat_increase_preview": context.get("threat_increase_preview", ""),
+            "context": context,
+        }
+        new_dialogue = _enrich_ultimatum_dialogue(new_dialogue, target_nation, world)
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["prompt"],
             "diplomatic_dialogue": new_dialogue,
         }
 

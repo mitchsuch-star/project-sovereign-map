@@ -158,7 +158,12 @@ SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated off
 
 DEMAND_VALUES = {
     "gold_per_turn": -5 / 100,     # -5 per 100g/turn demanded (PL-12-E: was -2)
+    "gold_lump": -3 / 100,         # -3 per 100g lump demanded (PL-18)
     "manpower_per_turn": -3 / 2000, # -3 per 2000 infantry/turn demanded
+    "manpower_infantry": -3 / 2000, # -3 per 2000 infantry demanded (PL-18)
+    "manpower_cavalry": -5 / 2000,  # -5 per 2000 cavalry demanded (PL-18, scarcer)
+    "manpower_artillery": -8 / 2000, # -8 per 2000 artillery demanded (PL-18, rarest)
+    "manpower": -3 / 2000,         # backward compat alias → infantry rate (PL-18)
     "territory": -5,                # -5 per region demanded
     "territory_cede": -5,           # alias for ratification path
     "ap_per_turn": -25,             # -25 per AP demanded (extreme)
@@ -850,7 +855,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                 # +15 if adjacent to any target marshal
                 if adjacency_bonus == 0:
                     for e_name, e_obj in marshals.items():
-                        if e_obj.nation == target and e_obj.location in getattr(m_region, 'connections', []):
+                        if e_obj.nation == target and e_obj.location in getattr(m_region, 'adjacent_regions', []):
                             adjacency_bonus = 15
                             break
         ultimatum_bonus += adjacency_bonus + territory_bonus

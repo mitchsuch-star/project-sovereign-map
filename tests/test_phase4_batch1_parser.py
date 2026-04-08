@@ -273,7 +273,7 @@ class TestUltimatum:
         assert "peace proposal" in result.get("message", "").lower() or "already at war" in result.get("message", "").lower()
 
     def test_ultimatum_dialogue_options(self, executor, world, game_state):
-        """PL-14: Dialogue has [Deliver] [Harsher] [Reconsider] options."""
+        """PL-15: Dialogue has [Customize] [Use Suggested] [Reconsider] options."""
         diplomatic_data = {
             "action": "diplomatic_ultimatum",
             "target_nation": "Austria",
@@ -282,7 +282,7 @@ class TestUltimatum:
         dialogue = world.pending_diplomatic_dialogue
         actions = [o["action"] for o in dialogue.get("options", [])]
         assert "execute_ultimatum" in actions
-        assert "modify_harsh_ultimatum" in actions
+        assert "ultimatum_customize" in actions
         assert "reconsider" in actions
 
 

@@ -14,7 +14,6 @@ Tests the new conversational diplomacy flow for ultimatums:
 - Cooldown migration (old dict → new int)
 """
 
-import copy
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 from backend.game_logic.diplomacy import calculate_acceptance, BASE_DISPOSITION
@@ -72,7 +71,7 @@ class TestUltimatumDialoguePush:
         dialogue = world.pending_diplomatic_dialogue
         actions = [o["action"] for o in dialogue["options"]]
         assert "execute_ultimatum" in actions
-        assert "modify_harsh_ultimatum" in actions
+        assert "ultimatum_customize" in actions
         assert "reconsider" in actions
 
 
@@ -277,10 +276,10 @@ class TestSplashDamage:
         assert austria_splash[0]["relation_penalty"] == -15  # ALLIANCE tier
 
 
-class TestModifyHarshUltimatum:
-    """PL-14 §6b: Dedicated escalation handler."""
+class TestUltimatumWizardEntry:
+    """PL-15: Wizard replaces modify_harsh_ultimatum."""
 
-    def test_demands_escalate(self):
+    def test_customize_enters_wizard(self):
         world = _make_world()
         world.diplomatic_points = 5
         _set_diplo(world, "France", "Prussia", "PEACE")
@@ -289,22 +288,17 @@ class TestModifyHarshUltimatum:
         executor._execute_diplomatic_ultimatum(
             {"target_nation": "Prussia"}, world)
 
-        # Get initial demand values
-        d1 = world.pending_diplomatic_dialogue["terms"]
-        initial_demands = copy.deepcopy(d1.get("demands", []))
-
-        # Escalate
         game_state = {"world": world}
-        result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
+        result = executor.handle_diplomatic_dialogue_response("customize", game_state)
         assert result["success"]
 
-        d2 = world.pending_diplomatic_dialogue["terms"]
-        # Gold demands should have increased (×1.5)
-        for orig, new in zip(initial_demands, d2.get("demands", [])):
-            if orig.get("type") not in ("territory_cede",):
-                assert new.get("value", 0) >= orig.get("value", 0)
+        dialogue = world.pending_diplomatic_dialogue
+        assert dialogue["type"] == "ultimatum_demand_wizard"
+        # Should be at gold step
+        assert dialogue["context"]["guidance_state"] == "ultimatum_gold"
 
-    def test_capped_at_2_rounds(self):
+    def test_use_suggested_still_works(self):
+        """'Use Suggested' fast path delivers via existing execute_ultimatum."""
         world = _make_world()
         world.diplomatic_points = 5
         _set_diplo(world, "France", "Prussia", "PEACE")
@@ -314,18 +308,9 @@ class TestModifyHarshUltimatum:
             {"target_nation": "Prussia"}, world)
 
         game_state = {"world": world}
-        # Round 1
-        r1 = executor.handle_diplomatic_dialogue_response("harsh", game_state)
-        assert r1["success"]
-        # Round 2
-        r2 = executor.handle_diplomatic_dialogue_response("harsh", game_state)
-        assert r2["success"]
-        # After 2 rounds, "Harsher Demands" option should be removed
-        dialogue = world.pending_diplomatic_dialogue
-        actions = [o["action"] for o in dialogue.get("options", [])]
-        assert "modify_harsh_ultimatum" not in actions
-        # Cap message embedded in prompt
-        assert "harshest" in dialogue.get("prompt", "").lower()
+        result = executor.handle_diplomatic_dialogue_response("deliver", game_state)
+        assert result["success"]
+        assert world.diplomatic_points == 3  # DP deducted
 
 
 class TestGenerateUltimatumTerms:
@@ -336,12 +321,12 @@ class TestGenerateUltimatumTerms:
         # Set up Prussia with known income
         for name, region in world.regions.items():
             if region.controller == "Prussia":
-                region.income = 200  # Total will vary by region count
+                region.income_value = 200  # Total will vary by region count
 
         terms = generate_ultimatum_terms("Prussia", world)
         gold_demands = [d for d in terms["demands"] if d["type"] == "gold_per_turn"]
         if gold_demands:
-            total_income = sum(r.income for r in world.regions.values() if r.controller == "Prussia")
+            total_income = sum(r.income_value for r in world.regions.values() if r.controller == "Prussia")
             assert gold_demands[0]["value"] <= total_income * 0.5 + 1  # +1 for rounding
 
     def test_no_ap_demands(self):
@@ -363,7 +348,7 @@ class TestGenerateUltimatumTerms:
         # Zero out all income for target
         for name, region in world.regions.items():
             if region.controller == "Prussia":
-                region.income = 0
+                region.income_value = 0
         world.nation_gold["Prussia"] = 1000
 
         terms = generate_ultimatum_terms("Prussia", world)

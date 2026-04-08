@@ -1319,12 +1319,14 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
     demands = []
     player = getattr(world, 'player_nation', 'France')
 
-    # ── Gold demand: capped at 50% of target income ──
+    # ── Gold demand: capped at 50% of target income (AM-15.7: use get_nation_regions) ──
     target_income = 0
     target_gold = 0
-    for region in getattr(world, 'regions', {}).values():
-        if region.controller == target_nation:
-            target_income += getattr(region, 'income', 0)
+    regions = getattr(world, 'regions', {})
+    for rname in world.get_nation_regions(target_nation):
+        region = regions.get(rname)
+        if region:
+            target_income += getattr(region, 'income_value', 0)
     target_gold = getattr(world, 'nation_gold', {}).get(target_nation, 0)
 
     if target_income > 0:
@@ -1334,10 +1336,9 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
         gold_lump = min(500, max(50, int(target_gold * 0.3)))
         demands.append({"type": "gold_lump", "value": int(gold_lump)})
 
-    # ── Territory demand: coveted regions if France controls adjacent ──
-    regions = getattr(world, 'regions', {})
-    france_regions = {name for name, r in regions.items() if r.controller == player}
-    target_regions = {name for name, r in regions.items() if r.controller == target_nation}
+    # ── Territory demand: coveted regions if France controls adjacent (AM-15.7) ──
+    france_regions = set(world.get_nation_regions(player))
+    target_regions = set(world.get_nation_regions(target_nation))
 
     # Calculate military superiority
     marshals = getattr(world, 'marshals', {})
@@ -1356,7 +1357,7 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
             from backend.models.region import NATION_CAPITALS
             if t_name == NATION_CAPITALS.get(target_nation):
                 continue
-            connections = getattr(t_region, 'connections', [])
+            connections = getattr(t_region, 'adjacent_regions', [])
             if any(c in france_regions for c in connections):
                 adjacent_targets.append(t_name)
         if adjacent_targets:
@@ -1367,7 +1368,7 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
     if troop_advantage > 5000:
         manpower_demand = min(5000, int(troop_advantage * 0.1))
         if manpower_demand >= 500:
-            demands.append({"type": "manpower", "value": int(manpower_demand)})
+            demands.append({"type": "manpower_infantry", "value": int(manpower_demand)})
 
     # Ensure at least one demand (gold floor)
     if not demands:
@@ -1720,6 +1721,49 @@ def rank_cession_candidates(world, player_nation: str, target_nation: str) -> li
     return [[c[0], c[1]] for c in candidates]
 
 
+def rank_ultimatum_territory_candidates(world, player_nation: str, target_nation: str) -> list:
+    """Rank target regions for ultimatum demands, prioritizing border + valuable.
+
+    Returns list of [region_name, reason_text] pairs, sorted best-to-demand first.
+    Only includes regions adjacent to player territory. Excludes target's capital.
+    """
+    from backend.models.region import NATION_CAPITALS, REGION_TYPE_INCOME
+
+    capital = NATION_CAPITALS.get(target_nation, "")
+    player_regions = set(world.get_nation_regions(player_nation))
+    target_region_names = world.get_nation_regions(target_nation)
+
+    candidates = []
+    for region_name in target_region_names:
+        if region_name == capital:
+            continue
+        region = world.regions.get(region_name)
+        if not region:
+            continue
+
+        # Only regions adjacent to player territory
+        is_border = any(adj in player_regions for adj in region.adjacent_regions)
+        if not is_border:
+            continue
+
+        has_buildings = len(region.buildings) > 0
+        income = REGION_TYPE_INCOME.get(region.region_type, 100)
+
+        # Build reason text
+        if has_buildings:
+            building_types = ", ".join(b["type"].replace("_", " ") for b in region.buildings)
+            reason = (f"{region_name} borders our territory and has {building_types} "
+                      f"— a valuable acquisition.")
+        else:
+            reason = f"{region_name} borders our territory — a natural extension of our domain."
+
+        # Sort: buildings first (more valuable), then higher income
+        candidates.append([region_name, reason, (not has_buildings, -income)])
+
+    candidates.sort(key=lambda c: c[2])
+    return [[c[0], c[1]] for c in candidates]
+
+
 # ═══════ ENEMY DIPLOMAT VOICE RESOLUTION ═══════
 
 # Maps diplomat personality to template key prefix
@@ -1824,5 +1868,9 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
         elif dtype == "ap_per_turn":
             harshness += 0.3 * max(1, amt)
         elif dtype == "manpower_per_turn":
+            harshness += 0.15
+        elif dtype == "gold_lump":
+            harshness += 0.08 * (amt / 100)
+        elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery", "manpower"):
             harshness += 0.15
     return min(1.0, harshness)

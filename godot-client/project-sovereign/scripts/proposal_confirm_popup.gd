@@ -35,6 +35,8 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_war_confirm_content(data)
 		"conflict_alert":
 			bbcode = _build_conflict_alert_content(data)
+		"ultimatum_confirm", "ultimatum_demand_wizard":
+			bbcode = _build_ultimatum_content(data)
 		_:
 			bbcode = _build_content(data)
 	content_label.text = ""
@@ -111,6 +113,71 @@ func _build_content(data: Dictionary) -> String:
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+
+	return bbcode
+
+func _build_ultimatum_content(data: Dictionary) -> String:
+	var target = data.get("target_nation", "Unknown")
+	var bbcode = "[b][color=#e04040]ULTIMATUM — %s[/color][/b]\n\n" % target
+
+	# Talleyrand text (wizard step instructions)
+	var ttext = data.get("talleyrand_text", "")
+	if ttext:
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n\n" % ttext
+
+	# Demands display
+	var demands = data.get("demands_display", [])
+	if not demands.is_empty():
+		bbcode += "[b]Demands:[/b]\n"
+		for d in demands:
+			bbcode += "  [color=#e09040]\u2022[/color] %s\n" % str(d)
+		bbcode += "\n"
+
+	# Harshness — "Coercive" maps to red
+	var harshness_label = data.get("harshness_label", "")
+	if harshness_label:
+		var h_color = "#e04040"
+		if harshness_label == "Low":
+			h_color = "#80c080"
+		elif harshness_label == "Moderate":
+			h_color = "#e0e060"
+		elif harshness_label == "High":
+			h_color = "#e09040"
+		bbcode += "Harshness: [color=%s]%s[/color]\n" % [h_color, harshness_label]
+
+	# Acceptance estimate
+	var acceptance = data.get("acceptance_estimate", -1)
+	var outcome = data.get("acceptance_outcome", "")
+	if acceptance >= 0:
+		var a_color = "#e04040"
+		if acceptance >= 50:
+			a_color = "#80c080"
+		elif acceptance >= 30:
+			a_color = "#e0e060"
+		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
+		var hint = data.get("acceptance_hint", "")
+		if hint:
+			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+
+	# DP cost
+	var dp_cost = data.get("dp_cost", -1)
+	if dp_cost >= 0:
+		bbcode += "DP cost: [color=#80a0d0]%d[/color]\n" % dp_cost
+
+	# Splash damage preview
+	var splash = data.get("splash_damage_preview", [])
+	if not splash.is_empty():
+		bbcode += "\n[b]Diplomatic Fallout:[/b]\n"
+		for s in splash:
+			var nation_name = s.get("nation", "?")
+			var penalty = s.get("relation_penalty", 0)
+			var treaty = str(s.get("treaty_with_target", "")).replace("_", " ").to_lower()
+			bbcode += "  [color=#e09040]\u2022[/color] %s: %d relations (%s)\n" % [nation_name, penalty, treaty]
+
+	# Threat preview
+	var threat = data.get("threat_increase_preview", "")
+	if threat:
+		bbcode += "\n[color=#e09040]Threat: %s[/color]\n" % threat
 
 	return bbcode
 

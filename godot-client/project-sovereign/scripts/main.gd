@@ -700,7 +700,7 @@ func _on_command_result(response):
 		if dtype in ["proposal_confirm", "proposal_execute", "proposal_options",
 			"mission", "feasibility", "advisory",
 			"force_declare_war_confirmation", "conflict_alert",
-			"terms_guidance", "ultimatum_confirm"]:
+			"terms_guidance", "ultimatum_confirm", "ultimatum_demand_wizard"]:
 			if proposal_confirm_popup:
 				proposal_confirm_popup.show_dialogue(dialogue)
 				_process_active_wars(response)

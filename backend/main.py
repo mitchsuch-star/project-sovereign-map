@@ -621,7 +621,7 @@ def execute_command(request: CommandRequest):
                 "send", "execute", "reconsider", "modify",
                 "honor", "side", "dismiss",
                 "harsh", "generous", "adjust",  # Proposal confirm popup actions
-                "deliver", "ultimatum",  # PL-14: Ultimatum confirm dialogue
+                "deliver", "ultimatum", "customize", "demand",  # PL-14/15: Ultimatum wizard
                 "elaborate", "review", "consider",  # Template actions (GAP-1)
                 "begin", "trust",  # Mission start + send_suggested (GAP-4/6)
                 "yes", "agree", "start", "more", "no", "never mind",

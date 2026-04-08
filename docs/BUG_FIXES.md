@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 8, 2026 (post-audit: PL-17→PL-18, design conflict resolved, gold_lump bug added, PL-20 diplomatic elimination guard, session plan A/B)
+> **Last Updated:** April 8, 2026 (Session A: PL-15 + PL-18 FIXED. PL-16→PL-15, PL-17→PL-18. 33 new tests, 8015 total.)
 
 ---
 
@@ -21,13 +21,17 @@
 | P1 — MAJOR | 1 | PL-12 FIXED (Session 11) — harshness increases acceptance |
 | P1 — MAJOR | 1 | PL-13 FIXED (Session 11) — viable proposal falsely rejected as "surpassed" |
 | P2 — UX | 0 | PL-14 FIXED (Session 12) — ultimatum rework: conversational flow, preview, splash damage |
-| **P1 — CRITICAL** | **1** | **PL-15 OPEN — ultimatum popup shows no demands + no demand customization** |
-| **P2 — UX** | **1** | **PL-16 OPEN (absorbed into PL-15) — Harsher Demands too aggressive; replaced by wizard** |
-| **P2 — BALANCE** | **1** | **PL-17 OPEN (absorbed into PL-18) — manpower demands have zero acceptance penalty (key mismatch)** |
-| **P2 — BALANCE** | **1** | **PL-18 OPEN (upgraded, absorbs PL-17) — typed manpower demands + DEMAND_VALUES key fixes** |
+| P1 — CRITICAL | 0 | PL-15 FIXED (Session A) — ultimatum demand wizard replaces blind escalation |
+| P2 — UX | 0 | PL-16 FIXED (absorbed into PL-15) — Harsher Demands replaced by wizard |
+| P2 — BALANCE | 0 | PL-17 FIXED (absorbed into PL-18) — manpower key mismatch resolved |
+| P2 — BALANCE | 0 | PL-18 FIXED (Session A) — typed manpower demands + DEMAND_VALUES key fixes |
 | **P2 — BALANCE** | **1** | **PL-19 OPEN — ultimatum relation penalty is flat -10 regardless of demands** |
 | **P2 — BALANCE** | **1** | **PL-20 OPEN — no guard against diplomatic elimination (last territory demand)** |
-| **Total** | **4 OPEN (PL-16 absorbed into PL-15; PL-17 absorbed into PL-18). Session A: PL-15+PL-18. Session B: PL-19+PL-20.** | |
+| P1 — MAJOR | 0 | PL-21 FIXED (code) — `region.connections` phantom attribute |
+| P1 — MAJOR | 0 | PL-22 FIXED (code) — `region.income` phantom attribute |
+| **Total** | **2 OPEN (PL-19, PL-20). Session B: PL-19+PL-20.** | |
+
+**Session A (Apr 8):** PL-15 + PL-18 FIXED. 33 new tests (8015 total). PL-15: Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Wizard reuses armistice `terms_guidance` pattern with `ultimatum_` prefixed actions. Godot popup fixed: dedicated `_build_ultimatum_content()` reads `demands_display` (not `proposal_terms_summary`), renders splash damage, maps "Coercive" to red. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. PL-18: 4 new DEMAND_VALUES keys (`gold_lump`, `manpower_infantry`/`cavalry`/`artillery`), typed manpower wizard with type picker + amount scaler, `_apply_ultimatum_demands()` dispatches to correct pool, `calculate_treaty_harshness()` covers all new types, backward compat for bare `"manpower"` demands.
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -807,6 +811,40 @@ New `_build_ultimatum_content(data)` reads:
 - **PL-19 integration:** Wizard confirm step shows dynamic diplomatic cost preview with severity label (mild/moderate/severe/extreme)
 - **Note:** Mid-wizard state changes (elimination, cooldown expiry, vassal change) are impossible — wizard dialogue is blocking, turn cannot advance. No guards needed.
 
+#### Audit Amendments (Apr 8, adversarial audit)
+
+**AM-15.1 (FAIL-3): Treaty overwrite — gold_per_turn demand destroys existing treaty.**
+`_apply_ultimatum_demands()` line 689 does `world.active_treaties[diplo_key] = {...}`, silently replacing any pre-existing ALLIANCE/trade treaty with the ultimatum tribute dict. All prior clauses (AP, gold_per_turn, manpower_per_turn) are lost.
+- **Fix:** Before overwriting, check for existing treaty. If one exists, append the ultimatum gold clause to the existing treaty's `clauses` list instead of replacing. If no existing treaty, create the new `ultimatum_tribute` entry as before.
+- **Alternative:** Use a separate key: `diplo_key + "_ultimatum_tribute"`. Requires `_process_treaty_clauses` to iterate both keys. Simpler but creates dual-treaty complexity.
+- **Recommendation:** Append clauses to existing treaty. Simpler for the processing path.
+- **Test:** Create world with existing ALLIANCE treaty between France and target (with gold_per_turn clause). Issue ultimatum with gold_per_turn demand. Verify original alliance clauses preserved AND ultimatum tribute clause added.
+
+**AM-15.2 (FAIL-4): ARMISTICE state not blocked for ultimatums.**
+Pre-validation blocks WAR and vassal but NOT ARMISTICE. An armistice means both sides just agreed to peace — delivering an ultimatum is diplomatically incoherent. War declaration during armistice IS blocked (line 456-462).
+- **Fix:** Add `if current_state == "ARMISTICE": return error("Cannot issue ultimatum during armistice — honor the peace agreement first")` after the WAR check in `_execute_diplomatic_ultimatum`.
+- **Test:** Set diplomatic state to ARMISTICE between France and target. Attempt ultimatum. Assert blocked with appropriate message.
+
+**AM-15.3 (FAIL-11): PL-15 gold_lump floor demand has zero acceptance penalty until PL-18 lands.**
+The empty-demands guard (§2) injects `{"type": "gold_lump", "value": 100}`. But `DEMAND_VALUES` has no `"gold_lump"` key until PL-18 adds it. If PL-15 ships before PL-18, the floor demand is cosmetic-only in the acceptance formula.
+- **Fix:** Bundle the `DEMAND_VALUES` additions from PL-18 §A into PL-15 as a prerequisite. At minimum, add `"gold_lump": -3 / 100` to `DEMAND_VALUES` in the PL-15 implementation. The remaining PL-18 typed manpower keys can land later.
+- **Implementation order:** PL-18 §A (DEMAND_VALUES) → PL-15 wizard → PL-18 §B-H (typed manpower). Or: fold `gold_lump` key into PL-15 directly.
+
+**AM-15.4 (W-11): Popup key mismatch — `demands_display` vs `proposal_terms_summary`.**
+Already documented in §8 Godot popup section. Confirming: the dedicated `_build_ultimatum_content()` renderer in §8 reads `demands_display` correctly. The `_:` default path (for proposals) reads `proposal_terms_summary`. As long as the `ultimatum_confirm` match case is added, this is resolved. **No additional fix needed — §8 already covers this.**
+
+**AM-15.5 (W-12): `"Coercive"` harshness label shows as green in popup.**
+`proposal_confirm_popup.gd:80-89` maps "Moderate"=yellow, "High"=orange, "Very High"=red. Default=green. "Coercive" falls to green.
+- **Fix:** Add `"Coercive"` to the match block in `_build_ultimatum_content()` (§8). Map to red (`#e04040`). This is already covered by §8's dedicated renderer — just ensure the color mapping is included.
+
+**AM-15.6 (FAIL-12): Wizard has no state machine for PL-18 multi-type manpower selection.**
+PL-15 §5 designs a single manpower step. PL-18 adds infantry/cavalry/artillery type picking + multiple demands. No state machine changes specified.
+- **Fix:** PL-15 implements a single manpower step as designed (generates `"manpower_infantry"` by default). PL-18 upgrades the manpower step to show type selection: sub-states within the manpower step (`manpower_type_pick` → `manpower_amount` → `manpower_another?`). PL-18 §G should include explicit state machine pseudocode for the type picker. See PL-18 amendments.
+
+**AM-15.7 (W-16): `generate_ultimatum_terms()` scans all regions — Golden Rule 8 violation.**
+Line 1325-1327 iterates `world.regions.values()` to compute `target_income`. Should use `world.get_nation_regions(target_nation)` for cached lookup.
+- **Fix:** Replace `for region in getattr(world, 'regions', {}).values(): if region.controller == target_nation:` with `for name in world.get_nation_regions(target_nation): region = world.regions.get(name); if region:`. Same for `france_regions` and `target_regions` below. Note: this is a pre-existing issue, not introduced by PL-15.
+
 ---
 
 ### PL-16: Harsher Demands Multiplier Too Aggressive — ABSORBED INTO PL-15
@@ -917,6 +955,29 @@ New `_build_ultimatum_content(data)` reads:
 - **Est. Tests:** 12 — (1) manpower_infantry demand reduces acceptance, (2) manpower_cavalry costs more than infantry, (3) manpower_artillery costs most, (4) gold_lump demand now reduces acceptance, (5) bare "manpower" backward compat defaults to infantry rate, (6) infantry transfers from infantry pool, (7) cavalry transfers from cavalry pool, (8) artillery transfers from artillery pool, (9) demand capped at target pool size, (10) display strings show correct type labels, (11) harshness calc includes typed manpower + gold_lump, (12) wizard doesn't offer types with pool < 300
 - **Implement with:** PL-15 wizard session (Session A). DEMAND_VALUES keys must land first, then wizard generates typed demands, then display/application code handles them.
 
+#### Audit Amendments (Apr 8, adversarial audit)
+
+**AM-18.1 (FAIL-5 partial): `calculate_treaty_harshness()` ignores bare `"manpower"` demands.**
+Current harshness calc (diplomatic_templates.py:1812-1828) handles `"manpower_per_turn"` but NOT bare `"manpower"` (the key used by existing ultimatums). PL-18 §E adds entries for the new typed keys but not bare `"manpower"`.
+- **Fix:** Add backward compat in §E: `elif dtype == "manpower": harshness += 0.10` (same as infantry). This handles old saves and the transition period.
+
+**AM-18.2 (FAIL-12): Wizard manpower type selection needs state machine design.**
+PL-15 §5 has a single manpower step. PL-18 §G says "wizard step shows typed pools" and "multiple manpower demands allowed" but gives no state machine.
+- **Fix:** Add explicit sub-state flow to §G:
+  1. Entry: `ultimatum_manpower_type` — "What type of conscripts, Sire?" [Infantry: {pool}] [Cavalry: {pool}] [Artillery: {pool}] [Skip manpower]. Hide types with pool < 300.
+  2. After type pick: `ultimatum_manpower_amount` — "How many {type}?" [Demand {suggested}] [More] [Less] [Skip]. Same more/less logic as §5.
+  3. After amount: `ultimatum_manpower_another` — "Demand another type?" [Yes, show types] [No, continue to confirm]. Filter out already-demanded types.
+  4. Loop back to step 1 (filtered) or proceed to confirm step.
+- **Context fields:** Add `manpower_demands: list` to context (accumulates `{type, value}` dicts). Replace single `manpower_amount`.
+
+**AM-18.3 (W-14): New demand keys undocumented in SAVE_FORMAT_REFERENCE.md.**
+`"manpower_infantry"`, `"manpower_cavalry"`, `"manpower_artillery"`, `"gold_lump"` can appear in dialogue state (demands list) and `diplomatic_history`. Save format reference doesn't document valid demand type values.
+- **Fix:** Add a "Demand Types" subsection to SAVE_FORMAT_REFERENCE.md listing all valid demand `type` values with descriptions.
+
+**AM-18.4 (W-17): Negative demand values produce positive acceptance contribution.**
+Main acceptance formula at diplomacy.py:748 computes `DEMAND_VALUES.get(dtype, 0) * value`. If value is negative (corrupted save, mod), this produces a positive contribution. PL-19 uses `abs(value)` but the main acceptance loop doesn't.
+- **Fix:** Add to §H (acceptance backward compat): in the demand iteration loop, use `abs(value)` for all demand types, matching PL-19's approach: `dvalue = abs(d.get("value", 0))`.
+
 ---
 
 ### PL-19: Ultimatum relation penalty is flat regardless of demands — OPEN
@@ -1011,6 +1072,32 @@ New `_build_ultimatum_content(data)` reads:
 - **Est. Tests:** 10 — (1) gold-only demand ≈ -15 relation, (2) territory demand scales with income weight, (3) capital territory gets ×2 (double weight), (4) multi-demand stacks correctly, (5) clamped at -60 floor, (6) minimum penalty is -10 (base_penalty alone, no demand cost), (7) rejection penalty scales with demand_penalty, (8) splash multiplier scales with severity (1.0× at -10, 2.5× at -25+), (9) §C amplifier: ×2.5 annex / ×2.0 rump / ×1.5 for 4+ / ×1.2 for 2-3, (10) territory penalty uses flat income-weighted cost (not PL-20 escalation)
 - **Depends on:** PL-18 (typed DEMAND_VALUES keys must exist for penalty calc to work correctly)
 - **Implement with:** Session B (after PL-15 + PL-18 are stable). Backend calculation can land first, then display wiring. Wizard preview (PL-15 confirm step) should show the dynamic cost — see PL-15 test plan "PL-19 integration" note.
+
+#### Audit Amendments (Apr 8, adversarial audit)
+
+**AM-19.1 (FAIL-7): Spec examples use wrong rounding — `int(-12.5)` = -12, not -13.**
+Python `int()` truncates toward zero: `int(-12.5) = -2` (WRONG — should be -12, and spec says -13). The spec examples show rounded values, but `int()` truncates, not rounds. "1 rural province (50 income): -10 + (-2.5) = -13" — actually `int(-12.5) = -12`.
+- **Fix:** Use `math.floor()` instead of `int()` for negative penalty calculations. `math.floor(-12.5) = -13`. Update formula: `total_penalty = max(-60, math.floor(base_penalty + demand_penalty))`. All spec examples then match implementation.
+- **Applies to:** §A `total_penalty`, §B `rejection_penalty`. Both should use `math.floor()`.
+- **Test:** Assert `total_penalty` for rural province (income 50) is -13, not -12.
+
+**AM-19.2 (FAIL-8): Splash multiplier produces float relation changes.**
+`splash_multiplier = max(1.0, min(2.5, abs(total_penalty) / 10))`. ALLIANCE splash: `-15 * 2.5 = -37.5`. Violates Golden Rule 2 (all numbers to Godot: `int()`). `modify_nation_relation` may not handle floats.
+- **Fix:** Wrap splash result: `int(math.floor(-penalty * splash_multiplier))`. Apply `int()` wrapping to all relation change calls in the splash loop.
+- **Test:** Assert splash damage for ALLIANCE at max multiplier is -37 (int), not -37.5 (float).
+
+**AM-19.3 (W-8): Cumulative splash damage can be extreme (-112.5 across 3 allies).**
+If 3 nations are allied with the target, total splash = 3 × -37 = -111 relation points. A single ultimatum can demolish France's entire diplomatic position.
+- **Acknowledged:** This is intentional — aggressive ultimatums SHOULD have severe consequences. No cap on cumulative splash. The player can see the splash preview in the wizard (PL-15 §6) and decide if it's worth it. **No fix needed**, but add a test verifying multi-bystander splash accumulates correctly.
+
+**AM-19.4 (W-10): Acceptance calculated AFTER -10 relation applied — double-dip.**
+The execute_ultimatum handler applies relation penalty (line 1161) BEFORE calculating acceptance (line 1183). Since acceptance reads `nation_relations`, the -10 hit double-dips as both consequence AND acceptance penalty.
+- **Fix:** Calculate acceptance BEFORE applying the relation penalty. Move the `calculate_acceptance()` call to before the `modify_nation_relation()` call in the execute_ultimatum handler. The relation penalty is a consequence of delivery, not a factor in the target's decision.
+- **Test:** Assert acceptance score is the same regardless of when relation penalty is applied (calculate before apply).
+
+**AM-19.5: `income` → `income_value` in territory penalty formula.**
+§A uses `getattr(region, 'income', 100)`. Region class uses `income_value`. **PL-22 fixes the pre-existing code bug. Spec must match.**
+- **Fix:** Change all `getattr(region, 'income', 100)` to `getattr(region, 'income_value', 100)` in §A.
 
 ---
 
@@ -1196,29 +1283,37 @@ New `_build_ultimatum_content(data)` reads:
 
   The wizard (PL-15) can still let the player manually demand elimination-level territory — but the auto-suggestion won't propose it, and the acceptance penalty (§A) makes it very unlikely to succeed.
 
-  **(C) PL-19 relation penalty amplifier — scales with region count + elimination risk:**
-  In PL-19's dynamic penalty calculation, multiply demand_penalty by an amplifier based on absolute region count and elimination status (uses `demanded_count` and `remaining` from §A):
+  **(C) PL-19 relation penalty amplifier — territory component only (see AM-20.4):**
+  In PL-19's dynamic penalty calculation, multiply only the **territory** portion of demand_penalty by an amplifier based on region count and elimination status (uses `demanded_count` and `remaining` from §A). Gold/manpower penalties are NOT amplified — those systems are independent of territorial aggression.
 
   ```python
-  # After computing demand_penalty, before clamping:
+  # PL-19 §A tracks two accumulators:
+  territory_demand_penalty = 0   # from territory loop
+  other_demand_penalty = 0       # from DEMAND_VALUES loop (gold, manpower, etc.)
+
+  # Amplifier — territory only:
   if remaining == 0:
-      demand_penalty *= 2.5   # full annexation — catastrophic diplomatic damage
+      territory_demand_penalty *= 2.5   # full annexation
   elif remaining == 1:
-      demand_penalty *= 2.0   # rump state — near-catastrophic
+      territory_demand_penalty *= 2.0   # rump state
   elif demanded_count >= 4:
-      demand_penalty *= 1.5   # 4+ regions — major land grab
+      territory_demand_penalty *= 1.5   # 4+ regions
   elif demanded_count >= 2:
-      demand_penalty *= 1.2   # 2-3 regions — significant
-  # Then clamp as normal: max(-60, min(-5, ...))
+      territory_demand_penalty *= 1.2   # 2-3 regions
+
+  demand_penalty = territory_demand_penalty + other_demand_penalty
+  total_penalty = max(-60, math.floor(base_penalty + demand_penalty))
   # NOTE: raise cap from -50 to -60 to accommodate amplified territory demands
   ```
 
-  Examples with PL-19 base scaling:
-  - 2 of 2 from Saxony (full annex): base -10 + territory -10 = -20, × 2.5 = **-50**
-  - 1 of 2 from Saxony (rump): base -10 + territory -5 = -15, × 2.0 = **-30**
-  - 3 of 4 from Austria (rump): base -10 + territory -15 = -25, × 2.0 = **-50**
-  - 4 of 15 from Russia: base -10 + territory -20 = -30, × 1.5 = **-45**
-  - 2 of 15 from Russia: base -10 + territory -10 = -20, × 1.2 = **-24**
+  Examples with PL-19 base scaling (territory amplified, gold/manpower unchanged):
+  - 2 of 2 from Saxony (full annex): base -10 + territory(-10 × 2.5 = -25) = **-35**
+  - 2 of 2 from Saxony (full annex) + 100 gold: base -10 + territory -25 + gold -5 = **-40**
+  - 1 of 2 from Saxony (rump): base -10 + territory(-5 × 2.0 = -10) = **-20**
+  - 3 of 4 from Austria (rump): base -10 + territory(-15 × 2.0 = -30) = **-40**
+  - 4 of 15 from Russia: base -10 + territory(-20 × 1.5 = -30) = **-40**
+  - 2 of 15 from Russia: base -10 + territory(-10 × 1.2 = -12) = **-22**
+  - 2 of 15 from Russia + 100 gold: base -10 + territory -12 + gold -5 = **-27**
 
   **(D) Threat amplifier — scales with region count + elimination risk:**
   Add bonus threat based on absolute region count and elimination status (on top of existing +8/region):
@@ -1287,3 +1382,128 @@ New `_build_ultimatum_content(data)` reads:
 - **Est. Tests:** 21 — (1) rural region (income 50): cost = -3 (weight 0.5 × -5), (2) town region (income 100): cost = -5 (weight 1.0 × -5), (3) city region (income 150): cost = -8 (weight 1.5 × -5), (4) capital region (income 300): cost = -30 (weight 3.0 × 2 capital × -5), (5) 2nd region escalates (+3 base), (6) 3 mixed-income regions: cumulative matches expected, (7) full annexation gets -60 elimination guard on top, (8) rump state (remaining=1) gets -30 guard, (9) auto-generation skips elimination/rump demands, (10) PL-19 relation penalty ×2.5 for annex, ×2.0 for rump, ×1.5 for 4+, (11) threat amplifier fires at count tiers, (12) treaty cession blocked below war_score 90 if would eliminate, (13) wizard shows appropriate Talleyrand warning, (14) large nation (15 regions): max ~3-4 regions with military dominance, (15) capital alone (-30) costs more than 3 rural provinces (-11), (16) income_weight defaults to 1.0 if region has no income field, (17) region sort order is deterministic (ascending income) — same regions in any demand order produce same cost, (18) backward compat: territory demand with value-only (no regions list) uses flat -5/region fallback, (19) modify_harsh_ultimatum respects elimination guard (doesn't add territory that would leave ≤1 region), (20) AI proposal with 2+ territory demands self-corrects via _reduce_p8_demands under escalating costs, (21) low-income capital (income 50, proxy) gets correct weight (0.5 × 2 = 1.0 effective)
 - **Depends on:** PL-19 (relation penalty scaling — §C multiplier applies to PL-19's demand_penalty)
 - **Implement with:** Session B (alongside PL-19). The acceptance penalty (§A) and auto-gen guard (§B) can land independently; the relation/threat amplifiers (§C/D) require PL-19's dynamic penalty to exist first.
+
+#### Audit Amendments (Apr 8, adversarial audit)
+
+**AM-20.1 (FAIL-5): `calculate_treaty_harshness()` uses flat 0.2/region — not income-weighted.**
+PL-20 fixes `calculate_acceptance()` with income-weighted escalating territory costs, but `calculate_treaty_harshness()` (diplomatic_templates.py:1808-1823) still uses flat `0.2 * len(regions)`. Harshness feeds into acceptance via `harshness_penalty`, so undervaluing expensive regions in harshness weakens the acceptance penalty.
+- **Fix:** Add §G to PL-20: update `calculate_treaty_harshness()` territory scoring to use income-weighted cost. Replace `harshness += 0.2 * count` with `harshness += sum(0.2 * max(0.5, getattr(world.regions.get(r), 'income_value', 100) / 100) for r in regions)`. Requires passing `world` to the function (currently takes only `treaty` dict). Alternative: use a flat 0.3 per region (higher than 0.2 but still flat) as a simpler fix that increases harshness without needing region data.
+- **Recommendation:** Simpler flat increase (0.3/region) for now. Income-weighted harshness can be a future refinement. The escalating acceptance cost in §A is the primary guard.
+
+**AM-20.2 (FAIL-6): No application-side guard against nation elimination via ultimatum.**
+`_apply_ultimatum_demands()` (diplomatic_executor.py:699-711) blindly transfers all demanded regions. PL-20 §A guards at acceptance level (escalating costs + elimination penalty), but there's no safety net if acceptance is circumvented (debug, rounding edge case, future AI ultimatums).
+- **Fix:** Add hard guard in `_apply_ultimatum_demands()`: before transferring territory, check `len(world.get_nation_regions(target_nation)) - len(demanded_regions) >= 1`. If transfer would eliminate the nation, skip territory demands and log a warning. This is a safety net, not the primary mechanism (§A is).
+- **Test:** Set up world where target has 1 region. Inject territory demand for that region. Assert `_apply_ultimatum_demands` refuses the transfer.
+
+**AM-20.3 (FAIL-9): §B `safe_targets` filter is a constant — doesn't depend on `r`.**
+`safe_targets = [r for r in adjacent_targets if len(target_regions) - 1 > 1]` — the condition is invariant across the loop. Works by accident for single demands (`[:1]` limit is the real protection) but logically wrong.
+- **Fix:** Replace with: `safe_targets = [r for r in adjacent_targets if len(target_regions) - len([d for d in demands if d.get("type") in ("territory", "territory_cede")]) - 1 > 1]`. Or simpler (since auto-gen only ever adds 1 territory demand): `if len(target_regions) > 2: safe_targets = adjacent_targets else: safe_targets = []`. The `[:1]` slice at line 1194 still limits to 1 region regardless. Document the invariant: "auto-generation demands at most 1 region."
+
+**AM-20.4 (FAIL-10): §C amplifier multiplies ALL demand components, not just territory.**
+`demand_penalty *= 2.5` multiplies gold and manpower penalties too, not just territory. A "take 1 territory + 100 gold/turn" demand against a 2-region nation gets the gold penalty (-5) multiplied by 2.5 as well (-12.5). Gold/manpower demands should cost the same regardless of what territorial demands accompany them — the systems should be independent.
+- **Fix (APPROVED):** Split `demand_penalty` into `territory_demand_penalty` and `other_demand_penalty` in PL-19 §A. Apply the §C amplifier only to `territory_demand_penalty`. Then combine: `total_demand_penalty = (territory_demand_penalty * amplifier) + other_demand_penalty`. Full annexation is already prohibitively expensive via PL-20 §A escalating costs + elimination guard (-60). The amplifier doesn't need to infect non-territory demands.
+- **Implementation in PL-19 §A:** Track two accumulators in the demand loop:
+  ```python
+  territory_demand_penalty = 0
+  other_demand_penalty = 0
+  for d in demands:
+      dtype = d.get("type", "")
+      if dtype in ("territory_cede", "territory"):
+          # income-weighted region cost → territory_demand_penalty
+      else:
+          rate = DEMAND_VALUES.get(dtype, 0)
+          other_demand_penalty += rate * abs(value)
+
+  # PL-20 §C amplifier — territory only
+  if remaining == 0:
+      territory_demand_penalty *= 2.5
+  elif remaining == 1:
+      territory_demand_penalty *= 2.0
+  elif demanded_count >= 4:
+      territory_demand_penalty *= 1.5
+  elif demanded_count >= 2:
+      territory_demand_penalty *= 1.2
+
+  demand_penalty = territory_demand_penalty + other_demand_penalty
+  total_penalty = max(-60, math.floor(base_penalty + demand_penalty))
+  ```
+- **Test:** Annex Saxony (2 of 2) + 100 gold/turn. Assert gold component is -5 (not -12.5). Assert territory component is amplified by 2.5x. Assert total = base(-10) + territory(-25) + gold(-5) = -40.
+
+**AM-20.5: `income` → `income_value` throughout §A.**
+§A uses `getattr(region, 'income', 100)` and `getattr(reg, 'income', 100)`. Region class uses `income_value`. **PL-22 fixes the pre-existing code bug. Spec must match.**
+- **Fix:** Change all `getattr(region, 'income', 100)` and `getattr(reg, 'income', 100)` to `getattr(region, 'income_value', 100)` / `getattr(reg, 'income_value', 100)` in §A. Also update the design rationale text: "The formula reads `region.income_value` dynamically" (not `region.income`).
+
+**AM-20.6 (W-9): Empty regions list `[]` is falsy — fallback fires incorrectly.**
+In §A: `if regions_list:` — empty list `[]` is falsy in Python, so `{"type": "territory_cede", "regions": [], "value": 2}` falls through to the fallback path, adding 2 to `territory_demand_count_fallback` despite having an explicit (empty) regions list.
+- **Fix:** Change `if regions_list:` to `if regions_list is not None:`. An explicit empty list means "no regions specified" and should contribute 0, not fall to fallback.
+
+**AM-20.7 (W-19): Duplicate regions in demands list double-counted.**
+`valid_demanded` has no deduplication. If same region appears twice, it gets counted twice in escalating cost.
+- **Fix:** Deduplicate: `valid_demanded = list(dict.fromkeys(r for r in demanded_regions if r in target_regions))`. Preserves order, removes duplicates.
+
+**AM-20.8 (W-18): §F treaty cession guard has no implementation pseudocode or failure UX.**
+§F says "require war_score > 90" but doesn't specify: where exactly in `_ratify_treaty()`, what to do when blocked (reject whole treaty? remove territory clauses only?), or how to notify the player.
+- **Fix:** Add pseudocode to §F:
+  ```python
+  # In _ratify_treaty(), before territory cession loop:
+  if territory_clauses and would_eliminate(target):
+      war_score = get_war_score_for(proposer, target, world)
+      if war_score < 90:
+          # Remove territory clauses that would cause elimination
+          # Keep non-territory clauses (gold, AP, etc.)
+          territory_clauses = [c for c in territory_clauses
+                               if not _would_leave_zero_regions(c, target, world)]
+  ```
+  Failure mode: silently remove the offending territory clause(s), keep the rest of the treaty. Log a campaign event: "Treaty terms regarding {region} could not be enforced — {target} retains their last territories."
+- **Test:** Create treaty with territory clause that would eliminate target. Set war_score to 50. Assert territory clause is stripped but other clauses (gold) are applied.
+
+**AM-20.9: Update cumulative cost examples to use `math.floor()` rounding.**
+Per AM-19.1, the rounding strategy changes from `int()` (truncate toward zero) to `math.floor()` (floor toward negative infinity). Update the cumulative column in the examples table to reflect this. E.g., rural (income 50): region cost = -2.5, cumulative = `math.floor(-2.5)` = **-3** (matches spec). City (income 150): -7.5, cumulative = **-8** (matches spec). The examples were already correct assuming floor rounding.
+
+---
+
+### PL-21: Phantom `connections` attribute — adjacency checks dead ✓ FIXED (code)
+- **Source:** Adversarial audit (Apr 8, 2026)
+- **Priority:** P1 — MAJOR (three files affected, territory demands completely non-functional)
+- **Status:** **FIXED in code** — attribute renamed in 3 locations. Test suite passes (7982 tests).
+
+#### Problem
+Region class (`backend/models/region.py:128`) stores adjacency as `self.adjacent_regions`. Three files use `getattr(region, 'connections', [])` which silently returns `[]` because `connections` does not exist on Region:
+
+1. `backend/game_logic/diplomacy.py:853` — `calculate_acceptance()` ultimatum adjacency bonus (+15) NEVER fires
+2. `backend/game_logic/diplomatic_templates.py:1359` — `generate_ultimatum_terms()` NEVER finds adjacent targets, so territory demands are NEVER auto-generated
+3. `backend/commands/diplomatic_executor.py:1290` — `modify_harsh_ultimatum` Round 1 NEVER adds territory via adjacency check
+
+#### Impact
+All territory-related ultimatum features were dead code. The adjacency bonus (+15 acceptance) never applied. Auto-generated ultimatums were gold/manpower-only. Escalation Round 1 never added territory.
+
+#### Fix Applied
+Changed `getattr(region, 'connections', [])` → `getattr(region, 'adjacent_regions', [])` in all 3 locations. Existing test `test_zero_income_fallback_to_gold_lump` updated (was inadvertently testing broken behavior).
+
+#### Tests
+- Existing: `test_bugfix_session12.py` — all pass after fix
+- Additional tests needed at implementation time: (1) `generate_ultimatum_terms` with military superiority produces territory demand, (2) `calculate_acceptance` adjacency bonus fires when proposer marshal is adjacent to target marshal, (3) `modify_harsh_ultimatum` Round 1 adds territory for adjacent regions
+
+---
+
+### PL-22: Phantom `income` attribute — income-weighted costs dead ✓ FIXED (code)
+- **Source:** Adversarial audit (Apr 8, 2026)
+- **Priority:** P1 — MAJOR (4 locations affected, income-weighted formulas produce default values)
+- **Status:** **FIXED in code** — 1 location fixed (diplomatic_templates.py:1327). 3 spec locations amended (PL-19 §A, PL-20 §A — spec text, not code yet).
+
+#### Problem
+Region class (`backend/models/region.py:129`) stores income as `self.income_value`. Code and specs use `getattr(region, 'income', X)` which silently returns the default because `income` does not exist on Region:
+
+1. **Code (FIXED):** `backend/game_logic/diplomatic_templates.py:1327` — `generate_ultimatum_terms()` `target_income` always 0, so `gold_per_turn` demands never generate (always falls to `gold_lump` fallback). Fixed: `income` → `income_value`.
+2. **Spec:** PL-19 §A (BUG_FIXES.md line 958) — `getattr(region, 'income', 100)` in territory penalty formula. All regions would get default weight 1.0 (Paris = village). **See AM-19.5.**
+3. **Spec:** PL-20 §A (BUG_FIXES.md lines 1084, 1090) — same issue in escalating cost formula. **See AM-20.5.**
+4. **Spec:** PL-20 design rationale (line 1367) — text says "reads `region.income`" should say `region.income_value`. **See AM-20.5.**
+
+#### Impact
+- **Code fix:** `generate_ultimatum_terms()` now correctly calculates target income. Gold_per_turn demands will generate for nations with income > 0 (previously always fell to gold_lump).
+- **Spec:** PL-19/PL-20 income-weighted territory formulas would have used flat weight 1.0 for all regions if implemented from spec text verbatim. Amendments AM-19.5 and AM-20.5 correct this.
+
+#### Fix Applied
+- `diplomatic_templates.py:1327`: `getattr(region, 'income', 0)` → `getattr(region, 'income_value', 0)`
+- Test `test_bugfix_session12.py:366`: `region.income = 0` → `region.income_value = 0`
+- Spec amendments added to PL-19 (AM-19.5) and PL-20 (AM-20.5)
