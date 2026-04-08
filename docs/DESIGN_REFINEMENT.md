@@ -16,10 +16,10 @@
 | War System Overhaul (EU4-inspired) | 4 | Needs design gate |
 | AI Diplomacy Improvements | 3 | Ready (small fixes) |
 | Gold Sink Options (B4) | 1 | Needs design gate |
-| Wave 4 — New Features | 17 | Needs per-item approval |
+| Wave 4 — New Features | 18 | Needs per-item approval |
 | Wave 5 — Game Review Findings | 8 | Needs design gate |
 | Jealousy System | 1 | Needs design gate |
-| **Total** | **43** | |
+| **Total** | **44** | |
 
 ---
 
@@ -182,6 +182,7 @@ These are new feature designs. Each needs individual approval before implementat
 | R36 | Personal Summits | Face-to-face meetings, +15 acceptance 3 turns |
 | R59 | Literal Personality Triggers | Audit and wire unwired triggers |
 | R118 | Enhanced Acceptance Preview | Top 3 positive/negative components + Talleyrand hints |
+| R161 | One-Time Trade | Trade gold, manpower, territory directly without ultimatum or state change |
 
 ---
 

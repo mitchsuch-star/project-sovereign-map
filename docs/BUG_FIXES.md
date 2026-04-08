@@ -111,38 +111,45 @@ Crosses backend/frontend. Replaces blind one-shot with coercive dialogue flow.
 
 #### Ultimatum Rework Design
 
-**Design Goal:** Ultimatums are a coercive diplomatic tool for extorting concessions from weaker nations at the cost of diplomatic reputation. They resolve instantly (no transit delay), let the player choose terms, and carry severe geopolitical consequences — coalition threat, relation damage to bystanders, and a hard global cooldown.
+**Design Goal:** Ultimatums are pure coercive extortion — "give me what I want or else." They are fundamentally different from proposals: **no diplomatic state change, only demands.** They resolve instantly, let the player choose what to demand, and carry severe geopolitical consequences.
 
-**§1 Core Flow — Route Through Proposal Wizard**
+**Key distinction:**
+- **Proposals** = "let's upgrade our relationship" (state change + optional terms)
+- **Ultimatums** = "give me what I want or else" (demands only, no state change, any target)
 
-Replace the current blind one-shot with a 2-step dialogue using the existing conversational diplomacy system:
+**§1 Core Flow — Conversational Diplomacy Without State Change**
+
+Route through the existing conversational diplomacy system but as a demands-only action:
 
 1. Player types "ultimatum X" → push `ultimatum_confirm` dialogue with:
-   - Pre-filled coercive terms based on military advantage (via `generate_ultimatum_terms()`)
+   - Pre-filled demands based on military advantage (via `generate_ultimatum_terms()`)
    - Acceptance estimate with military threat bonus visible
-   - Rejection consequences (casus belli) shown upfront
-   - Diplomatic cost preview: DP cost, relation penalty to target, relation splash damage to bystanders
+   - Rejection consequences (casus belli, further relation hit) shown upfront
+   - Diplomatic cost preview: DP cost, relation penalty to target, splash damage to bystanders
    - Options: [Deliver Ultimatum] [Harsher Demands] [Reconsider]
-2. Player confirms → immediate resolution (no transit — backed by military force, not Talleyrand)
-   - Accepted: state transition + terms applied
-   - Rejected: casus belli granted
+2. Player can modify demands using existing "Harsher Demands" flow (modify_harsh)
+3. Player confirms → **immediate resolution** (no transit — backed by military force, not Talleyrand)
+   - Accepted: target pays up (gold, territory, manpower transferred). **No state change.** Relations stay as-is (already tanked by -10).
+   - Rejected: casus belli granted, further -5 relation hit
 
-**§2 Terms — Player-Chosen, Not Hardcoded**
+**§2 Terms — Pure Demands, Any Target**
 
-`generate_ultimatum_terms(target, world)` builds coercive terms based on military advantage:
-- Outcome type: WAR→PEACE, else→NON_AGGRESSION (same as current, but now visible)
-- Auto-filled demands proportional to war score / military advantage:
-  - Gold per turn: `min(500, max(100, war_score * 5))` if winning
-  - Territory: coveted regions if war_score > 30 and France controls them
-- No sweeteners ever — ultimatums demand, they don't offer
-- Player can use existing "Harsher Demands" (modify_harsh) to escalate
-- Acceptance uses full 14-component formula + ultimatum military threat bonus (+10 base, +15 if adjacent marshal)
+`generate_ultimatum_terms(target, world)` builds coercive demands based on military advantage:
+- **No proposal type / state change.** Ultimatums don't propose a diplomatic upgrade — they extort resources.
+- **Any nation can be targeted** regardless of current diplomatic state (at war, at peace, allied — though allying someone you're extorting is a bold move)
+- Auto-filled demands proportional to military advantage:
+  - Gold per turn: `min(500, max(100, war_score * 5))` if winning; flat 100 if at peace
+  - Territory: coveted regions if France controls adjacent territory and has military superiority
+  - Manpower: `min(5000, troop_advantage * 0.1)` if target has significantly fewer troops
+- **No sweeteners ever** — ultimatums demand, they don't offer
+- Player can escalate via existing modify_harsh flow
+- Acceptance uses full 14-component formula + ultimatum military threat bonus
 
 **§3 Geopolitical Consequences — The Diplomatic Price**
 
 Ultimatums are powerful but diplomatically toxic:
 
-**(a) Relation damage to target:** -10 immediate (same as current), -5 additional if rejected
+**(a) Relation damage to target:** -10 immediate (on delivery), -5 additional if rejected
 
 **(b) Splash relation damage to bystanders:** Every nation with OPEN_BORDERS or better with the target takes a relation hit toward France:
 - ALLIANCE with target: -15 relation with France
@@ -169,11 +176,19 @@ Add `ultimatum_bonus` component to `calculate_acceptance()`:
 - +5 per French marshal in target territory (capped at +15)
 - Component exposed in acceptance breakdown so player sees why odds are what they are
 
-**§6 Files to Modify**
+**§6 On Acceptance — Resource Transfer**
+
+When the target accepts, demands are applied immediately:
+- Gold per turn: added to `world.active_treaties` as ongoing obligation (same mechanism as existing treaty gold)
+- Territory: regions transfer control to France via existing `transfer_region()` path
+- Manpower: deducted from target pool, added to France pool
+- No diplomatic state change — the relationship stays exactly where it was
+
+**§7 Files to Modify**
 
 | File | Change |
 |------|--------|
-| `diplomatic_executor.py` | Replace `_execute_diplomatic_ultimatum` body with dialogue push; add `execute_ultimatum` handler in `_process_dialogue_choice`; splash damage + threat logic |
+| `diplomatic_executor.py` | Replace `_execute_diplomatic_ultimatum` body with dialogue push; add `execute_ultimatum` handler in `_process_dialogue_choice`; splash damage + threat logic; resource transfer on acceptance |
 | `diplomatic_templates.py` | New `generate_ultimatum_terms()` function |
 | `diplomacy.py` | Add `ultimatum_bonus` component to `calculate_acceptance()`; threat accumulation call |
 | `diplomatic_dialogue.py` | Handle `ultimatum_confirm` type in `_enrich_proposal_summary()` (add consequence preview fields) |
