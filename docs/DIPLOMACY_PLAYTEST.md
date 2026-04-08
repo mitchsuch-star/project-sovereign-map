@@ -257,7 +257,7 @@ downgrade relations with Austria
 - Relation penalty applied
 - Cannot skip levels (must downgrade adjacently)
 
-### B8. Send Ultimatum
+### B8. Send Ultimatum — Conversational Flow (PL-14)
 
 ```
 cheat give_dp 5
@@ -265,10 +265,15 @@ send ultimatum to Austria
 ```
 
 **Expected:**
-- 2 DP cost
-- Coercive demand presented to target
-- If rejected: casus belli granted, can declare war without DP cost
-- Cooldown applied
+- Talleyrand presents ultimatum terms in conversational dialogue (NOT instant execution)
+- Shows auto-generated demands (gold, territory if adjacent, manpower if troop advantage)
+- Shows acceptance estimate with military threat bonus
+- Shows diplomatic cost preview: relation penalty, splash damage, threat increase
+- Options: [Deliver Ultimatum] [Customize Demands] [Reconsider]
+- Delivering costs 2 DP
+- If accepted: demands applied immediately, no diplomatic state change, +20 threat total
+- If rejected: casus belli granted, -15 total relation, +15 threat
+- 5-turn global cooldown applied (blocks ALL nations, not per-target)
 
 ### B9. Casus Belli — Reduced War Cost
 
@@ -1628,7 +1633,21 @@ Click [Cancel] or [Back]
 | R: War Detail Popup | 6 | Click-through detail, score breakdown, handoff | HIGH |
 | S: Alliance Paradox | 3 | Honor/break ally choice on attack | HIGH |
 | T: Proposal Confirm | 3 | Final terms review before sending | MEDIUM |
-| **TOTAL** | **110** | | |
+| Z: Session 5 Balance | 6 | Bombardment, defense, supply, AP warning | MEDIUM |
+| Z2: Cavalry Momentum | 4 | Momentum bonus, infantry exhaustion, artillery exempt | MEDIUM |
+| Z3: Ultimatum Flow (PL-14) | 6 | Conversational preview, splash, escalation, cooldown | HIGH |
+| Z4: Demand Wizard (PL-15) | 8 | Gold/territory/manpower wizard, confirm, guards | HIGH |
+| Z5: Dynamic Penalty (PL-19) | 7 | Scaling relation/splash/rejection/threat penalties | HIGH |
+| Z6: Territory Scaling (PL-20) | 9 | Escalating cost, income weight, elimination guards | HIGH |
+| Z7: Typed Manpower (PL-18) | 6 | Infantry/cavalry/artillery demands, pool caps | MEDIUM |
+| Z8: Harshness Fix (PL-12) | 2 | Harsher decreases acceptance, generous increases | HIGH |
+| Z9: Snapshot Fix (PL-13) | 2 | Surpassed false-reject prevention, result popup | HIGH |
+| Z10: Tolerance Band (PL-9) | 2 | Borderline warning, marginal drop tolerance | MEDIUM |
+| Z11: Type Preserve (PL-10) | 1 | Generous doesn't downgrade proposal type | MEDIUM |
+| Z12: Proposal Feedback (PL-5) | 3 | Result popup, AI dedup, cooldown both sides | HIGH |
+| Z13: Counter-Offer UX (PL-8) | 1 | Visual distinction for counter-offers | LOW |
+| Z14: Type-Aware Harsh (PL-6) | 2 | Friendship no territory, war allows territory | MEDIUM |
+| **TOTAL** | **163** | | |
 
 ---
 
@@ -1650,7 +1669,7 @@ Click [Cancel] or [Back]
 - War exhaustion accumulation (use pytest)
 - Sweetener cap enforcement (use pytest)
 
-**Recommendation:** Use Godot for integration/UX verification. Use pytest for numerical precision. The 7,755+ backend tests already cover formula correctness — the playtest covers "does the player actually see the right thing."
+**Recommendation:** Use Godot for integration/UX verification. Use pytest for numerical precision. The 8,000+ backend tests already cover formula correctness — the playtest covers "does the player actually see the right thing."
 
 ---
 
@@ -1789,3 +1808,537 @@ Drouot, bombard [enemy]
 Drouot, bombard [enemy]
 ```
 **Verify:** No exhaustion or momentum message on second bombardment. Damage unchanged.
+
+---
+
+## SECTION Z3: Ultimatum Conversational Flow — PL-14 (Session 12, Apr 7)
+
+Ultimatums now route through conversational diplomacy with preview, acceptance estimate, and splash damage. Automated tests cover formula correctness; these verify player-facing UX.
+
+### Z3-1. Ultimatum Shows Preview Before Delivery
+**Goal:** Confirm ultimatum is NOT instant — player sees terms, acceptance, and consequences before committing.
+```
+cheat give_dp 5
+send ultimatum to Austria
+```
+**Verify:** Talleyrand presents dialogue with: (1) auto-generated demands listed (gold amount, territory if applicable), (2) acceptance estimate %, (3) relation penalty preview, (4) splash damage to bystanders listed by nation, (5) threat increase preview. Options: [Deliver Ultimatum] [Customize Demands] [Reconsider]. Clicking [Reconsider] cancels without spending DP.
+
+### Z3-2. Ultimatum Delivery — Accepted
+**Goal:** Confirm accepted ultimatum transfers resources with no state change.
+```
+cheat give_dp 5
+cheat set_relation Austria 40
+send ultimatum to Austria
+# Choose "Deliver Ultimatum"
+```
+**Verify:** If accepted: (1) gold transferred (check via strategic ledger K tab), (2) diplomatic state unchanged (still PEACE, not upgraded or downgraded), (3) relation dropped by dynamic penalty amount, (4) threat increased (+15 delivery +5 acceptance = +20 minimum), (5) 5-turn global cooldown shown.
+
+### Z3-3. Ultimatum Delivery — Rejected
+**Goal:** Confirm rejection grants casus belli and applies penalties.
+```
+cheat set_relation Austria -50
+cheat give_dp 5
+send ultimatum to Austria
+# Choose "Deliver Ultimatum"
+```
+**Verify:** (1) Rejection message shown, (2) casus belli granted — check via F1 wizard (war declaration should show 0 DP), (3) additional relation hit applied (-5 base, more for harsh demands), (4) threat still increased (+15), (5) cooldown applied.
+
+### Z3-4. Ultimatum Splash Damage Preview
+**Goal:** Verify splash damage to bystanders is shown and applied.
+```
+cheat set_diplo_state Austria ALLIANCE
+cheat set_diplo_state Prussia OPEN_BORDERS
+cheat give_dp 5
+send ultimatum to Saxony
+# Check splash preview before delivering
+```
+**Verify:** Preview shows splash damage: nations with treaties toward Saxony (Austria as ALLIANCE: higher penalty, Prussia as OPEN_BORDERS: lower penalty). After delivery, check diplomatic ledger — Austria and Prussia relations with France should have dropped.
+
+### Z3-5. Ultimatum Escalation Cap
+**Goal:** Verify "Harsher Demands" is capped at 2 rounds.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Click "Customize Demands" or "Harsher Demands" 3 times
+```
+**Verify:** After 2 escalation rounds, further escalation blocked with message "Cannot escalate further, Sire." Acceptance should decrease with each escalation round.
+
+### Z3-6. Ultimatum Global Cooldown
+**Goal:** Verify cooldown blocks ALL nations, not just the target.
+```
+cheat give_dp 10
+send ultimatum to Austria
+# Deliver ultimatum
+send ultimatum to Prussia
+```
+**Verify:** Second ultimatum blocked with message showing turns remaining (e.g., "Next ultimatum available in 5 turns").
+
+---
+
+## SECTION Z4: Ultimatum Demand Wizard — PL-15 (Session A, Apr 8)
+
+Full demand wizard replacing blind escalation. Player picks gold → territory → manpower → confirm. Same UX pattern as armistice terms_guidance wizard.
+
+### Z4-1. Wizard Entry — Customize Demands
+**Goal:** Confirm wizard opens when player chooses to customize.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Choose "Customize Demands"
+```
+**Verify:** Wizard starts at gold step. Shows: "How much gold should we demand, Sire?" with options [Demand X gold] [More] [Less] [Skip gold]. Gold type shown: "per turn" if target has income, "one-time tribute" if income is 0.
+
+### Z4-2. Gold Step — More/Less/Skip
+**Goal:** Verify gold adjustments work.
+```
+# In wizard gold step:
+# Click "More" — gold increases (1.5×)
+# Click "Less" — gold decreases (0.7×)
+# Click "Skip" — no gold demand, advance to territory
+```
+**Verify:** Gold amount changes with each click. Floor is 25. Cap is 300/turn or 500 lump. After choosing, wizard advances to territory step (if eligible) or manpower step.
+
+### Z4-3. Territory Step — Region Picker
+**Goal:** Verify territory picker shows eligible regions with ranking.
+```
+# Setup: France controls Belgium (adjacent to Austrian territory)
+cheat give_dp 5
+/debug set_strength Ney 40000
+send ultimatum to Austria
+# Customize → skip gold → territory step
+```
+**Verify:** Territory step only appears if France has military superiority (>1.2×). Shows "Shall we demand territory?" with [Yes] [No]. If Yes: lists target regions adjacent to France-controlled territory, ranked by strategic value. Player picks region-by-region: [Demand this region] [Not this one] [Enough territory].
+
+### Z4-4. Territory — Elimination Guard
+**Goal:** Verify wizard won't auto-suggest demands that would eliminate a nation.
+```
+cheat give_dp 5
+send ultimatum to Saxony
+# Saxony has 2 regions — wizard should not suggest both
+```
+**Verify:** Auto-generated terms skip territory for nations with ≤2 regions. If player reaches territory step via customize, regions that would leave target with ≤1 region should be filtered out or warned about.
+
+### Z4-5. Manpower Step — Typed Demands (PL-18)
+**Goal:** Verify manpower wizard shows unit type selection.
+```
+# In wizard manpower step:
+```
+**Verify:** Shows target's available pools: "Infantry: X | Cavalry: Y | Artillery: Z". Types with <300 pool are hidden. Player picks type → amount with [More] [Less] [Skip]. Multiple types can be demanded (e.g., infantry + cavalry). After manpower, proceeds to confirm step.
+
+### Z4-6. Confirm Step — Full Preview
+**Goal:** Verify confirm step shows all demands with acceptance and diplomatic cost.
+```
+# After completing gold/territory/manpower steps:
+```
+**Verify:** Confirm step displays: (1) all chosen demands listed, (2) acceptance estimate %, (3) diplomatic cost with severity label (mild/moderate/severe/extreme), (4) splash damage preview, (5) threat increase preview, (6) Talleyrand territory warning if applicable. Options: [Deliver Ultimatum] [Start Over] [Reconsider].
+
+### Z4-7. Empty Demands — Floor Enforced
+**Goal:** Verify player can't send an empty ultimatum.
+```
+# Skip gold, skip territory, skip manpower
+```
+**Verify:** If all demands skipped, a minimum symbolic tribute is injected (100 gold lump). Talleyrand says "We must demand something, Sire — at minimum a symbolic tribute."
+
+### Z4-8. Use Suggested Terms — Bypass Wizard
+**Goal:** Verify "Use Suggested Terms" skips the wizard entirely.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Choose "Use Suggested Terms"
+```
+**Verify:** Skips gold/territory/manpower steps. Goes straight to delivery with auto-generated demands. Shows acceptance estimate. Same result as PL-14 original flow but with visible terms.
+
+---
+
+## SECTION Z5: Dynamic Relation Penalty — PL-19 (Session B, Apr 8)
+
+Ultimatum delivery penalty now scales -10 to -60 based on demand severity. Territory is income-weighted. Splash damage scales with penalty severity.
+
+### Z5-1. Gold-Only Demand — Mild Penalty
+**Goal:** Confirm small demands produce small penalties.
+```
+cheat give_dp 5
+cheat set_relation Austria 30
+send ultimatum to Austria
+# Customize: demand 100 gold/turn, skip territory, skip manpower
+# Deliver
+```
+**Verify:** Relation hit to Austria is approximately -15 (base -10 + gold penalty). Diplomatic cost label shows "mild." Check diplomatic ledger for new relation value.
+
+### Z5-2. Territory Demand — Income-Weighted
+**Goal:** Confirm territory penalty scales with region income.
+```
+# Demand a rural region (income ~50) vs a city (income ~150)
+# Compare relation hits
+```
+**Verify:** Rural region causes less relation damage than city. Capital region costs ×2 on top of income weight. E.g., demanding Vienna (capital, high income) should cause much larger penalty than demanding a border town.
+
+### Z5-3. Multi-Demand Stacking
+**Goal:** Verify penalties stack from gold + territory + manpower.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Customize: demand gold + 2 territories + manpower
+# Check diplomatic cost preview before delivering
+```
+**Verify:** Diplomatic cost preview shows a "severe" or "extreme" label. After delivery, relation drops significantly (closer to -40 to -60 range). Compare against gold-only demand (Z5-1) — should be much worse.
+
+### Z5-4. Splash Damage Scales with Severity
+**Goal:** Confirm bystander splash multiplied by penalty severity.
+```
+cheat set_diplo_state Prussia ALLIANCE
+cheat set_relation Prussia 40
+cheat give_dp 5
+send ultimatum to Austria
+# Demand heavy terms (territory + gold + manpower) — high severity
+# Deliver
+```
+**Verify:** Prussia (allied with Austria) takes a larger splash hit than with mild demands. Splash multiplier ranges 1.0× (mild) to 2.5× (extreme). Check Prussia's relation change in diplomatic ledger.
+
+### Z5-5. Rejection Penalty Scales
+**Goal:** Verify rejection penalty scales from -5 to -15 based on demand severity.
+```
+cheat set_relation Austria -50
+cheat give_dp 5
+send ultimatum to Austria
+# Heavy demands → deliver → rejected
+```
+**Verify:** Rejection relation hit is more than flat -5 for heavy demands. Total relation change (delivery + rejection) should be significant.
+
+### Z5-6. Penalty Floor and Cap
+**Goal:** Verify penalty range is -10 to -60.
+```
+# Test floor: send ultimatum with minimal demands (100 gold only)
+# Test cap: send ultimatum with max demands (territory + gold + manpower)
+```
+**Verify:** Minimum penalty is -10 (base alone). Maximum is capped at -60 regardless of how many demands. Check via diplomatic ledger relation values.
+
+### Z5-7. Dynamic Threat Scaling
+**Goal:** Confirm delivery threat scales with demand severity.
+```
+cheat set_threat 10
+cheat give_dp 5
+send ultimatum to Austria
+# Light demands → deliver
+# Check threat
+Press D → Threat tab
+```
+**Verify:** Light demands add ~10-15 threat. Heavy demands add ~25-30 threat. Territory demands add additional per-region threat (+8 each) plus count-based bonus (+5 for 2-3 regions, +12 for 4+, +18 for rump, +25 for annex attempt).
+
+---
+
+## SECTION Z6: EU4-Style Territory Cost Scaling — PL-20 (Session B, Apr 8)
+
+Escalating per-region acceptance cost (-5, -8, -11, -14...) plus income weighting and elimination guards. Applies to ALL proposal types (ultimatums + peace treaties).
+
+### Z6-1. First Region — Baseline Cost
+**Goal:** Confirm single region demand has reasonable acceptance penalty.
+```
+cheat give_dp 5
+cheat set_relation Austria 40
+send ultimatum to Austria
+# Customize: demand 1 border region, skip gold/manpower
+# Note acceptance estimate
+```
+**Verify:** Single region demand reduces acceptance by roughly -5 to -10 depending on region income. Rural regions (income ~50) cost less than cities (income ~150).
+
+### Z6-2. Escalating Cost — 2nd+ Region
+**Goal:** Verify each additional region costs more than the last.
+```
+# Demand 1 region → note acceptance
+# Start over → demand 2 regions → note acceptance
+# Start over → demand 3 regions → note acceptance
+```
+**Verify:** Acceptance drops faster with each additional region. Not a flat -5 per region. Pattern should be roughly: -5 first, -8 second, -11 third, -14 fourth (base escalation before income weighting).
+
+### Z6-3. Capital Region — Double Cost
+**Goal:** Confirm capital regions cost ×2.
+```
+# Compare: demand a non-capital region vs demand the capital region (same target)
+```
+**Verify:** Demanding a capital causes roughly double the acceptance penalty compared to a similarly-valued non-capital region. The capital penalty stacks with income weight — a high-income capital is extremely expensive.
+
+### Z6-4. Full Annexation Blocked — Acceptance Guard
+**Goal:** Verify full annexation is near-impossible diplomatically.
+```
+cheat give_dp 5
+send ultimatum to Saxony
+# Try to demand ALL of Saxony's territory (2 regions)
+```
+**Verify:** Acceptance estimate shows very low % (near 0%). The -60 elimination guard makes full annexation via diplomacy practically impossible. Talleyrand warning text appears about erasing them from the map.
+
+### Z6-5. Rump State — Heavy Penalty
+**Goal:** Verify demanding all but 1 region triggers rump state penalty.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Demand 3 of 4 regions (leaving only capital)
+```
+**Verify:** Acceptance drops significantly due to -30 rump state guard. Talleyrand warning about reducing them to their capital. Much harder than demanding 2 of 4 regions.
+
+### Z6-6. Application Guard — Cannot Eliminate via Demands
+**Goal:** Verify `_apply_ultimatum_demands` refuses transfers that would eliminate a nation.
+```
+# This is a safety net — even if acceptance somehow passes, the application blocks elimination
+# Test via backend: pytest tests covering this guard
+```
+**Verify:** Backend test confirms: if target has 1 region and territory demand exists, transfer is refused. This is a safety net on top of the acceptance penalty.
+
+### Z6-7. Auto-Generation Skips Elimination Demands
+**Goal:** Verify auto-generated ultimatum terms don't propose elimination-level territory.
+```
+cheat give_dp 5
+send ultimatum to Saxony
+# Check auto-generated terms (Use Suggested)
+```
+**Verify:** For Saxony (2 regions), auto-generated terms should NOT include territory demands. Gold and/or manpower only. For larger nations, territory is offered but never enough to reduce to ≤1 region.
+
+### Z6-8. Treaty Cession Guard — War Score < 90
+**Goal:** Verify peace treaties block elimination at low war scores.
+```
+# After a war with moderate war score (~50-70):
+cheat set_diplo_state Austria WAR
+# Win some battles to get war score
+# Propose peace with territory demands that would eliminate
+```
+**Verify:** Treaty ratification blocks territory cessions that would eliminate a nation if war_score < 90. Territory clauses stripped, other clauses (gold, AP) still apply.
+
+### Z6-9. Wizard Territory Warning — Count-Based
+**Goal:** Verify Talleyrand shows appropriate warnings based on demand count.
+```
+# In ultimatum wizard, demand varying numbers of regions:
+# 2-3 regions → "substantial territorial demand"
+# 4+ regions → "extraordinary claim" warning
+# All-but-1 → "reducing them to their capital" warning
+# All regions → "erase them from the map" warning
+```
+**Verify:** Warning text matches demand severity. Warnings appear in the confirm step before delivery.
+
+---
+
+## SECTION Z7: Typed Manpower Demands — PL-18 (Session A, Apr 8)
+
+Manpower demands now specify unit type (infantry/cavalry/artillery) with different acceptance costs. Scarcity pricing: artillery > cavalry > infantry.
+
+### Z7-1. Manpower Type Selection in Wizard
+**Goal:** Verify wizard shows typed manpower pools.
+```
+cheat give_dp 5
+send ultimatum to Austria
+# Customize → skip gold → skip territory → manpower step
+```
+**Verify:** Shows Austria's available pools: "Infantry: X | Cavalry: Y | Artillery: Z". Types with pool < 300 are hidden. Player picks type first, then amount.
+
+### Z7-2. Typed Transfer — Infantry
+**Goal:** Confirm infantry manpower transfers from correct pool.
+```
+# Demand 2000 infantry from Austria → deliver → accepted
+# Check strategic ledger manpower section
+```
+**Verify:** France gains 2000 infantry. Austria loses 2000 infantry. Cavalry and artillery pools unchanged.
+
+### Z7-3. Typed Transfer — Cavalry (Higher Cost)
+**Goal:** Confirm cavalry demands cost more acceptance than infantry.
+```
+# Compare: demand 2000 infantry vs 2000 cavalry (same target, same amount)
+# Note acceptance estimates for each
+```
+**Verify:** 2000 cavalry demand reduces acceptance more than 2000 infantry demand. Cavalry is scarcer → higher penalty.
+
+### Z7-4. Typed Transfer — Artillery (Highest Cost)
+**Goal:** Confirm artillery demands cost the most.
+```
+# Compare: demand 2000 artillery vs 2000 cavalry vs 2000 infantry
+```
+**Verify:** Artillery demand reduces acceptance the most. Order: artillery > cavalry > infantry for same amount.
+
+### Z7-5. Multiple Types — Stacking
+**Goal:** Verify demanding multiple manpower types stacks correctly.
+```
+# Demand 1000 infantry + 500 cavalry + 300 artillery
+```
+**Verify:** All three types demanded. Acceptance reflects combined penalty. Each type transferred from correct pool on acceptance.
+
+### Z7-6. Pool Cap — Can't Demand More Than Target Has
+**Goal:** Verify demands are capped at target's actual pool size.
+```
+# Demand manpower for a type where target has very few (e.g., 200 artillery)
+```
+**Verify:** Transfer capped at target's actual pool. Can't demand 5000 artillery if target only has 200.
+
+---
+
+## SECTION Z8: Harshness + Acceptance Formula — PL-12 (Session 11, Apr 7)
+
+Harshness penalty now feeds into acceptance. Harsher terms decrease acceptance (was inverted before).
+
+### Z8-1. Harsher Terms Decrease Acceptance
+**Goal:** Confirm clicking "Even Harsher" reduces acceptance, not increases.
+```
+cheat give_dp 5
+cheat set_relation Saxony 40
+propose non-aggression with Saxony
+# Note acceptance estimate
+# Click "Even Harsher"
+# Note new acceptance estimate
+```
+**Verify:** Acceptance goes DOWN after clicking "Even Harsher." This was the core PL-12 bug — it used to go UP.
+
+### Z8-2. Generous Terms Increase Acceptance
+**Goal:** Confirm "More Generous" still increases acceptance.
+```
+cheat give_dp 5
+propose alliance with Austria
+# Note acceptance
+# Click "More Generous"
+```
+**Verify:** Acceptance goes UP after clicking "More Generous." This is the expected inverse of Z8-1.
+
+---
+
+## SECTION Z9: Acceptance Snapshot + Surpassed Fix — PL-13 (Session 11, Apr 7)
+
+Proposals now snapshot diplomatic state at send time. Surpassed check uses snapshot, preventing false rejections.
+
+### Z9-1. High-Acceptance Proposal Not Falsely Rejected
+**Goal:** Confirm proposals with good odds don't fail as "surpassed."
+```
+cheat set_diplo_state Saxony OPEN_BORDERS
+cheat set_relation Saxony 50
+cheat give_dp 10
+propose non-aggression with Saxony
+proceed
+end turn
+```
+**Verify:** Proposal resolves based on actual acceptance formula, NOT rejected as "surpassed." Proposal result popup shows the real outcome (accept/reject based on score, not false "situation changed").
+
+### Z9-2. Proposal Result Popup Shows Outcome
+**Goal:** Confirm proposal results appear as popup, not just buried in dispatch.
+```
+cheat give_dp 5
+propose non-aggression with Austria
+proceed
+end turn
+```
+**Verify:** Proposal Result Popup appears showing: target nation, proposal type, outcome (ACCEPT/REJECT), explanation text. [Continue] button dismisses. Result also appears in morning dispatch (both is correct — different purposes).
+
+---
+
+## SECTION Z10: Acceptance Mismatch Tolerance — PL-9 (Session 10, Apr 6)
+
+Acceptance snapshot with tolerance band prevents marginal rejections.
+
+### Z10-1. Borderline Proposal Shows Warning
+**Goal:** Confirm Talleyrand warns about borderline proposals (50-75% range).
+```
+# Set up a scenario where acceptance is ~60-70%
+cheat set_relation Saxony 30
+cheat give_dp 5
+propose non-aggression with Saxony
+```
+**Verify:** Talleyrand's assessment includes a warning about changing conditions: something like "Much may change during my journey." This sets expectations that the % is a snapshot.
+
+### Z10-2. Marginal Drop Doesn't Cause Rejection
+**Goal:** Confirm small score changes during transit don't reject the proposal.
+```
+# Send proposal at ~65% acceptance
+# End turn (conditions may shift slightly)
+```
+**Verify:** Proposal still resolves as ACCEPT unless score dropped by more than 15 points from the snapshot. A 65% proposal that drops to 55% should still succeed (within tolerance band).
+
+---
+
+## SECTION Z11: Proposal Type Preservation — PL-10 (Session 10, Apr 6)
+
+"More Generous" no longer downgrades proposal type below current relationship.
+
+### Z11-1. Generous Alliance Stays Alliance
+**Goal:** Confirm "More Generous" on alliance proposal doesn't downgrade to peace treaty.
+```
+cheat set_diplo_state Saxony OPEN_BORDERS
+cheat set_relation Saxony 40
+cheat give_dp 10
+propose alliance with Saxony
+# Click "More Generous"
+```
+**Verify:** Proposal type remains "Alliance" after clicking generous. Does NOT downgrade to "Peace Treaty" or "Non-Aggression." Sweeteners are added (gold, protection) while keeping the alliance proposal type.
+
+---
+
+## SECTION Z12: Proposal Feedback + Race Condition — PL-5 (Sessions 7-8, Apr 6)
+
+Proposal results now show as popup. AI dedup prevents race conditions.
+
+### Z12-1. Proposal Result Popup
+**Goal:** Confirm result is shown as a modal popup, not just in dispatch.
+```
+cheat give_dp 5
+propose non-aggression with Austria
+proceed
+end turn
+```
+**Verify:** **Proposal Result Popup** appears with outcome (ACCEPT/REJECT). Shows target nation, proposal type, result. [Continue] button. Not just text in morning dispatch.
+
+### Z12-2. AI Doesn't Race Player Proposal
+**Goal:** Confirm AI doesn't propose same type while player proposal is in transit.
+```
+# Send proposal to a nation the AI is likely to approach
+cheat give_dp 5
+propose non-aggression with Saxony
+proceed
+end turn
+```
+**Verify:** AI does NOT generate a competing proposal to Saxony while player's is in transit. No confusing double-proposal. After resolution, AI may propose in subsequent turns (after cooldown).
+
+### Z12-3. Rejection Cooldown Blocks Both Sides
+**Goal:** Confirm rejection sets cooldowns for both player and AI.
+```
+# Send proposal → rejected
+# Try same proposal immediately (player blocked)
+# End turn (AI also blocked)
+```
+**Verify:** Player cannot re-propose within cooldown. AI also does not re-propose same type within cooldown period.
+
+---
+
+## SECTION Z13: Counter-Offer UX — PL-8 (Session 9, Apr 6)
+
+Counter-offers visually differentiated from initial proposals.
+
+### Z13-1. Counter-Offer Visual Distinction
+**Goal:** Verify counter-offer popup looks different from initial proposals.
+```
+# Set up borderline acceptance (score 30-49 for counter-offer)
+cheat set_relation Prussia -10
+cheat give_dp 5
+propose armistice with Prussia
+proceed
+end turn
+```
+**Verify:** If AI counters: popup shows distinct "COUNTER-OFFER" header (blue, not default), context line ("In response to your X proposal..."), steel-blue border. Buttons adapted for counter context.
+
+---
+
+## SECTION Z14: Harsher Terms Type-Aware — PL-6 (Session 7, Apr 6)
+
+"Harsher" terms now respect proposal type. Friendship proposals can't demand territory.
+
+### Z14-1. Friendship Proposal — No Territory Demands
+**Goal:** Confirm harsher terms on non-aggression don't add territory.
+```
+cheat give_dp 5
+cheat set_relation Saxony 30
+propose non-aggression with Saxony
+# Click "Even Harsher"
+```
+**Verify:** Harsher terms add modest gold demand (100g). Does NOT add territory_cede. Second "Even Harsher" click blocked with message about friendship proposal limits.
+
+### Z14-2. War Resolution — Territory Allowed
+**Goal:** Confirm peace/armistice proposals CAN add territory on harsher terms.
+```
+cheat set_diplo_state Britain WAR
+cheat give_dp 5
+propose armistice with Britain
+# Click "Even Harsher"
+```
+**Verify:** Harsher terms add gold (round 1) then territory (round 2). Both rounds available. Territory makes thematic sense for war reparations.
