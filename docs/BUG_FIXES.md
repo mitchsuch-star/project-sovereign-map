@@ -237,7 +237,7 @@ When the target accepts, demands are applied immediately:
 - **No AI ultimatums** in this implementation. AI coercion expressed through coalitions, war declarations, harsh counter-offers. AI-to-player ultimatums deferred to R162 in DESIGN_REFINEMENT.md.
 - **No Talleyrand sabotage** — ultimatums resolve instantly (no transit). Skip defiance check.
 - **No special marshal displacement** on territory transfer — reuses existing `territory_cede` handling.
-- **AP demands:** AP-per-turn demands are available as an ultimatum demand type. Uses existing `ap_per_turn` clause mechanics — requires war_score > 80 validation (same as treaty AP clause). This is high-value coercion gated behind decisive military advantage.
+- **No AP demands:** AP-per-turn is excluded from ultimatums. The `ap_per_turn` clause requires war_score > 80 validation, which is impossible in peacetime (ultimatums are blocked during war). AP extraction belongs in harsh peace treaties after military victory, not coercive peacetime diplomacy.
 
 ---
 
