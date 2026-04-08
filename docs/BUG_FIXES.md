@@ -132,17 +132,18 @@ Route through the existing conversational diplomacy system but as a demands-only
    - Accepted: target pays up (gold, territory, manpower transferred). **No state change.** Relations stay as-is (already tanked by -10).
    - Rejected: casus belli granted, further -5 relation hit
 
-**§2 Terms — Pure Demands, Any Target**
+**§2 Terms — Pure Demands, Any Non-War Target**
 
 `generate_ultimatum_terms(target, world)` builds coercive demands based on military advantage:
 - **No proposal type / state change.** Ultimatums don't propose a diplomatic upgrade — they extort resources.
-- **Any nation can be targeted** regardless of current diplomatic state (at war, at peace, allied — though allying someone you're extorting is a bold move)
+- **Any non-war, non-vassal nation can be targeted** (at peace, allied — though allying someone you're extorting is a bold move). War targets blocked (use harsh peace instead). Own vassals blocked (use invest/autonomy).
 - Auto-filled demands proportional to military advantage:
-  - Gold per turn: `min(500, max(100, war_score * 5))` if winning; flat 100 if at peace
+  - Gold per turn: `min(300, max(50, income * 0.5))` — capped at 50% of target income. If income <= 0, skip; use gold_lump instead: `min(500, nation_gold * 0.3)`. If 0 gold AND 0 income, only territory/manpower.
   - Territory: coveted regions if France controls adjacent territory and has military superiority
   - Manpower: `min(5000, troop_advantage * 0.1)` if target has significantly fewer troops
+  - **No AP demands** — AP-per-turn requires war_score > 80 which is impossible in peacetime
 - **No sweeteners ever** — ultimatums demand, they don't offer
-- Player can escalate via existing modify_harsh flow
+- Player can escalate via dedicated `modify_harsh_ultimatum` handler (NOT the proposal `modify_harsh` — see §8)
 - Acceptance uses full 14-component formula + ultimatum military threat bonus
 
 **§3 Geopolitical Consequences — The Diplomatic Price**
@@ -184,60 +185,191 @@ When the target accepts, demands are applied immediately:
 - Manpower: deducted from target pool, added to France pool
 - No diplomatic state change — the relationship stays exactly where it was
 
-**§7 Files to Modify**
+**§7 Scope Exclusions**
 
-| File | Change |
-|------|--------|
-| `diplomatic_executor.py` | Replace `_execute_diplomatic_ultimatum` body with dialogue push; add `execute_ultimatum` handler in `_process_dialogue_choice`; splash damage + threat logic; resource transfer on acceptance |
-| `diplomatic_templates.py` | New `generate_ultimatum_terms()` function |
-| `diplomacy.py` | Add `ultimatum_bonus` component to `calculate_acceptance()`; threat accumulation call |
-| `diplomatic_dialogue.py` | Handle `ultimatum_confirm` type in `_enrich_proposal_summary()` (add consequence preview fields) |
-| `world_state.py` | New `ultimatum_global_cooldown` field + serialization; wire into `_cooldown_manager` |
-| `cooldown_manager.py` | Add ultimatum cooldown to auto-decrement |
-| `coalition.py` | Ultimatum threat accumulation (+15/+20) |
-| `display_names.py` | Ultimatum-specific display strings |
-| `campaign_log.py` | Ultimatum event formatting |
-| `validation.py` | Update if action name changes |
-
-- **Est. Tests:** ~10
-
-#### Spec Amendments (Apr 7 Audit)
-
-**§1 Amendments — Core Flow:**
-- **Vassal block:** Pre-validate target is not player's own vassal. Return: *"Sire, {target} is already our vassal. Use investment or autonomy changes to manage them."*
-- **War block message update:** Change to: *"We are at war with {target}, Sire. Use a peace proposal with harsh demands instead — Talleyrand can deliver crushing terms through normal channels."*
-- **Preview fields:** Add `splash_damage_preview` (list of `{nation, treaty_with_target, relation_penalty}`), `threat_increase_preview` ("+15 threat, +5 if accepted"), `cooldown_remaining` to the `ultimatum_confirm` dialogue. Talleyrand commentary summarizes splash damage in prose.
-
-**§2 Amendments — Terms / Gold Cap:**
-- Cap `gold_per_turn` demand at 50% of target's turn income: `min(300, max(50, income * 0.5))`
-- If target income <= 0: skip `gold_per_turn`, offer `gold_lump` from reserves instead: `min(500, nation_gold * 0.3)`
-- If target has 0 gold AND 0 income: only territory and manpower demands available
-- Ultimatums to allies/defensive allies are allowed. The relation penalties will often trigger auto-downgrade on the following turn. No special alliance-break logic needed.
-
-**§3 Amendments — Geopolitical Consequences:**
-- **(b) Splash damage:** Bystander relation hits route through diplomatic ties to the target. Future-proofed for R160 rivalry system — when rivalry is implemented, bystander anger amplifies through rivalry mechanics.
-- **(c) Coalition vs threat clarified:** If target is in an active coalition: splash damage applies to coalition members AND feeds coalition war exhaustion. If target is NOT in a coalition: the +15/+20 threat increase pushes toward coalition formation. Ultimatuming a coalition member is legal but extremely provocative — may trigger instant formation if threat crosses 80.
-- **(new) Casus belli:** Binary flag per nation pair, no stacking, no expiration. Consumed implicitly when war is declared (halves penalties per `declare_war()`). Does not stack with existing casus belli from other sources — same flag.
-
-**§4 Amendment — Cooldown Migration:**
-- Confirmed: global cooldown (1 per 5 turns, all nations). Old per-target `ultimatum_cooldowns` dict must be replaced with `ultimatum_global_cooldown` int.
-- Migration in `from_dict()`: if old `ultimatum_cooldowns` exists, set global cooldown to `max(old_values, default=0)`.
-
-**§5 Amendment — Acceptance Formula:**
-- New `ultimatum_demand` entry in `BASE_DISPOSITION` with value **20** (lower than peace=30 — nations resent coercion).
-- `ultimatum_bonus` component: +10 base, +15 adjacency, +5/marshal in target territory (cap +15). Added to components dict for acceptance breakdown display.
-- Threshold: score >= 50 = ACCEPT, else REJECT. No counter-offer, no partial acceptance.
-
-**§6 Amendment — Resource Transfer:**
-- Reuse `_ratify_treaty` clause processing for `territory_cede` and `gold_lump`.
-- For ongoing `gold_per_turn`: store in `active_treaties` with `"is_ultimatum_tribute": True` flag. Processed by `_process_treaty_income()`, cleared on WAR transition, visible in diplomatic ledger. Flag prevents interference with future proposals.
-- Territory transfer uses existing handling — marshals stay in region, supply attrition applies.
-
-**§7 Amendment — Scope Exclusions:**
 - **No AI ultimatums** in this implementation. AI coercion expressed through coalitions, war declarations, harsh counter-offers. AI-to-player ultimatums deferred to R162 in DESIGN_REFINEMENT.md.
 - **No Talleyrand sabotage** — ultimatums resolve instantly (no transit). Skip defiance check.
 - **No special marshal displacement** on territory transfer — reuses existing `territory_cede` handling.
-- **No AP demands:** AP-per-turn is excluded from ultimatums. The `ap_per_turn` clause requires war_score > 80 validation, which is impossible in peacetime (ultimatums are blocked during war). AP extraction belongs in harsh peace treaties after military victory, not coercive peacetime diplomacy.
+- **No AP demands:** AP-per-turn requires war_score > 80 which is impossible in peacetime.
+
+**§8 Implementation Guide — Step by Step**
+
+This section is the authoritative reference. Where §1-§7 conflict with §8, §8 wins.
+
+**Step 1: `world_state.py` — Cooldown migration**
+- Replace `register_dict("ultimatum")` with `register_scalar("ultimatum_global")` in `__init__`
+- Replace `ultimatum_cooldowns` property (dict→`_cooldown_manager.get_dict`) with `ultimatum_global_cooldown` property (int→`get_scalar("ultimatum_global")`/`set_scalar`)
+- Pattern to copy: `talleyrand_defiance_cooldown` property (scalar cooldown, same file)
+- `to_dict`: change `"ultimatum_cooldowns": {dict}` → `"ultimatum_global_cooldown": int(self.ultimatum_global_cooldown)`
+- `from_dict`: read new int format. Migration: `if "ultimatum_cooldowns" in data and "ultimatum_global_cooldown" not in data: world.ultimatum_global_cooldown = max(data["ultimatum_cooldowns"].values(), default=0)`
+- Update `docs/SAVE_FORMAT_REFERENCE.md`
+
+**Step 2: `diplomacy.py` — Acceptance formula**
+- Add `"ultimatum_demand": 20` to `BASE_DISPOSITION` dict (~line 109). **IMPORTANT:** the fallback `BASE_DISPOSITION.get(proposal_type, 30)` at line 659 means forgetting this silently gives 30 — test that it's 20.
+- Add `ultimatum_bonus` component to `calculate_acceptance()` (~line 823, before the `raw_score` sum):
+  ```python
+  ultimatum_bonus = 0
+  if proposal_type == "ultimatum_demand":
+      ultimatum_bonus = 10  # base military threat
+      # +15 if any proposer marshal adjacent to target marshal
+      # +5 per proposer marshal in target territory (cap +15)
+      # (same adjacency logic as current _execute_diplomatic_ultimatum lines 598-610)
+  ```
+- Add `ultimatum_bonus` to the `raw_score` sum and to the `components` dict
+- Add `"ultimatum_bonus"` to `FEEDBACK_STRINGS` in `display_names.py`: `{"positive": "military threat backs demands", "negative": ""}`
+
+**Step 3: `diplomatic_templates.py` — New `generate_ultimatum_terms()`**
+- New function: `generate_ultimatum_terms(target_nation, world) -> Dict`
+- Returns: `{"demands": [...], "sweeteners": [], "clauses": [], "type": "ultimatum_demand"}`
+- Demand generation: gold (§2 formula), territory (adjacent + military superiority), manpower (troop advantage). No AP.
+- **No `proposal_type` key** — ultimatums use `"type": "ultimatum_demand"` only. No dual-key fragility.
+
+**Step 4: `diplomatic_executor.py` — Replace `_execute_diplomatic_ultimatum` body**
+
+Replace the entire method body. New flow:
+1. Pre-validate: target exists, not WAR (message: "Use a peace proposal with harsh demands instead"), not own vassal (message: "Use investment or autonomy changes"), global cooldown check, DP check (2 DP), Talleyrand threat>50 objection (keep existing)
+2. **DO NOT deduct DP or apply relation penalty here** — that happens on delivery (step 6)
+3. Build terms via `generate_ultimatum_terms(target, world)`
+4. Build splash damage preview: iterate `world.get_active_nations()`, check each nation's state with target, compute penalty per §3(b) tier. Store as list of `{nation, treaty_with_target, relation_penalty}`.
+5. Push `ultimatum_confirm` dialogue via `world.dialogue_manager.push(...)`:
+   ```python
+   {
+       "type": "ultimatum_confirm",
+       "target_nation": target_nation,
+       "prompt": "Talleyrand presents the ultimatum terms...",
+       "options": [
+           {"label": "Deliver Ultimatum", "action": "execute_ultimatum", "terms": terms},
+           {"label": "Harsher Demands", "action": "modify_harsh_ultimatum"},
+           {"label": "Reconsider", "action": "reconsider"},
+       ],
+       "terms": terms,
+       "splash_damage_preview": splash_preview,
+       "threat_increase_preview": "+15 threat, +5 if accepted",
+       "cooldown_remaining": int(world.ultimatum_global_cooldown),
+   }
+   ```
+6. Call `_enrich_ultimatum_dialogue()` (see step 5) on the dialogue before returning
+7. Return dialogue result (same pattern as `_execute_diplomatic_proposal` pushing a `proposal_confirm`)
+
+**Step 5: `diplomatic_dialogue.py` — New `_enrich_ultimatum_dialogue()` function**
+
+**DO NOT modify `_enrich_proposal_summary()`.** That function assumes proposal-style terms (proposal_type→state map, transition DP cost, `generate_suggested_terms` fallback). Instead, create a new function:
+
+```python
+def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dict:
+    """Add acceptance estimate and consequence preview to ultimatum dialogue."""
+```
+
+This function:
+- Reads terms from `dialogue["terms"]`
+- Builds acceptance proposal: `{"type": "ultimatum_demand", "proposer_nation": "France", "target_nation": target, "sweeteners": [], "demands": terms["demands"], "clauses": []}`
+- Calls `calculate_acceptance(proposal, world)` → sets `dialogue["acceptance_estimate"]`, `dialogue["acceptance_outcome"]`, `dialogue["acceptance_hint"]`
+- Sets `dialogue["dp_cost"] = 2` (flat, not transition-based)
+- Sets `dialogue["harshness_label"] = "Coercive"` (ultimatums are always coercive)
+- Passes through `splash_damage_preview` and `threat_increase_preview` already on the dialogue
+
+**Step 6: `diplomatic_executor.py` — Add handlers in `_process_dialogue_choice`**
+
+Add two new `elif` blocks in `_process_dialogue_choice` (near `execute_proposal`, ~line 895):
+
+**(a) `elif action == "execute_ultimatum":`**
+1. Deduct 2 DP (check sufficient first, pop dialogue + return error if not)
+2. Apply -10 relation to target: `world.modify_nation_relation(player, target_nation, -10)`
+3. Apply splash damage: iterate bystander nations per §3(b), call `world.modify_nation_relation("France", nation, -penalty)` for each
+4. Add coalition threat: `add_threat(world, 15, "ultimatum_issued")`
+5. Calculate acceptance: build proposal dict with `"type": "ultimatum_demand"`, call `calculate_acceptance()`, threshold >= 50 = ACCEPT
+6. **If ACCEPTED:**
+   - Apply demands via `_apply_ultimatum_demands()` (new helper, see step 7)
+   - Add +5 threat: `add_threat(world, 5, "ultimatum_accepted")`
+   - Set `world.ultimatum_global_cooldown = 5`
+   - Grant NO state change
+7. **If REJECTED:**
+   - Apply -5 additional relation
+   - Grant casus belli: `world.casus_belli[diplo_key] = True`
+   - Set `world.ultimatum_global_cooldown = 5`
+8. Pop dialogue, log to diplomatic_history, apply marshal trust reactions, log campaign event
+9. Return result dict with outcome message
+
+**(b) `elif action == "modify_harsh_ultimatum":`**
+
+**DO NOT reuse the proposal `modify_harsh` handler.** That handler is deeply proposal-specific (reads `proposal_type`, classifies friendship/war/coercive, uses `generate_suggested_terms`, rebuilds as `"proposal_confirm"`). Create a dedicated handler:
+
+1. Read current terms from `selected.get("terms", {})`
+2. Read `modify_count` from dialogue context (default 0)
+3. If `modify_count >= 2`: return message "Cannot escalate further, Sire."
+4. Escalation logic (ultimatum-specific):
+   - Round 1: multiply all existing demand values by 1.5, add territory demand if not present and France controls adjacent region
+   - Round 2: multiply by 1.5 again, add manpower demand if not present
+5. Rebuild `ultimatum_confirm` dialogue with updated terms (same structure as step 4)
+6. Call `_enrich_ultimatum_dialogue()` to recalculate acceptance with new terms
+7. Increment `modify_count` in dialogue context
+
+**Step 7: `diplomatic_executor.py` — New `_apply_ultimatum_demands()` helper**
+
+**DO NOT use `_ratify_treaty()`.** That function assumes a state transition, stores in `active_treaties`, checks relation requirements, and logs `"diplomatic_treaty_signed"`. All wrong for ultimatums. Instead, create a focused helper:
+
+```python
+def _apply_ultimatum_demands(self, demands: list, target_nation: str, world) -> list:
+    """Apply ultimatum demands immediately. Returns list of transfer descriptions."""
+```
+
+Process each demand:
+- `gold_lump`: transfer from target's `nation_gold` to France (same logic as `_ratify_treaty` lines 4760-4767, with floor check)
+- `gold_per_turn`: store as ultimatum tribute in `active_treaties`:
+  ```python
+  diplo_key = world._make_diplo_key("France", target_nation)
+  world.active_treaties[diplo_key] = {
+      "nations": ["France", target_nation],
+      "type": "ultimatum_tribute",
+      "is_ultimatum_tribute": True,
+      "clauses": [{"type": "gold_per_turn", "from": target_nation, "to": "France", "amount": int(value)}],
+      "turn_signed": int(world.current_turn),
+      "harshness": 1.0,
+  }
+  ```
+  **NOTE:** This overwrites any existing treaty for this pair. If they already have a treaty, the gold_per_turn replaces it. Check if this is acceptable or if clauses should be appended.
+- `territory_cede`: set `region.controller = "France"`, `region.stability = 50`, call `invalidate_active_nations_cache()`, add threat per region (+8 via `add_threat(world, 8 * count, "ultimatum_annex")`)
+- `manpower`: deduct from `world.nation_manpower[target]`, add to `world.nation_manpower["France"]` (floor at 0)
+
+**Step 8: `_process_treaty_income()` — Gold per turn processing**
+
+Verify that `_process_treaty_income()` in `world_state.py` already handles `gold_per_turn` clauses generically from `active_treaties`. If it iterates `active_treaties` and processes `"gold_per_turn"` clause types, ultimatum tribute works automatically. If it only processes specific treaty types, add `"ultimatum_tribute"` to the check. The `is_ultimatum_tribute` flag exists for ledger display differentiation, not for processing gating.
+
+**Step 9: `display_names.py` — Add entries**
+- `ACTION_DISPLAY["diplomatic_ultimatum"] = "delivers ultimatum to"`
+- `PROPOSAL_TYPE_DISPLAY["ultimatum_demand"] = "Ultimatum"`
+- `FEEDBACK_STRINGS["ultimatum_bonus"] = {"positive": "military threat backs demands", "negative": ""}`
+
+**Step 10: `campaign_log.py` — Add entries**
+- Add `"ultimatum_issued"`, `"ultimatum_accepted"`, `"ultimatum_rejected"` to `CAMPAIGN_LOG_TYPES`
+- Add `_DEFIANCE_DISPLAY["diplomatic_ultimatum"] = "issuing ultimatum"` and `_OBJECTION_DISPLAY["diplomatic_ultimatum"] = "issuing ultimatum"`
+- Add formatting in `format_event_oneliner()` for each event type
+
+**Step 11: `main.py` — Dialogue keyword routing**
+- Add `"deliver"` and `"ultimatum"` to `_DIALOGUE_RESPONSE_KEYWORDS` (~line 617) so terminal input "deliver ultimatum" routes to dialogue handler instead of falling through to executor
+
+**Step 12: `coalition.py` — No changes needed**
+- Threat accumulation is called via `add_threat()` from the executor (step 6). No new function in coalition.py.
+
+**Step 13: `validation.py` / `parser.py` / `llm_client.py` — No changes needed**
+- `diplomatic_ultimatum` already exists in all three. Parser already routes "ultimatum X" correctly.
+
+**Step 14: Tests (~12)**
+- Ultimatum dialogue push (terms generated, preview fields present)
+- Vassal target blocked
+- War target blocked
+- Global cooldown blocks second ultimatum
+- Acceptance formula: BASE_DISPOSITION = 20, ultimatum_bonus applied
+- Accepted: gold transferred, territory transferred, threat +20, no state change
+- Rejected: casus belli granted, relation -15 total, threat +15
+- Splash damage: bystander allies get relation penalty
+- modify_harsh_ultimatum: demands escalate, acceptance decreases
+- modify_harsh_ultimatum: capped at 2 rounds
+- Gold cap: gold_per_turn capped at 50% income
+- Zero-income target: gold_lump fallback
+- Cooldown migration: old dict format → new int
+
+- **Est. Tests:** ~12-15
 
 ---
 
@@ -261,11 +393,11 @@ When the target accepts, demands are applied immediately:
     - If `terms["proposal_type"]` is missing or lost during the dialogue round-trip, it falls back to `"peace"` (line 897 default). A `"peace"` proposal (PEACE, index 2) to a nation at OPEN_BORDERS (index 3) would be rejected as surpassed: `2 <= 3 = TRUE`.
     - The PL-10 fix (line 1016, 1063) ensured both keys are set in `modify_harsh`/`modify_generous`, but the initial unmodified flow relies on `generate_suggested_terms` setting `type` and the template resolver setting `proposal_type` — a fragile dual-key system.
   - **Connection to PL-12:** This bug occurred in the same playtest session as PL-12 (clicking "Even Harsher"). If the modify_harsh flow somehow failed to propagate `proposal_type` correctly before the PL-10 fix was applied, or if an edge case bypasses it, the type would corrupt.
-- **Proposed fix (two-part):**
-  - **(A) Snapshot diplomatic state at send time** — store `sent_diplomatic_state` in `proposal_in_transit` (`diplomatic_executor.py:962`). At resolution (`world_state.py:4344`), compare proposal against snapshot state instead of current state. If snapshot says the proposal was valid when sent, skip the surpassed check.
+- **Proposed fix (four-part):**
+  - **(A) Snapshot diplomatic state at send time** — In `diplomatic_executor.py`, where `proposal_in_transit` is built (~line 962, the dict literal), add a new field: `"sent_diplomatic_state": world.get_diplomatic_state(world.player_nation, target_nation)`. This stores the string state name (e.g., `"OPEN_BORDERS"`). At resolution in `world_state.py` `_process_proposal_in_transit` (~line 4344, before the surpassed check): if `proposal_in_transit.get("sent_diplomatic_state")` exists, compare the proposal's target state against the *snapshot* instead of the current state. If the proposal was valid when sent (target_state index > snapshot index), skip the surpassed rejection even if the current state has since changed.
   - **(B) Normalize dual-key to single key** — in `_enrich_proposal_summary` (`diplomatic_dialogue.py:392-393`), always set BOTH `terms["type"]` and `terms["proposal_type"]` to `proposal_type`. Add defensive normalization in `execute_proposal` (`diplomatic_executor.py:897`): `proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"`.
   - **(C) Add diagnostic logging** — temporary log in `_process_proposal_in_transit` before the surpassed check: print `proposal.get("type")`, `current_state`, `target_state`, `curr_idx`, `tgt_idx`. This confirms root cause on next occurrence.
-  - **(D) Fix `generate_suggested_terms` at the source** — `_build_base_terms` (`diplomatic_templates.py:1471-1472`) sets `terms["type"]` but not `terms["proposal_type"]`. Add `terms["proposal_type"] = proposal_type` so the function returns terms with BOTH keys. This eliminates the need for every caller to manually add `proposal_type`.
+  - **(D) Fix `generate_suggested_terms` at the source** — In `diplomatic_templates.py`, function `_build_base_terms()`: after the `terms = { "type": proposal_type, ... }` dict is constructed (the closing `}` is ~6 lines after the opening), add `terms["proposal_type"] = proposal_type` as the next line. This ensures the function returns terms with BOTH keys, eliminating the need for every caller to manually add `proposal_type`.
 - **Related dual-key instances found (Apr 7 audit):**
   - `diplomatic_dialogue.py:814-820` — `generate_feasibility_assessment()` creates terms with `proposal_type` but no `type` key. Safe because `execute_proposal` (line 897) reads `proposal_type` first, but inconsistent.
   - `diplomatic_executor.py:1620` — counter_terms handler uses defensive fallback: `counter_terms.get("type", counter_terms.get("proposal_type", "peace"))`. Shows developer awareness of the fragility.
@@ -289,10 +421,28 @@ When the target accepts, demands are applied immediately:
   - **`calculate_treaty_harshness()` also ignores demands:** It only scores `clauses`, not `demands` (`diplomatic_templates.py:1726-1735`). Even if it were wired into acceptance, it would score a 100g/turn demand at 0.0 harshness.
 - **Priority:** P1 (MAJOR). Core diplomacy mechanic is inverted. Player feedback loop is wrong — encourages harsher terms instead of creating a risk/reward tradeoff.
 - **Proposed fix (5 parts):**
-  - **(A) Add harshness penalty to `calculate_acceptance()`** (`diplomacy.py` ~line 807): Call `calculate_treaty_harshness()` on current proposal. Penalty: `-15 per 0.1 above 0.2 threshold`, capped at -40. New component `harshness_penalty` added to raw_score sum.
-  - **(B) Extend `calculate_treaty_harshness()` to include demands** (`diplomatic_templates.py:1722-1736`): Add demand weighting: gold_per_turn `+0.1 per 100g`, territory_cede `+0.2 per region`, ap_per_turn `+0.3 per AP`. This makes the harshness score reflect the full proposal, not just clauses.
+  - **(A) Add harshness penalty to `calculate_acceptance()`** (`diplomacy.py`, inside `calculate_acceptance` before the `raw_score` sum at ~line 824):
+    - Import `calculate_treaty_harshness` from `diplomatic_templates`
+    - Build a dict from the proposal: `{"clauses": proposal.get("clauses", []), "demands": proposal.get("demands", [])}`
+    - Call `calculate_treaty_harshness()` on it → returns 0.0-1.0
+    - Compute penalty: `harshness_penalty = -min(40, max(0, int((harshness - 0.2) * 150)))` — **this is a negative number** (penalty, not bonus)
+    - Add `harshness_penalty` to the `raw_score` sum (line ~824) as a separate addend alongside the existing `harshness_bonus`. They are independent: `harshness_bonus` is from *prior treaties*, `harshness_penalty` is from *current proposal terms*.
+    - Add `"harshness_penalty"` to the `components` dict so it shows in breakdown
+  - **(B) Extend `calculate_treaty_harshness()` to include demands** (`diplomatic_templates.py`, function at ~line 1722): Currently iterates ONLY `treaty.get("clauses", [])`. **Must also iterate `treaty.get("demands", [])`.** Add a second loop after the clauses loop:
+    ```python
+    for d in treaty.get("demands", []):
+        dtype = d.get("type", "") if isinstance(d, dict) else ""
+        dvalue = abs(d.get("value", 0)) if isinstance(d, dict) else 0
+        if dtype == "gold_per_turn":
+            harshness += 0.1 * (dvalue / 100)  # +0.1 per 100g
+        elif dtype == "territory_cede":
+            harshness += 0.2 * max(1, dvalue)   # +0.2 per region
+        elif dtype == "ap_per_turn":
+            harshness += 0.3 * max(1, dvalue)   # +0.3 per AP
+    ```
+    Without this, `calculate_treaty_harshness` returns 0.0 for proposals with demands but no clauses — and fix (A) would be a no-op.
   - **(C) Lower `is_harsh` threshold** (`diplomacy.py:760`): Change `demand_total < -10` to `demand_total < -3`. A 100g gold demand (-2) + any other demand would then trigger `harsh_mod` personality, flipping Saxony's dove from +10 to -10.
-  - **(D) Invert `harshness_bonus`** (`diplomacy.py:809-815`): Change from +5 to -5. Nations with history of harsh treaties are resistant, not pliable. Update display string in `display_names.py:211-214`.
+  - **(D) Invert `harshness_bonus`** (`diplomacy.py:809-815`): Change `harshness_bonus = 5` to `harshness_bonus = -5`. Nations with history of harsh treaties are resistant, not pliable. Update `display_names.py` `FEEDBACK_STRINGS["harshness_bonus"]`: change `"positive"` text from "prior harsh terms make them more pliable" to "prior harsh terms breed resentment", change `"negative"` text to "no history of harsh terms".
   - **(E) Update `DEMAND_VALUES["gold_per_turn"]`** (`diplomacy.py:159`): Change from -0.02 to -0.05. Makes 100g = -5 deal_balance (meaningful) instead of -2 (negligible).
 - **Files:** `diplomacy.py` (calculate_acceptance, harshness_bonus, DEMAND_VALUES, is_harsh threshold), `diplomatic_templates.py` (calculate_treaty_harshness), `display_names.py` (harshness_bonus strings)
 - **Est. Tests:** ~7
