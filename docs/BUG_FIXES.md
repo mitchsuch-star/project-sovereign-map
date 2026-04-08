@@ -54,6 +54,22 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 
 **Priority:** Session 7 is higher — eliminates the race condition and nonsensical demands. Session 8 is polish. If Session 7 ships alone, the game is correct even if results are still only in dispatch text.
 
+### Session 11 — Acceptance Formula + Surpassed Check (PL-12, PL-13)
+Pure Python, all testable with pytest. Fixes the two core diplomacy formula bugs.
+- **PL-12:** Add harshness penalty to `calculate_acceptance()`, extend `calculate_treaty_harshness()` to include demands, lower `is_harsh` threshold, invert `harshness_bonus`, increase gold demand impact
+- **PL-13:** Snapshot diplomatic state at send time, normalize dual-key proposal type, add defensive fallback chain in `execute_proposal`
+- **Files:** `diplomacy.py`, `diplomatic_templates.py`, `display_names.py`, `diplomatic_executor.py`, `world_state.py`, `diplomatic_dialogue.py`
+- **Est. Tests:** ~12
+
+### Session 12 — Ultimatum Rework (PL-14)
+Crosses backend/frontend. Replaces blind one-shot with coercive dialogue flow.
+- **Backend:** Route through proposal wizard, `generate_ultimatum_terms()`, splash relation damage, coalition threat, global cooldown
+- **Frontend:** Reuse existing `proposal_confirm` dialogue type (no new popup needed — ultimatum_confirm uses same enrichment)
+- **Files:** `diplomatic_executor.py`, `diplomatic_templates.py`, `diplomacy.py`, `diplomatic_dialogue.py`, `world_state.py`, `cooldown_manager.py`, `coalition.py`, `display_names.py`, `campaign_log.py`
+- **Est. Tests:** ~10
+
+**Priority:** Session 11 first — PL-12 and PL-13 are P1/MAJOR and block the core diplomacy loop. Session 12 is a P2 rework that adds new functionality.
+
 ---
 
 ## P1 — MAJOR
@@ -82,7 +98,7 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
 - **Est. Tests:** ~4
 
-### PL-14: "Send Ultimatum" Has No Context, Preview, or Terms Choice
+### PL-14: "Send Ultimatum" — Rework as Coercive Diplomatic Tool
 - **Source:** Playtest A3 (Apr 7) — typed "send ultimatum" in terminal
 - **Summary:** "Send ultimatum to X" fires immediately with no preview, no terms selection, no acceptance estimate, and no explanation of what's being demanded. The player has no idea what the ultimatum contains. Compare to `diplomatic_proposal` which has a full wizard flow (terms, harshness, sweeteners, acceptance %). The ultimatum is a blind one-shot action.
 - **Root cause (code-verified):**
@@ -91,13 +107,84 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
   - Acceptance is calculated using a blank `"type": "peace"` proposal (line 621-628) + military threat bonus (+10 or +15 adjacency). This means the acceptance % has nothing to do with the actual terms imposed.
   - Costs 2 DP, -10 relation immediately (line 613), 5-turn cooldown per target (line 666).
   - If rejected, grants casus belli (line 660) — this is the only strategic value, but the player doesn't know the acceptance odds beforehand.
-- **Priority:** P2 (UX). Action is functional but opaque. Player can't make informed decisions. Should either route through conversational diplomacy (preview + terms + acceptance estimate) or at minimum show a confirmation popup with expected outcome and acceptance odds before firing.
-- **Proposed fix options:**
-  - **(A) Lightweight:** Add a confirmation dialogue step showing target, current diplomatic state, acceptance estimate, and what will happen on accept/reject. Player confirms or cancels.
-  - **(B) Full integration:** Route ultimatum through the proposal wizard as a "coercive" proposal type with pre-filled harsh terms, giving the player the same preview/modify/send flow.
-  - **(C) Minimal:** At minimum, show acceptance % and consequences in the command response before committing (like a "are you sure?" with odds).
-- **Files:** `diplomatic_executor.py` (_execute_diplomatic_ultimatum lines 540-690), `llm_client.py` (ultimatum keyword routing lines 513-522, 1048-1053)
-- **Est. Tests:** ~3
+- **Priority:** P2 (UX rework). Action is functional but opaque. Rework into a proper coercive diplomatic tool with preview, terms, and geopolitical consequences.
+
+#### Ultimatum Rework Design
+
+**Design Goal:** Ultimatums are a coercive diplomatic tool for extorting concessions from weaker nations at the cost of diplomatic reputation. They resolve instantly (no transit delay), let the player choose terms, and carry severe geopolitical consequences — coalition threat, relation damage to bystanders, and a hard global cooldown.
+
+**§1 Core Flow — Route Through Proposal Wizard**
+
+Replace the current blind one-shot with a 2-step dialogue using the existing conversational diplomacy system:
+
+1. Player types "ultimatum X" → push `ultimatum_confirm` dialogue with:
+   - Pre-filled coercive terms based on military advantage (via `generate_ultimatum_terms()`)
+   - Acceptance estimate with military threat bonus visible
+   - Rejection consequences (casus belli) shown upfront
+   - Diplomatic cost preview: DP cost, relation penalty to target, relation splash damage to bystanders
+   - Options: [Deliver Ultimatum] [Harsher Demands] [Reconsider]
+2. Player confirms → immediate resolution (no transit — backed by military force, not Talleyrand)
+   - Accepted: state transition + terms applied
+   - Rejected: casus belli granted
+
+**§2 Terms — Player-Chosen, Not Hardcoded**
+
+`generate_ultimatum_terms(target, world)` builds coercive terms based on military advantage:
+- Outcome type: WAR→PEACE, else→NON_AGGRESSION (same as current, but now visible)
+- Auto-filled demands proportional to war score / military advantage:
+  - Gold per turn: `min(500, max(100, war_score * 5))` if winning
+  - Territory: coveted regions if war_score > 30 and France controls them
+- No sweeteners ever — ultimatums demand, they don't offer
+- Player can use existing "Harsher Demands" (modify_harsh) to escalate
+- Acceptance uses full 14-component formula + ultimatum military threat bonus (+10 base, +15 if adjacent marshal)
+
+**§3 Geopolitical Consequences — The Diplomatic Price**
+
+Ultimatums are powerful but diplomatically toxic:
+
+**(a) Relation damage to target:** -10 immediate (same as current), -5 additional if rejected
+
+**(b) Splash relation damage to bystanders:** Every nation with OPEN_BORDERS or better with the target takes a relation hit toward France:
+- ALLIANCE with target: -15 relation with France
+- DEFENSIVE_ALLIANCE with target: -12 relation with France
+- NON_AGGRESSION with target: -8 relation with France
+- OPEN_BORDERS with target: -5 relation with France
+- Formula: `for nation in bystanders: world.modify_nation_relation("France", nation, -penalty)`
+
+**(c) Coalition threat increase:** Issuing an ultimatum adds flat +15 threat (regardless of outcome). Acceptance adds another +5. This makes ultimatums a fast track to coalition formation — the player trades diplomatic standing for immediate concessions.
+
+**(d) No counter-offer:** Ultimatums are take-it-or-leave-it. Acceptance formula uses thresholds: score >= 50 → ACCEPT, else → REJECT. No COUNTER_OFFER outcome.
+
+**§4 Global Cooldown**
+
+- **1 ultimatum per 5 turns across ALL nations** (not per-target). Field: `world.ultimatum_global_cooldown` (int, decremented in `_cooldown_manager`)
+- This prevents ultimatum spam and forces the player to pick their target carefully
+- Displayed in the preview dialogue: "Next ultimatum available in X turns"
+
+**§5 Acceptance Formula Integration**
+
+Add `ultimatum_bonus` component to `calculate_acceptance()`:
+- +10 base military threat
+- +15 if any French marshal is adjacent to any target marshal
+- +5 per French marshal in target territory (capped at +15)
+- Component exposed in acceptance breakdown so player sees why odds are what they are
+
+**§6 Files to Modify**
+
+| File | Change |
+|------|--------|
+| `diplomatic_executor.py` | Replace `_execute_diplomatic_ultimatum` body with dialogue push; add `execute_ultimatum` handler in `_process_dialogue_choice`; splash damage + threat logic |
+| `diplomatic_templates.py` | New `generate_ultimatum_terms()` function |
+| `diplomacy.py` | Add `ultimatum_bonus` component to `calculate_acceptance()`; threat accumulation call |
+| `diplomatic_dialogue.py` | Handle `ultimatum_confirm` type in `_enrich_proposal_summary()` (add consequence preview fields) |
+| `world_state.py` | New `ultimatum_global_cooldown` field + serialization; wire into `_cooldown_manager` |
+| `cooldown_manager.py` | Add ultimatum cooldown to auto-decrement |
+| `coalition.py` | Ultimatum threat accumulation (+15/+20) |
+| `display_names.py` | Ultimatum-specific display strings |
+| `campaign_log.py` | Ultimatum event formatting |
+| `validation.py` | Update if action name changes |
+
+- **Est. Tests:** ~10
 
 ---
 
@@ -105,20 +192,29 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Source:** Playtest A3 (Apr 7) — Proposal result popup after end turn
 - **Summary:** Player proposes Non-Aggression to Saxony (currently at OPEN_BORDERS) with 76% acceptance estimate. Next turn, proposal resolves as REJECTED with message: "The diplomatic situation with Saxony has changed — our proposal is no longer viable" and "The current relations have already surpassed the proposed terms." But Saxony is still at OPEN_BORDERS — relations did NOT surpass Non-Aggression level.
 - **Repro:** F1 → Saxony → Propose Non-Aggression → send terms → end turn → PROPOSAL REJECTED popup with false "surpassed" reason
-- **Root cause (code-verified):**
+- **Root cause (deep analysis, Apr 7):**
   - The surpassed check at `world_state.py:4354-4357` compares `_UPGRADE_ORDER` indices: `if tgt_idx <= curr_idx` → reject. Uses `_proposal_to_state` mapping (line 4346-4352) to convert proposal type to state.
   - `_UPGRADE_ORDER` in `diplomacy.py:29-32`: WAR(0)→ARMISTICE(1)→PEACE(2)→OPEN_BORDERS(3)→NON_AGGRESSION(4)→DEFENSIVE_ALLIANCE(5)→ALLIANCE(6). Higher index = better.
   - For OPEN_BORDERS(3)→NON_AGGRESSION(4): `4 <= 3` = FALSE. **The comparison logic itself is correct and should NOT reject.**
-  - **Key: `process_diplomacy_turn()` runs BEFORE `_process_proposal_in_transit()`** (world_state.py:4080 vs 4088). Several sub-steps can change diplomatic state between send and resolution:
-    - `_process_mission_effects()` (diplomacy.py:1589) — mission could upgrade state
-    - `check_auto_downgrade()` (diplomacy.py:1614) — unlikely (requires 5 turns of low relations)
-    - `_process_armistice_expiration()` — could change state for warring nations
-    - **Most likely: AI diplomatic phase** runs in `turn_manager.py` BEFORE `advance_turn()`. If AI proposes same type and it auto-resolves (AI-to-AI path), state could advance past NON_AGGRESSION before the player's proposal resolves. PL-5 race condition is relevant here.
-  - **Alternative theory:** proposal.get("type") returns wrong value — must verify the exact string stored in `proposal_in_transit.proposal.type` during debugging
-- **Debugging approach:** Add temporary logging to `_process_proposal_in_transit()` to print `current_state`, `target_state`, `curr_idx`, `tgt_idx` at resolution time. This will immediately reveal whether the state changed during transit or the mapping is wrong.
+  - **advance_turn ordering verified** — nothing between send and resolution can upgrade France-Saxony state:
+    - Line 4023: `current_turn += 1`
+    - Line 4080: `process_diplomacy_turn()` — missions change relations only (`_process_mission_effects` line 1918-1922), auto-downgrade only downgrades (line 1409), armistice expiration only handles ARMISTICE→PEACE/WAR (line 1601)
+    - Line 4088: `_process_proposal_in_transit()` — proposal resolves HERE
+    - Line 4142: `process_ai_ai_diplomatic_phase()` — runs AFTER proposal resolution; also excludes France from AI-AI pairs (`ai_diplomacy.py:1427` "excluding France")
+    - `_process_ai_diplomatic_phase()` (turn_manager.py:145) — AI→player proposals are delivered as popups, not auto-resolved
+  - **Root cause: proposal type corruption via dual-key fragility.** The system uses TWO different keys for proposal type:
+    - `terms["type"]` — used by `_enrich_proposal_summary` for acceptance calculation (`diplomatic_dialogue.py:419`)
+    - `terms["proposal_type"]` — used by `execute_proposal` for the stored proposal (`diplomatic_executor.py:897`)
+    - If `terms["proposal_type"]` is missing or lost during the dialogue round-trip, it falls back to `"peace"` (line 897 default). A `"peace"` proposal (PEACE, index 2) to a nation at OPEN_BORDERS (index 3) would be rejected as surpassed: `2 <= 3 = TRUE`.
+    - The PL-10 fix (line 1016, 1063) ensured both keys are set in `modify_harsh`/`modify_generous`, but the initial unmodified flow relies on `generate_suggested_terms` setting `type` and the template resolver setting `proposal_type` — a fragile dual-key system.
+  - **Connection to PL-12:** This bug occurred in the same playtest session as PL-12 (clicking "Even Harsher"). If the modify_harsh flow somehow failed to propagate `proposal_type` correctly before the PL-10 fix was applied, or if an edge case bypasses it, the type would corrupt.
+- **Proposed fix (two-part):**
+  - **(A) Snapshot diplomatic state at send time** — store `sent_diplomatic_state` in `proposal_in_transit` (`diplomatic_executor.py:962`). At resolution (`world_state.py:4344`), compare proposal against snapshot state instead of current state. If snapshot says the proposal was valid when sent, skip the surpassed check.
+  - **(B) Normalize dual-key to single key** — in `_enrich_proposal_summary` (`diplomatic_dialogue.py:392-393`), always set BOTH `terms["type"]` and `terms["proposal_type"]` to `proposal_type`. Add defensive normalization in `execute_proposal` (`diplomatic_executor.py:897`): `proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"`.
+  - **(C) Add diagnostic logging** — temporary log in `_process_proposal_in_transit` before the surpassed check: print `proposal.get("type")`, `current_state`, `target_state`, `curr_idx`, `tgt_idx`. This confirms root cause on next occurrence.
 - **Priority:** P1 (MAJOR). 76% acceptance proposals should not be auto-rejected. Core diplomacy loop is broken — player invests DP, waits a turn, gets false rejection.
-- **Files:** `world_state.py` (_process_proposal_in_transit lines 4342-4389, surpassed check), `diplomacy.py` (_UPGRADE_ORDER line 29, process_diplomacy_turn line 1561), `turn_manager.py` (AI phase timing)
-- **Est. Tests:** ~4
+- **Files:** `world_state.py` (_process_proposal_in_transit lines 4342-4389), `diplomatic_executor.py` (line 897, line 962), `diplomatic_dialogue.py` (line 392-393)
+- **Est. Tests:** ~5
 
 ---
 
@@ -126,17 +222,22 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Source:** Playtest A3 (Apr 7) — Godot diplomacy wizard, proposal to Saxony
 - **Summary:** Clicking "Even Harsher" in the proposal confirm popup raises acceptance from 72% to 76%. Harsher terms should DECREASE acceptance, not increase it.
 - **Repro:** F1 → Saxony → Propose Non-Aggression → click "Even Harsher" → acceptance estimate goes UP
-- **Root cause (code-verified):**
-  - **`harshness_bonus` (diplomacy.py:809-815)** only checks `world.previous_treaties` for historical harshness > 0.3. Adds flat +5 if found. Never checks current proposal's harshness. This bonus is a constant regardless of how harsh the current proposal is.
-  - **`modify_harsh` (diplomatic_executor.py:1003-1096)** for friendship types (non_aggression): escalates existing demands by 1.5x, adds gold_per_turn 100 if no demands, removes all sweeteners. BUT gold_per_turn rate is only -0.02/gold (`DEMAND_VALUES` at diplomacy.py:159), so 100 gold = **-2 deal_balance** — negligible.
-  - **`is_harsh` check (diplomacy.py:758-762):** `demand_total < -10` triggers harsh personality modifier. For 100 gold demand: `demand_total = -2`, so `is_harsh` stays False. Saxony's dove diplomat gets `peace_mod = +10` (diplomacy.py:123) in BOTH the initial and harsh proposals.
-  - **Why acceptance goes UP:** The initial terms from `generate_suggested_terms` may include sweeteners that the formula values at < 0 net (due to demand/sweetener interaction). When `modify_harsh` removes sweeteners and adds a small gold demand, the net deal_balance change is minimal (~-2), but other formula components may shift slightly upward on recalculation (relation_mod, reliability). The core problem: **there is no explicit harshness penalty** — the formula literally cannot distinguish between a generous and harsh version of the same proposal type.
-  - **`calculate_treaty_harshness()` (diplomatic_templates.py:1722-1736)** exists and works correctly, but its output is only used for cosmetic display labels in `_enrich_proposal_summary()` (diplomatic_dialogue.py:406-407). It is never passed to `calculate_acceptance()`.
-  - **Data flow gap:** `_enrich_proposal_summary()` (diplomatic_dialogue.py:418-429) builds `proposal_for_calc` with demands/sweeteners and calls `calculate_acceptance()`, but doesn't include a harshness score. The formula has no parameter for it.
+- **Root cause (deep analysis, Apr 7) — 4-layer formula gap:**
+  - **Layer 1 — `calculate_treaty_harshness()` is cosmetic only:** `diplomatic_templates.py:1722-1736` correctly computes harshness 0.0-1.0 from clauses. Called ONLY in `_enrich_proposal_summary()` (`diplomatic_dialogue.py:406-407`) for display labels ("Low"/"Moderate"/"High"). **Never imported or called in `calculate_acceptance()`** (`diplomacy.py:627-839`). Verified via grep — zero references in diplomacy.py.
+  - **Layer 2 — Gold demands have near-zero formula impact:** `DEMAND_VALUES["gold_per_turn"] = -0.02` per gold (`diplomacy.py:159`). `modify_harsh` adds 100 gold/turn for friendship types (`diplomatic_executor.py:1029`) → **-2 deal_balance**. Removing initial sweeteners costs -5 to -15 more. Total swing: -7 to -17, often offset by other components.
+  - **Layer 3 — `is_harsh` personality trigger doesn't fire:** `diplomacy.py:758-762` — `is_harsh = True` only when `demand_total < -10`. A 100 gold demand produces `demand_total = -2`, so `is_harsh` stays False. Saxony's dove diplomat gets `peace_mod = +10` (`diplomacy.py:123`, `PERSONALITY_MODIFIERS["dove"] = (10, -10)`) instead of `harsh_mod = -10`. The personality modifier is **+10 in BOTH** the initial and harsh proposals — a 20-point swing that's invisible.
+  - **Layer 4 — `harshness_bonus` rewards past harshness:** `diplomacy.py:809-815` — if ANY previous treaty had `harshness > 0.3`, adds **+5** to acceptance. Display text (`display_names.py:211-214`): *"prior harsh terms make them more pliable."* This is constant and adds to acceptance regardless of current proposal harshness.
+  - **Why acceptance goes UP:** Initial terms may include sweeteners valued at < net 0 due to formula weighting. `modify_harsh` removes them + adds a -2 gold demand. Personality stays +10 (dove). Net: acceptance barely changes or increases slightly. **The formula has no mechanism to penalize current proposal harshness.**
+  - **`calculate_treaty_harshness()` also ignores demands:** It only scores `clauses`, not `demands` (`diplomatic_templates.py:1726-1735`). Even if it were wired into acceptance, it would score a 100g/turn demand at 0.0 harshness.
 - **Priority:** P1 (MAJOR). Core diplomacy mechanic is inverted. Player feedback loop is wrong — encourages harsher terms instead of creating a risk/reward tradeoff.
-- **Proposed fix:** Add explicit harshness penalty to `calculate_acceptance()`: call `calculate_treaty_harshness()` on the current proposal's terms, apply penalty proportional to harshness (e.g., -15 per 0.1 above 0.2 threshold). Also review `harshness_bonus` from previous treaties — the +5 "more pliable" bonus (display_names.py:211-214) is thematically questionable and should likely be inverted to a penalty or removed.
-- **Files:** `diplomacy.py` (calculate_acceptance lines 627-839, harshness_bonus lines 809-815, DEMAND_VALUES line 158), `diplomatic_dialogue.py` (_enrich_proposal_summary lines 418-429), `diplomatic_templates.py` (calculate_treaty_harshness line 1722), `diplomatic_executor.py` (modify_harsh lines 1003-1096)
-- **Est. Tests:** ~5
+- **Proposed fix (5 parts):**
+  - **(A) Add harshness penalty to `calculate_acceptance()`** (`diplomacy.py` ~line 807): Call `calculate_treaty_harshness()` on current proposal. Penalty: `-15 per 0.1 above 0.2 threshold`, capped at -40. New component `harshness_penalty` added to raw_score sum.
+  - **(B) Extend `calculate_treaty_harshness()` to include demands** (`diplomatic_templates.py:1722-1736`): Add demand weighting: gold_per_turn `+0.1 per 100g`, territory_cede `+0.2 per region`, ap_per_turn `+0.3 per AP`. This makes the harshness score reflect the full proposal, not just clauses.
+  - **(C) Lower `is_harsh` threshold** (`diplomacy.py:760`): Change `demand_total < -10` to `demand_total < -3`. A 100g gold demand (-2) + any other demand would then trigger `harsh_mod` personality, flipping Saxony's dove from +10 to -10.
+  - **(D) Invert `harshness_bonus`** (`diplomacy.py:809-815`): Change from +5 to -5. Nations with history of harsh treaties are resistant, not pliable. Update display string in `display_names.py:211-214`.
+  - **(E) Update `DEMAND_VALUES["gold_per_turn"]`** (`diplomacy.py:159`): Change from -0.02 to -0.05. Makes 100g = -5 deal_balance (meaningful) instead of -2 (negligible).
+- **Files:** `diplomacy.py` (calculate_acceptance, harshness_bonus, DEMAND_VALUES, is_harsh threshold), `diplomatic_templates.py` (calculate_treaty_harshness), `display_names.py` (harshness_bonus strings)
+- **Est. Tests:** ~7
 
 ---
 
