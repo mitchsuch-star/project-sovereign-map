@@ -16,10 +16,10 @@
 | War System Overhaul (EU4-inspired) | 4 | Needs design gate |
 | AI Diplomacy Improvements | 3 | Ready (small fixes) |
 | Gold Sink Options (B4) | 1 | Needs design gate |
-| Wave 4 — New Features | 18 | Needs per-item approval |
+| Wave 4 — New Features | 19 | Needs per-item approval |
 | Wave 5 — Game Review Findings | 8 | Needs design gate |
 | Jealousy System | 1 | Needs design gate |
-| **Total** | **44** | |
+| **Total** | **45** | |
 
 ---
 
@@ -183,6 +183,28 @@ These are new feature designs. Each needs individual approval before implementat
 | R59 | Literal Personality Triggers | Audit and wire unwired triggers |
 | R118 | Enhanced Acceptance Preview | Top 3 positive/negative components + Talleyrand hints |
 | R161 | One-Time Trade | Trade gold, manpower, territory directly without ultimatum or state change |
+| R162 | AI Ultimatums to Player | Building Blocks: AI uses same ultimatum system as player. Needs popup, response flow, AI decision tree |
+
+---
+
+### R161: One-Time Trade (Expanded)
+- **Category:** Diplomacy Feature
+- **Summary:** Voluntary, consensual resource exchange between nations — no state change, no coercion. The "carrot" complement to ultimatums (the "stick").
+- **Details:** Player proposes a trade (gold, manpower, territory) to any nation at OPEN_BORDERS or better. Both sides give and receive. Uses existing conversational diplomacy flow with `generate_trade_terms()`. Acceptance via full formula. No threat increase, no relation penalty — pure commerce.
+- **Building Blocks principle:** Reuses `_ratify_treaty` clause processing, `calculate_acceptance()`, dialogue enrichment, splash damage (none for trades). Same executor path as proposals but with `type: "trade"` and no state transition.
+- **Distinction from ultimatums:** Trades are voluntary (both sides benefit), ultimatums are coercive (one-sided demands with diplomatic cost).
+- **Gates needed:** Trade balance formula (what's fair?), AI trade evaluation, frequency limits.
+- **Files:** `diplomatic_executor.py`, `diplomatic_templates.py`, `diplomacy.py` (new base disposition for trade), `diplomatic_dialogue.py`
+- **Est. sessions:** 1-2, ~8 tests
+
+### R162: AI Ultimatums to Player
+- **Category:** AI Diplomacy — Building Blocks
+- **Summary:** AI nations issue ultimatums to the player using the same ultimatum system the player uses. Building Blocks principle (§23): same systems, different input values.
+- **Details:** AI evaluates ultimatum opportunity in `enemy_ai.py` decision tree (new P-trigger). Conditions: military superiority over player in a region, low relations, not in coalition with player. Generates terms via `generate_ultimatum_terms()` (same function player uses). Delivered as popup with [Accept][Reject] options. Rejection gives AI casus belli. Same splash damage, threat (reduces player threat if AI is aggressor), and cooldown mechanics.
+- **Building Blocks reuse:** `generate_ultimatum_terms()`, `calculate_acceptance()` (inverted — player is target), `_ratify_treaty` clause processing, splash damage formula, global cooldown (separate AI cooldown counter).
+- **Gates needed:** AI trigger conditions (when is ultimatum better than war declaration?), player response popup design, threat direction (does AI ultimatum reduce or increase player threat?).
+- **Files:** `enemy_ai.py` (new P-trigger), `diplomatic_executor.py` (AI ultimatum handler), `main.gd` (new popup), `ai_diplomacy.py`
+- **Est. sessions:** 2-3, ~12 tests
 
 ---
 

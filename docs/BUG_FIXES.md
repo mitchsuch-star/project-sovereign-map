@@ -201,6 +201,44 @@ When the target accepts, demands are applied immediately:
 
 - **Est. Tests:** ~10
 
+#### Spec Amendments (Apr 7 Audit)
+
+**§1 Amendments — Core Flow:**
+- **Vassal block:** Pre-validate target is not player's own vassal. Return: *"Sire, {target} is already our vassal. Use investment or autonomy changes to manage them."*
+- **War block message update:** Change to: *"We are at war with {target}, Sire. Use a peace proposal with harsh demands instead — Talleyrand can deliver crushing terms through normal channels."*
+- **Preview fields:** Add `splash_damage_preview` (list of `{nation, treaty_with_target, relation_penalty}`), `threat_increase_preview` ("+15 threat, +5 if accepted"), `cooldown_remaining` to the `ultimatum_confirm` dialogue. Talleyrand commentary summarizes splash damage in prose.
+
+**§2 Amendments — Terms / Gold Cap:**
+- Cap `gold_per_turn` demand at 50% of target's turn income: `min(300, max(50, income * 0.5))`
+- If target income <= 0: skip `gold_per_turn`, offer `gold_lump` from reserves instead: `min(500, nation_gold * 0.3)`
+- If target has 0 gold AND 0 income: only territory and manpower demands available
+- Ultimatums to allies/defensive allies are allowed. The relation penalties will often trigger auto-downgrade on the following turn. No special alliance-break logic needed.
+
+**§3 Amendments — Geopolitical Consequences:**
+- **(b) Splash damage:** Bystander relation hits route through diplomatic ties to the target. Future-proofed for R160 rivalry system — when rivalry is implemented, bystander anger amplifies through rivalry mechanics.
+- **(c) Coalition vs threat clarified:** If target is in an active coalition: splash damage applies to coalition members AND feeds coalition war exhaustion. If target is NOT in a coalition: the +15/+20 threat increase pushes toward coalition formation. Ultimatuming a coalition member is legal but extremely provocative — may trigger instant formation if threat crosses 80.
+- **(new) Casus belli:** Binary flag per nation pair, no stacking, no expiration. Consumed implicitly when war is declared (halves penalties per `declare_war()`). Does not stack with existing casus belli from other sources — same flag.
+
+**§4 Amendment — Cooldown Migration:**
+- Confirmed: global cooldown (1 per 5 turns, all nations). Old per-target `ultimatum_cooldowns` dict must be replaced with `ultimatum_global_cooldown` int.
+- Migration in `from_dict()`: if old `ultimatum_cooldowns` exists, set global cooldown to `max(old_values, default=0)`.
+
+**§5 Amendment — Acceptance Formula:**
+- New `ultimatum_demand` entry in `BASE_DISPOSITION` with value **20** (lower than peace=30 — nations resent coercion).
+- `ultimatum_bonus` component: +10 base, +15 adjacency, +5/marshal in target territory (cap +15). Added to components dict for acceptance breakdown display.
+- Threshold: score >= 50 = ACCEPT, else REJECT. No counter-offer, no partial acceptance.
+
+**§6 Amendment — Resource Transfer:**
+- Reuse `_ratify_treaty` clause processing for `territory_cede` and `gold_lump`.
+- For ongoing `gold_per_turn`: store in `active_treaties` with `"is_ultimatum_tribute": True` flag. Processed by `_process_treaty_income()`, cleared on WAR transition, visible in diplomatic ledger. Flag prevents interference with future proposals.
+- Territory transfer uses existing handling — marshals stay in region, supply attrition applies.
+
+**§7 Amendment — Scope Exclusions:**
+- **No AI ultimatums** in this implementation. AI coercion expressed through coalitions, war declarations, harsh counter-offers. AI-to-player ultimatums deferred to R162 in DESIGN_REFINEMENT.md.
+- **No Talleyrand sabotage** — ultimatums resolve instantly (no transit). Skip defiance check.
+- **No special marshal displacement** on territory transfer — reuses existing `territory_cede` handling.
+- **AP demands:** AP-per-turn demands are available as an ultimatum demand type. Uses existing `ap_per_turn` clause mechanics — requires war_score > 80 validation (same as treaty AP clause). This is high-value coercion gated behind decisive military advantage.
+
 ---
 
 ### PL-13: Viable Proposal Falsely Rejected as "Surpassed"
