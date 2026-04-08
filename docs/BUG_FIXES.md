@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 6, 2026
+> **Last Updated:** April 7, 2026
 
 ---
 
@@ -18,7 +18,9 @@
 | P1 — MAJOR | 1 | PL-5 Part B+C FIXED (Session 7), PL-6 FIXED (Session 7) |
 | P2 — MINOR | 0 | PL-8 (counter-offer UX) FIXED (Session 9) |
 | P2 — MINOR | 0 | PL-7 FIXED (Session 7, as PL-5 Part C) |
-| **Total** | **0 OPEN** | **ALL BUGS FIXED** |
+| P1 — MAJOR | 1 | PL-12 OPEN — harshness increases acceptance |
+| P1 — MAJOR | 1 | PL-13 OPEN — viable proposal falsely rejected as "surpassed" |
+| **Total** | **2 OPEN** | |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -78,6 +80,45 @@ Crosses backend/frontend. UX improvement — popup so results aren't buried in d
 - **Proposed fix:** In `modify_generous`, never downgrade proposal type below the current diplomatic state. If the player proposed alliance, generous terms should add sweeteners (gold, protection) while keeping the alliance type. Clamp `proposal_type` to be >= current diplomatic state in the hierarchy.
 - **Files:** `diplomatic_executor.py` (modify_generous handler), `diplomatic_dialogue.py` (generate_dialogue)
 - **Est. Tests:** ~4
+
+### PL-13: Viable Proposal Falsely Rejected as "Surpassed"
+- **Source:** Playtest A3 (Apr 7) — Proposal result popup after end turn
+- **Summary:** Player proposes Non-Aggression to Saxony (currently at OPEN_BORDERS) with 76% acceptance estimate. Next turn, proposal resolves as REJECTED with message: "The diplomatic situation with Saxony has changed — our proposal is no longer viable" and "The current relations have already surpassed the proposed terms." But Saxony is still at OPEN_BORDERS — relations did NOT surpass Non-Aggression level.
+- **Repro:** F1 → Saxony → Propose Non-Aggression → send terms → end turn → PROPOSAL REJECTED popup with false "surpassed" reason
+- **Root cause (code-verified):**
+  - The surpassed check at `world_state.py:4354-4357` compares `_UPGRADE_ORDER` indices: `if tgt_idx <= curr_idx` → reject. Uses `_proposal_to_state` mapping (line 4346-4352) to convert proposal type to state.
+  - `_UPGRADE_ORDER` in `diplomacy.py:29-32`: WAR(0)→ARMISTICE(1)→PEACE(2)→OPEN_BORDERS(3)→NON_AGGRESSION(4)→DEFENSIVE_ALLIANCE(5)→ALLIANCE(6). Higher index = better.
+  - For OPEN_BORDERS(3)→NON_AGGRESSION(4): `4 <= 3` = FALSE. **The comparison logic itself is correct and should NOT reject.**
+  - **Key: `process_diplomacy_turn()` runs BEFORE `_process_proposal_in_transit()`** (world_state.py:4080 vs 4088). Several sub-steps can change diplomatic state between send and resolution:
+    - `_process_mission_effects()` (diplomacy.py:1589) — mission could upgrade state
+    - `check_auto_downgrade()` (diplomacy.py:1614) — unlikely (requires 5 turns of low relations)
+    - `_process_armistice_expiration()` — could change state for warring nations
+    - **Most likely: AI diplomatic phase** runs in `turn_manager.py` BEFORE `advance_turn()`. If AI proposes same type and it auto-resolves (AI-to-AI path), state could advance past NON_AGGRESSION before the player's proposal resolves. PL-5 race condition is relevant here.
+  - **Alternative theory:** proposal.get("type") returns wrong value — must verify the exact string stored in `proposal_in_transit.proposal.type` during debugging
+- **Debugging approach:** Add temporary logging to `_process_proposal_in_transit()` to print `current_state`, `target_state`, `curr_idx`, `tgt_idx` at resolution time. This will immediately reveal whether the state changed during transit or the mapping is wrong.
+- **Priority:** P1 (MAJOR). 76% acceptance proposals should not be auto-rejected. Core diplomacy loop is broken — player invests DP, waits a turn, gets false rejection.
+- **Files:** `world_state.py` (_process_proposal_in_transit lines 4342-4389, surpassed check), `diplomacy.py` (_UPGRADE_ORDER line 29, process_diplomacy_turn line 1561), `turn_manager.py` (AI phase timing)
+- **Est. Tests:** ~4
+
+---
+
+### PL-12: Harsher Terms INCREASE Acceptance Estimate (Inverted Harshness)
+- **Source:** Playtest A3 (Apr 7) — Godot diplomacy wizard, proposal to Saxony
+- **Summary:** Clicking "Even Harsher" in the proposal confirm popup raises acceptance from 72% to 76%. Harsher terms should DECREASE acceptance, not increase it.
+- **Repro:** F1 → Saxony → Propose Non-Aggression → click "Even Harsher" → acceptance estimate goes UP
+- **Root cause (code-verified):**
+  - **`harshness_bonus` (diplomacy.py:809-815)** only checks `world.previous_treaties` for historical harshness > 0.3. Adds flat +5 if found. Never checks current proposal's harshness. This bonus is a constant regardless of how harsh the current proposal is.
+  - **`modify_harsh` (diplomatic_executor.py:1003-1096)** for friendship types (non_aggression): escalates existing demands by 1.5x, adds gold_per_turn 100 if no demands, removes all sweeteners. BUT gold_per_turn rate is only -0.02/gold (`DEMAND_VALUES` at diplomacy.py:159), so 100 gold = **-2 deal_balance** — negligible.
+  - **`is_harsh` check (diplomacy.py:758-762):** `demand_total < -10` triggers harsh personality modifier. For 100 gold demand: `demand_total = -2`, so `is_harsh` stays False. Saxony's dove diplomat gets `peace_mod = +10` (diplomacy.py:123) in BOTH the initial and harsh proposals.
+  - **Why acceptance goes UP:** The initial terms from `generate_suggested_terms` may include sweeteners that the formula values at < 0 net (due to demand/sweetener interaction). When `modify_harsh` removes sweeteners and adds a small gold demand, the net deal_balance change is minimal (~-2), but other formula components may shift slightly upward on recalculation (relation_mod, reliability). The core problem: **there is no explicit harshness penalty** — the formula literally cannot distinguish between a generous and harsh version of the same proposal type.
+  - **`calculate_treaty_harshness()` (diplomatic_templates.py:1722-1736)** exists and works correctly, but its output is only used for cosmetic display labels in `_enrich_proposal_summary()` (diplomatic_dialogue.py:406-407). It is never passed to `calculate_acceptance()`.
+  - **Data flow gap:** `_enrich_proposal_summary()` (diplomatic_dialogue.py:418-429) builds `proposal_for_calc` with demands/sweeteners and calls `calculate_acceptance()`, but doesn't include a harshness score. The formula has no parameter for it.
+- **Priority:** P1 (MAJOR). Core diplomacy mechanic is inverted. Player feedback loop is wrong — encourages harsher terms instead of creating a risk/reward tradeoff.
+- **Proposed fix:** Add explicit harshness penalty to `calculate_acceptance()`: call `calculate_treaty_harshness()` on the current proposal's terms, apply penalty proportional to harshness (e.g., -15 per 0.1 above 0.2 threshold). Also review `harshness_bonus` from previous treaties — the +5 "more pliable" bonus (display_names.py:211-214) is thematically questionable and should likely be inverted to a penalty or removed.
+- **Files:** `diplomacy.py` (calculate_acceptance lines 627-839, harshness_bonus lines 809-815, DEMAND_VALUES line 158), `diplomatic_dialogue.py` (_enrich_proposal_summary lines 418-429), `diplomatic_templates.py` (calculate_treaty_harshness line 1722), `diplomatic_executor.py` (modify_harsh lines 1003-1096)
+- **Est. Tests:** ~5
+
+---
 
 ### PL-11: Incoming AI Proposals Hijack Player Diplomatic Commands (API-Only) ✓ FIXED (Session 10)
 - **Source:** Playtest (Apr 6) — curl/API playtest, NOT Godot
