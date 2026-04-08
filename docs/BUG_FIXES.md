@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 7, 2026 (Session 12 follow-up — 2 new bugs from ultimatum playtest)
+> **Last Updated:** April 8, 2026 (post-audit: PL-17→PL-18, design conflict resolved, gold_lump bug added, PL-20 diplomatic elimination guard, session plan A/B)
 
 ---
 
@@ -23,7 +23,11 @@
 | P2 — UX | 0 | PL-14 FIXED (Session 12) — ultimatum rework: conversational flow, preview, splash damage |
 | **P1 — CRITICAL** | **1** | **PL-15 OPEN — ultimatum popup shows no demands + no demand customization** |
 | **P2 — UX** | **1** | **PL-16 OPEN (absorbed into PL-15) — Harsher Demands too aggressive; replaced by wizard** |
-| **Total** | **2 OPEN (1 fix — PL-16 absorbed into PL-15)** | |
+| **P2 — BALANCE** | **1** | **PL-17 OPEN (absorbed into PL-18) — manpower demands have zero acceptance penalty (key mismatch)** |
+| **P2 — BALANCE** | **1** | **PL-18 OPEN (upgraded, absorbs PL-17) — typed manpower demands + DEMAND_VALUES key fixes** |
+| **P2 — BALANCE** | **1** | **PL-19 OPEN — ultimatum relation penalty is flat -10 regardless of demands** |
+| **P2 — BALANCE** | **1** | **PL-20 OPEN — no guard against diplomatic elimination (last territory demand)** |
+| **Total** | **4 OPEN (PL-16 absorbed into PL-15; PL-17 absorbed into PL-18). Session A: PL-15+PL-18. Session B: PL-19+PL-20.** | |
 
 **Prior bugs:** 28 bugs fixed across Sessions 1-6 (~163 tests). All P0/P1/P2/P3 resolved before these new findings.
 
@@ -792,10 +796,12 @@ New `_build_ultimatum_content(data)` reads:
 - **Cooldown blocking:** Assert `ultimatum_global_cooldown > 0` prevents entering wizard (error returned before dialogue push)
 - **Concurrent dialogue:** AI proposal arrives mid-wizard → queued. Wizard completes → AI proposal auto-promotes via `promote_if_empty()`
 - **Gold_lump fallback:** Target with 0 income but positive gold → wizard offers gold_lump instead of gold_per_turn
-- **Nation eliminated mid-wizard:** Target eliminated before confirm → guard with error message, pop dialogue
 - **Remove tests:** Delete/update `TestModifyHarshUltimatum` tests (handler removed)
 - **curl test:** `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command": "send ultimatum to Prussia"}' | python -m json.tool` — verify new dialogue structure
 - **Godot visual:** Popup shows demands, splash damage, threat warning, acceptance estimate, harshness label
+- **PL-18 integration:** Wizard manpower step shows typed pools (infantry/cavalry/artillery), generates typed demand keys, acceptance scales by scarcity
+- **PL-19 integration:** Wizard confirm step shows dynamic diplomatic cost preview with severity label (mild/moderate/severe/extreme)
+- **Note:** Mid-wizard state changes (elimination, cooldown expiry, vassal change) are impossible — wizard dialogue is blocking, turn cannot advance. No guards needed.
 
 ---
 
@@ -806,18 +812,436 @@ New `_build_ultimatum_content(data)` reads:
 
 ---
 
-### PL-17: Manpower demand has zero acceptance penalty — OPEN
+### PL-17: Manpower demand has zero acceptance penalty — ABSORBED INTO PL-18
 - **Source:** PL-15 audit (Apr 7, 2026)
 - **Priority:** P2 — gameplay balance
-- **Root cause:** `DEMAND_VALUES` in `diplomacy.py:159` uses key `"manpower_per_turn"`, but `generate_ultimatum_terms()` and `execute_ultimatum` both use demand type `"manpower"`. So `DEMAND_VALUES.get("manpower", 0)` returns 0 — manpower demands have no impact on acceptance score.
-- **Fix:** Add `"manpower": -3 / 2000` to `DEMAND_VALUES` (same rate as `manpower_per_turn`), or rename to match. Verify which key is canonical and align the other references.
-- **Files:** `backend/game_logic/diplomacy.py` (DEMAND_VALUES)
+- **Status:** Absorbed into PL-18. The key mismatch fix (`DEMAND_VALUES` missing `"manpower"`) is inseparable from PL-18's typed demand keys — PL-18 supersedes the simple 1-line fix with per-type keys that also resolve the mismatch. See PL-18 §A for details.
 
 ---
 
-### PL-18: Manpower demand only transfers infantry — OPEN
-- **Source:** PL-15 audit (Apr 7, 2026)
-- **Priority:** P3 — minor (infantry-only is arguably correct for conscripts, but undocumented)
-- **Root cause:** `_apply_ultimatum_demands()` in `diplomatic_executor.py:713-724` only reads/writes `manpower_pools[nation]["infantry"]`. Cavalry and artillery pools are untouched.
-- **Current behavior:** "2000 manpower" silently means "2000 infantry manpower." Player has no visibility into this.
-- **Fix options:** (a) Document as intentional — conscripts are infantry. Add display text: "2000 infantry conscripts" instead of "2000 manpower". (b) Let player pick unit type in the wizard (more complex, defer). Option (a) recommended — fix during PL-15 implementation by updating `_enrich_ultimatum_dialogue()` demand display strings.
+### PL-18: Typed manpower demands + DEMAND_VALUES key fixes — OPEN (absorbs PL-17)
+- **Source:** PL-15 audit (Apr 7, 2026). Upgraded Apr 8 — user wants player to choose manpower type. Absorbs PL-17 after Apr 8 audit found the two are inseparable.
+- **Priority:** P2 — gameplay balance
+- **Summary:** Three problems: (1) **PL-17 bug:** `DEMAND_VALUES` uses key `"manpower_per_turn"` but ultimatums use `"manpower"` — manpower demands have zero acceptance penalty. (2) **Same bug for gold_lump:** `DEMAND_VALUES` has `"gold_per_turn"` but not `"gold_lump"` — lump-sum gold demands also have zero acceptance penalty. (3) Manpower demands only transfer infantry silently — player should choose unit type with scarcity-appropriate acceptance costs.
+
+- **Root cause:** Key mismatches in `DEMAND_VALUES` (`diplomacy.py:159`). The dict was written for treaty clauses (ongoing `"manpower_per_turn"`, `"gold_per_turn"`), but ultimatum demands use different keys (`"manpower"`, `"gold_lump"`). Additionally, `_apply_ultimatum_demands()` in `diplomatic_executor.py:713-724` hardcodes infantry transfers, and `calculate_treaty_harshness()` in `diplomatic_templates.py:1826` only checks `"manpower_per_turn"`, missing `"manpower"` entirely.
+
+- **Design decision (resolved Apr 8 audit):** Use **typed demand keys** for manpower (`"manpower_infantry"`, `"manpower_cavalry"`, `"manpower_artillery"`), NOT a nested `unit_type` field. Rationale: matches existing pattern where `"gold_per_turn"` and `"gold_lump"` are separate keys, not `"gold"` with a `subtype` field. Keeps `DEMAND_VALUES` lookup simple — `DEMAND_VALUES.get(dtype, 0)` works without special-casing. Acceptance formula, harshness calc, and PL-19 relation penalty all read dtype directly.
+
+- **Proposed fix:**
+
+  **(A) DEMAND_VALUES — fix all missing keys** (`diplomacy.py:159`):
+  ```python
+  DEMAND_VALUES = {
+      "gold_per_turn": -5 / 100,           # -5 per 100g/turn (existing, for treaties)
+      "gold_lump": -3 / 100,               # -3 per 100g lump (NEW — was missing)
+      "manpower_per_turn": -3 / 2000,      # -3 per 2000/turn (existing, for treaties)
+      "manpower_infantry": -3 / 2000,      # -3 per 2000 infantry (NEW)
+      "manpower_cavalry": -5 / 2000,       # -5 per 2000 cavalry (NEW — scarcer)
+      "manpower_artillery": -8 / 2000,     # -8 per 2000 artillery (NEW — rarest)
+      "territory": -5,                     # -5 per region (existing)
+      "territory_cede": -5,                # alias (existing)
+      "ap_per_turn": -25,                  # -25 per AP (existing)
+      "unit_swap": -2,                     # -2 per trade (existing)
+  }
+  ```
+  Keep `"manpower_per_turn"` for treaty clauses (different system). Add backward-compat fallback: legacy `"manpower"` demands (from old saves) should be handled in acceptance calc as `"manpower_infantry"` rate.
+
+  **(B) Demand structure — typed keys:**
+  ```python
+  # New demand format:
+  {"type": "manpower_infantry", "value": 2000}
+  {"type": "manpower_cavalry", "value": 1000}
+  {"type": "manpower_artillery", "value": 500}
+  {"type": "gold_lump", "value": 300}   # already uses this key, now has penalty
+  ```
+
+  **(C) Auto-generation — `generate_ultimatum_terms()` in `diplomatic_templates.py:1365-1370`:**
+  - Change `{"type": "manpower", "value": N}` to `{"type": "manpower_infantry", "value": N}` (default auto-generated demand stays infantry — most common, largest pools).
+  - Wizard step (PL-15) lets player swap type or split across types.
+  - Cap per type based on target's actual pool: `min(demand, target_pool[unit_type])`. Don't offer cavalry if target has <500 cavalry, don't offer artillery if <300.
+
+  **(D) Application — `_apply_ultimatum_demands()` in `diplomatic_executor.py:713-724`:**
+  ```python
+  elif dtype.startswith("manpower"):
+      # Extract unit type from demand key: "manpower_infantry" → "infantry"
+      unit_type = dtype.split("_", 1)[1] if "_" in dtype else "infantry"
+      from_pool = world.manpower_pools.get(target_nation, {})
+      to_pool = world.manpower_pools.get(player, {})
+      transfer = min(int(value), from_pool.get(unit_type, 0))
+      if transfer > 0 and target_nation in world.manpower_pools:
+          world.manpower_pools[target_nation][unit_type] = max(
+              0, from_pool.get(unit_type, 0) - transfer)
+      if transfer > 0 and player in world.manpower_pools:
+          world.manpower_pools[player][unit_type] = (
+              to_pool.get(unit_type, 0) + transfer)
+      if transfer > 0:
+          type_label = {"infantry": "infantry conscripts",
+                        "cavalry": "cavalry mounts",
+                        "artillery": "artillery batteries"}.get(unit_type, "conscripts")
+          descriptions.append(f"{transfer} {type_label}")
+  ```
+  Backward compat: bare `"manpower"` (no underscore) falls through to `"infantry"` default.
+
+  **(E) Harshness calculation — `calculate_treaty_harshness()` in `diplomatic_templates.py:1826`:**
+  Add entries for new keys:
+  ```python
+  elif dtype == "manpower_infantry":
+      harshness += 0.10
+  elif dtype == "manpower_cavalry":
+      harshness += 0.15
+  elif dtype == "manpower_artillery":
+      harshness += 0.20
+  elif dtype == "gold_lump":
+      harshness += 0.05 * max(1, int(value) // 100)
+  ```
+
+  **(F) Display — `_enrich_ultimatum_dialogue()` in `diplomatic_dialogue.py:424-440`:**
+  - Map typed keys to display: `"manpower_infantry"` → "2,000 infantry conscripts", `"manpower_cavalry"` → "1,000 cavalry mounts", `"manpower_artillery"` → "500 artillery batteries".
+
+  **(G) Wizard integration (PL-15):**
+  - Demand wizard manpower step shows target's available pools: "Infantry: 20,000 | Cavalry: 3,000 | Artillery: 2,000"
+  - Player picks type and amount (preset options: 500 / 1,000 / 2,000 / 5,000)
+  - Multiple manpower demands allowed (e.g., `manpower_infantry` + `manpower_cavalry`)
+  - Don't show types with pool < 300 (not worth demanding)
+  - Acceptance estimate updates as player adjusts
+
+  **(H) Acceptance calc backward compat** (`diplomacy.py`, `calculate_acceptance()`):
+  - In the demand iteration loop (~line 736), add fallback: if `dtype == "manpower"`, treat as `"manpower_infantry"` for DEMAND_VALUES lookup. Handles old saves gracefully.
+
+- **Files:** `backend/game_logic/diplomacy.py` (DEMAND_VALUES + acceptance fallback), `backend/game_logic/diplomatic_templates.py` (generate_ultimatum_terms, harshness calc), `backend/commands/diplomatic_executor.py` (_apply_ultimatum_demands), `backend/game_logic/diplomatic_dialogue.py` (_enrich_ultimatum_dialogue)
+- **Est. Tests:** 12 — (1) manpower_infantry demand reduces acceptance, (2) manpower_cavalry costs more than infantry, (3) manpower_artillery costs most, (4) gold_lump demand now reduces acceptance, (5) bare "manpower" backward compat defaults to infantry rate, (6) infantry transfers from infantry pool, (7) cavalry transfers from cavalry pool, (8) artillery transfers from artillery pool, (9) demand capped at target pool size, (10) display strings show correct type labels, (11) harshness calc includes typed manpower + gold_lump, (12) wizard doesn't offer types with pool < 300
+- **Implement with:** PL-15 wizard session (Session A). DEMAND_VALUES keys must land first, then wizard generates typed demands, then display/application code handles them.
+
+---
+
+### PL-19: Ultimatum relation penalty is flat regardless of demands — OPEN
+- **Source:** PL-15 balance review (Apr 8, 2026)
+- **Priority:** P2 — gameplay balance
+- **Summary:** Delivering an ultimatum always costs exactly -10 relation to the target, whether you demand 100 gold or annex their capital + half their army. This makes aggressive demands too cheap diplomatically. Taking land via ultimatum (-10) costs less than declaring war with casus belli (-15), which is backwards.
+- **Current behavior:** `_execute_diplomatic_ultimatum()` in `diplomatic_executor.py:1161` applies flat `-10` on delivery, flat `-5` on rejection. Splash damage to bystanders is also flat (tiers of -5 to -15 based on their relation to target, not demand severity).
+
+- **Comparison table (why -10 is wrong):**
+
+  | Action | Relation hit to target | Relation hit to bystanders |
+  |--------|----------------------|---------------------------|
+  | Ultimatum (any demands) | -10 (flat) | -5 to -15 (flat tiers) |
+  | War declaration (with CB) | -15 | -15 (all) |
+  | War declaration (no CB) | -30 | -15 (all) |
+  | Treaty breaking (alliance) | -40 | -10 (all) |
+
+  Demanding territory via ultimatum should be diplomatically comparable to war, not trivially cheap.
+
+- **Proposed fix:**
+
+  **(A) Dynamic base penalty — scale with demand severity:**
+  Use the existing `DEMAND_VALUES` weights (already negative) to compute demand severity, then add to the base penalty. **Depends on PL-18** — typed manpower keys (`manpower_infantry` etc.) and `gold_lump` must exist in DEMAND_VALUES first. The `startswith("manpower")` pattern handles all typed keys automatically.
+
+  ```python
+  # In _execute_diplomatic_ultimatum(), replace flat -10:
+  base_penalty = -10
+  demand_penalty = 0
+  for d in demands:
+      dtype = d.get("type", "")
+      value = d.get("value", 0)
+      if dtype in ("territory_cede", "territory"):
+          # Use income-weighted cost (same formula as PL-20 §A acceptance calc)
+          regions = d.get("regions", [])
+          for r in regions:
+              region = world.regions.get(r)
+              income = getattr(region, 'income', 100) if region else 100
+              income_weight = max(0.5, income / 100)
+              region_cost = -5 * income_weight
+              if r == NATION_CAPITALS.get(target_nation):
+                  region_cost *= 2
+              demand_penalty += region_cost
+      else:
+          rate = DEMAND_VALUES.get(dtype, 0)
+          demand_penalty += rate * abs(value)   # scaled by amount
+  
+  total_penalty = max(-60, min(-5, int(base_penalty + demand_penalty)))
+  world.modify_nation_relation(player, target_nation, total_penalty)
+  ```
+
+  **Example outcomes (income-weighted):**
+  - 100 gold/turn only: -10 base + (-5) = **-15**
+  - 1 rural province (50 income): -10 + (-2.5) = **-13**
+  - 1 town (100 income): -10 + (-5) = **-15**
+  - 1 city (150 income): -10 + (-7.5) = **-18**
+  - Vienna (capital, 300 income): -10 + (-30) = **-40**
+  - 2 towns + 5,000 infantry: -10 + -10 + -7.5 = **-28**
+  - Vienna + gold + AP: -10 + -30 + -5 + -25 = **-60** (cap)
+  - Minimum (tiny gold demand): **-13** (base floor after rounding)
+  - Maximum: capped at **-60** (raised from -50 to accommodate income-weighted territory)
+
+  **(B) Rejection penalty also scales:**
+  Replace flat `-5` on rejection with `-5 + int(demand_penalty * 0.3)`. Rejecting outrageous demands adds more bitterness. Minimum -5, maximum -15.
+
+  **(C) Splash damage scales with severity:**
+  Current splash multiplier is 1.0 (flat). Scale by demand severity:
+  ```python
+  splash_multiplier = max(1.0, min(2.5, abs(total_penalty) / 10))
+  ```
+  So a -10 penalty → 1.0x splash (unchanged), -25 penalty → 2.5x splash (allies of target are much more alarmed). Example: ALLIANCE splash goes from flat -15 to -15 × 2.5 = -37 for outrageous demands.
+
+  **(D) Acceptance hint integration:**
+  The acceptance estimate in `_enrich_ultimatum_dialogue()` already shows what the AI thinks. Add a "diplomatic cost" line to the wizard preview: "Diplomatic cost: -20 relation (moderate)" / "Diplomatic cost: -45 relation (severe — allies will react strongly)"
+
+  **Severity labels:**
+  - -5 to -15: "mild" (routine demand)
+  - -16 to -25: "moderate" (notable diplomatic cost)
+  - -26 to -35: "severe" (will strain all relationships)
+  - -36 to -50: "extreme" (near-war diplomatic damage)
+
+  **(E) Threat scaling (optional, recommend):**
+  Current: flat +15 threat on delivery, +5 on acceptance, +8/region annexed. Recommend also scaling delivery threat with demand severity: `threat = max(10, min(30, 15 + abs(demand_penalty) // 3))`. Light demands → 10-15 threat, heavy demands → 25-30 threat.
+
+- **Design rationale:** The relationship scale is -100 to +100. France starts at -30 with Austria, -40 with Prussia, -80 with Britain. A flat -10 for any ultimatum means you can strip territory from a neutral nation and still only drop 10 points. With dynamic scaling, demanding territory (-20) puts you firmly into hostile range, which feels right — you just threatened to take their land. But it's still less than war declaration (-30 no CB), rewarding the "diplomacy before violence" path.
+
+- **Files:** `backend/commands/diplomatic_executor.py` (_execute_diplomatic_ultimatum lines 1157-1213, splash damage 1163-1178), `backend/game_logic/diplomatic_dialogue.py` (_enrich_ultimatum_dialogue — add cost preview), `backend/game_logic/diplomacy.py` (DEMAND_VALUES import)
+- **Est. Tests:** 8 — (1) gold-only demand ≈ -15 relation, (2) territory demand ≈ -20 per region, (3) capital territory ≈ -20 (double weight), (4) multi-demand stacks correctly, (5) clamped at -50 floor, (6) clamped at -5 ceiling, (7) rejection penalty scales, (8) splash multiplier scales with severity
+- **Depends on:** PL-18 (typed DEMAND_VALUES keys must exist for penalty calc to work correctly)
+- **Implement with:** Session B (after PL-15 + PL-18 are stable). Backend calculation can land first, then display wiring. Wizard preview (PL-15 confirm step) should show the dynamic cost — see PL-15 test plan "PL-19 integration" note.
+
+---
+
+### PL-20: No guard against diplomatic elimination — last territory demand — OPEN
+- **Source:** Balance review (Apr 8, 2026). Inspired by EU4 aggressive expansion / full annexation mechanics.
+- **Priority:** P2 — gameplay balance
+- **Summary:** Two problems: (1) No code path prevents demanding a nation's last territory via ultimatum or treaty, diplomatically eliminating them — no extra penalty, no warning. (2) The flat per-region acceptance cost (-5 each) doesn't escalate — demanding 10 regions costs only -50, which is achievable with military dominance (~105 max bonus). In EU4, province war score cost limits you to a handful of provinces per war even from a huge empire. Here, you could take 67% of Russia in a single peace deal. Fix: escalating per-region cost (-5, -8, -11, -14, ...) so each additional region is harder, plus elimination guards for rump/annex states.
+
+- **Current behavior — no guards on any path:**
+
+  | Path | Capital protected? | Last-territory guard? | Fraction guard? | Extra cost? |
+  |------|-------------------|----------------------|----------------|-------------|
+  | Ultimatum auto-generation | Yes (skipped in `generate_ultimatum_terms()` line 1355) | **No** | **No** | **No** |
+  | Ultimatum application | N/A (applied blindly) | **No** — `_apply_ultimatum_demands()` line 699 transfers without checking | **No** | **No** |
+  | Treaty cession | No (capital gets 2x acceptance penalty) | **No** — `world_state.py` line 4784 applies then eliminates at 4817 | **No** | **No** |
+  | Acceptance formula | Capital gets 2x weight | **No** elimination-threatening modifier | **No** — linear -5/region only | **No** |
+  | Combat capture | N/A | **No** (correctly triggers elimination — military conquest is fine) | N/A | N/A |
+
+  **Vulnerable nations (current map):** Saxony (2 regions), Prussia (2 regions) — one demand from rump state. Austria (4), Britain (3) — somewhat safer.
+
+  **Scaling concern (1805 Europe):** Map is scaling to full 1805 Europe with many more regions. Per-region cost (-5) alone isn't enough — demanding 10 of 15 regions (-50 penalty) is still achievable with military dominance (max acceptance bonus ~105). A percentage-based penalty is needed so large nations can't lose most of their territory in a single diplomatic action.
+
+  **Math showing the gap (demand_total is UNCAPPED):**
+
+  | Scenario | Regions demanded | demand_total | Max positive bonus | Net | Result |
+  |----------|-----------------|-------------|-------------------|-----|--------|
+  | 2 of 2 (Saxony full annex) | 2 | -10 | ~105 | 95 | ACCEPT trivially |
+  | 4 of 4 (Austria full annex) | 4 | -20 | ~105 | 85 | ACCEPT easily |
+  | 10 of 15 (Russia 67%) | 10 | -50 | ~105 | 55 | ACCEPT with dominance |
+  | 15 of 15 (Russia full annex) | 15 | -75 | ~105 | 30 | REJECT |
+  | 8 of 12 (large nation 67%) | 8 | -40 | ~105 | 65 | ACCEPT with dominance |
+
+- **Proposed fix:**
+
+  **(A) Escalating per-region acceptance penalty — absolute count, not fraction:**
+  In EU4, you can't take half of a huge empire in one war — even with 100% war score, the province cost limits you to a handful of provinces. Our system should mirror this: the per-region penalty must **escalate** with each additional region demanded, not stay flat at -5. Taking 1 region is routine. Taking 3 is a major war demand. Taking 6+ is near-impossible in a single diplomatic action regardless of how big the target is.
+
+  In `calculate_acceptance()` (`diplomacy.py`), replace the flat -5/region with escalating cost, plus elimination guards:
+
+  ```python
+  # Replace flat DEMAND_VALUES territory scoring (~line 737-746) with escalating cost:
+  target_regions = world.get_nation_regions(target_nation)
+  demanded_regions = []
+  for d in proposal.get("demands", []):
+      if d.get("type") in ("territory", "territory_cede"):
+          demanded_regions.extend(d.get("regions", []))
+  demanded_count = len([r for r in demanded_regions if r in target_regions])
+  total_regions = len(target_regions)
+  remaining = total_regions - demanded_count
+
+  # ── Income-weighted escalating per-region cost (replaces flat -5) ──
+  # Each region's cost = income_weight × escalating_multiplier.
+  # Income weight: region.income / 100 (rural=0.5, town=1.0, city=1.5, major_city=2.0, capital=3.0)
+  # Escalating multiplier: -5 for 1st region, -8 for 2nd, -11 for 3rd, etc. (+3 per region)
+  # Capital bonus: 2x on top of income weight (stacks)
+  # Result: demanding Paris (income 300, capital) costs WAY more than Brittany (income 50, rural)
+  territory_penalty = 0
+  region_index = 0
+  for d in proposal.get("demands", []):
+      if d.get("type") not in ("territory", "territory_cede"):
+          continue
+      for r in d.get("regions", []):
+          if r not in target_regions:
+              continue
+          region = world.regions.get(r)
+          income = getattr(region, 'income', 100) if region else 100
+          income_weight = max(0.5, income / 100)    # 0.5 to 3.0
+          escalation = -5 - (3 * region_index)      # -5, -8, -11, -14, ...
+          base_cost = escalation * income_weight
+          if r == NATION_CAPITALS.get(target_nation):
+              base_cost *= 2                         # capitals always double
+          territory_penalty += base_cost
+          region_index += 1
+
+  # ── Elimination guard (stacks with escalating cost) ──
+  if remaining == 0:
+      territory_penalty -= 60    # full annexation — blocked for all practical purposes
+  elif remaining == 1:
+      territory_penalty -= 30    # rump state — extremely hard
+
+  demand_total += territory_penalty
+  # NOTE: territory_penalty REPLACES the flat DEMAND_VALUES territory scoring.
+  # Remove "territory"/"territory_cede" from the DEMAND_VALUES loop above,
+  # handle them here instead.
+  ```
+
+  **Income weight reference (from `region.py` REGIONS_DATA):**
+
+  | region_type | income | weight (income/100) | Examples |
+  |-------------|--------|---------------------|---------|
+  | rural | 50 | 0.5 | Brittany, Bordeaux, Waterloo |
+  | town | 100 | 1.0 | Belgium, Rhineland, Bavaria, Normandy, Hanover, Tyrol, Dresden |
+  | city | 150 | 1.5 | Milan, Marseille, Saxony, Bohemia |
+  | major_city | 200 | 2.0 | Lyon |
+  | capital | 300 | 3.0 (× 2 capital bonus = 6.0 effective) | Paris, Vienna, Berlin |
+
+  **Escalating cost examples (income-weighted, sorted cheapest demanded first):**
+
+  | Demand | Escalation | Income weight | Capital? | Region cost | Cumulative |
+  |--------|-----------|--------------|----------|-------------|-----------|
+  | 1st: Brittany (rural, 50) | -5 | ×0.5 | no | **-2.5** | **-3** |
+  | 1st: Bavaria (town, 100) | -5 | ×1.0 | no | **-5** | **-5** |
+  | 1st: Bohemia (city, 150) | -5 | ×1.5 | no | **-7.5** | **-8** |
+  | 1st: Lyon (major, 200) | -5 | ×2.0 | no | **-10** | **-10** |
+  | 1st: Vienna (capital, 300) | -5 | ×3.0 ×2 | yes | **-30** | **-30** |
+  | 2nd: Bavaria after Brittany | -8 | ×1.0 | no | **-8** | **-11** |
+  | 2nd: Vienna after Bavaria | -8 | ×3.0 ×2 | yes | **-48** | **-53** |
+
+  **Realistic scenario math (max acceptance bonus ~105):**
+
+  | Scenario | Regions (cheapest first) | Cost | Guard | Total | Net | Result |
+  |----------|------------------------|------|-------|-------|-----|--------|
+  | 1 rural from anyone | Brittany (50) | -3 | 0 | -3 | 102 | ACCEPT (easy) |
+  | 1 town from anyone | Bavaria (100) | -5 | 0 | -5 | 100 | ACCEPT |
+  | 1 city from anyone | Bohemia (150) | -8 | 0 | -8 | 97 | ACCEPT |
+  | Vienna (capital) | Vienna (300, cap) | -30 | 0 | -30 | 75 | ACCEPT (hard) |
+  | 2 towns | town+town | -5, -8 = -13 | 0 | -13 | 92 | ACCEPT |
+  | 3 mixed (town, city, town) | 100, 150, 100 | -5, -12, -11 = -28 | 0 | -28 | 77 | ACCEPT (hard) |
+  | 4 mixed | +town(100) | ..., -14 = -42 | 0 | -42 | 63 | ACCEPT (very hard) |
+  | 5 mixed | +town(100) | ..., -17 = -59 | 0 | -59 | 46 | REJECT |
+  | Vienna + 2 towns | 300cap, 100, 100 | -30, -8, -11 = -49 | 0 | -49 | 56 | BORDERLINE |
+  | 1 of 2 Saxony (city, 150) | Saxony (150) | -8 | -30 (rump) | -38 | 67 | ACCEPT (hard) |
+  | 2 of 2 Saxony (city+cap) | Saxony, Dresden | -8, -16 = -24 | -60 (annex) | -84 | 21 | REJECT |
+  | 3 of 4 Austria (cheap first) | Tyrol, Bavaria, Bohemia | -5, -8, -17 = -30 | -30 (rump) | -60 | 45 | REJECT |
+  | Paris alone (cap, 300) | Paris | -30 | varies | -30+ | 75 | ACCEPT (hard) |
+
+  **Key design outcomes:**
+  - **Cheap frontier provinces (rural, 50 income):** Easy to demand — Brittany costs only -3. This is correct: backwater provinces are cheap in EU4 too.
+  - **Major cities (150-200 income):** Significantly more costly — Lyon alone is -10. Demanding 2-3 cities gets expensive fast.
+  - **Capitals (300 income, ×2 bonus):** Vienna/Paris/Berlin cost -30 EACH as first demand. Demanding a capital + anything else is extremely hard. This matches EU4 where capitals are the most expensive provinces.
+  - **Russia (15 regions, mixed income):** Can take 3-4 cheap frontier regions with military dominance. Taking rich cities or the capital is much harder. Taking 5+ is blocked. You need multiple wars to carve up a large empire.
+  - **Austria (4 regions, all valuable):** Bavaria (100) + Tyrol (100) = -13. Adding Bohemia (150) = -30. Adding Vienna (300, capital) pushes to -78 + -60 annex guard = -138. Full annexation impossible.
+  - **Saxony (2 regions, mid-value):** Taking Saxony region (150) costs -8 + -30 rump = -38. Hard but possible. Full annex: -24 + -60 = -84, blocked.
+  - **Absolute count + income weight means:** Taking Vienna alone costs more than taking 3 rural frontier provinces. Rich, developed regions are worth fighting harder to keep — and demand more war score to extract.
+
+  The `remaining` and `demanded_count` variables are also used by §C, §D, and §E for relation/threat/warning scaling.
+
+  **(B) Ultimatum generation guard — never auto-generate elimination demands:**
+  In `generate_ultimatum_terms()` (`diplomatic_templates.py:1348-1363`), after selecting adjacent targets, filter out regions that would leave the target with ≤1 region:
+
+  ```python
+  # After building adjacent_targets list (~line 1362):
+  target_regions = [r for r, reg in world.regions.items() if reg.controller == target_nation]
+  # Don't auto-suggest demands that would eliminate or reduce to capital
+  safe_targets = [r for r in adjacent_targets
+                  if len(target_regions) - 1 > 1]  # must leave >1 region
+  if safe_targets:
+      demands.append({"type": "territory_cede", "value": 1, "regions": safe_targets[:1]})
+  ```
+
+  The wizard (PL-15) can still let the player manually demand elimination-level territory — but the auto-suggestion won't propose it, and the acceptance penalty (§A) makes it very unlikely to succeed.
+
+  **(C) PL-19 relation penalty amplifier — scales with region count + elimination risk:**
+  In PL-19's dynamic penalty calculation, multiply demand_penalty by an amplifier based on absolute region count and elimination status (uses `demanded_count` and `remaining` from §A):
+
+  ```python
+  # After computing demand_penalty, before clamping:
+  if remaining == 0:
+      demand_penalty *= 2.5   # full annexation — catastrophic diplomatic damage
+  elif remaining == 1:
+      demand_penalty *= 2.0   # rump state — near-catastrophic
+  elif demanded_count >= 4:
+      demand_penalty *= 1.5   # 4+ regions — major land grab
+  elif demanded_count >= 2:
+      demand_penalty *= 1.2   # 2-3 regions — significant
+  # Then clamp as normal: max(-60, min(-5, ...))
+  # NOTE: raise cap from -50 to -60 to accommodate amplified territory demands
+  ```
+
+  Examples with PL-19 base scaling:
+  - 2 of 2 from Saxony (full annex): base -10 + territory -10 = -20, × 2.5 = **-50**
+  - 1 of 2 from Saxony (rump): base -10 + territory -5 = -15, × 2.0 = **-30**
+  - 3 of 4 from Austria (rump): base -10 + territory -15 = -25, × 2.0 = **-50**
+  - 4 of 15 from Russia: base -10 + territory -20 = -30, × 1.5 = **-45**
+  - 2 of 15 from Russia: base -10 + territory -10 = -20, × 1.2 = **-24**
+
+  **(D) Threat amplifier — scales with region count + elimination risk:**
+  Add bonus threat based on absolute region count and elimination status (on top of existing +8/region):
+
+  ```python
+  # In _execute_diplomatic_ultimatum(), after apply:
+  if remaining == 0:
+      add_threat(world, 25, "ultimatum_annex_attempt")
+  elif remaining == 1:
+      add_threat(world, 18, "ultimatum_rump_state")
+  elif demanded_count >= 4:
+      add_threat(world, 12, "ultimatum_major_territorial")
+  elif demanded_count >= 2:
+      add_threat(world, 5, "ultimatum_significant_territorial")
+  ```
+
+  Example threat totals (delivery + per-region + count bonus):
+  - 1 region from Russia: 15 + 8 + 0 = **+23 threat**
+  - 3 regions from Russia: 15 + 24 + 5 = **+44 threat** (coalition tension)
+  - 5 regions from Russia: 15 + 40 + 12 = **+67 threat** (coalition brewing)
+  - Full annex of Saxony (2 of 2): 15 + 16 + 25 = **+56 threat**
+  - 4 regions from anyone: 15 + 32 + 12 = **+59 threat** (near brewing)
+
+  **(E) Wizard warning — Talleyrand warns based on count + elimination risk:**
+  In the PL-15 wizard confirm step, show count-appropriate warnings:
+
+  For full annexation (remaining == 0):
+  ```
+  "Sire, demanding all of their territory would erase them from the map entirely.
+  Every nation in Europe will view this as an existential threat. The acceptance
+  chance is near zero, and the diplomatic cost would be catastrophic."
+  ```
+
+  For rump state (remaining == 1):
+  ```
+  "Reducing them to their capital alone would make them desperate — and their allies furious.
+  Expect heavy diplomatic consequences and a near-certain rejection."
+  ```
+
+  For 4+ regions:
+  ```
+  "Demanding four or more regions is an extraordinary claim, Sire. Even after a decisive
+  victory, such vast territorial concessions are rarely accepted. All of Europe will take notice."
+  ```
+
+  For 2-3 regions:
+  ```
+  "A substantial territorial demand. The diplomatic cost will be significant."
+  ```
+
+  **(F) Treaty cession guard — same logic for peace deals:**
+  In `world_state.py` treaty ratification (~line 4784), apply the same remaining-region check before executing cessions. If a treaty would eliminate a nation, require war_score > 90 (near-total military victory). This prevents weird edge cases where a minor war score leads to full annexation.
+
+- **Design rationale (EU4 parallel):**
+  In EU4, province war score cost depends on both province count AND province development (base tax, production, manpower). Rich capitals cost 20-30+ war score; backwater provinces cost 3-5. You can't take half of Russia in one peace deal. Our system mirrors this with two mechanisms:
+
+  1. **Income-weighted cost.** Each region's acceptance penalty scales with its income (the data already exists on every region). Rural frontier (50 income, weight 0.5) costs half as much as a town (100 income, weight 1.0). Capitals (300 income, weight 3.0 × 2 capital bonus = 6.0 effective) cost 6-12x more than a rural province. Demanding Paris alone (-30) is as expensive as demanding 3-4 frontier towns.
+
+  2. **Escalating per-region cost.** Each additional region costs +3 more than the last (base: -5, -8, -11, -14...), multiplied by income weight. This means you can take 1-2 cheap provinces easily, 2-3 mixed-value provinces with military dominance, but 4+ is very hard and 5+ is blocked. Napoleon's post-Austerlitz Treaty of Pressburg took 3 regions from Austria — that's the right feel.
+
+  Together: a player with total military dominance (~105 max bonus) could take Vienna alone (-30), or 3-4 frontier towns (-28), or 2 towns + 1 city (-28). But NOT Vienna + 3 towns (-49+). Multiple wars required for large conquests, exactly like EU4.
+
+  Combat elimination is deliberately unguarded — if you conquer their last territory in battle, that's a legitimate military outcome. The guards are only for diplomatic paths (ultimatums + treaties).
+
+- **Files:** `backend/game_logic/diplomacy.py` (calculate_acceptance — §A), `backend/game_logic/diplomatic_templates.py` (generate_ultimatum_terms — §B), `backend/commands/diplomatic_executor.py` (relation/threat amplifier — §C/D), `backend/game_logic/diplomatic_dialogue.py` (wizard warning — §E), `backend/models/world_state.py` (treaty guard — §F)
+- **Est. Tests:** 16 — (1) rural region (income 50): cost = -3 (weight 0.5 × -5), (2) town region (income 100): cost = -5 (weight 1.0 × -5), (3) city region (income 150): cost = -8 (weight 1.5 × -5), (4) capital region (income 300): cost = -30 (weight 3.0 × 2 capital × -5), (5) 2nd region escalates (+3 base), (6) 3 mixed-income regions: cumulative matches expected, (7) full annexation gets -60 elimination guard on top, (8) rump state (remaining=1) gets -30 guard, (9) auto-generation skips elimination/rump demands, (10) PL-19 relation penalty ×2.5 for annex, ×2.0 for rump, ×1.5 for 4+, (11) threat amplifier fires at count tiers, (12) treaty cession blocked below war_score 90 if would eliminate, (13) wizard shows appropriate Talleyrand warning, (14) large nation (15 regions): max ~3-4 regions with military dominance, (15) demanding Vienna alone (-30) costs more than 3 rural provinces (-11), (16) income_weight defaults to 1.0 if region has no income field
+- **Depends on:** PL-19 (relation penalty scaling — §C multiplier applies to PL-19's demand_penalty)
+- **Implement with:** Session B (alongside PL-19). The acceptance penalty (§A) and auto-gen guard (§B) can land independently; the relation/threat amplifiers (§C/D) require PL-19's dynamic penalty to exist first.
