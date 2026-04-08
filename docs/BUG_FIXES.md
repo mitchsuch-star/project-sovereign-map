@@ -212,8 +212,13 @@ Add `ultimatum_bonus` component to `calculate_acceptance()`:
   - **(A) Snapshot diplomatic state at send time** — store `sent_diplomatic_state` in `proposal_in_transit` (`diplomatic_executor.py:962`). At resolution (`world_state.py:4344`), compare proposal against snapshot state instead of current state. If snapshot says the proposal was valid when sent, skip the surpassed check.
   - **(B) Normalize dual-key to single key** — in `_enrich_proposal_summary` (`diplomatic_dialogue.py:392-393`), always set BOTH `terms["type"]` and `terms["proposal_type"]` to `proposal_type`. Add defensive normalization in `execute_proposal` (`diplomatic_executor.py:897`): `proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"`.
   - **(C) Add diagnostic logging** — temporary log in `_process_proposal_in_transit` before the surpassed check: print `proposal.get("type")`, `current_state`, `target_state`, `curr_idx`, `tgt_idx`. This confirms root cause on next occurrence.
+  - **(D) Fix `generate_suggested_terms` at the source** — `_build_base_terms` (`diplomatic_templates.py:1471-1472`) sets `terms["type"]` but not `terms["proposal_type"]`. Add `terms["proposal_type"] = proposal_type` so the function returns terms with BOTH keys. This eliminates the need for every caller to manually add `proposal_type`.
+- **Related dual-key instances found (Apr 7 audit):**
+  - `diplomatic_dialogue.py:814-820` — `generate_feasibility_assessment()` creates terms with `proposal_type` but no `type` key. Safe because `execute_proposal` (line 897) reads `proposal_type` first, but inconsistent.
+  - `diplomatic_executor.py:1620` — counter_terms handler uses defensive fallback: `counter_terms.get("type", counter_terms.get("proposal_type", "peace"))`. Shows developer awareness of the fragility.
+  - `diplomatic_dialogue.py:392-393` and `676-678` — callers of `generate_suggested_terms` always manually add `proposal_type`. Fix D eliminates this boilerplate.
 - **Priority:** P1 (MAJOR). 76% acceptance proposals should not be auto-rejected. Core diplomacy loop is broken — player invests DP, waits a turn, gets false rejection.
-- **Files:** `world_state.py` (_process_proposal_in_transit lines 4342-4389), `diplomatic_executor.py` (line 897, line 962), `diplomatic_dialogue.py` (line 392-393)
+- **Files:** `world_state.py` (_process_proposal_in_transit lines 4342-4389), `diplomatic_executor.py` (line 897, line 962), `diplomatic_dialogue.py` (line 392-393, 814-820), `diplomatic_templates.py` (line 1472)
 - **Est. Tests:** ~5
 
 ---
