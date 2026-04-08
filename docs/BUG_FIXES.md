@@ -631,6 +631,8 @@ dialogue = {
     "splash_damage_preview": splash_preview,
     "threat_increase_preview": "+15 threat on delivery, +5 if accepted",
     "context": {"target_nation": target_nation},
+    "blocking": True,  # prevent clear_stale dismissal mid-wizard
+    "turn_created": int(world.current_turn),
 }
 ```
 
@@ -643,24 +645,28 @@ New action handler in `_process_dialogue_choice`. Context tracks:
 context = {
     "target_nation": target_nation,
     "guidance_state": "gold",  # gold → territory → manpower → confirm
-    "approved_demands": [],     # list of demand dicts
+    "approved_demands": [],     # list of demand dicts {type, value, regions?} — same schema as generate_ultimatum_terms() output
     "gold_amount": default_gold,
     "manpower_amount": 0,
 }
 ```
 
+**Empty demands guard:** If `approved_demands` is empty at the confirm step (player skipped all steps AND gating excluded territory/manpower), inject the gold floor demand: `{"type": "gold_lump", "value": 100}`. Talleyrand message: "We must demand something, Sire — at minimum a symbolic tribute." This matches the `generate_ultimatum_terms()` fallback (line 1373).
+
 **§3. Gold step** — `_build_ultimatum_gold_step()`
 
 Modeled on `_build_gold_step()` (line 2238). Calculates suggested gold from target income (same as `generate_ultimatum_terms` gold logic).
+
+**Gold source logic:** If `target_income > 0`, demand `gold_per_turn` (capped at 50% of income, range 50-300). If `target_income == 0` but `target_gold > 0`, demand `gold_lump` (30% of gold, range 50-500). If both are 0, offer floor of 50 `gold_lump` ("symbolic tribute").
 
 ```
 "Talleyrand: How much gold should we demand per turn, Sire?"
 [Demand {X} gold]  [Demand more]  [Demand less]  [Skip gold]
 ```
 
-Actions: `ultimatum_gold_accept`, `ultimatum_gold_more` (1.3x), `ultimatum_gold_less` (0.7x), `ultimatum_gold_skip`.
+Actions: `ultimatum_gold_accept`, `ultimatum_gold_more` (1.5x), `ultimatum_gold_less` (0.7x), `ultimatum_gold_skip`.
 
-Gold floor: 25. Gold cap: 300 (same as `generate_ultimatum_terms`).
+Gold floor: 25. Gold cap: 300 for per-turn, 500 for lump (same as `generate_ultimatum_terms`). More/less multipliers match armistice wizard (1.5x/0.7x).
 
 **§4. Territory step** — `_build_ultimatum_territory_step()`
 
@@ -678,7 +684,7 @@ Then region-by-region: "I suggest demanding {region}."
 
 Actions: `ultimatum_territory_yes`, `ultimatum_offer_region`, `ultimatum_skip_region`, `ultimatum_enough_territory`, `ultimatum_territory_skip`.
 
-Uses `rank_cession_candidates()` inverted — ranks TARGET's regions by strategic value to France (adjacent, income, not capital).
+Write new `rank_ultimatum_territory_candidates(world, player_nation, target_nation)` using the territory selection logic from `generate_ultimatum_terms()` (lines 1348-1363) as the base, extended with scoring for income and buildings (same factors as `rank_cession_candidates`). Ranks TARGET's non-capital regions by strategic value to France: adjacency to France-controlled territory, region income, buildings. Cannot reuse `rank_cession_candidates()` directly — it ranks PLAYER regions for cession, not target regions for seizure.
 
 **§5. Manpower step** — `_build_ultimatum_manpower_step()`
 
@@ -689,7 +695,7 @@ Only offered if troop advantage > 5000 (same threshold as `generate_ultimatum_te
 [Demand {X} manpower]  [Demand more]  [Demand less]  [Skip manpower]
 ```
 
-Actions: `ultimatum_manpower_accept`, `ultimatum_manpower_more` (1.3x), `ultimatum_manpower_less` (0.7x), `ultimatum_manpower_skip`.
+Actions: `ultimatum_manpower_accept`, `ultimatum_manpower_more` (1.5x), `ultimatum_manpower_less` (0.7x), `ultimatum_manpower_skip`.
 
 Default: `int(troop_advantage * 0.1)`, capped at 5000.
 
@@ -732,13 +738,16 @@ Add `"ultimatum_confirm"` case to `proposal_confirm_popup.gd` match block (line 
 New `_build_ultimatum_content(data)` reads:
 - Header: `[b][color=#e09040]ULTIMATUM — {target}[/color][/b]`
 - `demands_display` (list of strings) — demand line items
+- `harshness_label` — always "Coercive" for ultimatums (color-coded red)
 - `acceptance_estimate`, `acceptance_outcome`, `acceptance_hint` — same as proposals
 - `splash_damage_preview` — format each `{nation, treaty_with_target, relation_penalty}`
 - `threat_increase_preview` — string
-- `talleyrand_text` — Talleyrand commentary
+- `talleyrand_text` OR `prompt` — Talleyrand commentary (entry-point dialogue uses `prompt`, wizard builders use `talleyrand_text`; renderer should read both with fallback: `data.get("talleyrand_text", data.get("prompt", ""))`)
 - `dp_cost` — always 2
 
-The `terms_guidance` dtype already renders through the `_:` default path for wizard steps — this works because wizard steps only show talleyrand_text + options (no terms to display). Only the final `ultimatum_confirm` needs the dedicated renderer.
+**Wizard step rendering:** The `terms_guidance` dtype wizard steps render through the `_:` default path (talleyrand_text + options only, no terms to display). Only the final `ultimatum_confirm` needs the dedicated renderer.
+
+**Blocking:** All wizard step dialogues use `blocking: True` to prevent `clear_stale` from dismissing the wizard if the player ends a turn mid-wizard. The entry-point `ultimatum_confirm` dialogue also uses `blocking: True`.
 
 #### Building Blocks Reuse
 
@@ -748,37 +757,43 @@ The `terms_guidance` dtype already renders through the `_:` default path for wiz
 | `_build_ap_step()` (line 2278) | Pattern for `_build_ultimatum_manpower_step()` — same accept/skip UX |
 | `_build_confirm_step()` (line 2305) | Pattern for `_build_ultimatum_confirm_step()` — assemble + enrich + preview |
 | `_copy_guidance_context()` (line 2232) | Reuse directly — same deep-copy of context dict |
-| Territory picker (lines 1540-1676) | Pattern for `ultimatum_offer_region`/`skip_region` — same region-by-region flow |
-| `rank_cession_candidates()` | Reuse inverted — rank TARGET's regions by value to France |
+| Territory picker (lines 1540-1678) | Pattern for `ultimatum_offer_region`/`skip_region` — same region-by-region flow |
+| `generate_ultimatum_terms()` territory logic (lines 1348-1363) | Base for new `rank_ultimatum_territory_candidates()` — adjacency + capital exclusion. Extended with income/building scoring from `rank_cession_candidates` |
 | `generate_ultimatum_terms()` | Kept for "Use Suggested" default + future AI ultimatums (R162) |
 | `_enrich_ultimatum_dialogue()` | Reuse directly on confirm step — acceptance calculation |
 
 #### Effort Estimate
 
-- **~150-200 new lines** in `diplomatic_executor.py`: 3 builder helpers + ~10 action handler branches
+- **~150-200 new lines** in `diplomatic_executor.py`: 3 builder helpers + ~10 action handler branches + empty demands guard
+- **~30 lines** in `diplomatic_templates.py`: new `rank_ultimatum_territory_candidates()` helper
 - **~50 lines** in `proposal_confirm_popup.gd`: dedicated ultimatum renderer
 - **Delete ~70 lines**: `modify_harsh_ultimatum` handler
-- **Net: ~130-180 lines added**
+- **Net: ~160-210 lines added**
 - **No new files, no new scenes** — reuses existing `proposal_confirm_popup` and `terms_guidance` dtype
 
 #### Files to Modify
 - `backend/commands/diplomatic_executor.py` — wizard handlers + builder helpers, remove `modify_harsh_ultimatum`
 - `backend/game_logic/diplomatic_dialogue.py` — no changes (enrichment function already works)
-- `backend/game_logic/diplomatic_templates.py` — no changes (keep `generate_ultimatum_terms` for defaults)
+- `backend/game_logic/diplomatic_templates.py` — add `rank_ultimatum_territory_candidates()` helper (keep `generate_ultimatum_terms` for defaults)
 - `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd` — add `_build_ultimatum_content()`, add match case
 
 #### Test Plan
 - **Backend wizard flow:** Test each wizard step transitions (gold → territory → manpower → confirm)
-- **Gold more/less:** Assert 1.3x/0.7x scaling, floor 25, cap 300
+- **Gold more/less:** Assert 1.5x/0.7x scaling, floor 25, cap 300 (per-turn) / 500 (lump)
 - **Territory gating:** Assert territory step only offered with >1.2x military superiority
 - **Region pick:** Assert only non-capital adjacent regions offered
 - **Manpower gating:** Assert manpower step only offered with >5000 troop advantage
 - **Confirm step:** Assert `_enrich_ultimatum_dialogue()` called, acceptance estimate present
 - **"Use Suggested":** Assert `generate_ultimatum_terms()` default still works as fast path
 - **Execute:** Assert wizard-built terms pass through to existing `execute_ultimatum` handler
+- **Empty demands guard:** Skip gold + territory gated out + manpower gated out → confirm step injects gold floor demand (100 gold_lump). Delivery still works.
+- **Cooldown blocking:** Assert `ultimatum_global_cooldown > 0` prevents entering wizard (error returned before dialogue push)
+- **Concurrent dialogue:** AI proposal arrives mid-wizard → queued. Wizard completes → AI proposal auto-promotes via `promote_if_empty()`
+- **Gold_lump fallback:** Target with 0 income but positive gold → wizard offers gold_lump instead of gold_per_turn
+- **Nation eliminated mid-wizard:** Target eliminated before confirm → guard with error message, pop dialogue
 - **Remove tests:** Delete/update `TestModifyHarshUltimatum` tests (handler removed)
 - **curl test:** `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command": "send ultimatum to Prussia"}' | python -m json.tool` — verify new dialogue structure
-- **Godot visual:** Popup shows demands, splash damage, threat warning, acceptance estimate
+- **Godot visual:** Popup shows demands, splash damage, threat warning, acceptance estimate, harshness label
 
 ---
 
