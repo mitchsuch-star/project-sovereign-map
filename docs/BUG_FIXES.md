@@ -646,7 +646,8 @@ context = {
     "target_nation": target_nation,
     "guidance_state": "gold",  # gold → territory → manpower → confirm
     "approved_demands": [],     # list of demand dicts {type, value, regions?} — same schema as generate_ultimatum_terms() output
-    "gold_amount": default_gold,
+    "gold_amount": 0,           # set by _build_ultimatum_gold_step() from gold source logic
+    "gold_type": "gold_per_turn",  # or "gold_lump" — set by gold step based on target income
     "manpower_amount": 0,
 }
 ```
@@ -660,7 +661,8 @@ Modeled on `_build_gold_step()` (line 2238). Calculates suggested gold from targ
 **Gold source logic:** If `target_income > 0`, demand `gold_per_turn` (capped at 50% of income, range 50-300). If `target_income == 0` but `target_gold > 0`, demand `gold_lump` (30% of gold, range 50-500). If both are 0, offer floor of 50 `gold_lump` ("symbolic tribute").
 
 ```
-"Talleyrand: How much gold should we demand per turn, Sire?"
+If gold_per_turn: "Talleyrand: How much gold should we demand per turn, Sire?"
+If gold_lump:     "Talleyrand: How much gold should we demand as a one-time tribute, Sire?"
 [Demand {X} gold]  [Demand more]  [Demand less]  [Skip gold]
 ```
 
@@ -672,7 +674,7 @@ Gold floor: 25. Gold cap: 300 for per-turn, 500 for lump (same as `generate_ulti
 
 Only offered if France has military superiority (>1.2x, same threshold as `generate_ultimatum_terms`). If not, skip to manpower.
 
-Modeled on armistice territory picker (lines 1498-1568). Picks from target's non-capital regions adjacent to France-controlled territory.
+Modeled on armistice territory picker (setup lines 1498-1509, handlers 1540-1678). Picks from target's non-capital regions adjacent to France-controlled territory. Max 1 region if superiority < 2.0x, max 2 if >= 2.0x (scales with dominance).
 
 ```
 "Shall we demand territory, Sire?"
@@ -697,7 +699,7 @@ Only offered if troop advantage > 5000 (same threshold as `generate_ultimatum_te
 
 Actions: `ultimatum_manpower_accept`, `ultimatum_manpower_more` (1.5x), `ultimatum_manpower_less` (0.7x), `ultimatum_manpower_skip`.
 
-Default: `int(troop_advantage * 0.1)`, capped at 5000.
+Default: `int(troop_advantage * 0.1)`, floor 500, cap 5000 (same bounds as `generate_ultimatum_terms`).
 
 **§6. Confirm step** — `_build_ultimatum_confirm_step()`
 
@@ -716,7 +718,7 @@ Threat: +15 on delivery
 
 Calls `_enrich_ultimatum_dialogue()` on the assembled terms for acceptance calculation.
 
-"Deliver Ultimatum" action = `execute_ultimatum` with the wizard-built terms (same handler that exists today).
+"Deliver Ultimatum" = `{"action": "execute_ultimatum", "terms": wizard_terms}` — terms embedded in option dict (same pattern as armistice `execute_proposal`, line 2348). Existing `execute_ultimatum` handler reads `selected.get("terms", {})`.
 "Start Over" = `adjust_ultimatum_terms` (re-enter wizard).
 "Reconsider" = pop dialogue (same as today).
 
