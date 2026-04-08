@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 6, 2026 (Session 10: All 3 remaining bugs FIXED — PL-9 acceptance mismatch, PL-10 generous downgrade, PL-11 dialogue hijack. 0 open bugs. Ready for Design Refinement.)
+> **Last Updated:** April 7, 2026 (Playtest A3: 3 new bugs found — PL-12 inverted harshness, PL-13 false surpassed rejection, PL-14 ultimatum rework. All specs junior-dev-ready. 3 open bugs.)
 
 ---
 
@@ -11,24 +11,28 @@
 |--------|-------|
 | **Tests Passing** | **7938** (7938 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes COMPLETE.** All bugs fixed (Sessions 1-10). Ready for Design Refinement. See `docs/DESIGN_REFINEMENT.md`. |
-| **Blockers** | None. Jealousy NEEDS DESIGN GATE (separate track). |
+| **Current Phase** | **Bug Fixes — 3 OPEN** (PL-12, PL-13, PL-14). Specs complete, ready for Session 11-12 implementation. See `docs/BUG_FIXES.md`. |
+| **Blockers** | PL-12 + PL-13 block core diplomacy loop (P1). Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### Bug Fixes Session 10 ✓ COMPLETE
+### Bug Fixes Session 11 — Acceptance Formula + Surpassed Check (PL-12, PL-13)
 
-All 3 bugs FIXED. 13 new tests. See `docs/BUG_FIXES.md`:
-- **PL-9 (P1) FIXED:** Warning text for borderline 50-75% proposals + acceptance snapshot + tolerance band (reject only if >15 drop from snapshot).
-- **PL-10 (P2) FIXED:** Force `suggested["type"] = proposal_type` in modify_generous/modify_harsh — prevents `generate_suggested_terms` from overriding player's chosen proposal type.
-- **PL-11 (P3) FIXED:** Improved dialogue guard error message with nation name and `/respond_to_diplomatic_dialogue` API hint.
+Pure Python, all testable with pytest. Fixes two core diplomacy formula bugs. ~12 tests.
+- **PL-12 (P1):** Harsher terms INCREASE acceptance. 5-part fix: harshness penalty in `calculate_acceptance`, extend `calculate_treaty_harshness` to include demands, lower `is_harsh` threshold, invert `harshness_bonus`, increase gold demand impact. Full spec with code snippets in BUG_FIXES.md.
+- **PL-13 (P1):** Viable proposals falsely rejected as "surpassed". 4-part fix: snapshot diplomatic state at send time, normalize dual-key proposal type, diagnostic logging, fix `_build_base_terms` source. Full spec in BUG_FIXES.md.
 
-### Next: Design Refinement
+### Bug Fixes Session 12 — Ultimatum Rework (PL-14)
 
-Move to `docs/DESIGN_REFINEMENT.md`. 43 items total: 7 ready for implementation, R160 Rivalry System (new), 4 War System Overhaul, 3 AI fixes, 17 Wave 4 features, 8 Wave 5 findings, plus design gates.
+Backend + minor frontend. Replaces blind one-shot with coercive dialogue flow. ~12-15 tests.
+- **PL-14 (P2):** Full rework spec with 14-step implementation guide in BUG_FIXES.md §8. Key decisions: new `_enrich_ultimatum_dialogue` (not `_enrich_proposal_summary`), new `modify_harsh_ultimatum` handler (not proposal `modify_harsh`), new `_apply_ultimatum_demands` helper (not `_ratify_treaty`).
+
+### After Bugs: Design Refinement
+
+Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation, R160 Rivalry System, R161 One-Time Trade (expanded), R162 AI Ultimatums (Building Blocks), 4 War System Overhaul, 3 AI fixes, 19 Wave 4 features, 8 Wave 5 findings, plus design gates.
 
 ### Independent Tracks
 
@@ -39,7 +43,7 @@ Move to `docs/DESIGN_REFINEMENT.md`. 43 items total: 7 ready for implementation,
 
 All items below are done. Source docs kept for implementation detail reference.
 
-- ~~Bug Fixes Sessions 1-9~~ — 28+4 bugs resolved, 189 tests. Session 7: PL-5B+C, PL-6, PL-7 (cooldowns + dedup + type-aware harsh). Session 8: PL-5A (proposal result popup + enemy-phase deferral). Session 9: PL-8 (counter-offer UX differentiation). ALL CLOSED.
+- ~~Bug Fixes Sessions 1-10~~ — 31 bugs resolved, 202 tests. Session 10: PL-9 (acceptance mismatch), PL-10 (generous downgrade), PL-11 (dialogue hijack). ALL CLOSED.
 - ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
 - ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests
