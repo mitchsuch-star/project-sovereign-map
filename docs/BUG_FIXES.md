@@ -803,3 +803,21 @@ New `_build_ultimatum_content(data)` reads:
 - **Source:** Playtest (Apr 7, Session 12 follow-up)
 - **Priority:** P2 — UX (gameplay balance)
 - **Status:** Absorbed into PL-15. The demand wizard eliminates `modify_harsh_ultimatum` entirely — the player picks their own demand amounts instead of blind escalation. No separate fix needed.
+
+---
+
+### PL-17: Manpower demand has zero acceptance penalty — OPEN
+- **Source:** PL-15 audit (Apr 7, 2026)
+- **Priority:** P2 — gameplay balance
+- **Root cause:** `DEMAND_VALUES` in `diplomacy.py:159` uses key `"manpower_per_turn"`, but `generate_ultimatum_terms()` and `execute_ultimatum` both use demand type `"manpower"`. So `DEMAND_VALUES.get("manpower", 0)` returns 0 — manpower demands have no impact on acceptance score.
+- **Fix:** Add `"manpower": -3 / 2000` to `DEMAND_VALUES` (same rate as `manpower_per_turn`), or rename to match. Verify which key is canonical and align the other references.
+- **Files:** `backend/game_logic/diplomacy.py` (DEMAND_VALUES)
+
+---
+
+### PL-18: Manpower demand only transfers infantry — OPEN
+- **Source:** PL-15 audit (Apr 7, 2026)
+- **Priority:** P3 — minor (infantry-only is arguably correct for conscripts, but undocumented)
+- **Root cause:** `_apply_ultimatum_demands()` in `diplomatic_executor.py:713-724` only reads/writes `manpower_pools[nation]["infantry"]`. Cavalry and artillery pools are untouched.
+- **Current behavior:** "2000 manpower" silently means "2000 infantry manpower." Player has no visibility into this.
+- **Fix options:** (a) Document as intentional — conscripts are infantry. Add display text: "2000 infantry conscripts" instead of "2000 manpower". (b) Let player pick unit type in the wizard (more complex, defer). Option (a) recommended — fix during PL-15 implementation by updating `_enrich_ultimatum_dialogue()` demand display strings.
