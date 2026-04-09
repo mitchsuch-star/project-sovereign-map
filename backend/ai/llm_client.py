@@ -451,7 +451,7 @@ class LLMClient:
 
         # ════════════════════════════════════════════════════════════
         # CHEAT/DEBUG COMMANDS: Check FIRST before any keyword routing
-        # (Bug 3 fix: "cheat set_talleyrand_trust" was caught by
+        # (Bug 3 fix: cheat commands were caught by
         # diplomat routing because "talleyrand" is in _diplomat_names)
         # ════════════════════════════════════════════════════════════
         if command_lower.startswith("cheat "):

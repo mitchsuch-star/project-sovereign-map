@@ -2,15 +2,15 @@
 Talleyrand Diplomatic Defiance System — Phase 8 Session 6
 
 Mirrors V2b combat defiance (defiance.py) for the diplomatic layer.
-Talleyrand may modify proposals before delivery when authority/trust are low.
+Talleyrand may modify proposals before delivery when authority is low.
 
 Core functions:
 - calculate_diplomatic_defiance_chance(): probability curve (§3a)
 - apply_diplomatic_sabotage(): what Talleyrand changes (§3b)
 - check_sabotage_discovery(): turn-based discovery check (§3c)
 - evaluate_pre_proposal_objection(): V2a-pattern objection before departure (§3e)
-- check_talleyrand_redemption(): trust ≤ 20 redemption event (§3d)
-- apply_redemption_choice(): process player's redemption decision
+- roll_drafting_pushback(): PL-23 authority-driven pushback during drafting
+- apply_pen_nudge(): PL-23 deterministic term softening
 """
 
 import copy
@@ -65,16 +65,7 @@ def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
     else:
         base += 0.15   # Weak Emperor → takes charge
 
-    # Trust modifier (Talleyrand's personal trust)
-    trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-    if trust >= 80:
-        base += -0.05  # High loyalty
-    elif trust >= 50:
-        base += 0.00   # Neutral
-    elif trust >= 30:
-        base += 0.05   # Growing independence
-    else:
-        base += 0.10   # Acting on own judgment
+    # PL-23: Trust removed — authority is sole driver of Talleyrand's independence
 
     # Variance: random.uniform(-0.05, 0.05)
     variance = random.uniform(-0.05, 0.05)
@@ -112,15 +103,7 @@ def calculate_diplomatic_defiance_chance_deterministic(talleyrand, world) -> flo
     else:
         base += 0.15
 
-    trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-    if trust >= 80:
-        base += -0.05
-    elif trust >= 50:
-        base += 0.00
-    elif trust >= 30:
-        base += 0.05
-    else:
-        base += 0.10
+    # PL-23: Trust removed — authority is sole driver
 
     return min(DEFIANCE_CAP, max(SCHEMER_FLOOR, base))
 
@@ -133,10 +116,11 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
     """Calculate harshness score (0.0-1.0) from proposal contents.
 
     Harshness is driven by demands and clauses:
-    - Territory demands: +0.2 per region
-    - Gold demands: +0.1 per 100 gold/turn
-    - AP demands: +0.3 (very harsh)
-    - Unit demands: +0.15
+    - Territory demands: +0.2 per region (or per value count)
+    - Gold per-turn demands: +0.1 per 100 gold/turn
+    - Gold lump demands: +0.1 per 500 gold (lower weight, one-time)
+    - AP demands: +0.3 per AP/turn
+    - Manpower demands: +0.15 per 1000 troops
     - Sweeteners: -0.1 per sweetener
     """
     harshness = 0.0
@@ -144,13 +128,20 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
     for demand in proposal.get("demands", []):
         dtype = demand.get("type", "")
         if dtype == "territory_cede":
-            harshness += 0.2 * len(demand.get("regions", []))
+            regions = demand.get("regions", [])
+            if regions:
+                harshness += 0.2 * len(regions)
+            else:
+                harshness += 0.2 * max(1, demand.get("value", 1))
         elif dtype == "gold_per_turn":
             harshness += 0.1 * (demand.get("value", 0) / 100)
+        elif dtype == "gold_lump":
+            harshness += 0.1 * (demand.get("value", 0) / 500)
         elif dtype == "ap_per_turn":
-            harshness += 0.3
-        elif dtype == "unit_trade":
-            harshness += 0.15
+            harshness += 0.3 * max(1, demand.get("value", 1))
+        elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+            value = demand.get("value", 0)
+            harshness += max(0.15, 0.15 * (value / 1000))
 
     for sweetener in proposal.get("sweeteners", []):
         harshness -= 0.1
@@ -362,12 +353,12 @@ def build_confrontation_dialogue(sabotage: Dict, talleyrand) -> Dict:
         "options": [
             {
                 "label": "Confront",
-                "description": "Trust -10, Authority +5, defiance cooldown 5 turns.",
+                "description": "Authority +5, defiance cooldown 5 turns.",
                 "action": "confront_sabotage",
             },
             {
                 "label": "Overlook",
-                "description": "Trust +3. Talleyrand gains confidence.",
+                "description": "Authority -3. Talleyrand gains confidence.",
                 "action": "overlook_sabotage",
             },
         ],
@@ -428,18 +419,13 @@ def resolve_confrontation(choice: str, talleyrand, world) -> Dict:
         Dict with trust_change, authority_change, cooldown, message
     """
     result = {
-        "trust_change": 0,
         "authority_change": 0,
         "cooldown_set": 0,
         "message": "",
     }
 
     if choice == "confront_sabotage":
-        # Trust -10, Authority +5, cooldown 5 turns
-        old_trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-        talleyrand.trust = max(0, old_trust - 10)
-        result["trust_change"] = -10
-
+        # PL-23: Authority +5, cooldown 5 turns (trust removed)
         world.authority_tracker.modify_authority(+5)
         result["authority_change"] = +5
 
@@ -451,10 +437,9 @@ def resolve_confrontation(choice: str, talleyrand, world) -> Dict:
             "characteristic grace, but his eyes betray resentment."
         )
     elif choice == "overlook_sabotage":
-        # Trust +3
-        old_trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-        talleyrand.trust = min(100, old_trust + 3)
-        result["trust_change"] = +3
+        # PL-23: Authority -3 (trust removed, mild authority cost for letting it slide)
+        world.authority_tracker.modify_authority(-3)
+        result["authority_change"] = -3
 
         result["message"] = (
             "You choose to overlook the discrepancy. Talleyrand inclines "
@@ -467,152 +452,7 @@ def resolve_confrontation(choice: str, talleyrand, world) -> Dict:
     return result
 
 
-# ════════════════════════════════════════════════════════════════════════════
-# §3d — REDEMPTION EVENT (Trust ≤ 20)
-# ════════════════════════════════════════════════════════════════════════════
-
-def check_talleyrand_redemption(talleyrand, world) -> bool:
-    """Check if Talleyrand's redemption event should fire.
-
-    Fires when trust ≤ 20. Loyalist personality (post-Replace) follows
-    standard V2b pattern — no special redemption.
-
-    Args:
-        talleyrand: DiplomaticRepresentative
-        world: WorldState
-
-    Returns:
-        True if redemption should fire
-    """
-    personality = getattr(talleyrand, 'personality', 'schemer')
-    if personality == 'loyalist':
-        return False  # Loyalist doesn't trigger diplomatic redemption
-
-    # Cooldown: skip if redemption fired within last 5 turns
-    last_redemption = getattr(world, 'last_redemption_turn', 0)
-    current_turn = getattr(world, 'turn_number', None) or getattr(world, 'current_turn', 1)
-    if last_redemption > 0 and current_turn - last_redemption < 5:
-        return False
-
-    trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-    return trust <= 20
-
-
-def build_redemption_dialogue(talleyrand, world) -> Dict:
-    """Build the redemption event dialogue.
-
-    Three options: Apologize, Replace with Loyalist, Continue.
-
-    Args:
-        talleyrand: DiplomaticRepresentative
-        world: WorldState
-
-    Returns:
-        Dict suitable for pending_diplomatic_dialogue
-    """
-    trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-
-    talleyrand_text = (
-        f"Sire, the relationship between yourself and Talleyrand has become "
-        f"untenable. His trust stands at {int(trust)} — barely functional.\n\n"
-        f"Talleyrand: \"Perhaps, Sire, we have pushed each other too far. "
-        f"I serve France, not your every whim — but I recognize that "
-        f"France requires a functioning partnership at its diplomatic helm.\"\n\n"
-        f"How do you wish to proceed?"
-    )
-
-    return {
-        "type": "talleyrand_redemption",
-        "target_nation": "France",
-        "talleyrand_text": talleyrand_text,
-        "options": [
-            {
-                "label": "Apologize",
-                "description": "Trust +15, Authority -5. Admit you pushed too hard.",
-                "action": "redemption_apologize",
-            },
-            {
-                "label": "Replace with Loyalist",
-                "description": "Personality → Loyalist, Skill 10→6, Trust → 50. Irreversible.",
-                "action": "redemption_replace",
-            },
-            {
-                "label": "Continue as we are",
-                "description": "Authority -10. Refuse to bend.",
-                "action": "redemption_continue",
-            },
-        ],
-        "context": {
-            "current_trust": int(trust),
-        },
-        "turn_created": int(world.current_turn),
-        "blocking": True,
-    }
-
-
-def apply_redemption_choice(choice: str, talleyrand, world) -> Dict:
-    """Process the player's redemption decision.
-
-    Args:
-        choice: "redemption_apologize", "redemption_replace", or "redemption_continue"
-        talleyrand: DiplomaticRepresentative
-        world: WorldState
-
-    Returns:
-        Dict with trust_change, authority_change, personality_changed, message
-    """
-    result = {
-        "trust_change": 0,
-        "authority_change": 0,
-        "personality_changed": False,
-        "skill_change": 0,
-        "message": "",
-    }
-
-    if choice == "redemption_apologize":
-        old_trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-        talleyrand.trust = min(100, old_trust + 15)
-        result["trust_change"] = +15
-
-        world.authority_tracker.modify_authority(-5)
-        result["authority_change"] = -5
-
-        result["message"] = (
-            "You extend an olive branch. Talleyrand accepts with quiet dignity. "
-            "\"The partnership endures, Sire. Let us not test it again.\""
-        )
-
-    elif choice == "redemption_replace":
-        # Replace with Loyalist — irreversible
-        old_trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-        old_skill = talleyrand.skill
-        talleyrand.personality = "loyalist"
-        talleyrand.skill = 6
-        talleyrand.trust = 50
-        result["trust_change"] = 50 - old_trust
-        result["personality_changed"] = True
-        result["skill_change"] = 6 - old_skill
-
-        result["message"] = (
-            "Talleyrand is replaced by a loyal aide. The new diplomat is "
-            "competent but lacks the brilliance — and the scheming — of "
-            "his predecessor. Diplomatic defiance is no longer a concern."
-        )
-
-    elif choice == "redemption_continue":
-        world.authority_tracker.modify_authority(-10)
-        result["authority_change"] = -10
-
-        result["message"] = (
-            "You refuse to bend. Talleyrand says nothing — but the silence "
-            "between you speaks volumes. The court notices."
-        )
-
-    # Set redemption cooldown (5 turns before next redemption can fire)
-    current_turn = getattr(world, 'turn_number', None) or getattr(world, 'current_turn', 1)
-    world.last_redemption_turn = int(current_turn)
-
-    return result
+# §3d — REDEMPTION EVENT — DELETED (PL-23: trust system removed)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -647,15 +487,15 @@ def evaluate_pre_proposal_objection(
     target_nation = proposal.get("target_nation", "")
 
     # Get diplomatic context
-    trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
+    authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
     # War declaration on neutral → STRONG
     current_state = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
     if proposal.get("type") == "war_declaration" and current_state not in ("WAR",):
         return ConcernLevel.STRONG
 
-    # Harsh terms (harshness > 0.7) → MODERATE or STRONG based on trust
+    # PL-23: Harsh terms → MODERATE or STRONG based on authority (trust removed)
     if harshness > 0.7:
-        if trust < 40:
+        if authority < 50:
             return ConcernLevel.STRONG
         return ConcernLevel.MODERATE
 
@@ -764,3 +604,325 @@ def get_override_dispatch_note(world) -> Optional[str]:
         )
 
     return None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# PL-23 — DRAFTING PUSHBACK (authority-driven, probabilistic)
+# ════════════════════════════════════════════════════════════════════════════
+
+def roll_drafting_pushback(terms: Dict, context: Dict, world) -> bool:
+    """Roll whether Talleyrand pushes back during drafting.
+
+    Called at each modify_harsh/modify_generous/ultimatum confirm step.
+    Returns True if Talleyrand intercepts with his own version.
+
+    Args:
+        terms: Current proposal terms dict (with demands/sweeteners)
+        context: Dialogue context dict (must have proposal_type, may have objection_resolved)
+        world: WorldState
+
+    Returns:
+        True if pushback fires, False otherwise
+    """
+    # AM-23.15: Already pushed back on this proposal → no re-roll
+    if context.get("objection_resolved"):
+        return False
+
+    # AM-23.1: Empty demands → nothing to soften
+    demands = terms.get("demands", [])
+    if not demands:
+        return False
+
+    # Loyalist personality: never pushes back
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get(world.player_nation)
+    if not talleyrand:
+        return False
+    personality = getattr(talleyrand, 'personality', 'schemer')
+    if personality == 'loyalist':
+        return False
+
+    harshness = calculate_proposal_harshness(terms)
+
+    # Base chance from harshness
+    if harshness <= 0.4:
+        base = 0.0
+    elif harshness <= 0.7:
+        base = 0.05
+    else:
+        base = 0.15
+
+    # No pushback on reasonable terms
+    if base == 0.0:
+        return False
+
+    # Authority modifier (sole driver — PL-23)
+    authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    if authority >= 80:
+        base -= 0.10
+    elif authority < 50:
+        base += 0.10
+
+    # Variance ±5%
+    variance = random.uniform(-0.05, 0.05)
+    final = base + variance
+
+    # Cap at 30%, schemer floor at 2% (when harshness > 0.4)
+    final = min(0.30, final)
+    final = max(0.02, final)
+
+    return random.random() < final
+
+
+def roll_drafting_pushback_deterministic(terms: Dict, context: Dict, world) -> float:
+    """Deterministic version for testing — returns the probability without rolling.
+
+    Same logic as roll_drafting_pushback but no random variance or roll.
+    """
+    if context.get("objection_resolved"):
+        return 0.0
+
+    demands = terms.get("demands", [])
+    if not demands:
+        return 0.0
+
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get(world.player_nation)
+    if not talleyrand:
+        return 0.0
+    personality = getattr(talleyrand, 'personality', 'schemer')
+    if personality == 'loyalist':
+        return 0.0
+
+    harshness = calculate_proposal_harshness(terms)
+
+    if harshness <= 0.4:
+        return 0.0
+    elif harshness <= 0.7:
+        base = 0.05
+    else:
+        base = 0.15
+
+    authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    if authority >= 80:
+        base -= 0.10
+    elif authority < 50:
+        base += 0.10
+
+    return min(0.30, max(0.02, base))
+
+
+def apply_pen_nudge(terms: Dict) -> Dict:
+    """Apply Talleyrand's pen nudge — soften the harshest demand.
+
+    Deterministic: finds the demand with highest harshness contribution
+    and reduces it by 20%. Returns a modified copy.
+
+    Pen nudge rules:
+    1. Find demand with highest harshness contribution
+    2. If numeric (gold/manpower): reduce by 20%, remove if ≤ 0
+    3. If territory with regions list: remove last region
+    4. If territory with value shape: reduce by 1, remove if ≤ 0
+    5. If only AP demands remain: leave AP, add gold sweetener
+    6. Recalculate harshness on result
+
+    Args:
+        terms: Proposal terms dict
+
+    Returns:
+        Modified copy of terms with the nudge applied
+    """
+    import copy
+    nudged = copy.deepcopy(terms)
+    demands = nudged.get("demands", [])
+    if not demands:
+        return nudged
+
+    # Score each demand's harshness contribution
+    scored = []
+    for i, d in enumerate(demands):
+        dtype = d.get("type", "")
+        value = d.get("value", 0)
+        if dtype == "territory_cede":
+            regions = d.get("regions", [])
+            score = 0.2 * len(regions) if regions else 0.2 * max(1, value)
+        elif dtype == "gold_per_turn":
+            score = 0.1 * (value / 100)
+        elif dtype == "gold_lump":
+            score = 0.1 * (value / 500)
+        elif dtype == "ap_per_turn":
+            score = 0.3 * max(1, value)
+        elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+            score = max(0.15, 0.15 * (value / 1000))
+        else:
+            score = 0.0
+        scored.append((score, i, dtype))
+
+    # Sort by score descending, tie-break: territory > gold > manpower > AP
+    _TYPE_ORDER = {"territory_cede": 0, "gold_per_turn": 1, "gold_lump": 1, "manpower_infantry": 2, "manpower_cavalry": 2, "manpower_artillery": 2, "ap_per_turn": 3}
+    scored.sort(key=lambda x: (-x[0], _TYPE_ORDER.get(x[2], 99)))
+
+    if not scored or scored[0][0] == 0.0:
+        return nudged
+
+    _, target_idx, target_type = scored[0]
+    target_demand = demands[target_idx]
+
+    # Rule 5: if only AP demands remain, add sweetener instead
+    non_ap = [d for d in demands if d.get("type") != "ap_per_turn"]
+    if not non_ap:
+        nudged.setdefault("sweeteners", []).append({"type": "gold_per_turn", "value": 100})
+        return nudged
+
+    # Apply the nudge
+    if target_type == "territory_cede":
+        regions = target_demand.get("regions", [])
+        if regions:
+            # Remove last-added region
+            regions.pop()
+            if not regions:
+                demands.pop(target_idx)
+        else:
+            # Value shape: reduce by 1
+            new_val = target_demand.get("value", 1) - 1
+            if new_val <= 0:
+                demands.pop(target_idx)
+            else:
+                target_demand["value"] = new_val
+    elif target_type in ("gold_per_turn", "gold_lump", "manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+        new_val = int(target_demand.get("value", 0) * 0.8)
+        if new_val <= 0:
+            demands.pop(target_idx)
+        else:
+            target_demand["value"] = new_val
+    elif target_type == "ap_per_turn":
+        new_val = int(target_demand.get("value", 1) * 0.8)
+        if new_val <= 0:
+            demands.pop(target_idx)
+        else:
+            target_demand["value"] = new_val
+
+    return nudged
+
+
+def apply_pen_nudge_personality(terms: Dict, world) -> Dict:
+    """Apply personality-biased pen nudge (PL-25).
+
+    Schemer: swaps the harshest demand type (territory → gold, AP → sweetener).
+    Loyalist/other: standard 20% reduction via apply_pen_nudge().
+
+    AM-25.1: If swap would create a duplicate demand type, merge values.
+    If ALL swap targets occupied, fall back to 20% reduction.
+
+    Args:
+        terms: Proposal terms dict
+        world: WorldState (for diplomat personality)
+
+    Returns:
+        Modified copy of terms with personality-biased nudge
+    """
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get(getattr(world, 'player_nation', 'France'))
+    personality = getattr(talleyrand, 'personality', 'schemer') if talleyrand else 'schemer'
+
+    if personality != 'schemer':
+        return apply_pen_nudge(terms)
+
+    # Schemer: swap the harshest non-AP demand to a different type
+    nudged = copy.deepcopy(terms)
+    demands = nudged.get("demands", [])
+    if not demands:
+        return nudged
+
+    # PL-25 AM-25.9: Get desire profile bias for target nation
+    target_nation = terms.get("target_nation", "")
+    from backend.game_logic.diplomatic_templates import get_desire_profile_nudge_bias
+    bias = get_desire_profile_nudge_bias(target_nation)
+
+    # Score demands (same as apply_pen_nudge, with desire profile multipliers)
+    scored = []
+    for i, d in enumerate(demands):
+        dtype = d.get("type", "")
+        value = d.get("value", 0)
+        if dtype == "territory_cede":
+            regions = d.get("regions", [])
+            score = 0.2 * len(regions) if regions else 0.2 * max(1, value)
+            score *= bias["territory_mult"]  # AM-25.9: 1.5x for territory-valuing nations
+        elif dtype == "gold_per_turn":
+            score = 0.1 * (value / 100)
+        elif dtype == "gold_lump":
+            score = 0.1 * (value / 500)
+        elif dtype == "ap_per_turn":
+            score = 0.3 * max(1, value)
+        elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+            score = max(0.15, 0.15 * (value / 1000))
+        else:
+            score = 0.0
+        scored.append((score, i, dtype))
+
+    _TYPE_ORDER = {"territory_cede": 0, "gold_per_turn": 1, "gold_lump": 1,
+                   "manpower_infantry": 2, "manpower_cavalry": 2, "manpower_artillery": 2,
+                   "ap_per_turn": 3}
+    scored.sort(key=lambda x: (-x[0], _TYPE_ORDER.get(x[2], 99)))
+
+    if not scored or scored[0][0] == 0.0:
+        return nudged
+
+    # AM-25.9: Weakness override — if weakness matches a demand type, target it
+    override_type = bias.get("nudge_override_type")
+    target_idx = scored[0][1]
+    target_type = scored[0][2]
+    if override_type:
+        for score, idx, dtype in scored:
+            if dtype == override_type and score > 0:
+                target_idx = idx
+                target_type = dtype
+                break
+
+    target_demand = demands[target_idx]
+
+    # AP-only → fall back to standard nudge (adds sweetener)
+    non_ap = [d for d in demands if d.get("type") != "ap_per_turn"]
+    if not non_ap:
+        return apply_pen_nudge(terms)
+
+    # Schemer swap: convert demand type to gold equivalent
+    # Try swap targets in priority order: gold_per_turn → gold_lump → ap_per_turn
+    swap_targets = ["gold_per_turn", "gold_lump", "ap_per_turn"]
+    # Don't swap to the same type
+    swap_targets = [t for t in swap_targets if t != target_type]
+
+    swap_value = _estimate_gold_equivalent(target_demand)
+
+    for swap_type in swap_targets:
+        existing = [d for d in demands if d.get("type") == swap_type]
+        if existing:
+            # AM-25.1: Merge — add swap value to existing demand
+            existing[0]["value"] = int(existing[0].get("value", 0) + swap_value)
+            demands.pop(target_idx)
+            return nudged
+        else:
+            # No collision — create new demand of swap type
+            demands.pop(target_idx)
+            demands.append({"type": swap_type, "value": int(swap_value)})
+            return nudged
+
+    # All swap targets occupied — fall back to 20% reduction
+    return apply_pen_nudge(terms)
+
+
+def _estimate_gold_equivalent(demand: Dict) -> int:
+    """Estimate gold_per_turn equivalent of a demand for schemer swaps."""
+    dtype = demand.get("type", "")
+    value = demand.get("value", 0)
+    if dtype == "territory_cede":
+        regions = demand.get("regions", [])
+        count = len(regions) if regions else max(1, value)
+        return count * 150  # Each region ≈ 150 gold/turn
+    elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
+        return max(50, int(value * 0.05))  # 1000 troops ≈ 50 gold/turn
+    elif dtype == "ap_per_turn":
+        return max(1, value) * 200  # 1 AP ≈ 200 gold/turn
+    elif dtype in ("gold_per_turn", "gold_lump"):
+        return max(1, value)
+    return 100

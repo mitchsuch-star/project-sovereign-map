@@ -21,7 +21,7 @@ class_name DialogManager
 #   111: alliance_paradox_popup
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
-#   114: talleyrand_redemption_popup
+#   114: (removed)
 #   115: vassal_rebellion_popup
 #   116: sabotage_discovery_popup
 #   117: coalition_declaration_popup

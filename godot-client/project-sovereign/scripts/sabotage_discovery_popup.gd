@@ -27,17 +27,16 @@ func show_sabotage(data: Dictionary):
 	var target = data.get("target_nation", "Unknown")
 	var ordered = data.get("ordered_summary", "?")
 	var delivered = data.get("delivered_summary", "?")
-	var trust_penalty = data.get("trust_penalty_if_confronted", 10)
 	var auth_bonus = data.get("authority_bonus_if_confronted", 5)
-	var trust_bonus = data.get("trust_bonus_if_overlooked", 3)
+	var auth_penalty = data.get("authority_penalty_if_overlooked", 3)
 
 	var bbcode = ""
 	bbcode += "[b]TALLEYRAND'S DECEPTION DISCOVERED[/b]\n\n"
 	bbcode += "[b]You ordered:[/b]  %s\n" % ordered
 	bbcode += "[b]He delivered:[/b] %s\n\n" % delivered
 	bbcode += "[b]How do you respond?[/b]\n\n"
-	bbcode += "[color=yellow]Confront:[/color] Authority +%d, Trust -%d\n" % [auth_bonus, trust_penalty]
-	bbcode += "[color=green]Overlook:[/color] Trust +%d" % trust_bonus
+	bbcode += "[color=yellow]Confront:[/color] Authority +%d, cooldown 5 turns\n" % auth_bonus
+	bbcode += "[color=green]Overlook:[/color] Authority -%d" % auth_penalty
 
 	content_label.text = ""
 	content_label.append_text(bbcode)

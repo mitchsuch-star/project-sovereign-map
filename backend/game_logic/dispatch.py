@@ -798,7 +798,6 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
     Modifies dispatch dict in place. Sets fields:
     - talleyrand_discovery: confrontation dialogue dict if discovery fires
     - talleyrand_override_note: string if recent override outcome
-    - talleyrand_redemption: redemption dialogue dict if trust ≤ 20
 
     Args:
         dispatch: The dispatch dict being built
@@ -862,9 +861,8 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
                 "defiance_type": defiance_type,
                 "ordered_summary": sabotage.get("original_summary", str(original)),
                 "delivered_summary": sabotage.get("modified_summary", str(modified)),
-                "trust_penalty_if_confronted": int(10),
                 "authority_bonus_if_confronted": int(5),
-                "trust_bonus_if_overlooked": int(3),
+                "authority_penalty_if_overlooked": int(3),
             }
 
             # Dispatch event (Session 8D) — use translated display_type
@@ -886,25 +884,7 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
     if override_note:
         dispatch["talleyrand_override_note"] = override_note
 
-    # ── 3. Redemption Event Check ──
-    # push() auto-queues if another dialogue is active
-    from backend.commands.diplomatic_defiance import (
-        check_talleyrand_redemption, build_redemption_dialogue,
-    )
-    if check_talleyrand_redemption(talleyrand, world):
-        redemption = build_redemption_dialogue(talleyrand, world)
-        dispatch["talleyrand_redemption"] = redemption
-        world.dialogue_manager.push(redemption)
-
-        # Set popup data for Godot (Session 8C)
-        trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
-        world.talleyrand_redemption_popup = {
-            "trust": int(trust),
-            "trigger_reason": f"Trust has fallen to {int(trust)}.",
-            "option_apologize": {"effect": "Trust +15, Authority -5"},
-            "option_replace": {"effect": "Skill drops to 6, Trust resets to 50, Schemer->Loyalist (irreversible)"},
-            "option_continue": {"effect": "Trust unchanged, Authority -10"},
-        }
+    # ── 3. Redemption Event — REMOVED (PL-23: trust system deleted) ──
 
 
 def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:

@@ -691,12 +691,12 @@ DIPLOMATIC_TEMPLATES = {
         "options": [
             {
                 "label": "Confront",
-                "description": "Trust -10, Authority +5, cooldown 5 turns.",
+                "description": "Authority +5, cooldown 5 turns.",
                 "action": "confront_sabotage",
             },
             {
                 "label": "Overlook",
-                "description": "Trust +3. Talleyrand gains confidence.",
+                "description": "Authority -3. Talleyrand gains confidence.",
                 "action": "overlook_sabotage",
             },
         ],
@@ -1527,17 +1527,26 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             else:
                 context_tags.append("neutral_deal")
 
-    terms["talleyrand_commentary"] = _get_smart_commentary(
-        target_nation, context_tags[0])
+    commentary = _get_smart_commentary(target_nation, context_tags[0])
+
+    # PL-25: Append situational flavor from recent events (AM-25.5/25.6)
+    flavor = _get_situational_flavor(target_nation, world)
+    if flavor and flavor != commentary:
+        commentary = f"{commentary}\n\n{flavor}"
+    terms["talleyrand_commentary"] = commentary
 
     # --- Stage 5: Return ---
     return terms
 
 
-def _build_base_terms(target_nation: str, proposal_type: str, world) -> Dict:
+def _build_base_terms(target_nation: str, proposal_type: str, world, deterministic: bool = False) -> Dict:
     """Build base treaty terms using war_score/relation thresholds.
 
-    Extracted from the original generate_suggested_terms() — no logic changes.
+    Args:
+        target_nation: Target nation name
+        proposal_type: Type of proposal
+        world: WorldState
+        deterministic: If True, skip jitter (for testing). Default False.
     """
     from backend.game_logic.diplomacy import get_war_score_for
     diplo_key = world._make_diplo_key("France", target_nation)
@@ -1587,7 +1596,7 @@ def _build_base_terms(target_nation: str, proposal_type: str, world) -> Dict:
                 france_pool = getattr(world, 'manpower_pools', {}).get("France", {}).get("infantry", 0)
                 offer_amount = min(5000, int(france_pool * 0.25))
                 if offer_amount >= 1000:
-                    terms["sweeteners"].append({"type": "infantry_manpower", "value": int(offer_amount)})
+                    terms["sweeteners"].append({"type": "manpower_infantry", "value": int(offer_amount)})
 
             # R148: Offer AP when desperate
             if war_score < -50:
@@ -1636,6 +1645,20 @@ def _build_base_terms(target_nation: str, proposal_type: str, world) -> Dict:
                 # Capital only as desperate last resort
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
 
+    # PL-25: Amount jitter ±20% on gold/manpower values (demands + sweeteners)
+    if not deterministic:
+        import random
+        jitter = random.uniform(0.8, 1.2)
+    else:
+        jitter = 1.0
+    _JITTER_TYPES = {"gold_per_turn", "gold_lump", "manpower_infantry", "manpower_cavalry", "manpower_artillery"}
+    for d in terms.get("demands", []):
+        if d.get("type") in _JITTER_TYPES:
+            d["value"] = int(d["value"] * jitter)
+    for s in terms.get("sweeteners", []):
+        if s.get("type") in _JITTER_TYPES:
+            s["value"] = int(s["value"] * jitter)
+
     return terms
 
 
@@ -1672,6 +1695,87 @@ def _get_smart_commentary(target_nation, context_tag):
     if default_key in TALLEYRAND_COMMENTARY:
         return TALLEYRAND_COMMENTARY[default_key]
     return "I have assembled terms befitting the situation, Sire."
+
+
+def _get_situational_flavor(target_nation: str, world) -> str:
+    """PL-25: Generate situational flavor line from recent events.
+
+    Uses event API (AM-25.6: NOT battle_history which is a zombie field).
+    Safe access throughout (AM-25.5: no crash on turn 1 / empty events).
+
+    Returns:
+        Flavor string, or default TALLEYRAND_COMMENTARY fallthrough
+    """
+    player_nation = getattr(world, 'player_nation', 'France')
+
+    # Check recent battles (last 3 turns) — AM-25.6: use event API
+    recent_events = world.get_events_since_turn(max(1, world.current_turn - 3)) if hasattr(world, 'get_events_since_turn') else []
+    recent_battles = [e for e in recent_events if e.get("type") == "battle"] if recent_events else []
+
+    # Victory over target nation
+    if recent_battles:
+        for battle in reversed(recent_battles):
+            att_nation = battle.get("attacker_nation", "")
+            def_nation = battle.get("defender_nation", "")
+            outcome = battle.get("outcome", "")
+            if def_nation == target_nation and att_nation == player_nation and outcome in ("attacker_victory", "decisive_attacker_victory"):
+                return "They are weakened, Sire. Our recent victory gives us the advantage at the table."
+            if att_nation == target_nation and def_nation == player_nation and outcome in ("defender_victory", "decisive_defender_victory"):
+                return "They are weakened, Sire. Their failed attack leaves them in no position to refuse."
+
+    # Check diplomatic history for recent alliance breaks
+    diplo_history = getattr(world, 'diplomatic_history', [])
+    if diplo_history:
+        for event in reversed(diplo_history[-10:]):
+            if event.get("type") == "alliance_broken" and target_nation in (event.get("nation_a"), event.get("nation_b")):
+                return "They stand alone. A generous offer now buys loyalty cheaply."
+
+    # High coalition threat
+    if hasattr(world, 'coalition_threat'):
+        threat = getattr(world, 'coalition_threat', 0)
+        if threat > 60:
+            return "The courts watch us, Sire. Moderation may serve us better than force."
+
+    # No situational event → return empty (base commentary already covers the default)
+    return ""
+
+
+def get_desire_profile_nudge_bias(target_nation: str) -> Dict:
+    """PL-25 AM-25.9: Get desire profile bias for pen nudge targeting.
+
+    Returns multipliers that influence which demand the pen nudge targets.
+    Higher multiplier = more likely to be targeted for softening.
+
+    Returns:
+        Dict with 'territory_mult', 'nudge_override_type', 'sweetener_bias'
+    """
+    profile = NATION_DESIRE_PROFILES.get(target_nation, {})
+    result = {
+        "territory_mult": 1.0,
+        "nudge_override_type": None,  # If set, this type becomes nudge target
+        "sweetener_bias": None,       # Preferred sweetener type
+    }
+
+    # AM-25.9: Territory-valuing nations → territory demands get 1.5x harshness
+    if profile.get("values_territory") == "high":
+        result["territory_mult"] = 1.5
+
+    # AM-25.9: Weakness → nudge override
+    weakness = profile.get("weakness", "")
+    if weakness == "overextension":
+        result["nudge_override_type"] = "territory_cede"
+    elif weakness == "isolation":
+        # Diplomatic demands — AP is closest proxy
+        result["nudge_override_type"] = "ap_per_turn"
+
+    # AM-25.9: Sweetener bias from diplomatic_lever
+    lever = profile.get("diplomatic_lever", "")
+    if lever == "trade":
+        result["sweetener_bias"] = "gold_per_turn"
+    elif lever == "stability":
+        result["sweetener_bias"] = "non_aggression"
+
+    return result
 
 
 # ═══════ CONVERSATIONAL TERMS GUIDANCE ═══════
