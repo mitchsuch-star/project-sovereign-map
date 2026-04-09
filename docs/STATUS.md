@@ -45,7 +45,7 @@
 
 **PL-25** (P2 — GAMEPLAY): Diplomatic term novelty — amount jitter (±20%), personality-biased pen nudge direction, nation desire profile bias, situational flavor line. Companion to PL-23. ~60-80 lines across 2 files.
 
-**Spec hardened** (Apr 9): 2-pass code audit found 12 edge cases (pen nudge on empty demands, territory value-shape, feasibility floor, AP-only exemption), complete trust blast radius map, harshness function asymmetry, dialogue routing plan, corrected world.turn_events → event API methods.
+**Spec hardened** (Apr 9): 2-pass code audit found 12 edge cases (pen nudge on empty demands, territory value-shape, feasibility floor, AP-only exemption), complete trust blast radius map, harshness function asymmetry, dialogue routing plan, corrected world.turn_events → event API methods. **Creative audit** (Apr 9): 16 findings (3 Medium, 13 Low/None). AM-23.1: skip pushback roll when demands empty (modify_generous no-op fix). AM-23.2: roll pushback BEFORE modify_count increment (Cancel doesn't consume a round). AM-25.1: schemer swap collision rule (merge on duplicate, fallback to reduction). AM-23.6: 6 additional files in redemption removal blast radius (18 total). **Second-pass audit** (Apr 9): 10 additional findings (2 Medium, 8 Low/None). AM-23.9: "cancel" keyword doesn't route to cancel_pushback (fixed: prepend to cancel list). AM-25.6: battle_history is zombie field — use event API instead. AM-23.10-14: trust label call sites in main.py, cheat command in meta_executor, ledger return dict, pushback popup content, keyword mappings. All amendments incorporated. Total: 26 findings across 2 passes, 19 files touched, spec locked for implementation.
 
 ### Design Refinement (AFTER BUGS)
 
