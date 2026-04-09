@@ -29,7 +29,8 @@
 | **P2 — BALANCE** | **1** | **PL-20 OPEN — no guard against diplomatic elimination (last territory demand)** |
 | P1 — MAJOR | 0 | PL-21 FIXED (code) — `region.connections` phantom attribute |
 | P1 — MAJOR | 0 | PL-22 FIXED (code) — `region.income` phantom attribute |
-| **Total** | **2 OPEN (PL-19, PL-20). Session B: PL-19+PL-20.** | |
+| **P2 — GAMEPLAY** | **1** | **PL-23 OPEN — pre-proposal objection doesn't re-evaluate after term modification** |
+| **Total** | **3 OPEN (PL-19, PL-20, PL-23).** | |
 
 **Session A (Apr 8):** PL-15 + PL-18 FIXED. 33 new tests (8015 total). PL-15: Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Wizard reuses armistice `terms_guidance` pattern with `ultimatum_` prefixed actions. Godot popup fixed: dedicated `_build_ultimatum_content()` reads `demands_display` (not `proposal_terms_summary`), renders splash damage, maps "Coercive" to red. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. PL-18: 4 new DEMAND_VALUES keys (`gold_lump`, `manpower_infantry`/`cavalry`/`artillery`), typed manpower wizard with type picker + amount scaler, `_apply_ultimatum_demands()` dispatches to correct pool, `calculate_treaty_harshness()` covers all new types, backward compat for bare `"manpower"` demands.
 
@@ -1507,3 +1508,49 @@ Region class (`backend/models/region.py:129`) stores income as `self.income_valu
 - `diplomatic_templates.py:1327`: `getattr(region, 'income', 0)` → `getattr(region, 'income_value', 0)`
 - Test `test_bugfix_session12.py:366`: `region.income = 0` → `region.income_value = 0`
 - Spec amendments added to PL-19 (AM-19.5) and PL-20 (AM-20.5)
+
+---
+
+### PL-23: Pre-proposal objection doesn't re-evaluate after term modification — OPEN
+
+**Source:** Wizard flow audit (Apr 8, 2026)
+**Priority:** P2 — GAMEPLAY
+**Status:** OPEN — needs research + design decision
+
+#### Summary
+Talleyrand's pre-proposal objection evaluates harshness at **dialogue creation time** (when the player first opens a proposal), not when the player actually sends it. The player can click "Harsher terms" / "More generous" multiple times to radically change demands, but the objection check never re-fires. This means:
+
+1. **Vanilla proposals almost never trigger objection** — vassalage starts at 0.3 harshness, threshold for STRONG is 0.7. Only war declarations reliably trigger STRONG.
+2. **Modified terms bypass objection entirely** — player can stack heavy gold + territory + manpower demands via the wizard, pushing harshness well above 0.7, and the "Send" button (`execute_proposal`) sends without any re-check.
+3. **Mild concern is invisible** — MILD triggers (generous terms while winning) fire at creation but the player never sees them if they modify terms afterward.
+
+#### Root Cause
+`_merge_pre_proposal_objection` (diplomatic_dialogue.py:708-854) calls `evaluate_pre_proposal_objection` with a **lightweight proposal stub** built from the parsed command — empty demands and sweeteners. The harshness score is calculated once and baked into the dialogue. When the player modifies terms via `modify_harsh`/`modify_generous`/ultimatum wizard steps, no code path re-evaluates the objection.
+
+The `execute_proposal` handler (diplomatic_executor.py:968-1017) sends the proposal directly without checking `evaluate_pre_proposal_objection` against the final terms.
+
+#### Key Files to Research
+
+| File | Lines | What to Look At |
+|------|-------|-----------------|
+| `backend/game_logic/diplomatic_dialogue.py` | 708-854 | `_merge_pre_proposal_objection` — where objection fires at creation time |
+| `backend/commands/diplomatic_defiance.py` | 622-673 | `evaluate_pre_proposal_objection` — harshness thresholds (STRONG >0.7 + trust <40, MODERATE >0.7 + trust ≥40, MILD = generous while winning) |
+| `backend/commands/diplomatic_defiance.py` | 132-162 | `calculate_proposal_harshness` — scoring formula (0.0-1.0 scale, vassalage +0.3 baseline) |
+| `backend/commands/diplomatic_executor.py` | 968-1017 | `execute_proposal` — where objection SHOULD re-fire before sending |
+| `backend/commands/diplomatic_executor.py` | 1080-1085 | `modify_harsh` — builds new confirm dialogue without re-evaluating objection |
+| `backend/commands/diplomatic_executor.py` | 1463-1471 | `modify_generous` — same issue as modify_harsh |
+
+#### Research Questions for Fix
+
+1. **Where to re-evaluate:** Should objection re-fire in `execute_proposal` (at send time) or in `modify_harsh`/`modify_generous` (at each modification)?
+2. **UX design:** If objection fires after modification, should it (a) replace the confirm dialogue with an objection dialogue, (b) add inline warning text to the confirm dialogue, or (c) block sending and show a new objection popup?
+3. **Harshness input:** `calculate_proposal_harshness` takes a treaty dict. The wizard builds terms incrementally. Need to reconstruct the full terms from dialogue context to score accurately.
+4. **Defiance interaction:** If Talleyrand objects at send time and the player overrides, does defiance chance apply? Currently defiance only fires for strategic/tactical objections, not diplomatic. Confirm whether `_check_diplomatic_defiance` should wire in here.
+5. **Wizard flow:** The ultimatum wizard (gold → territory → manpower → confirm) builds demands step-by-step. Should each step re-evaluate, or only the final confirm?
+6. **Edge case — generous direction:** If terms become MORE generous, should a previously-suppressed MILD concern appear? Or only track escalation toward STRONG?
+
+#### Reproduction
+1. Start game, open F1 wizard, select nation, propose vassalization
+2. On confirm dialogue, click "Harsher terms" 3+ times (add gold, territory, manpower)
+3. Click "Send" — proposal sends without Talleyrand objecting despite extreme harshness
+4. Compare: declare war via wizard — Talleyrand objects immediately (STRONG fires at creation because war declaration is special-cased)
