@@ -967,7 +967,9 @@ class DiplomaticExecutor:
 
         elif action in ("execute_proposal", "send"):
             terms = selected.get("terms", {})
-            proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"  # PL-13-B
+            proposal_type = (terms.get("proposal_type") or terms.get("type")
+                             or dialogue.get("context", {}).get("proposal_type")
+                             or "peace")  # PL-13-B
 
             # Build proposal for acceptance formula
             proposal = {
@@ -1978,7 +1980,8 @@ class DiplomaticExecutor:
                 return {"success": True, "message": "No counter-offer terms to review, Sire."}
             # Build a new confirmation dialogue showing the counter terms
             from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
-            proposal_type = counter_terms.get("type", counter_terms.get("proposal_type", "peace"))
+            proposal_type = (counter_terms.get("type") or counter_terms.get("proposal_type")
+                             or context.get("proposal_type") or "peace")
             terms_display = _format_terms_for_display(counter_terms, proposal_type, source_nation)
             new_dialogue = {
                 "type": "proposal_confirm",
@@ -2076,7 +2079,9 @@ class DiplomaticExecutor:
                 # Use original terms from context
                 terms = terms or dialogue.get("context", {}).get("original_proposal", {})
 
-            proposal_type = terms.get("proposal_type") or terms.get("type") or "peace"  # PL-13-B
+            proposal_type = (terms.get("proposal_type") or terms.get("type")
+                             or dialogue.get("context", {}).get("proposal_type")
+                             or "peace")  # PL-13-B
 
             # Build proposal and send (reuse execute_proposal path)
             proposal = {
