@@ -1588,11 +1588,14 @@ Options: **[Accept his version] / [Insist on original] / [Cancel]**
 - **[Cancel]** — abort, return to term modification.
 
 **Pen nudge rules** (deterministic, no randomness in the nudge itself):
-1. Find the demand with the highest harshness contribution
-2. If numeric (gold/units): reduce value by 20% (round to int)
-3. If territory: remove the last-added region from the demand
-4. If only AP demands remain: add one minor sweetener (100 gold/turn to target)
-5. Recalculate and show the updated term summary so the player sees what changed
+0. **Precondition:** If `demands` is empty (only sweeteners), skip pen nudge entirely — proposal is already generous, show normal confirm dialogue
+1. Find the demand with the highest harshness contribution (ties broken by order: territory > gold > manpower > AP)
+2. If numeric (gold_per_turn, gold_lump, manpower_*): reduce value by 20% (round to int). If reduction yields value ≤ 0, remove the demand entirely
+3. If territory with populated `regions` list: remove the last-added region. If territory with only `value` shape (no regions list, from modify_harsh): reduce value by 1; if value reaches 0, remove the demand entirely
+4. If only AP demands remain (no gold/territory/manpower): leave AP unchanged, add one sweetener (100 gold/turn to target, or 25 gold/turn if France income < 500). AP is exempt from rule 2 reduction
+5. Recalculate harshness and re-run `_validate_economic_feasibility()` on the modified terms. Show the updated term summary so the player sees what changed
+
+**Scope note:** Pen nudge applies at the confirm dialogue step, not during multi-step ultimatum wizard steps. Once a demand is approved in the ultimatum flow, it is subject to pen nudge only at the final confirm. Pen nudge modifies only ONE demand (the harshest) — no cascading. One pen nudge per proposal (no re-evaluation after [Accept]/[Insist]).
 
 ##### What happens when the roll doesn't fire
 
@@ -1602,15 +1605,17 @@ Normal confirm dialogue. Talleyrand drafts exactly what the player asked. If har
 
 When the player clicks "More generous" and harshness drops, the roll becomes less likely to fire (lower base chance). No special handling — the curve naturally produces fewer interventions on reasonable terms.
 
+**Note:** At authority < 50, the +10% modifier can override the 0% base for harshness ≤ 0.4, making pen nudge possible even on generous proposals. This is intentional — a weakening Napoleon gets second-guessed by Talleyrand even on reasonable terms. The 2% schemer floor still requires harshness > 0.4, so truly generous proposals (harshness ≤ 0.4) can only trigger via the authority modifier, not the floor.
+
 ##### Interaction with existing defiance/sabotage (§3a)
 
 **Mutually exclusive per proposal.** If PL-23's roll fired during drafting (regardless of whether the player accepted or insisted), skip the §3a defiance roll at `execute_proposal` send time. Rationale: Talleyrand already expressed his opinion in the conversation. Sabotage (§3a) is for when he acts *behind your back* — he doesn't do both. One interaction per proposal.
 
-Implementation: set `context["objection_resolved"] = True` on the dialogue context when PL-23 fires. `execute_proposal` checks this flag and skips the defiance pipeline.
+Implementation: set `context["objection_resolved"] = True` on the dialogue context when PL-23 fires (both [Accept] and [Insist] paths — the roll fired either way). In `execute_proposal` (diplomatic_executor.py:1005-1017), check `dialogue.get("context", {}).get("objection_resolved")` BEFORE the `calculate_diplomatic_defiance_chance` call and skip the entire defiance block if truthy.
 
 ##### DP timing fix
 
-DP is deducted only when the proposal actually departs — at the end of `execute_proposal` after all conversation is resolved, not before. If the player cancels at any point (including after PL-23 pushback), no DP is spent. Move the DP deduction block in `execute_proposal` to after the defiance check, just before setting Talleyrand in transit.
+DP is deducted only when the proposal actually departs — at the end of `execute_proposal` after all conversation is resolved, not before. If the player cancels at any point (including after PL-23 pushback), no DP is spent. Move the `world.diplomatic_points -= cost` block (currently at diplomatic_executor.py:1003, BEFORE the defiance check at line 1005) to after the defiance check, just before setting Talleyrand in transit (~line 1070). If §3a sabotage fires and replaces the proposal, DP is still spent (the proposal departed, just modified).
 
 ##### Talleyrand trust removal
 
@@ -1628,12 +1633,15 @@ DP is deducted only when the proposal actually departs — at the end of `execut
 | Overlook sabotage: trust +3 | Overlook sabotage: authority -3 (letting it slide shows weakness) |
 
 **What gets removed:**
-- `trust` field on `DiplomaticRepresentative` (diplomat.py)
+- `trust` field on `DiplomaticRepresentative` (diplomat.py) — remove from `__init__`, `to_dict`, `from_dict`
 - Trust modifier block in `calculate_diplomatic_defiance_chance()` (diplomatic_defiance.py:69-77)
 - Trust modifier block in `calculate_diplomatic_defiance_chance_deterministic()` (diplomatic_defiance.py:115-123)
-- Trust reads/writes in confrontation, overlook, and redemption handlers
+- Trust reads/writes in confrontation handler (diplomatic_defiance.py:443 area — `talleyrand.trust -= 10`)
+- Trust reads/writes in overlook handler (diplomatic_defiance.py — `talleyrand.trust += 3`, replace with authority -3)
 - Any UI display of Talleyrand trust (diplomatic ledger Talleyrand tab)
 - **Talleyrand redemption event entirely** (see below)
+
+**Serialization note:** Removing `trust` from `DiplomaticRepresentative.to_dict()`/`from_dict()` means old saves will have a stale `trust` key. `from_dict()` should silently ignore it (use `.get()` pattern, don't error on unknown keys). Run `test_serialization_enforcement.py` after.
 
 **What stays:** Authority is already well-sourced (battles ±5, marshal objection responses, defiance outcomes ±3/5, combat captures, balanced leadership +1/turn). The player has clear, varied ways to manage it through normal gameplay.
 
@@ -1659,31 +1667,42 @@ DP is deducted only when the proposal actually departs — at the end of `execut
 
 ##### [Cancel] return target
 
-When PL-23's roll fires and the player picks [Cancel], the dialogue must return to the **same confirm step with the same context** (including `modify_count`). Do NOT pop the dialogue back to wizard start — that would reset modify_count and let the player re-roll indefinitely. Implementation: [Cancel] replaces the pushback dialogue with the pre-pushback confirm dialogue (terms unchanged, modify_count preserved).
+When PL-23's roll fires and the player picks [Cancel], the dialogue must return to the **same confirm step with the same context** (including `modify_count`). Do NOT pop the dialogue back to wizard start — that would reset modify_count and let the player re-roll indefinitely.
+
+**Implementation detail:** `dialogue_manager.replace()` overwrites `self._current` — there is no stack or history. The old dialogue is destroyed. Do NOT try to stash and restore the pre-pushback dialogue. Instead, **reconstruct** the confirm dialogue from context fields (terms, modify_count, proposal_type, target_nation) which are already carried in `context`. [Cancel] handler builds a fresh confirm dialogue from `context` using the same path as modify_harsh/modify_generous's normal (non-pushback) return, with `context["modify_count"]` preserved and terms unchanged.
 
 ##### Stress-test findings (Apr 9, 2026)
 
 | # | Finding | Severity | Resolution |
 |---|---------|----------|------------|
 | S1 | Authority spiral amplifies both Talleyrand + marshal insubordination below 50 | Low | Intentional dramatic tension. No proactive recovery path exists beyond balanced objection responses (+1/turn) — acceptable since authority is meant to be hard to recover |
+| S8 | [Insist] authority -3 can cross tier boundaries (e.g. 42→39 crosses <40 tier, giving Talleyrand +15% base) | Low | By design — insisting when authority is marginal should feel risky. Implementers: do NOT add additional penalties at tier boundaries; the curve's natural step is sufficient |
 | S2 | Overlook sabotage is strictly negative (authority -3, no upside) | Medium | By design — both choices cost something (same as marshal trust/insist). Confrontation narrative should hint whether Talleyrand's judgment was sound (R129 covers dispatch feedback next turn). No code change needed |
 | S3 | Pen nudge on AP-only demand: AP survives unchanged + sweetener added = proposal more attractive | Low | Working as designed. Player sees the change and can [Insist on original]. Document in pen nudge rules |
 | S4 | War declarations exempt from PL-23 (separate path at line 428-534) | None | Correct. War declarations have no modifiable terms. Existing threat-based STRONG check is sufficient |
 | S5 | `gold_lump` demand type not scored in harshness formula | Medium | Fix in PL-24 alongside territory bug |
 | S6 | `ap_per_turn` and `unit_trade` are flat-scored (don't scale with value) | Medium | Fix in PL-24 — scale with value like gold_per_turn |
 | S7 | Talleyrand redemption collides with "Emperor in Name Only" at authority ≤ 30 | Resolved | Redemption event CUT entirely (see above) |
+| S9 | Pen nudge on territory demand with value-shape (no regions list, from modify_harsh) — rule 3 "remove last region" silently no-ops | Medium | Fixed in pen nudge rules above: reduce value by 1 instead; remove demand if value reaches 0 |
+| S10 | Pen nudge gold reduction can violate `_validate_economic_feasibility()` floor (e.g. 30→24, below floor of 25) | Medium | Fixed: rule 5 now re-runs feasibility post-nudge |
+| S11 | Empty demands list (all-sweetener proposal from multiple "More generous" clicks) crashes pen nudge search loop | Medium | Fixed: rule 0 precondition skips pen nudge if demands=[] |
+| S12 | Two harshness functions (`calculate_proposal_harshness` vs `calculate_treaty_harshness`) evaluate identical proposals differently | Low | Documented in PL-24. Sweetener weighting asymmetry deferred to design refinement |
 
 ##### Files requiring changes
 
-1. `diplomatic_defiance.py` — Replace `evaluate_pre_proposal_objection()` with `roll_drafting_pushback()` (authority-only probability curve). Add `apply_pen_nudge()` (deterministic term softening). Remove trust modifiers from `calculate_diplomatic_defiance_chance()`. Update confrontation/overlook to authority-only. Remove redemption functions entirely. Keep `calculate_proposal_harshness()` as-is (fix territory bug separately in PL-24).
-2. `diplomatic_executor.py` — Call `roll_drafting_pushback()` in `modify_harsh`, `modify_generous`, and `_build_ultimatum_confirm_step`. On fire: build [Accept/Insist/Cancel] dialogue with nudged terms. On insist: authority -3, set `objection_resolved` flag. [Cancel]: replace with pre-pushback confirm (preserve modify_count). Move DP deduction in `execute_proposal` to after defiance check. Check `objection_resolved` to skip §3a defiance. Remove redemption wiring.
+1. `diplomatic_defiance.py` — Replace `evaluate_pre_proposal_objection()` with `roll_drafting_pushback()` (authority-only probability curve). Add `apply_pen_nudge()` (deterministic term softening). Remove trust modifiers from `calculate_diplomatic_defiance_chance()` (lines 69-77, 115-123). Update confrontation handler (line ~440 area: remove `talleyrand.trust -= 10`). Update overlook handler (remove `talleyrand.trust += 3`, replace with `authority -3`). Remove redemption functions entirely (`check_talleyrand_redemption` lines 474-498, `build_redemption_dialogue` lines 501-550, `apply_redemption_choice` lines 553-615). Keep `calculate_proposal_harshness()` as-is (fix territory bug separately in PL-24).
+2. `diplomatic_executor.py` — Call `roll_drafting_pushback()` in `modify_harsh` (line 1079), `modify_generous` (line 1466), and `_build_ultimatum_confirm_step`. On fire: build `"pushback_confirm"` dtype dialogue with options `[accept_nudge / insist_original / cancel_pushback]`, carrying `original_terms` and `nudged_terms` in context. On insist: authority -3, set `objection_resolved` flag. [Cancel]: reconstruct pre-pushback confirm from context (see [Cancel] return target above). Add three new elif blocks in `_process_dialogue_choice` for the three new actions. Move DP deduction in `execute_proposal` to after defiance check. Check `objection_resolved` to skip §3a defiance. Remove redemption action handlers (`redemption_apologize`, `redemption_replace`, `redemption_continue`).
 3. `diplomatic_dialogue.py` — Remove `_merge_pre_proposal_objection()` (creation-time evaluation no longer needed; evaluation happens during drafting steps).
-4. `diplomat.py` — Remove `trust` field from `DiplomaticRepresentative`. Update `to_dict`/`from_dict`.
-5. `diplomatic_ledger.py` — Remove trust display from Talleyrand tab, replace with authority reference.
-6. `world_state.py` — Remove `last_redemption_turn` field.
-7. `talleyrand_redemption_popup.gd` — Delete (no longer needed).
-8. `main.gd` — Remove redemption popup registration and wiring.
-9. Tests — Probability curve unit tests, pen nudge deterministic tests, mutual exclusion integration tests, DP-on-cancel tests, serialization update tests, redemption removal regression tests.
+4. `diplomat.py` — Remove `trust` field from `__init__` (line 25, 32), `to_dict` (line 41), `from_dict` (line 52), and all `STARTING_DIPLOMATS` entries (lines 68, 76, 84, 92, 100). `from_dict()` must silently ignore stale `trust` key in old saves.
+5. `diplomatic_ledger.py` — Remove trust display from Talleyrand tab (lines 527-538), replace with authority reference.
+6. `diplomatic_advisory.py` — Remove trust from advisory text (line 121: `f"skill {int(diplomat.skill)}, trust {int(diplomat.trust)}"` → remove trust portion).
+7. `main.py` — Remove `_get_talleyrand_trust_label()` function (lines 113-127). Add `"insist"` to `_DIALOGUE_RESPONSE_KEYWORDS` (line ~617) for keyboard shortcut support.
+8. `dispatch.py` — Remove trust from redemption popup data (lines 900-902).
+9. `world_state.py` — Remove `last_redemption_turn` field.
+10. `main.gd` — Add `"pushback_confirm"` to dtype whitelist (line ~700). Remove redemption popup registration and wiring.
+11. `diplomatic_ledger.gd` — Trust label display (lines 550-562) will auto-resolve when backend stops sending trust data.
+12. `talleyrand_redemption_popup.gd` — Delete (no longer needed).
+13. Tests — Probability curve unit tests, pen nudge deterministic tests (incl. edge cases: empty demands, territory value-shape, AP-only, gold below feasibility floor), mutual exclusion integration tests, DP-on-cancel tests, serialization update tests, redemption removal regression tests. Update diplomat trust assertions in: `test_phase1_critical_wiring.py`, `test_session6_diplomacy.py`, `test_session8a_ledger_debug.py`, `test_session8b_ledger_ui.py`, `test_systems_audit_session11.py`.
 
 #### Reproduction
 1. Start game, open F1 wizard, select nation, propose vassalization
@@ -1732,12 +1751,37 @@ These are pre-existing but become critical with PL-23's re-evaluation:
 | Demand Type | Current Scoring | Problem | Fix |
 |-------------|----------------|---------|-----|
 | `territory_cede` (value shape) | +0.0 | `modify_harsh` uses `{"value": 2}` not `{"regions": [...]}` | Handle both shapes (above) |
-| `gold_lump` | Not scored | Lump-sum gold demands contribute zero harshness | Add `+0.1 * (value / 500)` (lower weight than per-turn since one-time) |
+| `gold_lump` | Not scored | Lump-sum gold demands contribute zero harshness. Produced by: `generate_ultimatum_terms` (diplomatic_templates.py:1337), `_build_ultimatum_confirm_step` (diplomatic_executor.py:2808 floor demand), `_build_base_terms` (diplomatic_templates.py:1625 armistice sweetener) | Add `+0.1 * (value / 500)` (lower weight than per-turn since one-time) |
+| `manpower_infantry` | Not scored | Produced by `generate_ultimatum_terms` (diplomatic_templates.py:1371) and ultimatum wizard (diplomatic_executor.py:1433). 500-5000 unit demands score zero | Add `+0.15 * (value / 1000)` with floor of 0.15 |
+| `manpower_cavalry` | Not scored | Produced by ultimatum wizard (diplomatic_executor.py:1433, f-string `manpower_{unit_type}`) | Same formula as manpower_infantry |
+| `manpower_artillery` | Not scored | Same producer as cavalry | Same formula as manpower_infantry |
 | `ap_per_turn` | +0.3 flat | 1 AP/turn = 3 AP/turn = same harshness | Scale: `+0.3 * max(1, value)` |
-| `unit_trade` | +0.15 flat | 500 units = 5000 units = same harshness | Scale: `+0.15 * (value / 1000)` with floor of 0.15 |
+| `unit_trade` | +0.15 flat | **Dead code** — `unit_trade` demand type is never produced by any code path. Harshness formula scores it but nothing generates it | Remove from formula (dead code) or keep as forward-compatible stub |
+
+**Note:** `calculate_treaty_harshness()` in `diplomatic_templates.py:1874` is a separate function that DOES score manpower types. `calculate_proposal_harshness()` in `diplomatic_defiance.py` does NOT — they are independent formulas. PL-24 fixes only `calculate_proposal_harshness`.
+
+#### Harshness function asymmetry
+
+The codebase has two harshness functions that evaluate identical proposals differently:
+
+| Function | Location | Used By | Scores gold_lump | Scores manpower | Sweetener handling |
+|---|---|---|---|---|---|
+| `calculate_proposal_harshness` | diplomatic_defiance.py:132 | Talleyrand defiance/pushback | **No** (gap) | **No** (gap) | Flat -0.1 per sweetener |
+| `calculate_treaty_harshness` | diplomatic_templates.py:1874 | Acceptance formula | Yes | Yes | Weighted by SWEETENER_VALUES |
+
+After PL-24, `calculate_proposal_harshness` will score the missing demand types. However, **sweetener handling remains asymmetric**: defiance harshness treats all sweeteners as -0.1 flat regardless of type/value, while treaty harshness uses proportional weights. This means a proposal with a massive gold sweetener (200 gold/turn) reduces defiance harshness by the same -0.1 as a token sweetener (25 gold/turn). This is acceptable for PL-24 scope — sweetener weighting is a design refinement item, not a bug. Document for future reference.
+
+#### Naming inconsistency
+
+`_build_base_terms()` (diplomatic_templates.py:1590) produces sweeteners with type `"infantry_manpower"` (reversed), while all other code uses `"manpower_infantry"`. Fix: rename line 1590 to `"manpower_infantry"` for consistency. Otherwise the harshness formula (even after PL-24) won't match this variant.
+
+#### `manpower_cavalry` / `manpower_artillery` — never produced
+
+These demand types are defined in `DEMAND_VALUES` (diplomacy.py:164-165) and can be created via the ultimatum wizard's f-string (`manpower_{unit_type}`), but **no automated code path** (AI proposals, templates, generate_ultimatum_terms) ever produces them. Only player-driven wizard interaction creates them. Score them in PL-24 anyway — the wizard can generate them.
 
 #### Files
 - `backend/commands/diplomatic_defiance.py` — `calculate_proposal_harshness` (lines 132-162)
+- `backend/game_logic/diplomatic_templates.py` — rename `"infantry_manpower"` → `"manpower_infantry"` (line 1590)
 
 ---
 
@@ -1751,7 +1795,9 @@ These are pre-existing but become critical with PL-23's re-evaluation:
 
 PL-23 makes Talleyrand an active character who pushes back and rewrites terms. But if his baseline suggestions are purely formulaic (same inputs = same terms every time), the pushback feels mechanical. The pen nudge is a flat 20% reduction on a deterministic base — doubly predictable.
 
-Current `_build_base_terms()` in `diplomatic_templates.py` ignores: diplomat personality, nation desire profiles, recent events, and any randomization. All data sources exist (`NATION_DESIRE_PROFILES`, `TALLEYRAND_COMMENTARY`, diplomat personality field) but none feed into term generation.
+Current `_build_base_terms()` in `diplomatic_templates.py` ignores: diplomat personality, nation desire profiles, recent events, and any randomization. All data sources exist (`NATION_DESIRE_PROFILES`, `TALLEYRAND_COMMENTARY`, diplomat personality field on `DiplomaticRepresentative`) but none feed into term generation.
+
+**Signature gap:** `_build_base_terms(target_nation, proposal_type, world)` has no diplomat parameter. Diplomat personality must be accessed via `world.diplomats.get("France")` inside the function, or the signature must be extended to `_build_base_terms(target_nation, proposal_type, world, talleyrand=None)` with one call-site update in `generate_suggested_terms` (line ~1403).
 
 #### Design — R155-lite scope
 
@@ -1772,6 +1818,14 @@ Read `NATION_DESIRE_PROFILES[target_nation]` in `_build_base_terms()`. If Saxony
 
 This makes Talleyrand's pushback *nation-aware* — he doesn't just react to harshness, he reacts to whether the terms are *smart* for the target.
 
+**Available profile fields** (all 4 nations in `NATION_DESIRE_PROFILES`, diplomatic_templates.py:1205-1238):
+- `covets_regions` (list) — already used in Stage 2 of `generate_suggested_terms`
+- `values_gold` ("low"/"medium"/"high") — already used in Stage 2
+- `values_ap` ("low"/"medium"/"high") — already used in Stage 2
+- `diplomatic_lever` (str: "ambition"/"stability"/"trade"/"survival") — already used in Stage 2
+- `values_territory` ("low"/"high") — **exists but never read** in any code path. Wire into `_build_base_terms` for territory demand aggressiveness.
+- `weakness` (str) — **exists but never read**. Wire for pen nudge target selection (Talleyrand exploits known weaknesses).
+
 ##### 4. Situational flavor line
 One context-aware Talleyrand comment per proposal based on recent events:
 - Recent battle victory over target: "They are weakened, Sire. Now is the time to press."
@@ -1779,9 +1833,13 @@ One context-aware Talleyrand comment per proposal based on recent events:
 - High threat level: "The courts watch us, Sire. Moderation may serve us better than force."
 - Default: standard commentary from `TALLEYRAND_COMMENTARY`
 
-Read from `world.turn_events` or `world.diplomatic_history`. 4-6 condition checks, one line of flavor. No new systems.
+Read from `world.get_latest_events(n)`, `world.get_events_since_turn(turn)`, `world.battle_history`, or `world.diplomatic_history`. **Note:** `world.turn_events` does not exist — use the event API methods on WorldState (`get_latest_events`, `get_events_by_type`, `get_events_since_turn`, all defined in world_state.py:794-806). 4-6 condition checks, one line of flavor. No new systems.
+
+#### Pre-requisite: PL-24 naming fix
+
+`_build_base_terms()` line 1590 produces `"infantry_manpower"` sweeteners while all other code uses `"manpower_infantry"`. PL-24 fixes this naming inconsistency. PL-25's jitter and desire-profile bias must use the canonical `"manpower_infantry"` form.
 
 #### Files
-1. `diplomatic_templates.py` — `_build_base_terms()` (jitter, desire profile bias), `generate_suggested_terms()` (situational line)
+1. `diplomatic_templates.py` — `_build_base_terms()` (jitter, desire profile bias, signature extension for diplomat param), `generate_suggested_terms()` (situational line via event API)
 2. `diplomatic_defiance.py` — `apply_pen_nudge()` (personality-biased direction, added in PL-23)
-3. Tests — Jitter bounds tests, personality nudge direction tests, desire profile coverage tests
+3. Tests — Jitter bounds tests, personality nudge direction tests, desire profile coverage tests, event API integration tests
