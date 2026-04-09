@@ -346,6 +346,8 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         if diplomat:
             context["diplomat_name"] = diplomat.name
             context["diplomat_personality"] = getattr(diplomat, 'personality', 'unknown')
+    if proposal_type:
+        context["proposal_type"] = proposal_type
 
     dialogue = {
         "type": intent_type,

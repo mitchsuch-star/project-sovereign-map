@@ -1077,9 +1077,10 @@ class DiplomaticExecutor:
         elif action == "modify_harsh":
             # Build on PREVIOUS terms (not fresh) so each iteration escalates.
             terms = selected.get("terms", {})
-            proposal_type = terms.get("proposal_type", dialogue.get("_proposal_type", "peace"))
-            if not proposal_type:
-                proposal_type = "peace"
+            proposal_type = (terms.get("proposal_type")
+                             or dialogue.get("context", {}).get("proposal_type")
+                             or dialogue.get("_proposal_type")
+                             or "peace")
 
             import copy
             suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
@@ -1462,9 +1463,10 @@ class DiplomaticExecutor:
 
         elif action == "modify_generous":
             terms = selected.get("terms", {})
-            proposal_type = terms.get("proposal_type", dialogue.get("_proposal_type", "peace"))
-            if not proposal_type:
-                proposal_type = "peace"
+            proposal_type = (terms.get("proposal_type")
+                             or dialogue.get("context", {}).get("proposal_type")
+                             or dialogue.get("_proposal_type")
+                             or "peace")
 
             # Build on PREVIOUS terms (not fresh) so each iteration escalates.
             # First click: terms come from the original suggested terms on the button.
