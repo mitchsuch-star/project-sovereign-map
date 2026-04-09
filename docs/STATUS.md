@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 8, 2026 (Session B: PL-19 + PL-20 FIXED. Dynamic penalties + EU4 territory scaling. 43 new tests, 8058 total.)
+> **Last Updated:** April 9, 2026 (PL-23/24/25 spec hardening: 2-pass code audit, pen nudge edge cases, trust blast radius, harshness formula gaps.)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **8058** (8058 passed, 1 skipped) |
 
-| **Current Phase** | **Bug Fixes — ALL CLOSED.** PL-19/PL-20 FIXED (Session B). PL-15/PL-18 FIXED (Session A). See `docs/BUG_FIXES.md`. |
+| **Current Phase** | **Bug Fixes — 3 OPEN (PL-23, PL-24, PL-25).** PL-19/PL-20 FIXED (Session B). PL-15/PL-18 FIXED (Session A). See `docs/BUG_FIXES.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -34,6 +34,18 @@
 ### Adversarial Audit (Apr 8) — completed, all findings incorporated
 
 4-agent parallel audit covering 8 strategies. Found 12 FAILs + 19 WARNINGs. Two critical pre-existing bugs (PL-21 phantom `connections`, PL-22 phantom `income`) FIXED in code — territory demands and income-weighted costs were completely non-functional. All findings incorporated as amendments to PL-15/18/19/20 specs.
+
+### Bug Fix Batch: PL-23 + PL-24 + PL-25 — OPEN (specs hardened, ready for implementation)
+
+**Implementation order:** PL-24 → PL-23 → PL-25 (PL-24 blocks PL-23; PL-23 creates functions PL-25 extends).
+
+**PL-24** (P1 — MECHANICS): `calculate_proposal_harshness()` missing scoring for territory value-shape, gold_lump, manpower_infantry/cavalry/artillery. `unit_trade` is dead code. `infantry_manpower` naming inconsistency at diplomatic_templates.py:1590. Surgical fix, ~20 lines in one function + one rename.
+
+**PL-23** (P2 — GAMEPLAY): Pre-proposal objection doesn't re-evaluate after term modification. Approved design: authority-driven probabilistic pushback during drafting, pen nudge (deterministic term softening), Talleyrand trust removal (31 references across 13 files), redemption event cut, DP timing fix, new `pushback_confirm` dtype with 3 action handlers. Heaviest lift of the batch.
+
+**PL-25** (P2 — GAMEPLAY): Diplomatic term novelty — amount jitter (±20%), personality-biased pen nudge direction, nation desire profile bias, situational flavor line. Companion to PL-23. ~60-80 lines across 2 files.
+
+**Spec hardened** (Apr 9): 2-pass code audit found 12 edge cases (pen nudge on empty demands, territory value-shape, feasibility floor, AP-only exemption), complete trust blast radius map, harshness function asymmetry, dialogue routing plan, corrected world.turn_events → event API methods.
 
 ### Design Refinement (AFTER BUGS)
 
