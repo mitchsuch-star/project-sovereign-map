@@ -1540,53 +1540,150 @@ The `execute_proposal` handler (diplomatic_executor.py:968-1017) sends the propo
 | `backend/commands/diplomatic_executor.py` | 1080-1085 | `modify_harsh` — builds new confirm dialogue without re-evaluating objection |
 | `backend/commands/diplomatic_executor.py` | 1463-1471 | `modify_generous` — same issue as modify_harsh |
 
-#### Approved Design (Apr 9, 2026)
+#### Approved Design v2 (Apr 9, 2026)
 
-**Core insight:** Talleyrand is the *craftsman* — he's the one writing the proposal, not just advising. He doesn't need a defiance roll to nudge terms; he has the pen. This means the fix lives entirely inside the wizard dialogue flow, no new popups.
+**Core insight:** Talleyrand is already drafting the terms — the player says "harsher" or "I want territory" and Talleyrand writes it up. Pushback isn't a separate gate or popup; it's Talleyrand responding *as part of the drafting conversation*. When Napoleon is strong, Talleyrand writes what he's told. When Napoleon is weakening, Talleyrand starts shaping the terms himself — just like the real Talleyrand, who conducted his own diplomacy when Napoleon's grip loosened post-1809.
 
-**When to re-evaluate:** At each `modify_harsh` / `modify_generous` / ultimatum wizard step. Talleyrand responds to the player's direction as part of the conversation, not after the fact. "You want me to demand their eastern provinces as well? Sire, this is no longer diplomacy, it's a ransom note."
+**Pattern:** Mirrors V2b combat defiance (probability curve, authority-driven, variance band). NOT a deterministic threshold — Talleyrand's independence is probabilistic, unpredictable, and tied to Napoleon's power.
 
-**Concern level behavior — two tiers, not four:**
+##### When to evaluate
 
-| Concern | Condition | Behavior |
-|---------|-----------|----------|
-| **None/Mild/Moderate** | harshness ≤ 0.7, OR harshness > 0.7 with trust ≥ 40 | **Flavor text only.** Talleyrand editorializes in the confirm dialogue but complies. Sends as-is. A trusted advisor grumbles but obeys. |
-| **Strong** | harshness > 0.7 AND trust < 40 | **Real pushback.** Wizard options become [Send Anyway / Soften / Cancel]. Talleyrand digs in because the relationship has deteriorated enough that he acts on his own judgment. |
+At each term modification step: `modify_harsh`, `modify_generous`, and the ultimatum wizard confirm step (`_build_ultimatum_confirm_step`). These are the moments Talleyrand is actively drafting — he reacts to what the player is asking him to write. No re-evaluation at `execute_proposal` (by then the conversation is over, terms are finalized).
 
-**[Send Anyway] — Talleyrand softens with the pen, not defiance:**
-- No defiance roll. No sabotage discovery mechanic. No confrontation popup.
-- Talleyrand complies with the *spirit* of the demand but files off the sharpest edges — gold demand drops 10-20%, or he adds a minor sweetener the target expects.
-- Player sees: *"As you wish, Sire. I have... conveyed your position."*
-- The proposal arrives at 80-90% of what the player demanded, not 100%.
-- This is just Talleyrand being Talleyrand — not a betrayal, just craft.
+##### Probability curve
 
-**Existing defiance/sabotage system is untouched:** The separate 2-30% defiance pipeline (trust + authority gated, with cooldown) continues to fire independently on any proposal. That system is for "he went behind your back" moments. PL-23 doesn't interact with it.
+Recalculate harshness from the current terms via `calculate_proposal_harshness()`, then roll:
 
-**Generous direction:** If terms become more generous (harshness drops below 0.7), concern drops accordingly. No sticky warnings.
-
-**Harshness reconstruction:** The selected option's `terms` dict already contains final `demands` and `sweeteners` after all modifications. Reconstruct proposal from those and pass through `calculate_proposal_harshness()`. No new state tracking needed.
-
-**Implementation flow:**
 ```
-Player modifies terms → recalculate harshness from current terms
-                              ↓
-           harshness ≤ 0.7 → normal confirm dialogue, sends as-is
-           harshness > 0.7, trust ≥ 40 → flavor line added, sends as-is
-           harshness > 0.7, trust < 40 → [Send Anyway / Soften / Cancel]
-                                              ↓
-                              [Send Anyway] → terms arrive slightly softened (pen nudge)
-                              [Soften] → back to term modification
-                              [Cancel] → abort proposal
+Base chance (from harshness):
+  harshness ≤ 0.4  →  0%   (reasonable terms, Talleyrand has no issue)
+  harshness 0.4-0.7 →  5%  (pushing it — he occasionally editorializes)
+  harshness > 0.7  → 15%   (extreme — serious creative differences)
+
+Authority modifier (sole driver — see §Talleyrand trust removal below):
+  ≥ 80  → -10%  (Napoleon at height of power, Talleyrand obeys)
+  < 50  → +10%  (weakening grip, Talleyrand freelances)
+  else  →   0%
+
+Variance: ±5% (prevents memorized thresholds)
+Cap: 30% (matches diplomatic defiance cap)
+Floor: 2% schemer floor (when harshness > 0.4)
+Loyalist personality: always 0%
 ```
 
-**Files requiring changes:**
-1. `diplomatic_executor.py` — Re-evaluate in `modify_harsh`, `modify_generous`, and `execute_proposal` handlers
-2. `diplomatic_dialogue.py` — Update confirm dialogue builder to accept re-evaluated concern + flavor text
-3. `diplomatic_defiance.py` — Add `apply_pen_nudge()` function (slight term softening for [Send Anyway])
-4. Tests — Integration tests for modify→re-evaluate→send flow
+##### What happens when the roll fires
+
+Talleyrand doesn't block the proposal or show a popup — he **drafts different terms than requested** and tells the player what he did. This is part of the wizard conversation, not a separate event. The player gave direction; Talleyrand interpreted it his way.
+
+The confirm dialogue shows Talleyrand's modified terms with text like:
+- *"I have drafted the terms, Sire — though I took the liberty of... adjusting certain impractical demands. The essence of your position is preserved."*
+- *"You wished for territory? I have asked for trade access instead. They will actually agree to this."*
+
+Options: **[Accept his version] / [Insist on original] / [Cancel]**
+
+- **[Accept his version]** — sends Talleyrand's softened terms. Talleyrand applied a pen nudge: reduce the harshest numeric demand by 20%, or swap a territory demand for a gold sweetener. The player sees exactly what changed in the term summary.
+- **[Insist on original]** — sends the player's exact terms. Authority -3 (you overruled your diplomat openly, same weight as insisting on a marshal objection). No further re-roll on this proposal — one conversation per proposal.
+- **[Cancel]** — abort, return to term modification.
+
+**Pen nudge rules** (deterministic, no randomness in the nudge itself):
+1. Find the demand with the highest harshness contribution
+2. If numeric (gold/units): reduce value by 20% (round to int)
+3. If territory: remove the last-added region from the demand
+4. If only AP demands remain: add one minor sweetener (100 gold/turn to target)
+5. Recalculate and show the updated term summary so the player sees what changed
+
+##### What happens when the roll doesn't fire
+
+Normal confirm dialogue. Talleyrand drafts exactly what the player asked. If harshness > 0.7 he may add a flavor line (*"Bold terms, Sire. I shall present them as instructed."*) but no mechanical effect — he wrote what he was told.
+
+##### Generous direction
+
+When the player clicks "More generous" and harshness drops, the roll becomes less likely to fire (lower base chance). No special handling — the curve naturally produces fewer interventions on reasonable terms.
+
+##### Interaction with existing defiance/sabotage (§3a)
+
+**Mutually exclusive per proposal.** If PL-23's roll fired during drafting (regardless of whether the player accepted or insisted), skip the §3a defiance roll at `execute_proposal` send time. Rationale: Talleyrand already expressed his opinion in the conversation. Sabotage (§3a) is for when he acts *behind your back* — he doesn't do both. One interaction per proposal.
+
+Implementation: set `context["objection_resolved"] = True` on the dialogue context when PL-23 fires. `execute_proposal` checks this flag and skips the defiance pipeline.
+
+##### DP timing fix
+
+DP is deducted only when the proposal actually departs — at the end of `execute_proposal` after all conversation is resolved, not before. If the player cancels at any point (including after PL-23 pushback), no DP is spent. Move the DP deduction block in `execute_proposal` to after the defiance check, just before setting Talleyrand in transit.
+
+##### Talleyrand trust removal
+
+**Decision:** Remove Talleyrand's personal trust stat entirely. Use authority as the sole driver for all Talleyrand behavior (PL-23 pushback, §3a defiance, redemption).
+
+**Rationale:** Talleyrand's character is defined by serving power, not personal loyalty. When Napoleon was strong, Talleyrand obeyed. When Napoleon weakened, Talleyrand freelanced. That's authority, not trust. The trust stat only moved through the sabotage pipeline (confront -10 / overlook +3), giving the player no proactive way to build it — a dead stat measuring the same thing authority already measures.
+
+**Migration:**
+
+| Current (trust-based) | New (authority-only) |
+|----------------------|---------------------|
+| §3a defiance: base + authority_mod + trust_mod + variance | §3a defiance: base + authority_mod + variance |
+| PL-23 pushback: authority primary, trust secondary | PL-23 pushback: authority only (curve above) |
+| Redemption trigger: trust ≤ 20 | Redemption trigger: authority ≤ 30 (aligns with existing "Emperor in Name Only" threshold in `authority.py:50`) |
+| Confront sabotage: trust -10, authority +5 | Confront sabotage: authority +5 only |
+| Overlook sabotage: trust +3 | Overlook sabotage: authority -3 (letting it slide shows weakness) |
+| Apologize redemption: trust +15, authority -5 | Authority trade-off only within redemption event |
+
+**What gets removed:**
+- `trust` field on `DiplomaticRepresentative` (diplomat.py)
+- Trust modifier block in `calculate_diplomatic_defiance_chance()` (diplomatic_defiance.py:69-77)
+- Trust modifier block in `calculate_diplomatic_defiance_chance_deterministic()` (diplomatic_defiance.py:115-123)
+- Trust reads/writes in confrontation, overlook, and redemption handlers
+- Any UI display of Talleyrand trust (diplomatic ledger Talleyrand tab)
+
+**What stays:** Authority is already well-sourced (battles ±5, marshal objection responses, defiance outcomes ±3/5, combat captures, balanced leadership +1/turn). The player has clear, varied ways to manage it through normal gameplay.
+
+##### Files requiring changes
+
+1. `diplomatic_defiance.py` — Replace `evaluate_pre_proposal_objection()` with `roll_drafting_pushback()` (authority-only probability curve). Add `apply_pen_nudge()` (deterministic term softening). Remove trust modifiers from `calculate_diplomatic_defiance_chance()`. Update confrontation/overlook/redemption to authority-only. Keep `calculate_proposal_harshness()` as-is (fix territory bug separately in PL-24).
+2. `diplomatic_executor.py` — Call `roll_drafting_pushback()` in `modify_harsh`, `modify_generous`, and `_build_ultimatum_confirm_step`. On fire: build [Accept/Insist/Cancel] dialogue with nudged terms. On insist: authority -3, set `objection_resolved` flag. Move DP deduction in `execute_proposal` to after defiance check. Check `objection_resolved` to skip §3a defiance.
+3. `diplomatic_dialogue.py` — Remove `_merge_pre_proposal_objection()` (creation-time evaluation no longer needed; evaluation happens during drafting steps).
+4. `diplomat.py` — Remove `trust` field from `DiplomaticRepresentative`. Update `to_dict`/`from_dict`.
+5. `diplomatic_ledger.py` — Remove trust display from Talleyrand tab, replace with authority reference.
+6. Tests — Probability curve unit tests, pen nudge deterministic tests, mutual exclusion integration tests, DP-on-cancel tests, serialization update tests.
 
 #### Reproduction
 1. Start game, open F1 wizard, select nation, propose vassalization
 2. On confirm dialogue, click "Harsher terms" 3+ times (add gold, territory, manpower)
 3. Click "Send" — proposal sends without Talleyrand objecting despite extreme harshness
 4. Compare: declare war via wizard — Talleyrand objects immediately (STRONG fires at creation because war declaration is special-cased)
+
+### PL-24: Territory demands from modify_harsh score zero harshness — OPEN
+
+**Priority:** P1 — MECHANICS  
+**Source:** PL-23 design review (Apr 9, 2026)  
+**Blocks:** PL-23 (re-evaluation depends on accurate harshness scoring)
+
+#### Description
+
+`calculate_proposal_harshness()` in `diplomatic_defiance.py:132-162` computes territory harshness as `+0.2 * len(demand.get("regions", []))`. But `modify_harsh` in `diplomatic_executor.py:1119` adds territory demands as `{"type": "territory_cede", "value": 2}` — no `regions` list, just a numeric `value`.
+
+Result: territory demands added through the wizard contribute **zero** to the harshness score. A player can stack multiple territory cessions via "Harsher terms" and the proposal reads as mild.
+
+This is pre-existing but becomes critical with PL-23, since re-evaluation depends on harshness accurately reflecting current terms.
+
+#### Root Cause
+
+Two code paths produce territory demands in different shapes:
+- `generate_suggested_terms` → `{"type": "territory_cede", "regions": ["Bavaria", "Saxony"]}` (list of region names)
+- `modify_harsh` → `{"type": "territory_cede", "value": 2}` (numeric count, no regions)
+
+`calculate_proposal_harshness` only handles the first shape.
+
+#### Fix
+
+`calculate_proposal_harshness` should handle both shapes:
+```python
+if dtype == "territory_cede":
+    regions = demand.get("regions", [])
+    if regions:
+        harshness += 0.2 * len(regions)
+    else:
+        harshness += 0.2 * max(1, demand.get("value", 1))
+```
+
+#### Files
+- `backend/commands/diplomatic_defiance.py` — `calculate_proposal_harshness` (line 146-147)
