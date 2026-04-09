@@ -1515,7 +1515,7 @@ Region class (`backend/models/region.py:129`) stores income as `self.income_valu
 
 **Source:** Wizard flow audit (Apr 8, 2026)
 **Priority:** P2 — GAMEPLAY
-**Status:** OPEN — needs research + design decision
+**Status:** OPEN — design approved, ready for implementation
 
 #### Summary
 Talleyrand's pre-proposal objection evaluates harshness at **dialogue creation time** (when the player first opens a proposal), not when the player actually sends it. The player can click "Harsher terms" / "More generous" multiple times to radically change demands, but the objection check never re-fires. This means:
@@ -1540,14 +1540,50 @@ The `execute_proposal` handler (diplomatic_executor.py:968-1017) sends the propo
 | `backend/commands/diplomatic_executor.py` | 1080-1085 | `modify_harsh` — builds new confirm dialogue without re-evaluating objection |
 | `backend/commands/diplomatic_executor.py` | 1463-1471 | `modify_generous` — same issue as modify_harsh |
 
-#### Research Questions for Fix
+#### Approved Design (Apr 9, 2026)
 
-1. **Where to re-evaluate:** Should objection re-fire in `execute_proposal` (at send time) or in `modify_harsh`/`modify_generous` (at each modification)?
-2. **UX design:** If objection fires after modification, should it (a) replace the confirm dialogue with an objection dialogue, (b) add inline warning text to the confirm dialogue, or (c) block sending and show a new objection popup?
-3. **Harshness input:** `calculate_proposal_harshness` takes a treaty dict. The wizard builds terms incrementally. Need to reconstruct the full terms from dialogue context to score accurately.
-4. **Defiance interaction:** If Talleyrand objects at send time and the player overrides, does defiance chance apply? Currently defiance only fires for strategic/tactical objections, not diplomatic. Confirm whether `_check_diplomatic_defiance` should wire in here.
-5. **Wizard flow:** The ultimatum wizard (gold → territory → manpower → confirm) builds demands step-by-step. Should each step re-evaluate, or only the final confirm?
-6. **Edge case — generous direction:** If terms become MORE generous, should a previously-suppressed MILD concern appear? Or only track escalation toward STRONG?
+**Core insight:** Talleyrand is the *craftsman* — he's the one writing the proposal, not just advising. He doesn't need a defiance roll to nudge terms; he has the pen. This means the fix lives entirely inside the wizard dialogue flow, no new popups.
+
+**When to re-evaluate:** At each `modify_harsh` / `modify_generous` / ultimatum wizard step. Talleyrand responds to the player's direction as part of the conversation, not after the fact. "You want me to demand their eastern provinces as well? Sire, this is no longer diplomacy, it's a ransom note."
+
+**Concern level behavior — two tiers, not four:**
+
+| Concern | Condition | Behavior |
+|---------|-----------|----------|
+| **None/Mild/Moderate** | harshness ≤ 0.7, OR harshness > 0.7 with trust ≥ 40 | **Flavor text only.** Talleyrand editorializes in the confirm dialogue but complies. Sends as-is. A trusted advisor grumbles but obeys. |
+| **Strong** | harshness > 0.7 AND trust < 40 | **Real pushback.** Wizard options become [Send Anyway / Soften / Cancel]. Talleyrand digs in because the relationship has deteriorated enough that he acts on his own judgment. |
+
+**[Send Anyway] — Talleyrand softens with the pen, not defiance:**
+- No defiance roll. No sabotage discovery mechanic. No confrontation popup.
+- Talleyrand complies with the *spirit* of the demand but files off the sharpest edges — gold demand drops 10-20%, or he adds a minor sweetener the target expects.
+- Player sees: *"As you wish, Sire. I have... conveyed your position."*
+- The proposal arrives at 80-90% of what the player demanded, not 100%.
+- This is just Talleyrand being Talleyrand — not a betrayal, just craft.
+
+**Existing defiance/sabotage system is untouched:** The separate 2-30% defiance pipeline (trust + authority gated, with cooldown) continues to fire independently on any proposal. That system is for "he went behind your back" moments. PL-23 doesn't interact with it.
+
+**Generous direction:** If terms become more generous (harshness drops below 0.7), concern drops accordingly. No sticky warnings.
+
+**Harshness reconstruction:** The selected option's `terms` dict already contains final `demands` and `sweeteners` after all modifications. Reconstruct proposal from those and pass through `calculate_proposal_harshness()`. No new state tracking needed.
+
+**Implementation flow:**
+```
+Player modifies terms → recalculate harshness from current terms
+                              ↓
+           harshness ≤ 0.7 → normal confirm dialogue, sends as-is
+           harshness > 0.7, trust ≥ 40 → flavor line added, sends as-is
+           harshness > 0.7, trust < 40 → [Send Anyway / Soften / Cancel]
+                                              ↓
+                              [Send Anyway] → terms arrive slightly softened (pen nudge)
+                              [Soften] → back to term modification
+                              [Cancel] → abort proposal
+```
+
+**Files requiring changes:**
+1. `diplomatic_executor.py` — Re-evaluate in `modify_harsh`, `modify_generous`, and `execute_proposal` handlers
+2. `diplomatic_dialogue.py` — Update confirm dialogue builder to accept re-evaluated concern + flavor text
+3. `diplomatic_defiance.py` — Add `apply_pen_nudge()` function (slight term softening for [Send Anyway])
+4. Tests — Integration tests for modify→re-evaluate→send flow
 
 #### Reproduction
 1. Start game, open F1 wizard, select nation, propose vassalization
