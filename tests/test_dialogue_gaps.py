@@ -192,7 +192,8 @@ class TestNationPicker:
         ])
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response("xyznonesense", gs)
-        assert "Please choose" in result.get("message", "")
+        msg = result.get("message", "")
+        assert "don't understand" in msg or "Options:" in msg
 
 
 # ═══════════════════════════════════════════════════════════════════════════

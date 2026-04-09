@@ -853,6 +853,17 @@ class DiplomaticExecutor:
                     if choice_lower in label_lower or label_lower in choice_lower:
                         selected = opt
                         break
+                # Try matching keyword against option terms values
+                # (e.g. "artillery" matches option with terms: {"unit_type": "artillery"})
+                if not selected:
+                    for opt in options:
+                        opt_terms = opt.get("terms", {})
+                        for tv in opt_terms.values():
+                            if isinstance(tv, str) and tv.lower() in choice_lower:
+                                selected = opt
+                                break
+                        if selected:
+                            break
                 # Try matching action keywords
                 if not selected:
                     # Map keywords to action(s). List means try in order
@@ -865,10 +876,13 @@ class DiplomaticExecutor:
                         "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
                         "adjust": ["adjust_terms", "expand_options"],
-                        "territory": ["territory_yes", "offer_region"],
-                        "enough": ["enough_territory"],
+                        "territory": ["ultimatum_territory_yes", "territory_yes", "offer_region"],
+                        "enough": ["ultimatum_enough_territory", "ultimatum_done_manpower", "enough_territory"],
                         "offer": ["offer_region", "offer_gold", "offer_ap"],
-                        "skip": ["skip_region", "skip_gold", "skip_ap"],
+                        "skip": ["ultimatum_skip_gold", "ultimatum_skip_territory", "ultimatum_skip_manpower", "skip_region", "skip_gold", "skip_ap"],
+                        "another": ["ultimatum_another_type"],
+                        "start over": ["ultimatum_start_over"],
+                        "less": ["ultimatum_less_gold", "ultimatum_less_manpower"],
                         "begin": ["start_mission"], "start": ["start_mission"],
                         "accept": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
                         "agree": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
@@ -879,7 +893,7 @@ class DiplomaticExecutor:
                         "deliver": ["execute_ultimatum"],
                         "trust": ["send_suggested"],
                         "elaborate": ["elaborate", "expand_to_proposal"],
-                        "more": ["elaborate", "expand_to_proposal"],
+                        "more": ["ultimatum_more_gold", "ultimatum_more_manpower", "ultimatum_another_type", "elaborate", "expand_to_proposal"],
                         "review": ["review_counter"],
                         "consider": ["review_counter"],
                     }
@@ -898,7 +912,9 @@ class DiplomaticExecutor:
             return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
 
         if not selected:
-            return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+            labels = [opt.get("label", "?") for opt in options]
+            numbered = ", ".join(f"{i+1}={l}" for i, l in enumerate(labels))
+            return {"success": False, "message": f"I don't understand that choice, Sire. Options: {numbered}"}
 
         # Process the selected action
         action = selected.get("action", "dismiss")
