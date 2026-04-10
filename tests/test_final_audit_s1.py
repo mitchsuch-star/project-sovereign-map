@@ -33,7 +33,7 @@ def _marshal(name, nation="France", location="Paris", strength=5000, personality
 # ============================================================================
 
 class TestDefeatOnCapitalLossOrZeroRegions:
-    """FINAL-9: Game should end in defeat when player has 0 regions or capital captured."""
+    """FINAL-9 + PL-31: Defeat on 0 regions only. Capital loss is NOT defeat."""
 
     def test_zero_regions_triggers_defeat(self):
         """If player has 0 regions, _check_victory_conditions returns defeat."""
@@ -49,8 +49,8 @@ class TestDefeatOnCapitalLossOrZeroRegions:
         assert result["result"] == "defeat"
         assert "territory" in result["reason"].lower()
 
-    def test_capital_captured_triggers_defeat(self):
-        """If enemy captures player's capital, game ends in defeat."""
+    def test_capital_captured_does_not_defeat(self):
+        """PL-31: Capital loss alone should NOT end the game."""
         world = _make_world()
         paris = world.get_region("Paris")
         assert paris is not None
@@ -61,9 +61,9 @@ class TestDefeatOnCapitalLossOrZeroRegions:
 
         tm = TurnManager(world)
         result = tm._check_victory_conditions()
-        assert result["game_over"] is True
-        assert result["result"] == "defeat"
-        assert "capital" in result["reason"].lower()
+        assert result["game_over"] is False, (
+            "Capital loss should not trigger defeat (PL-31)"
+        )
 
 
 # ============================================================================

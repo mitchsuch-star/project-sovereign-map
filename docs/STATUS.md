@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 9, 2026 (Session C: PL-24 + PL-23 + PL-25 ALL FIXED. 35 new tests, 8093 total.)
+> **Last Updated:** April 10, 2026 (Session 1 COMPLETE: PL-30 + PL-31 FIXED. 7 open bugs remain. 8110 tests passing.)
 
 ---
 
@@ -9,77 +9,88 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **8093** (8093 passed, 1 skipped) |
-
-| **Current Phase** | **Bug Fixes — 4 OPEN.** PL-26/27/28/29 from playtest Session D. PL-23/24/25 FIXED (Session C). See `docs/BUG_FIXES.md`. |
-| **Blockers** | PL-26/27/28/29 need analysis session. Jealousy NEEDS DESIGN GATE (separate track). |
+| **Tests Passing** | **8110** (8110 passed, 1 skipped) |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Session 1 COMPLETE (PL-30, PL-31 FIXED). 7 OPEN bugs remain (PL-26/27/28/29/32/33/34). Next: Session 2 = PL-27 / PL-34 / PL-33 duplicate check. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | Session 1 COMPLETE — playtest unblocked. Session 2 before diplomacy refinement or any new audit pass. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### Bug Fix Session A: COMPLETE (PL-15 + PL-18)
+### 1. Bug Fixes - 7 OPEN (Session 1 complete)
 
-**PL-15 FIXED:** Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Godot popup fixed with dedicated `_build_ultimatum_content()`. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. 33 new tests.
+Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
 
-**PL-18 FIXED:** 4 new DEMAND_VALUES keys, typed manpower wizard with pool-aware type picker, `_apply_ultimatum_demands()` dispatches to correct pool, backward compat for bare `"manpower"`.
+| Priority | ID | Summary |
+|----------|-----|---------|
+| ~~P1 - CRASH~~ | ~~PL-30~~ | ~~Godot null instance crash on diplomacy button after missed proposal result~~ **FIXED** |
+| ~~P1 - DESIGN~~ | ~~PL-31~~ | ~~Capital-loss instant defeat still live + broken regression test~~ **FIXED** |
+| P2 - UX | PL-26 | Combat feels hopeless, no clear path to winning |
+| P2 - UX | PL-27 | Diplomacy interrupt contract broken: AI proposals block commands and have no reliable recovery surface |
+| P2 - UX | PL-28 | No warning before defeat, sudden game over |
+| P2 - UX | PL-32 | Raw diplomacy labels can leak into popups |
+| P2 - UX | PL-33 | "status" blocked by dialogue guard (verification item, likely PL-27 duplicate) |
+| P2 - UX | PL-34 | Queued diplomatic proposals can expire unseen behind blockers |
+| P3 - QOL | PL-29 | No new game / restart endpoint |
 
-### Bug Fix Session B: COMPLETE (PL-19 + PL-20)
+**Next session:** Implement Session 2 from `docs/BUG_FIXES.md` (`PL-27`, `PL-34`, `PL-33` duplicate check).
 
-**PL-19 FIXED:** Dynamic ultimatum relation penalty scales with demand severity (-10 to -60). Income-weighted territory penalties with capital ×2. Splash multiplier (1.0×–2.5×) scales with severity. Rejection penalty scales (-5 to -15). Dynamic threat (10-30). Acceptance calculated before penalty (AM-19.4). All 5 amendments incorporated. 43 new tests.
+**Implementation sessions in current order:**
 
-**PL-20 FIXED:** EU4-style escalating per-region acceptance cost (-5, -8, -11...) × income weight. Elimination guards (-60 annex, -30 rump). Auto-gen guard skips small nations. Treaty cession guard (war_score < 90 blocks elimination). Hard guard in `_apply_ultimatum_demands()`. Territory amplifier on relation penalty (territory component only, AM-20.4). Harshness bump 0.2→0.3. Shared `analyze_territory_demands()` helper. All 9 amendments incorporated.
+| Session | Scope | Items | Status |
+|---------|-------|-------|--------|
+| Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
+| Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | Next |
+| Session 3 | Diplomacy display contract | `PL-32` | |
+| Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
+| Session 5 | Restart flow | `PL-29` | |
 
-### Adversarial Audit (Apr 8) — completed, all findings incorporated
+No new audit scope is being added.
 
-4-agent parallel audit covering 8 strategies. Found 12 FAILs + 19 WARNINGs. Two critical pre-existing bugs (PL-21 phantom `connections`, PL-22 phantom `income`) FIXED in code — territory demands and income-weighted costs were completely non-functional. All findings incorporated as amendments to PL-15/18/19/20 specs.
+### 2. Architecture Hardening (before full-map work)
 
-### Bug Fix Session C: COMPLETE (PL-24 + PL-23 + PL-25)
+GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but NOT ready for 80-100 region expansion. These items need a plan before full-map implementation starts:
 
-**PL-24 FIXED:** `calculate_proposal_harshness()` now scores territory value-shape, gold_lump, manpower_infantry/cavalry/artillery, scaled ap_per_turn. `unit_trade` dead code removed. `infantry_manpower` → `manpower_infantry` naming fix. 18 tests.
+| Item | Summary | Current Home |
+|------|---------|-------------|
+| Map renderer replacement | Circle-based prototype won't scale | ROADMAP.md (art-blocked) |
+| `/command` response pipeline | Main path bypasses `build_base_response()` | ARCHITECTURE_REFACTORING_PLAN.md |
+| AI fog-aware queries | Omniscient AI queries at scale = unfair + expensive | ARCHITECTURE_REFACTORING_PLAN.md (R14a-d) |
+| Hardcoded nation defaults | Inline dicts in world_state.py won't scale | ARCHITECTURE_REFACTORING_PLAN.md |
+| Popup routing registry | `main.gd` early-return chain, not data-driven | ARCHITECTURE_REFACTORING_PLAN.md |
+| Typed dialogue migration | Some popup handlers still synthesize English commands | ARCHITECTURE_REFACTORING_PLAN.md |
 
-**PL-23 FIXED:** Authority-driven probabilistic pushback during drafting. `roll_drafting_pushback()` with harshness-based probability, authority modifier, AM-23.15 re-roll guard. `apply_pen_nudge()` deterministic term softening. Talleyrand trust fully removed (31 references across ~18 files). Redemption event system deleted. `pushback_confirm` dtype with 3 action handlers (accept_nudge, insist_original, cancel_pushback). AM-23.2: roll before modify_count increment. 29 tests.
+**Needs:** A consolidated pre-expansion plan that sequences these items after Sessions 1-5. The GPT audit priority roadmaps in `docs/GPT_AUDIT_PLAN_RESULTS.md` now cover both the broader architecture audit and the focused diplomacy attention / legitimacy audit. No item from this list moved earlier as a full prerequisite for the current bug sessions.
 
-**PL-25 FIXED:** Amount jitter ±20% on gold/manpower values (demands + sweeteners) with `deterministic` param. Personality-biased pen nudge: schemer swaps demand types (territory → gold), loyalist does 20% reduction. AM-25.1 collision handling (merge on duplicate, fallback on exhaustion). Nation desire profile bias: territory_mult 1.5× for high-territory nations, weakness-based nudge override, sweetener bias from diplomatic_lever. Situational flavor line from event API (not zombie `battle_history`). 23 tests.
+**Post-bug architecture sessions:**
 
-### Playtest Session D Findings (Apr 10) — 4 OPEN, needs analysis
+| Session | Scope | Items |
+|---------|-------|-------|
+| Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup |
+| Session 7 | Scale-sensitive backend hardening | AI fog-aware queries, hardcoded nation defaults, config-completeness and large-scenario validation tests |
+| Session 8 | Renderer cutover prep and replacement | Map renderer replacement on the current 19-region map or placeholder assets; keep `update_all_regions(map_data)` stable during swap |
 
-PL-23/24/25 verification: **ALL 6 TESTS PASSED.** Harsher=lower odds, authority in ledger, insist costs -3, sabotage uses authority keys, save/load persists authority.
+These are existing audit items broken into implementation order. They stay after the current bug sessions and before any full-map expansion work.
 
-New issues found during play:
-- **PL-26:** Combat feels hopeless — 4 attacks against Wellington, all defender victories. No clear path to winning.
-- **PL-27:** AI proposal spam — proposals every turn block all commands until responded to.
-- **PL-28:** No defeat warning — game over at turn 7 with no prior notice.
-- **PL-29:** No new game endpoint — must kill server to restart.
+### 3. Design Refinement (AFTER bugs + required bug prerequisites)
 
-**Next session:** Analyze root causes for PL-26/27/28/29. See `docs/BUG_FIXES.md` for investigation notes and files to check.
-
-### Design Refinement (AFTER BUGS)
-
-Move to `docs/DESIGN_REFINEMENT.md`. 45 items total: 7 ready for implementation, R160 Rivalry System, R161 One-Time Trade (expanded), R162 AI Ultimatums (Building Blocks), 4 War System Overhaul, 3 AI fixes, 19 Wave 4 features, 8 Wave 5 findings, plus design gates.
+`docs/DESIGN_REFINEMENT.md`. Focused audit validated `R160`, `R155`, and `R156` as the highest-leverage diplomacy legitimacy items once the current diplomacy bug contract is fixed. `R162` waits on attention-contract fixes. `N1` and `A4` appear already implemented; `A3` now needs re-scope. Do not pull these items forward into Sessions 1-8.
 
 ### Independent Tracks
 
-- **Architecture Refactoring** — Sessions 1-16 COMPLETE. R19 (modding validator) remaining. R14a-d (AI Fog) deferred to 80+ regions. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
+- **Jealousy System** — v3.1 spec drafted. NEEDS DESIGN GATE. Separate track. See `docs/JEALOUSY_SPEC.md`.
 - **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 
 ### Completed (Reference Only)
 
-All items below are done. Source docs kept for implementation detail reference.
-
-- ~~Bug Fixes Sessions 1-12 + A + B~~ — 38 bugs resolved, 314 tests. Session B: PL-19 (dynamic penalties, 43 tests) + PL-20 (EU4 territory scaling). Session A: PL-15 (demand wizard, 33 tests) + PL-18 (typed manpower). Session 12: PL-14 (ultimatum rework, 23 tests).
-- ~~Phase 8: Diplomacy~~ — ALL SESSIONS COMPLETE (1A through 8D)
-- ~~Diplomacy Audits~~ — Code audit (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs), all fixed
+- ~~Bug Fixes Sessions 1-12 + A + B + C~~ — 25 bugs resolved (PL-1 through PL-25), 8093 tests
+- ~~Adversarial Audit (Apr 8)~~ — 12 FAILs + 19 WARNINGs, PL-21/PL-22 fixed in code
+- ~~Architecture Refactoring Sessions 1-16~~ — R19 (modding) remaining. R14a-d deferred
+- ~~Phase 8: Diplomacy~~ - Implementation complete (1A through 8D), but stabilization / legitimacy refinement is still active via `BUG_FIXES.md` + `DESIGN_REFINEMENT.md`
+- ~~Diplomacy Audits~~ — Code (20 bugs), Creative (7.8/10), Comprehensive (6.5/10), Deep (43 bugs)
 - ~~Diplomacy Refinement Phases 1-4~~ — 55 items, 326 tests
-- ~~Diplomacy Playtest Fixes~~ — DPF-1, DPF-2, DPF-3 implemented
-- ~~Diplomacy Button~~ — Session A + B + edge cases, 108 tests
-- ~~Diplomacy Design Fixes~~ — DA-1, DA-2, DA-4 done (DA-3 N2/N3 moved to BUG_FIXES.md)
-- ~~Systems Audit Fix Plan~~ — 148 findings, 193 tests
-- ~~Systems Audit V2~~ — 56 bugs, 7040 tests
-- ~~Systems Audit V3 Sessions 1-10~~ — 158 bugs (S11 optional polish in BUG_FIXES.md)
-- ~~Deep Audit Fix Plan~~ — 43 bugs, 129 tests
-- ~~Final Audit Fix Plan~~ — 13 bugs, 29 tests
+- ~~All prior audit/fix plans~~ — Systems V1/V2/V3, Deep, Final — all complete
 
 ---
 
@@ -196,7 +207,7 @@ Major enrichment of the Diplomatic Ledger (D key) and Diplomacy Wizard (F1 key).
 
 Creative playtesting revealed 4 bugs:
 1. **Game-over enforcement:** Game continued after defeat. Added game-over guard to 8 action endpoints + blocked AI diplomacy after game over. Read-only endpoints still work.
-2. **Capital-loss defeat removed:** Capital loss no longer ends the game (land can be ceded via treaties). Remaining defeat: all marshals destroyed.
+2. **Capital-loss defeat removed (PL-31, fixed Apr 10):** The capital-loss defeat branch has been removed from `_check_victory_conditions()`. Capital can be lost without ending the campaign. The original regression test targeted the wrong region key (`Ile-de-France` instead of `Paris`) and passed vacuously.
 3. **Empty command rejection:** Empty/whitespace commands no longer trigger the parser. Returns clean error.
 4. **LLM parse fields:** `requested_type`, `diplomatic_data`, `cheat_type`, `cheat_args` were missing from `json_to_parse_result()` in providers.py. Recruit type parsing now works in LLM mode.
 5. **Treaty war warning:** Declaring war on a treaty ally now shows a Talleyrand warning dialogue. Player must confirm via `force_declare_war` to proceed.
@@ -1156,3 +1167,4 @@ python backend/main.py                    # Backend on port 8005
 | Tutorial content | `TUTORIAL_SCRIPT.md` |
 | Playtest prompt | `PLAYTEST_EVALUATION_PROMPT.md` |
 | Session history (archived) | `archive/SESSION_HISTORY.md` |
+

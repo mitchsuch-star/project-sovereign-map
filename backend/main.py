@@ -992,14 +992,14 @@ def execute_command(request: CommandRequest):
                     response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
             _include_popup_passthroughs(response, world)
         else:
-            # PL-5A: Proposal result is informational ([Continue] only) — safe to
-            # include alongside enemy_phase. Godot shows it post-enemy-phase.
-            # Other popups (incoming_proposal, etc.) remain deferred because they
-            # require player choices that would block enemy_phase display.
+            # PL-5A + PL-30: Proposal result is informational ([Continue] only)
+            # — safe to include alongside enemy_phase. Uses the popup queue
+            # property (normalized ownership) instead of direct field access.
+            # Other popups remain deferred (require player choices).
             prp = world.proposal_result_popup
             if prp is not None:
                 response["proposal_result"] = prp
-                world.proposal_result_popup = None  # Consumed
+                world.proposal_result_popup = None  # Consumed via queue setter
 
         # Notifications — persistent alerts for Godot notification bar
         if world.notifications.has_pending():
@@ -1755,6 +1755,8 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
             vassals = getattr(world, 'vassals', {})
             dp = int(getattr(world, 'diplomatic_points', 0))
             dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+            # PL-30: Distinguish blocking dialogue from deferred proposal result
+            has_deferred_result = world.proposal_result_popup is not None
 
             categories = {"at_war": [], "treaties": [], "vassals": [], "neutral": []}
             treaty_states = {"ARMISTICE", "OPEN_BORDERS", "NON_AGGRESSION",
@@ -1812,6 +1814,7 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
                 "mode": "nations",
                 "dp_available": int(dp),
                 "dialogue_pending": dialogue_pending,
+                "has_deferred_result": has_deferred_result,
                 "categories": categories,
             }
         except Exception as e:

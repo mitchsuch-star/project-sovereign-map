@@ -3019,6 +3019,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     is_vassal = target_nation in vassals
 
     dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+    # PL-30: Distinguish blocking dialogue from deferred proposal result
+    has_deferred_result = world.proposal_result_popup is not None
     talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
 
     response = {
@@ -3030,6 +3032,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         "relation_descriptor": get_relation_descriptor(relation),
         "dp_available": int(dp),
         "dialogue_pending": dialogue_pending,
+        "has_deferred_result": has_deferred_result,
         "talleyrand_in_transit": talleyrand_state == "IN_TRANSIT",
         "is_vassal": is_vassal,
     }

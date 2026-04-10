@@ -812,7 +812,6 @@ class TurnManager:
         Defeat conditions:
         - All marshals destroyed
         - All territory lost (0 regions)
-        - Capital captured
         """
         player_regions = self.world.get_player_regions()
         player_marshals = self.world.get_player_marshals()
@@ -833,17 +832,9 @@ class TurnManager:
                 "reason": "All territory lost!"
             }
 
-        # FINAL-9: Defeat on capital captured
-        from backend.models.region import NATION_CAPITALS
-        capital = NATION_CAPITALS.get(self.world.player_nation)
-        if capital:
-            capital_region = self.world.get_region(capital)
-            if capital_region and capital_region.controller != self.world.player_nation:
-                return {
-                    "game_over": True,
-                    "result": "defeat",
-                    "reason": "Your capital has fallen!"
-                }
+        # PL-31: Capital-loss defeat removed. Capital can be lost via treaties
+        # or conquest without ending the campaign. Defeat only on 0 armies or
+        # 0 territory. If this rule is ever reinstated, reopen PL-31.
 
         # Check victory conditions — derived from total region count
         total = len(self.world.regions)

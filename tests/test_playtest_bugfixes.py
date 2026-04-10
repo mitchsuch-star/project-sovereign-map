@@ -50,11 +50,10 @@ class TestCapitalLossNotDefeat:
     """Capital loss no longer ends the game (land can be ceded via treaties)."""
 
     def test_capital_loss_does_not_end_game(self):
-        """Losing your capital should NOT trigger defeat."""
+        """Losing your capital should NOT trigger defeat (PL-31)."""
         from backend.game_logic.turn_manager import TurnManager
         world = _make_world()
         executor = CommandExecutor()
-        game_state = _make_game_state(world)
 
         # Give player at least one marshal with strength
         ney = world.marshals.get("Ney")
@@ -62,16 +61,17 @@ class TestCapitalLossNotDefeat:
         ney.strength = 15000
 
         # Ensure Paris is NOT controlled by the player (enemy took it)
-        paris_region = world.regions.get("Ile-de-France")
-        if paris_region:
-            paris_region.controller = "Prussia"
+        paris_region = world.regions.get("Paris")
+        assert paris_region is not None, "Region key must be 'Paris', not 'Ile-de-France'"
+        paris_region.controller = "Prussia"
 
         tm = TurnManager(world, executor)
         result = tm._check_victory_conditions()
 
-        # Should NOT be game over (capital loss removed as defeat condition)
-        if result:
-            assert result.get("result") != "defeat" or "Capital" not in result.get("reason", "")
+        # Capital loss alone must NOT end the game
+        assert result["game_over"] is False, (
+            f"Capital loss should not trigger defeat, got: {result}"
+        )
 
     def test_all_marshals_destroyed_still_defeats(self):
         """All marshals destroyed should still end the game."""

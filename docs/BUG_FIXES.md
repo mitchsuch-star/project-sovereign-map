@@ -1,444 +1,902 @@
 # Bug Fixes
 
-> **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
-> Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
+> Broken-now implementation document.
+> Treat the current findings as frozen truth until the open items below are fixed.
 >
-> **Last Updated:** April 10, 2026 (Diplomacy modal/queue audit folded in. 1 new bug: PL-34. PL-27/PL-32 deepened.)
+> Last Updated: April 10, 2026 (implementation spec hardened; no new audit scope added)
 
 ---
 
-## Summary
+## How To Use This Doc
 
-| Priority | ID | Status | Description |
-|----------|-----|--------|-------------|
-| P1 — CRASH | PL-30 | OPEN | Godot null instance crash on diplomacy button after missed proposal result |
-| P1 — DESIGN | PL-31 | **NEW** | Capital-loss instant defeat still live + broken regression test |
-| P2 — UX | PL-26 | OPEN | Combat feels hopeless, no clear path to winning battles |
-| P2 — UX | PL-27 | OPEN | AI proposal spam blocks all commands (GPT audit confirms: make non-blocking) |
-| P2 — UX | PL-28 | OPEN | No warning before defeat, sudden game over |
-| P2 — UX | PL-32 | **NEW** | Raw diplomacy labels can leak into popups (display split risk) |
-| P2 — UX | PL-33 | **NEW** | "status" command falls through to Berthier recovery (first-hour UX) |
-| P3 — QOL | PL-29 | OPEN | No new game / restart endpoint |
-| P2 - UX | PL-34 | NEW | Queued diplomatic proposals can expire unseen behind blockers |
-| **Total** | | **9 OPEN** | |
+- This is the implementation source of truth for the current open PL items.
+- Follow the session order below unless a direct dependency note inside an item says otherwise.
+- Inspect only the exact implicated code surfaces and same-family helper paths for the active item.
+- Use `docs/GPT_AUDIT_PLAN_RESULTS.md` for routing, collapse rules, and phase sequencing only.
+- Use `docs/DESIGN_REFINEMENT.md` only to confirm what remains blocked.
+- Update `docs/STATUS.md` whenever the open count, duplicate status, or active session changes.
 
 ---
 
-## Fixed Bugs Archive
+## Scope Guard
 
-28 bugs fixed across playtest Sessions 1-12, Session A, Session B, Session C. 8,093 tests total.
-
-| ID | Summary | Fixed In |
-|----|---------|----------|
-| PL-1 to PL-4 | Early combat/display bugs | Sessions 1-6 |
-| PL-5 | Proposal race condition + no feedback popup | Sessions 7-8 |
-| PL-6 | "Harsher" terms on friendship pacts demand territory | Session 7 |
-| PL-7 | Counter-offer accept/reject missing AI cooldowns | Session 7 |
-| PL-8 | Counter-offer popup looks like unsolicited AI proposal | Session 9 |
-| PL-9 | Acceptance mismatch — displayed % doesn't match resolution | Session 10 |
-| PL-10 | "More generous" downgrades proposal type | Session 10 |
-| PL-11 | Incoming AI proposals hijack player diplomatic commands (API-only) | Session 10 |
-| PL-12 | Harsher terms INCREASE acceptance estimate (inverted harshness) | Session 11 |
-| PL-13 | Viable proposal falsely rejected as "surpassed" | Session 11 |
-| PL-14 | "Send ultimatum" — reworked as coercive diplomatic tool | Session 12 |
-| PL-15 | Ultimatum demand wizard (replaces blind escalation) | Session A |
-| PL-16 | Harsher demands multiplier too aggressive (absorbed into PL-15) | Session A |
-| PL-17 | Manpower demand has zero acceptance penalty (absorbed into PL-18) | Session A |
-| PL-18 | Typed manpower demands + DEMAND_VALUES key fixes | Session A |
-| PL-19 | Dynamic ultimatum relation penalty (scales with demand severity) | Session B |
-| PL-20 | EU4-style escalating territory cost + elimination guards | Session B |
-| PL-21 | Phantom `connections` attribute — adjacency checks dead | Fixed in code |
-| PL-22 | Phantom `income` attribute — income-weighted costs dead | Fixed in code |
-| PL-23 | Authority-driven pushback, pen nudge, trust removal | Session C |
-| PL-24 | Harshness scoring for all demand types | Session C |
-| PL-25 | Term novelty: jitter, personality nudge, desire bias, flavor | Session C |
+- No new audit pass during this fix phase.
+- No re-scoring, re-prioritizing, or widening of the problem space.
+- No new PL items unless a direct code contradiction forces one.
+- Same-family sibling failures on the same code path are absorbed into the owning PL item and called out explicitly below.
+- `docs/DESIGN_REFINEMENT.md` stays blocked; do not pull design work into Sessions 1-8.
 
 ---
 
-## Implementation Plan
+## Active Summary
 
-### Session E — P1 Fixes (PL-30, PL-31)
+| Session | Priority | ID | Status | Summary | Routing Note |
+|---------|----------|----|--------|---------|--------------|
+| 1 | P1 | PL-30 | **FIXED** | Godot null-instance crash on diplomacy button after a masked proposal result | Fixed Apr 10, 2026 |
+| 1 | P1 | PL-31 | **FIXED** | Capital-loss instant defeat still live, with a false-negative regression test | Fixed Apr 10, 2026. Unblocks PL-28 |
+| 2 | P2 | PL-27 | OPEN | Diplomacy interrupt contract is broken: soft-stop items still freeze commands and have no authoritative recovery surface | Root item for the diplomacy cluster |
+| 2 | P2 | PL-34 | OPEN | Queued diplomatic proposals can expire unseen behind blockers | Implement inside PL-27, not as a separate flow |
+| 2 | P2 | PL-33 | OPEN - DUPLICATE CANDIDATE | `status` is being swallowed by the diplomacy guard/recovery path | Verify after PL-27; close as duplicate if resolved |
+| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | Depends on Session 2 contract stability |
+| 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
+| 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
+| 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
 
-**PL-30 (crash):** Investigate Godot null instance. Trace `add_output` call, check popup queue consumption when higher-priority popup masks result. Fix: null guard or ensure popup data persists until displayed.
-
-**PL-31 (capital defeat):** Decision needed — remove instant capital-loss defeat or fix the test. Either way, fix regression test to target `Paris` not `Ile-de-France`. Update STATUS.md "ALL CLEAR" claim.
-
-### Session F — P2 UX Cluster (PL-26, PL-27, PL-28, PL-33)
-
-These four are interrelated — PL-27 (blocking proposals) compounds PL-26 (combat frustration) and PL-28 (sudden defeat). PL-33 is likely a PL-27 duplicate.
-
-**PL-27 (blocking proposals):** Split dialogue guard into hard-stop (objections) and soft-stop (AI proposals). Make AI proposals non-blocking/dismissible with 1-turn auto-reject. Increase rejection cooldowns to 3-5 turns. This alone fixes PL-33.
-
-**PL-28 (defeat warning):** Add defeat-imminent notification when France controls < threshold+2 regions. Morning dispatch warning. Depends on PL-31 decision (which defeat rules survive).
-
-**PL-26 (combat balance):** Analyze defender bonus stacking. Surface counters earlier (bombardment, coordination). Consider starting situation rebalance. GPT audit says teaching problem > balance problem.
-
-### Session G — P2 Polish + P3 (PL-32, PL-29)
-
-**PL-32 (display labels):** Consolidate diplomacy display strings to backend only. Remove Godot-side duplicate maps. Add regression test for raw underscore tokens in popup payloads.
-
-**PL-29 (new game):** Add `POST /new_game` endpoint. Optional autosave clear. Godot pause menu button.
-
-### Session F/G Addendum - Diplomacy Modal / Queue Audit
-
-The current ordering still works, but the new audit sharpens the scope:
-
-- Treat PL-27 as the contract/interrupt root issue, not just "AI proposal spam." The fix now needs three parts in one session: hard-stop vs soft-stop taxonomy, typed popup-response migration, and proposal frequency tuning.
-- Fold PL-34 into the same cluster as PL-27. Hidden expiry is the queue/timeout version of the same design bug: proposals are still being governed by blockers and parser round-trips instead of explicit player choice.
-- Expand PL-32 beyond the Godot duplicate map. The counter-offer popup path in `world_state.py` and the sabotage/proposal fallback formatters also need to move onto the shared backend display helpers.
-- Keep Session G after the PL-27/PL-34 work. Display cleanup should land after the typed response paths are stable, not before.
-
-### Architecture Hardening (needs separate plan)
-
-GPT audit identified 6 pre-expansion blockers (see STATUS.md §2). These need a consolidated sequencing plan before full-map work begins. Starting point: `docs/GPT_AUDIT_PLAN_RESULTS.md` §Priority Roadmap + existing `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
+**Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
 ---
 
-## Open Bugs
+## Same-Family Decisions
 
-### PL-30: Godot crash — null instance on diplomacy button after missed proposal result
-
-**Priority:** P1 — CRASH
-**Source:** Playtest Session D (Apr 10, 2026)
-
-#### Reproduction
-
-1. Propose non-aggression pact with Saxony, send it
-2. End turn — Saxony's reply arrives but another popup (e.g. incoming AI proposal) takes priority
-3. Next turn, click Diplomacy button (F1 wizard)
-4. Godot crashes: `attempt to call function add_output on a base null instance`
-
-#### Problem
-
-When a proposal result arrives but is masked by a higher-priority popup, the result data may be consumed/cleared before the player sees it. Opening the diplomacy wizard then triggers a call to `add_output` on a null node reference.
-
-#### Needs Analysis
-
-- Which script has the `add_output` call? (`main.gd`, `diplomacy_wizard.gd`, or a popup script?)
-- Is the null node the terminal RichTextLabel, or a popup-internal node?
-- Does the proposal result get cleared by `_include_popup_passthroughs()` even when never displayed?
-- Is this a scene tree ordering issue (`@onready` node path mismatch)?
-- Related to PL-27 — blocking popup prevents result popup, stale state causes crash
-
-#### Files to investigate
-1. `main.gd` — `add_output` function, `_on_command_result()` popup routing
-2. `diplomacy_wizard.gd` — does `open_for_nation()` assume terminal node exists?
-3. `dialog_manager.gd` — modal popup priority, does consuming one popup clear data needed by another?
-4. `cooldown_manager.py` / `world_state.py` — popup queue priority ordering
+- `PL-30` absorbs both diplomacy-wizard crash paths: Step 1 nation rendering and Step 2 preview rendering. Both failures come from the same masked-result plus coarse `dialogue_pending` contract and the same null-prone `add_output()` recovery path.
+- `PL-27` absorbs the nearby same-family command-guard failures on `status`, `help`, `economy`, `treasury`, and `finances`, plus the active-envoy count mismatch, envoy-button recovery failure, and remaining popup handlers that still synthesize parser commands. `PL-33` remains only as a duplicate-candidate verification gate.
+- `PL-34` is the queue/expiry branch of `PL-27`. Do not build a separate UX track for it.
+- `PL-32` absorbs all duplicate proposal/clause display maps and raw-token fallback leaks on the active diplomacy popup paths.
+- `PL-29` absorbs backend `/new_game`, pause-menu wiring, frontend local-state reset, and autosave semantics as one restart contract.
 
 ---
 
-### PL-31: Capital-loss instant defeat still live + broken regression test
+## Architecture Blocker Decision
 
-**Priority:** P1 — DESIGN
-**Source:** GPT Audit (Apr 10, 2026) — confirmed via direct reproduction
-
-#### Problem
-
-Capital capture still causes instant defeat despite docs and a regression test claiming the rule was removed.
-
-**Evidence (GPT audit verified):**
-- `backend/game_logic/turn_manager.py:836-845` — capital-capture defeat branch is live code
-- `tests/test_playtest_bugfixes.py:52-74` — regression test targets `Ile-de-France` (not a real region key), so it passes vacuously while `Paris` still triggers defeat
-- Direct reproduction: setting `world.regions["Paris"].controller = "Prussia"` returns `{"game_over": True, "result": "defeat", "reason": "Your capital has fallen!"}`
-- `docs/STATUS.md` calls bug-fix status "ALL CLEAR" — false on this core rule
-
-#### Why this matters
-
-- Contradicts diplomacy design where land can change hands through treaties
-- Unfair: player can lose to a single AI flanking move with no recovery chance
-- The regression test is a false negative — it tests a nonexistent region key
-
-#### Relationship to PL-28
-
-PL-28 is about missing *warning* before defeat. PL-31 is about whether capital-loss defeat should exist *at all*. They're related but independent:
-- If capital-loss defeat stays: PL-28 still needs a warning system
-- If capital-loss defeat is removed: PL-28 shifts to region-threshold defeat warnings
-
-#### Proposed fix (short-term consistency)
-
-1. **Option A (remove):** Delete the capital-capture defeat branch in `turn_manager.py`. Replace with softer consequences (morale penalty, authority drop, coalition threat).
-2. **Option B (keep but fix test):** If the rule stays, fix the regression test to target `Paris` and update docs to stop claiming it was removed.
-3. **Either way:** Fix `tests/test_playtest_bugfixes.py` to use `Paris` (valid region key), not `Ile-de-France`.
-
-**GPT audit recommendation:** Remove instant capital-loss defeat. It contradicts the game's identity as a strategic/diplomatic game where setbacks are recoverable.
-
-#### Files
-- `backend/game_logic/turn_manager.py` (lines 836-845 — defeat branch)
-- `tests/test_playtest_bugfixes.py` (lines 52-74 — broken test)
-- `docs/STATUS.md` (false "ALL CLEAR" claim)
+- Sessions 6-8 do not move earlier as full sessions.
+- Only the bug-owned slices needed to close the active PL items ship earlier:
+  - Session 2: mailbox/recovery surface, active-plus-queued count contract, typed responses for affected popups
+  - Session 3: backend-owned display formatting for active diplomacy popups
+- Broader `/command` unification, popup registry cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
 
 ---
 
-### PL-26: Combat feels hopeless — no clear path to winning battles
+## Session Order
 
-**Priority:** P2 — UX / BALANCE
-**Source:** Playtest Session D (Apr 10, 2026)
+### Session 1 - Stability And Defeat Truth
 
-#### Problem
+**Items:** `PL-30`, `PL-31`
 
-4 consecutive attacks with Ney (72k troops, aggressive +15%) against Wellington (53k troops) all resulted in "defender tactical victory." Player never won a single battle across two full sessions. Wellington's defensive stance (+15%) + Hills terrain (+15%) + cautious personality (+10% outnumbered) stack to near-invincibility on defense.
+**Goal:** remove the crash and align defeat-state truth across code, tests, and docs.
 
-No clear path to winning: attacking repeatedly bleeds troops until forced retreat, then 3-turn recovery. By recovery, enemy AI has retaken territory.
+**Exit criteria**
 
-#### GPT audit corroboration
+- Opening Diplomacy after a masked proposal result no longer crashes Godot.
+- Capital capture no longer contradicts the intended rule or its regression coverage.
+- `docs/STATUS.md` no longer implies the capital-loss issue is already fixed.
 
-GPT audit Finding #7 confirms this is a **teaching/setup problem, not a pure balance problem**:
-- Combat system IS deep — bombardment, coordination, and setup play exist
-- The common "Ney attacks Wellington" opener commits the player before the game teaches the counters
-- The obvious early action is punishing before the player learns alternatives
+### Session 2 - Diplomacy Interrupt Contract
 
-**GPT recommendation:** Keep combat depth. Surface likely outcomes and key counters earlier. Ensure at least one obvious early French preparation line is visibly better than the naive opener.
+**Items:** `PL-27`, `PL-34`, `PL-33` duplicate check
 
-#### Needs Analysis
+**Goal:** enforce the hard-stop vs soft-stop split, provide a real recovery surface for soft-stop diplomacy, and stop silent expiry/drop behavior.
 
-- Are defender bonuses stacking correctly or too generous?
-- Is attacker getting appropriate bonuses for numerical superiority?
-- Should the player be coached toward flanking / multi-marshal coordination / bombardment?
-- Is the starting situation (Ney alone vs Wellington on Hills) a balance trap?
+**Exit criteria**
 
-#### Files to investigate
-1. `combat.py` — `resolve_combat()`, terrain bonuses, defender advantage
-2. `combat_executor.py` — attack execution, coordination bonuses
-3. `marshal.py` — `get_attack_modifier()`, `get_defense_modifier()`
-4. `enemy_ai.py` — does AI stack advantages unfairly?
-5. `region.py` — terrain modifier values
+- Soft-stop diplomacy no longer blocks ordinary commands.
+- Active plus queued diplomatic work is visible and reopenable.
+- Expiry and overflow no longer resolve unseen proposals silently.
+- `status` is verified after the guard split and either closes as a duplicate or remains as a true separate bug.
 
----
+### Session 3 - Diplomacy Display Contract
 
-### PL-27: AI proposal spam blocks all commands
+**Items:** `PL-32`
 
-**Priority:** P2 — UX
-**Source:** Playtest Session D (Apr 10, 2026)
+**Goal:** make the backend the single owner of player-facing diplomacy labels once the Session 2 transport contract is stable.
 
-#### Problem
+**Exit criteria**
 
-Every turn, AI nations send diplomatic proposals that block ALL other commands until the player responds. Player cannot even type "status" without getting "I don't understand that choice, Sire." During playtest, 5+ proposals arrived in 7 turns, several from the same nation after rejection.
+- Incoming proposal, counter-offer, sabotage, and fallback popup text all come from the same backend formatter.
+- Godot stops rebuilding proposal labels from raw identifiers.
 
-#### GPT audit corroboration
+### Session 4 - First-Hour Pressure Cleanup
 
-GPT audit Finding #3 + Follow-up #2 confirm this and provide architectural analysis:
+**Items:** `PL-28`, `PL-26`
 
-**Root cause (GPT audit):** Two separate issues compounding:
-1. **Frequency:** AI proposals generate too aggressively relative to cooldowns
-2. **Blocking:** The command guard blocks on ANY pending diplomatic dialogue, not only blocking ones (`executor.py:460-478`, `main.py:605-620`)
+**Goal:** remove unfair defeat surprise and make the first combat lesson legible without flattening combat depth.
 
-**GPT structural recommendation:**
-- Keep marshal objections blocking (true decision points)
-- Make incoming AI proposals **non-blocking and dismissible**
-- If ignored, auto-reject or expire them after one turn instead of freezing the command loop
-- The dialogue lifecycle already supports non-blocking expiry (`dialogue_manager.py:78-97`) — the guards just need to stop treating every pending dialogue as blocking
-- Route dialogue/interrupt responses BEFORE parser invocation to reduce brittleness (`main.py:578-638` — parser-first routing adds friction)
+**Exit criteria**
 
-**Evidence:**
-- Objection hard-stop: `executor.py:427-433`
-- AI proposals explicitly blocking: `ai_diplomacy.py:823-855`
-- Command guard blocks all dialogues: `executor.py:460-478`
-- Parser-side guard: `main.py:605-620`
-- 7-turn passive probe still produced 3 incoming AI proposals (confirmed during GPT audit)
+- Players receive an explicit defeat-imminent warning before the live loss rule fires.
+- The obvious early French attack line is no longer a hidden trap with no surfaced counterplay.
 
-#### Proposed fix (two-part)
+### Session 5 - Restart Flow
 
-**(A) Reduce frequency:** Longer rejection cooldowns (currently 1-2 turns, should be 3-5). Check anti-spam logic in `ai_diplomacy.py` P1-P7 triggers.
+**Items:** `PL-29`
 
-**(B) Non-blocking proposals:** Split dialogue guard into hard-stop (objections) and soft-stop (AI proposals). Soft-stop dialogues show as notifications, player responds when ready. If ignored for 1 turn, auto-reject with standard cooldown.
+**Goal:** allow a clean restart from the live client/server flow without manual process kill or stale autosave leakage.
 
-**Concrete UX direction:** Introduce a persistent diplomacy "desk" / "mailbox" for soft-stop items. Incoming proposals, counter-offers, and similar non-urgent diplomatic messages should land there instead of freezing the command loop. The player can open the desk from the HUD or by command, review pending items, and answer them through typed option ids. Hard-stop crises still interrupt immediately.
+**Exit criteria**
 
-#### Files to investigate
-1. `ai_diplomacy.py` — proposal generation frequency, cooldown checks
-2. `executor.py` — dialogue guard (lines 460-478)
-3. `main.py` — command routing when incoming proposal pending (lines 578-638)
-4. `dialogue_manager.py` — non-blocking expiry support (lines 78-97)
-5. `turn_manager.py` — enemy phase proposal generation
-6. `cooldown_manager.py` — proposal cooldown durations
-
-#### Modal/queue follow-up (Apr 10 addendum)
-
-The deeper modal audit tightened this further:
-
-- The real bug is broader than AI proposal frequency. `executor.py` and `main.py` still hard-stop on any pending diplomatic dialogue, even though `meta_executor.py` already distinguishes blocking vs non-blocking on `end_turn`.
-- The remaining popup handlers in `main.gd` still leak back through `send_command` for incoming proposals, sabotage confrontation, vassal rebellion, and diplomatic objections. Alliance paradox is already on the typed endpoint; the rest should match it.
-- Recommended hard-stop taxonomy:
-  - Hard-stop: treaty-break confirmation, alliance paradox.
-  - Soft-stop: incoming proposal, counter-offer, conflict alert.
-  - Hybrid: sabotage confrontation and vassal rebellion should not freeze normal commands, but they should auto-default or force resolution by end-turn.
-- Best-fit UX pattern: a Talleyrand "desk" / diplomatic mailbox that accumulates soft-stop items until the player opens them. That gives proposals a visible home, avoids silent expiry, and prevents the terminal from being hijacked by low-urgency interruptions.
-
-That means PL-27 should now be treated as the umbrella "diplomacy interrupt contract" fix, not just a cooldown tweak.
+- A supported `POST /new_game` contract exists.
+- The pause menu exposes it.
+- Autosave/restart behavior is explicit and regression-tested.
 
 ---
 
-### PL-28: No warning before defeat — sudden game over
+## Active Bug Specs
 
-**Priority:** P2 — UX
-**Source:** Playtest Session D (Apr 10, 2026)
+### PL-30: Godot crash after a masked proposal result
 
-#### Problem
+**Problem statement**
 
-Game ended at turn 7 with "The war is over" and `victory: defeat`. Player went from 8 to 5 regions with no warning that defeat was imminent. No "you are about to lose" notification, no last-stand mechanic, no chance to react.
+A proposal result can be hidden behind a higher-priority popup, then the next Diplomacy-button interaction crashes Godot with `attempt to call function add_output on a base null instance`.
 
-#### GPT audit corroboration
+**Confirmed evidence**
 
-GPT audit Finding #1 and Follow-up #1 confirm defeat-state is inconsistent:
-- Capital-loss defeat is still live (see PL-31)
-- Region-threshold defeat also exists
-- Code, tests, and docs disagree about what the defeat rules are
-- **GPT recommendation:** Make defeat-state truth consistent NOW. Align code, tests, and docs on what causes defeat before any larger victory redesign.
+- Playtest Session D reproduction: send a proposal, let a higher-priority popup win, then open Diplomacy on the next turn and hit the crash.
+- The current popup pipeline only forwards one winner per response cycle through `_include_popup_passthroughs()`.
+- The frontend crash string points at a stale/null `add_output` path rather than a cleanly recoverable deferred result.
+- `diplomacy_wizard.gd` has two matching fallback branches: `_render_nations()` and `_render_preview()` both close the wizard and call `get_node("/root/Main").add_output(...)` whenever `dialogue_pending` is true.
+- `/command` still has an enemy-phase path that consumes `proposal_result_popup` outside the main response builder, so proposal-result ownership is already split.
 
-#### Needs Analysis
+**Root-cause notes**
 
-- What is the exact defeat condition? (Region count? Capital lost? Both?)
-- Should there be a 1-2 turn warning ("France is on the verge of collapse")?
-- Should the notification system flag critical territory loss?
-- Is the threshold too aggressive for early game?
-- EU4 comparison: war exhaustion, stability, surrender conditions are all visible
+- `_include_popup_passthroughs()` only surfaces one winning popup per response cycle, so lower-priority proposal results can remain pending after a different popup displays first.
+- The diplomacy preview contract is too coarse. Step 1 preview in `backend/main.py` and Step 2 preview in `backend/game_logic/diplomacy.py` both collapse multiple states into `dialogue_pending`, even when the real condition is "recoverable proposal result is still pending."
+- The frontend wizard treats that coarse flag as a fatal block and routes through a null-prone terminal logging path instead of a structured recovery surface.
+- Step 1 and Step 2 are the same failure family and stay under `PL-30`; do not split them into separate work.
 
-#### Files to investigate
-1. `world_state.py` — game over / defeat condition check
-2. `turn_manager.py` — end-of-turn defeat evaluation (lines 803-845)
-3. `notifications.py` — add defeat-imminent notification type
-4. `dispatch.py` — morning dispatch could warn about critical territory loss
+**Exact code surfaces**
+
+- `backend/main.py` - `build_base_response()`, `_include_popup_passthroughs()`, enemy-phase `/command` proposal-result handling, `/diplomatic_preview`.
+- `backend/game_logic/diplomacy.py` - `get_available_diplomatic_actions()`, `get_diplomatic_preview()`.
+- `godot-client/project-sovereign/scripts/main.gd` - `add_output()`, `_on_proposal_result_dismissed()`, `_on_diplomacy_button_pressed()`, `_open_diplomacy_wizard()`.
+- `godot-client/project-sovereign/scripts/diplomacy_wizard.gd` - `_render_nations()`, `_render_preview()`.
+
+**Exact failure modes**
+
+- A higher-priority popup wins the current response, leaving `proposal_result_popup` deferred.
+- The player reopens diplomacy. Step 1 or Step 2 sees only `dialogue_pending = true`, not the real deferred-result state.
+- The wizard closes itself and tries to log via `get_node("/root/Main").add_output(...)`.
+- If that node lookup is invalid in the current tree state, Godot throws the observed null-instance crash.
+- Even when no crash occurs, the deferred result is still on an ambiguous contract and can be lost or redisplayed incorrectly.
+
+**Edge cases / sibling failure scan**
+
+- Reopen diplomacy from the button and from any shortcut/hotkey path.
+- Reopen on the same turn as the masked popup and after a turn advance.
+- Reproduce both Step 1 nation-list rendering and Step 2 action preview rendering.
+- Verify the flow when a proposal result is pending but a true blocking dialogue is not.
+- Verify dismissal does not create double-delivery on the next response cycle.
+
+**State-transition risks**
+
+- Clearing or dismissing the proposal result must happen in one source of truth; otherwise the same popup can reappear after the wizard or after enemy phase.
+- `_on_proposal_result_dismissed()` currently refreshes war data and input state only. If proposal-result ownership moves, the dismissal hook must clear the retained result state as well.
+- Save/load and turn-advance flows must not resurrect a stale deferred result after it has been dismissed.
+
+**Backend / frontend contract risks**
+
+- `dialogue_pending` is not precise enough for the diplomacy wizard. The fix needs an explicit distinction between a blocking diplomacy dialogue and a recoverable deferred result.
+- Wizard-side code should not depend on a hard-coded `/root/Main` lookup to report contract state.
+- The fix should not pull full Session 6 popup-registry work earlier; it only needs to restore single-source ownership for proposal results.
+
+**Acceptance criteria**
+
+- Reproducing the original masked-result flow no longer crashes the client.
+- A proposal result that loses popup priority remains recoverable until it is displayed or explicitly dismissed.
+- Opening the Diplomacy wizard after a masked result distinguishes "blocking dialogue" from "deferred result" instead of treating both as generic `dialogue_pending`.
+- Neither Step 1 nor Step 2 of the wizard calls the null-prone `get_node("/root/Main").add_output(...)` fallback for this flow.
+- Lower-priority proposal results are not discarded just because another popup displayed first.
+
+**Regression test matrix**
+
+- Backend response test: a lower-priority `proposal_result_popup` survives a higher-priority popup cycle and remains present until dismissed.
+- Backend preview test: `/diplomatic_preview` and the Step 2 preview path return a structured non-crashing state when a deferred proposal result exists.
+- Frontend smoke: `proposal reply masked -> next turn diplomacy open` via diplomacy button.
+- Frontend smoke: the same flow through Step 2 preview and result dismissal.
+- Re-run popup contract suites after the ownership change.
+
+**Dependencies / blockers**
+
+- No upstream blocker.
+- Re-check this flow after Session 2 if mailbox semantics touch the same proposal-result surfaces.
+
+**Implementation order inside Session 1**
+
+1. Normalize proposal-result ownership so `_include_popup_passthroughs()` and the `/command` enemy-phase path stop diverging.
+2. Replace the coarse wizard gating path with an explicit backend/frontend distinction between blocking dialogue and deferred result.
+3. Remove the null-prone `add_output()` recovery call from both Step 1 and Step 2 render paths.
+4. Add persistence tests for masked results, then rerun the original repro flow manually.
 
 ---
 
-### PL-32: Raw diplomacy labels can leak into popups
+### PL-31: Capital-loss instant defeat is still live, and its regression test is broken
 
-**Priority:** P2 — UX
-**Source:** GPT Audit Follow-up #3 (Apr 10, 2026)
+**Problem statement**
 
-#### Problem
+The game still hard-loses when Paris falls, even though the project history and regression test claim that capital-loss defeat was removed.
 
-Diplomacy display formatting is split across backend and Godot with duplicated display maps, creating risk of raw internal labels (e.g. `Open_borders`, `NON_AGGRESSION`) leaking into player-facing popups.
+**Confirmed evidence**
 
-**Evidence (GPT audit):**
-- Backend proposal display map: `display_names.py:125-139`
-- Incoming popup keeps its own separate display map: `incoming_proposal_popup.gd:18-28`
-- Backend fallback formats proposal clauses ad hoc: `main.py:233-269`
-- Proposal term display rebuilt separately in dialogue helpers: `diplomatic_dialogue.py:633-705`
+- `backend/game_logic/turn_manager.py::_check_victory_conditions()` still returns defeat on captured capital.
+- `tests/test_playtest_bugfixes.py::TestCapitalLossNotDefeat` targets `Ile-de-France`, which is not a live region key, so the test passes vacuously.
+- Direct reproduction with `world.regions["Paris"].controller = "Prussia"` returns `Your capital has fallen!`.
+- Historical status text still contains a now-false March 9 claim that capital-loss defeat was removed.
 
-GPT audit did not reproduce a literal raw label during testing, but confirmed the structure is brittle enough that raw enum/action-style labels can leak through fallback paths.
+**Root-cause notes**
 
-#### Proposed fix
+- `_check_victory_conditions()` still contains the obsolete capital-capture defeat branch even though the intended rule and prior notes say capital loss should be survivable.
+- The regression test never exercised the live branch because it points at a nonexistent region key.
+- `docs/STATUS.md` inherited the false "already fixed" claim, so code, test, and docs all drifted together.
 
-- Make backend the single owner of diplomacy display strings
-- Send only final human-readable proposal/term labels to Godot
-- Add a regression test that fails if popup payload text contains raw underscore tokens or enum-style treaty names
+**Exact code surfaces**
 
-#### Files
-- `backend/display_names.py` (single source — extend coverage)
-- `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd` (remove duplicate display map, read from backend)
-- `backend/main.py` (lines 233-269 — ad hoc formatting)
-- `backend/game_logic/diplomatic_dialogue.py` (lines 633-705 — separate display rebuilding)
+- `backend/game_logic/turn_manager.py` - `_check_victory_conditions()`.
+- `tests/test_playtest_bugfixes.py` - `TestCapitalLossNotDefeat`.
+- `docs/STATUS.md` - current-phase summary plus the March 9 historical note that now needs a superseded marker.
 
-#### Modal/queue follow-up (Apr 10 addendum)
+**Exact failure modes**
 
-The new audit found two more live leak paths:
+- Capturing Paris immediately ends the campaign even while France still has armies and other regions.
+- The false-negative regression test allows the obsolete branch to survive future refactors.
+- Downstream warning work in `PL-28` would otherwise target the wrong defeat rule.
 
-- `backend/models/world_state.py:4521-4531` builds counter-offer popup clauses directly from raw clause ids, making it the strongest current leak path.
-- `backend/commands/diplomatic_defiance.py:379-403` and `backend/game_logic/ai_diplomacy.py:883-904` still own separate proposal/clause formatting logic instead of reusing the backend display helpers.
+**Edge cases / sibling failure scan**
 
-So PL-32 is no longer just "remove the Godot duplicate map." It now needs a full backend-owned proposal/clause formatter that feeds incoming proposal popups, counter-offer popups, and sabotage summaries from one contract.
+- Capital loss with surviving armies and surviving territory must continue the game.
+- Zero armies must still lose.
+- Zero controlled regions must still lose.
+- Time-expiry victory/defeat logic must remain unchanged.
+
+**State-transition risks**
+
+- Removing the capital-loss branch must not weaken the existing `game_over` flow for the real defeat paths.
+- Any defeat summary, dispatch text, or end-turn path that referenced capital loss as terminal must be aligned to the surviving rules before `PL-28` starts.
+
+**Backend / frontend contract risks**
+
+- The live defeat rule is backend-owned; frontend and docs must not preserve stale capital-loss wording after the code fix.
+- The repaired regression test must target the real live region key so future refactors fail loudly if the branch returns.
+
+**Acceptance criteria**
+
+- Capturing Paris alone does not end the game while France still has territory or armies.
+- The regression test targets `Paris` and fails if capital-loss defeat comes back.
+- `docs/STATUS.md` no longer implies this bug is already resolved.
+- PL-28 warning logic is based on the surviving defeat rules, not the obsolete capital-loss branch.
+
+**Regression test matrix**
+
+- Repair `tests/test_playtest_bugfixes.py` to use `Paris`.
+- Add or keep a direct defeat-state test that proves capital loss alone is non-fatal.
+- Re-run defeat-condition coverage around zero-territory, all-marshals-destroyed, and time-expiry paths.
+
+**Dependencies / blockers**
+
+- Unblocks PL-28.
+- If design direction changes later and capital loss becomes fatal again, reopen PL-31 rather than silently changing the rule.
+
+**Implementation order inside Session 1**
+
+1. Remove the capital-loss defeat branch from `_check_victory_conditions()`.
+2. Repair the regression test to target `Paris` and add a direct non-fatal capital-loss assertion.
+3. Re-run defeat-path tests to confirm only the intended loss rules remain.
+4. Update `docs/STATUS.md` so the historical note is explicitly marked as disproven rather than silently left in place.
 
 ---
 
-### PL-33: "status" command falls through to Berthier recovery
+### PL-27: Diplomacy interrupt contract is broken
 
-**Priority:** P2 — UX
-**Source:** GPT Audit Follow-up (Apr 10, 2026) — manual probe
+**Problem statement**
 
-#### Problem
+Soft-stop diplomacy is still treated like a hard-stop crisis. Incoming AI proposals and related items block ordinary commands, the player has no authoritative mailbox/recovery surface, pending counts are wrong, and several popup buttons still route back through stringly parser commands.
 
-Typing "status" — arguably the most natural first command a new player would try — falls through to Berthier's recovery message instead of producing a game status overview. The `help` command works well and returns a strong reference, but "status" is the intuitive first-hour command that fails.
+**Confirmed evidence**
 
-**GPT audit context:** This was noted during manual command probes. "status" fell through and hit Berthier recovery. The game has a status action (`_execute_status` in `meta_executor.py`) but the parser may not be routing "status" correctly, or a dialogue guard may be intercepting it.
+- `backend/commands/executor.py` and `backend/main.py` both hard-stop on any `pending_diplomatic_dialogue`.
+- `backend/game_logic/ai_diplomacy.py` still delivers incoming proposals with `blocking = True`.
+- `backend/main.py::build_base_response()` and `backend/game_logic/diplomatic_ledger.py` both derive `pending_envoy_count` from queue length only, ignoring an active pending dialogue.
+- `godot-client/project-sovereign/scripts/main.gd::_on_envoy_clicked()` only prefills `Talleyrand, report on the waiting envoy`; it does not open a real recovery surface.
+- `backend/campaign_log.py` does not retain proposal-arrival events, so masked or auto-rejected opportunities are not authoritatively recoverable from history.
+- Remaining popup handlers still use parser-shaped command text instead of typed dialogue responses.
 
-#### Analysis
+**Root-cause notes**
 
-Mock parser DOES recognize "status" (`llm_client.py:641` — exact match `command_lower.strip() == "status"`). Parser routes it correctly. GPT audit likely hit this while a dialogue guard was active (PL-27 — incoming proposal blocking all commands). If PL-27 is fixed (non-blocking proposals), this may resolve automatically.
+- Both backend command paths treat any `pending_diplomatic_dialogue` as a global blocker before ordinary command handling can continue.
+- The codebase already has a blocking taxonomy signal (`dialogue.get("blocking")`, `dialogue_manager.is_blocking()`, `meta_executor` special-casing for `end_turn`), but that taxonomy is not enforced consistently across `/command`, executor routing, previews, or UI entry points.
+- Incoming proposals are still delivered as `blocking = True`, which collapses mailbox-style diplomacy into crisis-style interruption.
+- The pending-envoy badge is not authoritative because it ignores the active pending item and counts only queued items.
+- Recovery is not authoritative because the envoy button only pre-fills parser text and several popup responses still synthesize English commands instead of stable option ids.
+- Same-family command failures on `status`, `help`, `economy`, `treasury`, and `finances` belong here. Do not create new PL items for those paths unless a post-fix repro survives the contract cleanup.
 
-**Verify:** Reproduce with no pending dialogues. If "status" works cleanly with no dialogue active, this is a duplicate of PL-27 and can be closed.
+**Exact code surfaces**
 
-#### Files to investigate
-1. `executor.py` — dialogue guard may block before parsing
-2. `llm_client.py:641` — mock parser handles "status" correctly
-3. `meta_executor.py` — `_execute_status()` exists and should be reachable
+- `backend/commands/executor.py` - pending-dialogue guard in `execute()`.
+- `backend/main.py` - `/command` dialogue guard, `build_base_response()`, typed dialogue endpoint.
+- `backend/game_logic/ai_diplomacy.py` - incoming proposal delivery, cooldown/frequency behavior, queue handling.
+- `backend/game_logic/diplomatic_ledger.py` - pending envoy count and related visibility.
+- `backend/models/dialogue_manager.py` and `backend/models/world_state.py` - stale-dialogue clearing and turn-advance behavior.
+- `backend/campaign_log.py` - diplomacy event whitelist/history retention.
+- `godot-client/project-sovereign/scripts/main.gd` - incoming proposal response handlers, envoy click target, remaining `send_command` fallbacks.
+- `godot-client/project-sovereign/scripts/top_bar.gd` and related diplomacy UI entry points - badge/count presentation for the mailbox surface.
+
+**Exact failure modes**
+
+- A soft-stop incoming proposal freezes `status` and other ordinary commands because the guard fires before command execution.
+- The active pending proposal is invisible to the top-bar badge if the queue is empty.
+- Clicking the envoy badge does not reopen the pending item; it only sends a parser phrase and depends on brittle keyword recovery.
+- Popup handlers for incoming proposal, objection, sabotage, and rebellion still route through parser text, which can drift from valid dialogue option ids.
+- Queue promotion, dismissal, and stale-dialogue cleanup can all happen without an authoritative mailbox/history record of what the player actually missed.
+
+**Edge cases / sibling failure scan**
+
+- No pending dialogue: normal command execution must remain unchanged.
+- Hard-stop dialogue active: command blocking must remain intact for true hard-stop crises.
+- Soft-stop dialogue active with no queue: read-only and ordinary non-dialogue commands must still work.
+- Soft-stop dialogue active with queued items behind it: badge/count and recovery surface must show both active and queued work.
+- `end_turn` remains special: it may still require explicit handling or auto-default behavior for certain dialogue families.
+- Same-family nearby commands `status`, `help`, `economy`, `treasury`, and `finances` must all be verified under the new guard split.
+
+**State-transition risks**
+
+- Reclassifying dialogue types without aligning stale cleanup can cause items to clear unexpectedly on turn advance.
+- Active-to-queued-to-history transitions must update the badge/count exactly once at each step.
+- If only one backend command path is fixed, the parser and direct executor paths will drift and create inconsistent behavior.
+- Typed popup responses must not bypass the same world-state transitions used by parser-driven dialogue handling.
+
+**Backend / frontend contract risks**
+
+- The response contract needs more than a coarse `dialogue_pending` boolean. The frontend needs an authoritative distinction between hard-stop dialogue, active soft-stop item, and queued mailbox items.
+- The envoy badge must be derived from the same backend-owned count in every response path.
+- Recovery should reuse the existing envoy/desk surface rather than inventing a second parallel inbox flow.
+- Popup handlers should send stable response ids to `/respond_to_diplomatic_dialogue`, not synthesized English text.
+
+**Acceptance criteria**
+
+- Hard-stop vs soft-stop taxonomy is enforced in both backend command paths.
+- For the current fix phase, the minimum taxonomy is:
+  - hard-stop: `force_declare_war_confirmation`, `alliance_paradox`
+  - soft-stop mailbox: `incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`
+  - hybrid soft-stop with end-turn default: `sabotage_confrontation`, `vassal_rebellion_imminent`
+  - local planning flow, not global blocker: `proposal_confirm`, `advisory`, `mission`, `terms_guidance`, `ultimatum_demand_wizard`
+- Incoming proposals, counter-offers, conflict alerts, and similar soft-stop items no longer freeze ordinary commands.
+- Soft-stop diplomacy has a visible mailbox or desk surface with a trustworthy badge/count.
+- Pending envoy count includes both the active soft-stop item and queued items.
+- Envoy click opens the recovery surface instead of only prefilling terminal text.
+- Auto-reject, dismissal, and expiry outcomes are recorded in dispatch/history so the player can tell what happened.
+- Popup choices for dialogue-shaped diplomacy flows use typed response ids instead of synthesized English commands.
+
+**Regression test matrix**
+
+- Extend `tests/test_dialogue_manager.py` for hard-stop vs soft-stop classification and stale-clear behavior.
+- Extend `tests/test_bugfix_proposal_flow.py` for non-blocking proposals, mailbox recovery, queued visibility, and auto-outcome logging.
+- Extend `tests/test_endpoint_wiring.py` or `tests/test_response_pipeline.py` for authoritative pending counts and mailbox payload shape.
+- Add command-path regressions for `status`, `help`, `economy`, `treasury`, and `finances` with no dialogue, soft-stop dialogue, and hard-stop dialogue.
+- Re-run popup response tests after migrating the affected handlers to typed response ids.
+
+**Dependencies / blockers**
+
+- Root dependency for PL-34 and PL-33.
+- Blocks PL-32.
+- Blocks diplomacy refinement items that need a trustworthy interrupt model, especially R162.
+
+**Implementation order inside Session 2**
+
+1. Normalize the blocking taxonomy and enforce it in both backend command paths before parser execution.
+2. Reclassify incoming proposals and other soft-stop flows so they stop acting like hard-stop crises.
+3. Make the pending-envoy count authoritative by including both the active soft-stop item and queued items in one backend-owned contract.
+4. Wire the envoy badge to a real recovery surface and migrate the affected popup handlers to typed dialogue responses.
+5. Add history/dispatch outcomes for arrival, dismissal, expiry, overflow, and auto-default behavior.
+6. Run the `PL-33` duplicate verification pass last, after the guard split and recovery surface are both live.
 
 ---
 
 ### PL-34: Queued diplomatic proposals can expire unseen behind blockers
 
-**Priority:** P2 — UX / CONTRACT
-**Source:** GPT Audit Modal/Queue Addendum (Apr 10, 2026)
+**Problem statement**
 
-#### Problem
+Queued proposals can age out or get dropped before the player ever sees them, so diplomacy is currently being resolved by hidden queue expiry and overflow rules instead of explicit player choice.
 
-When one blocking diplomatic dialogue sits unanswered, later proposals can queue and then expire before the player ever sees them. That means stacked diplomacy is being resolved by hidden timers and queue drops, not by explicit player choice.
+**Confirmed evidence**
 
-**Evidence (GPT audit):**
-- Queue expiry removes items after 3 turns: `ai_diplomacy.py:304-312`
-- Queue overflow keeps only the best 3 priorities: `ai_diplomacy.py:315-349`
-- Queued delivery expires old items before attempting delivery: `ai_diplomacy.py:1009-1024`
-- Blocking dialogues only clear on the stale-dialogue path: `dialogue_manager.py:78-97`, `world_state.py:4149-4151`
-- Source-level audit reproduction: a turn-5 Austria proposal stayed blocking through turns 6-7; a same-turn queued Prussian proposal expired on turn 8 before delivery, so it was never shown
+- Queue expiry removes proposals after three turns.
+- Queue overflow keeps only the top three items and silently drops the rest.
+- Queued delivery expires items before attempting delivery.
+- Blocking dialogues can linger until the stale-dialogue cleanup path, which lets unseen queued items die behind them.
+- The focused reproduction showed a later Prussian proposal expiring before it was ever surfaced because an Austrian blocker remained active first.
 
-#### Why this matters
+**Root-cause notes**
 
-- Hidden expiry makes diplomacy feel inconsistent and unfair.
-- It undermines the whole "respond later" direction for soft-stop proposals.
-- It also makes bug reports harder to reason about, because the player never sees the proposal that was silently dropped.
+- Queue age currently starts at generation time, not at first player visibility.
+- `try_deliver_queued_proposal()` expires queued work before attempting delivery, so a proposal can die on the same turn it would otherwise become visible.
+- Queue overflow silently drops lower-ranked items once `QUEUE_MAX_SIZE` is exceeded.
+- There is no authoritative mailbox/history record at enqueue time, so "waiting envoy" state is invisible until delivery succeeds.
+- This belongs under `PL-27` because the real fix is the mailbox/visibility contract, not a separate proposal subsystem.
 
-#### Proposed fix
+**Exact code surfaces**
 
-- Make incoming proposals and counter-offers soft-stop rather than true blockers
-- Base expiry on turns visible, or auto-reject with a notification/log entry instead of silently dropping hidden proposals
-- Add regression tests for hidden-expiry, stacked queue, and queue overflow behavior
-- Preferred UX: queued soft-stop items should live in a visible diplomacy mailbox/desk with badge count, not in an invisible timeout queue
+- `backend/game_logic/ai_diplomacy.py` - `_expire_queue()`, `_enqueue_proposal()`, `_dequeue_best()`, `try_deliver_queued_proposal()`.
+- `backend/models/dialogue_manager.py` - stale-dialogue cleanup timing.
+- `backend/models/world_state.py` - dialogue clear path on turn advance.
+- `backend/game_logic/turn_manager.py` - delivery timing relative to turn flow.
+- Mailbox/count surfaces introduced by PL-27.
 
-#### Files
-1. `backend/game_logic/ai_diplomacy.py` — queue expiry, enqueue/dequeue, queued delivery
-2. `backend/models/dialogue_manager.py` — stale clearing timing
-3. `backend/models/world_state.py` — paired popup clearing at turn advance
-4. `backend/game_logic/turn_manager.py` — when queued proposals are eligible to surface
-5. `godot-client/project-sovereign/scripts/main.gd` / top-bar HUD — mailbox entry point and pending-count presentation
-6. `tests/test_dialogue_manager.py` / new integration tests — hidden-expiry and stacked queue coverage
+**Exact failure modes**
+
+- A queued proposal generated behind another blocker can expire before first surface.
+- Overflow beyond queue capacity silently discards proposals with no player-visible record.
+- Badge/count state does not reveal that proposals are waiting or that they were dropped/expired.
+- Clearing a blocker does not guarantee the player can inspect what arrived while that blocker was active.
+
+**Edge cases / sibling failure scan**
+
+- One active soft-stop item plus one queued item.
+- One hard-stop item plus queued proposals behind it.
+- Queue reaches capacity and receives one more proposal.
+- A blocker clears on the same turn an older queued item would otherwise expire.
+- Expiry, dismissal, and promotion all occur around turn advance or stale-dialogue cleanup.
+
+**State-transition risks**
+
+- Making queued arrivals visible at enqueue time must not double-count the item when it later becomes active.
+- Expiry and overflow outcomes must remove the item from badge counts exactly once.
+- Delivery-order policy should stay stable while visibility/accounting changes; do not mix count fixes with a ranking rewrite.
+
+**Backend / frontend contract risks**
+
+- If the mailbox payload only exposes the active item, queued proposals will remain invisible and this bug will survive under a new badge.
+- If expiry/overflow are only logged in history but not reflected in the active count, the top bar will drift out of sync.
+
+**Acceptance criteria**
+
+- Queued proposal arrival becomes visible immediately through the authoritative envoy/mailbox contract, even if another item is currently blocking delivery.
+- Unseen soft-stop proposals do not disappear silently.
+- Expiry and overflow create explicit recorded outcomes; they never remove an item without a player-visible record.
+- Delivery after the blocker clears preserves the existing queue policy unless a direct test proves the policy itself is wrong.
+- The player can review what arrived, what expired, and what was auto-rejected through the mailbox/history flow introduced by `PL-27`.
+
+**Regression test matrix**
+
+- Extend `tests/test_bugfix_proposal_flow.py` for blocker-behind-queue visibility, hidden-expiry conversion into recorded outcomes, and overflow recording.
+- Extend `tests/test_dialogue_manager.py` for promotion and stale-clear timing around queued items.
+- Add a regression proving that a queued proposal generated behind another soft-stop item is still visible in the mailbox and is either surfaced or explicitly logged before removal.
+
+**Dependencies / blockers**
+
+- Implement inside the PL-27 batch.
+- Depends on the new soft-stop/mailbox contract.
+
+**Implementation order inside Session 2**
+
+1. After the `PL-27` mailbox contract exists, make queued arrivals visible at enqueue time.
+2. Convert expiry and overflow into explicit recorded outcomes.
+3. Verify badge/count transitions across active, queued, expired, and dismissed states.
+4. Re-run the focused unseen-expiry repro before closing the item.
 
 ---
 
-### PL-29: No new game / restart endpoint
+### PL-33: `status` is blocked by the diplomacy guard and recovery path
 
-**Priority:** P3 — QOL
-**Source:** Playtest Session D (Apr 10, 2026)
+**Problem statement**
 
-#### Problem
+The first-hour command most players are likely to try, `status`, is currently being swallowed by the same diplomacy guard/recovery failure that blocks ordinary commands.
 
-No way to start a new game without killing and restarting the server. `/save` and `/load` exist but no `/new_game` or `/restart`. During playtesting: manual process kills + autosave deletion needed. Autosave persists defeated game state, so restarting sometimes loads the old game.
+**Confirmed evidence**
 
-#### Proposed fix
+- The parser already recognizes `status`.
+- `_execute_status()` exists and returns a valid intel report.
+- The observed failure path happened while an incoming diplomatic dialogue was active.
+- Current evidence does not show a clean no-dialogue reproduction.
 
-- Add `POST /new_game` endpoint that reinitializes `WorldState`
-- Optionally clear autosave on new game
-- Godot: "New Game" button in pause menu
+**Root-cause notes**
 
-#### Files
-1. `main.py` — add `/new_game` endpoint
-2. `save_manager.py` — optional autosave clearing
-3. `pause_menu.gd` — "New Game" button
+- Current evidence points to the same global-guard failure family as `PL-27`, not to a broken `status` implementation.
+- `meta_executor._execute_status()` already exists and is valid; the likely fault is that the guard fires before the command reaches it.
+- Same-family read-only commands should be verified together instead of patching `status` alone.
+
+**Exact code surfaces**
+
+- `backend/commands/executor.py` - pending-dialogue guard.
+- `backend/main.py` - parser-side dialogue guard.
+- `backend/commands/meta_executor.py` - `_execute_status()`.
+
+**Exact failure modes**
+
+- `status` is blocked when a soft-stop diplomacy item is pending.
+- The same failure family can also swallow other read-only commands that should remain available.
+- Shipping a separate `status` patch before the taxonomy fix risks treating the symptom and leaving the family bug alive.
+
+**Edge cases / sibling failure scan**
+
+- `status` with no dialogue pending.
+- `status` with soft-stop dialogue pending.
+- `status` with true hard-stop dialogue pending.
+- The same matrix for `help`, `economy`, `treasury`, and `finances`.
+
+**State-transition risks**
+
+- If `status` is special-cased instead of fixing the guard contract, the next read-only command will fail in the same way.
+
+**Backend / frontend contract risks**
+
+- None beyond the `PL-27` guard split; this item should not create new contract surfaces unless a post-fix repro survives.
+
+**Acceptance criteria**
+
+- After `PL-27` lands, `status` works with no pending dialogue.
+- After `PL-27` lands, `status` also works while soft-stop diplomacy is pending.
+- True hard-stop dialogue still blocks `status` where intended.
+- If a non-dialogue-guard failure still exists after those checks, keep `PL-33` open and split it into a true standalone bug.
+
+**Regression test matrix**
+
+- Add a focused command-path regression for `status` with no dialogue, with soft-stop dialogue, and with a true hard-stop dialogue.
+- Add the same verification sweep for `help`, `economy`, `treasury`, and `finances` under the owning `PL-27` test family.
+
+**Dependencies / blockers**
+
+- Blocked on PL-27.
+- Duplicate-candidate; do not ship separate code unless a post-PL-27 reproduction remains.
+
+**Implementation order inside Session 2**
+
+1. Leave `PL-33` untouched until the `PL-27` guard split, mailbox contract, and typed-response recovery path are live.
+2. Run the focused read-only command matrix.
+3. Close as duplicate if the matrix passes; keep open only if a non-guard repro remains.
 
 ---
 
-## GPT Audit — Architecture Notes (Not Bugs)
+### PL-32: Raw diplomacy labels can leak into popups
 
-The GPT audit (Apr 10, 2026) identified several architecture/scaling concerns. These are not bugs but inform future work. Full details in `docs/GPT_AUDIT_PLAN_RESULTS.md`.
+**Problem statement**
 
-| Finding | Category | Summary | Where It Lives |
-|---------|----------|---------|---------------|
-| Map renderer is prototype | Scaling | Circle-based 19-region renderer won't scale to 80-100 provinces | ROADMAP.md (art-blocked) |
-| `/command` bypasses `build_base_response()` | Architecture | Main command path assembles response manually | ARCHITECTURE_REFACTORING_PLAN.md |
-| AI uses omniscient queries | Scaling | `get_enemies_of_nation()` fine at 19 regions, unfair at 80+ | ARCHITECTURE_REFACTORING_PLAN.md |
-| Hardcoded nation defaults | Scaling | Inline nation dicts in world_state.py won't scale | ARCHITECTURE_REFACTORING_PLAN.md |
-| Diplomacy lacks rivalry pressure | Design | Alliance building too cheap, no forced choice | DESIGN_REFINEMENT.md (R160) |
-| `main.gd` popup routing chain | Architecture | Real modal ordering in early-return chain, not registry | ARCHITECTURE_REFACTORING_PLAN.md |
-| Remaining popup handlers still synthesize English commands | Architecture | Incoming proposal / sabotage / vassal / objection buttons still route through `send_command` | GPT_AUDIT_PLAN_RESULTS.md |
-| Blocking taxonomy not enforced | Architecture | `executor.py` and `main.py` still treat any pending dialogue as a hard stop | GPT_AUDIT_PLAN_RESULTS.md |
-| Historical audit docs stale | Docs | ARCHITECTURE_AUDIT_REPORT.md describes old state | Low priority cleanup |
+Proposal and clause display ownership is split across backend and Godot, so raw identifiers such as treaty enums or underscore tokens can leak into popups or degrade wording on fallback paths.
+
+**Confirmed evidence**
+
+- Backend and Godot both keep proposal display mappings.
+- `backend/main.py` still formats fallback proposal text ad hoc.
+- `backend/game_logic/diplomatic_dialogue.py` rebuilds clause display separately.
+- `backend/models/world_state.py` builds counter-offer popup clauses directly from raw clause ids.
+- `backend/commands/diplomatic_defiance.py` and `backend/game_logic/ai_diplomacy.py` still own separate formatting paths.
+
+**Root-cause notes**
+
+- Display ownership is split across `backend/display_names.py`, multiple backend helpers, and Godot popup scripts.
+- The strongest live raw-leak path is counter-offer popup construction in `world_state.py`, which still builds clauses from raw ids.
+- `_include_popup_passthroughs()`, `diplomatic_dialogue.py`, `ai_diplomacy.py`, and sabotage summary code all keep separate fallback formatting logic, so wording can drift even when raw ids do not leak.
+- The duplicate Godot proposal-type map is part of the same family and belongs here rather than in a new frontend-only item.
+
+**Exact code surfaces**
+
+- `backend/display_names.py` - canonical display source.
+- `backend/main.py` - popup safety-valve formatting.
+- `backend/game_logic/diplomatic_dialogue.py` - proposal/clause rendering helpers.
+- `backend/models/world_state.py` - counter-offer popup payload construction.
+- `backend/commands/diplomatic_defiance.py` - sabotage proposal summary formatting.
+- `backend/game_logic/ai_diplomacy.py` - secondary clause display map.
+- `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd` - duplicate proposal-type map and underscore fallback.
+
+**Exact failure modes**
+
+- Counter-offer popups can show raw clause ids such as `territory_cede`.
+- Proposal type labels can diverge between backend and Godot because both sides keep their own display maps.
+- Safety-valve fallback paths can degrade into inconsistent title-casing such as `Open_Borders` or `Non_Aggression`.
+- Sabotage and AI proposal summaries can describe the same clause family differently from incoming-proposal popups.
+
+**Edge cases / sibling failure scan**
+
+- Unknown or newly added clause ids should still render through one centralized fallback instead of leaking raw tokens.
+- Counter-offer, incoming proposal, sabotage, and fallback popup paths must all be tested together.
+- Legacy save data or modded clause ids should degrade consistently through the same formatter.
+
+**State-transition risks**
+
+- Removing the Godot-side map before all backend payloads are normalized can make some popups go blank.
+- If one popup path still ships raw ids after the formatter centralization, the bug will survive in a fallback path and be harder to detect.
+
+**Backend / frontend contract risks**
+
+- The backend should ship fully rendered labels plus canonical ids only where machine logic still needs them.
+- Godot should render provided display strings, not rebuild labels from ids.
+
+**Acceptance criteria**
+
+- Backend becomes the only owner of human-readable proposal and clause labels.
+- Incoming proposal, counter-offer, sabotage, and fallback popup paths all consume the same backend formatter.
+- Godot no longer rebuilds proposal labels from enum names or underscore replacement.
+- Unknown ids degrade through one centralized fallback formatter instead of leaking raw tokens.
+- Popup payload tests fail on raw tokens such as `NON_AGGRESSION`, `territory_cede`, or `Open_borders`.
+
+**Regression test matrix**
+
+- Add backend formatter tests for proposal type and clause rendering.
+- Extend popup payload contract tests so raw underscore or enum-style tokens fail.
+- Re-run proposal-flow and popup suites after removing the Godot duplicate map.
+
+**Dependencies / blockers**
+
+- Depends on Session 2 transport cleanup so the popup contract is stable before display ownership is collapsed.
+
+**Implementation order inside Session 3**
+
+1. Centralize proposal-type and clause-label rendering in `backend/display_names.py`.
+2. Replace backend duplicate formatters in `main.py`, `diplomatic_dialogue.py`, `world_state.py`, `diplomatic_defiance.py`, and `ai_diplomacy.py`.
+3. Remove the duplicate Godot proposal-type map and fallback formatting.
+4. Re-run popup payload tests, especially counter-offer and sabotage paths.
+
+---
+
+### PL-28: No defeat-imminent warning before game over
+
+**Problem statement**
+
+The player can cross from a damaged position into defeat without any clear "you are about to lose" warning in the notification or dispatch layer.
+
+**Confirmed evidence**
+
+- Current defeat-state rules are already inconsistent enough that the player cannot predict what will end the campaign.
+- The playtest loss happened without visible warning.
+- The fix must follow the surviving defeat rule after PL-31, not the obsolete capital-loss branch.
+
+**Root-cause notes**
+
+- `turn_manager.py` checks terminal defeat only; it has no near-defeat helper that can emit warnings before the loss condition fires.
+- After `PL-31`, the live battlefield defeat rules are "all armies destroyed" and "all territory lost." Time-limit warning already has its own system and should stay separate.
+- The current item should not expand into predictive enemy-intent simulation. It only needs a deterministic warning tied to the actual surviving defeat thresholds.
+
+**Exact code surfaces**
+
+- `backend/game_logic/turn_manager.py` - defeat evaluation order.
+- `backend/models/world_state.py` - any surviving defeat-threshold tracking.
+- `backend/notifications.py` - defeat-imminent notification type.
+- `backend/game_logic/dispatch.py` - morning-dispatch warning surfacing.
+
+**Exact failure modes**
+
+- The player can step into terminal defeat with no prior warning when only one army or one region remains.
+- Warning wording can drift toward the obsolete capital-loss rule if `PL-31` is not treated as the source of truth first.
+- If warning logic mixes in time-limit or enemy-intent prediction, the result will spam or mislead instead of clarifying the live loss rule.
+
+**Edge cases / sibling failure scan**
+
+- Exactly one surviving marshal remains.
+- Exactly one controlled region remains.
+- The player recovers above the threshold after a warning and should not keep stale warning spam.
+- Time-limit warning stays on its separate path and is not merged into this item.
+
+**State-transition risks**
+
+- Warning state must persist long enough to appear in both notifications and the next dispatch, but it must also clear if the player stabilizes.
+- The warning should fire before defeat resolution, not after a terminal result has already been returned.
+
+**Backend / frontend contract risks**
+
+- The warning should reuse the existing notification and dispatch surfaces, not create a one-off popup path.
+- Wording must match the live defeat rule after the capital-loss branch is removed.
+
+**Acceptance criteria**
+
+- After `PL-31`, a high-visibility warning is emitted when France is down to exactly one living marshal and/or exactly one controlled region.
+- The player receives the warning before the live defeat rule fires.
+- Warning wording matches the actual surviving defeat condition after `PL-31`.
+- The warning appears in both notifications and the following dispatch/readout path while the condition persists.
+- The warning clears or stops repeating once the player climbs back above the threshold.
+
+**Regression test matrix**
+
+- Add defeat-warning coverage around the surviving loss threshold.
+- Add notification/dispatch assertions so the warning is emitted before the actual defeat result.
+- Verify that time-limit warnings are unchanged and remain separate.
+
+**Dependencies / blockers**
+
+- Blocked on PL-31.
+
+**Implementation order inside Session 4**
+
+1. Remove the obsolete capital-loss path via `PL-31` first.
+2. Add a deterministic near-defeat helper keyed to one remaining marshal and one remaining region.
+3. Wire it into notifications and morning dispatch.
+4. Add non-spam coverage for warning persistence and recovery above the threshold.
+
+---
+
+### PL-26: Combat feels hopeless because the obvious opener teaches the wrong lesson
+
+**Problem statement**
+
+The common early "Ney attacks Wellington" line is punishing before the game has taught bombardment, coordination, or setup counters, so the player learns "attacking is hopeless" instead of learning the system.
+
+**Confirmed evidence**
+
+- Repeated attacks in playtest produced defender victories or punishing stalemates.
+- Existing audit synthesis says this is primarily a teaching/setup problem, not proof that the combat system lacks depth.
+- The current opener surfaces defender stacking before it surfaces viable French preparation lines.
+
+**Root-cause notes**
+
+- The likely first-hour attack line (`Ney` into `Wellington`) presents stacked defensive advantages before the game teaches the counters.
+- The old coordination preview is gone, and the first-time coordination tutorial only fires after the player already achieves combined arms.
+- The existing bombardment advisory fires only after the player already used artillery correctly.
+- This makes the current problem a teaching/order-of-information failure first. Narrow numeric tuning is the fallback only if guidance plus setup still leave the opener feeling hopeless.
+
+**Exact code surfaces**
+
+- `backend/game_logic/combat.py` - modifier surfacing and common-opener outcome messaging.
+- `backend/commands/combat_executor.py` - first-time coordination tutorial, bombardment advisory, and any added opener guidance on the attack flow.
+- `backend/models/marshal.py` and region/terrain data only if number tuning is still required after surfacing fixes.
+- Any tutorial, advisory, dispatch, or wizard surface used to expose the better line.
+
+**Exact failure modes**
+
+- The naive `Ney, attack Wellington` line produces a punishing result before the player is told about bombardment, combined arms, or defender terrain advantages.
+- The game teaches combined arms only after success instead of before commitment.
+- The post-bombardment advisory is useful but arrives too late to teach the player what to try first.
+
+**Edge cases / sibling failure scan**
+
+- If `Drouot` is unavailable, advice should still surface a non-artillery preparation line rather than naming an impossible move.
+- The added guidance should target the common first-hour opener, not spam every later battle.
+- Prepared assaults should improve the outcome materially without making all direct attacks trivially safe.
+
+**State-transition risks**
+
+- Guidance added only after the battle result may still be too late if the first failed assault already ends the campaign.
+- Broad stat nerfs or buffs could mask the teaching failure while flattening later combat depth.
+
+**Backend / frontend contract risks**
+
+- Reuse existing advisory, objection, tutorial, or result surfaces; this item does not need a new UI system.
+- If the advice is conditional, the trigger conditions must stay deterministic enough for regression coverage.
+
+**Acceptance criteria**
+
+- At least one obvious early French preparation line is surfaced as materially better than the naive direct assault.
+- The game exposes the key counters behind the Wellington opener before or at the point the player is likely to commit.
+- The prepared line is measurably better in the deterministic regression scenario than the naive line.
+- Combat depth stays intact; this item does not flatten the system into guaranteed attack wins.
+
+**Regression test matrix**
+
+- Add a deterministic scenario test for the common opener and one prepared alternative.
+- If guidance is added to objections, dispatch, or preview text, add a regression that the surfaced advice names the relevant counterplay.
+- If narrow number tuning is required, add a regression proving the prepared line improves while the naive unsupported line is still risky.
+
+**Dependencies / blockers**
+
+- No hard code dependency.
+- Intentionally sequenced after Sessions 1-3 so crash/defeat/diplomacy noise does not contaminate first-hour tuning.
+
+**Implementation order inside Session 4**
+
+1. Add or restore pre-commit guidance on the common opener attack path.
+2. Reuse the existing tutorial/advisory surfaces instead of adding new UI.
+3. Build a deterministic naive-vs-prepared comparison test.
+4. Only if guidance still leaves the opener hopeless, apply narrow opener-specific tuning and capture it in tests.
+
+---
+
+### PL-29: No supported new-game / restart endpoint
+
+**Problem statement**
+
+The player still has no clean restart path from the running build. Starting fresh requires server restarts and sometimes manual autosave cleanup.
+
+**Confirmed evidence**
+
+- No formal `POST /new_game` implementation exists in the live backend route set.
+- The client pause flow exposes save/load only.
+- Existing tests already call `/new_game` indirectly without making it a real supported contract.
+
+**Root-cause notes**
+
+- The backend world is initialized at startup only; there is no reset helper and no restart endpoint.
+- The frontend already has save/load wiring, but the pause menu and API client never expose a restart path.
+- Local client reset logic already exists in the load flow and should be reused instead of inventing a second partial reset path.
+- The test suite already assumes `/new_game` exists, so the current state is a direct contract contradiction rather than a speculative feature request.
+
+**Exact code surfaces**
+
+- `backend/main.py` - new-game endpoint wiring and world reset.
+- `backend/save_manager.py` - explicit autosave reset/retention behavior.
+- `godot-client/project-sovereign/scripts/api_client.gd` - client call.
+- `godot-client/project-sovereign/scripts/pause_menu.gd` and `godot-client/project-sovereign/scripts/main.gd` - pause-menu button and UI refresh.
+
+**Exact failure modes**
+
+- Starting fresh requires a process restart and can inherit stale autosave state.
+- Existing tests can call `/new_game` even though the route is not supported.
+- Frontend local state such as pending popups, dialogue state, or cached world data can leak across a manual restart unless the reset path is centralized.
+
+**Edge cases / sibling failure scan**
+
+- Restart immediately after unsaved play.
+- Restart after a manual save/load round trip.
+- Restart while popups or dialogues are active.
+- Manual saves must remain intact.
+- Autosave from the previous campaign must not resurrect stale state after restart.
+
+**State-transition risks**
+
+- Resetting the world must also reset dialogue/mailbox state, notifications, eliminated nations, and any singleton references kept by `backend/main.py`.
+- The client must clear local popup/dialogue caches before hydrating the fresh world response.
+- Restart and load should share as much UI reset code as possible to avoid parallel bugs.
+
+**Backend / frontend contract risks**
+
+- `/new_game` should return the same kind of hydrated response shape the client already knows how to consume.
+- Autosave behavior must be explicit. For the current fix phase, write a fresh autosave immediately after creating the new world so stale autosave state cannot be restored by accident.
+
+**Acceptance criteria**
+
+- `POST /new_game` returns a fresh world state without restarting the process.
+- The fresh world is equivalent to a new campaign start: starting regions and marshals restored, `current_turn` reset, no pending diplomacy/dialogue carry-over, eliminated nations cleared.
+- Autosave handling on new game is explicit and consistent, and stale autosave state cannot resurrect the previous campaign.
+- The pause menu exposes restart/new game and returns the player to a fresh turn-one state.
+- Manual saves are preserved.
+
+**Regression test matrix**
+
+- Add formal endpoint coverage in `tests/test_endpoint_wiring.py` or equivalent.
+- Add save/load interaction coverage so new-game does not accidentally reload stale autosave state.
+- Add a client smoke or manual verification for the pause-menu flow if no Godot harness exists.
+- Update or retain the existing `/new_game`-using tests so they now exercise a supported contract instead of an accidental assumption.
+
+**Dependencies / blockers**
+
+- No upstream blocker.
+- Keep last in the fix phase because it is QoL, not game-truth or contract-critical.
+
+**Implementation order inside Session 5**
+
+1. Extract a backend world-reset helper that can be used at startup and by `/new_game`.
+2. Implement `POST /new_game` and return a fully hydrated fresh-world response.
+3. Persist a fresh autosave immediately after reset.
+4. Reuse the frontend load-reset path for new-game hydration, then expose the action in the pause menu.
+5. Add endpoint, autosave, and pause-flow regression coverage.
+
+---
+
+## Open Judgment Points
+
+- `PL-30`: the exact null object in the crash stack should still be confirmed if the repro is rerun, but the implementation should harden both wizard render paths now rather than waiting on another trace.
+- `PL-26`: if pre-commit guidance plus prepared-line verification still leaves the opener reading as hopeless, approve the narrow numeric tuning inside this item; do not jump straight to broad combat rebalance.
+
+---
+
+## Fixed Bug Archive
+
+28 bugs fixed across playtest Sessions 1-12 and Sessions A-C.
+
+| ID | Summary | Fixed In |
+|----|---------|----------|
+| PL-1 to PL-4 | Early combat/display bugs | Sessions 1-6 |
+| PL-5 | Proposal race condition plus no feedback popup | Sessions 7-8 |
+| PL-6 | "Harsher" terms on friendship pacts demanded territory | Session 7 |
+| PL-7 | Counter-offer accept/reject missing AI cooldowns | Session 7 |
+| PL-8 | Counter-offer popup looked like an unsolicited AI proposal | Session 9 |
+| PL-9 | Acceptance mismatch between display and resolution | Session 10 |
+| PL-10 | "More generous" downgraded proposal type | Session 10 |
+| PL-11 | Incoming AI proposals hijacked player diplomatic commands (API-only) | Session 10 |
+| PL-12 | Harsher terms increased acceptance estimate | Session 11 |
+| PL-13 | Viable proposal falsely rejected as surpassed | Session 11 |
+| PL-14 | Ultimatum delivery reworked into a conversational diplomacy tool | Session 12 |
+| PL-15 | Ultimatum demand wizard replaced blind escalation | Session A |
+| PL-16 | Harsher-demand multiplier retuned | Session A |
+| PL-17 | Manpower demand zero-penalty bug absorbed into PL-18 | Session A |
+| PL-18 | Typed manpower demands plus `DEMAND_VALUES` key fixes | Session A |
+| PL-19 | Dynamic ultimatum relation penalty | Session B |
+| PL-20 | Territory cost scaling plus elimination guards | Session B |
+| PL-21 | Phantom `connections` attribute | Fixed in code |
+| PL-22 | Phantom `income` attribute | Fixed in code |
+| PL-23 | Authority-driven pushback, pen nudge, trust removal | Session C |
+| PL-24 | Harshness scoring for all demand types | Session C |
+| PL-25 | Term novelty: jitter, personality nudge, desire bias, flavor | Session C |
