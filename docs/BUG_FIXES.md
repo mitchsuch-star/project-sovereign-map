@@ -3,7 +3,7 @@
 > **Consolidated bug tracker.** All open bugs from playtest reviews, audits, and design fixes live here.
 > Iterate sessions until clean, then move to `DESIGN_REFINEMENT.md`.
 >
-> **Last Updated:** April 8, 2026 (Session A: PL-15 + PL-18 FIXED. PL-16→PL-15, PL-17→PL-18. 33 new tests, 8015 total.)
+> **Last Updated:** April 9, 2026 (Session C: PL-24 + PL-23 + PL-25 ALL FIXED. 35 new tests, 8093 total.)
 
 ---
 
@@ -25,14 +25,18 @@
 | P2 — UX | 0 | PL-16 FIXED (absorbed into PL-15) — Harsher Demands replaced by wizard |
 | P2 — BALANCE | 0 | PL-17 FIXED (absorbed into PL-18) — manpower key mismatch resolved |
 | P2 — BALANCE | 0 | PL-18 FIXED (Session A) — typed manpower demands + DEMAND_VALUES key fixes |
-| **P2 — BALANCE** | **1** | **PL-19 OPEN — ultimatum relation penalty is flat -10 regardless of demands** |
-| **P2 — BALANCE** | **1** | **PL-20 OPEN — no guard against diplomatic elimination (last territory demand)** |
+| P2 — BALANCE | 0 | PL-19 FIXED (Session B) — dynamic ultimatum relation penalty |
+| P2 — BALANCE | 0 | PL-20 FIXED (Session B) — EU4-style territory scaling + elimination guards |
 | P1 — MAJOR | 0 | PL-21 FIXED (code) — `region.connections` phantom attribute |
 | P1 — MAJOR | 0 | PL-22 FIXED (code) — `region.income` phantom attribute |
-| **P2 — GAMEPLAY** | **1** | **PL-23 OPEN — pre-proposal objection doesn't re-evaluate after term modification** |
-| **P1 — MECHANICS** | **1** | **PL-24 OPEN — territory demands from modify_harsh score zero harshness** |
-| **P2 — GAMEPLAY** | **1** | **PL-25 OPEN — R155-lite: diplomatic term novelty (companion to PL-23)** |
-| **Total** | **5 OPEN (PL-19, PL-20, PL-23, PL-24, PL-25).** | |
+| P2 — GAMEPLAY | 0 | PL-23 FIXED (Session C) — authority-driven pushback, pen nudge, trust removal |
+| P1 — MECHANICS | 0 | PL-24 FIXED (Session C) — harshness scoring for all demand types |
+| P2 — GAMEPLAY | 0 | PL-25 FIXED (Session C) — term novelty: jitter, personality nudge, desire bias, flavor |
+| P2 — UX | 1 | PL-26 OPEN — combat feels hopeless, no clear path to winning |
+| P2 — UX | 1 | PL-27 OPEN — AI proposal spam blocks all commands |
+| P2 — UX | 1 | PL-28 OPEN — no warning before defeat, sudden game over |
+| P3 — QOL | 1 | PL-29 OPEN — no new game / restart endpoint |
+| **Total** | **4 OPEN** | |
 
 **Session A (Apr 8):** PL-15 + PL-18 FIXED. 33 new tests (8015 total). PL-15: Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Wizard reuses armistice `terms_guidance` pattern with `ultimatum_` prefixed actions. Godot popup fixed: dedicated `_build_ultimatum_content()` reads `demands_display` (not `proposal_terms_summary`), renders splash damage, maps "Coercive" to red. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. PL-18: 4 new DEMAND_VALUES keys (`gold_lump`, `manpower_infantry`/`cavalry`/`artillery`), typed manpower wizard with type picker + amount scaler, `_apply_ultimatum_demands()` dispatches to correct pool, `calculate_treaty_harshness()` covers all new types, backward compat for bare `"manpower"` demands.
 
@@ -1910,3 +1914,115 @@ Read from `world.get_latest_events(n)`, `world.get_events_since_turn(turn)`, `wo
 1. `diplomatic_templates.py` — `_build_base_terms()` (jitter on demands AND sweeteners per AM-25.2, desire profile bias per AM-25.9, `deterministic` param per AM-25.3, signature extension for diplomat param). **AM-25.4/25.8:** Single call-site confirmed (`generate_suggested_terms` line 1403) — direct param addition is safe, no `**kwargs` needed. `generate_suggested_terms()` (situational line via event API). **AM-25.5:** All event checks must use safe access (`if events and ...`). **AM-25.6:** Use `world.get_events_by_type("battle")` NOT `world.battle_history` (zombie field). Default fallthrough to `TALLEYRAND_COMMENTARY[target_nation]`.
 2. `diplomatic_defiance.py` — `apply_pen_nudge()` (personality-biased direction, added in PL-23). **AM-25.1:** Schemer swap collision handling (merge on duplicate, fallback to 20% reduction).
 3. Tests — Jitter bounds tests (verify 0.8-1.2 range for both demands and sweeteners), personality nudge direction tests (**AM-25.1** schemer swap with pre-existing gold demand — verify merge, schemer swap with all targets occupied — verify fallback to reduction), desire profile coverage tests, event API integration tests (**AM-25.5** turn 1 empty events — verify no crash, verify default flavor line).
+
+---
+
+## Playtest Findings — Session D (Apr 10, 2026)
+
+Source: Live curl playtest of PL-23/24/25 fixes. All 6 verification tests PASSED. These 4 new issues surfaced during play.
+
+### PL-26: Combat feels hopeless — no clear path to winning battles — OPEN
+
+**Priority:** P2 — UX / BALANCE
+**Source:** Playtest Session D (Apr 10, 2026)
+
+#### Problem
+
+4 consecutive attacks with Ney (72k troops, aggressive +15%) against Wellington (53k troops) all resulted in "defender tactical victory." The player never won a single battle across two full game sessions. Wellington's defensive stance (+15%) + Hills terrain (+15%) + cautious personality (+10% outnumbered) stack to make him nearly invincible on defense.
+
+The player has no clear path to winning: attacking repeatedly just bleeds troops until forced retreat, then 3-turn recovery. By the time the marshal recovers, enemy AI has retaken territory.
+
+#### Needs Analysis
+
+- Are the defender bonuses stacking correctly or are they too generous?
+- Is the attacker getting appropriate bonuses for numerical superiority?
+- Should the player be coached toward flanking / multi-marshal coordination / bombardment?
+- Is the starting situation (Ney alone vs Wellington on Hills) a balance trap?
+- Compare with EU4/CK3: defenders should have advantage but not immunity
+
+#### Files to investigate
+1. `combat.py` — `resolve_combat()`, terrain bonuses, defender advantage
+2. `combat_executor.py` — attack execution, coordination bonuses
+3. `marshal.py` — `get_attack_modifier()`, `get_defense_modifier()`
+4. `enemy_ai.py` — does AI stack advantages unfairly?
+5. `region.py` — terrain modifier values
+
+---
+
+### PL-27: AI proposal spam blocks all commands — OPEN
+
+**Priority:** P2 — UX
+**Source:** Playtest Session D (Apr 10, 2026)
+
+#### Problem
+
+Every turn, AI nations (Saxony, Prussia, sometimes Britain) send diplomatic proposals that block ALL other commands until the player responds. The player cannot even type "status" without getting "I don't understand that choice, Sire. Options: 1=Accept, 2=Reject, 3=Counter-offer."
+
+This creates a frustrating pattern: end turn → forced to deal with AI proposal → actual commands → end turn → another proposal. During the playtest, 5+ proposals arrived in 7 turns, several from the same nation proposing the same thing after rejection.
+
+#### Needs Analysis
+
+- Is `ai_diplomacy.py` generating proposals too aggressively? Check P1-P7 trigger thresholds
+- Should rejected proposals have longer cooldowns? (Currently seems like 1-2 turns)
+- Should incoming proposals be non-blocking? (Show as notification, let player respond when ready)
+- PL-11 (Session 10) fixed API-level hijacking but the game-level blocking remains by design — is it the right design?
+- How does EU4 handle this? (Proposals queue, player can ignore or dismiss)
+
+#### Files to investigate
+1. `ai_diplomacy.py` — proposal generation frequency, cooldown checks, anti-spam logic
+2. `diplomatic_executor.py` — dialogue guard that blocks commands
+3. `turn_manager.py` — enemy phase proposal generation
+4. `cooldown_manager.py` — proposal cooldown durations
+5. `main.py` — command routing when incoming proposal is pending
+
+---
+
+### PL-28: No warning before defeat — sudden game over — OPEN
+
+**Priority:** P2 — UX
+**Source:** Playtest Session D (Apr 10, 2026)
+
+#### Problem
+
+The game ended at turn 7 with "The war is over" and `victory: defeat`. The player went from 8 regions to 5 with no warning that defeat was imminent. There was no "you are about to lose" notification, no last-stand mechanic, no chance to react.
+
+The defeat condition appears to trigger when France controls fewer than some threshold of regions, but the player has no visibility into this.
+
+#### Needs Analysis
+
+- What is the exact defeat condition? (Region count? Capital lost? Both?)
+- Should there be a 1-2 turn warning ("France is on the verge of collapse")?
+- Should the notification system flag critical territory loss?
+- Is the threshold too aggressive for early game? (Losing 3 of 8 regions in 7 turns seems fast)
+- EU4 comparison: war exhaustion, stability, surrender conditions are all visible
+
+#### Files to investigate
+1. `world_state.py` — game over / defeat condition check
+2. `turn_manager.py` — end-of-turn defeat evaluation
+3. `notifications.py` — add defeat-imminent notification type
+4. `dispatch.py` — morning dispatch could warn about critical territory loss
+
+---
+
+### PL-29: No new game / restart endpoint — OPEN
+
+**Priority:** P3 — QOL
+**Source:** Playtest Session D (Apr 10, 2026)
+
+#### Problem
+
+There is no way to start a new game without killing and restarting the server process. The `/save` and `/load` endpoints exist but there is no `/new_game` or `/restart` endpoint. During playtesting, this meant manually killing Python processes and deleting autosave files.
+
+Additionally, the autosave persists the defeated game state, so even restarting the server sometimes loads the old game (when uvicorn's module caching preserves state).
+
+#### Needs Analysis
+
+- Add `POST /new_game` endpoint that reinitializes `WorldState`
+- Should this also clear autosave?
+- Godot client would need a "New Game" button (pause menu or main menu)
+- Low priority but significant QOL for playtesting and eventually for players
+
+#### Files to investigate
+1. `main.py` — add `/new_game` endpoint, reset `world` and `game_state` globals
+2. `save_manager.py` — optional autosave clearing on new game
+3. `pause_menu.gd` — "New Game" button in Godot

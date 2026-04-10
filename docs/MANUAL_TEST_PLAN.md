@@ -1444,3 +1444,119 @@ end turn
 - Shows modified terms
 - [Accept][Reject] buttons (no counter-counter)
 
+---
+
+## Diplomacy Playtest Session D — New Tests Needed (Apr 10, 2026)
+
+These tests verify PL-26/27/28/29 findings and the PL-23/24/25 fixes.
+
+### DP10. Harsher = Lower Odds (PL-23 verification)
+
+```
+# Start fresh game, propose armistice with Britain
+Talleyrand, propose armistice with Britain
+# Note acceptance_estimate (baseline)
+# Choose "harsh" via /respond_to_diplomatic_dialogue
+# Note acceptance_estimate (should be LOWER)
+# Reconsider, re-propose, choose "generous"
+# Note acceptance_estimate (should be HIGHER)
+```
+
+**Expected:**
+- Baseline estimate recorded
+- Each "harsh" click: estimate decreases or stays at 0
+- Each "generous" click: estimate increases
+- `type` field stays `armistice_winning` or `armistice_losing`, never bare `armistice`
+
+### DP11. Diplomatic Ledger shows authority not trust (PL-24 verification)
+
+```
+curl -s http://127.0.0.1:8005/diplomatic_ledger | python -m json.tool
+```
+
+**Expected:**
+- `talleyrand` section has `authority` (number) and `authority_label` (string)
+- No `trust` field or `"Wary"` label anywhere in talleyrand section
+
+### DP12. Insist on original costs authority (PL-23 verification)
+
+```
+# Set authority low to increase pushback chance
+/debug set_authority 30
+# Propose armistice, click harsh twice to trigger pushback
+Talleyrand, propose armistice with Britain
+# harsh → harsh → if pushback_confirm appears:
+# Choose "insist on original"
+# Check /authority_status — should decrease by exactly 3
+```
+
+**Expected:**
+- Pushback fires as `pushback_confirm` dialogue type
+- "Insist on original" option present with "[Authority -3]" description
+- Authority decreases by exactly 3 after insisting
+
+### DP13. Sabotage popup uses authority keys (PL-24 verification)
+
+```
+# Trigger sabotage discovery (probabilistic — may need multiple proposals at low authority)
+# Check diplomatic_sabotage field in response
+```
+
+**Expected:**
+- Contains `authority_bonus_if_confronted` and `authority_penalty_if_overlooked`
+- Does NOT contain `trust_penalty_if_confronted` or `trust_bonus_if_overlooked`
+
+### DP14. Save/load preserves authority (PL-24 verification)
+
+```
+/debug set_authority 65
+curl -X POST http://127.0.0.1:8005/save -d '{"save_name": "test_auth"}'
+/debug set_authority 40
+curl -X POST http://127.0.0.1:8005/load -d '{"filename": "test_auth.json"}'
+curl http://127.0.0.1:8005/authority_status
+```
+
+**Expected:**
+- Authority after load matches pre-save value (65), not the modified value (40)
+
+### DP15. AI proposal spam rate (PL-27 investigation)
+
+```
+# Play 10 turns, count how many AI proposals arrive
+# Track: which nations propose, what types, how often after rejection
+```
+
+**Expected (ideal):**
+- No more than 1 AI proposal per 2-3 turns
+- Rejected proposals have 3+ turn cooldown before same nation re-proposes
+- Player can at minimum check status while proposal is pending
+- Currently FAILS — proposals arrive nearly every turn and block all commands
+
+### DP16. Defeat warning before game over (PL-28 investigation)
+
+```
+# Play aggressively, lose territory
+# Track region count each turn
+# Note: is there any warning before "The war is over"?
+```
+
+**Expected (ideal):**
+- Warning notification when France controls ≤ 4 regions (1 above defeat threshold?)
+- Morning dispatch mentions critical territory loss
+- Currently FAILS — no warning, sudden "The war is over"
+
+### DP17. Combat winnable scenario (PL-26 investigation)
+
+```
+# Test if player can win battles under any conditions:
+# 1. Ney (aggressive) vs weaker enemy on plains (no terrain bonus)
+# 2. Multi-marshal coordination (Ney + Davout attacking same target)
+# 3. Bombardment + attack combo
+# 4. Defensive victory (let enemy attack fortified Davout)
+```
+
+**Expected (ideal):**
+- At least some attack configurations should produce attacker victories
+- Player should have a viable combat strategy, not just "throw troops and lose"
+- Currently UNCLEAR — no attacker victories observed in 2 full playtests
+
