@@ -1384,13 +1384,13 @@ end turn
 #### DP7A. Sabotage occurs on proposal
 
 ```
-/debug set_talleyrand_trust 30
+/debug set_authority 30
 propose alliance with Austria
 end turn
 ```
 
 **Expected:**
-- Low trust increases sabotage chance
+- Low authority increases sabotage chance
 - If sabotaged: proposal terms modified without player knowledge
 - Discovery may happen later
 
@@ -1403,26 +1403,41 @@ end turn
 
 **Expected:**
 - Sabotage discovery popup appears: [Confront][Overlook]
-- Shows what was changed
-- Confront → trust penalty, Talleyrand defends himself
-- Overlook → slight trust gain, sabotage continues
+- Shows what was changed (ordered_summary vs delivered_summary)
+- Contains `authority_bonus_if_confronted` and `authority_penalty_if_overlooked`
+- Does NOT contain trust-based keys
+- Confront → authority bonus, Talleyrand defends himself
+- Overlook → authority penalty, sabotage continues
 
 ---
 
-### DP8. Talleyrand Redemption Event
+### DP8. Talleyrand Drafting Pushback (replaces Redemption — removed in PL-23)
 
-#### DP8A. Trust drops to redemption threshold
+#### DP8A. Pushback triggers on harsh terms
 
 ```
-/debug set_talleyrand_trust 15
-end turn
+/debug set_authority 30
+propose armistice with Britain
+# Click harsh twice (first harsh: harshness too low for pushback)
+# Second harsh reaches harshness > 0.7 → ~25% chance
 ```
 
 **Expected:**
-- Talleyrand redemption popup appears: [Apologize][Replace][Continue]
-- Apologize → trust partially restored, Talleyrand grateful
-- Replace → new diplomat assigned (if available)
-- Continue → risk continued sabotage
+- `pushback_confirm` dialogue type appears
+- Three options: "Accept his version" (accept_nudge), "Insist on original" (insist_original), "Cancel" (cancel_pushback)
+- Insist costs Authority -3
+- Accept sends Talleyrand's softened terms instead
+
+#### DP8B. Pushback does not re-trigger after resolution
+
+```
+# After accepting or insisting in DP8A, continue modifying terms
+# Click harsh again
+```
+
+**Expected:**
+- No second pushback on same proposal (AM-23.15 re-roll guard)
+- `context.objection_resolved` prevents re-roll
 
 ---
 
