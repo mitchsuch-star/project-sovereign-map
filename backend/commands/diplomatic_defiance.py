@@ -134,7 +134,7 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
             else:
                 harshness += 0.2 * max(1, demand.get("value", 1))
         elif dtype == "gold_per_turn":
-            harshness += 0.1 * (demand.get("value", 0) / 100)
+            harshness += 0.1 * (max(0, demand.get("value", 0)) / 100)
         elif dtype == "gold_lump":
             harshness += 0.1 * (max(0, demand.get("value", 0)) / 500)
         elif dtype == "ap_per_turn":
