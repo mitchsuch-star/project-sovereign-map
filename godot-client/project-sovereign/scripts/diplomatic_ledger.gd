@@ -540,26 +540,28 @@ func _render_talleyrand():
 	var t = cached_data.get("talleyrand", {})
 	var bbcode = ""
 
-	var trust = int(t.get("trust", 0))
-	var trust_label = str(t.get("trust_label", "Wary"))
+	var authority = int(t.get("authority", 60))
+	var authority_label = str(t.get("authority_label", "Stable"))
 	var skill = int(t.get("skill", 0))
 	var dp_remaining = int(t.get("dp_remaining", 0))
 	var dp_max = int(t.get("dp_max", 3))
 
-	# Trust label color
-	var trust_color = Utils.COLOR_INFO
-	match trust_label:
-		"Loyal":
-			trust_color = Utils.COLOR_SUCCESS
-		"Wary":
-			trust_color = COLOR_AMBER
-		"Suspicious":
-			trust_color = Utils.COLOR_ORANGE
-		"Treacherous":
-			trust_color = Utils.COLOR_ERROR
+	# Authority label color (PL-23: trust → authority)
+	var authority_color = Utils.COLOR_INFO
+	match authority_label:
+		"Absolute":
+			authority_color = Utils.COLOR_SUCCESS
+		"Strong":
+			authority_color = Utils.COLOR_SUCCESS
+		"Stable":
+			authority_color = Utils.COLOR_INFO
+		"Shaky":
+			authority_color = Utils.COLOR_ORANGE
+		"Crumbling":
+			authority_color = Utils.COLOR_ERROR
 
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND[/color] — [color=#" + trust_color + "]" + trust_label + "[/color]\n"
-	bbcode += "Trust: [color=#" + trust_color + "]" + str(trust) + "[/color]/100"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND[/color] — [color=#" + authority_color + "]" + authority_label + "[/color]\n"
+	bbcode += "Authority: [color=#" + authority_color + "]" + str(authority) + "[/color]/100"
 	bbcode += "   Skill: " + str(skill)
 	bbcode += "   DP: [color=#" + Utils.COLOR_GOLD + "]" + str(dp_remaining) + "/" + str(dp_max) + "[/color]\n"
 

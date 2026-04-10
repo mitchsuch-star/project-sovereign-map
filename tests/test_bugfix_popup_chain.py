@@ -389,24 +389,12 @@ class TestPopupPassthroughs:
         world = _make_world()
         world.diplomatic_sabotage_popup = {"target_nation": "Austria", "defiance_type": "sabotage",
                                            "ordered_summary": "Alliance", "delivered_summary": "War",
-                                           "trust_penalty_if_confronted": 10, "authority_bonus_if_confronted": 5,
-                                           "trust_bonus_if_overlooked": 3}
+                                           "authority_bonus_if_confronted": 5,
+                                           "authority_penalty_if_overlooked": 3}
         response = {}
         fn(response, world)
         assert response.get("diplomatic_sabotage") is not None
         assert world.diplomatic_sabotage_popup is None
-
-    def test_talleyrand_redemption_popup_passthrough(self):
-        """talleyrand_redemption_popup → response key 'talleyrand_redemption'."""
-        fn = self._import_passthrough()
-        world = _make_world()
-        world.talleyrand_redemption_popup = {"trust": 15, "trigger_reason": "Low trust",
-                                              "option_apologize": {}, "option_replace": {},
-                                              "option_continue": {}}
-        response = {}
-        fn(response, world)
-        assert response.get("talleyrand_redemption") is not None
-        assert world.talleyrand_redemption_popup is None
 
     def test_diplomatic_objection_popup_passthrough(self):
         """diplomatic_objection_popup → response key 'diplomatic_objection'."""
@@ -468,7 +456,7 @@ class TestPopupPassthroughs:
 
         expected_keys = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
-            "talleyrand_redemption", "diplomatic_objection", "incoming_proposal",
+            "diplomatic_objection", "incoming_proposal",
             "alliance_paradox_popup",
         ]
         for key in expected_keys:

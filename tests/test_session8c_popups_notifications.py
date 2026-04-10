@@ -390,18 +390,16 @@ class TestPopupDataContracts:
             "defiance_type": "softened",
             "ordered_summary": "Demanded 3 regions, 200 gold/turn",
             "delivered_summary": "Demanded 2 regions, 120 gold/turn",
-            "trust_penalty_if_confronted": int(10),
             "authority_bonus_if_confronted": int(5),
-            "trust_bonus_if_overlooked": int(3),
+            "authority_penalty_if_overlooked": int(3),
         }
         popup = world.diplomatic_sabotage_popup
         assert isinstance(popup["target_nation"], str)
         assert isinstance(popup["defiance_type"], str)
         assert isinstance(popup["ordered_summary"], str)
         assert isinstance(popup["delivered_summary"], str)
-        assert isinstance(popup["trust_penalty_if_confronted"], int)
         assert isinstance(popup["authority_bonus_if_confronted"], int)
-        assert isinstance(popup["trust_bonus_if_overlooked"], int)
+        assert isinstance(popup["authority_penalty_if_overlooked"], int)
 
     def test_vassal_rebellion_imminent_popup_contract(self):
         """vassal_rebellion_imminent_popup has all required fields."""
@@ -424,24 +422,6 @@ class TestPopupDataContracts:
         assert isinstance(popup["invest_effect"], str)
         assert isinstance(popup["garrison_effect"], str)
         assert isinstance(popup["accept_effect"], str)
-
-    def test_talleyrand_redemption_popup_contract(self):
-        """talleyrand_redemption_popup has all required fields when set."""
-        world = _make_world()
-        # Simulate the popup being set
-        world.talleyrand_redemption_popup = {
-            "trust": int(15),
-            "trigger_reason": "Trust has fallen to 15.",
-            "option_apologize": {"effect": "Trust +15, Authority -5"},
-            "option_replace": {"effect": "Skill drops to 6, Trust resets to 50, Schemer->Loyalist (irreversible)"},
-            "option_continue": {"effect": "Trust unchanged, Authority -10"},
-        }
-        popup = world.talleyrand_redemption_popup
-        assert isinstance(popup["trust"], int)
-        assert isinstance(popup["trigger_reason"], str)
-        assert "effect" in popup["option_apologize"]
-        assert "effect" in popup["option_replace"]
-        assert "effect" in popup["option_continue"]
 
     def test_diplomatic_objection_popup_contract(self):
         """diplomatic_objection_popup has all required fields when set."""
@@ -496,7 +476,6 @@ class TestPopupDataContracts:
         """Popup fields are None by default and can be cleared."""
         world = _make_world()
         # All new popup fields default to None
-        assert world.talleyrand_redemption_popup is None
         assert world.diplomatic_objection_popup is None
         assert world.incoming_proposal_popup is None
         assert world.coalition_popup is None
@@ -516,24 +495,6 @@ class TestPopupDataContracts:
 
 class TestPassThroughs8C:
     """New popup fields pass through /command response."""
-
-    def test_talleyrand_redemption_passthrough(self):
-        """talleyrand_redemption_popup serializes in to_dict/from_dict."""
-        world = _make_world()
-        world.talleyrand_redemption_popup = {
-            "trust": 15,
-            "trigger_reason": "Trust has fallen to 15.",
-            "option_apologize": {"effect": "Trust +15, Authority -5"},
-            "option_replace": {"effect": "Skill->6, Trust->50"},
-            "option_continue": {"effect": "Authority -10"},
-        }
-        data = world.to_dict()
-        assert data["talleyrand_redemption_popup"] is not None
-        assert data["talleyrand_redemption_popup"]["trust"] == 15
-
-        restored = WorldState.from_dict(data)
-        assert restored.talleyrand_redemption_popup is not None
-        assert restored.talleyrand_redemption_popup["trust"] == 15
 
     def test_diplomatic_objection_passthrough(self):
         """diplomatic_objection_popup serializes in to_dict/from_dict."""
@@ -571,14 +532,13 @@ class TestPassThroughs8C:
         assert restored.incoming_proposal_popup is not None
         assert restored.incoming_proposal_popup["from_nation"] == "Prussia"
 
-    def test_all_6_popup_fields_serialize(self):
-        """All 6 popup fields round-trip through to_dict/from_dict."""
+    def test_all_5_popup_fields_serialize(self):
+        """All 5 popup fields round-trip through to_dict/from_dict."""
         world = _make_world()
-        # Set all 6
+        # Set all 5
         world.coalition_popup = {"coalition_name": "Test"}
         world.diplomatic_sabotage_popup = {"target_nation": "Prussia"}
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
-        world.talleyrand_redemption_popup = {"trust": 10}
         world.diplomatic_objection_popup = {"concern_level": "MILD"}
         world.incoming_proposal_popup = {"from_nation": "Austria"}
 
@@ -588,7 +548,6 @@ class TestPassThroughs8C:
         assert restored.coalition_popup == {"coalition_name": "Test"}
         assert restored.diplomatic_sabotage_popup == {"target_nation": "Prussia"}
         assert restored.vassal_rebellion_imminent_popup == {"nation": "Saxony"}
-        assert restored.talleyrand_redemption_popup == {"trust": 10}
         assert restored.diplomatic_objection_popup == {"concern_level": "MILD"}
         assert restored.incoming_proposal_popup == {"from_nation": "Austria"}
 
@@ -597,12 +556,10 @@ class TestPassThroughs8C:
         world = _make_world()
         data = world.to_dict()
         # Simulate old save without new fields
-        data.pop("talleyrand_redemption_popup", None)
         data.pop("diplomatic_objection_popup", None)
         data.pop("incoming_proposal_popup", None)
 
         restored = WorldState.from_dict(data)
-        assert restored.talleyrand_redemption_popup is None
         assert restored.diplomatic_objection_popup is None
         assert restored.incoming_proposal_popup is None
 
@@ -617,7 +574,6 @@ class TestSerializationEnforcement8C:
     def test_world_state_full_roundtrip(self):
         """WorldState with all new fields survives to_dict → from_dict."""
         world = _make_world()
-        world.talleyrand_redemption_popup = {"trust": 5}
         world.diplomatic_objection_popup = {"concern_level": "MODERATE"}
         world.incoming_proposal_popup = {"from_nation": "Britain"}
 
@@ -631,7 +587,6 @@ class TestSerializationEnforcement8C:
         restored = WorldState.from_dict(data)
 
         # Check new popup fields
-        assert restored.talleyrand_redemption_popup == {"trust": 5}
         assert restored.diplomatic_objection_popup == {"concern_level": "MODERATE"}
         assert restored.incoming_proposal_popup == {"from_nation": "Britain"}
 

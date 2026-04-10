@@ -136,7 +136,7 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
         elif dtype == "gold_per_turn":
             harshness += 0.1 * (demand.get("value", 0) / 100)
         elif dtype == "gold_lump":
-            harshness += 0.1 * (demand.get("value", 0) / 500)
+            harshness += 0.1 * (max(0, demand.get("value", 0)) / 500)
         elif dtype == "ap_per_turn":
             harshness += 0.3 * max(1, demand.get("value", 1))
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):

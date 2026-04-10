@@ -869,7 +869,8 @@ class DiplomaticExecutor:
                     # Map keywords to action(s). List means try in order
                     # (e.g. "accept" tries AI proposal accept first, then player proposal send).
                     action_map = {
-                        "dismiss": ["dismiss"], "cancel": ["cancel_mission", "dismiss"], "never mind": ["dismiss"],
+                        "dismiss": ["dismiss"], "cancel": ["cancel_pushback", "cancel_mission", "dismiss"], "never mind": ["dismiss"],
+                        "nudge": ["accept_nudge"], "insist": ["insist_original"],
                         "send": ["send_override", "send", "execute_proposal"],
                         "proceed": ["send_override", "execute_proposal", "force_declare_war"],
                         "yes": ["execute_proposal", "accept_ai_proposal", "force_declare_war"],
@@ -1003,8 +1004,10 @@ class DiplomaticExecutor:
             world.diplomatic_points -= cost
 
             # Fix 6: Diplomatic defiance check — Talleyrand may sabotage delivery
+            # PL-23: Skip defiance if pushback already fired during drafting (mutual exclusion)
+            _pushback_fired = dialogue.get("context", {}).get("objection_resolved", False)
             talleyrand = world.diplomats.get(world.player_nation)
-            if talleyrand and getattr(world, 'talleyrand_defiance_cooldown', 0) <= 0:
+            if talleyrand and getattr(world, 'talleyrand_defiance_cooldown', 0) <= 0 and not _pushback_fired:
                 from backend.commands.diplomatic_defiance import (
                     calculate_diplomatic_defiance_chance, apply_diplomatic_sabotage,
                 )
@@ -1089,8 +1092,11 @@ class DiplomaticExecutor:
             # Ensure proposal metadata
             suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
-            # PL-10: Force proposal type to player's original choice
-            suggested["type"] = proposal_type
+            # Preserve war-score variant type (e.g. armistice_winning/armistice_losing)
+            # from terms if available — overwriting with generic proposal_type
+            # changes BASE_DISPOSITION and can invert acceptance odds.
+            if not suggested.get("type"):
+                suggested["type"] = proposal_type
 
             # PL-6: Type-aware escalation — friendship vs war/coercive categories
             _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
@@ -1125,10 +1131,53 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_templates import _get_smart_commentary
             suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_harsh")
 
-            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
-            # modify_count is carried in dialogue context across round-trips.
-            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            # ── PL-23: Drafting pushback — roll BEFORE incrementing modify_count (AM-23.2) ──
             context = dict(dialogue.get("context", {}))
+            from backend.commands.diplomatic_defiance import roll_drafting_pushback, apply_pen_nudge_personality
+            if roll_drafting_pushback(suggested, context, world):
+                nudged = apply_pen_nudge_personality(suggested, world)
+                pushback_dialogue = {
+                    "type": "pushback_confirm",
+                    "target_nation": target_nation,
+                    "talleyrand_text": (
+                        "I have drafted the terms, Sire — though I took the liberty of "
+                        "adjusting certain impractical demands. The essence of your "
+                        "position is preserved."
+                    ),
+                    "options": [
+                        {
+                            "label": "Accept his version",
+                            "description": "Send Talleyrand's softened terms.",
+                            "action": "accept_nudge",
+                            "terms": {**nudged, "proposal_type": proposal_type},
+                        },
+                        {
+                            "label": "Insist on original",
+                            "description": "Send your exact terms. Authority -3.",
+                            "action": "insist_original",
+                            "terms": {**suggested, "proposal_type": proposal_type},
+                        },
+                        {
+                            "label": "Cancel",
+                            "description": "Return to term modification.",
+                            "action": "cancel_pushback",
+                            "terms": terms,  # Preserve pre-escalation terms
+                        },
+                    ],
+                    "context": {**context, "original_terms": suggested, "nudged_terms": nudged},
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, target_nation, proposal_type, world)
+                world.dialogue_manager.replace(pushback_dialogue)
+                return {
+                    "success": True,
+                    "message": pushback_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": pushback_dialogue,
+                }
+
+            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             modify_count = context.get("modify_count", 0) + 1
             context["modify_count"] = modify_count
 
@@ -1478,9 +1527,9 @@ class DiplomaticExecutor:
             # Ensure proposal metadata
             suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
-            # PL-10: Force proposal type to player's original choice — generate_suggested_terms
-            # may return a different (lower) type, which would downgrade the proposal
-            suggested["type"] = proposal_type
+            # Preserve war-score variant type from terms if available
+            if not suggested.get("type"):
+                suggested["type"] = proposal_type
 
             # Escalate existing sweeteners by 1.5x
             for s in suggested.get("sweeteners", []):
@@ -1513,10 +1562,52 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_templates import _get_smart_commentary
             suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_generous")
 
-            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
-            # modify_count is carried in dialogue context across round-trips.
-            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            # ── PL-23: Drafting pushback — roll BEFORE incrementing modify_count (AM-23.2) ──
             context = dict(dialogue.get("context", {}))
+            from backend.commands.diplomatic_defiance import roll_drafting_pushback, apply_pen_nudge_personality
+            if roll_drafting_pushback(suggested, context, world):
+                nudged = apply_pen_nudge_personality(suggested, world)
+                pushback_dialogue = {
+                    "type": "pushback_confirm",
+                    "target_nation": target_nation,
+                    "talleyrand_text": (
+                        "You wished for generosity? I have crafted terms that balance "
+                        "dignity with pragmatism, Sire."
+                    ),
+                    "options": [
+                        {
+                            "label": "Accept his version",
+                            "description": "Send Talleyrand's adjusted terms.",
+                            "action": "accept_nudge",
+                            "terms": {**nudged, "proposal_type": proposal_type},
+                        },
+                        {
+                            "label": "Insist on original",
+                            "description": "Send your exact terms. Authority -3.",
+                            "action": "insist_original",
+                            "terms": {**suggested, "proposal_type": proposal_type},
+                        },
+                        {
+                            "label": "Cancel",
+                            "description": "Return to term modification.",
+                            "action": "cancel_pushback",
+                            "terms": terms,  # Preserve pre-escalation terms
+                        },
+                    ],
+                    "context": {**context, "original_terms": suggested, "nudged_terms": nudged},
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, target_nation, proposal_type, world)
+                world.dialogue_manager.replace(pushback_dialogue)
+                return {
+                    "success": True,
+                    "message": pushback_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": pushback_dialogue,
+                }
+
+            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             modify_count = context.get("modify_count", 0) + 1
             context["modify_count"] = modify_count
 
@@ -2045,26 +2136,136 @@ class DiplomaticExecutor:
             }
 
         # ═══════════════════════════════════════════════════════
-        # R41: TALLEYRAND REDEMPTION HANDLERS
+        # PL-23: DRAFTING PUSHBACK HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action in ("redemption_apologize", "redemption_replace", "redemption_continue"):
-            from backend.commands.diplomatic_defiance import apply_redemption_choice
-            talleyrand = world.diplomats.get("France")
-            if not talleyrand:
-                world.dialogue_manager.pop()
-                return {"success": False, "message": "No diplomat available."}
-            try:
-                result = apply_redemption_choice(action, talleyrand, world)
-            except Exception:
-                import logging
-                logging.getLogger(__name__).exception("Error in Talleyrand redemption")
-                world.dialogue_manager.pop()
-                return {"success": False, "message": "An error occurred processing the redemption."}
-            world.dialogue_manager.pop()
-            world.talleyrand_redemption = None
+        elif action == "accept_nudge":
+            # Player accepts Talleyrand's softened terms
+            context = dict(dialogue.get("context", {}))
+            # AM-23.7: Increment modify_count (deferred from pushback intercept)
+            context["modify_count"] = context.get("modify_count", 0) + 1
+            context["objection_resolved"] = True  # One pushback per proposal
+            context["pushback_accepted"] = True  # Mutual exclusion with §3a defiance
+
+            nudged_terms = selected.get("terms", context.get("nudged_terms", {}))
+            proposal_type = nudged_terms.get("proposal_type", context.get("proposal_type", "peace"))
+
+            # Build normal confirm dialogue with nudged terms
+            options = [
+                {
+                    "label": "Send these terms",
+                    "description": "Dispatch with Talleyrand's terms.",
+                    "action": "execute_proposal",
+                    "terms": {**nudged_terms, "proposal_type": proposal_type},
+                },
+                {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+            ]
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": target_nation,
+                "talleyrand_text": "Very well, Sire. I shall present my version of your terms.",
+                "options": options,
+                "context": context,
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
+            world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
-                "message": result.get("message", "The matter has been settled."),
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "insist_original":
+            # Player overrules Talleyrand — authority -3
+            context = dict(dialogue.get("context", {}))
+            context["modify_count"] = context.get("modify_count", 0) + 1
+            context["objection_resolved"] = True
+            context["pushback_accepted"] = False  # Player insisted, still skip §3a
+
+            world.authority_tracker.modify_authority(-3)
+
+            original_terms = selected.get("terms", context.get("original_terms", {}))
+            proposal_type = original_terms.get("proposal_type", context.get("proposal_type", "peace"))
+
+            options = [
+                {
+                    "label": "Send these terms",
+                    "description": "Dispatch with your original terms.",
+                    "action": "execute_proposal",
+                    "terms": {**original_terms, "proposal_type": proposal_type},
+                },
+                {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+            ]
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": target_nation,
+                "talleyrand_text": "As you wish, Sire. Your terms shall be presented exactly as stated. [Authority -3]",
+                "options": options,
+                "context": context,
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
+            world.dialogue_manager.replace(new_dialogue)
+            return {
+                "success": True,
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "cancel_pushback":
+            # Player cancels — return to pre-pushback state (AM-23.2: modify_count unchanged)
+            context = dict(dialogue.get("context", {}))
+            context["objection_resolved"] = True  # Don't re-roll
+
+            pre_terms = selected.get("terms", {})
+            proposal_type = pre_terms.get("proposal_type", context.get("proposal_type", "peace"))
+
+            # Rebuild confirm dialogue with the pre-escalation terms
+            from backend.game_logic.diplomatic_templates import _get_smart_commentary
+            pre_terms["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_harsh")
+
+            modify_count = context.get("modify_count", 0)
+            _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
+            _is_friendship = proposal_type in _FRIENDSHIP_TYPES
+            harsh_cap = 1 if _is_friendship else 2
+
+            options = [
+                {
+                    "label": "Send these terms",
+                    "description": "Dispatch with these demands.",
+                    "action": "execute_proposal",
+                    "terms": {**pre_terms, "proposal_type": proposal_type},
+                },
+            ]
+            if modify_count < harsh_cap:
+                options.append({
+                    "label": "Even harsher",
+                    "description": "Push harder.",
+                    "action": "modify_harsh",
+                    "terms": {**pre_terms, "proposal_type": proposal_type},
+                })
+            options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
+
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": target_nation,
+                "talleyrand_text": "Very well. The terms remain as you last directed.",
+                "options": options,
+                "context": context,
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
+            world.dialogue_manager.replace(new_dialogue)
+            return {
+                "success": True,
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
             }
 
         # ═══════════════════════════════════════════════════════
