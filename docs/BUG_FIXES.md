@@ -36,7 +36,8 @@
 | P2 — UX | 1 | PL-27 OPEN — AI proposal spam blocks all commands |
 | P2 — UX | 1 | PL-28 OPEN — no warning before defeat, sudden game over |
 | P3 — QOL | 1 | PL-29 OPEN — no new game / restart endpoint |
-| **Total** | **4 OPEN** | |
+| P1 — CRASH | 1 | PL-30 OPEN — Godot null instance crash on diplomacy button after missed proposal result |
+| **Total** | **5 OPEN** | |
 
 **Session A (Apr 8):** PL-15 + PL-18 FIXED. 33 new tests (8015 total). PL-15: Full demand wizard (gold → territory → manpower → confirm) replaces blind `modify_harsh_ultimatum`. Wizard reuses armistice `terms_guidance` pattern with `ultimatum_` prefixed actions. Godot popup fixed: dedicated `_build_ultimatum_content()` reads `demands_display` (not `proposal_terms_summary`), renders splash damage, maps "Coercive" to red. AM-15.1 treaty merge, AM-15.2 ARMISTICE block, AM-15.7 `get_nation_regions()`. PL-18: 4 new DEMAND_VALUES keys (`gold_lump`, `manpower_infantry`/`cavalry`/`artillery`), typed manpower wizard with type picker + amount scaler, `_apply_ultimatum_demands()` dispatches to correct pool, `calculate_treaty_harshness()` covers all new types, backward compat for bare `"manpower"` demands.
 
@@ -2026,3 +2027,37 @@ Additionally, the autosave persists the defeated game state, so even restarting 
 1. `main.py` — add `/new_game` endpoint, reset `world` and `game_state` globals
 2. `save_manager.py` — optional autosave clearing on new game
 3. `pause_menu.gd` — "New Game" button in Godot
+
+---
+
+### PL-30: Godot crash — "attempt to call function add_output on a base null instance" — OPEN
+
+**Priority:** P1 — CRASH
+**Source:** Playtest Session D (Apr 10, 2026)
+
+#### Reproduction
+
+1. Propose non-aggression pact with Saxony, send it
+2. End turn — Saxony's reply arrives but another popup (e.g. incoming AI proposal) takes priority and blocks it
+3. Next turn, click the Diplomacy button (F1 wizard)
+4. Godot crashes: `attempt to call function add_output on a base null instance`
+
+#### Problem
+
+When a proposal result arrives but is masked by a higher-priority popup (incoming proposal, coalition, etc.), the result data may be consumed/cleared before the player sees it. On the next turn, opening the diplomacy wizard or interacting with diplomacy triggers a call to `add_output` on a node reference that is null.
+
+Likely cause: the proposal result popup or diplomacy wizard tries to reference a terminal/output node that either hasn't been initialized yet, or was freed when the blocking popup took focus.
+
+#### Needs Analysis
+
+- Which script has the `add_output` call? (`main.gd`, `diplomacy_wizard.gd`, or a popup script?)
+- Is the null node the terminal RichTextLabel, or a popup-internal node?
+- Does the proposal result get cleared by `_include_popup_passthroughs()` even when the player never saw it?
+- Is this a scene tree ordering issue (`@onready` node path doesn't match)?
+- Related to PL-27 (proposal spam blocking): the blocking popup prevents the result popup from showing, then stale state causes the crash
+
+#### Files to investigate
+1. `main.gd` — `add_output` function, `_on_command_result()` popup routing, proposal_result handling when another popup is active
+2. `diplomacy_wizard.gd` — does `open_for_nation()` or wizard open assume terminal node exists?
+3. `dialog_manager.gd` — modal popup priority, does consuming one popup clear data needed by another?
+4. `cooldown_manager.py` / `world_state.py` — popup queue priority ordering, does proposal_result get popped when unread?
