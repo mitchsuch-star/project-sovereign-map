@@ -619,3 +619,111 @@ Recommended short-term direction:
 3. Unify diplomacy text formatting so raw treaty/action tokens cannot leak into popups.
 4. Improve the first combat lesson through setup/surfacing, not a blanket flattening of combat depth.
 5. Reduce AI opacity before full-map work by introducing caching and fog-aware query seams.
+
+## Diplomacy Modal / Queue Addendum
+
+Audit date: 2026-04-10
+
+Scope: hard-stop vs soft-stop diplomacy flows, typed popup/button response routing, player-facing display ownership, and queue/expiry UX when proposals are ignored, delayed, or stacked.
+
+### Additional Execution Evidence
+
+- Code trace across `backend/commands/executor.py`, `backend/main.py`, `backend/game_logic/ai_diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/models/dialogue_manager.py`, `backend/models/world_state.py`, `godot-client/project-sovereign/scripts/main.gd`, and `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`
+- `tests/test_dialogue_manager.py` and `tests/test_bugfix_popup_chain.py` passed in the current tree
+- `tests/test_bugfix_proposal_flow.py` was mostly green, but one pre-existing unrelated failure remained: `TestModifyEscalation::test_harsh_round2_more_than_round1`
+- Source-level reproduction: an Austria incoming proposal delivered on turn 5 remained blocking through turns 6-7, auto-cleared on turn 8, and a same-turn queued Prussian proposal expired before it could be shown because queue expiry ran before queued delivery
+
+### Addendum Findings
+
+#### 1. Major - the hard-stop / soft-stop split still exists mostly as intent, not as enforced behavior
+
+Evidence:
+
+- `backend/commands/executor.py:460-478` blocks on any pending diplomatic dialogue, not only blocking ones
+- `backend/main.py:605-638` does the same on the parser path
+- `backend/commands/meta_executor.py:115-126` already distinguishes blocking vs non-blocking for `end_turn`
+- `backend/game_logic/ai_diplomacy.py:823-855` still marks every incoming AI proposal as `blocking=True`
+- Current live blocking dialogue types include `force_declare_war_confirmation` (`backend/commands/diplomatic_executor.py:472-485`), `alliance_paradox` (`backend/game_logic/diplomacy.py:1235-1255`), `sabotage_confrontation` (`backend/commands/diplomatic_defiance.py:349-371`), `vassal_rebellion_imminent` (`backend/game_logic/vassal.py:362-388`), `conflict_alert` (`backend/commands/diplomatic_executor.py:3069-3087`), `counter_offer` (`backend/commands/diplomatic_executor.py:3217-3243`), and incoming AI proposals (`backend/game_logic/ai_diplomacy.py:823-855`)
+
+Recommended taxonomy:
+
+- Hard-stop: `force_declare_war_confirmation`, `alliance_paradox`
+- Soft-stop: `incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`
+- Soft-stop for ordinary commands but not ignorable forever: `sabotage_confrontation`, `vassal_rebellion_imminent`; let the player keep acting, but resolve or auto-default them by end-turn instead of freezing the whole loop
+- Player-authored planning flows such as `proposal_confirm`, `advisory`, `mission`, `terms_guidance`, and `ultimatum_demand_wizard` should stay local dialogue workflows, not global campaign blockers
+
+Best-fit UX:
+
+- Give soft-stop diplomacy a persistent home such as a Talleyrand "desk" or diplomatic mailbox
+- Incoming proposals and other non-urgent items should land there with a visible count/badge instead of interrupting the terminal immediately
+- The player should be able to open that surface deliberately and answer items through typed dialogue actions, while hard-stop crises still interrupt in place
+
+Inference note:
+
+- The exact split above is an inference from the live option semantics and the current player-friction pattern, not an explicit design contract already written elsewhere.
+
+#### 2. Major - several diplomacy popup handlers still leak back through `/command` instead of typed choice transport
+
+Evidence:
+
+- `godot-client/project-sovereign/scripts/main.gd:2733-2760` keeps a `proposal_confirm` fallback that synthesizes English commands
+- `godot-client/project-sovereign/scripts/main.gd:2768-2774` handles incoming proposals through `send_command`
+- `godot-client/project-sovereign/scripts/main.gd:2776-2797` handles Talleyrand objections through `send_command` or an action-specific raw command
+- `godot-client/project-sovereign/scripts/main.gd:2799-2805` handles sabotage discovery through `send_command`
+- `godot-client/project-sovereign/scripts/main.gd:2809-2815` handles vassal rebellion through `send_command`
+- `godot-client/project-sovereign/scripts/main.gd:2817-2829` shows the desired end state: alliance paradox already uses `send_dialogue_response`
+- `backend/main.py:1142-1186` already exposes `/respond_to_diplomatic_dialogue`
+- Backend typed handlers already exist for most of these actions: AI proposal responses (`backend/commands/diplomatic_executor.py:2019-2026`), sabotage confrontation (`backend/commands/diplomatic_executor.py:2115-2136`), vassal rebellion (`backend/commands/diplomatic_executor.py:2437-2501`), and alliance paradox (`backend/commands/diplomatic_executor.py:2506-2559`)
+
+Clarification:
+
+- Incoming proposals, sabotage confrontation, vassal rebellion, and alliance paradox are already dialogue-shaped on the backend and can move to typed option ids now.
+- The diplomatic objection popup is the outlier: it is not currently backed by `pending_diplomatic_dialogue`, so it needs either a typed objection endpoint or a small backend conversion into dialogue form before the frontend can stop synthesizing raw commands.
+
+#### 3. Moderate - raw diplomacy display leaks are broader than the previous follow-up captured
+
+Evidence:
+
+- `backend/main.py:233-269` still rebuilds incoming proposal text ad hoc in the popup safety valve
+- `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd:18-55` keeps a separate proposal-type map and falls back to `replace("_", " ").capitalize()`
+- `backend/game_logic/diplomatic_dialogue.py:633-699` still formats unknown demand/sweetener types with raw underscore replacement
+- `backend/models/world_state.py:4521-4531` builds counter-offer popup clauses directly from raw `d.get("type")` / `s.get("type")`
+- `backend/commands/diplomatic_defiance.py:379-403` summarizes sabotaged proposals with `replace("_", " ").title()` instead of canonical display names
+- `backend/game_logic/ai_diplomacy.py:883-904` still owns a second clause-display map instead of reusing `backend/display_names.py`
+
+Clarification:
+
+- The strongest live leak is the counter-offer popup path in `world_state.py`, because it can emit raw clause ids directly into the popup payload.
+- The other paths are a mix of true leak risk and canonical-name degradation, such as losing hyphenation or treaty-specific wording.
+
+#### 4. Major - current queue / expiry behavior drops unseen proposals when blockers linger
+
+Evidence:
+
+- Queue expiry drops items once `current_turn - turn_generated >= 3` in `backend/game_logic/ai_diplomacy.py:304-312`
+- Queue overflow silently keeps only the three best-priority items in `backend/game_logic/ai_diplomacy.py:315-349`
+- Queued delivery expires old items before attempting delivery in `backend/game_logic/ai_diplomacy.py:1009-1024`
+- Blocking dialogues only clear on the stale-dialogue path in `backend/models/dialogue_manager.py:78-97` and `backend/models/world_state.py:4149-4151`
+- Incoming proposals are still delivered as blocking dialogues in `backend/game_logic/ai_diplomacy.py:823-855`
+
+Why this matters:
+
+- If a blocking proposal is ignored until the safety valve clears it, a second proposal generated in the same turn can expire before it is ever shown.
+- With `QUEUE_MAX_SIZE = 3`, stacked diplomacy is pruned by hidden timeouts and priority drops rather than by player choice.
+- That is tolerable only if proposals are intentionally soft-stop and visible while they age. In the current blocking model, it produces silent disappearance instead.
+
+Recommended short-term direction:
+
+- Make incoming proposals and counter-offers soft-stop
+- Base expiry on turns visible, or auto-reject with a notification/log entry instead of silently dropping hidden items
+- Add integration tests for hidden-expiry, stacked queue, and queue overflow behavior
+- Prefer a visible mailbox/desk model over an invisible timeout queue; unseen offers should not disappear without either surfacing to the player or generating an explicit auto-reject record
+
+### Addendum Roadmap
+
+1. Enforce the blocking taxonomy in `executor.py` and `main.py`; stop hard-blocking on `pending_diplomatic_dialogue` blindly.
+2. Introduce a diplomacy mailbox / desk surface for soft-stop items and route those responses through typed dialogue ids.
+3. Finish typed popup-response routing for the remaining diplomacy handlers; add a typed objection path instead of synthesizing English commands.
+4. Centralize proposal/clause display generation in the backend, including counter-offer popup payloads.
+5. Rework queue expiry around visibility or explicit auto-reject semantics so stacked proposals never disappear unseen.
+6. Keep the broader architecture roadmap as-is; this addendum sharpens the PL-27 contract/interrupt work rather than changing the overall sequencing.
