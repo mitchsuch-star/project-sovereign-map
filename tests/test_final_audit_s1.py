@@ -3,7 +3,7 @@ Final Audit Fix Session 1: Test file for FINAL-9, FINAL-10, FINAL-11,
 FINAL-7, FINAL-8, FINAL-16, FINAL-17.
 
 Tests victory/defeat conditions, fog filters, fortification int conversion,
-retreat fog leak, and capital-captured AI proposal skip.
+retreat fog leak, and capital-loss diplomatic continuity.
 """
 
 from backend.models.world_state import WorldState
@@ -265,14 +265,14 @@ class TestRetreatDestinationFogLeak:
 
 
 # ============================================================================
-# FINAL-17: AI proposals to defeated nations (capital captured)
+# FINAL-17: AI proposals continue after capital loss
 # ============================================================================
 
 class TestAIProposalToDefeatedNation:
-    """FINAL-17: AI should not propose to nations whose capital is captured."""
+    """FINAL-17 + PL-31: Capital loss alone should not suppress AI diplomacy."""
 
-    def test_no_proposal_to_capital_captured_nation(self):
-        """AI proposal generation skips nations whose capital is held by enemy."""
+    def test_capital_captured_nation_can_still_propose(self):
+        """Capital loss alone should not stop a nation from suing for peace."""
         world = _make_world()
         berlin = world.get_region("Berlin")
         berlin.controller = "France"
@@ -285,7 +285,12 @@ class TestAIProposalToDefeatedNation:
         # Ensure Prussia has marshals (not fully eliminated)
         m = _marshal("Blucher", nation="Prussia", location="Saxony")
         world.marshals["Blucher"] = m
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "PEACE"
+        world.nation_relations[diplo_key] = 40
 
         from backend.game_logic.ai_diplomacy import process_diplomatic_phase
         result = process_diplomatic_phase("Prussia", world)
-        assert result is None  # Should skip — capital captured
+        assert result is not None
+        assert result["source"] == "Prussia"
+        assert result["proposal_type"] == "open_borders"

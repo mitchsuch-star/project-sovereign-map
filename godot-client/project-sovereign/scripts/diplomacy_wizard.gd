@@ -211,8 +211,7 @@ func _render_nations(data: Dictionary):
 	# Never close+add_output — that path crashes when the wizard is no longer
 	# in the scene tree. Show an in-wizard message instead.
 	var dialogue_pending = data.get("dialogue_pending", false)
-	var has_deferred_result = data.get("has_deferred_result", false)
-	if dialogue_pending and not has_deferred_result:
+	if dialogue_pending:
 		var lbl = RichTextLabel.new()
 		lbl.bbcode_enabled = true
 		lbl.fit_content = true
@@ -318,8 +317,7 @@ func _render_preview(data: Dictionary):
 
 	# PL-30: Same fix as Step 1 — never close+add_output (null-instance crash).
 	var dialogue_pending = data.get("dialogue_pending", false)
-	var has_deferred_result = data.get("has_deferred_result", false)
-	if dialogue_pending and not has_deferred_result:
+	if dialogue_pending:
 		_clear_content_list()
 		var lbl = RichTextLabel.new()
 		lbl.bbcode_enabled = true
