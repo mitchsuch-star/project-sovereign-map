@@ -479,3 +479,143 @@ Not ready to be called "all clear." The capital-loss defeat bug alone blocks tha
 Not structurally ready.
 
 The no-go blockers are the map renderer, omniscient AI at scale, and remaining hardcoded nation/map assumptions. Full-map implementation should not start in earnest until those are addressed.
+
+## Focused Follow-Up Addendum
+
+Audit date: 2026-04-10
+
+Scope: first-hour experience, PL-26 combat clarity, PL-27 diplomacy pacing/modal burden, PL-28 defeat-state clarity, and enemy AI gameplay/organization.
+
+### Baseline Snapshot
+
+- Branch: `master`
+- Commit audited: `71162d88b88be0b8831088fc182bc2e70326da7b`
+- Tree state: dirty; this follow-up audited the current local working tree
+- `docs/STATUS.md` still claims 8,093 passing tests
+
+### Additional Execution Evidence
+
+Focused probes:
+
+- `help` returned a strong, high-signal command reference.
+- `status` still failed as an obvious first-hour command and fell through to Berthier recovery.
+- `economy` returned a clear treasury/income/upkeep/manpower breakdown.
+- `recruit infantry at Paris` remained a strong teaching moment.
+- `Ney, defend Belgium` raised a clear objection with a suggested alternative, but also blocked unrelated later commands until resolved.
+- `Talleyrand, propose peace with Prussia` entered a structured `proposal_confirm` flow correctly.
+- A 7-turn passive probe still produced 3 incoming AI proposals, confirming that proposal delivery remains interruptive even with anti-spam logic present.
+
+Focused tests:
+
+- `tests/test_playtest_bugfixes.py::TestCapitalLossNotDefeat::test_capital_loss_does_not_end_game` -> passed, but still targets `Ile-de-France` rather than `Paris`
+- `tests/test_enemy_ai.py::TestAttackThresholds::*` and `tests/test_enemy_ai_behavior.py::TestMultiTurnIntegration::test_graduated_escalation_lowers_threshold_at_turn3` -> passed
+- `tests/test_dialogue_manager.py` -> passed
+
+### Follow-Up Findings
+
+#### 1. Capital-loss defeat is still live, and the project should at minimum make loss/win logic consistent before the real map rewrite
+
+Evidence:
+
+- `backend/game_logic/turn_manager.py:803-845`
+- `tests/test_playtest_bugfixes.py:52-70`
+- Direct probe: setting `world.regions["Paris"].controller = "Prussia"` still returned `Your capital has fallen!`
+
+Clarification:
+
+- This can be redesigned further once the real map and final victory model exist.
+- The immediate need is consistency: code, tests, and docs should stop disagreeing about whether capital loss is fatal.
+
+Recommended short-term direction:
+
+- Remove the instant capital-loss defeat for now, or stop claiming it was removed.
+- Fix the regression test to target `Paris`.
+
+#### 2. Objections should remain blocking; AI incoming proposals are the right place to reduce modal burden
+
+Evidence:
+
+- Objection hard-stop: `backend/commands/executor.py:427-433`
+- Dialogue lifecycle supports non-blocking expiry: `backend/models/dialogue_manager.py:78-97`
+- AI incoming proposals are still explicitly blocking: `backend/game_logic/ai_diplomacy.py:823-855`
+- Current command guard blocks on any pending diplomatic dialogue, not only blocking ones: `backend/commands/executor.py:460-478`
+- Parser-side dialogue guard also triggers on any pending dialogue: `backend/main.py:605-620`
+
+Clarification:
+
+- Marshal objections are true decision points and should continue to stop play.
+- AI proposals do not need the same treatment. They are the best candidate for "Later", dismiss, or short-term ignore behavior.
+- The current architecture can already support ignorable diplomatic UI, but only after the guards stop treating every pending diplomatic dialogue as blocking.
+
+Recommended short-term direction:
+
+- Keep objections blocking.
+- Make incoming AI proposals non-blocking and dismissible.
+- If ignored, auto-reject or expire them after one turn instead of freezing the command loop.
+
+#### 3. Raw diplomacy labels are still at risk of leaking into popups because display formatting is split across backend and Godot
+
+Evidence:
+
+- Backend proposal display map: `backend/display_names.py:125-139`
+- Incoming popup keeps its own separate display map: `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd:18-28`
+- Backend fallback still formats proposal clauses ad hoc: `backend/main.py:233-269`
+- Proposal term display is also rebuilt separately in dialogue helpers: `backend/game_logic/diplomatic_dialogue.py:633-705`
+
+Clarification:
+
+- I did not reproduce a literal `Open_borders` string during this follow-up.
+- But the current structure is still brittle enough that raw enum/action-style labels can leak or degrade, especially through fallback paths and duplicated display maps.
+
+Recommended short-term direction:
+
+- Make the backend the single owner of diplomacy display strings.
+- Send only final human-readable proposal/term labels to Godot.
+- Add a regression test that fails if popup payload text contains raw underscore tokens or enum-style treaty names.
+
+#### 4. PL-26 remains more of a teaching/setup problem than a pure balance problem
+
+Evidence:
+
+- `backend/game_logic/combat.py:55-64`
+- `backend/game_logic/combat.py:331`
+- `backend/game_logic/combat.py:476`
+- Fresh-world probe: `Ney, attack Wellington` still produced a punishing early result; simple prep lines improved it only to stalemate
+
+Clarification:
+
+- The combat system does explain itself during and after battle.
+- The problem is that the common opener commits the player before the game has taught the counters it expects.
+
+Recommended short-term direction:
+
+- Keep the combat depth.
+- Surface the likely outcome and key counters earlier.
+- Ensure at least one obvious early French preparation line is visibly better than the naive opener.
+
+#### 5. Enemy AI remains competent enough for the current map, but still reads as smart-by-threshold more than deeply characterful
+
+Evidence:
+
+- Attack personality path: `backend/ai/enemy_ai.py:2078-2145`
+- Homeland recapture path: `backend/ai/enemy_ai.py:2402-2455`
+- Omniscient helper note: `backend/models/world_state.py:1534-1540`
+- Direct probes showed Wellington refusing low-advantage attacks while more aggressive personalities escalated sooner
+
+Clarification:
+
+- Personality differentiation is real in practice.
+- It is still mostly threshold/stance behavior rather than distinct operational doctrine.
+
+Recommended short-term direction:
+
+- Keep the current AI structure for the 19-region game.
+- Add per-turn query caching and visibility seams before map scale increases.
+
+### Focused Roadmap
+
+1. Make defeat-state truth consistent now: align code, tests, and docs on capital loss before the larger victory redesign.
+2. Split diplomacy into hard-stop and soft-stop flows: objections stay blocking; incoming AI proposals become non-blocking and ignorable.
+3. Unify diplomacy text formatting so raw treaty/action tokens cannot leak into popups.
+4. Improve the first combat lesson through setup/surfacing, not a blanket flattening of combat depth.
+5. Reduce AI opacity before full-map work by introducing caching and fog-aware query seams.
