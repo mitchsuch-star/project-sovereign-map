@@ -1,15 +1,93 @@
-# GPT Audit Results
+# GPT Audit Results and Fix-Phase Routing
 
 Audit date: 2026-04-10
 
 Scope: full synthesis across gameplay/design, architecture/contracts, tests/regression coverage, and full-map scalability.
+
+## Current Fix-Phase Routing
+
+Use the findings in this file as frozen truth for the current fix phase. Do not expand scope or start a new audit pass until the active PL items in `docs/BUG_FIXES.md` are resolved.
+
+### Documentation structure for the current fix phase
+
+- `docs/BUG_FIXES.md` = broken-now implementation document. It now owns the session order, per-bug implementation spec, acceptance criteria, regression matrix, and duplicate handling.
+- `docs/DESIGN_REFINEMENT.md` = better-later document. It explicitly marks what stays blocked until the current bug sessions are closed.
+- `docs/GPT_AUDIT_PLAN_RESULTS.md` = synthesis, routing, and sequencing. Use this doc to understand why items collapse together and why the current order stays intact.
+- `docs/STATUS.md` = current truthful summary only. Keep the open count, active session, and post-bug architecture order aligned with the active fix phase.
+
+### Clean implementation sequence
+
+Keep the current session order unless a direct implementation dependency forces a narrower split:
+
+1. **Session 1 - Stability and defeat truth**
+   - `PL-30`
+   - `PL-31`
+2. **Session 2 - Diplomacy interrupt contract**
+   - `PL-27`
+   - `PL-34`
+   - `PL-33` as a duplicate-candidate verification item, not a separate design track
+3. **Session 3 - Diplomacy display contract**
+   - `PL-32`
+4. **Session 4 - First-hour pressure cleanup**
+   - `PL-28`
+   - `PL-26`
+5. **Session 5 - Restart flow**
+   - `PL-29`
+
+### Same-family collapse rules inside the current scope
+
+- Treat `PL-30` as the owner of both diplomacy-wizard crash paths. Step 1 and Step 2 hit the same masked-result plus coarse `dialogue_pending` family and should be fixed together.
+- Treat `PL-27` as the root diplomacy attention-contract item.
+- Treat `PL-34` as the queue/expiry branch of `PL-27`, not a separate UX project.
+- Treat `PL-33` as open only until post-`PL-27` verification proves whether it is a real standalone failure.
+- Fold nearby read-only command failures (`status`, `help`, `economy`, `treasury`, `finances`) into `PL-27` verification unless a post-fix repro proves a different root cause.
+- Keep `PL-32` separate from `PL-27`, but sequence it after the transport and mailbox contract stabilizes. It absorbs the duplicate display-map and raw-token leak family.
+- Treat `PL-29` as one restart contract covering backend reset, frontend pause-menu wiring, frontend local-state reset, and autosave semantics.
+
+### Architecture blocker decision
+
+- No post-bug architecture item needs to move earlier as a full session.
+- Only the bug-owned slices required to close active PL items move earlier:
+  - Session 2: soft-stop mailbox/recovery surface, active-plus-queued count contract, typed responses for affected diplomacy popups
+  - Session 3: backend-owned display formatting for active diplomacy popup paths
+- Broader `/command` response unification, popup routing registry cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
+
+### Design work that stays blocked during the bug phase
+
+- `R160`
+- `R155`
+- `R156`
+- `R162`
+- Presentation-only diplomacy polish that depends on the mailbox, typed-response, or display-contract cleanup
+
+These are already documented in `docs/DESIGN_REFINEMENT.md`; they stay out of the current coding batches.
+
+### Post-bug architecture hardening sequence
+
+After the current bug sessions close, keep the existing architecture findings in this order:
+
+1. **Session 6 - Response and popup contract hardening**
+   - `/command` response pipeline
+   - Typed dialogue migration
+   - Popup routing registry
+   - Turn-manager popup flush workaround cleanup
+2. **Session 7 - Scale-sensitive backend hardening**
+   - AI fog-aware queries
+   - Hardcoded nation defaults
+   - Config-completeness and large-scenario validation tests
+3. **Session 8 - Renderer cutover prep and replacement**
+   - Map renderer replacement
+   - Preserve `update_all_regions(map_data)` while the renderer swaps underneath it
+   - Do not start 80-100 region wiring on top of the current circle renderer
+
+This sequence is a restructuring of existing audit findings, not a new audit scope.
 
 ## Baseline Snapshot
 
 - Branch: `master`
 - Commit audited: `c965e6478afa7532e9708d9b5d0365d656eb0ccf`
 - Tree state: dirty; this audit covers current local code plus uncommitted changes, not just clean `HEAD`
-- `docs/STATUS.md` claims 8,093 passing tests and labels bug-fix status "ALL CLEAR" as of 2026-04-09
+- At audit time, `docs/STATUS.md` claimed 8,093 passing tests and labeled bug-fix status "ALL CLEAR" as of 2026-04-09
 - `docs/ROADMAP.md` still treats the map renderer as the major remaining pre-expansion blocker
 
 ## Method
@@ -727,3 +805,98 @@ Recommended short-term direction:
 4. Centralize proposal/clause display generation in the backend, including counter-offer popup payloads.
 5. Rework queue expiry around visibility or explicit auto-reject semantics so stacked proposals never disappear unseen.
 6. Keep the broader architecture roadmap as-is; this addendum sharpens the PL-27 contract/interrupt work rather than changing the overall sequencing.
+
+## Focused Audit - Attention Economy + AI Diplomacy Legitimacy
+
+Audit date: 2026-04-10
+
+Scope: attention economy, diplomacy recovery surfaces, AI use of diplomacy, legitimacy vs bugs/refinement, and explicit routing into `BUG_FIXES.md`, `DESIGN_REFINEMENT.md`, and `STATUS.md`.
+
+### Baseline Snapshot
+
+- Branch: `master`
+- Commit audited: `b6e60516a5a266b98b208e44aa116c09bd7d5064`
+- Tree state: dirty; this focused audit covered the current local working tree, not just clean `HEAD`
+- `docs/STATUS.md` still claimed 8 open bugs at the start of this pass, while `docs/BUG_FIXES.md` already listed 9 including `PL-34`
+- Focused verification run: `tests/test_dialogue_manager.py tests/test_audit_session4.py` -> `79 passed`
+
+### Additional Execution Evidence
+
+- Direct probe: an active incoming Austrian proposal blocked `status` through the executor dialogue guard rather than allowing a free status read.
+- Direct probe: an active incoming proposal with an empty queue returned `pending_envoy_count = 0` in both the base response and the diplomatic ledger while `pending_diplomatic_dialogue` was still live.
+- Direct scripted reproduction: a turn-5 Austrian blocking proposal plus a same-turn queued Prussian proposal resulted in Austria clearing on turn 8 while the queued Prussian item expired unseen before delivery.
+- Key code traces:
+  - `backend/commands/executor.py:461-478`
+  - `backend/main.py:169-170`
+  - `backend/main.py:605-638`
+  - `backend/game_logic/ai_diplomacy.py:304-349`
+  - `backend/game_logic/ai_diplomacy.py:823-855`
+  - `backend/game_logic/ai_diplomacy.py:1009-1024`
+  - `backend/game_logic/diplomatic_ledger.py:622-623`
+  - `backend/campaign_log.py:39-97`
+  - `godot-client/project-sovereign/scripts/top_bar.gd:271-307`
+  - `godot-client/project-sovereign/scripts/main.gd:2768-2815`
+  - `godot-client/project-sovereign/scripts/main.gd:2866-2868`
+
+### Executive Verdict
+
+- Attention economy: promising but fragmented.
+- Diplomacy surfaces still add more interruption than planning because soft-stop items do not yet have a trustworthy home.
+- AI diplomacy: active but not believable.
+- The current diplomacy experience is harmed more by bugs and pacing / interruption failures than by pure AI incompetence.
+- Smallest solid legitimacy path: fix the diplomacy attention contract now, then add rivalry / optionality / motive legibility.
+
+### Recommended Attention Taxonomy
+
+- **Hard-stop interrupt:** `force_declare_war_confirmation`, `alliance_paradox`
+- **Soft-stop mailbox / desk item:** `incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`
+- **Hybrid soft-stop with end-turn default:** `sabotage_confrontation`, `vassal_rebellion_imminent`
+- **Notification bar:** envoy arrival, treaty signed / broken, sabotage discovery, coalition warnings, defeat-imminent warnings
+- **Dispatch:** diplomatic consequences, auto-rejects, AI-AI diplomatic actions, missed-opportunity summaries
+- **Ledger / log:** treaty state, rivalries, reliability, diplomatic history, pending counts, mailbox entry point
+
+### Document Routing
+
+- **`docs/BUG_FIXES.md`**
+  - `PL-27`: expand from “spam” to the full diplomacy interrupt contract, including missing recovery surface, active-envoy count mismatch, and incomplete typed-response migration.
+  - `PL-34`: hidden expiry / silent queue drop remains a live contract failure.
+  - `PL-32`: keep as the backend-owned display contract cleanup, including the counter-offer popup path.
+  - `PL-33`: retain as likely duplicate until a non-dialogue-guard reproduction exists.
+
+- **`docs/DESIGN_REFINEMENT.md`**
+  - `R160`: validated as the highest-leverage legitimacy improvement once the contract bugs are fixed.
+  - `R155`: re-scope from pure “voice” to visible motive / personality legibility in timing, terms, persistence, and explanation.
+  - `R156`: validated as the branching / forced-choice gap behind “active but not believable” diplomacy.
+  - `R162`: keep gated until the diplomacy mailbox / recovery surface exists.
+  - `N1`, `A3`, `A4`: update status so the doc reflects what is already live vs what still needs re-scope.
+
+- **`docs/GPT_AUDIT_PLAN_RESULTS.md`**
+  - Keep this focused pass here as the synthesis layer that explains how the bug fixes and legitimacy refinements sequence together.
+
+- **`docs/STATUS.md`**
+  - Update the open-bug count to 9.
+  - Stop summarizing the diplomacy cluster as just “spam”; the focused audit proved it is an attention-contract issue with direct player-facing recovery failures.
+
+### Focused Findings Summary
+
+1. **PL-27 is bigger than proposal frequency.** The core bug is that soft-stop diplomacy is still treated as a hard stop, and the player has no authoritative “look here later” surface.
+2. **PL-34 is a real contract failure, not just pacing feel.** Stacked proposals can disappear unseen because expiry runs before queued delivery.
+3. **The current envoy / history surfaces are not trustworthy.** Active offers are omitted from the pending count, envoy click is only a terminal prefill, and the campaign log does not preserve proposal arrivals.
+4. **AI diplomacy already has real triggers, but not enough political legitimacy.** The system reads as threshold-smart more than nation-smart until rivalry, exclusion pressure, and motive legibility arrive.
+
+### Priority Roadmap
+
+1. **Immediate bug / contract fixes**
+   - Land `PL-27 / PL-34 / PL-32`
+   - Finish typed popup-response routing
+   - Make pending counts and recovery surfaces authoritative
+2. **Attention-economy restructuring**
+   - Add a Talleyrand desk / mailbox for soft-stop diplomacy
+   - Record auto-reject / expiry / missed items in dispatch and history
+3. **AI diplomacy legitimacy refinements**
+   - `R160` rivalry / exclusion pressure
+   - `R155` motive + personality legibility
+   - `R156` stronger branching / commitment pressure
+4. **Longer-horizon follow-up**
+   - `R162` AI ultimatums to player only after the mailbox / interrupt model is stable
+   - Keep broader architecture scaling work on its existing track

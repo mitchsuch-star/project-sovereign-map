@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** Work here begins after `BUG_FIXES.md` is clear and playtesting confirms stability.
 >
-> **Last Updated:** April 5, 2026
+> **Last Updated:** April 10, 2026 (fix-phase gating clarified; no new refinement scope added)
 
 ---
 
@@ -10,22 +10,50 @@
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Player Feedback (Wave 3 remaining) | 7 | Ready for implementation |
-| Nation Rivalry System (EU4-inspired) | 1 | Needs design gate |
-| Territorial Promises (Wave 3) | 1 | Needs design gate |
-| War System Overhaul (EU4-inspired) | 4 | Needs design gate |
-| AI Diplomacy Improvements | 3 | Ready (small fixes) |
-| Gold Sink Options (B4) | 1 | Needs design gate |
-| Wave 4 — New Features | 19 | Needs per-item approval |
-| Wave 5 — Game Review Findings | 8 | Needs design gate |
-| Jealousy System | 1 | Needs design gate |
+| Player Feedback (Wave 3 remaining) | 7 | Deferred until the current bug phase is complete |
+| Nation Rivalry System (EU4-inspired) | 1 | Blocked on the diplomacy bug cluster clearing |
+| Territorial Promises (Wave 3) | 1 | Needs design gate after the current bug phase |
+| War System Overhaul (EU4-inspired) | 4 | Needs design gate after the current bug phase |
+| AI Diplomacy Improvements | 3 | Reference only during bug phase; do not pull into current coding batches |
+| Gold Sink Options (B4) | 1 | Needs design gate after the current bug phase |
+| Wave 4 — New Features | 19 | Needs per-item approval after the current bug phase |
+| Wave 5 — Game Review Findings | 8 | Needs design gate after the current bug phase |
+| Jealousy System | 1 | Needs design gate after the current bug phase |
 | **Total** | **45** | |
 
 ---
 
-## Ready for Implementation
+## Fix-Phase Gate
 
-These refine existing systems. No design gate needed.
+Everything in this document is outside the current bug-fix execution plan. During the current fix phase, use this file only to check what remains blocked and what should not be pulled forward.
+
+Sessions 6-8 from `docs/GPT_AUDIT_PLAN_RESULTS.md` are architecture hardening, not design-refinement permission. Finishing a bug session does not automatically unblock the items below unless their listed prerequisites are also closed.
+
+### Blocked until the current bug phase is complete
+
+- `R160: Nation Rivalry System`
+- `R155: AI Proposal Personality Voice`
+- `R156: Diplomacy Strategic Optionality`
+- `R162: AI Ultimatums to Player`
+- Presentation-only diplomacy polish that depends on the mailbox, typed-response, or display-contract cleanup from `PL-27`, `PL-34`, and `PL-32`
+
+### Deferred by phase, not by a specific technical blocker
+
+- `R119`, `R131`, `R129`, `R128`, `R132`, `R17d`, `R17e`, `R17f`
+- These items remain valid later, but they are not part of the current bug batches and should not displace open PL work.
+
+### Re-entry condition for this document
+
+- Session 1 in `docs/BUG_FIXES.md` is closed.
+- Session 2 in `docs/BUG_FIXES.md` is closed.
+- Session 3 in `docs/BUG_FIXES.md` is closed.
+- `PL-28` has been rebased on the surviving defeat rule from `PL-31`.
+
+---
+
+## Deferred Until Bug Phase Clears
+
+These refine existing systems and are still implementation-ready later, but they are intentionally out of the current bug phase.
 
 ### R119: Nations Remember Betrayal
 - **Category:** Player Feedback
@@ -71,6 +99,30 @@ These refine existing systems. No design gate needed.
 - **Category:** QoL
 - **Summary:** Estimated completion turn for active missions.
 - **Files:** `diplomatic_ledger.py`
+
+---
+
+## Focused Audit Validation (Apr 10, 2026)
+
+The focused attention / AI diplomacy audit tightened which diplomacy legitimacy items are already justified, which ones need bug-fix prerequisites, and which old notes are now stale.
+
+### Already justified by current evidence
+
+- **R160: Nation Rivalry System** — confirmed as the highest-leverage legitimacy upgrade. Current diplomacy still lets France drift toward broad friendship without enough forced political choice.
+- **R155: AI Proposal Personality Voice** — needs to expand from flavor text into motive legibility. The audit confirmed that AI personality currently changes a few constants, but not enough of proposal timing, persistence, target choice, or player-facing explanation.
+- **R156: Diplomacy Strategic Optionality** — confirmed. Proposals happen, but they do not create enough meaningful branching until rivalry / exclusion pressure exists.
+
+### Wait for bug-fix prerequisites
+
+- **R160 / R155 / R156** should not start until `PL-27`, `PL-34`, and `PL-32` are closed. The current diplomacy contract is not trustworthy enough to judge legitimacy work cleanly.
+- **R162: AI Ultimatums to Player** should wait until the PL-27 / PL-34 diplomacy attention contract is fixed. The current interrupt / recovery model is not trustworthy enough to add another urgent diplomacy surface cleanly.
+- Presentation-only diplomacy polish should follow the soft-stop mailbox / typed-response cleanup, not precede it.
+
+### Smallest legitimacy stack
+
+- `docs/BUG_FIXES.md`: land PL-27 / PL-34 / PL-32 so diplomacy has a trustworthy interrupt, recovery, and display contract.
+- `R160`: make alliances politically costly and mutually constraining.
+- `R155` + `R156`: make AI motives and strategic branching legible to the player.
 
 ---
 
@@ -142,18 +194,19 @@ Full design spec in `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` lines 215-722. A
 ### N1: AI Preemptive Alliance Against Rising Threat
 - **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 69-130
 - **Summary:** Trigger 5 in AI-AI diplomatic evaluation. When threat > 40, nations with negative relations toward France form defensive alliances with each other. Creates diplomatic web before coalitions.
+- **Audit status (Apr 10):** Already implemented in `ai_diplomacy.py` Trigger 5. Keep as verified reference, not as a pending refinement unless the behavior needs expansion.
 - **Files:** `ai_diplomacy.py`
 - **Est. tests:** ~7
 
 ### A3: AI War Exhaustion Integration
 - **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 55-61
-- **Summary:** AI decision triggers (P1-P8) don't reference war exhaustion. P1: lower war_score threshold by WE // 20. P2: reduce stalemate patience by WE // 30. ~5 lines.
-- **Files:** `enemy_ai.py`
+- **Summary:** Proposal-side war exhaustion integration is already partially landed in `ai_diplomacy.py` (`effective_p1_threshold`, `effective_stalemate_turns`). Remaining work, if any, is broader war-exhaustion integration in `enemy_ai.py` and diplomacy-vs-war choice, so this item now needs re-scope rather than blind implementation.
+- **Files:** `ai_diplomacy.py`, `enemy_ai.py`
 - **Est. tests:** ~4
 
 ### A4: AI Harsh Peace Gold Formula Rebalance
 - **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 47-53
-- **Summary:** Current formula `max(500, int(war_score * 8 * gold_mult))` produces unreachable demands. Fix: `max(200, int(war_score * 5 * gold_mult))`.
+- **Summary:** Historical note only: the focused audit confirmed the live formula already uses `max(200, int(war_score * 5 * gold_mult))` in `ai_diplomacy.py`. Keep this item only if further rebalance is desired.
 - **Files:** `ai_diplomacy.py`
 - **Est. tests:** ~2
 
@@ -246,12 +299,14 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 
 **Diplomatic Term Novelty — PARTIALLY ABSORBED into PL-25 (BUG_FIXES.md).** PL-25 covers the 80/20: amount jitter, personality-biased pen nudge, nation desire profile bias in `_build_base_terms()`, situational flavor lines. R155/R157 retain the remaining full scope: hawk/dove personality weight table for ALL AI proposals (not just Talleyrand's pen nudge), deep `TALLEYRAND_COMMENTARY` integration, and AI-initiated proposal personality voice.
 
+**Focused audit routing:** R155 / R156 are now directly validated by current code evidence. R160 remains the highest-leverage legitimacy upgrade once the BUG_FIXES attention-contract work lands. R162 stays gated until the diplomacy mailbox / recovery surface exists.
+
 | ID | Item | Summary |
 |----|------|---------|
 | R152 | Authority System UI Visibility | Authority impact not visible enough to players |
 | R153 | Literal Personality Triggers | Personality-specific event triggers |
 | R154 | Combat Morale Spiral | Morale death spiral needs circuit breaker |
-| R155 | AI Proposal Personality Voice | Partially absorbed into PL-25 (jitter, desire profiles). Remaining: hawk/dove weight table for AI-initiated proposals |
+| R155 | AI Proposal Personality Voice | Partially absorbed into PL-25. Remaining: visible motive / personality in timing, terms, persistence, and player-facing explanation |
 | R156 | Diplomacy Strategic Optionality | Diplomacy feels optional vs military path |
 | R157 | Talleyrand Voice Depth | Partially absorbed into PL-25 (situational flavor, personality pen nudge). Remaining: deep commentary integration |
 | R158 | NL Parser Confidence Feedback | Show parse confidence to player |
