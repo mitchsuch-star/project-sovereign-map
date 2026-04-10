@@ -2766,12 +2766,12 @@ func _on_proposal_result_dismissed():
 	command_input.grab_focus()
 
 func _on_incoming_proposal_choice(choice: String, data: Dictionary):
-	"""Handle player response to AI diplomatic proposal."""
+	"""Handle player response to AI diplomatic proposal.
+	PL-27: Uses typed dialogue response instead of synthesized command."""
 	var from_nation = data.get("from_nation", "Unknown")
-	var command = "Talleyrand, %s the %s proposal" % [choice, from_nation]
 	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [from_nation, choice])
 	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+	api_client.send_dialogue_response(choice, _on_command_result)
 
 func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 	"""Handle player response to Talleyrand's diplomatic objection."""
@@ -2864,10 +2864,31 @@ func _on_screen_changed(screen_name: String):
 
 
 func _on_envoy_clicked():
-	"""Handle envoy indicator click — type diplomatic report command."""
-	command_input.text = "Talleyrand, report on the waiting envoy"
-	command_input.grab_focus()
-	command_input.caret_column = command_input.text.length()
+	"""Handle envoy indicator click — PL-27: reopen pending proposal popup."""
+	set_input_enabled(false)
+	api_client.get_pending_envoy(_on_pending_envoy_result)
+
+func _on_pending_envoy_result(response: Dictionary):
+	"""Handle pending envoy recovery endpoint response."""
+	set_input_enabled(true)
+	if not response.get("success", false) or not response.get("has_pending", false):
+		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
+		return
+	var dtype = response.get("dialogue_type", "")
+	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response"]:
+		var proposal_data = response.get("incoming_proposal", {})
+		if incoming_proposal_popup and proposal_data.size() > 0:
+			incoming_proposal_popup.show_proposal(proposal_data)
+		else:
+			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
+	elif dtype == "conflict_alert":
+		var dialogue = response.get("diplomatic_dialogue", {})
+		if proposal_confirm_popup and dialogue.size() > 0:
+			proposal_confirm_popup.show_dialogue(dialogue)
+		else:
+			add_output("[color=#d9c08c]A diplomatic alert is pending.[/color]")
+	else:
+		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
 
 
 # ════════════════════════════════════════════════════════════════════════════

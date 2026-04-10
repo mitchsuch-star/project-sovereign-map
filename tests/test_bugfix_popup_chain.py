@@ -495,19 +495,19 @@ class TestBlockingDialogue:
         assert result.get("awaiting_diplomatic_response") is True
         assert result.get("diplomatic_dialogue") is not None
 
-    def test_normal_command_blocked_by_counter_offer_dialogue(self):
-        """Normal commands must be blocked when counter-offer dialogue is pending."""
+    def test_normal_command_blocked_by_hard_stop_dialogue(self):
+        """PL-27: Normal commands must be blocked by hard-stop dialogue only."""
         world = _make_world()
         executor = _make_executor()
         game_state = _make_game_state(world)
 
         world.dialogue_manager.replace({
-            "type": "counter_offer_response",
+            "type": "force_declare_war_confirmation",
             "target_nation": "Saxony",
             "blocking": True,
             "options": [
-                {"label": "Accept counter-offer", "action": "accept_counter_offer"},
-                {"label": "Reject", "action": "reject_counter_offer"},
+                {"label": "Proceed", "action": "proceed"},
+                {"label": "Cancel", "action": "cancel"},
             ],
             "context": {"source_nation": "Saxony"},
             "turn_created": int(world.current_turn),
@@ -521,10 +521,10 @@ class TestBlockingDialogue:
         result = executor.execute(parsed, game_state)
         assert result["success"] is False
         assert result.get("awaiting_diplomatic_response") is True
-        assert "requires your attention" in (result.get("message") or "") or "Talleyrand awaits" in (result.get("message") or "")
+        assert "requires your attention" in (result.get("message") or "")
 
-    def test_blocking_guard_response_includes_dialogue_options(self):
-        """Blocking guard response must include dialogue options for display."""
+    def test_soft_stop_dialogue_allows_commands(self):
+        """PL-27: Soft-stop dialogues (counter_offer) do NOT block commands."""
         world = _make_world()
         executor = _make_executor()
         game_state = _make_game_state(world)
@@ -543,11 +543,34 @@ class TestBlockingDialogue:
 
         parsed = {"success": True, "command": {"action": "status"}}
         result = executor.execute(parsed, game_state)
+        # Soft-stop should NOT block — command goes through to executor
+        assert result.get("awaiting_diplomatic_response") is not True
+
+    def test_blocking_guard_response_includes_dialogue_options(self):
+        """Blocking guard response must include dialogue options for display."""
+        world = _make_world()
+        executor = _make_executor()
+        game_state = _make_game_state(world)
+
+        world.dialogue_manager.replace({
+            "type": "alliance_paradox",
+            "target_nation": "Saxony",
+            "blocking": True,
+            "options": [
+                {"label": "Honor alliance", "action": "honor"},
+                {"label": "Break alliance", "action": "side"},
+            ],
+            "context": {"source_nation": "Saxony"},
+            "turn_created": int(world.current_turn),
+        })
+
+        parsed = {"success": True, "command": {"action": "status"}}
+        result = executor.execute(parsed, game_state)
         dialogue = result.get("diplomatic_dialogue")
         assert dialogue is not None
         assert len(dialogue.get("options", [])) == 2
-        assert dialogue["options"][0]["label"] == "Accept counter-offer"
-        assert dialogue["options"][1]["label"] == "Reject"
+        assert dialogue["options"][0]["label"] == "Honor alliance"
+        assert dialogue["options"][1]["label"] == "Break alliance"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -304,15 +304,16 @@ class TestDialogueGeneration:
 # ═══════════════════════════════════════════════════════
 
 class TestDialogueBlocking:
-    def test_pending_dialogue_blocks_other_commands(self, executor, world, game_state):
+    def test_hard_stop_dialogue_blocks_commands(self, executor, world, game_state):
+        """PL-27: Only hard-stop dialogues block commands."""
         world.dialogue_manager.replace({
-            "type": "proposal_options",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
-            "options": [{"label": "Test", "action": "dismiss"}],
+            "options": [{"label": "Honor", "action": "honor"}, {"label": "Break", "action": "side"}],
             "context": {},
             "turn_created": 1,
-            "blocking": False,
+            "blocking": True,
         })
         parsed = {
             "success": True,
@@ -321,6 +322,25 @@ class TestDialogueBlocking:
         result = executor.execute(parsed, game_state)
         assert not result["success"]
         assert "requires your attention" in result["message"].lower() or "talleyrand" in result["message"].lower() or "awaits" in result["message"].lower()
+
+    def test_soft_stop_dialogue_allows_commands(self, executor, world, game_state):
+        """PL-27: Soft-stop dialogues do not block commands."""
+        world.dialogue_manager.replace({
+            "type": "incoming_proposal",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Test",
+            "options": [{"label": "Accept", "action": "accept_ai_proposal"}],
+            "context": {},
+            "turn_created": 1,
+            "blocking": True,
+        })
+        parsed = {
+            "success": True,
+            "command": {"action": "status"},
+        }
+        result = executor.execute(parsed, game_state)
+        # Soft-stop does not block — command proceeds normally
+        assert result.get("awaiting_diplomatic_response") is not True
 
     def test_non_blocking_dialogue_auto_dismisses_on_end_turn(self, world):
         world.dialogue_manager.replace({

@@ -94,6 +94,10 @@ CAMPAIGN_LOG_TYPES = {
     "ultimatum_issued",
     "ultimatum_accepted",
     "ultimatum_rejected",
+    # PL-27/PL-34: Proposal queue visibility events
+    "proposal_arrived",
+    "proposal_expired_unseen",
+    "proposal_dropped_overflow",
 }
 
 # ============================================================================
@@ -154,6 +158,10 @@ CATEGORY_MAP = {
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
     "ultimatum_rejected": "diplomacy",
+    # PL-27/PL-34: Proposal queue visibility events
+    "proposal_arrived": "diplomacy",
+    "proposal_expired_unseen": "diplomacy",
+    "proposal_dropped_overflow": "diplomacy",
 }
 
 
@@ -384,6 +392,12 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # AI proposal responses to player: always show (player is target)
         if event_type in ("ai_proposal_accepted", "ai_proposal_rejected",
                           "ai_proposal_counter_failed"):
+            filtered.append(event)
+            continue
+
+        # PL-27/PL-34: Proposal queue events — always show (player-facing)
+        if event_type in ("proposal_arrived", "proposal_expired_unseen",
+                          "proposal_dropped_overflow"):
             filtered.append(event)
             continue
 
@@ -716,6 +730,22 @@ def format_event_oneliner(event: dict) -> str:
         target = event.get("target", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
         return f"Proposal sent to {target} ({proposal_type})"
+
+    # PL-27/PL-34: Proposal queue visibility events
+    if event_type == "proposal_arrived":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"An envoy from {source} has arrived with a {proposal_type} proposal"
+
+    if event_type == "proposal_expired_unseen":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source}'s {proposal_type} envoy departed — proposal expired unanswered"
+
+    if event_type == "proposal_dropped_overflow":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source}'s {proposal_type} envoy turned away — too many waiting"
 
     if event_type == "garrison_placed":
         marshal = event.get("marshal", "Unknown")

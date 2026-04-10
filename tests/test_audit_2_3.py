@@ -1340,16 +1340,17 @@ class TestParserRoutingMatrix:
 
 class TestDialogueBlockingEnforcement:
 
-    def test_pending_dialogue_blocks_military_command(self):
+    def test_hard_stop_dialogue_blocks_military_command(self):
+        """PL-27: Hard-stop dialogues block all commands."""
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
-            "type": "proposal_confirm",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
-            "talleyrand_text": "Shall I proceed?",
+            "talleyrand_text": "Alliance conflict!",
             "options": [
-                {"label": "Proceed", "description": "Send.", "action": "execute_proposal"},
-                {"label": "Dismiss", "description": "Cancel.", "action": "dismiss"},
+                {"label": "Honor", "description": "Keep alliance.", "action": "honor"},
+                {"label": "Break", "description": "Break alliance.", "action": "side"},
             ],
             "context": {},
             "turn_created": 1,
@@ -1364,7 +1365,8 @@ class TestDialogueBlockingEnforcement:
         assert result["success"] is False
         assert result.get("awaiting_diplomatic_response") is True
 
-    def test_non_blocking_dialogue_also_blocks(self):
+    def test_soft_stop_dialogue_allows_commands(self):
+        """PL-27: Soft-stop/local-planning dialogues do NOT block commands."""
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
@@ -1378,17 +1380,18 @@ class TestDialogueBlockingEnforcement:
         })
         game_state = {"world": world}
         parsed_command = {
-            "command": {"action": "attack", "marshal": "Ney", "target": "Rhineland"},
-            "raw_input": "Ney, attack Rhineland",
+            "command": {"action": "status"},
+            "raw_input": "status",
         }
         result = executor.execute(parsed_command, game_state)
-        assert result["success"] is False
+        # PL-27: Local planning flow should not block
+        assert result.get("awaiting_diplomatic_response") is not True
 
     def test_cleared_dialogue_allows_commands(self):
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
-            "type": "proposal_confirm",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [],
@@ -1405,11 +1408,12 @@ class TestDialogueBlockingEnforcement:
         result = executor.execute(parsed_command, game_state)
         assert "awaiting_diplomatic_response" not in result
 
-    def test_blocking_dialogue_blocks_end_turn(self):
+    def test_hard_stop_dialogue_blocks_end_turn(self):
+        """PL-27: Hard-stop dialogue blocks end_turn via executor guard."""
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
-            "type": "proposal_confirm",
+            "type": "force_declare_war_confirmation",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [],
@@ -1421,7 +1425,7 @@ class TestDialogueBlockingEnforcement:
         parsed_command = {"command": {"action": "end_turn"}, "raw_input": "end turn"}
         result = executor.execute(parsed_command, game_state)
         assert result["success"] is False
-        assert "requires your attention" in result.get("message", "").lower() or "awaits" in result.get("message", "").lower()
+        assert "requires your attention" in result.get("message", "").lower() or "respond" in result.get("message", "").lower()
 
 
 # ======================================================

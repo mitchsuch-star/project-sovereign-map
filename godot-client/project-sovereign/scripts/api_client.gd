@@ -65,6 +65,9 @@ func get_diplomatic_ledger(callback: Callable):
 func get_marshal_overview(callback: Callable):
 	_send_get("/marshal_overview", callback)
 
+func get_pending_envoy(callback: Callable):
+	_send_get("/pending_envoy", callback)
+
 # --- POST endpoints ---
 
 func send_command(command: String, callback: Callable):

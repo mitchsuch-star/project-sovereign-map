@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 10, 2026 (Session 1 COMPLETE: PL-30 + PL-31 FIXED. 7 open bugs remain. 8110 tests passing.)
+> **Last Updated:** April 10, 2026 (Session 2 COMPLETE: PL-27 + PL-34 FIXED, PL-33 CLOSED as duplicate. 4 open bugs remain. 8151 tests passing.)
 
 ---
 
@@ -9,40 +9,40 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **8110** (8110 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Session 1 COMPLETE (PL-30, PL-31 FIXED). 7 OPEN bugs remain (PL-26/27/28/29/32/33/34). Next: Session 2 = PL-27 / PL-34 / PL-33 duplicate check. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | Session 1 COMPLETE — playtest unblocked. Session 2 before diplomacy refinement or any new audit pass. |
+| **Tests Passing** | **8151** (8151 passed, 1 skipped) |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). 4 OPEN bugs remain (PL-26/28/29/32). Next: Session 3 = PL-32. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | Session 2 COMPLETE. Session 3 before diplomacy refinement or any new audit pass. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### 1. Bug Fixes - 7 OPEN (Session 1 complete)
+### 1. Bug Fixes - 4 OPEN (Sessions 1-2 complete)
 
-Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
+Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33) FIXED on April 10, 2026. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
 | ~~P1 - CRASH~~ | ~~PL-30~~ | ~~Godot null instance crash on diplomacy button after missed proposal result~~ **FIXED** |
 | ~~P1 - DESIGN~~ | ~~PL-31~~ | ~~Capital-loss instant defeat still live + broken regression test~~ **FIXED** |
 | P2 - UX | PL-26 | Combat feels hopeless, no clear path to winning |
-| P2 - UX | PL-27 | Diplomacy interrupt contract broken: AI proposals block commands and have no reliable recovery surface |
+| ~~P2 - UX~~ | ~~PL-27~~ | ~~Diplomacy interrupt contract broken~~ **FIXED** (hard-stop/soft-stop taxonomy enforced) |
 | P2 - UX | PL-28 | No warning before defeat, sudden game over |
 | P2 - UX | PL-32 | Raw diplomacy labels can leak into popups |
-| P2 - UX | PL-33 | "status" blocked by dialogue guard (verification item, likely PL-27 duplicate) |
-| P2 - UX | PL-34 | Queued diplomatic proposals can expire unseen behind blockers |
+| ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
+| ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement Session 2 from `docs/BUG_FIXES.md` (`PL-27`, `PL-34`, `PL-33` duplicate check).
+**Next session:** Implement Session 3 from `docs/BUG_FIXES.md` (`PL-32`).
 
 **Implementation sessions in current order:**
 
 | Session | Scope | Items | Status |
 |---------|-------|-------|--------|
 | Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
-| Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | Next |
-| Session 3 | Diplomacy display contract | `PL-32` | |
+| Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
+| Session 3 | Diplomacy display contract | `PL-32` | Next |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |
 

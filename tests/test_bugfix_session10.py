@@ -8,7 +8,6 @@ PL-11: Improved dialogue guard error message
 from unittest.mock import patch
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
-from backend.commands.diplomatic_executor import DiplomaticExecutor
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -414,7 +413,7 @@ class TestPL10GenerousTypePreservation:
             if opt.get("action") == "execute_proposal":
                 terms = opt.get("terms", {})
                 assert terms.get("proposal_type") == "alliance", \
-                    f"proposal_type should be 'alliance' after generate_suggested_terms fallback"
+                    "proposal_type should be 'alliance' after generate_suggested_terms fallback"
                 break
 
 
@@ -423,18 +422,18 @@ class TestPL10GenerousTypePreservation:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestPL11DialogueGuardMessage:
-    """Dialogue guard should provide actionable error message."""
+    """Dialogue guard should provide actionable error message (PL-27: hard-stop only)."""
 
     def test_guard_mentions_nation_and_api_hint(self):
-        """Blocked command should mention the nation and /respond_to_diplomatic_dialogue."""
+        """Hard-stop blocked command should mention the nation and API hint."""
         world = _make_world()
         executor = CommandExecutor()
         world.dialogue_manager.push({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "target_nation": "Austria",
             "options": [
-                {"label": "Accept", "action": "accept_ai_proposal"},
-                {"label": "Reject", "action": "reject_ai_proposal"},
+                {"label": "Honor alliance", "action": "honor"},
+                {"label": "Break alliance", "action": "side"},
             ],
             "turn_created": int(world.current_turn),
             "blocking": True,
@@ -450,16 +449,16 @@ class TestPL11DialogueGuardMessage:
         assert "/respond_to_diplomatic_dialogue" in msg, "Message should mention API endpoint"
         assert "awaiting_diplomatic_response" in result
 
-    def test_guard_still_blocks_commands(self):
-        """Dialogue guard should still block non-cheat commands."""
+    def test_hard_stop_guard_still_blocks_commands(self):
+        """Hard-stop dialogue guard should block non-cheat commands."""
         world = _make_world()
         executor = CommandExecutor()
         world.dialogue_manager.push({
-            "type": "counter_offer_response",
+            "type": "force_declare_war_confirmation",
             "target_nation": "Prussia",
             "options": [
-                {"label": "Accept", "action": "accept_counter_offer"},
-                {"label": "Reject", "action": "reject_counter_offer"},
+                {"label": "Proceed", "action": "proceed"},
+                {"label": "Cancel", "action": "cancel"},
             ],
             "turn_created": int(world.current_turn),
             "blocking": True,
@@ -471,3 +470,25 @@ class TestPL11DialogueGuardMessage:
         )
         assert not result["success"]
         assert "Prussia" in result["message"]
+
+    def test_soft_stop_does_not_block_commands(self):
+        """PL-27: Soft-stop dialogues (incoming_proposal) allow commands through."""
+        world = _make_world()
+        executor = CommandExecutor()
+        world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "target_nation": "Austria",
+            "options": [
+                {"label": "Accept", "action": "accept_ai_proposal"},
+                {"label": "Reject", "action": "reject_ai_proposal"},
+            ],
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        })
+        result = executor.execute(
+            {"command": {"action": "status"},
+             "raw_command": "status"},
+            {"world": world}
+        )
+        # PL-27: Soft-stop should NOT block — command goes through
+        assert result.get("awaiting_diplomatic_response") is not True

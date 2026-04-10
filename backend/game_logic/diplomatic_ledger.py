@@ -618,8 +618,11 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             "eta": int(pit.get("eta") or pit.get("delivery_turn") or 0),
         }
 
-    # Pending envoy count
-    pending_envoy_count = int(len(getattr(world, 'diplomatic_queue', [])))
+    # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
+    pending_envoy_count = int(
+        len(getattr(world, 'diplomatic_queue', []))
+        + (1 if world.dialogue_manager.is_soft_stop() else 0)
+    )
 
     # Sabotage warnings
     SABOTAGE_TYPE_DISPLAY = {

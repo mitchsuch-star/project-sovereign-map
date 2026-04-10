@@ -445,26 +445,24 @@ class CommandExecutor:
             }
 
         # ============================================================
-        # DIPLOMATIC DIALOGUE CHECK (Phase 8 Session 3)
-        # WARNING: This guard blocks ALL commands when dialogue is
-        # pending. Dialogue responses (accept/reject/etc.) are routed
-        # BEFORE executor.execute() in main.py's command endpoint.
-        # If adding new dialogue response types, update the keyword
-        # list in main.py (_DIALOGUE_RESPONSE_KEYWORDS). Cheat
-        # commands also cannot pass this guard — test via
-        # _execute_cheat() directly. See DIPLOMACY_AUDIT.md §1.
+        # DIPLOMATIC DIALOGUE CHECK (Phase 8 Session 3, PL-27 Session 2)
+        # PL-27: Only HARD-STOP dialogues (alliance_paradox,
+        # force_declare_war_confirmation) block ALL commands.
+        # Soft-stop dialogues (incoming_proposal, counter_offer, etc.)
+        # allow ordinary commands through. Dialogue responses are
+        # routed BEFORE executor.execute() in main.py's command
+        # endpoint. If adding new dialogue response types, update the
+        # keyword list in main.py (_DIALOGUE_RESPONSE_KEYWORDS).
         # ============================================================
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
 
-        # Cheat commands bypass dialogue guard
-        if world.pending_diplomatic_dialogue is not None and action != "cheat":
+        # PL-27: Only hard-stop dialogues block commands (cheat always bypasses)
+        if world.dialogue_manager.is_hard_stop() and action != "cheat":
             dialogue = world.pending_diplomatic_dialogue
             option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
             options_text = "  ".join(option_labels)
-            # PL-11: Improved error message — explain what's blocking and how to resolve
             target = dialogue.get('target_nation', 'a foreign power')
-            dtype = dialogue.get('type', 'diplomatic_response')
             return {
                 "success": False,
                 "message": (

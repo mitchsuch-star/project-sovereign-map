@@ -302,22 +302,49 @@ def _has_pending_proposal_from(nation: str, world) -> bool:
 
 
 def _expire_queue(world) -> None:
-    """Remove expired items from the diplomatic queue."""
+    """Remove expired items from the diplomatic queue.
+
+    PL-34: Expired items are now logged as campaign events so the player
+    can see what proposals were lost to time.
+    """
     queue = _get_queue(world)
     current_turn = int(world.current_turn)
-    queue = [
-        item for item in queue
-        if current_turn - item.get("turn_generated", 0) < QUEUE_EXPIRY_TURNS
-    ]
-    _set_queue(world, queue)
+    kept = []
+    for item in queue:
+        if current_turn - item.get("turn_generated", 0) < QUEUE_EXPIRY_TURNS:
+            kept.append(item)
+        else:
+            # PL-34: Log expiry event
+            source = item.get("source", "Unknown")
+            ptype = item.get("proposal_type", "")
+            print(f"[DIPLOMACY] Proposal expired unseen: {source} {ptype}")
+            world.log_event({
+                "type": "proposal_expired_unseen",
+                "source": source,
+                "proposal_type": ptype,
+                "turn": current_turn,
+            })
+    _set_queue(world, kept)
 
 
 def _enqueue_proposal(proposal: Dict, world) -> bool:
     """Add a proposal to the diplomatic queue. Returns True if added.
 
-    Drops lowest-priority item if queue is full.
+    PL-27/PL-34: Logs arrival and overflow events so the player can see
+    what proposals arrived and what was dropped.
     """
+    current_turn = int(world.current_turn)
+    source = proposal.get("source", "Unknown")
+    ptype = proposal.get("proposal_type", "")
     queue = _get_queue(world)
+
+    # PL-27: Log arrival event
+    world.log_event({
+        "type": "proposal_arrived",
+        "source": source,
+        "proposal_type": ptype,
+        "turn": current_turn,
+    })
 
     if len(queue) >= QUEUE_MAX_SIZE:
         # Find highest priority number (lowest urgency) in queue + new proposal
@@ -326,9 +353,18 @@ def _enqueue_proposal(proposal: Dict, world) -> bool:
         # Drop the last (highest priority number = least urgent)
         dropped = all_items[QUEUE_MAX_SIZE:]
         for item in dropped:
+            d_source = item.get("source", "?")
+            d_ptype = item.get("proposal_type", "?")
             print(f"[DIPLOMACY] Proposal dropped from queue: "
-                  f"{item.get('source', '?')} {item.get('proposal_type', '?')} "
+                  f"{d_source} {d_ptype} "
                   f"(priority {item.get('priority', '?')})")
+            # PL-34: Log overflow event
+            world.log_event({
+                "type": "proposal_dropped_overflow",
+                "source": d_source,
+                "proposal_type": d_ptype,
+                "turn": current_turn,
+            })
         queue = all_items[:QUEUE_MAX_SIZE]
     else:
         queue.append(proposal)
@@ -848,6 +884,14 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
 
     # V2-89 → R12C: push() auto-queues if another dialogue is active
     world.dialogue_manager.push(dialogue)
+
+    # PL-27: Log arrival event for campaign log visibility
+    world.log_event({
+        "type": "proposal_arrived",
+        "source": nation,
+        "proposal_type": proposal.get("proposal_type", ""),
+        "turn": int(world.current_turn),
+    })
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event

@@ -134,15 +134,16 @@ class TestSection1PopupFlow:
         assert world.pending_diplomatic_dialogue is None
 
     def test_executor_guard_blocks_non_dialogue_commands(self):
-        """Executor dialogue guard blocks regular commands when dialogue pending."""
+        """PL-27: Hard-stop dialogue guard blocks regular commands."""
         world = _make_world()
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
             "blocking": True,
             "turn_created": int(world.current_turn),
             "options": [
-                {"label": "Accept", "action": "accept_ai_proposal"},
+                {"label": "Honor", "action": "honor"},
+                {"label": "Break", "action": "side"},
             ],
         })
         executor = _make_executor()

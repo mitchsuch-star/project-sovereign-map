@@ -173,15 +173,15 @@ class TestCheatBypassDialogue:
         assert result["success"] is True
         assert "50" in result["message"]
 
-    def test_non_cheat_blocked_by_dialogue(self, executor, game_state, world):
-        """Regular commands should still be blocked by dialogue."""
+    def test_non_cheat_blocked_by_hard_stop_dialogue(self, executor, game_state, world):
+        """Regular commands should still be blocked by hard-stop dialogue (PL-27)."""
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "target_nation": "Saxony",
-            "talleyrand_text": "Test proposal",
+            "talleyrand_text": "Test hard-stop",
             "options": [
-                {"label": "Accept", "action": "accept_ai_proposal"},
-                {"label": "Reject", "action": "reject_ai_proposal"},
+                {"label": "Honor alliance", "action": "honor"},
+                {"label": "Break alliance", "action": "side"},
             ],
             "blocking": True,
             "turn_created": 1,
@@ -197,7 +197,7 @@ class TestCheatBypassDialogue:
         }
         result = executor.execute(parsed, game_state)
         assert result["success"] is False
-        assert "awaits" in result["message"].lower() or "diplomatic" in result["message"].lower()
+        assert "requires your attention" in result["message"].lower() or "diplomatic" in result["message"].lower()
 
 
 # ════════════════════════════════════════════════════════════

@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — 7 OPEN.** Session 1 COMPLETE (PL-30, PL-31 FIXED). Remaining: PL-26/27/28/29/32/33/34. See `docs/BUG_FIXES.md`.
+- **Bug Fixes — 4 OPEN.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Remaining: PL-26/28/29/32. See `docs/BUG_FIXES.md`.
 - **Design Refinement — NEXT.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
@@ -175,7 +175,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/archive/DIPLOMACY_DESIGN_FIXES.md` §N4 |
 | Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy execution (proposals/dialogue) | `diplomatic_executor.py` (DiplomaticExecutor: _execute_diplomatic*, handle_diplomatic_dialogue_response, _process_dialogue_choice, trust reactions, AI proposal handlers). Accesses non-diplomatic executor methods via `self._executor.X` |
-| Dialogue state (R12) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching), `world_state.py` (transparent properties), `docs/archive/R12_DIALOGUE_MANAGER_SPEC.md`, `docs/archive/R12B_MIGRATION_AUDIT.md` (line-by-line classification). **R12 COMPLETE** (12A foundation + 12B diplomatic_executor 65 ops + 12C consolidation: 9 files, 285 test ops, properties locked down). All writes go through `dialogue_manager` API. `pending_diplomatic_dialogue` is read-only |
+| Dialogue state (R12, PL-27) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching, **PL-27 taxonomy**: HARD_STOP_TYPES/SOFT_STOP_MAILBOX_TYPES/HYBRID_SOFT_STOP_TYPES/LOCAL_PLANNING_TYPES, is_hard_stop/is_soft_stop/is_local_planning), `world_state.py` (transparent properties). **PL-27:** Only hard-stop dialogues (alliance_paradox, force_declare_war_confirmation) block commands. Soft-stop (incoming_proposal, counter_offer, etc.) allow pass-through. `pending_diplomatic_dialogue` is read-only |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
@@ -312,7 +312,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Godot null "pressed" on startup | `@onready` node paths must match FULL scene tree in .tscn — verify intermediate nodes |
 | Vassal loyalty unexpected | Check `nation_relations` default — France/Saxony=40, adds +2/turn via relation//20 modifier |
 | AP clause wrong nation | `from_nation` is the penalized nation (loses AP), not `to_nation` |
-| "Talleyrand awaiting" stuck state | Executor dialogue guard blocks ALL commands. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
+| "Talleyrand awaiting" stuck state | **PL-27:** Only hard-stop dialogues (alliance_paradox, force_declare_war_confirmation) block ALL commands. Soft-stop types (incoming_proposal, counter_offer, etc.) allow pass-through. Check `dialogue_manager.py` HARD_STOP_TYPES. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
 | New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
 | Popup not showing after early return | Use `build_base_response()` or `_build_result_response()` — they structurally guarantee popup passthroughs (R4) |
 | Popup not showing after endpoint | Use `build_base_response()` for ALL POST handlers. Only `/command` main path (enemy_phase deferral) calls `_include_popup_passthroughs()` directly |

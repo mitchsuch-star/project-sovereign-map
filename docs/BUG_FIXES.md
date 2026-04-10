@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 10, 2026 (implementation spec hardened; no new audit scope added)
+> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate)
 
 ---
 
@@ -34,9 +34,9 @@
 |---------|----------|----|--------|---------|--------------|
 | 1 | P1 | PL-30 | **FIXED** | Godot null-instance crash on diplomacy button after a masked proposal result | Fixed Apr 10, 2026 |
 | 1 | P1 | PL-31 | **FIXED** | Capital-loss instant defeat still live, with a false-negative regression test | Fixed Apr 10, 2026. Unblocks PL-28 |
-| 2 | P2 | PL-27 | OPEN | Diplomacy interrupt contract is broken: soft-stop items still freeze commands and have no authoritative recovery surface | Root item for the diplomacy cluster |
-| 2 | P2 | PL-34 | OPEN | Queued diplomatic proposals can expire unseen behind blockers | Implement inside PL-27, not as a separate flow |
-| 2 | P2 | PL-33 | OPEN - DUPLICATE CANDIDATE | `status` is being swallowed by the diplomacy guard/recovery path | Verify after PL-27; close as duplicate if resolved |
+| 2 | P2 | PL-27 | **FIXED** | Diplomacy interrupt contract: hard-stop/soft-stop taxonomy enforced, envoy recovery surface, typed responses | Fixed Apr 10, 2026 |
+| 2 | P2 | PL-34 | **FIXED** | Queued proposals: arrival/expiry/overflow now logged in campaign log | Fixed Apr 10, 2026 |
+| 2 | P2 | PL-33 | **CLOSED** (duplicate) | `status` works with soft-stop dialogue — verified as PL-27 duplicate | Closed Apr 10, 2026 |
 | 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | Depends on Session 2 contract stability |
 | 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |

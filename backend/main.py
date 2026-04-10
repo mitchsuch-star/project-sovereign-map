@@ -166,7 +166,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         "coalition_brewing_turns": int(
             world.coalition_brewing.get("turns_remaining", 0)
         ) if getattr(world, 'coalition_brewing', None) else None,
-        "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
+        # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
+        "pending_envoy_count": int(
+            len(getattr(world, 'diplomatic_queue', []))
+            + (1 if world.dialogue_manager.is_soft_stop() else 0)
+        ),
     }
     response.update(extra)
     _include_popup_passthroughs(response, world)
@@ -489,7 +493,11 @@ def test_connection():
         "threat_level": int(getattr(world, 'threat_level', 0)),
         "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
         "coalition_brewing_turns": int(world.coalition_brewing.get("turns_remaining", 0)) if getattr(world, 'coalition_brewing', None) else None,
-        "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
+        # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
+        "pending_envoy_count": int(
+            len(getattr(world, 'diplomatic_queue', []))
+            + (1 if world.dialogue_manager.is_soft_stop() else 0)
+        ),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
@@ -604,6 +612,8 @@ def execute_command(request: CommandRequest):
 
         if world.pending_diplomatic_dialogue is not None and not is_cheat:
             raw_lower = request.command.lower()
+            is_hard_stop = world.dialogue_manager.is_hard_stop()
+
             _DIALOGUE_RESPONSE_KEYWORDS = [
                 "accept", "reject", "decline", "counter",
                 "proceed", "cancel", "confront", "overlook",
@@ -617,25 +627,44 @@ def execute_command(request: CommandRequest):
                 "begin",  # Mission start (GAP-4/6)
                 "yes", "agree", "start", "more", "no", "never mind",
             ]
+
             matched_keyword = None
-            for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
-                if keyword in raw_lower:
-                    matched_keyword = keyword
-                    break
+            if is_hard_stop:
+                # Hard-stop: broad substring keyword matching (current behavior)
+                for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
+                    if keyword in raw_lower:
+                        matched_keyword = keyword
+                        break
+            else:
+                # PL-27: Soft-stop — only match against actual dialogue options
+                # to avoid capturing unrelated commands like "garrison"
+                dialogue = world.pending_diplomatic_dialogue
+                for opt in dialogue.get("options", []):
+                    label = (opt.get("label") or "").lower().strip()
+                    action = (opt.get("action") or "").lower().strip()
+                    if label and label in raw_lower:
+                        matched_keyword = label
+                        break
+                    if action and action in raw_lower:
+                        matched_keyword = action
+                        break
+
             if matched_keyword:
                 print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
                 result = executor.handle_diplomatic_dialogue_response(
                     matched_keyword, game_state)
-            else:
-                # Fallback: pass raw text to dialogue handler — label matching
-                # (e.g. nation names like "Prussia") will match option labels.
-                # Only fall through to executor if handler says "Please choose".
-                print(f"[DIPLOMATIC] Fallback label-match: {raw_lower}")
+            elif is_hard_stop:
+                # Hard-stop: label matching fallback, then executor (which blocks)
+                print(f"[DIPLOMATIC] Hard-stop fallback label-match: {raw_lower}")
                 result = executor.handle_diplomatic_dialogue_response(
                     request.command, game_state)
                 msg = (result or {}).get("message", "")
                 if "Please choose an option" in msg:
                     result = executor.execute(parsed, game_state)
+            else:
+                # PL-27: Soft-stop — no dialogue keyword match, execute normally
+                print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
+                result = executor.execute(parsed, game_state)
         else:
             # m1: Dialogue keywords typed with no active dialogue — clear message
             raw_lower_check = request.command.lower().strip()
@@ -824,7 +853,11 @@ def execute_command(request: CommandRequest):
             "coalition_brewing_turns": int(
                 world.coalition_brewing.get("turns_remaining", 0)
             ) if getattr(world, 'coalition_brewing', None) else None,
-            "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
+            # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
+            "pending_envoy_count": int(
+                len(getattr(world, 'diplomatic_queue', []))
+                + (1 if world.dialogue_manager.is_soft_stop() else 0)
+            ),
         }
 
         # Add feedback if generated
@@ -1731,6 +1764,71 @@ def get_ledger():
     from backend.game_logic.ledger import build_strategic_ledger
     ledger = build_strategic_ledger(world)
     return {"success": True, "ledger": ledger}
+
+
+# ════════════════════════════════════════════════════════════
+# PENDING ENVOY RECOVERY (PL-27 Session 2)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/pending_envoy")
+def get_pending_envoy():
+    """Return the current soft-stop dialogue (if any) for envoy recovery.
+
+    PL-27: Called when the player clicks the envoy badge to reopen
+    the pending proposal popup instead of pre-filling terminal text.
+    """
+    world = game_state["world"]
+    dm = world.dialogue_manager
+
+    result = {
+        "success": True,
+        "has_pending": False,
+        "pending_envoy_count": int(
+            len(getattr(world, 'diplomatic_queue', []))
+            + (1 if dm.is_soft_stop() else 0)
+        ),
+    }
+
+    if dm.is_soft_stop():
+        dialogue = dm.peek()
+        dtype = dialogue.get("type", "")
+        if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
+            # Re-derive the incoming_proposal popup data from dialogue
+            context = dialogue.get("context", {})
+            proposal = context.get("proposal", {})
+            from backend.display_names import PERSONALITY_DISPLAY
+            diplomats = getattr(world, 'diplomats', {})
+            nation = dialogue.get("target_nation", "Unknown")
+            diplomat = diplomats.get(nation)
+            diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+            personality_raw = diplomat.personality.value if diplomat and hasattr(diplomat.personality, 'value') else str(diplomat.personality) if diplomat else "balanced"
+
+            clauses = []
+            for clause in proposal.get("clauses", []):
+                clauses.append({
+                    "type": clause.get("type", ""),
+                    "detail": clause.get("detail", ""),
+                })
+
+            result["has_pending"] = True
+            result["dialogue_type"] = dtype
+            result["incoming_proposal"] = {
+                "from_nation": nation,
+                "diplomat_name": diplomat_name,
+                "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
+                "proposal_type": proposal.get("type", dtype),
+                "clauses": clauses,
+                "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
+                "acceptance_hint": f"Acceptance score: {context.get('acceptance_score', '?')}%",
+                "rejection_hint": "",
+                "is_counter_offer": dtype in ("counter_offer", "counter_offer_response"),
+            }
+        elif dtype == "conflict_alert":
+            result["has_pending"] = True
+            result["dialogue_type"] = dtype
+            result["diplomatic_dialogue"] = dialogue
+
+    return result
 
 
 # ════════════════════════════════════════════════════════════

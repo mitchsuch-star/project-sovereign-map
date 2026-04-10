@@ -17,6 +17,8 @@ class DialogueManager:
         pop()                  — clear current, auto-promote from queue
         peek()                 — read current without side effects
         is_blocking()          — True if current dialogue blocks commands
+        is_hard_stop()         — True if current dialogue blocks ALL commands
+        is_soft_stop()         — True if current is mailbox/hybrid soft-stop
         clear_stale(turn)      — auto-dismiss expired dialogues
         promote_if_empty()     — promote from queue when current is None
         remove_matching(pred)  — filter queue + current by predicate
@@ -24,6 +26,40 @@ class DialogueManager:
 
     QUEUE_CAP = 20
     BLOCKING_TIMEOUT_TURNS = 2  # turn_created + 2 < current → force-clear
+
+    # ── PL-27: Dialogue type taxonomy (Session 2) ────────────────────
+    # Hard-stop: blocks ALL commands until resolved.
+    HARD_STOP_TYPES = frozenset({
+        "force_declare_war_confirmation",
+        "alliance_paradox",
+    })
+    # Soft-stop mailbox: does NOT block ordinary commands. Player can
+    # issue orders while a proposal waits. Visible via envoy badge.
+    SOFT_STOP_MAILBOX_TYPES = frozenset({
+        "incoming_proposal",
+        "counter_offer",
+        "counter_offer_response",
+        "conflict_alert",
+    })
+    # Hybrid soft-stop: does NOT block ordinary commands, but end_turn
+    # should auto-default or warn if unresolved.
+    HYBRID_SOFT_STOP_TYPES = frozenset({
+        "sabotage_confrontation",
+        "vassal_rebellion_imminent",
+    })
+    # Local planning flow: player-initiated, never a global blocker.
+    LOCAL_PLANNING_TYPES = frozenset({
+        "proposal_confirm",
+        "advisory",
+        "mission",
+        "terms_guidance",
+        "ultimatum_demand_wizard",
+        "pushback_confirm",
+        "proposal_execute",
+        "proposal_options",
+        "feasibility",
+        "ultimatum_confirm",
+    })
 
     # Single source of truth for dialogue priority (lower = higher priority).
     # Unlisted types (counter_offer_response, advisory, etc.) default to 99.
@@ -72,6 +108,43 @@ class DialogueManager:
         """True if current dialogue has blocking=True."""
         return (self._current is not None
                 and self._current.get("blocking", False))
+
+    def is_hard_stop(self) -> bool:
+        """True if current dialogue is a hard-stop type that blocks ALL commands.
+
+        PL-27: Only hard-stop dialogues should prevent ordinary command execution.
+        """
+        if self._current is None:
+            return False
+        dtype = self._current.get("type", "")
+        return dtype in self.HARD_STOP_TYPES
+
+    def is_soft_stop(self) -> bool:
+        """True if current dialogue is a soft-stop type (mailbox or hybrid).
+
+        PL-27: Soft-stop dialogues do NOT block ordinary commands.
+        """
+        if self._current is None:
+            return False
+        dtype = self._current.get("type", "")
+        return dtype in self.SOFT_STOP_MAILBOX_TYPES or dtype in self.HYBRID_SOFT_STOP_TYPES
+
+    def is_local_planning(self) -> bool:
+        """True if current dialogue is a player-initiated local planning flow."""
+        if self._current is None:
+            return False
+        dtype = self._current.get("type", "")
+        return dtype in self.LOCAL_PLANNING_TYPES
+
+    def get_soft_stop_count(self) -> int:
+        """Count of active soft-stop dialogue (0 or 1) plus queued items.
+
+        PL-27: Authoritative envoy count for the top-bar badge.
+        """
+        count = len(self._queue)
+        if self.is_soft_stop():
+            count += 1
+        return count
 
     # ── Lifecycle ─────────────────────────────────────────────────────
 
