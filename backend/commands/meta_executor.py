@@ -1894,7 +1894,7 @@ RETREAT RECOVERY (3 turns):
 
         Supported: set_threat, set_relation, give_dp, trigger_coalition,
         set_war_exhaustion, set_diplo_state, create_vassal,
-        set_vassal_loyalty, set_talleyrand_trust, queue_ai_proposal,
+        set_vassal_loyalty, queue_ai_proposal,
         clear_dialogue
         """
         import os
@@ -1989,17 +1989,6 @@ RETREAT RECOVERY (3 turns):
             old = world.vassals[nation]["loyalty"]
             world.vassals[nation]["loyalty"] = value
             return {"success": True, "message": f"Vassal loyalty {nation}: {old} → {value}"}
-
-        if cheat_type == "set_talleyrand_trust":
-            if not cheat_args:
-                return {"success": False, "message": "Usage: cheat set_talleyrand_trust <value>"}
-            diplomats = getattr(world, 'diplomats', {})
-            talleyrand = diplomats.get("France")
-            if not talleyrand:
-                return {"success": False, "message": "No Talleyrand found."}
-            old = talleyrand.trust
-            talleyrand.trust = int(cheat_args[0])
-            return {"success": True, "message": f"Talleyrand trust: {old} → {talleyrand.trust}"}
 
         if cheat_type == "queue_ai_proposal":
             if len(cheat_args) < 2:

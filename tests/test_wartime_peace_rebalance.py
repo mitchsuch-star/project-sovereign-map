@@ -279,7 +279,7 @@ class TestR148APManpowerSweeteners:
             world.manpower_pools = {}
         world.manpower_pools["France"] = {"infantry": 10000, "cavalry": 0, "artillery": 0}
         terms = generate_suggested_terms("Prussia", "peace", world)
-        manpower_sweeteners = [s for s in terms["sweeteners"] if s.get("type") == "infantry_manpower"]
+        manpower_sweeteners = [s for s in terms["sweeteners"] if s.get("type") == "manpower_infantry"]
         assert len(manpower_sweeteners) >= 1
         assert manpower_sweeteners[0]["value"] <= 5000  # capped at 25% of 10000
 

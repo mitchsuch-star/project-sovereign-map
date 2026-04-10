@@ -54,38 +54,35 @@ def make_world():
 
 class TestDiplomat:
     def test_diplomat_creation(self):
-        d = DiplomaticRepresentative("Test", "France", "schemer", 10, 55, "Bio")
+        d = DiplomaticRepresentative("Test", "France", "schemer", 10, "Bio")
         assert d.name == "Test"
         assert d.nation == "France"
         assert d.personality == "schemer"
         assert d.skill == 10
-        assert d.trust == 55
         assert d.biography == "Bio"
 
     def test_diplomat_to_dict(self):
-        d = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10, 55, "Bio")
+        d = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10, "Bio")
         data = d.to_dict()
         assert data["name"] == "Talleyrand"
         assert data["skill"] == 10
-        assert data["trust"] == 55
         assert isinstance(data["skill"], int)
 
     def test_diplomat_from_dict(self):
         data = {"name": "Hardenberg", "nation": "Prussia", "personality": "hawk",
-                "skill": 6, "trust": 65, "biography": "Bio"}
+                "skill": 6, "biography": "Bio"}
         d = DiplomaticRepresentative.from_dict(data)
         assert d.name == "Hardenberg"
         assert d.personality == "hawk"
         assert d.skill == 6
 
     def test_diplomat_round_trip(self):
-        original = DiplomaticRepresentative("Metternich", "Austria", "schemer", 9, 55, "Spider")
+        original = DiplomaticRepresentative("Metternich", "Austria", "schemer", 9, "Spider")
         restored = DiplomaticRepresentative.from_dict(original.to_dict())
         assert restored.name == original.name
         assert restored.nation == original.nation
         assert restored.personality == original.personality
         assert restored.skill == original.skill
-        assert restored.trust == original.trust
         assert restored.biography == original.biography
 
     def test_create_starting_diplomats(self):
@@ -103,7 +100,6 @@ class TestDiplomat:
         assert t.name == "Talleyrand"
         assert t.personality == "schemer"
         assert t.skill == 10
-        assert t.trust == 55
 
     def test_einsiedel_stats(self):
         diplomats = create_starting_diplomats()
@@ -111,7 +107,6 @@ class TestDiplomat:
         assert e.name == "Einsiedel"
         assert e.personality == "dove"
         assert e.skill == 4
-        assert e.trust == 65
 
     def test_world_has_diplomats(self):
         world = make_world()

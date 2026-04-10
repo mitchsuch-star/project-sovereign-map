@@ -1147,7 +1147,6 @@ class TestBugfix_PopupPassthrough:
             "coalition_popup",
             "diplomatic_sabotage",
             "vassal_rebellion_imminent",
-            "talleyrand_redemption",
             "diplomatic_objection",
             "incoming_proposal",
             "alliance_paradox_popup",

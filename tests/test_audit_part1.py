@@ -156,16 +156,15 @@ class TestSection1PopupFlow:
         assert result.get("awaiting_diplomatic_response") is True
 
     def test_popup_passthrough_helper_includes_all_keys(self):
-        """_include_popup_passthroughs sets all 6 popup keys."""
+        """_include_popup_passthroughs sets all popup keys."""
         from backend.main import _include_popup_passthroughs
         world = _make_world()
         response = {}
         _include_popup_passthroughs(response, world)
-        # All 6 keys should be present (None if not set)
+        # All popup keys should be present (None if not set)
         assert "coalition_popup" in response
         assert "diplomatic_sabotage" in response
         assert "vassal_rebellion_imminent" in response
-        assert "talleyrand_redemption" in response
         assert "diplomatic_objection" in response
         assert "incoming_proposal" in response
 
@@ -471,13 +470,12 @@ class TestSection5StateTransitions:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestSection6TalleyrandDefiance:
-    """Tests for defiance probability, sabotage, and redemption."""
+    """Tests for defiance probability and sabotage."""
 
-    def _make_talleyrand(self, personality="schemer", trust=50):
+    def _make_talleyrand(self, personality="schemer"):
         """Create a mock Talleyrand diplomat."""
         t = MagicMock()
         t.personality = personality
-        t.trust = trust
         t.skill = 10
         return t
 
@@ -486,7 +484,8 @@ class TestSection6TalleyrandDefiance:
         from backend.commands.diplomatic_defiance import calculate_diplomatic_defiance_chance
         world = _make_world()
         world.talleyrand_defiance_cooldown = 0
-        talleyrand = self._make_talleyrand(trust=0)
+        world.authority_tracker.authority = 10
+        talleyrand = self._make_talleyrand()
         # Even with worst-case modifiers, should cap at 0.30
         with patch('backend.commands.diplomatic_defiance.random.uniform', return_value=0.05):
             chance = calculate_diplomatic_defiance_chance(talleyrand, world)
@@ -497,7 +496,8 @@ class TestSection6TalleyrandDefiance:
         from backend.commands.diplomatic_defiance import calculate_diplomatic_defiance_chance
         world = _make_world()
         world.talleyrand_defiance_cooldown = 0
-        talleyrand = self._make_talleyrand(trust=100)
+        world.authority_tracker.authority = 100
+        talleyrand = self._make_talleyrand()
         with patch('backend.commands.diplomatic_defiance.random.uniform', return_value=-0.05):
             chance = calculate_diplomatic_defiance_chance(talleyrand, world)
         assert chance >= 0.02
@@ -518,22 +518,6 @@ class TestSection6TalleyrandDefiance:
         talleyrand = self._make_talleyrand()
         chance = calculate_diplomatic_defiance_chance(talleyrand, world)
         assert chance == 0.0
-
-    def test_redemption_trust_threshold(self):
-        """O-1/O-6: Trust ≤ 20 triggers redemption check."""
-        from backend.commands.diplomatic_defiance import check_talleyrand_redemption
-        world = _make_world()
-        talleyrand = self._make_talleyrand(trust=20)
-        result = check_talleyrand_redemption(talleyrand, world)
-        assert result is True
-
-    def test_redemption_above_threshold(self):
-        """O-6: Trust > 20 does NOT trigger redemption."""
-        from backend.commands.diplomatic_defiance import check_talleyrand_redemption
-        world = _make_world()
-        talleyrand = self._make_talleyrand(trust=21)
-        result = check_talleyrand_redemption(talleyrand, world)
-        assert result is False
 
     def test_sabotage_discovery_base_rate(self):
         """N-2: Base discovery rate is 40%."""

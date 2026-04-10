@@ -3,9 +3,7 @@
 Phase 12A: Pin current dialogue behavior, then test DialogueManager in isolation.
 """
 
-import copy
-import pytest
-from tests.conftest import WorldFactory, MarshalFactory
+from tests.conftest import WorldFactory
 from backend.models.dialogue_manager import DialogueManager
 
 
@@ -295,11 +293,10 @@ class TestDialogueManagerPop:
         assert dm.pop() is None
 
     def test_pop_promotes_with_correct_priority_order(self):
-        """Verify full priority chain: paradox > vassal > sabotage > redemption > proposal."""
+        """Verify full priority chain: paradox > vassal > sabotage > proposal."""
         dm = DialogueManager()
         dm.push(self._d("placeholder"))  # fills current
         dm.push(self._d("incoming_proposal"))
-        dm.push(self._d("talleyrand_redemption"))
         dm.push(self._d("sabotage_confrontation"))
         dm.push(self._d("vassal_rebellion_imminent"))
         dm.push(self._d("alliance_paradox"))
@@ -310,8 +307,6 @@ class TestDialogueManagerPop:
         assert dm.peek()["type"] == "vassal_rebellion_imminent"
         dm.pop()
         assert dm.peek()["type"] == "sabotage_confrontation"
-        dm.pop()
-        assert dm.peek()["type"] == "talleyrand_redemption"
         dm.pop()
         assert dm.peek()["type"] == "incoming_proposal"
         dm.pop()

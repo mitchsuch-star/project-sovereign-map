@@ -524,18 +524,11 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     diplomats = getattr(world, 'diplomats', {})
     talleyrand = diplomats.get(player)
 
-    trust = int(talleyrand.trust or 0) if talleyrand else 0
     skill = int(talleyrand.skill or 0) if talleyrand else 0
 
-    # Trust label
-    if trust >= 80:
-        trust_label = "Loyal"
-    elif trust >= 50:
-        trust_label = "Wary"
-    elif trust >= 25:
-        trust_label = "Suspicious"
-    else:
-        trust_label = "Treacherous"
+    # Authority-based state label (PL-23: trust removed)
+    authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    authority_label = world.authority_tracker.get_authority_label() if hasattr(world, 'authority_tracker') else "Unknown"
 
     dp_remaining = int(getattr(world, 'diplomatic_points', 0) or 0)
     dp_max = int(getattr(world, 'max_diplomatic_points', 3) or 0)
@@ -669,8 +662,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     player_reliability = int(reliability.get(player, 0))
 
     return {
-        "trust": trust,
-        "trust_label": trust_label,
+        "authority": int(authority),
+        "authority_label": authority_label,
         "skill": skill,
         "dp_remaining": dp_remaining,
         "dp_max": dp_max,

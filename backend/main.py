@@ -110,21 +110,11 @@ def get_llm_game_state() -> dict:
         "map_data": map_data,
     }
 
-def _get_talleyrand_trust_label(w) -> str:
-    """Get Talleyrand trust label for top bar."""
-    diplomats = getattr(w, 'diplomats', {})
-    talleyrand = diplomats.get(w.player_nation)
-    if not talleyrand:
+def _get_talleyrand_state_label(w) -> str:
+    """Get Talleyrand state label for top bar (authority-based, PL-23)."""
+    if not hasattr(w, 'authority_tracker'):
         return "UNKNOWN"
-    trust = talleyrand.trust
-    if trust >= 80:
-        return "Loyal"
-    elif trust >= 50:
-        return "Wary"
-    elif trust >= 25:
-        return "Suspicious"
-    else:
-        return "Treacherous"
+    return w.authority_tracker.get_authority_label()
 
 
 _MISSION_TYPE_DISPLAY = {
@@ -169,7 +159,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         # Diplomatic top-bar fields — present in EVERY gameplay response
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
-        "talleyrand_state": _get_talleyrand_trust_label(world),
+        "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
         "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
@@ -494,7 +484,7 @@ def test_connection():
         # Diplomatic top-bar fields (Session 8A)
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
-        "talleyrand_state": _get_talleyrand_trust_label(world),
+        "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
         "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
@@ -621,9 +611,10 @@ def execute_command(request: CommandRequest):
                 "send", "execute", "reconsider", "modify",
                 "honor", "side", "dismiss",
                 "harsh", "generous", "adjust",  # Proposal confirm popup actions
+                "nudge", "insist",  # PL-23: Drafting pushback actions
                 "deliver", "ultimatum", "customize", "demand",  # PL-14/15: Ultimatum wizard
                 "elaborate", "review", "consider",  # Template actions (GAP-1)
-                "begin", "trust",  # Mission start + send_suggested (GAP-4/6)
+                "begin",  # Mission start (GAP-4/6)
                 "yes", "agree", "start", "more", "no", "never mind",
             ]
             matched_keyword = None
@@ -656,8 +647,9 @@ def execute_command(request: CommandRequest):
                 "apologize", "replace", "reconsider", "modify",
                 "honor", "side", "dismiss",
                 "harsh", "generous", "adjust",
+                "nudge", "insist",  # PL-23: Drafting pushback
                 "elaborate", "review", "consider",
-                "begin", "trust",
+                "begin",
                 "agree", "never mind",
             ]
             if raw_lower_check in _DIALOGUE_ONLY_KEYWORDS:
@@ -825,7 +817,7 @@ def execute_command(request: CommandRequest):
             # Diplomatic top-bar fields — standard set (R4: matches build_base_response)
             "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
             "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
-            "talleyrand_state": _get_talleyrand_trust_label(world),
+            "talleyrand_state": _get_talleyrand_state_label(world),
             "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
             "threat_level": int(getattr(world, 'threat_level', 0)),
             "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,

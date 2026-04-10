@@ -86,16 +86,6 @@ def _make_executor():
 class TestBug3CheatParser:
     """Cheat commands containing diplomat keywords must parse as cheats."""
 
-    def test_cheat_set_talleyrand_trust_parses_as_cheat(self):
-        """'cheat set_talleyrand_trust 100' must not route to diplomacy."""
-        from backend.ai.llm_client import LLMClient
-        client = LLMClient(provider="mock")
-        result = client.parse_command("cheat set_talleyrand_trust 100", {})
-        # parse_command returns a flat ParseResult dict
-        assert result.get("action") == "cheat"
-        assert result.get("type") == "cheat"
-        assert result.get("cheat_type") == "set_talleyrand_trust"
-
     def test_cheat_set_threat_parses_as_cheat(self):
         """'cheat set_threat 50' must parse as cheat."""
         from backend.ai.llm_client import LLMClient

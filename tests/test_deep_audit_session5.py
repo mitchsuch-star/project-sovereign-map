@@ -303,7 +303,7 @@ class TestFix6DiplomaticDefiancePipeline:
         from backend.models.diplomat import DiplomaticRepresentative
         talleyrand = DiplomaticRepresentative(
             name="Talleyrand", nation="France", personality="schemer",
-            skill=8, trust=30,
+            skill=8,
         )
         world.diplomats["France"] = talleyrand
 
@@ -330,7 +330,7 @@ class TestFix6DiplomaticDefiancePipeline:
         from backend.models.diplomat import DiplomaticRepresentative
         talleyrand = DiplomaticRepresentative(
             name="Talleyrand", nation="France", personality="schemer",
-            skill=8, trust=30,
+            skill=8,
         )
 
         from backend.commands.diplomatic_defiance import calculate_diplomatic_defiance_chance

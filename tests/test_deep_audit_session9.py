@@ -156,7 +156,6 @@ class TestDiplomaticRepresentativeRoundTrip:
             nation="France",
             personality="schemer",
             skill=10,
-            trust=55,
             biography="The survivor of Versailles.",
         )
         data = rep.to_dict()
@@ -166,7 +165,6 @@ class TestDiplomaticRepresentativeRoundTrip:
         assert restored.nation == "France"
         assert restored.personality == "schemer"
         assert restored.skill == 10
-        assert restored.trust == 55
         assert restored.biography == "The survivor of Versailles."
 
     def test_defaults_on_missing_fields(self):
@@ -178,7 +176,6 @@ class TestDiplomaticRepresentativeRoundTrip:
         assert restored.nation == "Unknown"
         assert restored.personality == "loyalist"
         assert restored.skill == 5
-        assert restored.trust == 65
         assert restored.biography == ""
 
     def test_skill_is_int(self):
@@ -188,7 +185,6 @@ class TestDiplomaticRepresentativeRoundTrip:
             "nation": "Austria",
             "personality": "hawk",
             "skill": 7.5,
-            "trust": 65,
         }
         restored = DiplomaticRepresentative.from_dict(data)
         assert isinstance(restored.skill, int)

@@ -191,8 +191,8 @@ class TestPopupQueueUnit:
         q.push("coalition_popup", {"v": 2})
         assert q.get("coalition_popup") == {"v": 2}
 
-    def test_priority_order_all_seven(self):
-        """All 7 popup types pop in correct priority order."""
+    def test_priority_order_all_types(self):
+        """All popup types pop in correct priority order."""
         q = PopupQueue()
         # Push in reverse priority order
         for ptype in reversed(PopupQueue.PRIORITY_ORDER):
@@ -270,14 +270,13 @@ class TestBackwardCompatProperties:
         world.coalition_popup = None
         assert world.coalition_popup is None
 
-    def test_all_seven_popup_properties(self):
-        """All 7 popup fields have working properties."""
+    def test_all_popup_properties(self):
+        """All 6 popup fields have working properties."""
         world = WorldFactory.basic()
         popups = {
             "coalition_popup": {"a": 1},
             "diplomatic_sabotage_popup": {"b": 2},
             "vassal_rebellion_imminent_popup": {"c": 3},
-            "talleyrand_redemption_popup": {"d": 4},
             "diplomatic_objection_popup": {"e": 5},
             "incoming_proposal_popup": {"f": 6},
             "alliance_paradox_popup": {"g": 7},
@@ -391,7 +390,7 @@ class TestPopupQueueIntegration:
         assert world.incoming_proposal_popup == {"from": "Austria"}
 
     def test_popup_passthrough_all_keys_present(self):
-        """All 7 popup response keys present even when queue is empty."""
+        """All 6 popup response keys present even when queue is empty."""
         from backend.main import _include_popup_passthroughs
         world = WorldFactory.basic()
         response = {}
@@ -399,7 +398,7 @@ class TestPopupQueueIntegration:
 
         expected = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
-            "talleyrand_redemption", "diplomatic_objection", "incoming_proposal",
+            "diplomatic_objection", "incoming_proposal",
             "alliance_paradox_popup"
         ]
         for key in expected:
@@ -436,9 +435,9 @@ class TestCooldownPopupEnforcement:
         assert mgr._registered_scalars == {"talleyrand_defiance", "ultimatum_global"}
 
     def test_popup_priority_order_length(self):
-        """PopupQueue has exactly 8 popup types."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 8
-        assert len(PopupQueue.RESPONSE_KEYS) == 8
+        """PopupQueue has exactly 7 popup types."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 7
+        assert len(PopupQueue.RESPONSE_KEYS) == 7
 
     def test_popup_priority_order_matches_response_keys(self):
         """Every PRIORITY_ORDER entry has a RESPONSE_KEYS mapping."""
@@ -469,7 +468,7 @@ class TestCooldownPopupEnforcement:
         from backend.models.world_state import WorldState
         for prop_name in [
             'coalition_popup', 'diplomatic_sabotage_popup',
-            'vassal_rebellion_imminent_popup', 'talleyrand_redemption_popup',
+            'vassal_rebellion_imminent_popup',
             'diplomatic_objection_popup', 'incoming_proposal_popup',
             'alliance_paradox_popup',
         ]:

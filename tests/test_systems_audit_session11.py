@@ -139,7 +139,6 @@ class TestDiplomaticRepresentativeRoundtrip:
             nation="France",
             personality="schemer",
             skill=10,
-            trust=55,
             biography="The devil's diplomat.",
         )
         data = diplomat.to_dict()
@@ -149,7 +148,6 @@ class TestDiplomaticRepresentativeRoundtrip:
         assert restored.nation == diplomat.nation
         assert restored.personality == diplomat.personality
         assert restored.skill == diplomat.skill
-        assert restored.trust == diplomat.trust
         assert restored.biography == diplomat.biography
 
     def test_from_dict_defaults(self):
@@ -158,14 +156,13 @@ class TestDiplomaticRepresentativeRoundtrip:
         restored = DiplomaticRepresentative.from_dict(minimal)
         assert restored.personality == "loyalist"
         assert restored.skill == 5
-        assert restored.trust == 65
         assert restored.biography == ""
 
     def test_all_fields_in_to_dict(self):
         """Every instance attribute should appear in to_dict output."""
         diplomat = DiplomaticRepresentative(
             name="Test", nation="France", personality="hawk",
-            skill=7, trust=65, biography="Bio",
+            skill=7, biography="Bio",
         )
         data = diplomat.to_dict()
         for attr in vars(diplomat):

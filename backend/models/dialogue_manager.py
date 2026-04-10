@@ -31,8 +31,7 @@ class DialogueManager:
         "alliance_paradox": 0,
         "vassal_rebellion_imminent": 1,
         "sabotage_confrontation": 2,
-        "talleyrand_redemption": 3,
-        "incoming_proposal": 4,
+        "incoming_proposal": 3,
     }
 
     def __init__(self):

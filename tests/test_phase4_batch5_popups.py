@@ -40,7 +40,6 @@ def _all_response_keys():
         "coalition_popup",
         "diplomatic_sabotage",
         "vassal_rebellion_imminent",
-        "talleyrand_redemption",
         "diplomatic_objection",
         "incoming_proposal",
         "alliance_paradox_popup",
@@ -122,18 +121,6 @@ class TestR76PriorityQueue:
         assert response["vassal_rebellion_imminent"] is None
         # Vassal rebellion preserved
         assert world.vassal_rebellion_imminent_popup is not None
-
-    def test_priority_order_redemption_over_objection(self, world):
-        """Talleyrand redemption beats diplomatic objection in priority."""
-        fn = _get_popup_passthrough_fn()
-        world.talleyrand_redemption_popup = {"type": "redemption"}
-        world.diplomatic_objection_popup = {"type": "objection"}
-        response = {}
-        fn(response, world)
-        assert response["talleyrand_redemption"] is not None
-        assert response["diplomatic_objection"] is None
-        # Objection preserved
-        assert world.diplomatic_objection_popup is not None
 
     def test_priority_order_objection_over_proposal(self, world):
         """Diplomatic objection beats incoming proposal in priority."""

@@ -74,7 +74,7 @@ var coalition_declaration_popup = null
 var incoming_proposal_popup = null
 var talleyrand_objection_popup = null
 var sabotage_discovery_popup = null
-var talleyrand_redemption_popup = null
+# PL-23: talleyrand_redemption_popup removed (trust system deleted)
 var vassal_rebellion_popup = null
 var proposal_confirm_popup = null
 
@@ -198,9 +198,7 @@ func _ready():
 	if sabotage_discovery_popup:
 		sabotage_discovery_popup.choice_made.connect(_on_sabotage_discovery_choice)
 
-	talleyrand_redemption_popup = dialog_manager.register("talleyrand_redemption", "res://scenes/talleyrand_redemption_popup.tscn")
-	if talleyrand_redemption_popup:
-		talleyrand_redemption_popup.choice_made.connect(_on_talleyrand_redemption_choice)
+	# PL-23: talleyrand_redemption_popup registration removed
 
 	vassal_rebellion_popup = dialog_manager.register("vassal_rebellion", "res://scenes/vassal_rebellion_popup.tscn")
 	if vassal_rebellion_popup:
@@ -697,7 +695,7 @@ func _on_command_result(response):
 		# PL-14: Catch-all — show ANY diplomatic dialogue as a popup.
 		# If a new dtype is added to the backend but not listed here,
 		# it still shows as a popup instead of silently falling to terminal.
-		if dtype in ["proposal_confirm", "proposal_execute", "proposal_options",
+		if dtype in ["proposal_confirm", "pushback_confirm", "proposal_execute", "proposal_options",
 			"mission", "feasibility", "advisory",
 			"force_declare_war_confirmation", "conflict_alert",
 			"terms_guidance", "ultimatum_confirm", "ultimatum_demand_wizard"]:
@@ -732,12 +730,7 @@ func _on_command_result(response):
 			_process_active_wars(response)
 			return
 
-	# Priority 9: Talleyrand Redemption Popup (Session 8C)
-	if response.has("talleyrand_redemption") and response.talleyrand_redemption != null:
-		if talleyrand_redemption_popup:
-			talleyrand_redemption_popup.show_redemption(response.talleyrand_redemption)
-			_process_active_wars(response)
-			return
+	# Priority 9: Talleyrand Redemption — REMOVED (PL-23: trust system deleted)
 
 	# Priority 10: Vassal Rebellion Imminent Popup (Session 8C)
 	if response.has("vassal_rebellion_imminent") and response.vassal_rebellion_imminent != null:
@@ -2811,12 +2804,7 @@ func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
 	set_input_enabled(false)
 	api_client.send_command(command, _on_command_result)
 
-func _on_talleyrand_redemption_choice(choice: String, data: Dictionary):
-	"""Handle player response to Talleyrand redemption event."""
-	var command = "Talleyrand, %s" % choice
-	add_output("[color=#d9c08c]Talleyrand redemption: %s[/color]" % choice)
-	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+# PL-23: _on_talleyrand_redemption_choice removed (trust system deleted)
 
 func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
 	"""Handle player response to vassal rebellion imminent."""

@@ -22,14 +22,12 @@ class DiplomaticRepresentative:
         nation: str,
         personality: str,
         skill: int,
-        trust: int = 65,
         biography: str = "",
     ):
         self.name = name
         self.nation = nation
         self.personality = personality  # schemer/loyalist/hawk/dove
         self.skill = skill              # 1-10
-        self.trust = trust              # Schemers start at 55, others at 65
         self.biography = biography
 
     def to_dict(self) -> Dict:
@@ -38,18 +36,17 @@ class DiplomaticRepresentative:
             "nation": self.nation,
             "personality": self.personality,
             "skill": int(self.skill),
-            "trust": int(self.trust),
             "biography": self.biography,
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'DiplomaticRepresentative':
+        # Note: trust field silently ignored for backward compat with old saves
         return cls(
             name=data.get("name", "Unknown"),
             nation=data.get("nation", "Unknown"),
             personality=data.get("personality", "loyalist"),
             skill=int(data.get("skill", 5)),
-            trust=int(data.get("trust", 65)),
             biography=data.get("biography", ""),
         )
 
@@ -65,7 +62,6 @@ STARTING_DIPLOMATS = {
         nation="France",
         personality="schemer",
         skill=10,
-        trust=55,
         biography="The devil's diplomat. Serves France — or rather, serves what he believes France should be.",
     ),
     "Britain": DiplomaticRepresentative(
@@ -73,7 +69,6 @@ STARTING_DIPLOMATS = {
         nation="Britain",
         personality="hawk",
         skill=7,
-        trust=65,
         biography="Cold, calculating, implacable. Views any French advantage as a threat to the balance of power.",
     ),
     "Prussia": DiplomaticRepresentative(
@@ -81,7 +76,6 @@ STARTING_DIPLOMATS = {
         nation="Prussia",
         personality="hawk",
         skill=6,
-        trust=65,
         biography="Demands respect, offers little.",
     ),
     "Austria": DiplomaticRepresentative(
@@ -89,7 +83,6 @@ STARTING_DIPLOMATS = {
         nation="Austria",
         personality="schemer",
         skill=9,
-        trust=55,
         biography="Spider diplomat, delays & leverages.",
     ),
     "Saxony": DiplomaticRepresentative(
@@ -97,7 +90,6 @@ STARTING_DIPLOMATS = {
         nation="Saxony",
         personality="dove",
         skill=4,
-        trust=65,
         biography="Fears aggression, hopes for peace.",
     ),
 }
@@ -112,7 +104,6 @@ def create_starting_diplomats() -> Dict[str, 'DiplomaticRepresentative']:
             nation=template.nation,
             personality=template.personality,
             skill=template.skill,
-            trust=template.trust,
             biography=template.biography,
         )
     return result

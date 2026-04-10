@@ -280,42 +280,6 @@ class TestConfrontationErrorHandling:
         finally:
             dd.resolve_confrontation = original
 
-    def test_redemption_exception_returns_failure(self):
-        """If apply_redemption_choice raises, result has success=False."""
-        world = _make_world()
-        executor = CommandExecutor()
-
-        from backend.models.diplomat import DiplomaticRepresentative
-        world.diplomats["France"] = DiplomaticRepresentative(
-            name="Talleyrand", nation="France", personality="shrewd", skill=8
-        )
-
-        world.dialogue_manager.replace({
-            "type": "talleyrand_redemption",
-            "options": [
-                {"label": "Apologize", "action": "redemption_apologize"},
-            ],
-        })
-
-        import backend.commands.diplomatic_defiance as dd
-        original = dd.apply_redemption_choice
-
-        def broken(*args, **kwargs):
-            raise RuntimeError("test error")
-
-        dd.apply_redemption_choice = broken
-        try:
-            result = executor._process_dialogue_choice(
-                "redemption_apologize",
-                {"action": "redemption_apologize"},
-                world.pending_diplomatic_dialogue,
-                world,
-            )
-            assert result["success"] is False
-        finally:
-            dd.apply_redemption_choice = original
-
-
 # ============================================================================
 # 3B-4: Marshal cavalry+artillery raises ValueError, not AssertionError
 # ============================================================================

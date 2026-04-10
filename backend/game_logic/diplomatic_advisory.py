@@ -118,7 +118,7 @@ def _assess_nation(nation: str, world) -> Dict:
         personality_word = _DIPLOMAT_DESCRIPTORS.get(diplomat.personality, "unknown")
         diplomat_desc = (
             f"{diplomat.name} is {personality_word} — "
-            f"skill {int(diplomat.skill)}, trust {int(diplomat.trust)}. "
+            f"skill {int(diplomat.skill)}. "
         )
 
     france_war_score = get_war_score_for(world, "France", nation)

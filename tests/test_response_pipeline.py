@@ -60,7 +60,7 @@ DIPLOMATIC_TOPBAR_KEYS = {
 # Popup passthrough keys — MUST appear (value may be None)
 POPUP_KEYS = {
     "coalition_popup", "diplomatic_sabotage",
-    "vassal_rebellion_imminent", "talleyrand_redemption",
+    "vassal_rebellion_imminent",
     "diplomatic_objection", "incoming_proposal",
     "alliance_paradox_popup",
 }
@@ -170,7 +170,7 @@ class TestBuildBaseResponse:
     def test_talleyrand_state_label(self, fresh_world, main_module):
         """Talleyrand state should be a trust label string."""
         response = main_module.build_base_response(fresh_world)
-        assert response["talleyrand_state"] in ["Loyal", "Wary", "Suspicious", "Treacherous", "UNKNOWN"]
+        assert response["talleyrand_state"] in ["Divine Right", "Commanding", "Respected", "Questionable", "Emperor in Name Only", "UNKNOWN"]
 
     def test_talleyrand_mission_summary_default(self, fresh_world, main_module):
         response = main_module.build_base_response(fresh_world)

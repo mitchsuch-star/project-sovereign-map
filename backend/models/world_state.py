@@ -473,7 +473,7 @@ class WorldState:
         # talleyrand_defiance_cooldown now managed by _cooldown_manager (R6)
         self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
         self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
-        self.last_redemption_turn: int = 0               # Turn when last redemption event fired (5-turn cooldown)
+        # PL-23: last_redemption_turn removed (trust system deleted)
 
         # ============================================================
         # COALITION SYSTEM (Phase 8 Session 7)
@@ -634,13 +634,7 @@ class WorldState:
     def vassal_rebellion_imminent_popup(self, value: Optional[Dict]):
         self._popup_queue.set("vassal_rebellion_imminent_popup", value)
 
-    @property
-    def talleyrand_redemption_popup(self) -> Optional[Dict]:
-        return self._popup_queue.get("talleyrand_redemption_popup")
-
-    @talleyrand_redemption_popup.setter
-    def talleyrand_redemption_popup(self, value: Optional[Dict]):
-        self._popup_queue.set("talleyrand_redemption_popup", value)
+    # PL-23: talleyrand_redemption_popup property removed (trust system deleted)
 
     @property
     def diplomatic_objection_popup(self) -> Optional[Dict]:
@@ -3135,7 +3129,7 @@ class WorldState:
             "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
             "pending_talleyrand_sabotage": self.pending_talleyrand_sabotage.copy() if self.pending_talleyrand_sabotage else None,
             "talleyrand_override_history": [h.copy() for h in self.talleyrand_override_history],
-            "last_redemption_turn": int(self.last_redemption_turn),
+            # PL-23: last_redemption_turn removed
 
             # ═══════ COALITION SYSTEM (Session 7) ═══════
             "threat_level": int(self.threat_level),
@@ -3162,7 +3156,6 @@ class WorldState:
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
             "vassal_rebellion_imminent_popups": [p.copy() for p in self.vassal_rebellion_imminent_popups],
-            "talleyrand_redemption_popup": self.talleyrand_redemption_popup,
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
             "proposal_result_popup": self.proposal_result_popup,
@@ -3377,7 +3370,7 @@ class WorldState:
         if world.pending_talleyrand_sabotage and isinstance(world.pending_talleyrand_sabotage, dict):
             world.pending_talleyrand_sabotage = world.pending_talleyrand_sabotage.copy()
         world.talleyrand_override_history = [h.copy() for h in data.get("talleyrand_override_history", [])]
-        world.last_redemption_turn = int(data.get("last_redemption_turn", 0))
+        # PL-23: last_redemption_turn removed (silently ignored from old saves)
 
         # ═══════ COALITION SYSTEM (Session 7) ═══════
         world.threat_level = int(data.get("threat_level", 0))
@@ -3414,7 +3407,7 @@ class WorldState:
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
         world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]
-        world.talleyrand_redemption_popup = data.get("talleyrand_redemption_popup", None)
+        # PL-23: talleyrand_redemption_popup removed (silently ignored from old saves)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
         world.proposal_result_popup = data.get("proposal_result_popup", None)

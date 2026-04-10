@@ -21,7 +21,7 @@ from backend.game_logic.diplomatic_advisory import (
     _get_military_advantage,
 )
 from backend.commands.diplomatic_defiance import (
-    resolve_confrontation, apply_redemption_choice,
+    resolve_confrontation,
 )
 from backend.commands.executor import CommandExecutor
 
@@ -42,9 +42,9 @@ def _make_marshal(name="Ney", location="Paris", strength=10000, nation="France",
                    personality="aggressive", nation=nation, **kw)
 
 
-def _make_talleyrand(trust=65):
+def _make_talleyrand():
     from backend.models.diplomat import DiplomaticRepresentative
-    return DiplomaticRepresentative("Talleyrand", "France", "schemer", skill=10, trust=trust)
+    return DiplomaticRepresentative("Talleyrand", "France", "schemer", skill=10)
 
 
 def _ratify_via_world(nation_a, nation_b, proposal, world):
@@ -346,29 +346,31 @@ class TestR43AIAICooldown:
 # ═══════════════════════════════════════════════════════
 
 class TestR37SabotageConfrontation:
-    def test_confront_sabotage_reduces_trust(self):
+    def test_confront_sabotage_changes_authority(self):
         world = _make_world()
-        talleyrand = _make_talleyrand(trust=50)
+        talleyrand = _make_talleyrand()
         world.diplomats = {"France": talleyrand}
+        world.authority_tracker.authority = 80
+        initial_authority = world.authority_tracker.authority
 
         result = resolve_confrontation("confront_sabotage", talleyrand, world)
-        assert result["trust_change"] == -10
         assert result["authority_change"] == +5
-        assert talleyrand.trust == 40
+        assert world.authority_tracker.authority == initial_authority + 5
 
-    def test_overlook_sabotage_increases_trust(self):
+    def test_overlook_sabotage_changes_authority(self):
         world = _make_world()
-        talleyrand = _make_talleyrand(trust=50)
+        talleyrand = _make_talleyrand()
         world.diplomats = {"France": talleyrand}
+        initial_authority = world.authority_tracker.authority
 
         result = resolve_confrontation("overlook_sabotage", talleyrand, world)
-        assert result["trust_change"] == +3
-        assert talleyrand.trust == 53
+        assert result["authority_change"] == -3
+        assert world.authority_tracker.authority == initial_authority - 3
 
     def test_executor_routes_confront_sabotage(self):
         """Verify executor handles confront_sabotage action."""
         world = _make_world()
-        talleyrand = _make_talleyrand(trust=50)
+        talleyrand = _make_talleyrand()
         world.diplomats = {"France": talleyrand}
         world.dialogue_manager.replace({
             "type": "sabotage_confrontation",
@@ -381,47 +383,6 @@ class TestR37SabotageConfrontation:
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor.handle_diplomatic_dialogue_response("confront", game_state)
-        assert result["success"] is True
-        assert world.pending_diplomatic_dialogue is None
-
-
-# ═══════════════════════════════════════════════════════
-# R41 — Redemption handler
-# ═══════════════════════════════════════════════════════
-
-class TestR41Redemption:
-    def test_redemption_apologize(self):
-        world = _make_world()
-        talleyrand = _make_talleyrand(trust=20)
-        result = apply_redemption_choice("redemption_apologize", talleyrand, world)
-        assert result["trust_change"] == +15
-        assert talleyrand.trust == 35
-
-    def test_redemption_replace(self):
-        world = _make_world()
-        talleyrand = _make_talleyrand(trust=20)
-        result = apply_redemption_choice("redemption_replace", talleyrand, world)
-        assert result["personality_changed"] is True
-        assert talleyrand.personality == "loyalist"
-        assert talleyrand.skill == 6
-        assert talleyrand.trust == 50
-
-    def test_executor_routes_redemption(self):
-        world = _make_world()
-        talleyrand = _make_talleyrand(trust=20)
-        world.diplomats = {"France": talleyrand}
-        world.dialogue_manager.replace({
-            "type": "talleyrand_redemption",
-            "options": [
-                {"label": "Apologize", "action": "redemption_apologize"},
-                {"label": "Replace", "action": "redemption_replace"},
-                {"label": "Continue", "action": "redemption_continue"},
-            ],
-            "context": {"current_trust": 20},
-        })
-        executor = CommandExecutor()
-        game_state = {"world": world}
-        result = executor.handle_diplomatic_dialogue_response("apologize", game_state)
         assert result["success"] is True
         assert world.pending_diplomatic_dialogue is None
 
@@ -516,7 +477,7 @@ class TestR74VassalRebellionDialogue:
 class TestR42SendOverride:
     def test_send_override_sends_proposal(self):
         world = _make_world()
-        talleyrand = _make_talleyrand(trust=50)
+        talleyrand = _make_talleyrand()
         world.diplomats = {"France": talleyrand}
         world.diplomatic_points = 10
         world.dialogue_manager.replace({

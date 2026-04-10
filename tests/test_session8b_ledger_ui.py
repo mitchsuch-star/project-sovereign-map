@@ -242,23 +242,13 @@ class TestTab3ThreatRendering:
 class TestTab4TalleyrandRendering:
     """Verify Talleyrand status data for BBCode rendering."""
 
-    def test_trust_label_loyal(self):
-        """Trust >= 80 = Loyal label."""
+    def test_authority_label_present(self):
+        """Authority label should be present."""
         world = _make_world()
-        if hasattr(world, 'diplomats') and "France" in world.diplomats:
-            world.diplomats["France"].trust = 85
         t = _build_talleyrand(world)
-        if t["trust"] >= 80:
-            assert t["trust_label"] == "Loyal"
-
-    def test_trust_label_treacherous(self):
-        """Trust < 25 = Treacherous label."""
-        world = _make_world()
-        if hasattr(world, 'diplomats') and "France" in world.diplomats:
-            world.diplomats["France"].trust = 10
-        t = _build_talleyrand(world)
-        if t["trust"] < 25:
-            assert t["trust_label"] == "Treacherous"
+        assert "authority" in t
+        assert "authority_label" in t
+        assert isinstance(t["authority_label"], str)
 
     def test_idle_when_no_mission(self):
         """When no active mission, active_mission is None."""

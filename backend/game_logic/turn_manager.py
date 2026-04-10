@@ -273,7 +273,6 @@ class TurnManager:
             "vassal_rebellion_imminent_popup",
             "diplomatic_sabotage_popup",
             "coalition_popup",
-            "talleyrand_redemption_popup",
             "alliance_paradox_popup",
         ]
         for field in popup_fields:

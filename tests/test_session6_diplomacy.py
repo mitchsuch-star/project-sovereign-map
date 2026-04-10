@@ -20,14 +20,10 @@ from backend.commands.diplomatic_defiance import (
     resolve_confrontation,
     evaluate_pre_proposal_objection,
     get_objection_text,
-    check_talleyrand_redemption,
-    build_redemption_dialogue,
-    apply_redemption_choice,
     record_override,
     get_override_dispatch_note,
     calculate_proposal_harshness,
     SCHEMER_FLOOR,
-    DEFIANCE_CAP,
 )
 from backend.commands.objection_v2 import ConcernLevel
 from backend.game_logic.diplomatic_templates import (
@@ -56,88 +52,75 @@ def set_authority(world, value):
     world.authority_tracker.authority = value
 
 
-def set_talleyrand_trust(world, value):
-    """Set Talleyrand's trust to a specific value."""
-    talleyrand = get_talleyrand(world)
-    talleyrand.trust = value
-
-
 # ═══════════════════════════════════════════════════════
-# 1. DEFIANCE PROBABILITY CURVE (5 scenarios + 2 enforcement)
+# 1. DEFIANCE PROBABILITY CURVE (authority-only, 5 scenarios + 2 enforcement)
 # ═══════════════════════════════════════════════════════
 
 class TestDefianceProbability:
-    """Gate 1: Defiance probability at each authority/trust bracket."""
+    """Gate 1: Defiance probability at each authority bracket (trust removed)."""
 
-    def test_high_authority_high_trust_hits_floor(self):
-        """Authority=85, Trust=75 → floor of 0.02 (Schemer minimum)."""
+    def test_high_authority_hits_floor(self):
+        """Authority=85 → floor of 0.02 (Schemer minimum)."""
         world = make_world()
         set_authority(world, 85)
-        set_talleyrand_trust(world, 75)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) + trust(0.00) = 0.00 → floor 0.02
+        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
         assert chance == SCHEMER_FLOOR  # 0.02
 
     def test_game_start_baseline(self):
-        """Authority=100, Trust=55 → 5% baseline."""
+        """Authority=100 → floor of 0.02."""
         world = make_world()
         set_authority(world, 100)
-        set_talleyrand_trust(world, 55)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) + trust(0.00) = 0.00 → floor 0.02
+        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
         assert chance == SCHEMER_FLOOR
 
-    def test_weakening_authority_low_trust(self):
-        """Authority=40, Trust=45 → 0.10."""
+    def test_weakening_authority(self):
+        """Authority=40 → 0.10."""
         world = make_world()
         set_authority(world, 40)
-        set_talleyrand_trust(world, 45)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(+0.05) + trust(+0.05) = 0.15
-        assert abs(chance - 0.15) < 0.001
+        # base 0.05 + auth(+0.05) = 0.10
+        assert abs(chance - 0.10) < 0.001
 
-    def test_weak_emperor_acting_alone(self):
-        """Authority=35, Trust=25 → cap at 0.30."""
+    def test_weak_emperor(self):
+        """Authority=35 → 0.20."""
         world = make_world()
         set_authority(world, 35)
-        set_talleyrand_trust(world, 25)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(+0.15) + trust(+0.10) = 0.30 → cap
-        assert chance == DEFIANCE_CAP  # 0.30
+        # base 0.05 + auth(+0.15) = 0.20
+        assert abs(chance - 0.20) < 0.001
 
-    def test_medium_authority_neutral_trust(self):
-        """Authority=60, Trust=55 → 0.05 (base only)."""
+    def test_medium_authority(self):
+        """Authority=60 → 0.05 (base only)."""
         world = make_world()
         set_authority(world, 60)
-        set_talleyrand_trust(world, 55)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(0.00) + trust(0.00) = 0.05
+        # base 0.05 + auth(0.00) = 0.05
         assert abs(chance - 0.05) < 0.001
 
     def test_floor_enforcement(self):
-        """Even max authority+trust cannot go below 2% floor."""
+        """Even max authority cannot go below 2% floor."""
         world = make_world()
         set_authority(world, 100)
-        set_talleyrand_trust(world, 100)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) + trust(-0.05) = -0.05 → floor 0.02
+        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
         assert chance == SCHEMER_FLOOR
 
     def test_cap_enforcement(self):
-        """Even worst authority+trust cannot exceed 30% cap."""
+        """Even worst authority cannot exceed 30% cap."""
         world = make_world()
         set_authority(world, 10)
-        set_talleyrand_trust(world, 10)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(+0.15) + trust(+0.10) = 0.30 → cap
-        assert chance == DEFIANCE_CAP
+        # base 0.05 + auth(+0.15) = 0.20 (below cap)
+        assert abs(chance - 0.20) < 0.001
 
 
 # ═══════════════════════════════════════════════════════
@@ -303,27 +286,27 @@ class TestConfrontationResolution:
     """Post-discovery confrontation: Confront vs Overlook effects."""
 
     def test_confront_effects(self):
-        """Confront: trust -10, authority +5, cooldown 5."""
+        """Confront: authority +5, cooldown 5."""
         world = make_world()
         talleyrand = get_talleyrand(world)
-        talleyrand.trust = 55
+        world.authority_tracker.authority = 80
+        initial_authority = world.authority_tracker.authority
         world.pending_talleyrand_sabotage = {"test": True}
         result = resolve_confrontation("confront_sabotage", talleyrand, world)
-        assert result["trust_change"] == -10
-        assert talleyrand.trust == 45
         assert result["authority_change"] == +5
+        assert world.authority_tracker.authority == initial_authority + 5
         assert world.talleyrand_defiance_cooldown == 5
         assert world.pending_talleyrand_sabotage is None
 
     def test_overlook_effects(self):
-        """Overlook: trust +3, no cooldown."""
+        """Overlook: authority -3, no cooldown."""
         world = make_world()
         talleyrand = get_talleyrand(world)
-        talleyrand.trust = 55
+        initial_authority = world.authority_tracker.authority
         world.pending_talleyrand_sabotage = {"test": True}
         result = resolve_confrontation("overlook_sabotage", talleyrand, world)
-        assert result["trust_change"] == +3
-        assert talleyrand.trust == 58
+        assert result["authority_change"] == -3
+        assert world.authority_tracker.authority == initial_authority - 3
         assert world.talleyrand_defiance_cooldown == 0
         assert world.pending_talleyrand_sabotage is None
 
@@ -360,7 +343,6 @@ class TestDefianceCooldown:
         world = make_world()
         world.talleyrand_defiance_cooldown = 0
         set_authority(world, 40)
-        set_talleyrand_trust(world, 45)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
         assert chance > 0.0
@@ -407,11 +389,11 @@ class TestPreProposalObjection:
         concern = evaluate_pre_proposal_objection(proposal, talleyrand, world)
         assert concern == ConcernLevel.MODERATE
 
-    def test_strong_harsh_low_trust(self):
-        """Harsh terms with low trust → STRONG."""
+    def test_strong_harsh_low_authority(self):
+        """Harsh terms with low authority → STRONG."""
         world = make_world()
         talleyrand = get_talleyrand(world)
-        talleyrand.trust = 30
+        set_authority(world, 40)
         proposal = {
             "type": "peace",
             "target_nation": "Prussia",
@@ -521,101 +503,6 @@ class TestHonestyProblem:
         for i in range(8):
             record_override(world, f"type_{i}", "good")
         assert len(world.talleyrand_override_history) == 5
-
-
-# ═══════════════════════════════════════════════════════
-# 8. REDEMPTION EVENT (3 choices)
-# ═══════════════════════════════════════════════════════
-
-class TestRedemption:
-    """Gate 5: Redemption event fires and all 3 choices work."""
-
-    def test_redemption_fires_at_trust_20(self):
-        """Trust ≤ 20 → redemption fires."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        assert check_talleyrand_redemption(talleyrand, world)
-
-    def test_redemption_fires_at_trust_0(self):
-        """Trust = 0 → redemption fires."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 0
-        assert check_talleyrand_redemption(talleyrand, world)
-
-    def test_no_redemption_above_20(self):
-        """Trust > 20 → no redemption."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 21
-        assert not check_talleyrand_redemption(talleyrand, world)
-
-    def test_no_redemption_for_loyalist(self):
-        """Loyalist personality → no redemption."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.personality = "loyalist"
-        talleyrand.trust = 10
-        assert not check_talleyrand_redemption(talleyrand, world)
-
-    def test_redemption_dialogue_built(self):
-        """Redemption dialogue has 3 options."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        dialogue = build_redemption_dialogue(talleyrand, world)
-        assert dialogue["type"] == "talleyrand_redemption"
-        assert len(dialogue["options"]) == 3
-        actions = [o["action"] for o in dialogue["options"]]
-        assert "redemption_apologize" in actions
-        assert "redemption_replace" in actions
-        assert "redemption_continue" in actions
-
-    def test_apologize_effects(self):
-        """Apologize: trust +15, authority -5."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        initial_authority = world.authority_tracker.authority
-        result = apply_redemption_choice("redemption_apologize", talleyrand, world)
-        assert result["trust_change"] == +15
-        assert talleyrand.trust == 33  # 18 + 15
-        assert result["authority_change"] == -5
-        assert world.authority_tracker.authority == initial_authority - 5
-
-    def test_replace_with_loyalist(self):
-        """Replace: personality→loyalist, skill→6, trust→50."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        result = apply_redemption_choice("redemption_replace", talleyrand, world)
-        assert result["personality_changed"] is True
-        assert talleyrand.personality == "loyalist"
-        assert talleyrand.skill == 6
-        assert talleyrand.trust == 50
-
-    def test_replace_disables_defiance(self):
-        """After Replace, defiance chance is 0."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        apply_redemption_choice("redemption_replace", talleyrand, world)
-        # Now defiance should be 0
-        set_authority(world, 30)  # Low authority
-        chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        assert chance == 0.0
-
-    def test_continue_effects(self):
-        """Continue: authority -10, trust unchanged."""
-        world = make_world()
-        talleyrand = get_talleyrand(world)
-        talleyrand.trust = 18
-        initial_authority = world.authority_tracker.authority
-        result = apply_redemption_choice("redemption_continue", talleyrand, world)
-        assert result["authority_change"] == -10
-        assert talleyrand.trust == 18  # Unchanged
-        assert world.authority_tracker.authority == initial_authority - 10
 
 
 # ═══════════════════════════════════════════════════════
@@ -843,14 +730,12 @@ class TestSerialization:
         talleyrand = get_talleyrand(world)
         talleyrand.personality = "loyalist"
         talleyrand.skill = 6
-        talleyrand.trust = 50
 
         data = world.to_dict()
         restored = WorldState.from_dict(data)
         restored_t = restored.diplomats.get("France")
         assert restored_t.personality == "loyalist"
         assert restored_t.skill == 6
-        assert restored_t.trust == 50
 
 
 # ═══════════════════════════════════════════════════════
@@ -973,27 +858,25 @@ class TestSabotageTracking:
 # ═══════════════════════════════════════════════════════
 
 class TestLoyalistDefianceFloor:
-    """After Replace, defiance floor drops to 0% (no Schemer minimum)."""
+    """After personality change to loyalist, defiance floor drops to 0%."""
 
     def test_loyalist_zero_defiance_all_conditions(self):
-        """Loyalist has 0% defiance regardless of authority/trust."""
+        """Loyalist has 0% defiance regardless of authority."""
         world = make_world()
         talleyrand = get_talleyrand(world)
         talleyrand.personality = "loyalist"
 
-        # Try various low authority/trust combos
-        for auth, trust in [(10, 10), (30, 25), (50, 45), (100, 100)]:
+        # Try various authority levels
+        for auth in [10, 30, 50, 100]:
             set_authority(world, auth)
-            talleyrand.trust = trust
             chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-            assert chance == 0.0, f"Loyalist defiance should be 0 at auth={auth} trust={trust}"
+            assert chance == 0.0, f"Loyalist defiance should be 0 at auth={auth}"
 
-    def test_replace_then_no_further_sabotage(self):
-        """After Replace, apply_diplomatic_sabotage still works but defiance won't trigger."""
+    def test_loyalist_personality_no_further_sabotage(self):
+        """After changing to loyalist, defiance won't trigger."""
         world = make_world()
         talleyrand = get_talleyrand(world)
-        apply_redemption_choice("redemption_replace", talleyrand, world)
-        assert talleyrand.personality == "loyalist"
+        talleyrand.personality = "loyalist"
         # Defiance chance should be 0
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
         assert chance == 0.0

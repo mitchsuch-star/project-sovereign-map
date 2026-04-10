@@ -573,11 +573,11 @@ class TestSection10DiplomaticLedger:
         assert ledger["threat_coalition"]["threat_level"] == 42
 
     def test_ab4_talleyrand_tab_present(self):
-        """AB-4: Talleyrand tab exists with trust info."""
+        """AB-4: Talleyrand tab exists with authority info."""
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
         assert "talleyrand" in ledger
-        assert "trust" in ledger["talleyrand"]
+        assert "authority" in ledger["talleyrand"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -834,7 +834,6 @@ class TestSection15CheatBugFixes:
             ("set_war_exhaustion", ["Prussia", "50"]),
             ("set_diplo_state", ["Prussia", "WAR"]),
             ("set_vassal_loyalty", ["Saxony", "50"]),  # Will fail — Saxony not vassal
-            ("set_talleyrand_trust", ["50"]),
             ("clear_dialogue", []),
         ]
         for cheat_type, args in cheat_types:

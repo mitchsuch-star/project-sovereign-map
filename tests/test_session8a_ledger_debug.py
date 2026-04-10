@@ -351,33 +351,15 @@ class TestDiplomaticLedgerTalleyrand:
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
         t = ledger["talleyrand"]
-        assert t["trust"] == 55  # Schemer starts at 55
+        assert isinstance(t["authority"], int)
         assert t["skill"] == 10
         assert isinstance(t["dp_remaining"], int)
         assert isinstance(t["dp_max"], int)
 
-    def test_talleyrand_trust_label_wary(self):
+    def test_talleyrand_authority_label_default(self):
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
-        assert ledger["talleyrand"]["trust_label"] == "Wary"  # 55 is in Wary range
-
-    def test_talleyrand_trust_label_loyal(self):
-        world = _make_world()
-        world.diplomats["France"].trust = 85
-        ledger = build_diplomatic_ledger(world)
-        assert ledger["talleyrand"]["trust_label"] == "Loyal"
-
-    def test_talleyrand_trust_label_suspicious(self):
-        world = _make_world()
-        world.diplomats["France"].trust = 30
-        ledger = build_diplomatic_ledger(world)
-        assert ledger["talleyrand"]["trust_label"] == "Suspicious"
-
-    def test_talleyrand_trust_label_treacherous(self):
-        world = _make_world()
-        world.diplomats["France"].trust = 10
-        ledger = build_diplomatic_ledger(world)
-        assert ledger["talleyrand"]["trust_label"] == "Treacherous"
+        assert isinstance(ledger["talleyrand"]["authority_label"], str)
 
     def test_talleyrand_no_active_mission(self):
         world = _make_world()
@@ -409,7 +391,7 @@ class TestDiplomaticLedgerTalleyrand:
         ledger = build_diplomatic_ledger(world)
         t = ledger["talleyrand"]
         required_keys = {
-            "trust", "trust_label", "skill", "dp_remaining", "dp_max",
+            "authority", "authority_label", "skill", "dp_remaining", "dp_max",
             "active_mission", "proposal_in_transit",
             "pending_envoy_count", "sabotage_warnings",
         }
@@ -512,12 +494,6 @@ class TestCheatCommands:
         world = _make_world()
         result = self._run_cheat(world, "set_vassal_loyalty", ["Saxony", "25"])
         assert result["success"] is False
-
-    def test_set_talleyrand_trust(self):
-        world = _make_world()
-        result = self._run_cheat(world, "set_talleyrand_trust", ["80"])
-        assert result["success"] is True
-        assert world.diplomats["France"].trust == 80
 
     def test_queue_ai_proposal(self):
         world = _make_world()
@@ -737,7 +713,7 @@ class TestTopBarFields:
         response = self.client.get("/test")
         data = response.json()
         assert isinstance(data["talleyrand_state"], str)
-        assert data["talleyrand_state"] in ("Loyal", "Wary", "Suspicious", "Treacherous", "UNKNOWN")
+        assert data["talleyrand_state"] in ("Divine Right", "Commanding", "Respected", "Questionable", "Emperor in Name Only", "UNKNOWN")
 
     def test_talleyrand_mission_none_by_default(self):
         response = self.client.get("/test")

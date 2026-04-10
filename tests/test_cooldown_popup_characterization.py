@@ -134,13 +134,12 @@ class TestPopupPassthroughCharacterization:
         return response
 
     def test_no_popups_all_keys_none(self):
-        """When no popups set, all 7 response keys present as None."""
+        """When no popups set, all 6 response keys present as None."""
         world = WorldFactory.basic()
         response = self._call_passthroughs(world)
         assert response["coalition_popup"] is None
         assert response["diplomatic_sabotage"] is None
         assert response["vassal_rebellion_imminent"] is None
-        assert response["talleyrand_redemption"] is None
         assert response["diplomatic_objection"] is None
         assert response["incoming_proposal"] is None
         assert response["alliance_paradox_popup"] is None
@@ -188,13 +187,13 @@ class TestPopupPassthroughCharacterization:
         assert world.vassal_rebellion_imminent_popups[0]["nation"] == "Bavaria"
 
     def test_all_response_keys_always_present(self):
-        """All 7 popup keys present even when only one is set."""
+        """All 6 popup keys present even when only one is set."""
         world = WorldFactory.basic()
         world.diplomatic_objection_popup = {"type": "objection"}
         response = self._call_passthroughs(world)
         expected_keys = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
-            "talleyrand_redemption", "diplomatic_objection", "incoming_proposal",
+            "diplomatic_objection", "incoming_proposal",
             "alliance_paradox_popup"
         ]
         for key in expected_keys:
@@ -247,12 +246,11 @@ class TestCooldownSerializationCharacterization:
         assert loaded.talleyrand_defiance_cooldown == 2
 
     def test_popup_roundtrip(self):
-        """All 7 popup fields survive save/load."""
+        """All 6 popup fields survive save/load."""
         world = WorldFactory.basic()
         world.coalition_popup = {"name": "test"}
         world.diplomatic_sabotage_popup = {"target": "Prussia"}
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
-        world.talleyrand_redemption_popup = {"trust": 10}
         world.diplomatic_objection_popup = {"severity": "STRONG"}
         world.incoming_proposal_popup = {"from_nation": "Austria"}
         world.alliance_paradox_popup = {"attacker": "France"}
@@ -263,7 +261,6 @@ class TestCooldownSerializationCharacterization:
         assert loaded.coalition_popup == {"name": "test"}
         assert loaded.diplomatic_sabotage_popup == {"target": "Prussia"}
         assert loaded.vassal_rebellion_imminent_popup == {"nation": "Saxony"}
-        assert loaded.talleyrand_redemption_popup == {"trust": 10}
         assert loaded.diplomatic_objection_popup == {"severity": "STRONG"}
         assert loaded.incoming_proposal_popup == {"from_nation": "Austria"}
         assert loaded.alliance_paradox_popup == {"attacker": "France"}
