@@ -2011,9 +2011,8 @@ RETREAT RECOVERY (3 turns):
                 "talleyrand_assessment": f"A {proposal_type} proposal from {nation} (debug-generated).",
                 "turn_generated": int(world.current_turn),
             }
-            if not hasattr(world, 'diplomatic_queue'):
-                world.diplomatic_queue = []
-            world.diplomatic_queue.append(proposal)
+            from backend.game_logic.ai_diplomacy import deliver_ai_proposal
+            deliver_ai_proposal(proposal, world)
             return {
                 "success": True,
                 "message": f"Queued {_proposal_display_name(proposal_type)} proposal from {nation} to France.",

@@ -2,9 +2,8 @@
 
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
-> Audit note: sixth mailbox follow-up spec audit added implementation trap warnings with file:line references for every `diplomatic_queue` call site and 3 new test matrix groups (numeric reply routing, dismiss-then-reopen on counter_offer_response, dedup-after-elimination).
 >
-> Last Updated: April 11, 2026 (Sixth audit pass. No new spec gaps — all findings are concrete implementation trap callouts for code paths covered implicitly by previous passes. `diplomatic_queue` elimination approved — consolidate into `dialogue_manager`.)
+> Last Updated: April 11, 2026 (Session 2 follow-up IMPLEMENTED. `diplomatic_queue` eliminated, mailbox panel built in Godot, `GET /mailbox` + `POST /mailbox/activate` endpoints added, badge formula consolidated to `dialogue_manager.get_mailbox_count()`. 37 new tests, 8189 total passing.)
 
 ---
 
@@ -38,7 +37,8 @@
 | 2 | P2 | PL-27 | **FIXED** | Diplomacy interrupt contract: hard-stop/soft-stop taxonomy enforced, envoy recovery surface, typed responses | Fixed Apr 10, 2026 |
 | 2 | P2 | PL-34 | **FIXED** | Queued proposals: arrival/expiry/overflow now logged in campaign log | Fixed Apr 10, 2026 |
 | 2 | P2 | PL-33 | **CLOSED** (duplicate) | `status` works with soft-stop dialogue — verified as PL-27 duplicate | Closed Apr 10, 2026 |
-| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | Depends on Session 2 follow-up contract stability |
+| 2f | P2 | PL-27/34 | **COMPLETE** | Session 2 follow-up: mailbox inbox panel, `diplomatic_queue` eliminated, badge formula consolidated | Implemented Apr 11, 2026 |
+| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | **NEXT** — Session 2 follow-up contract is stable |
 | 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
@@ -96,9 +96,11 @@
 - Expiry and overflow no longer resolve unseen proposals silently.
 - `status` is verified after the guard split and either closes as a duplicate or remains as a true separate bug.
 
-### Session 2 Follow-Up - Mailbox UX Completion, Inbox Browsing, And Contract Hardening
+### Session 2 Follow-Up - Mailbox UX Completion, Inbox Browsing, And Contract Hardening — COMPLETE
 
 **Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
+
+**Status: COMPLETE** (April 11, 2026). `diplomatic_queue` eliminated. Mailbox panel built in Godot. `GET /mailbox` + `POST /mailbox/activate` endpoints. Badge formula uses `dialogue_manager.get_mailbox_count()`. 37 new tests, 8189 total passing.
 
 **Goal:** finish the player-facing mailbox UX so soft-stop diplomacy is actually deferrable and browsable in Godot, and harden the Session 2 transport contract where the audit found live regressions.
 

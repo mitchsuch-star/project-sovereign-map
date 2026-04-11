@@ -81,7 +81,7 @@ A future save/load system should use this as the specification.
   "active_treaties": {},
 
   "ai_proposal_cooldowns": {},
-  "diplomatic_queue": [],
+  // "diplomatic_queue" REMOVED — legacy items migrated to dialogue_manager on load
   "proactive_suggestion_cooldowns": {},
   "ai_stalemate_counters": {},
   "ai_proposal_metadata": {},
@@ -187,7 +187,7 @@ A future save/load system should use this as the specification.
 | `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |
-| `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal. |
+| `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal. **Session 2 follow-up:** Mailbox items now carry `mailbox_id`, `mailbox_order`, `mailbox_priority` metadata. `next_mailbox_id` (int, default 1) tracks the monotonic ID sequence. Legacy items without `mailbox_id` are auto-stamped on load. |
 | `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. UNDERMINE_ALLIANCE adds `target_ally`. |
 | `intel_grants` | dict | {} | **BF4.** Temporary intel grants from GATHER_INTEL: {region_name: expiry_turn}. Prevents decay while active. |
 | `talleyrand_state` | str | "IDLE" | **Session 3.** "IDLE", "IN_TRANSIT", or "ON_MISSION". |
@@ -195,7 +195,7 @@ A future save/load system should use this as the specification.
 | `player_proposal_cooldowns` | dict | {} | **Session 3.** Cooldowns per nation (3 turns) and per type (5 turns) after rejection. |
 | `active_treaties` | dict | {} | **Session 3.** Active treaties keyed by diplo pair key. Contains nations, type, clauses, turn_signed, harshness. |
 | `ai_proposal_cooldowns` | dict | {} | **Session 4.** AI proposal cooldown timers. Keys: "nation\|nation" or "nation\|type". Values: int (turns remaining). Prevents AI from spamming proposals to the same target or of the same type. |
-| `diplomatic_queue` | list | [] | **Session 4.** Queued AI proposals awaiting player response (max 3, 3-turn expiry). Each entry is a dict with proposal details. Expired entries removed at turn start. |
+| `diplomatic_queue` | ~~list~~ | ~~[]~~ | **REMOVED (Session 2 follow-up).** Legacy saves with this field are auto-migrated: items delivered into `dialogue_manager` on load. All pending diplomacy now lives in `dialogue_manager.queue` with `mailbox_id`, `mailbox_order`, `mailbox_priority` metadata. |
 | `proactive_suggestion_cooldowns` | dict | {} | **Session 4.** Proactive suggestion cooldowns. Keys: "nation\|trigger_type". Values: int (turns remaining). Prevents repeated advisory suggestions for the same diplomatic opportunity. |
 | `ai_stalemate_counters` | dict | {} | **Session 4.** Consecutive stalemate turns per nation. Keys: nation name. Values: int (turn count). Used by AI to detect prolonged wars and trigger peace proposals. |
 | `ai_proposal_metadata` | dict | {} | **R126.** Tracks war_score at time of last AI proposal per nation. Keys: nation name. Values: {war_score_at_proposal: int, turn: int}. Used for urgent re-proposal detection (bypasses nation cooldown when war score drops 20+). |

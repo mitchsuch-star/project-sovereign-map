@@ -19,9 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Mailbox UX follow-up - NEXT bug session.** Complete the Session 2 PL-27 follow-up: add defer/reopen mailbox UX in Godot and fix the remaining `/pending_envoy` + soft-stop reply-routing contract gaps before `PL-32`.
-
-- **Bug Fixes — 4 OPEN.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Remaining: PL-26/28/29/32. See `docs/BUG_FIXES.md`.
+- **Bug Fixes — 4 OPEN.** Sessions 1-2 + follow-up COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED, mailbox panel built). Session 3 (PL-32) is NEXT. Remaining: PL-26/28/29/32. See `docs/BUG_FIXES.md`.
 - **Design Refinement — NEXT.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
@@ -127,6 +125,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `diplomatic_ledger.gd` | Diplomatic Ledger screen (Session 8B): CanvasLayer 50, 4 sub-tabs (Nations/Treaties/Threat/Talleyrand), D key toggle |
 | `coalition_declaration_popup.gd` | Coalition declaration popup (Session 8C): CanvasLayer 100, BBCode, [Continue] |
 | `incoming_proposal_popup.gd` | AI proposal popup (Session 8C): [Accept][Counter][Reject] |
+| `mailbox_panel.gd` | Browsable mailbox inbox (Session 2 follow-up): CanvasLayer 119, click-to-activate rows |
 | `talleyrand_objection_popup.gd` | Diplomatic objection popup (Session 8C): [Proceed][Modify][Cancel] |
 | `sabotage_discovery_popup.gd` | Sabotage discovery popup (Session 8C): [Confront][Overlook] |
 | `talleyrand_redemption_popup.gd` | Talleyrand redemption popup (Session 8C): [Apologize][Replace][Continue] |
@@ -177,7 +176,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/archive/DIPLOMACY_DESIGN_FIXES.md` §N4 |
 | Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy execution (proposals/dialogue) | `diplomatic_executor.py` (DiplomaticExecutor: _execute_diplomatic*, handle_diplomatic_dialogue_response, _process_dialogue_choice, trust reactions, AI proposal handlers). Accesses non-diplomatic executor methods via `self._executor.X` |
-| Dialogue state (R12, PL-27) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching, **PL-27 taxonomy**: HARD_STOP_TYPES/SOFT_STOP_MAILBOX_TYPES/HYBRID_SOFT_STOP_TYPES/LOCAL_PLANNING_TYPES, is_hard_stop/is_soft_stop/is_local_planning), `world_state.py` (transparent properties). **PL-27:** Only hard-stop dialogues (alliance_paradox, force_declare_war_confirmation) block commands. Soft-stop (incoming_proposal, counter_offer, etc.) allow pass-through. `pending_diplomatic_dialogue` is read-only |
+| Dialogue state (R12, PL-27) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching/get_mailbox_count/get_mailbox_items/activate_mailbox_item, **PL-27 taxonomy**: HARD_STOP_TYPES/SOFT_STOP_MAILBOX_TYPES/HYBRID_SOFT_STOP_TYPES/LOCAL_PLANNING_TYPES, is_hard_stop/is_soft_stop/is_local_planning), `world_state.py` (transparent properties). **PL-27:** Only hard-stop dialogues block commands. Soft-stop allow pass-through. **Session 2 follow-up:** `diplomatic_queue` eliminated — all pending diplomacy in `dialogue_manager`. Mailbox items carry `mailbox_id`/`mailbox_order`/`mailbox_priority`. Badge uses `get_mailbox_count()`. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`

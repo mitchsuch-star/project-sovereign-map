@@ -1,9 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Audit Note:** Sixth mailbox spec audit added concrete implementation trap warnings with file:line references for every `diplomatic_queue` call site that previous passes covered implicitly. Also added missing test matrix entries for numeric reply routing, dismiss-then-reopen on counter_offer_response, and dedup-after-elimination.
-> **Supersedes:** The older fourth/fifth-pass summaries below are retained as historical context only; the current mailbox planning text in this file and `docs/BUG_FIXES.md` reflects the sixth audit pass.
-> **Last Updated:** April 11, 2026 (Session 2 follow-up spec audited a sixth time. No new spec gaps — all findings are implementation trap callouts for code paths the spec covered implicitly. Added trap warnings block and 3 new test matrix groups to `docs/BUG_FIXES.md`. No code changes.)
+> **Last Updated:** April 11, 2026 (Session 2 follow-up IMPLEMENTED. `diplomatic_queue` eliminated, mailbox panel built, 37 new tests, 8189 total passing.)
 
 ---
 
@@ -11,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **8151** (8151 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Session 2 follow-up is next: formal mailbox inbox browsing for 2+ pending diplomatic items, plus the remaining PL-27 contract hardening. 4 OPEN bugs remain (PL-26/28/29/32). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | Session 2 follow-up mailbox/inbox slice before Session 3 (`PL-32`), diplomacy refinement, or any new audit pass. |
+| **Tests Passing** | **8189** (8189 passed, 1 skipped) |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). Session 3 (PL-32) is next. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None — Session 3 (`PL-32`) ready to start. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -22,21 +20,21 @@
 
 ### 1. Bug Fixes - 4 OPEN (Sessions 1-2 complete)
 
-Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33) FIXED on April 10, 2026. Session 2 follow-up is planned next to turn the mailbox into a browsable inbox for 2+ pending items and harden the remaining same-family PL-27 contract regressions. Remaining bugs stay consolidated in `docs/BUG_FIXES.md`.
+Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
 | ~~P1 - CRASH~~ | ~~PL-30~~ | ~~Godot null instance crash on diplomacy button after missed proposal result~~ **FIXED** |
 | ~~P1 - DESIGN~~ | ~~PL-31~~ | ~~Capital-loss instant defeat still live + broken regression test~~ **FIXED** |
 | P2 - UX | PL-26 | Combat feels hopeless, no clear path to winning |
-| ~~P2 - UX~~ | ~~PL-27~~ | ~~Diplomacy interrupt contract broken~~ **FIXED** (hard-stop/soft-stop taxonomy enforced) |
+| ~~P2 - UX~~ | ~~PL-27~~ | ~~Diplomacy interrupt contract broken~~ **FIXED** (hard-stop/soft-stop taxonomy + mailbox panel) |
 | P2 - UX | PL-28 | No warning before defeat, sudden game over |
 | P2 - UX | PL-32 | Raw diplomacy labels can leak into popups |
 | ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
-| ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
+| ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. Sixth audit pass added concrete implementation trap warnings (file:line) for every `diplomatic_queue` call site and 3 new test matrix groups. No new spec gaps — spec is implementation-ready. Key decision remains unchanged: eliminate `diplomatic_queue` entirely and consolidate pending diplomacy into `dialogue_manager`.
+**Next session:** Session 3 — PL-32 (raw diplomacy label leaks in popups).
 
 **Implementation sessions in current order:**
 
@@ -44,12 +42,10 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 |---------|-------|-------|--------|
 | Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
 | Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
-| Session 2 follow-up | Formal mailbox inbox + PL-27 hardening | Follow-up slice under `PL-27` / `PL-34` | Next (audited; mailbox contract clarified) |
-| Session 3 | Diplomacy display contract | `PL-32` | After Session 2 follow-up |
+| Session 2 follow-up | Mailbox inbox + queue elimination | `PL-27`/`PL-34` hardening | **COMPLETE** |
+| Session 3 | Diplomacy display contract | `PL-32` | **NEXT** |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |
-
-No new audit scope is being added.
 
 ### 2. Architecture Hardening (before full-map work)
 

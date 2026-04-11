@@ -258,9 +258,17 @@ class TestTab4TalleyrandRendering:
         assert t["active_mission"] is None
 
     def test_pending_envoy_count(self):
-        """Envoy count = length of diplomatic_queue."""
+        """Envoy count = dialogue_manager.get_mailbox_count()."""
         world = _make_world()
-        world.diplomatic_queue = [{"type": "proposal"}, {"type": "counter"}]
+        # Push mailbox-type proposals via dialogue_manager
+        world.dialogue_manager.push({
+            "type": "incoming_proposal", "turn_created": 1,
+            "target_nation": "Prussia", "blocking": True,
+        })
+        world.dialogue_manager.push({
+            "type": "counter_offer", "turn_created": 1,
+            "target_nation": "Austria", "blocking": True,
+        })
         t = _build_talleyrand(world)
         assert t["pending_envoy_count"] == 2
 
@@ -320,16 +328,18 @@ class TestTopBarFields:
     def test_envoy_indicator_hidden_at_zero(self):
         """Envoy indicator hidden when count is 0."""
         world = _make_world()
-        world.diplomatic_queue = []
-        count = int(len(getattr(world, 'diplomatic_queue', [])))
+        count = int(world.dialogue_manager.get_mailbox_count())
         visible = count > 0
         assert visible is False
 
     def test_envoy_indicator_shown(self):
         """Envoy indicator shown when count > 0."""
         world = _make_world()
-        world.diplomatic_queue = [{"type": "proposal"}]
-        count = int(len(getattr(world, 'diplomatic_queue', [])))
+        world.dialogue_manager.push({
+            "type": "incoming_proposal", "turn_created": 1,
+            "target_nation": "Prussia", "blocking": True,
+        })
+        count = int(world.dialogue_manager.get_mailbox_count())
         visible = count > 0
         assert visible is True
 

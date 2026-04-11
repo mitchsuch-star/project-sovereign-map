@@ -382,7 +382,15 @@ class TestDiplomaticLedgerTalleyrand:
 
     def test_talleyrand_pending_envoy_count(self):
         world = _make_world()
-        world.diplomatic_queue = [{"type": "peace"}, {"type": "alliance"}]
+        # Push mailbox-type proposals via dialogue_manager
+        world.dialogue_manager.push({
+            "type": "incoming_proposal", "turn_created": 1,
+            "target_nation": "Prussia", "blocking": True,
+        })
+        world.dialogue_manager.push({
+            "type": "incoming_proposal", "turn_created": 1,
+            "target_nation": "Austria", "blocking": True,
+        })
         ledger = build_diplomatic_ledger(world)
         assert ledger["talleyrand"]["pending_envoy_count"] == 2
 
@@ -499,13 +507,13 @@ class TestCheatCommands:
         world = _make_world()
         result = self._run_cheat(world, "queue_ai_proposal", ["Austria", "peace"])
         assert result["success"] is True
-        assert len(world.diplomatic_queue) == 1
-        proposal = world.diplomatic_queue[0]
-        assert proposal["source"] == "Austria"
-        assert proposal["proposal_type"] == "peace"
-        assert "terms" in proposal
-        assert proposal["terms"]["proposer_nation"] == "Austria"
-        assert proposal["terms"]["target_nation"] == "France"
+        # Proposal delivered via deliver_ai_proposal → dialogue_manager.push()
+        assert world.dialogue_manager.get_mailbox_count() >= 1
+        # Active dialogue should be the delivered proposal
+        active = world.pending_diplomatic_dialogue
+        assert active is not None
+        assert active["type"] == "incoming_proposal"
+        assert active["target_nation"] == "Austria"
 
     def test_cheat_guard_rejects_non_mock(self):
         """Cheat should be rejected when not in mock/debug mode."""
@@ -615,7 +623,8 @@ class TestDebugEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "diplomatic_queue" in data
+        assert "mailbox_items" in data
+        assert "mailbox_count" in data
 
 
 # ════════════════════════════════════════════════════════════════
