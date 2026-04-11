@@ -439,9 +439,6 @@ class WorldState:
         # ============================================================
         # DIPLOMACY - Session 4: AI proposals, advisory, proactive suggestions
         # ============================================================
-        # AI proposal queue: pending proposals waiting for delivery
-        self.diplomatic_queue: List[Dict] = []
-
         # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
         self.ai_stalemate_counters: Dict[str, int] = {}
 
@@ -3108,7 +3105,7 @@ class WorldState:
 
             # ═══════ DIPLOMACY Session 4 ═══════
             "ai_proposal_cooldowns": {k: int(v) for k, v in self.ai_proposal_cooldowns.items()},
-            "diplomatic_queue": [q.copy() for q in self.diplomatic_queue],
+            # diplomatic_queue eliminated — Session 2 follow-up
             "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
@@ -3347,7 +3344,32 @@ class WorldState:
 
         # ═══════ DIPLOMACY Session 4 ═══════
         world.ai_proposal_cooldowns = {k: int(v) for k, v in data.get("ai_proposal_cooldowns", {}).items()}
-        world.diplomatic_queue = [q.copy() for q in data.get("diplomatic_queue", [])]
+        # Legacy migration: lift old diplomatic_queue items into dialogue_manager
+        # without generating fresh log entries, notifications, or dispatches.
+        legacy_queue = data.get("diplomatic_queue", [])
+        if legacy_queue:
+            from backend.game_logic.ai_diplomacy import build_ai_proposal_dialogue
+
+            dm = world.dialogue_manager
+            ordered_legacy_queue = sorted(
+                enumerate(legacy_queue),
+                key=lambda pair: (
+                    int(pair[1].get("priority", 99)),
+                    int(pair[1].get("turn_generated", 0)),
+                    pair[0],
+                ),
+            )
+            for _, item in ordered_legacy_queue:
+                dialogue = build_ai_proposal_dialogue(item, world)
+                if dialogue.get("type", "") in dm.SOFT_STOP_MAILBOX_TYPES:
+                    mailbox_id = dm._next_mailbox_id
+                    dialogue["mailbox_id"] = mailbox_id
+                    dialogue["mailbox_order"] = mailbox_id
+                    dialogue["mailbox_priority"] = int(
+                        item.get("priority", dm.DIALOGUE_PRIORITY.get(dialogue.get("type", ""), 99))
+                    )
+                    dm._next_mailbox_id += 1
+                dm.push(dialogue)
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
@@ -4094,11 +4116,7 @@ class WorldState:
         # Replaces 4 _decrement_* methods + inline talleyrand decrement
         # ════════════════════════════════════════════════════════════
         self._cooldown_manager.decrement_all()
-        # Preserve side effect: expire queued proposals older than 3 turns
-        self.diplomatic_queue = [
-            q for q in self.diplomatic_queue
-            if self.current_turn - q.get("turn_generated", 0) < 3
-        ]
+        # diplomatic_queue expiry removed — mailbox items exempt from stale clearing
         # Track turns hidden for pending sabotage
         if self.pending_talleyrand_sabotage and not self.pending_talleyrand_sabotage.get("discovered"):
             self.pending_talleyrand_sabotage["turns_hidden"] = self.pending_talleyrand_sabotage.get("turns_hidden", 0) + 1
@@ -4483,6 +4501,15 @@ class WorldState:
                         f"They could not accept our terms, but offer an alternative:\n{summary}"
                     ),
                 })
+                from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
+
+                popup_payload = build_pending_envoy_popup_from_terms(
+                    self,
+                    nation=target,
+                    terms=counter_terms,
+                    assessment=feedback,
+                    is_counter_offer=True,
+                )
                 # R12C: push() instead of overwrite — fixes latent bug where counter-offer
                 # could silently overwrite an active blocking dialogue during advance_turn
                 self.dialogue_manager.push({
@@ -4512,28 +4539,9 @@ class WorldState:
                     },
                     "turn_created": int(self.current_turn),
                     "blocking": True,
+                    "popup_payload": popup_payload,
                 })
-                # Set popup for Godot — must match incoming_proposal_popup.gd show_proposal() fields
-                diplomat = self.diplomats.get(target)
-                diplomat_name = diplomat.name if diplomat else f"{target} envoy"
-                diplomat_personality = getattr(diplomat, 'personality', 'pragmatic') if diplomat else "pragmatic"
-                # Build clause list matching ai_diplomacy.py format
-                clauses = []
-                for d in counter_terms.get("demands", []):
-                    clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
-                for s in counter_terms.get("sweeteners", []):
-                    clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
-                self.incoming_proposal_popup = {
-                    "from_nation": target,
-                    "diplomat_name": diplomat_name,
-                    "diplomat_personality": diplomat_personality,
-                    "proposal_type": proposal.get("type", "unknown"),
-                    "clauses": clauses,
-                    "talleyrand_assessment": feedback,
-                    "acceptance_hint": "",
-                    "rejection_hint": "",
-                    "is_counter_offer": True,
-                }
+                self.incoming_proposal_popup = copy.deepcopy(popup_payload)
                 # Talleyrand returns to IDLE for immediate response
                 self.talleyrand_state = "IDLE"
             else:

@@ -213,38 +213,42 @@ class TestGuardSplit:
 # ═════════════════════════════════════════════════════════════════════
 
 class TestEnvoyCount:
+    """Envoy badge count now comes from dm.get_mailbox_count().
+
+    diplomatic_queue eliminated — all proposals go through dialogue_manager.
+    """
 
     def test_queue_only(self):
-        """Queue items counted without active dialogue."""
+        """Queued mailbox items counted without active dialogue."""
         world = _make_world()
-        world.diplomatic_queue = [{"type": "peace"}, {"type": "alliance"}]
-        # No soft-stop dialogue active → count = queue length
-        count = (len(world.diplomatic_queue)
-                 + (1 if world.dialogue_manager.is_soft_stop() else 0))
+        dm = world.dialogue_manager
+        # Push two proposals — first becomes active, second queued
+        dm.push(_make_soft_stop_proposal(nation="Prussia"))
+        dm.push(_make_soft_stop_proposal(nation="Austria"))
+        count = dm.get_mailbox_count()
         assert count == 2
 
     def test_soft_stop_plus_queue(self):
-        """Active soft-stop dialogue adds 1 to queue count."""
+        """Active soft-stop dialogue adds 1 to queued count."""
         world = _make_world()
-        world.diplomatic_queue = [{"type": "peace"}]
-        world.dialogue_manager.replace(_make_soft_stop_proposal())
-        count = (len(world.diplomatic_queue)
-                 + (1 if world.dialogue_manager.is_soft_stop() else 0))
-        assert count == 2  # 1 queue + 1 active
+        dm = world.dialogue_manager
+        dm.replace(_make_soft_stop_proposal())
+        dm.push(_make_soft_stop_proposal(nation="Austria"))
+        count = dm.get_mailbox_count()
+        assert count == 2  # 1 active + 1 queued
 
     def test_hard_stop_not_counted(self):
         """Hard-stop dialogue should NOT add to envoy count."""
         world = _make_world()
-        world.diplomatic_queue = [{"type": "peace"}]
-        world.dialogue_manager.replace(_make_hard_stop_dialogue())
-        count = (len(world.diplomatic_queue)
-                 + (1 if world.dialogue_manager.is_soft_stop() else 0))
-        assert count == 1  # Only queue item
+        dm = world.dialogue_manager
+        dm.replace(_make_hard_stop_dialogue())
+        dm.push(_make_soft_stop_proposal(nation="Prussia"))
+        count = dm.get_mailbox_count()
+        assert count == 1  # Only the queued soft-stop
 
     def test_empty_state(self):
         world = _make_world()
-        count = (len(world.diplomatic_queue)
-                 + (1 if world.dialogue_manager.is_soft_stop() else 0))
+        count = world.dialogue_manager.get_mailbox_count()
         assert count == 0
 
 
@@ -281,58 +285,44 @@ class TestQueueVisibilityEvents:
         assert "Britain" in text
         assert "turned away" in text
 
-    def test_expire_queue_logs_events(self):
-        """Expiring a queued proposal creates a campaign log event."""
+    def test_expire_queue_is_deprecated_noop(self):
+        """_expire_queue is now a deprecated no-op (diplomatic_queue eliminated).
+
+        Mailbox items in dialogue_manager are exempt from stale clearing,
+        so expiry is no longer needed.
+        """
         from backend.game_logic.ai_diplomacy import _expire_queue
         world = _make_world()
         world.current_turn = 10
-        world.diplomatic_queue = [
-            {"source": "Prussia", "proposal_type": "peace",
-             "turn_generated": 5, "priority": 50},  # expired (10 - 5 >= 3)
-        ]
-        initial_events = len(world.event_log)
+        # _expire_queue should not crash — it's a no-op
         _expire_queue(world)
-        assert len(world.diplomatic_queue) == 0
-        # Should have logged an expiry event
-        new_events = world.event_log[initial_events:]
-        expiry_events = [e for e in new_events if e["type"] == "proposal_expired_unseen"]
-        assert len(expiry_events) == 1
-        assert expiry_events[0]["source"] == "Prussia"
 
-    def test_enqueue_logs_arrival(self):
-        """Enqueuing a proposal creates an arrival event."""
+    def test_enqueue_proposal_is_deprecated_noop(self):
+        """_enqueue_proposal is a deprecated no-op (returns False).
+
+        All proposals now go through deliver_ai_proposal -> dialogue_manager.push().
+        """
         from backend.game_logic.ai_diplomacy import _enqueue_proposal
         world = _make_world()
-        initial_events = len(world.event_log)
-        proposal = {"source": "Austria", "proposal_type": "alliance", "priority": 50}
-        _enqueue_proposal(proposal, world)
-        new_events = world.event_log[initial_events:]
-        arrival_events = [e for e in new_events if e["type"] == "proposal_arrived"]
-        assert len(arrival_events) == 1
-        assert arrival_events[0]["source"] == "Austria"
-
-    def test_overflow_logs_drop(self):
-        """Overflowing the queue creates a drop event."""
-        from backend.game_logic.ai_diplomacy import (
-            _enqueue_proposal, QUEUE_MAX_SIZE,
-        )
-        world = _make_world()
-        # Fill queue
-        for i in range(QUEUE_MAX_SIZE):
-            world.diplomatic_queue.append({
-                "source": f"Nation{i}", "proposal_type": "peace",
-                "priority": 10, "turn_generated": 1,
-            })
-        initial_events = len(world.event_log)
-        # Add one more (lower priority = higher number = gets dropped)
-        _enqueue_proposal(
-            {"source": "LowPriority", "proposal_type": "trade",
-             "priority": 99, "turn_generated": 1},
+        result = _enqueue_proposal(
+            {"source": "Austria", "proposal_type": "alliance", "priority": 50},
             world,
         )
-        new_events = world.event_log[initial_events:]
-        drop_events = [e for e in new_events if e["type"] == "proposal_dropped_overflow"]
-        assert len(drop_events) >= 1
+        assert result is False
+
+    def test_dialogue_manager_push_respects_queue_cap(self):
+        """DialogueManager silently drops items beyond QUEUE_CAP (replaces old overflow test)."""
+        from backend.models.dialogue_manager import DialogueManager
+        dm = DialogueManager()
+        # Fill active slot
+        dm.replace(_make_soft_stop_proposal(nation="Active"))
+        # Fill queue to cap
+        for i in range(dm.QUEUE_CAP):
+            dm.push(_make_soft_stop_proposal(nation=f"Nation{i}"))
+        assert len(dm._queue) == dm.QUEUE_CAP
+        # One more push should be silently dropped (no crash)
+        dm.push(_make_soft_stop_proposal(nation="Overflow"))
+        assert len(dm._queue) == dm.QUEUE_CAP
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -455,23 +445,25 @@ class TestPendingEnvoyRecovery:
         assert popup["is_counter_offer"] is False
 
     def test_queue_recovers_when_badge_count_comes_from_hard_stop_plus_queue(self):
+        """With hard-stop active and soft-stop proposals queued in dialogue_manager,
+        pending_envoy_count reflects queued mailbox items. has_pending is False
+        because the active dialogue is a hard-stop, not a mailbox item.
+
+        diplomatic_queue eliminated — proposals now live in dialogue_manager queue.
+        """
         import backend.main as main_module
 
         world = _make_world()
         main_module.game_state = {"world": world}
+        # Hard-stop is the active dialogue
         world.dialogue_manager.replace(_make_hard_stop_dialogue())
-        world.diplomatic_queue = [
-            _make_queued_proposal(nation="Austria", proposal_type="open_borders", priority=9),
-            _make_queued_proposal(nation="Prussia", proposal_type="non_aggression", priority=2),
-        ]
+        # Push soft-stop proposals into dialogue_manager queue
+        world.dialogue_manager.push(_make_soft_stop_proposal(nation="Austria"))
+        world.dialogue_manager.push(_make_soft_stop_proposal(nation="Prussia"))
 
         result = main_module.get_pending_envoy()
 
+        # Badge count reflects the 2 queued mailbox items
         assert result["pending_envoy_count"] == 2
-        assert result["has_pending"] is True
-        assert result["dialogue_type"] == "incoming_proposal"
-        popup = result["incoming_proposal"]
-        assert popup["from_nation"] == "Prussia"
-        assert popup["proposal_type"] == "non_aggression"
-        assert popup["clauses"][0] == "Proposal: Non-Aggression Pact"
-        assert all(isinstance(clause, str) for clause in popup["clauses"])
+        # Active dialogue is hard-stop, not a mailbox item — has_pending is False
+        assert result["has_pending"] is False

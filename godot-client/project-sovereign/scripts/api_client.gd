@@ -111,6 +111,12 @@ func get_marshal_overview(callback: Callable):
 func get_pending_envoy(callback: Callable):
 	_send_get("/pending_envoy", callback)
 
+func get_mailbox(callback: Callable):
+	_send_get("/mailbox", callback)
+
+func activate_mailbox_item(mailbox_id: int, callback: Callable):
+	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
+
 
 # --- POST endpoints ---
 

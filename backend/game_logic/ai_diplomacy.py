@@ -25,6 +25,7 @@ Design principles:
   - Deferred triggers (P3, P5, P6) return None — wired in future sessions.
 """
 
+import copy
 from typing import Dict, List, Optional
 
 from backend.game_logic.diplomacy import (
@@ -32,6 +33,7 @@ from backend.game_logic.diplomacy import (
     get_war_score_for,
 )
 from backend.game_logic.diplomatic_dialogue import get_game_bucket
+from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -196,13 +198,13 @@ def _set_cooldowns(world, cooldowns: Dict[str, int]) -> None:
 
 
 def _get_queue(world) -> List[Dict]:
-    """Safely get diplomatic_queue from world."""
-    return getattr(world, 'diplomatic_queue', [])
+    """DEPRECATED: diplomatic_queue eliminated. Returns empty list for compat."""
+    return []
 
 
 def _set_queue(world, queue: List[Dict]) -> None:
-    """Safely set diplomatic_queue on world."""
-    world.diplomatic_queue = queue
+    """DEPRECATED: diplomatic_queue eliminated. No-op."""
+    pass
 
 
 def _is_situation_urgent(nation: str, war_score: int, world) -> bool:
@@ -278,13 +280,17 @@ def _has_pending_proposal_from(nation: str, world) -> bool:
     """Check if there's already a pending proposal from this nation.
 
     Prevents duplicate proposals from the same nation piling up in the
-    queue or generating a new proposal while one is already being shown.
+    dialogue_manager queue or active slot.
     """
+    dm = world.dialogue_manager
+
     # Check active dialogue
-    pending = getattr(world, 'pending_diplomatic_dialogue', None)
-    if pending:
-        context = pending.get("context", {})
-        if context.get("source_nation") == nation:
+    current = dm.peek()
+    if current:
+        ctx = current.get("context", {})
+        if ctx.get("source_nation") == nation:
+            return True
+        if current.get("target_nation") == nation and current.get("type", "") in dm.SOFT_STOP_MAILBOX_TYPES:
             return True
 
     # PL-5B: Check proposal_in_transit — player already has a proposal targeting this nation
@@ -292,97 +298,33 @@ def _has_pending_proposal_from(nation: str, world) -> bool:
     if pit and pit.get("target") == nation:
         return True
 
-    # Check queue
-    queue = _get_queue(world)
-    for item in queue:
-        if item.get("source") == nation:
-            return True
+    # Check dialogue_manager queue for proposals from this nation
+    for item in dm._queue:
+        dtype = item.get("type", "")
+        if dtype in dm.SOFT_STOP_MAILBOX_TYPES:
+            ctx = item.get("context", {})
+            if ctx.get("source_nation") == nation:
+                return True
+            if item.get("target_nation") == nation:
+                return True
 
     return False
 
 
 def _expire_queue(world) -> None:
-    """Remove expired items from the diplomatic queue.
-
-    PL-34: Expired items are now logged as campaign events so the player
-    can see what proposals were lost to time.
-    """
-    queue = _get_queue(world)
-    current_turn = int(world.current_turn)
-    kept = []
-    for item in queue:
-        if current_turn - item.get("turn_generated", 0) < QUEUE_EXPIRY_TURNS:
-            kept.append(item)
-        else:
-            # PL-34: Log expiry event
-            source = item.get("source", "Unknown")
-            ptype = item.get("proposal_type", "")
-            print(f"[DIPLOMACY] Proposal expired unseen: {source} {ptype}")
-            world.log_event({
-                "type": "proposal_expired_unseen",
-                "source": source,
-                "proposal_type": ptype,
-                "turn": current_turn,
-            })
-    _set_queue(world, kept)
+    """DEPRECATED: diplomatic_queue eliminated. No-op for compat."""
+    pass
 
 
 def _enqueue_proposal(proposal: Dict, world) -> bool:
-    """Add a proposal to the diplomatic queue. Returns True if added.
-
-    PL-27/PL-34: Logs arrival and overflow events so the player can see
-    what proposals arrived and what was dropped.
-    """
-    current_turn = int(world.current_turn)
-    source = proposal.get("source", "Unknown")
-    ptype = proposal.get("proposal_type", "")
-    queue = _get_queue(world)
-
-    # PL-27: Log arrival event
-    world.log_event({
-        "type": "proposal_arrived",
-        "source": source,
-        "proposal_type": ptype,
-        "turn": current_turn,
-    })
-
-    if len(queue) >= QUEUE_MAX_SIZE:
-        # Find highest priority number (lowest urgency) in queue + new proposal
-        all_items = queue + [proposal]
-        all_items.sort(key=lambda x: x.get("priority", 99))
-        # Drop the last (highest priority number = least urgent)
-        dropped = all_items[QUEUE_MAX_SIZE:]
-        for item in dropped:
-            d_source = item.get("source", "?")
-            d_ptype = item.get("proposal_type", "?")
-            print(f"[DIPLOMACY] Proposal dropped from queue: "
-                  f"{d_source} {d_ptype} "
-                  f"(priority {item.get('priority', '?')})")
-            # PL-34: Log overflow event
-            world.log_event({
-                "type": "proposal_dropped_overflow",
-                "source": d_source,
-                "proposal_type": d_ptype,
-                "turn": current_turn,
-            })
-        queue = all_items[:QUEUE_MAX_SIZE]
-    else:
-        queue.append(proposal)
-
-    _set_queue(world, queue)
-    return True
+    """DEPRECATED: diplomatic_queue eliminated. All proposals now go
+    through deliver_ai_proposal → dialogue_manager.push()."""
+    return False
 
 
 def _dequeue_best(world) -> Optional[Dict]:
-    """Pop the highest-priority (lowest number) item from the queue."""
-    queue = _get_queue(world)
-    if not queue:
-        return None
-
-    queue.sort(key=lambda x: x.get("priority", 99))
-    best = queue.pop(0)
-    _set_queue(world, queue)
-    return best
+    """DEPRECATED: diplomatic_queue eliminated."""
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -656,15 +598,6 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if _has_pending_proposal_from(nation, world):
         return None
 
-    # ── Expire old queue items ──
-    _expire_queue(world)
-
-    # ── Check blocking dialogue ──
-    pending = getattr(world, 'pending_diplomatic_dialogue', None)
-    has_blocking_dialogue = (
-        pending is not None and pending.get("blocking", False)
-    )
-
     # ── Get diplomatic context ──
     diplo_state = world.get_diplomatic_state(player, nation)
     is_at_war = diplo_state == "WAR"
@@ -786,11 +719,9 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     }
     world.ai_proposal_metadata = metadata
 
-    # ── Delivery or queue ──
-    if has_blocking_dialogue:
-        _enqueue_proposal(proposal, world)
-        return None  # Queued, not delivered this turn
-
+    # Session 2 follow-up: All proposals delivered immediately through
+    # dialogue_manager.push() — no separate queue needed. The dialogue
+    # manager handles queuing internally when another dialogue is active.
     return proposal
 
 
@@ -823,32 +754,27 @@ def _make_proposal(
 # DELIVERY: deliver_ai_proposal
 # ═══════════════════════════════════════════════════════════════
 
-def deliver_ai_proposal(proposal: Dict, world) -> Dict:
-    """Take a proposal dict and set up world.pending_diplomatic_dialogue.
-
-    Creates an incoming_proposal dialogue with Accept/Reject/Counter options.
-    Sets blocking=True so no other proposals overwrite it.
-
-    Returns the dialogue dict (also stored on world).
-    """
+def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
+    """Build a mailbox-aware incoming proposal dialogue without side effects."""
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
 
-    # Get diplomat name for flavor text
     diplomats = getattr(world, 'diplomats', {})
     diplomat = diplomats.get(nation)
     diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
 
-    # Build human-readable proposal summary
     proposal_summary = _format_proposal_summary(terms)
-
-    # Run acceptance calculation to provide context score
     acceptance = calculate_acceptance(terms, world)
-    score = acceptance["score"]
+    popup_payload = build_pending_envoy_popup_from_terms(
+        world,
+        nation=nation,
+        terms=terms,
+        assessment=assessment,
+        acceptance=acceptance,
+    )
 
-    # Build dialogue
-    dialogue = {
+    return {
         "type": "incoming_proposal",
         "target_nation": nation,
         "talleyrand_text": (
@@ -876,11 +802,24 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "context": {
             "proposal": terms,
             "source_nation": nation,
-            "acceptance_score": int(score),
+            "acceptance_score": int(acceptance["score"]),
         },
         "turn_created": int(world.current_turn),
         "blocking": True,
+        "popup_payload": popup_payload,
     }
+
+
+def deliver_ai_proposal(proposal: Dict, world) -> Dict:
+    """Take a proposal dict and set up world.pending_diplomatic_dialogue.
+
+    Creates an incoming_proposal dialogue with Accept/Reject/Counter options.
+    Sets blocking=True so no other proposals overwrite it.
+
+    Returns the dialogue dict (also stored on world).
+    """
+    nation = proposal["source"]
+    dialogue = build_ai_proposal_dialogue(proposal, world)
 
     # V2-89 → R12C: push() auto-queues if another dialogue is active
     world.dialogue_manager.push(dialogue)
@@ -910,75 +849,9 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         int(world.current_turn),
     ))
 
-    # Set incoming_proposal_popup for Godot (Session 8C)
-    diplomat_personality = getattr(diplomat, 'personality', 'unknown') if diplomat else "unknown"
-    # BUGFIX (Bug 1): Always include base proposal type as first clause.
-    # Without this, peace/non-aggression/armistice proposals show blank
-    # popup in Godot because they have no demands or sweeteners.
-    # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-    _CLAUSE_TYPE_DISPLAY = {
-        "gold_lump": "Gold payment",
-        "gold_per_turn": "Gold per turn",
-        "territory_cede": "Territory cession",
-        "territory_return": "Territory return",
-        "action_point": "Action point concession",
-        "unit_trade": "Military units",
-    }
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
-    proposal_type_key = terms.get("type", "unknown")
-    base_label = PROPOSAL_TYPE_DISPLAY.get(
-        proposal_type_key, proposal_type_key.replace("_", " ").title()
-    )
-    clauses = [f"Proposal: {base_label}"]
-    for d in terms.get("demands", []):
-        dtype = d.get("type", "unknown")
-        label = _CLAUSE_TYPE_DISPLAY.get(dtype, dtype.replace("_", " ").title())
-        clauses.append(f"Demand: {label} — {d.get('value', '')}")
-    for s in terms.get("sweeteners", []):
-        stype = s.get("type", "unknown")
-        label = _CLAUSE_TYPE_DISPLAY.get(stype, stype.replace("_", " ").title())
-        clauses.append(f"Offer: {label} — {s.get('value', '')}")
-
-    # Find largest positive/negative factor (R112: read "components" dict, convert to factor list)
-    components = acceptance.get("components", {})
-    factors = sorted(
-        [{"reason": k, "value": v} for k, v in components.items() if v != 0],
-        key=lambda f: abs(f.get("value", 0)),
-        reverse=True,
-    )
-    positive_factors = [f for f in factors if f.get("value", 0) > 0]
-    negative_factors = [f for f in factors if f.get("value", 0) < 0]
-    # BUGFIX (Bugs 2+3): Translate component keys to human-readable strings.
-    # Raw keys like "base_disposition" must never reach the Godot popup.
-    # Pattern: match _enrich_proposal_summary() in diplomatic_dialogue.py.
-    # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-    from backend.display_names import FEEDBACK_STRINGS
-    if positive_factors:
-        best_key = positive_factors[0].get("reason", "")
-        acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
-            "positive", "complex diplomatic factors"
-        )
-    else:
-        acceptance_hint = "No strong positives identified"
-    if negative_factors:
-        worst_key = negative_factors[0].get("reason", "")
-        rejection_hint = FEEDBACK_STRINGS.get(worst_key, {}).get(
-            "negative", "complex diplomatic factors"
-        )
-    else:
-        rejection_hint = "No major obstacles identified"
-
-    world.incoming_proposal_popup = {
-        "from_nation": nation,
-        "diplomat_name": diplomat_name,
-        "diplomat_personality": diplomat_personality,
-        "proposal_type": terms.get("type", "unknown"),
-        "clauses": clauses,
-        "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
-        "acceptance_hint": acceptance_hint,
-        "rejection_hint": rejection_hint,
-        "is_counter_offer": False,  # FINAL-13: Always include for Godot
-    }
+    # Keep the current active popup available for Godot. Queued mailbox items
+    # carry their own popup payload on the dialogue itself.
+    world.incoming_proposal_popup = copy.deepcopy(dialogue["popup_payload"])
 
     return dialogue
 
@@ -1043,21 +916,10 @@ def _format_proposal_summary(terms: Dict) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 def try_deliver_queued_proposal(world) -> Optional[Dict]:
-    """Try to deliver a queued proposal if no blocking dialogue exists.
-
-    Called from turn_manager AFTER process_diplomatic_phase for all nations.
-    Returns the delivered dialogue dict, or None.
-    """
-    pending = getattr(world, 'pending_diplomatic_dialogue', None)
-    if pending is not None and pending.get("blocking", False):
-        return None
-
-    _expire_queue(world)
-    proposal = _dequeue_best(world)
-    if proposal is None:
-        return None
-
-    return deliver_ai_proposal(proposal, world)
+    """DEPRECATED: diplomatic_queue eliminated. All proposals go through
+    dialogue_manager.push() at generation time. Retained as no-op stub
+    for callers that haven't been updated yet."""
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════

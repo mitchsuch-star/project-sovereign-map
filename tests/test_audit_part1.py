@@ -217,11 +217,15 @@ class TestSection2BlockingLifecycle:
     """Tests for blocking dialogue safety valve and debug commands."""
 
     def test_safety_valve_clears_stale_blocking_dialogue(self):
-        """C-1: Blocking dialogue >2 turns old is force-cleared."""
+        """C-1: Blocking dialogue >2 turns old is force-cleared.
+
+        Note: SOFT_STOP_MAILBOX_TYPES (incoming_proposal, etc.) are EXEMPT
+        from stale clearing. Use a hard-stop type to test the safety valve.
+        """
         world = _make_world()
         world.current_turn = 10
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "force_declare_war_confirmation",
             "blocking": True,
             "turn_created": 7,  # 3 turns ago (10 - 7 = 3 > 2)
         })
@@ -243,11 +247,15 @@ class TestSection2BlockingLifecycle:
         assert world.pending_diplomatic_dialogue is not None
 
     def test_safety_valve_exact_boundary(self):
-        """C-1: Dialogue exactly 2 turns old is NOT cleared (boundary)."""
+        """C-1: Dialogue exactly 2 turns old is NOT cleared (boundary).
+
+        Note: SOFT_STOP_MAILBOX_TYPES (incoming_proposal, etc.) are EXEMPT
+        from stale clearing. Use a hard-stop type to test the safety valve.
+        """
         world = _make_world()
         world.current_turn = 10
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "force_declare_war_confirmation",
             "blocking": True,
             "turn_created": 8,  # 2 turns ago (10 - 8 = 2, NOT > 2)
         })

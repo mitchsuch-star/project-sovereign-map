@@ -22,15 +22,9 @@ class TestCooldownDecrementCharacterization:
     def _advance_one_turn(self, world):
         """Advance turn once without full game loop (skip combat/AI).
 
-        Uses the CooldownManager.decrement_all() + diplomatic_queue pruning
-        (same logic as advance_turn).
+        Uses the CooldownManager.decrement_all() (same logic as advance_turn).
         """
         world._cooldown_manager.decrement_all()
-        # Preserve side effect: expire queued proposals older than 3 turns
-        world.diplomatic_queue = [
-            q for q in world.diplomatic_queue
-            if world.current_turn - q.get("turn_generated", 0) < 3
-        ]
 
     def test_player_proposal_cooldowns_decrement(self):
         """Player proposal cooldowns decrement by 1, remove when ≤ 0."""
@@ -45,20 +39,6 @@ class TestCooldownDecrementCharacterization:
         world.ai_proposal_cooldowns = {"Prussia|ALLIANCE": 2, "Austria|PEACE": 1}
         self._advance_one_turn(world)
         assert world.ai_proposal_cooldowns == {"Prussia|ALLIANCE": 1}
-
-    def test_ai_proposal_cooldowns_expire_diplomatic_queue(self):
-        """Cooldown decrement also prunes diplomatic_queue entries older than 3 turns."""
-        world = WorldFactory.basic()
-        world.current_turn = 10
-        world.diplomatic_queue = [
-            {"turn_generated": 7},  # age 3 — pruned (10 - 7 = 3, not < 3)
-            {"turn_generated": 8},  # age 2 — kept
-            {"turn_generated": 10}, # age 0 — kept
-        ]
-        self._advance_one_turn(world)
-        assert len(world.diplomatic_queue) == 2
-        assert world.diplomatic_queue[0]["turn_generated"] == 8
-        assert world.diplomatic_queue[1]["turn_generated"] == 10
 
     def test_proactive_suggestion_cooldowns_decrement(self):
         """Proactive suggestion cooldowns decrement by 1, remove when ≤ 0."""

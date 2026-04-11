@@ -291,16 +291,16 @@ class TurnManager:
         """Process AI diplomatic proposals for all enemy nations.
 
         Phase 8 Session 4: Each AI nation evaluates P1-P7 triggers.
-        Max 1 proposal delivered per turn. Extras queued.
+        Session 2 follow-up: All proposals delivered immediately through
+        dialogue_manager.push() — no one-per-turn throttle.
 
-        Returns the delivered dialogue dict if one was created, None otherwise.
+        Returns the last delivered dialogue dict if any were created, None otherwise.
         """
         if self.world.game_over:
             return None
 
         from backend.game_logic.ai_diplomacy import (
             process_diplomatic_phase, deliver_ai_proposal,
-            try_deliver_queued_proposal,
         )
 
         world = self.world
@@ -308,22 +308,15 @@ class TurnManager:
         enemy_nations = [n for n in getattr(world, 'enemy_nations', []) if n in active]
         delivered = None
 
-        # Evaluate each AI nation
+        # Evaluate each AI nation — all proposals go through deliver_ai_proposal
+        # which calls dialogue_manager.push() (auto-queues when slot is occupied)
         for nation in enemy_nations:
             proposal = process_diplomatic_phase(nation, world)
-            if proposal and delivered is None:
-                # First proposal this turn — deliver immediately
-                delivered = deliver_ai_proposal(proposal, world)
+            if proposal:
+                result = deliver_ai_proposal(proposal, world)
+                if delivered is None:
+                    delivered = result
                 debug_print(f"[DIPLOMACY] {nation} delivered proposal: {proposal.get('proposal_type')}")
-            elif proposal:
-                # Already delivered one — this was queued inside process_diplomatic_phase
-                debug_print(f"[DIPLOMACY] {nation} proposal queued: {proposal.get('proposal_type')}")
-
-        # If nothing delivered from fresh proposals, try the queue
-        if delivered is None:
-            delivered = try_deliver_queued_proposal(world)
-            if delivered:
-                debug_print("[DIPLOMACY] Delivered queued proposal")
 
         # ════════════════════════════════════════════════════════════
         # VASSAL COURTING (Phase 8 Session 5)

@@ -13,7 +13,6 @@ from backend.game_logic.ai_diplomacy import (
     process_diplomatic_phase,
     apply_acceptance_cooldown,
     _has_pending_proposal_from,
-    _get_queue,
     deliver_ai_proposal,
     NATION_ACCEPTANCE_COOLDOWN,
 )
@@ -162,11 +161,22 @@ class TestPendingProposalDedup:
         assert _has_pending_proposal_from("Prussia", world) is False
 
     def test_has_pending_from_queue(self):
-        """_has_pending_proposal_from detects proposal in queue."""
+        """_has_pending_proposal_from detects proposal in dialogue_manager queue."""
         world = _make_world()
-        world.diplomatic_queue = [
-            {"source": "Austria", "priority": 4, "turn_generated": 5}
-        ]
+        # Push a proposal into dialogue_manager queue (occupy active slot first)
+        world.dialogue_manager.replace({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "context": {"source_nation": "Saxony"},
+            "target_nation": "Saxony",
+        })
+        # Queue an Austria proposal behind the active Saxony one
+        world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "context": {"source_nation": "Austria"},
+            "target_nation": "Austria",
+        })
         assert _has_pending_proposal_from("Austria", world) is True
         assert _has_pending_proposal_from("Prussia", world) is False
 
@@ -198,10 +208,21 @@ class TestPendingProposalDedup:
         _set_diplo_state(world, "France", "Saxony", "PEACE")
         _set_relation(world, "France", "Saxony", 40)
 
-        # Set up a queued proposal from Saxony
-        world.diplomatic_queue = [
-            {"source": "Saxony", "priority": 4, "turn_generated": 5}
-        ]
+        # Set up a queued Saxony proposal in dialogue_manager
+        # First occupy the active slot with another nation's proposal
+        world.dialogue_manager.replace({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "context": {"source_nation": "Prussia"},
+            "target_nation": "Prussia",
+        })
+        # Queue Saxony behind it
+        world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "context": {"source_nation": "Saxony"},
+            "target_nation": "Saxony",
+        })
 
         proposal = process_diplomatic_phase("Saxony", world)
         assert proposal is None
@@ -221,15 +242,23 @@ class TestPendingProposalDedup:
             "context": {"source_nation": "Saxony"},
         })
 
-        # Saxony blocked, Austria can still generate (queued due to blocking)
+        # Saxony blocked, Austria can still generate
         saxony_proposal = process_diplomatic_phase("Saxony", world)
         assert saxony_proposal is None
 
-        # Austria should still generate (will be queued since dialogue is blocking)
+        # Austria should still generate a proposal (not blocked by Saxony's pending)
         austria_proposal = process_diplomatic_phase("Austria", world)
-        # It returns None because it gets queued, but queue should have it
-        queue = _get_queue(world)
-        austria_in_queue = any(item.get("source") == "Austria" for item in queue)
+        assert austria_proposal is not None
+        assert austria_proposal["source"] == "Austria"
+
+        # Delivering it pushes into dialogue_manager queue (active slot occupied)
+        deliver_ai_proposal(austria_proposal, world)
+        dm = world.dialogue_manager
+        austria_in_queue = any(
+            item.get("context", {}).get("source_nation") == "Austria"
+            or item.get("target_nation") == "Austria"
+            for item in dm._queue
+        )
         assert austria_in_queue
 
 

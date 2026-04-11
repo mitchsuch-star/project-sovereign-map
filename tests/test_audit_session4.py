@@ -147,10 +147,10 @@ class TestTurnManagerIntegration:
 
         # Should NOT have ai_proposal (blocked by existing dialogue)
         has_proposal = result.get("ai_proposal") is not None
-        # The blocking dialogue means proposals get queued instead
+        # The blocking dialogue means proposals get queued in dialogue_manager
         if not has_proposal:
-            # Verify it was queued
-            assert len(world.diplomatic_queue) >= 0  # May or may not have queued
+            # Verify it was queued in dialogue_manager
+            assert world.dialogue_manager.queue_size >= 0  # May or may not have queued
 
 
 # ═══════════════════════════════════════════════════════
@@ -185,19 +185,34 @@ class TestCooldownLifecycle:
         assert "global|idle_nudge" not in world.proactive_suggestion_cooldowns
 
     def test_queue_expiry_removes_old_proposals(self):
-        """Proposals older than 3 turns are removed from queue during advance_turn."""
+        """Mailbox items persist across turns (no expiry after diplomatic_queue elimination).
+
+        Previously, proposals older than 3 turns were removed from diplomatic_queue.
+        Now all proposals go through dialogue_manager, and SOFT_STOP_MAILBOX_TYPES
+        are exempt from stale clearing — they persist until the player acts on them.
+        """
         world = make_world()
         world.current_turn = 5
-        world.diplomatic_queue = [
-            {"source": "Prussia", "priority": 1, "turn_generated": 1},  # 5-1=4, >= 3 → expired
-            {"source": "Austria", "priority": 2, "turn_generated": 4},  # 5-4=1, < 3 → kept
-        ]
+        # Push two proposals into dialogue_manager
+        world.dialogue_manager.replace({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "turn_created": 1,  # Old proposal
+            "context": {"source_nation": "Prussia"},
+            "target_nation": "Prussia",
+        })
+        world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "turn_created": 4,  # Recent proposal
+            "context": {"source_nation": "Austria"},
+            "target_nation": "Austria",
+        })
         world.advance_turn()
-        # After advance, turn is now 6. Expiry checks current_turn - turn_generated < 3
-        # Prussia: 6-1=5, not < 3 → removed
-        # Austria: 6-4=2, < 3 → kept
-        assert len(world.diplomatic_queue) == 1
-        assert world.diplomatic_queue[0]["source"] == "Austria"
+        # Mailbox items are exempt from stale clearing — both should persist
+        assert world.pending_diplomatic_dialogue is not None
+        # Total mailbox items (active + queued) should be 2
+        assert world.dialogue_manager.get_mailbox_count() == 2
 
 
 # ═══════════════════════════════════════════════════════
@@ -411,13 +426,13 @@ class TestOldSaveCompatibility:
         data = world.to_dict()
         # Simulate old save by removing Session 4 fields
         data.pop("ai_proposal_cooldowns", None)
-        data.pop("diplomatic_queue", None)
+        data.pop("diplomatic_queue", None)  # Legacy field, migrated to dialogue_manager
         data.pop("proactive_suggestion_cooldowns", None)
         data.pop("ai_stalemate_counters", None)
 
         world2 = WorldState.from_dict(data)
         assert world2.ai_proposal_cooldowns == {}
-        assert world2.diplomatic_queue == []
+        # diplomatic_queue eliminated — proposals now live in dialogue_manager
         assert world2.proactive_suggestion_cooldowns == {}
         assert world2.ai_stalemate_counters == {}
 

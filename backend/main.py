@@ -166,11 +166,8 @@ def build_base_response(world, success: bool = True, message: str = "",
         "coalition_brewing_turns": int(
             world.coalition_brewing.get("turns_remaining", 0)
         ) if getattr(world, 'coalition_brewing', None) else None,
-        # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
-        "pending_envoy_count": int(
-            len(getattr(world, 'diplomatic_queue', []))
-            + (1 if world.dialogue_manager.is_soft_stop() else 0)
-        ),
+        # Session 2 follow-up: Single source of truth for mailbox badge
+        "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }
     response.update(extra)
     _include_popup_passthroughs(response, world)
@@ -493,11 +490,8 @@ def test_connection():
         "threat_level": int(getattr(world, 'threat_level', 0)),
         "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
         "coalition_brewing_turns": int(world.coalition_brewing.get("turns_remaining", 0)) if getattr(world, 'coalition_brewing', None) else None,
-        # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
-        "pending_envoy_count": int(
-            len(getattr(world, 'diplomatic_queue', []))
-            + (1 if world.dialogue_manager.is_soft_stop() else 0)
-        ),
+        # Session 2 follow-up: Single source of truth for mailbox badge
+        "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
@@ -853,11 +847,8 @@ def execute_command(request: CommandRequest):
             "coalition_brewing_turns": int(
                 world.coalition_brewing.get("turns_remaining", 0)
             ) if getattr(world, 'coalition_brewing', None) else None,
-            # PL-27: Authoritative envoy count — proposal queue + active soft-stop dialogue
-            "pending_envoy_count": int(
-                len(getattr(world, 'diplomatic_queue', []))
-                + (1 if world.dialogue_manager.is_soft_stop() else 0)
-            ),
+            # Session 2 follow-up: Single source of truth for mailbox badge
+            "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
         }
 
         # Add feedback if generated
@@ -1772,71 +1763,16 @@ def get_ledger():
 
 def _build_proposal_popup_clauses(terms, *, include_base=True):
     """Build incoming_proposal_popup.gd-compatible clause strings."""
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+    from backend.game_logic.mailbox_payloads import build_proposal_popup_clauses
 
-    clause_type_display = {
-        "gold_lump": "Gold payment",
-        "gold_per_turn": "Gold per turn",
-        "territory_cede": "Territory cession",
-        "territory_return": "Territory return",
-        "action_point": "Action point concession",
-        "unit_trade": "Military units",
-    }
-
-    clauses = []
-    proposal_type_key = terms.get("type", "unknown")
-    if include_base:
-        base_label = PROPOSAL_TYPE_DISPLAY.get(
-            proposal_type_key, proposal_type_key.replace("_", " ").title()
-        )
-        clauses.append(f"Proposal: {base_label}")
-
-    for demand in terms.get("demands", []):
-        dtype = demand.get("type", "unknown")
-        label = clause_type_display.get(dtype, dtype.replace("_", " ").title())
-        clauses.append(f"Demand: {label} - {demand.get('value', '')}")
-
-    for sweetener in terms.get("sweeteners", []):
-        stype = sweetener.get("type", "unknown")
-        label = clause_type_display.get(stype, stype.replace("_", " ").title())
-        clauses.append(f"Offer: {label} - {sweetener.get('value', '')}")
-
-    if not clauses:
-        clauses.append("Diplomatic proposal")
-
-    return clauses
+    return build_proposal_popup_clauses(terms, include_base=include_base)
 
 
 def _build_acceptance_hints(acceptance):
     """Translate acceptance components into Godot-friendly hint strings."""
-    from backend.display_names import FEEDBACK_STRINGS
+    from backend.game_logic.mailbox_payloads import build_acceptance_hints
 
-    components = acceptance.get("components", {})
-    factors = sorted(
-        [{"reason": key, "value": value} for key, value in components.items() if value != 0],
-        key=lambda factor: abs(factor.get("value", 0)),
-        reverse=True,
-    )
-    positive_factors = [factor for factor in factors if factor.get("value", 0) > 0]
-    negative_factors = [factor for factor in factors if factor.get("value", 0) < 0]
-
-    if positive_factors:
-        best_key = positive_factors[0].get("reason", "")
-        acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
-            "positive", "complex diplomatic factors"
-        )
-    else:
-        acceptance_hint = "No strong positives identified"
-
-    if negative_factors:
-        worst_key = negative_factors[0].get("reason", "")
-        rejection_hint = FEEDBACK_STRINGS.get(worst_key, {}).get(
-            "negative", "complex diplomatic factors"
-        )
-    else:
-        rejection_hint = "No major obstacles identified"
-
-    return acceptance_hint, rejection_hint
+    return build_acceptance_hints(acceptance)
 
 
 def _build_pending_envoy_popup_from_terms(
@@ -1850,64 +1786,48 @@ def _build_pending_envoy_popup_from_terms(
     acceptance_score=None,
 ):
     """Build the popup payload shape incoming_proposal_popup.gd expects."""
-    from backend.display_names import PERSONALITY_DISPLAY
+    from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
 
-    diplomats = getattr(world, "diplomats", {})
-    diplomat = diplomats.get(nation)
-    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
-    personality_raw = (
-        diplomat.personality.value if diplomat and hasattr(diplomat.personality, "value")
-        else str(diplomat.personality) if diplomat
-        else "balanced"
+    return build_pending_envoy_popup_from_terms(
+        world,
+        nation=nation,
+        terms=terms,
+        assessment=assessment,
+        is_counter_offer=is_counter_offer,
+        acceptance=acceptance,
+        acceptance_score=acceptance_score,
     )
-
-    if acceptance is not None:
-        acceptance_hint, rejection_hint = _build_acceptance_hints(acceptance)
-    elif acceptance_score is not None:
-        acceptance_hint = f"Acceptance score: {int(acceptance_score)}%"
-        rejection_hint = ""
-    else:
-        acceptance_hint = ""
-        rejection_hint = ""
-
-    return {
-        "from_nation": nation,
-        "diplomat_name": diplomat_name,
-        "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
-        "proposal_type": terms.get("type", "unknown"),
-        "clauses": _build_proposal_popup_clauses(
-            terms, include_base=not is_counter_offer
-        ),
-        "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
-        "acceptance_hint": acceptance_hint,
-        "rejection_hint": rejection_hint,
-        "is_counter_offer": bool(is_counter_offer),
-    }
-
-
-def _get_best_queued_proposal(world):
-    """Return the highest-priority queued proposal without mutating the queue."""
-    queue = getattr(world, "diplomatic_queue", [])
-    if not queue:
-        return None
-    return sorted(queue, key=lambda item: item.get("priority", 99))[0]
 
 
 def _build_pending_envoy_popup_from_dialogue(world, dialogue):
     """Recover popup payload for an active soft-stop dialogue."""
-    existing_popup = getattr(world, "incoming_proposal_popup", None)
-    if isinstance(existing_popup, dict) and existing_popup:
-        popup = existing_popup.copy()
+    context = dialogue.get("context", {})
+    terms = context.get("counter_terms") or context.get("proposal") or {}
+    popup_payload = dialogue.get("popup_payload") or context.get("popup_payload")
+    if isinstance(popup_payload, dict) and popup_payload:
+        popup = popup_payload.copy()
         popup["is_counter_offer"] = dialogue.get("type", "") in (
             "counter_offer", "counter_offer_response"
         )
         return popup
 
-    context = dialogue.get("context", {})
-    terms = context.get("counter_terms") or context.get("proposal") or {}
+    existing_popup = getattr(world, "incoming_proposal_popup", None)
+    expected_nation = dialogue.get("target_nation", context.get("source_nation", "Unknown"))
+    expected_type = terms.get("type")
+    if isinstance(existing_popup, dict) and existing_popup:
+        if (
+            existing_popup.get("from_nation") == expected_nation
+            and (not expected_type or existing_popup.get("proposal_type") == expected_type)
+        ):
+            popup = existing_popup.copy()
+            popup["is_counter_offer"] = dialogue.get("type", "") in (
+                "counter_offer", "counter_offer_response"
+            )
+            return popup
+
     return _build_pending_envoy_popup_from_terms(
         world,
-        nation=dialogue.get("target_nation", "Unknown"),
+        nation=expected_nation,
         terms=terms,
         assessment=dialogue.get("talleyrand_text", ""),
         is_counter_offer=dialogue.get("type", "") in ("counter_offer", "counter_offer_response"),
@@ -1915,26 +1835,13 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
     )
 
 
-def _build_pending_envoy_popup_from_queue(world, proposal):
-    """Recover popup payload for a proposal still waiting in diplomatic_queue."""
-    from backend.game_logic.diplomacy import calculate_acceptance
-
-    terms = proposal.get("terms", {})
-    return _build_pending_envoy_popup_from_terms(
-        world,
-        nation=proposal.get("source", "Unknown"),
-        terms=terms,
-        assessment=proposal.get("talleyrand_assessment", ""),
-        acceptance=calculate_acceptance(terms, world),
-    )
-
-
 @app.get("/pending_envoy")
 def get_pending_envoy():
-    """Return the current soft-stop dialogue (if any) for envoy recovery.
+    """Return the current active mailbox item for envoy recovery.
 
-    PL-27: Called when the player clicks the envoy badge to reopen
-    the pending proposal popup instead of pre-filling terminal text.
+    Session 2 follow-up: Active-item-only. If no active mailbox item
+    (queued-only or non-mailbox active), returns has_pending=false with
+    accurate count. GET /mailbox is the authoritative browse surface.
     """
     world = game_state["world"]
     dm = world.dialogue_manager
@@ -1942,33 +1849,84 @@ def get_pending_envoy():
     result = {
         "success": True,
         "has_pending": False,
-        "pending_envoy_count": int(
-            len(getattr(world, 'diplomatic_queue', []))
-            + (1 if dm.is_soft_stop() else 0)
-        ),
+        "pending_envoy_count": int(dm.get_mailbox_count()),
     }
 
-    if dm.is_soft_stop():
-        dialogue = dm.peek()
-        dtype = dialogue.get("type", "")
+    current = dm.peek()
+    if current and current.get("type", "") in dm.SOFT_STOP_MAILBOX_TYPES:
+        dtype = current.get("type", "")
         if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
             result["has_pending"] = True
             result["dialogue_type"] = dtype
             result["incoming_proposal"] = _build_pending_envoy_popup_from_dialogue(
-                world, dialogue
+                world, current
             )
         elif dtype == "conflict_alert":
             result["has_pending"] = True
             result["dialogue_type"] = dtype
-            result["diplomatic_dialogue"] = dialogue
-    elif result["pending_envoy_count"] > 0:
-        queued_proposal = _get_best_queued_proposal(world)
-        if queued_proposal:
-            result["has_pending"] = True
-            result["dialogue_type"] = "incoming_proposal"
-            result["incoming_proposal"] = _build_pending_envoy_popup_from_queue(
-                world, queued_proposal
-            )
+            result["diplomatic_dialogue"] = current
+
+    return result
+
+
+@app.get("/mailbox")
+def get_mailbox():
+    """Return ordered list of mailbox items for the inbox panel.
+
+    Session 2 follow-up: Authoritative browse surface for pending diplomacy.
+    """
+    world = game_state["world"]
+    dm = world.dialogue_manager
+
+    return {
+        "success": True,
+        "items": dm.get_mailbox_items(),
+        "count": int(dm.get_mailbox_count()),
+    }
+
+
+class MailboxActivateRequest(BaseModel):
+    mailbox_id: int
+
+
+@app.post("/mailbox/activate")
+def activate_mailbox_item(request: MailboxActivateRequest):
+    """Swap a queued mailbox item into the active slot.
+
+    Session 2 follow-up: Returns the popup-safe payload for the newly
+    active item. The previously active item returns to queue.
+    """
+    world = game_state["world"]
+    dm = world.dialogue_manager
+
+    dialogue = dm.activate_mailbox_item(request.mailbox_id)
+
+    if dialogue is None:
+        # Stale selection or activation blocked
+        return {
+            "success": False,
+            "message": "Item not found or activation blocked by current dialogue.",
+            "items": dm.get_mailbox_items(),
+            "count": int(dm.get_mailbox_count()),
+        }
+
+    # Rebuild popup cache for the newly active item
+    dtype = dialogue.get("type", "")
+    result = {
+        "success": True,
+        "dialogue_type": dtype,
+        "items": dm.get_mailbox_items(),
+        "count": int(dm.get_mailbox_count()),
+    }
+
+    if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
+        popup = _build_pending_envoy_popup_from_dialogue(world, dialogue)
+        dialogue["popup_payload"] = popup.copy()
+        # Update the global popup cache
+        world.incoming_proposal_popup = popup
+        result["incoming_proposal"] = popup
+    elif dtype == "conflict_alert":
+        result["diplomatic_dialogue"] = dialogue
 
     return result
 
@@ -2531,19 +2489,18 @@ def debug_vassal_loyalty(nation: str):
 
 @app.get("/debug/proposal_queue")
 def debug_proposal_queue():
-    """DEBUG: Queued AI proposals."""
+    """DEBUG: Mailbox items (replaces old diplomatic_queue debug)."""
     if not DEBUG_MODE:
         return {"success": False, "message": "Debug mode is disabled"}
 
-    queue = getattr(world, 'diplomatic_queue', [])
-    serialized = []
-    for item in queue:
-        if isinstance(item, dict):
-            serialized.append(item.copy())
-        else:
-            serialized.append(str(item))
-
-    return {"success": True, "diplomatic_queue": serialized}
+    world = game_state["world"]
+    dm = world.dialogue_manager
+    return {
+        "success": True,
+        "mailbox_items": dm.get_mailbox_items(),
+        "mailbox_count": int(dm.get_mailbox_count()),
+        "dialogue_manager": dm.to_dict(),
+    }
 
 
 if __name__ == "__main__":

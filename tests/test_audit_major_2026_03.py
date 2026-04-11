@@ -637,49 +637,42 @@ class TestD2RelationRequirementOffByOne:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestD3ProposalQueueDropLogging:
-    """_enqueue_proposal should log when proposals are dropped from queue."""
+    """diplomatic_queue eliminated — proposals now go through dialogue_manager.
 
-    def test_queue_drop_prints_message(self, capsys):
-        """When queue is full and item is dropped, a log message should print."""
-        from backend.game_logic.ai_diplomacy import _enqueue_proposal, QUEUE_MAX_SIZE
-        world = _make_world()
+    _enqueue_proposal is a deprecated no-op (returns False).
+    Overflow is handled by DialogueManager.QUEUE_CAP (20).
+    These tests verify the new dialogue_manager-based overflow behavior.
+    """
 
-        # Fill the queue
-        world.diplomatic_queue = []
-        for i in range(QUEUE_MAX_SIZE):
-            world.diplomatic_queue.append({
-                "source": f"Nation{i}",
-                "proposal_type": "peace",
-                "priority": 1,  # High priority
-                "turn_generated": 5,
-            })
-
-        # Add one more (lower priority — should be dropped)
-        new_proposal = {
-            "source": "Saxony",
-            "proposal_type": "armistice",
-            "priority": 99,  # Low priority
-            "turn_generated": 5,
-        }
-        _enqueue_proposal(new_proposal, world)
-
-        captured = capsys.readouterr()
-        assert "[DIPLOMACY]" in captured.out
-        assert "dropped" in captured.out.lower()
-
-    def test_queue_no_drop_no_message(self, capsys):
-        """When queue has space, no drop message should print."""
+    def test_enqueue_proposal_is_deprecated_noop(self):
+        """_enqueue_proposal returns False (deprecated no-op)."""
         from backend.game_logic.ai_diplomacy import _enqueue_proposal
         world = _make_world()
-        world.diplomatic_queue = []
-
         proposal = {
-            "source": "Prussia",
-            "proposal_type": "peace",
-            "priority": 1,
+            "source": "Saxony",
+            "proposal_type": "armistice",
+            "priority": 99,
             "turn_generated": 5,
         }
-        _enqueue_proposal(proposal, world)
+        result = _enqueue_proposal(proposal, world)
+        assert result is False
 
-        captured = capsys.readouterr()
-        assert "[DIPLOMACY]" not in captured.out
+    def test_dialogue_manager_respects_queue_cap(self):
+        """DialogueManager silently drops items beyond QUEUE_CAP."""
+        from backend.models.dialogue_manager import DialogueManager
+        dm = DialogueManager()
+        # Fill active slot
+        dm.replace({"type": "incoming_proposal", "blocking": True,
+                     "turn_created": 1, "options": [], "target_nation": "X"})
+        # Fill queue to cap
+        for i in range(dm.QUEUE_CAP):
+            dm.push({"type": "incoming_proposal", "blocking": True,
+                      "turn_created": 1, "options": [],
+                      "target_nation": f"Nation{i}"})
+        # Queue should be exactly at cap
+        assert len(dm._queue) == dm.QUEUE_CAP
+        # One more push should be silently dropped
+        dm.push({"type": "incoming_proposal", "blocking": True,
+                  "turn_created": 1, "options": [],
+                  "target_nation": "Overflow"})
+        assert len(dm._queue) == dm.QUEUE_CAP

@@ -315,12 +315,12 @@ class TestDialogueManagerPop:
     def test_pop_unlisted_type_gets_lowest_priority(self):
         dm = DialogueManager()
         dm.push(self._d("placeholder"))
-        dm.push(self._d("counter_offer_response"))  # unlisted → 99
-        dm.push(self._d("incoming_proposal"))  # priority 4
+        dm.push(self._d("some_unknown_type"))  # unlisted → 99
+        dm.push(self._d("incoming_proposal"))  # priority 3
         dm.pop()
         assert dm.peek()["type"] == "incoming_proposal"
         dm.pop()
-        assert dm.peek()["type"] == "counter_offer_response"
+        assert dm.peek()["type"] == "some_unknown_type"
 
 
 class TestDialogueManagerPeek:

@@ -4,6 +4,7 @@ Handles all diplomatic execution: proposals, dialogue, missions, trust reactions
 
 Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
+import copy
 from typing import Dict
 from backend.models.world_state import WorldState
 
@@ -3161,6 +3162,8 @@ class DiplomaticExecutor:
             generate_counter_offer, apply_rejection_cooldowns,
             _format_proposal_summary,
         )
+        from backend.game_logic.diplomacy import calculate_acceptance
+        from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
 
         context = dialogue.get("context", {})
         terms = context.get("proposal", {})
@@ -3210,9 +3213,15 @@ class DiplomaticExecutor:
         from backend.notifications import DIPLOMATIC_PROPOSAL
         world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
 
-        # Fix 4: Mark popup as counter-offer so Godot hides Counter button
-        if world.incoming_proposal_popup:
-            world.incoming_proposal_popup["is_counter_offer"] = True
+        acceptance = calculate_acceptance(counter_terms, world)
+        popup_payload = build_pending_envoy_popup_from_terms(
+            world,
+            nation=source_nation,
+            terms=counter_terms,
+            assessment=f"Talleyrand has negotiated revised terms with {source_nation}.",
+            is_counter_offer=True,
+            acceptance=acceptance,
+        )
 
         world.dialogue_manager.replace({
             "type": "counter_offer",
@@ -3241,7 +3250,9 @@ class DiplomaticExecutor:
             },
             "turn_created": int(world.current_turn),
             "blocking": True,
+            "popup_payload": popup_payload,
         })
+        world.incoming_proposal_popup = copy.deepcopy(popup_payload)
 
         return {
             "success": True,

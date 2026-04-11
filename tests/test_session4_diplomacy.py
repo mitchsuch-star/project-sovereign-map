@@ -219,46 +219,45 @@ class TestAIDiplomacyDelivery:
         assert "counter_ai_proposal" in actions
 
     def test_queue_proposal_when_blocking_dialogue(self):
-        """Proposal queued when blocking dialogue exists."""
+        """Proposal queued via dialogue_manager.push() when dialogue already active."""
         world = make_war_world("Prussia")
         # R115: Hawk P1 threshold is -60, need war_score < -60
         _set_war_score(world, "Prussia", 65)
         # Improve relations so acceptance score passes >= 20 filter
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10
-        # Set a blocking dialogue so delivery is blocked
+        # Set a blocking dialogue so new proposal goes to queue
         world.dialogue_manager.replace({
             "type": "incoming_proposal",
             "blocking": True,
             "options": [],
         })
         proposal = process_diplomatic_phase("Prussia", world)
-        # Should return None (queued, not delivered)
-        assert proposal is None
-        # But the queue should have an item
-        queue = getattr(world, 'diplomatic_queue', [])
-        assert len(queue) >= 1
+        # process_diplomatic_phase returns the proposal for the caller to deliver
+        assert proposal is not None
+        # Caller delivers via deliver_ai_proposal → dialogue_manager.push()
+        deliver_ai_proposal(proposal, world)
+        # The new proposal should be in the dialogue_manager queue (current slot occupied)
+        assert world.dialogue_manager.queue_size >= 1
 
-    def test_try_deliver_queued_proposal_delivers_when_no_blocking(self):
-        """try_deliver_queued_proposal delivers when no blocking dialogue exists."""
+    def test_deliver_ai_proposal_queues_when_dialogue_active(self):
+        """deliver_ai_proposal pushes to dialogue_manager queue when active slot occupied."""
         world = make_world()
-        world.dialogue_manager.pop()
-        # Manually enqueue a proposal
+        # Set a blocking dialogue so new proposals go to queue
+        world.dialogue_manager.replace({
+            "type": "incoming_proposal",
+            "blocking": True,
+            "options": [],
+        })
         test_proposal = _make_test_proposal("Prussia", "armistice_losing")
-        world.diplomatic_queue = [test_proposal]
-        result = try_deliver_queued_proposal(world)
-        assert result is not None
-        assert result["type"] == "incoming_proposal"
-        # V2-89: deliver_ai_proposal (called by try_deliver) now appends to queue; pop to active dialogue
-        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
-            world.dialogue_manager.promote_if_empty()
-        assert world.pending_diplomatic_dialogue is not None
+        dialogue = deliver_ai_proposal(test_proposal, world)
+        assert dialogue["type"] == "incoming_proposal"
+        # Original dialogue still active, new one is queued
+        assert world.dialogue_manager.queue_size >= 1
 
-    def test_try_deliver_queued_proposal_blocked(self):
-        """try_deliver_queued_proposal returns None when blocking dialogue exists."""
+    def test_try_deliver_queued_proposal_deprecated(self):
+        """try_deliver_queued_proposal is deprecated and returns None."""
         world = make_world()
-        world.dialogue_manager.replace({"blocking": True, "type": "test"})
-        world.diplomatic_queue = [_make_test_proposal()]
         result = try_deliver_queued_proposal(world)
         assert result is None
 
@@ -574,18 +573,18 @@ class TestSession4Serialization:
         world2 = WorldState.from_dict(data)
         assert world2.ai_proposal_cooldowns == {"Prussia|nation": 3, "Prussia|armistice": 5}
 
-    def test_diplomatic_queue_roundtrip(self):
-        """diplomatic_queue serializes and back."""
+    def test_legacy_diplomatic_queue_migrated_to_dialogue_manager(self):
+        """Legacy diplomatic_queue items in save data migrate into dialogue_manager."""
         world = make_world()
-        world.diplomatic_queue = [
-            {"source": "Prussia", "priority": 1, "turn_generated": 1},
-            {"source": "Austria", "priority": 4, "turn_generated": 2},
-        ]
         data = world.to_dict()
+        # Inject legacy diplomatic_queue items into serialized data
+        data["diplomatic_queue"] = [
+            _make_test_proposal("Prussia", "armistice_losing"),
+            _make_test_proposal("Austria", "peace"),
+        ]
         world2 = WorldState.from_dict(data)
-        assert len(world2.diplomatic_queue) == 2
-        assert world2.diplomatic_queue[0]["source"] == "Prussia"
-        assert world2.diplomatic_queue[1]["source"] == "Austria"
+        # Legacy items should have been delivered into dialogue_manager
+        assert world2.dialogue_manager.get_mailbox_count() >= 1
 
     def test_ai_stalemate_counters_roundtrip(self):
         """ai_stalemate_counters serializes and back."""
@@ -596,11 +595,12 @@ class TestSession4Serialization:
         assert world2.ai_stalemate_counters == {"Prussia": 5, "Britain": 2}
 
     def test_all_four_fields_in_to_dict(self):
-        """All 4 new Session 4 fields present in to_dict output."""
+        """Session 4 fields present in to_dict output (diplomatic_queue eliminated)."""
         world = make_world()
         data = world.to_dict()
         assert "ai_proposal_cooldowns" in data
-        assert "diplomatic_queue" in data
+        # diplomatic_queue eliminated — proposals now in dialogue_manager
+        assert "dialogue_manager" in data
         assert "proactive_suggestion_cooldowns" in data
         assert "ai_stalemate_counters" in data
 
@@ -608,7 +608,7 @@ class TestSession4Serialization:
         """New fields default to empty on fresh WorldState."""
         world = make_world()
         assert world.ai_proposal_cooldowns == {}
-        assert world.diplomatic_queue == []
+        assert world.dialogue_manager.get_mailbox_count() == 0
         assert world.proactive_suggestion_cooldowns == {}
         assert world.ai_stalemate_counters == {}
 
@@ -693,18 +693,25 @@ class TestExecutorDiplomaticWiring:
         game_state = {"world": world}
         key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key] = "WAR"
-        world.war_scores[key] = 20  # France slightly ahead
+        world.war_scores[key] = -20  # France slightly behind -> counter path succeeds
+        world.nation_relations[key] = 60
+        world.nation_dp["Prussia"] = 3
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
         if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
             world.dialogue_manager.promote_if_empty()
         dp_before = world.diplomatic_points
+        original_mailbox_id = world.pending_diplomatic_dialogue["mailbox_id"]
         # Counter (option 3 = Counter-offer)
         result = executor.handle_diplomatic_dialogue_response(3, game_state)
         assert result["success"] is True
         # DP should be reduced by 1
         assert world.diplomatic_points == dp_before - 1
+        assert world.pending_diplomatic_dialogue["type"] == "counter_offer"
+        assert world.pending_diplomatic_dialogue["mailbox_id"] == original_mailbox_id
+        assert world.incoming_proposal_popup["from_nation"] == "Prussia"
+        assert world.incoming_proposal_popup["is_counter_offer"] is True
 
     def test_expand_to_proposal_opens_new_dialogue(self):
         """expand_to_proposal action opens new proposal dialogue from advisory."""

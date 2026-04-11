@@ -96,6 +96,7 @@ var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
 var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Ask Later"
 var _pending_envoy_request_active: bool = false
+var mailbox_panel = null  # Session 2 follow-up: browsable mailbox inbox
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -230,6 +231,12 @@ func _ready():
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
 		war_detail_popup.war_ended.connect(_on_war_ended_notification)
+
+	# Mailbox panel (Session 2 follow-up: browsable inbox, layer 119)
+	mailbox_panel = dialog_manager.register("mailbox_panel", "res://scenes/mailbox_panel.tscn")
+	if mailbox_panel:
+		mailbox_panel.item_selected.connect(_on_mailbox_item_selected)
+		mailbox_panel.panel_closed.connect(_on_mailbox_panel_closed)
 
 	# Pause menu (layer 120, always on top)
 	pause_menu = dialog_manager.register("pause_menu", "res://scenes/pause_menu.tscn")
@@ -2894,15 +2901,46 @@ func _on_screen_changed(screen_name: String):
 
 
 func _on_envoy_clicked():
-	"""Handle envoy indicator click — PL-27: reopen pending proposal popup."""
+	"""Handle mailbox button click — Session 2 follow-up: open mailbox panel."""
 	if _pending_envoy_request_active:
 		return
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	_pending_envoy_request_active = true
-	api_client.get_pending_envoy(_on_pending_envoy_result)
+	api_client.get_mailbox(_on_mailbox_list_result)
+
+func _on_mailbox_list_result(response: Dictionary):
+	"""Handle GET /mailbox response — show mailbox panel or direct-open single item."""
+	_pending_envoy_request_active = false
+	if not response.get("success", false):
+		add_output("[color=#d9c08c]%s[/color]" % str(
+			response.get("message", "Unable to reach the envoy at this time.")
+		))
+		return
+	var count = int(response.get("count", 0))
+	var items = response.get("items", [])
+	if top_bar and top_bar.has_method("update_mailbox_count"):
+		top_bar.update_mailbox_count(count)
+	if count == 0:
+		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
+		return
+	if count == 1:
+		# Single item: reopen directly if already active, otherwise activate it.
+		var item = items[0] if items.size() > 0 else {}
+		var mailbox_id = int(item.get("mailbox_id", 0))
+		var is_active = str(item.get("state", "")) == "ACTIVE"
+		if is_active:
+			api_client.get_pending_envoy(_on_pending_envoy_result)
+		elif mailbox_id > 0:
+			api_client.activate_mailbox_item(mailbox_id, _on_mailbox_activate_result)
+		else:
+			add_output("[color=#d9c08c]That diplomatic item could not be opened.[/color]")
+		return
+	# 2+ items: show the browsable mailbox panel
+	if mailbox_panel:
+		mailbox_panel.show_mailbox(response)
 
 func _on_pending_envoy_result(response: Dictionary):
-	"""Handle pending envoy recovery endpoint response."""
+	"""Handle pending envoy recovery — reopen the active proposal popup."""
 	_pending_envoy_request_active = false
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(int(response.get("pending_envoy_count", 0)))
@@ -2920,7 +2958,6 @@ func _on_pending_envoy_result(response: Dictionary):
 		if incoming_proposal_popup and proposal_data.size() > 0:
 			set_input_enabled(false)
 			incoming_proposal_popup.show_proposal(proposal_data)
-			# Input stays DISABLED — popup is modal, choice handler re-enables
 		else:
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
 	elif dtype == "conflict_alert":
@@ -2928,11 +2965,48 @@ func _on_pending_envoy_result(response: Dictionary):
 		if proposal_confirm_popup and dialogue.size() > 0:
 			set_input_enabled(false)
 			proposal_confirm_popup.show_dialogue(dialogue)
-			# Input stays DISABLED — popup is modal
 		else:
 			add_output("[color=#d9c08c]A diplomatic alert is pending.[/color]")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
+
+func _on_mailbox_item_selected(mailbox_id: int, is_active: bool, item_type: String):
+	"""Handle click on a mailbox item row."""
+	if is_active:
+		# Active item: just reopen via /pending_envoy
+		api_client.get_pending_envoy(_on_pending_envoy_result)
+	else:
+		# Queued item: activate it first via POST /mailbox/activate
+		api_client.activate_mailbox_item(mailbox_id, _on_mailbox_activate_result)
+
+func _on_mailbox_activate_result(response: Dictionary):
+	"""Handle POST /mailbox/activate response — open the newly active item."""
+	if top_bar and top_bar.has_method("update_mailbox_count"):
+		top_bar.update_mailbox_count(int(response.get("count", 0)))
+	if not response.get("success", false):
+		add_output("[color=#d9c08c]%s[/color]" % str(
+			response.get("message", "Could not activate that item.")
+		))
+		return
+	var dtype = str(response.get("dialogue_type", ""))
+	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response"]:
+		var proposal_data = response.get("incoming_proposal", {})
+		if incoming_proposal_popup and proposal_data.size() > 0:
+			set_input_enabled(false)
+			incoming_proposal_popup.show_proposal(proposal_data)
+		else:
+			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
+	elif dtype == "conflict_alert":
+		var dialogue = response.get("diplomatic_dialogue", {})
+		if proposal_confirm_popup and dialogue.size() > 0:
+			set_input_enabled(false)
+			proposal_confirm_popup.show_dialogue(dialogue)
+		else:
+			add_output("[color=#d9c08c]Item activated but alert data missing.[/color]")
+
+func _on_mailbox_panel_closed():
+	"""Mailbox panel closed without selecting an item."""
+	pass
 
 
 # ════════════════════════════════════════════════════════════════════════════
