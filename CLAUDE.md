@@ -19,6 +19,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
+- **Mailbox UX follow-up - NEXT bug session.** Complete the Session 2 PL-27 follow-up: add defer/reopen mailbox UX in Godot and fix the remaining `/pending_envoy` + soft-stop reply-routing contract gaps before `PL-32`.
+
 - **Bug Fixes — 4 OPEN.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Remaining: PL-26/28/29/32. See `docs/BUG_FIXES.md`.
 - **Design Refinement — NEXT.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.

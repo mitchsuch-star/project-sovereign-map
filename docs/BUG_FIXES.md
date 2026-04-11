@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate)
+> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up planned for mailbox UX completion and contract hardening.)
 
 ---
 
@@ -37,7 +37,7 @@
 | 2 | P2 | PL-27 | **FIXED** | Diplomacy interrupt contract: hard-stop/soft-stop taxonomy enforced, envoy recovery surface, typed responses | Fixed Apr 10, 2026 |
 | 2 | P2 | PL-34 | **FIXED** | Queued proposals: arrival/expiry/overflow now logged in campaign log | Fixed Apr 10, 2026 |
 | 2 | P2 | PL-33 | **CLOSED** (duplicate) | `status` works with soft-stop dialogue — verified as PL-27 duplicate | Closed Apr 10, 2026 |
-| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | Depends on Session 2 contract stability |
+| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | Depends on Session 2 follow-up contract stability |
 | 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
@@ -50,6 +50,7 @@
 
 - `PL-30` absorbs both diplomacy-wizard crash paths: Step 1 nation rendering and Step 2 preview rendering. Both failures come from the same masked-result plus coarse `dialogue_pending` contract and the same null-prone `add_output()` recovery path.
 - `PL-27` absorbs the nearby same-family command-guard failures on `status`, `help`, `economy`, `treasury`, and `finances`, plus the active-envoy count mismatch, envoy-button recovery failure, and remaining popup handlers that still synthesize parser commands. `PL-33` remains only as a duplicate-candidate verification gate.
+- Session 2 follow-up does not create a new PL item. It finishes the player-facing mailbox UX and folds in the same-family regressions found after Session 2 completion: defer/reopen UX, soft-stop reply routing drift, `/pending_envoy` payload shape drift, and badge vs recovery mismatch when queued work exists behind a hard-stop.
 - `PL-34` is the queue/expiry branch of `PL-27`. Do not build a separate UX track for it.
 - `PL-32` absorbs all duplicate proposal/clause display maps and raw-token fallback leaks on the active diplomacy popup paths.
 - `PL-29` absorbs backend `/new_game`, pause-menu wiring, frontend local-state reset, and autosave semantics as one restart contract.
@@ -60,7 +61,8 @@
 
 - Sessions 6-8 do not move earlier as full sessions.
 - Only the bug-owned slices needed to close the active PL items ship earlier:
-  - Session 2: mailbox/recovery surface, active-plus-queued count contract, typed responses for affected popups
+  - Session 2: backend soft-stop taxonomy, authoritative active-plus-queued count contract, typed responses for affected popups
+  - Session 2 follow-up: Godot defer/reopen mailbox UX plus PL-27 same-family hardening found after the fix landed
   - Session 3: backend-owned display formatting for active diplomacy popups
 - Broader `/command` unification, popup registry cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
 
@@ -93,11 +95,59 @@
 - Expiry and overflow no longer resolve unseen proposals silently.
 - `status` is verified after the guard split and either closes as a duplicate or remains as a true separate bug.
 
+### Session 2 Follow-Up - Mailbox UX Completion And Contract Hardening
+
+**Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
+
+**Goal:** finish the player-facing mailbox UX so soft-stop diplomacy is actually deferrable in Godot, and harden the Session 2 transport contract where the audit found live regressions.
+
+**Why this is a separate follow-up**
+
+- Session 2 fixed the backend taxonomy and recovery surface, but Godot still treats incoming proposals as a modal dead-end.
+- This follow-up stays inside the owning `PL-27` family. It does not reopen `PL-33` or create a new tracked PL item.
+- `PL-32` should not start until the active proposal contract and recovery payload are stable again.
+
+**Exact scope**
+
+- Add a local `Later` or `Close` path to `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`.
+- Wire `godot-client/project-sovereign/scripts/main.gd` so deferring the popup hides it and re-enables terminal input without sending a backend response.
+- Keep the pending dialogue alive so the envoy badge remains authoritative and reopens the same proposal later.
+- Harden `backend/main.py` soft-stop reply routing so valid delayed replies still work through `/command`, including numeric choices and the common `accept` / `counter` / `reject` path.
+- Fix `/pending_envoy` payload construction so it matches the `incoming_proposal_popup.gd` contract exactly instead of rebuilding a parallel shape.
+- Fix badge vs recovery mismatch when `pending_envoy_count` is non-zero because queued proposals exist behind a hard-stop item.
+
+**Exit criteria**
+
+- The player can click `Later` on an incoming proposal and keep issuing commands immediately.
+- Clicking the envoy badge reopens the deferred proposal instead of producing a dead-end or parser workaround.
+- Delayed replies still work via typed popup buttons and through `/command` for `1/2/3`, `accept`, `counter`, and `reject`.
+- `/pending_envoy` returns popup-safe data in the same display shape expected by `incoming_proposal_popup.gd`.
+- Badge count and recovery behavior stay in sync for:
+  - active soft-stop only
+  - queued proposal only
+  - hard-stop active with queued proposals behind it
+- No new display-ownership logic is introduced on the Godot side beyond what is needed for the local defer button.
+
+**Regression test matrix**
+
+- Extend Godot-facing popup tests for local defer behavior and re-enable-input flow.
+- Add endpoint tests for `/pending_envoy` covering active soft-stop, queued-only, and hard-stop-plus-queue cases.
+- Add command-path tests proving soft-stop delayed replies still route for numeric and keyword inputs.
+- Re-run the existing Session 2 guard/count/history suite after the mailbox follow-up lands.
+
+**Implementation order inside Session 2 follow-up**
+
+1. Add the local defer button and terminal re-enable flow in Godot.
+2. Make envoy click reopen the deferred item through one authoritative backend payload.
+3. Fix `/pending_envoy` shape and queued-only recovery semantics.
+4. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes.
+5. Lock the whole flow with defer/reopen/respond-later regressions before moving to `PL-32`.
+
 ### Session 3 - Diplomacy Display Contract
 
 **Items:** `PL-32`
 
-**Goal:** make the backend the single owner of player-facing diplomacy labels once the Session 2 transport contract is stable.
+**Goal:** make the backend the single owner of player-facing diplomacy labels once the Session 2 follow-up transport contract is stable.
 
 **Exit criteria**
 
