@@ -22,7 +22,7 @@ signal screen_changed(screen_name: String)
 @onready var dp_label: Label = $BarContainer/BarBG/BarLayout/RightSection/DPLabel
 @onready var threat_label: Label = $BarContainer/BarBG/BarLayout/RightSection/ThreatLabel
 @onready var talleyrand_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
-@onready var envoy_label: Label = $BarContainer/BarBG/BarLayout/RightSection/EnvoyLabel
+@onready var mailbox_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MailboxButton
 
 # State tracking
 var active_screen: String = ""  # "" = none, "event_log", "ledger", "generals", "diplomatic_ledger", "dispatch"
@@ -39,6 +39,11 @@ var button_map: Dictionary = {}
 # Active button style
 var _active_style: StyleBoxFlat = null
 var _normal_style: StyleBoxFlat = null
+var _mailbox_idle_style: StyleBoxFlat = null
+var _mailbox_idle_hover_style: StyleBoxFlat = null
+var _mailbox_alert_style: StyleBoxFlat = null
+var _mailbox_alert_hover_style: StyleBoxFlat = null
+var _mailbox_pressed_style: StyleBoxFlat = null
 
 func _ready():
 	# Build button styles
@@ -57,6 +62,35 @@ func _ready():
 	_normal_style.content_margin_right = 8.0
 	_normal_style.content_margin_top = 4.0
 	_normal_style.content_margin_bottom = 4.0
+
+	_mailbox_idle_style = StyleBoxFlat.new()
+	_mailbox_idle_style.bg_color = Color(0.1, 0.12, 0.16, 0.9)
+	_mailbox_idle_style.border_width_left = 1
+	_mailbox_idle_style.border_width_top = 1
+	_mailbox_idle_style.border_width_right = 1
+	_mailbox_idle_style.border_width_bottom = 1
+	_mailbox_idle_style.border_color = Color(0.32, 0.35, 0.42, 0.9)
+	_mailbox_idle_style.corner_radius_top_left = 4
+	_mailbox_idle_style.corner_radius_top_right = 4
+	_mailbox_idle_style.corner_radius_bottom_right = 4
+	_mailbox_idle_style.corner_radius_bottom_left = 4
+	_mailbox_idle_style.content_margin_left = 10.0
+	_mailbox_idle_style.content_margin_right = 10.0
+	_mailbox_idle_style.content_margin_top = 4.0
+	_mailbox_idle_style.content_margin_bottom = 4.0
+
+	_mailbox_idle_hover_style = _mailbox_idle_style.duplicate()
+	_mailbox_idle_hover_style.bg_color = Color(0.16, 0.18, 0.23, 0.95)
+
+	_mailbox_alert_style = _mailbox_idle_style.duplicate()
+	_mailbox_alert_style.bg_color = Color(0.23, 0.18, 0.08, 0.95)
+	_mailbox_alert_style.border_color = Color(0.85, 0.65, 0.2, 0.95)
+
+	_mailbox_alert_hover_style = _mailbox_alert_style.duplicate()
+	_mailbox_alert_hover_style.bg_color = Color(0.3, 0.22, 0.08, 1.0)
+
+	_mailbox_pressed_style = _mailbox_idle_style.duplicate()
+	_mailbox_pressed_style.bg_color = Color(0.08, 0.1, 0.14, 1.0)
 
 	# Connect button signals
 	event_log_btn.pressed.connect(_on_button_pressed.bind("event_log"))
@@ -89,15 +123,14 @@ func _ready():
 	threat_label.text = ""
 	threat_label.visible = false
 	talleyrand_label.text = "Talleyrand: Idle"
-	envoy_label.text = ""
-	envoy_label.visible = false
+	update_mailbox_count(0)
+	mailbox_btn.add_theme_stylebox_override("pressed", _mailbox_pressed_style)
 
 	# Notification wrappers should not block unrelated HUD clicks.
 	notification_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Envoy label click handler
-	envoy_label.mouse_filter = Control.MOUSE_FILTER_STOP
-	envoy_label.gui_input.connect(_on_envoy_input)
+	# Mailbox button click handler
+	mailbox_btn.pressed.connect(_on_mailbox_pressed)
 
 	# Threat pulse timer
 	_threat_pulse_timer = Timer.new()
@@ -271,14 +304,23 @@ func update_diplomatic_fields(data: Dictionary):
 		mission_summary = "Idle"
 	talleyrand_label.text = "Talleyrand: " + mission_summary
 
-	# Envoy indicator
-	var envoy_count = int(data.get("pending_envoy_count", 0))
+	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
+
+
+func update_mailbox_count(envoy_count: int):
+	"""Refresh the mailbox button copy and styling."""
 	if envoy_count > 0:
-		envoy_label.visible = true
-		envoy_label.text = "[!] " + str(envoy_count) + " envoy"
-		envoy_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
+		mailbox_btn.text = "Mailbox (" + str(envoy_count) + ")"
+		mailbox_btn.tooltip_text = "Open " + str(envoy_count) + " pending diplomatic proposal(s)."
+		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
+		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
+		mailbox_btn.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
 	else:
-		envoy_label.visible = false
+		mailbox_btn.text = "Mailbox"
+		mailbox_btn.tooltip_text = "No pending envoys."
+		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
+		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
+		mailbox_btn.add_theme_color_override("font_color", Color(0.72, 0.72, 0.76, 1.0))
 
 
 func _start_threat_pulse():
@@ -304,7 +346,6 @@ func _on_threat_pulse():
 		threat_label.modulate = Color(1, 1, 1, 1.0)
 
 
-func _on_envoy_input(event):
-	"""Handle click on envoy indicator — emit signal for main.gd to handle."""
-	if event is InputEventMouseButton and event.pressed:
-		envoy_clicked.emit()
+func _on_mailbox_pressed():
+	"""Emit the mailbox click signal for main.gd to handle."""
+	envoy_clicked.emit()

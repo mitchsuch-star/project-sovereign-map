@@ -97,11 +97,14 @@ theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_override_font_sizes/font_size = 11
 text = "Talleyrand: Idle"
 
-[node name="EnvoyLabel" type="Label" parent="BarContainer/BarBG/BarLayout/RightSection"]
+[node name="MailboxButton" type="Button" parent="BarContainer/BarBG/BarLayout/RightSection"]
+custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.65, 0.2, 1)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
+theme_override_colors/font_hover_color = Color(0.85, 0.75, 0.55, 1)
 theme_override_font_sizes/font_size = 12
-text = ""
+text = "Mailbox"
 
 [node name="NotificationArea" type="Control" parent="BarContainer/BarBG/BarLayout/RightSection"]
 layout_mode = 2

@@ -639,6 +639,8 @@ func _on_command_result(response):
 		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
 
+	_sync_response_hud(response)
+
 	# Priority 3: Coalition Declaration Popup (Session 8C)
 	if response.has("coalition_popup") and response.coalition_popup != null:
 		if coalition_declaration_popup:
@@ -1642,6 +1644,23 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
 	if not diplo_data.is_empty():
 		top_bar.update_diplomatic_fields(diplo_data)
+
+
+func _sync_response_hud(response: Dictionary):
+	"""Apply HUD updates before popup early-returns short-circuit the handler."""
+	if response.get("success", false):
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+	_update_diplomatic_top_bar(response)
+	if notification_bar and response.has("notifications"):
+		notification_bar.update_notifications(response.notifications)
 
 
 func _update_gold_display():
@@ -2885,6 +2904,8 @@ func _on_envoy_clicked():
 func _on_pending_envoy_result(response: Dictionary):
 	"""Handle pending envoy recovery endpoint response."""
 	_pending_envoy_request_active = false
+	if top_bar and top_bar.has_method("update_mailbox_count"):
+		top_bar.update_mailbox_count(int(response.get("pending_envoy_count", 0)))
 	if not response.get("success", false):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
