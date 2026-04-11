@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up planned for mailbox UX completion and contract hardening.)
+> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up remains next, now explicitly split into formal mailbox inbox browsing plus the remaining PL-27 contract hardening.)
 
 ---
 
@@ -50,7 +50,7 @@
 
 - `PL-30` absorbs both diplomacy-wizard crash paths: Step 1 nation rendering and Step 2 preview rendering. Both failures come from the same masked-result plus coarse `dialogue_pending` contract and the same null-prone `add_output()` recovery path.
 - `PL-27` absorbs the nearby same-family command-guard failures on `status`, `help`, `economy`, `treasury`, and `finances`, plus the active-envoy count mismatch, envoy-button recovery failure, and remaining popup handlers that still synthesize parser commands. `PL-33` remains only as a duplicate-candidate verification gate.
-- Session 2 follow-up does not create a new PL item. It finishes the player-facing mailbox UX and folds in the same-family regressions found after Session 2 completion: defer/reopen UX, soft-stop reply routing drift, `/pending_envoy` payload shape drift, and badge vs recovery mismatch when queued work exists behind a hard-stop.
+- Session 2 follow-up does not create a new PL item. It finishes the player-facing mailbox UX and folds in the same-family regressions found after Session 2 completion: browsable mailbox/inbox flow for 2+ pending items, defer/reopen UX, soft-stop reply routing drift, `/pending_envoy` payload shape drift, badge vs recovery mismatch when queued work exists behind a hard-stop, and the boundary between mailbox-worthy diplomacy and noisy top-bar notifications.
 - `PL-34` is the queue/expiry branch of `PL-27`. Do not build a separate UX track for it.
 - `PL-32` absorbs all duplicate proposal/clause display maps and raw-token fallback leaks on the active diplomacy popup paths.
 - `PL-29` absorbs backend `/new_game`, pause-menu wiring, frontend local-state reset, and autosave semantics as one restart contract.
@@ -62,7 +62,7 @@
 - Sessions 6-8 do not move earlier as full sessions.
 - Only the bug-owned slices needed to close the active PL items ship earlier:
   - Session 2: backend soft-stop taxonomy, authoritative active-plus-queued count contract, typed responses for affected popups
-  - Session 2 follow-up: Godot defer/reopen mailbox UX plus PL-27 same-family hardening found after the fix landed
+  - Session 2 follow-up: Godot mailbox inbox browsing, defer/reopen UX completion, and PL-27 same-family hardening found after the fix landed
   - Session 3: backend-owned display formatting for active diplomacy popups
 - Broader `/command` unification, popup registry cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
 
@@ -95,53 +95,137 @@
 - Expiry and overflow no longer resolve unseen proposals silently.
 - `status` is verified after the guard split and either closes as a duplicate or remains as a true separate bug.
 
-### Session 2 Follow-Up - Mailbox UX Completion And Contract Hardening
+### Session 2 Follow-Up - Mailbox UX Completion, Inbox Browsing, And Contract Hardening
 
 **Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
 
-**Goal:** finish the player-facing mailbox UX so soft-stop diplomacy is actually deferrable in Godot, and harden the Session 2 transport contract where the audit found live regressions.
+**Goal:** finish the player-facing mailbox UX so soft-stop diplomacy is actually deferrable and browsable in Godot, and harden the Session 2 transport contract where the audit found live regressions.
 
 **Why this is a separate follow-up**
 
 - Session 2 fixed the backend taxonomy and recovery surface, but Godot still treats incoming proposals as a modal dead-end.
+- The shipped mailbox button/hitbox fix made a single pending item reliable, but `Mailbox (N)` is still opaque when `N > 1`; the player cannot inspect or choose among multiple pending diplomatic items.
 - This follow-up stays inside the owning `PL-27` family. It does not reopen `PL-33` or create a new tracked PL item.
 - `PL-32` should not start until the active proposal contract and recovery payload are stable again.
 
+**Next implementation item**
+
+- Build a formal browsable mailbox/inbox panel behind the mailbox button.
+- Do this before `PL-32`, before any broad notification redesign, and before any more popup display cleanup.
+- Treat the current mailbox button as an interim reliability fix, not the finished UX.
+
 **Exact scope**
 
-- Add a local `Later` or `Close` path to `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`.
-- Wire `godot-client/project-sovereign/scripts/main.gd` so deferring the popup hides it and re-enables terminal input without sending a backend response.
-- Keep the pending dialogue alive so the envoy badge remains authoritative and reopens the same proposal later.
+- Keep the existing local `Later` / `Ask Later` path in `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`.
+- Add a mailbox panel/list in Godot instead of treating the mailbox button as "reopen one arbitrary pending item."
+- Add a backend mailbox-list contract that returns the active soft-stop item plus queued soft-stop diplomacy in one ordered list.
+- Add stable mailbox item identity (`mailbox_id`) for every pending diplomacy item that can appear in the mailbox.
+- Add a backend activation contract so selecting a queued mailbox item makes it the active soft-stop item before the popup opens.
+- Keep the pending dialogue alive when the player defers locally; the inbox is the mechanism for browsing, not implicit destruction or parser workarounds.
 - Harden `backend/main.py` soft-stop reply routing so valid delayed replies still work through `/command`, including numeric choices and the common `accept` / `counter` / `reject` path.
 - Fix `/pending_envoy` payload construction so it matches the `incoming_proposal_popup.gd` contract exactly instead of rebuilding a parallel shape.
 - Fix badge vs recovery mismatch when `pending_envoy_count` is non-zero because queued proposals exist behind a hard-stop item.
+- Do not widen this slice into a general notification redesign. Record the clutter policy boundary, but keep the implementation focused on diplomacy inbox behavior.
+
+**Mailbox behavior spec**
+
+- Mailbox badge count continues to mean: active soft-stop diplomacy item plus queued soft-stop diplomacy items.
+- Clicking the mailbox with count `0` must produce a deterministic empty state, not a no-op.
+- Clicking the mailbox with count `1+` opens a mailbox panel/list, not a proposal popup directly.
+- True hard-stop modals still block mailbox interaction. That is intentional and explicit. The count may remain visible, but opening the inbox waits until the hard-stop resolves.
+- The mailbox panel shows one row per pending diplomacy item with, at minimum:
+  - `ACTIVE` vs `WAITING` state
+  - source nation / actor
+  - item type (`incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`)
+  - arrival turn
+  - short summary line suitable for list display
+- Ordering rule:
+  - active soft-stop item first
+  - then queued items by backend urgency/priority ascending
+  - then FIFO within equal priority
+  - preserve stable order across reopen, save/load, and non-diplomatic commands
+- Selecting the active row simply reopens the current popup.
+- Selecting a queued row must activate that item server-side before opening its popup. The previously active soft-stop item returns to the queue without data loss.
+- `Ask Later` remains local and non-destructive:
+  - close popup
+  - re-enable normal input
+  - keep the selected item pending
+  - do not auto-consume or auto-reply
+- The inbox panel, not repeated mailbox-button clicking, is the browsing mechanism for `Mailbox (2+)`.
+- Accept / Counter / Reject always apply to the currently active item only. The activation step makes that deterministic.
+
+**Recommended backend contract**
+
+- Keep `/pending_envoy` for the simple "reopen current active item" path and backward compatibility.
+- Add `GET /mailbox` returning ordered mailbox-list summaries.
+- Add `POST /mailbox/activate` with `mailbox_id`, returning the popup-safe payload for the now-active item.
+- Add `mailbox_id` at proposal creation time and preserve it through:
+  - queue insertion
+  - delivery to active soft-stop
+  - re-queue of a previously active item
+  - save/load serialization
+- Prefer preserving the original arrival metadata when an item is activated from queue; opening an old message should not make it look newly arrived.
+
+**Recommended frontend contract**
+
+- Mailbox button opens a lightweight inbox panel anchored to the existing top bar, not a full-screen modal.
+- The panel should be non-destructive and easy to close; clicking outside or pressing the mailbox button again can dismiss it.
+- Selecting a row triggers `activate -> popup open`.
+- The panel should refresh after:
+  - local defer
+  - response submission
+  - queue change from `/command` or `end turn`
+  - save/load
+- If count drops to `0` while the panel is open, show an explicit empty state and close cleanly on next dismiss.
+
+**Non-goals / adjacent note**
+
+- Do not turn the mailbox into a generic notification center in this slice.
+- Record the policy boundary for later HUD cleanup:
+  - mailbox is for pending diplomatic decisions
+  - persistent top-bar notifications should be reserved for action-required / strategically urgent items
+  - routine combat/readiness notices such as `counterpunch ready` should be demoted later to event log, terminal feed, or transient toast instead of living indefinitely in the top-bar icon strip
 
 **Exit criteria**
 
 - The player can click `Later` on an incoming proposal and keep issuing commands immediately.
-- Clicking the envoy badge reopens the deferred proposal instead of producing a dead-end or parser workaround.
+- Clicking the mailbox badge with multiple pending items opens a browsable inbox instead of one arbitrary proposal popup.
+- The player can inspect and choose a specific pending diplomacy item when `Mailbox (2+)` is present.
+- Clicking a queued mailbox row opens that chosen item, not whichever proposal happens to be active already.
 - Delayed replies still work via typed popup buttons and through `/command` for `1/2/3`, `accept`, `counter`, and `reject`.
 - `/pending_envoy` returns popup-safe data in the same display shape expected by `incoming_proposal_popup.gd`.
 - Badge count and recovery behavior stay in sync for:
   - active soft-stop only
   - queued proposal only
+  - active soft-stop plus queued proposals
+  - five pending proposals in stable order
   - hard-stop active with queued proposals behind it
-- No new display-ownership logic is introduced on the Godot side beyond what is needed for the local defer button.
+- No pending diplomacy item is lost, silently reordered, or spuriously consumed when the player browses the inbox.
 
 **Regression test matrix**
 
 - Extend Godot-facing popup tests for local defer behavior and re-enable-input flow.
+- Add mailbox-list endpoint tests for:
+  - active soft-stop only
+  - queued-only
+  - active plus queue ordering
+  - five pending items with stable order
+  - hard-stop active with queued proposals still counted but not active
+- Add activation tests proving a selected queued item becomes active and the previous active item is safely re-queued.
 - Add endpoint tests for `/pending_envoy` covering active soft-stop, queued-only, and hard-stop-plus-queue cases.
 - Add command-path tests proving soft-stop delayed replies still route for numeric and keyword inputs.
+- Add save/load tests proving `mailbox_id` and queue order survive round-trip serialization.
 - Re-run the existing Session 2 guard/count/history suite after the mailbox follow-up lands.
 
 **Implementation order inside Session 2 follow-up**
 
-1. Add the local defer button and terminal re-enable flow in Godot.
-2. Make envoy click reopen the deferred item through one authoritative backend payload.
-3. Fix `/pending_envoy` shape and queued-only recovery semantics.
-4. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes.
-5. Lock the whole flow with defer/reopen/respond-later regressions before moving to `PL-32`.
+1. Add stable `mailbox_id` ownership and mailbox-list serialization on the backend.
+2. Add `GET /mailbox` plus queued-item activation endpoint and lock their order semantics with tests.
+3. Build the Godot mailbox panel/list and wire mailbox button -> inbox open/close.
+4. Keep local defer behavior, but make inbox selection the authoritative "open this specific item" path.
+5. Fix `/pending_envoy` shape and queued-only recovery semantics so single-item reopen still works cleanly.
+6. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes.
+7. Lock the whole flow with mailbox browse/defer/select/respond-later regressions before moving to `PL-32`.
 
 ### Session 3 - Diplomacy Display Contract
 

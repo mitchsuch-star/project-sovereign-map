@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 10, 2026 (Session 2 COMPLETE: PL-27 + PL-34 FIXED, PL-33 CLOSED as duplicate. Session 2 follow-up planned for mailbox UX completion and contract hardening. 4 open bugs remain. 8151 tests passing.)
+> **Last Updated:** April 10, 2026 (Session 2 COMPLETE: PL-27 + PL-34 FIXED, PL-33 CLOSED as duplicate. Session 2 follow-up is still next, now explicitly scoped as formal mailbox inbox browsing plus the remaining PL-27 contract hardening. 4 open bugs remain. 8151 tests passing.)
 
 ---
 
@@ -10,8 +10,8 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **8151** (8151 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Session 2 follow-up is next: mailbox UX completion and PL-27 contract hardening. 4 OPEN bugs remain (PL-26/28/29/32). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | Session 2 follow-up before Session 3 (`PL-32`), diplomacy refinement, or any new audit pass. |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED duplicate). Session 2 follow-up is next: formal mailbox inbox browsing for 2+ pending diplomatic items, plus the remaining PL-27 contract hardening. 4 OPEN bugs remain (PL-26/28/29/32). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | Session 2 follow-up mailbox/inbox slice before Session 3 (`PL-32`), diplomacy refinement, or any new audit pass. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 
 ### 1. Bug Fixes - 4 OPEN (Sessions 1-2 complete)
 
-Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33) FIXED on April 10, 2026. Session 2 follow-up is planned next to complete the mailbox UX and harden the same-family PL-27 contract regressions found after the fix landed. Remaining bugs stay consolidated in `docs/BUG_FIXES.md`.
+Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33) FIXED on April 10, 2026. Session 2 follow-up is planned next to turn the mailbox into a browsable inbox for 2+ pending items and harden the remaining same-family PL-27 contract regressions. Remaining bugs stay consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
@@ -34,7 +34,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` (mailbox UX completion + PL-27 contract hardening).
+**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening.
 
 **Implementation sessions in current order:**
 
@@ -42,7 +42,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 |---------|-------|-------|--------|
 | Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
 | Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
-| Session 2 follow-up | Mailbox UX completion + PL-27 hardening | Follow-up slice under `PL-27` / `PL-34` | Next |
+| Session 2 follow-up | Formal mailbox inbox + PL-27 hardening | Follow-up slice under `PL-27` / `PL-34` | Next |
 | Session 3 | Diplomacy display contract | `PL-32` | After Session 2 follow-up |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |
