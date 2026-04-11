@@ -34,7 +34,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening.
+**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. **Pre-implementation audit complete (Apr 10, 2026):** 3 CRITICAL, 5 MAJOR, 5 MODERATE findings patched into the spec. Key decision: eliminate `diplomatic_queue` entirely, consolidate into `dialogue_manager` as single source of truth for all pending diplomacy.
 
 **Implementation sessions in current order:**
 
@@ -42,7 +42,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 |---------|-------|-------|--------|
 | Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
 | Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
-| Session 2 follow-up | Formal mailbox inbox + PL-27 hardening | Follow-up slice under `PL-27` / `PL-34` | Next |
+| Session 2 follow-up | Formal mailbox inbox + PL-27 hardening | Follow-up slice under `PL-27` / `PL-34` | Next (audited, 3C/5M/5N findings patched) |
 | Session 3 | Diplomacy display contract | `PL-32` | After Session 2 follow-up |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |

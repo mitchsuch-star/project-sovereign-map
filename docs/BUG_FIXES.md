@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up remains next, now explicitly split into formal mailbox inbox browsing plus the remaining PL-27 contract hardening.)
+> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up remains next, now explicitly split into formal mailbox inbox browsing plus the remaining PL-27 contract hardening. Pre-implementation audit complete: 3 CRITICAL, 5 MAJOR, 5 MODERATE findings patched inline below. `diplomatic_queue` elimination approved — consolidate into `dialogue_manager`.)
 
 ---
 
@@ -124,12 +124,14 @@
 - Keep the pending dialogue alive when the player defers locally; the inbox is the mechanism for browsing, not implicit destruction or parser workarounds.
 - Harden `backend/main.py` soft-stop reply routing so valid delayed replies still work through `/command`, including numeric choices and the common `accept` / `counter` / `reject` path.
 - Fix `/pending_envoy` payload construction so it matches the `incoming_proposal_popup.gd` contract exactly instead of rebuilding a parallel shape.
-- Fix badge vs recovery mismatch when `pending_envoy_count` is non-zero because queued proposals exist behind a hard-stop item.
+- Eliminate `world.diplomatic_queue` — consolidate into `dialogue_manager` as the single pending-diplomacy queue.
+- Fix badge formula to use `dialogue_manager.get_mailbox_count()` exclusively, eliminating the dual-source mismatch.
 - Do not widen this slice into a general notification redesign. Record the clutter policy boundary, but keep the implementation focused on diplomacy inbox behavior.
 
 **Mailbox behavior spec**
 
-- Mailbox badge count continues to mean: active soft-stop diplomacy item plus queued soft-stop diplomacy items.
+- **Dual-queue elimination (APPROVED):** The codebase has two separate pending-diplomacy queues. `world.diplomatic_queue` (world_state.py:443) holds raw AI proposals waiting for delivery — max 3, 3-turn expiry, drained by `_dequeue_best()` during end_turn. `dialogue_manager._queue` (dialogue_manager.py:75) holds delivered dialogues that couldn't become active — max 20, auto-promoted on pop. The current badge formula (main.py:170-172) counts `len(diplomatic_queue) + (1 if dm.is_soft_stop() else 0)` which counts undelivered proposals and ignores `dialogue_manager._queue`. `DialogueManager.get_soft_stop_count()` — built for exactly this in Session 2 — is never called. `diplomatic_queue` existed to throttle delivery to one-per-turn and defer acceptance-score calculation. Both purposes are obsolete: the mailbox IS the multi-proposal UI, and `POST /mailbox/activate` can recalculate acceptance scores at display time. **Eliminate `diplomatic_queue` entirely.** Deliver all AI proposals through `deliver_ai_proposal()` → `dialogue_manager.push()` at generation time. Remove the one-per-turn throttle in `turn_manager._process_ai_diplomatic_phase()`. Remove `_enqueue_proposal()`, `_dequeue_best()`, `_expire_queue()`, `try_deliver_queued_proposal()`, and the `diplomatic_queue` field from WorldState (including `to_dict`/`from_dict`). Migrate the PL-34 overflow/expiry logging into `DialogueManager` (cap soft-stop queue items, log when dropped). Update all badge count formulas in main.py to use `dialogue_manager.get_soft_stop_count()` exclusively (fix the 4 occurrences at lines ~170, ~498, ~858, ~1946). Remove `getattr(world, 'diplomatic_queue', [])` references in `main.py`, `diplomatic_ledger.py`, `meta_executor.py`.
+- Mailbox badge count continues to mean: active soft-stop diplomacy item plus queued soft-stop diplomacy items. **Single source of truth: `dialogue_manager.get_soft_stop_count()`** — counts `SOFT_STOP_MAILBOX_TYPES` in active slot + all items in `dialogue_manager._queue`. Exclude hybrid soft-stops from the count (see below).
 - Clicking the mailbox with count `0` must produce a deterministic empty state, not a no-op.
 - Clicking the mailbox with count `1+` opens a mailbox panel/list, not a proposal popup directly.
 - True hard-stop modals still block mailbox interaction. That is intentional and explicit. The count may remain visible, but opening the inbox waits until the hard-stop resolves.
@@ -139,6 +141,8 @@
   - item type (`incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`)
   - arrival turn
   - short summary line suitable for list display
+- **Hybrid soft-stop exclusion:** `sabotage_confrontation` and `vassal_rebellion_imminent` are counted by `is_soft_stop()` / `get_soft_stop_count()` but are NOT diplomacy proposals and must NOT appear in the mailbox panel or badge count. **Exclude hybrids from the count.** Add `get_mailbox_count()` to `DialogueManager` that counts `SOFT_STOP_MAILBOX_TYPES` only (not `HYBRID_SOFT_STOP_TYPES`). Use this for badge and `GET /mailbox`. Hybrids keep their own popup flows unchanged.
+- **`conflict_alert` dispatch:** `conflict_alert` items currently route to `proposal_confirm_popup`, not `incoming_proposal_popup`. The mailbox panel must dispatch to the correct popup type based on `dialogue_type`. Add a type→popup mapping instead of assuming all items use `incoming_proposal_popup`.
 - Ordering rule:
   - active soft-stop item first
   - then queued items by backend urgency/priority ascending
@@ -146,11 +150,15 @@
   - preserve stable order across reopen, save/load, and non-diplomatic commands
 - Selecting the active row simply reopens the current popup.
 - Selecting a queued row must activate that item server-side before opening its popup. The previously active soft-stop item returns to the queue without data loss.
+  - **Activation guard:** Only swap when the active slot holds a SOFT_STOP_MAILBOX or HYBRID_SOFT_STOP type. If the active slot holds a LOCAL_PLANNING type (e.g., `terms_guidance` mid-conversation), the swap must be blocked with a message — the player is mid-flow.
+  - **Cache invalidation:** `world.incoming_proposal_popup` (main.py:1898-1904) caches the popup payload set at delivery time. `POST /mailbox/activate` must overwrite this cache with the newly activated item's data, or the recovery path (`/pending_envoy`, response polling) will show data for the wrong proposal.
+  - **Re-queued item lifetime:** When the previously active item is re-queued, preserve its original `turn_created`. Do not refresh the timestamp — this keeps `clear_stale` consistent and prevents indefinite keep-alive via repeated activation cycling.
 - `Ask Later` remains local and non-destructive:
   - close popup
   - re-enable normal input
   - keep the selected item pending
   - do not auto-consume or auto-reply
+  - **Timeout warning:** Delivered dialogues with `blocking: True` (all proposal types) are force-cleared by `clear_stale()` when `turn_created + 2 < current_turn` (dialogue_manager.py:28,167). A proposal deferred on turn N is lost at the start of turn N+3. Either extend `BLOCKING_TIMEOUT_TURNS` for mailbox items, add a `deferred_by_player` flag that skips timeout, or show a visible "expires in N turns" indicator in the mailbox panel. Do not leave this as a silent data loss path.
 - The inbox panel, not repeated mailbox-button clicking, is the browsing mechanism for `Mailbox (2+)`.
 - Accept / Counter / Reject always apply to the currently active item only. The activation step makes that deterministic.
 
@@ -160,11 +168,14 @@
 - Add `GET /mailbox` returning ordered mailbox-list summaries.
 - Add `POST /mailbox/activate` with `mailbox_id`, returning the popup-safe payload for the now-active item.
 - Add `mailbox_id` at proposal creation time and preserve it through:
-  - queue insertion
+  - `dialogue_manager.push()` (the sole queue after `diplomatic_queue` elimination)
   - delivery to active soft-stop
   - re-queue of a previously active item
+  - `counter_offer_response` items created during advance_turn (world_state.py:4488)
   - save/load serialization
+- **`mailbox_id` generation:** Use `f"mb-{turn}-{seq}"` where `seq` is a per-turn monotonic counter on WorldState (e.g., `_next_mailbox_seq`). Serialize the counter. Avoids UUID dependency and stays deterministic for save/load. Reset per-turn is safe because `turn` prefix guarantees uniqueness.
 - Prefer preserving the original arrival metadata when an item is activated from queue; opening an old message should not make it look newly arrived.
+- **Add `counter_offer` and `counter_offer_response` to `DIALOGUE_PRIORITY`** (dialogue_manager.py:66-71). Currently these default to 99, causing incoming proposals (priority 3) to always sort before counter-offers regardless of urgency. Recommended: `counter_offer: 4`, `counter_offer_response: 4`, `conflict_alert: 5`.
 
 **Recommended frontend contract**
 
@@ -176,7 +187,9 @@
   - response submission
   - queue change from `/command` or `end turn`
   - save/load
+- **End-turn while panel open:** Close the inbox panel before submitting `end turn`. `advance_turn` can deliver new proposals, expire queue items, and clear stale dialogues — the panel would become stale. Simplest: close panel on any `/command` submission, reopen from fresh `GET /mailbox` after.
 - If count drops to `0` while the panel is open, show an explicit empty state and close cleanly on next dismiss.
+- **Replace `_dismissed_proposal_nation`** (main.gd:97): The current single-string tracker only suppresses one nation at a time. With the mailbox panel, either (a) disable auto-show entirely when the panel exists (preferred — the panel IS the browse mechanism), or (b) replace with a Set of dismissed `mailbox_id`s cleared on panel open.
 
 **Non-goals / adjacent note**
 
@@ -215,17 +228,37 @@
 - Add endpoint tests for `/pending_envoy` covering active soft-stop, queued-only, and hard-stop-plus-queue cases.
 - Add command-path tests proving soft-stop delayed replies still route for numeric and keyword inputs.
 - Add save/load tests proving `mailbox_id` and queue order survive round-trip serialization.
+- Add `clear_stale` interaction tests:
+  - deferred proposal survives for 2 more turns after creation
+  - deferred proposal is force-cleared at turn N+3 start
+  - if `deferred_by_player` flag is added, verify timeout is extended/skipped
+- Add hybrid soft-stop edge case tests:
+  - hybrid active + diplomacy queued: badge count correct, mailbox shows only diplomacy
+  - hybrid active does NOT appear in `GET /mailbox` response
+- Add queue elimination migration tests:
+  - all AI proposals reach `dialogue_manager._queue` after `diplomatic_queue` removal
+  - badge count uses `get_mailbox_count()` exclusively
+  - PL-34 overflow logging fires from `DialogueManager` cap, not old `_enqueue_proposal`
+- Add activation guard tests:
+  - swap blocked when active slot holds LOCAL_PLANNING type
+  - `incoming_proposal_popup` cache updated on successful swap
+  - re-queued item preserves original `turn_created`
+- Add `counter_offer` priority ordering tests:
+  - `counter_offer` vs `incoming_proposal` queue ordering after priority fix
 - Re-run the existing Session 2 guard/count/history suite after the mailbox follow-up lands.
 
 **Implementation order inside Session 2 follow-up**
 
-1. Add stable `mailbox_id` ownership and mailbox-list serialization on the backend.
-2. Add `GET /mailbox` plus queued-item activation endpoint and lock their order semantics with tests.
-3. Build the Godot mailbox panel/list and wire mailbox button -> inbox open/close.
-4. Keep local defer behavior, but make inbox selection the authoritative "open this specific item" path.
-5. Fix `/pending_envoy` shape and queued-only recovery semantics so single-item reopen still works cleanly.
-6. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes.
-7. Lock the whole flow with mailbox browse/defer/select/respond-later regressions before moving to `PL-32`.
+0. **Eliminate `diplomatic_queue`:** Remove field from WorldState, remove `_enqueue_proposal`/`_dequeue_best`/`_expire_queue`/`try_deliver_queued_proposal` from ai_diplomacy.py, deliver all AI proposals via `deliver_ai_proposal()` → `dialogue_manager.push()` at generation time. Remove one-per-turn throttle in `turn_manager._process_ai_diplomatic_phase()`. Migrate PL-34 overflow logging into DialogueManager. Update all 4 badge formulas in main.py to use `get_mailbox_count()`. Remove `diplomatic_queue` from `to_dict`/`from_dict` (add `from_dict` backward compat: if saved data has `diplomatic_queue`, deliver each item into `dialogue_manager` on load).
+1. Add `counter_offer`/`counter_offer_response`/`conflict_alert` to `DIALOGUE_PRIORITY`. Add `get_mailbox_count()` to `DialogueManager` that counts `SOFT_STOP_MAILBOX_TYPES` only (excludes hybrids).
+2. Add stable `mailbox_id` ownership (generation via `f"mb-{turn}-{seq}"` with per-turn counter on WorldState, serialization, presence on all mailbox-eligible dialogue types including `counter_offer_response` from advance_turn).
+3. Add `GET /mailbox` plus `POST /mailbox/activate` (with cache invalidation for `incoming_proposal_popup`, activation guard for LOCAL_PLANNING, re-queue with preserved `turn_created`). Lock ordering semantics with tests.
+4. Address `clear_stale` timeout for deferred items — extend timeout, add `deferred_by_player` flag, or add visible expiry indicator.
+5. Build the Godot mailbox panel/list. Wire mailbox button -> inbox open/close. Replace `_dismissed_proposal_nation` with panel-aware suppression. Add type→popup dispatch for `conflict_alert`.
+6. Keep local defer behavior, but make inbox selection the authoritative "open this specific item" path.
+7. Fix `/pending_envoy` shape and queued-only recovery semantics so single-item reopen still works cleanly.
+8. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes.
+9. Lock the whole flow with mailbox browse/defer/select/respond-later regressions (including expanded test matrix above) before moving to `PL-32`.
 
 ### Session 3 - Diplomacy Display Contract
 
