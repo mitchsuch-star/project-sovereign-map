@@ -40,6 +40,9 @@ var api_client = null
 func _ready():
 	# Start hidden — only show when notifications exist
 	visible = false
+	# Wrapper controls should not eat clicks outside the actual icon buttons.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func set_api_client(client):
@@ -82,6 +85,7 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	btn.custom_minimum_size = Vector2(28, 28)
 	btn.text = icon_text
 	btn.tooltip_text = str(notif.get("title", "Notification"))
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	# Style the button
 	var style = StyleBoxFlat.new()
@@ -144,6 +148,7 @@ func _show_expanded_panel(notif: Dictionary):
 
 	expanded_panel = PanelContainer.new()
 	expanded_panel.set_meta("notification_id", notif.get("id", ""))
+	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	# Style the panel
 	var panel_style = StyleBoxFlat.new()

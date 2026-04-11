@@ -1770,6 +1770,165 @@ def get_ledger():
 # PENDING ENVOY RECOVERY (PL-27 Session 2)
 # ════════════════════════════════════════════════════════════
 
+def _build_proposal_popup_clauses(terms, *, include_base=True):
+    """Build incoming_proposal_popup.gd-compatible clause strings."""
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+
+    clause_type_display = {
+        "gold_lump": "Gold payment",
+        "gold_per_turn": "Gold per turn",
+        "territory_cede": "Territory cession",
+        "territory_return": "Territory return",
+        "action_point": "Action point concession",
+        "unit_trade": "Military units",
+    }
+
+    clauses = []
+    proposal_type_key = terms.get("type", "unknown")
+    if include_base:
+        base_label = PROPOSAL_TYPE_DISPLAY.get(
+            proposal_type_key, proposal_type_key.replace("_", " ").title()
+        )
+        clauses.append(f"Proposal: {base_label}")
+
+    for demand in terms.get("demands", []):
+        dtype = demand.get("type", "unknown")
+        label = clause_type_display.get(dtype, dtype.replace("_", " ").title())
+        clauses.append(f"Demand: {label} - {demand.get('value', '')}")
+
+    for sweetener in terms.get("sweeteners", []):
+        stype = sweetener.get("type", "unknown")
+        label = clause_type_display.get(stype, stype.replace("_", " ").title())
+        clauses.append(f"Offer: {label} - {sweetener.get('value', '')}")
+
+    if not clauses:
+        clauses.append("Diplomatic proposal")
+
+    return clauses
+
+
+def _build_acceptance_hints(acceptance):
+    """Translate acceptance components into Godot-friendly hint strings."""
+    from backend.display_names import FEEDBACK_STRINGS
+
+    components = acceptance.get("components", {})
+    factors = sorted(
+        [{"reason": key, "value": value} for key, value in components.items() if value != 0],
+        key=lambda factor: abs(factor.get("value", 0)),
+        reverse=True,
+    )
+    positive_factors = [factor for factor in factors if factor.get("value", 0) > 0]
+    negative_factors = [factor for factor in factors if factor.get("value", 0) < 0]
+
+    if positive_factors:
+        best_key = positive_factors[0].get("reason", "")
+        acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
+            "positive", "complex diplomatic factors"
+        )
+    else:
+        acceptance_hint = "No strong positives identified"
+
+    if negative_factors:
+        worst_key = negative_factors[0].get("reason", "")
+        rejection_hint = FEEDBACK_STRINGS.get(worst_key, {}).get(
+            "negative", "complex diplomatic factors"
+        )
+    else:
+        rejection_hint = "No major obstacles identified"
+
+    return acceptance_hint, rejection_hint
+
+
+def _build_pending_envoy_popup_from_terms(
+    world,
+    *,
+    nation,
+    terms,
+    assessment="",
+    is_counter_offer=False,
+    acceptance=None,
+    acceptance_score=None,
+):
+    """Build the popup payload shape incoming_proposal_popup.gd expects."""
+    from backend.display_names import PERSONALITY_DISPLAY
+
+    diplomats = getattr(world, "diplomats", {})
+    diplomat = diplomats.get(nation)
+    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+    personality_raw = (
+        diplomat.personality.value if diplomat and hasattr(diplomat.personality, "value")
+        else str(diplomat.personality) if diplomat
+        else "balanced"
+    )
+
+    if acceptance is not None:
+        acceptance_hint, rejection_hint = _build_acceptance_hints(acceptance)
+    elif acceptance_score is not None:
+        acceptance_hint = f"Acceptance score: {int(acceptance_score)}%"
+        rejection_hint = ""
+    else:
+        acceptance_hint = ""
+        rejection_hint = ""
+
+    return {
+        "from_nation": nation,
+        "diplomat_name": diplomat_name,
+        "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
+        "proposal_type": terms.get("type", "unknown"),
+        "clauses": _build_proposal_popup_clauses(
+            terms, include_base=not is_counter_offer
+        ),
+        "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
+        "acceptance_hint": acceptance_hint,
+        "rejection_hint": rejection_hint,
+        "is_counter_offer": bool(is_counter_offer),
+    }
+
+
+def _get_best_queued_proposal(world):
+    """Return the highest-priority queued proposal without mutating the queue."""
+    queue = getattr(world, "diplomatic_queue", [])
+    if not queue:
+        return None
+    return sorted(queue, key=lambda item: item.get("priority", 99))[0]
+
+
+def _build_pending_envoy_popup_from_dialogue(world, dialogue):
+    """Recover popup payload for an active soft-stop dialogue."""
+    existing_popup = getattr(world, "incoming_proposal_popup", None)
+    if isinstance(existing_popup, dict) and existing_popup:
+        popup = existing_popup.copy()
+        popup["is_counter_offer"] = dialogue.get("type", "") in (
+            "counter_offer", "counter_offer_response"
+        )
+        return popup
+
+    context = dialogue.get("context", {})
+    terms = context.get("counter_terms") or context.get("proposal") or {}
+    return _build_pending_envoy_popup_from_terms(
+        world,
+        nation=dialogue.get("target_nation", "Unknown"),
+        terms=terms,
+        assessment=dialogue.get("talleyrand_text", ""),
+        is_counter_offer=dialogue.get("type", "") in ("counter_offer", "counter_offer_response"),
+        acceptance_score=context.get("acceptance_score"),
+    )
+
+
+def _build_pending_envoy_popup_from_queue(world, proposal):
+    """Recover popup payload for a proposal still waiting in diplomatic_queue."""
+    from backend.game_logic.diplomacy import calculate_acceptance
+
+    terms = proposal.get("terms", {})
+    return _build_pending_envoy_popup_from_terms(
+        world,
+        nation=proposal.get("source", "Unknown"),
+        terms=terms,
+        assessment=proposal.get("talleyrand_assessment", ""),
+        acceptance=calculate_acceptance(terms, world),
+    )
+
+
 @app.get("/pending_envoy")
 def get_pending_envoy():
     """Return the current soft-stop dialogue (if any) for envoy recovery.
@@ -1793,40 +1952,23 @@ def get_pending_envoy():
         dialogue = dm.peek()
         dtype = dialogue.get("type", "")
         if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
-            # Re-derive the incoming_proposal popup data from dialogue
-            context = dialogue.get("context", {})
-            proposal = context.get("proposal", {})
-            from backend.display_names import PERSONALITY_DISPLAY
-            diplomats = getattr(world, 'diplomats', {})
-            nation = dialogue.get("target_nation", "Unknown")
-            diplomat = diplomats.get(nation)
-            diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
-            personality_raw = diplomat.personality.value if diplomat and hasattr(diplomat.personality, 'value') else str(diplomat.personality) if diplomat else "balanced"
-
-            clauses = []
-            for clause in proposal.get("clauses", []):
-                clauses.append({
-                    "type": clause.get("type", ""),
-                    "detail": clause.get("detail", ""),
-                })
-
             result["has_pending"] = True
             result["dialogue_type"] = dtype
-            result["incoming_proposal"] = {
-                "from_nation": nation,
-                "diplomat_name": diplomat_name,
-                "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
-                "proposal_type": proposal.get("type", dtype),
-                "clauses": clauses,
-                "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
-                "acceptance_hint": f"Acceptance score: {context.get('acceptance_score', '?')}%",
-                "rejection_hint": "",
-                "is_counter_offer": dtype in ("counter_offer", "counter_offer_response"),
-            }
+            result["incoming_proposal"] = _build_pending_envoy_popup_from_dialogue(
+                world, dialogue
+            )
         elif dtype == "conflict_alert":
             result["has_pending"] = True
             result["dialogue_type"] = dtype
             result["diplomatic_dialogue"] = dialogue
+    elif result["pending_envoy_count"] > 0:
+        queued_proposal = _get_best_queued_proposal(world)
+        if queued_proposal:
+            result["has_pending"] = True
+            result["dialogue_type"] = "incoming_proposal"
+            result["incoming_proposal"] = _build_pending_envoy_popup_from_queue(
+                world, queued_proposal
+            )
 
     return result
 

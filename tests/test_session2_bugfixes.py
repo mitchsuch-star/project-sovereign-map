@@ -60,6 +60,23 @@ def _make_soft_stop_proposal(turn=1, nation="Prussia"):
     }
 
 
+def _make_queued_proposal(nation="Prussia", proposal_type="non_aggression", priority=5):
+    return {
+        "source": nation,
+        "proposal_type": proposal_type,
+        "priority": priority,
+        "terms": {
+            "type": proposal_type,
+            "proposer_nation": nation,
+            "target_nation": "France",
+            "demands": [],
+            "sweeteners": [],
+        },
+        "talleyrand_assessment": f"{nation} wants calmer borders.",
+        "turn_generated": 1,
+    }
+
+
 # ═════════════════════════════════════════════════════════════════════
 # 1. DIALOGUE TYPE TAXONOMY
 # ═════════════════════════════════════════════════════════════════════
@@ -405,3 +422,56 @@ class TestDialogueManagerSoftStopCount:
         dm.push(_make_soft_stop_proposal(nation="Austria"))
         # Active + 1 queued = 1 (active) + 1 (queue) in dm internal queue
         assert dm.get_soft_stop_count() == 2
+
+
+class TestPendingEnvoyRecovery:
+
+    def test_active_soft_stop_returns_popup_contract(self):
+        import backend.main as main_module
+
+        world = _make_world()
+        main_module.game_state = {"world": world}
+        world.dialogue_manager.replace(_make_soft_stop_proposal(nation="Austria"))
+        world.incoming_proposal_popup = {
+            "from_nation": "Austria",
+            "diplomat_name": "Metternich",
+            "diplomat_personality": "schemer",
+            "proposal_type": "peace",
+            "clauses": ["Proposal: Peace Treaty", "Offer: Gold payment - 100"],
+            "talleyrand_assessment": "They are testing our resolve.",
+            "acceptance_hint": "No strong positives identified",
+            "rejection_hint": "No major obstacles identified",
+            "is_counter_offer": False,
+        }
+
+        result = main_module.get_pending_envoy()
+
+        assert result["has_pending"] is True
+        assert result["dialogue_type"] == "incoming_proposal"
+        popup = result["incoming_proposal"]
+        assert popup["from_nation"] == "Austria"
+        assert popup["clauses"] == ["Proposal: Peace Treaty", "Offer: Gold payment - 100"]
+        assert all(isinstance(clause, str) for clause in popup["clauses"])
+        assert popup["is_counter_offer"] is False
+
+    def test_queue_recovers_when_badge_count_comes_from_hard_stop_plus_queue(self):
+        import backend.main as main_module
+
+        world = _make_world()
+        main_module.game_state = {"world": world}
+        world.dialogue_manager.replace(_make_hard_stop_dialogue())
+        world.diplomatic_queue = [
+            _make_queued_proposal(nation="Austria", proposal_type="open_borders", priority=9),
+            _make_queued_proposal(nation="Prussia", proposal_type="non_aggression", priority=2),
+        ]
+
+        result = main_module.get_pending_envoy()
+
+        assert result["pending_envoy_count"] == 2
+        assert result["has_pending"] is True
+        assert result["dialogue_type"] == "incoming_proposal"
+        popup = result["incoming_proposal"]
+        assert popup["from_nation"] == "Prussia"
+        assert popup["proposal_type"] == "non_aggression"
+        assert popup["clauses"][0] == "Proposal: Non-Aggression Pact"
+        assert all(isinstance(clause, str) for clause in popup["clauses"])

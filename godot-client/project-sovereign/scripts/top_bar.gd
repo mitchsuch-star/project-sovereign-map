@@ -92,6 +92,9 @@ func _ready():
 	envoy_label.text = ""
 	envoy_label.visible = false
 
+	# Notification wrappers should not block unrelated HUD clicks.
+	notification_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	# Envoy label click handler
 	envoy_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	envoy_label.gui_input.connect(_on_envoy_input)
