@@ -1,9 +1,9 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Audit Note:** Fourth mailbox spec audit added explicit rules for active popup-cache ownership, mailbox ordering consumption, queued-only-state semantics after `diplomatic_queue` removal, and notification-bar clearing when mailbox-related notifications disappear.
-> **Supersedes:** The older third-pass summary below is retained as historical context only; the current mailbox planning text in this file and `docs/BUG_FIXES.md` reflects the fourth audit pass.
-> **Last Updated:** April 10, 2026 (Session 2 follow-up spec audited a fourth time. Additional spec gaps patched: active popup-cache ownership specified, mailbox ordering consumption locked to `mailbox_priority` / `mailbox_order`, queued-only semantics narrowed after `diplomatic_queue` removal, and explicit notification clearing added. No code changes — spec/planning only.)
+> **Audit Note:** Fifth mailbox spec audit added explicit rules for mailbox identity continuity across active-item mutation/replacement and for load-time mailbox metadata backfill on legacy saves.
+> **Supersedes:** The older fourth-pass summary below is retained as historical context only; the current mailbox planning text in this file and `docs/BUG_FIXES.md` reflects the fifth audit pass.
+> **Last Updated:** April 10, 2026 (Session 2 follow-up spec audited a fifth time. Additional spec gaps patched: mailbox identity continuity is now preserved across active-item replacement, and legacy-save mailbox metadata / `_next_mailbox_seq` backfill is now specified. No code changes — spec/planning only.)
 
 ---
 
@@ -36,7 +36,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. The pre-implementation spec now also locks down active popup-cache ownership, mailbox ordering consumption (`mailbox_priority` / `mailbox_order`), queued-only-state semantics after `diplomatic_queue` removal, and the explicit notification-clear path alongside the previously-audited activation guards, active-item-only `/pending_envoy` semantics, stale `mailbox_id` handling, end-turn behavior, no generic mailbox timeout, `clear_stale` mailbox exemption, `get_soft_stop_count` deprecation, notification suppression, and numeric response routing. Key decision remains unchanged: eliminate `diplomatic_queue` entirely and consolidate pending diplomacy into `dialogue_manager`.
+**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. The pre-implementation spec now also locks down mailbox identity continuity across active-item replacement, legacy-save mailbox metadata / `_next_mailbox_seq` backfill, active popup-cache ownership, mailbox ordering consumption (`mailbox_priority` / `mailbox_order`), queued-only-state semantics after `diplomatic_queue` removal, and the explicit notification-clear path alongside the previously-audited activation guards, active-item-only `/pending_envoy` semantics, stale `mailbox_id` handling, end-turn behavior, no generic mailbox timeout, `clear_stale` mailbox exemption, `get_soft_stop_count` deprecation, notification suppression, and numeric response routing. Key decision remains unchanged: eliminate `diplomatic_queue` entirely and consolidate pending diplomacy into `dialogue_manager`.
 
 **Implementation sessions in current order:**
 

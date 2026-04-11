@@ -2,9 +2,9 @@
 
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
-> Audit note: fourth mailbox follow-up spec audit clarified active popup-cache ownership, mailbox ordering consumption, queued-only-state semantics after `diplomatic_queue` removal, and notification-bar clearing when mailbox-related notifications disappear.
+> Audit note: fifth mailbox follow-up spec audit clarified mailbox identity continuity across active-item mutation/replacement and load-time mailbox metadata backfill for legacy saves.
 >
-> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up remains next, now explicitly split into formal mailbox inbox browsing plus the remaining PL-27 contract hardening. Pre-implementation audit updated with additional mailbox edge-case and contract clarifications patched inline below. `diplomatic_queue` elimination approved — consolidate into `dialogue_manager`.)
+> Last Updated: April 10, 2026 (Session 2 COMPLETE: PL-27/PL-34 FIXED, PL-33 CLOSED duplicate. Session 2 follow-up remains next, now explicitly split into formal mailbox inbox browsing plus the remaining PL-27 contract hardening. Pre-implementation audit updated again with mailbox identity continuity and legacy-save metadata backfill clarifications. `diplomatic_queue` elimination approved — consolidate into `dialogue_manager`.)
 
 ---
 
@@ -157,6 +157,7 @@
   - **Cache invalidation:** `world.incoming_proposal_popup` (main.py:1898-1904) caches the popup payload set at delivery time. `POST /mailbox/activate` must overwrite this cache with the newly activated item's data, or the recovery path (`/pending_envoy`, response polling) will show data for the wrong proposal. The same rule applies when an active item mutates in place (for example incoming proposal → `counter_offer`): rebuild the cached popup payload from the new terms, do not only flip flags such as `is_counter_offer`.
   - **Re-queued item lifetime:** When the previously active item is re-queued, preserve its original `turn_created`. Do not refresh the timestamp — this keeps `clear_stale` consistent and prevents indefinite keep-alive via repeated activation cycling.
 - **Active popup-cache ownership:** `world.incoming_proposal_popup` is active-item-only state. Queued mailbox arrivals must NOT overwrite it just because a new item was pushed behind another current dialogue. Either store a popup-safe payload on each mailbox dialogue or guarantee `GET /mailbox` / `POST /mailbox/activate` / load-time recovery can rebuild it from dialogue context through one shared helper (including `counter_offer_response` created during `advance_turn`). On load or legacy `diplomatic_queue` migration, rebuild/validate the global cache from the active mailbox item only; ignore stale serialized popup data that points at a different mailbox item.
+- **Mailbox identity continuity:** `mailbox_id`, `mailbox_order`, `mailbox_priority`, and the original arrival turn belong to the mailbox item, not to one specific dialogue type string. Preserve that metadata when the active item is enriched or replaced in place (for example `incoming_proposal` → `counter_offer` in `diplomatic_executor.py`) so the inbox row, dismissal state, and stale-selection handling still refer to the same pending item instead of a phantom "new" one.
 - **Stale selection handling:** If a `mailbox_id` disappears between `GET /mailbox` and `POST /mailbox/activate` (expired, answered elsewhere, dropped on load cleanup), return a clean stale/not-found response with refreshed counts and leave the current active item untouched.
 - `Ask Later` remains local and non-destructive:
   - close popup
@@ -176,10 +177,12 @@
 - Add `mailbox_id` at proposal creation time and preserve it through:
   - `dialogue_manager.push()` (the sole queue after `diplomatic_queue` elimination)
   - delivery to active soft-stop
+  - in-place enrichment / replacement of the active mailbox item (for example `incoming_proposal` → `counter_offer`)
   - re-queue of a previously active item
   - `counter_offer_response` items created during advance_turn (world_state.py:4488)
   - save/load serialization
 - **`mailbox_id` generation:** Use `f"mb-{turn}-{seq}"` where `seq` is a per-turn monotonic counter on WorldState (e.g., `_next_mailbox_seq`). Serialize the counter. Avoids UUID dependency and stays deterministic for save/load. Reset per-turn is safe because `turn` prefix guarantees uniqueness.
+- **Legacy-load metadata backfill:** On load, assign `mailbox_id` / `mailbox_order` / `mailbox_priority` to any restored mailbox dialogue that lacks them, including (a) current or queued `dialogue_manager` entries from pre-mailbox saves and (b) old `diplomatic_queue` items migrated during backward compat. After restoration/backfill, advance `_next_mailbox_seq` past every mailbox item already present for the current turn before generating new IDs, or a same-turn post-load arrival can collide with a restored item.
 - Prefer preserving the original arrival metadata when an item is activated from queue; opening an old message should not make it look newly arrived.
 - **Add `counter_offer` and `counter_offer_response` to `DIALOGUE_PRIORITY`** (dialogue_manager.py:66-71) as mailbox-type fallback values only. Currently these default to 99, causing incoming proposals (priority 3) to always sort before counter-offers whenever mailbox metadata is missing. Keep the fallback aligned with the ordering rule above: `counter_offer: 3`, `counter_offer_response: 3`, `conflict_alert: 4`.
 
@@ -241,6 +244,9 @@
   - hard-stop-plus-queue returns no active popup payload and keeps accurate `pending_envoy_count`
 - Add command-path tests proving soft-stop delayed replies still route for numeric and keyword inputs.
 - Add save/load tests proving `mailbox_id` and queue order survive round-trip serialization.
+- Add mailbox identity continuity tests proving:
+  - `incoming_proposal` → `counter_offer` replacement keeps the same `mailbox_id` / `mailbox_order`
+  - inbox refresh after a counter-offer still points at the same mailbox row instead of a duplicate/new item
 - Add popup-cache ownership tests proving:
   - queued mailbox arrival does NOT overwrite the currently active item's popup payload
   - legacy-load / `diplomatic_queue` migration rebuilds the active popup cache from the promoted mailbox item, not stale serialized `incoming_proposal_popup`
@@ -262,6 +268,8 @@
   - `GET /mailbox` ordering and `DialogueManager._promote()` ordering both follow `mailbox_priority` + `mailbox_order`
   - no code calls `get_soft_stop_count()` for badge/UI purposes after `get_mailbox_count()` is added
   - `from_dict` backward compat: saved `diplomatic_queue` items are delivered into `dialogue_manager` on load, deduped by source+turn
+  - legacy `dialogue_manager` mailbox items missing `mailbox_id` / `mailbox_order` are backfilled on load
+  - `_next_mailbox_seq` is advanced past restored current-turn mailbox IDs before any new proposal is generated post-load
 - Add `clear_stale` mailbox exemption tests:
   - `clear_stale()` skips `SOFT_STOP_MAILBOX_TYPES` in active slot regardless of `blocking` field value
   - mailbox item with `blocking=True` survives indefinitely (not force-cleared after `BLOCKING_TIMEOUT_TURNS`)
@@ -283,6 +291,7 @@
 1. Add `counter_offer`/`counter_offer_response`/`conflict_alert` to `DIALOGUE_PRIORITY` (suggested: `counter_offer: 3`, `counter_offer_response: 3`, `conflict_alert: 4` — same-urgency as `incoming_proposal` for counter-offers, slightly lower for conflict alerts). Add `get_mailbox_count()` to `DialogueManager` that counts `SOFT_STOP_MAILBOX_TYPES` only (excludes hybrids).
    Use `mailbox_priority` / `mailbox_order` in both `DialogueManager._promote()` and `GET /mailbox`; `DIALOGUE_PRIORITY` is fallback only.
 2. Add stable `mailbox_id` ownership (generation via `f"mb-{turn}-{seq}"` with per-turn counter on WorldState, serialization, presence on all mailbox-eligible dialogue types including `counter_offer_response` from advance_turn).
+   Preserve mailbox metadata when the active item is replaced in place (`incoming_proposal` → `counter_offer`), and backfill missing mailbox metadata for restored legacy mailbox dialogues before advancing `_next_mailbox_seq`.
 3. Add `GET /mailbox` plus `POST /mailbox/activate` (with cache invalidation for `incoming_proposal_popup`, activation guard for `HARD_STOP` / `HYBRID_SOFT_STOP` / `LOCAL_PLANNING`, re-queue with preserved `turn_created`). Lock ordering semantics with tests.
    Treat `incoming_proposal_popup` as active-item-only state: queued arrivals/load migration must rebuild per-item payloads instead of overwriting the active cache.
 4. **Add type-based exemption in `clear_stale()` for `SOFT_STOP_MAILBOX_TYPES`:** skip clearing entirely when current dialogue type is in `SOFT_STOP_MAILBOX_TYPES`. Do NOT change the `blocking` field to `False` — that would trigger the non-blocking branch which clears on the very next turn. The `blocking=True` field is legacy; the type taxonomy is authoritative. Also confirm `is_blocking()` is not used in any guard path for soft-stops (it shouldn't be — guards use `is_hard_stop()`). Keep mailbox lifetime semantics inside the inbox contract. If explicit expiry is ever added later, make it per-item, visible in the inbox payload/UI, and logged.
