@@ -34,7 +34,7 @@ Session 1 (PL-30, PL-31) FIXED on April 10, 2026. Session 2 (PL-27, PL-34, PL-33
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (expiry/overflow logged) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
 
-**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. The pre-implementation spec has been tightened through the mailbox edge cases that were still ambiguous: hybrid/local-planning activation guards, mailbox soft-stop end-turn behavior, queue-owned ordering/expiry after `diplomatic_queue` removal, and mailbox vs persistent-notification overlap. Key decision remains unchanged: eliminate `diplomatic_queue` entirely and consolidate pending diplomacy into `dialogue_manager`.
+**Next session:** Implement the Session 2 follow-up from `docs/BUG_FIXES.md` with the formal mailbox/inbox panel as the first slice, then finish the remaining PL-27 contract hardening. The pre-implementation spec has been tightened through the mailbox edge cases that were still ambiguous: hybrid/local-planning activation guards, active-item-only `/pending_envoy` recovery semantics, stale `mailbox_id` activation handling, mailbox soft-stop end-turn behavior, no generic mailbox timeout after `diplomatic_queue` removal, and mailbox vs persistent-notification overlap. Key decision remains unchanged: eliminate `diplomatic_queue` entirely and consolidate pending diplomacy into `dialogue_manager`.
 
 **Implementation sessions in current order:**
 

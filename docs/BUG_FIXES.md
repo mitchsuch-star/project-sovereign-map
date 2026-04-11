@@ -160,7 +160,7 @@
   - re-enable normal input
   - keep the selected item pending
   - do not auto-consume or auto-reply
-  - **Timeout warning:** Delivered dialogues with `blocking: True` (all proposal types) are force-cleared by `clear_stale()` when `turn_created + 2 < current_turn` (dialogue_manager.py:28,167). A proposal deferred on turn N is lost at the start of turn N+3. Either extend `BLOCKING_TIMEOUT_TURNS` for mailbox items, add a `deferred_by_player` flag that skips timeout, or show a visible "expires in N turns" indicator in the mailbox panel. Do not leave this as a silent data loss path.
+  - **Mailbox lifetime rule:** Do not inherit generic `clear_stale()` timeout behavior for mailbox items. Mailbox-eligible diplomacy is player-deferred, non-blocking inbox content and must not silently disappear on turn N+3. In this follow-up, remove generic mailbox expiry entirely. If any mailbox item ever gets an expiry later, it must be explicit on that item (`expires_on_turn` or equivalent), surfaced in the inbox UI, and covered by outcome logging/tests.
 - The inbox panel, not repeated mailbox-button clicking, is the browsing mechanism for `Mailbox (2+)`.
 - Accept / Counter / Reject always apply to the currently active item only. The activation step makes that deterministic.
 
@@ -236,13 +236,10 @@
 - Add command-path tests proving soft-stop delayed replies still route for numeric and keyword inputs.
 - Add save/load tests proving `mailbox_id` and queue order survive round-trip serialization.
 - Add end-turn guard tests proving mailbox soft-stops do not block `end turn`, while true hard-stops still do.
-- Add `clear_stale` interaction tests:
-  - deferred proposal survives for 2 more turns after creation
-  - deferred proposal is force-cleared at turn N+3 start
-  - if `deferred_by_player` flag is added, verify timeout is extended/skipped
-- Add queue-owned expiry tests after `diplomatic_queue` removal:
-  - queued mailbox items follow the chosen expiry/no-expiry rule through `DialogueManager`, not legacy raw-queue helpers
-  - expiry outcomes are recorded for queued mailbox items as well as the active item
+- Add mailbox lifetime tests after `diplomatic_queue` removal:
+  - deferred mailbox items are not force-cleared by generic `clear_stale()` timeout
+  - active and queued mailbox items follow the same no-silent-expiry rule
+  - if explicit per-item expiry is introduced later, it must be visible in inbox data and outcome logging
 - Add hybrid soft-stop edge case tests:
   - hybrid active + diplomacy queued: badge count correct, mailbox shows only diplomacy
   - hybrid active does NOT appear in `GET /mailbox` response
@@ -269,7 +266,7 @@
 1. Add `counter_offer`/`counter_offer_response`/`conflict_alert` to `DIALOGUE_PRIORITY`. Add `get_mailbox_count()` to `DialogueManager` that counts `SOFT_STOP_MAILBOX_TYPES` only (excludes hybrids).
 2. Add stable `mailbox_id` ownership (generation via `f"mb-{turn}-{seq}"` with per-turn counter on WorldState, serialization, presence on all mailbox-eligible dialogue types including `counter_offer_response` from advance_turn).
 3. Add `GET /mailbox` plus `POST /mailbox/activate` (with cache invalidation for `incoming_proposal_popup`, activation guard for `HARD_STOP` / `HYBRID_SOFT_STOP` / `LOCAL_PLANNING`, re-queue with preserved `turn_created`). Lock ordering semantics with tests.
-4. Address `clear_stale` timeout for deferred items and queue-owned expiry semantics — extend timeout, add `deferred_by_player` flag, add visible expiry indicator, or explicitly remove mailbox expiry; do not leave active-vs-queued items on different implicit lifetime rules.
+4. Remove generic `clear_stale` timeout behavior for mailbox items and keep mailbox lifetime semantics inside the inbox contract. If explicit expiry is ever added later, make it per-item, visible in the inbox payload/UI, and logged.
 5. Build the Godot mailbox panel/list. Wire mailbox button -> inbox open/close. Replace `_dismissed_proposal_nation` with panel-aware suppression. Add type→popup dispatch for `conflict_alert`.
 6. Keep local defer behavior, but make inbox selection the authoritative "open this specific item" path.
 7. Fix `/pending_envoy` shape and active-item-only backward-compat semantics so queued-only / hard-stop-plus-queue states are handled through `GET /mailbox`, not arbitrary queue reopening.
