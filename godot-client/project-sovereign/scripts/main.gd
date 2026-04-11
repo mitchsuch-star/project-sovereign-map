@@ -95,6 +95,7 @@ var _cached_coalition_data = null
 var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
 var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Ask Later"
+var _pending_envoy_request_active: bool = false
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -2875,35 +2876,41 @@ func _on_screen_changed(screen_name: String):
 
 func _on_envoy_clicked():
 	"""Handle envoy indicator click — PL-27: reopen pending proposal popup."""
+	if _pending_envoy_request_active:
+		return
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
-	set_input_enabled(false)
+	_pending_envoy_request_active = true
 	api_client.get_pending_envoy(_on_pending_envoy_result)
 
 func _on_pending_envoy_result(response: Dictionary):
 	"""Handle pending envoy recovery endpoint response."""
-	if not response.get("success", false) or not response.get("has_pending", false):
-		set_input_enabled(true)
+	_pending_envoy_request_active = false
+	if not response.get("success", false):
+		add_output("[color=#d9c08c]%s[/color]" % str(
+			response.get("message", "Unable to reach the envoy at this time.")
+		))
+		return
+	if not response.get("has_pending", false):
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
 		return
 	var dtype = response.get("dialogue_type", "")
 	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response"]:
 		var proposal_data = response.get("incoming_proposal", {})
 		if incoming_proposal_popup and proposal_data.size() > 0:
+			set_input_enabled(false)
 			incoming_proposal_popup.show_proposal(proposal_data)
 			# Input stays DISABLED — popup is modal, choice handler re-enables
 		else:
-			set_input_enabled(true)
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
 	elif dtype == "conflict_alert":
 		var dialogue = response.get("diplomatic_dialogue", {})
 		if proposal_confirm_popup and dialogue.size() > 0:
+			set_input_enabled(false)
 			proposal_confirm_popup.show_dialogue(dialogue)
 			# Input stays DISABLED — popup is modal
 		else:
-			set_input_enabled(true)
 			add_output("[color=#d9c08c]A diplomatic alert is pending.[/color]")
 	else:
-		set_input_enabled(true)
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
 
 
