@@ -210,7 +210,7 @@
 - The player can inspect and choose a specific pending diplomacy item when `Mailbox (2+)` is present.
 - Clicking a queued mailbox row opens that chosen item, not whichever proposal happens to be active already.
 - Delayed replies still work via typed popup buttons and through `/command` for `1/2/3`, `accept`, `counter`, and `reject`.
-- `/pending_envoy` returns popup-safe data in the same display shape expected by `incoming_proposal_popup.gd`.
+- `/pending_envoy` returns popup-safe data in the same display shape expected by `incoming_proposal_popup.gd` when an active reopenable mailbox item exists.
 - Badge count and recovery behavior stay in sync for:
   - active soft-stop only
   - queued proposal only
