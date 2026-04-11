@@ -94,6 +94,7 @@ var _cached_wars: Array = []
 var _cached_coalition_data = null
 var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
+var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Ask Later"
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -671,10 +672,12 @@ func _on_command_result(response):
 
 	# Priority 6: Incoming Proposal Popup (Session 8C)
 	if response.has("incoming_proposal") and response.incoming_proposal != null:
-		if incoming_proposal_popup:
-			incoming_proposal_popup.show_proposal(response.incoming_proposal)
-			_process_active_wars(response)
-			return
+		var _prop_nation = response.incoming_proposal.get("from_nation", "")
+		if _prop_nation != _dismissed_proposal_nation:
+			if incoming_proposal_popup:
+				incoming_proposal_popup.show_proposal(response.incoming_proposal)
+				_process_active_wars(response)
+				return
 
 	# Priority 6.25: Proposal Result Popup (PL-5A — proposal outcome)
 	if response.has("proposal_result") and response.proposal_result != null:
@@ -2769,6 +2772,13 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal.
 	PL-27: Uses typed dialogue response instead of synthesized command."""
 	var from_nation = data.get("from_nation", "Unknown")
+	if choice == "dismiss":
+		# PL-27 Mailbox UX: Hide popup, keep proposal in backend for later
+		_dismissed_proposal_nation = from_nation
+		add_output("[color=#d9c08c]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
 	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [from_nation, choice])
 	set_input_enabled(false)
 	api_client.send_dialogue_response(choice, _on_command_result)
@@ -2865,13 +2875,14 @@ func _on_screen_changed(screen_name: String):
 
 func _on_envoy_clicked():
 	"""Handle envoy indicator click — PL-27: reopen pending proposal popup."""
+	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	set_input_enabled(false)
 	api_client.get_pending_envoy(_on_pending_envoy_result)
 
 func _on_pending_envoy_result(response: Dictionary):
 	"""Handle pending envoy recovery endpoint response."""
-	set_input_enabled(true)
 	if not response.get("success", false) or not response.get("has_pending", false):
+		set_input_enabled(true)
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
 		return
 	var dtype = response.get("dialogue_type", "")
@@ -2879,15 +2890,20 @@ func _on_pending_envoy_result(response: Dictionary):
 		var proposal_data = response.get("incoming_proposal", {})
 		if incoming_proposal_popup and proposal_data.size() > 0:
 			incoming_proposal_popup.show_proposal(proposal_data)
+			# Input stays DISABLED — popup is modal, choice handler re-enables
 		else:
+			set_input_enabled(true)
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
 	elif dtype == "conflict_alert":
 		var dialogue = response.get("diplomatic_dialogue", {})
 		if proposal_confirm_popup and dialogue.size() > 0:
 			proposal_confirm_popup.show_dialogue(dialogue)
+			# Input stays DISABLED — popup is modal
 		else:
+			set_input_enabled(true)
 			add_output("[color=#d9c08c]A diplomatic alert is pending.[/color]")
 	else:
+		set_input_enabled(true)
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
 
 

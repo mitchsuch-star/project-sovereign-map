@@ -14,6 +14,7 @@ signal choice_made(choice: String, data: Dictionary)
 @onready var accept_btn = $PanelContainer/VBoxContainer/ButtonContainer/AcceptButton
 @onready var counter_btn = $PanelContainer/VBoxContainer/ButtonContainer/CounterButton
 @onready var reject_btn = $PanelContainer/VBoxContainer/ButtonContainer/RejectButton
+@onready var dismiss_btn = $PanelContainer/VBoxContainer/ButtonContainer/DismissButton
 
 # Display name mapping for proposal types
 const PROPOSAL_TYPE_DISPLAY = {
@@ -36,6 +37,7 @@ func _ready():
 	accept_btn.pressed.connect(_on_accept)
 	counter_btn.pressed.connect(_on_counter)
 	reject_btn.pressed.connect(_on_reject)
+	dismiss_btn.pressed.connect(_on_dismiss)
 	# Cache default border color for normal proposals
 	_default_border_color = panel_style.border_color
 
@@ -93,6 +95,7 @@ func show_proposal(data: Dictionary):
 	counter_btn.visible = not is_counter
 	counter_btn.disabled = is_counter
 	reject_btn.disabled = false
+	dismiss_btn.disabled = false
 	# Button labels adapt to context
 	accept_btn.text = "Accept Terms" if is_counter else "Accept"
 	reject_btn.text = "Reject Terms" if is_counter else "Reject"
@@ -113,7 +116,13 @@ func _on_reject():
 	hide()
 	choice_made.emit("reject", current_data)
 
+func _on_dismiss():
+	_disable_buttons()
+	hide()
+	choice_made.emit("dismiss", current_data)
+
 func _disable_buttons():
 	accept_btn.disabled = true
 	counter_btn.disabled = true
 	reject_btn.disabled = true
+	dismiss_btn.disabled = true
