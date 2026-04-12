@@ -26,13 +26,16 @@ This is a real usability pass, but it is not a new PL item. It stays deliberatel
 
 - No new PL item.
 - No widening into popup queue architecture or registry cleanup.
+- Reuse the existing backend-owned notification system for persistent informational notices. Do not create a second frontend-only notice cache or local notice store.
 - No backend display-label ownership work beyond text needed for this pass.
+- No new Godot-side proposal / clause / notice display maps. Reuse backend-provided labels, notification types, and mailbox summaries instead of adding more local formatting ownership ahead of `PL-32`.
 - Keep true choice-driven diplomacy modal:
   - `incoming_proposal`
   - `counter_offer`
   - `counter_offer_response`
   - objections
   - clarification / interrupt flows
+- Keep `conflict_alert` out of the Envoys tray / mailbox. It remains a local planning warning, not an AI envoy item.
 - Restrict this pass to light presentation and interaction improvements that reduce friction on the current UI.
 
 ---
@@ -98,13 +101,13 @@ Primary targets:
 Direction:
 
 - stop treating these as full blocking modals
-- surface them through a lighter persistent notice path
+- surface them through a lighter persistent notice path owned by the existing notification / notice system
 - keep them visible / reviewable until acknowledged
 - do not disable command input just because one of these notices appeared
 
 Presentation target:
 
-- compact notice card or drawer item tied to the notification / notice rail
+- compact notice card or drawer item tied to the notification / Imperial box rail
 - click to expand detail
 - explicit dismiss / acknowledge action
 
@@ -112,6 +115,9 @@ Contract rule:
 
 - if a notice is informational only, it should not block control
 - if a surface requires an actual decision, it remains modal
+- if an informational notice is directly related to the blocking popup currently on screen, fold that information into the popup instead of spawning a separate rail item
+- if an informational notice is unrelated to the current blocking popup, queue it into the Imperial box / notice rail and surface it after that popup is dismissed
+- do not use this pass to invent a new popup-precedence registry; keep the rule explicit and narrow
 
 ### B. Move the notification interaction out of the top bar traffic lane
 
@@ -130,7 +136,7 @@ Minimum behavior changes:
 
 Light semantic upgrade:
 
-- improve icon meaning beyond plain `!!`, `!`, `i`
+- improve icon meaning beyond plain `!!`, `!`, `i` by using the existing backend notification `type` / priority contract, not by inventing new frontend-owned proposal label maps
 - preserve the existing priority model, but make the categories easier to distinguish at a glance
 
 ### C. Add direct `Open Envoys` recovery actions wherever the UI warns about pending envoys
@@ -146,6 +152,8 @@ Direction:
 - warning copy should be paired with a direct recovery button
 - if exactly one envoy is pending, direct reopen remains acceptable
 - if 2+ are pending, route into the mailbox panel
+- in the diplomacy wizard, `Open Envoys` closes the wizard first, then opens the envoy tray
+- the end-turn warning should expose a real `Open Envoys` action, not only instructional copy telling the player to click elsewhere
 
 ### D. Rebuild the mailbox list as real rows instead of one BBCode block
 
@@ -165,6 +173,9 @@ Behavior:
 - selecting the active row reopens it
 - selecting a waiting row activates and opens it
 - empty state remains deterministic
+- tray contents remain limited to current-turn AI offer items (`incoming_proposal`, `counter_offer`, `counter_offer_response`)
+- `conflict_alert` remains outside this panel and continues to route through the local planning popup path
+- use the backend-provided mailbox `summary` field for the one-line summary instead of adding new frontend summary formatting logic
 
 This should stay inside the existing mailbox contract. Do not widen this into queue logic changes.
 
@@ -177,6 +188,16 @@ Ship if time permits inside the same session:
 - add simple expand / collapse affordance to campaign-log turn headers
 
 These are intentionally low-risk and should not delay the higher-value notice / envoy fixes.
+
+---
+
+## Contract Clarifications
+
+- `proposal_result` and `coalition_declaration` should persist via the existing backend notification / notice contract, with only the narrow payload support needed for richer rail rendering.
+- The Imperial box / notice rail is the persistent home for unrelated informational notices in this pass.
+- Related informational context may be folded into an already-open blocking popup instead of generating a separate simultaneous rail item.
+- `conflict_alert` is a player-initiated warning about a diplomatically conflicting action. It is local planning, not an AI envoy, so it does not belong in the Envoys tray, does not lapse like an unanswered offer, and does not create mailbox count noise.
+- This pass may reuse existing backend fields and notification `type` data, but it must not become a general popup-routing cleanup or a display-ownership rewrite ahead of `PL-32`.
 
 ---
 
@@ -256,6 +277,9 @@ Required manual checks:
 4. Trigger pending envoys, open the diplomacy wizard, and confirm the warning includes an actionable `Open Envoys` path.
 5. Open dispatch with pending envoys and confirm the same recovery affordance exists there.
 6. Populate the mailbox with 2+ items and confirm the player can identify and select the intended row quickly.
-7. Confirm real choice-driven popups still remain modal.
+7. Trigger a blocking popup plus related informational context and confirm the context is folded into that popup rather than surfacing as a second simultaneous rail item.
+8. Trigger an unrelated informational notice while a blocking popup is active and confirm it appears in the Imperial box / notice rail only after the blocker is dismissed.
+9. Confirm `conflict_alert` still routes through the local planning popup path and does not appear in Envoys / mailbox count.
+10. Confirm real choice-driven popups still remain modal.
 
 Light automated coverage is acceptable where UI helpers can be tested cheaply, but this session should not stall on building new test harnesses.
