@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 7 scale-sensitive backend hardening complete: player-nation defaults now route through shared nation config, scale-sensitive AI enemy queries use cached fog-aware helper seams, and scenario validation now rejects unsupported nation rosters before load. 135 targeted regression tests passed across Session 7/backend hardening plus diplomacy/dispatch audit suites, and manual scenario-loader validation passed for the temp-dir-blocked `tmp_path` cases.)
+> **Last Updated:** April 12, 2026 (Session 7 scale-sensitive backend hardening complete: player-nation defaults now route through shared nation config, scale-sensitive AI enemy queries use cached fog-aware helper seams, and scenario validation now rejects unsupported nation rosters before load. 135 targeted regression tests passed across Session 7/backend hardening plus diplomacy/dispatch audit suites, manual scenario-loader validation passed for the temp-dir-blocked `tmp_path` cases, and the active Session 8 routing note below now explicitly distinguishes current work from older archival Phase 8 milestone labels later in this file.)
 
 ---
 
@@ -39,6 +39,8 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
 **Current Session 7 progress:** COMPLETE. `backend/nation_config.py` now centralizes scenario/runtime nation defaults, non-France campaigns preserve their player nation through world init + `/new_game` reset paths, diplomacy/advisory/template/defiance flows now derive state and proposal ownership from `world.player_nation`, enemy AI scale-sensitive contact scans route through cached fog-aware helper seams, and modding/scenario validation now fails unsupported nation rosters before load.
+
+**Routing note:** later references in this file to older "Session 7", "Session 8", or "Session 8A" Phase 8 diplomacy milestones are archival implementation history. They do not override the active post-bug routing above, which is currently Session 8 renderer cutover prep and replacement.
 
 **Implementation sessions in current order:**
 
