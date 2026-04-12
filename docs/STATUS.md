@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 6 slice 2 landed: typed dialogue migration is now complete for the remaining Godot diplomacy popups. Talleyrand objections, sabotage discovery, and vassal rebellion no longer synthesize English commands; 159 targeted regression tests passed across response-pipeline, endpoint-wiring, dialogue-gap, popup, and playtest suites. Popup routing registry cleanup is next.)
+> **Last Updated:** April 12, 2026 (Session 6 slice 3 landed: `main.gd` now routes modal response precedence through ordered registries instead of the inline early-return cascade. 81 targeted regression tests passed across response-pipeline, deep-audit, and popup-registry enforcement suites. Turn-manager popup-flush workaround cleanup is next.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **159 targeted regression tests** passed in this slice (`tests/test_response_pipeline.py`, `tests/test_endpoint_wiring.py`, `tests/test_dialogue_gaps.py`, `tests/test_deep_audit_session6.py`, `tests/test_phase4_batch5_popups.py`, `tests/test_playtest_bugfixes.py`). |
-| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. Session 6 is now **IN PROGRESS**: the `/command` response-pipeline slice and typed dialogue migration slice are complete. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - the bug-fix queue is closed, the Session 6 response-pipeline and typed-dialogue slices are in, and popup routing registry cleanup is the next implementation step. |
+| **Tests Passing** | **81 targeted regression tests** passed in this slice (`tests/test_popup_routing_registry.py`, `tests/test_response_pipeline.py`, `tests/test_deep_audit_session6.py`). |
+| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. Session 6 is now **IN PROGRESS**: the `/command` response-pipeline slice, typed dialogue migration slice, and popup routing registry slice are complete. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - the bug-fix queue is closed, and the remaining Session 6 implementation step is turn-manager popup-flush workaround cleanup. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -38,15 +38,17 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
-**Current Session 6 progress:** `/command` now builds its base payload through `build_base_response()` with explicit enemy-phase deferral flags, and the remaining Godot diplomacy popups now use typed responses instead of parser-dependent English command synthesis.
+**Current Session 6 progress:** `/command` now builds its base payload through `build_base_response()` with explicit enemy-phase deferral flags, the remaining Godot diplomacy popups now use typed responses instead of parser-dependent English command synthesis, and `main.gd` modal precedence now runs through ordered response-route registries instead of the inline early-return chain.
 
-**Next up inside Session 6:** popup routing registry cleanup in `main.gd`, then turn-manager popup-flush workaround removal. The typed-dialogue queue is now complete: `incoming_proposal`, `alliance_paradox`, `talleyrand_objection`, `sabotage_discovery`, and `vassal_rebellion` all route through typed endpoints/actions.
+**Next up inside Session 6:** turn-manager popup-flush workaround removal, then the remaining `/command` manual-field-layering reduction work plus a positive regression proving notifications are still included during enemy-phase responses while choice popups remain deferred.
 
-**Queued audit follow-up for that next commit:** fold in the remaining `/command` manual-field-layering reduction work (the current maintenance seam on the main response path) and add a positive regression test proving notifications are still included during enemy-phase responses while choice popups remain deferred.
+**Queued audit follow-up for this slice:** audit the new registry-driven `main.gd` modal ordering before any commit/push handoff, then move on to the remaining `/command` manual-field-layering reduction work. Audit prompt: `docs/SESSION6_POPUP_ROUTING_AUDIT_PROMPT.md`.
 
 Session 6 slice 1 landed as planned: `build_base_response()` now owns `active_wars` as well as the standard gameplay envelope, and `/command` now starts from that shared builder with explicit flags that preserve popup/notification deferral for enemy-phase responses.
 
 Session 6 slice 2 landed next: added a typed `/respond_to_diplomatic_objection` path for Talleyrand objections, migrated the remaining Godot diplomacy popup handlers off synthesized commands, and added regression coverage for direct objection proceed flow plus the enemy-phase deferred-popup follow-up path. Audit prompt: `docs/SESSION6_TYPED_DIALOGUE_AUDIT_PROMPT.md`.
+
+Session 6 slice 3 landed next: replaced the `main.gd` popup early-return cascade with ordered route registries plus a shared dispatcher, kept objection/glorious-charge precedence ahead of `_sync_response_hud()`, and added source-level enforcement coverage so future popup additions extend the registry instead of reopening `_on_command_result()`. Audit prompt: `docs/SESSION6_POPUP_ROUTING_AUDIT_PROMPT.md`.
 
 **Implementation sessions in current order:**
 
@@ -60,7 +62,7 @@ Session 6 slice 2 landed next: added a typed `/respond_to_diplomatic_objection` 
 | Session 3 | Diplomacy display contract | `PL-32` | **COMPLETE** |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **COMPLETE** |
 | Session 5 | Restart flow | `PL-29` | **COMPLETE** |
-| Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup | **IN PROGRESS** (`/command` response pipeline COMPLETE; typed dialogue migration COMPLETE; popup routing registry cleanup queued next) |
+| Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup | **IN PROGRESS** (`/command` response pipeline COMPLETE; typed dialogue migration COMPLETE; popup routing registry COMPLETE; turn-manager popup flush workaround cleanup queued next) |
 
 ### 3. Architecture Hardening (before full-map work)
 
@@ -72,7 +74,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 | `/command` response pipeline | **FIXED Apr 12, 2026 (Session 6 slice 1).** Main path now starts from `build_base_response()` with explicit popup/notification deferral flags. | This session |
 | AI fog-aware queries | Omniscient AI queries at scale = unfair + expensive | ARCHITECTURE_REFACTORING_PLAN.md (R14a-d) |
 | Hardcoded nation defaults | Inline dicts in world_state.py won't scale | ARCHITECTURE_REFACTORING_PLAN.md |
-| Popup routing registry | `main.gd` early-return chain, not data-driven | ARCHITECTURE_REFACTORING_PLAN.md |
+| Popup routing registry | **FIXED Apr 12, 2026 (Session 6 slice 3).** `main.gd` now routes modal response precedence through ordered registries plus a shared dispatcher. | This session |
 | Typed dialogue migration | **FIXED Apr 12, 2026 (Session 6 slice 2).** Remaining diplomacy popups now route through typed endpoints/actions, including a dedicated typed objection path. | This session |
 
 **Needs:** A consolidated pre-expansion plan that sequences these items after Sessions 1-5. The GPT audit priority roadmaps in `docs/GPT_AUDIT_PLAN_RESULTS.md` now cover both the broader architecture audit and the focused diplomacy attention / legitimacy audit. No item from this list moved earlier as a full prerequisite for the current bug sessions.
@@ -81,7 +83,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 
 | Session | Scope | Items |
 |---------|-------|-------|
-| Session 6 | Response and popup contract hardening | `/command` response pipeline **COMPLETE**; typed dialogue migration **COMPLETE**; popup routing registry cleanup queued next; turn-manager popup flush workaround cleanup still pending |
+| Session 6 | Response and popup contract hardening | `/command` response pipeline **COMPLETE**; typed dialogue migration **COMPLETE**; popup routing registry **COMPLETE**; turn-manager popup flush workaround cleanup still pending |
 | Session 7 | Scale-sensitive backend hardening | AI fog-aware queries, hardcoded nation defaults, config-completeness and large-scenario validation tests |
 | Session 8 | Renderer cutover prep and replacement | Map renderer replacement on the current 19-region map or placeholder assets; keep `update_all_regions(map_data)` stable during swap |
 

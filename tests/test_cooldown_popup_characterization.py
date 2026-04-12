@@ -194,9 +194,10 @@ class TestPopupPassthroughCharacterization:
         assert len(world.dialogue_manager._queue) == 1
 
     def test_active_wars_included(self):
-        """active_wars field included in response."""
+        """active_wars field included in response via build_base_response."""
+        from backend.main import build_base_response
         world = WorldFactory.basic()
-        response = self._call_passthroughs(world)
+        response = build_base_response(world)
         assert "active_wars" in response
 
 

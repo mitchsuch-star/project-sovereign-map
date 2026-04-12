@@ -19,8 +19,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — 4 OPEN.** Sessions 1-2 + follow-up COMPLETE (PL-30/31/27/34 FIXED, PL-33 CLOSED, mailbox panel built). Session 3 (PL-32) is NEXT. Remaining: PL-26/28/29/32. See `docs/BUG_FIXES.md`.
-- **Design Refinement — NEXT.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
+- **Bug Fixes — COMPLETE.** The frozen PL queue is closed. Session 6 architecture follow-up is still in progress: `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry COMPLETE. Turn-manager popup-flush workaround cleanup is NEXT. See `docs/STATUS.md` and `docs/BUG_FIXES.md`.
+- **Design Refinement — AFTER Session 6 follow-up.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 - **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.

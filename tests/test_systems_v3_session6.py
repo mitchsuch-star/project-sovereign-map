@@ -156,12 +156,11 @@ class TestActiveWarsWithEnemyPhase:
         assert "active_wars" in response
 
     def test_active_wars_present_without_enemy_phase(self):
-        """active_wars included via _include_popup_passthroughs when no enemy_phase."""
-        from backend.main import _include_popup_passthroughs
+        """active_wars included via build_base_response when no enemy_phase."""
+        from backend.main import build_base_response
 
         w = make_world()
-        response = {}
-        _include_popup_passthroughs(response, w)
+        response = build_base_response(w)
 
         assert "active_wars" in response
 

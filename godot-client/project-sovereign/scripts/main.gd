@@ -9,6 +9,20 @@ extends Control
 
 # Set to true for verbose debug logging in editor
 const DEBUG_VERBOSE := false
+const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
+	"proposal_confirm",
+	"pushback_confirm",
+	"proposal_execute",
+	"proposal_options",
+	"mission",
+	"feasibility",
+	"advisory",
+	"force_declare_war_confirmation",
+	"conflict_alert",
+	"terms_guidance",
+	"ultimatum_confirm",
+	"ultimatum_demand_wizard",
+]
 
 # UI References - Header Status
 @onready var turn_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
@@ -96,6 +110,8 @@ var _pending_envoy_request_active: bool = false
 var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
+var _pre_hud_response_routes: Array = []
+var _post_hud_response_routes: Array = []
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -206,6 +222,8 @@ func _ready():
 	alliance_paradox_popup = dialog_manager.register("alliance_paradox", "res://scenes/alliance_paradox_popup.tscn")
 	if alliance_paradox_popup:
 		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
+
+	_configure_response_routes()
 
 	# Diplomacy wizard
 	diplomacy_wizard = dialog_manager.register("diplomacy_wizard", "res://scenes/diplomacy_wizard.tscn")
@@ -645,6 +663,158 @@ func _execute_command():
 	# Send to backend
 	api_client.send_command(command, _on_command_result)
 
+func _configure_response_routes():
+	"""Centralize modal response ordering for _on_command_result()."""
+	# Order in these arrays is the precedence contract.
+	_pre_hud_response_routes = [
+		{"id": "objection", "matches": "_response_has_objection_route", "show": "_route_objection_response"},
+		{"id": "glorious_charge", "matches": "_response_has_glorious_charge_route", "show": "_route_glorious_charge_response"},
+	]
+	_post_hud_response_routes = [
+		{"id": "alliance_paradox", "matches": "_response_has_alliance_paradox_route", "show": "_route_alliance_paradox_response"},
+		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
+		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
+		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
+		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
+		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
+		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
+		{"id": "diplomatic_sabotage", "matches": "_response_has_sabotage_route", "show": "_route_sabotage_response"},
+		{"id": "vassal_rebellion", "matches": "_response_has_vassal_rebellion_route", "show": "_route_vassal_rebellion_response"},
+		{"id": "redemption_event", "matches": "_response_has_redemption_route", "show": "_route_redemption_response"},
+	]
+
+func _route_response_ui(response: Dictionary, routes: Array) -> bool:
+	"""Run the first matching response route and keep the precedence policy data-driven."""
+	for route in routes:
+		var matches_method = str(route.get("matches", ""))
+		if matches_method == "" or not call(matches_method, response):
+			continue
+		var show_method = str(route.get("show", ""))
+		if show_method == "":
+			continue
+		if DEBUG_VERBOSE:
+			print("RESPONSE ROUTE MATCHED: ", route.get("id", "unknown"))
+		call(show_method, response)
+		_process_active_wars(response)
+		return true
+	return false
+
+func _response_has_objection_route(response: Dictionary) -> bool:
+	var is_tactical_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
+	var is_strategic_objection = response.get("success", false) and response.has("pending_objection") and response.pending_objection == true
+	if DEBUG_VERBOSE:
+		print("4. IS_OBJECTION CHECK: tactical=", is_tactical_objection, " strategic=", is_strategic_objection, " => ", is_tactical_objection or is_strategic_objection)
+	return is_tactical_objection or is_strategic_objection
+
+func _route_objection_response(response: Dictionary):
+	if DEBUG_VERBOSE:
+		print("5. OBJECTION DETECTED - About to show dialog")
+	_show_objection_dialog(response)
+
+func _response_has_glorious_charge_route(response: Dictionary) -> bool:
+	return response.has("pending_glorious_charge") and response.pending_glorious_charge
+
+func _route_glorious_charge_response(response: Dictionary):
+	if DEBUG_VERBOSE:
+		print("GLORIOUS CHARGE CONDITION MET")
+	_show_glorious_charge_dialog(response)
+
+func _response_has_alliance_paradox_route(response: Dictionary) -> bool:
+	return (
+		response.has("alliance_paradox_popup")
+		and response.alliance_paradox_popup != null
+		and alliance_paradox_popup != null
+	)
+
+func _route_alliance_paradox_response(response: Dictionary):
+	alliance_paradox_popup.show_paradox(response.alliance_paradox_popup)
+
+func _response_has_capture_choice_route(response: Dictionary) -> bool:
+	return response.has("pending_capture_choice") and response.pending_capture_choice
+
+func _route_capture_choice_response(response: Dictionary):
+	_show_capture_choice_dialog(response)
+
+func _response_has_diplomatic_objection_route(response: Dictionary) -> bool:
+	return (
+		response.has("diplomatic_objection")
+		and response.diplomatic_objection != null
+		and talleyrand_objection_popup != null
+	)
+
+func _route_diplomatic_objection_response(response: Dictionary):
+	talleyrand_objection_popup.show_objection(response.diplomatic_objection)
+
+func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
+	if not response.has("incoming_proposal") or response.incoming_proposal == null or incoming_proposal_popup == null:
+		return false
+	var proposal_nation = response.incoming_proposal.get("from_nation", "")
+	return proposal_nation != _dismissed_proposal_nation
+
+func _route_incoming_proposal_response(response: Dictionary):
+	incoming_proposal_popup.show_proposal(response.incoming_proposal)
+
+func _response_has_proposal_confirm_route(response: Dictionary) -> bool:
+	return response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null and proposal_confirm_popup != null
+
+func _route_proposal_confirm_response(response: Dictionary):
+	var dialogue = response.diplomatic_dialogue
+	var dtype = dialogue.get("type", "")
+	if dtype not in PROPOSAL_CONFIRM_DIALOGUE_TYPES:
+		push_warning("Unknown diplomatic_dialogue dtype: '%s' - showing as popup (add to PROPOSAL_CONFIRM_DIALOGUE_TYPES)" % dtype)
+	proposal_confirm_popup.show_dialogue(dialogue)
+
+func _response_has_clarification_route(response: Dictionary) -> bool:
+	return response.has("state") and response.state == "awaiting_clarification"
+
+func _route_clarification_response(response: Dictionary):
+	_show_clarification_popup(response)
+
+func _response_has_interrupt_route(response: Dictionary) -> bool:
+	return response.has("pending_interrupt") and response.pending_interrupt
+
+func _route_interrupt_response(response: Dictionary):
+	_show_interrupt_popup(response.pending_interrupt)
+
+func _response_has_sabotage_route(response: Dictionary) -> bool:
+	return (
+		response.has("diplomatic_sabotage")
+		and response.diplomatic_sabotage != null
+		and sabotage_discovery_popup != null
+	)
+
+func _route_sabotage_response(response: Dictionary):
+	sabotage_discovery_popup.show_sabotage(response.diplomatic_sabotage)
+
+func _response_has_vassal_rebellion_route(response: Dictionary) -> bool:
+	return (
+		response.has("vassal_rebellion_imminent")
+		and response.vassal_rebellion_imminent != null
+		and vassal_rebellion_popup != null
+	)
+
+func _route_vassal_rebellion_response(response: Dictionary):
+	vassal_rebellion_popup.show_rebellion(response.vassal_rebellion_imminent)
+
+func _response_has_redemption_route(response: Dictionary) -> bool:
+	return response.has("redemption_event") and response.redemption_event != null and not response.has("enemy_phase")
+
+func _route_redemption_response(response: Dictionary):
+	if response.success:
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+		if notification_bar and response.has("notifications"):
+			notification_bar.update_notifications(response.notifications)
+		_display_result(response)
+	_show_redemption_dialog(response.redemption_event)
+
 func _on_command_result(response):
 	"""Handle command execution result."""
 	# ═══════════════════════════════════════════════════════════
@@ -665,146 +835,25 @@ func _on_command_result(response):
 	# Cache response for post-popup war panel refresh (Fix 1)
 	_last_command_response = response
 
-	# Check for marshal objection FIRST (before re-enabling input)
-	# Tactical objections: state == "awaiting_player_choice"
-	# Strategic objections (Phase M): pending_objection == true
-	var is_tactical_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
-	var is_strategic_objection = response.get("success", false) and response.has("pending_objection") and response.pending_objection == true
-	var is_objection = is_tactical_objection or is_strategic_objection
-	if DEBUG_VERBOSE:
-		print("4. IS_OBJECTION CHECK: tactical=", is_tactical_objection, " strategic=", is_strategic_objection, " => ", is_objection)
-
-	if is_objection:
-		if DEBUG_VERBOSE:
-			print("5. OBJECTION DETECTED - About to show dialog")
-		_show_objection_dialog(response)
-		_process_active_wars(response)
+	if _route_response_ui(response, _pre_hud_response_routes):
 		return  # Don't re-enable input or continue processing
-
-	if response.has("pending_glorious_charge") and response.pending_glorious_charge:
-		if DEBUG_VERBOSE:
-			print("GLORIOUS CHARGE CONDITION MET")
-		_show_glorious_charge_dialog(response)
-		_process_active_wars(response)
-		return  # Don't re-enable input until choice made
 
 	_sync_response_hud(response)
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
 	# Informational-only coalition declarations now route through the notice rail.
 
-	# Priority 3.5: Alliance Paradox Popup (Deep Audit Session 8)
-	if response.has("alliance_paradox_popup") and response.alliance_paradox_popup != null:
-		if alliance_paradox_popup:
-			alliance_paradox_popup.show_paradox(response.alliance_paradox_popup)
-			_process_active_wars(response)
-			return
-
 	# Check for capture choice (Phase 6.2.E: Plunder or Secure)
-	if response.has("pending_capture_choice") and response.pending_capture_choice:
-		_show_capture_choice_dialog(response)
-		_process_active_wars(response)
-		return  # Don't re-enable input until choice made
-
 	# Check for load dialog request (Phase 6: Save/Load)
 	if response.has("show_load_dialog") and response.show_load_dialog:
 		_show_load_dialog()
-		# Don't return — still show the save list message in terminal
+		# Don't return - still show the save list message in terminal
 
-	# Priority 5: Diplomatic Objection Popup (Session 8C)
-	if response.has("diplomatic_objection") and response.diplomatic_objection != null:
-		if talleyrand_objection_popup:
-			talleyrand_objection_popup.show_objection(response.diplomatic_objection)
-			_process_active_wars(response)
-			return
-
-	# Priority 6: Incoming Proposal Popup (Session 8C)
-	if response.has("incoming_proposal") and response.incoming_proposal != null:
-		var _prop_nation = response.incoming_proposal.get("from_nation", "")
-		if _prop_nation != _dismissed_proposal_nation:
-			if incoming_proposal_popup:
-				incoming_proposal_popup.show_proposal(response.incoming_proposal)
-				_process_active_wars(response)
-				return
-
-	# Priority 6.25: Proposal Result Popup (PL-5A — proposal outcome)
+	# Priority 6.25: Proposal Result Popup (PL-5A - proposal outcome)
 	# Informational-only proposal results now route through the notice rail.
 
-	# Priority 6.5: Player-initiated Proposal Confirm Popup
-	# Catches diplomatic_dialogue returned by the outgoing proposal flow.
-	if response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null:
-		var dialogue = response.diplomatic_dialogue
-		var dtype = dialogue.get("type", "")
-		# BUGFIX (Bug 4A): "terms_guidance" is generated by the adjust_terms flow
-		# in executor.py (8 instances). Without this, selecting "Adjust terms"
-		# causes a dead-end where the popup never shows and input stays disabled.
-		# See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-		# PL-14: Catch-all — show ANY diplomatic dialogue as a popup.
-		# If a new dtype is added to the backend but not listed here,
-		# it still shows as a popup instead of silently falling to terminal.
-		if dtype in ["proposal_confirm", "pushback_confirm", "proposal_execute", "proposal_options",
-			"mission", "feasibility", "advisory",
-			"force_declare_war_confirmation", "conflict_alert",
-			"terms_guidance", "ultimatum_confirm", "ultimatum_demand_wizard"]:
-			if proposal_confirm_popup:
-				proposal_confirm_popup.show_dialogue(dialogue)
-				_process_active_wars(response)
-				return
-		else:
-			# Unknown dialogue type — show it anyway, log warning
-			push_warning("Unknown diplomatic_dialogue dtype: '%s' — showing as popup (add to whitelist)" % dtype)
-			if proposal_confirm_popup:
-				proposal_confirm_popup.show_dialogue(dialogue)
-				_process_active_wars(response)
-				return
-
-	# Check for clarification request (Grouchy/literal marshal)
-	if response.has("state") and response.state == "awaiting_clarification":
-		_show_clarification_popup(response)
-		_process_active_wars(response)
+	if _route_response_ui(response, _post_hud_response_routes):
 		return  # Don't re-enable input until choice made
-
-	# Check for strategic interrupt (blocked path, cannon fire, etc.)
-	if response.has("pending_interrupt") and response.pending_interrupt:
-		_show_interrupt_popup(response.pending_interrupt)
-		_process_active_wars(response)
-		return  # Don't re-enable input until choice made
-
-	# Priority 8: Sabotage Discovery Popup (Session 8C)
-	if response.has("diplomatic_sabotage") and response.diplomatic_sabotage != null:
-		if sabotage_discovery_popup:
-			sabotage_discovery_popup.show_sabotage(response.diplomatic_sabotage)
-			_process_active_wars(response)
-			return
-
-	# Priority 9: Talleyrand Redemption — REMOVED (PL-23: trust system deleted)
-
-	# Priority 10: Vassal Rebellion Imminent Popup (Session 8C)
-	if response.has("vassal_rebellion_imminent") and response.vassal_rebellion_imminent != null:
-		if vassal_rebellion_popup:
-			vassal_rebellion_popup.show_rebellion(response.vassal_rebellion_imminent)
-			_process_active_wars(response)
-			return
-
-	# Check for redemption event (bombardment friendly fire, cavalry, etc.)
-	# End-turn responses with enemy_phase defer redemption to post-enemy-phase flow
-	if response.has("redemption_event") and not response.has("enemy_phase"):
-		if response.success:
-			if response.has("action_summary"):
-				_update_status(response.action_summary)
-			if response.has("game_state") and response.game_state.has("gold"):
-				gold = int(response.game_state.gold)
-				_update_gold_display()
-			if response.has("game_state") and response.game_state.has("manpower_pools"):
-				_apply_manpower(response.game_state.manpower_pools)
-			if response.has("game_state") and response.game_state.has("map_data"):
-				map_area.update_all_regions(response.game_state.map_data)
-			if notification_bar and response.has("notifications"):
-				notification_bar.update_notifications(response.notifications)
-			_display_result(response)
-		_show_redemption_dialog(response.redemption_event)
-		_process_active_wars(response)
-		return  # Don't re-enable input until redemption resolved
 
 	# Re-enable input
 	set_input_enabled(true)
