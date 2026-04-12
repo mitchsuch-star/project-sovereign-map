@@ -211,6 +211,23 @@ class TestBuildBaseResponse:
         response = main_module.build_base_response(fresh_world)
         assert "notifications" not in response
 
+    def test_can_skip_popup_and_notification_consumption(self, fresh_world, main_module):
+        """Session 6: /command can start from the shared builder without draining deferred UI state."""
+        fresh_world.coalition_popup = {"type": "coalition_formed", "leader": "Austria"}
+        fresh_world.notifications.add({"id": "test_notif", "text": "Test!", "priority": "NORMAL"})
+
+        response = main_module.build_base_response(
+            fresh_world,
+            include_popup_passthroughs=False,
+            queue_informational_notices=False,
+            include_notifications=False,
+        )
+
+        assert "coalition_popup" not in response
+        assert "notifications" not in response
+        assert fresh_world.coalition_popup == {"type": "coalition_formed", "leader": "Austria"}
+        assert fresh_world.notifications.has_pending() is True
+
     def test_talleyrand_state_label(self, fresh_world, main_module):
         """Talleyrand state should be a trust label string."""
         response = main_module.build_base_response(fresh_world)
@@ -276,6 +293,26 @@ class TestBuildResultResponse:
 
 class TestCommandEndpointDiplomaticFields:
     """Verify /command responses include diplomatic top-bar fields."""
+
+    def test_successful_command_uses_shared_builder_with_deferred_ui_flags(self, client, fresh_world, main_module, monkeypatch):
+        """Session 6: the main /command path should start from build_base_response()."""
+        calls = []
+        original = main_module.build_base_response
+
+        def _spy_build_base_response(world, *args, **kwargs):
+            calls.append(kwargs.copy())
+            return original(world, *args, **kwargs)
+
+        monkeypatch.setattr(main_module, "build_base_response", _spy_build_base_response)
+
+        response = client.post("/command", json={"command": "Ney, scout Belgium"})
+        assert response.status_code == 200
+        assert any(
+            call.get("include_popup_passthroughs") is False
+            and call.get("queue_informational_notices") is False
+            and call.get("include_notifications") is False
+            for call in calls
+        )
 
     def test_scout_has_diplomatic_fields(self, client, fresh_world):
         response = client.post("/command", json={"command": "Ney, scout Belgium"})

@@ -159,23 +159,32 @@ def _get_talleyrand_mission_summary(w) -> str:
 
 
 def build_base_response(world, success: bool = True, message: str = "",
-                        events: list = None, **extra) -> dict:
+                        events: list = None,
+                        include_popup_passthroughs: bool = True,
+                        queue_informational_notices: bool = True,
+                        include_notifications: bool = True,
+                        **extra) -> dict:
     """Standard response builder. ALL POST endpoints must use this.
 
     Structurally guarantees:
-    - Popup passthroughs (impossible to forget — called inside builder)
+    - Standard gameplay envelope (impossible to forget)
     - Diplomatic top-bar fields (always present, never stale)
+    - War-status payload (`active_wars`) in every gameplay response
     - Game state summary (always present)
-    - Notifications (always present when pending)
+    - Optional popup passthroughs / notice queuing / notification draining
+      for endpoints that need to defer those surfaces temporarily
 
     Endpoint-specific fields passed as **extra.
     """
+    from backend.game_logic.war_status import build_active_wars
+
     response = {
         "success": success,
         "message": message,
         "events": events if events is not None else [],
         "game_state": world.get_filtered_game_state_summary(),
         "action_summary": world.get_action_summary(),
+        "active_wars": build_active_wars(world),
         # Diplomatic top-bar fields — present in EVERY gameplay response
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
@@ -190,10 +199,12 @@ def build_base_response(world, success: bool = True, message: str = "",
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }
     response.update(extra)
-    _include_popup_passthroughs(response, world)
-    _queue_informational_diplomacy_notices(response, world)
+    if include_popup_passthroughs:
+        _include_popup_passthroughs(response, world)
+    if queue_informational_notices:
+        _queue_informational_diplomacy_notices(response, world)
     # Notifications — persistent alerts for Godot notification bar
-    if world.notifications.has_pending():
+    if include_notifications and world.notifications.has_pending():
         response["notifications"] = world.notifications.get_pending()
     return response
 
@@ -212,6 +223,31 @@ def _build_result_response(result: dict, world) -> dict:
         events=extra.pop("events", []),
         **extra
     )
+
+
+def _build_command_response(result: dict, world, feedback: dict | None = None) -> dict:
+    """Build the main /command response from the shared base contract.
+
+    /command still has one legitimate divergence from the default builder:
+    when enemy_phase is present, choice-requiring popups are deferred so Godot
+    can show the end-turn report first. Start from build_base_response() and
+    layer only that specialized post-processing afterward.
+    """
+    response = build_base_response(
+        world,
+        success=result.get("success", False),
+        message=result.get("message", "Command executed"),
+        events=result.get("events", []),
+        include_popup_passthroughs=False,
+        queue_informational_notices=False,
+        include_notifications=False,
+        action_info=result.get("action_info", {}),
+        # Turn the enemy phase actually happened on (before advance_turn increments).
+        turn_ended=int(result["turn_ended"]) if "turn_ended" in result else None,
+    )
+    if feedback:
+        response["feedback"] = feedback
+    return response
 
 
 def _derive_proposal_result_outcome(result: dict) -> str:
@@ -348,12 +384,6 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     # V2-89 → R12C: Auto-promote from queue handled by dialogue_manager.pop() auto-promote.
     # Explicit promote_if_empty() covers the case where current is already None.
     world.dialogue_manager.promote_if_empty()
-
-    # War status panel data — embedded in every response (N4f)
-    if "active_wars" not in response:
-        from backend.game_logic.war_status import build_active_wars
-        response["active_wars"] = build_active_wars(world)
-
 
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     """
@@ -861,8 +891,6 @@ def execute_command(request: CommandRequest):
             print("[DIPLOMATIC] Diplomatic dialogue - Returning full result to frontend")
             return _build_result_response(result, world)
 
-        # Get action summary
-        action_summary = world.get_action_summary()
 
         # ════════════════════════════════════════════════════════════
         # FEEDBACK GENERATION (Phase 5): Generate immersive feedback
@@ -902,32 +930,7 @@ def execute_command(request: CommandRequest):
                     if ambiguity_text:
                         feedback["ambiguity"] = ambiguity_text
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Command executed"),
-            "events": result.get("events", []),
-            "action_info": result.get("action_info", {}),
-            "action_summary": action_summary,
-            # Turn the enemy phase actually happened on (before advance_turn increments)
-            "turn_ended": int(result["turn_ended"]) if "turn_ended" in result else None,
-            "game_state": world.get_filtered_game_state_summary(),
-            # Diplomatic top-bar fields — standard set (R4: matches build_base_response)
-            "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
-            "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
-            "talleyrand_state": _get_talleyrand_state_label(world),
-            "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
-            "threat_level": int(getattr(world, 'threat_level', 0)),
-            "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
-            "coalition_brewing_turns": int(
-                world.coalition_brewing.get("turns_remaining", 0)
-            ) if getattr(world, 'coalition_brewing', None) else None,
-            # Session 2 follow-up: Single source of truth for mailbox badge
-            "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
-        }
-
-        # Add feedback if generated
-        if feedback:
-            response["feedback"] = feedback
+        response = _build_command_response(result, world, feedback)
 
         # Save/Load: pass through show_load_dialog flag for Godot
         if result.get("show_load_dialog"):
@@ -1067,9 +1070,6 @@ def execute_command(request: CommandRequest):
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]
 
-        # 2A-2: War status panel — include even when enemy_phase defers popups
-        from backend.game_logic.war_status import build_active_wars
-        response["active_wars"] = build_active_wars(world)
 
         # ════════════════════════════════════════════════════════════
         # PASS-THROUGH: Diplomatic popups (Session 8A + 8C)

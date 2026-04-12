@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (`PL-29` implemented, then hardened with a pause-menu confirmation before `New Campaign` replaces autosave. Sessions 1-5 are now complete and Session 6 is the active next slice.)
+> **Last Updated:** April 12, 2026 (Session 6 slice 1 landed: `/command` now starts from the shared response builder without breaking enemy-phase popup deferral. 80 targeted response-pipeline + endpoint tests passed. Session 6 remains active; typed dialogue migration is next.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **30 targeted restart-flow + endpoint wiring tests** passed in this slice (`tests/test_restart_flow.py`, `tests/test_endpoint_wiring.py`). |
-| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. No OPEN PL items remain in the current fix scope. The immediate next session is Session 6. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - the bug-fix queue is closed and Session 6 is the active next implementation slice. |
+| **Tests Passing** | **80 targeted response-pipeline + endpoint tests** passed in this slice (`tests/test_response_pipeline.py`, `tests/test_endpoint_wiring.py`). |
+| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. Session 6 is now **IN PROGRESS**: the `/command` response-pipeline slice is complete, and typed dialogue migration is next. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - the bug-fix queue is closed, the Session 6 response-pipeline slice is in, and typed dialogue migration is the next implementation step. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -38,9 +38,11 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
-**Next session:** Implement Session 6 - Response and popup contract hardening.
+**Current Session 6 progress:** `/command` now builds its base payload through `build_base_response()` and only layers the enemy-phase/popup deferral rules that genuinely diverge.
 
-Session 5 landed as planned: `POST /new_game` now resets the active world without a backend restart, immediately refreshes autosave, preserves manual saves, and the Godot pause menu now routes restart through the same client-side world-swap hydration/reset path used for load. The save/load path also now resolves files through `save_manager.SAVE_DIR` consistently instead of hardcoding `saves/`. Audit follow-up: the pause menu now requires explicit confirmation before `New Campaign` replaces the current autosave. Audit prompt: `docs/SESSION5_AUDIT_PROMPT.md`.
+**Next up inside Session 6:** typed dialogue migration in Godot (`incoming_proposal`/`alliance_paradox` are already typed; `talleyrand_objection`, `sabotage_discovery`, and `vassal_rebellion` still synthesize commands). After that: popup routing registry cleanup, then turn-manager popup-flush workaround removal.
+
+Session 6 slice 1 landed as planned: `build_base_response()` now owns `active_wars` as well as the standard gameplay envelope, and `/command` now starts from that shared builder with explicit flags that preserve popup/notification deferral for enemy-phase responses. Added regression coverage proving the main `/command` path uses the shared builder and that the builder can skip popup/notification consumption when `/command` needs post-processing. Audit prompt: `docs/SESSION6_RESPONSE_PIPELINE_AUDIT_PROMPT.md`.
 
 **Implementation sessions in current order:**
 
@@ -54,6 +56,7 @@ Session 5 landed as planned: `POST /new_game` now resets the active world withou
 | Session 3 | Diplomacy display contract | `PL-32` | **COMPLETE** |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **COMPLETE** |
 | Session 5 | Restart flow | `PL-29` | **COMPLETE** |
+| Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup | **IN PROGRESS** (`/command` response pipeline COMPLETE; typed dialogue migration next) |
 
 ### 3. Architecture Hardening (before full-map work)
 
@@ -62,7 +65,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 | Item | Summary | Current Home |
 |------|---------|-------------|
 | Map renderer replacement | Circle-based prototype won't scale | ROADMAP.md (art-blocked) |
-| `/command` response pipeline | Main path bypasses `build_base_response()` | ARCHITECTURE_REFACTORING_PLAN.md |
+| `/command` response pipeline | **FIXED Apr 12, 2026 (Session 6 slice 1).** Main path now starts from `build_base_response()` with explicit popup/notification deferral flags. | This session |
 | AI fog-aware queries | Omniscient AI queries at scale = unfair + expensive | ARCHITECTURE_REFACTORING_PLAN.md (R14a-d) |
 | Hardcoded nation defaults | Inline dicts in world_state.py won't scale | ARCHITECTURE_REFACTORING_PLAN.md |
 | Popup routing registry | `main.gd` early-return chain, not data-driven | ARCHITECTURE_REFACTORING_PLAN.md |
@@ -74,7 +77,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 
 | Session | Scope | Items |
 |---------|-------|-------|
-| Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup |
+| Session 6 | Response and popup contract hardening | `/command` response pipeline **COMPLETE**; typed dialogue migration next; popup routing registry + turn-manager popup flush workaround cleanup still pending |
 | Session 7 | Scale-sensitive backend hardening | AI fog-aware queries, hardcoded nation defaults, config-completeness and large-scenario validation tests |
 | Session 8 | Renderer cutover prep and replacement | Map renderer replacement on the current 19-region map or placeholder assets; keep `update_all_regions(map_data)` stable during swap |
 
