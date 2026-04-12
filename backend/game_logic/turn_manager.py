@@ -79,6 +79,8 @@ class TurnManager:
         lapsed_offers = self.world.dialogue_manager.lapse_pending_offers()
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            self.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             for lapse in lapsed_offers:
                 self.world.log_event({
                     "type": "offer_lapsed",

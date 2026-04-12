@@ -356,6 +356,25 @@ class TestOtherEndpointDiplomaticFields:
         assert data["proposal_result"]["outcome"] == "REJECT"
         assert data["proposal_result"]["target_nation"] == "Prussia"
 
+    def test_conflict_alert_dismiss_does_not_spawn_proposal_result(self, client, fresh_world):
+        """Local-planning dismissals must not leak into proposal-result popup fallback."""
+        fresh_world.dialogue_manager.replace({
+            "type": "conflict_alert",
+            "target_nation": "Austria",
+            "talleyrand_text": "This treaty conflicts with an existing alliance.",
+            "options": [{"label": "Dismiss", "action": "dismiss"}],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+
+        response = client.post("/respond_to_diplomatic_dialogue", json={"choice": 1})
+        data = response.json()
+
+        assert data["success"] is True
+        assert data.get("proposal_result") is None
+        assert fresh_world.proposal_result_popup is None
+
     def test_strategic_response_game_over_has_diplomatic_fields(self, client, fresh_world):
         """Strategic response game-over guard should include diplomatic fields."""
         fresh_world.game_over = True

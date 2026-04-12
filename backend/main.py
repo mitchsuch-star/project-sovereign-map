@@ -1211,7 +1211,9 @@ async def respond_to_diplomatic_dialogue(request: dict):
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
-        elif result.get("success") and world.proposal_result_popup is None:
+        elif (result.get("success")
+              and world.proposal_result_popup is None
+              and not result.get("suppress_proposal_result_popup")):
             # PL-14 safety net: If dialogue concluded (no new dialogue pushed)
             # and handler forgot to set proposal_result_popup, create one from
             # the result message so it shows as a Godot popup, not terminal text.

@@ -1445,7 +1445,19 @@ class CommandExecutor:
         # This ensures enemy AI processes its turn (was being skipped before!)
         # Must mirror _execute_end_turn() data capture — see P0-1/2/3 audit.
         # ════════════════════════════════════════════════════════════
-        if action_result.get("should_end_turn", False) and is_player_action:
+        should_auto_end_turn = action_result.get("should_end_turn", False) and is_player_action
+        if should_auto_end_turn and world.dialogue_manager.has_current_turn_offers():
+            notice = (
+                "All actions are spent, but unanswered envoys remain. "
+                "Review them or end the turn explicitly to let them lapse."
+            )
+            if result.get("message"):
+                result["message"] = f"{result['message']} {notice}"
+            else:
+                result["message"] = notice
+            should_auto_end_turn = False
+
+        if should_auto_end_turn:
             from backend.game_logic.turn_manager import TurnManager
 
             # Capture data BEFORE advance_turn() clears it (same as _execute_end_turn)
@@ -1538,7 +1550,12 @@ class CommandExecutor:
 
             # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5, auto-advance path)
             from backend.game_logic.dispatch import build_morning_dispatch
-            result["morning_dispatch"] = build_morning_dispatch(world, tactical_events)
+            lapsed_offers = turn_result.get("lapsed_offers", [])
+            if lapsed_offers:
+                result["lapsed_offers"] = lapsed_offers
+            result["morning_dispatch"] = build_morning_dispatch(
+                world, tactical_events, lapsed_offers=lapsed_offers
+            )
 
             # Autosave at start of new turn (auto-advance path, mirrors _execute_end_turn)
             from backend.save_manager import autosave

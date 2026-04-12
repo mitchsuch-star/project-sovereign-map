@@ -305,6 +305,60 @@ class TestEndTurnDoesNotBlockOnOffers:
         # lapsed_offers come through from turn_result via the response
         assert "lapsed_offers" in result or "morning_dispatch" in result
 
+    def test_lapsing_offer_dismisses_envoy_notification(self):
+        """End-turn lapse should clear stale DIPLOMATIC_PROPOSAL notifications."""
+        from backend.commands.executor import CommandExecutor
+        from backend.notifications import (
+            create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
+        )
+
+        world = _make_world()
+        world.actions_remaining = 1
+        world.dialogue_manager.push(_make_offer("Prussia"))
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            "Stale envoy marker",
+            "Stale Prussian offer should be removed on lapse.",
+            int(world.current_turn),
+        ))
+
+        executor = CommandExecutor()
+        result = executor._execute_end_turn({}, {"world": world})
+        assert result.get("success", False) is True
+        pending = world.notifications.get_pending()
+        assert not any(
+            n.get("type") == DIPLOMATIC_PROPOSAL
+            and n.get("title") == "Stale envoy marker"
+            and n.get("message") == "Stale Prussian offer should be removed on lapse."
+            for n in pending
+        )
+
+
+class TestAutoEndTurnOfferGuard:
+
+    def test_last_action_does_not_auto_end_with_pending_offer(self):
+        """AP exhaustion must not silently lapse current-turn offers."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+
+        world = _make_world()
+        world.actions_remaining = 1
+        world.admin_actions_remaining = 0
+        world.dialogue_manager.push(_make_offer("Prussia"))
+
+        parser = CommandParser()
+        parsed = parser.parse("Ney, scout Belgium", world=world)
+        executor = CommandExecutor()
+        result = executor.execute(parsed, {"world": world})
+
+        assert result.get("success", False) is True
+        assert result["action_info"]["remaining"] == 0
+        assert result["action_info"]["turn_advanced"] is False
+        assert world.current_turn == 5
+        assert world.dialogue_manager.has_current_turn_offers() is True
+        assert "unanswered envoys remain" in result.get("message", "")
+
 
 # ═══════════════════════════════════════════════════════════════
 # TestHardStopStillBlocks — hard-stops unchanged
@@ -567,6 +621,24 @@ class TestSaveLoadMigration:
         # Should still be there (no mailbox_id → not removed)
         assert dm.peek() is not None
         assert dm.peek()["type"] == "conflict_alert"
+
+    def test_legacy_flat_conflict_alert_removed_without_mailbox_id(self):
+        """Pre-refactor flat-save conflict_alert should not survive load."""
+        world = _make_world()
+        data = world.to_dict()
+        data.pop("dialogue_manager", None)
+        data["pending_diplomatic_dialogue"] = {
+            "type": "conflict_alert",
+            "talleyrand_text": "Legacy conflict alert",
+            "options": [],
+            "context": {},
+            "turn_created": 5,
+            "blocking": True,
+        }
+        data["pending_dialogue_queue"] = []
+
+        loaded = WorldState.from_dict(data)
+        assert loaded.dialogue_manager.peek() is None
 
     def test_hard_stop_blocking_unchanged(self):
         """Hard-stop blocking=True is NOT normalized to False."""

@@ -939,7 +939,11 @@ class DiplomaticExecutor:
 
         if action == "dismiss":
             world.dialogue_manager.pop()
-            return {"success": True, "message": "Very well, Sire."}
+            return {
+                "success": True,
+                "message": "Very well, Sire.",
+                "suppress_proposal_result_popup": True,
+            }
 
         elif action == "ask_later":
             return {
@@ -950,7 +954,11 @@ class DiplomaticExecutor:
 
         elif action == "reconsider":
             world.dialogue_manager.pop()
-            return {"success": True, "message": "Of course, Sire. Take your time."}
+            return {
+                "success": True,
+                "message": "Of course, Sire. Take your time.",
+                "suppress_proposal_result_popup": True,
+            }
 
         elif action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty

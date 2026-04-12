@@ -3340,9 +3340,16 @@ class WorldState:
         for item in ([dm._current] if dm._current else []) + dm._queue:
             if item and item.get("type", "") in DialogueManager.CURRENT_TURN_OFFER_TYPES:
                 item["blocking"] = False
-        # Discard legacy conflict_alert mailbox items (reclassified to LOCAL_PLANNING)
-        dm.remove_matching(lambda d: d.get("type") == "conflict_alert"
-                           and d.get("mailbox_id") is not None)
+        # Discard legacy conflict_alert mailbox items (reclassified to LOCAL_PLANNING).
+        # Older saves may lack mailbox_id entirely; pre-refactor conflict_alerts were
+        # mailbox soft-stops and therefore saved with blocking=True.
+        dm.remove_matching(
+            lambda d: d.get("type") == "conflict_alert"
+            and (
+                d.get("mailbox_id") is not None
+                or d.get("blocking") is True
+            )
+        )
 
         world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
         world.intel_grants = {k: int(v) for k, v in data.get("intel_grants", {}).items()}

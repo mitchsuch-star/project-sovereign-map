@@ -594,6 +594,12 @@ func _execute_command():
 	if command.is_empty():
 		return
 
+	# Route typed "end turn" through the same confirmation gate as button/hotkey.
+	if command.to_lower() == "end turn":
+		command_input.text = ""
+		_execute_end_turn()
+		return
+
 	# Add to history before clearing
 	_add_to_history(command)
 
