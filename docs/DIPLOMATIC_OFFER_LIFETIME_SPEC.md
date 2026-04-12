@@ -103,6 +103,7 @@ Lapse means:
 - remove the offer from active dialogue / queue state
 - clear any reopenable envoy-list entry for that item
 - record a campaign-log line such as `Saxony's proposal lapsed unanswered`
+- surface the lapse in the next turn-start report / summary so the player sees what was forfeited
 - unblock diplomacy on the next turn
 
 ### 4. Diplomacy Blocking
@@ -126,7 +127,7 @@ That block does **not** apply to ordinary commands such as:
 
 If the player issues `end turn` while unresolved current-turn diplomatic offers exist, the game must show a confirmation prompt before advancing:
 
-> **You have N unanswered envoy(s) that will lapse. End turn anyway?**
+> **Are you sure? You have N unanswered envoy(s) that will lapse if you end the turn now.**
 > `[End Turn]` `[Open Envoys]`
 
 - `End Turn` proceeds normally — offers lapse per §3
@@ -183,8 +184,10 @@ Minimum required wording changes:
   - `An unanswered envoy awaits your reply.`
 
 - add end-turn confirmation prompt:
-  - `You have N unanswered envoy(s) that will lapse. End turn anyway?`
+  - `Are you sure? You have N unanswered envoy(s) that will lapse if you end the turn now.`
   - preferred secondary button text: `Open Envoys`
+- add next-turn lapse summary copy:
+  - `The following envoy offers lapsed unanswered last turn: ...`
 
 The important point is semantic clarity: this is a same-turn pending-offer system, not an inbox archive.
 
@@ -273,6 +276,13 @@ Legacy `conflict_alert` mailbox items should not survive as envoy-tray content. 
 
 When an offer lapses, log it explicitly. Silent disappearance is not acceptable.
 
+Minimum visibility requirement:
+
+- record each lapsed offer in campaign / diplomatic history
+- also surface the lapsed offers in the next turn-start report, summary, or equivalent turn-opening notification
+
+If multiple offers lapse together, the summary should list each nation / offer clearly enough that the player understands what opportunities were lost.
+
 ---
 
 ## Frontend Behavior Contract
@@ -306,6 +316,8 @@ Client-side gate per §5. Before sending the `end turn` command, check for pendi
 - `[Open Envoys]` cancels and opens the envoy tray
 - `[Review]` may be used only as a fallback label if direct tray-open is awkward
 
+The copy should read as a clear lapse warning, not a generic confirmation. It should explicitly tell the player that the unanswered offers will be lost if they proceed.
+
 This must apply consistently to:
 
 - end-turn button
@@ -324,6 +336,14 @@ While unresolved current-turn offers exist:
 When the turn advances and the offers lapse:
 
 - diplomacy button re-enables automatically
+
+### Turn-Start Report
+
+If one or more offers lapsed because the player ended the turn, the next turn's opening report / summary should call that out explicitly.
+
+- this is in addition to campaign-log history, not a replacement for it
+- if only one offer lapsed, a single concise line is enough
+- if multiple offers lapsed, summarize them as a short list
 
 ---
 
@@ -358,6 +378,7 @@ Implementation notes:
 - `meta_executor._execute_end_turn()` currently blocks on any pending dialogue with `blocking=True`. That must be narrowed so current-turn offers do not backend-block end turn.
 - `WorldState.from_dict()` / `DialogueManager.from_dict()` need explicit load normalization for current-turn offer types; type-only classification is not enough if old saves preserve stale `turn_created` and `blocking` values.
 - `/cancel_order` and any similar non-diplomatic command guards must stop keying off any pending dialogue if the active item is only a current-turn offer.
+- end-turn lapse handling should retain enough structured info to populate the next turn-start report, not just the long-term history log.
 
 Primary test surfaces:
 
@@ -383,6 +404,7 @@ Additional likely break surfaces:
 - diplomacy wizard, backend preview, diplomacy button, and diplomacy hotkey all use the same narrowed block rule
 - ordinary non-diplomatic commands remain usable while those items are pending
 - `end turn` with pending offers shows a confirmation prompt before advancing on button, hotkey, and typed-command paths
+- the confirmation copy explicitly warns that the offers will lapse if the player proceeds
 - backend end turn is not hard-blocked by current-turn offers; only true hard-stop dialogues still block it
 - `conflict_alert` is treated as local planning — dismiss clears it, no envoy tray entry, no lapse log
 - `/pending_envoy`, `/mailbox`, tray count, and ledger pending-envoy count exclude `conflict_alert`
@@ -391,6 +413,7 @@ Additional likely break surfaces:
 - the top-bar count and tray contents clear correctly after turn-end lapse
 - loaded saves normalize current-turn offer items to the loaded turn and do not preserve old hard-block semantics
 - lapse events are recorded instead of disappearing silently
+- the next turn-start report / summary tells the player exactly which offers lapsed
 
 ---
 
