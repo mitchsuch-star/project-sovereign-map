@@ -1809,6 +1809,69 @@ class CombatExecutor:
 
         return result
 
+    def _build_opening_attack_guidance(self, world: WorldState) -> Dict:
+        """Build first-hour guidance for the naive Ney-vs-Wellington opener."""
+        drouot = world.get_marshal("Drouot")
+        davout = world.get_marshal("Davout")
+
+        preparation_steps = []
+        if drouot and drouot.nation == world.player_nation and drouot.strength > 0:
+            preparation_steps.append(
+                "Move Drouot to Belgium first so he can bombard Waterloo before Ney commits."
+            )
+        if davout and davout.nation == world.player_nation and davout.strength > 0:
+            preparation_steps.append(
+                "Bring Davout forward before committing Ney alone so Wellington does not meet a single unsupported thrust."
+            )
+        if not preparation_steps:
+            preparation_steps.append(
+                "Bring another French marshal forward before committing Ney alone."
+            )
+
+        return {
+            "title": "BERTHIER'S WARNING",
+            "message": (
+                '"Sire, a lone rush at Wellington from Belgium teaches the wrong lesson. '
+                'Waterloo is ready for him, and Ney will spend men before you have shown the counterplay."'
+            ),
+            "tip": "Better line: " + " ".join(preparation_steps),
+            "warning": (
+                "The direct unsupported assault is still risky. "
+                "Soften Waterloo or add support before asking Ney to force the issue."
+            ),
+            "summary": (
+                "Berthier halts the direct Ney assault long enough to point out a better opening."
+            ),
+        }
+
+    def _should_surface_opening_attack_guidance(
+        self,
+        marshal,
+        enemy_marshal,
+        world: WorldState,
+    ) -> bool:
+        """Intercept the common first-hour bad opener once per campaign."""
+        if world.current_turn != 1:
+            return False
+        if getattr(world, "opening_attack_guidance_shown", False):
+            return False
+        if marshal.nation != world.player_nation:
+            return False
+        if marshal.name != "Ney" or enemy_marshal.name != "Wellington":
+            return False
+        if marshal.location != "Belgium" or enemy_marshal.location != "Waterloo":
+            return False
+
+        # If the player has already staged support into Belgium, let the attack proceed.
+        has_setup_support = any(
+            ally.nation == marshal.nation
+            and ally.name != marshal.name
+            and ally.location == marshal.location
+            and ally.strength > 0
+            for ally in world.marshals.values()
+        )
+        return not has_setup_support
+
     def _execute_attack(self, marshal, target, world: WorldState, game_state, skip_reckless_popup: bool = False) -> Dict:
         """
         Execute an attack order with combat and region conquest.
@@ -2496,6 +2559,18 @@ class CombatExecutor:
         # BOMBARDMENT ROUTING (§3): Artillery in different region → bombardment
         # Same-region artillery combat still uses full resolve_battle().
         # ════════════════════════════════════════════════════════════
+        if self._should_surface_opening_attack_guidance(marshal, enemy_marshal, world):
+            world.opening_attack_guidance_shown = True
+            guidance = self._build_opening_attack_guidance(world)
+            return {
+                "success": True,
+                "message": guidance["summary"],
+                "opening_attack_guidance": guidance,
+                "free_action": True,
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
+            }
+
         if (getattr(marshal, 'artillery', False)
                 and marshal.location != enemy_marshal.location):
             bombard_result = self._execute_bombardment(

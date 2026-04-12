@@ -264,6 +264,16 @@ func _on_dispatch_received(response):
 			bbcode += "[color=#" + de_color + "]  " + de_text + "[/color]\n"
 		bbcode += "\n"
 
+	# ═══ DEFEAT WARNING ═══
+	var defeat_imminent_warning = data.get("defeat_imminent_warning", null)
+	if defeat_imminent_warning != null and defeat_imminent_warning is Dictionary:
+		var diw_msg = str(defeat_imminent_warning.get("message", ""))
+		var diw_sev = str(defeat_imminent_warning.get("severity", "warning"))
+		if diw_msg != "":
+			var diw_color = Utils.COLOR_ERROR if diw_sev == "critical" else Utils.COLOR_BATTLE
+			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]DEFEAT WARNING[/color]\n"
+			bbcode += "[color=#" + diw_color + "]  " + diw_msg + "[/color]\n\n"
+
 	# ═══ BERTHIER'S NOTE ═══
 	bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"

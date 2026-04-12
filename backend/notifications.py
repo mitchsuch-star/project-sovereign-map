@@ -57,6 +57,7 @@ DP_INSUFFICIENT = "dp_insufficient"                            # MEDIUM: not eno
 DEFECTION_CASCADE = "defection_cascade"                        # HIGH: multiple vassals wavering
 DIPLO_AUTO_DOWNGRADE = "diplo_auto_downgrade"                  # NORMAL: relations deteriorated
 TURN_LIMIT_WARNING = "turn_limit_warning"                      # HIGH: campaign nearing end
+DEFEAT_IMMINENT_WARNING = "defeat_imminent_warning"            # HIGH/CRITICAL: one marshal/region from defeat
 DIPLOMATIC_PROPOSAL_RESULT = "diplomatic_proposal_result"     # NORMAL: player proposal resolved
 
 

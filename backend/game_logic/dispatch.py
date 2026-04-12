@@ -73,6 +73,10 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     if turn_limit_warning:
         dispatch["turn_limit_warning"] = turn_limit_warning
 
+    defeat_imminent_warning = _build_defeat_imminent_warning(world, player_nation)
+    if defeat_imminent_warning:
+        dispatch["defeat_imminent_warning"] = defeat_imminent_warning
+
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
     dispatch["talleyrand_report"] = _build_talleyrand_report(world, player_nation)
 
@@ -601,6 +605,51 @@ def _build_turn_limit_warning(world, player_nation: str) -> Optional[Dict[str, A
         "turns_remaining": int(remaining),
         "player_regions": int(player_regions),
         "victory_threshold": int(threshold),
+    }
+
+
+def _build_defeat_imminent_warning(world, player_nation: str) -> Optional[Dict[str, Any]]:
+    """Build deterministic near-defeat warning aligned with live loss rules."""
+    from backend.game_logic.turn_manager import get_defeat_imminent_state
+    from backend.notifications import (
+        create_notification, NotificationPriority, DEFEAT_IMMINENT_WARNING,
+    )
+
+    world.notifications.dismiss_by_type(DEFEAT_IMMINENT_WARNING)
+
+    if getattr(world, "player_nation", player_nation) != player_nation:
+        return None
+
+    warning = get_defeat_imminent_state(world)
+    if not warning:
+        return None
+
+    priority = (
+        NotificationPriority.CRITICAL
+        if warning["severity"] == "critical"
+        else NotificationPriority.HIGH
+    )
+    world.notifications.add(create_notification(
+        DEFEAT_IMMINENT_WARNING,
+        priority,
+        warning["notification_title"],
+        warning["message"],
+        int(world.current_turn),
+        details={
+            "living_marshal_count": int(warning["living_marshal_count"]),
+            "living_marshals": list(warning["living_marshals"]),
+            "controlled_region_count": int(warning["controlled_region_count"]),
+            "controlled_regions": list(warning["controlled_regions"]),
+        },
+    ))
+
+    return {
+        "message": warning["message"],
+        "severity": warning["severity"],
+        "living_marshal_count": int(warning["living_marshal_count"]),
+        "living_marshals": list(warning["living_marshals"]),
+        "controlled_region_count": int(warning["controlled_region_count"]),
+        "controlled_regions": list(warning["controlled_regions"]),
     }
 
 

@@ -964,6 +964,10 @@ func _display_result(response):
 		_display_coordination_tutorial(response.coordination_tutorial)
 
 	# Berthier's Bombardment Report — shown after bombardment actions
+	# First-hour opener guidance (PL-26) reuses the same inline report surface.
+	if response.has("opening_attack_guidance"):
+		_display_coordination_tutorial(response.opening_attack_guidance)
+
 	if response.has("bombardment_result"):
 		_display_bombardment_report(response.bombardment_result)
 
@@ -1511,6 +1515,20 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("")
 
 	# ═══ TALLEYRAND REPORT ═══
+	# â•â•â• DEFEAT WARNING â•â•â•
+	# Defeat warning
+	var defeat_imminent_warning = data.get("defeat_imminent_warning", null)
+	if defeat_imminent_warning != null and defeat_imminent_warning is Dictionary:
+		var diw_msg = str(defeat_imminent_warning.get("message", ""))
+		var diw_sev = str(defeat_imminent_warning.get("severity", "warning"))
+		if diw_msg != "":
+			add_output("[color=#" + Utils.COLOR_BERTHIER + "]DEFEAT WARNING[/color]")
+			var diw_color = Utils.COLOR_ERROR if diw_sev == "critical" else Utils.COLOR_BATTLE
+			add_output("[color=#" + diw_color + "]  " + diw_msg + "[/color]")
+			add_output("")
+
+	# â•â•â• TALLEYRAND REPORT â•â•â•
+	# Talleyrand report
 	var talleyrand_report = data.get("talleyrand_report", [])
 	if talleyrand_report is Array and talleyrand_report.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]")

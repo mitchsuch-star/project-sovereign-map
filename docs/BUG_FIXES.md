@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (`PL-32` fixed. Session 4 (`PL-28`, `PL-26`) is now the routed next session.)
+> Last Updated: April 12, 2026 (`PL-28` and `PL-26` fixed. Session 5 (`PL-29`) is now the routed next session.)
 
 ---
 
@@ -42,13 +42,13 @@
 | 2r | P2 | PL-27/34 | **COMPLETE** | Offer lifetime refactor: current-turn lapse, `Not Now`, envoy rename, client-side end-turn gate | Implemented Apr 11, 2026 |
 | 2u | UX pass | Informational UI | **COMPLETE** | Notice rail, informational popup downgrade, direct Envoys recovery buttons, mailbox readability pass, adjacent HUD/log polish | Implemented Apr 11, 2026 |
 | 3 | P2 | PL-32 | **FIXED** | Raw diplomacy labels can leak into popups because display ownership is split | Fixed Apr 12, 2026 |
-| 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
-| 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
+| 4 | P2 | PL-28 | **FIXED** | No defeat-imminent warning before game over | Fixed Apr 12, 2026 |
+| 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
 
-**Current routed next step:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`).
+**Current routed next step:** Session 5 - Restart Flow (`PL-29`).
 
-**Next bug-owned implementation slice:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`). Session 3 is complete.
+**Next bug-owned implementation slice:** Session 5 - Restart Flow (`PL-29`). Session 4 is complete.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
@@ -378,6 +378,8 @@ These are concrete code paths that previous spec text covers implicitly but does
 ### Session 4 - First-Hour Pressure Cleanup
 
 **Items:** `PL-28`, `PL-26`
+
+**Status:** COMPLETE Apr 12, 2026. Audit handoff: `docs/SESSION4_AUDIT_HANDOFF.md`.
 
 **Goal:** remove unfair defeat surprise and make the first combat lesson legible without flattening combat depth.
 
@@ -909,6 +911,8 @@ Proposal and clause display ownership is split across backend and Godot, so raw 
 
 ### PL-28: No defeat-imminent warning before game over
 
+**Status:** FIXED Apr 12, 2026.
+
 **Problem statement**
 
 The player can cross from a damaged position into defeat without any clear "you are about to lose" warning in the notification or dispatch layer.
@@ -983,6 +987,8 @@ The player can cross from a damaged position into defeat without any clear "you 
 ---
 
 ### PL-26: Combat feels hopeless because the obvious opener teaches the wrong lesson
+
+**Status:** FIXED Apr 12, 2026.
 
 **Problem statement**
 

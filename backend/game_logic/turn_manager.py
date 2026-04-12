@@ -25,6 +25,55 @@ from backend.commands.strategic import StrategicOrderProcessor
 from backend.utils.debug import debug_print
 
 
+def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
+    """Return deterministic near-defeat state aligned with live loss rules."""
+    if getattr(world, "game_over", False):
+        return None
+
+    player_regions = list(world.get_player_regions())
+    living_marshals = [
+        marshal for marshal in world.get_player_marshals()
+        if marshal.strength > 0
+    ]
+
+    region_count = len(player_regions)
+    marshal_count = len(living_marshals)
+    if marshal_count != 1 and region_count != 1:
+        return None
+
+    if marshal_count == 1 and region_count == 1:
+        message = (
+            "France is one blow from defeat: only one army and one region remain. "
+            "If either is lost, the campaign ends."
+        )
+        severity = "critical"
+        notification_title = "France Near Collapse"
+    elif marshal_count == 1:
+        message = (
+            f"France has only one surviving army left under {living_marshals[0].name}. "
+            "If it is destroyed, the campaign ends."
+        )
+        severity = "warning"
+        notification_title = "One Army Remains"
+    else:
+        message = (
+            f"France holds only one region: {player_regions[0]}. "
+            "If it falls, the campaign ends."
+        )
+        severity = "warning"
+        notification_title = "One Region Remains"
+
+    return {
+        "message": message,
+        "severity": severity,
+        "notification_title": notification_title,
+        "living_marshal_count": int(marshal_count),
+        "living_marshals": [marshal.name for marshal in living_marshals],
+        "controlled_region_count": int(region_count),
+        "controlled_regions": player_regions,
+    }
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.

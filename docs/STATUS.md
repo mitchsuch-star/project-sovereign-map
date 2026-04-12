@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (`PL-32` implemented. Session 4 (`PL-28`, `PL-26`) is now the active next bug-owned slice.)
+> **Last Updated:** April 12, 2026 (`PL-28` and `PL-26` implemented. Session 5 (`PL-29`) is now the active next bug-owned slice.)
 
 ---
 
@@ -9,38 +9,38 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **333 targeted diplomacy tests** (`PL-32` slice passed). A full `pytest tests -q` rerun was attempted, but this Codex environment blocks `pytest` temp-dir setup/cleanup for file-based save/load tests. |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-3 + follow-up + offer refactor COMPLETE, plus the informational UI polish pass COMPLETE. 3 OPEN bugs remain (PL-26/28/29). The immediate next session is Session 4 (`PL-28`, `PL-26`). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - Session 4 (`PL-28`, `PL-26`) is the active next implementation slice. |
+| **Tests Passing** | **98 targeted Session 4 + related combat regressions** passed in this slice (`tests/test_session4_first_hour_pressure.py`, `test_systems_audit_v2_session4.py`, `test_systems_v3_session2.py`, `test_war_action_verification.py`, `test_systems_v3_session4.py`). |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-4 + follow-up + offer refactor COMPLETE, plus the informational UI polish pass COMPLETE. 1 OPEN bug remains (`PL-29`). The immediate next session is Session 5 (`PL-29`). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - Session 5 (`PL-29`) is the active next implementation slice. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### 1. Bug Fixes - 3 OPEN
+### 1. Bug Fixes - 1 OPEN
 
-Sessions 1-3 + follow-up + offer lifetime refactor COMPLETE. 3 OPEN bugs remain. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
+Sessions 1-4 + follow-up + offer lifetime refactor COMPLETE. 1 OPEN bug remains. Remaining bug consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
 | ~~P1 - CRASH~~ | ~~PL-30~~ | ~~Godot null instance crash on diplomacy button after missed proposal result~~ **FIXED** |
 | ~~P1 - DESIGN~~ | ~~PL-31~~ | ~~Capital-loss instant defeat still live + broken regression test~~ **FIXED** |
-| P2 - UX | PL-26 | Combat feels hopeless, no clear path to winning |
+| ~~P2 - UX~~ | ~~PL-26~~ | ~~Combat feels hopeless, no clear path to winning~~ **FIXED** |
 | ~~P2 - UX~~ | ~~PL-27~~ | ~~Diplomacy interrupt contract broken~~ **FIXED** (hard-stop/soft-stop taxonomy + mailbox panel) |
-| P2 - UX | PL-28 | No warning before defeat, sudden game over |
+| ~~P2 - UX~~ | ~~PL-28~~ | ~~No warning before defeat, sudden game over~~ **FIXED** |
 | ~~P2 - UX~~ | ~~PL-32~~ | ~~Raw diplomacy labels can leak into popups~~ **FIXED** |
 | ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
  
-**Current routed next step:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`).
+**Current routed next step:** Session 5 - Restart Flow (`PL-29`).
 
-**Next bug-owned implementation slice:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`).
+**Next bug-owned implementation slice:** Session 5 - Restart Flow (`PL-29`).
 
-**Next session:** Implement `PL-28` first, then `PL-26`, under Session 4 - First-Hour Pressure Cleanup.
+**Next session:** Implement `PL-29` under Session 5 - Restart Flow.
 
-`PL-32` landed as planned by centralizing diplomacy display ownership in the backend and removing the Godot-side proposal-type map from the active popup path.
+Session 4 landed as planned: `PL-28` now emits deterministic one-army/one-region defeat warnings into notifications and morning dispatch, and `PL-26` now intercepts the naive `Ney -> Wellington` opener once to surface the intended setup/counterplay. Audit handoff: `docs/SESSION4_AUDIT_HANDOFF.md`.
 
 **Implementation sessions in current order:**
 
@@ -52,8 +52,8 @@ Sessions 1-3 + follow-up + offer lifetime refactor COMPLETE. 3 OPEN bugs remain.
 | Session 2 refactor follow-up | Current-turn diplomatic offer lifetime | `PL-27`/`PL-34` follow-up | **COMPLETE** |
 | Pre-Session 3 | Informational notices + light UI polish | `docs/INFORMATIONAL_UI_PLAN.md` | **COMPLETE** |
 | Session 3 | Diplomacy display contract | `PL-32` | **COMPLETE** |
-| Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **NEXT** |
-| Session 5 | Restart flow | `PL-29` | |
+| Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **COMPLETE** |
+| Session 5 | Restart flow | `PL-29` | **NEXT** |
 
 ### 3. Architecture Hardening (before full-map work)
 

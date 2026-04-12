@@ -38,6 +38,7 @@ const TYPE_ICONS = {
 	"vassal_rebellion_imminent": "LOY",
 	"dp_insufficient": "DP",
 	"turn_limit_warning": "TMR",
+	"defeat_imminent_warning": "DNG",
 }
 
 @onready var rail_panel: PanelContainer = $RailPanel
