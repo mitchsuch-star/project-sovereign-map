@@ -679,6 +679,20 @@ class TestAskLaterLapse:
         # Original Prussian offer must appear in lapsed list
         assert any(l["nation"] == "Prussia" for l in lapsed)
 
+    def test_lapsed_offer_applies_ai_cooldown(self):
+        """Lapsing an offer should block the same nation from re-proposing immediately."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _make_world()
+        world.actions_remaining = 2
+        world.dialogue_manager.push(_make_offer("Saxony"))
+
+        executor = CommandExecutor()
+        result = executor._execute_end_turn({}, {"world": world})
+
+        assert result["success"] is True
+        assert world.ai_proposal_cooldowns.get("Saxony|nation", 0) > 0
+
 
 # ═════════════════════════���═════════════════════════════════════
 # TestAutoEndTurnWithoutOffers — normal auto-advance still works

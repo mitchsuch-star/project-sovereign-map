@@ -30,6 +30,10 @@ const PRIORITY_ICONS = {
 	1: "!",    # HIGH
 	0: "i",    # NORMAL
 }
+const DETAIL_PANEL_MIN_WIDTH := 240.0
+const DETAIL_PANEL_MAX_WIDTH := 300.0
+const DETAIL_PANEL_TOP_OFFSET := 42.0
+const VIEWPORT_EDGE_MARGIN := 14.0
 
 @onready var icon_container: HBoxContainer = $IconContainer
 var expanded_panel: PanelContainer = null
@@ -141,7 +145,7 @@ func _on_icon_pressed(btn: Button):
 
 
 func _show_expanded_panel(notif: Dictionary):
-	"""Show expanded notification details panel below the icon bar."""
+	"""Show expanded notification details as a compact top-right drawer."""
 	var priority = int(notif.get("priority", 0))
 	var color = PRIORITY_COLORS.get(priority, PRIORITY_COLORS[0])
 	var border_color = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
@@ -149,27 +153,28 @@ func _show_expanded_panel(notif: Dictionary):
 	expanded_panel = PanelContainer.new()
 	expanded_panel.set_meta("notification_id", notif.get("id", ""))
 	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	expanded_panel.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH, 0)
 
 	# Style the panel
 	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.1, 0.15, 0.95)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
+	panel_style.bg_color = Color(0.05, 0.07, 0.1, 0.97)
+	panel_style.border_width_left = 1
+	panel_style.border_width_top = 1
+	panel_style.border_width_right = 1
+	panel_style.border_width_bottom = 1
 	panel_style.border_color = border_color
 	panel_style.corner_radius_top_left = 6
 	panel_style.corner_radius_top_right = 6
 	panel_style.corner_radius_bottom_right = 6
 	panel_style.corner_radius_bottom_left = 6
-	panel_style.content_margin_left = 12.0
+	panel_style.content_margin_left = 10.0
 	panel_style.content_margin_top = 8.0
-	panel_style.content_margin_right = 12.0
-	panel_style.content_margin_bottom = 8.0
+	panel_style.content_margin_right = 10.0
+	panel_style.content_margin_bottom = 9.0
 	expanded_panel.add_theme_stylebox_override("panel", panel_style)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 6)
 	expanded_panel.add_child(vbox)
 
 	# Header row: title + dismiss button
@@ -179,7 +184,7 @@ func _show_expanded_panel(notif: Dictionary):
 	var title_label = Label.new()
 	title_label.text = str(notif.get("title", "Notification"))
 	title_label.add_theme_color_override("font_color", color)
-	title_label.add_theme_font_size_override("font_size", 13)
+	title_label.add_theme_font_size_override("font_size", 12)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title_label)
 
@@ -188,13 +193,13 @@ func _show_expanded_panel(notif: Dictionary):
 	if turn_created > 0:
 		var turn_label = Label.new()
 		turn_label.text = "(Turn " + str(int(turn_created)) + ")"
-		turn_label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6, 1))
+		turn_label.add_theme_color_override("font_color", Color(0.58, 0.58, 0.64, 1))
 		turn_label.add_theme_font_size_override("font_size", 10)
 		header.add_child(turn_label)
 
 	var dismiss_btn = Button.new()
-	dismiss_btn.text = "X"
-	dismiss_btn.custom_minimum_size = Vector2(24, 24)
+	dismiss_btn.text = "Close"
+	dismiss_btn.custom_minimum_size = Vector2(52, 24)
 	dismiss_btn.add_theme_font_size_override("font_size", 10)
 	dismiss_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
 	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(notif.get("id", "")))
@@ -203,10 +208,10 @@ func _show_expanded_panel(notif: Dictionary):
 	# Message body
 	var message_label = Label.new()
 	message_label.text = str(notif.get("message", ""))
-	message_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.82, 1))
+	message_label.add_theme_color_override("font_color", Color(0.83, 0.83, 0.86, 1))
 	message_label.add_theme_font_size_override("font_size", 11)
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.custom_minimum_size = Vector2(280, 0)
+	message_label.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH - 20.0, 0)
 	vbox.add_child(message_label)
 
 	# Position panel below the notification bar, right-aligned so it doesn't overflow the screen
@@ -216,12 +221,31 @@ func _show_expanded_panel(notif: Dictionary):
 
 
 func _position_expanded_panel():
-	"""Right-align the expanded panel so its right edge matches the notification area."""
+	"""Anchor the drawer to the top-right of the viewport, not over Envoys."""
 	if expanded_panel:
+		var viewport_size = get_viewport_rect().size
 		var panel_width = expanded_panel.size.x
 		if panel_width <= 0:
-			panel_width = 300
-		expanded_panel.position = Vector2(size.x - panel_width, 48)
+			panel_width = DETAIL_PANEL_MIN_WIDTH
+		panel_width = clamp(panel_width, DETAIL_PANEL_MIN_WIDTH, DETAIL_PANEL_MAX_WIDTH)
+		var target_global_x = max(
+			VIEWPORT_EDGE_MARGIN,
+			viewport_size.x - panel_width - VIEWPORT_EDGE_MARGIN
+		)
+		var local_x = target_global_x - global_position.x
+		expanded_panel.position = Vector2(local_x, DETAIL_PANEL_TOP_OFFSET)
+
+
+func _unhandled_input(event):
+	"""Clicking elsewhere closes the expanded drawer."""
+	if not expanded_panel:
+		return
+	if event is InputEventMouseButton and event.pressed:
+		var click_pos = event.position
+		var panel_rect = Rect2(expanded_panel.global_position, expanded_panel.size)
+		var bar_rect = Rect2(global_position, size)
+		if not panel_rect.has_point(click_pos) and not bar_rect.has_point(click_pos):
+			_close_expanded_panel()
 
 
 func _close_expanded_panel():

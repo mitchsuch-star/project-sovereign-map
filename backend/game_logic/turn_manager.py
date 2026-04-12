@@ -80,11 +80,19 @@ class TurnManager:
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
             from backend.notifications import DIPLOMATIC_PROPOSAL
+            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
             self.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            lapsed_nations = set()
             for lapse in lapsed_offers:
+                nation = lapse["nation"]
+                if nation and nation not in lapsed_nations:
+                    # Treat unanswered offers like a soft deferral so the same
+                    # nation cannot immediately resend during this end-turn.
+                    apply_acceptance_cooldown(nation, self.world)
+                    lapsed_nations.add(nation)
                 self.world.log_event({
                     "type": "offer_lapsed",
-                    "nation": lapse["nation"],
+                    "nation": nation,
                     "offer_type": lapse["offer_type"],
                     "proposal_type": lapse["proposal_type"],
                     "turn": int(self.world.current_turn),

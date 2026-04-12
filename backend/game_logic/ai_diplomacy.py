@@ -272,7 +272,10 @@ def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False) -> 
     offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
     nation_key = f"{nation}|nation"
-    cooldowns[nation_key] = int(NATION_ACCEPTANCE_COOLDOWN) + offset
+    cooldowns[nation_key] = max(
+        int(cooldowns.get(nation_key, 0)),
+        int(NATION_ACCEPTANCE_COOLDOWN) + offset,
+    )
     _set_cooldowns(world, cooldowns)
 
 
