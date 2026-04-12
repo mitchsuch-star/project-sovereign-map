@@ -9,7 +9,7 @@ const REGION_LABEL_HEIGHT: float = 20.0
 const MARSHAL_ICON_SIZE := Vector2(16, 16)
 const MARSHAL_ICON_SPACING: float = 8.0
 const MARSHAL_ICON_Y_OFFSET: float = -50.0
-const GARRISON_SIZE := Vector2(20, 14)
+const GARRISON_SIZE := Vector2(24, 16)
 const GARRISON_Y_OFFSET: float = 38.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const FOG_OVERLAYS = {
@@ -95,6 +95,7 @@ func _create_scene_layers():
 	world_layer = Control.new()
 	world_layer.name = "WorldLayer"
 	world_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	world_layer.show_behind_parent = true
 	world_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(world_layer)
 
@@ -375,6 +376,11 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	var fill_color = nation_color
 	var text_color = Color.WHITE
 	var border_color = Color(0.9, 0.9, 0.9)
+	var label_text = "?"
+	if strength >= 1000:
+		label_text = "%sk" % int(strength / 1000)
+	elif strength > -1:
+		label_text = str(int(strength))
 
 	if visibility == "stale":
 		fill_color = Color(nation_color.r * 0.5, nation_color.g * 0.5, nation_color.b * 0.5, 0.6)
@@ -385,18 +391,19 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 		text_color = Color(0.85, 0.85, 0.85)
 		border_color = Color(0.7, 0.7, 0.7)
 
+	var label_font_size = 9
+	var font = ThemeDB.fallback_font
+	var panel_width = GARRISON_SIZE.x
+	if font != null:
+		panel_width = max(GARRISON_SIZE.x, font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, label_font_size).x + 10.0)
+	var panel_size = Vector2(panel_width, GARRISON_SIZE.y)
+
 	var panel = Panel.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.position = region_pos + Vector2(-GARRISON_SIZE.x / 2.0, GARRISON_Y_OFFSET - GARRISON_SIZE.y / 2.0)
-	panel.size = GARRISON_SIZE
+	panel.position = region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0)
+	panel.size = panel_size
 	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
 	garrison_layer.add_child(panel)
-
-	var label_text = "?"
-	if strength >= 1000:
-		label_text = "%sk" % int(strength / 1000)
-	elif strength > -1:
-		label_text = str(int(strength))
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -405,7 +412,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = label_text
-	label.add_theme_font_size_override("font_size", 9)
+	label.add_theme_font_size_override("font_size", label_font_size)
 	label.add_theme_color_override("font_color", text_color)
 	garrison_layer.add_child(label)
 

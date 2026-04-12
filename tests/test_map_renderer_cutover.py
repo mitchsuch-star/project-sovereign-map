@@ -27,6 +27,7 @@ def test_renderer_base_declares_scene_layers():
         'garrison_layer.name = "GarrisonLayer"',
     ]:
         assert node_name in source, f"Missing renderer layer declaration: {node_name}"
+    assert "world_layer.show_behind_parent = true" in source
     assert 'const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")' in source
     assert "connection_layer = MapConnectionLayer.new()" in source
     assert "connection_layer = Node2D.new()" not in source
@@ -48,3 +49,9 @@ def test_update_region_accepts_legacy_and_new_payload_shapes():
     assert "marshal_data is Array" in source
     assert "marshal_data is Dictionary" in source
     assert 'marshal_data is String and marshal_data != ""' in source
+
+
+def test_garrison_badge_sizes_to_text():
+    source = _read(BASE_GD)
+    assert "font.get_string_size(label_text" in source
+    assert "panel_width = max(GARRISON_SIZE.x" in source
