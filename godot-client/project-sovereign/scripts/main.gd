@@ -3255,7 +3255,7 @@ func _on_pause_load_requested():
 
 func _on_pause_new_game_requested():
 	"""Handle New Campaign from pause menu."""
-	add_output("[color=#" + Utils.COLOR_INFO + "]Starting a new campaign...[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Starting a new campaign. Current autosave will be replaced.[/color]")
 	set_input_enabled(false)
 	api_client.new_game(_on_new_game_result)
 

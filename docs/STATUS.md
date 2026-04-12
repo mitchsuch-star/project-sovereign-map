@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (`PL-29` implemented. Sessions 1-5 are now complete and Session 6 is the active next slice.)
+> **Last Updated:** April 12, 2026 (`PL-29` implemented, then hardened with a pause-menu confirmation before `New Campaign` replaces autosave. Sessions 1-5 are now complete and Session 6 is the active next slice.)
 
 ---
 
@@ -40,7 +40,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Next session:** Implement Session 6 - Response and popup contract hardening.
 
-Session 5 landed as planned: `POST /new_game` now resets the active world without a backend restart, immediately refreshes autosave, preserves manual saves, and the Godot pause menu now routes restart through the same client-side world-swap hydration/reset path used for load. The save/load path also now resolves files through `save_manager.SAVE_DIR` consistently instead of hardcoding `saves/`. Audit prompt: `docs/SESSION5_AUDIT_PROMPT.md`.
+Session 5 landed as planned: `POST /new_game` now resets the active world without a backend restart, immediately refreshes autosave, preserves manual saves, and the Godot pause menu now routes restart through the same client-side world-swap hydration/reset path used for load. The save/load path also now resolves files through `save_manager.SAVE_DIR` consistently instead of hardcoding `saves/`. Audit follow-up: the pause menu now requires explicit confirmation before `New Campaign` replaces the current autosave. Audit prompt: `docs/SESSION5_AUDIT_PROMPT.md`.
 
 **Implementation sessions in current order:**
 

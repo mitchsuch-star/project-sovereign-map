@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (`PL-29` fixed. Sessions 1-5 are complete and Session 6 is now the routed next session.)
+> Last Updated: April 12, 2026 (`PL-29` fixed, then hardened with a pause-menu confirmation before `New Campaign` replaces autosave. Sessions 1-5 are complete and Session 6 is now the routed next session.)
 
 ---
 
@@ -828,7 +828,7 @@ The first-hour command most players are likely to try, `status`, is currently be
 
 ### PL-32: Raw diplomacy labels can leak into popups
 
-**Status:** FIXED (April 12, 2026).
+**Status:** FIXED (April 12, 2026; audit follow-up added a pause-menu confirmation before `New Campaign` replaces autosave).
 
 **Problem statement**
 
@@ -1081,6 +1081,7 @@ The player still has no clean restart path from the running build. Starting fres
 
 - The backend world is initialized at startup only; there is no reset helper and no restart endpoint.
 - The frontend already has save/load wiring, but the pause menu and API client never expose a restart path.
+- The pause menu also needs an explicit destructive-action confirmation so one misclick does not immediately replace the current autosave.
 - Local client reset logic already exists in the load flow and should be reused instead of inventing a second partial reset path.
 - The test suite already assumes `/new_game` exists, so the current state is a direct contract contradiction rather than a speculative feature request.
 
@@ -1122,6 +1123,7 @@ The player still has no clean restart path from the running build. Starting fres
 - The fresh world is equivalent to a new campaign start: starting regions and marshals restored, `current_turn` reset, no pending diplomacy/dialogue carry-over, eliminated nations cleared.
 - Autosave handling on new game is explicit and consistent, and stale autosave state cannot resurrect the previous campaign.
 - The pause menu exposes restart/new game and returns the player to a fresh turn-one state.
+- The pause menu requires explicit confirmation before restart/autosave replacement.
 - Manual saves are preserved.
 
 **Regression test matrix**

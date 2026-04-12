@@ -81,6 +81,39 @@ theme_override_colors/font_hover_color = Color(1, 0.94, 0.78, 1)
 theme_override_font_sizes/font_size = 16
 text = "New Campaign"
 
+[node name="NewGameConfirmBox" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NewGameWarning" type="Label" parent="PanelContainer/VBoxContainer/NewGameConfirmBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.82, 0.63, 1)
+theme_override_font_sizes/font_size = 13
+text = "Start a fresh campaign?\nAutosave will be replaced.\nManual saves remain available."
+horizontal_alignment = 1
+
+[node name="NewGameConfirmButtons" type="HBoxContainer" parent="PanelContainer/VBoxContainer/NewGameConfirmBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="ConfirmNewGameButton" type="Button" parent="PanelContainer/VBoxContainer/NewGameConfirmBox/NewGameConfirmButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.91, 0.84, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "Confirm"
+
+[node name="CancelNewGameButton" type="Button" parent="PanelContainer/VBoxContainer/NewGameConfirmBox/NewGameConfirmButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.8, 0.86, 1)
+theme_override_colors/font_hover_color = Color(0.94, 0.97, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "Cancel"
+
 [node name="SettingsButton" type="Button" parent="PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
