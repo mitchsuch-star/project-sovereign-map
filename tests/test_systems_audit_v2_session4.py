@@ -108,11 +108,11 @@ class TestV2_64_AdvanceTurnNoVictoryCheck:
 
 
 # ============================================================================
-# V2-86: Victory result includes pending diplomatic popups
+# V2-86: Game-over cleanup removes stale modal state
 # ============================================================================
 
-class TestV2_86_VictoryFlushesPopups:
-    """V2-86: Victory return includes pending popup data."""
+class TestV2_86_GameOverModalCleanup:
+    """Game-over turn-manager returns should clear stale modal state."""
 
     def test_victory_clears_pending_dialogue(self):
         """PL-9: When victory fires, pending dialogues are cleared (not passed through).
@@ -142,8 +142,8 @@ class TestV2_86_VictoryFlushesPopups:
         # Dialogue stack should be empty
         assert world.dialogue_manager.peek() is None
 
-    def test_victory_includes_vassal_rebellion_popup(self):
-        """When victory fires, vassal_rebellion_imminent_popup is in result."""
+    def test_victory_clears_vassal_rebellion_popup(self):
+        """When victory fires, vassal rebellion popup is cleared, not flushed."""
         world = _make_world()
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony", "loyalty": 5}
 
@@ -154,8 +154,8 @@ class TestV2_86_VictoryFlushesPopups:
         result = tm.end_turn()
 
         assert result["victory_check"]["game_over"] is True
-        assert "vassal_rebellion_imminent_popup" in result
-        assert result["vassal_rebellion_imminent_popup"]["nation"] == "Saxony"
+        assert "vassal_rebellion_imminent_popup" not in result
+        assert world.vassal_rebellion_imminent_popup is None
 
 
 # ============================================================================

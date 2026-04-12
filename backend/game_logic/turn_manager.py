@@ -171,9 +171,7 @@ class TurnManager:
                 "tactical_events": tactical_events,
                 "lapsed_offers": lapsed_offers or [],
             }
-            # V2-86: Include pending diplomatic popups so frontend can show
-            # them before the victory screen (dialogue, rebellion, sabotage)
-            self._flush_pending_popups_into(result)
+            self._clear_game_over_modal_state()
             return result
 
         # ════════════════════════════════════════════════════════════
@@ -207,8 +205,7 @@ class TurnManager:
                     "enemy_phase": enemy_phase_results,
                     "lapsed_offers": lapsed_offers or [],
                 }
-                # V2-86: Include pending diplomatic popups before victory screen
-                self._flush_pending_popups_into(result)
+                self._clear_game_over_modal_state()
                 return result
 
         # ════════════════════════════════════════════════════════════
@@ -339,31 +336,27 @@ class TurnManager:
     # R12C: _pop_dialogue_queue() replaced by world.dialogue_manager.promote_if_empty()
     # Priority dict consolidated into DialogueManager.DIALOGUE_PRIORITY
 
-    def _flush_pending_popups_into(self, result: Dict) -> None:
-        """V2-86: Copy pending popup fields from world into result dict.
+    def _clear_game_over_modal_state(self) -> None:
+        """Clear choice-requiring modal state once game over is final.
 
-        On victory, the turn manager returns early. Without this, any pending
-        diplomatic popups (dialogue, rebellion, sabotage) would be lost because
-        main.py's _include_popup_passthroughs never runs on the end_turn result.
+        Session 6 cleanup: the old turn-manager popup flush was a response-shaping
+        workaround. It also happened to clear stuck dialogues. Keep the state
+        cleanup, but stop smuggling popup payloads through raw end_turn results.
         """
-        popup_fields = [
-            "pending_diplomatic_dialogue",
-            "vassal_rebellion_imminent_popup",
-            "diplomatic_sabotage_popup",
-            "coalition_popup",
-            "alliance_paradox_popup",
-        ]
-        for field in popup_fields:
-            # PL-9: Skip blocking dialogues when game is over — they become
-            # un-dismissable since /command rejects all input after game_over.
-            if field == "pending_diplomatic_dialogue" and self.world.game_over:
-                # Clear the dialogue stack so it doesn't persist in save state
-                while self.world.dialogue_manager.peek():
-                    self.world.dialogue_manager.pop()
-                continue
-            value = getattr(self.world, field, None)
-            if value is not None:
-                result[field] = value
+        while self.world.dialogue_manager.peek():
+            self.world.dialogue_manager.pop()
+
+        # Choice popups cannot be acted on after game_over because command
+        # endpoints reject further input. Clear them instead of surfacing stale
+        # modal state ahead of the game-over screen.
+        self.world.incoming_proposal_popup = None
+        self.world.diplomatic_objection_popup = None
+        self.world.diplomatic_sabotage_popup = None
+        self.world.vassal_rebellion_imminent_popup = None
+        self.world.vassal_rebellion_imminent_popups = []
+        self.world.coalition_popup = None
+        self.world.alliance_paradox_popup = None
+        self.world.pending_capture_choice = None
 
     def _process_ai_diplomatic_phase(self) -> Optional[Dict]:
         """Process AI diplomatic proposals for all enemy nations.

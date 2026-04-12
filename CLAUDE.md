@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — COMPLETE.** The frozen PL queue is closed. Session 6 architecture follow-up is still in progress: `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry COMPLETE. Turn-manager popup-flush workaround cleanup is NEXT. See `docs/STATUS.md` and `docs/BUG_FIXES.md`.
+- **Bug Fixes — COMPLETE.** The frozen PL queue is closed. Session 6 architecture follow-up is still in progress: `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE. `/command` manual-field-layering reduction plus the enemy-phase notification regression are NEXT. See `docs/STATUS.md` and `docs/BUG_FIXES.md`.
 - **Design Refinement — AFTER Session 6 follow-up.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.

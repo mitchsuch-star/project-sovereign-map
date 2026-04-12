@@ -352,6 +352,21 @@ class TestCommandEndpointDiplomaticFields:
         assert second_data["coalition_popup"] is not None
         assert fresh_world.coalition_popup is None
 
+    def test_game_over_end_turn_clears_modal_popups_instead_of_flushing_turn_manager_fields(
+        self, client, fresh_world
+    ):
+        """Game-over end_turn should go straight to game-over state, not stale modal popups."""
+        fresh_world.vassal_rebellion_imminent_popup = {"nation": "Saxony", "loyalty": 5}
+        for region in fresh_world.regions.values():
+            region.controller = "France"
+
+        response = client.post("/command", json={"command": "end turn"})
+        data = response.json()
+
+        assert data["game_state"]["game_over"] is True
+        assert data["vassal_rebellion_imminent"] is None
+        assert fresh_world.vassal_rebellion_imminent_popup is None
+
     def test_scout_has_diplomatic_fields(self, client, fresh_world):
         response = client.post("/command", json={"command": "Ney, scout Belgium"})
         data = response.json()

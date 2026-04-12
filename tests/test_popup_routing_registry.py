@@ -89,3 +89,40 @@ class TestPopupRoutingRegistry:
         assert 'call(show_method, response)' in body
         assert '_process_active_wars(response)' in body
         assert 'return true' in body
+
+    def test_fallthrough_path_does_not_duplicate_hud_sync(self):
+        source = _read_main_gd()
+        body = _extract_function(source, "_on_command_result")
+
+        redundant_hud_snippets = [
+            "_update_status(response.action_summary)",
+            "_update_diplomatic_top_bar(response)",
+            "_update_gold_display()",
+            "_apply_manpower(response.game_state.manpower_pools)",
+            "map_area.update_all_regions(response.game_state.map_data)",
+            "notification_bar.update_notifications(response.notifications)",
+        ]
+        for snippet in redundant_hud_snippets:
+            assert snippet not in body, (
+                "_on_command_result should rely on _sync_response_hud() for HUD "
+                f"updates before modal routing, but still contains: {snippet}"
+            )
+
+    def test_redemption_route_reuses_existing_hud_sync(self):
+        source = _read_main_gd()
+        body = _extract_function(source, "_route_redemption_response")
+
+        assert "_display_result(response)" in body
+        redundant_hud_snippets = [
+            "_update_status(",
+            "_update_diplomatic_top_bar(",
+            "_update_gold_display(",
+            "_apply_manpower(",
+            "map_area.update_all_regions(",
+            "notification_bar.update_notifications(",
+        ]
+        for snippet in redundant_hud_snippets:
+            assert snippet not in body, (
+                "_route_redemption_response should not repeat HUD sync handled by "
+                f"_sync_response_hud(), but still contains: {snippet}"
+            )

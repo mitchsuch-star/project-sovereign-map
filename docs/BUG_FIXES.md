@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (Session 6 slice 3 landed: `main.gd` popup precedence now runs through ordered registries instead of the inline early-return chain. Sessions 1-5 are complete. The remaining Session 6 task is turn-manager popup-flush workaround cleanup.)
+> Last Updated: April 12, 2026 (Session 6 slice 4 landed: turn-manager popup-flush workaround removed, game-over-invalid modal state is cleared explicitly, and `main.gd` HUD-sync duplication is trimmed. Sessions 1-5 are complete. The remaining Session 6 task is the `/command` manual-field-layering reduction follow-up plus an enemy-phase notification regression.)
 
 ---
 
@@ -50,9 +50,9 @@
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed. Session 5 is complete.
 
-**Current Session 6 progress:** `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry cleanup COMPLETE.
+**Current Session 6 progress:** `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry cleanup COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE.
 
-**Next up inside Session 6:** turn-manager popup-flush workaround cleanup, then the remaining `/command` manual-field-layering reduction work plus a positive enemy-phase notification regression. Audit prompt for the completed registry slice: `docs/SESSION6_POPUP_ROUTING_AUDIT_PROMPT.md`.
+**Next up inside Session 6:** the remaining `/command` manual-field-layering reduction work plus a positive enemy-phase notification regression. Audit prompt for the completed cleanup slice: `docs/SESSION6_TURN_MANAGER_CLEANUP_AUDIT_PROMPT.md`.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
@@ -78,7 +78,7 @@
   - Session 2 follow-up: Godot mailbox inbox browsing, defer/reopen UX completion, and PL-27 same-family hardening found after the fix landed
   - Session 2 current-turn offer refactor: replace cross-turn mailbox persistence with same-turn reopen plus turn-end lapse while preserving non-diplomatic soft-stop behavior
   - Session 3: backend-owned display formatting for active diplomacy popups
-- Broader `/command` unification follow-up, turn-manager popup-flush workaround cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
+- Broader `/command` unification follow-up, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
 
 ---
 

@@ -801,17 +801,6 @@ func _response_has_redemption_route(response: Dictionary) -> bool:
 
 func _route_redemption_response(response: Dictionary):
 	if response.success:
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
-		if notification_bar and response.has("notifications"):
-			notification_bar.update_notifications(response.notifications)
 		_display_result(response)
 	_show_redemption_dialog(response.redemption_event)
 
@@ -859,27 +848,6 @@ func _on_command_result(response):
 	set_input_enabled(true)
 
 	if response.success:
-		# Update status displays
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-
-		# Update diplomatic top bar fields (Session 8B)
-		_update_diplomatic_top_bar(response)
-
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-
-		# Update map with latest state
-		if response.has("game_state") and response.game_state.has("map_data"):
-			if DEBUG_VERBOSE:
-				print("MAIN: Command result - map_data with ", response.game_state.map_data.keys().size(), " regions")
-			map_area.update_all_regions(response.game_state.map_data)
-		elif DEBUG_VERBOSE:
-			print("⚠️  MAIN: Command result - NO map_data in response!")
-
 		# Format and display result based on event type
 		_display_result(response)
 
@@ -891,11 +859,6 @@ func _on_command_result(response):
 					var msg = str(event.get("message", ""))
 					if msg != "":
 						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
-
-		# Update notification bar with any pending notifications
-		# (must be before enemy_phase dialog check — that returns early)
-		if notification_bar and response.has("notifications"):
-			notification_bar.update_notifications(response.notifications)
 
 		# Check for enemy phase (from end_turn)
 		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
