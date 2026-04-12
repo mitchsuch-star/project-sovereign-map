@@ -250,6 +250,192 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     return response
 
 
+_COMMAND_RESULT_SIMPLE_FIELDS = (
+    "show_load_dialog",
+    "cavalry_terrain_message",
+    "bombardment_advisory",
+    "battle_report",
+    "reinforcement_messages",
+    "coordination_tutorial",
+    "opening_attack_guidance",
+    "mild_concerns",
+    "morning_dispatch",
+)
+
+
+def _copy_truthy_result_fields(
+    response: dict, result: dict, field_names: tuple[str, ...]
+) -> None:
+    """Copy simple truthy executor fields into the API response."""
+    for field_name in field_names:
+        value = result.get(field_name)
+        if value:
+            response[field_name] = value
+
+
+def _include_command_bombardment_result(response: dict, result: dict) -> None:
+    """Pass through bombardment payloads and keep the explicit action marker."""
+    bombardment_result = result.get("bombardment_result")
+    if bombardment_result:
+        response["bombardment_result"] = bombardment_result
+        response["action"] = "bombardment"
+
+
+def _include_command_redemption_event(response: dict, result: dict, world) -> None:
+    """Surface redemption choice state and persist it for the follow-up endpoint."""
+    redemption_event = result.get("redemption_event")
+    if redemption_event:
+        response["state"] = "awaiting_redemption_choice"
+        response["redemption_event"] = redemption_event
+        world.pending_redemption = redemption_event
+        print(f"[ALERT] REDEMPTION TRIGGERED for {redemption_event['marshal']}")
+
+
+def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
+    """Serialize enemy-phase data and apply fog filtering for Godot."""
+    cleaned_phase = {
+        "nations": {},
+        "total_actions": enemy_phase.get("total_actions", 0),
+        "summary": [],
+    }
+
+    for nation, nation_data in enemy_phase.get("nations", {}).items():
+        cleaned_actions = []
+        for action in nation_data.get("actions", []):
+            cleaned_action = {k: v for k, v in action.items() if k != "new_state"}
+            if DEBUG_MODE:
+                if "events" in cleaned_action:
+                    print(
+                        f"[ENEMY_PHASE_DEBUG] {nation} action has events: "
+                        f"{len(cleaned_action.get('events', []))} events"
+                    )
+                    for evt in cleaned_action.get("events", []):
+                        print(f"  - Event type: {evt.get('type')}, keys: {list(evt.keys())}")
+                else:
+                    print(
+                        f"[ENEMY_PHASE_DEBUG] {nation} action has NO events! "
+                        f"Keys: {list(cleaned_action.keys())}"
+                    )
+            cleaned_actions.append(cleaned_action)
+        cleaned_phase["nations"][nation] = {
+            "actions": cleaned_actions,
+            "action_count": nation_data.get("action_count", 0),
+        }
+
+    if enemy_phase.get("enemy_victory"):
+        cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
+
+    raw_total = cleaned_phase.get("total_actions", 0)
+    raw_nations = list(cleaned_phase.get("nations", {}).keys())
+    cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
+
+    if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
+        return cleaned_phase
+    if raw_total > 0:
+        cleaned_phase["fog_hidden_summary"] = [
+            f"Our scouts report activity within {nation}'s borders, "
+            f"but their formations remain beyond our sight."
+            for nation in raw_nations
+        ]
+        return cleaned_phase
+    return None
+
+
+def _include_command_enemy_phase(response: dict, result: dict, world) -> None:
+    """Attach enemy-phase payloads without leaking hidden actions."""
+    enemy_phase = result.get("enemy_phase")
+    if not enemy_phase:
+        return
+
+    cleaned_phase = _build_visible_enemy_phase(enemy_phase, world)
+    if cleaned_phase is not None:
+        response["enemy_phase"] = cleaned_phase
+
+    if DEBUG_MODE and cleaned_phase is not None:
+        print("[ENEMY_PHASE_FINAL] Sending to Godot:")
+        for nation, data in cleaned_phase.get("nations", {}).items():
+            print(f"  {nation}: {len(data.get('actions', []))} actions")
+            for i, act in enumerate(data.get("actions", [])):
+                has_events = "events" in act and len(act.get("events", [])) > 0
+                print(
+                    f"    [{i}] {act.get('ai_action', {}).get('action', '?')} "
+                    f"- has_events: {has_events}"
+                )
+
+
+def _include_command_strategic_reports(response: dict, result: dict) -> None:
+    """Pass through strategic reports and preserve debug visibility."""
+    strategic_reports = result.get("strategic_reports")
+    if strategic_reports:
+        response["strategic_reports"] = strategic_reports
+        if DEBUG_MODE:
+            print(f"[STRATEGIC_REPORTS] Sending {len(strategic_reports)} reports to Godot:")
+            for i, sr in enumerate(strategic_reports):
+                print(
+                    f"  [{i}] {sr.get('marshal')}: {sr.get('command')} -> "
+                    f"{sr.get('action', 'N/A')}, status={sr.get('order_status')}, "
+                    f"has_battle={bool(sr.get('battle_details'))}"
+                )
+    elif DEBUG_MODE:
+        print(f"[STRATEGIC_REPORTS] No strategic reports in result (keys: {[k for k in result.keys() if 'strat' in k.lower()]})")
+
+
+def _include_command_tactical_events(response: dict, result: dict, world) -> None:
+    """Pass through fog-filtered tactical events for the turn log."""
+    tactical_events = result.get("tactical_events")
+    if tactical_events:
+        response["tactical_events"] = _filter_tactical_events_by_visibility(
+            tactical_events, world
+        )
+
+
+def _include_command_independent_report(response: dict, result: dict) -> None:
+    """Pass through independent command report payloads when present."""
+    if result.get("show_independent_command_report"):
+        response["show_independent_command_report"] = True
+        response["independent_command_report"] = result.get(
+            "independent_command_report", []
+        )
+
+
+def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
+    """Apply the one /command-specific popup deferral rule after base response build."""
+    if not response.get("enemy_phase"):
+        if result.get("ai_proposal"):
+            response["ai_proposal"] = result["ai_proposal"]
+            if world.pending_diplomatic_dialogue:
+                response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
+        _include_popup_passthroughs(response, world)
+        return
+
+    # PL-5A + PL-30: proposal results are informational-only and safe to show
+    # alongside enemy_phase; other choice popups stay deferred on world.
+    proposal_result = world.proposal_result_popup
+    if proposal_result is not None:
+        response["proposal_result"] = proposal_result
+        world.proposal_result_popup = None
+
+
+def _finalize_command_notifications(response: dict, world) -> None:
+    """Drain informational notices into the persistent notification rail."""
+    _queue_informational_diplomacy_notices(response, world)
+    if world.notifications.has_pending():
+        response["notifications"] = world.notifications.get_pending()
+
+
+def _apply_command_result_layers(response: dict, result: dict, world) -> None:
+    """Keep /command post-processing centralized instead of hand-layered inline."""
+    _copy_truthy_result_fields(response, result, _COMMAND_RESULT_SIMPLE_FIELDS)
+    _include_command_bombardment_result(response, result)
+    _include_command_redemption_event(response, result, world)
+    _include_command_enemy_phase(response, result, world)
+    _include_command_strategic_reports(response, result)
+    _include_command_tactical_events(response, result, world)
+    _include_command_independent_report(response, result)
+    _apply_command_popup_contract(response, result, world)
+    _finalize_command_notifications(response, world)
+
+
 def _derive_proposal_result_outcome(result: dict) -> str:
     """Best-effort ACCEPT/REJECT normalization for fallback proposal popups."""
     raw_outcome = result.get("outcome", result.get("result", ""))
@@ -936,185 +1122,8 @@ def execute_command(request: CommandRequest):
                         feedback["strategic"] = strategic_text
                     if ambiguity_text:
                         feedback["ambiguity"] = ambiguity_text
-
         response = _build_command_response(result, world, feedback)
-
-        # Save/Load: pass through show_load_dialog flag for Godot
-        if result.get("show_load_dialog"):
-            response["show_load_dialog"] = True
-
-        # Phase 6.1: Include cavalry terrain message if present
-        # (same passthrough pattern as mild_concerns — field exists in combat
-        # result but wasn't being forwarded to Godot as a separate field)
-        if result.get("cavalry_terrain_message"):
-            response["cavalry_terrain_message"] = result["cavalry_terrain_message"]
-
-        # Berthier's Bombardment Advisory (Artillery Session 2)
-        if result.get("bombardment_advisory"):
-            response["bombardment_advisory"] = result["bombardment_advisory"]
-
-        # Bombardment result (Phase 6.5: separate bombardment resolution path)
-        if result.get("bombardment_result"):
-            response["bombardment_result"] = result["bombardment_result"]
-            response["action"] = "bombardment"
-
-        # Redemption event (bombardment friendly fire can trigger this — §4.4)
-        if result.get("redemption_event"):
-            response["state"] = "awaiting_redemption_choice"
-            response["redemption_event"] = result["redemption_event"]
-            world.pending_redemption = result["redemption_event"]
-            print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
-
-        # Berthier's After-Action Report
-        if result.get("battle_report"):
-            response["battle_report"] = result["battle_report"]
-
-        # Reinforcement notification messages (Session 65/66)
-        if result.get("reinforcement_messages"):
-            response["reinforcement_messages"] = result["reinforcement_messages"]
-
-        # First-time coordination tutorial (Session 66)
-        if result.get("coordination_tutorial"):
-            response["coordination_tutorial"] = result["coordination_tutorial"]
-
-        # First-hour opener guidance (PL-26)
-        if result.get("opening_attack_guidance"):
-            response["opening_attack_guidance"] = result["opening_attack_guidance"]
-
-        # V2a: Include mild concerns for turn log display
-        # BUG FIX: Only send mild_concerns from the result dict (end_turn path).
-        # Previously, the elif fallback sent world.mild_concerns_this_turn on EVERY
-        # command response, which caused stale MILD concerns from failed actions to
-        # appear on the next successful command. MILD dispatches should only appear
-        # after end_turn, where executor.py saves them before advance_turn clears the list.
-        if result.get("mild_concerns"):
-            response["mild_concerns"] = result["mild_concerns"]
-
-        # Include enemy_phase if present (from end_turn)
-        # Clean up non-serializable fields (new_state contains circular references)
-        if result.get("enemy_phase"):
-            enemy_phase = result["enemy_phase"]
-            cleaned_phase = {
-                "nations": {},
-                "total_actions": enemy_phase.get("total_actions", 0),
-                "summary": []
-            }
-            # Clean each nation's actions
-            for nation, nation_data in enemy_phase.get("nations", {}).items():
-                cleaned_actions = []
-                for action in nation_data.get("actions", []):
-                    # Remove new_state which has circular references
-                    cleaned_action = {k: v for k, v in action.items() if k != "new_state"}
-                    # DEBUG: Check if events are present
-                    if DEBUG_MODE:
-                        if "events" in cleaned_action:
-                            print(f"[ENEMY_PHASE_DEBUG] {nation} action has events: {len(cleaned_action.get('events', []))} events")
-                            for evt in cleaned_action.get("events", []):
-                                print(f"  - Event type: {evt.get('type')}, keys: {list(evt.keys())}")
-                        else:
-                            print(f"[ENEMY_PHASE_DEBUG] {nation} action has NO events! Keys: {list(cleaned_action.keys())}")
-                    cleaned_actions.append(cleaned_action)
-                cleaned_phase["nations"][nation] = {
-                    "actions": cleaned_actions,
-                    "action_count": nation_data.get("action_count", 0)
-                }
-            if enemy_phase.get("enemy_victory"):
-                cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
-
-            # FOG OF WAR (Session 34B): Filter enemy actions by visibility
-            raw_total = cleaned_phase.get("total_actions", 0)
-            raw_nations = list(cleaned_phase.get("nations", {}).keys())
-            cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
-
-            # Include enemy_phase if there are visible actions (or enemy victory).
-            if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
-                response["enemy_phase"] = cleaned_phase
-            elif raw_total > 0:
-                # PL-4: Fog hid all actions — provide Berthier fog summary so
-                # player knows enemies acted (no details leaked)
-                fog_messages = []
-                for nation in raw_nations:
-                    fog_messages.append(
-                        f"Our scouts report activity within {nation}'s borders, "
-                        f"but their formations remain beyond our sight."
-                    )
-                cleaned_phase["fog_hidden_summary"] = fog_messages
-                response["enemy_phase"] = cleaned_phase
-
-            # DEBUG: Print final enemy_phase structure
-            if DEBUG_MODE:
-                print("[ENEMY_PHASE_FINAL] Sending to Godot:")
-                for nation, data in cleaned_phase.get("nations", {}).items():
-                    print(f"  {nation}: {len(data.get('actions', []))} actions")
-                    for i, act in enumerate(data.get("actions", [])):
-                        has_events = "events" in act and len(act.get("events", [])) > 0
-                        print(f"    [{i}] {act.get('ai_action', {}).get('action', '?')} - has_events: {has_events}")
-
-        # Include strategic reports if present (Phase 5.2-C)
-        if result.get("strategic_reports"):
-            response["strategic_reports"] = result["strategic_reports"]
-            if DEBUG_MODE:
-                print(f"[STRATEGIC_REPORTS] Sending {len(result['strategic_reports'])} reports to Godot:")
-                for i, sr in enumerate(result["strategic_reports"]):
-                    print(f"  [{i}] {sr.get('marshal')}: {sr.get('command')} -> {sr.get('action', 'N/A')}, status={sr.get('order_status')}, has_battle={bool(sr.get('battle_details'))}")
-        elif DEBUG_MODE:
-            print(f"[STRATEGIC_REPORTS] No strategic reports in result (keys: {[k for k in result.keys() if 'strat' in k.lower()]})")
-
-        # Include tactical events if present (from end_turn).
-        # Contains supply attrition messages, occupation updates, etc.
-        # Godot main.gd reads tactical_events for display in turn log.
-        if result.get("tactical_events"):
-            # FOG OF WAR (Session 34B): Filter tactical events by visibility
-            response["tactical_events"] = _filter_tactical_events_by_visibility(
-                result["tactical_events"], world)
-
-        # Include independent command report if present (Phase 2.5)
-        if result.get("show_independent_command_report"):
-            response["show_independent_command_report"] = True
-            response["independent_command_report"] = result.get("independent_command_report", [])
-
-        # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
-        if result.get("morning_dispatch"):
-            response["morning_dispatch"] = result["morning_dispatch"]
-
-
-        # ════════════════════════════════════════════════════════════
-        # PASS-THROUGH: Diplomatic popups (Session 8A + 8C)
-        # Pattern: read field → include in response → clear (Golden Rule 4)
-        #
-        # Audit fix: When enemy_phase is present, defer ALL popups.
-        # Popups have early returns in Godot that would block enemy_phase
-        # display. Deferred popups persist on world and get delivered on
-        # the next request (via diplomatic early return or normal path).
-        #
-        # Bug 1 fix: AI proposal dialogue is ALSO deferred when
-        # enemy_phase is present. Previously it was set unconditionally,
-        # causing incomplete popup data (incoming_proposal_popup deferred
-        # but diplomatic_dialogue not) and blocking enemy_phase display.
-        # ════════════════════════════════════════════════════════════
-        if not response.get("enemy_phase"):
-            # AI diplomatic proposal delivered this turn (Phase 8 Session 4)
-            if result.get("ai_proposal"):
-                response["ai_proposal"] = result["ai_proposal"]
-                # Also set diplomatic_dialogue so Godot shows the popup
-                if world.pending_diplomatic_dialogue:
-                    response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
-            _include_popup_passthroughs(response, world)
-        else:
-            # PL-5A + PL-30: Proposal result is informational ([Continue] only)
-            # — safe to include alongside enemy_phase. Uses the popup queue
-            # property (normalized ownership) instead of direct field access.
-            # Other popups remain deferred (require player choices).
-            prp = world.proposal_result_popup
-            if prp is not None:
-                response["proposal_result"] = prp
-                world.proposal_result_popup = None  # Consumed via queue setter
-
-        # Notifications — persistent alerts for Godot notification bar
-        _queue_informational_diplomacy_notices(response, world)
-        if world.notifications.has_pending():
-            response["notifications"] = world.notifications.get_pending()
-
+        _apply_command_result_layers(response, result, world)
         return response
     except Exception as e:
         print(f"[ERROR]: {e}")

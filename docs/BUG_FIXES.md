@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (Session 6 slice 4 landed: turn-manager popup-flush workaround removed, game-over-invalid modal state is cleared explicitly, and `main.gd` HUD-sync duplication is trimmed. Sessions 1-5 are complete. The remaining Session 6 task is the `/command` manual-field-layering reduction follow-up plus an enemy-phase notification regression.)
+> Last Updated: April 12, 2026 (Session 6 slice 5 landed: `/command` now delegates its response tail through `_apply_command_result_layers()` instead of hand-layering result fields inline, and new regression coverage proves enemy-phase responses still include notifications while choice popups remain deferred. Sessions 1-5 are complete, and Session 6 response/popup hardening is now complete.)
 
 ---
 
@@ -46,13 +46,13 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** Session 6 - Response and popup contract hardening.
+**Current routed next step:** Session 7 - Scale-sensitive backend hardening.
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed. Session 5 is complete.
 
-**Current Session 6 progress:** `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry cleanup COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE.
+**Current Session 6 progress:** COMPLETE. `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry cleanup COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE, and `/command` manual-field-layering reduction COMPLETE with a positive enemy-phase notification regression.
 
-**Next up inside Session 6:** the remaining `/command` manual-field-layering reduction work plus a positive enemy-phase notification regression. Audit prompt for the completed cleanup slice: `docs/SESSION6_TURN_MANAGER_CLEANUP_AUDIT_PROMPT.md`.
+**Session 6 audit prompt:** `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 

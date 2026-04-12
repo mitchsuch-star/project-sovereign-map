@@ -8,6 +8,8 @@ response fields (diplomatic top-bar, popup passthroughs, notifications).
 Session 4 of Architecture Refactoring Plan.
 """
 
+import inspect
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -314,6 +316,14 @@ class TestCommandEndpointDiplomaticFields:
             for call in calls
         )
 
+    def test_command_endpoint_delegates_tail_layering_to_helper(self, main_module):
+        """Session 6 follow-up: keep /command tail work centralized in one helper."""
+        source = inspect.getsource(main_module.execute_command)
+
+        assert "_apply_command_result_layers(response, result, world)" in source
+        assert 'response["bombardment_result"] = result["bombardment_result"]' not in source
+        assert 'response["notifications"] = world.notifications.get_pending()' not in source
+
     def test_enemy_phase_defers_popup_until_followup_request(self, client, fresh_world, main_module, monkeypatch):
         """Enemy-phase responses must leave choice popups queued for the next request."""
         calls = {"count": 0}
@@ -351,6 +361,61 @@ class TestCommandEndpointDiplomaticFields:
         second_data = second.json()
         assert second_data["coalition_popup"] is not None
         assert fresh_world.coalition_popup is None
+
+    def test_enemy_phase_keeps_notifications_while_choice_popup_waits_for_followup(
+        self, client, fresh_world, main_module, monkeypatch
+    ):
+        """Enemy-phase responses should still carry notifications while choice popups stay deferred."""
+        calls = {"count": 0}
+        original_execute = main_module.executor.execute
+
+        def _fake_execute(parsed, game_state):
+            if calls["count"] == 0:
+                calls["count"] += 1
+                fresh_world.incoming_proposal_popup = {
+                    "from_nation": "Austria",
+                    "diplomat_name": "Metternich",
+                    "diplomat_personality": "Cautious",
+                    "proposal_type": "alliance",
+                    "clauses": ["Join our coalition against Prussia."],
+                    "talleyrand_assessment": "",
+                    "acceptance_hint": "",
+                    "rejection_hint": "",
+                    "is_counter_offer": False,
+                }
+                fresh_world.notifications.add(
+                    {"id": "enemy-phase-notice", "text": "Enemy phase notice", "priority": "NORMAL"}
+                )
+                return {
+                    "success": True,
+                    "message": "Enemy nations have acted.",
+                    "enemy_phase": {
+                        "total_actions": 1,
+                        "summary": ["Austria maneuvers."],
+                        "nations": {
+                            "Austria": {
+                                "actions": [{"ai_action": {"action": "attack"}, "events": []}],
+                                "action_count": 1,
+                            }
+                        },
+                    },
+                }
+            return original_execute(parsed, game_state)
+
+        monkeypatch.setattr(main_module.executor, "execute", _fake_execute)
+
+        first = client.post("/command", json={"command": "end turn"})
+        first_data = first.json()
+        assert first_data.get("enemy_phase") is not None
+        assert "notifications" in first_data
+        assert any(n.get("id") == "enemy-phase-notice" for n in first_data["notifications"])
+        assert "incoming_proposal" not in first_data or first_data["incoming_proposal"] is None
+        assert fresh_world.incoming_proposal_popup is not None
+
+        second = client.post("/command", json={"command": "Ney, scout Belgium"})
+        second_data = second.json()
+        assert second_data["incoming_proposal"] is not None
+        assert fresh_world.incoming_proposal_popup is None
 
     def test_game_over_end_turn_clears_modal_popups_instead_of_flushing_turn_manager_fields(
         self, client, fresh_world
