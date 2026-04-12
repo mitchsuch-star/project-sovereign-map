@@ -1889,10 +1889,6 @@ def get_pending_envoy():
             result["incoming_proposal"] = _build_pending_envoy_popup_from_dialogue(
                 world, current
             )
-        elif dtype == "conflict_alert":
-            result["has_pending"] = True
-            result["dialogue_type"] = dtype
-            result["diplomatic_dialogue"] = current
 
     return result
 
@@ -1953,8 +1949,6 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         # Update the global popup cache
         world.incoming_proposal_popup = popup
         result["incoming_proposal"] = popup
-    elif dtype == "conflict_alert":
-        result["diplomatic_dialogue"] = dialogue
 
     return result
 

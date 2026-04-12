@@ -655,6 +655,171 @@ class TestSaveLoadMigration:
 # TestOfferBlockingFalse — AI proposals created non-blocking
 # ═══════════════════════════════════════════════════════════════
 
+# ══��══════════════════���═════════════════════════════════════════
+# TestAskLaterLapse — ask_later offers still lapse at end-turn
+# ═══════════════════════════════════════════════════════════════
+
+class TestAskLaterLapse:
+
+    def test_ask_later_offer_lapses_at_end_turn(self):
+        """ask_later keeps offer in dialogue manager; it lapses when turn ends."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _make_world()
+        world.actions_remaining = 2
+        offer = _make_offer("Prussia")
+        world.dialogue_manager.push(offer)
+        # ask_later does NOT pop — offer stays in dialogue manager
+        assert world.dialogue_manager.has_current_turn_offers() is True
+
+        executor = CommandExecutor()
+        result = executor._execute_end_turn({}, {"world": world})
+        assert result["success"] is True
+        lapsed = result.get("lapsed_offers", [])
+        # Original Prussian offer must appear in lapsed list
+        assert any(l["nation"] == "Prussia" for l in lapsed)
+
+
+# ═════════════════════════���═════════════════════════════════════
+# TestAutoEndTurnWithoutOffers — normal auto-advance still works
+# ═══════════════════════════════════════════���═══════════════════
+
+class TestAutoEndTurnWithoutOffers:
+
+    def test_last_action_auto_ends_without_pending_offer(self):
+        """AP exhaustion auto-advances when no offers are pending."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+
+        world = _make_world()
+        world.actions_remaining = 1
+        world.admin_actions_remaining = 0
+        # No offers pushed
+
+        parser = CommandParser()
+        parsed = parser.parse("Ney, scout Belgium", world=world)
+        executor = CommandExecutor()
+        result = executor.execute(parsed, {"world": world})
+        assert result.get("success", False) is True
+        assert result["action_info"]["turn_advanced"] is True
+        assert world.current_turn == 6
+
+
+# ═══════════════════════════════════════════════════════════════
+# TestPartialAnswerLapse — accept one offer, other lapses
+# ═══════════════════════════════════════════════════════════════
+
+class TestPartialAnswerLapse:
+
+    def test_partial_answer_one_accepted_one_lapsed(self):
+        """Accept one of two offers, end turn -> remaining offer lapses."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _make_world()
+        world.actions_remaining = 2
+        world.dialogue_manager.push(_make_offer("Prussia"))
+        world.dialogue_manager.push(_make_counter_offer("Austria"))
+        # Accept Prussia (pop current)
+        world.dialogue_manager.pop()
+        assert world.dialogue_manager.has_current_turn_offers() is True  # Austria remains
+
+        executor = CommandExecutor()
+        result = executor._execute_end_turn({}, {"world": world})
+        assert result["success"] is True
+        lapsed = result.get("lapsed_offers", [])
+        assert len(lapsed) == 1
+        assert lapsed[0]["nation"] == "Austria"
+
+
+# ═══════════════════════════════════════════════════════════════
+# TestFullLapseLifecycle — end-to-end integration
+# ══════════════════════════════════════════════════���════════════
+
+class TestFullLapseLifecycle:
+
+    def test_full_lifecycle_log_dispatch_notification(self):
+        """End-to-end: offer -> end turn -> log event + dispatch + notification cleared."""
+        from backend.commands.executor import CommandExecutor
+        from backend.notifications import (
+            create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
+        )
+
+        world = _make_world()
+        world.actions_remaining = 1
+        world.dialogue_manager.push(_make_offer("Prussia"))
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            "Prussian envoy",
+            "Prussia proposes peace.",
+            int(world.current_turn),
+        ))
+
+        executor = CommandExecutor()
+        result = executor._execute_end_turn({}, {"world": world})
+        assert result["success"] is True
+
+        # Campaign log event — original offer must appear as lapsed
+        lapse_events = [e for e in world.event_log if e.get("type") == "offer_lapsed"]
+        assert any(e["nation"] == "Prussia" for e in lapse_events)
+
+        # Morning dispatch — lapsed offers section present
+        dispatch = result.get("morning_dispatch", {})
+        assert "lapsed_offers" in dispatch
+        assert any(l["nation"] == "Prussia" for l in dispatch["lapsed_offers"])
+
+        # Original notification cleared (AI phase may add new ones, so check
+        # the specific notification we created is gone)
+        pending = world.notifications.get_pending()
+        assert not any(
+            n.get("title") == "Prussian envoy"
+            and n.get("message") == "Prussia proposes peace."
+            for n in pending
+        )
+
+
+# ═══════════════════════════════════════════════════════════════
+# TestSaveRoundTripTurnCreated — turn_created preserved
+# ═══════════════════════════════════════════════════════════════
+
+class TestSaveRoundTripTurnCreated:
+
+    def test_modern_save_roundtrip_preserves_turn_created(self):
+        """turn_created field survives save/load round-trip on offer items."""
+        world = _make_world()
+        offer = _make_offer("Prussia", turn=5)
+        world.dialogue_manager.push(offer)
+
+        data = world.to_dict()
+        loaded = WorldState.from_dict(data)
+        assert loaded.dialogue_manager.peek()["turn_created"] == 5
+        assert loaded.dialogue_manager.peek()["blocking"] is False
+
+    def test_legacy_flat_incoming_proposal_normalized(self):
+        """Legacy flat-save incoming_proposal with blocking=True loads as blocking=False."""
+        world = _make_world()
+        data = world.to_dict()
+        data.pop("dialogue_manager", None)
+        data["pending_diplomatic_dialogue"] = {
+            "type": "incoming_proposal",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Legacy proposal",
+            "options": [],
+            "context": {"proposal": {"type": "PEACE_TREATY", "proposer_nation": "Prussia",
+                                     "target_nation": "France"}},
+            "turn_created": 3,
+            "blocking": True,
+        }
+        data["pending_dialogue_queue"] = []
+
+        loaded = WorldState.from_dict(data)
+        current = loaded.dialogue_manager.peek()
+        assert current is not None
+        assert current["type"] == "incoming_proposal"
+        assert current["blocking"] is False
+        assert current["turn_created"] == 3
+
+
 class TestOfferBlockingFalse:
 
     def test_ai_proposal_dialogue_not_blocking(self):

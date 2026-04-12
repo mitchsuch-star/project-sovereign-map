@@ -6,6 +6,7 @@ Covers: forced retreat, destroyed cleanup, territory capture, vindication,
 authority, coalition threat/war exhaustion, idle reset, exhaustion tracking,
 diplo battle record, state guards.
 """
+import random
 from unittest.mock import patch
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
@@ -28,6 +29,7 @@ class TestGloriousChargeTerritoryCap:
 
     def test_charge_captures_unfortified_territory(self):
         """Winning a charge advances attacker and captures territory."""
+        random.seed(42)  # Deterministic combat dice — immune to test ordering
         world = WorldState()
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
@@ -483,7 +485,6 @@ class TestAutoChargeTerritoryCapture:
 
     def test_auto_charge_skips_fortified_territory(self):
         """Auto-charge should NOT capture fortified territory (no occupation)."""
-        import random
         random.seed(42)
 
         world = WorldState()

@@ -111,7 +111,8 @@ class TurnManager:
                 "next_turn": self.world.current_turn,
                 "victory_check": pre_enemy_victory_check,
                 "message": f"Turn {old_turn} complete - {pre_enemy_victory_check['reason']}",
-                "tactical_events": tactical_events
+                "tactical_events": tactical_events,
+                "lapsed_offers": lapsed_offers or [],
             }
             # V2-86: Include pending diplomatic popups so frontend can show
             # them before the victory screen (dialogue, rebellion, sabotage)
@@ -146,7 +147,8 @@ class TurnManager:
                     },
                     "message": f"Turn {old_turn} complete - {enemy_victory['message']}",
                     "tactical_events": tactical_events,
-                    "enemy_phase": enemy_phase_results
+                    "enemy_phase": enemy_phase_results,
+                    "lapsed_offers": lapsed_offers or [],
                 }
                 # V2-86: Include pending diplomatic popups before victory screen
                 self._flush_pending_popups_into(result)

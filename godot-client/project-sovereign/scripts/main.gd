@@ -1464,6 +1464,16 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
+	# ═══ LAPSED ENVOYS ═══
+	var lapsed_offers = data.get("lapsed_offers", [])
+	if lapsed_offers.size() > 0:
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]LAPSED ENVOYS[/color]")
+		for lapse in lapsed_offers:
+			var l_nation = str(lapse.get("nation", "?"))
+			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
+			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]")
+		add_output("")
+
 	# ═══ TURN LIMIT WARNING ═══
 	var turn_limit_warning = data.get("turn_limit_warning", null)
 	if turn_limit_warning != null and turn_limit_warning is Dictionary:

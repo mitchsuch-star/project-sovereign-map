@@ -375,6 +375,46 @@ class TestOtherEndpointDiplomaticFields:
         assert data.get("proposal_result") is None
         assert fresh_world.proposal_result_popup is None
 
+    def test_conflict_alert_reconsider_does_not_spawn_proposal_result(self, client, fresh_world):
+        """Reconsider on local-planning dialogue must not leak into proposal-result popup."""
+        fresh_world.dialogue_manager.replace({
+            "type": "conflict_alert",
+            "target_nation": "Austria",
+            "talleyrand_text": "Alliance conflict.",
+            "options": [
+                {"label": "Dismiss", "action": "dismiss"},
+                {"label": "Reconsider", "action": "reconsider"},
+            ],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+
+        response = client.post("/respond_to_diplomatic_dialogue", json={"choice": 2})
+        data = response.json()
+
+        assert data["success"] is True
+        assert data.get("proposal_result") is None
+        assert fresh_world.proposal_result_popup is None
+
+    def test_suppress_flag_not_in_api_response(self, client, fresh_world):
+        """suppress_proposal_result_popup must not leak to the API response."""
+        fresh_world.dialogue_manager.replace({
+            "type": "conflict_alert",
+            "target_nation": "Austria",
+            "talleyrand_text": "Alliance conflict.",
+            "options": [{"label": "Dismiss", "action": "dismiss"}],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+
+        response = client.post("/respond_to_diplomatic_dialogue", json={"choice": 1})
+        data = response.json()
+
+        assert data["success"] is True
+        assert "suppress_proposal_result_popup" not in data
+
     def test_strategic_response_game_over_has_diplomatic_fields(self, client, fresh_world):
         """Strategic response game-over guard should include diplomatic fields."""
         fresh_world.game_over = True
