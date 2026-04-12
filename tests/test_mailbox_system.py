@@ -206,6 +206,16 @@ class TestGetMailboxItems:
         assert items[0]["arrival_turn"] == 3
         assert items[0]["mailbox_id"] == 1
 
+    def test_summary_text_prefers_backend_terms_summary(self):
+        dm = DialogueManager()
+        d = _make_proposal_dialogue("Prussia")
+        d["proposal_terms_summary"] = "Peace treaty: return Brussels and exchange prisoners."
+        dm.push(d)
+
+        items = dm.get_mailbox_items()
+
+        assert items[0]["summary_text"] == "Peace treaty: return Brussels and exchange prisoners."
+
 
 # ═══════════════════════════════════════════════════════════════
 # ACTIVATE MAILBOX ITEM

@@ -10,6 +10,7 @@ extends CanvasLayer
 # =============================================================================
 
 signal command_selected(command: String)
+signal open_envoys_requested
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -206,18 +207,14 @@ func _render_nations(data: Dictionary):
 	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
 	dp_label.text = "DP: " + str(_dp_available)
+	var pending_envoy_count = int(data.get("pending_envoy_count", 0))
 
 	# PL-30: Distinguish blocking dialogue from deferred proposal result.
 	# Never close+add_output — that path crashes when the wizard is no longer
 	# in the scene tree. Show an in-wizard message instead.
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		var lbl = RichTextLabel.new()
-		lbl.bbcode_enabled = true
-		lbl.fit_content = true
-		lbl.scroll_active = false
-		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply.[/color]"
-		content_list.add_child(lbl)
+		_add_dialogue_gate_notice(pending_envoy_count)
 		return
 
 	var categories = data.get("categories", {})
@@ -314,17 +311,12 @@ func _render_preview(data: Dictionary):
 	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
 	dp_label.text = "DP: " + str(_dp_available)
+	var pending_envoy_count = int(data.get("pending_envoy_count", 0))
 
 	# PL-30: Same fix as Step 1 — never close+add_output (null-instance crash).
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		_clear_content_list()
-		var lbl = RichTextLabel.new()
-		lbl.bbcode_enabled = true
-		lbl.fit_content = true
-		lbl.scroll_active = false
-		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply.[/color]"
-		content_list.add_child(lbl)
+		_add_dialogue_gate_notice(pending_envoy_count)
 		return
 
 	# Build assessment panel
@@ -539,3 +531,31 @@ func _add_loading_label():
 	lbl.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
 	lbl.add_theme_font_size_override("font_size", 12)
 	content_list.add_child(lbl)
+
+
+func _add_dialogue_gate_notice(pending_envoy_count: int):
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	if pending_envoy_count > 0:
+		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply. Reopen Envoys before starting a new diplomatic action.[/color]"
+	else:
+		lbl.text = "[color=#" + COLOR_ORANGE + "]Resolve the active diplomatic dialogue before starting a new action.[/color]"
+	content_list.add_child(lbl)
+	if pending_envoy_count > 0:
+		_add_open_envoys_button(pending_envoy_count)
+
+
+func _add_open_envoys_button(pending_envoy_count: int):
+	var btn = Button.new()
+	btn.text = "Open Envoys (%d)" % pending_envoy_count
+	btn.custom_minimum_size = Vector2(0, 38)
+	btn.add_theme_font_size_override("font_size", 12)
+	btn.pressed.connect(_on_open_envoys_pressed)
+	content_list.add_child(btn)
+
+
+func _on_open_envoys_pressed():
+	_close_wizard()
+	open_envoys_requested.emit()

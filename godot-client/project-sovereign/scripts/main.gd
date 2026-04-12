@@ -26,6 +26,7 @@ const DEBUG_VERBOSE := false
 @onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
 @onready var diplomacy_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/DiplomacyButton
 @onready var end_turn_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/EndTurnButton
+@onready var open_envoys_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/OpenEnvoysButton
 
 # UI References - Minimize/Restore
 @onready var bottom_left_ui = $BottomLeftUI
@@ -70,7 +71,6 @@ var pending_strategic_response = null  # Store response for post-report flow
 var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
 
 # Session 8C Diplomatic Popups
-var coalition_declaration_popup = null
 var incoming_proposal_popup = null
 var talleyrand_objection_popup = null
 var sabotage_discovery_popup = null
@@ -80,9 +80,6 @@ var proposal_confirm_popup = null
 
 # Alliance Paradox Popup (Deep Audit Session 8)
 var alliance_paradox_popup = null
-
-# Proposal Result Popup (Session 8 PL-5A)
-var proposal_result_popup = null
 
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
@@ -105,6 +102,7 @@ var pause_menu = null
 
 # Campaign Log (Phase 6.5)
 var campaign_log = null
+var dispatch_view = null
 
 # Notification Bar (Phase 6.5)
 var notification_bar = null
@@ -183,10 +181,6 @@ func _ready():
 		clarification_popup.cancelled.connect(_on_clarification_cancelled)
 
 	# Diplomatic popups
-	coalition_declaration_popup = dialog_manager.register("coalition_declaration", "res://scenes/coalition_declaration_popup.tscn")
-	if coalition_declaration_popup:
-		coalition_declaration_popup.dismissed.connect(_on_coalition_popup_dismissed)
-
 	incoming_proposal_popup = dialog_manager.register("incoming_proposal", "res://scenes/incoming_proposal_popup.tscn")
 	if incoming_proposal_popup:
 		incoming_proposal_popup.choice_made.connect(_on_incoming_proposal_choice)
@@ -213,14 +207,12 @@ func _ready():
 	if alliance_paradox_popup:
 		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
 
-	proposal_result_popup = dialog_manager.register("proposal_result", "res://scenes/proposal_result_popup.tscn")
-	if proposal_result_popup:
-		proposal_result_popup.dismissed.connect(_on_proposal_result_dismissed)
-
 	# Diplomacy wizard
 	diplomacy_wizard = dialog_manager.register("diplomacy_wizard", "res://scenes/diplomacy_wizard.tscn")
 	if diplomacy_wizard:
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
+		if diplomacy_wizard.has_signal("open_envoys_requested"):
+			diplomacy_wizard.open_envoys_requested.connect(_on_wizard_open_envoys_requested)
 
 	# War Status Panel (N4: HUD Layer 25 + Detail Layer 30) — not modal
 	war_status_panel = dialog_manager.register("war_status_panel", "res://scenes/war_status_panel.tscn", false)
@@ -273,6 +265,10 @@ func _ready():
 			# Keep campaign_log reference for direct access
 			if config[0] == "event_log":
 				campaign_log = instance
+			elif config[0] == "dispatch":
+				dispatch_view = instance
+				if dispatch_view.has_signal("open_envoys_requested"):
+					dispatch_view.open_envoys_requested.connect(_on_dispatch_open_envoys_requested)
 
 	# Notification bar — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
@@ -296,6 +292,9 @@ func _ready():
 
 	if not diplomacy_button.pressed.is_connected(_on_diplomacy_button_pressed):
 		diplomacy_button.pressed.connect(_on_diplomacy_button_pressed)
+
+	if not open_envoys_button.pressed.is_connected(_on_open_envoys_button_pressed):
+		open_envoys_button.pressed.connect(_on_open_envoys_button_pressed)
 
 	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
 		command_input.gui_input.connect(_on_command_input_gui_input)
@@ -569,10 +568,12 @@ func _execute_end_turn():
 		return
 
 	_awaiting_end_turn_confirmation = false
+	_set_open_envoys_prompt_visible(false)
 	_send_end_turn()
 
 func _send_end_turn():
 	"""Actually send end turn command to backend."""
+	_set_open_envoys_prompt_visible(false)
 	# Add to history
 	_add_to_history("end turn")
 
@@ -591,8 +592,9 @@ func _show_lapse_confirmation():
 	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_envoy_count
 	add_output("")
 	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
-	add_output("[color=#d9c08c]  Click [b]End Turn[/b] again, press [b]Enter[/b], or type [b]end turn[/b] again to confirm. Click [b]Envoys[/b] to review instead.[/color]")
+	add_output("[color=#d9c08c]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
 	_awaiting_end_turn_confirmation = true
+	_set_open_envoys_prompt_visible(true)
 	end_turn_button.grab_focus()
 
 func _execute_command():
@@ -607,6 +609,7 @@ func _execute_command():
 		return
 
 	_awaiting_end_turn_confirmation = false
+	_set_open_envoys_prompt_visible(false)
 
 	# Route typed "end turn" through the same confirmation gate as button/hotkey.
 	if command.to_lower() == "end turn":
@@ -687,11 +690,7 @@ func _on_command_result(response):
 	_sync_response_hud(response)
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
-	if response.has("coalition_popup") and response.coalition_popup != null:
-		if coalition_declaration_popup:
-			coalition_declaration_popup.show_coalition(response.coalition_popup)
-			_process_active_wars(response)
-			return  # Don't re-enable input until dismissed
+	# Informational-only coalition declarations now route through the notice rail.
 
 	# Priority 3.5: Alliance Paradox Popup (Deep Audit Session 8)
 	if response.has("alliance_paradox_popup") and response.alliance_paradox_popup != null:
@@ -728,11 +727,7 @@ func _on_command_result(response):
 				return
 
 	# Priority 6.25: Proposal Result Popup (PL-5A — proposal outcome)
-	if response.has("proposal_result") and response.proposal_result != null:
-		if proposal_result_popup:
-			proposal_result_popup.show_result(response.proposal_result)
-			_process_active_wars(response)
-			return
+	# Informational-only proposal results now route through the notice rail.
 
 	# Priority 6.5: Player-initiated Proposal Confirm Popup
 	# Catches diplomatic_dialogue returned by the outgoing proposal flow.
@@ -872,6 +867,7 @@ func _on_command_result(response):
 				turn = int(response.action_summary.get("turn", current_turn))
 			pending_enemy_phase_response = response  # Store for post-enemy-phase flow
 			_show_enemy_phase_dialog(response.enemy_phase, turn)
+			_update_war_panel_visibility()
 			return  # Don't re-enable input until dialog dismissed
 
 		# V2a: Show MILD dispatches when no enemy phase dialog
@@ -1726,7 +1722,14 @@ func _set_pending_envoy_count(count: int):
 	var new_count = int(count)
 	if new_count != _current_envoy_count or new_count <= 0:
 		_awaiting_end_turn_confirmation = false
+		_set_open_envoys_prompt_visible(false)
 	_current_envoy_count = new_count
+
+
+func _set_open_envoys_prompt_visible(is_visible: bool):
+	open_envoys_button.visible = is_visible and _current_envoy_count > 0
+	if open_envoys_button.visible:
+		open_envoys_button.text = "Open Envoys (%d)" % _current_envoy_count
 
 
 func _sync_response_hud(response: Dictionary):
@@ -2261,17 +2264,6 @@ func _on_enemy_phase_dismissed():
 			_show_pending_dispatch()
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
-
-		# PL-5A: Proposal result popup (deferred from end-turn, informational)
-		if response.has("proposal_result") and response.proposal_result != null:
-			if proposal_result_popup:
-				# N4i: Update war status HUD before popup
-				_process_active_wars(response)
-				pending_enemy_phase_response = null
-				# Show morning dispatch before popup (context for the result)
-				_show_pending_dispatch()
-				proposal_result_popup.show_result(response.proposal_result)
-				return  # Don't re-enable input until dismissed
 
 		# N4i: Update war status HUD after enemy phase
 		_process_active_wars(response)
@@ -2809,14 +2801,6 @@ func _on_clarification_cancelled():
 # SESSION 8C DIPLOMATIC POPUP HANDLERS
 # ════════════════════════════════════════════════════════════════════════════
 
-func _on_coalition_popup_dismissed():
-	"""Handle coalition declaration popup dismissed."""
-	add_output("[color=#e04040]The coalition has declared war on France.[/color]")
-	# Refresh war panel with cached response (Fix 5)
-	_process_active_wars(_last_command_response)
-	set_input_enabled(true)
-	command_input.grab_focus()
-
 func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	"""Handle player response to outgoing proposal confirmation popup.
 	CRITICAL: Use send_dialogue_response (direct action index), NOT send_command.
@@ -2864,12 +2848,6 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
 		set_input_enabled(false)
 		api_client.send_command(command, _on_command_result)
-
-func _on_proposal_result_dismissed():
-	"""Handle proposal result popup dismissed (PL-5A)."""
-	_process_active_wars(_last_command_response)
-	set_input_enabled(true)
-	command_input.grab_focus()
 
 func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal.
@@ -2976,11 +2954,24 @@ func _on_screen_changed(screen_name: String):
 	_update_war_panel_visibility()
 
 
+func _on_open_envoys_button_pressed():
+	_on_envoy_clicked()
+
+
+func _on_wizard_open_envoys_requested():
+	_on_envoy_clicked()
+
+
+func _on_dispatch_open_envoys_requested():
+	_on_envoy_clicked()
+
+
 func _on_envoy_clicked():
 	"""Handle mailbox button click — Session 2 follow-up: open mailbox panel."""
 	if _pending_envoy_request_active:
 		return
 	_awaiting_end_turn_confirmation = false
+	_set_open_envoys_prompt_visible(false)
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	_pending_envoy_request_active = true
 	api_client.get_mailbox(_on_mailbox_list_result)
@@ -3146,6 +3137,8 @@ func _update_war_panel_visibility():
 		war_status_panel.visible = should_show
 	if not should_show and war_detail_popup:
 		war_detail_popup.hide()
+	if notification_bar and notification_bar.has_method("set_suspended"):
+		notification_bar.set_suspended(_is_modal_dialog_open())
 
 
 func _on_war_card_clicked(nation: String, status: String):

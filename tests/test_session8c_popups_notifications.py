@@ -360,14 +360,14 @@ class TestPopupDataContracts:
     """Each popup has correct fields and types."""
 
     def test_coalition_popup_contract(self):
-        """coalition_popup has all required fields."""
+        """form_coalition returns coalition popup payload without occupying queue state."""
         from backend.game_logic.coalition import form_coalition
         world = _make_world()
         _set_at_war(world, "France", "Austria")
         _set_at_war(world, "France", "Britain")
         world.threat_level = 70
-        form_coalition(["Austria"], world)
-        popup = world.coalition_popup
+        result = form_coalition(["Austria"], world)
+        popup = result["coalition_popup"]
         assert popup is not None
         assert isinstance(popup["coalition_name"], str)
         assert isinstance(popup["leader"], str)
@@ -375,6 +375,7 @@ class TestPopupDataContracts:
         assert isinstance(popup["members"], list)
         assert isinstance(popup["combined_strength_display"], str)
         assert isinstance(popup["threat_level"], int)
+        assert world.coalition_popup is None
         # Check member structure
         for member in popup["members"]:
             assert "nation" in member

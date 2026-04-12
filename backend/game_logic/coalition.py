@@ -655,7 +655,9 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
             "message": f"Envoy to {voided_proposal_nation} recalled — they joined the coalition.",
         })
 
-    # 10. Set coalition popup on world state (Session 8C)
+    # 10. Build legacy coalition popup payload for result consumers only.
+    # The live UI now uses the persistent notification rail instead of the
+    # popup queue, so do not occupy a popup slot with this informational event.
     member_details = []
     for m in sorted(all_members):
         m_strength = sum(
@@ -668,7 +670,7 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
             "strength_display": f"{int(m_strength):,}",
             "war_exhaustion": int(m_we),
         })
-    world.coalition_popup = {
+    coalition_popup = {
         "coalition_name": name,
         "leader": leader,
         "posture": posture,
@@ -686,7 +688,7 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "combined_strength": int(combined_strength),
         "new_belligerents": new_belligerents,
         "war_events": war_events,
-        "coalition_popup": world.coalition_popup,
+        "coalition_popup": coalition_popup,
     }
     if voided_proposal_nation:
         result["voided_proposal"] = voided_proposal_nation

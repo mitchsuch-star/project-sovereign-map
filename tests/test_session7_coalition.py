@@ -329,6 +329,7 @@ class TestCoalitionFormation:
         assert isinstance(popup["members"], list)
         assert "combined_strength_display" in popup
         assert "threat_level" in popup
+        assert world.coalition_popup is None
 
 
 # ════════════════════════════════════════════════════════════════

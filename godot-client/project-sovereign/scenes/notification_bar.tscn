@@ -1,21 +1,60 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/notification_bar.gd" id="1_nbar"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rail"]
+bg_color = Color(0.05, 0.07, 0.1, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.45)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
 [node name="NotificationBar" type="Control"]
+custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("1_nbar")
 
-[node name="IconContainer" type="HBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 14
-anchor_top = 0.5
+[node name="RailPanel" type="PanelContainer" parent="."]
+layout_mode = 2
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 0.5
-offset_top = 10.0
-offset_bottom = 10.0
-grow_horizontal = 0
-grow_vertical = 2
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_rail")
+
+[node name="RailLayout" type="HBoxContainer" parent="RailPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="RailLabel" type="Label" parent="RailPanel/RailLayout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+text = "Imperial Box"
+
+[node name="Spacer" type="Control" parent="RailPanel/RailLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IconContainer" type="HBoxContainer" parent="RailPanel/RailLayout"]
+layout_mode = 2
 alignment = 2
 theme_override_constants/separation = 4
+
+[node name="OverflowLabel" type="Label" parent="RailPanel/RailLayout"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.66, 0.74, 1)
+theme_override_font_sizes/font_size = 10
+text = "+0"

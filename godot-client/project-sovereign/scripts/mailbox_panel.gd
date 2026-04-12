@@ -1,11 +1,11 @@
 extends CanvasLayer
 
 # =============================================================================
-# PROJECT SOVEREIGN - Mailbox Panel (Session 2 follow-up)
+# PROJECT SOVEREIGN - Mailbox Panel
 # =============================================================================
-# Browsable inbox for pending diplomatic items. Shows all mailbox-eligible
-# diplomacy (incoming_proposal, counter_offer, counter_offer_response,
-# conflict_alert) with ACTIVE/WAITING state. Click a row to open/activate.
+# Browsable inbox for pending diplomatic items. Real row controls make it easy
+# to scan ACTIVE vs WAITING, source nation, item family, one-line summary, and
+# arrival turn without leaning on one BBCode blob.
 # =============================================================================
 
 signal item_selected(mailbox_id: int, is_active: bool, item_type: String)
@@ -15,83 +15,155 @@ const ITEM_TYPE_DISPLAY = {
 	"incoming_proposal": "Proposal",
 	"counter_offer": "Counter-Offer",
 	"counter_offer_response": "Counter Response",
-	"conflict_alert": "Conflict Alert",
 }
 
+@onready var background_overlay: ColorRect = $BackgroundOverlay
 @onready var title_label: Label = $PanelContainer/VBoxContainer/TitleLabel
-@onready var item_list: RichTextLabel = $PanelContainer/VBoxContainer/ItemList
+@onready var list_content: VBoxContainer = $PanelContainer/VBoxContainer/ScrollContainer/ListContent
+@onready var empty_state_label: Label = $PanelContainer/VBoxContainer/ScrollContainer/ListContent/EmptyStateLabel
 @onready var close_btn: Button = $PanelContainer/VBoxContainer/ButtonContainer/CloseButton
 
 var _items: Array = []
 
+
 func _ready():
 	hide()
 	close_btn.pressed.connect(_on_close)
-	item_list.meta_clicked.connect(_on_meta_clicked)
+	background_overlay.gui_input.connect(_on_overlay_input)
 
 
 func show_mailbox(data: Dictionary):
-	"""Display mailbox with items from GET /mailbox response."""
 	var items = data.get("items", [])
 	var count = int(data.get("count", 0))
-	_items = items
+	_items = items.duplicate()
 
 	title_label.text = "PENDING ENVOYS (%d)" % count
+	_clear_rows()
 
-	if items.size() == 0:
-		item_list.text = ""
-		item_list.append_text("[center][color=#a0a0a8]No pending envoys.[/color][/center]")
+	if items.is_empty():
+		empty_state_label.visible = true
 		show()
 		return
 
-	var bbcode = ""
-	for i in range(items.size()):
-		var item = items[i]
-		var mid = int(item.get("mailbox_id", 0))
-		var state = str(item.get("state", "WAITING"))
-		var source = str(item.get("source_nation", "Unknown"))
-		var itype = str(item.get("item_type", "unknown"))
-		var ptype = str(item.get("proposal_type", itype))
-		var turn = int(item.get("arrival_turn", 0))
-		var type_display = ITEM_TYPE_DISPLAY.get(itype, itype.replace("_", " ").capitalize())
+	empty_state_label.visible = false
+	for item in items:
+		list_content.add_child(_build_item_row(item))
 
-		# State badge color
-		var state_color = "#7eb8da" if state == "ACTIVE" else "#a0a0a8"
-		var state_text = "[ACTIVE]" if state == "ACTIVE" else "[WAITING]"
-
-		# Clickable row via meta tag
-		bbcode += "[url=%d]" % mid
-		bbcode += "[color=%s]%s[/color] " % [state_color, state_text]
-		bbcode += "[b]%s[/b] from [color=#e0c060]%s[/color]" % [type_display, source]
-		bbcode += " — %s" % ptype.replace("_", " ").capitalize()
-		bbcode += "  [color=#707080](Turn %d)[/color]" % turn
-		bbcode += "[/url]\n"
-
-		if i < items.size() - 1:
-			bbcode += "[color=#404050]────────────────────────────────────────[/color]\n"
-
-	item_list.text = ""
-	item_list.append_text(bbcode)
 	show()
 
 
-func _on_meta_clicked(meta):
-	"""Handle click on a mailbox item row."""
-	var mailbox_id = int(str(meta))
-	if mailbox_id <= 0:
-		return
+func _build_item_row(item: Dictionary) -> PanelContainer:
+	var state = str(item.get("state", "WAITING"))
+	var source = str(item.get("source_nation", "Unknown"))
+	var item_type = str(item.get("item_type", "unknown"))
+	var summary = str(item.get("summary_text", item.get("summary", "Diplomatic item"))).strip_edges()
+	var arrival_turn = int(item.get("arrival_turn", 0))
+	var mailbox_id = int(item.get("mailbox_id", 0))
+	var is_active = state == "ACTIVE"
 
-	# Find the item to determine if it's active or waiting
-	var is_active = false
-	var item_type = ""
-	for item in _items:
-		if int(item.get("mailbox_id", 0)) == mailbox_id:
-			is_active = str(item.get("state", "")) == "ACTIVE"
-			item_type = str(item.get("item_type", ""))
-			break
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 74)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.set_meta("mailbox_id", mailbox_id)
+	panel.set_meta("is_active", is_active)
+	panel.set_meta("item_type", item_type)
+	panel.gui_input.connect(_on_row_gui_input.bind(panel))
 
-	hide()
-	item_selected.emit(mailbox_id, is_active, item_type)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.12, 0.18, 0.96) if is_active else Color(0.07, 0.08, 0.12, 0.94)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = Color(0.5, 0.72, 0.86, 0.9) if is_active else Color(0.26, 0.3, 0.38, 0.9)
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_right = 6
+	style.corner_radius_bottom_left = 6
+	style.content_margin_left = 12.0
+	style.content_margin_top = 10.0
+	style.content_margin_right = 12.0
+	style.content_margin_bottom = 10.0
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox = VBoxContainer.new()
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+
+	var top_row = HBoxContainer.new()
+	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(top_row)
+
+	var state_badge = Label.new()
+	state_badge.text = "ACTIVE" if is_active else "WAITING"
+	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	state_badge.add_theme_font_size_override("font_size", 10)
+	state_badge.add_theme_color_override(
+		"font_color",
+		Color(0.5, 0.72, 0.86, 1.0) if is_active else Color(0.66, 0.66, 0.7, 1.0)
+	)
+	top_row.add_child(state_badge)
+
+	var source_label = Label.new()
+	source_label.text = source
+	source_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	source_label.add_theme_font_size_override("font_size", 13)
+	source_label.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
+	top_row.add_child(source_label)
+
+	var spacer = Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(spacer)
+
+	var type_label = Label.new()
+	type_label.text = ITEM_TYPE_DISPLAY.get(item_type, item_type.replace("_", " ").capitalize())
+	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	type_label.add_theme_font_size_override("font_size", 11)
+	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
+	top_row.add_child(type_label)
+
+	var turn_label = Label.new()
+	turn_label.text = "Turn %d" % arrival_turn
+	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	turn_label.add_theme_font_size_override("font_size", 10)
+	turn_label.add_theme_color_override("font_color", Color(0.56, 0.58, 0.64, 1.0))
+	top_row.add_child(turn_label)
+
+	var summary_label = Label.new()
+	summary_label.text = summary
+	summary_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	summary_label.add_theme_font_size_override("font_size", 11)
+	summary_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.86, 1.0))
+	summary_label.tooltip_text = summary
+	vbox.add_child(summary_label)
+
+	return panel
+
+
+func _on_row_gui_input(event: InputEvent, panel: PanelContainer):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		hide()
+		item_selected.emit(
+			int(panel.get_meta("mailbox_id")),
+			bool(panel.get_meta("is_active")),
+			str(panel.get_meta("item_type"))
+		)
+
+
+func _clear_rows():
+	for child in list_content.get_children():
+		if child != empty_state_label:
+			list_content.remove_child(child)
+			child.queue_free()
+
+
+func _on_overlay_input(event):
+	if event is InputEventMouseButton and event.pressed:
+		_on_close()
 
 
 func _on_close():

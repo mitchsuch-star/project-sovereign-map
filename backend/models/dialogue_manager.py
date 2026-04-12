@@ -81,6 +81,11 @@ class DialogueManager:
         "counter_offer": 3,
         "counter_offer_response": 3,
     }
+    MAILBOX_SUMMARY_LABELS: Dict[str, str] = {
+        "incoming_proposal": "Incoming proposal",
+        "counter_offer": "Counter-offer",
+        "counter_offer_response": "Counter response",
+    }
 
     def __init__(self):
         self._current: Optional[Dict] = None
@@ -221,6 +226,17 @@ class DialogueManager:
             turn = d.get("turn_created", 0)
             terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
             ptype = terms.get("type", dtype)
+            summary = str(
+                d.get("proposal_terms_summary", "")
+                or ctx.get("proposal_terms_summary", "")
+                or (
+                    f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Diplomatic item')}: "
+                    f"{ptype.replace('_', ' ').title()}"
+                )
+            ).strip()
+            summary = summary.splitlines()[0]
+            if len(summary) > 72:
+                summary = summary[:69].rstrip() + "..."
             return {
                 "mailbox_id": d.get("mailbox_id", 0),
                 "state": "ACTIVE" if d is self._current else "WAITING",
@@ -228,6 +244,7 @@ class DialogueManager:
                 "item_type": dtype,
                 "proposal_type": ptype,
                 "arrival_turn": int(turn),
+                "summary_text": summary,
                 "summary": f"{source} — {ptype.replace('_', ' ').title()}",
             }
 

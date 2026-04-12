@@ -151,6 +151,50 @@ class TestBuildBaseResponse:
         # Should be cleared from world after reading
         assert fresh_world.coalition_popup is None
 
+    def test_proposal_result_is_mirrored_into_notice_notifications(self, fresh_world, main_module):
+        """Informational proposal results should also reach the persistent notice rail."""
+        from backend.notifications import DIPLOMATIC_PROPOSAL_RESULT
+
+        fresh_world.proposal_result_popup = {
+            "target_nation": "Prussia",
+            "proposal_type": "Peace Treaty",
+            "outcome": "REJECT",
+            "message": "Prussia has rejected our proposal.",
+            "feedback": "They still consider the indemnity too steep.",
+        }
+
+        response = main_module.build_base_response(fresh_world)
+
+        assert response["proposal_result"]["target_nation"] == "Prussia"
+        notifications = response.get("notifications", [])
+        notice = next(n for n in notifications if n["type"] == DIPLOMATIC_PROPOSAL_RESULT)
+        assert notice["title"] == "Peace Treaty Rejected"
+        assert notice["details"]["target_nation"] == "Prussia"
+        assert notice["details"]["outcome"] == "REJECT"
+        assert notice["details"]["feedback"] == "They still consider the indemnity too steep."
+
+    def test_coalition_formation_no_longer_masks_proposal_result_queue(self, fresh_world, main_module):
+        """Coalition formation should not consume a popup-queue slot now that it is informational-only."""
+        from backend.game_logic.coalition import form_coalition
+
+        fresh_world.proposal_result_popup = {
+            "target_nation": "Austria",
+            "proposal_type": "Alliance",
+            "outcome": "ACCEPT",
+            "message": "Austria has accepted our alliance.",
+            "feedback": "",
+        }
+        fresh_world.diplomatic_states[fresh_world._make_diplo_key("France", "Austria")] = "WAR"
+        fresh_world.diplomatic_states[fresh_world._make_diplo_key("France", "Britain")] = "WAR"
+        fresh_world.threat_level = 70
+
+        result = form_coalition(["Austria"], fresh_world)
+        response = main_module.build_base_response(fresh_world)
+
+        assert result["coalition_popup"]["leader"] in result["members"]
+        assert response["coalition_popup"] is None
+        assert response["proposal_result"]["target_nation"] == "Austria"
+
     def test_active_wars_always_included(self, fresh_world, main_module):
         response = main_module.build_base_response(fresh_world)
         assert "active_wars" in response
@@ -334,6 +378,8 @@ class TestOtherEndpointDiplomaticFields:
 
     def test_diplomatic_dialogue_safety_net_rejects_negative_result(self, client, fresh_world, main_module, monkeypatch):
         """Fallback proposal-result popup must not default rejected outcomes to ACCEPT."""
+        from backend.notifications import DIPLOMATIC_PROPOSAL_RESULT
+
         fresh_world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",
@@ -355,6 +401,12 @@ class TestOtherEndpointDiplomaticFields:
         assert data["proposal_result"] is not None
         assert data["proposal_result"]["outcome"] == "REJECT"
         assert data["proposal_result"]["target_nation"] == "Prussia"
+        assert any(
+            notif["type"] == DIPLOMATIC_PROPOSAL_RESULT
+            and notif["details"]["target_nation"] == "Prussia"
+            and notif["details"]["outcome"] == "REJECT"
+            for notif in data.get("notifications", [])
+        )
 
     def test_conflict_alert_dismiss_does_not_spawn_proposal_result(self, client, fresh_world):
         """Local-planning dismissals must not leak into proposal-result popup fallback."""

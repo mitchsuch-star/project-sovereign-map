@@ -1,99 +1,114 @@
 extends Control
 
 # =============================================================================
-# PROJECT SOVEREIGN - Notification Bar (Phase 6.5)
+# PROJECT SOVEREIGN - Notification Rail
 # =============================================================================
-# EU4-style persistent notification icons. Non-blocking, sits at top-right
-# below LOG button. Each notification is a small colored icon that expands
-# on click to show details. Dismiss with X button.
+# Persistent notice rail for informational events. Lives below the top bar so it
+# no longer competes with Envoys/DP/threat controls, and expands downward from
+# the rail instead of the viewport corner.
 # =============================================================================
 
 signal notification_dismissed(notification_id: String)
 
-# Priority colors (match backend NotificationPriority enum values)
+const MAX_VISIBLE_ICONS := 6
+const DETAIL_PANEL_MIN_WIDTH := 280.0
+const DETAIL_PANEL_MAX_WIDTH := 340.0
+const DETAIL_PANEL_GAP := 6.0
+
 const PRIORITY_COLORS = {
-	2: Color(0.85, 0.25, 0.25, 1.0),   # CRITICAL — red
-	1: Color(0.85, 0.6, 0.2, 1.0),     # HIGH — orange
-	0: Color(0.35, 0.55, 0.75, 1.0),   # NORMAL — blue
+	2: Color(0.85, 0.25, 0.25, 1.0),
+	1: Color(0.85, 0.6, 0.2, 1.0),
+	0: Color(0.35, 0.55, 0.75, 1.0),
 }
 
-# Priority border colors (lighter variants for icon borders)
 const PRIORITY_BORDER_COLORS = {
 	2: Color(1.0, 0.4, 0.4, 1.0),
 	1: Color(1.0, 0.75, 0.35, 1.0),
 	0: Color(0.5, 0.7, 0.9, 1.0),
 }
 
-# Priority icons (text characters for icon buttons)
-const PRIORITY_ICONS = {
-	2: "!!",   # CRITICAL
-	1: "!",    # HIGH
-	0: "i",    # NORMAL
+const TYPE_ICONS = {
+	"coalition_declared": "WAR",
+	"diplomatic_proposal": "ENV",
+	"diplomatic_proposal_result": "RPT",
+	"treaty_signed": "TRT",
+	"treaty_broken": "BRK",
+	"war_declared": "WAR",
+	"vassal_rebellion": "RBL",
+	"vassal_rebellion_imminent": "LOY",
+	"dp_insufficient": "DP",
+	"turn_limit_warning": "TMR",
 }
-const DETAIL_PANEL_MIN_WIDTH := 240.0
-const DETAIL_PANEL_MAX_WIDTH := 300.0
-const DETAIL_PANEL_TOP_OFFSET := 42.0
-const VIEWPORT_EDGE_MARGIN := 14.0
 
-@onready var icon_container: HBoxContainer = $IconContainer
+@onready var rail_panel: PanelContainer = $RailPanel
+@onready var icon_container: HBoxContainer = $RailPanel/RailLayout/IconContainer
+@onready var overflow_label: Label = $RailPanel/RailLayout/OverflowLabel
+
 var expanded_panel: PanelContainer = null
 var current_notifications: Array = []
 var api_client = null
+var _suspended: bool = false
 
 
 func _ready():
-	# Start hidden — only show when notifications exist
-	visible = false
-	# Wrapper controls should not eat clicks outside the actual icon buttons.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rail_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overflow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_refresh_visibility()
 
 
 func set_api_client(client):
-	"""Set the API client reference for dismiss calls."""
 	api_client = client
 
 
-func update_notifications(notifications: Array):
-	"""Replace all notification icons with the provided list."""
-	current_notifications = notifications
+func set_suspended(suspended: bool):
+	"""Hide the rail while a blocking modal owns focus."""
+	_suspended = suspended
+	if _suspended:
+		_close_expanded_panel()
+	_refresh_visibility()
 
-	# Clear existing icons
+
+func update_notifications(notifications: Array):
+	current_notifications = notifications.duplicate()
+
 	for child in icon_container.get_children():
 		icon_container.remove_child(child)
 		child.queue_free()
 
-	# Close expanded panel if open
 	_close_expanded_panel()
 
-	if notifications.is_empty():
-		visible = false
-		return
+	var visible_count = min(current_notifications.size(), MAX_VISIBLE_ICONS)
+	for i in range(visible_count):
+		icon_container.add_child(_create_notification_icon(current_notifications[i]))
 
-	visible = true
+	var hidden_count = max(current_notifications.size() - visible_count, 0)
+	overflow_label.visible = hidden_count > 0
+	overflow_label.text = "+%d" % hidden_count
+	overflow_label.tooltip_text = "%d additional notices are queued behind the visible rail." % hidden_count
 
-	# Create icon buttons sorted by priority (CRITICAL first)
-	for notif in notifications:
-		var btn = _create_notification_icon(notif)
-		icon_container.add_child(btn)
+	_refresh_visibility()
+
+
+func _refresh_visibility():
+	visible = (not _suspended) and not current_notifications.is_empty()
 
 
 func _create_notification_icon(notif: Dictionary) -> Button:
-	"""Create a small colored icon button for a notification."""
 	var priority = int(notif.get("priority", 0))
 	var color = PRIORITY_COLORS.get(priority, PRIORITY_COLORS[0])
 	var border_color = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
-	var icon_text = PRIORITY_ICONS.get(priority, "i")
 
 	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(28, 28)
-	btn.text = icon_text
+	btn.custom_minimum_size = Vector2(38, 28)
+	btn.text = _icon_text_for(notif)
 	btn.tooltip_text = str(notif.get("title", "Notification"))
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.focus_mode = Control.FOCUS_NONE
 
-	# Style the button
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(color.r, color.g, color.b, 0.85)
+	style.bg_color = Color(color.r, color.g, color.b, 0.88)
 	style.border_width_left = 1
 	style.border_width_top = 1
 	style.border_width_right = 1
@@ -109,33 +124,43 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	style.content_margin_bottom = 2.0
 	btn.add_theme_stylebox_override("normal", style)
 
-	# Hover style (brighter)
 	var hover_style = style.duplicate()
-	hover_style.bg_color = Color(color.r * 1.2, color.g * 1.2, color.b * 1.2, 0.95)
+	hover_style.bg_color = Color(
+		min(color.r + 0.12, 1.0),
+		min(color.g + 0.12, 1.0),
+		min(color.b + 0.12, 1.0),
+		0.96
+	)
 	btn.add_theme_stylebox_override("hover", hover_style)
 
-	# Pressed style
 	var pressed_style = style.duplicate()
-	pressed_style.bg_color = Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.95)
+	pressed_style.bg_color = Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.96)
 	btn.add_theme_stylebox_override("pressed", pressed_style)
 
-	btn.add_theme_font_size_override("font_size", 11)
+	btn.add_theme_font_size_override("font_size", 10)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-
-	# Store notification data on the button
 	btn.set_meta("notification_data", notif)
 	btn.pressed.connect(_on_icon_pressed.bind(btn))
-
 	return btn
 
 
+func _icon_text_for(notif: Dictionary) -> String:
+	var notif_type = str(notif.get("type", ""))
+	if TYPE_ICONS.has(notif_type):
+		return TYPE_ICONS[notif_type]
+	var priority = int(notif.get("priority", 0))
+	if priority >= 2:
+		return "ALT"
+	if priority == 1:
+		return "NEW"
+	return "INF"
+
+
 func _on_icon_pressed(btn: Button):
-	"""Expand notification details when icon is clicked."""
 	var notif = btn.get_meta("notification_data")
 	if not notif:
 		return
 
-	# Toggle: if already showing this notification, close it
 	if expanded_panel and expanded_panel.has_meta("notification_id") and expanded_panel.get_meta("notification_id") == notif.get("id", ""):
 		_close_expanded_panel()
 		return
@@ -145,24 +170,21 @@ func _on_icon_pressed(btn: Button):
 
 
 func _show_expanded_panel(notif: Dictionary):
-	"""Show expanded notification details as a compact top-right drawer."""
 	var priority = int(notif.get("priority", 0))
-	var color = PRIORITY_COLORS.get(priority, PRIORITY_COLORS[0])
-	var border_color = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
+	var accent = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
 
 	expanded_panel = PanelContainer.new()
 	expanded_panel.set_meta("notification_id", notif.get("id", ""))
 	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	expanded_panel.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH, 0)
 
-	# Style the panel
 	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.05, 0.07, 0.1, 0.97)
+	panel_style.bg_color = Color(0.04, 0.06, 0.1, 0.98)
 	panel_style.border_width_left = 1
 	panel_style.border_width_top = 1
 	panel_style.border_width_right = 1
 	panel_style.border_width_bottom = 1
-	panel_style.border_color = border_color
+	panel_style.border_color = accent
 	panel_style.corner_radius_top_left = 6
 	panel_style.corner_radius_top_right = 6
 	panel_style.corner_radius_bottom_right = 6
@@ -170,86 +192,130 @@ func _show_expanded_panel(notif: Dictionary):
 	panel_style.content_margin_left = 10.0
 	panel_style.content_margin_top = 8.0
 	panel_style.content_margin_right = 10.0
-	panel_style.content_margin_bottom = 9.0
+	panel_style.content_margin_bottom = 10.0
 	expanded_panel.add_theme_stylebox_override("panel", panel_style)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
+	vbox.add_theme_constant_override("separation", 8)
 	expanded_panel.add_child(vbox)
 
-	# Header row: title + dismiss button
 	var header = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
 	vbox.add_child(header)
 
 	var title_label = Label.new()
 	title_label.text = str(notif.get("title", "Notification"))
-	title_label.add_theme_color_override("font_color", color)
-	title_label.add_theme_font_size_override("font_size", 12)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.add_theme_color_override("font_color", accent)
+	title_label.add_theme_font_size_override("font_size", 12)
 	header.add_child(title_label)
 
-	# Turn indicator (between title and dismiss button)
-	var turn_created = notif.get("turn_created", 0)
+	var turn_created = int(notif.get("turn_created", 0))
 	if turn_created > 0:
 		var turn_label = Label.new()
-		turn_label.text = "(Turn " + str(int(turn_created)) + ")"
+		turn_label.text = "T%d" % turn_created
 		turn_label.add_theme_color_override("font_color", Color(0.58, 0.58, 0.64, 1))
 		turn_label.add_theme_font_size_override("font_size", 10)
 		header.add_child(turn_label)
 
+	var body = RichTextLabel.new()
+	body.bbcode_enabled = true
+	body.fit_content = true
+	body.scroll_active = false
+	body.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH - 20.0, 0)
+	body.text = _build_detail_text(notif)
+	vbox.add_child(body)
+
+	var button_row = HBoxContainer.new()
+	button_row.alignment = BoxContainer.ALIGNMENT_END
+	button_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(button_row)
+
+	var keep_btn = Button.new()
+	keep_btn.text = "Keep"
+	keep_btn.custom_minimum_size = Vector2(64, 28)
+	keep_btn.add_theme_font_size_override("font_size", 10)
+	keep_btn.pressed.connect(_close_expanded_panel)
+	button_row.add_child(keep_btn)
+
 	var dismiss_btn = Button.new()
-	dismiss_btn.text = "Close"
-	dismiss_btn.custom_minimum_size = Vector2(52, 24)
+	dismiss_btn.text = "Acknowledge"
+	dismiss_btn.custom_minimum_size = Vector2(92, 28)
 	dismiss_btn.add_theme_font_size_override("font_size", 10)
-	dismiss_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
-	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(notif.get("id", "")))
-	header.add_child(dismiss_btn)
+	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(str(notif.get("id", ""))))
+	button_row.add_child(dismiss_btn)
 
-	# Message body
-	var message_label = Label.new()
-	message_label.text = str(notif.get("message", ""))
-	message_label.add_theme_color_override("font_color", Color(0.83, 0.83, 0.86, 1))
-	message_label.add_theme_font_size_override("font_size", 11)
-	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH - 20.0, 0)
-	vbox.add_child(message_label)
-
-	# Position panel below the notification bar, right-aligned so it doesn't overflow the screen
 	add_child(expanded_panel)
-	# Defer positioning so the panel's size is calculated first
 	_position_expanded_panel.call_deferred()
 
 
+func _build_detail_text(notif: Dictionary) -> String:
+	var text = ""
+	var message = str(notif.get("message", "")).strip_edges()
+	if message != "":
+		text += "[color=#d7d7dc]%s[/color]\n" % message
+
+	var notif_type = str(notif.get("type", ""))
+	var details = notif.get("details", {})
+	if details is Dictionary:
+		match notif_type:
+			"coalition_declared":
+				text += "\n[color=#e0c060]Leader:[/color] %s\n" % str(details.get("leader", "Unknown"))
+				text += "[color=#e0c060]Posture:[/color] %s\n" % str(details.get("posture", "Unknown")).capitalize()
+				var combined_strength = int(details.get("combined_strength", 0))
+				if combined_strength > 0:
+					text += "[color=#e0c060]Combined Strength:[/color] %s\n" % _format_number(combined_strength)
+				var members = details.get("members", [])
+				if members is Array and not members.is_empty():
+					text += "[color=#e0c060]Members:[/color] %s\n" % ", ".join(members)
+			"diplomatic_proposal_result":
+				text += "\n[color=#e0c060]Nation:[/color] %s\n" % str(details.get("target_nation", "Unknown"))
+				text += "[color=#e0c060]Proposal:[/color] %s\n" % str(details.get("proposal_type", "Diplomatic Action"))
+				text += "[color=#e0c060]Outcome:[/color] %s\n" % str(details.get("outcome", "Unknown")).capitalize()
+				var feedback = str(details.get("feedback", "")).strip_edges()
+				if feedback != "":
+					text += "\n[color=#8faed6]Talleyrand:[/color] \"%s\"\n" % feedback
+			"diplomatic_proposal":
+				text += "\n[color=#8faed6]The diplomatic packet waits in Envoys for review.[/color]\n"
+
+	return text.strip_edges()
+
+
+func _format_number(value: int) -> String:
+	var s = str(int(value))
+	var result = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "," + result
+		result = s[i] + result
+		count += 1
+	return result
+
+
 func _position_expanded_panel():
-	"""Anchor the drawer to the top-right of the viewport, not over Envoys."""
-	if expanded_panel:
-		var viewport_size = get_viewport_rect().size
-		var panel_width = expanded_panel.size.x
-		if panel_width <= 0:
-			panel_width = DETAIL_PANEL_MIN_WIDTH
-		panel_width = clamp(panel_width, DETAIL_PANEL_MIN_WIDTH, DETAIL_PANEL_MAX_WIDTH)
-		var target_global_x = max(
-			VIEWPORT_EDGE_MARGIN,
-			viewport_size.x - panel_width - VIEWPORT_EDGE_MARGIN
-		)
-		var local_x = target_global_x - global_position.x
-		expanded_panel.position = Vector2(local_x, DETAIL_PANEL_TOP_OFFSET)
+	if not expanded_panel:
+		return
+	var panel_width = expanded_panel.size.x
+	if panel_width <= 0:
+		panel_width = DETAIL_PANEL_MIN_WIDTH
+	panel_width = clamp(panel_width, DETAIL_PANEL_MIN_WIDTH, DETAIL_PANEL_MAX_WIDTH)
+	var local_x = max(0.0, rail_panel.size.x - panel_width)
+	expanded_panel.position = Vector2(local_x, rail_panel.size.y + DETAIL_PANEL_GAP)
 
 
 func _unhandled_input(event):
-	"""Clicking elsewhere closes the expanded drawer."""
-	if not expanded_panel:
+	if not expanded_panel or _suspended:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		var click_pos = event.position
 		var panel_rect = Rect2(expanded_panel.global_position, expanded_panel.size)
-		var bar_rect = Rect2(global_position, size)
-		if not panel_rect.has_point(click_pos) and not bar_rect.has_point(click_pos):
+		var rail_rect = Rect2(rail_panel.global_position, rail_panel.size)
+		if not panel_rect.has_point(click_pos) and not rail_rect.has_point(click_pos):
 			_close_expanded_panel()
 
 
 func _close_expanded_panel():
-	"""Close the expanded detail panel."""
 	if expanded_panel:
 		remove_child(expanded_panel)
 		expanded_panel.queue_free()
@@ -257,26 +323,17 @@ func _close_expanded_panel():
 
 
 func _on_dismiss_pressed(notification_id: String):
-	"""Dismiss a notification — remove locally and tell backend."""
 	_close_expanded_panel()
-
-	# Remove from local list
 	current_notifications = current_notifications.filter(
-		func(n): return n.get("id", "") != notification_id
+		func(n): return str(n.get("id", "")) != notification_id
 	)
-
-	# Refresh icons
 	update_notifications(current_notifications)
-
-	# Tell backend
 	if api_client:
 		api_client.dismiss_notification(notification_id, func(_response): pass)
-
 	notification_dismissed.emit(notification_id)
 
 
 func dismiss_all():
-	"""Dismiss all notifications."""
 	_close_expanded_panel()
 	current_notifications = []
 	update_notifications([])

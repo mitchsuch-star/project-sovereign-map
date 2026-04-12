@@ -10,16 +10,19 @@ extends CanvasLayer
 # =============================================================================
 
 signal closed
+signal open_envoys_requested
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
 @onready var close_button = $PanelContainer/VBoxContainer/HeaderRow/CloseButton
 @onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
 @onready var content_label = $PanelContainer/VBoxContainer/ScrollContainer/ContentLabel
+@onready var open_envoys_button: Button = $PanelContainer/VBoxContainer/ActionRow/OpenEnvoysButton
 
 func _ready():
 	close_button.pressed.connect(close_view)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	open_envoys_button.pressed.connect(_on_open_envoys_pressed)
 	hide()
 
 func open(api_client):
@@ -228,9 +231,12 @@ func _on_dispatch_received(response):
 	# ═══ ENVOYS AWAITING RESPONSE ═══
 	var pending_envoys = data.get("pending_envoys", [])
 	var pending_envoy_count = int(data.get("pending_envoy_count", pending_envoys.size()))
+	open_envoys_button.visible = pending_envoy_count > 0
+	if pending_envoy_count > 0:
+		open_envoys_button.text = "Open Envoys (%d)" % pending_envoy_count
 	if pending_envoys.size() > 0 and pending_envoy_count > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]ENVOYS AWAITING RESPONSE[/color]\n"
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Open [b]Envoys[/b] before ending the turn.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Use [b]Open Envoys[/b] below before ending the turn.[/color]\n"
 		for i in range(min(pending_envoys.size(), 3)):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))
@@ -282,3 +288,8 @@ func _on_overlay_input(event):
 	"""Click on dark overlay to close."""
 	if event is InputEventMouseButton and event.pressed:
 		close_view()
+
+
+func _on_open_envoys_pressed():
+	close_view()
+	open_envoys_requested.emit()

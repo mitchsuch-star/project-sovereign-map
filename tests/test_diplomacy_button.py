@@ -1140,6 +1140,36 @@ class TestAuditFixes:
         assert data["success"] is True
         assert data.get("nation") == "Prussia"
 
+    def test_preview_includes_pending_envoy_count(self):
+        """Nation preview should surface the same envoy count used by recovery UI."""
+        from fastapi.testclient import TestClient
+        import backend.main as main_module
+
+        original_world = main_module.world
+        try:
+            main_module.world = _make_world()
+            main_module.world.dialogue_manager.push({
+                "type": "incoming_proposal",
+                "target_nation": "Prussia",
+                "talleyrand_text": "Proposal from Prussia",
+                "options": [],
+                "context": {
+                    "proposal": {"type": "PEACE_TREATY"},
+                    "source_nation": "Prussia",
+                },
+                "turn_created": int(main_module.world.current_turn),
+                "blocking": True,
+            })
+
+            client = TestClient(main_module.app)
+            resp = client.get("/diplomatic_preview?nation=Austria")
+            data = resp.json()
+
+            assert data["success"] is True
+            assert data["pending_envoy_count"] == 1
+        finally:
+            main_module.world = original_world
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 13. EDGE CASE FIXES (March 2026)

@@ -15,7 +15,7 @@ signal screen_changed(screen_name: String)
 @onready var generals_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/GeneralsBtn
 @onready var diplo_ledger_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DiploLedgerBtn
 @onready var dispatch_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DispatchBtn
-@onready var notification_area: Control = $BarContainer/BarBG/BarLayout/RightSection/NotificationArea
+@onready var notification_area: Control = $NotificationArea
 @onready var turn_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TurnLabel
 
 # Diplomatic top bar fields (Session 8B)
@@ -44,6 +44,7 @@ var _mailbox_idle_hover_style: StyleBoxFlat = null
 var _mailbox_alert_style: StyleBoxFlat = null
 var _mailbox_alert_hover_style: StyleBoxFlat = null
 var _mailbox_pressed_style: StyleBoxFlat = null
+const TALLEYRAND_SUMMARY_MAX_CHARS := 34
 
 func _ready():
 	# Build button styles
@@ -122,7 +123,7 @@ func _ready():
 	dp_label.text = "DP: 0/3"
 	threat_label.text = ""
 	threat_label.visible = false
-	talleyrand_label.text = "Talleyrand: Idle"
+	_set_talleyrand_summary("Idle")
 	update_mailbox_count(0)
 	mailbox_btn.add_theme_stylebox_override("pressed", _mailbox_pressed_style)
 
@@ -302,7 +303,7 @@ func update_diplomatic_fields(data: Dictionary):
 	var mission_summary = str(data.get("talleyrand_mission_summary", "Idle"))
 	if mission_summary == "" or mission_summary == "null":
 		mission_summary = "Idle"
-	talleyrand_label.text = "Talleyrand: " + mission_summary
+	_set_talleyrand_summary(mission_summary)
 
 	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
 
@@ -311,6 +312,18 @@ var _current_envoy_count: int = 0
 
 func get_envoy_count() -> int:
 	return _current_envoy_count
+
+func _set_talleyrand_summary(mission_summary: String):
+	"""Keep the mission line compact without hiding the full text."""
+	var clean_summary = mission_summary.strip_edges()
+	if clean_summary == "":
+		clean_summary = "Idle"
+	var full_text = "Talleyrand: " + clean_summary
+	talleyrand_label.tooltip_text = full_text
+	if full_text.length() > TALLEYRAND_SUMMARY_MAX_CHARS:
+		talleyrand_label.text = full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."
+	else:
+		talleyrand_label.text = full_text
 
 func update_mailbox_count(envoy_count: int):
 	"""Refresh the envoys button copy and styling."""

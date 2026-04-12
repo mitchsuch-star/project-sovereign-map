@@ -1,6 +1,6 @@
 # Informational UI Plan
 
-> **Status:** APPROVED - April 11, 2026
+> **Status:** IMPLEMENTED - April 11, 2026
 > **Phase:** Immediate pre-`PL-32` UI follow-up
 > **Companion:** `docs/STATUS.md`, `docs/BUG_FIXES.md`
 > **Purpose:** Make informational feedback lighter, stop the notification rail from interfering with the top bar, and land a small polish pass before `PL-32`.
@@ -9,7 +9,7 @@
 
 ## Executive Decision
 
-Yes: ship this next, before `PL-32`.
+Implemented as approved before `PL-32`.
 
 The current diplomacy transport layer is stable enough to start the display-contract work, but there is still avoidable frontend friction in the informational notice path:
 

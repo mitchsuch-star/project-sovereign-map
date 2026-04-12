@@ -171,6 +171,7 @@ def build_base_response(world, success: bool = True, message: str = "",
     }
     response.update(extra)
     _include_popup_passthroughs(response, world)
+    _queue_informational_diplomacy_notices(response, world)
     # Notifications — persistent alerts for Godot notification bar
     if world.notifications.has_pending():
         response["notifications"] = world.notifications.get_pending()
@@ -214,6 +215,39 @@ def _derive_proposal_result_outcome(result: dict) -> str:
         return "ACCEPT"
 
     return "REJECT"
+
+
+def _queue_informational_diplomacy_notices(response: dict, world) -> None:
+    """Mirror informational diplomacy outcomes into the persistent notice rail."""
+    proposal_result = response.get("proposal_result")
+    if not isinstance(proposal_result, dict) or not proposal_result:
+        return
+
+    from backend.notifications import (
+        create_notification,
+        DIPLOMATIC_PROPOSAL_RESULT,
+        NotificationPriority,
+    )
+
+    outcome = _derive_proposal_result_outcome(proposal_result)
+    target_nation = str(proposal_result.get("target_nation", "Unknown"))
+    proposal_type = str(proposal_result.get("proposal_type", "Diplomatic Action"))
+    message = str(proposal_result.get("message", "")).strip()
+    feedback = str(proposal_result.get("feedback", "")).strip()
+
+    world.notifications.add(create_notification(
+        DIPLOMATIC_PROPOSAL_RESULT,
+        NotificationPriority.NORMAL,
+        f"{proposal_type} {'Accepted' if outcome == 'ACCEPT' else 'Rejected'}",
+        message or f"{target_nation} has responded to our {proposal_type.lower()}.",
+        int(world.current_turn),
+        details={
+            "target_nation": target_nation,
+            "proposal_type": proposal_type,
+            "outcome": outcome,
+            "feedback": feedback,
+        },
+    ))
 
 
 def _include_popup_passthroughs(response: dict, world) -> None:
@@ -1049,6 +1083,7 @@ def execute_command(request: CommandRequest):
                 world.proposal_result_popup = None  # Consumed via queue setter
 
         # Notifications — persistent alerts for Godot notification bar
+        _queue_informational_diplomacy_notices(response, world)
         if world.notifications.has_pending():
             response["notifications"] = world.notifications.get_pending()
 
@@ -2035,6 +2070,7 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
                 "mode": "nations",
                 "dp_available": int(dp),
                 "dialogue_pending": dialogue_pending,
+                "pending_envoy_count": int(dm.get_mailbox_count()),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
             }
@@ -2053,7 +2089,16 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
             if not has_forces and not has_regions:
                 return {"success": False, "error": f"{nation} has been eliminated from the war."}
         preview = get_diplomatic_preview(world, nation)
-        return {"success": True, **preview}
+        return {
+            "success": True,
+            "dialogue_pending": (
+                world.dialogue_manager.is_hard_stop()
+                or world.dialogue_manager.has_current_turn_offers()
+                or world.dialogue_manager.is_local_planning()
+            ),
+            "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+            **preview,
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
