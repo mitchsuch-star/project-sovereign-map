@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 11, 2026 (Approved next-step follow-up: replace cross-turn diplomatic mailbox persistence with current-turn offer lapse before `PL-32`. See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.)
+> Last Updated: April 11, 2026 (Immediate next session queued: informational UI polish pass before `PL-32`. See `docs/INFORMATIONAL_UI_PLAN.md`.)
 
 ---
 
@@ -40,12 +40,14 @@
 | 2 | P2 | PL-33 | **CLOSED** (duplicate) | `status` works with soft-stop dialogue — verified as PL-27 duplicate | Closed Apr 10, 2026 |
 | 2f | P2 | PL-27/34 | **COMPLETE** | Session 2 follow-up: mailbox inbox panel, `diplomatic_queue` eliminated, badge formula consolidated | Implemented Apr 11, 2026 |
 | 2r | P2 | PL-27/34 | **COMPLETE** | Offer lifetime refactor: current-turn lapse, `Not Now`, envoy rename, client-side end-turn gate | Implemented Apr 11, 2026 |
-| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | **NEXT** |
+| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | **QUEUED AFTER UI PASS** |
 | 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
 
-**Current routed next step:** `PL-32` (Session 3 — Diplomacy Display Contract). The offer lifetime refactor is complete; the display contract can now start on a stable transport layer.
+**Current routed next step:** informational UI polish pass (pre-`PL-32`). See `docs/INFORMATIONAL_UI_PLAN.md`.
+
+**Next bug-owned implementation slice:** `PL-32` (Session 3 - Diplomacy Display Contract). The offer lifetime refactor is complete; the display contract can start as soon as this UI pass lands.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 

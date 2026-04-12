@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 11, 2026 (Offer lifetime refactor COMPLETE. Next session reserved for informational-popup UX evaluation before `PL-32` resumes.)
+> **Last Updated:** April 11, 2026 (Informational UI polish pass approved and queued next before `PL-32`. See `docs/INFORMATIONAL_UI_PLAN.md`.)
 
 ---
 
@@ -10,8 +10,8 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **8249** (8249 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up + offer refactor COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). `PL-32` remains the next bug item, but the immediate next session is a focused informational-popup UX evaluation. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None — next session is reserved for evaluating less-intrusive informational-popup presentation before Session 3 (`PL-32`) resumes. |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up + offer refactor COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). The immediate next session is a pre-`PL-32` informational UI polish pass from `docs/INFORMATIONAL_UI_PLAN.md`; `PL-32` remains the next bug-owned item after that pass. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - next session is the informational UI polish pass, then Session 3 (`PL-32`) resumes. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -34,11 +34,13 @@ Sessions 1-2 + follow-up + offer lifetime refactor COMPLETE. 4 OPEN bugs remain.
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
  
-**Current routed next step:** Session 3 — Diplomacy Display Contract (`PL-32`).
+**Current routed next step:** Informational UI polish pass (pre-`PL-32`). See `docs/INFORMATIONAL_UI_PLAN.md`.
 
-**Next session:** Informational-popup UX evaluation — decide how to surface informational notices less intrusively before resuming Session 3 (`PL-32`).
+**Next bug-owned implementation slice:** Session 3 - Diplomacy Display Contract (`PL-32`).
 
-This is a sequencing note, not a new PL item. Keep `PL-32` as the next bug-owned implementation slice once the popup presentation direction is chosen.
+**Next session:** Implement the informational UI plan - lighter informational notices, notification rail cleanup, direct Envoys recovery affordances, mailbox readability upgrades, and small adjacent HUD/log polish before resuming Session 3 (`PL-32`).
+
+This is a sequencing note, not a new PL item. Keep `PL-32` as the next bug-owned implementation slice once this polish pass lands.
 
 **Implementation sessions in current order:**
 
@@ -48,7 +50,8 @@ This is a sequencing note, not a new PL item. Keep `PL-32` as the next bug-owned
 | Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
 | Session 2 follow-up | Mailbox inbox + queue elimination | `PL-27`/`PL-34` hardening | **COMPLETE** |
 | Session 2 refactor follow-up | Current-turn diplomatic offer lifetime | `PL-27`/`PL-34` follow-up | **COMPLETE** |
-| Session 3 | Diplomacy display contract | `PL-32` | **NEXT** |
+| Pre-Session 3 | Informational notices + light UI polish | `docs/INFORMATIONAL_UI_PLAN.md` | **NEXT** |
+| Session 3 | Diplomacy display contract | `PL-32` | **QUEUED** |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |
 
