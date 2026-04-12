@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (`PL-28` and `PL-26` fixed. Session 5 (`PL-29`) is now the routed next session.)
+> Last Updated: April 12, 2026 (`PL-29` fixed. Sessions 1-5 are complete and Session 6 is now the routed next session.)
 
 ---
 
@@ -44,11 +44,11 @@
 | 3 | P2 | PL-32 | **FIXED** | Raw diplomacy labels can leak into popups because display ownership is split | Fixed Apr 12, 2026 |
 | 4 | P2 | PL-28 | **FIXED** | No defeat-imminent warning before game over | Fixed Apr 12, 2026 |
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
-| 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
+| 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** Session 5 - Restart Flow (`PL-29`).
+**Current routed next step:** Session 6 - Response and popup contract hardening.
 
-**Next bug-owned implementation slice:** Session 5 - Restart Flow (`PL-29`). Session 4 is complete.
+**Next bug-owned implementation slice:** none - current bug-fix queue closed. Session 5 is complete.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
@@ -1064,6 +1064,8 @@ The common early "Ney attacks Wellington" line is punishing before the game has 
 ---
 
 ### PL-29: No supported new-game / restart endpoint
+
+**Status:** FIXED (April 12, 2026).
 
 **Problem statement**
 

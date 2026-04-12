@@ -237,6 +237,7 @@ func _ready():
 	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
+		pause_menu.new_game_requested.connect(_on_pause_new_game_requested)
 
 	# ── Top Bar + Screens (special setup, not managed by DialogManager) ──
 	var top_bar_scene = load("res://scenes/top_bar.tscn")
@@ -2405,55 +2406,64 @@ func _on_load_save_selected(filename: String):
 	add_output("[color=#" + Utils.COLOR_INFO + "]Loading save...[/color]")
 	api_client.load_game(filename, _on_load_result)
 
+func _reset_frontend_state_for_world_swap(clear_output: bool = true):
+	"""Clear transient local UI state before hydrating a different campaign."""
+	if top_bar:
+		top_bar.close_all_screens()
+	if dialog_manager:
+		dialog_manager.hide_all()
+	if notification_bar and notification_bar.has_method("update_notifications"):
+		notification_bar.update_notifications([])
+
+	pending_enemy_phase_response = null
+	pending_dispatch_data = null
+	pending_strategic_response = null
+	pending_redemption = false
+	pending_charge_marshal = ""
+	pending_charge_target = ""
+	interrupt_queue.clear()
+	_last_command_response = {}
+	_cached_wars = []
+	_cached_coalition_data = null
+	_has_active_wars = false
+	_dismissed_proposal_nation = ""
+	_pending_envoy_request_active = false
+	_awaiting_end_turn_confirmation = false
+	_set_pending_envoy_count(0)
+	command_history.clear()
+	history_index = -1
+	command_input.text = ""
+
+	if clear_output:
+		output_display.clear()
+		message_count = 0
+
+
+func _apply_world_swap_response(response: Dictionary, success_text: String):
+	"""Reuse one hydration path for load and new-game world swaps."""
+	_reset_frontend_state_for_world_swap(true)
+	_sync_response_hud(response)
+	_process_active_wars(response)
+
+	if success_text != "":
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + success_text + "[/color]")
+	var detail = str(response.get("message", "")).strip_edges()
+	if detail != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]" + detail + "[/color]")
+	add_output("")
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
 func _on_load_result(response):
 	"""Handle load result from backend."""
-	set_input_enabled(true)
 	if response.success:
-		# Clear pending state from previous game (V2-76)
-		pending_enemy_phase_response = null
-		pending_dispatch_data = null
-		pending_strategic_response = null
-		pending_redemption = false
-		pending_charge_marshal = ""
-		pending_charge_target = ""
-
-		# Refresh entire display from new game state
-		if response.has("game_state"):
-			var gs = response.game_state
-			if gs.has("map_data"):
-				map_area.update_all_regions(gs.map_data)
-			if gs.has("gold"):
-				gold = int(gs.gold)
-				_update_gold_display()
-			if gs.has("manpower_pools"):
-				_apply_manpower(gs.manpower_pools)
-			if gs.has("max_turns"):
-				max_turns = int(gs.max_turns)
-			if gs.has("turn"):
-				current_turn = int(gs.turn)
-				turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
-			if gs.has("actions_remaining"):
-				actions_remaining = int(gs.actions_remaining)
-			if gs.has("max_actions"):
-				max_actions = int(gs.max_actions)
-			if gs.has("admin_actions_remaining"):
-				admin_actions_remaining = int(gs.admin_actions_remaining)
-			if gs.has("max_admin_actions"):
-				max_admin_actions = int(gs.max_admin_actions)
-			# Update actions display
-			actions_value.text = "%d / %d" % [actions_remaining, max_actions]
-			admin_value.text = "%d / %d" % [admin_actions_remaining, max_admin_actions]
-
-		# Restore diplomatic top bar and war panel from loaded state
-		_update_diplomatic_top_bar(response)
-		_process_active_wars(response)
-
-		add_output("[color=#" + Utils.COLOR_SUCCESS + "]Game loaded successfully.[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]" + response.get("message", "") + "[/color]")
+		_apply_world_swap_response(response, "Game loaded successfully.")
 	else:
+		set_input_enabled(true)
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Load failed: " + response.get("message", "Unknown error") + "[/color]")
-	add_output("")
-	command_input.grab_focus()
+		add_output("")
+		command_input.grab_focus()
 
 func _on_load_cancelled():
 	"""Player cancelled the load dialog."""
@@ -3242,3 +3252,19 @@ func _on_pause_save_result(response):
 func _on_pause_load_requested():
 	"""Handle Load Game from pause menu."""
 	_show_load_dialog()
+
+func _on_pause_new_game_requested():
+	"""Handle New Campaign from pause menu."""
+	add_output("[color=#" + Utils.COLOR_INFO + "]Starting a new campaign...[/color]")
+	set_input_enabled(false)
+	api_client.new_game(_on_new_game_result)
+
+func _on_new_game_result(response):
+	"""Handle fresh-campaign hydration from backend."""
+	if response.success:
+		_apply_world_swap_response(response, "New campaign ready.")
+	else:
+		set_input_enabled(true)
+		add_output("[color=#" + Utils.COLOR_ERROR + "]New campaign failed: " + str(response.get("message", "Unknown error")) + "[/color]")
+		add_output("")
+		command_input.grab_focus()

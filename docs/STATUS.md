@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (`PL-28` and `PL-26` implemented. Session 5 (`PL-29`) is now the active next bug-owned slice.)
+> **Last Updated:** April 12, 2026 (`PL-29` implemented. Sessions 1-5 are now complete and Session 6 is the active next slice.)
 
 ---
 
@@ -9,18 +9,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **98 targeted Session 4 + related combat regressions** passed in this slice (`tests/test_session4_first_hour_pressure.py`, `test_systems_audit_v2_session4.py`, `test_systems_v3_session2.py`, `test_war_action_verification.py`, `test_systems_v3_session4.py`). |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-4 + follow-up + offer refactor COMPLETE, plus the informational UI polish pass COMPLETE. 1 OPEN bug remains (`PL-29`). The immediate next session is Session 5 (`PL-29`). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - Session 5 (`PL-29`) is the active next implementation slice. |
+| **Tests Passing** | **30 targeted restart-flow + endpoint wiring tests** passed in this slice (`tests/test_restart_flow.py`, `tests/test_endpoint_wiring.py`). |
+| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. No OPEN PL items remain in the current fix scope. The immediate next session is Session 6. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - the bug-fix queue is closed and Session 6 is the active next implementation slice. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### 1. Bug Fixes - 1 OPEN
+### 1. Bug Fixes - COMPLETE
 
-Sessions 1-4 + follow-up + offer lifetime refactor COMPLETE. 1 OPEN bug remains. Remaining bug consolidated in `docs/BUG_FIXES.md`.
+Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL items remain in the current fix scope.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
@@ -32,15 +32,15 @@ Sessions 1-4 + follow-up + offer lifetime refactor COMPLETE. 1 OPEN bug remains.
 | ~~P2 - UX~~ | ~~PL-32~~ | ~~Raw diplomacy labels can leak into popups~~ **FIXED** |
 | ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
-| P3 - QOL | PL-29 | No new game / restart endpoint |
+| ~~P3 - QOL~~ | ~~PL-29~~ | ~~No new game / restart endpoint~~ **FIXED** |
  
-**Current routed next step:** Session 5 - Restart Flow (`PL-29`).
+**Current routed next step:** Session 6 - Response and popup contract hardening.
 
-**Next bug-owned implementation slice:** Session 5 - Restart Flow (`PL-29`).
+**Next bug-owned implementation slice:** none - current fix queue closed.
 
-**Next session:** Implement `PL-29` under Session 5 - Restart Flow.
+**Next session:** Implement Session 6 - Response and popup contract hardening.
 
-Session 4 landed as planned: `PL-28` now emits deterministic one-army/one-region defeat warnings into notifications and morning dispatch, and `PL-26` now intercepts the naive `Ney -> Wellington` opener once to surface the intended setup/counterplay. Audit handoff: `docs/SESSION4_AUDIT_HANDOFF.md`.
+Session 5 landed as planned: `POST /new_game` now resets the active world without a backend restart, immediately refreshes autosave, preserves manual saves, and the Godot pause menu now routes restart through the same client-side world-swap hydration/reset path used for load. The save/load path also now resolves files through `save_manager.SAVE_DIR` consistently instead of hardcoding `saves/`. Audit prompt: `docs/SESSION5_AUDIT_PROMPT.md`.
 
 **Implementation sessions in current order:**
 
@@ -53,7 +53,7 @@ Session 4 landed as planned: `PL-28` now emits deterministic one-army/one-region
 | Pre-Session 3 | Informational notices + light UI polish | `docs/INFORMATIONAL_UI_PLAN.md` | **COMPLETE** |
 | Session 3 | Diplomacy display contract | `PL-32` | **COMPLETE** |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **COMPLETE** |
-| Session 5 | Restart flow | `PL-29` | **NEXT** |
+| Session 5 | Restart flow | `PL-29` | **COMPLETE** |
 
 ### 3. Architecture Hardening (before full-map work)
 

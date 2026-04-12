@@ -9,12 +9,14 @@ extends CanvasLayer
 
 signal save_requested
 signal load_requested
+signal new_game_requested
 signal closed
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
 @onready var save_button = $PanelContainer/VBoxContainer/SaveButton
 @onready var load_button = $PanelContainer/VBoxContainer/LoadButton
+@onready var new_game_button = $PanelContainer/VBoxContainer/NewGameButton
 @onready var settings_button = $PanelContainer/VBoxContainer/SettingsButton
 @onready var settings_stub = $PanelContainer/VBoxContainer/SettingsStub
 @onready var quit_button = $PanelContainer/VBoxContainer/QuitButton
@@ -22,6 +24,7 @@ signal closed
 func _ready():
 	save_button.pressed.connect(_on_save)
 	load_button.pressed.connect(_on_load)
+	new_game_button.pressed.connect(_on_new_game)
 	settings_button.pressed.connect(_on_settings)
 	quit_button.pressed.connect(_on_quit)
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -43,6 +46,10 @@ func _on_save():
 func _on_load():
 	close_menu()
 	load_requested.emit()
+
+func _on_new_game():
+	close_menu()
+	new_game_requested.emit()
 
 func _on_settings():
 	settings_stub.visible = true

@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 # Load .env BEFORE any imports that might read env vars
 load_dotenv()
 
-from pathlib import Path
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field  # noqa: F401
@@ -21,7 +19,8 @@ from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
 from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
-from backend.save_manager import save_game, load_game, list_saves, delete_save
+import backend.save_manager as save_manager
+from backend.save_manager import autosave, save_game, load_game, list_saves, delete_save
 
 # ════════════════════════════════════════════════════════════
 # DEBUG MODE: Set to True to enable debug endpoints
@@ -44,9 +43,30 @@ print("=" * 60)
 app = FastAPI(title="Project Sovereign API")
 parser = CommandParser()  # Uses LLM_MODE from environment
 executor = CommandExecutor()
-world = WorldState(player_nation="France")
-game_state = {"world": world, "debug_mode": DEBUG_MODE}
+world = None
+game_state = {"world": None, "debug_mode": DEBUG_MODE}
 state_lock = threading.Lock()  # 3A-1: Protects state-mutating endpoints
+
+
+def _build_new_world(player_nation: str = "France") -> WorldState:
+    """Create a fresh campaign world with the default start-state."""
+    return WorldState(player_nation=player_nation)
+
+
+def _set_active_world(new_world: WorldState) -> WorldState:
+    """Install a world instance as the active campaign state."""
+    global world
+    world = new_world
+    game_state["world"] = new_world
+    return new_world
+
+
+def _reset_world_state(player_nation: str = "France") -> WorldState:
+    """Replace the active campaign with a fresh world."""
+    return _set_active_world(_build_new_world(player_nation=player_nation))
+
+
+_reset_world_state()
 
 
 def get_llm_game_state() -> dict:
@@ -1706,8 +1726,8 @@ def _validate_save_filename(filename: str) -> bool:
     if ".." in filename or "/" in filename or "\\" in filename:
         return False
     # Verify resolved path stays within saves dir
-    resolved = (Path("saves") / filename).resolve()
-    return str(resolved).startswith(str(Path("saves").resolve()))
+    resolved = (save_manager.SAVE_DIR / filename).resolve()
+    return str(resolved).startswith(str(save_manager.SAVE_DIR.resolve()))
 
 
 @app.post("/save")
@@ -1727,17 +1747,42 @@ async def save_endpoint(request: SaveRequest):
         return build_base_response(world, success=False, message=f"Save failed: {str(e)}")
 
 
+@app.post("/new_game")
+async def new_game_endpoint():
+    """Start a fresh campaign without restarting the backend process."""
+    try:
+        player_nation = getattr(world, "player_nation", "France") or "France"
+        new_world = _reset_world_state(player_nation=player_nation)
+        autosave_result = autosave(new_world)
+        autosave_ok = bool(autosave_result.get("success", False))
+        message = "New campaign started."
+        if autosave_ok:
+            message += " Autosave refreshed."
+        else:
+            message += " Warning: autosave refresh failed."
+        return build_base_response(
+            new_world,
+            message=message,
+            new_game=True,
+            autosave_success=autosave_ok,
+            autosave_message=autosave_result.get("message", ""),
+        )
+    except Exception as e:
+        print(f"[ERROR] handling new_game: {e}")
+        import traceback
+        traceback.print_exc()
+        return build_base_response(world, success=False, message=f"New game failed: {str(e)}")
+
+
 @app.post("/load")
 async def load_endpoint(request: LoadRequest):
     """Load a saved game. Replaces current game state."""
-    global world, game_state
     if not _validate_save_filename(request.filename):
         return {"success": False, "message": "Invalid save filename"}
-    filepath = Path("saves") / request.filename
+    filepath = save_manager.SAVE_DIR / request.filename
     result = load_game(filepath)
     if result["success"]:
-        world = result["world"]
-        game_state["world"] = world
+        _set_active_world(result["world"])
         return build_base_response(world, message=result["message"])
     return build_base_response(world, success=False, message=result["message"])
 
@@ -1754,7 +1799,7 @@ async def delete_save_endpoint(request: DeleteSaveRequest):
     """Delete a save file."""
     if not _validate_save_filename(request.filename):
         return {"success": False, "message": "Invalid save filename"}
-    filepath = Path("saves") / request.filename
+    filepath = save_manager.SAVE_DIR / request.filename
     result = delete_save(filepath)
     return build_base_response(world, **{k: v for k, v in result.items() if k != "new_state"})
 

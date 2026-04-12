@@ -147,6 +147,9 @@ func save_game(save_name: String, callback: Callable):
 func load_game(filename: String, callback: Callable):
 	_send_post("/load", {"filename": filename}, callback)
 
+func new_game(callback: Callable):
+	_send_post("/new_game", {}, callback)
+
 
 func cancel_strategic_order(marshal_name: String, callback: Callable):
 	_send_post("/cancel_order", {"marshal": marshal_name}, callback)
