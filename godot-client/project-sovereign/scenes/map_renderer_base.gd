@@ -1,5 +1,7 @@
 extends Control
 
+const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
+
 const REGION_RADIUS: float = 30.0
 const REGION_DIAMETER: float = REGION_RADIUS * 2.0
 const REGION_LABEL_WIDTH: float = 120.0
@@ -45,7 +47,7 @@ const ZOOM_SPEED: float = 0.1
 const ZOOM_DURATION: float = 0.2
 
 var world_layer: Control
-var connection_layer: Node2D
+var connection_layer
 var region_layer: Control
 var force_layer: Control
 var garrison_layer: Control
@@ -96,8 +98,10 @@ func _create_scene_layers():
 	world_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(world_layer)
 
-	connection_layer = Node2D.new()
+	connection_layer = MapConnectionLayer.new()
 	connection_layer.name = "ConnectionLayer"
+	connection_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	connection_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	connection_layer.z_index = 0
 	world_layer.add_child(connection_layer)
 
@@ -124,7 +128,7 @@ func _create_scene_layers():
 
 
 func _build_static_map_visuals():
-	_clear_children(connection_layer)
+	connection_layer.clear_connections()
 	_clear_children(region_layer)
 	region_nodes.clear()
 	_build_connection_nodes()
@@ -137,6 +141,7 @@ func _build_connection_nodes():
 	var connections = _get_region_connections()
 	var colors = _get_colors()
 	var drawn_connections := {}
+	var segments: Array = []
 
 	for region_name in connections:
 		var start_pos = positions.get(region_name, null)
@@ -152,19 +157,19 @@ func _build_connection_nodes():
 			if key_text in drawn_connections:
 				continue
 
-			var line = Line2D.new()
-			line.default_color = colors.get("connection", Color(0.6, 0.6, 0.6))
-			line.width = 2.0
-			line.antialiased = true
-			line.add_point(start_pos)
-			line.add_point(end_pos)
-			connection_layer.add_child(line)
+			segments.append({
+				"start": start_pos,
+				"end": end_pos,
+			})
 			drawn_connections[key_text] = true
+
+	connection_layer.set_connections(segments, colors.get("connection", Color(0.6, 0.6, 0.6)), 2.0)
 
 
 func _build_region_nodes():
-	for region_name in _get_region_positions():
-		var pos: Vector2 = _get_region_positions()[region_name]
+	var positions = _get_region_positions()
+	for region_name in positions:
+		var pos: Vector2 = positions[region_name]
 
 		var root = Control.new()
 		root.name = "%sRegionRoot" % region_name
@@ -252,9 +257,10 @@ func _rebuild_dynamic_nodes():
 	_clear_children(garrison_layer)
 	marshal_hitboxes.clear()
 	fogged_force_hitboxes.clear()
+	var positions = _get_region_positions()
 
-	for region_name in _get_region_positions():
-		var region_pos: Vector2 = _get_region_positions()[region_name]
+	for region_name in positions:
+		var region_pos: Vector2 = positions[region_name]
 		var regular_count = 0
 
 		if region_marshals.has(region_name):
@@ -496,6 +502,7 @@ func _refresh_hover_state():
 	hovered_region = ""
 
 	var map_mouse = _get_map_mouse_position()
+	var positions = _get_region_positions()
 
 	for hitbox in marshal_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
@@ -507,8 +514,8 @@ func _refresh_hover_state():
 			hovered_fogged_force = hitbox["force"]
 			return
 
-	for region_name in _get_region_positions():
-		if map_mouse.distance_to(_get_region_positions()[region_name]) <= REGION_RADIUS:
+	for region_name in positions:
+		if map_mouse.distance_to(positions[region_name]) <= REGION_RADIUS:
 			hovered_region = region_name
 			return
 
@@ -1043,15 +1050,24 @@ func _format_number(num) -> String:
 	return result
 
 
-func update_region(region_name: String, controller: String, marshals: Array = []):
+func update_region(region_name: String, controller: String, marshal_data = null):
 	if not _get_region_positions().has(region_name):
 		return
 
 	region_controllers[region_name] = controller
-	if marshals.is_empty():
+	if marshal_data == null:
 		region_marshals.erase(region_name)
+	elif marshal_data is Array:
+		if marshal_data.is_empty():
+			region_marshals.erase(region_name)
+		else:
+			region_marshals[region_name] = marshal_data
+	elif marshal_data is Dictionary:
+		region_marshals[region_name] = [marshal_data]
+	elif marshal_data is String and marshal_data != "":
+		region_marshals[region_name] = [{"name": marshal_data}]
 	else:
-		region_marshals[region_name] = marshals
+		region_marshals.erase(region_name)
 
 	_refresh_region_visual(region_name)
 	_rebuild_dynamic_nodes()

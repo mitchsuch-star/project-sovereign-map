@@ -27,6 +27,9 @@ def test_renderer_base_declares_scene_layers():
         'garrison_layer.name = "GarrisonLayer"',
     ]:
         assert node_name in source, f"Missing renderer layer declaration: {node_name}"
+    assert 'const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")' in source
+    assert "connection_layer = MapConnectionLayer.new()" in source
+    assert "connection_layer = Node2D.new()" not in source
 
 
 def test_renderer_base_preserves_update_all_regions_contract():
@@ -35,3 +38,13 @@ def test_renderer_base_preserves_update_all_regions_contract():
     assert "region_full_data = map_data" in source
     assert "_refresh_all_region_visuals()" in source
     assert "_rebuild_dynamic_nodes()" in source
+    update_body = source.split("func update_all_regions(map_data: Dictionary):", 1)[1]
+    assert "queue_redraw()" in update_body
+
+
+def test_update_region_accepts_legacy_and_new_payload_shapes():
+    source = _read(BASE_GD)
+    assert "func update_region(region_name: String, controller: String, marshal_data = null):" in source
+    assert "marshal_data is Array" in source
+    assert "marshal_data is Dictionary" in source
+    assert 'marshal_data is String and marshal_data != ""' in source
