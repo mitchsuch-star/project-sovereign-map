@@ -471,8 +471,8 @@ class TestPopupPassthroughs:
 class TestBlockingDialogue:
     """Verify blocking dialogue prevents end-turn and normal commands."""
 
-    def test_end_turn_blocked_by_counter_offer_dialogue(self):
-        """End turn must be blocked when counter-offer dialogue is pending."""
+    def test_end_turn_not_blocked_by_counter_offer_dialogue(self):
+        """Counter-offer dialogues no longer block end-turn (client-side gate)."""
         world = _make_world()
         executor = _make_executor()
         game_state = _make_game_state(world)
@@ -487,13 +487,12 @@ class TestBlockingDialogue:
             ],
             "context": {"source_nation": "Saxony"},
             "turn_created": int(world.current_turn),
-            "blocking": True,
+            "blocking": False,
         })
 
         result = executor._execute_end_turn({}, game_state)
-        assert result["success"] is False
-        assert result.get("awaiting_diplomatic_response") is True
-        assert result.get("diplomatic_dialogue") is not None
+        # Offers no longer block end-turn server-side — they lapse
+        assert result["success"] is True
 
     def test_normal_command_blocked_by_hard_stop_dialogue(self):
         """PL-27: Normal commands must be blocked by hard-stop dialogue only."""

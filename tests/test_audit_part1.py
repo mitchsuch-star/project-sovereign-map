@@ -45,16 +45,16 @@ class TestSection1PopupFlow:
     """Tests for Bug A/B/C fixes and dialogue response routing."""
 
     def test_end_turn_guard_includes_dialogue_data(self):
-        """Bug C fix: end-turn blocking guard includes dialogue data for frontend."""
+        """Only hard-stop dialogues block end-turn with dialogue data."""
         world = _make_world()
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
             "blocking": True,
             "turn_created": int(world.current_turn),
             "options": [
-                {"label": "Accept", "action": "accept_ai_proposal"},
-                {"label": "Reject", "action": "reject_ai_proposal"},
+                {"label": "Honor", "action": "honor_alliance"},
+                {"label": "Break", "action": "break_alliance"},
             ],
         })
         executor = _make_executor()
@@ -628,7 +628,9 @@ class TestAuditSerialization:
     """Verify audit-added code doesn't break serialization."""
 
     def test_world_round_trip_with_blocking_dialogue(self):
-        """Blocking dialogue survives save/load cycle."""
+        """Blocking dialogue survives save/load cycle.
+        Note: incoming_proposal is migrated to blocking=False on load (offer lifetime refactor).
+        """
         world = _make_world()
         world.dialogue_manager.replace({
             "type": "incoming_proposal",
@@ -639,7 +641,7 @@ class TestAuditSerialization:
         data = world.to_dict()
         restored = WorldState.from_dict(data)
         assert restored.pending_diplomatic_dialogue is not None
-        assert restored.pending_diplomatic_dialogue["blocking"] is True
+        assert restored.pending_diplomatic_dialogue["blocking"] is False
         assert restored.pending_diplomatic_dialogue["target_nation"] == "Prussia"
 
     def test_world_round_trip_without_dialogue(self):

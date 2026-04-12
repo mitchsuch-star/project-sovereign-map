@@ -17,17 +17,32 @@ func _ready():
 	hide()
 	continue_btn.pressed.connect(_on_continue_pressed)
 
+func _is_accept_result(data: Dictionary) -> bool:
+	var raw_result = str(data.get("outcome", data.get("result", ""))).strip_edges().to_upper()
+	if raw_result.find("REJECT") != -1 or raw_result.find("DECLIN") != -1:
+		return false
+	if raw_result.find("ACCEPT") != -1 or raw_result.find("APPROV") != -1 or raw_result.find("SUCCESS") != -1:
+		return true
+
+	var message = str(data.get("message", "")).to_lower()
+	if message.find("reject") != -1 or message.find("declin") != -1 or message.find("empty-handed") != -1:
+		return false
+	if message.find("accept") != -1 or message.find("agreed") != -1:
+		return true
+
+	return false
+
 func show_result(data: Dictionary):
 	"""Display proposal result popup."""
 	var target_nation = data.get("target_nation", "Unknown")
 	var proposal_type = data.get("proposal_type", "Proposal")
-	var outcome = data.get("outcome", "REJECT")
 	var message = data.get("message", "")
 	var feedback = data.get("feedback", "")
+	var is_accept = _is_accept_result(data)
 
 	var bbcode = ""
 
-	if outcome == "ACCEPT":
+	if is_accept:
 		bbcode += "[center][color=#50c878][b]PROPOSAL ACCEPTED[/b][/color][/center]\n\n"
 	else:
 		bbcode += "[center][color=#e04040][b]PROPOSAL REJECTED[/b][/color][/center]\n\n"

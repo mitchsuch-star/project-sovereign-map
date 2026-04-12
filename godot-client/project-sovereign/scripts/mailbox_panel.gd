@@ -36,11 +36,11 @@ func show_mailbox(data: Dictionary):
 	var count = int(data.get("count", 0))
 	_items = items
 
-	title_label.text = "DIPLOMATIC MAILBOX (%d)" % count
+	title_label.text = "PENDING ENVOYS (%d)" % count
 
 	if items.size() == 0:
 		item_list.text = ""
-		item_list.append_text("[center][color=#a0a0a8]No pending diplomatic items.[/color][/center]")
+		item_list.append_text("[center][color=#a0a0a8]No pending envoys.[/color][/center]")
 		show()
 		return
 

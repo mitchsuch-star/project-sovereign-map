@@ -94,7 +94,7 @@ class TestTurnManagerIntegration:
         proposal = result["ai_proposal"]
         assert proposal is not None
         assert proposal.get("type") == "incoming_proposal"
-        assert proposal.get("blocking") is True
+        assert proposal.get("blocking") is False
         # Verify the dialogue is also set on the world
         assert world.pending_diplomatic_dialogue is not None
 
@@ -123,16 +123,16 @@ class TestTurnManagerIntegration:
         if "ai_proposal" in result:
             assert result["ai_proposal"] is None
 
-    def test_end_turn_queues_when_blocking_dialogue_exists(self):
-        """If a blocking dialogue already exists, AI proposal is queued."""
+    def test_end_turn_queues_when_dialogue_exists(self):
+        """If a dialogue already occupies the active slot, AI proposal is queued."""
         world = make_world()
         executor = CommandExecutor()
         tm = TurnManager(world, executor)
         game_state = {"world": world}
 
-        # Pre-set a blocking dialogue
+        # Pre-set a hard-stop dialogue to occupy the active slot
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "blocking": True,
             "options": [],
         })
@@ -184,34 +184,33 @@ class TestCooldownLifecycle:
         assert world.proactive_suggestion_cooldowns.get("Prussia|war_score_shift") == 1
         assert "global|idle_nudge" not in world.proactive_suggestion_cooldowns
 
-    def test_queue_expiry_removes_old_proposals(self):
-        """Mailbox items persist across turns (no expiry after diplomatic_queue elimination).
+    def test_offers_exempt_from_clear_stale(self):
+        """Current-turn offers are exempt from clear_stale — lapse handles them.
 
-        Previously, proposals older than 3 turns were removed from diplomatic_queue.
-        Now all proposals go through dialogue_manager, and SOFT_STOP_MAILBOX_TYPES
-        are exempt from stale clearing — they persist until the player acts on them.
+        AI proposals arrive during end_turn BEFORE advance_turn increments the
+        turn counter. clear_stale exempts CURRENT_TURN_OFFER_TYPES so they
+        persist until lapse_pending_offers() runs at the next end_turn.
         """
         world = make_world()
         world.current_turn = 5
-        # Push two proposals into dialogue_manager
+        # Push two proposals with different ages
         world.dialogue_manager.replace({
             "type": "incoming_proposal",
-            "blocking": True,
-            "turn_created": 1,  # Old proposal
+            "blocking": False,
+            "turn_created": 1,
             "context": {"source_nation": "Prussia"},
             "target_nation": "Prussia",
         })
         world.dialogue_manager.push({
             "type": "incoming_proposal",
-            "blocking": True,
-            "turn_created": 4,  # Recent proposal
+            "blocking": False,
+            "turn_created": 4,
             "context": {"source_nation": "Austria"},
             "target_nation": "Austria",
         })
         world.advance_turn()
-        # Mailbox items are exempt from stale clearing — both should persist
+        # Both exempt from clear_stale — lapse_pending_offers() handles them
         assert world.pending_diplomatic_dialogue is not None
-        # Total mailbox items (active + queued) should be 2
         assert world.dialogue_manager.get_mailbox_count() == 2
 
 
@@ -560,6 +559,50 @@ class TestConflictAlertWiring:
         assert result["success"] is True
         # Dialogue should be cleared (ratified)
         assert world.pending_diplomatic_dialogue is None
+
+    def test_conflict_alert_is_local_planning(self):
+        """Conflict alerts are local planning — dismiss cancels the action."""
+        executor = CommandExecutor()
+        world = make_world()
+        game_state = {"world": world}
+
+        key_fp = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[key_fp] = "WAR"
+        key_pa = world._make_diplo_key("Prussia", "Austria")
+        world.diplomatic_states[key_pa] = "ALLIANCE"
+        key_fa = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key_fa] = "WAR"
+
+        proposal = {
+            "source": "Prussia",
+            "proposal_type": "alliance",
+            "priority": 4,
+            "terms": {
+                "type": "alliance",
+                "proposer_nation": "Prussia",
+                "target_nation": "France",
+                "sweeteners": [],
+                "demands": [],
+                "clauses": ["open_borders"],
+            },
+            "talleyrand_assessment": "Test.",
+            "turn_generated": 1,
+        }
+        deliver_ai_proposal(proposal, world)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
+
+        executor.handle_diplomatic_dialogue_response(1, game_state)
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
+        assert world.pending_diplomatic_dialogue["type"] == "conflict_alert"
+
+        # Conflict alert is local planning with a dismiss button
+        assert any(
+            opt.get("action") == "dismiss"
+            for opt in world.pending_diplomatic_dialogue.get("options", [])
+        )
+        assert world.dialogue_manager.is_local_planning()
 
 
 # ═══════════════════════════════════════════════════════

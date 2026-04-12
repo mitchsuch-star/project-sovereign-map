@@ -216,7 +216,7 @@ func _render_nations(data: Dictionary):
 		lbl.bbcode_enabled = true
 		lbl.fit_content = true
 		lbl.scroll_active = false
-		lbl.text = "[color=#" + COLOR_ORANGE + "]Talleyrand awaits your response to the current diplomatic matter.[/color]"
+		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply.[/color]"
 		content_list.add_child(lbl)
 		return
 
@@ -323,7 +323,7 @@ func _render_preview(data: Dictionary):
 		lbl.bbcode_enabled = true
 		lbl.fit_content = true
 		lbl.scroll_active = false
-		lbl.text = "[color=#" + COLOR_ORANGE + "]Talleyrand awaits your response to the current diplomatic matter.[/color]"
+		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply.[/color]"
 		content_list.add_child(lbl)
 		return
 

@@ -39,14 +39,17 @@ class DialogueManager:
         "force_declare_war_confirmation",
         "alliance_paradox",
     })
-    # Soft-stop mailbox: does NOT block ordinary commands. Player can
-    # issue orders while a proposal waits. Visible via envoy badge.
-    SOFT_STOP_MAILBOX_TYPES = frozenset({
+    # Current-turn offer types: AI-initiated offers that lapse at end of turn.
+    # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
+    CURRENT_TURN_OFFER_TYPES = frozenset({
         "incoming_proposal",
         "counter_offer",
         "counter_offer_response",
-        "conflict_alert",
     })
+    # Alias — downstream code references SOFT_STOP_MAILBOX_TYPES for mailbox
+    # eligibility. After conflict_alert reclassification, this equals the
+    # current-turn offer set.
+    SOFT_STOP_MAILBOX_TYPES = CURRENT_TURN_OFFER_TYPES
     # Hybrid soft-stop: does NOT block ordinary commands, but end_turn
     # should auto-default or warn if unresolved.
     HYBRID_SOFT_STOP_TYPES = frozenset({
@@ -65,6 +68,7 @@ class DialogueManager:
         "proposal_options",
         "feasibility",
         "ultimatum_confirm",
+        "conflict_alert",
     })
 
     # Single source of truth for dialogue priority (lower = higher priority).
@@ -76,7 +80,6 @@ class DialogueManager:
         "incoming_proposal": 3,
         "counter_offer": 3,
         "counter_offer_response": 3,
-        "conflict_alert": 4,
     }
 
     def __init__(self):
@@ -246,6 +249,58 @@ class DialogueManager:
 
         return items
 
+    def has_current_turn_offers(self) -> bool:
+        """True if any current-turn offer items exist (active or queued).
+
+        Used by diplomacy gating to block new diplomacy initiation while
+        unanswered offers are pending.
+        """
+        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+            return True
+        return any(
+            item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES
+            for item in self._queue
+        )
+
+    def lapse_pending_offers(self) -> list:
+        """Remove all current-turn offer items. Returns lapse info for logging.
+
+        Called at start of TurnManager.end_turn() BEFORE enemy phase / AI
+        diplomacy. Each returned dict has: nation, offer_type, proposal_type.
+        """
+        lapsed = []
+
+        # Check current slot
+        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+            lapsed.append(self._extract_lapse_info(self._current))
+            self._current = None
+
+        # Check queue
+        remaining = []
+        for item in self._queue:
+            if item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+                lapsed.append(self._extract_lapse_info(item))
+            else:
+                remaining.append(item)
+        self._queue = remaining
+
+        # Promote from queue if current was cleared
+        if self._current is None and self._queue:
+            self._promote()
+
+        return lapsed
+
+    def _extract_lapse_info(self, dialogue: dict) -> dict:
+        """Pull structured lapse info from a dialogue dict."""
+        ctx = dialogue.get("context", {})
+        nation = dialogue.get("target_nation", ctx.get("source", "Unknown"))
+        terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
+        return {
+            "nation": nation,
+            "offer_type": dialogue.get("type", "unknown"),
+            "proposal_type": terms.get("type", "unknown"),
+        }
+
     def activate_mailbox_item(self, mailbox_id: int) -> Optional[Dict]:
         """Swap a queued mailbox item into the active slot.
 
@@ -293,16 +348,20 @@ class DialogueManager:
     def clear_stale(self, current_turn: int) -> Optional[Dict]:
         """Auto-dismiss expired dialogues. Returns cleared dialogue if any.
 
-        - Mailbox items: EXEMPT from generic stale clearing (player-deferred inbox content)
-        - Non-blocking non-mailbox: dismiss if turn_created < current_turn
+        Current-turn offers are exempt — their lifecycle is managed by
+        lapse_pending_offers() at the start of TurnManager.end_turn().
+        AI proposals arrive during end_turn BEFORE advance_turn increments
+        the turn counter, so they have turn_created = old_turn and would be
+        falsely cleared without this exemption.
+        - Non-blocking non-offer: dismiss if turn_created < current_turn
         - Blocking: force-clear if turn_created + BLOCKING_TIMEOUT_TURNS < current_turn
         """
         if not self._current:
             return None
 
-        # Session 2 follow-up: Mailbox items never auto-expire
+        # Current-turn offers are lapsed explicitly, not by generic stale clearing
         dtype = self._current.get("type", "")
-        if dtype in self.SOFT_STOP_MAILBOX_TYPES:
+        if dtype in self.CURRENT_TURN_OFFER_TYPES:
             return None
 
         turn_created = self._current.get("turn_created", 0)

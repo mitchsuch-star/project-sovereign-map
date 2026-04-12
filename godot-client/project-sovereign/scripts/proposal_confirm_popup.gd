@@ -19,6 +19,15 @@ var current_data: Dictionary = {}
 func _ready():
 	hide()
 
+func _should_label_ask_later(dtype: String, action_str: String, original_label: String) -> bool:
+	if dtype not in ["proposal_confirm", "proposal_execute", "proposal_options", "pushback_confirm"]:
+		return false
+	if action_str == "reconsider":
+		return true
+	if action_str == "dismiss" and original_label in ["Dismiss", "Not now", "Reconsider"]:
+		return true
+	return false
+
 func show_dialogue(data: Dictionary):
 	"""Display proposal confirmation popup with terms and options."""
 	current_data = data
@@ -49,11 +58,16 @@ func show_dialogue(data: Dictionary):
 	var idx = 1
 	for opt in options:
 		var btn = Button.new()
-		btn.text = opt.get("label", "???")
-		btn.tooltip_text = opt.get("description", "")
+		var original_label = str(opt.get("label", "???"))
+		var original_tooltip = str(opt.get("description", ""))
+		btn.text = original_label
+		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
 		btn.add_theme_font_size_override("font_size", 14)
 		var action_str = opt.get("action", "dismiss")
+		if _should_label_ask_later(dtype, action_str, original_label):
+			btn.text = "Not Now"
+			btn.tooltip_text = "Close this for now — offer lapses at end of turn."
 		# For proposal_options, bind 1-based index so backend can parse as int
 		if is_options_picker and action_str == "expand_options":
 			action_str = str(idx)

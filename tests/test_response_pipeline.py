@@ -332,6 +332,30 @@ class TestOtherEndpointDiplomaticFields:
         for key in DIPLOMATIC_TOPBAR_KEYS:
             assert key in data, f"/respond_to_diplomatic_dialogue missing: {key}"
 
+    def test_diplomatic_dialogue_safety_net_rejects_negative_result(self, client, fresh_world, main_module, monkeypatch):
+        """Fallback proposal-result popup must not default rejected outcomes to ACCEPT."""
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [{"label": "Send", "action": "execute_proposal"}],
+        })
+
+        def _fake_handle(_choice, _game_state):
+            fresh_world.dialogue_manager.pop()
+            return {
+                "success": True,
+                "message": "Prussia has rejected our proposal.",
+            }
+
+        monkeypatch.setattr(main_module.executor, "handle_diplomatic_dialogue_response", _fake_handle)
+
+        response = client.post("/respond_to_diplomatic_dialogue", json={"choice": 1})
+        data = response.json()
+        assert data["success"] is True
+        assert data["proposal_result"] is not None
+        assert data["proposal_result"]["outcome"] == "REJECT"
+        assert data["proposal_result"]["target_nation"] == "Prussia"
+
     def test_strategic_response_game_over_has_diplomatic_fields(self, client, fresh_world):
         """Strategic response game-over guard should include diplomatic fields."""
         fresh_world.game_over = True

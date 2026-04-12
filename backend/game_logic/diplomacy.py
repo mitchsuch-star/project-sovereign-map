@@ -2632,8 +2632,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     Returns list of action dicts with dp_cost, available, disabled_reason,
     likelihood (for proposals), likelihood_score.
     """
-    # Block all actions while a diplomatic dialogue is pending
-    if getattr(world, 'pending_diplomatic_dialogue', None) is not None:
+    # Block diplomacy while hard-stops, current-turn offers, or local planning active
+    dm = world.dialogue_manager
+    if dm.is_hard_stop() or dm.has_current_turn_offers() or dm.is_local_planning():
         return []
 
     player = getattr(world, 'player_nation', 'France')
@@ -3018,7 +3019,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     vassals = getattr(world, 'vassals', {})
     is_vassal = target_nation in vassals
 
-    dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+    dm = world.dialogue_manager
+    dialogue_pending = dm.is_hard_stop() or dm.has_current_turn_offers() or dm.is_local_planning()
     # PL-30: Distinguish blocking dialogue from deferred proposal result
     has_deferred_result = world.proposal_result_popup is not None
     talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')

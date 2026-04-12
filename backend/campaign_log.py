@@ -98,6 +98,8 @@ CAMPAIGN_LOG_TYPES = {
     "proposal_arrived",
     "proposal_expired_unseen",
     "proposal_dropped_overflow",
+    # Offer lifetime: lapsed at end of turn
+    "offer_lapsed",
 }
 
 # ============================================================================
@@ -162,6 +164,8 @@ CATEGORY_MAP = {
     "proposal_arrived": "diplomacy",
     "proposal_expired_unseen": "diplomacy",
     "proposal_dropped_overflow": "diplomacy",
+    # Offer lifetime: lapsed at end of turn
+    "offer_lapsed": "diplomacy",
 }
 
 
@@ -395,9 +399,9 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # PL-27/PL-34: Proposal queue events — always show (player-facing)
+        # PL-27/PL-34: Proposal queue events + lapse — always show (player-facing)
         if event_type in ("proposal_arrived", "proposal_expired_unseen",
-                          "proposal_dropped_overflow"):
+                          "proposal_dropped_overflow", "offer_lapsed"):
             filtered.append(event)
             continue
 
@@ -746,6 +750,11 @@ def format_event_oneliner(event: dict) -> str:
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
         return f"{source}'s {proposal_type} envoy turned away — too many waiting"
+
+    if event_type == "offer_lapsed":
+        nation = event.get("nation", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{nation}'s {proposal_type} offer lapsed unanswered"
 
     if event_type == "garrison_placed":
         marshal = event.get("marshal", "Unknown")

@@ -193,6 +193,29 @@ def _build_result_response(result: dict, world) -> dict:
     )
 
 
+def _derive_proposal_result_outcome(result: dict) -> str:
+    """Best-effort ACCEPT/REJECT normalization for fallback proposal popups."""
+    raw_outcome = result.get("outcome", result.get("result", ""))
+    if raw_outcome is not None:
+        normalized = str(raw_outcome).strip().upper()
+        if "REJECT" in normalized or "DECLIN" in normalized or "COUNTER" in normalized:
+            return "REJECT"
+        if "ACCEPT" in normalized or "APPROV" in normalized or "SUCCESS" in normalized:
+            return "ACCEPT"
+
+    if "accepted" in result:
+        return "ACCEPT" if bool(result.get("accepted")) else "REJECT"
+
+    message = str(result.get("message", "")).lower()
+    if ("reject" in message or "declin" in message or "empty-handed" in message
+            or "not agree" in message or "unacceptable" in message):
+        return "REJECT"
+    if "accept" in message or "agreed" in message or "excellent news" in message:
+        return "ACCEPT"
+
+    return "REJECT"
+
+
 def _include_popup_passthroughs(response: dict, world) -> None:
     """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
@@ -1175,6 +1198,7 @@ async def respond_to_diplomatic_dialogue(request: dict):
             return build_base_response(
                 world, success=False, message="The war is over.",
                 game_over=True, victory=world.victory)
+        dialogue_before = world.pending_diplomatic_dialogue or {}
         choice = request.get("choice")
         result = executor.handle_diplomatic_dialogue_response(choice, game_state)
 
@@ -1194,9 +1218,11 @@ async def respond_to_diplomatic_dialogue(request: dict):
             msg = result.get("message", "")
             if msg and not result.get("awaiting_diplomatic_response"):
                 world.proposal_result_popup = {
-                    "target_nation": result.get("target_nation", ""),
+                    "target_nation": result.get(
+                        "target_nation", dialogue_before.get("target_nation", "")
+                    ),
                     "proposal_type": "Diplomatic Action",
-                    "outcome": "ACCEPT" if result.get("accepted", True) else "REJECT",
+                    "outcome": _derive_proposal_result_outcome(result),
                     "message": msg,
                     "feedback": "",
                 }
@@ -1952,7 +1978,8 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
             enemy_nations = list(getattr(world, 'enemy_nations', []))
             vassals = getattr(world, 'vassals', {})
             dp = int(getattr(world, 'diplomatic_points', 0))
-            dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+            dm = world.dialogue_manager
+            dialogue_pending = dm.is_hard_stop() or dm.has_current_turn_offers() or dm.is_local_planning()
             # PL-30: Distinguish blocking dialogue from deferred proposal result
             has_deferred_result = world.proposal_result_popup is not None
 

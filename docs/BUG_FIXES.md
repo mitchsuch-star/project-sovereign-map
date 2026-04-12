@@ -39,12 +39,13 @@
 | 2 | P2 | PL-34 | **FIXED** | Queued proposals: arrival/expiry/overflow now logged in campaign log | Fixed Apr 10, 2026 |
 | 2 | P2 | PL-33 | **CLOSED** (duplicate) | `status` works with soft-stop dialogue — verified as PL-27 duplicate | Closed Apr 10, 2026 |
 | 2f | P2 | PL-27/34 | **COMPLETE** | Session 2 follow-up: mailbox inbox panel, `diplomatic_queue` eliminated, badge formula consolidated | Implemented Apr 11, 2026 |
-| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | **NEXT** — Session 2 follow-up contract is stable |
+| 2r | P2 | PL-27/34 | **COMPLETE** | Offer lifetime refactor: current-turn lapse, `Not Now`, envoy rename, client-side end-turn gate | Implemented Apr 11, 2026 |
+| 3 | P2 | PL-32 | OPEN | Raw diplomacy labels can leak into popups because display ownership is split | **NEXT** |
 | 4 | P2 | PL-28 | OPEN | No defeat-imminent warning before game over | Depends on PL-31 defeat-rule truth |
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
 
-**Current routed next step:** complete the approved `PL-27` / `PL-34` follow-up in `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md` before starting `PL-32`. The active design pivot is: current-turn diplomatic offers, `Not Now`, turn-end lapse, and same-turn diplomacy blocking only.
+**Current routed next step:** `PL-32` (Session 3 — Diplomacy Display Contract). The offer lifetime refactor is complete; the display contract can now start on a stable transport layer.
 
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
@@ -334,27 +335,29 @@ These are concrete code paths that previous spec text covers implicitly but does
 8. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes. Specifically: add numeric-index matching (e.g. "1" → first option, "2" → second) against the active dialogue's `options` list for soft-stop dialogues (main.py:639-650), alongside the existing label/action text matching.
 9. Lock the whole flow with mailbox browse/defer/select/respond-later regressions (including expanded test matrix above) before moving to `PL-32`.
 
-### Session 2 Refactor Follow-Up - Current-Turn Diplomatic Offer Lifetime - APPROVED / NEXT
+### Session 2 Refactor Follow-Up - Current-Turn Diplomatic Offer Lifetime — COMPLETE
 
 **Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
 
-**Status: APPROVED** (April 11, 2026). See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.
+**Status: COMPLETE** (April 11, 2026). See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.
 
 **Goal:** replace the persistent diplomacy mailbox model with current-turn envoy items that can be reopened this turn, lapse automatically at end turn, and block only new diplomacy during that same turn.
 
-**Why this moves ahead of `PL-32`**
+**What shipped:**
 
-- The shipped mailbox transport is now stable enough to refactor safely.
-- The live contradiction is no longer display-only: diplomacy still feels globally blocked, but the deferred offer items also persist across turns.
-- `PL-32` should not start while the lifetime and blocking semantics of active diplomacy popups are changing again.
-
-**Exit criteria**
-
-- `incoming_proposal`, `counter_offer`, `counter_offer_response`, and `conflict_alert` can be dismissed with `Not Now` and reopened during the same turn.
-- Unanswered current-turn offer items lapse on end turn and log their outcome.
-- New diplomacy remains blocked only while unanswered current-turn offer items still exist.
-- Ordinary non-diplomatic commands remain usable while those offer items are pending.
-- `proposal_confirm`-family local planning and `proposal_result` persistence continue to behave as separate flows.
+- `CURRENT_TURN_OFFER_TYPES` constant + `lapse_pending_offers()` + `has_current_turn_offers()` in `DialogueManager`
+- `conflict_alert` reclassified from `SOFT_STOP_MAILBOX_TYPES` to `LOCAL_PLANNING_TYPES`
+- AI proposals created with `blocking=False` — do not block end-turn or ordinary commands
+- End-turn narrowed to hard-stop only (`is_hard_stop()` guard replaces blanket blocking check)
+- Diplomacy gating narrowed: `is_hard_stop() or has_current_turn_offers() or is_local_planning()`
+- Lapse hook at start of `TurnManager.end_turn()` — offers lapsed before enemy phase / AI diplomacy
+- Campaign log `offer_lapsed` event type + morning dispatch `lapsed_offers` section
+- Frontend: "Not Now" button rename, lapse warning text, "Envoys" rename (top bar + mailbox panel)
+- Client-side end-turn confirmation gate with inline terminal warning
+- Dispatch view renders lapsed offers section
+- Diplomacy wizard blocked message updated
+- Save/load migration: normalize `blocking=False` on offer types, remove legacy `conflict_alert` mailbox items
+- 51 new tests in `tests/test_offer_lifetime.py`, 8249 total passing
 
 ### Session 3 - Diplomacy Display Contract
 

@@ -3335,6 +3335,15 @@ class WorldState:
                 dm._current = copy.deepcopy(pending)
             dm._queue = [copy.deepcopy(d) for d in data.get("pending_dialogue_queue", [])]
             world._dialogue_manager = dm
+        # Migration: normalize current-turn offer items for loaded saves
+        dm = world._dialogue_manager
+        for item in ([dm._current] if dm._current else []) + dm._queue:
+            if item and item.get("type", "") in DialogueManager.CURRENT_TURN_OFFER_TYPES:
+                item["blocking"] = False
+        # Discard legacy conflict_alert mailbox items (reclassified to LOCAL_PLANNING)
+        dm.remove_matching(lambda d: d.get("type") == "conflict_alert"
+                           and d.get("mailbox_id") is not None)
+
         world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
         world.intel_grants = {k: int(v) for k, v in data.get("intel_grants", {}).items()}
         world.talleyrand_state = data.get("talleyrand_state", "IDLE")

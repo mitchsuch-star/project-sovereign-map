@@ -94,9 +94,10 @@ var _cached_wars: Array = []
 var _cached_coalition_data = null
 var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
-var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Ask Later"
+var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Not Now"
 var _pending_envoy_request_active: bool = false
-var mailbox_panel = null  # Session 2 follow-up: browsable mailbox inbox
+var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
+var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -555,7 +556,15 @@ func _toggle_terminal():
 		_restore_terminal()
 
 func _execute_end_turn():
-	"""Execute end turn command."""
+	"""Execute end turn command with client-side lapse confirmation gate."""
+	# Client-side confirmation gate — spec §5
+	if _current_envoy_count > 0:
+		_show_lapse_confirmation()
+		return
+	_send_end_turn()
+
+func _send_end_turn():
+	"""Actually send end turn command to backend."""
 	# Add to history
 	_add_to_history("end turn")
 
@@ -568,6 +577,15 @@ func _execute_end_turn():
 
 	# Send to backend
 	api_client.send_command("end turn", _on_command_result)
+
+func _show_lapse_confirmation():
+	"""Show confirmation before ending turn with pending envoys."""
+	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_envoy_count
+	add_output("")
+	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
+	add_output("[color=#d9c08c]  Type [b]end turn[/b] again to confirm, or click [b]Envoys[/b] to review.[/color]")
+	# Set flag so next end-turn attempt proceeds without re-prompting
+	_current_envoy_count = 0
 
 func _execute_command():
 	"""Execute the command in the input field."""
@@ -1231,6 +1249,9 @@ func _display_turn_change(event: Dictionary):
 	if top_bar:
 		top_bar.close_all_screens()
 
+	# Clear deferred state — new turn starts fresh
+	_dismissed_proposal_nation = ""
+
 	var new_turn = int(event.get("new_turn", 0))
 	var income = int(event.get("income", 0))
 	var upkeep = int(event.get("upkeep", 0))
@@ -1650,6 +1671,7 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
 	if not diplo_data.is_empty():
+		_current_envoy_count = int(diplo_data.get("pending_envoy_count", 0))
 		top_bar.update_diplomatic_fields(diplo_data)
 
 
@@ -2920,6 +2942,7 @@ func _on_mailbox_list_result(response: Dictionary):
 	var items = response.get("items", [])
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(count)
+	_current_envoy_count = count
 	if count == 0:
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
 		return
@@ -2942,8 +2965,10 @@ func _on_mailbox_list_result(response: Dictionary):
 func _on_pending_envoy_result(response: Dictionary):
 	"""Handle pending envoy recovery — reopen the active proposal popup."""
 	_pending_envoy_request_active = false
+	var envoy_ct = int(response.get("pending_envoy_count", 0))
 	if top_bar and top_bar.has_method("update_mailbox_count"):
-		top_bar.update_mailbox_count(int(response.get("pending_envoy_count", 0)))
+		top_bar.update_mailbox_count(envoy_ct)
+	_current_envoy_count = envoy_ct
 	if not response.get("success", false):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
@@ -2981,8 +3006,10 @@ func _on_mailbox_item_selected(mailbox_id: int, is_active: bool, item_type: Stri
 
 func _on_mailbox_activate_result(response: Dictionary):
 	"""Handle POST /mailbox/activate response — open the newly active item."""
+	var act_ct = int(response.get("count", 0))
 	if top_bar and top_bar.has_method("update_mailbox_count"):
-		top_bar.update_mailbox_count(int(response.get("count", 0)))
+		top_bar.update_mailbox_count(act_ct)
+	_current_envoy_count = act_ct
 	if not response.get("success", false):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Could not activate that item.")

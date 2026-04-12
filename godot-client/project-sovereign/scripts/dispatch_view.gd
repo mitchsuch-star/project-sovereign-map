@@ -215,6 +215,16 @@ func _on_dispatch_received(response):
 			bbcode += "[color=#" + evt_color + "]  " + evt_msg + "[/color]\n"
 		bbcode += "\n"
 
+	# ═══ LAPSED ENVOYS ═══
+	var lapsed_offers = data.get("lapsed_offers", [])
+	if lapsed_offers.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]LAPSED ENVOYS[/color]\n"
+		for lapse in lapsed_offers:
+			var l_nation = str(lapse.get("nation", "?"))
+			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
+			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
+		bbcode += "\n"
+
 	# ═══ DIPLOMATIC EVENTS (Session 8D) ═══
 	var diplo_events = data.get("diplomatic_events", [])
 	if diplo_events.size() > 0:

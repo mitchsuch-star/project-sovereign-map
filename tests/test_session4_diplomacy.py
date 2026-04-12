@@ -211,7 +211,7 @@ class TestAIDiplomacyDelivery:
             world.dialogue_manager.promote_if_empty()
         assert world.pending_diplomatic_dialogue is not None
         assert dialogue["type"] == "incoming_proposal"
-        assert dialogue["blocking"] is True
+        assert dialogue["blocking"] is False
         # Must have Accept, Reject, Counter options
         actions = [opt["action"] for opt in dialogue["options"]]
         assert "accept_ai_proposal" in actions

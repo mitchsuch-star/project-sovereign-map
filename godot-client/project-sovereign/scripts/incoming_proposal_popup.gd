@@ -87,6 +87,12 @@ func show_proposal(data: Dictionary):
 	if reject_hint:
 		bbcode += "\n[color=red]Key obstacle: %s[/color]" % reject_hint
 
+	# Lapse warning
+	if is_counter:
+		bbcode += "\n[color=#e0c060][i]This response will lapse at end of turn.[/i][/color]"
+	else:
+		bbcode += "\n[color=#e0c060][i]This offer will lapse at end of turn.[/i][/color]"
+
 	content_label.text = ""
 	content_label.append_text(bbcode)
 
@@ -96,6 +102,7 @@ func show_proposal(data: Dictionary):
 	counter_btn.disabled = is_counter
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
+	dismiss_btn.text = "Not Now"
 	# Button labels adapt to context
 	accept_btn.text = "Accept Terms" if is_counter else "Accept"
 	reject_btn.text = "Reject Terms" if is_counter else "Reject"

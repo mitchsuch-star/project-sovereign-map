@@ -941,6 +941,13 @@ class DiplomaticExecutor:
             world.dialogue_manager.pop()
             return {"success": True, "message": "Very well, Sire."}
 
+        elif action == "ask_later":
+            return {
+                "success": True,
+                "message": "Very well, Sire. The envoy will wait in the diplomatic mailbox.",
+                "awaiting_diplomatic_response": True,
+            }
+
         elif action == "reconsider":
             world.dialogue_manager.pop()
             return {"success": True, "message": "Of course, Sire. Take your time."}
@@ -3082,10 +3089,15 @@ class DiplomaticExecutor:
                             "description": "Decline the proposal.",
                             "action": "reject_ai_proposal",
                         },
+                        {
+                            "label": "Dismiss",
+                            "description": "Cancel this action.",
+                            "action": "dismiss",
+                        },
                     ],
                     "context": context,
                     "turn_created": int(world.current_turn),
-                    "blocking": True,
+                    "blocking": False,
                 })
                 return {
                     "success": True,

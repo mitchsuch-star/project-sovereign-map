@@ -805,7 +805,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             "acceptance_score": int(acceptance["score"]),
         },
         "turn_created": int(world.current_turn),
-        "blocking": True,
+        "blocking": False,
         "popup_payload": popup_payload,
     }
 

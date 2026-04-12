@@ -94,11 +94,19 @@ class TestDialogueTypeTaxonomy:
     def test_soft_stop_mailbox_types(self):
         dm = DialogueManager()
         for dtype in ["incoming_proposal", "counter_offer",
-                      "counter_offer_response", "conflict_alert"]:
+                      "counter_offer_response"]:
             dm.replace({"type": dtype, "blocking": True, "turn_created": 1,
                         "options": [], "target_nation": "X"})
             assert dm.is_soft_stop(), f"{dtype} should be soft-stop"
             assert not dm.is_hard_stop(), f"{dtype} should not be hard-stop"
+
+    def test_conflict_alert_is_local_planning(self):
+        dm = DialogueManager()
+        dm.replace({"type": "conflict_alert", "blocking": False, "turn_created": 1,
+                    "options": [], "target_nation": "X"})
+        assert dm.is_local_planning(), "conflict_alert should be local planning"
+        assert not dm.is_soft_stop(), "conflict_alert should not be soft-stop"
+        assert not dm.is_hard_stop(), "conflict_alert should not be hard-stop"
 
     def test_hybrid_soft_stop_types(self):
         dm = DialogueManager()

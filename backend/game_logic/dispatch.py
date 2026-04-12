@@ -29,7 +29,8 @@ BAND_MIDPOINTS: Dict[str, int] = {
 }
 
 
-def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dict[str, Any]:
+def build_morning_dispatch(world, tactical_events: Optional[List] = None,
+                           lapsed_offers: Optional[List] = None) -> Dict[str, Any]:
     """
     Build the morning dispatch dict for Godot rendering.
 
@@ -42,6 +43,8 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
         tactical_events: Optional list of tactical event dicts from turn
             processing (attrition, construction, etc.). Absorbed into
             the dispatch's TURN EVENTS section.
+        lapsed_offers: Optional list of lapse info dicts from turn-end.
+            Each has nation, offer_type, proposal_type.
 
     Returns:
         Dict with turn, situation, marshals, intelligence, turn_events,
@@ -94,6 +97,16 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
         diplomatic_events.extend(relation_events)
 
     dispatch["diplomatic_events"] = diplomatic_events
+
+    # Lapsed offers from previous turn-end
+    if lapsed_offers:
+        dispatch["lapsed_offers"] = [
+            {
+                "nation": l["nation"],
+                "proposal_type": (l.get("proposal_type") or "proposal").replace("_", " "),
+            }
+            for l in lapsed_offers
+        ]
 
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch

@@ -112,9 +112,9 @@ class MetaExecutor:
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
-        # Phase 8 Session 3: Block end-turn if blocking diplomatic dialogue pending
-        if (world.pending_diplomatic_dialogue
-                and world.pending_diplomatic_dialogue.get("blocking")):
+        # Only hard-stop dialogues (alliance_paradox, force_declare_war) block end-turn.
+        # Current-turn offers use a client-side confirmation gate instead.
+        if world.dialogue_manager.is_hard_stop():
             dialogue = world.pending_diplomatic_dialogue
             option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
             options_text = "  ".join(option_labels)
@@ -284,7 +284,12 @@ class MetaExecutor:
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         # Tactical events absorbed into dispatch's TURN EVENTS section
         from backend.game_logic.dispatch import build_morning_dispatch
-        result["morning_dispatch"] = build_morning_dispatch(world, tactical_events)
+        lapsed_offers = turn_result.get("lapsed_offers", [])
+        result["morning_dispatch"] = build_morning_dispatch(
+            world, tactical_events, lapsed_offers=lapsed_offers
+        )
+        if lapsed_offers:
+            result["lapsed_offers"] = lapsed_offers
 
         # Autosave at start of new turn (non-blocking — don't fail if autosave fails)
         from backend.save_manager import autosave

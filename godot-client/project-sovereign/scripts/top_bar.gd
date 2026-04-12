@@ -307,16 +307,22 @@ func update_diplomatic_fields(data: Dictionary):
 	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
 
 
+var _current_envoy_count: int = 0
+
+func get_envoy_count() -> int:
+	return _current_envoy_count
+
 func update_mailbox_count(envoy_count: int):
-	"""Refresh the mailbox button copy and styling."""
+	"""Refresh the envoys button copy and styling."""
+	_current_envoy_count = envoy_count
 	if envoy_count > 0:
-		mailbox_btn.text = "Mailbox (" + str(envoy_count) + ")"
-		mailbox_btn.tooltip_text = "Open " + str(envoy_count) + " pending diplomatic proposal(s)."
+		mailbox_btn.text = "Envoys (" + str(envoy_count) + ")"
+		mailbox_btn.tooltip_text = str(envoy_count) + " pending envoy(s) await your reply."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
 		mailbox_btn.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
 	else:
-		mailbox_btn.text = "Mailbox"
+		mailbox_btn.text = "Envoys"
 		mailbox_btn.tooltip_text = "No pending envoys."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)

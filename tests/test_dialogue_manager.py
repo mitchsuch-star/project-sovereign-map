@@ -81,19 +81,32 @@ class TestDialogueCharacterization:
 
     # ── Blocking ──
 
-    def test_blocking_prevents_end_turn(self):
-        """Blocking dialogue prevents end-turn execution."""
+    def test_hard_stop_prevents_end_turn(self):
+        """Only hard-stop dialogues prevent end-turn execution."""
         from backend.commands.executor import CommandExecutor
 
         world = WorldFactory.basic()
         world.dialogue_manager.replace(self._make_dialogue(
-            "incoming_proposal", blocking=True, turn=1
+            "alliance_paradox", blocking=True, turn=1
         ))
         executor = CommandExecutor()
         game_state = {"world": world}
         result = executor._execute_end_turn({}, game_state)
         assert result["success"] is False
         assert "diplomatic" in result["message"].lower() or "respond" in result["message"].lower()
+
+    def test_current_turn_offer_does_not_block_end_turn(self):
+        """Current-turn offers use client-side confirmation, not server block."""
+        from backend.commands.executor import CommandExecutor
+
+        world = WorldFactory.basic()
+        world.dialogue_manager.replace(self._make_dialogue(
+            "incoming_proposal", blocking=False, turn=1
+        ))
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        result = executor._execute_end_turn({}, game_state)
+        assert result["success"] is True
 
     # ── Timeout ──
 

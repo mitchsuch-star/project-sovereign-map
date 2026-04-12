@@ -5,7 +5,6 @@ stale selection, legacy migration, badge formula, clear_stale exemption,
 identity continuity through type changes, and API endpoints.
 """
 
-import copy
 from backend.models.dialogue_manager import DialogueManager
 from backend.models.world_state import WorldState
 
@@ -117,10 +116,12 @@ class TestMailboxCount:
         dm.push(_make_proposal_dialogue("Prussia", "counter_offer_response"))
         assert dm.get_mailbox_count() == 1
 
-    def test_conflict_alert_counted(self):
+    def test_conflict_alert_not_counted(self):
+        """conflict_alert is local planning, not a mailbox item."""
         dm = DialogueManager()
-        dm.push(_make_proposal_dialogue("Prussia", "conflict_alert"))
-        assert dm.get_mailbox_count() == 1
+        dm.push({"type": "conflict_alert", "blocking": False, "turn_created": 1,
+                 "options": [], "target_nation": "Prussia"})
+        assert dm.get_mailbox_count() == 0
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -291,20 +292,16 @@ class TestActivateMailboxItem:
 # ═══════════════════════════════════════════════════════════════
 
 class TestClearStaleExemption:
-    """Mailbox items are exempt from generic stale clearing."""
+    """Current-turn offers are exempt from clear_stale — their lifecycle
+    is managed by lapse_pending_offers() at turn-end."""
 
-    def test_incoming_proposal_not_cleared(self):
+    def test_offer_exempt_from_stale_clearing(self):
+        """Offers exempt — lapse_pending_offers() handles their lifecycle."""
         dm = DialogueManager()
         dm.push(_make_proposal_dialogue("Prussia", turn=1))
         result = dm.clear_stale(10)
         assert result is None
         assert dm.peek() is not None
-
-    def test_counter_offer_not_cleared(self):
-        dm = DialogueManager()
-        dm.push(_make_proposal_dialogue("Prussia", "counter_offer", turn=1))
-        result = dm.clear_stale(10)
-        assert result is None
 
     def test_non_mailbox_still_cleared(self):
         dm = DialogueManager()
@@ -481,14 +478,14 @@ class TestMailboxOrdering:
         # Push items with different types (different priorities)
         # Hard stop first to occupy active slot
         dm.push(_make_hard_stop_dialogue())
-        dm.push(_make_proposal_dialogue("Prussia", "conflict_alert"))  # priority 4
+        dm.push(_make_proposal_dialogue("Prussia", "counter_offer"))  # priority 3
         dm.push(_make_proposal_dialogue("Austria", "incoming_proposal"))  # priority 3
 
         items = dm.get_mailbox_items()
         assert len(items) == 2
-        # incoming_proposal (priority 3) should come before conflict_alert (priority 4)
-        assert items[0]["item_type"] == "incoming_proposal"
-        assert items[1]["item_type"] == "conflict_alert"
+        # Same priority — FIFO: counter_offer (pushed first) before incoming_proposal
+        assert items[0]["item_type"] == "counter_offer"
+        assert items[1]["item_type"] == "incoming_proposal"
 
     def test_fifo_within_same_priority(self):
         dm = DialogueManager()

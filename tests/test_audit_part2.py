@@ -588,7 +588,9 @@ class TestSection12Serialization:
     """AE-1 through AF-4: Serialization round-trip."""
 
     def test_ae3_pending_dialogue_roundtrip(self):
-        """AE-3: pending_diplomatic_dialogue survives save/load."""
+        """AE-3: pending_diplomatic_dialogue survives save/load.
+        Note: incoming_proposal migrated to blocking=False on load (offer lifetime refactor).
+        """
         world = _make_world()
         world.dialogue_manager.replace({
             "type": "incoming_proposal",
@@ -598,7 +600,7 @@ class TestSection12Serialization:
         data = world.to_dict()
         world2 = WorldState.from_dict(data)
         assert world2.pending_diplomatic_dialogue is not None
-        assert world2.pending_diplomatic_dialogue["blocking"] is True
+        assert world2.pending_diplomatic_dialogue["blocking"] is False
 
     def test_ae5_active_coalition_roundtrip(self):
         """AE-5: active_coalition survives save/load."""
@@ -647,7 +649,7 @@ class TestSection12Serialization:
         world.incoming_proposal_popup = {"nation": "Prussia", "terms": []}
         data = world.to_dict()
         world2 = WorldState.from_dict(data)
-        assert world2.pending_diplomatic_dialogue["blocking"] is True
+        assert world2.pending_diplomatic_dialogue["blocking"] is False
         assert world2.incoming_proposal_popup is not None
 
     def test_af2_coalition_brewing_roundtrip(self):

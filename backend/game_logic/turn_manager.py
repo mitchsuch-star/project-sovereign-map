@@ -72,6 +72,22 @@ class TurnManager:
                 "events": [],
             }
 
+        # ════════════════════════════════════════════════════════════
+        # CURRENT-TURN OFFER LAPSE — before enemy phase / AI diplomacy
+        # Offers that the player did not answer this turn auto-lapse.
+        # ════════════════════════════════════════════════════════════
+        lapsed_offers = self.world.dialogue_manager.lapse_pending_offers()
+        if lapsed_offers:
+            self.world.incoming_proposal_popup = None  # Clear paired popup cache
+            for lapse in lapsed_offers:
+                self.world.log_event({
+                    "type": "offer_lapsed",
+                    "nation": lapse["nation"],
+                    "offer_type": lapse["offer_type"],
+                    "proposal_type": lapse["proposal_type"],
+                    "turn": int(self.world.current_turn),
+                })
+
         # C3 fix: Track whether advance_turn has been called this cycle
         _advanced = False
 
@@ -207,7 +223,8 @@ class TurnManager:
             "turn_ended": old_turn,
             "next_turn": self.world.current_turn,
             "victory_check": victory_check,
-            "message": f"Turn {old_turn} complete"
+            "message": f"Turn {old_turn} complete",
+            "lapsed_offers": lapsed_offers or [],
         }
 
         # Combine all events

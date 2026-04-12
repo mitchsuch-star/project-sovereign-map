@@ -361,9 +361,10 @@ class TestDialogueBlocking:
             world.dialogue_manager.pop()
         assert world.pending_diplomatic_dialogue is None
 
-    def test_blocking_dialogue_prevents_end_turn(self, executor, world, game_state):
+    def test_hard_stop_dialogue_prevents_end_turn(self, executor, world, game_state):
+        """Only hard-stop dialogues (alliance_paradox, force_declare_war) block end-turn."""
         world.dialogue_manager.replace({
-            "type": "incoming_proposal",
+            "type": "alliance_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [],
@@ -376,8 +377,6 @@ class TestDialogueBlocking:
             "command": {"action": "end_turn"},
         }
         result = executor.execute(parsed, game_state)
-        # The blocking check is in the pending dialogue check, not end_turn
-        # since pending_diplomatic_dialogue blocks ALL commands
         assert not result["success"]
 
 
