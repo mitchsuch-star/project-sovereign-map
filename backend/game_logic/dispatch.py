@@ -108,6 +108,18 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
             for l in lapsed_offers
         ]
 
+    pending_envoys = [
+        {
+            "nation": item.get("source_nation", "?"),
+            "proposal_type": str(item.get("proposal_type", "proposal")).replace("_", " "),
+            "state": item.get("state", "WAITING"),
+        }
+        for item in world.dialogue_manager.get_mailbox_items()
+    ]
+    if pending_envoys:
+        dispatch["pending_envoy_count"] = int(len(pending_envoys))
+        dispatch["pending_envoys"] = pending_envoys
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 

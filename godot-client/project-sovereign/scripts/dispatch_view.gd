@@ -225,6 +225,21 @@ func _on_dispatch_received(response):
 			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
 		bbcode += "\n"
 
+	# ═══ ENVOYS AWAITING RESPONSE ═══
+	var pending_envoys = data.get("pending_envoys", [])
+	var pending_envoy_count = int(data.get("pending_envoy_count", pending_envoys.size()))
+	if pending_envoys.size() > 0 and pending_envoy_count > 0:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]ENVOYS AWAITING RESPONSE[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Open [b]Envoys[/b] before ending the turn.[/color]\n"
+		for i in range(min(pending_envoys.size(), 3)):
+			var envoy = pending_envoys[i]
+			var envoy_nation = str(envoy.get("nation", "?"))
+			var envoy_type = str(envoy.get("proposal_type", "proposal")).capitalize()
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - " + envoy_nation + " — " + envoy_type + "[/color]\n"
+		if pending_envoys.size() > 3:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"[/color]\n\n"
+
 	# ═══ DIPLOMATIC EVENTS (Session 8D) ═══
 	var diplo_events = data.get("diplomatic_events", [])
 	if diplo_events.size() > 0:

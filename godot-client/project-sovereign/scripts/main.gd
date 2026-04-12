@@ -97,6 +97,7 @@ var _last_command_response: Dictionary = {}  # Cached for post-popup war panel r
 var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Not Now"
 var _pending_envoy_request_active: bool = false
 var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
+var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 
 # Pause Menu (Phase 6.5)
@@ -557,10 +558,17 @@ func _toggle_terminal():
 
 func _execute_end_turn():
 	"""Execute end turn command with client-side lapse confirmation gate."""
+	if _awaiting_end_turn_confirmation:
+		_awaiting_end_turn_confirmation = false
+		_send_end_turn()
+		return
+
 	# Client-side confirmation gate — spec §5
 	if _current_envoy_count > 0:
 		_show_lapse_confirmation()
 		return
+
+	_awaiting_end_turn_confirmation = false
 	_send_end_turn()
 
 func _send_end_turn():
@@ -583,16 +591,22 @@ func _show_lapse_confirmation():
 	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_envoy_count
 	add_output("")
 	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
-	add_output("[color=#d9c08c]  Type [b]end turn[/b] again to confirm, or click [b]Envoys[/b] to review.[/color]")
-	# Set flag so next end-turn attempt proceeds without re-prompting
-	_current_envoy_count = 0
+	add_output("[color=#d9c08c]  Click [b]End Turn[/b] again, press [b]Enter[/b], or type [b]end turn[/b] again to confirm. Click [b]Envoys[/b] to review instead.[/color]")
+	_awaiting_end_turn_confirmation = true
+	end_turn_button.grab_focus()
 
 func _execute_command():
 	"""Execute the command in the input field."""
 	var command = command_input.text.strip_edges()
 
 	if command.is_empty():
+		if _awaiting_end_turn_confirmation:
+			_awaiting_end_turn_confirmation = false
+			command_input.text = ""
+			_send_end_turn()
 		return
+
+	_awaiting_end_turn_confirmation = false
 
 	# Route typed "end turn" through the same confirmation gate as button/hotkey.
 	if command.to_lower() == "end turn":
@@ -1474,6 +1488,22 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]")
 		add_output("")
 
+	# ═══ ENVOYS AWAITING RESPONSE ═══
+	var pending_envoys = data.get("pending_envoys", [])
+	var pending_envoy_count = int(data.get("pending_envoy_count", pending_envoys.size()))
+	if pending_envoys.size() > 0 and pending_envoy_count > 0:
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]ENVOYS AWAITING RESPONSE[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Open [b]Envoys[/b] before ending the turn.[/color]")
+		for i in range(min(pending_envoys.size(), 3)):
+			var envoy = pending_envoys[i]
+			var envoy_nation = str(envoy.get("nation", "?"))
+			var envoy_type = str(envoy.get("proposal_type", "proposal")).capitalize()
+			add_output("[color=#" + Utils.COLOR_INFO + "]    - " + envoy_nation + " — " + envoy_type + "[/color]")
+		if pending_envoys.size() > 3:
+			add_output("[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]")
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"[/color]")
+		add_output("")
+
 	# ═══ TURN LIMIT WARNING ═══
 	var turn_limit_warning = data.get("turn_limit_warning", null)
 	if turn_limit_warning != null and turn_limit_warning is Dictionary:
@@ -1687,8 +1717,16 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
 	if not diplo_data.is_empty():
-		_current_envoy_count = int(diplo_data.get("pending_envoy_count", 0))
+		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
 		top_bar.update_diplomatic_fields(diplo_data)
+
+
+func _set_pending_envoy_count(count: int):
+	"""Sync cached envoy count and clear stale end-turn confirmation when needed."""
+	var new_count = int(count)
+	if new_count != _current_envoy_count or new_count <= 0:
+		_awaiting_end_turn_confirmation = false
+	_current_envoy_count = new_count
 
 
 func _sync_response_hud(response: Dictionary):
@@ -2942,6 +2980,7 @@ func _on_envoy_clicked():
 	"""Handle mailbox button click — Session 2 follow-up: open mailbox panel."""
 	if _pending_envoy_request_active:
 		return
+	_awaiting_end_turn_confirmation = false
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	_pending_envoy_request_active = true
 	api_client.get_mailbox(_on_mailbox_list_result)
@@ -2958,7 +2997,7 @@ func _on_mailbox_list_result(response: Dictionary):
 	var items = response.get("items", [])
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(count)
-	_current_envoy_count = count
+	_set_pending_envoy_count(count)
 	if count == 0:
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
 		return
@@ -2984,7 +3023,7 @@ func _on_pending_envoy_result(response: Dictionary):
 	var envoy_ct = int(response.get("pending_envoy_count", 0))
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(envoy_ct)
-	_current_envoy_count = envoy_ct
+	_set_pending_envoy_count(envoy_ct)
 	if not response.get("success", false):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
@@ -3025,7 +3064,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 	var act_ct = int(response.get("count", 0))
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(act_ct)
-	_current_envoy_count = act_ct
+	_set_pending_envoy_count(act_ct)
 	if not response.get("success", false):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Could not activate that item.")

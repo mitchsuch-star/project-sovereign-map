@@ -525,6 +525,13 @@ class TestMorningDispatchLapse:
         dispatch = build_morning_dispatch(world)
         assert "lapsed_offers" not in dispatch
 
+    def test_dispatch_reports_pending_envoys(self):
+        world = _make_world()
+        world.dialogue_manager.push(_make_offer("Saxony", proposal_type="OPEN_BORDERS"))
+        dispatch = build_morning_dispatch(world)
+        assert dispatch["pending_envoy_count"] == 1
+        assert dispatch["pending_envoys"][0]["nation"] == "Saxony"
+
     def test_dispatch_multiple_lapses(self):
         world = _make_world()
         lapsed = [

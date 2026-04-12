@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 11, 2026 (Offer lifetime refactor COMPLETE. `PL-32` is NEXT.)
+> **Last Updated:** April 11, 2026 (Offer lifetime refactor COMPLETE. Next session reserved for informational-popup UX evaluation before `PL-32` resumes.)
 
 ---
 
@@ -10,8 +10,8 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **8249** (8249 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up + offer refactor COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). `PL-32` is NEXT. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None — Session 3 (`PL-32`) ready to start. |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up + offer refactor COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). `PL-32` remains the next bug item, but the immediate next session is a focused informational-popup UX evaluation. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None — next session is reserved for evaluating less-intrusive informational-popup presentation before Session 3 (`PL-32`) resumes. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -36,7 +36,9 @@ Sessions 1-2 + follow-up + offer lifetime refactor COMPLETE. 4 OPEN bugs remain.
  
 **Current routed next step:** Session 3 — Diplomacy Display Contract (`PL-32`).
 
-**Next session:** Session 3 — Diplomacy Display Contract (`PL-32`).
+**Next session:** Informational-popup UX evaluation — decide how to surface informational notices less intrusively before resuming Session 3 (`PL-32`).
+
+This is a sequencing note, not a new PL item. Keep `PL-32` as the next bug-owned implementation slice once the popup presentation direction is chosen.
 
 **Implementation sessions in current order:**
 
