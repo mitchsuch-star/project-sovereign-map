@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 7 scale-sensitive backend hardening complete: player-nation defaults now route through shared nation config, scale-sensitive AI enemy queries use cached fog-aware helper seams, and scenario validation now rejects unsupported nation rosters before load. 135 targeted regression tests passed across Session 7/backend hardening plus diplomacy/dispatch audit suites, manual scenario-loader validation passed for the temp-dir-blocked `tmp_path` cases, and the active Session 8 routing note below now explicitly distinguishes current work from older archival Phase 8 milestone labels later in this file.)
+> **Last Updated:** April 12, 2026 (Session 8 renderer cutover slice 1 complete: `godot-client/project-sovereign/scenes/map.gd` now delegates to a shared node-based renderer shell while preserving `update_all_regions(map_data)` for `main.gd`, the current 19-region placeholder map, and tooltip coverage. Added source-level guardrails for the cutover wrapper/layers, and 11 targeted regression tests passed across `tests/test_map_consistency.py`, `tests/test_map_renderer_cutover.py`, and `tests/test_popup_routing_registry.py`. Godot runtime smoke verification is still manual-only because the engine is not installed in this environment.)
 
 ---
 
@@ -39,6 +39,8 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
 **Current Session 7 progress:** COMPLETE. `backend/nation_config.py` now centralizes scenario/runtime nation defaults, non-France campaigns preserve their player nation through world init + `/new_game` reset paths, diplomacy/advisory/template/defiance flows now derive state and proposal ownership from `world.player_nation`, enemy AI scale-sensitive contact scans route through cached fog-aware helper seams, and modding/scenario validation now fails unsupported nation rosters before load.
+
+**Current Session 8 progress:** Cutover slice 1 COMPLETE. The map renderer now builds scene-node layers (`WorldLayer`, connection/region/force/garrison layers) behind a new shared `map_renderer_base.gd` shell while keeping the existing `map.gd` data wrapper and `update_all_regions(map_data)` contract stable for `main.gd`. This replaces the old immediate-mode region/icon redraw path on the current 19-region placeholder map. Remaining Session 8 work is the art-backed bitmap/color-map renderer, Camera2D/input cutover, and final Godot runtime smoke validation.
 
 **Routing note:** later references in this file to older "Session 7", "Session 8", or "Session 8A" Phase 8 diplomacy milestones are archival implementation history. They do not override the active post-bug routing above, which is currently Session 8 renderer cutover prep and replacement.
 
