@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Set
 
+from backend.nation_config import validate_scenario_runtime_support
+
 
 
 @dataclass
@@ -428,6 +430,9 @@ def validate_scenario(
     if "game_over" in data:
         if not isinstance(data["game_over"], bool):
             result.add_error("game_over", f"Must be a boolean, got {type(data['game_over']).__name__}")
+
+    for runtime_error in validate_scenario_runtime_support(data):
+        result.add_error("runtime_support", runtime_error)
 
     return result
 

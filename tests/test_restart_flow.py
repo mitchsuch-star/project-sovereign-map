@@ -109,3 +109,20 @@ def test_load_autosave_after_new_game_uses_fresh_campaign_state(restart_client):
     assert data["game_state"]["turn"] == 1
     assert main_module.world.current_turn == 1
     assert main_module.world.nation_gold["France"] == baseline.nation_gold["France"]
+
+
+def test_new_game_preserves_non_france_player_nation(restart_client):
+    client, main_module, _save_dir = restart_client
+
+    main_module._reset_world_state(player_nation="Prussia")
+    assert main_module.world.player_nation == "Prussia"
+
+    response = client.post("/new_game")
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+    assert main_module.world.player_nation == "Prussia"
+    assert "France" in main_module.world.enemy_nations
+    assert "Prussia" not in main_module.world.enemy_nations
+    assert "France" in main_module.world.nation_actions
+    assert "Prussia" not in main_module.world.nation_actions

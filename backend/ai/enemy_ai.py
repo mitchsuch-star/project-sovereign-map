@@ -358,6 +358,9 @@ class EnemyAI:
         # Format: {marshal_name: {"intent": str, "target": str}}
         # Used when a multi-step action is split (e.g., unfortify then capture)
         self._pending_intents: Dict[str, Dict[str, str]] = {}
+        self._enemy_query_cache: Dict[Tuple[str, bool], Tuple[Marshal, ...]] = {}
+        self._enemy_query_world_id: Optional[int] = None
+        self._enemy_query_turn: Optional[int] = None
 
         # ═══════════════════════════════════════════════════════════════════
         # FAILED ACTION COOLDOWN SYSTEM
@@ -439,6 +442,51 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} feeling {mood_desc} today (threshold {base_threshold:.2f} -> {adjusted:.2f})")
 
         return adjusted
+
+    def _reset_enemy_query_cache(self, world: Optional[WorldState] = None) -> None:
+        """Reset cached enemy-contact lookups for a new evaluation scope."""
+        self._enemy_query_cache = {}
+        self._enemy_query_world_id = id(world) if world is not None else None
+        self._enemy_query_turn = getattr(world, "current_turn", None) if world is not None else None
+
+    def _should_use_fog_aware_enemy_query(
+        self,
+        nation: str,
+        world: WorldState,
+        marshal: Optional[Marshal] = None,
+    ) -> bool:
+        """
+        Decide whether a nation-wide AI query should use fog-filtered contacts.
+
+        The current intel model is player-perspective only, so enemy nations still
+        use the omniscient branch through this seam. Player autonomous AI already
+        has a valid fog-aware view and should not reach straight into raw enemy
+        scans on scale-sensitive paths.
+        """
+        acting_nation = marshal.nation if marshal is not None else nation
+        return acting_nation == world.player_nation
+
+    def _get_enemy_contacts(
+        self,
+        nation: str,
+        world: WorldState,
+        marshal: Optional[Marshal] = None,
+    ) -> List[Marshal]:
+        """Get cached enemy contacts for a nation, using fog when that view exists."""
+        cache_world_id = getattr(self, "_enemy_query_world_id", None)
+        cache_turn = getattr(self, "_enemy_query_turn", None)
+        if cache_world_id != id(world) or cache_turn != getattr(world, "current_turn", None):
+            self._reset_enemy_query_cache(world)
+
+        fog_aware = self._should_use_fog_aware_enemy_query(nation, world, marshal=marshal)
+        cache_key = (nation, fog_aware)
+        if cache_key not in self._enemy_query_cache:
+            if fog_aware:
+                self._enemy_query_cache[cache_key] = tuple(world.get_visible_enemies(nation))
+            else:
+                self._enemy_query_cache[cache_key] = tuple(world.get_enemies_of_nation(nation))
+
+        return list(self._enemy_query_cache[cache_key])
 
     # ═══════════════════════════════════════════════════════════════════
     # FAILED ACTION COOLDOWN HELPERS
@@ -1093,6 +1141,7 @@ class EnemyAI:
             Tuple of (action_dict, priority) or (None, 999)
         """
         # ═══════════════════════════════════════════════════════════════════
+        self._reset_enemy_query_cache(world)
         # DECISION FLOW (called from _select_next_marshal_action)
         # ═══════════════════════════════════════════════════════════════════
         # process_nation_turn()
@@ -1761,7 +1810,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # No locked destination - check if enemies threatening
         # ════════════════════════════════════════════════════════════
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         enemies_threatening = False
 
         marshal_region = world.get_region(marshal.location)
@@ -1814,7 +1863,7 @@ class EnemyAI:
         and marks marshal as done after one defend to prevent monopolization.
         """
         # Check if enemy adjacent - if so, retreat
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         enemy_adjacent = False
 
         marshal_region = world.get_region(marshal.location)
@@ -1939,7 +1988,7 @@ class EnemyAI:
 
     def _check_threats(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Check for threats and respond appropriately."""
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:
@@ -2016,7 +2065,7 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} cannot counter-punch - fortified (must unfortify first)")
             return None
 
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         ai_debug(f"    🎯 Valid targets for {nation}: {[e.name for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
@@ -2099,7 +2148,7 @@ class EnemyAI:
                 ai_debug(f"    P4: {marshal.name} at bombardment limit — skipping ranged attack")
                 return None  # Fall through to P5+ (positioning)
 
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
@@ -2940,7 +2989,7 @@ class EnemyAI:
                 }
 
             # Force move toward nearest enemy (ignore risk assessment)
-            enemies = world.get_enemies_of_nation(nation)
+            enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
             if enemies:
                 marshal_region = world.get_region(marshal.location)
                 if marshal_region:
@@ -3014,7 +3063,7 @@ class EnemyAI:
 
         # ── TURN 3+: Lower attack threshold and try attacking ──
         if stagnation >= 3:
-            enemies = world.get_enemies_of_nation(nation)
+            enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
             if enemies:
                 marshal_region = world.get_region(marshal.location)
                 if marshal_region and not getattr(marshal, 'fortified', False):
@@ -3064,7 +3113,7 @@ class EnemyAI:
             return None
 
         # Check if we're too weak to fight
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         if not enemies:
             return None
 
@@ -3221,7 +3270,7 @@ class EnemyAI:
 
         # Don't drill if enemy in SAME region or adjacent (vulnerable during drill)
         nation = marshal.nation
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         marshal_region = world.get_region(marshal.location)
 
         if marshal_region:
@@ -3366,7 +3415,7 @@ class EnemyAI:
                     ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets — staying to bombard")
                     return None  # Skip P7, let P4 handle attack
 
-        enemies = world.get_enemies_of_nation(nation)
+        enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
 
         if not enemies:
             return None
@@ -3688,7 +3737,7 @@ class EnemyAI:
             # Already aggressive - check if we should retreat (badly outnumbered)
             # Fix #2: Don't retreat if we just advanced toward enemy via P7
             advanced = getattr(self, '_advanced_this_turn', set())
-            enemies = world.get_enemies_of_nation(marshal.nation)
+            enemies = self._get_enemy_contacts(marshal.nation, world, marshal=marshal)
             adjacent_enemies = [
                 e for e in enemies
                 if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
@@ -4212,7 +4261,7 @@ class EnemyAI:
             # Fix #3: If no capture/ally target, check if repositioning toward
             # enemies would be useful (prevents dead-end stagnation)
             if not has_valid_destination:
-                all_enemies = world.get_enemies_of_nation(nation)
+                all_enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
                 if all_enemies:
                     nearest_enemy = min(all_enemies, key=lambda e: world.get_distance(marshal.location, e.location))
                     current_dist = world.get_distance(marshal.location, nearest_enemy.location)

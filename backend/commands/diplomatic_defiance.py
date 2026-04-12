@@ -18,6 +18,7 @@ import random
 from typing import Dict, Optional
 
 from backend.commands.objection_v2 import ConcernLevel
+from backend.nation_config import get_player_nation
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -465,8 +466,9 @@ def evaluate_pre_proposal_objection(
 
     # Get diplomatic context
     authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    player_nation = get_player_nation(world)
     # War declaration on neutral → STRONG
-    current_state = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+    current_state = world.get_diplomatic_state(player_nation, target_nation) if target_nation else "PEACE"
     if proposal.get("type") == "war_declaration" and current_state not in ("WAR",):
         return ConcernLevel.STRONG
 
@@ -478,7 +480,7 @@ def evaluate_pre_proposal_objection(
 
     # Generous terms when winning → MILD
     if harshness < 0.3 and target_nation:
-        diplo_key = world._make_diplo_key("France", target_nation)
+        diplo_key = world._make_diplo_key(player_nation, target_nation)
         war_score = world.war_scores.get(diplo_key, 0)
         # Adjust sign for France perspective
         parts = diplo_key.split("|")
@@ -799,7 +801,7 @@ def apply_pen_nudge_personality(terms: Dict, world) -> Dict:
         Modified copy of terms with personality-biased nudge
     """
     diplomats = getattr(world, 'diplomats', {})
-    talleyrand = diplomats.get(getattr(world, 'player_nation', 'France'))
+    talleyrand = diplomats.get(get_player_nation(world))
     personality = getattr(talleyrand, 'personality', 'schemer') if talleyrand else 'schemer'
 
     if personality != 'schemer':

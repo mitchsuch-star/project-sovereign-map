@@ -13,6 +13,13 @@ import copy  # noqa: F401 - used in to_dict() for deepcopy
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
+from backend.nation_config import (
+    DEFAULT_PLAYER_NATION,
+    build_default_nation_actions,
+    build_default_nation_authority,
+    build_default_nation_gold,
+    build_enemy_nations,
+)
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
 from backend.commands.disobedience import DisobedienceSystem
@@ -73,7 +80,7 @@ class WorldState:
     - Provides game logic (income, proximity, etc.)
     """
 
-    def __init__(self, player_nation: str = "France"):
+    def __init__(self, player_nation: str = DEFAULT_PLAYER_NATION):
         """
         Initialize world state.
 
@@ -122,13 +129,7 @@ class WorldState:
         #   Britain: income 200 (Netherlands+Waterloo+Hanover)
         #   Prussia: income 400 (Rhineland+Berlin)
         #   Austria/Saxony: not in economy yet (static, added in 1B)
-        self.nation_gold: Dict[str, int] = {
-            "France": 800,       # Balance patch: was 600, raised for 5-turn buffer
-            "Britain": 1500,
-            "Prussia": 800,
-            "Austria": 600,
-            "Saxony": 200,
-        }
+        self.nation_gold: Dict[str, int] = build_default_nation_gold(self.player_nation)
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         # Nation-level reserve pools that gate recruitment.
         # Cavalry is precious and slow to rebuild; infantry is cheap and plentiful.
@@ -247,15 +248,10 @@ class WorldState:
 
         # Explicit list of enemy nations (not derived from marshals)
         # Nations exist even if all their marshals are destroyed
-        self.enemy_nations: List[str] = ["Britain", "Prussia", "Austria", "Saxony"]
+        self.enemy_nations: List[str] = build_enemy_nations(self.player_nation)
 
         # Actions per nation
-        self.nation_actions: Dict[str, int] = {
-            "Britain": 4,
-            "Prussia": 4,
-            "Austria": 3,
-            "Saxony": 2,
-        }
+        self.nation_actions: Dict[str, int] = build_default_nation_actions(self.player_nation)
 
         # AI Stagnation Counter (persists across turns, read/written by EnemyAI)
         # Tracks consecutive turns where each marshal took no meaningful action
@@ -376,9 +372,7 @@ class WorldState:
         self.max_diplomatic_points: int = 5
 
         # AI Nation authority (0-100, affects DP generation)
-        self.nation_authority: Dict[str, int] = {
-            "Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60,
-        }
+        self.nation_authority: Dict[str, int] = build_default_nation_authority(self.player_nation)
 
         # AI Nation DP pools (regenerated each turn, consumed by AI diplomacy)
         self.nation_dp: Dict[str, int] = {}
@@ -3187,7 +3181,7 @@ class WorldState:
         Returns:
             Restored WorldState object
         """
-        world = cls(player_nation=data.get("player_nation", "France"))
+        world = cls(player_nation=data.get("player_nation", DEFAULT_PLAYER_NATION))
 
         # ═══════ CORE GAME STATE ═══════
         world.current_turn = data.get("current_turn", 1)
@@ -3199,13 +3193,7 @@ class WorldState:
             # Backward compat: old save with single gold field
             # Start with defaults for known nations, then override player nation
             old_gold = data.get("gold", 1200)
-            world.nation_gold = {
-                "France": 600,
-                "Britain": 800,
-                "Prussia": 300,
-                "Austria": 600,
-                "Saxony": 200,
-            }
+            world.nation_gold = build_default_nation_gold(world.player_nation)
             world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
         world.victory = data.get("victory")
@@ -3265,8 +3253,8 @@ class WorldState:
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
         world.ai_attack_futility = data.get("ai_attack_futility", {}).copy()
-        world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia", "Austria", "Saxony"]).copy()
-        world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4, "Austria": 3, "Saxony": 2}).copy()
+        world.enemy_nations = data.get("enemy_nations", build_enemy_nations(world.player_nation)).copy()
+        world.nation_actions = data.get("nation_actions", build_default_nation_actions(world.player_nation)).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
         world.battle_history = [b.copy() for b in data.get("battle_history", [])]
 
@@ -3319,7 +3307,10 @@ class WorldState:
             world.diplomats = create_starting_diplomats()
         world.diplomatic_points = int(data.get("diplomatic_points", 4))
         world.max_diplomatic_points = int(data.get("max_diplomatic_points", 5))
-        world.nation_authority = {k: int(v) for k, v in data.get("nation_authority", {"Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60}).items()}
+        world.nation_authority = {
+            k: int(v)
+            for k, v in data.get("nation_authority", build_default_nation_authority(world.player_nation)).items()
+        }
         world.nation_dp = {k: int(v) for k, v in data.get("nation_dp", {}).items()}
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
         world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
@@ -4220,7 +4211,7 @@ class WorldState:
         # Must happen BEFORE treaty clauses so AP clauses reduce from
         # base, not from last turn's already-reduced value
         # ════════════════════════════════════════════════════════════
-        _base_nation_actions = {"Britain": 4, "Prussia": 4, "Austria": 3, "Saxony": 2}
+        _base_nation_actions = build_default_nation_actions(self.player_nation)
         for nation, base in _base_nation_actions.items():
             if nation in self.nation_actions:
                 self.nation_actions[nation] = base

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 6 slice 5 landed: `/command` now delegates its post-processing tail through `_apply_command_result_layers()` instead of hand-layering response fields inline, and new regression coverage proves enemy-phase responses still include notifications while choice popups remain deferred. 67 targeted regression tests passed across response-pipeline and popup-registry suites. Session 6 response/popup hardening is now complete.)
+> **Last Updated:** April 12, 2026 (Session 7 scale-sensitive backend hardening complete: player-nation defaults now route through shared nation config, scale-sensitive AI enemy queries use cached fog-aware helper seams, and scenario validation now rejects unsupported nation rosters before load. 135 targeted regression tests passed across Session 7/backend hardening plus diplomacy/dispatch audit suites, and manual scenario-loader validation passed for the temp-dir-blocked `tmp_path` cases.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **67 targeted regression tests** passed in this slice (`tests/test_response_pipeline.py`, `tests/test_popup_routing_registry.py`). |
-| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-5 + follow-up + offer refactor + informational UI polish pass are COMPLETE. Session 6 response/popup hardening is now **COMPLETE**. Post-bug architecture proceeds to Session 7 scale-sensitive backend hardening. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - the bug-fix queue is closed, and Session 6 response/popup hardening is complete. |
+| **Tests Passing** | **135 targeted regression tests** passed in this slice (`tests/test_session7_backend_hardening.py`, `tests/test_restart_flow.py`, `tests/test_audit_minor_2026_03.py`, `tests/test_systems_v3_session7.py`, `tests/test_deep_audit_session7.py`, `tests/test_session8d_dispatch_polish.py`). Manual scenario-loader validation also passed because `tmp_path`-based pytest cases are permission-blocked in this environment. |
+| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-7 are now **COMPLETE**. Post-bug architecture proceeds to Session 8 renderer cutover prep and replacement. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - the bug-fix queue is closed, Session 7 backend hardening is complete, and the remaining routed work is Session 8 renderer prep. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -34,25 +34,11 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | ~~P3 - QOL~~ | ~~PL-29~~ | ~~No new game / restart endpoint~~ **FIXED** |
  
-**Current routed next step:** Session 7 - Scale-sensitive backend hardening.
+**Current routed next step:** Session 8 - Renderer cutover prep and replacement.
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
-**Current Session 6 progress:** COMPLETE. `/command` now builds its base payload through `build_base_response()` with explicit enemy-phase deferral flags, the remaining Godot diplomacy popups now use typed responses instead of parser-dependent English command synthesis, `main.gd` modal precedence now runs through ordered response-route registries instead of the inline early-return chain, turn-manager no longer carries the old game-over popup-flush workaround, and `/command` now delegates its response tail through `_apply_command_result_layers()` with explicit regression coverage for enemy-phase notifications plus deferred choice popups.
-
-**Session 6 audit prompt:** `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
-
-**Queued audit follow-up for this slice:** audit the `/command` response-tail consolidation and enemy-phase notification contract before any commit/push handoff. Audit prompt: `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
-
-Session 6 slice 1 landed as planned: `build_base_response()` now owns `active_wars` as well as the standard gameplay envelope, and `/command` now starts from that shared builder with explicit flags that preserve popup/notification deferral for enemy-phase responses.
-
-Session 6 slice 2 landed next: added a typed `/respond_to_diplomatic_objection` path for Talleyrand objections, migrated the remaining Godot diplomacy popup handlers off synthesized commands, and added regression coverage for direct objection proceed flow plus the enemy-phase deferred-popup follow-up path. Audit prompt: `docs/SESSION6_TYPED_DIALOGUE_AUDIT_PROMPT.md`.
-
-Session 6 slice 3 landed next: replaced the `main.gd` popup early-return cascade with ordered route registries plus a shared dispatcher, kept objection/glorious-charge precedence ahead of `_sync_response_hud()`, and added source-level enforcement coverage so future popup additions extend the registry instead of reopening `_on_command_result()`. Audit prompt: `docs/SESSION6_POPUP_ROUTING_AUDIT_PROMPT.md`.
-
-Session 6 slice 4 landed next: removed the old turn-manager popup-flush workaround in favor of explicit game-over modal cleanup, updated the regression suite to assert the real `/command` behavior instead of raw turn-manager popup shaping, and deduplicated the normal-path / redemption HUD sync in `main.gd`. Audit prompt: `docs/SESSION6_TURN_MANAGER_CLEANUP_AUDIT_PROMPT.md`.
-
-Session 6 slice 5 landed next: replaced the remaining inline `/command` tail layering with `_apply_command_result_layers()` plus focused helpers for enemy-phase shaping, popup deferral, and notifications, and added a positive regression proving enemy-phase responses still include notifications while a choice popup stays queued for the follow-up request. Audit prompt: `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
+**Current Session 7 progress:** COMPLETE. `backend/nation_config.py` now centralizes scenario/runtime nation defaults, non-France campaigns preserve their player nation through world init + `/new_game` reset paths, diplomacy/advisory/template/defiance flows now derive state and proposal ownership from `world.player_nation`, enemy AI scale-sensitive contact scans route through cached fog-aware helper seams, and modding/scenario validation now fails unsupported nation rosters before load.
 
 **Implementation sessions in current order:**
 
@@ -76,8 +62,8 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 |------|---------|-------------|
 | Map renderer replacement | Circle-based prototype won't scale | ROADMAP.md (art-blocked) |
 | `/command` response pipeline | **FIXED Apr 12, 2026 (Session 6 slice 1).** Main path now starts from `build_base_response()` with explicit popup/notification deferral flags. | This session |
-| AI fog-aware queries | Omniscient AI queries at scale = unfair + expensive | ARCHITECTURE_REFACTORING_PLAN.md (R14a-d) |
-| Hardcoded nation defaults | Inline dicts in world_state.py won't scale | ARCHITECTURE_REFACTORING_PLAN.md |
+| AI fog-aware queries | **FIXED Apr 12, 2026 (Session 7).** Scale-sensitive AI contact scans now route through cached fog-aware helper seams. | This session |
+| Hardcoded nation defaults | **FIXED Apr 12, 2026 (Session 7).** Shared nation config now owns runtime defaults and non-France campaign resets. | This session |
 | Popup routing registry | **FIXED Apr 12, 2026 (Session 6 slice 3).** `main.gd` now routes modal response precedence through ordered registries plus a shared dispatcher. | This session |
 | Typed dialogue migration | **FIXED Apr 12, 2026 (Session 6 slice 2).** Remaining diplomacy popups now route through typed endpoints/actions, including a dedicated typed objection path. | This session |
 
@@ -88,7 +74,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 | Session | Scope | Items |
 |---------|-------|-------|
 | Session 6 | Response and popup contract hardening | `/command` response pipeline **COMPLETE**; typed dialogue migration **COMPLETE**; popup routing registry **COMPLETE**; turn-manager popup flush workaround cleanup **COMPLETE**; `/command` follow-up reduction **COMPLETE** |
-| Session 7 | Scale-sensitive backend hardening | AI fog-aware queries, hardcoded nation defaults, config-completeness and large-scenario validation tests |
+| Session 7 | Scale-sensitive backend hardening | AI fog-aware queries, hardcoded nation defaults, config-completeness and large-scenario validation tests **COMPLETE** |
 | Session 8 | Renderer cutover prep and replacement | Map renderer replacement on the current 19-region map or placeholder assets; keep `update_all_regions(map_data)` stable during swap |
 
 These are existing audit items broken into implementation order. They stay after the current bug sessions and before any full-map expansion work.

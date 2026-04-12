@@ -9,6 +9,7 @@ Fog-filtered: enemy intel uses RegionIntel visibility, never raw marshal data.
 
 from typing import Dict, List, Optional, Any
 
+from backend.nation_config import get_player_nation
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
     get_strength_band,
@@ -51,7 +52,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         berthier_note. All numeric values int()-wrapped.
     """
     # TODO: Post-EA — thread player_nation from world state
-    player_nation = "France"
+    player_nation = get_player_nation(world)
 
     dispatch = {
         "turn": int(world.current_turn),

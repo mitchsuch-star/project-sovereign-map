@@ -6,6 +6,8 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import copy
 from typing import Dict, Optional
+
+from backend.nation_config import get_player_diplomat, get_player_nation
 from backend.models.world_state import WorldState
 
 
@@ -189,20 +191,27 @@ class DiplomaticExecutor:
 
         if not target_nation:
             # No target — ask which nation
+            known_nations = sorted(get_known_nations(world))
+            player_nation = get_player_nation(world)
+            target_options = []
+            for known_nation in known_nations:
+                state_label = world.get_diplomatic_state(player_nation, known_nation).replace("_", " ").title()
+                target_options.append({
+                    "label": known_nation,
+                    "description": f"Current state: {state_label}.",
+                    "action": "expand_options",
+                    "terms": {"target_nation": known_nation},
+                })
+
             world.dialogue_manager.replace({
                 "type": "proposal_options",
                 "target_nation": "",
-                "talleyrand_text": "Sire, which nation shall I approach? Our diplomatic landscape includes Britain, Prussia, Austria, and Saxony.",
-                "options": [
-                    {"label": "Britain", "description": "Currently at war.", "action": "expand_options",
-                     "terms": {"target_nation": "Britain"}},
-                    {"label": "Prussia", "description": "Currently at war.", "action": "expand_options",
-                     "terms": {"target_nation": "Prussia"}},
-                    {"label": "Austria", "description": "At peace.", "action": "expand_options",
-                     "terms": {"target_nation": "Austria"}},
-                    {"label": "Saxony", "description": "Open borders.", "action": "expand_options",
-                     "terms": {"target_nation": "Saxony"}},
-                ],
+                "talleyrand_text": (
+                    "Sire, which nation shall I approach? Our diplomatic landscape includes "
+                    + ", ".join(known_nations)
+                    + "."
+                ),
+                "options": target_options,
                 "context": {},
                 "turn_created": int(world.current_turn),
                 "blocking": False,
@@ -251,7 +260,7 @@ class DiplomaticExecutor:
 
         # Check DP (with jump cost for multi-step transitions)
         dp_action = f"propose_{proposal_type}" if proposal_type else "propose_peace"
-        talleyrand = world.diplomats.get("France")
+        talleyrand = get_player_diplomat(world)
         skill = talleyrand.skill if talleyrand else 5
         # R98: Compute cumulative DP for jump transitions
         _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
@@ -376,7 +385,7 @@ class DiplomaticExecutor:
         if target_nation:
             hypothetical = {
                 "type": proposal_type,
-                "proposer_nation": "France",
+                "proposer_nation": get_player_nation(world),
                 "target_nation": target_nation,
                 "sweeteners": [],
                 "demands": [],
@@ -1084,7 +1093,7 @@ class DiplomaticExecutor:
             # Build proposal for acceptance formula
             proposal = {
                 "type": proposal_type,
-                "proposer_nation": "France",
+                "proposer_nation": get_player_nation(world),
                 "target_nation": target_nation,
                 "sweeteners": terms.get("sweeteners", []),
                 "demands": terms.get("demands", []),
@@ -1092,7 +1101,7 @@ class DiplomaticExecutor:
             }
 
             # Deduct DP (with jump cost for multi-step transitions)
-            talleyrand = world.diplomats.get("France")
+            talleyrand = get_player_diplomat(world)
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
@@ -1152,7 +1161,7 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
-                "diplomatic_state_at_send": world.get_diplomatic_state("France", target_nation),  # PL-13-A
+                "diplomatic_state_at_send": world.get_diplomatic_state(get_player_nation(world), target_nation),  # PL-13-A
             }
 
             # Log event
@@ -1199,7 +1208,7 @@ class DiplomaticExecutor:
             import copy
             suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
             # Ensure proposal metadata
-            suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
+            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(world))
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
             # Preserve war-score variant type (e.g. armistice_winning/armistice_losing)
             # from terms if available — overwriting with generic proposal_type
@@ -1634,7 +1643,7 @@ class DiplomaticExecutor:
             import copy
             suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
             # Ensure proposal metadata
-            suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
+            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(world))
             suggested["target_nation"] = suggested.get("target_nation", target_nation)
             # Preserve war-score variant type from terms if available
             if not suggested.get("type"):
@@ -2223,7 +2232,7 @@ class DiplomaticExecutor:
         # ═══════════════════════════════════════════════════════
         elif action in ("confront_sabotage", "overlook_sabotage"):
             from backend.commands.diplomatic_defiance import resolve_confrontation
-            talleyrand = world.diplomats.get("France")
+            talleyrand = get_player_diplomat(world)
             if not talleyrand:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "No diplomat available."}
@@ -2396,7 +2405,7 @@ class DiplomaticExecutor:
             # Build proposal and send (reuse execute_proposal path)
             proposal = {
                 "type": proposal_type,
-                "proposer_nation": "France",
+                "proposer_nation": get_player_nation(world),
                 "target_nation": target_nation,
                 "sweeteners": terms.get("sweeteners", []),
                 "demands": terms.get("demands", []),
@@ -2404,7 +2413,7 @@ class DiplomaticExecutor:
             }
 
             # Deduct DP (with jump cost for multi-step transitions)
-            talleyrand = world.diplomats.get("France")
+            talleyrand = get_player_diplomat(world)
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
@@ -2447,7 +2456,7 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
-                "diplomatic_state_at_send": world.get_diplomatic_state("France", target_nation),  # PL-13-A
+                "diplomatic_state_at_send": world.get_diplomatic_state(get_player_nation(world), target_nation),  # PL-13-A
             }
 
             # Record override if player overrode Talleyrand's objection
@@ -2517,7 +2526,7 @@ class DiplomaticExecutor:
             ptype = original.get("type", "unknown")
             # Apply rejection cooldowns and relation penalty
             if source_nation:
-                world.modify_nation_relation("France", source_nation, -5)
+                world.modify_nation_relation(get_player_nation(world), source_nation, -5)
                 world.player_proposal_cooldowns[source_nation] = 3
                 if ptype:
                     world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
@@ -2628,7 +2637,7 @@ class DiplomaticExecutor:
             from backend.notifications import ALLIANCE_CASCADE_WAR
             world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
             msg = (
-                f"France honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
+                f"{get_player_nation(world)} honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
             )
             if war_result.get("message"):
                 msg += f" {war_result['message']}"
@@ -2662,7 +2671,7 @@ class DiplomaticExecutor:
             return {
                 "success": True,
                 "message": (
-                    f"France abandons its alliance with {defender_nation}. "
+                    f"{get_player_nation(world)} abandons its alliance with {defender_nation}. "
                     f"We side with {attacker_nation} in this conflict."
                 ),
             }

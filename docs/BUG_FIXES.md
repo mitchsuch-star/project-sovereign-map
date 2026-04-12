@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (Session 6 slice 5 landed: `/command` now delegates its response tail through `_apply_command_result_layers()` instead of hand-layering result fields inline, and new regression coverage proves enemy-phase responses still include notifications while choice popups remain deferred. Sessions 1-5 are complete, and Session 6 response/popup hardening is now complete.)
+> Last Updated: April 12, 2026 (Session 7 scale-sensitive backend hardening complete: nation defaults now live in shared config, AI contact scans use cached fog-aware seams, and unsupported scenario nation rosters are rejected before load. Sessions 1-7 are complete; Session 8 renderer prep is now the routed next step.)
 
 ---
 
@@ -46,11 +46,11 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** Session 7 - Scale-sensitive backend hardening.
+**Current routed next step:** Session 8 - Renderer cutover prep and replacement.
 
-**Next bug-owned implementation slice:** none - current bug-fix queue closed. Session 5 is complete.
+**Next bug-owned implementation slice:** none - current bug-fix queue closed.
 
-**Current Session 6 progress:** COMPLETE. `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry cleanup COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE, and `/command` manual-field-layering reduction COMPLETE with a positive enemy-phase notification regression.
+**Current Session 7 progress:** COMPLETE. Shared nation config now drives world bootstrap/save migration/non-France restart flows, diplomacy and advisory surfaces no longer stamp France into runtime state, enemy AI contact scans now route through cached fog-aware helpers, and scenario validation rejects unsupported nation rosters before `from_scenario()` load.
 
 **Session 6 audit prompt:** `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
 
@@ -78,7 +78,7 @@
   - Session 2 follow-up: Godot mailbox inbox browsing, defer/reopen UX completion, and PL-27 same-family hardening found after the fix landed
   - Session 2 current-turn offer refactor: replace cross-turn mailbox persistence with same-turn reopen plus turn-end lapse while preserving non-diplomatic soft-stop behavior
   - Session 3: backend-owned display formatting for active diplomacy popups
-- Broader `/command` unification follow-up, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
+- Renderer replacement remains in Session 8. `/command` unification follow-up and Session 7 scale-sensitive backend hardening are complete.
 
 ---
 

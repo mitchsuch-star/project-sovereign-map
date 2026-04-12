@@ -12,6 +12,13 @@ Entry points:
 
 from typing import Dict, Optional
 
+from backend.nation_config import (
+    DEFAULT_PLAYER_NATION,
+    build_enemy_nations,
+    get_player_diplomat,
+    get_player_nation,
+)
+
 
 # ═══════ NATION NAME ALIASES ═══════
 NATION_ALIASES = {
@@ -44,13 +51,15 @@ NATION_ALIASES = {
     "the french": "France",
 }
 
-KNOWN_NATIONS = {"Britain", "Prussia", "Austria", "Saxony"}
+KNOWN_NATIONS = set(build_enemy_nations(DEFAULT_PLAYER_NATION))
 
 
 def get_known_nations(world=None) -> set:
     """Return the set of known nations, including any vassals (R93)."""
     nations = set(KNOWN_NATIONS)
     if world:
+        nations = set(getattr(world, 'enemy_nations', [])) or set(build_enemy_nations(get_player_nation(world)))
+        nations.discard(get_player_nation(world))
         vassals = getattr(world, 'vassals', {})
         nations.update(vassals.keys())
     return nations
@@ -253,10 +262,11 @@ def get_game_bucket(target_nation: str, world) -> str:
                 "losing_slightly", "losing_badly"
         At peace: "friendly", "neutral", "hostile"
     """
-    state = world.get_diplomatic_state("France", target_nation)
+    player_nation = get_player_nation(world)
+    state = world.get_diplomatic_state(player_nation, target_nation)
     if state == "WAR":
         from backend.game_logic.diplomacy import get_war_score_for
-        war_score = get_war_score_for(world, "France", target_nation)
+        war_score = get_war_score_for(world, player_nation, target_nation)
 
         if war_score > 30:
             return "winning_comfortably"
@@ -268,7 +278,7 @@ def get_game_bucket(target_nation: str, world) -> str:
             return "losing_slightly"
         return "losing_badly"
     else:
-        relation = world.nation_relations.get(world._make_diplo_key("France", target_nation), 0)
+        relation = world.nation_relations.get(world._make_diplo_key(player_nation, target_nation), 0)
         if relation > 20:
             return "friendly"
         if relation > -20:
@@ -287,11 +297,12 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
 
     target_nation = parsed_command.get("target_nation")
     proposal_type = parsed_command.get("proposal_type")
+    player_nation = get_player_nation(world)
     # Determine game bucket
     bucket = get_game_bucket(target_nation, world) if target_nation else "neutral"
 
     # Determine diplomatic state for template matching
-    diplo_state = "WAR" if target_nation and world.get_diplomatic_state("France", target_nation) == "WAR" else "PEACE"
+    diplo_state = "WAR" if target_nation and world.get_diplomatic_state(player_nation, target_nation) == "WAR" else "PEACE"
 
     # Get template
     template = get_template(intent_type, diplo_state, bucket, proposal_type)
@@ -325,23 +336,23 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     # Context-aware option descriptions for war proposals
     if target_nation and intent_type == "proposal_confirm":
         from backend.game_logic.diplomacy import get_war_score_for
-        france_war_score = get_war_score_for(world, "France", target_nation)
+        player_war_score = get_war_score_for(world, player_nation, target_nation)
         for opt in options:
-            if opt["action"] == "modify_harsh" and france_war_score < -10:
+            if opt["action"] == "modify_harsh" and player_war_score < -10:
                 opt["description"] = "Demand more — risky given our weak position."
-            elif opt["action"] == "modify_generous" and france_war_score > 20:
+            elif opt["action"] == "modify_generous" and player_war_score > 20:
                 opt["description"] = "Offer concessions — unnecessary given our strong position."
 
     # Build context snapshot
     context = {}
     if target_nation:
         from backend.game_logic.diplomacy import get_war_score_for
-        diplo_key = world._make_diplo_key("France", target_nation)
+        diplo_key = world._make_diplo_key(player_nation, target_nation)
         context = {
-            "war_score": int(get_war_score_for(world, "France", target_nation)),
+            "war_score": int(get_war_score_for(world, player_nation, target_nation)),
             "relation": int(world.nation_relations.get(diplo_key, 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
-            "current_state": world.get_diplomatic_state("France", target_nation),
+            "current_state": world.get_diplomatic_state(player_nation, target_nation),
         }
         # PL-3: Populate diplomat info so incoming_proposal popup shows real name
         diplomats = getattr(world, 'diplomats', {})
@@ -390,7 +401,7 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
     demands = terms.get("demands", [])
 
     # Build acceptance proposal struct
-    proposer = getattr(world, 'player_nation', 'France')
+    proposer = get_player_nation(world)
     proposal = {
         "type": "ultimatum_demand",
         "proposer_nation": proposer,
@@ -529,6 +540,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     from backend.game_logic.diplomatic_templates import generate_suggested_terms, calculate_treaty_harshness
 
     # Find terms from the first execute_proposal option, or generate fresh
+    player_nation = get_player_nation(world)
     terms = None
     for opt in dialogue.get("options", []):
         if opt.get("action") == "execute_proposal" and opt.get("terms"):
@@ -569,7 +581,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # Acceptance estimate
     proposal_for_calc = {
         "type": terms.get("type", proposal_type),
-        "proposer_nation": "France",
+        "proposer_nation": player_nation,
         "target_nation": target_nation,
         "sweeteners": terms.get("sweeteners", []),
         "demands": terms.get("demands", []),
@@ -619,11 +631,11 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE",
         "vassalage": "VASSAL",
     }
-    current_diplo = world.get_diplomatic_state("France", target_nation)
+    current_diplo = world.get_diplomatic_state(get_player_nation(world), target_nation)
     target_diplo = _state_map.get(proposal_type, "PEACE")
     jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
     dp_action = f"propose_{proposal_type}"
-    talleyrand = world.diplomats.get("France")
+    talleyrand = get_player_diplomat(world)
     skill = talleyrand.skill if talleyrand else 5
     dialogue["dp_cost"] = int(get_dp_cost(dp_action, skill, transition_base=jump_cost))
 
@@ -671,8 +683,7 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
     }
 
     # Get Talleyrand
-    diplomats = getattr(world, 'diplomats', {})
-    talleyrand = diplomats.get("France")
+    talleyrand = get_player_diplomat(world)
     if not talleyrand:
         return dialogue
 
@@ -714,6 +725,7 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
         if target_nation_obj:
             from backend.game_logic.diplomacy import calculate_acceptance
             from backend.game_logic.diplomatic_templates import generate_suggested_terms as _gen_terms
+            player_nation = get_player_nation(world)
             calc_terms = None
             for opt in dialogue.get("options", []):
                 if opt.get("action") == "execute_proposal" and opt.get("terms"):
@@ -723,7 +735,7 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
                 calc_terms = _gen_terms(target_nation_obj, proposal_type_obj, world)
             calc_proposal = {
                 "type": proposal_type_obj,
-                "proposer_nation": "France",
+                "proposer_nation": player_nation,
                 "target_nation": target_nation_obj,
                 "sweeteners": calc_terms.get("sweeteners", []),
                 "demands": calc_terms.get("demands", []),
@@ -799,6 +811,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
 
     target_nation = parsed_command.get("target_nation")
     proposal_type = parsed_command.get("proposal_type", "peace")
+    player_nation = get_player_nation(world)
 
     if not target_nation:
         return {
@@ -816,7 +829,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     # Run hypothetical acceptance
     hypothetical = {
         "type": proposal_type,
-        "proposer_nation": "France",
+        "proposer_nation": player_nation,
         "target_nation": target_nation,
         "sweeteners": [],
         "demands": [],
@@ -837,7 +850,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             largest_obstacle = key
 
     # Calculate steps to goal
-    current_state = world.get_diplomatic_state("France", target_nation)
+    current_state = world.get_diplomatic_state(player_nation, target_nation)
     from backend.game_logic.diplomacy import _UPGRADE_ORDER
     target_state_map = {
         "peace": "PEACE",
@@ -910,8 +923,8 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             {"label": "Dismiss", "description": "Thank you, Talleyrand.", "action": "dismiss"},
         ],
         "context": {
-            "war_score": int(get_war_score_for(world, "France", target_nation)),
-            "relation": int(world.nation_relations.get(world._make_diplo_key("France", target_nation), 0)),
+            "war_score": int(get_war_score_for(world, player_nation, target_nation)),
+            "relation": int(world.nation_relations.get(world._make_diplo_key(player_nation, target_nation), 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
             "acceptance_score": int(score),
             "acceptance_outcome": outcome,

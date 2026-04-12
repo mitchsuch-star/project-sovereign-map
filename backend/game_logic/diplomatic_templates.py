@@ -11,6 +11,8 @@ Architecture:
 
 from typing import Dict, Optional
 
+from backend.nation_config import get_player_nation
+
 # ═══════ TEMPLATE LIBRARY ═══════
 # Key: (intent_type, diplo_state, bucket_group)
 # bucket_group: specific bucket name OR "any" for wildcard
@@ -144,7 +146,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "PEACE", "friendly"): {
         "text": (
             "Sire, {target_nation} views us favorably. "
-            "Their court speaks well of France. "
+            "Their court speaks well of {player_nation}. "
             "The time may be ripe to deepen our ties."
         ),
         "options": [
@@ -402,7 +404,7 @@ DIPLOMATIC_TEMPLATES = {
     ("advisory", "WAR", "any"): {
         "text": (
             "You ask about {target_nation}, Sire? Let me assess the situation.\n\n"
-            "{target_nation} is currently at war with France. "
+            "{target_nation} is currently at war with {player_nation}. "
             "The campaign continues and passions run deep.\n\n"
             "The Diplomatic Ledger (D key) has the precise figures."
         ),
@@ -424,7 +426,7 @@ DIPLOMATIC_TEMPLATES = {
     ("advisory", "PEACE", "any"): {
         "text": (
             "You ask about {target_nation}, Sire?\n\n"
-            "{target_nation} is at peace with France. "
+            "{target_nation} is at peace with {player_nation}. "
             "The diplomatic situation is as one might expect between our courts.\n\n"
             "The Diplomatic Ledger (D key) has the precise figures."
         ),
@@ -1138,6 +1140,7 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
 
     if target_nation:
         slots["target_nation"] = target_nation
+        slots["player_nation"] = get_player_nation(world)
 
         # Get diplomat for target nation
         diplomats = getattr(world, 'diplomats', {})
@@ -1145,7 +1148,7 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
         slots["target_diplomat"] = target_diplomat.name if target_diplomat else "their diplomat"
 
         # Numeric values
-        player_nation = getattr(world, 'player_nation', 'France')
+        player_nation = get_player_nation(world)
         diplo_key = world._make_diplo_key(player_nation, target_nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
         state = world.get_diplomatic_state(player_nation, target_nation)
@@ -1317,7 +1320,7 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
     No proposal_type key — uses "type" only (PL-13 lesson).
     """
     demands = []
-    player = getattr(world, 'player_nation', 'France')
+    player = get_player_nation(world)
 
     # ── Gold demand: capped at 50% of target income (AM-15.7: use get_nation_regions) ──
     target_income = 0
@@ -1397,7 +1400,8 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     from backend.game_logic.diplomacy import get_war_score_for, SPECIAL_BONUSES
     from backend.models.region import NATION_CAPITALS
 
-    war_score = get_war_score_for(world, "France", target_nation)
+    player_nation = get_player_nation(world)
+    war_score = get_war_score_for(world, player_nation, target_nation)
 
     # --- Stage 1: Base terms ---
     terms = _build_base_terms(target_nation, proposal_type, world)
@@ -1410,7 +1414,7 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     has_territory_sweetener = any(
         s.get("type") == "territory_cede" for s in terms.get("sweeteners", []))
     coveted = [r for r in profile.get("covets_regions", [])
-               if r in world.get_nation_regions("France")]
+               if r in world.get_nation_regions(player_nation)]
     target_holds_all_coveted = all(
         r in world.get_nation_regions(target_nation)
         for r in profile.get("covets_regions", [])
@@ -1419,7 +1423,7 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     # Check if target covets regions France doesn't control (hint to conquer first)
     all_coveted = profile.get("covets_regions", [])
     coveted_unavailable = [r for r in all_coveted
-                           if r not in world.get_nation_regions("France")
+                           if r not in world.get_nation_regions(player_nation)
                            and r not in world.get_nation_regions(target_nation)]
 
     if has_territory_sweetener or (coveted and war_score < 0 and not target_holds_all_coveted):
@@ -1434,7 +1438,7 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 terms["clauses"].append(bonus_clause)
             context_tags.append("coveted_territory_offered")
         elif has_territory_sweetener:
-            candidates = rank_cession_candidates(world, "France", target_nation)
+            candidates = rank_cession_candidates(world, player_nation, target_nation)
             if candidates:
                 terms["sweeteners"] = [s for s in terms["sweeteners"]
                                        if s.get("type") != "territory_cede"]
@@ -1450,11 +1454,11 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         d.get("type") in ("territory_cede", "territory")
         for d in terms.get("demands", []))
     target_regions = world.get_nation_regions(target_nation)
-    france_regions = world.get_nation_regions("France")
+    player_regions = world.get_nation_regions(player_nation)
     border = []
     for rname in target_regions:
         region = world.regions.get(rname)
-        if region and any(adj in france_regions for adj in region.adjacent_regions):
+        if region and any(adj in player_regions for adj in region.adjacent_regions):
             if rname != NATION_CAPITALS.get(target_nation):
                 border.append(rname)
 
@@ -1549,14 +1553,15 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         deterministic: If True, skip jitter (for testing). Default False.
     """
     from backend.game_logic.diplomacy import get_war_score_for
-    diplo_key = world._make_diplo_key("France", target_nation)
+    player_nation = get_player_nation(world)
+    diplo_key = world._make_diplo_key(player_nation, target_nation)
     relation = world.nation_relations.get(diplo_key, 0)
-    war_score = get_war_score_for(world, "France", target_nation)
+    war_score = get_war_score_for(world, player_nation, target_nation)
 
     terms = {
         "type": proposal_type,
         "proposal_type": proposal_type,  # PL-13-D: normalize dual-key at source
-        "proposer_nation": "France",
+        "proposer_nation": player_nation,
         "target_nation": target_nation,
         "sweeteners": [],
         "demands": [],
@@ -1581,20 +1586,20 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
             # R147: Offer territory cession when losing
             # Non-capital regions first; capital only as desperate last resort
             from backend.models.region import NATION_CAPITALS
-            france_capital = NATION_CAPITALS.get("France", "Paris")
-            france_regions = world.get_nation_regions("France")
-            non_capital = [r for r in france_regions if r != france_capital]
+            player_capital = NATION_CAPITALS.get(player_nation, "Paris")
+            player_regions = world.get_nation_regions(player_nation)
+            non_capital = [r for r in player_regions if r != player_capital]
             max_cede = 1 if war_score >= -40 else 2
             for region in non_capital[:max_cede]:
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [region]})
             # Capital offered only as desperate last resort (war_score < -60)
             if war_score < -60 and len(non_capital) < max_cede:
-                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [player_capital]})
 
             # R148: Offer manpower when losing badly
             if war_score < -30:
-                france_pool = getattr(world, 'manpower_pools', {}).get("France", {}).get("infantry", 0)
-                offer_amount = min(5000, int(france_pool * 0.25))
+                player_pool = getattr(world, 'manpower_pools', {}).get(player_nation, {}).get("infantry", 0)
+                offer_amount = min(5000, int(player_pool * 0.25))
                 if offer_amount >= 1000:
                     terms["sweeteners"].append({"type": "manpower_infantry", "value": int(offer_amount)})
 
@@ -1636,14 +1641,14 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         if war_score < -30:
             # Offer 1 territory as armistice sweetener (non-capital first)
             from backend.models.region import NATION_CAPITALS
-            france_capital = NATION_CAPITALS.get("France", "Paris")
-            france_regions = world.get_nation_regions("France")
-            non_capital = [r for r in france_regions if r != france_capital]
+            player_capital = NATION_CAPITALS.get(player_nation, "Paris")
+            player_regions = world.get_nation_regions(player_nation)
+            non_capital = [r for r in player_regions if r != player_capital]
             if non_capital:
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [non_capital[0]]})
             elif war_score < -60:
                 # Capital only as desperate last resort
-                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [player_capital]})
 
     # PL-25: Amount jitter ±20% on gold/manpower values (demands + sweeteners)
     if not deterministic:
@@ -1664,8 +1669,9 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
 
 def _validate_economic_feasibility(terms, target_nation, world, war_score=0):
     """Cap gold/territory offers and demands to economically feasible levels."""
-    player_gold = world.nation_gold.get("France", 0)
-    player_income = world.calculate_turn_income("France").get("income", 0)
+    player_nation = get_player_nation(world)
+    player_gold = world.nation_gold.get(player_nation, 0)
+    player_income = world.calculate_turn_income(player_nation).get("income", 0)
     target_income = world.calculate_turn_income(target_nation).get("income", 0)
     gold_cap_pct = 0.50 if war_score < -30 else 0.25
 
@@ -1706,7 +1712,7 @@ def _get_situational_flavor(target_nation: str, world) -> str:
     Returns:
         Flavor string, or default TALLEYRAND_COMMENTARY fallthrough
     """
-    player_nation = getattr(world, 'player_nation', 'France')
+    player_nation = get_player_nation(world)
 
     # Check recent battles (last 3 turns) — AM-25.6: use event API
     recent_events = world.get_events_since_turn(max(1, world.current_turn - 3)) if hasattr(world, 'get_events_since_turn') else []

@@ -18,6 +18,7 @@ from backend.game_logic.diplomacy import get_war_score_for
 from backend.game_logic.diplomatic_dialogue import (
     get_known_nations,
 )
+from backend.nation_config import get_player_nation
 
 # ═══════ ADVISORY KEYWORD MAP ═══════
 # Longest-first matching prevents "what" from shadowing "what about"
@@ -108,8 +109,9 @@ def generate_advisory(
 
 def _assess_nation(nation: str, world) -> Dict:
     """Assess a specific nation — relations, military, diplomatic posture."""
-    diplo_key = world._make_diplo_key("France", nation)
-    state = world.get_diplomatic_state("France", nation)
+    player_nation = get_player_nation(world)
+    diplo_key = world._make_diplo_key(player_nation, nation)
+    state = world.get_diplomatic_state(player_nation, nation)
     relation = int(world.nation_relations.get(diplo_key, 0))
     advantage = _get_military_advantage(nation, world)
     diplomat = world.diplomats.get(nation)
@@ -121,7 +123,7 @@ def _assess_nation(nation: str, world) -> Dict:
             f"skill {int(diplomat.skill)}. "
         )
 
-    france_war_score = get_war_score_for(world, "France", nation)
+    player_war_score = get_war_score_for(world, player_nation, nation)
 
     state_text = _STATE_DISPLAY.get(state, state.lower())
     summary = _get_nation_summary(nation, world)
@@ -155,15 +157,15 @@ def _assess_nation(nation: str, world) -> Dict:
         situation = (
             f"{confidence_preamble}"
             f"We are {state_text} with {nation}, Sire. "
-            f"War score stands at {int(france_war_score)} from our perspective. "
+            f"War score stands at {int(player_war_score)} from our perspective. "
             f"Their military strength is {advantage} relative to ours. "
             f"{diplomat_desc}"
             f"{summary}"
         )
-        if france_war_score > 20:
+        if player_war_score > 20:
             recommendation = "We hold the advantage. Press for favorable terms or continue fighting."
             hints = [f"Propose peace with {nation}", "Continue military pressure"]
-        elif france_war_score < -20:
+        elif player_war_score < -20:
             recommendation = "The war goes poorly. Consider armistice before it worsens."
             hints = [f"Propose armistice with {nation}", "Reinforce the front"]
         else:
@@ -221,7 +223,7 @@ def _assess_nation(nation: str, world) -> Dict:
             "recommendation": recommendation,
             "confidence_level": confidence,
             "action_hints": hints,
-            "war_score": int(france_war_score) if state == "WAR" else 0,
+            "war_score": int(player_war_score) if state == "WAR" else 0,
             "relation": int(relation),
             "diplomatic_state": state,
             "military_advantage": advantage,
@@ -238,14 +240,15 @@ def _assess_nation(nation: str, world) -> Dict:
 def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""
     threat_entries: List[Dict] = []
-    france_strength = _get_fogged_strength("France", world)
+    player_nation = get_player_nation(world)
+    player_strength = _get_fogged_strength(player_nation, world)
     active = set(world.get_active_nations())  # DLF-11
     active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
         if nation not in active:
             continue
-        diplo_key = world._make_diplo_key("France", nation)
-        state = world.get_diplomatic_state("France", nation)
+        diplo_key = world._make_diplo_key(player_nation, nation)
+        state = world.get_diplomatic_state(player_nation, nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
         strength = _get_fogged_strength(nation, world)
 
@@ -257,9 +260,9 @@ def _compare_threats(world) -> Dict:
             threat_score += 40
         elif state == "ARMISTICE":
             threat_score += 15
-        if strength > france_strength * 0.5:
+        if strength > player_strength * 0.5:
             threat_score += 20
-        elif strength > france_strength:
+        elif strength > player_strength:
             threat_score += 20
 
         threat_entries.append({
@@ -376,18 +379,19 @@ def _compare_threats(world) -> Dict:
 
 def _recommend_action(target_nation: str, world) -> Dict:
     """Recommend a diplomatic action for a specific nation."""
-    diplo_key = world._make_diplo_key("France", target_nation)
-    state = world.get_diplomatic_state("France", target_nation)
+    player_nation = get_player_nation(world)
+    diplo_key = world._make_diplo_key(player_nation, target_nation)
+    state = world.get_diplomatic_state(player_nation, target_nation)
     relation = int(world.nation_relations.get(diplo_key, 0))
     advantage = _get_military_advantage(target_nation, world)
 
-    france_war_score = get_war_score_for(world, "France", target_nation)
+    player_war_score = get_war_score_for(world, player_nation, target_nation)
 
     if state == "WAR":
-        if france_war_score > 20:
+        if player_war_score > 20:
             text = (
                 f"Sire, we hold the upper hand against {target_nation}. "
-                f"War score: {int(france_war_score)}. I recommend pressing for peace "
+                f"War score: {int(player_war_score)}. I recommend pressing for peace "
                 f"on favorable terms. Their {advantage} military position means they "
                 f"cannot sustain this war indefinitely.\n\n"
                 f"Alternatively, continue fighting to improve terms further — "
@@ -397,10 +401,10 @@ def _recommend_action(target_nation: str, world) -> Dict:
             recommendation = "Propose peace with strong terms."
             hints = [f"Propose peace with {target_nation}", "Continue fighting for better terms"]
             confidence = "high"
-        elif france_war_score < -20:
+        elif player_war_score < -20:
             text = (
                 f"Sire, I must speak plainly — the war with {target_nation} "
-                f"does not favor us. War score: {int(france_war_score)}. "
+                f"does not favor us. War score: {int(player_war_score)}. "
                 f"I strongly advise seeking an armistice before our position "
                 f"deteriorates further.\n\n"
                 f"Pride is a luxury we cannot afford when armies bleed."
@@ -411,7 +415,7 @@ def _recommend_action(target_nation: str, world) -> Dict:
         else:
             text = (
                 f"Sire, the war with {target_nation} hangs in the balance. "
-                f"War score: {int(france_war_score)}. Neither side commands a "
+                f"War score: {int(player_war_score)}. Neither side commands a "
                 f"decisive advantage.\n\n"
                 f"I recommend the Tilsit model — win one more engagement, "
                 f"then propose generous peace. Military pressure makes "
@@ -511,14 +515,15 @@ def _diplomatic_overview(world) -> Dict:
     lines = ["An overview, Sire:\n"]
     most_urgent_nation = None
     most_urgent_score = -999
+    player_nation = get_player_nation(world)
 
     active = set(world.get_active_nations())  # DLF-11
     active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
         if nation not in active:
             continue
-        diplo_key = world._make_diplo_key("France", nation)
-        state = world.get_diplomatic_state("France", nation)
+        diplo_key = world._make_diplo_key(player_nation, nation)
+        state = world.get_diplomatic_state(player_nation, nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
         state_text = _STATE_DISPLAY.get(state, state.lower())
         summary = _get_nation_summary(nation, world)
@@ -538,8 +543,8 @@ def _diplomatic_overview(world) -> Dict:
 
         war_note = ""
         if state == "WAR":
-            france_ws = get_war_score_for(world, "France", nation)
-            war_note = f" War score: {int(france_ws)}."
+            player_ws = get_war_score_for(world, player_nation, nation)
+            war_note = f" War score: {int(player_ws)}."
 
         lines.append(
             f"  {nation} — {state_text.capitalize()}. Relations: {relation}. "
@@ -562,7 +567,7 @@ def _diplomatic_overview(world) -> Dict:
     )
     hints = []
     if most_urgent_nation:
-        state = world.get_diplomatic_state("France", most_urgent_nation)
+        state = world.get_diplomatic_state(player_nation, most_urgent_nation)
         if state == "WAR":
             hints = [f"Propose peace with {most_urgent_nation}", "Win a decisive battle"]
         else:
@@ -658,17 +663,17 @@ def _get_military_advantage(nation: str, world) -> str:
     exact ratios; lower tiers give vaguer descriptions (R65 fog fix).
     """
     nation_strength = _get_nation_total_strength(nation, world)
-    france_strength = _get_nation_total_strength("France", world)
+    player_strength = _get_nation_total_strength(get_player_nation(world), world)
     vis = _get_nation_visibility(nation, world)
 
     # With unknown visibility, we can't assess military strength
     if vis == "unknown":
         return "unknown"
 
-    if france_strength == 0:
+    if player_strength == 0:
         return "overwhelming" if nation_strength > 0 else "even"
 
-    ratio = nation_strength / france_strength
+    ratio = nation_strength / player_strength
 
     # Stale visibility: only broad bands (collapse slight/even/disadvantage)
     if vis == "stale":
@@ -694,8 +699,9 @@ def _get_military_advantage(nation: str, world) -> str:
 
 def _get_nation_summary(nation: str, world) -> str:
     """One-liner summary for a nation's diplomatic posture."""
-    diplo_key = world._make_diplo_key("France", nation)
-    state = world.get_diplomatic_state("France", nation)
+    player_nation = get_player_nation(world)
+    diplo_key = world._make_diplo_key(player_nation, nation)
+    state = world.get_diplomatic_state(player_nation, nation)
     relation = int(world.nation_relations.get(diplo_key, 0))
     diplomat = world.diplomats.get(nation)
 

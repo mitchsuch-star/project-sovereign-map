@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field  # noqa: F401
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
+from backend.nation_config import DEFAULT_PLAYER_NATION, get_player_nation
 from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
 import backend.save_manager as save_manager
@@ -48,7 +49,7 @@ game_state = {"world": None, "debug_mode": DEBUG_MODE}
 state_lock = threading.Lock()  # 3A-1: Protects state-mutating endpoints
 
 
-def _build_new_world(player_nation: str = "France") -> WorldState:
+def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
     """Create a fresh campaign world with the default start-state."""
     return WorldState(player_nation=player_nation)
 
@@ -61,7 +62,7 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     return new_world
 
 
-def _reset_world_state(player_nation: str = "France") -> WorldState:
+def _reset_world_state(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
     """Replace the active campaign with a fresh world."""
     return _set_active_world(_build_new_world(player_nation=player_nation))
 
@@ -1802,7 +1803,7 @@ async def save_endpoint(request: SaveRequest):
 async def new_game_endpoint():
     """Start a fresh campaign without restarting the backend process."""
     try:
-        player_nation = getattr(world, "player_nation", "France") or "France"
+        player_nation = get_player_nation(world)
         new_world = _reset_world_state(player_nation=player_nation)
         autosave_result = autosave(new_world)
         autosave_ok = bool(autosave_result.get("success", False))
@@ -2504,7 +2505,7 @@ def debug_diplomatic_status():
         "vassals": vassals,
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
-        "talleyrand": diplomats_data.get("France", {}),
+        "talleyrand": diplomats_data.get(get_player_nation(world), {}),
     }
 
 
@@ -2635,8 +2636,10 @@ def debug_vassal_loyalty(nation: str):
                 garrison_bonus = 5 + min(garrison_troops // 5000, 3)
 
     shared_enemy_bonus = 0
-    all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
-    for other_nation in all_nations:
+    all_nations = set(getattr(world, "enemy_nations", []))
+    all_nations.update(world.get_active_nations())
+    all_nations.update({lord, nation})
+    for other_nation in sorted(all_nations):
         if other_nation == lord or other_nation == nation:
             continue
         lord_state = world.get_diplomatic_state(lord, other_nation)
