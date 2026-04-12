@@ -78,12 +78,15 @@ PROPOSAL_TYPE_KEYWORDS = {
 }
 
 # Proposal type display — single source in display_names.py (R7)
-from backend.display_names import PROPOSAL_TYPE_DISPLAY
+from backend.display_names import (
+    format_terms_for_display as _shared_format_terms_for_display,
+    proposal_display_name,
+)
 
 
 def _display_proposal_type(proposal_type: str) -> str:
     """Convert internal proposal_type to player-facing display name."""
-    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+    return proposal_display_name(proposal_type)
 
 
 # ═══════ MISSION TYPE KEYWORDS ═══════
@@ -632,71 +635,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
 
 def _format_terms_for_display(terms: Dict, proposal_type: str, target_nation: str) -> list:
     """Convert a terms dict into a list of human-readable clause strings."""
-    lines = []
-
-    # Base proposal type description
-    _base_descriptions = {
-        "armistice": "Armistice (cease hostilities temporarily)",
-        "armistice_losing": "Armistice (cease hostilities temporarily)",
-        "armistice_winning": "Armistice (cease hostilities temporarily)",
-        "peace": "Peace Treaty (end state of war)",
-        "non_aggression": "Non-Aggression Pact (agree not to attack)",
-        "open_borders": "Open Borders (free military passage)",
-        "alliance": "Full Alliance (mutual military cooperation)",
-        "defensive_alliance": "Defensive Alliance (mutual defense pact)",
-        "vassalage": f"Vassalage ({target_nation} becomes a subject state)",
-    }
-    base = _base_descriptions.get(terms.get("type", proposal_type),
-                                   proposal_type.replace("_", " ").title())
-    lines.append(base)
-
-    # Additional clauses
-    for clause in terms.get("clauses", []):
-        if isinstance(clause, str):
-            if clause == "open_borders":
-                lines.append("Open borders included")
-            else:
-                lines.append(clause.replace("_", " ").title())
-
-    # Demands (France asks of target)
-    for demand in terms.get("demands", []):
-        dtype = demand.get("type", "")
-        value = demand.get("value", 0)
-        if dtype == "gold_per_turn":
-            lines.append(f"{target_nation} pays {int(value)} gold/turn")
-        elif dtype == "territory_cede":
-            regions = demand.get("regions", [])
-            lines.append(f"{target_nation} cedes {', '.join(regions) if regions else 'territory'}")
-        elif dtype == "infantry_manpower":
-            lines.append(f"{target_nation} provides {int(value)} infantry manpower")
-        elif dtype == "gold_lump":
-            lines.append(f"{target_nation} pays {int(demand.get('value', 0))} gold")
-        elif dtype == "ap_per_turn":
-            lines.append(f"{target_nation} loses {int(value)} AP/turn")
-        else:
-            lines.append(f"Demand: {dtype.replace('_', ' ')} ({int(value)})")
-
-    # Sweeteners (France offers to target)
-    for sweet in terms.get("sweeteners", []):
-        stype = sweet.get("type", "")
-        value = sweet.get("value", 0)
-        if stype == "gold_per_turn":
-            lines.append(f"France offers {int(value)} gold/turn")
-        elif stype == "gold_lump":
-            lines.append(f"France offers {int(value)} gold (lump sum)")
-        elif stype == "territory_cede":
-            regions = sweet.get("regions", [])
-            lines.append(f"France cedes {', '.join(regions) if regions else 'territory'}")
-        elif stype == "infantry_manpower":
-            lines.append(f"France provides {int(value)} infantry manpower")
-        elif stype == "cavalry_manpower":
-            lines.append(f"Provide {int(sweet.get('value', 0))} cavalry reserves")
-        elif stype == "artillery_manpower":
-            lines.append(f"Provide {int(sweet.get('value', 0))} artillery reserves")
-        elif stype == "ap_per_turn":
-            lines.append(f"France concedes {int(value)} AP/turn")
-        else:
-            lines.append(f"Offer: {stype.replace('_', ' ')} ({int(value)})")
+    lines = _shared_format_terms_for_display(terms, proposal_type, target_nation)
 
     # If no extra terms beyond the base
     if len(lines) == 1 and proposal_type in ("non_aggression", "open_borders"):

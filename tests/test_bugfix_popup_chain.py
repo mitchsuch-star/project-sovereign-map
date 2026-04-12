@@ -174,6 +174,50 @@ class TestCounterOfferPopupDataShape:
         assert popup is not None
         assert popup["is_counter_offer"] is True
 
+    def test_counter_offer_popup_uses_backend_display_names(self):
+        """Counter-offer popup should carry backend-rendered display labels."""
+        world = _make_world()
+        world.proposal_in_transit = {
+            "target": "Prussia",
+            "proposal": {
+                "type": "peace",
+                "proposer_nation": "France",
+                "target_nation": "Prussia",
+                "sweeteners": [],
+                "demands": [],
+            },
+            "turn_sent": 3,
+        }
+        mock_result = {
+            "score": 40,
+            "outcome": "COUNTER_OFFER",
+            "components": {},
+            "feedback": "Some concerns.",
+        }
+        mock_counter = {
+            "type": "NON_AGGRESSION",
+            "proposer_nation": "Prussia",
+            "target_nation": "France",
+            "sweeteners": [{"type": "territory_cede", "regions": ["Saxony"], "value": 1}],
+            "demands": [],
+            "clauses": [{"type": "OPEN_BORDERS"}],
+        }
+
+        with patch("backend.game_logic.diplomacy.calculate_acceptance", return_value=mock_result), \
+             patch("backend.game_logic.ai_diplomacy.generate_counter_offer", return_value=mock_counter), \
+             patch("backend.game_logic.ai_diplomacy._format_proposal_summary", return_value="Non-aggression terms"):
+            world._process_proposal_in_transit()
+
+        popup = world.incoming_proposal_popup
+        assert popup is not None
+        assert popup["proposal_type"] == "NON_AGGRESSION"
+        assert popup["proposal_type_display"] == "Non-Aggression Pact"
+        clauses_text = " ".join(popup["clauses"])
+        assert "OPEN_BORDERS" not in clauses_text
+        assert "territory_cede" not in clauses_text
+        assert "Open borders" in clauses_text
+        assert "Territory cession" in clauses_text
+
     def test_counter_offer_popup_clauses_are_list(self):
         """Clauses must be a list of strings (not a single string)."""
         world = _make_world()

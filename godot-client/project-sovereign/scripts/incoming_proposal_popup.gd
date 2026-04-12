@@ -16,18 +16,6 @@ signal choice_made(choice: String, data: Dictionary)
 @onready var reject_btn = $PanelContainer/VBoxContainer/ButtonContainer/RejectButton
 @onready var dismiss_btn = $PanelContainer/VBoxContainer/ButtonContainer/DismissButton
 
-# Display name mapping for proposal types
-const PROPOSAL_TYPE_DISPLAY = {
-	"PEACE_TREATY": "Peace Treaty",
-	"ALLIANCE": "Alliance",
-	"NON_AGGRESSION": "Non-Aggression Pact",
-	"OPEN_BORDERS": "Open Borders",
-	"TRADE_AGREEMENT": "Trade Agreement",
-	"VASSALAGE": "Vassalage",
-	"MILITARY_ACCESS": "Military Access",
-	"DEFENSIVE_ALLIANCE": "Defensive Alliance",
-}
-
 var current_data: Dictionary = {}
 var _default_border_color: Color
 @onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
@@ -48,13 +36,14 @@ func show_proposal(data: Dictionary):
 	var diplomat_name = data.get("diplomat_name", "An envoy")
 	var diplomat_personality = data.get("diplomat_personality", "")
 	var proposal_type = data.get("proposal_type", "unknown")
+	var proposal_type_display = data.get("proposal_type_display", proposal_type)
 	var clauses = data.get("clauses", [])
 	var assessment = data.get("talleyrand_assessment", "")
 	var accept_hint = data.get("acceptance_hint", "")
 	var reject_hint = data.get("rejection_hint", "")
 	var is_counter = data.get("is_counter_offer", false)
 
-	var type_display = PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").capitalize())
+	var type_display = str(proposal_type_display)
 	var bbcode = ""
 
 	if is_counter:

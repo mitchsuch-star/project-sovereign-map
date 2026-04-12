@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 11, 2026 (Informational UI polish pass implemented. `PL-32` is now the active next bug-owned slice. See `docs/INFORMATIONAL_UI_PLAN.md`.)
+> **Last Updated:** April 12, 2026 (`PL-32` implemented. Session 4 (`PL-28`, `PL-26`) is now the active next bug-owned slice.)
 
 ---
 
@@ -9,18 +9,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **8249** (8249 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up + offer refactor COMPLETE, plus the informational UI polish pass COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). The immediate next session is Session 3 (`PL-32`). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - Session 3 (`PL-32`) is the active next implementation slice. |
+| **Tests Passing** | **333 targeted diplomacy tests** (`PL-32` slice passed). A full `pytest tests -q` rerun was attempted, but this Codex environment blocks `pytest` temp-dir setup/cleanup for file-based save/load tests. |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-3 + follow-up + offer refactor COMPLETE, plus the informational UI polish pass COMPLETE. 3 OPEN bugs remain (PL-26/28/29). The immediate next session is Session 4 (`PL-28`, `PL-26`). Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Blockers** | None - Session 4 (`PL-28`, `PL-26`) is the active next implementation slice. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-### 1. Bug Fixes - 4 OPEN
+### 1. Bug Fixes - 3 OPEN
 
-Sessions 1-2 + follow-up + offer lifetime refactor COMPLETE. 4 OPEN bugs remain. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
+Sessions 1-3 + follow-up + offer lifetime refactor COMPLETE. 3 OPEN bugs remain. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
@@ -29,18 +29,18 @@ Sessions 1-2 + follow-up + offer lifetime refactor COMPLETE. 4 OPEN bugs remain.
 | P2 - UX | PL-26 | Combat feels hopeless, no clear path to winning |
 | ~~P2 - UX~~ | ~~PL-27~~ | ~~Diplomacy interrupt contract broken~~ **FIXED** (hard-stop/soft-stop taxonomy + mailbox panel) |
 | P2 - UX | PL-28 | No warning before defeat, sudden game over |
-| P2 - UX | PL-32 | Raw diplomacy labels can leak into popups |
+| ~~P2 - UX~~ | ~~PL-32~~ | ~~Raw diplomacy labels can leak into popups~~ **FIXED** |
 | ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
  
-**Current routed next step:** Session 3 - Diplomacy Display Contract (`PL-32`).
+**Current routed next step:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`).
 
-**Next bug-owned implementation slice:** Session 3 - Diplomacy Display Contract (`PL-32`).
+**Next bug-owned implementation slice:** Session 4 - First-Hour Pressure Cleanup (`PL-28`, `PL-26`).
 
-**Next session:** Implement `PL-32` by consolidating diplomacy display ownership so raw proposal / clause labels stop leaking into live popup paths.
+**Next session:** Implement `PL-28` first, then `PL-26`, under Session 4 - First-Hour Pressure Cleanup.
 
-The informational UI pass landed as planned and did not create a new PL item. Keep `PL-32` as the next bug-owned implementation slice.
+`PL-32` landed as planned by centralizing diplomacy display ownership in the backend and removing the Godot-side proposal-type map from the active popup path.
 
 **Implementation sessions in current order:**
 
@@ -51,8 +51,8 @@ The informational UI pass landed as planned and did not create a new PL item. Ke
 | Session 2 follow-up | Mailbox inbox + queue elimination | `PL-27`/`PL-34` hardening | **COMPLETE** |
 | Session 2 refactor follow-up | Current-turn diplomatic offer lifetime | `PL-27`/`PL-34` follow-up | **COMPLETE** |
 | Pre-Session 3 | Informational notices + light UI polish | `docs/INFORMATIONAL_UI_PLAN.md` | **COMPLETE** |
-| Session 3 | Diplomacy display contract | `PL-32` | **NEXT** |
-| Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
+| Session 3 | Diplomacy display contract | `PL-32` | **COMPLETE** |
+| Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | **NEXT** |
 | Session 5 | Restart flow | `PL-29` | |
 
 ### 3. Architecture Hardening (before full-map work)

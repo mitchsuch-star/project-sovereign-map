@@ -276,7 +276,15 @@ def _include_popup_passthroughs(response: dict, world) -> None:
 
     # Include the winner in response (Golden Rule 4: already cleared by pop)
     if winner_key is not None:
-        response[winner_key] = winner_value
+        if winner_key == "incoming_proposal" and isinstance(winner_value, dict):
+            from backend.display_names import proposal_display_name
+
+            popup = winner_value.copy()
+            if "proposal_type" in popup and "proposal_type_display" not in popup:
+                popup["proposal_type_display"] = proposal_display_name(popup.get("proposal_type"))
+            response[winner_key] = popup
+        else:
+            response[winner_key] = winner_value
 
     # Set all non-winner response keys to None so Godot can rely on key presence
     for response_key in PopupQueue.RESPONSE_KEYS.values():
@@ -298,32 +306,21 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 dialogue = world.pending_diplomatic_dialogue
                 context = dialogue.get("context", {})
                 proposal = context.get("proposal", {})
-                sv_clauses = []
                 sv_proposal_type = proposal.get("type", "unknown")
-                from backend.display_names import PROPOSAL_TYPE_DISPLAY, PERSONALITY_DISPLAY
-                if sv_proposal_type != "unknown":
-                    sv_base = PROPOSAL_TYPE_DISPLAY.get(
-                        sv_proposal_type, sv_proposal_type.replace("_", " ").title()
-                    )
-                    sv_clauses.append(f"Proposal: {sv_base}")
-                for d in proposal.get("demands", []):
-                    d_type = (d.get('type') or 'unknown').replace('_', ' ').title()
-                    sv_clauses.append(f"Demand: {d_type} — {d.get('value', '')}")
-                for s in proposal.get("sweeteners", []):
-                    s_type = (s.get('type') or 'unknown').replace('_', ' ').title()
-                    sv_clauses.append(f"Offer: {s_type} — {s.get('value', '')}")
-                if not sv_clauses:
-                    sv_clauses = ["Diplomatic proposal"]  # Ultimate fallback — never empty
+                from backend.display_names import PERSONALITY_DISPLAY, proposal_display_name
+                from backend.game_logic.mailbox_payloads import build_proposal_popup_clauses
                 response["incoming_proposal"] = {
                     "from_nation": dialogue.get("target_nation", "Unknown"),
                     "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
                     "diplomat_personality": PERSONALITY_DISPLAY.get(
                         context.get("diplomat_personality", "unknown"), "Unknown"),
                     "proposal_type": sv_proposal_type,
-                    "clauses": sv_clauses,
+                    "proposal_type_display": proposal_display_name(sv_proposal_type),
+                    "clauses": build_proposal_popup_clauses(proposal),
                     "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
                     "acceptance_hint": "Review the proposal carefully.",
                     "rejection_hint": "",
+                    "is_counter_offer": False,
                 }
             else:
                 response[response_key] = None
@@ -1864,6 +1861,8 @@ def _build_pending_envoy_popup_from_terms(
 
 def _build_pending_envoy_popup_from_dialogue(world, dialogue):
     """Recover popup payload for an active soft-stop dialogue."""
+    from backend.display_names import proposal_display_name
+
     context = dialogue.get("context", {})
     terms = context.get("counter_terms") or context.get("proposal") or {}
     popup_payload = dialogue.get("popup_payload") or context.get("popup_payload")
@@ -1872,6 +1871,10 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
         popup["is_counter_offer"] = dialogue.get("type", "") in (
             "counter_offer", "counter_offer_response"
         )
+        if "proposal_type_display" not in popup:
+            proposal_type = popup.get("proposal_type", terms.get("type"))
+            if proposal_type is not None:
+                popup["proposal_type_display"] = proposal_display_name(proposal_type)
         return popup
 
     existing_popup = getattr(world, "incoming_proposal_popup", None)
@@ -1886,6 +1889,10 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
             popup["is_counter_offer"] = dialogue.get("type", "") in (
                 "counter_offer", "counter_offer_response"
             )
+            if "proposal_type_display" not in popup:
+                proposal_type = popup.get("proposal_type", expected_type)
+                if proposal_type is not None:
+                    popup["proposal_type_display"] = proposal_display_name(proposal_type)
             return popup
 
     return _build_pending_envoy_popup_from_terms(

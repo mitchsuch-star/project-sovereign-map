@@ -138,6 +138,41 @@ PROPOSAL_TYPE_DISPLAY = {
     "ultimatum_demand": "Ultimatum",  # PL-14
 }
 
+CLAUSE_TYPE_DISPLAY = {
+    "gold_lump": "Gold payment",
+    "gold_per_turn": "Gold per turn",
+    "territory_cede": "Territory cession",
+    "territory_return": "Territory return",
+    "territory": "Territory cession",
+    "action_point": "Action point concession",
+    "ap_per_turn": "Action point concession",
+    "ap_reduction": "Action point reduction",
+    "unit_trade": "Military units",
+    "open_borders": "Open borders",
+    "protection": "Protection guarantee",
+    "protection_promised": "Protection guarantee",
+    "continental_system_lifted": "Continental System lifted",
+    "manpower_infantry": "Infantry manpower",
+    "infantry_manpower": "Infantry manpower",
+    "manpower_cavalry": "Cavalry reserves",
+    "cavalry_manpower": "Cavalry reserves",
+    "manpower_artillery": "Artillery reserves",
+    "artillery_manpower": "Artillery reserves",
+}
+
+PROPOSAL_TYPE_SUMMARY_DISPLAY = {
+    "armistice": "Armistice (cease hostilities temporarily)",
+    "armistice_losing": "Armistice (cease hostilities temporarily)",
+    "armistice_stalemate": "Armistice (cease hostilities temporarily)",
+    "armistice_winning": "Armistice (cease hostilities temporarily)",
+    "peace": "Peace Treaty (end state of war)",
+    "non_aggression": "Non-Aggression Pact (agree not to attack)",
+    "open_borders": "Open Borders Agreement (free military passage)",
+    "alliance": "Full Alliance (mutual military cooperation)",
+    "defensive_alliance": "Defensive Alliance (mutual defense pact)",
+    "ultimatum_demand": "Ultimatum",
+}
+
 # ============================================================================
 # DIPLOMATIC STATE DISPLAY — title case for UI labels
 # Source: diplomacy.py _STATE_DISPLAY_NAMES
@@ -306,6 +341,7 @@ _CATEGORY_MAPS = {
     "objection": OBJECTION_DISPLAY,
     "defiance": DEFIANCE_DISPLAY,
     "proposal": PROPOSAL_TYPE_DISPLAY,
+    "clause": CLAUSE_TYPE_DISPLAY,
     "state": STATE_DISPLAY,
     "state_narrative": STATE_NARRATIVE_DISPLAY,
     "defiance_outcome": DEFIANCE_OUTCOME_DISPLAY,
@@ -321,9 +357,273 @@ def action_display_name(action: str) -> str:
     return ACTION_DISPLAY.get(action, action.replace("_", " "))
 
 
+def _lookup_display_name(display_map: dict, internal_name: str):
+    raw = "" if internal_name is None else str(internal_name).strip()
+    if not raw:
+        return None, raw
+    if raw in display_map:
+        return display_map[raw], raw
+    lowered = raw.lower()
+    if lowered in display_map:
+        return display_map[lowered], raw
+    uppered = raw.upper()
+    if uppered in display_map:
+        return display_map[uppered], raw
+    return None, raw
+
+
+def _fallback_display_name(raw: str, default: str = "Unknown") -> str:
+    if not raw:
+        return default
+    return raw.replace("_", " ").title()
+
+
 def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
-    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+    result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)
+    return result or _fallback_display_name(raw, default="Unknown Proposal")
+
+
+def clause_display_name(clause_type: str) -> str:
+    """Translate an internal clause or treaty token to player-readable text."""
+    result, raw = _lookup_display_name(CLAUSE_TYPE_DISPLAY, clause_type)
+    return result or _fallback_display_name(raw, default="Unknown Clause")
+
+
+def proposal_summary_display_name(proposal_type: str, target_nation: str = "") -> str:
+    """Return the rich summary line used in diplomacy dialogue previews."""
+    result, raw = _lookup_display_name(PROPOSAL_TYPE_SUMMARY_DISPLAY, proposal_type)
+    if result:
+        return result
+    proposal_label = proposal_display_name(raw)
+    if (raw or "").strip().lower() == "vassalage" and target_nation:
+        return f"{proposal_label} ({target_nation} becomes a subject state)"
+    return proposal_label
+
+
+def _format_display_value(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return str(value)
+    if isinstance(value, int):
+        return str(value)
+    return str(value).strip()
+
+
+def _format_clause_detail(clause) -> str:
+    if not isinstance(clause, dict):
+        return ""
+    regions = clause.get("regions", [])
+    if isinstance(regions, list) and regions:
+        return ", ".join(str(region) for region in regions)
+    if "value" in clause:
+        return _format_display_value(clause.get("value"))
+    if "amount" in clause:
+        return _format_display_value(clause.get("amount"))
+    return ""
+
+
+def _format_popup_clause_line(prefix: str, clause_type: str, clause) -> str:
+    label = clause_display_name(clause_type)
+    detail = _format_clause_detail(clause)
+    if detail:
+        return f"{prefix}: {label} - {detail}"
+    return f"{prefix}: {label}"
+
+
+def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> list[str]:
+    """Build incoming proposal popup clause strings from backend-owned labels."""
+    clauses = []
+    proposal_type = terms.get("type") or terms.get("proposal_type") or "unknown"
+    if include_base:
+        clauses.append(f"Proposal: {proposal_display_name(proposal_type)}")
+
+    for clause in terms.get("clauses", []):
+        clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
+        clauses.append(_format_popup_clause_line("Clause", clause_type, clause))
+
+    for demand in terms.get("demands", []):
+        clauses.append(_format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
+
+    for sweetener in terms.get("sweeteners", []):
+        clauses.append(_format_popup_clause_line("Offer", sweetener.get("type", "unknown"), sweetener))
+
+    if not clauses:
+        return ["Diplomatic proposal"]
+    return clauses
+
+
+def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str) -> list[str]:
+    """Convert a proposal terms dict into player-facing summary lines."""
+    lines = []
+    target_label = target_nation or terms.get("target_nation") or "Target nation"
+    proposal_key = terms.get("type") or proposal_type
+    lines.append(proposal_summary_display_name(proposal_key, target_label))
+
+    for clause in terms.get("clauses", []):
+        clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
+        if str(clause_type).strip().lower() == "open_borders":
+            lines.append("Open borders included")
+            continue
+        detail = _format_clause_detail(clause)
+        clause_label = clause_display_name(clause_type)
+        if detail:
+            lines.append(f"{clause_label} ({detail})")
+        else:
+            lines.append(clause_label)
+
+    for demand in terms.get("demands", []):
+        demand_type = str(demand.get("type", "")).strip().lower()
+        value = demand.get("value", 0)
+        if demand_type == "gold_per_turn":
+            lines.append(f"{target_label} pays {int(value)} gold/turn")
+        elif demand_type in ("territory_cede", "territory"):
+            regions = demand.get("regions", [])
+            lines.append(f"{target_label} cedes {', '.join(regions) if regions else 'territory'}")
+        elif demand_type in ("infantry_manpower", "manpower_infantry"):
+            lines.append(f"{target_label} provides {int(value)} infantry manpower")
+        elif demand_type in ("cavalry_manpower", "manpower_cavalry"):
+            lines.append(f"{target_label} provides {int(value)} cavalry reserves")
+        elif demand_type in ("artillery_manpower", "manpower_artillery"):
+            lines.append(f"{target_label} provides {int(value)} artillery reserves")
+        elif demand_type == "gold_lump":
+            lines.append(f"{target_label} pays {int(value)} gold")
+        elif demand_type == "ap_per_turn":
+            lines.append(f"{target_label} loses {int(value)} AP/turn")
+        else:
+            detail = _format_clause_detail(demand)
+            detail_suffix = f" ({detail})" if detail else ""
+            lines.append(f"Demand: {clause_display_name(demand_type)}{detail_suffix}")
+
+    for sweetener in terms.get("sweeteners", []):
+        sweetener_type = str(sweetener.get("type", "")).strip().lower()
+        value = sweetener.get("value", 0)
+        if sweetener_type == "gold_per_turn":
+            lines.append(f"France offers {int(value)} gold/turn")
+        elif sweetener_type == "gold_lump":
+            lines.append(f"France offers {int(value)} gold (lump sum)")
+        elif sweetener_type in ("territory_cede", "territory"):
+            regions = sweetener.get("regions", [])
+            lines.append(f"France cedes {', '.join(regions) if regions else 'territory'}")
+        elif sweetener_type in ("infantry_manpower", "manpower_infantry"):
+            lines.append(f"France provides {int(value)} infantry manpower")
+        elif sweetener_type in ("cavalry_manpower", "manpower_cavalry"):
+            lines.append(f"France provides {int(value)} cavalry reserves")
+        elif sweetener_type in ("artillery_manpower", "manpower_artillery"):
+            lines.append(f"France provides {int(value)} artillery reserves")
+        elif sweetener_type == "ap_per_turn":
+            lines.append(f"France concedes {int(value)} AP/turn")
+        else:
+            detail = _format_clause_detail(sweetener)
+            detail_suffix = f" ({detail})" if detail else ""
+            lines.append(f"Offer: {clause_display_name(sweetener_type)}{detail_suffix}")
+
+    return lines
+
+
+def format_proposal_summary(terms: dict) -> str:
+    """Create a human-readable multi-line summary of proposal terms."""
+    parts = []
+    proposal_type = terms.get("type", "unknown")
+    proposer = terms.get("proposer_nation", "Unknown")
+    target = terms.get("target_nation", "France")
+    parts.append(f"{proposal_display_name(proposal_type)} between {proposer} and {target}")
+
+    for sweetener in terms.get("sweeteners", []):
+        sweetener_type = str(sweetener.get("type", "")).strip().lower()
+        value = sweetener.get("value", 0)
+        if sweetener_type == "gold_per_turn":
+            parts.append(f"  - {proposer} offers {int(value)} gold per turn")
+        elif sweetener_type == "gold_lump":
+            parts.append(f"  - {proposer} offers {int(value)} gold")
+        elif sweetener_type in ("territory_cede", "territory"):
+            detail = _format_clause_detail(sweetener)
+            suffix = detail if detail else "territory"
+            parts.append(f"  - {proposer} cedes {suffix}")
+        elif sweetener_type == "open_borders":
+            parts.append(f"  - {proposer} grants open borders")
+        elif sweetener_type == "protection":
+            parts.append(f"  - {proposer} offers protection guarantee")
+        else:
+            detail = _format_clause_detail(sweetener)
+            label = clause_display_name(sweetener_type).lower()
+            if detail:
+                parts.append(f"  - {proposer} offers {label} ({detail})")
+            else:
+                parts.append(f"  - {proposer} offers {label}")
+
+    for demand in terms.get("demands", []):
+        demand_type = str(demand.get("type", "")).strip().lower()
+        value = demand.get("value", 0)
+        if demand_type == "gold_per_turn":
+            parts.append(f"  - {proposer} demands {int(value)} gold per turn")
+        elif demand_type == "gold_lump":
+            parts.append(f"  - {proposer} demands {int(value)} gold")
+        elif demand_type in ("territory_cede", "territory"):
+            detail = _format_clause_detail(demand)
+            suffix = detail if detail else "territory"
+            parts.append(f"  - {proposer} demands {suffix}")
+        else:
+            detail = _format_clause_detail(demand)
+            label = clause_display_name(demand_type).lower()
+            if detail:
+                parts.append(f"  - {proposer} demands {label} ({detail})")
+            else:
+                parts.append(f"  - {proposer} demands {label}")
+
+    for clause in terms.get("clauses", []):
+        clause_type = clause.get("type", "clause") if isinstance(clause, dict) else clause
+        detail = _format_clause_detail(clause)
+        label = clause_display_name(clause_type)
+        if detail:
+            parts.append(f"  - {label} ({detail})")
+        else:
+            parts.append(f"  - {label}")
+
+    return "\n".join(parts)
+
+
+def summarize_proposal(proposal: dict) -> str:
+    """Generate a concise, backend-owned proposal summary for sabotage paths."""
+    parts = [proposal_display_name(proposal.get("type", "peace"))]
+
+    for demand in proposal.get("demands", []):
+        demand_type = str(demand.get("type", "")).strip().lower()
+        if demand_type in ("territory_cede", "territory"):
+            regions = demand.get("regions", [])
+            parts.append(f"cede {', '.join(regions)}" if regions else "territory")
+        elif demand_type == "gold_per_turn":
+            parts.append(f"{int(demand.get('value', 0))} gold/turn")
+        elif demand_type == "ap_per_turn":
+            parts.append(f"{int(demand.get('value', 1))} AP/turn")
+        elif demand_type == "unit_trade":
+            parts.append(f"{int(demand.get('value', 0))} units")
+        else:
+            detail = _format_clause_detail(demand)
+            label = clause_display_name(demand_type).lower()
+            if detail:
+                parts.append(f"{label} ({detail})")
+            else:
+                parts.append(label)
+
+    for sweetener in proposal.get("sweeteners", []):
+        sweetener_type = str(sweetener.get("type", "")).strip().lower()
+        if sweetener_type == "gold_per_turn":
+            parts.append(f"offer {int(sweetener.get('value', 0))} gold/turn")
+        else:
+            detail = _format_clause_detail(sweetener)
+            label = clause_display_name(sweetener_type).lower()
+            if detail:
+                parts.append(f"offer {label} ({detail})")
+            else:
+                parts.append(f"offer {label}")
+
+    return ", ".join(parts) if parts else "unspecified terms"
 
 
 def display(category: str, internal_name: str, fallback: str = None) -> str:

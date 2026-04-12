@@ -9,39 +9,9 @@ from typing import Dict, Optional, Tuple
 
 def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True) -> list[str]:
     """Build incoming_proposal_popup.gd-compatible clause strings."""
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+    from backend.display_names import build_proposal_popup_clauses as _build
 
-    clause_type_display = {
-        "gold_lump": "Gold payment",
-        "gold_per_turn": "Gold per turn",
-        "territory_cede": "Territory cession",
-        "territory_return": "Territory return",
-        "action_point": "Action point concession",
-        "unit_trade": "Military units",
-    }
-
-    clauses = []
-    proposal_type_key = terms.get("type", "unknown")
-    if include_base:
-        base_label = PROPOSAL_TYPE_DISPLAY.get(
-            proposal_type_key, proposal_type_key.replace("_", " ").title()
-        )
-        clauses.append(f"Proposal: {base_label}")
-
-    for demand in terms.get("demands", []):
-        dtype = demand.get("type", "unknown")
-        label = clause_type_display.get(dtype, dtype.replace("_", " ").title())
-        clauses.append(f"Demand: {label} - {demand.get('value', '')}")
-
-    for sweetener in terms.get("sweeteners", []):
-        stype = sweetener.get("type", "unknown")
-        label = clause_type_display.get(stype, stype.replace("_", " ").title())
-        clauses.append(f"Offer: {label} - {sweetener.get('value', '')}")
-
-    if not clauses:
-        clauses.append("Diplomatic proposal")
-
-    return clauses
+    return _build(terms, include_base=include_base)
 
 
 def build_acceptance_hints(acceptance: Dict) -> Tuple[str, str]:
@@ -87,7 +57,7 @@ def build_pending_envoy_popup_from_terms(
     acceptance_score: Optional[int] = None,
 ) -> Dict:
     """Build the popup payload shape incoming_proposal_popup.gd expects."""
-    from backend.display_names import PERSONALITY_DISPLAY
+    from backend.display_names import PERSONALITY_DISPLAY, proposal_display_name
 
     diplomats = getattr(world, "diplomats", {})
     diplomat = diplomats.get(nation)
@@ -112,6 +82,7 @@ def build_pending_envoy_popup_from_terms(
         "diplomat_name": diplomat_name,
         "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
         "proposal_type": terms.get("type", "unknown"),
+        "proposal_type_display": proposal_display_name(terms.get("type", "unknown")),
         "clauses": build_proposal_popup_clauses(
             terms, include_base=not is_counter_offer
         ),

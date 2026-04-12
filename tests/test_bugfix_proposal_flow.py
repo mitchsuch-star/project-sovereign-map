@@ -9,6 +9,7 @@ Covers:
 - Response structure matches what Godot expects
 """
 import pytest
+from unittest.mock import patch
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 
@@ -1527,21 +1528,22 @@ class TestModifyEscalation:
         executor = _make_executor()
         gs = _make_game_state(world)
 
-        # Round 1: harsh
-        r1 = executor.handle_diplomatic_dialogue_response("harsh", gs)
-        d1 = r1["diplomatic_dialogue"]
-        t1 = _get_execute_terms(d1)
-        r1_demands = len(t1.get("demands", []))
-        r1_total = sum(d.get("value", 0) for d in t1.get("demands", [])
-                       if d.get("type") != "territory_cede")
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            # Round 1: harsh
+            r1 = executor.handle_diplomatic_dialogue_response("harsh", gs)
+            d1 = r1["diplomatic_dialogue"]
+            t1 = _get_execute_terms(d1)
+            r1_demands = len(t1.get("demands", []))
+            r1_total = sum(d.get("value", 0) for d in t1.get("demands", [])
+                           if d.get("type") != "territory_cede")
 
-        # Round 2: even harsher
-        r2 = executor.handle_diplomatic_dialogue_response("harsh", gs)
-        d2 = r2["diplomatic_dialogue"]
-        t2 = _get_execute_terms(d2)
-        r2_demands = len(t2.get("demands", []))
-        r2_total = sum(d.get("value", 0) for d in t2.get("demands", [])
-                       if d.get("type") != "territory_cede")
+            # Round 2: even harsher
+            r2 = executor.handle_diplomatic_dialogue_response("harsh", gs)
+            d2 = r2["diplomatic_dialogue"]
+            t2 = _get_execute_terms(d2)
+            r2_demands = len(t2.get("demands", []))
+            r2_total = sum(d.get("value", 0) for d in t2.get("demands", [])
+                           if d.get("type") != "territory_cede")
 
         assert r2_total > r1_total or r2_demands > r1_demands, (
             f"Round 2 harsh must demand more. R1={r1_total}/{r1_demands}, R2={r2_total}/{r2_demands}"
@@ -1554,17 +1556,18 @@ class TestModifyEscalation:
         executor = _make_executor()
         gs = _make_game_state(world)
 
-        # Round 1
-        r1 = executor.handle_diplomatic_dialogue_response("harsh", gs)
-        d1 = r1["diplomatic_dialogue"]
-        t1 = _get_execute_terms(d1)
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            # Round 1
+            r1 = executor.handle_diplomatic_dialogue_response("harsh", gs)
+            d1 = r1["diplomatic_dialogue"]
+            t1 = _get_execute_terms(d1)
 
-        # Round 2
-        r2 = executor.handle_diplomatic_dialogue_response("harsh", gs)
-        d2 = r2["diplomatic_dialogue"]
-        t2 = _get_execute_terms(d2)
-        r2_has_territory = any(d.get("type") in ("territory_cede", "territory")
-                               for d in t2.get("demands", []))
+            # Round 2
+            r2 = executor.handle_diplomatic_dialogue_response("harsh", gs)
+            d2 = r2["diplomatic_dialogue"]
+            t2 = _get_execute_terms(d2)
+            r2_has_territory = any(d.get("type") in ("territory_cede", "territory")
+                                   for d in t2.get("demands", []))
 
         assert r2_has_territory, "Round 2 harsh should add territory demand for escalation"
 

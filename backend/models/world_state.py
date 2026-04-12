@@ -4503,11 +4503,12 @@ class WorldState:
             from backend.game_logic.ai_diplomacy import (
                 generate_counter_offer, _format_proposal_summary,
             )
+            from backend.display_names import proposal_display_name
             counter_terms = generate_counter_offer(proposal, self)
             if counter_terms:
                 # AI has viable counter-terms — present to player
                 summary = _format_proposal_summary(counter_terms)
-                ptype = proposal.get("type", "unknown").replace("_", " ").title()
+                ptype = proposal_display_name(proposal.get("type", "unknown"))
                 events.append({
                     "type": "diplomatic_proposal_returned",
                     "target": target,
@@ -4856,6 +4857,7 @@ class WorldState:
                 "state_transition": f"{current_state}_TO_{target_state}",
             })
 
+            from backend.display_names import proposal_display_name
             from backend.notifications import (
                 create_notification, NotificationPriority, TREATY_SIGNED,
             )
@@ -4863,14 +4865,14 @@ class WorldState:
                 TREATY_SIGNED,
                 NotificationPriority.NORMAL,
                 f"Treaty with {target_nation}",
-                f"{proposer} and {target_nation} have signed a {proposal_type.replace('_', ' ')}.",
+                f"{proposer} and {target_nation} have signed a {proposal_display_name(proposal_type)}.",
                 int(self.current_turn),
             ))
 
             from backend.game_logic.dispatch import queue_dispatch_event
             queue_dispatch_event(self, "diplomatic_treaty_signed",
                                 {"nation_a": proposer, "nation_b": target_nation,
-                                 "treaty_type": proposal_type.replace('_', ' ')},
+                                 "treaty_type": proposal_display_name(proposal_type)},
                                 "partial_on_nation")
 
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
@@ -4906,7 +4908,8 @@ class WorldState:
         # Improve relations
         self.modify_nation_relation(proposer, target_nation, 10)
 
-        treaty_type_display = proposal_type.replace("_", " ").title()
+        from backend.display_names import proposal_display_name
+        treaty_type_display = proposal_display_name(proposal_type)
 
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(self, "diplomatic_ai_ai_treaty",

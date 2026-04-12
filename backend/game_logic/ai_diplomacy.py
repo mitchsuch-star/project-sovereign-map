@@ -861,57 +861,9 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
 
 def _format_proposal_summary(terms: Dict) -> str:
     """Create a human-readable summary of proposal terms."""
-    parts = []
-    proposal_type = terms.get("type", "unknown")
-    proposer = terms.get("proposer_nation", "Unknown")
-    target = terms.get("target_nation", "France")
+    from backend.display_names import format_proposal_summary
 
-    # Type description
-    from backend.display_names import PROPOSAL_TYPE_DISPLAY
-    parts.append(f"{PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace('_', ' ').title())} "
-                 f"between {proposer} and {target}")
-
-    # Sweeteners (what AI offers)
-    for s in terms.get("sweeteners", []):
-        stype = s.get("type", "")
-        svalue = s.get("value", 0)
-        if stype == "gold_per_turn":
-            parts.append(f"  - {proposer} offers {int(svalue)} gold per turn")
-        elif stype == "gold_lump":
-            parts.append(f"  - {proposer} offers {int(svalue)} gold")
-        elif stype == "territory":
-            parts.append(f"  - {proposer} cedes territory")
-        elif stype == "protection":
-            parts.append(f"  - {proposer} offers protection guarantee")
-        elif stype == "open_borders":
-            parts.append(f"  - {proposer} grants open borders")
-
-    # Demands (what AI wants)
-    for d in terms.get("demands", []):
-        dtype = d.get("type", "")
-        dvalue = d.get("value", 0)
-        if dtype == "gold_per_turn":
-            parts.append(f"  - {proposer} demands {int(dvalue)} gold per turn")
-        elif dtype == "gold_lump":
-            parts.append(f"  - {proposer} demands {int(dvalue)} gold")
-        elif dtype == "territory":
-            parts.append(f"  - {proposer} demands territory")
-
-    # Clauses
-    clause_names = {
-        "open_borders": "Open borders",
-        "protection_promised": "Protection guarantee",
-        "territory_saxony": "Saxony territory transfer",
-        "continental_system_lifted": "Continental System lifted",
-    }
-    for c in terms.get("clauses", []):
-        if isinstance(c, dict):
-            name = c.get("type", "clause").replace("_", " ").title()
-        else:
-            name = clause_names.get(c, c.replace("_", " ").title())
-        parts.append(f"  - {name}")
-
-    return "\n".join(parts)
+    return format_proposal_summary(terms)
 
 
 # ═══════════════════════════════════════════════════════════════

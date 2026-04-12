@@ -375,32 +375,9 @@ def build_confrontation_dialogue(sabotage: Dict, talleyrand) -> Dict:
 
 def _summarize_proposal(proposal: Dict) -> str:
     """Generate a human-readable summary of proposal terms."""
-    parts = []
-    ptype = proposal.get("type", "peace")
-    # Strip internal state suffixes (e.g. "armistice_losing" → "armistice")
-    if ptype.startswith("armistice"):
-        ptype = "armistice"
-    display = ptype.replace("_", " ").title()
-    parts.append(display)
+    from backend.display_names import summarize_proposal
 
-    for demand in proposal.get("demands", []):
-        dtype = demand.get("type", "")
-        if dtype == "territory_cede":
-            regions = demand.get("regions", [])
-            parts.append(f"cede {', '.join(regions)}" if regions else "territory")
-        elif dtype == "gold_per_turn":
-            parts.append(f"{int(demand.get('value', 0))} gold/turn")
-        elif dtype == "ap_per_turn":
-            parts.append(f"{int(demand.get('value', 1))} AP/turn")
-        elif dtype == "unit_trade":
-            parts.append(f"{int(demand.get('value', 0))} units")
-
-    for sweetener in proposal.get("sweeteners", []):
-        stype = sweetener.get("type", "")
-        if stype == "gold_per_turn":
-            parts.append(f"offer {int(sweetener.get('value', 0))} gold/turn")
-
-    return ", ".join(parts) if parts else "unspecified terms"
+    return summarize_proposal(proposal)
 
 
 # ════════════════════════════════════════════════════════════════════════════
