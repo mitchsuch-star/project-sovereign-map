@@ -102,8 +102,9 @@ Lapse means:
 
 - remove the offer from active dialogue / queue state
 - clear any reopenable envoy-list entry for that item
-- record a campaign-log line such as `Saxony's proposal lapsed unanswered`
+- record a campaign-log line such as `Saxony's alliance offer lapsed unanswered`
 - surface the lapse in the next turn-start report / summary so the player sees what was forfeited
+- by default, apply no automatic trust / relation penalty beyond the lost opportunity itself
 - unblock diplomacy on the next turn
 
 ### 4. Diplomacy Blocking
@@ -139,6 +140,8 @@ This prevents accidental lapse. It is a soft gate, not a hard block — the play
 
 Implementation: this confirmation must cover all player-facing end-turn entry points: button click, hotkey, and typed `end turn`. The backend should still permit end turn when only current-turn offers are pending; only true hard-stop dialogues should block end turn server-side.
 
+Design note: the perceived quality of this warning depends heavily on AI proposal frequency. If AI offers occur on too many turns, the warning becomes click-through tax instead of a safety net. Proposal frequency should be tuned before adding more confirmation friction.
+
 ### 6. Reopen Surface
 
 The player must be able to reopen unresolved current-turn offers before ending the turn.
@@ -147,6 +150,8 @@ The existing mailbox panel can be reused, but its meaning changes:
 
 - it is a **current-turn envoy tray**, not a cross-turn archive
 - it empties automatically at turn end for unanswered offer items
+- when exactly one offer is pending, the reopen interaction should be as lightweight as possible (direct reopen is preferred over forcing a full tray view)
+- when two or more offers are pending, the full tray / list view is appropriate
 
 ### 7. Planning vs Offer Separation
 
@@ -180,6 +185,7 @@ Minimum required wording changes:
 - replace `Mailbox` user-facing text with `Envoys` or `Pending Envoys`
 - add helper copy on incoming-offer popups:
   - `This offer will lapse at end of turn.`
+  - for counter-chain replies: `Austria has responded to your proposal. This response will lapse at end of turn.`
 - add blocked-diplomacy reason text:
   - `An unanswered envoy awaits your reply.`
 
@@ -187,7 +193,7 @@ Minimum required wording changes:
   - `Are you sure? You have N unanswered envoy(s) that will lapse if you end the turn now.`
   - preferred secondary button text: `Open Envoys`
 - add next-turn lapse summary copy:
-  - `The following envoy offers lapsed unanswered last turn: ...`
+  - `The following envoy offers lapsed unanswered last turn: Saxony alliance offer, Bavaria trade offer.`
 
 The important point is semantic clarity: this is a same-turn pending-offer system, not an inbox archive.
 
@@ -217,6 +223,11 @@ Current-turn diplomatic offers do not survive:
 
 - turn advance without a reply
 - world changes that explicitly void them
+
+Default consequence rule:
+
+- lapse means missed opportunity and visible feedback, not a hidden trust / relation penalty
+- any future "ignoring an envoy is a diplomatic slight" system is outside this refactor
 
 ### Blocking Rule
 
@@ -281,7 +292,7 @@ Minimum visibility requirement:
 - record each lapsed offer in campaign / diplomatic history
 - also surface the lapsed offers in the next turn-start report, summary, or equivalent turn-opening notification
 
-If multiple offers lapse together, the summary should list each nation / offer clearly enough that the player understands what opportunities were lost.
+If multiple offers lapse together, the summary should list each nation and offer type clearly enough that the player understands what opportunities were lost.
 
 ---
 
@@ -298,6 +309,8 @@ Incoming-offer popups should show:
 
 `Not Now` closes the popup and returns control to the main screen.
 
+Counter-chain responses should restate the lifetime rule explicitly so the player does not assume a fresh full-turn grace period just because they initiated the negotiation.
+
 ### Envoy Tray
 
 The current mailbox panel may remain as the reopen surface with lighter semantics:
@@ -305,6 +318,8 @@ The current mailbox panel may remain as the reopen surface with lighter semantic
 - shows unresolved current-turn offer items only
 - clears at turn end
 - does not imply save/load permanence
+- should behave like a lightweight reopen button in the common one-offer case
+- should expand into a browsable list only when multiple offers are pending
 
 If a visible rename is cheap, prefer `Envoys` over `Mailbox`.
 
@@ -342,7 +357,7 @@ When the turn advances and the offers lapse:
 If one or more offers lapsed because the player ended the turn, the next turn's opening report / summary should call that out explicitly.
 
 - this is in addition to campaign-log history, not a replacement for it
-- if only one offer lapsed, a single concise line is enough
+- if only one offer lapsed, a single concise line naming the nation and offer type is enough
 - if multiple offers lapsed, summarize them as a short list
 
 ---
@@ -379,6 +394,7 @@ Implementation notes:
 - `WorldState.from_dict()` / `DialogueManager.from_dict()` need explicit load normalization for current-turn offer types; type-only classification is not enough if old saves preserve stale `turn_created` and `blocking` values.
 - `/cancel_order` and any similar non-diplomatic command guards must stop keying off any pending dialogue if the active item is only a current-turn offer.
 - end-turn lapse handling should retain enough structured info to populate the next turn-start report, not just the long-term history log.
+- common-case one-offer reopen UX should not force unnecessary tray navigation if the same direct-reopen behavior can be delivered more simply.
 
 Primary test surfaces:
 
@@ -405,15 +421,19 @@ Additional likely break surfaces:
 - ordinary non-diplomatic commands remain usable while those items are pending
 - `end turn` with pending offers shows a confirmation prompt before advancing on button, hotkey, and typed-command paths
 - the confirmation copy explicitly warns that the offers will lapse if the player proceeds
+- the spec explicitly treats proposal frequency as a tuning dependency for the warning's UX quality
 - backend end turn is not hard-blocked by current-turn offers; only true hard-stop dialogues still block it
 - `conflict_alert` is treated as local planning — dismiss clears it, no envoy tray entry, no lapse log
 - `/pending_envoy`, `/mailbox`, tray count, and ledger pending-envoy count exclude `conflict_alert`
 - `proposal_confirm`-family planning popups are not stored as cross-turn envoy items
 - `proposal_result` still persists until acknowledged
 - the top-bar count and tray contents clear correctly after turn-end lapse
+- single-offer reopen remains lightweight, while multi-offer turns still have a browsable tray
+- counter-chain responses explicitly warn that they lapse at end of turn
 - loaded saves normalize current-turn offer items to the loaded turn and do not preserve old hard-block semantics
 - lapse events are recorded instead of disappearing silently
-- the next turn-start report / summary tells the player exactly which offers lapsed
+- the next turn-start report / summary tells the player exactly which nation + offer type lapsed
+- unanswered-offer lapse has no hidden trust / relation penalty in this refactor
 
 ---
 
