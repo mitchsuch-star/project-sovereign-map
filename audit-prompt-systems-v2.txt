@@ -1,0 +1,219 @@
+START IMMEDIATELY. Do not summarize this prompt. Do not ask for confirmation. Begin executing Phase 1 right now.
+
+You are performing a VERIFICATION + DEPTH audit of the Ink & Iron: Napoleonic Wars codebase. A prior audit (audit-report-systems.md) found 275 bugs across 22 passes. ALL findings have been fixed. Your job is to VERIFY the fixes landed correctly, find SECOND-ORDER BUGS introduced by the fixes, then explore UNEXPLORED TERRITORY.
+
+You will keep auditing in loops until you run out of turns or usage. Never stop early.
+
+## CRITICAL INSTRUCTIONS
+
+1. YOUR FIRST ACTION must be: Read CLAUDE.md, then read audit-report-systems.md (skim the "Top Priority Fixes" section and pass summaries), then create audit-report-systems-v2.md with the header, then launch Phase 1 subagents. Do this NOW.
+2. WRITE TO DISK CONSTANTLY. After every investigation, append findings to audit-report-systems-v2.md. Your context WILL compact. The file is the deliverable.
+3. USE SUBAGENTS for every investigation. Each subagent gets its own full context window. Run them in parallel when independent.
+4. NEVER STOP VOLUNTARILY. When you complete a phase, immediately start the next one. Keep going until the system stops you.
+5. The diplomacy engine internals (diplomacy.py, coalition.py, vassal.py, ai_diplomacy.py, diplomatic_defiance.py, diplomatic_templates.py) have been audited 3x. Do NOT re-audit them UNLESS a non-diplomacy system interacts with them incorrectly.
+
+## WHAT WAS FIXED (from audit-report-systems.md)
+
+The following bugs were found and FIXED. Verify the fixes are correct, then move on:
+
+### Code bugs (all fixed):
+1. **Shared post-combat processing extracted** (P13+P14) — auto-charge and glorious charge now share post-combat pipeline with _execute_attack
+2. **Coalition threat dict key fixed** (P1-2) — now reads result["attacker"]["casualties"] correctly
+3. **Autonomous marshal command format fixed** (P22-01) — decide_single_action uses nested command dict
+4. **AP treaty penalty ordering fixed** (P17-01) — advance_turn now applies treaty clauses after action reset
+5. **Bankruptcy check timing fixed** (P18-02) — bankruptcy check moved after all income sources
+6. **Dynamic trust attrs replaced** (P20-01) — single serialized field instead of per-turn setattr
+7. **LLM prompt fog-filtered** (P21-01) — get_llm_game_state now respects visibility tiers
+8. **Battle report fog-filtered** (P21-02) — uses strength bands below FULL visibility
+9. **Advance-toward-enemy uses move_to()** (P1-3) — no longer bypasses movement tracking
+10. **Glorious charge engagement check added** (P1-4) — can't teleport past enemies
+11. **Marshal trust endpoint nation-gated** (P21-03) — rejects enemy marshal queries
+12. **STALE visibility uses bands** (P21-04, P21-05, P21-06) — consistent across ledger/dispatch
+
+### Balance/exploit fixes (all fixed):
+13. **Early defeat condition added** (P15-03) — capital loss triggers defeat countdown
+14. **HOLD fortification immunity removed/limited** (P15-04) — decay now applies to all personalities
+15. **AI futility decay added** (P15-05) — counter decreases over time, resets on weakness
+16. **Supply attrition cap increased** (P15-06) — deathball stacking now has meaningful cost
+17. **Trade income shown in UI** (P18-01) — visible in income phase summary
+18. **Notification cap added** (P19-01) — auto-dismisses oldest when exceeded
+
+### Additional fixes from the full 275 findings:
+- All P1 through P22 findings addressed. Read audit-report-systems.md for full list.
+- Test count increased significantly from the fix sessions.
+
+## PHASE STRUCTURE
+
+### Phase 1: VERIFICATION SWEEP (2-3 parallel subagents)
+
+Verify the TOP fixes actually landed correctly. For each fix, read the actual code and confirm:
+
+**Subagent 1A: Post-combat pipeline verification**
+- Read world_state.py _process_reckless_cavalry_turn_start — does it now route through executor or call shared post-combat?
+- Read executor.py _execute_glorious_charge — does it now call _process_post_combat or equivalent?
+- Read executor.py _execute_attack — is the post-combat logic extracted into a shared function?
+- Check: forced retreat, destroyed marshal cleanup, coalition threat, war score, region conquest, vindication, authority — ALL present in the shared path?
+- Check: does auto-charge now handle broken/retreating/drilling guards?
+- Check: does auto-charge now respect HOLD strategic orders?
+- Run the test suite to verify all tests pass.
+
+**Subagent 1B: Turn ordering + economy verification**
+- Read world_state.py _advance_turn_internal — is treaty clause processing AFTER action reset?
+- Read world_state.py — is bankruptcy check AFTER all income sources (trade, continental system)?
+- Read executor.py _apply_diplomatic_trust_reaction — is the dynamic setattr replaced with a single field?
+- Check: is the new field serialized in marshal.py to_dict/from_dict?
+- Read world_state.py — is there an early defeat condition for capital loss?
+- Read world_state.py — is fortification decay immunity removed/limited for HOLD orders?
+
+**Subagent 1C: Fog + AI parity verification**
+- Read main.py get_llm_game_state — is enemy data fog-filtered?
+- Read battle_report.py — does it use strength bands at non-FULL visibility?
+- Read enemy_ai.py decide_single_action — is command format nested correctly?
+- Read enemy_ai.py — does AI futility counter have decay/reset logic?
+- Read world_state.py process_supply_attrition — is attrition cap increased?
+
+For each fix: mark VERIFIED or REGRESSION FOUND. If regression, describe it.
+
+---
+
+### Phase 2: SECOND-ORDER BUGS (3-4 parallel subagents)
+
+Fixes create new seams. Look for bugs INTRODUCED by the fixes:
+
+**Subagent 2A: Shared post-combat function review**
+Read the NEW shared post-combat function (whatever it's called — _process_post_combat, _post_combat_processing, etc.). Check:
+- Does every caller pass all required parameters?
+- Are there code paths where a parameter could be None unexpectedly?
+- Does auto-charge pass correct coordination context (it fights alone — is this handled)?
+- Does glorious charge pass the 2x multiplier correctly through the shared path?
+- Are there any new circular imports from the refactor?
+- Did any tests break and get deleted rather than fixed?
+
+**Subagent 2B: New test review**
+Read ALL new test files created during the fix sessions. Check:
+- Are tests testing BEHAVIOR or IMPLEMENTATION DETAILS?
+- Are there brittle tests that will break on any refactor?
+- Is there adequate negative testing (what should NOT happen)?
+- Do the tests cover the edge cases from the audit (0 troops, mutual destruction, 2 reckless in same region)?
+
+**Subagent 2C: Early defeat + balance changes review**
+Read the new early defeat condition, HOLD decay changes, supply attrition changes, and AI futility decay. Check:
+- Can the early defeat trigger incorrectly? (e.g., Paris temporarily lost during enemy phase then recaptured)
+- Does the HOLD decay change break Davout's intended playstyle too much?
+- Is the new supply attrition balanced or too punishing for legitimate 2-marshal stacks?
+- Does AI futility decay cause the AI to be TOO aggressive (attacking hopelessly)?
+- Are all new mechanics serialized for save/load?
+
+**Subagent 2D: Notification cap + trade income UI review**
+Read the notification cap implementation and trade income display. Check:
+- Does the cap dismiss the right notifications? (Don't dismiss CRITICAL alerts)
+- Is trade income correctly calculated and displayed?
+- Does the income display match the actual gold changes?
+
+---
+
+### Phase 3: UNEXPLORED TERRITORY (4 parallel subagents)
+
+These areas were never audited or barely touched:
+
+**Subagent 3A: Godot frontend comprehensive review**
+Read main.gd START TO FINISH (~2800 lines). Check:
+- _on_command_result(): Are ALL backend response keys handled?
+- Float→int issues (Golden Rule #2)?
+- Input edge cases (empty command, rapid submit, paste)?
+- Screen transition integrity (stuck in popup? disabled input not re-enabled?)
+- Terminal scroll with very long responses?
+- Memory leaks from signal connections?
+
+**Subagent 3B: Parser robustness**
+Read llm_client.py mock parser, parser.py, strategic_parser.py. Check:
+- Build a keyword collision matrix — which action keywords are substrings of others?
+- Test edge cases: "Ney attack" (no target), "attack Wellington with Ney" (inverted), "Grouchy hold" vs HOLD strategic
+- Marshal name fuzzy matching edge cases
+- Region names with articles ("the Netherlands")
+- Empty/whitespace/very long input
+- Compound commands ("move then attack")
+
+**Subagent 3C: Multi-turn stress simulation**
+Mentally simulate 10 turns of play through the code. Trace the EXACT code path for:
+- Turn 1: Move Ney to Waterloo, attack Wellington. What happens step by step?
+- Turn 5: Coalition forms. What changes in advance_turn? How does AI behavior change?
+- Turn 10: Player loses Paris. Does the new defeat condition fire correctly?
+- Turn 15: Ney at recklessness 4, auto-charges. Full path through fixed code.
+- Turn 20: All French marshals broken simultaneously. What happens?
+- Turn 30: Save game, load game. Is everything preserved?
+
+**Subagent 3D: Remaining code quality sweep**
+Scan for patterns the original audit flagged but that might have been missed in fixes:
+- Are there MORE hardcoded "Paris" references beyond the 3 found?
+- Are there MORE getattr() calls for guaranteed fields?
+- Are there NEW magic numbers introduced by the fixes?
+- Did the fix sessions update CLAUDE.md, STATUS.md, SYSTEMS_REFERENCE.md?
+- Is there dead code left behind from refactoring?
+
+---
+
+### Phase 4: STRESS PATTERNS (remaining tokens)
+
+Push the edge cases hard:
+
+**4A: Victory/defeat edge cases**
+- Turn 39 with 14/15 regions — does time pressure work?
+- Lose Paris on the same turn you capture 15th region — which fires first?
+- All marshals destroyed on the same turn coalition dissolves
+- Victory while a popup is pending
+
+**4B: Simultaneous state transitions**
+- Coalition forms + vassal rebels + Talleyrand sabotages — same end turn
+- 3 marshals all auto-charge different targets in _process_tactical_states
+- Marshal breaks, respawns at capital, capital was just captured — where do they go?
+- Save during enemy phase, load — does processing resume correctly?
+
+**4C: Economy extremes**
+- All regions conquered (19/19) — does income overflow or cause issues?
+- 0 gold with active treaty gold clauses — can gold go below the bankruptcy threshold permanently?
+- Maximum possible army size — what happens to manpower pools?
+
+**4D: AI behavior under new constraints**
+- Does AI adapt to increased supply attrition? Does it avoid stacking 3+ marshals?
+- Does AI use the capital defeat condition strategically (push toward Paris)?
+- Does the futility decay cause oscillating attack patterns?
+
+---
+
+### Phase 5+: LOOP BACK
+
+When Phase 4 is complete:
+1. Re-read audit-report-systems-v2.md
+2. What patterns emerged? What areas need deeper investigation?
+3. Start new targeted passes based on discoveries
+4. Keep going until the system stops you
+
+## OUTPUT FORMAT
+
+Start audit-report-systems-v2.md with:
+```
+# Systems Audit V2 — Verification + Depth
+**Started:** [timestamp]
+**Scope:** Fix verification, second-order bugs, unexplored territory, stress patterns
+**Prior audit:** audit-report-systems.md (275 findings, all fixed)
+**Purpose:** Verify fixes, find regressions, explore new areas, stress-test edge cases
+```
+
+For each finding:
+```
+### [PHASE-#] [SYSTEM] Finding Title
+- **Severity:** CRITICAL / MAJOR / MINOR / NOTE
+- **Category:** REGRESSION / NEW_BUG / VERIFICATION / DESIGN / ELEGANCE
+- **File:** filename.py:line_number
+- **Description:** What the issue is
+- **Evidence:** Code snippet or scenario
+- **Proposed Fix:** Code change or recommendation
+- **Test Coverage:** Yes/No
+```
+
+REGRESSION = a fix broke something else
+NEW_BUG = newly discovered bug not in v1 audit
+VERIFICATION = confirming a fix landed (or didn't)
+
+REMEMBER: NEVER STOP. Keep auditing until the system cuts you off. The file is the deliverable.

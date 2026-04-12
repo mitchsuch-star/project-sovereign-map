@@ -1,0 +1,64 @@
+You are performing a comprehensive overnight audit of the Ink & Iron: Napoleonic Wars codebase. You have a massive context budget and hundreds of turns. Be exhaustive and thorough.
+
+CRITICAL INSTRUCTION: WRITE FINDINGS TO DISK INCREMENTALLY
+Your context WILL compact during this long session. The file on disk is the deliverable, not your memory.
+- After auditing each system, IMMEDIATELY write findings to audit-report.md using Write or Edit.
+- Start by creating audit-report.md with a header. Then append each section as you complete it.
+- At the end, re-read audit-report.md to write the final synthesis.
+
+CRITICAL INSTRUCTION: USE SUBAGENTS FOR EACH INVESTIGATION
+Launch Task tool subagents (subagent_type "Explore" or "general-purpose") for each system investigation. This gives each investigation its own full context window and keeps your main context clean for orchestration. Run independent investigations in parallel where possible.
+
+STRATEGY
+1. Read CLAUDE.md and docs/STATUS.md to understand the project structure and current state.
+2. Create audit-report.md with a header including today's date, test count, and project overview.
+3. Launch subagents for each system below in priority order.
+4. After each subagent returns, append its findings to audit-report.md immediately.
+5. After all systems are done, re-read the full audit-report.md and write a final synthesis section.
+
+SYSTEMS TO AUDIT
+
+TIER 1: DEEP AUDIT — Diplomacy System (use multiple subagents, this is the newest and highest-risk system)
+- Subagent 1A: Core diplomacy mechanics — all state transitions in diplomacy.py, acceptance formula, war score, DP economy, war declaration, cascade logic. Are any states unreachable? Any transitions missing? Edge cases at boundary values.
+- Subagent 1B: AI diplomacy — ai_diplomacy.py proposal generation (P1-P7), counter-offers, alliance conflict checks, anti-spam. Does AI use identical code paths as player? (This is a golden rule.)
+- Subagent 1C: Coalition system — coalition.py threat accumulation/decay, formation types (brewing/instant), leader selection, posture, AI friction/convergence, war exhaustion, British subsidy, dissolution. Edge cases.
+- Subagent 1D: Vassal system — vassal.py creation, loyalty math, rebellion triggers, tribute, investment, autonomy, Continental System, marshal assimilation. Edge cases.
+- Subagent 1E: Talleyrand and diplomatic defiance — diplomatic_defiance.py sabotage types, discovery, confrontation, redemption. diplomatic_templates.py all 37+ templates, slot resolution, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline.
+- Subagent 1F: Diplomacy test coverage — read all test files related to diplomacy. What paths are tested? What critical paths are NOT tested? Are edge cases covered?
+- Subagent 1G: Diplomacy cross-system integration — how does diplomacy connect to economy (trade income, tribute, DP costs), combat (war score from battles), AI behavior (proposal triggers), notifications, and the morning dispatch?
+
+TIER 2: STANDARD AUDIT (one subagent each)
+- Combat System — combat.py, marshal.py modifiers, terrain bonuses, multi-marshal coordination, tactical triangle (square formation, auto-bombardment, overwatch), battle_report.py. Single-source modifier rule compliance.
+- Marshal and Personality System — marshal.py, personality.py, personality_modifiers.py, disobedience.py, objection_v2.py, defiance.py, vindication.py. Trust mechanics, authority tracker.
+- Enemy AI — enemy_ai.py decision tree P1-P8, turn_manager.py. Does it use the same executor as player? Are there any cheats or shortcuts?
+- Economy and Manpower — world_state.py income/upkeep/trade/tribute, manpower pools, recruitment, supply attrition. Is the economy balanced?
+- Serialization — to_dict/from_dict round-trip fidelity across all model classes. Missing fields. Run test_serialization_enforcement.py mentally.
+
+TIER 3: LIGHT PASS (one subagent each)
+- Code Quality — dead code, unused imports, code duplication, style inconsistencies, TODO/FIXME/HACK comments.
+- Test Infrastructure — test file organization, fixture patterns, any fragile tests, coverage distribution across systems.
+- Godot Integration — API contract between main.py endpoints and Godot scripts. Popup passthrough completeness. Are all POST handlers calling _include_popup_passthroughs?
+
+FINAL PASS: Cross-System Integration
+After all subagents complete, audit how systems connect:
+- Diplomacy to Economy (trade income, tribute, DP costs)
+- Diplomacy to Combat (war score from battles, alliance coordination in combat)
+- Diplomacy to AI (proposal generation triggers, coalition formation)
+- Combat to Economy (upkeep during war, manpower drain)
+- Any orphaned code paths or dead wiring between systems
+
+OUTPUT FORMAT FOR EACH FINDING IN audit-report.md:
+### [SYSTEM] Finding Title
+- Severity: CRITICAL / MAJOR / MINOR / NOTE
+- File: filename.py:line_number
+- Description: What the issue is
+- Evidence: Code snippet or test output showing the problem
+- Suggestion: How to fix it
+
+FINAL SYNTHESIS (write this last, after re-reading the full report):
+- Top 15 issues ranked by severity
+- Cross-cutting patterns observed across the codebase
+- What diplomacy needs to reach production quality
+- Recommended priorities for the next development session
+- Overall codebase health score (1-10) with justification
+- Sign off with completion timestamp

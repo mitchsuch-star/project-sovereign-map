@@ -1,0 +1,215 @@
+START IMMEDIATELY. Do not summarize this prompt. Do not ask for confirmation. Begin executing Phase 1 right now.
+
+You are performing a DEEP EXPLORATION audit of the Ink & Iron: Napoleonic Wars codebase. Two prior audits found 275 + 99 bugs respectively. All findings from both have been fixed. Your job is to explore areas that NEITHER audit reached, then run continuous simulated playtests to catch bugs, logical gaps, and gameplay issues.
+
+You will keep auditing in loops until you run out of turns or usage. Never stop early.
+
+## CRITICAL INSTRUCTIONS
+
+1. YOUR FIRST ACTION must be: Read CLAUDE.md, then create audit-report-systems-v3.md with the header, then launch Phase 1 subagents. Do this NOW.
+2. WRITE TO DISK CONSTANTLY. After every investigation, append findings to audit-report-systems-v3.md. Your context WILL compact. The file is the deliverable.
+3. USE SUBAGENTS for every investigation. Each subagent gets its own full context window. Run them in parallel when independent.
+4. NEVER STOP VOLUNTARILY. When you complete a phase, immediately start the next one. Keep going until the system stops you.
+5. The diplomacy engine internals (diplomacy.py, coalition.py, vassal.py, ai_diplomacy.py, diplomatic_defiance.py, diplomatic_templates.py) have been audited 4x. Do NOT re-audit them UNLESS a non-diplomacy system interacts with them incorrectly.
+6. DO NOT verify V2 fixes — they have already been verified and confirmed fixed. All bandwidth goes to NEW discovery.
+
+## PHASE STRUCTURE
+
+### Phase 1: UNEXPLORED TERRITORY — Godot Deep Dive (3-4 parallel subagents)
+
+The Godot frontend was only partially audited. Go deeper:
+
+**Subagent 1A: All popup scripts comprehensive review**
+Read EVERY popup .gd file. Check:
+- `coalition_declaration_popup.gd` — does it handle empty member list? Long nation names?
+- `incoming_proposal_popup.gd` — does Accept/Counter/Reject always re-enable input?
+- `talleyrand_objection_popup.gd` — does Proceed/Modify/Cancel always re-enable input?
+- `sabotage_discovery_popup.gd` — does Confront/Overlook always re-enable input?
+- `vassal_rebellion_popup.gd` — does Invest/Garrison/Accept always re-enable input?
+- `war_detail_popup.gd` — does negotiate/target button always fire correctly?
+- `alliance_paradox_popup.gd` — does honor/break always re-enable input?
+- For ALL popups: What happens if the backend response is malformed? Is there a fallback?
+
+**Subagent 1B: map.gd comprehensive review**
+Read `map.gd` START TO FINISH. Check:
+- Region click handling — what if region data is missing?
+- Fog overlay rendering — performance with many fogged regions?
+- Fogged enemy icons — do they update correctly on new intel?
+- Tooltip positioning — off-screen handling?
+- REGION_CONNECTIONS sync with backend region.py — any mismatches?
+- REGION_POSITIONS — any overlapping positions?
+
+**Subagent 1C: Screen scripts review**
+Read all screen/overlay scripts:
+- `strategic_ledger.gd` — all 6 tabs render correctly? Number key switching?
+- `marshal_management.gd` — card rendering with many marshals? Scroll?
+- `diplomatic_ledger.gd` — 4 tabs, fog-filtered data?
+- `dispatch_view.gd` — BBCode rendering edge cases? Very long dispatches?
+- `campaign_log.gd` — log entry rendering? Scroll performance with 500+ entries?
+- `pause_menu.gd` — save/load/quit flows?
+
+**Subagent 1D: diplomacy_wizard.gd comprehensive review**
+Read the diplomacy wizard (F1 hotkey). Check:
+- Nation selection with all nations at various diplomatic states
+- Action selection filtering (can't propose to self, state-dependent actions)
+- Command handoff to main.gd — does it always work?
+- `open_for_nation()` from war panel — does it correctly pre-select?
+- Edge cases: wizard open while popup pending, wizard open during enemy phase
+
+---
+
+### Phase 2: UNEXPLORED TERRITORY — Backend Integration Seams (3-4 parallel subagents)
+
+**Subagent 2A: main.py comprehensive endpoint review**
+Read `backend/main.py` START TO FINISH. Check:
+- Every GET endpoint: correct response format? Missing fields? Auth?
+- Every POST endpoint: _include_popup_passthroughs called on ALL paths?
+- Error handling: what happens when world is None?
+- Debug endpoints: are they guarded by debug_mode?
+- Response size: are there endpoints that could return huge responses?
+
+**Subagent 2B: Save/load roundtrip comprehensive test**
+Mentally construct a complex game state (turn 30, treaties, strategic orders, coalition, vassals, vindication, authority, relationships, diplomatic queue, notification list, fog intel) and trace through:
+- WorldState.to_dict() — every field captured?
+- JSON serialization — any non-serializable types (sets, custom objects)?
+- WorldState.from_dict() — every field restored with correct defaults?
+- Marshal.to_dict()/from_dict() — all 60+ fields?
+- Region.to_dict()/from_dict() — buildings, garrison, controller?
+- Are there any fields that exist in __init__ but NOT in to_dict?
+
+**Subagent 2C: Modding system review**
+Read `backend/modding/` if it exists, or search for mod-related code. Check:
+- Can mods inject invalid data? (negative troops, non-existent regions)
+- Is there input validation on mod-loaded values?
+- Can a malicious mod crash the game?
+- Does the validator catch all invalid states?
+
+**Subagent 2D: Campaign log + intel report review**
+Read `backend/campaign_log.py` and `backend/intel_report.py`. Check:
+- Fog filter in campaign log — are all event types filtered?
+- Intel report accuracy — does it match actual game state?
+- Campaign log memory growth — is there a cap on log entries?
+- Intel decay timing — does it match spec?
+
+---
+
+### Phase 3: CROSS-CUTTING CONCERNS (3-4 parallel subagents)
+
+**Subagent 3A: Concurrency and state consistency**
+- FastAPI is async — can two requests modify world simultaneously?
+- Is there a lock on the global world object?
+- What happens if the frontend sends two commands rapidly?
+- Are there any race conditions in the turn processing pipeline?
+
+**Subagent 3B: Error propagation audit**
+Trace every exception path:
+- What happens when combat produces unexpected results?
+- What happens when a marshal reference is stale (deleted mid-operation)?
+- What happens when region data is inconsistent?
+- Are there any bare `except:` clauses that swallow important errors?
+- Are there any `assert` statements that would crash in production?
+
+**Subagent 3C: Performance hotspots**
+Identify potential performance issues:
+- O(n²) or worse loops in combat resolution
+- Pathfinding with large maps (BFS/A* complexity)
+- Fog recalculation on every turn
+- Notification sorting on every access
+- Strategic order processing with many marshals
+- AI decision tree with many nations/marshals
+
+**Subagent 3D: Security + input validation**
+- Can malformed JSON crash the backend?
+- Can command injection happen through player input?
+- Are save files validated on load? Can a corrupted save crash the game?
+- Are there any pickle or eval calls?
+- Can the debug endpoints modify game state in non-debug mode?
+
+---
+
+### Phase 4: CONTINUOUS SIMULATED PLAYTESTS (run until system stops you)
+
+This is the most important phase. Simulate actual gameplay through the code to catch bugs, logical gaps, and gameplay issues that static code review misses. Each subagent plays a different scenario. KEEP LAUNCHING NEW PLAYTESTS until the system cuts you off.
+
+**Subagent 4A: Early Game Playtest (Turns 1-5)**
+Trace the EXACT code path for a realistic early game:
+- Turn 1: Start game. Read dispatch. Move Ney to Belgium, attack with Davout supporting. Trace through parser → executor → combat → post-combat → response formatting → Godot rendering. What breaks?
+- Turn 2: Fortify with one marshal, recruit with another. Does AP math work? Does the strategic ledger update correctly?
+- Turn 3: AI declares war. Trace the full war declaration → popup → player response flow. Does the war status panel update?
+- Turn 4: Player initiates diplomacy via F1 wizard. Propose alliance to Austria. Trace wizard → command → executor → AI response → popup. Any gaps?
+- Turn 5: End turn with strategic orders active (PURSUE + HOLD). Do they execute correctly? In what order?
+
+**Subagent 4B: Mid-Game Stress Playtest (Turns 10-20)**
+- Turn 10: Player has 8 regions, coalition is brewing. AI proposes trade deal while coalition threat rises. Do both systems interact correctly?
+- Turn 12: Reckless cavalry marshal at recklessness 4. Auto-charge triggers during enemy phase. 2 other marshals are in adjacent regions. Full trace through auto-charge → combat → post-combat → broken/retreat → notification → dispatch. Does everything chain correctly?
+- Turn 14: Vassal rebellion + Talleyrand sabotage + incoming AI proposal ALL trigger at end of turn. Trace the dialogue queue. Does the player see all 3? In what order? Can any be lost?
+- Turn 16: Save game mid-complexity. Load it. Trace every field through to_dict → JSON → from_dict. Is any state lost? Does the game continue identically?
+- Turn 18: Player at 12/15 victory regions. AI desperately attacks Paris. Coalition forms. Trace the cascade of events. Does the UI show everything? Can the player respond to everything?
+
+**Subagent 4C: Late Game / Victory-Defeat Playtest (Turns 25-40)**
+- Turn 25: Player captures 14th region. Time pressure warning should fire. Does it?
+- Turn 30: All French marshals broken simultaneously after a disastrous battle. What happens? Can the player still play? Does the enemy AI capitalize?
+- Turn 33: Player wins (15th region). Victory check fires. But a popup was pending (vassal rebellion). What happens to the popup? Is the victory screen correct?
+- Turn 35: Player LOSES — Paris captured and not recovered in time. Does defeat trigger correctly? What if the player recaptures Paris on the same turn?
+- Turn 38: Time limit (turn 40). Player has 14 regions. What happens? Is there a clear defeat/time-out message?
+
+**Subagent 4D: Adversarial / Edge Case Playtest**
+- Empty command: player submits "". What happens end to end?
+- Nonsense command: "asdfghjkl". Parser → executor → response?
+- Rapid commands: player submits 3 commands before first response returns. What happens to game state?
+- Command during enemy phase: player types while AI is processing. Is input blocked?
+- Very long command: 10,000 character input. Does anything break?
+- Every marshal destroyed: 0 marshals left. Can the player still end turn? Do they auto-lose?
+- 0 gold, 0 manpower: total economic collapse. Can the game still proceed?
+- Attack own marshal: "Ney attack Davout". Parser → executor → response? Is this blocked?
+- Move to current location: "Ney move to Paris" when already in Paris. Handled gracefully?
+- Diplomatic action on self: propose alliance with France. Blocked where?
+
+**Subagent 4E: AI Behavior Playtest**
+- Does the AI make sensible decisions at each priority level (P1-P8)?
+- Does the AI ever get stuck in a loop (attack → retreat → attack same region)?
+- Does the AI use diplomacy effectively? Does it ever propose something absurd?
+- Does the AI coalition behave strategically (coordinated attacks vs random)?
+- With all regions captured (player dominant), does the AI give up or keep fighting?
+- With player weak (2 regions), does the AI press advantage or get conservative?
+
+### Phase 5+: TARGETED FOLLOW-UP PLAYTESTS
+
+When Phase 4 is complete:
+1. Re-read audit-report-systems-v3.md
+2. What patterns emerged from playtesting? What scenarios need deeper traces?
+3. Launch NEW playtest subagents targeting discovered weak spots
+4. Focus on: multi-system interactions, state transitions, UI consistency
+5. Keep going until the system stops you
+
+---
+
+## OUTPUT FORMAT
+
+Start audit-report-systems-v3.md with:
+```
+# Systems Audit V3 — Deep Exploration + Continuous Playtesting
+**Started:** [timestamp]
+**Scope:** Godot deep dive, backend integration seams, cross-cutting concerns, simulated playtests
+**Prior audits:** V1 (275 findings, all fixed), V2 (99 findings, all fixed)
+**Purpose:** Explore untouched areas, stress-test integration points, simulate real gameplay to find logical gaps
+```
+
+For each finding:
+```
+### [PHASE-#] [SYSTEM] Finding Title
+- **Severity:** CRITICAL / MAJOR / MINOR / NOTE
+- **Category:** NEW_BUG / DESIGN / GAMEPLAY / INTEGRATION
+- **File:** filename.py:line_number
+- **Description:** What the issue is
+- **Evidence:** Code snippet or scenario
+- **Proposed Fix:** Code change or recommendation
+- **Test Coverage:** Yes/No
+```
+
+NEW_BUG = code bug not found in prior audits
+DESIGN = architectural concern or missing guardrail
+GAMEPLAY = logical gap, balance issue, or bad player experience
+INTEGRATION = frontend/backend mismatch or system interaction bug
+
+REMEMBER: NEVER STOP. Keep playtesting until the system cuts you off. The file is the deliverable.

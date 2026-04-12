@@ -1,0 +1,339 @@
+START IMMEDIATELY. Do not summarize this prompt. Do not ask for confirmation. Begin executing Phase 1 right now.
+
+You are performing the FINAL AUDIT of the Ink & Iron: Napoleonic Wars codebase. Five prior audits have fixed ~320 bugs across ~50 sessions. This is the capstone — focused on what every prior audit missed: cross-system integration, real live playtesting, and the gaps between systems. You will loop continuously until you run out of tokens. Never stop early.
+
+## WHAT HAS ALREADY BEEN AUDITED (DO NOT RE-AUDIT)
+
+| Audit | Scope | Bugs Fixed |
+|-------|-------|------------|
+| **Systems V1** | Architecture, post-combat pipeline, fog, AI | ~148 |
+| **Deep Audit** | Diplomacy formulas, vassal, war score, state machine | 43 |
+| **Diplomacy Audit** | Diplomacy code review + playtest | 43 |
+| **Systems V2** | Auto-charge duplication, Godot success override, parser | 56 |
+| **Systems V3** | War-state ignorance (38 fixes), auto-action bypass (15), save/load, modding | ~110+ |
+
+**Total: ~320 bugs fixed, 7,232 tests, ~71% backend coverage.**
+
+### Heavily covered (DO NOT code-review these again):
+- Combat math, modifiers, combat resolution (6+ sessions)
+- War-state `is_at_war()` checks (30+ fixes in V3)
+- Post-combat pipeline (V1 S1, V2 S1, V3 S4)
+- Diplomacy state machine, acceptance formulas (Deep S3, Diplomacy audit)
+- Vassal system (Deep S2, 18 fixes)
+- Save/load serialization (4+ sessions)
+- Auto-action paths — auto-charge, auto-bombardment, garrison combat (V2 S1, V3 S4)
+- Parser keywords and routing (V2 S5, V3 S9 pending)
+
+### What NO audit has properly tested:
+- **Real live playtest** — all prior "playtests" were mental code traces, not actual HTTP requests
+- **Cross-system cascades** — what happens when 3+ systems trigger simultaneously
+- **Objection/defiance system** — only 1 gate fix across all 5 audits
+- **Endgame states** — victory, defeat, time-out, total collapse
+- **Multi-turn state drift** — values that accumulate or decay incorrectly over 20+ turns
+- **Frontend data contracts** — whether Godot actually receives what the backend sends
+- **Full turn cycle correctness** — advance_turn's 20+ steps in correct order with all systems active
+
+## CRITICAL INSTRUCTIONS
+
+1. **YOUR FIRST ACTION:** Read CLAUDE.md, then create `audit-report-final.md` with the header, then launch Phase 1. Do this NOW.
+2. **WRITE TO DISK CONSTANTLY.** After every investigation and every playtest turn, append findings to `audit-report-final.md`. Your context WILL compact. The file is your only deliverable.
+3. **USE SUBAGENTS** for every investigation. Run them in parallel when independent.
+4. **NEVER STOP VOLUNTARILY.** When you complete a phase, immediately start the next one. Keep going until the system stops you.
+5. **REAL PLAYTESTING** means starting the server and sending actual curl commands. Not mental traces.
+6. **SAVE FINDINGS IMMEDIATELY.** Do not accumulate findings in memory — write each one to disk the moment you have it.
+
+---
+
+## PHASE 1: LIVE PLAYTEST INFRASTRUCTURE (do first — everything else depends on this)
+
+**Start the backend server**, then verify it works:
+
+```bash
+cd "C:\Users\User\PycharmProjects\project-sovereign-map"
+# Ensure LLM_MODE=mock in .env (we want deterministic behavior)
+".venv\Scripts\python.exe" backend/main.py &
+sleep 3
+# Verify server is up
+curl -s http://127.0.0.1:8005/test | python -m json.tool
+```
+
+If the server is already running, skip starting it. If it fails, debug and fix before proceeding.
+
+Create a helper function in your subagents for sending commands:
+```bash
+# Send a game command
+curl -s -X POST http://127.0.0.1:8005/command \
+  -H "Content-Type: application/json" \
+  -d '{"command": "YOUR COMMAND HERE"}' | python -m json.tool
+
+# Start a new game
+curl -s -X POST http://127.0.0.1:8005/new_game \
+  -H "Content-Type: application/json" \
+  -d '{}' | python -m json.tool
+
+# Get game state
+curl -s http://127.0.0.1:8005/state | python -m json.tool
+
+# Get ledger
+curl -s http://127.0.0.1:8005/ledger | python -m json.tool
+
+# Get diplomatic ledger
+curl -s http://127.0.0.1:8005/diplomatic_ledger | python -m json.tool
+
+# Get marshal overview
+curl -s http://127.0.0.1:8005/marshal_overview | python -m json.tool
+
+# Get diplomatic preview (nation list)
+curl -s "http://127.0.0.1:8005/diplomatic_preview?mode=nations" | python -m json.tool
+```
+
+---
+
+## PHASE 2: LIVE EARLY-GAME PLAYTEST (Turns 1-8)
+
+Start a new game and play through it with REAL curl commands. After every command, check the response for:
+- Missing fields that Godot expects
+- Float values (must be int)
+- Internal enum/key names leaking (should be display names)
+- Popup data present when expected
+- `success` field accurate
+- `active_wars` embedded correctly
+- Notification bar data present
+
+**Subagent 2A: Standard Opening (3-4 turns)**
+1. Start new game. Save the full /state response.
+2. Read the morning dispatch. Verify it contains sensible intel.
+3. Move Ney to Belgium: `"Marshal Ney, move to Belgium"`
+4. Check response: AP decremented? Marshal location updated? Fog refreshed?
+5. Attack with Davout: `"Marshal Davout, attack"` — verify combat result, post-combat state, battle report
+6. End turn: `"end turn"` — verify enemy phase, morning dispatch, turn counter, strategic order execution
+7. Read ledger, marshal overview, diplomatic ledger. Verify all data correct.
+8. Continue 2-3 more turns with varied commands (fortify, drill, recruit, diplomacy)
+
+**Subagent 2B: Diplomacy Opening (3-4 turns)**
+1. Start new game.
+2. Immediately try diplomacy: `"Talleyrand, propose alliance with Austria"`
+3. Check: dialogue flow, Talleyrand response, proposal data, popup fields
+4. Try counter-offer flow, rejection flow
+5. Try `"Talleyrand, what do you think about Prussia?"` — advisory conversation
+6. Try the diplomatic preview endpoint (nation list mode)
+7. End turn — check if AI proposals arrive, popup data shape matches Godot expectations
+
+**Subagent 2C: Edge Case Commands**
+1. Start new game.
+2. Empty command: `""`
+3. Nonsense: `"asdfghjkl"`
+4. Attack own marshal: `"Ney, attack Davout"`
+5. Move to current location: `"Ney, move to Paris"` (if already there)
+6. Command with no marshal: `"attack"`
+7. Strategic order: `"Ney, pursue Wellington"`
+8. Cancel non-existent order: `"cancel Ney's orders"`
+9. Command during pending objection (send two commands without resolving objection)
+10. Very long command (500+ chars)
+11. Check every response for crashes, tracebacks, missing fields
+
+---
+
+## PHASE 3: LIVE MID-GAME PLAYTEST (Turns 8-20)
+
+Use the game state from Phase 2 (or start a new game and use cheat commands to fast-forward if available). Play through the complex mid-game.
+
+**Subagent 3A: Multi-System Stress Test**
+Play 10+ turns focused on triggering multiple systems simultaneously:
+1. Build up to coalition brewing threshold (attack multiple nations)
+2. While coalition is brewing, manage vassal loyalty
+3. While managing vassals, handle incoming AI proposals
+4. While handling proposals, issue strategic orders
+5. End turn and trace: do all systems resolve correctly? Any lost popups? Any state corruption?
+6. Save game mid-complexity (`curl POST /save`), then load it (`curl POST /load`), then continue playing. Does the state survive round-trip?
+
+**Subagent 3B: Economy & Attrition Long-Run**
+Play 10+ turns focused on economic systems:
+1. Track gold, manpower, DP, AP turn by turn
+2. Verify income = sum of controlled region incomes - upkeep - war damage
+3. Verify manpower regen matches expected rates
+4. Verify DP accrual per turn
+5. Verify AP reset per turn
+6. Check: does gold go negative? Does manpower underflow? Do values overflow?
+7. Build every building type. Verify income changes.
+8. Lose regions. Verify economic impact immediate and correct.
+
+**Subagent 3C: Combat Cascade Playtest**
+Focus on complex combat scenarios:
+1. Multi-marshal coordination: 2-3 marshals in same region attacking together
+2. Cavalry charge + square formation interaction
+3. Marshal with strategic PURSUE order chasing a retreating enemy
+4. Bombardment with collateral
+5. Garrison combat when capital is attacked
+6. Broken marshal behavior — can they still act? Do they recover correctly?
+7. Glorious charge trigger conditions
+8. For each: verify the combat result, post-combat state, battle report, war score recording
+
+---
+
+## PHASE 4: LIVE LATE-GAME & ENDGAME PLAYTEST (Turns 25-40)
+
+**Subagent 4A: Victory Path**
+Play toward victory (or use cheats to get close):
+1. Get to 14/15 victory regions. Verify near-victory warnings.
+2. Capture 15th region. Verify victory triggers.
+3. Check: what happens to pending popups? Pending strategic orders? Pending dialogues?
+4. Does the victory response contain correct data? Is the game over?
+5. Can the player still send commands after victory? Should they be blocked?
+
+**Subagent 4B: Defeat Path**
+Force defeat conditions:
+1. Lose Paris. Verify capital-loss handling.
+2. Approach turn 40 limit. Verify time-pressure warnings.
+3. Hit turn 40. Verify time-out defeat.
+4. Lose all marshals. What happens? Can the player still play?
+5. Lose all regions except Paris. Economic collapse — verify the game continues.
+
+**Subagent 4C: Coalition War**
+Force a coalition to form:
+1. Attack 3+ nations rapidly to build threat
+2. Coalition brews → forms. Verify popup, war status panel data, notification
+3. Coalition war: multiple nations attacking simultaneously
+4. Negotiate with coalition members individually
+5. Coalition dissolution conditions — verify they trigger
+6. Coalition → armistice → back to normal — full lifecycle test
+
+---
+
+## PHASE 5: CROSS-SYSTEM INTEGRATION AUDIT (code review, not playtest)
+
+These are the integration seams between systems that no prior audit tested as interactions:
+
+**Subagent 5A: Objection × Diplomacy × Strategic**
+Read `objection_v2.py`, `defiance.py`, `vindication.py`, `diplomatic_defiance.py`. Check:
+- What happens if a V2a objection fires on a diplomatic command?
+- What happens if defiance triggers during a strategic order execution?
+- What happens if vindication event overlaps with Talleyrand sabotage?
+- Does authority tracker correctly account for diplomatic actions?
+- Is the objection bypass hierarchy correct for ALL diplomatic action types?
+
+**Subagent 5B: Turn Processing Order Correctness**
+Read `world_state.py:advance_turn` and `turn_manager.py`. Trace the full turn sequence:
+1. List every step in order
+2. For each step: what state does it read? What state does it write?
+3. Are there any order dependencies violated? (step N reads data that step N-1 already cleared)
+4. Are there any steps that should run but don't?
+5. Is the enemy AI phase correctly interleaved?
+6. Do all per-turn decrements (cooldowns, recovery, decay) happen exactly once?
+
+**Subagent 5C: Notification × Popup × Dialogue Queue Interactions**
+Read `notifications.py`, trace popup fields through `main.py`, read dialogue queue handling in `diplomatic_dialogue.py`. Check:
+- Can notifications and popups stack correctly?
+- If 3 popups trigger on the same turn (vassal rebellion + AI proposal + coalition declaration), what order are they shown?
+- Can any popup be silently dropped?
+- Does the dialogue blocking state (Talleyrand awaiting) correctly prevent command execution while also allowing dialogue responses?
+- What happens if the player ignores a popup and sends a regular command?
+
+**Subagent 5D: Fog × Intel × Dispatch × Campaign Log Consistency**
+Read `intel.py`, `intel_report.py`, `campaign_log.py`, `dispatch.py`. Check:
+- Does the morning dispatch correctly fog-filter all sections?
+- Does the campaign log filter match the dispatch filter?
+- Are there any intel report fields that leak exact enemy data at NONE/RUMOR visibility?
+- Does intel decay correctly over multiple turns?
+- Do events from the enemy phase get correctly attributed and filtered?
+
+---
+
+## PHASE 6: FRONTEND DATA CONTRACT AUDIT
+
+**Subagent 6A: Response Shape Validation**
+For every POST endpoint in `main.py`, check that the response JSON matches what the Godot script expects:
+- Read `main.gd:_on_command_result()` and list every field it reads from the response
+- Read `main.py:/command` and list every field it puts in the response
+- Diff the two lists. Any mismatches = bugs.
+- Do the same for: `/new_game`, `/save`, `/load`, `/end_turn` (if separate), and every other POST endpoint
+- Check: are all numeric values wrapped in `int()`?
+
+**Subagent 6B: Popup Data Shape Validation**
+For every popup script (8 popup .gd files), check:
+- What fields does the GDScript `show_popup(data)` method read?
+- What fields does the backend put in the popup dict?
+- Any field name mismatch, missing field, or type mismatch = bug
+- List: `coalition_declaration_popup.gd`, `incoming_proposal_popup.gd`, `talleyrand_objection_popup.gd`, `sabotage_discovery_popup.gd`, `vassal_rebellion_popup.gd`, `war_detail_popup.gd`, `alliance_paradox_popup.gd`, `talleyrand_redemption_popup.gd`
+
+---
+
+## PHASE 7: TARGETED FOLLOW-UP PLAYTESTS (loop until tokens exhausted)
+
+After Phases 1-6, re-read `audit-report-final.md`. Then:
+
+1. **What patterns emerged?** Group findings by root cause.
+2. **What scenarios need deeper traces?** Launch NEW playtest subagents targeting discovered weak spots.
+3. **What areas were touched but not exhausted?** Go deeper.
+4. **Try to BREAK the game.** Adversarial playtesting:
+   - Rapid-fire commands (send 5 commands in quick succession via curl)
+   - Commands in wrong game states (diplomacy during combat, combat during dialogue)
+   - Extreme values (recruit when 0 manpower, attack when 0 troops)
+   - State corruption attempts (load a save, modify it, reload)
+5. **Run the test suite** after any fixes to verify no regressions:
+   ```bash
+   ".venv\Scripts\python.exe" -m pytest tests/ -v --tb=short -q
+   ```
+6. **Keep launching new playtest subagents** with increasingly specific scenarios. Each playtest should focus on a single hypothesis: "I think X breaks when Y happens during Z."
+7. **REPEAT** this phase. Launch more subagents. Play more turns. Find more bugs. NEVER STOP.
+
+When you think you're done — you're not. Play another 5 turns. Try another edge case. Check another endpoint. Loop again.
+
+---
+
+## PHASE 8: FINAL REPORT COMPILATION
+
+Only reach this phase when the system is genuinely about to cut you off. Append to `audit-report-final.md`:
+
+1. **Executive Summary** — total findings by severity, top patterns
+2. **Coverage Map** — what was tested, what wasn't
+3. **Confidence Assessment** — how confident are you that the game is shippable?
+4. **Remaining Risks** — what couldn't you test? What needs manual Godot testing?
+5. **Recommended Fix Priority** — which findings should be fixed first?
+
+---
+
+## OUTPUT FORMAT
+
+Start `audit-report-final.md` with:
+```
+# Final Audit — Integration + Live Playtest
+**Started:** [timestamp]
+**Method:** Live curl playtest + cross-system code review + adversarial testing
+**Prior audits:** V1 (~148), Deep (43), Diplomacy (43), V2 (56), V3 (~110+) = ~320 bugs fixed
+**Tests before:** 7,232
+**Purpose:** Cross-system integration, real HTTP playtest, endgame validation, frontend contract verification
+```
+
+For each finding:
+```
+### [PHASE-#] [SYSTEM] Finding Title
+- **Severity:** CRITICAL / MAJOR / MINOR / NOTE
+- **Category:** INTEGRATION / PLAYTEST / CONTRACT / ENDGAME / CASCADE
+- **File:** filename.py:line_number (or endpoint path)
+- **Description:** What the issue is
+- **Evidence:** Actual curl response or code snippet showing the bug
+- **Proposed Fix:** Specific code change
+- **Test Coverage:** Existing test? / Needs new test?
+```
+
+Categories:
+- INTEGRATION = two systems interact incorrectly
+- PLAYTEST = found during live HTTP testing
+- CONTRACT = frontend/backend field mismatch
+- ENDGAME = victory/defeat/time-out bug
+- CASCADE = multi-system simultaneous trigger bug
+
+---
+
+## REMINDER: LOOP BEHAVIOR
+
+```
+while tokens_remaining:
+    play_more_turns()
+    check_more_endpoints()
+    trace_more_interactions()
+    write_findings_to_disk()
+```
+
+The file is the deliverable. Write to it constantly. NEVER STOP VOLUNTARILY.

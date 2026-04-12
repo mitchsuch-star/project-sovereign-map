@@ -1,0 +1,355 @@
+START IMMEDIATELY. Do not summarize this prompt. Do not ask for confirmation. Begin executing Pass 1 right now.
+
+You are performing an exhaustive, multi-pass deep audit of the Ink & Iron: Napoleonic Wars codebase. This audit has TWO LAYERS: mechanical correctness AND abstract quality (fun, design tightness, code elegance, player experience). Previous audits found 580+ bugs in the diplomacy system. This audit covers EVERYTHING ELSE and goes deeper into "is this game GOOD?" not just "does it crash?"
+
+You will keep auditing in loops until you run out of turns or usage. Never stop early.
+
+## CRITICAL INSTRUCTIONS
+
+1. YOUR FIRST ACTION must be: Read CLAUDE.md, then create audit-report-systems.md with the header, then launch Pass 1 subagents. Do this NOW.
+2. WRITE TO DISK CONSTANTLY. After every investigation, append findings to audit-report-systems.md. Your context WILL compact. The file is the deliverable.
+3. USE SUBAGENTS for every investigation. Each Task subagent gets its own full context window. Run them in parallel when independent.
+4. NEVER STOP VOLUNTARILY. When you complete a pass, immediately start the next one. Keep going until the system stops you.
+5. Read CLAUDE.md first for project context, golden rules, and file reference.
+5. The diplomacy engine internals (diplomacy.py, coalition.py, vassal.py, ai_diplomacy.py, diplomatic_defiance.py, diplomatic_templates.py) have been audited 3x. Do NOT re-audit them UNLESS a non-diplomacy system interacts with them incorrectly.
+
+## LOOP STRUCTURE
+
+Execute these passes in order. When you finish all passes, loop back with deeper focus areas. Each pass should find NEW things.
+
+---
+
+### Pass 1: COMBAT — DOES FIGHTING FEEL RIGHT?
+
+Read backend/game_logic/combat.py, battle_report.py, relationship.py, and the combat sections of executor.py START TO FINISH.
+
+**Mechanical check:**
+- resolve_combat(): Is math correct? Edge cases (0 troops, equal forces, single-troop)?
+- Tactical Triangle (square + bombardment + overwatch): All combinations work?
+- Coordination bonuses: Multi-marshal battles feel rewarding or just +numbers?
+- Terrain: Does terrain meaningfully change decisions or is it ignorable?
+- Fort degradation, pursuit, retreat: All paths work?
+- Casualty distribution across multi-marshal battles: Fair? Surprising?
+
+**Abstract check — DESIGN TIGHTNESS:**
+- Does combat create interesting DECISIONS or is it "bigger army wins"?
+- Are there meaningful tactical choices (when to charge, when to fortify, when to form square)?
+- Does the Tactical Triangle actually create a rock-paper-scissors dynamic in practice, or is one option always dominant?
+- Is the damage variance enough to create tension but not enough to feel random?
+- Do battle reports (Berthier observations) add narrative flavor or feel like noise?
+- After a battle, does the player feel something? Pride? Dread? Relief? Or just "ok, numbers went down"?
+- Is retreat punishing enough to avoid but survivable enough to recover from?
+- Does the relationship system (win/loss) create real consequences or just background noise?
+
+---
+
+### Pass 2: ENEMY AI — IS THIS OPPONENT INTERESTING?
+
+Read backend/ai/enemy_ai.py START TO FINISH. Read backend/game_logic/turn_manager.py.
+
+**Mechanical check:**
+- P1-P8 priority chain: Does every priority work? Are P3, P4.75, P7 actually tested?
+- Does AI use SAME executor as player? (Golden Rule #5)
+- Scoring functions: Are attack/defense/position scores correct?
+- Can AI get stuck in loops or dead states?
+- Does AI respect manpower pools, AP limits, cavalry limits?
+
+**Abstract check — IS THE AI FUN TO PLAY AGAINST?**
+- Does the AI feel like it has a PERSONALITY or is it a spreadsheet?
+- Does the AI create pressure? Does it force the player to react?
+- Does the AI ever surprise the player? Or is it completely predictable after 5 turns?
+- Does the AI make MISTAKES that feel human (overextending, bad timing) or does it make STUPID mistakes (walking into obvious traps, ignoring threats)?
+- Does the AI use the full toolkit (fortify, drill, charge, strategic orders, recruitment) or just attack/defend?
+- Is there asymmetry between nations? Does Austria feel different from Prussia to fight?
+- Does the AI create memorable moments? "Remember when Austria flanked me at Dresden"?
+- Or does every game feel the same after turn 10?
+- Does the AI coordinate across marshals or do they act independently like disconnected robots?
+- Would a player who's played 10 games still find the AI challenging?
+
+---
+
+### Pass 3: STRATEGIC COMMANDS — DOES THE CAMPAIGN LAYER WORK?
+
+Read backend/commands/strategic.py START TO FINISH.
+
+**Mechanical check:**
+- MOVE_TO, PURSUE, HOLD, SUPPORT: All paths work? Conditions evaluate?
+- Path recalculation when world changes?
+- Strategic objection (pending_strategic_objection) vs tactical (pending_objection)?
+- AP cost (2 for strategic, 1 for literal): Consistently applied?
+- _strategic_execution = True skips AP + objections correctly?
+- Save/load roundtrip for active strategic orders?
+
+**Abstract check — DOES THIS ADD DEPTH?**
+- Do strategic orders feel like COMMANDING A CAMPAIGN or just "move to X in 3 turns"?
+- Is PURSUE actually useful? Can you catch a retreating enemy, or do they always escape?
+- Is HOLD meaningful? Does holding a position feel like a strategic choice?
+- Is SUPPORT satisfying? Does supporting an ally feel like coordinated warfare?
+- Do strategic orders create tension? "My marshal is 2 turns away, will he arrive in time?"
+- Or are they just delayed move commands with no drama?
+- Is the cancel system responsive? Can the player adapt to changing conditions?
+
+---
+
+### Pass 4: DISOBEDIENCE & PERSONALITY — DO MARSHALS FEEL ALIVE?
+
+Read disobedience.py, objection_v2.py, defiance.py, vindication.py, personality.py, personality_modifiers.py.
+
+**Mechanical check:**
+- Trust encapsulation: All access through modify()/value?
+- Authority tracker thresholds fire correctly?
+- Vindication decay timing, multiple stacking?
+- Bypass hierarchy: pre-validation BEFORE objection check?
+- V2b defiance chance calculation correct for all personalities?
+- Recovery blocking during retreat_recovery?
+
+**Abstract check — DO MARSHALS HAVE SOUL?**
+- When Ney objects to a cautious order, does it feel like NEY or like a random error message?
+- Does each personality type (Aggressive, Cautious, Reckless, Balanced, Loyal) create a DISTINCT gameplay experience?
+- Or do they all feel the same with slightly different numbers?
+- Is trust a RELATIONSHIP you manage or just a number you optimize?
+- Does defiance create dramatic moments? "Ney charged without orders and WON"?
+- Or is it just annoying? "My marshal disobeyed again, this mechanic sucks"
+- Is the vindication system satisfying? When a marshal proves you wrong, does it land emotionally?
+- Does the player develop FEELINGS about their marshals over 30 turns?
+- Are there personality-specific moments that could ONLY happen with that marshal?
+- Is the Reckless personality fun-chaotic or frustrating-chaotic?
+- Would a player remember a specific marshal interaction after the session?
+
+---
+
+### Pass 5: FOG OF WAR — DOES UNCERTAINTY CREATE TENSION?
+
+Read intel.py, intel_report.py, campaign_log.py. Then check EVERY consumer (dispatch.py, ledger.py, marshal_overview.py, notifications.py, all display endpoints).
+
+**Mechanical check:**
+- Every endpoint fog-filtered? Any leaks?
+- Visibility tiers applied consistently?
+- Intel decay works? Watchtower ranges?
+- Fogged regions in attack suggestions, move destinations?
+
+**Abstract check — DOES FOG MAKE THE GAME BETTER?**
+- Does fog create genuine UNCERTAINTY or just annoyance?
+- Can the player make INFORMED DECISIONS with partial information?
+- Is the information hierarchy clear? (What you know vs what you suspect vs what you don't know?)
+- Does fog create memorable "OH NO" moments? (Moving into a region with hidden enemies?)
+- Or does it just make you feel helpless?
+- Is the Berthier intelligence report useful? Does it help you make decisions?
+- Is there too much fog? Too little? At 19 regions, is fog even meaningful?
+- Does the morning dispatch give enough information to plan your turn?
+- Does the player ever feel SMART for reading fog correctly?
+
+---
+
+### Pass 6: TURN FLOW & GAME PACING
+
+Read world_state.py (advance_turn, economy, manpower), turn_manager.py, dispatch.py, ledger.py.
+
+**Mechanical check:**
+- advance_turn step ordering: Dependencies correct?
+- State clearing timing (Golden Rule #4)?
+- Supply attrition, manpower regen, gold income: Math correct?
+- AP economy: Is 3 AP per turn the right number?
+
+**Abstract check — DOES EACH TURN FEEL MEANINGFUL?**
+- Does the player have enough to DO each turn? Or too much?
+- Is 3 AP per turn constraining enough to force prioritization?
+- Does the economy create interesting scarcity or is gold just a number?
+- Does the morning dispatch make the player EXCITED to play their turn?
+- Is there a sense of momentum? Does turn 15 feel different from turn 5?
+- Does the game have a natural arc (opening, mid-game, climax, resolution)?
+- Or does it plateau after the first few wars?
+- Are there dead turns where nothing happens? How many in a row is too many?
+- Is manpower a meaningful constraint or invisible?
+- Does the strategic ledger help the player plan or just show numbers?
+
+---
+
+### Pass 7: GODOT FRONTEND — DOES IT FEEL GOOD?
+
+Read main.gd, map.gd, game_manager.gd, api_client.gd, top_bar.gd, and ALL popup scripts START TO FINISH.
+
+**Mechanical check:**
+- Signal wiring complete? Null safety? Float→Int?
+- Hotkey conflicts? Screen transition leaks?
+- Response key coverage? Error handling?
+- Modal management complete?
+
+**Abstract check — DOES THE UI SERVE THE GAME?**
+- Is the information hierarchy clear? Most important → least important?
+- Can the player find what they need within 2 seconds?
+- Are hotkeys intuitive? (N for notifications, G for marshals, D for diplomacy — does this make sense?)
+- Is the terminal interface charming or clunky?
+- Do popups interrupt flow or enhance it?
+- Is there too much information on screen? Too little?
+- Does the war status panel HUD help the player stay oriented?
+- When 3 popups stack (coalition + proposal + rebellion), does it feel dramatic or overwhelming?
+- Is the color/formatting in BBCode responses readable and consistent?
+- Does the map convey useful information at a glance?
+
+---
+
+### Pass 8: PARSER & NATURAL LANGUAGE — DOES COMMANDING FEEL NATURAL?
+
+Read llm_client.py, prompt_builder.py, validation.py, strategic_parser.py, parser.py.
+
+**Mechanical check:**
+- Mock parser keyword collisions? Substring ordering?
+- Every VALID_ACTION has _execute_*?
+- Strategic parser catches all command forms?
+- Fuzzy matching on marshal/region names?
+- LLM mode switching works?
+
+**Abstract check — DOES THE COMMAND INTERFACE FEEL NAPOLEONIC?**
+- When you type "Marshal Ney, attack Wellington", does it FEEL like giving orders to a subordinate?
+- Or does it feel like typing into a search bar?
+- Does Berthier's parse recovery feel in-character?
+- Are error messages in-world or game-breaking? ("Berthier cannot understand" vs "Parse error: invalid action")
+- Is the command vocabulary intuitive? Can a new player guess what to type?
+- Does the natural language interface create IMMERSION or FRICTION?
+- Would a player prefer typing "Ney attack Wellington" over clicking a button? Why or why not?
+- Are there common commands that are weirdly hard to express?
+
+---
+
+### Pass 9: CODE ELEGANCE & ARCHITECTURE
+
+This pass is about the codebase itself as a work of craft.
+
+**Read the 10 largest files. For each, assess:**
+- Is the code readable? Could a new developer understand it in 30 minutes?
+- Are function names descriptive? Do they say WHAT not HOW?
+- Is the module boundary correct? Does this file do ONE thing or five?
+- Are there functions >100 lines that should be split?
+- Is there code duplication that should be abstracted?
+- Are there clever hacks that will confuse future developers?
+- Is error handling consistent? Same pattern everywhere or ad hoc?
+- Are magic numbers named? Or do you see random 0.15 and 40 scattered around?
+- Is the test suite testing BEHAVIOR or IMPLEMENTATION DETAILS?
+- Are there tests that will break on any refactor (brittle)?
+- Is the import structure clean? Circular dependencies?
+- Dead code after the 900-line cleanup — is there more?
+- Is the code DRY without being over-abstracted?
+
+**Assess overall architecture:**
+- Is the backend/commands/executor.py God Object a problem? (~14000 lines?)
+- Is the separation between models, game_logic, commands, and ai clean?
+- Does data flow in one direction or is it spaghetti?
+- Are there abstraction levels that don't earn their complexity?
+- Is there a clear "beginner's path" through the codebase? (Where would you start reading?)
+
+---
+
+### Pass 10: GAME DESIGN COHERENCE — THE BIG PICTURE
+
+Step back from code entirely. Think about the GAME.
+
+**Fun analysis:**
+- Is Ink & Iron a game you would WANT to play for 30+ turns?
+- What's the most fun moment the game can create? Does it happen often enough?
+- What's the most frustrating moment? Can it be reduced?
+- Is there a "one more turn" feeling? What creates it?
+- Is the game too complex for its own good? What could be cut without losing depth?
+- Is there enough variety between playthroughs? Or does every game play the same?
+
+**Design tightness:**
+- Do all systems REINFORCE each other or do they feel bolted on?
+- Combat + diplomacy + personality + fog — do these create a greater whole?
+- Are there systems that feel like they're fighting each other?
+- Is the Continental System meaningful or vestigial?
+- Is the vassal system worth its complexity?
+- Does the coalition system create dramatic arcs or just annoying penalties?
+
+**Thematic coherence:**
+- Does this feel like NAPOLEON's experience? Command through subordinates, fog of war, marshal personalities?
+- Or does it feel like a generic strategy game with a Napoleonic skin?
+- Are there moments of historical RESONANCE? (Ney's reckless charge, Grouchy missing Waterloo?)
+- Does the personality system make marshals feel like historical CHARACTERS?
+- Is Talleyrand's role compelling or annoying?
+
+**Missing pieces:**
+- What's the biggest gap between vision (VISION.md) and current implementation?
+- What ONE system addition would most improve the game?
+- What ONE system removal would most improve the game?
+- If you had to cut 30% of features, which survive?
+
+---
+
+### Pass 11: DEGENERATE STRATEGIES & EXPLOIT HUNTING
+
+Think like a player trying to BREAK the game:
+- Can you stack 5 marshals and steamroll everything?
+- Is there a dominant opening that always wins?
+- Can you abuse save/load to avoid all risk?
+- Can you exploit AP economy (waste nothing)?
+- Can you recruit infinitely by cycling regions?
+- Can you cheese trust by always agreeing with marshals?
+- Can you exploit strategic orders for impossible movement?
+- Is pure military always better than diplomacy?
+- Is pure diplomacy always better than military?
+- Can you win by turn 10 with a known strategy?
+- Can you avoid losing by turtling forever?
+- Does the AI punish exploits or enable them?
+- Are there dead map zones nobody ever fights over?
+
+---
+
+### Pass 12: CROSS-SYSTEM INTEGRATION — THE SEAMS
+
+Trace these interaction paths. The bugs live at system boundaries:
+- Combat → Trust: Does winning/losing change marshal trust correctly?
+- Trust → Combat: Does high/low trust affect combat performance?
+- Fog → Strategic: PURSUE into fogged region — what happens?
+- Objection → Strategic: Marshal objects mid-PURSUE — order cancelled?
+- Economy → Recruitment → Combat: Can you outproduce the AI?
+- Turn Processing → Everything: Does advance_turn ordering create ghosts?
+- Save/Load → Complex State: Maximum complexity roundtrip test
+- AI parity: AI uses same executor as player — verify for ALL actions
+
+---
+
+### LOOP BACK
+When Pass 12 is complete:
+1. Re-read audit-report-systems.md
+2. What PATTERNS repeat? What areas need DEEPER investigation?
+3. Start new targeted passes based on discoveries
+4. Keep going until the system stops you
+
+## OUTPUT FORMAT
+
+Start audit-report-systems.md with:
+```
+# Systems & Design Audit Report — Ink & Iron
+**Started:** [timestamp]
+**Scope:** All non-diplomacy systems + game design + code quality + player experience
+**Excluded:** Diplomacy engine internals (audited 3x previously)
+**Purpose:** Find bugs, design flaws, elegance issues, fun gaps, and cross-system failures
+```
+
+For each finding:
+```
+### [PASS-#] [SYSTEM] Finding Title
+- **Severity:** CRITICAL / MAJOR / MINOR / NOTE / DESIGN
+- **Category:** BUG / BALANCE / DESIGN / ELEGANCE / UX / EXPLOIT / ARCHITECTURE
+- **File:** filename.py:line_number (or filename.gd:line_number, or "conceptual")
+- **Description:** What the issue is
+- **Evidence:** Code snippet, gameplay scenario, or design argument
+- **Proposed Fix:** Code change, design recommendation, or "needs discussion"
+- **Test Coverage:** Yes/No — if No, propose test (for bugs only)
+```
+
+Category guide:
+- BUG: Code is wrong, crashes, or produces incorrect results
+- BALANCE: Numbers are off, making something too strong/weak/irrelevant
+- DESIGN: The system works as coded but the design itself is questionable
+- ELEGANCE: Code works but is ugly, fragile, duplicated, or hard to maintain
+- UX: Player-facing experience issue (confusing, frustrating, unclear)
+- EXPLOIT: Player can abuse this for unintended advantage
+- ARCHITECTURE: Structural issue with the codebase organization
+
+At the end of each pass, write a PASS SUMMARY with:
+- Finding count by category
+- Key patterns discovered
+- Suggested deeper investigation areas
+
+REMEMBER: NEVER STOP. Keep auditing until the system cuts you off. Find EVERYTHING — bugs, bad design, ugly code, missing fun, broken interactions.

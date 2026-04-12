@@ -1,0 +1,37 @@
+I need you to review the diplomatic offer lifetime refactor spec from two angles: design and code feasibility.
+
+Context:
+- This is a Napoleonic strategy game. Godot 4 frontend, FastAPI backend on port 8005.
+- AI diplomatic offers currently use a cross-turn mailbox/inbox model that creates UX confusion and exploit potential.
+- The spec replaces that with a current-turn-only model: offers arrive at turn start, can be deferred with "Not Now" and reopened during the same turn, and lapse automatically at end turn.
+- The spec has already been through one design review. Two additions were made: an end-turn confirmation gate (client-side prompt before lapsing offers), and reclassification of conflict_alert from envoy to local planning.
+
+Read these files:
+- docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md (the spec under review)
+- CLAUDE.md (project rules and file reference)
+- backend/models/dialogue_manager.py (current dialogue taxonomy, mailbox persistence, clear_stale)
+- backend/game_logic/diplomacy.py (get_available_diplomatic_actions blocking)
+- backend/commands/diplomatic_executor.py (ask_later handler, conflict_alert creation, dialogue response flow)
+- backend/main.py (mailbox endpoints, pending_diplomatic_dialogue reads)
+- backend/models/world_state.py (advance_turn, dialogue_manager integration)
+- godot-client/project-sovereign/scripts/incoming_proposal_popup.gd (current button layout)
+- godot-client/project-sovereign/scripts/mailbox_panel.gd (current mailbox display)
+- godot-client/project-sovereign/scripts/main.gd (end-turn command flow, dialogue type whitelist)
+
+Then answer these questions:
+
+DESIGN REVIEW:
+1. Does the spec fully resolve the contradiction it identifies (soft-stop items that still block diplomacy)?
+2. Are there any player-facing scenarios where the behavior would be surprising or unfair? Think about: multi-offer turns, counter-offer chains mid-turn, AI sending offers right before player wanted to start diplomacy.
+3. Is the end-turn confirmation gate the right UX pattern, or would a different approach (e.g., hard-blocking end turn, auto-rejecting, notification badge pulse) be better?
+4. Is there anything the spec promises that would be awkward for a turn-based strategy game to deliver?
+5. Are there any missing acceptance criteria?
+
+CODE REVIEW:
+6. For each of the 8 implementation steps, identify the exact lines/functions that need to change. Flag any step where the spec's description doesn't match what the code actually does.
+7. Are there any code paths that reference SOFT_STOP_MAILBOX_TYPES or mailbox-specific logic that the spec's implementation scope section missed?
+8. Will the save/load migration strategy (type-based, no new fields) actually work given how dialogue_manager.from_dict() currently deserializes?
+9. Is the proposed lapse hook point (advance_turn in world_state.py, before turn counter increment) correct, or is there a better place given the actual turn processing order?
+10. Are there any existing tests that will break from this refactor that aren't listed in the test surfaces?
+
+Be specific. File paths and line numbers. If you find issues, say what the fix is. If the spec is solid, say so and rate your confidence 1-10 that a single implementation session can complete this cleanly.

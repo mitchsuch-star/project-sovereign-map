@@ -1,0 +1,122 @@
+You are performing an exhaustive, multi-pass deep audit of the Ink & Iron: Napoleonic Wars codebase. You will keep auditing in loops until you run out of turns or usage. Never stop early. When you finish one pass, start another with a different focus.
+
+## CRITICAL INSTRUCTIONS
+
+1. WRITE TO DISK CONSTANTLY. After every investigation, append findings to audit-report-deep.md. Your context WILL compact. The file is the deliverable.
+2. USE SUBAGENTS for every investigation. Each Task subagent gets its own full context window. Run them in parallel when independent.
+3. NEVER STOP VOLUNTARILY. When you complete a pass, immediately start the next one. Keep going until the system stops you.
+4. An existing audit exists at audit-report.md — read it first. Use it as your starting point. Do NOT re-find known issues. Go deeper.
+
+## LOOP STRUCTURE
+
+Execute these passes in order. When you finish all passes, loop back to Pass 1 with deeper focus areas discovered during previous passes. Each pass should find NEW things.
+
+### Pass 1: VERIFY EXISTING FINDINGS
+Read audit-report.md. For each CRITICAL and MAJOR finding, launch a subagent to:
+- Read the exact file and line cited
+- Confirm the bug still exists (it may have been fixed)
+- Write a concrete code fix (exact old_string -> new_string Edit)
+- Identify any ADDITIONAL issues in the same function/area
+- Check if the issue has test coverage
+Append verified findings with proposed fixes to audit-report-deep.md.
+
+### Pass 2: LINE-BY-LINE CRITICAL FILE REVIEW
+These files are the most complex. Have subagents read them START TO FINISH, not searching for specific things — reading every line looking for anything wrong:
+- backend/game_logic/diplomacy.py (full file, every function)
+- backend/game_logic/coalition.py (full file)
+- backend/game_logic/vassal.py (full file)
+- backend/commands/executor.py (focus on diplomatic actions, war declaration, all _execute_* functions)
+- backend/game_logic/ai_diplomacy.py (full file)
+- backend/models/world_state.py (diplomacy-related sections, advance_turn, treaty processing)
+- backend/main.py (all POST endpoints, popup passthroughs)
+- backend/commands/diplomatic_defiance.py (full file)
+- backend/game_logic/diplomatic_templates.py (all templates, slot resolution)
+
+### Pass 3: DATA FLOW TRACING
+Trace these complete data flows end-to-end with subagents. Follow the data through every function call, every transformation, every return value:
+- War declaration: player command -> parser -> executor -> diplomacy.py -> world_state -> API response -> Godot popup
+- AI proposal: ai_diplomacy trigger -> generate -> acceptance calc -> popup data -> main.py response -> Godot popup
+- Coalition formation: threat accumulate -> check_coalition -> form -> notify -> war declaration -> combat effects
+- Vassal creation: peace treaty clause -> create_vassal -> loyalty init -> tribute -> rebellion check -> popup
+- Battle -> war score: combat resolution -> record_battle -> record_diplo_battle -> war_score calc -> peace acceptance
+- Trade income: treaty clause -> process_trade_income -> gold update -> (should appear in) ledger
+- Turn pipeline: end_turn command -> advance_turn -> all subsystem processing -> morning dispatch -> response
+
+### Pass 4: EDGE CASE HUNTING
+For each system, have subagents specifically hunt for:
+- What happens with 0 values? (0 troops, 0 gold, 0 DP, 0 loyalty, 0 threat)
+- What happens with negative values? (negative gold, negative relations, negative war score)
+- What happens with maximum values? (100 trust, 100 threat, max troops, max gold)
+- What happens with empty collections? (no marshals, no regions, no treaties, no vassals)
+- What happens with None values? (missing keys, uninitialized fields)
+- What happens with duplicate operations? (declare war twice, propose treaty twice, form coalition twice)
+- What happens during simultaneous events? (rebellion + coalition + war same turn)
+- Race conditions in turn processing order
+
+### Pass 5: TEST GAP ANALYSIS
+For each backend module, have subagents:
+- List every public function
+- Check if each function has at least one test
+- Identify untested branches (if/else paths with no test)
+- Find functions with high cyclomatic complexity but low test coverage
+- Propose specific test cases for uncovered paths (write the actual test code)
+
+### Pass 6: CROSS-SYSTEM CONSISTENCY
+Have subagents check:
+- Do all display strings use display maps? (no raw enum values to frontend)
+- Do all POST endpoints call _include_popup_passthroughs?
+- Do all getattr() calls use consistent defaults?
+- Do all .get() calls handle None properly?
+- Are all serializable fields in to_dict AND from_dict?
+- Do all AI code paths use the same executor as player?
+- Are all magic numbers that appear in multiple files consistent?
+- Do all nation lists use dynamic get_known_nations() not static KNOWN_NATIONS?
+
+### Pass 7: SPEC COMPLIANCE
+Read the design specs and verify implementation matches:
+- docs/DIPLOMACY_SPEC.md vs diplomacy.py — every section
+- docs/COALITION_SPEC.md vs coalition.py — every formula
+- docs/DIPLOMACY_BUTTON_SPEC.md vs diplomacy_wizard.gd — every requirement
+- docs/TACTICAL_TRIANGLE_SPEC.md vs combat.py — every mechanic
+- docs/V2B_DEFIANCE_SPEC.md vs defiance.py — every calculation
+- docs/FOG_OF_WAR_SPEC.md vs intel.py and all fog filtering
+
+### Pass 8: ARCHITECTURE REVIEW
+- Identify the longest functions (>100 lines) and assess if they should be split
+- Find code duplication (similar logic in multiple places)
+- Check for circular imports or import dependency issues
+- Identify dead code (functions never called)
+- Find inconsistent error handling patterns
+- Check for potential performance issues (N+1 loops, unnecessary iterations)
+
+### LOOP BACK
+When Pass 8 is complete:
+1. Re-read audit-report-deep.md
+2. Look at what you found — what areas deserve EVEN DEEPER investigation?
+3. Start new targeted passes based on patterns discovered
+4. Keep going. Find more. Go deeper.
+
+## OUTPUT FORMAT
+
+Start audit-report-deep.md with:
+```
+# Deep Audit Report — Ink & Iron
+**Started:** [timestamp]
+**Base audit:** audit-report.md (72 findings)
+**Purpose:** Verify, deepen, and extend base audit findings
+```
+
+For each finding:
+```
+### [PASS-#] [SYSTEM] Finding Title
+- **Severity:** CRITICAL / MAJOR / MINOR / NOTE
+- **File:** filename.py:line_number
+- **Description:** What the issue is
+- **Evidence:** Exact code snippet
+- **Proposed Fix:** Exact code change (old -> new)
+- **Test Coverage:** Yes/No — if No, propose test
+```
+
+At the end of each pass, write a pass summary with finding count.
+
+REMEMBER: NEVER STOP. Keep auditing until the system cuts you off. The goal is to find EVERYTHING.

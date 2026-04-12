@@ -1,0 +1,72 @@
+BUG_FIXES.md SPEC AUDIT
+
+You are auditing docs/BUG_FIXES.md — a consolidated bug tracker for a Napoleonic strategy game (Godot 4 frontend, FastAPI backend). This document was created by merging bugs from 5 source documents into one place, with a proposed 8-session implementation plan.
+
+Your job is to find errors, gaps, and bad groupings BEFORE any implementation begins.
+
+## What to audit
+
+### 1. COUNT VERIFICATION
+- Count every bug entry in each priority section (P0, P1, P2, P3)
+- Compare against the Summary table
+- Flag any mismatches
+
+### 2. DUPLICATE / OVERLAP CHECK
+- Are any bugs actually the same issue described differently?
+- Are any bugs already fixed by prior work? (V3 sessions 1-10 added is_at_war() guards everywhere — do C1/C2 overlap with those fixes?)
+- Cross-reference against the codebase: read the actual source files mentioned in each bug to verify the bug still exists
+
+### 3. FIX ACCURACY
+- For each bug, read the actual code at the file/line referenced
+- Does the proposed fix match reality? (e.g., does executor.py line 3898 actually have the engagement check C1 describes?)
+- Are the file references correct post-refactoring? (executor.py was split into 10 sub-executors — many references may be wrong)
+- Flag any "Files: Combat system" or "Files: Economy system" entries that aren't specific enough
+
+### 4. SESSION GROUPINGS
+- Are any sessions overloaded? (too many complex items)
+- Are any sessions mixing unrelated work that would be better split?
+- Are file dependencies respected? (items touching the same files should be in the same session)
+- Do balance items (B1-B4) need design decisions before they can be coded? If so, they shouldn't be in a normal coding session
+- Is there a natural dependency order? (e.g., DLF-11 get_active_nations() helper should come before items that would benefit from it)
+
+### 5. PRIORITY CHECK
+- Is anything miscategorized? (e.g., M3 "recruit type/amount control" looks more like a feature than a bug fix)
+- Should any P2 items be P1 or vice versa?
+- Are the balance items (B1-B4) bugs or design items that belong in DESIGN_REFINEMENT.md instead?
+
+### 6. MISSING CONTEXT
+- Are fix descriptions complete enough for an implementer to work from?
+- Do any items need line numbers, function names, or code snippets added?
+- Are there implicit dependencies between bugs that aren't called out?
+
+### 7. ARCHIVE PATH FIX
+- Source Documents table references docs/ paths — these files were moved to docs/archive/. Flag for correction.
+
+## How to audit
+
+Read docs/BUG_FIXES.md first. Then for each bug:
+1. Read the actual source file(s) mentioned
+2. Verify the bug exists in current code
+3. Verify the proposed fix location is correct
+4. Note any issues
+
+Use CLAUDE.md for file reference (which sub-executor has which methods).
+
+## Output format
+
+For each finding, report:
+- **Finding ID** (e.g., AUDIT-1)
+- **Bug ID** affected (e.g., C1, DLF-11)
+- **Category** (count error, duplicate, wrong file, overloaded session, priority mismatch, missing context, archive path)
+- **Severity** (BLOCKER = will cause implementation failure, MAJOR = significant rework needed, MINOR = cosmetic/clarity)
+- **Description** — what's wrong
+- **Recommendation** — how to fix
+
+End with a revised session plan if the current one needs changes.
+
+## Key context
+
+- executor.py was 14,802 lines, now 1,554 lines. Most combat/strategic/diplomatic/movement/meta methods are in sub-executors (combat_executor.py, strategic_executor.py, etc.)
+- V3 Sessions 1-4 added is_at_war() guards to ~60 sites across the codebase
+- 7,755 tests currently passing
+- The game has 5 nations (France player, Prussia/Austria/Russia/Britain enemies) and 19 regions
