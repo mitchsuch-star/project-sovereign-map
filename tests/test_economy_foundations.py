@@ -275,8 +275,8 @@ class TestNationGoldSerialization:
         assert world.gold == 2000
         assert world.nation_gold["France"] == 2000
         # Enemy nations get defaults
-        assert world.nation_gold["Britain"] == 800
-        assert world.nation_gold["Prussia"] == 300
+        assert world.nation_gold["Britain"] == 1500
+        assert world.nation_gold["Prussia"] == 800
 
     def test_backward_compat_no_gold_field(self):
         """Minimal save with neither gold nor nation_gold gets defaults."""

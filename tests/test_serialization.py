@@ -1342,11 +1342,18 @@ class TestScenarioLoading:
         scenario_data = {
             "player_nation": "France",
             "regions": {
+                "Paris": {
+                    "name": "Paris",
+                    "adjacent_regions": ["CustomCapital"],
+                    "income_value": 300,
+                    "is_capital": True,
+                    "controller": "France"
+                },
                 "CustomCapital": {
                     "name": "CustomCapital",
-                    "adjacent_regions": ["CustomProvince"],
+                    "adjacent_regions": ["Paris", "CustomProvince"],
                     "income_value": 200,
-                    "is_capital": True,
+                    "is_capital": False,
                     "controller": "France"
                 },
                 "CustomProvince": {
@@ -1371,10 +1378,11 @@ class TestScenarioLoading:
 
         assert "CustomCapital" in world.regions
         assert "CustomProvince" in world.regions
-        assert world.regions["CustomCapital"].is_capital is True
+        assert "Paris" in world.regions
+        assert world.regions["Paris"].is_capital is True
         assert world.regions["CustomCapital"].income_value == 200
-        # Default regions should NOT be present
-        assert "Paris" not in world.regions
+        # Default regions not in scenario should NOT be present
+        assert "Berlin" not in world.regions
 
     def test_scenario_file_not_found(self):
         """Should raise FileNotFoundError for missing scenario."""

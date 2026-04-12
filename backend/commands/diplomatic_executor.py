@@ -183,7 +183,7 @@ class DiplomaticExecutor:
     def _execute_diplomatic_proposal(self, diplomatic_data: Dict, world) -> Dict:
         """Handle a diplomatic proposal command. Generates dialogue for player choice."""
         from backend.game_logic.diplomatic_dialogue import (
-            classify_diplomatic_intent, generate_dialogue,
+            classify_diplomatic_intent, generate_dialogue, get_known_nations,
         )
         from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
 

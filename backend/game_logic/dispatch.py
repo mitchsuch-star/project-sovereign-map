@@ -877,7 +877,7 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
     Args:
         dispatch: The dispatch dict being built
         world: WorldState
-        player_nation: "France"
+        player_nation: The active player nation
     """
     diplomats = getattr(world, 'diplomats', {})
     talleyrand = diplomats.get(player_nation)
