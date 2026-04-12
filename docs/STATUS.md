@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 11, 2026 (Session 2 follow-up IMPLEMENTED. `diplomatic_queue` eliminated, mailbox panel built, 37 new tests, 8189 total passing.)
+> **Last Updated:** April 11, 2026 (Approved next-step follow-up: current-turn diplomatic offer lifetime refactor before `PL-32`. See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.)
 
 ---
 
@@ -10,17 +10,23 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **8189** (8189 passed, 1 skipped) |
-| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain (PL-26/28/29/32). Session 3 (PL-32) is next. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
+| **Current Phase** | **Frozen bug-fix scope, then routed architecture hardening.** Sessions 1-2 + follow-up COMPLETE. Approved `PL-27` / `PL-34` current-turn diplomatic offer refactor is NEXT. 4 OPEN bugs remain (PL-26/28/29/32) after that. Post-bug architecture remains Sessions 6-8. See `docs/BUG_FIXES.md`. |
 | **Blockers** | None — Session 3 (`PL-32`) ready to start. |
 | **Code Coverage** | ~71% (backend/) |
+
+**Planning blocker update:** `PL-32` is no longer the immediate next step. It now waits on the approved current-turn diplomatic offer lifetime refactor in `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.
 
 ---
 
 ## Next Steps
 
-### 1. Bug Fixes - 4 OPEN (Sessions 1-2 complete)
+### 1. Approved Refactor Prerequisite
 
-Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
+Before `PL-32`, complete the approved `PL-27` / `PL-34` follow-up in `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`: current-turn envoy items, `Not Now`, turn-end lapse, and diplomacy blocking only for unanswered current-turn offers.
+
+### 2. Bug Fixes - 4 OPEN (after the offer-lifetime refactor)
+
+Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain after the approved offer-lifetime refactor. Remaining bugs consolidated in `docs/BUG_FIXES.md`.
 
 | Priority | ID | Summary |
 |----------|-----|---------|
@@ -33,8 +39,10 @@ Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain. Remaining bugs consolidat
 | ~~P2 - UX~~ | ~~PL-33~~ | ~~"status" blocked by dialogue guard~~ **CLOSED** (duplicate of PL-27, verified) |
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | P3 - QOL | PL-29 | No new game / restart endpoint |
+ 
+**Current routed next step:** Session 2 refactor follow-up - current-turn diplomatic offer lifetime (`PL-27` / `PL-34` follow-up).
 
-**Next session:** Session 3 — PL-32 (raw diplomacy label leaks in popups).
+**Next session:** Session 2 refactor follow-up - current-turn diplomatic offer lifetime (`PL-27` / `PL-34` follow-up).
 
 **Implementation sessions in current order:**
 
@@ -43,11 +51,12 @@ Sessions 1-2 + follow-up COMPLETE. 4 OPEN bugs remain. Remaining bugs consolidat
 | Session 1 | Stability + defeat truth | `PL-30`, `PL-31` | **COMPLETE** |
 | Session 2 | Diplomacy interrupt contract | `PL-27`, `PL-34`, `PL-33` duplicate check | **COMPLETE** |
 | Session 2 follow-up | Mailbox inbox + queue elimination | `PL-27`/`PL-34` hardening | **COMPLETE** |
-| Session 3 | Diplomacy display contract | `PL-32` | **NEXT** |
+| Session 2 refactor follow-up | Current-turn diplomatic offer lifetime | `PL-27`/`PL-34` follow-up | **NEXT** |
+| Session 3 | Diplomacy display contract | `PL-32` | After Session 2 refactor follow-up |
 | Session 4 | First-hour pressure cleanup | `PL-28`, `PL-26` | |
 | Session 5 | Restart flow | `PL-29` | |
 
-### 2. Architecture Hardening (before full-map work)
+### 3. Architecture Hardening (before full-map work)
 
 GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but NOT ready for 80-100 region expansion. These items need a plan before full-map implementation starts:
 
@@ -72,7 +81,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 
 These are existing audit items broken into implementation order. They stay after the current bug sessions and before any full-map expansion work.
 
-### 3. Design Refinement (AFTER bugs + required bug prerequisites)
+### 4. Design Refinement (AFTER bugs + required bug prerequisites)
 
 `docs/DESIGN_REFINEMENT.md`. Focused audit validated `R160`, `R155`, and `R156` as the highest-leverage diplomacy legitimacy items once the current diplomacy bug contract is fixed. `R162` waits on attention-contract fixes. `N1` and `A4` appear already implemented; `A3` now needs re-scope. Do not pull these items forward into Sessions 1-8.
 

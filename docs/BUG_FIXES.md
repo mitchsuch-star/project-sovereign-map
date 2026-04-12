@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 11, 2026 (Session 2 follow-up IMPLEMENTED. `diplomatic_queue` eliminated, mailbox panel built in Godot, `GET /mailbox` + `POST /mailbox/activate` endpoints added, badge formula consolidated to `dialogue_manager.get_mailbox_count()`. 37 new tests, 8189 total passing.)
+> Last Updated: April 11, 2026 (Approved next-step follow-up: replace cross-turn diplomatic mailbox persistence with current-turn offer lapse before `PL-32`. See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.)
 
 ---
 
@@ -23,6 +23,7 @@
 - No new audit pass during this fix phase.
 - No re-scoring, re-prioritizing, or widening of the problem space.
 - No new PL items unless a direct code contradiction forces one.
+- Approved exception: the shipped Session 2 mailbox lifetime model is reopened inside the owning `PL-27` / `PL-34` family because it now conflicts with the desired diplomacy-gating behavior. Use `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md` as the source of truth for that follow-up.
 - Same-family sibling failures on the same code path are absorbed into the owning PL item and called out explicitly below.
 - `docs/DESIGN_REFINEMENT.md` stays blocked; do not pull design work into Sessions 1-8.
 
@@ -43,6 +44,8 @@
 | 4 | P2 | PL-26 | OPEN | Combat feels hopeless because the obvious opener teaches the wrong lesson | Treat as teaching/setup first, numbers second |
 | 5 | P3 | PL-29 | OPEN | No new-game / restart endpoint | Leave last; QoL contract after core truth is stable |
 
+**Current routed next step:** complete the approved `PL-27` / `PL-34` follow-up in `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md` before starting `PL-32`. The active design pivot is: current-turn diplomatic offers, `Not Now`, turn-end lapse, and same-turn diplomacy blocking only.
+
 **Duplicate handling rule:** PL-33 stays listed until the post-PL-27 verification pass is complete. If `status` works with no pending dialogue and with soft-stop diplomacy pending, close PL-33 as a duplicate of PL-27 instead of shipping separate code for it.
 
 ---
@@ -53,6 +56,7 @@
 - `PL-27` absorbs the nearby same-family command-guard failures on `status`, `help`, `economy`, `treasury`, and `finances`, plus the active-envoy count mismatch, envoy-button recovery failure, and remaining popup handlers that still synthesize parser commands. `PL-33` remains only as a duplicate-candidate verification gate.
 - Session 2 follow-up does not create a new PL item. It finishes the player-facing mailbox UX and folds in the same-family regressions found after Session 2 completion: browsable mailbox/inbox flow for 2+ pending items, defer/reopen UX, soft-stop reply routing drift, `/pending_envoy` payload shape drift, badge vs recovery mismatch when queued work exists behind a hard-stop, and the boundary between mailbox-worthy diplomacy and noisy top-bar notifications.
 - `PL-34` is the queue/expiry branch of `PL-27`. Do not build a separate UX track for it.
+- The approved current-turn offer lifetime refactor also stays inside the owning `PL-27` / `PL-34` family. It supersedes the shipped cross-turn mailbox lifetime behavior without creating a new PL id.
 - `PL-32` absorbs all duplicate proposal/clause display maps and raw-token fallback leaks on the active diplomacy popup paths.
 - `PL-29` absorbs backend `/new_game`, pause-menu wiring, frontend local-state reset, and autosave semantics as one restart contract.
 
@@ -64,6 +68,7 @@
 - Only the bug-owned slices needed to close the active PL items ship earlier:
   - Session 2: backend soft-stop taxonomy, authoritative active-plus-queued count contract, typed responses for affected popups
   - Session 2 follow-up: Godot mailbox inbox browsing, defer/reopen UX completion, and PL-27 same-family hardening found after the fix landed
+  - Session 2 current-turn offer refactor: replace cross-turn mailbox persistence with same-turn reopen plus turn-end lapse while preserving non-diplomatic soft-stop behavior
   - Session 3: backend-owned display formatting for active diplomacy popups
 - Broader `/command` unification, popup registry cleanup, scale-sensitive backend hardening, and renderer replacement remain in Sessions 6-8.
 
@@ -101,6 +106,8 @@
 **Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
 
 **Status: COMPLETE** (April 11, 2026). `diplomatic_queue` eliminated. Mailbox panel built in Godot. `GET /mailbox` + `POST /mailbox/activate` endpoints. Badge formula uses `dialogue_manager.get_mailbox_count()`. 37 new tests, 8189 total passing.
+
+**Historical note (April 11, 2026):** The cross-turn mailbox lifetime behavior shipped here is no longer the forward target. Keep this section as shipped-history only. The approved next-step behavior is documented in `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.
 
 **Goal:** finish the player-facing mailbox UX so soft-stop diplomacy is actually deferrable and browsable in Godot, and harden the Session 2 transport contract where the audit found live regressions.
 
@@ -326,6 +333,28 @@ These are concrete code paths that previous spec text covers implicitly but does
 7. Fix `/pending_envoy` shape and active-item-only backward-compat semantics so queued-only / hard-stop-plus-queue states are handled through `GET /mailbox`, not arbitrary queue reopening.
 8. Fix soft-stop `/command` delayed-reply routing for numeric and keyword responses without widening back to global keyword misroutes. Specifically: add numeric-index matching (e.g. "1" → first option, "2" → second) against the active dialogue's `options` list for soft-stop dialogues (main.py:639-650), alongside the existing label/action text matching.
 9. Lock the whole flow with mailbox browse/defer/select/respond-later regressions (including expanded test matrix above) before moving to `PL-32`.
+
+### Session 2 Refactor Follow-Up - Current-Turn Diplomatic Offer Lifetime - APPROVED / NEXT
+
+**Items:** follow-up slice under `PL-27` / `PL-34` only. No new PL id.
+
+**Status: APPROVED** (April 11, 2026). See `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md`.
+
+**Goal:** replace the persistent diplomacy mailbox model with current-turn envoy items that can be reopened this turn, lapse automatically at end turn, and block only new diplomacy during that same turn.
+
+**Why this moves ahead of `PL-32`**
+
+- The shipped mailbox transport is now stable enough to refactor safely.
+- The live contradiction is no longer display-only: diplomacy still feels globally blocked, but the deferred offer items also persist across turns.
+- `PL-32` should not start while the lifetime and blocking semantics of active diplomacy popups are changing again.
+
+**Exit criteria**
+
+- `incoming_proposal`, `counter_offer`, `counter_offer_response`, and `conflict_alert` can be dismissed with `Not Now` and reopened during the same turn.
+- Unanswered current-turn offer items lapse on end turn and log their outcome.
+- New diplomacy remains blocked only while unanswered current-turn offer items still exist.
+- Ordinary non-diplomatic commands remain usable while those offer items are pending.
+- `proposal_confirm`-family local planning and `proposal_result` persistence continue to behave as separate flows.
 
 ### Session 3 - Diplomacy Display Contract
 
