@@ -71,6 +71,7 @@ def world():
     """
     # Use real constructor so ALL attributes are initialized
     w = WorldState()
+    w.opening_attack_guidance_shown = True
 
     # Replace regions with our test map
     w.regions = {

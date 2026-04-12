@@ -217,6 +217,7 @@ class TestBattleEventLogging:
         """Executing an attack should log a battle event to world.event_log."""
         game_state = self._make_game_state()
         world = game_state["world"]
+        world.opening_attack_guidance_shown = True
         executor = CommandExecutor()
 
         # Force Ney and Wellington into adjacent regions

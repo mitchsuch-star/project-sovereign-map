@@ -9,11 +9,10 @@ glorious charge terrain blocking, combat messages.
 import pytest
 from unittest.mock import patch
 from backend.game_logic.combat import CombatResolver
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Marshal
 from backend.models.world_state import WorldState
 from backend.models.region import (
-    TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS,
-    CHARGE_BLOCKED_TERRAIN, VALID_TERRAINS,
+    TERRAIN_DEFENSE_BONUS, CHARGE_BLOCKED_TERRAIN, VALID_TERRAINS,
 )
 from backend.commands.executor import CommandExecutor
 
@@ -407,6 +406,7 @@ class TestExecutorTerrainWiring:
 
     def setup_method(self):
         self.world = WorldState()
+        self.world.opening_attack_guidance_shown = True
         self.executor = CommandExecutor()
         self.game_state = {"world": self.world}
 
@@ -682,6 +682,7 @@ class TestChargeSafetyNetFallthrough:
 
     def setup_method(self):
         self.world = WorldState()
+        self.world.opening_attack_guidance_shown = True
         self.executor = CommandExecutor()
         self.game_state = {"world": self.world}
 

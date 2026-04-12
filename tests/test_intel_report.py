@@ -11,14 +11,12 @@ Tests for:
 
 import pytest
 from backend.models.intel import (
-    RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
     get_strength_band,
 )
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.intel_report import generate_intel_report
 from backend.commands.executor import CommandExecutor
-from backend.game_logic.combat import CombatResolver
 
 
 # ============================================================================
@@ -442,6 +440,7 @@ class TestBattleReveal:
     def test_attack_grants_full_visibility(self):
         """Main attack path updates intel to FULL on battle region."""
         world = make_world()
+        world.opening_attack_guidance_shown = True
         executor = CommandExecutor()
         game_state = {"world": world}
 

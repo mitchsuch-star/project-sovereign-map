@@ -7,10 +7,8 @@ EL4: Auto-charge battle event logging
 EL5: log_battle_event key not leaked to API responses
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Marshal
 from backend.game_logic.combat import CombatResolver
 from backend.commands.executor import CommandExecutor
 
@@ -27,6 +25,7 @@ class TestSallyBattleEventLogging:
         """Trigger a sally battle via _execute_general_attack_combat and verify
         a battle event is logged to world.event_log."""
         world = WorldState()
+        world.opening_attack_guidance_shown = True
         game_state = {"world": world}
         executor = CommandExecutor()
 
@@ -252,8 +251,8 @@ class TestAutoChargeTacticalEventNoFloats:
         event = charge_events[0]
         floats = self._find_floats(event, "auto_charge_event")
         assert len(floats) == 0, (
-            f"Float values found in auto-charge tactical event "
-            f"(would crash Godot):\n" + "\n".join(floats)
+            "Float values found in auto-charge tactical event "
+            "(would crash Godot):\n" + "\n".join(floats)
         )
 
 

@@ -17,6 +17,7 @@ class TestAutoAssignAttackByEnemyName:
 
     def setup_method(self):
         self.world = WorldState()
+        self.world.opening_attack_guidance_shown = True
         self.executor = CommandExecutor()
         self.game_state = {"world": self.world}
 
@@ -123,6 +124,7 @@ class TestAutoAssignAttackByRegion:
 
     def setup_method(self):
         self.world = WorldState()
+        self.world.opening_attack_guidance_shown = True
         self.executor = CommandExecutor()
         self.game_state = {"world": self.world}
 
