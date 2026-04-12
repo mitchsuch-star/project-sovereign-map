@@ -1,6 +1,7 @@
 extends Control
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
+const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
 
 const REGION_RADIUS: float = 30.0
 const REGION_DIAMETER: float = REGION_RADIUS * 2.0
@@ -9,7 +10,7 @@ const REGION_LABEL_HEIGHT: float = 20.0
 const MARSHAL_ICON_SIZE := Vector2(16, 16)
 const MARSHAL_ICON_SPACING: float = 8.0
 const MARSHAL_ICON_Y_OFFSET: float = -50.0
-const GARRISON_SIZE := Vector2(24, 16)
+const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const FOG_OVERLAYS = {
@@ -51,6 +52,7 @@ var connection_layer
 var region_layer: Control
 var force_layer: Control
 var garrison_layer: Control
+var tooltip_layer
 
 var region_nodes := {}
 var marshal_hitboxes: Array = []
@@ -126,6 +128,13 @@ func _create_scene_layers():
 	garrison_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	garrison_layer.z_index = 3
 	world_layer.add_child(garrison_layer)
+
+	tooltip_layer = MapTooltipLayer.new()
+	tooltip_layer.name = "TooltipLayer"
+	tooltip_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tooltip_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tooltip_layer.z_index = 100
+	add_child(tooltip_layer)
 
 
 func _build_static_map_visuals():
@@ -391,7 +400,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 		text_color = Color(0.85, 0.85, 0.85)
 		border_color = Color(0.7, 0.7, 0.7)
 
-	var label_font_size = 9
+	var label_font_size = 10
 	var font = ThemeDB.fallback_font
 	var panel_width = GARRISON_SIZE.x
 	if font != null:
@@ -407,14 +416,14 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.position = panel.position
+	label.position = Vector2.ZERO
 	label.size = panel.size
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = label_text
 	label.add_theme_font_size_override("font_size", label_font_size)
 	label.add_theme_color_override("font_color", text_color)
-	garrison_layer.add_child(label)
+	panel.add_child(label)
 
 
 func _make_box_style(fill_color: Color, border_color: Color, border_width: float, corner_radius: int) -> StyleBoxFlat:
@@ -488,6 +497,8 @@ func _draw():
 		_draw_fogged_force_tooltip()
 	elif hovered_region != "" and region_full_data.has(hovered_region):
 		_draw_region_tooltip()
+	elif tooltip_layer != null:
+		tooltip_layer.clear_tooltip()
 
 
 func _apply_view_transform():
@@ -589,33 +600,8 @@ func _clamp_tooltip_pos(pos: Vector2, tooltip_size: Vector2) -> Vector2:
 
 
 func _draw_tooltip_lines(lines: Array, width: float, panel_color: Color, border_color: Color):
-	var tooltip_size = _measure_tooltip(lines, width)
-	var tooltip_pos = _clamp_tooltip_pos(mouse_position + Vector2(15, 15), tooltip_size)
-	var font = ThemeDB.fallback_font
-	var padding = 10.0
-	var text_x = tooltip_pos.x + padding
-	var text_y = tooltip_pos.y + padding
-
-	draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
-	draw_rect(Rect2(tooltip_pos, tooltip_size), border_color, false, 2.0)
-
-	for line in lines:
-		if line.get("spacer", false):
-			text_y += float(line.get("height", 8.0))
-			continue
-
-		var font_size = int(line.get("size", 11))
-		var line_height = _tooltip_line_height(font_size)
-		draw_string(
-			font,
-			Vector2(text_x, text_y + line_height - 2.0),
-			str(line.get("text", "")),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			font_size,
-			line.get("color", Color.WHITE)
-		)
-		text_y += line_height
+	if tooltip_layer != null:
+		tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position)
 
 
 func _measure_tooltip(lines: Array, width: float) -> Vector2:
