@@ -5,7 +5,7 @@ Handles all diplomatic execution: proposals, dialogue, missions, trust reactions
 Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import copy
-from typing import Dict
+from typing import Dict, Optional
 from backend.models.world_state import WorldState
 
 
@@ -82,6 +82,97 @@ class DiplomaticExecutor:
             return self._execute_diplomatic_ultimatum(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
+
+    def _is_pending_objection_dialogue(self, dialogue: Optional[Dict]) -> bool:
+        """Return True when the active dialogue is the pre-send objection branch."""
+        if not dialogue:
+            return False
+        option_actions = {
+            str(opt.get("action", "")).strip()
+            for opt in dialogue.get("options", [])
+        }
+        return {
+            "send_override",
+            "send_suggested",
+            "reconsider",
+        }.issubset(option_actions)
+
+    def handle_diplomatic_objection_response(
+        self,
+        choice: str,
+        game_state: Dict,
+        action: Optional[str] = None,
+        target_nation: Optional[str] = None,
+    ) -> Dict:
+        """Handle the typed Talleyrand objection popup response."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        normalized_choice = str(choice or "").strip().lower()
+        if normalized_choice not in {"proceed", "modify", "cancel"}:
+            return {
+                "success": False,
+                "message": "Invalid diplomatic objection choice. Use proceed, modify, or cancel.",
+            }
+
+        dialogue = world.pending_diplomatic_dialogue
+        if self._is_pending_objection_dialogue(dialogue):
+            if normalized_choice == "proceed":
+                return self.handle_diplomatic_dialogue_response("send_override", game_state)
+            if normalized_choice == "modify":
+                return {
+                    "success": True,
+                    "message": "Very well, Sire. Let us review the proposal again.",
+                    "diplomatic_dialogue": dialogue,
+                    "awaiting_diplomatic_response": True,
+                }
+
+            world.dialogue_manager.pop()
+            return {
+                "success": True,
+                "message": "Very well, Sire. The proposal is cancelled.",
+                "suppress_proposal_result_popup": True,
+            }
+
+        popup_action = str(action or "").strip().lower()
+        popup_target = str(
+            target_nation or (dialogue or {}).get("target_nation", "")
+        ).strip()
+
+        if normalized_choice == "modify":
+            return {
+                "success": True,
+                "message": "Very well, Sire. Reconsider the matter and issue your orders anew.",
+            }
+
+        if normalized_choice == "cancel":
+            return {
+                "success": True,
+                "message": "Very well, Sire. The matter is set aside.",
+                "suppress_proposal_result_popup": True,
+            }
+
+        if popup_action == "diplomatic_declare_war":
+            if not popup_target:
+                return {"success": False, "message": "No target nation specified."}
+            return self._execute_diplomatic_declare_war(
+                {"target_nation": popup_target, "confirmed_objection": True},
+                world,
+            )
+
+        if popup_action == "diplomatic_ultimatum":
+            if not popup_target:
+                return {"success": False, "message": "No target nation specified."}
+            return self._execute_diplomatic_ultimatum(
+                {"target_nation": popup_target, "confirmed_objection": True},
+                world,
+            )
+
+        return {
+            "success": False,
+            "message": "No diplomatic objection is awaiting that response, Sire.",
+        }
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC PROPOSAL
@@ -429,6 +520,7 @@ class DiplomaticExecutor:
     def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
         """Handle war declaration command (R10). Costs 1 DP."""
         from backend.game_logic.diplomacy import declare_war
+        confirmed_objection = bool(diplomatic_data.get("confirmed_objection"))
 
         # Fix 3: Clear previous war declaration objection (it's been handled if we're here again)
         if (world.diplomatic_objection_popup
@@ -503,7 +595,7 @@ class DiplomaticExecutor:
 
         # Talleyrand STRONG objection if target is neutral and threat is high
         threat_level = getattr(world, 'threat_level', 0)
-        if current_state != "WAR" and threat_level > 50:
+        if current_state != "WAR" and threat_level > 50 and not confirmed_objection:
             # Check if objection already pending (don't double-fire)
             if not world.diplomatic_objection_popup:
                 world.diplomatic_objection_popup = {
@@ -546,6 +638,7 @@ class DiplomaticExecutor:
         """
         from backend.game_logic.diplomatic_templates import generate_ultimatum_terms
         from backend.game_logic.diplomatic_dialogue import _enrich_ultimatum_dialogue
+        confirmed_objection = bool(diplomatic_data.get("confirmed_objection"))
 
         target_nation = diplomatic_data.get("target_nation")
         if not target_nation:
@@ -600,7 +693,7 @@ class DiplomaticExecutor:
 
         # Talleyrand STRONG objection if threat is high
         threat_level = getattr(world, 'threat_level', 0)
-        if threat_level > 50 and not world.diplomatic_objection_popup:
+        if threat_level > 50 and not confirmed_objection and not world.diplomatic_objection_popup:
             world.diplomatic_objection_popup = {
                 "type": "talleyrand_objection",
                 "severity": "STRONG",

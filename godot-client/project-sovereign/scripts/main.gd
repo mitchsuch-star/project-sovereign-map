@@ -2893,45 +2893,42 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	api_client.send_dialogue_response(choice, _on_command_result)
 
 func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
-	"""Handle player response to Talleyrand's diplomatic objection."""
+	"""Handle player response to Talleyrand's diplomatic objection.
+	Session 6: Uses a typed objection endpoint instead of synthesized commands."""
 	if choice == "proceed":
 		add_output("[color=#d9c08c]Overriding Talleyrand's objection...[/color]")
-		set_input_enabled(false)
-		# Fix 2: Send action-specific command instead of generic dialogue keyword
-		var action = data.get("action", "")
-		var target = data.get("target_nation", "")
-		if action == "diplomatic_declare_war" and target != "":
-			api_client.send_command("declare war on " + target, _on_command_result)
-		else:
-			api_client.send_command("Talleyrand, proceed with the proposal", _on_command_result)
 	elif choice == "modify":
-		add_output("[color=#d9c08c]Reconsidering the proposal...[/color]")
-		talleyrand_objection_popup.hide()  # Hide before re-enabling input (Fix 9)
-		_update_war_panel_visibility()
-		set_input_enabled(true)
-		command_input.grab_focus()
+		add_output("[color=#d9c08c]Reviewing the proposal again...[/color]")
 	else:
 		add_output("[color=#" + Utils.COLOR_INFO + "]Proposal cancelled.[/color]")
-		set_input_enabled(false)
-		api_client.send_command("Talleyrand, dismiss", _on_command_result)
+	set_input_enabled(false)
+	api_client.send_diplomatic_objection_response(choice, data, _on_command_result)
 
 func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
-	"""Handle player response to sabotage discovery."""
-	var target = data.get("target_nation", "unknown")
-	var command = "Talleyrand, I %s your actions regarding %s" % [choice, target]
+	"""Handle player response to sabotage discovery.
+	Session 6: Uses typed dialogue response instead of synthesized command."""
+	var action = {
+		"confront": "confront_sabotage",
+		"overlook": "overlook_sabotage",
+	}.get(choice, choice)
 	add_output("[color=#d9c08c]%s Talleyrand's sabotage...[/color]" % choice.capitalize())
 	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+	api_client.send_dialogue_response(action, _on_command_result)
 
 # PL-23: _on_talleyrand_redemption_choice removed (trust system deleted)
 
 func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
-	"""Handle player response to vassal rebellion imminent."""
+	"""Handle player response to vassal rebellion imminent.
+	Session 6: Uses typed dialogue response instead of synthesized command."""
+	var action = {
+		"invest": "invest_vassal_rebellion",
+		"garrison": "garrison_vassal_rebellion",
+		"accept": "accept_vassal_rebellion",
+	}.get(choice, choice)
 	var nation = data.get("nation", "unknown")
-	var command = "Talleyrand, %s regarding %s rebellion" % [choice, nation]
 	add_output("[color=#d9c08c]Vassal %s: %s[/color]" % [nation, choice])
 	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+	api_client.send_dialogue_response(action, _on_command_result)
 
 func _on_alliance_paradox_choice(choice: String, data: Dictionary):
 	"""Handle player response to alliance paradox popup (Fix 15).

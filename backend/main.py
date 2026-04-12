@@ -532,6 +532,13 @@ class ObjectionResponse(BaseModel):
     choice: str  # 'trust', 'insist', or 'compromise'
 
 
+class DiplomaticObjectionResponse(BaseModel):
+    """Request model for typed Talleyrand objection popup responses."""
+    choice: str  # 'proceed', 'modify', or 'cancel'
+    action: str | None = None
+    target_nation: str | None = None
+
+
 class RedemptionResponse(BaseModel):
     """Request model for responding to redemption events."""
     choice: str  # 'grant_autonomy', 'dismiss', or 'demand_obedience'
@@ -1294,6 +1301,41 @@ async def respond_to_diplomatic_dialogue(request: dict):
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")
+        import traceback
+        traceback.print_exc()
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
+
+
+@app.post("/respond_to_diplomatic_objection")
+def respond_to_diplomatic_objection(request: DiplomaticObjectionResponse):
+    """Respond to a Talleyrand objection popup without synthesizing a command string."""
+    try:
+        if world.game_over:
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
+
+        result = executor.handle_diplomatic_objection_response(
+            request.choice,
+            game_state,
+            action=request.action,
+            target_nation=request.target_nation,
+        )
+
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Response processed"),
+            events=result.get("events", []),
+        )
+        if result.get("diplomatic_dialogue"):
+            response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+        if result.get("awaiting_diplomatic_response"):
+            response["awaiting_diplomatic_response"] = True
+        return response
+    except Exception as e:
+        print(f"[ERROR] handling diplomatic objection response: {e}")
         import traceback
         traceback.print_exc()
         return build_base_response(

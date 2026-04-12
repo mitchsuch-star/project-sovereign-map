@@ -314,6 +314,44 @@ class TestCommandEndpointDiplomaticFields:
             for call in calls
         )
 
+    def test_enemy_phase_defers_popup_until_followup_request(self, client, fresh_world, main_module, monkeypatch):
+        """Enemy-phase responses must leave choice popups queued for the next request."""
+        calls = {"count": 0}
+        original_execute = main_module.executor.execute
+
+        def _fake_execute(parsed, game_state):
+            if calls["count"] == 0:
+                calls["count"] += 1
+                fresh_world.coalition_popup = {"type": "coalition_formed", "leader": "Austria"}
+                return {
+                    "success": True,
+                    "message": "Enemy nations have acted.",
+                    "enemy_phase": {
+                        "total_actions": 1,
+                        "summary": ["Austria maneuvers."],
+                        "nations": {
+                            "Austria": {
+                                "actions": [{"ai_action": {"action": "attack"}, "events": []}],
+                                "action_count": 1,
+                            }
+                        },
+                    },
+                }
+            return original_execute(parsed, game_state)
+
+        monkeypatch.setattr(main_module.executor, "execute", _fake_execute)
+
+        first = client.post("/command", json={"command": "end turn"})
+        first_data = first.json()
+        assert first_data.get("enemy_phase") is not None
+        assert "coalition_popup" not in first_data or first_data["coalition_popup"] is None
+        assert fresh_world.coalition_popup is not None
+
+        second = client.post("/command", json={"command": "Ney, scout Belgium"})
+        second_data = second.json()
+        assert second_data["coalition_popup"] is not None
+        assert fresh_world.coalition_popup is None
+
     def test_scout_has_diplomatic_fields(self, client, fresh_world):
         response = client.post("/command", json={"command": "Ney, scout Belgium"})
         data = response.json()
@@ -412,6 +450,75 @@ class TestOtherEndpointDiplomaticFields:
         data = response.json()
         for key in DIPLOMATIC_TOPBAR_KEYS:
             assert key in data, f"/respond_to_diplomatic_dialogue missing: {key}"
+
+    def test_diplomatic_objection_has_diplomatic_fields(self, client, fresh_world):
+        """Typed diplomatic objection response should include diplomatic fields."""
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [
+                {"label": "Send my terms", "action": "send_override"},
+                {"label": "Use Talleyrand's suggestion", "action": "send_suggested"},
+                {"label": "Modify terms", "action": "reconsider"},
+            ],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+        response = client.post(
+            "/respond_to_diplomatic_objection",
+            json={"choice": "modify"},
+        )
+        data = response.json()
+        for key in DIPLOMATIC_TOPBAR_KEYS:
+            assert key in data, f"/respond_to_diplomatic_objection missing: {key}"
+
+    def test_diplomatic_objection_modify_replays_dialogue(self, client, fresh_world):
+        """Modify should hand the objection-backed dialogue back to the popup router."""
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [
+                {"label": "Send my terms", "action": "send_override"},
+                {"label": "Use Talleyrand's suggestion", "action": "send_suggested"},
+                {"label": "Modify terms", "action": "reconsider"},
+            ],
+            "context": {"original_proposal": {"proposal_type": "peace"}},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+
+        response = client.post(
+            "/respond_to_diplomatic_objection",
+            json={"choice": "modify"},
+        )
+        data = response.json()
+
+        assert data["success"] is True
+        assert data["awaiting_diplomatic_response"] is True
+        assert data["diplomatic_dialogue"]["target_nation"] == "Prussia"
+        assert len(data["diplomatic_dialogue"]["options"]) == 3
+
+    def test_diplomatic_objection_direct_proceed_bypasses_retrigger(self, client, fresh_world):
+        """Proceed on direct war objections should execute the confirmed action, not loop the popup."""
+        fresh_world.player_nation = "France"
+        fresh_world.threat_level = 70
+        fresh_world.diplomatic_points = 10
+        fresh_world.diplomatic_states[fresh_world._make_diplo_key("France", "Austria")] = "PEACE"
+
+        response = client.post(
+            "/respond_to_diplomatic_objection",
+            json={
+                "choice": "proceed",
+                "action": "diplomatic_declare_war",
+                "target_nation": "Austria",
+            },
+        )
+        data = response.json()
+
+        assert data["success"] is True
+        assert data["diplomatic_objection"] is None
+        assert fresh_world.get_diplomatic_state("France", "Austria") == "WAR"
 
     def test_diplomatic_dialogue_safety_net_rejects_negative_result(self, client, fresh_world, main_module, monkeypatch):
         """Fallback proposal-result popup must not default rejected outcomes to ACCEPT."""
@@ -560,6 +667,24 @@ class TestPopupKeysPresence:
         for key in POPUP_KEYS:
             assert key in data, f"/capture_choice missing popup key: {key}"
 
+    def test_diplomatic_objection_response_has_popup_keys(self, client, fresh_world):
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [
+                {"label": "Send my terms", "action": "send_override"},
+                {"label": "Use Talleyrand's suggestion", "action": "send_suggested"},
+                {"label": "Modify terms", "action": "reconsider"},
+            ],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+        response = client.post("/respond_to_diplomatic_objection", json={"choice": "modify"})
+        data = response.json()
+        for key in POPUP_KEYS:
+            assert key in data, f"/respond_to_diplomatic_objection missing popup key: {key}"
+
 
 class TestActiveWarsPresence:
     """Verify active_wars is in all gameplay responses."""
@@ -581,5 +706,22 @@ class TestActiveWarsPresence:
             "original_order": {"action": "attack"},
         }
         response = client.post("/respond_to_objection", json={"choice": "trust"})
+        data = response.json()
+        assert "active_wars" in data
+
+    def test_diplomatic_objection_response_has_active_wars(self, client, fresh_world):
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [
+                {"label": "Send my terms", "action": "send_override"},
+                {"label": "Use Talleyrand's suggestion", "action": "send_suggested"},
+                {"label": "Modify terms", "action": "reconsider"},
+            ],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+        response = client.post("/respond_to_diplomatic_objection", json={"choice": "modify"})
         data = response.json()
         assert "active_wars" in data

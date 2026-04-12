@@ -204,6 +204,42 @@ class TestObjectionResponseEndpoint:
         assert data.get("objection_resolved") is True
 
 
+class TestDiplomaticObjectionResponseEndpoint:
+    """Test /respond_to_diplomatic_objection endpoint."""
+
+    def test_respond_no_pending(self, client, fresh_world):
+        response = client.post(
+            "/respond_to_diplomatic_objection",
+            json={"choice": "cancel"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+
+    def test_modify_returns_pending_dialogue(self, client, fresh_world):
+        fresh_world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [
+                {"label": "Send my terms", "action": "send_override"},
+                {"label": "Use Talleyrand's suggestion", "action": "send_suggested"},
+                {"label": "Modify terms", "action": "reconsider"},
+            ],
+            "context": {},
+            "turn_created": int(fresh_world.current_turn),
+            "blocking": False,
+        })
+
+        response = client.post(
+            "/respond_to_diplomatic_objection",
+            json={"choice": "modify"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["diplomatic_dialogue"]["target_nation"] == "Prussia"
+
+
 class TestCaptureChoiceEndpoint:
     """Test /capture_choice endpoint."""
 

@@ -128,6 +128,15 @@ func send_objection_response(choice: String, callback: Callable):
 	_send_post("/respond_to_objection", {"choice": choice}, callback)
 
 
+func send_diplomatic_objection_response(choice: String, data: Dictionary, callback: Callable):
+	var body = {"choice": choice}
+	if data.has("action"):
+		body["action"] = data.get("action")
+	if data.has("target_nation"):
+		body["target_nation"] = data.get("target_nation")
+	_send_post("/respond_to_diplomatic_objection", body, callback)
+
+
 func send_redemption_response(choice: String, callback: Callable):
 	_send_post("/respond_to_redemption", {"choice": choice}, callback)
 
