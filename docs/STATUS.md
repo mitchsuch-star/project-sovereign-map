@@ -42,6 +42,8 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Next up inside Session 6:** popup routing registry cleanup in `main.gd`, then turn-manager popup-flush workaround removal. The typed-dialogue queue is now complete: `incoming_proposal`, `alliance_paradox`, `talleyrand_objection`, `sabotage_discovery`, and `vassal_rebellion` all route through typed endpoints/actions.
 
+**Queued audit follow-up for that next commit:** fold in the remaining `/command` manual-field-layering reduction work (the current maintenance seam on the main response path) and add a positive regression test proving notifications are still included during enemy-phase responses while choice popups remain deferred.
+
 Session 6 slice 1 landed as planned: `build_base_response()` now owns `active_wars` as well as the standard gameplay envelope, and `/command` now starts from that shared builder with explicit flags that preserve popup/notification deferral for enemy-phase responses.
 
 Session 6 slice 2 landed next: added a typed `/respond_to_diplomatic_objection` path for Talleyrand objections, migrated the remaining Godot diplomacy popup handlers off synthesized commands, and added regression coverage for direct objection proceed flow plus the enemy-phase deferred-popup follow-up path. Audit prompt: `docs/SESSION6_TYPED_DIALOGUE_AUDIT_PROMPT.md`.
