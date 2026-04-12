@@ -54,6 +54,7 @@ The current implementation contains a live design contradiction:
 
 - `DialogueManager` classifies `incoming_proposal`, `counter_offer`, `counter_offer_response`, and `conflict_alert` as mailbox soft-stops that do not block ordinary commands (note: this refactor reclassifies `conflict_alert` as local planning — see §7)
 - `get_available_diplomatic_actions()` still returns no diplomacy actions whenever `pending_diplomatic_dialogue` exists at all
+- `/diplomatic_preview` and the diplomacy wizard still treat any pending dialogue as a blanket stop
 - mailbox items are exempt from generic stale clearing, so they can persist indefinitely
 
 The result is a system that is neither a clean modal interruption nor a clean asynchronous inbox.
@@ -126,14 +127,16 @@ That block does **not** apply to ordinary commands such as:
 If the player issues `end turn` while unresolved current-turn diplomatic offers exist, the game must show a confirmation prompt before advancing:
 
 > **You have N unanswered envoy(s) that will lapse. End turn anyway?**
-> `[End Turn]` `[Review]`
+> `[End Turn]` `[Open Envoys]`
 
 - `End Turn` proceeds normally — offers lapse per §3
-- `Review` cancels the end-turn and returns control so the player can reopen the envoy tray
+- `Open Envoys` cancels the end-turn and opens the envoy tray immediately
+
+`[Review]` is an acceptable fallback label if opening the tray directly is awkward in Godot, but direct tray-open is preferred.
 
 This prevents accidental lapse. It is a soft gate, not a hard block — the player can always choose to let offers lapse deliberately.
 
-Implementation: this is a client-side confirmation before the `/command` POST fires, not a backend blocking rule. The backend still processes end-turn unconditionally.
+Implementation: this confirmation must cover all player-facing end-turn entry points: button click, hotkey, and typed `end turn`. The backend should still permit end turn when only current-turn offers are pending; only true hard-stop dialogues should block end turn server-side.
 
 ### 6. Reopen Surface
 
@@ -181,6 +184,7 @@ Minimum required wording changes:
 
 - add end-turn confirmation prompt:
   - `You have N unanswered envoy(s) that will lapse. End turn anyway?`
+  - preferred secondary button text: `Open Envoys`
 
 The important point is semantic clarity: this is a same-turn pending-offer system, not an inbox archive.
 
@@ -224,9 +228,16 @@ That block should key off:
 
 It should not be a blanket `pending_diplomatic_dialogue is not None` rule.
 
+This same predicate must drive:
+
+- diplomacy wizard nation list / preview surfaces
+- diplomacy button and hotkey enablement
+- backend preview APIs
+- any non-diplomatic command guards that currently key off any pending dialogue
+
 ### Cleanup Rule
 
-`clear_stale()` or a successor helper must change for current-turn offer items.
+`clear_stale()` and a successor helper must split responsibilities cleanly.
 
 Current behavior:
 
@@ -238,15 +249,25 @@ Target behavior:
 - local planning popups still clear when dismissed
 - hard-stop safety-valve behavior remains unchanged
 
-The lapse must happen during end-turn processing, not during `clear_stale()` generic expiry. The cleanest hook point is inside `advance_turn()` in `world_state.py`, before the turn counter increments — call a dedicated `lapse_pending_offers()` on the dialogue manager that pops all current-turn offer types and returns them for campaign-log recording.
+The lapse must happen during end-turn processing, not during `clear_stale()` generic expiry. The preferred hook point is at the start of `TurnManager.end_turn()`, before enemy phase, AI diplomacy, or turn-counter advance. Call a dedicated `lapse_pending_offers()` on the dialogue manager there, use its return value for campaign-log recording, and clear any paired incoming-popup cache at the same time.
+
+`clear_stale()` should remain responsible for generic cleanup only:
+
+- local-planning dismissal rules
+- non-offer non-blocking stale cleanup
+- hard-stop safety-valve timeout
 
 ### Save/Load Migration
 
 Old saves may contain persistent mailbox items with no turn boundary. On load:
 
 - any dialogue items with types in the current-turn offer family should be treated as current-turn items for the loaded turn
+- normalize their `turn_created` to the loaded turn so the tray shows them as current-turn arrivals
+- normalize their old mailbox-era blocking semantics so they no longer hard-block end turn or ordinary commands
 - they follow the same lapse-on-end-turn rule as newly created offers
 - no special migration field is needed — the type alone determines the lifetime rule
+
+Legacy `conflict_alert` mailbox items should not survive as envoy-tray content. They should either be discarded on load or converted into local planning state if that is trivial and safe.
 
 ### Logging Rule
 
@@ -282,9 +303,16 @@ If a visible rename is cheap, prefer `Envoys` over `Mailbox`.
 Client-side gate per §5. Before sending the `end turn` command, check for pending current-turn diplomatic offers via the envoy count. If any exist, show a confirmation dialog:
 
 - `[End Turn]` sends the command
-- `[Review]` cancels and returns focus to the terminal
+- `[Open Envoys]` cancels and opens the envoy tray
+- `[Review]` may be used only as a fallback label if direct tray-open is awkward
 
-This is purely frontend — the backend processes end-turn unconditionally regardless.
+This must apply consistently to:
+
+- end-turn button
+- end-turn hotkey
+- typed `end turn`
+
+The backend must not independently hard-block end turn for current-turn offer types.
 
 ### Diplomacy Button State
 
@@ -307,18 +335,29 @@ Primary code surfaces:
 - `backend/game_logic/diplomacy.py`
 - `backend/main.py`
 - `backend/game_logic/turn_manager.py`
+- `backend/commands/meta_executor.py`
 - `backend/commands/diplomatic_executor.py`
 - `godot-client/project-sovereign/scripts/main.gd`
+- `godot-client/project-sovereign/scripts/diplomacy_wizard.gd`
 - `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`
 - `godot-client/project-sovereign/scripts/mailbox_panel.gd`
 - `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`
+- `godot-client/project-sovereign/scripts/top_bar.gd`
+
+Secondary but real surfaces:
+
+- `backend/game_logic/diplomatic_ledger.py`
+- `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`
 
 Implementation notes:
 
 - `conflict_alert` is currently created with `blocking=True` and classified as `SOFT_STOP_MAILBOX_TYPE`. Both must change: move it to local planning types and ensure dismiss clears it immediately.
-- `get_available_diplomatic_actions()` in `diplomacy.py` currently blocks on `pending_diplomatic_dialogue is not None`. Must be narrowed to block only on current-turn offer types and hard-stop types.
-- `ask_later` handler in `diplomatic_executor.py` currently relies on NOT popping the dialogue. `Not Now` can keep this mechanic — the item stays in the dialogue manager — but the mailbox exemption in `clear_stale()` must be removed so the item lapses at turn end.
+- `get_available_diplomatic_actions()` in `diplomacy.py` currently blocks on `pending_diplomatic_dialogue is not None`. `/diplomatic_preview` and `diplomacy_wizard.gd` also use blanket `dialogue_pending` checks. All must be narrowed together behind one shared rule.
+- `ask_later` handler in `diplomatic_executor.py` currently relies on NOT popping the dialogue. `Not Now` can keep this mechanic — the item stays in the dialogue manager until end-turn lapse.
 - `/mailbox` and `/mailbox/activate` endpoints in `main.py` continue to work but now return only current-turn items. `/pending_envoy` recovery endpoint remains for popup re-display.
+- `meta_executor._execute_end_turn()` currently blocks on any pending dialogue with `blocking=True`. That must be narrowed so current-turn offers do not backend-block end turn.
+- `WorldState.from_dict()` / `DialogueManager.from_dict()` need explicit load normalization for current-turn offer types; type-only classification is not enough if old saves preserve stale `turn_created` and `blocking` values.
+- `/cancel_order` and any similar non-diplomatic command guards must stop keying off any pending dialogue if the active item is only a current-turn offer.
 
 Primary test surfaces:
 
@@ -328,6 +367,12 @@ Primary test surfaces:
 - `tests/test_session4_diplomacy.py`
 - `tests/test_audit_session4.py`
 
+Additional likely break surfaces:
+
+- `tests/test_dialogue_manager.py`
+- `tests/test_systems_v3_session6.py`
+- `tests/test_audit_part1.py`
+
 ---
 
 ## Acceptance Criteria
@@ -335,12 +380,16 @@ Primary test surfaces:
 - unresolved `incoming_proposal` / `counter_offer` / `counter_offer_response` items can be dismissed with `Not Now` and reopened during the same turn
 - those items automatically lapse on end turn if unanswered
 - diplomacy initiation stays blocked while those unanswered items exist during the current turn
+- diplomacy wizard, backend preview, diplomacy button, and diplomacy hotkey all use the same narrowed block rule
 - ordinary non-diplomatic commands remain usable while those items are pending
-- `end turn` with pending offers shows a confirmation prompt before advancing
+- `end turn` with pending offers shows a confirmation prompt before advancing on button, hotkey, and typed-command paths
+- backend end turn is not hard-blocked by current-turn offers; only true hard-stop dialogues still block it
 - `conflict_alert` is treated as local planning — dismiss clears it, no envoy tray entry, no lapse log
+- `/pending_envoy`, `/mailbox`, tray count, and ledger pending-envoy count exclude `conflict_alert`
 - `proposal_confirm`-family planning popups are not stored as cross-turn envoy items
 - `proposal_result` still persists until acknowledged
 - the top-bar count and tray contents clear correctly after turn-end lapse
+- loaded saves normalize current-turn offer items to the loaded turn and do not preserve old hard-block semantics
 - lapse events are recorded instead of disappearing silently
 
 ---
@@ -361,10 +410,10 @@ Those concerns become less urgent once cross-turn offer persistence is removed.
 ## Recommended Implementation Order
 
 1. Change the documented semantics first: current-turn envoy items, not persistent mailbox items.
-2. Rework backend lifetime cleanup: add `lapse_pending_offers()` to dialogue manager, call from `advance_turn()`, remove mailbox exemption from `clear_stale()`.
+2. Rework backend lifetime cleanup: add `lapse_pending_offers()` to dialogue manager and call it from `TurnManager.end_turn()` before enemy phase / AI diplomacy. Keep `clear_stale()` focused on generic local-planning cleanup and hard-stop timeout behavior.
 3. Reclassify `conflict_alert` from `SOFT_STOP_MAILBOX_TYPES` to local planning. Remove `blocking=True` from its creation in `diplomatic_executor.py`.
-4. Tighten diplomacy gating: `get_available_diplomatic_actions()` blocks on current-turn offer types and hard-stops only, not blanket `pending_diplomatic_dialogue`.
+4. Tighten diplomacy gating: `get_available_diplomatic_actions()`, preview APIs, wizard gating, and diplomacy-button state all block on current-turn offer types and true hard-stops only, not blanket `pending_diplomatic_dialogue`.
 5. Rename the defer action to `Not Now` across the relevant popup paths.
 6. Reuse the existing mailbox panel as the same-turn envoy tray and clear it automatically at turn end.
-7. Add end-turn confirmation in Godot client: prompt when pending offers exist before sending end-turn command.
+7. Add end-turn confirmation in Godot client for button, hotkey, and typed-command paths, and narrow backend end-turn blocking so current-turn offers do not stop it.
 8. Add regression tests for same-turn reopen, end-turn lapse, diplomacy re-enable, conflict_alert dismiss, save/load migration, and campaign-log recording.
