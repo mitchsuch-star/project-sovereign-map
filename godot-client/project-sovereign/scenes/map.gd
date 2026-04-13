@@ -1,5 +1,7 @@
 extends "res://scenes/map_renderer_base.gd"
 
+const PLACEHOLDER_PROVINCE_DEFINITION_PATH = "res://assets/maps/session8_placeholder_provinces.json"
+
 # Region positions on map (19 regions)
 const REGION_POSITIONS = {
 	"Paris": Vector2(300, 350),
@@ -68,3 +70,7 @@ func _get_region_connections() -> Dictionary:
 
 func _get_colors() -> Dictionary:
 	return COLORS
+
+
+func _get_map_asset_definition_path() -> String:
+	return PLACEHOLDER_PROVINCE_DEFINITION_PATH

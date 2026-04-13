@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "padding": 140,
+  "no_province_color": [0, 0, 0],
+  "regions": {
+    "Paris": {
+      "anchor": [300, 350],
+      "radius": 72,
+      "lookup_color": [179, 68, 55],
+      "visual_tint": [147, 118, 92]
+    },
+    "Belgium": {
+      "anchor": [400, 250],
+      "radius": 58,
+      "lookup_color": [198, 97, 34],
+      "visual_tint": [149, 125, 93]
+    },
+    "Netherlands": {
+      "anchor": [450, 150],
+      "radius": 54,
+      "lookup_color": [210, 137, 52],
+      "visual_tint": [158, 139, 103]
+    },
+    "Waterloo": {
+      "anchor": [500, 300],
+      "radius": 46,
+      "lookup_color": [180, 158, 50],
+      "visual_tint": [143, 139, 104]
+    },
+    "Rhineland": {
+      "anchor": [600, 300],
+      "radius": 60,
+      "lookup_color": [120, 165, 62],
+      "visual_tint": [123, 143, 102]
+    },
+    "Bavaria": {
+      "anchor": [750, 400],
+      "radius": 58,
+      "lookup_color": [62, 146, 91],
+      "visual_tint": [110, 138, 107]
+    },
+    "Vienna": {
+      "anchor": [1000, 450],
+      "radius": 72,
+      "lookup_color": [44, 146, 136],
+      "visual_tint": [103, 138, 125]
+    },
+    "Lyon": {
+      "anchor": [400, 500],
+      "radius": 66,
+      "lookup_color": [50, 132, 190],
+      "visual_tint": [102, 128, 144]
+    },
+    "Marseille": {
+      "anchor": [350, 650],
+      "radius": 60,
+      "lookup_color": [84, 110, 210],
+      "visual_tint": [114, 124, 154]
+    },
+    "Milan": {
+      "anchor": [700, 600],
+      "radius": 60,
+      "lookup_color": [131, 84, 199],
+      "visual_tint": [135, 115, 152]
+    },
+    "Brittany": {
+      "anchor": [150, 400],
+      "radius": 50,
+      "lookup_color": [173, 79, 170],
+      "visual_tint": [145, 116, 140]
+    },
+    "Bordeaux": {
+      "anchor": [200, 600],
+      "radius": 54,
+      "lookup_color": [210, 94, 148],
+      "visual_tint": [159, 119, 130]
+    },
+    "Normandy": {
+      "anchor": [200, 250],
+      "radius": 50,
+      "lookup_color": [122, 74, 74],
+      "visual_tint": [127, 112, 103]
+    },
+    "Hanover": {
+      "anchor": [650, 150],
+      "radius": 56,
+      "lookup_color": [119, 107, 42],
+      "visual_tint": [133, 126, 96]
+    },
+    "Berlin": {
+      "anchor": [800, 100],
+      "radius": 70,
+      "lookup_color": [74, 102, 47],
+      "visual_tint": [112, 124, 95]
+    },
+    "Saxony": {
+      "anchor": [700, 250],
+      "radius": 64,
+      "lookup_color": [62, 116, 89],
+      "visual_tint": [108, 123, 106]
+    },
+    "Dresden": {
+      "anchor": [800, 300],
+      "radius": 56,
+      "lookup_color": [67, 134, 148],
+      "visual_tint": [102, 129, 132]
+    },
+    "Bohemia": {
+      "anchor": [850, 200],
+      "radius": 60,
+      "lookup_color": [98, 78, 143],
+      "visual_tint": [126, 114, 139]
+    },
+    "Tyrol": {
+      "anchor": [800, 500],
+      "radius": 52,
+      "lookup_color": [150, 96, 72],
+      "visual_tint": [139, 119, 103]
+    }
+  }
+}

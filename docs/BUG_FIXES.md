@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (Session 7 scale-sensitive backend hardening complete: nation defaults now live in shared config, AI contact scans use cached fog-aware seams, and unsupported scenario nation rosters are rejected before load. Sessions 1-7 are complete; Session 8 renderer prep is now the routed next step.)
+> Last Updated: April 12, 2026 (Session 8 renderer cutover slice 2 complete: the current 19-region Godot map now has a placeholder province-definition asset, visible background map layer, hidden color-map lookup image, and province-sampled hover/click identity while preserving `update_all_regions(map_data)` for `main.gd`. Sessions 1-7 are complete; remaining Session 8 work is commissioned art integration, Camera2D/input cutover, and final Godot smoke validation.)
 
 ---
 
@@ -51,6 +51,8 @@
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
 
 **Current Session 7 progress:** COMPLETE. Shared nation config now drives world bootstrap/save migration/non-France restart flows, diplomacy and advisory surfaces no longer stamp France into runtime state, enemy AI contact scans now route through cached fog-aware helpers, and scenario validation rejects unsupported nation rosters before `from_scenario()` load.
+
+**Current Session 8 progress:** Cutover slices 1-2 COMPLETE. The renderer now has shared scene-node layers, a placeholder province-definition asset, visible background map/province highlight layers, and a hidden color-map lookup path for the current 19-region shell while keeping the existing `update_all_regions(map_data)` contract stable. Remaining work is commissioned art-backed layers, Camera2D/input cutover, and final Godot runtime smoke validation.
 
 **Session 6 audit prompt:** `docs/SESSION6_COMMAND_LAYERING_AUDIT_PROMPT.md`.
 

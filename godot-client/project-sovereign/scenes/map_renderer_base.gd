@@ -1,5 +1,8 @@
 extends Control
 
+signal region_hovered(region_name)
+signal region_clicked(region_name)
+
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
 
@@ -13,6 +16,8 @@ const MARSHAL_ICON_Y_OFFSET: float = -50.0
 const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
+const DEFAULT_MAP_PADDING: float = 140.0
+const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
 	"partial": Color(0.15, 0.15, 0.2, 0.3),
@@ -53,10 +58,20 @@ var region_layer: Control
 var force_layer: Control
 var garrison_layer: Control
 var tooltip_layer
+var visual_map_layer: TextureRect
+var highlight_map_layer: TextureRect
 
 var region_nodes := {}
 var marshal_hitboxes: Array = []
 var fogged_force_hitboxes: Array = []
+var province_definition := {}
+var province_shapes := {}
+var province_color_lookup := {}
+var province_lookup_image: Image = null
+var visual_map_texture = null
+var highlight_map_texture = null
+var map_origin: Vector2 = Vector2.ZERO
+var map_canvas_size: Vector2 = Vector2.ZERO
 
 
 func _get_region_positions() -> Dictionary:
@@ -75,8 +90,13 @@ func _get_capital_regions() -> Array:
 	return DEFAULT_CAPITAL_REGIONS.duplicate()
 
 
+func _get_map_asset_definition_path() -> String:
+	return ""
+
+
 func _ready():
 	_initialize_map()
+	_initialize_map_assets()
 	_create_scene_layers()
 	_build_static_map_visuals()
 	_center_view_on_map()
@@ -93,6 +113,196 @@ func _initialize_map():
 	region_full_data = {}
 
 
+func _initialize_map_assets():
+	province_definition = _load_province_definition()
+	_build_province_shapes()
+	_build_map_textures()
+
+
+func _load_province_definition() -> Dictionary:
+	var definition_path = _get_map_asset_definition_path()
+	if definition_path == "":
+		return {}
+
+	if not FileAccess.file_exists(definition_path):
+		push_warning("Map province definition missing: %s" % definition_path)
+		return {}
+
+	var file = FileAccess.open(definition_path, FileAccess.READ)
+	if file == null:
+		push_warning("Could not open province definition: %s" % definition_path)
+		return {}
+
+	var parsed = JSON.parse_string(file.get_as_text())
+	if not (parsed is Dictionary):
+		push_warning("Province definition is not a dictionary: %s" % definition_path)
+		return {}
+
+	return parsed
+
+
+func _build_province_shapes():
+	province_shapes.clear()
+	province_color_lookup.clear()
+	map_origin = Vector2.ZERO
+	map_canvas_size = Vector2.ZERO
+	province_lookup_image = null
+	visual_map_texture = null
+	highlight_map_texture = null
+
+	var positions = _get_region_positions()
+	if positions.is_empty():
+		return
+
+	var regions = province_definition.get("regions", {})
+	var padding = float(province_definition.get("padding", DEFAULT_MAP_PADDING))
+	var min_x = INF
+	var max_x = -INF
+	var min_y = INF
+	var max_y = -INF
+
+	for region_name in positions:
+		var center: Vector2 = positions[region_name]
+		var region_data: Dictionary = regions.get(region_name, {})
+		if region_data.has("anchor"):
+			center = _vector_from_array(region_data.get("anchor", []), center)
+		var radius = float(region_data.get("radius", REGION_RADIUS * 1.8))
+		var lookup_color = _color_from_rgb_array(region_data.get("lookup_color", []), _fallback_lookup_color(region_name))
+		var visual_tint = _color_from_rgb_array(region_data.get("visual_tint", []), lookup_color.lightened(0.45))
+
+		province_shapes[region_name] = {
+			"center": center,
+			"radius": radius,
+			"lookup_color": lookup_color,
+			"visual_tint": visual_tint,
+		}
+		province_color_lookup[_color_to_key(lookup_color)] = region_name
+
+		min_x = min(min_x, center.x - radius)
+		max_x = max(max_x, center.x + radius)
+		min_y = min(min_y, center.y - radius)
+		max_y = max(max_y, center.y + radius)
+
+	map_origin = Vector2(min_x - padding, min_y - padding)
+	map_canvas_size = Vector2(
+		max(1.0, (max_x - min_x) + padding * 2.0),
+		max(1.0, (max_y - min_y) + padding * 2.0)
+	)
+
+
+func _build_map_textures():
+	if province_shapes.is_empty() or map_canvas_size == Vector2.ZERO:
+		return
+
+	var image_width = max(1, int(ceil(map_canvas_size.x)))
+	var image_height = max(1, int(ceil(map_canvas_size.y)))
+	var visual_image = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	visual_image.fill(Color(0.12, 0.13, 0.14, 1.0))
+	var color_map = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	color_map.fill(NO_PROVINCE_COLOR)
+
+	for region_name in province_shapes:
+		var shape: Dictionary = province_shapes[region_name]
+		var center: Vector2 = shape["center"] - map_origin
+		var radius = float(shape["radius"])
+		_draw_circle_on_image(visual_image, center + Vector2(8.0, 10.0), radius + 2.0, Color(0.0, 0.0, 0.0, 0.18))
+		_draw_circle_on_image(visual_image, center, radius, shape["visual_tint"])
+		_draw_circle_outline_on_image(visual_image, center, radius, Color(0.2, 0.18, 0.16, 0.9), 3)
+		_draw_circle_on_image(color_map, center, radius, shape["lookup_color"])
+
+	province_lookup_image = color_map
+	visual_map_texture = ImageTexture.create_from_image(visual_image)
+	_clear_highlight_texture()
+
+
+func _vector_from_array(values, fallback: Vector2) -> Vector2:
+	if values is Array and values.size() >= 2:
+		return Vector2(float(values[0]), float(values[1]))
+	return fallback
+
+
+func _color_from_rgb_array(values, fallback: Color) -> Color:
+	if values is Array and values.size() >= 3:
+		return Color8(int(values[0]), int(values[1]), int(values[2]), 255)
+	return fallback
+
+
+func _fallback_lookup_color(region_name: String) -> Color:
+	var hash_value = abs(region_name.hash())
+	return Color8(
+		55 + (hash_value % 180),
+		55 + (int(hash_value / 3) % 180),
+		55 + (int(hash_value / 7) % 180),
+		255
+	)
+
+
+func _color_to_key(color: Color) -> String:
+	return "%s,%s,%s" % [
+		int(round(color.r * 255.0)),
+		int(round(color.g * 255.0)),
+		int(round(color.b * 255.0)),
+	]
+
+
+func _draw_circle_on_image(image: Image, center: Vector2, radius: float, color: Color):
+	var start_x = max(0, int(floor(center.x - radius)))
+	var end_x = min(image.get_width() - 1, int(ceil(center.x + radius)))
+	var start_y = max(0, int(floor(center.y - radius)))
+	var end_y = min(image.get_height() - 1, int(ceil(center.y + radius)))
+	var radius_sq = radius * radius
+
+	for y in range(start_y, end_y + 1):
+		for x in range(start_x, end_x + 1):
+			var delta = Vector2(float(x) + 0.5, float(y) + 0.5) - center
+			if delta.length_squared() <= radius_sq:
+				image.set_pixel(x, y, color)
+
+
+func _draw_circle_outline_on_image(image: Image, center: Vector2, radius: float, color: Color, width: int = 2):
+	var outer_radius = radius
+	var inner_radius = max(radius - float(width), 0.0)
+	var outer_sq = outer_radius * outer_radius
+	var inner_sq = inner_radius * inner_radius
+	var start_x = max(0, int(floor(center.x - outer_radius)))
+	var end_x = min(image.get_width() - 1, int(ceil(center.x + outer_radius)))
+	var start_y = max(0, int(floor(center.y - outer_radius)))
+	var end_y = min(image.get_height() - 1, int(ceil(center.y + outer_radius)))
+
+	for y in range(start_y, end_y + 1):
+		for x in range(start_x, end_x + 1):
+			var delta = Vector2(float(x) + 0.5, float(y) + 0.5) - center
+			var dist_sq = delta.length_squared()
+			if dist_sq <= outer_sq and dist_sq >= inner_sq:
+				image.set_pixel(x, y, color)
+
+
+func _clear_highlight_texture():
+	highlight_map_texture = null
+	if highlight_map_layer != null:
+		highlight_map_layer.texture = null
+
+
+func _refresh_highlight_texture():
+	if highlight_map_layer == null:
+		return
+	if hovered_region == "" or not province_shapes.has(hovered_region) or map_canvas_size == Vector2.ZERO:
+		_clear_highlight_texture()
+		return
+
+	var image_width = max(1, int(ceil(map_canvas_size.x)))
+	var image_height = max(1, int(ceil(map_canvas_size.y)))
+	var highlight_image = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	highlight_image.fill(Color(0, 0, 0, 0))
+	var shape: Dictionary = province_shapes[hovered_region]
+	var center: Vector2 = shape["center"] - map_origin
+	var radius = float(shape["radius"]) + 5.0
+	_draw_circle_on_image(highlight_image, center, radius, Color(1.0, 0.94, 0.78, 0.12))
+	_draw_circle_outline_on_image(highlight_image, center, radius, Color(1.0, 0.9, 0.62, 0.85), 4)
+	highlight_map_texture = ImageTexture.create_from_image(highlight_image)
+	highlight_map_layer.texture = highlight_map_texture
+
+
 func _create_scene_layers():
 	world_layer = Control.new()
 	world_layer.name = "WorldLayer"
@@ -100,6 +310,28 @@ func _create_scene_layers():
 	world_layer.show_behind_parent = true
 	world_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(world_layer)
+
+	visual_map_layer = TextureRect.new()
+	visual_map_layer.name = "VisualMapLayer"
+	visual_map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visual_map_layer.position = map_origin
+	visual_map_layer.size = map_canvas_size
+	visual_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
+	visual_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	visual_map_layer.z_index = -2
+	visual_map_layer.texture = visual_map_texture
+	world_layer.add_child(visual_map_layer)
+
+	highlight_map_layer = TextureRect.new()
+	highlight_map_layer.name = "ProvinceHighlightLayer"
+	highlight_map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	highlight_map_layer.position = map_origin
+	highlight_map_layer.size = map_canvas_size
+	highlight_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
+	highlight_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	highlight_map_layer.z_index = -1
+	highlight_map_layer.texture = highlight_map_texture
+	world_layer.add_child(highlight_map_layer)
 
 	connection_layer = MapConnectionLayer.new()
 	connection_layer.name = "ConnectionLayer"
@@ -447,6 +679,12 @@ func _clear_children(node: Node):
 
 
 func _center_view_on_map():
+	if map_canvas_size != Vector2.ZERO:
+		var asset_center = map_origin + map_canvas_size / 2.0
+		if size.x > 0 and size.y > 0:
+			pan_offset = size / 2.0 - asset_center
+		return
+
 	var positions = _get_region_positions()
 	if positions.is_empty():
 		return
@@ -510,14 +748,41 @@ func _apply_view_transform():
 	queue_redraw()
 
 
+func _screen_to_map_position(screen_position: Vector2) -> Vector2:
+	return (screen_position - pan_offset) / zoom_level
+
+
 func _get_map_mouse_position() -> Vector2:
-	return (mouse_position - pan_offset) / zoom_level
+	return _screen_to_map_position(mouse_position)
+
+
+func _set_hovered_region(region_name: String):
+	if hovered_region == region_name:
+		return
+	hovered_region = region_name
+	_refresh_highlight_texture()
+	region_hovered.emit(hovered_region)
+
+
+func _lookup_region_from_color_map(map_position: Vector2) -> String:
+	if province_lookup_image == null:
+		return ""
+
+	var local_position = map_position - map_origin
+	var pixel_x = int(floor(local_position.x))
+	var pixel_y = int(floor(local_position.y))
+	if pixel_x < 0 or pixel_y < 0:
+		return ""
+	if pixel_x >= province_lookup_image.get_width() or pixel_y >= province_lookup_image.get_height():
+		return ""
+
+	var pixel = province_lookup_image.get_pixel(pixel_x, pixel_y)
+	return province_color_lookup.get(_color_to_key(pixel), "")
 
 
 func _refresh_hover_state():
 	hovered_marshal = {}
 	hovered_fogged_force = {}
-	hovered_region = ""
 
 	var map_mouse = _get_map_mouse_position()
 	var positions = _get_region_positions()
@@ -525,17 +790,26 @@ func _refresh_hover_state():
 	for hitbox in marshal_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_marshal = hitbox["marshal"]
+			_set_hovered_region("")
 			return
 
 	for hitbox in fogged_force_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_fogged_force = hitbox["force"]
+			_set_hovered_region("")
 			return
+
+	var color_map_region = _lookup_region_from_color_map(map_mouse)
+	if color_map_region != "":
+		_set_hovered_region(color_map_region)
+		return
 
 	for region_name in positions:
 		if map_mouse.distance_to(positions[region_name]) <= REGION_RADIUS:
-			hovered_region = region_name
+			_set_hovered_region(region_name)
 			return
+
+	_set_hovered_region("")
 
 
 func _gui_input(event):
@@ -559,6 +833,13 @@ func _gui_input(event):
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
 			is_panning = true
 			pan_start_pos = event.position
+			return
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
+			if clicked_region == "":
+				clicked_region = hovered_region
+			if clicked_region != "":
+				region_clicked.emit(clicked_region)
 			return
 
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
