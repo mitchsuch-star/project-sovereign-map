@@ -504,6 +504,15 @@ Default v0.1 scope:
 
 This keeps Saxony / Dresden type cases possible without opening the door to giant map-spanning barter.
 
+### 9.4.1 Wizard fit
+
+To keep the diplomacy wizard legible:
+
+- outbound player-authored promise construction stays deferred for v0.1
+- when a treaty package contains `territorial_promise`, the wizard should insert a mandatory **Promise review** stage before send / accept
+- Promise review should show the exact regions, beneficiary, deadline, source treaty, and the main likely political loser
+- this remains a bilateral treaty review flow, not a hidden substitute for multilateral settlement allocation
+
 ### 9.5 Promise lifecycle
 
 On treaty ratification, create a tracked commitment:
@@ -763,6 +772,16 @@ Add to Nations / Talleyrand tabs:
 
 ### 12.2 Proposal preview / Talleyrand advisory
 
+Add a dedicated **Political context** panel to the proposal preview / ratification surface.
+
+It should surface:
+
+- active rivals relevant to the target nation
+- France's current strategic focus recommendation
+- `trusted_partner` upside where applicable
+- any active promise skepticism or betrayal memory affecting the offer
+- the nation most likely to be angered if France proceeds
+
 Before ratification, Talleyrand should warn:
 
 - "This will anger Austria."
@@ -770,6 +789,11 @@ Before ratification, Talleyrand should warn:
 - "We cannot bind both rivals without choosing."
 - "If we choose Prussia here, Austria is likely lost to us for some time."
 - "Our best current diplomatic line is Prussia and Saxony, not Austria and Prussia together."
+
+Warning severity:
+
+- hard stop: `commitment_paradox`, or a treaty state that would silently create an invalid military alignment
+- soft warning / strong confirm: rivalry anger, strategic-focus tradeoff, trusted-partner upside, promise skepticism, and likely third-party fallout
 
 ### 12.3 Treaty display
 

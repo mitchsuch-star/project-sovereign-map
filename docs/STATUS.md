@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the docs now record the completed diplomacy contract work: Envoys inbox/mailbox flow, current-turn offer lifetime refactor, backend-owned display labels, `/command` response refactor, typed dialogue migration, and popup routing registry. The next five diplomacy refinement items are now queued as spec-needed system tracks.)
+> **Last Updated:** April 13, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the docs now also record the diplomacy-wizard audit call: keep normal diplomacy bilateral, integrate commitments through preview/review/hard-stop surfaces, and route common peace plus ally settlement through a dedicated wartime settlement flow. The next five diplomacy refinement items remain queued as spec-needed system tracks.)
 
 ---
 
@@ -108,6 +108,8 @@ These are existing audit items broken into implementation order. They stay after
 | 3 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
 | 4 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
 | 5 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
+
+**Audit call (Apr 13):** the existing conversational diplomacy wizard should remain the home for normal diplomacy, separate peace, and bilateral commitment review. Common peace, ally beneficiaries, and conference-style settlement allocation should route through a dedicated wartime settlement flow instead of being overloaded into the nation -> proposal -> terms loop.
 
 **Follow-up note:** `R162` (AI ultimatums to player) is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above exist. It adds interruption surface before the underlying diplomacy has enough political weight.
 

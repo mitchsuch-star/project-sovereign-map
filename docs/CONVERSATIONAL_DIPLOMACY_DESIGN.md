@@ -305,6 +305,35 @@ pending_diplomatic_dialogue = {
 ```
 On game load, if `type == "clause_selection"`, the Godot client re-displays the clause builder with `current_clauses` pre-populated. This survives save/load because all values are primitives (str, int, list of dicts).
 
+### 3b.1 Boundary for upcoming diplomacy systems
+
+The standard conversational proposal loop remains **bilateral and nation-scoped**.
+
+Use this flow for:
+
+- ordinary treaty upgrades and downgrades
+- separate peace
+- bilateral promises that are already fully specified by the AI
+
+Do **not** overload this loop with war-conference state. If the player must:
+
+- choose which allies matter in settlement
+- compare contribution shares
+- allocate spoils to ally beneficiaries
+- resolve promise fulfillment across a whole war settlement
+
+then the game should branch into a dedicated wartime settlement flow instead of stretching `proposal_confirm` through 4-6 hidden substeps.
+
+For the upcoming diplomacy systems:
+
+- rivalry / strategic focus / trusted-partner logic belongs in a visible **Political context** preview panel plus Talleyrand commentary, not in extra front-door wizard steps
+- territorial promises should use a structured **Promise review** card that shows beneficiary, exact regions, deadline, and likely diplomatic cost before send / accept
+- player-authored promise construction and ally-beneficiary settlement should use structured pickers, not freeform clause text
+- `commitment_paradox` should resolve as a ratification hard-stop, sibling to `alliance_paradox`, not as drafting-stage friction
+- common peace should begin with an explicit mode choice (`Separate peace` vs `Open settlement`), never as a hidden consequence of a normal "propose peace" flow
+
+This preserves the design rule from §2: action commands stay short, while exact-state, multi-party decisions move into purpose-built structured subflows.
+
 ### 3c. SPECIFIC — "Talleyrand, propose peace with Prussia: they keep Berlin, open borders, 200 gold/turn"
 
 The existing spec behavior. Talleyrand evaluates the specific terms and either:

@@ -391,6 +391,27 @@ Do not copy EU4's hard war-leader monopoly.
 - separate peace remains possible
 - but it can trigger ally fallout if France cuts a deal that shuts out major contributors or breaks promises
 
+### 10.4 Wizard routing
+
+Use a **hybrid approach**.
+
+Keep the existing nation -> proposal -> terms wizard for:
+
+- armistice
+- simple peace
+- separate peace
+- bilateral gold / manpower / AP deals
+
+Do **not** try to stretch that wizard into a conference simulator.
+
+When allied participation matters, route into a dedicated wartime settlement flow:
+
+- entry choice from wartime diplomacy should be explicit: `Separate peace` vs `Open settlement`
+- `Separate peace` stays in the existing bilateral wizard, but must show ally-fallout / promise-breach warnings before send
+- `Open settlement` launches a war-scoped settlement flow keyed to the `war_id`, not to a single target nation
+
+This keeps normal diplomacy legible while still letting allies matter in the wars where they actually should matter.
+
 ---
 
 ## 11. Settlement Rights and Expectations
@@ -632,6 +653,54 @@ Examples:
 - "Saxony is minor, but its survival is now a conference issue."
 - "Proceeding will honor France's promise to Prussia and likely cost us Austria."
 
+### 16.4 Recommended flow
+
+**Separate peace:**
+
+- choose nation from the existing wartime diplomacy wizard
+- choose `Separate peace`
+- review bilateral terms
+- show an **Ally fallout** panel with contribution / promise / consultation warnings
+- send or back out
+
+**Common peace:**
+
+- choose war / side context, not just one nation
+- review participants, seats, and consultation expectations
+- build settlement terms through structured pickers
+- review the whole package in a conference-style summary
+- send the common peace package
+
+Structured pickers should own:
+
+- beneficiary choice
+- region allocation
+- term ownership (`from_nation`, `to_nation`, `beneficiary`)
+- any term tied to a promise or allied entitlement
+
+Conversation should still own:
+
+- Talleyrand's recommendation
+- "who should we back?" framing
+- the political cost explanation
+
+### 16.5 Hard stops vs soft warnings
+
+Hard stop only for:
+
+- impossible / invalid settlement shapes
+- any future contradiction that would silently create an illegal term package
+
+Everything else should be political cost, not universal veto:
+
+- ally consultation skipped
+- great-power humiliation risk
+- shut-out risk
+- separate-peace fallout
+- promise breach warning where the player can still choose to proceed
+
+This follows the spec's core call: allies should matter without all receiving a veto.
+
 ---
 
 ## 17. Data Model Additions
@@ -748,7 +817,8 @@ For the first implementation pass:
 - add `war_instance`
 - add `war_contribution_score`
 - keep separate peace
-- add common peace only when ally beneficiaries or promises matter
+- keep separate peace in the existing bilateral diplomacy wizard
+- add common peace only when ally beneficiaries or promises matter, and route it through a dedicated wartime settlement flow rather than the normal nation proposal loop
 - add settlement grievance for shut-out allies
 - integrate great / secondary / minor power tiers as consultation weight, not free score
 
