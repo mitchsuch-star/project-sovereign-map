@@ -231,6 +231,37 @@ Notes:
 - If the offended third party is only a `cold` rival of Nation A, apply half the above values rounded toward zero.
 - When France takes a rivalry-angering action in favor of Nation A, Nation A gains +5 relation with France (`they_chose_us`) once per ratified treaty-deepening event. Choosing a side should create a small upside with the chosen side, not only a penalty with the excluded one.
 
+#### C. Great-power bloc pressure
+
+Do **not** solve great-power politics with a flat numeric cap like "France may only ally one great power."
+
+Instead:
+
+- multiple great-power alliances remain legally possible
+- but they should become politically unstable when they span opposing great-power camps
+- great powers should especially dislike France binding itself to the allies of their main peer rival
+
+Practical rule:
+
+- if Nation B is the active great-power rival or preferred counterweight target of Nation C, then France deepening ties with B should also worsen how C reads France's wider alignment
+- this applies even when France is not directly allied to C's rival yet; bloc-shaping behavior should matter before the final paradox state
+- the penalty scales by treaty depth and should be smaller than direct-rival penalties, but large enough that stacking multiple deep great-power alignments becomes self-limiting
+
+Suggested first-pass bloc pressure by new French treaty with Nation B:
+
+| New state with B | Great-power concern reaction from C |
+|------------------|-------------------------------------|
+| `OPEN_BORDERS` | suspicion only, usually no more than -2 relation / small acceptance malus |
+| `NON_AGGRESSION` | visible concern, roughly -5 relation / small-to-moderate acceptance malus |
+| `DEFENSIVE_ALLIANCE` | major bloc warning, roughly -10 relation / major acceptance malus |
+| `ALLIANCE` | severe camp-alignment warning, roughly -15 relation / very large acceptance malus |
+
+Design guardrail:
+
+- this is still a **soft-pressure system**, not a universal lock
+- the hard stop remains reserved for `DEFENSIVE_ALLIANCE` / `ALLIANCE` across an active rival pair per §7.5
+- lower treaty levels should remain possible, but they should visibly push France into one camp and away from another
+
 ### 7.5 Military alignment paradox
 
 Deep military commitments should not silently coexist across the same active rival pair.
@@ -307,6 +338,13 @@ Player-facing goal:
 - Talleyrand should be able to recommend 1-2 nations France ought to back right now
 - the recommendation should explain both the upside ("Prussia will trust us more if we choose them") and the cost ("Austria will be lost if we do this")
 - the recommendation should also reflect the live balance of power ("Austria is no longer a peer to Prussia" / "Bavaria is rising into secondary-power status")
+
+Great-power alignment rule:
+
+- if 3 or more `great_power` states are active, each great power should usually have at least one peer rival or preferred counterweight
+- this is a **usual pressure**, not an always-on hard requirement; unipolar or collapsed-map situations may temporarily leave a great power without a meaningful peer concern
+- the gameplay goal is not "every great power must hate one other great power forever"
+- the gameplay goal is "great powers should usually read French diplomacy in camp terms, not as infinite friendship slots"
 
 This is intentionally lighter than full dynamic rivalry formation. It adds guidance and political texture without requiring every nation pair to become a full rivalry system in v0.1.
 
@@ -1012,6 +1050,12 @@ Static rivalries remain the structural layer in v0.1. A lighter strategic-focus 
 **Resolved: derived from numbers.**
 
 Great / secondary / minor power status should come from current map and military strength, not fixed nation labels. Rivalry may be historical; power is situational. See §7.8.
+
+### Gate 11: Hard limit on great-power allies, or bloc pressure?
+
+**Resolved: bloc pressure, not numeric cap.**
+
+France may still align with multiple great powers, but deep alignment with one great power should anger the allies, clients, and preferred counterweights of another. The system should make multi-great-power diplomacy possible but self-limiting through rivalry, strategic focus, and paradox pressure rather than through an arbitrary slot count. See §7.4C and §7.7.
 
 ### Remaining open question
 

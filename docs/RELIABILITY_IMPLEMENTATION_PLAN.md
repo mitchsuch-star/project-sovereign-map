@@ -46,6 +46,7 @@
 
 - Add `direct_rivalry_mod` to `calculate_acceptance()` - negative for deeper treaties with direct rivals
 - Add `rival_conflict_mod` - negative when target knows France is aligned with its rival
+- Add `rival_bloc_mod` - negative when target reads France as aligning with its main great-power rival or that rival's camp
 - Add `bilateral_betrayal_mod` - reads `betrayal_history`, ~2x weight of global reliability
 - Add `trusted_partner_mod` - modest positive for long-honored alliances
 - Group all under `political_commitment_mod` composite in formula breakdown
@@ -57,6 +58,7 @@
 **Files:** `world_state.py`, `diplomacy.py`, `dispatch.py`
 
 - On treaty ratification (`_ratify_treaty`): compute rival anger, apply relation penalties per spec $7.4B table
+- Also apply great-power bloc anger when France deepens ties with a nation that sits in another great power's preferred rival/counterweight camp
 - Apply `they_chose_us` relation bonus to the side France visibly backed
 - Record betrayal events on treaty break - victim gets strikes, witnesses get scoped penalties
 - Witness penalty logic: only allies of victim + nations with active rivalry against betrayer; witnesses do not get victim-grade strikes
@@ -120,6 +122,7 @@
 **Files:** `ai_diplomacy.py`, `enemy_ai.py`
 
 - Strategic-focus layer for AI phrasing + Talleyrand recommendations: major powers expose concern/counterweight, minors expose feared rival/protector
+- Great-power advisory logic should treat peer blocs as soft camps, not hard ally slots; no numeric cap, but deeper rival-camp alignment should visibly raise warning weight
 - Derive `nation_power_scores` / `nation_power_tiers` from controlled regions, army strength, manpower depth, and vassal weight with hysteresis
 - AI proposal generation considers rivalries: exclusivity offers ("ally us, not our rival"), promise-based courtship
 - AI escalation behavior: repeated rival-camp alignment -> downgrade treaties, hostility pivot
