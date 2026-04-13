@@ -30,6 +30,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 21. [Diplomatic Reliability](#21-diplomatic-reliability)
 22. [Popup Priority Queue](#22-popup-priority-queue)
 23. [Building Blocks Principle](#23-building-blocks-principle)
+24. [Map Renderer Architecture](#24-map-renderer-architecture)
 
 ---
 
@@ -3571,3 +3572,82 @@ If `casus_belli[diplo_key]` is True (set by rejected ultimatum), war declaration
 All early-return paths in `/command` and `/respond_to_objection` call `_include_popup_passthroughs()`:
 - Tactical objection, strategic objection, clarification, glorious charge, strategic interrupt, capture choice (R87)
 - Objection proceed/override/cancel responses (R88)
+
+---
+
+## 24. Map Renderer Architecture
+
+### Scene Hierarchy
+
+`map_renderer_base.gd` builds a SubViewport-isolated map world at runtime:
+
+```
+MapArea (Control, full-rect)
+├── ViewportBackground (ColorRect, MAP_BACKGROUND_COLOR)
+├── MapViewportContainer (SubViewportContainer, stretch=true)
+│   └── MapViewport (SubViewport)
+│       └── MapRoot (Node2D)
+│           ├── MapCamera (Camera2D, enabled=true)
+│           ├── WorldLayer (show_behind_parent)
+│           ├── VisualMapLayer
+│           ├── ProvinceHighlightLayer
+│           ├── ConnectionLayer (MapConnectionLayer)
+│           ├── RegionLayer
+│           ├── ForceLayer
+│           └── GarrisonLayer
+└── TooltipLayer (MapTooltipLayer, outside viewport — screen-space)
+```
+
+### Camera2D Zoom Convention
+
+**Direct convention:** `_zoom_level` equals `camera.zoom` (higher = zoomed in).
+
+```gdscript
+map_camera.zoom = Vector2(_zoom_level, _zoom_level)
+```
+
+Key constants: `min_zoom = 0.3`, `max_zoom = 4.0`, `ZOOM_SPEED = 0.1`, `INITIAL_CAMERA_OVERSCAN = 1.18`.
+
+Initial zoom fits the map with overscan: `fit_ratio / INITIAL_CAMERA_OVERSCAN`.
+
+### Coordinate Conversion
+
+Screen-to-world uses Godot's `canvas_transform` for guaranteed accuracy:
+
+```gdscript
+func _screen_to_map_position(screen_position: Vector2) -> Vector2:
+    var local_pos = screen_position - global_position
+    return map_viewport.canvas_transform.affine_inverse() * local_pos
+```
+
+`SubViewportContainer` with `stretch=true` gives 1:1 screen-to-viewport mapping, so `global_position` subtraction handles any MapArea offset. The `canvas_transform` inverse encodes camera position and zoom — no manual formula needed.
+
+### Zoom-at-Point
+
+Preserves the world point under the cursor during zoom:
+
+```gdscript
+var map_point_before = _screen_to_map_position(point)
+_set_camera_zoom_level(new_zoom)
+var local_point = point - global_position
+var viewport_center = size / 2.0
+var target_position = map_point_before - (local_point - viewport_center) / new_zoom
+map_camera.position = _clamp_camera_position(target_position)
+```
+
+### Input Routing
+
+- `_input(event)` — keyboard pan keys (arrows), zoom keys (+/-/Home), focus release
+- `_unhandled_input(event)` — mouse wheel zoom, click, drag pan
+- `_process(delta)` — continuous arrow-key panning at `PAN_SPEED / _zoom_level`
+- `_should_handle_map_pointer_event(event)` — guards mouse events to MapArea bounds
+- Province hover uses `_lookup_region_from_color_map()` which samples `province_lookup_image`
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `map_renderer_base.gd` | Base class: layers, camera, input, province lookup, hover/click, draw |
+| `map.gd` | Extends base: region positions, connections, colors, asset paths |
+| `map_connection_layer.gd` | Connection line drawing |
+| `map_tooltip_layer.gd` | Screen-space tooltip rendering (outside SubViewport) |

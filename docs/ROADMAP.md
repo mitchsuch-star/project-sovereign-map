@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** March 4, 2026 (Session 8B Diplomatic Ledger UI + Top Bar COMPLETE)
+> **Last Updated:** April 12, 2026 (Session 8 Renderer Cutover slices 1-3 COMPLETE — shared layers, province color-map, Camera2D+SubViewport)
 
 ---
 
@@ -126,7 +126,7 @@
 | Tooltips | Hover info on regions, marshals, nations | Low | **Absorbed into Map Renderer** — existing 3 tooltip variants (marshal 20+ fields, fogged force, region 12+ fields) sufficient. Remaining gaps (region occupant summary, off-screen clamping, theming) handled by Map Renderer items 24/32/42 and Phase 7b Session 66. |
 | Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |
 | Tutorial Infrastructure | `TutorialManager` for staged popups/highlights | Medium | **Deferred to Pre-EA** — element highlighting is throwaway before Map Renderer, content grows through Phase 8.5, existing popup infrastructure sufficient. Build against stable scene tree + final mechanics during Pre-EA polish. |
-| Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. Includes tech debt cleanup: extract shared `_format_number()` and color palette from 3 UI scripts into `utils.gd` autoload. | High | Planned |
+| Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. Includes tech debt cleanup: extract shared `_format_number()` and color palette from 3 UI scripts into `utils.gd` autoload. | High | **IN PROGRESS** — Slices 1-3 COMPLETE (shared layers, province color-map, Camera2D+SubViewport). Remaining: commissioned art + Godot smoke validation. |
 | Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
 | Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
 

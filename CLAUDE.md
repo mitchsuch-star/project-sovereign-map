@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — COMPLETE.** The frozen PL queue is closed, and Session 6 architecture follow-up is COMPLETE: `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE, and `/command` manual-field-layering reduction COMPLETE with enemy-phase notification regression coverage. See `docs/STATUS.md` and `docs/BUG_FIXES.md`.
+- **Bug Fixes — COMPLETE.** PL queue closed, Session 6 architecture follow-up COMPLETE. See `docs/BUG_FIXES.md`.
 - **Session 8 Renderer Cutover — ACTIVE.** Slices 1-3 are complete: shared node-layer shell, placeholder province-definition/color-map lookup, and viewport-local `Camera2D` cutover. Remaining work is commissioned art-backed layers and final Godot runtime smoke validation. See `docs/STATUS.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Design Refinement — NEXT AFTER SESSION 8.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
@@ -28,22 +28,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Design Gates
 
-#### APPROVED — Coalition Spec v1.1:
-- Master-audited: 4 CRITICAL + 4 MAJOR findings fixed. `docs/COALITION_SPEC.md`
-- **Approved Mar 2, 2026.** Ready for Session 7 implementation.
-
-#### APPROVED — Starting Situation Balance (COALITION_SPEC §16):
-- R1: Saxony 18k troops — APPLIED to §1c. R2: Austria-Britain NON_AGGRESSION — APPLIED to §1e. R3: Battlefield Diplomacy +10 — APPLIED to §6b. R4: Prussia -40 — APPLIED to §1e. R5: Saxony OPEN_BORDERS — APPLIED to §1e.
-- **Approved Mar 2, 2026.** All 5 changes in DIPLOMACY_SPEC.
-
-#### Jealousy System — v3.1 spec, needs final approval (DO NOT CODE WITHOUT USER APPROVAL):
-- Core design settled: Glory Ladder targeting, personality expressions, escalation, confrontation popups
-- Literal expression: Candidate B (Vindicated Garrison / Obsessive Competence)
-- Top of ladder: +1 all core stats (shock/fire/admin) while #1 — designed, needs approval
-- Glory loss: Defeats cost glory (-1 base, modifiers) — keeps ladder dynamic
-- §6b Rivalry Confrontation: Deferred to v3.1 implementation
-- Full spec: `docs/JEALOUSY_SPEC.md`
-
+- **Coalition Spec v1.1** — Approved Mar 2, 2026. `docs/COALITION_SPEC.md`
+- **Starting Situation Balance** — Approved Mar 2, 2026. 5 changes applied to DIPLOMACY_SPEC.
+- **Jealousy System** — v3.1 spec drafted, NEEDS APPROVAL. DO NOT CODE. `docs/JEALOUSY_SPEC.md`
 
 
 ---
@@ -114,7 +101,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `dialog_manager.gd` | Centralized dialog registry: register, get_dialog, is_any_modal_open, hide_all (R16) |
 | `api_client.gd` | Backend communication |
 | `game_manager.gd` | Game state coordination |
-| `map.gd` | Map rendering, fog overlay, fogged enemy icons |
+| `map_renderer_base.gd` | Map renderer base: scene layers, Camera2D+SubViewport, province color-map, hover/click, zoom/pan |
+| `map.gd` | Session 8 map: extends renderer base, region positions/connections/colors |
 | `main.gd` | Terminal UI, response handling |
 | `pause_menu.gd` | Pause menu overlay (Phase 6.5) |
 | `campaign_log.gd` | Campaign log overlay (Phase 6.5), CanvasLayer 50 |
@@ -124,16 +112,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `strategic_ledger.gd` | Strategic Ledger screen (Session B): CanvasLayer 50, 6 sub-tabs, number key switching, Orders tab cancel buttons |
 | `marshal_management.gd` | Marshal Management screen: CanvasLayer 50, card-based marshal view, G key toggle |
 | `diplomatic_ledger.gd` | Diplomatic Ledger screen (Session 8B): CanvasLayer 50, 4 sub-tabs (Nations/Treaties/Threat/Talleyrand), D key toggle |
-| `coalition_declaration_popup.gd` | Coalition declaration popup (Session 8C): CanvasLayer 100, BBCode, [Continue] |
-| `incoming_proposal_popup.gd` | AI proposal popup (Session 8C): [Accept][Counter][Reject] |
-| `mailbox_panel.gd` | Browsable mailbox inbox (Session 2 follow-up): CanvasLayer 119, click-to-activate rows |
-| `talleyrand_objection_popup.gd` | Diplomatic objection popup (Session 8C): [Proceed][Modify][Cancel] |
-| `sabotage_discovery_popup.gd` | Sabotage discovery popup (Session 8C): [Confront][Overlook] |
-| `talleyrand_redemption_popup.gd` | Talleyrand redemption popup (Session 8C): [Apologize][Replace][Continue] |
-| `vassal_rebellion_popup.gd` | Vassal rebellion imminent popup (Session 8C): [Invest][Garrison][Accept] |
-| `war_status_panel.gd` | War Status Panel HUD (N4a): CanvasLayer 25, bottom-right, coalition/war/armistice cards, click signals |
-| `war_detail_popup.gd` | War Detail Popup (N4b): CanvasLayer 30, war/coalition/armistice detail views, negotiate/target buttons, refresh-in-place |
-| `alliance_paradox_popup.gd` | Alliance paradox popup (Deep Audit S8): honor/break alliance choice when attacking an ally |
+| `*_popup.gd` (7 files) | Modal popups: coalition_declaration, incoming_proposal, talleyrand_objection, sabotage_discovery, talleyrand_redemption, vassal_rebellion, alliance_paradox. CanvasLayer 100-119 |
+| `mailbox_panel.gd` | Browsable mailbox inbox: CanvasLayer 119, click-to-activate rows |
+| `war_status_panel.gd` | War Status HUD (CanvasLayer 25) + `war_detail_popup.gd` (CanvasLayer 30) |
 | `diplomacy_wizard.gd` | Diplomacy Button wizard (Session B): F1 hotkey, 2-step nation→action flow, own HTTPRequest, command handoff, `open_for_nation()` for war panel handoff |
 
 ---
@@ -144,7 +125,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 |------------------------|------------------|
 | Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat), `combat_executor.py` (_execute_attack, _execute_bombardment), `docs/MULTI_MARSHAL_SPEC.md` (coordination bonuses) |
 | Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `combat_executor.py` (_calculate_coordination_context, _calculate_reinforcements, _calculate_overwatch), `marshal.py` (transient bonus fields) |
-| Combat execution (attack/bombard/charge) | `combat_executor.py` (CombatExecutor: all combat _execute_* methods, post-combat pipeline, garrison, forced retreat, capture, coordination, reinforcements, overwatch, auto-dispatch). Accesses non-combat executor methods via `self._executor.X` |
+| Combat execution (attack/bombard/charge) | `combat_executor.py` (all _execute_* methods, post-combat pipeline, coordination, reinforcements, overwatch) |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py`, `docs/ADDING_CONTENT.md` (wiring checklist), `marshal_overview.py` (_WIRED_ABILITY_MARSHALS) |
 | Fortify/Drill mechanics | `tactical_executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py`, `docs/V2B_DEFIANCE_SPEC.md` |
@@ -160,25 +141,23 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `strategic_executor.py` (_execute_strategic_command, _execute_cancel, objection handling) |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
-| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons). **R5:** Use `world.get_visible_enemies(nation)` for player-facing queries, `get_enemies_of_nation()` only for omniscient operations (combat, AI, mechanics) |
-| Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
-| Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `economy_executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
-| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral, `_distribute_casualties` 50% reduction with non-artillery), `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus) |
-| Bombardment collateral | `combat_executor.py` (`_execute_bombardment` collateral loop), `trust.py` (modify), `disobedience.py` (_create_redemption_event), `main.py` (redemption pass-through) |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `intel.py`, `intel_report.py`, `map.gd`. Use `get_visible_enemies()` for player-facing, `get_enemies_of_nation()` for omniscient only |
+| Manpower / recruitment | `world_state.py` (manpower constants), `economy_executor.py` (_execute_recruit), `enemy_ai.py` (P1/P4.5/P7) |
+| Artillery / bombardment | `marshal.py` (artillery flag), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (_execute_bombardment, _distribute_casualties), `enemy_ai.py` (_score_artillery_position) |
 | Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `combat_executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
-| Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `combat_executor.py` (form_square, break_square), `tactical_executor.py` (_auto_break_square), `executor.py` (auto-bombardment, overwatch calc) |
-| Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
+| Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py`, `combat.py`, `combat_executor.py`, `tactical_executor.py`, `executor.py` |
+| Vassal system | `vassal.py`, `world_state.py` (vassals dict, advance_turn), `diplomacy.py` (AP clause), `turn_manager.py`, `dispatch.py` |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
 | Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI, `open_for_nation()`), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
-| War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/archive/DIPLOMACY_DESIGN_FIXES.md` §N4 |
-| Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
-| Diplomacy execution (proposals/dialogue) | `diplomatic_executor.py` (DiplomaticExecutor: _execute_diplomatic*, handle_diplomatic_dialogue_response, _process_dialogue_choice, trust reactions, AI proposal handlers). Accesses non-diplomatic executor methods via `self._executor.X` |
-| Dialogue state (R12, PL-27) | `dialogue_manager.py` (DialogueManager: push/pop/peek/replace/clear_stale/promote_if_empty/remove_matching/get_mailbox_count/get_mailbox_items/activate_mailbox_item, **PL-27 taxonomy**: HARD_STOP_TYPES/SOFT_STOP_MAILBOX_TYPES/HYBRID_SOFT_STOP_TYPES/LOCAL_PLANNING_TYPES, is_hard_stop/is_soft_stop/is_local_planning), `world_state.py` (transparent properties). **PL-27:** Only hard-stop dialogues block commands. Soft-stop allow pass-through. **Session 2 follow-up:** `diplomatic_queue` eliminated — all pending diplomacy in `dialogue_manager`. Mailbox items carry `mailbox_id`/`mailbox_order`/`mailbox_priority`. Badge uses `get_mailbox_count()`. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
-| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
+| War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD), `war_detail_popup.gd` (detail), `main.gd` (_process_active_wars) |
+| Suggested terms / smart suggestions | `diplomatic_templates.py` (generate_suggested_terms 5-stage pipeline), `diplomatic_dialogue.py`, `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
+| Diplomacy execution | `diplomatic_executor.py` (_execute_diplomatic*, handle_diplomatic_dialogue_response, trust reactions, AI proposal handlers) |
+| Dialogue state (R12, PL-27) | `dialogue_manager.py` (push/pop/peek, PL-27 taxonomy: HARD_STOP/SOFT_STOP/HYBRID/LOCAL_PLANNING types), `world_state.py` (transparent properties). Only hard-stop dialogues block commands. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
+| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `docs/COALITION_SPEC.md`, `diplomacy.py`, `diplomat.py`, `diplomatic_dialogue.py`, `diplomatic_templates.py`, `ai_diplomacy.py`, `diplomatic_advisory.py`, `vassal.py`, `diplomatic_defiance.py`, `coalition.py` |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -230,10 +209,7 @@ curl -X POST http://127.0.0.1:8005/command \
   -d '{"command": "end turn"}' | python -m json.tool
 ```
 
-**SERIALIZATION WARNING:** Executor results contain `new_state` (WorldState with circular refs). NEVER embed raw executor results in dicts that reach the API response. Strip first:
-```python
-cleaned = {k: v for k, v in result.items() if k != "new_state"}
-```
+**SERIALIZATION WARNING:** Executor results contain `new_state` (WorldState with circular refs). Strip `new_state` before embedding in API responses.
 
 ### Adding a new combat modifier
 
@@ -258,27 +234,6 @@ Serializable classes: Marshal, StrategicOrder, StrategicCondition, WorldState, R
 
 ---
 
-## Key Code Patterns
-
-```python
-# Early returns over deep nesting
-if not world:
-    return {"success": False, "message": "No world state"}
-
-# getattr for optional fields
-recklessness = getattr(marshal, 'recklessness', 0)
-
-# Trust modification
-marshal.trust.modify(+10)   # Relative change
-marshal.trust.value          # Read-only property
-
-# Enemy actions don't consume player budget
-if executing_marshal.nation != world.player_nation:
-    is_player_action = False
-```
-
----
-
 ## Strategic Commands
 
 Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key patterns:
@@ -294,10 +249,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 
 | Problem | Solution |
 |---------|----------|
-| Godot float→int error | Wrap all numeric returns with `int()` |
-| Modifier applied twice | Check single source in marshal.py, not combat.py |
 | State cleared too early | Get value, use it, THEN clear (e.g. drill/shock bonus) |
-| Display shows wrong % | `* 100` not `* 10` for percentage |
 | "No objection pending" | Strategic uses `pending_strategic_objection`, not `pending_objection` |
 | Post-objection "Unknown action" | `_execute_post_objection` must handle all actions + strategic routing |
 | Enemy AI crash | `game_state` must be dict `{"world": WorldState}`, not WorldState directly |
@@ -314,23 +266,19 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Godot null "pressed" on startup | `@onready` node paths must match FULL scene tree in .tscn — verify intermediate nodes |
 | Vassal loyalty unexpected | Check `nation_relations` default — France/Saxony=40, adds +2/turn via relation//20 modifier |
 | AP clause wrong nation | `from_nation` is the penalized nation (loses AP), not `to_nation` |
-| "Talleyrand awaiting" stuck state | **PL-27:** Only hard-stop dialogues (alliance_paradox, force_declare_war_confirmation) block ALL commands. Soft-stop types (incoming_proposal, counter_offer, etc.) allow pass-through. Check `dialogue_manager.py` HARD_STOP_TYPES. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
-| New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
+| "Talleyrand awaiting" stuck state | Only hard-stop dialogues block commands. Check `dialogue_manager.py` HARD_STOP_TYPES |
+| New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` |
 | Popup not showing after early return | Use `build_base_response()` or `_build_result_response()` — they structurally guarantee popup passthroughs (R4) |
 | Popup not showing after endpoint | Use `build_base_response()` for ALL POST handlers. Only `/command` main path (enemy_phase deferral) calls `_include_popup_passthroughs()` directly |
 | New dialogue type shows in terminal | **TWO things:** (1) Add dtype to `main.gd:697` whitelist so Godot shows popup. (2) If dialogue concludes with a result, set `world.proposal_result_popup` so outcome shows as popup. See PL-14 fix |
 | Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
-| Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
-| Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). Only use `get_enemies_of_nation()` for omniscient operations (combat, AI, game mechanics). For mixed player/AI callers: `if marshal.nation == world.player_nation: get_visible_enemies() else: get_enemies_of_nation()` |
-| "Recruit infantry" gives artillery | **By design.** Marshals recruit their unit type: `artillery=True` → artillery, `cavalry=True` → cavalry, else infantry. Drouot always recruits artillery, Ney always cavalry. Player cannot override — Berthier gives a soft correction message. See `economy_executor.py` lines 221-253 |
-| Region attribute returns default silently | Region uses `income_value` (not `income`) and `adjacent_regions` (not `connections`). `getattr` with defaults masks the error. Always check `region.py` for exact attribute names (PL-21/PL-22) |
+| Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). `get_enemies_of_nation()` is omniscient — only for combat/AI/mechanics |
+| Region attribute returns default silently | Region uses `income_value` (not `income`) and `adjacent_regions` (not `connections`). Check `region.py` for exact names |
 
 ---
 
 ## Don't Do
 
-- Return floats to Godot (always `int()`)
-- Separate player/enemy marshal dicts
 - Add features outside current phase scope
 - Change port without updating api_client.gd
 - Make executor LLM-dependent (keep deterministic)
@@ -342,9 +290,9 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Use `.get('key', default)` when value may be `None` — use `(d.get('key') or default)` instead
 - Skip AP check before objection evaluation — player should never see objection then AP failure
 - Use `get_enemies_of_nation()` for player-facing queries — use `get_visible_enemies()` instead (R5). `get_enemies_of_nation()` is omniscient and leaks fog
-- Add a new nation without updating `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py` (falls back to defaults but loses nation-specific intelligence). See `docs/ADDING_CONTENT.md` validation checklist
-- Iterate `world.regions.values()` in hot paths without caching — map is scaling to full 1805 Europe. Use `get_active_nations()` (cached), `get_nation_regions()`, or add per-turn caching for new helpers
-- Use `[world.player_nation] + list(world.enemy_nations)` for nation loops — use `world.get_active_nations()` instead (DLF-11: filters eliminated nations, cached per-turn)
+- Add a new nation without updating `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py`
+- Iterate `world.regions.values()` in hot paths — use `get_active_nations()` (cached), `get_nation_regions()` instead
+- Use `[world.player_nation] + list(world.enemy_nations)` — use `world.get_active_nations()` instead
 
 ---
 
@@ -385,27 +333,14 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
-| V2b defiance/vindication/authority spec | `docs/V2B_DEFIANCE_SPEC.md` |
-| Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
-| Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
-| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
-| Diplomacy button wizard spec | `docs/DIPLOMACY_BUTTON_SPEC.md` |
-| Smart suggestions pipeline | `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
-| Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
-| Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
+| Combat specs (V2b, Multi-Marshal, Tactical Triangle) | `docs/V2B_DEFIANCE_SPEC.md`, `MULTI_MARSHAL_SPEC.md`, `TACTICAL_TRIANGLE_SPEC.md` |
+| Diplomacy specs (system, coalition, wizard, suggestions, jealousy) | `docs/DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `DIPLOMACY_BUTTON_SPEC.md`, `TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`, `JEALOUSY_SPEC.md` |
+| UI specs (top bar, fog) | `docs/TOP_BAR_SPEC.md`, `FOG_OF_WAR_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
-| Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
-| Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
-| Modding guide | `docs/MODDING_FORMAT.md` |
-| Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |
-| Future design concepts | `docs/FUTURE_DESIGN.md` |
-| Game vision | `docs/VISION.md` |
-| Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
-| Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |
-| Architecture audit report (findings + root causes) | `docs/ARCHITECTURE_AUDIT_REPORT.md` |
-| Architecture audit spec (pass definitions) | `docs/ARCHITECTURE_AUDIT_SPEC.md` |
-| Architecture refactoring plan (21 sessions) | `docs/ARCHITECTURE_REFACTORING_PLAN.md` |
-| Archived specs, prompts & session history | `docs/archive/` |
+| Adding content / modding | `docs/ADDING_CONTENT.md`, `MODDING_FORMAT.md` |
+| Vision, future design, manual tests | `docs/VISION.md`, `FUTURE_DESIGN.md`, `MANUAL_TEST_PLAN.md`, `TUTORIAL_SCRIPT.md` |
+| Architecture (audit + refactoring) | `docs/ARCHITECTURE_AUDIT_REPORT.md`, `ARCHITECTURE_AUDIT_SPEC.md`, `ARCHITECTURE_REFACTORING_PLAN.md` |
+| Archived specs & session history | `docs/archive/` |
 
 ## Documentation Rules
 
@@ -417,10 +352,4 @@ CLAUDE.md "Current Phase" must always list remaining items. Completed items get 
 
 ## Environment
 
-```bash
-# .env
-LLM_MODE=mock              # mock | anthropic | groq
-ANTHROPIC_API_KEY=sk-ant-... # Required if LLM_MODE=anthropic
-```
-
-Server: `127.0.0.1:8005`, CORS enabled for Godot client.
+`.env`: `LLM_MODE=mock|anthropic|groq`, `ANTHROPIC_API_KEY` if anthropic. Server: `127.0.0.1:8005`, CORS enabled.
