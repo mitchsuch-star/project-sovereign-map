@@ -1,6 +1,6 @@
 # Reliability + Commitments Spec
 
-> **Status:** Draft v0.5
+> **Status:** Draft v0.6
 > **Date:** April 13, 2026
 > **Queue Position:** Design Refinement item 1
 > **Collapses:** `R160` + `R119` + `R151`
@@ -60,6 +60,7 @@ Without that, diplomacy lacks obligation and therefore lacks legitimacy.
 - This spec does **not** redesign war goals, ticking war score, or peace settlement logic. That belongs to `War Purpose + Settlement` (see `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` for the ally-settlement draft).
 - This spec does **not** add a new diplomacy screen family. It extends existing ledger / popup / dispatch surfaces.
 - This spec does **not** create a full EU4-style claims/favors system with dozens of currencies.
+- This spec is the bilateral commitments slice only. Common peace, ally settlement allocation, contribution-weighted spoils, and conference-style routing remain deferred to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`.
 
 ---
 
@@ -231,7 +232,13 @@ Notes:
 - If the offended third party is only a `cold` rival of Nation A, apply half the above values rounded toward zero.
 - When France takes a rivalry-angering action in favor of Nation A, Nation A gains +5 relation with France (`they_chose_us`) once per ratified treaty-deepening event. Choosing a side should create a small upside with the chosen side, not only a penalty with the excluded one.
 
-#### C. Great-power bloc pressure
+#### C. Great-power bloc pressure (deferred)
+
+Scope correction for v0.6:
+
+- do **not** add a separate bloc-pressure modifier in commitments v0.1
+- direct rivalry penalties, third-party anger, and the commitment paradox are the full side-picking package for the first pass
+- keep the material below as later design direction only, to revisit after power tiers and advisory framing exist
 
 Do **not** solve great-power politics with a flat numeric cap like "France may only ally one great power."
 
@@ -247,7 +254,7 @@ Practical rule:
 - this applies even when France is not directly allied to C's rival yet; bloc-shaping behavior should matter before the final paradox state
 - the penalty scales by treaty depth and should be smaller than direct-rival penalties, but large enough that stacking multiple deep great-power alignments becomes self-limiting
 
-Suggested first-pass bloc pressure by new French treaty with Nation B:
+Suggested later bloc-pressure model by new French treaty with Nation B:
 
 | New state with B | Great-power concern reaction from C |
 |------------------|-------------------------------------|
@@ -306,6 +313,13 @@ These are different triggers with different option sets. Implement as a **siblin
 
 ### 7.6 Rivalry decay and resolution
 
+Scope correction for v0.6:
+
+- do **not** implement rivalry decay in v0.1
+- authored primary rivalries stay sticky for the first pass
+- Prussia-Saxony escalation remains the only special-case intensity movement in scope
+- the detailed decay model below is deferred follow-up design, not current ship scope
+
 Rivalry should not be permanent if political conditions change.
 
 Decay rules:
@@ -320,11 +334,17 @@ Minimum decay model:
 - every 5 quiet turns, `active` secondary or dynamic rivalries may soften to `cold` if relation is positive and no recent betrayal exists
 - after a longer stable period, `cold` secondary or dynamic rivalries may clear entirely
 
-### 7.7 Strategic focus and Talleyrand recommendations
+### 7.7 Strategic focus and Talleyrand recommendations (deferred follow-up)
+
+Scope correction for v0.6:
+
+- strategic focus is not part of commitments v0.1
+- static rivalries are sufficient for the initial release
+- keep the material below as later advisory design, not an implementation requirement for the first pass
 
 Static rivalries are the structural layer, but they should not be the only political signal in play.
 
-For v0.1-plus design direction, add a lighter **strategic focus** layer:
+Later design direction: add a lighter **strategic focus** layer:
 
 - a major power may track one current geopolitical concern and one preferred counterweight
 - great powers should care most about the continental balance and counterweights
@@ -348,7 +368,13 @@ Great-power alignment rule:
 
 This is intentionally lighter than full dynamic rivalry formation. It adds guidance and political texture without requiring every nation pair to become a full rivalry system in v0.1.
 
-### 7.8 Dynamic power tiers
+### 7.8 Dynamic power tiers (deferred follow-up)
+
+Scope correction for v0.6:
+
+- dynamic power tiers do not block commitments v0.1
+- if another follow-up feature needs temporary power labels before dynamic scoring exists, hardcoded or authored labels are acceptable
+- keep the material below as later design direction only
 
 Power status should be derived from numbers, not permanently authored by country name.
 
@@ -430,17 +456,20 @@ Important v0.1 simplification:
 
 The system should reward sustained good behavior, not only punish betrayal.
 
-Trusted partner rule:
+For v0.1, keep the positive feedback simple and legible:
 
-- after 10 consecutive honorable turns at `DEFENSIVE_ALLIANCE` or `ALLIANCE` with Nation X, and with no active betrayal from France toward X, grant `trusted_partner`
-- `trusted_partner` gives:
-  - +5 relation with that nation
-  - +5 acceptance on future deep-treaty proposals with that nation
-  - Talleyrand-facing surfacing ("Prussia now regards us as a trusted partner")
-- betraying that nation immediately removes `trusted_partner`
-- re-earning it requires another 10 clean honorable turns; passive strike decay alone is not enough
+- `they_chose_us` remains the immediate upside for visibly backing one side
+- fulfilled promises grant visible reliability and relation upside
+- clear preview / ledger surfacing should make loyalty feel intentional rather than invisible
 
-This is the minimum carrot that makes faithful alliance-building feel chosen rather than merely safe.
+Do **not** add a dedicated `trusted_partner` state in v0.1.
+
+Reason:
+
+- the current `+5 / +5 after 10 turns` version is too weak to feel meaningful
+- a materially stronger version would need extra AI, UI, and balance work that is outside the narrow first-pass scope
+
+Revisit `trusted_partner` only after the core rivalry / betrayal / obligation loop is proven in play.
 
 ### 8.5 Redemption
 
@@ -452,10 +481,10 @@ Suggested rules:
 - each fulfilled tracked promise: +4 to global reliability
 - after honorable turns with a nation and no new offense, remove 1 bilateral strike against that nation using severity-scaled decay:
   - 6 turns: `OPEN_BORDERS` / `PEACE`-level break
-  - 10 turns: `NON_AGGRESSION` break
-  - 12 turns: passive territorial-promise failure
-  - 14 turns: `DEFENSIVE_ALLIANCE` / `ALLIANCE` break
-  - 16 turns: active territorial-promise sabotage / rival realignment
+  - 8 turns: `NON_AGGRESSION` break
+  - 10 turns: passive territorial-promise failure
+  - 10 turns: `DEFENSIVE_ALLIANCE` / `ALLIANCE` break
+  - 12 turns: active territorial-promise sabotage / rival realignment
 - fulfilling a commitment owed to a victim clears 1 bilateral strike immediately
 - joining a victim's defensive war and remaining co-belligerent for 3 turns clears 1 bilateral strike
 
@@ -465,7 +494,7 @@ Caps / guardrails:
 - no nation may lose more than 1 bilateral strike per turn from passive decay
 - global reliability still caps at the existing maximum
 
-This keeps betrayal meaningful without making it structurally irrecoverable in a short campaign.
+Alliance breaks should still hurt, but one mid-game rupture should not poison the rest of a 40-turn campaign by arithmetic alone.
 
 ### 8.6 Hard-reject behavior
 
@@ -537,10 +566,10 @@ Invalid use cases:
 Default v0.1 scope:
 
 - one promise package per treaty
-- one claim package may contain 1-2 regions at most
-- the UI should name the exact regions
+- one claim package contains exactly 1 region
+- the UI should name that exact region
 
-This keeps Saxony / Dresden type cases possible without opening the door to giant map-spanning barter.
+This keeps Saxony / Bavaria type cases possible without opening contradiction-heavy barter packages.
 
 ### 9.4.1 Wizard fit
 
@@ -548,7 +577,10 @@ To keep the diplomacy wizard legible:
 
 - outbound player-authored promise construction stays deferred for v0.1
 - when a treaty package contains `territorial_promise`, the wizard should insert a mandatory **Promise review** stage before send / accept
-- Promise review should show the exact regions, beneficiary, deadline, source treaty, and the main likely political loser
+- Promise review should show the exact region, beneficiary, deadline, source treaty, and the main likely political loser
+- when the player selects a nation with an active owed promise, the diplomacy wizard should expose a visible `Renegotiate Promise` action
+- the ledger remains read-only context, not the action surface
+- terminal input may remain as a shortcut alias, but discoverability must not depend on the player already knowing a command string
 - this remains a bilateral treaty review flow, not a hidden substitute for multilateral settlement allocation
 
 ### 9.5 Promise lifecycle
@@ -591,16 +623,19 @@ Deadline source for v0.1:
 Coalition / war interaction:
 
 - coalition membership does **not** void an active promise
-- if promiser and beneficiary enter direct war, the deadline clock suspends: increment `suspended_turns` by 1 each turn while direct war persists
-- when peace resumes, the promise clock continues (effective deadline has shifted forward by the suspension count)
-- suspension is not a free erase: if the promiser ratifies terms favoring the rival claimant against the beneficiary during suspension, treat that as bad-faith breach
-- if promiser and beneficiary remain direct enemies for 5 consecutive turns, auto-void the promise with no penalty to France; long enemy status should not leave a pre-war commitment suspended indefinitely
+- direct war is **not** a neutral escape hatch
+- if France declares direct war on the beneficiary or otherwise becomes the source-treaty breaker, resolve immediate promise failure with full source-treaty and promise penalties; do not suspend
+- if the beneficiary breaks the source treaty or declares direct war first, void the promise with no penalty to France
+- only if direct war exists through an external scripted / cascade edge case without a clear treaty breaker should the deadline clock suspend: increment `suspended_turns` by 1 each hostile turn
+- while suspended, the promise cannot be fulfilled and any French settlement or alignment that favors the rival claimant still counts as breach
 
 Source treaty interaction:
 
 - if the source treaty is **broken by France**, the promise immediately fails with full betrayal penalties (§9.7) — this stacks with the treaty-break penalties from §8.3
 - if the source treaty is **broken by the beneficiary**, the promise is voided with no penalty to France
 - if the source treaty **naturally downgrades** (e.g. via turns-below-threshold), the promise remains active — it is an independent obligation that survives treaty drift
+
+- if direct war occurs without an attributable breaker, keep the promise in `suspended` status until peace or renegotiation resolves it
 
 ### 9.6 Fulfillment
 
@@ -609,12 +644,21 @@ A territorial promise is fulfilled when the effective deadline is reached (`curr
 v0.1 fulfillment check (three prongs, all must be true):
 
 1. The beneficiary controls the promised region by the effective deadline.
-2. At the time the fulfillment check resolves, France currently holds `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the beneficiary.
+2. At the time the fulfillment check resolves, France currently holds `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the beneficiary in the **final post-processing state of that turn**.
 3. France did not actively obstruct the promise during the window by vassalizing, ceding, or aligning with the rival holder.
+
+Turn-order rule:
+
+1. Resolve treaty ratifications, breaks, and downgrades for the turn.
+2. Resolve war-state changes and final region ownership for the turn.
+3. Update promise status changes (`active`, `suspended`, `void`, `failed`) driven by those results.
+4. Evaluate fulfillment / failure using the final state after steps 1-3.
+
+This means France does **not** get credit for a same-turn "beneficiary took the region, but we downgraded before end-of-turn resolution" case. If the alliance is gone in the final state, the promise is not fulfilled.
 
 Passive allied control is still sufficient. France does not need to have fought in the specific war or ceded the region directly - maintaining the alliance that gave the beneficiary strategic freedom counts as honoring the commitment. Tracking whether France contributed a defined military action would require new event-tracking infrastructure not worth the complexity for v0.1.
 
-The degenerate case where the beneficiary conquers the region entirely on its own while France does nothing is still politically acceptable if France is **still** standing with that ally when the promise comes due. A momentary alliance followed by downgrade does not count.
+The degenerate case where the beneficiary conquers the region entirely on its own while France does nothing is still politically acceptable for v0.1 only if France is **still** standing with that ally when the promise comes due. A momentary alliance followed by downgrade does not count.
 
 ### 9.7 Failure
 
@@ -623,7 +667,7 @@ A promise fails if:
 - effective deadline expires with no fulfillment, or
 - France breaks the source treaty (immediate failure, stacks with treaty-break betrayal from §8.3), or
 - France signs a settlement that blocks fulfillment (e.g. ceding the promised region to a third party), or
-- France aligns with the rival holder instead (e.g. allying the nation that controls the promised region), or
+- France voluntarily ratifies a treaty or vassalage outcome that materially strengthens the rival holder against the beneficiary while the promise is active, or
 - France vassalizes the promised region / rival holder or otherwise brings the promised target under French control for itself
 
 Failure effects:
@@ -636,30 +680,38 @@ Failure effects:
 
 Active-sabotage override:
 
-- if France actively reverses the promise by allying, vassalizing, ceding to, or otherwise backing the rival holder, apply the stronger active-sabotage penalties from §8.3 instead of the default passive-failure values above
+- apply the stronger active-sabotage penalties from §8.3 only when France voluntarily creates or ratifies a state that directly blocks or reverses the promised outcome
+- clear examples: ceding the promised region to the rival holder, vassalizing the rival holder / region for France, or ratifying a deep alignment with the current rival holder that makes fulfillment materially impossible
+- emergency coalition coexistence or unrelated defensive coordination should raise warnings, not automatically count as the strongest betrayal class, unless they directly block fulfillment
 - for avoidance of doubt, French vassal control of the promised rival / region counts as backing that rival for both promise-failure and rivalry-conflict purposes
 
 ### 9.8 Renegotiation
 
 Before failure resolves, the promise owner should be able to renegotiate.
 
-Entry point: **typed command**. The player types a command like "renegotiate promise to Prussia" in the terminal. Talleyrand opens a `HARD_STOP` dialogue flow. The ledger shows commitment status and deadline as read-only context, but the action is initiated through the command interface. This avoids adding clickable action buttons to ledger tabs, which would be a new UI interaction pattern.
+Primary entry point: **visible diplomacy action**, not terminal-only discovery.
+
+When the player opens diplomacy with a nation that is beneficiary to an active French promise, the action list should expose `Renegotiate Promise`. Talleyrand then opens a `HARD_STOP` dialogue flow. The ledger shows commitment status and deadline as read-only context. A typed command alias like `renegotiate promise to Prussia` may remain available for terminal parity, but the player must not need prior command knowledge to find the action.
 
 Allowed v0.1 flow:
 
-- renegotiation is player-initiated via typed command
+- renegotiation is player-initiated through the diplomacy wizard action list, with an optional typed alias
 - it uses a standard `HARD_STOP` dialogue flow
 - it offers two concrete branches:
-  - downgrade the promise scope (e.g. reduce from 2 regions to 1)
+  - request a modest deadline extension
   - cancel the promise with light penalty
-- AI may refuse a downgrade request
+- AI may refuse an extension request
 - if the AI refuses, the original promise remains active and the clock continues
 - successful renegotiation must be cheaper than outright failure
 - renegotiation is available at any point while the promise is active, not only after urgency warnings fire — early renegotiation should be cheapest
 
 Renegotiation cost model:
 
-- if the beneficiary accepts renegotiation, apply a light trust cost instead of full betrayal:
+- accepted deadline extension:
+  - extend deadline by a short bounded amount (suggested 3-5 turns)
+  - relation hit: around -3
+  - no bilateral betrayal strike
+- accepted cancellation:
   - relation hit: -5 (vs -15 for hard failure)
   - global reliability hit: -3 (vs -6 for hard failure)
   - no bilateral betrayal strike
@@ -678,11 +730,19 @@ Required warning points (measured against effective deadline = `deadline_turn + 
 
 These warnings should surface through Morning Dispatch and the Talleyrand / commitments ledger summary. Each warning should remind the player that renegotiation is available and gets more expensive as the deadline approaches.
 
+Urgency-warning legibility rules:
+
+- cap urgency warnings at 1 per turn per promise
+- cap promise-urgency entries to 2 in a single dispatch page; overflow belongs in the ledger summary
+- every urgency warning should include the exact visible action path (`Open Diplomacy -> Beneficiary -> Renegotiate Promise`)
+- if the terminal alias exists, print the exact command string in the warning text as secondary help
+- if a promise becomes suspended or resumes, emit a one-time status update so save/load or turn-order changes do not feel silent
+
 ---
 
 ## 10. Acceptance Formula Hooks
 
-This spec needs five acceptance inputs.
+This spec needs four acceptance inputs in v0.1.
 
 ### 10.1 Direct rivalry modifier
 
@@ -712,26 +772,33 @@ This spec needs five acceptance inputs.
 
 Integration note: `SPECIAL_BONUSES` in `diplomatic_templates.py` already gives Prussia +10 for `territory_saxony` and Saxony +10 for `protection_promised`. The promise-value modifier should **replace** these static bonuses for deals that include a tracked `territorial_promise` clause, not stack independently. When a promise clause is present, use the promise-value modifier; when the old-style sweetener is present without a tracked promise, keep the static bonus. This prevents double-counting.
 
-### 10.5 Trusted-partner modifier
+### 10.5 Faithful-play upside
 
-- positive when the target currently regards France as a `trusted_partner`
-- should be strong enough to make faithful play feel distinct, but not strong enough to erase active bilateral betrayal
-- this modifier is the durable upside of long-horizon alliance play
+Do **not** add a dedicated `trusted_partner_mod` in v0.1.
+
+First-pass positive feedback should come from:
+
+- `they_chose_us` relation gain on visible side-taking
+- fulfilled-promise reputation / relation upside
+- readable warning and ledger surfacing that lets the player see loyalty paying off
+
+A stronger `trusted_partner` layer can return later if playtests show that the basic loop needs more durable upside.
 
 ### 10.6 Formula grouping
 
-The acceptance formula already has 15+ components. Adding 5 more risks opacity in debug output and balance tuning.
+The acceptance formula already has 15+ components. Adding 4 more risks opacity in debug output and balance tuning.
 
-Group the four new modifiers under a single **"political commitment"** composite in the formula breakdown:
+Group the new modifiers under a single **"political commitment"** composite in the formula breakdown:
 
 ```
-political_commitment_mod = (
+raw_political_commitment_mod = (
     direct_rivalry_mod
     + rival_conflict_mod
     + bilateral_betrayal_mod
     + promise_value_mod
-    + trusted_partner_mod
 )
+
+political_commitment_mod = max(-40, raw_political_commitment_mod)
 ```
 
 Report this composite as one line in debug/ledger output, with a drill-down available in verbose debug mode. This keeps the formula readable while preserving tuning granularity.
@@ -740,6 +807,8 @@ Priority note:
 
 - bilateral betrayal should outweigh generic reputation
 - a good promise from an unreliable promiser should still be discounted
+- the composite should not by itself make alliance mathematically impossible on the 5-nation map
+- survival / coalition-emergency exceptions still need a path to override normal deep-treaty resistance
 
 ---
 
@@ -752,7 +821,8 @@ AI should use rivalries to create branches:
 - court France against their rival
 - ask for exclusivity against rival before deep alliance
 - offer or request territorial promises tied to active claims
-- react to `they_chose_us` and `trusted_partner` states by preferring deeper follow-up proposals with the side France has clearly backed
+- react to `they_chose_us` and betrayal memory by preferring deeper follow-up proposals with the side France has clearly backed
+- do **not** propose a territorial promise when fulfilling it would obviously require France to immediately betray an existing deep ally or current co-belligerent
 
 ### 11.2 Refusal behavior
 
@@ -771,16 +841,16 @@ If France repeatedly angers a rival through opposite-camp alignment:
 - AI may pivot from diplomatic courtship toward hostility
 - AI should eventually stop expressing anger as a silent relation number and start expressing it as explicit diplomatic behavior
 
-### 11.4 Strategic focus / advisory layer
+### 11.4 Strategic focus / advisory layer (deferred)
 
-To keep static rivalries from feeling like pure furniture, the first AI expansion after the core rivalry pass should be advisory-first strategic focus:
+After the core commitments loop is stable, the first advisory follow-up can be strategic focus:
 
 - major powers surface a current concern and a preferred counterweight
 - great-power logic should read the top power tiers and balance against peers
 - secondary-power logic should favor regional ambition, opportunism, and protector choice
 - Saxony / minor powers surface a feared rival and preferred protector
 - Talleyrand uses this to recommend 1-2 nations France should back and to explain which courts that choice likely sacrifices
-- this is lighter than full dynamic rivalry formation and should land before any attempt at a broad emergent-rivalry system
+- this is lighter than full dynamic rivalry formation, but it is still outside commitments v0.1
 
 ### 11.5 Performance / architecture guard
 
@@ -805,7 +875,6 @@ Add to Nations / Talleyrand tabs:
 - each nation's active rivals
 - France's global reliability descriptor
 - bilateral betrayal warning if that nation distrusts France specifically
-- `trusted_partner` status where applicable
 - active commitments owed to or from that nation
 
 ### 12.2 Proposal preview / Talleyrand advisory
@@ -815,9 +884,8 @@ Add a dedicated **Political context** panel to the proposal preview / ratificati
 It should surface:
 
 - active rivals relevant to the target nation
-- France's current strategic focus recommendation
-- `trusted_partner` upside where applicable
 - any active promise skepticism or betrayal memory affecting the offer
+- any active promise owed to that nation, its deadline, and current blockers
 - the nation most likely to be angered if France proceeds
 
 Preview payload rule:
@@ -835,12 +903,11 @@ Before ratification, Talleyrand should warn:
 - "Prussia will not trust another territorial promise lightly."
 - "We cannot bind both rivals without choosing."
 - "If we choose Prussia here, Austria is likely lost to us for some time."
-- "Our best current diplomatic line is Prussia and Saxony, not Austria and Prussia together."
 
 Warning severity:
 
 - hard stop: `commitment_paradox`, or a treaty state that would silently create an invalid military alignment
-- soft warning / strong confirm: rivalry anger, strategic-focus tradeoff, trusted-partner upside, promise skepticism, and likely third-party fallout
+- soft warning / strong confirm: rivalry anger, promise skepticism, and likely third-party fallout
 
 Preview legibility rule:
 
@@ -896,13 +963,12 @@ No per-turn spam.
 
 - `next_commitment_id: int`
 
-- `trusted_partners: Dict[str, Dict]`
-  - key: `diplo_key`
-  - value: `{status, earned_turn, clean_turns}`
-
 ### 13.3 Optional later
 
 - `claim_map` or `nation_claims`
+- `trusted_partners: Dict[str, Dict]`
+  - key: `diplo_key`
+  - value: `{status, earned_turn, clean_turns}`
 - `nation_strategic_focus: Dict[str, Dict]`
   - key: nation
   - value: `{primary_concern, preferred_counterweight}` or minor-power equivalent
@@ -924,7 +990,6 @@ Do **not** add full claims in v0.1 unless implementation proves they are require
 - clarify `diplomatic_reliability` as nation-level reputation
 - add bilateral betrayal memory store
 - add rivalry store
-- add trusted-partner state
 - surface both in ledger / debug output
 
 ### Slice B. Rivalry pressure
@@ -935,6 +1000,7 @@ Do **not** add full claims in v0.1 unless implementation proves they are require
 - hard-reject behavior at 3 victim-side strikes
 - commitment paradox flow for `DEFENSIVE_ALLIANCE` / `ALLIANCE`
 - implement paradox as a standard `HARD_STOP` dialogue through the existing `dialogue_manager` taxonomy, not as a new parallel flow
+- defer bloc pressure, power tiers, and strategic focus until after v0.1 playtesting
 
 ### Slice C. Territorial promises
 
@@ -942,13 +1008,14 @@ Do **not** add full claims in v0.1 unless implementation proves they are require
 - tracked commitment creation
 - fulfillment / failure processing
 - user-facing claim-support / settlement-guarantee phrasing
-- require alliance still active at fulfillment time
-- treat active sabotage (allying, vassalizing, ceding to rival) as the stronger failure class
-- urgency warnings and renegotiation flow (typed command entry point)
+- single-region promises only
+- require alliance still active in the final post-processing state at fulfillment time
+- treat only direct, voluntary promise reversal as the stronger failure class
+- urgency warnings and renegotiation flow through visible diplomacy action, with typed alias optional
 - advisory + ledger surfacing
-- **minimal AI promise stub**: add `territorial_promise` generation to the `generate_suggested_terms` pipeline in `diplomatic_templates.py`, gated to nations whose `covets_regions` matches a region currently controlled by France or by that nation's rival - this is required because promises are AI-initiated only in v0.1, so without the stub no promises can exist at all
+- **minimal AI promise stub**: add `territorial_promise` generation to the `generate_suggested_terms` pipeline in `diplomatic_templates.py`, gated to nations whose `covets_regions` matches a region currently controlled by France or by that nation's rival, and reject obvious nonsense offers that would require immediate betrayal of France's current deep ally - this is required because promises are AI-initiated only in v0.1, so without the stub no promises can exist at all
 
-### Slice D. AI integration
+### Slice D. AI integration (deferred follow-up)
 
 - advisory-first strategic focus layer for AI phrasing and Talleyrand recommendations
 - derive `nation_power_scores` / `nation_power_tiers` from map + military state with hysteresis
@@ -969,7 +1036,7 @@ Mitigation:
 
 - keep lower treaty levels flexible
 - force choices only on deep military commitments
-- reward committed play (`they_chose_us`, `trusted_partner`) so the system is not all stick
+- reward committed play through `they_chose_us`, fulfilled promises, and visible positive feedback so the system is not all stick
 
 ### R2. Promise ambiguity
 
@@ -980,7 +1047,7 @@ Mitigation:
 - exact regions
 - exact deadline
 - exact status text
-- alliance must still be active at fulfillment time
+- alliance must still be active in the final resolved state at fulfillment time
 - active sabotage cases must be explicit, not inferred
 
 ### R3. Memory overload
@@ -999,10 +1066,10 @@ The core diplomatic drama on the 19-region map already runs through coalition fo
 Mitigation:
 
 - coalition membership does not erase promises
-- direct war with the beneficiary suspends the promise deadline clock
-- suspension semantics belong in the promise lifecycle, not as an ad hoc runtime exception
+- direct war caused by France is immediate failure, not suspension abuse
+- suspension semantics belong only to narrow edge cases, not as a general escape valve
 - bad-faith settlement in favor of the rival claimant during suspension still counts as breach
-- long enemy status should auto-void suspended pre-war commitments instead of preserving them forever
+- if a suspension does exist, it must be surfaced explicitly in dispatch / ledger so turn order and save/load do not hide it
 
 ---
 
@@ -1022,9 +1089,9 @@ Global reliability = "does France keep its word" (nation-keyed, drives broad acc
 
 ### Gate 3: Renegotiation cost — relation, reliability, or both?
 
-**Resolved: both, at reduced rates.**
+**Resolved: both, but branch by renegotiation type.**
 
-Accepted renegotiation costs -5 relation and -3 global reliability, with no bilateral betrayal strike. Hard failure costs -15 relation, -6 reliability, and +1 strike. This makes early renegotiation clearly cheaper while keeping it non-free. See §9.8.
+Accepted cancellation costs -5 relation and -3 global reliability, with no bilateral betrayal strike. Accepted deadline extension should be lighter (roughly -3 relation, no strike). Hard failure costs -15 relation, -6 reliability, and +1 strike. This makes early renegotiation clearly cheaper while keeping it non-free. See §9.8.
 
 ### Gate 4: Deadline storage model?
 
@@ -1034,9 +1101,9 @@ Absolute turn number plus suspension counter. Effective deadline = `deadline_tur
 
 ### Gate 5: Renegotiation entry point?
 
-**Resolved: typed command.**
+**Resolved: visible diplomacy action, with typed alias optional.**
 
-Player types a renegotiation command in the terminal. Talleyrand opens a HARD_STOP dialogue. Ledger shows read-only status. No new clickable action buttons on ledger tabs. See §9.8.
+Player finds renegotiation through the existing nation-scoped diplomacy flow. Talleyrand opens a HARD_STOP dialogue. Ledger shows read-only status. A terminal alias may exist, but discoverability does not depend on it. See §9.8.
 
 ### Gate 6: Slice C AI stub needed?
 
@@ -1046,9 +1113,9 @@ Promises are AI-initiated only in v0.1. Without a minimal stub in `generate_sugg
 
 ### Gate 7: Passive allied control sufficient for fulfillment?
 
-**Resolved: yes, but only if the alliance still stands when the promise comes due.**
+**Resolved: yes, but only if the alliance still stands in the final resolved state when the promise comes due.**
 
-Beneficiary controls the region + France still holds DEFENSIVE_ALLIANCE or ALLIANCE at fulfillment time = fulfilled. No active-contribution tracking. See §9.6.
+Beneficiary controls the region + France still holds DEFENSIVE_ALLIANCE or ALLIANCE in the final end-of-turn state = fulfilled. No active-contribution tracking. See §9.6.
 
 ### Gate 8: Prussia-Saxony cold → active escalation?
 
@@ -1058,21 +1125,21 @@ Prussia-Saxony war or France vassalizes Saxony → escalate to `active`. Not the
 
 ### Gate 9: Full dynamic rivalries now, or a lighter strategic-focus layer first?
 
-**Resolved: strategic focus first.**
+**Resolved: defer both.**
 
-Static rivalries remain the structural layer in v0.1. A lighter strategic-focus / Talleyrand-recommendation layer should come before any broad emergent-rivalry system. This adds guidance, court behavior, and side-choice texture without exploding edge-case scope. See §7.7 and §11.4.
+Static rivalries remain the structural layer in v0.1. Strategic focus and broader emergent-rivalry work stay out of the initial ship target until the core commitments loop is stable in play. See §7.7 and §11.4.
 
 ### Gate 10: Power tiers authored by nation, or derived from numbers?
 
-**Resolved: derived from numbers.**
+**Resolved: deferred.**
 
-Great / secondary / minor power status should come from current map and military strength, not fixed nation labels. Rivalry may be historical; power is situational. See §7.8.
+Dynamic power tiers are a later follow-up. Commitments v0.1 should not depend on them. If another spec needs temporary power labels before then, authored or hardcoded labels are acceptable. See §7.8.
 
 ### Gate 11: Hard limit on great-power allies, or bloc pressure?
 
-**Resolved: bloc pressure, not numeric cap.**
+**Resolved: defer bloc pressure.**
 
-France may still align with multiple great powers, but deep alignment with one great power should anger the allies, clients, and preferred counterweights of another. The system should make multi-great-power diplomacy possible but self-limiting through rivalry, strategic focus, and paradox pressure rather than through an arbitrary slot count. See §7.4C and §7.7.
+Commitments v0.1 should use direct rivalry pressure, third-party anger, and paradox checks only. Revisit bloc pressure later if playtests show a real need for more camp-shaping force. See §7.4C and §7.7.
 
 ### Remaining open question
 
@@ -1087,11 +1154,11 @@ For the first implementation pass:
 - keep global reliability
 - add bilateral betrayal memory
 - add explicit rivalries with intensity
-- add `trusted_partner` as the minimum faithful-play reward
 - force a choice only for deep military alignment across active rivals
-- implement territorial promises as tracked obligations with exact deadlines
+- implement territorial promises as single-region tracked obligations with exact deadlines
 - phrase territorial promises as claim-support / settlement-guarantee commitments, not magical cessions
+- add visible Promise review, warning, and renegotiation surfaces before adding more mechanics
 - include minimal AI promise generation stub in Slice C
-- prefer a light strategic-focus / Talleyrand-recommendation layer over full dynamic rivalry formation
+- defer bloc pressure, strategic focus, dynamic power tiers, and common peace / ally settlement
 
-That is enough to make diplomacy feel political without bundling in the full war-settlement overhaul too early.
+That is enough to make diplomacy feel political without bundling in the full war-settlement overhaul too early or hiding core outcomes behind unreadable modifiers.

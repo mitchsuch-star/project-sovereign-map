@@ -1,9 +1,9 @@
 # War Settlement + Ally Participation Spec
 
-> **Status:** DRAFT v0.1
+> **Status:** DEFERRED FOLLOW-UP DRAFT
 > **Last Updated:** April 13, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `STATUS.md`
-> **Scope note:** This is the ally-participation / peace-settlement slice of the broader `War Purpose + Settlement` track.
+> **Scope note:** This is the ally-participation / peace-settlement slice of the broader `War Purpose + Settlement` track. It is explicitly **not** part of the `Reliability + Commitments` v0.1 ship scope.
 
 ---
 
@@ -18,7 +18,7 @@ That creates four gaps:
 3. Great-power politics exist in spirit, but not yet in settlement procedure.
 4. An ally can help win a war and still feel mechanically invisible at the peace table.
 
-This spec solves the settlement-side problem without replacing the current pairwise diplomacy foundation.
+This spec defines the later settlement-side solution without replacing the current pairwise diplomacy foundation. The current commitments release should stop before this layer.
 
 ---
 
@@ -64,8 +64,8 @@ That is good enough for bilateral diplomacy and separate peace, but not for alli
 - Let allies who materially help in a war appear in settlement math and diplomatic fallout.
 - Support both `separate peace` and `common peace`.
 - Make territorial claim-support / settlement-guarantee promises resolvable in actual peace outcomes.
-- Use dynamic numeric power tiers (`great_power`, `secondary_power`, `minor_power`) rather than fixed nation tags.
-- Keep the first implementation compatible with the existing conversational diplomacy flow.
+- Allow a first settlement pass to use authored / hardcoded power roles if needed; dynamic numeric power tiers remain a later enhancement.
+- When this later feature begins, keep it compatible with the existing conversational diplomacy flow.
 
 ---
 
@@ -76,6 +76,7 @@ That is good enough for bilateral diplomacy and separate peace, but not for alli
 - This spec does not require every war to become a giant multilateral congress.
 - This spec does not block separate peace with a universal war-leader lock.
 - This spec does not finalize the full `War Purpose + Settlement` overhaul by itself; it defines the ally-participation layer that the broader track needs.
+- This spec is not part of the narrowed `Reliability + Commitments` v0.1 implementation target.
 
 ---
 
@@ -503,7 +504,7 @@ That is the intended route for:
 - rewarding a high-contribution ally
 - creating loyal buffer states
 
-This should improve relation with the beneficiary and strengthen `they_chose_us` / `trusted_partner` style effects.
+This should improve relation with the beneficiary and strengthen `they_chose_us` plus any later faithful-play upside the diplomacy layer adds.
 
 ---
 
@@ -581,7 +582,7 @@ Promise breach:
 Great powers:
 
 - bigger anger when excluded
-- more likely to downgrade alignment or shift strategic focus away from France
+- more likely to downgrade alignment or shift against France politically
 
 Minors:
 
@@ -634,9 +635,11 @@ In common peace, Talleyrand should surface:
 
 ### 16.2 First-pass UI requirements
 
-No new grand diplomacy screen family required.
+This does require a dedicated wartime settlement flow.
 
-Use existing surfaces:
+Do **not** build a full second diplomacy stack, but do not pretend the normal bilateral wizard is enough either.
+
+Use existing surfaces where possible:
 
 - proposal preview
 - ledger
@@ -737,6 +740,8 @@ Important compatibility note:
 
 ## 18. Implementation Sequence
 
+This sequence is explicitly **post-commitments**. Do not start it until the narrowed `Reliability + Commitments` v0.1 pass is stable and legible in playtests.
+
 ### Slice A: War identity + read-only grouping
 
 - add `war_instance`
@@ -803,9 +808,9 @@ The interesting tension is "you can cut a separate deal, but doing so may cost y
 
 ### 20.3 Strong call
 
-Power tiers should be dynamic and numeric.
+Power tiers do not need to be dynamic on day one of settlement.
 
-No country is eternally a great power. The map should be able to elevate or humiliate a state during the campaign.
+No country is eternally a great power, but this layer should not block the first settlement pass. Hardcoded / authored roles are acceptable until dynamic scoring is worth the added complexity.
 
 ### 20.4 Strong call
 
@@ -817,7 +822,7 @@ That means seats, consultation, entitlement, and fallout, not universal hard blo
 
 ## 21. Draft Recommendation
 
-For the first implementation pass:
+For the first implementation pass **after commitments v0.1 is stable**:
 
 - keep pairwise war score exactly where it is
 - add `war_instance`
@@ -826,6 +831,6 @@ For the first implementation pass:
 - keep separate peace in the existing bilateral diplomacy wizard
 - add common peace only when ally beneficiaries or promises matter, and route it through a dedicated wartime settlement flow rather than the normal nation proposal loop
 - add settlement grievance for shut-out allies
-- integrate great / secondary / minor power tiers as consultation weight, not free score
+- use great / secondary / minor power weighting as consultation weight, not free score; hardcoded tiers are acceptable at first
 
-This is enough to make allies visibly present in the political outcome of a war without turning the game into a full conference simulator.
+This is enough to make allies visibly present in the political outcome of a war without turning the game into a full conference simulator. It is intentionally a later release, not part of the current commitments cut line.
