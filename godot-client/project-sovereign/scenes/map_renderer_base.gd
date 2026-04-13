@@ -17,6 +17,8 @@ const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
+const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
+const INITIAL_CAMERA_OVERSCAN: float = 1.18
 const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
@@ -37,10 +39,16 @@ var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal := {}
 var hovered_fogged_force := {}
 var hovered_region: String = ""
+var pan_keys_pressed := {
+	"left": false,
+	"right": false,
+	"up": false,
+	"down": false,
+}
 
 var _zoom_level: float = 1.0
 var min_zoom: float = 0.5
-var max_zoom: float = 2.0
+var max_zoom: float = 4.0
 var is_panning: bool = false
 var pan_start_pos: Vector2 = Vector2.ZERO
 var zoom_tween: Tween = null
@@ -51,6 +59,7 @@ const ZOOM_SPEED: float = 0.1
 const ZOOM_DURATION: float = 0.2
 
 var map_viewport_container: SubViewportContainer
+var viewport_background: ColorRect
 var map_viewport: SubViewport
 var map_root: Node2D
 var map_camera: Camera2D
@@ -75,6 +84,7 @@ var highlight_map_texture = null
 var map_origin: Vector2 = Vector2.ZERO
 var map_canvas_size: Vector2 = Vector2.ZERO
 var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
+var _debug_label: Label = null
 
 
 func _get_region_positions() -> Dictionary:
@@ -113,6 +123,19 @@ func _ready():
 	_create_scene_layers()
 	_build_static_map_visuals()
 	call_deferred("_finalize_view_setup")
+	_create_debug_label()
+
+
+func _create_debug_label():
+	_debug_label = Label.new()
+	_debug_label.name = "DebugLabel"
+	_debug_label.position = Vector2(10, 40)
+	_debug_label.size = Vector2(600, 160)
+	_debug_label.add_theme_font_size_override("font_size", 11)
+	_debug_label.add_theme_color_override("font_color", Color.YELLOW)
+	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_debug_label.z_index = 200
+	add_child(_debug_label)
 
 
 func _initialize_map():
@@ -133,6 +156,7 @@ func _initialize_map_assets():
 
 func _finalize_view_setup():
 	_on_map_area_resized()
+	_set_camera_zoom_level(_get_initial_zoom_level())
 	_center_view_on_map()
 	queue_redraw()
 
@@ -241,7 +265,7 @@ func _build_map_textures():
 	var image_width = max(1, int(ceil(map_canvas_size.x)))
 	var image_height = max(1, int(ceil(map_canvas_size.y)))
 	var visual_image = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
-	visual_image.fill(Color(0.12, 0.13, 0.14, 1.0))
+	visual_image.fill(MAP_BACKGROUND_COLOR)
 	var color_map = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
 	color_map.fill(NO_PROVINCE_COLOR)
 
@@ -348,6 +372,13 @@ func _refresh_highlight_texture():
 
 
 func _create_scene_layers():
+	viewport_background = ColorRect.new()
+	viewport_background.name = "ViewportBackground"
+	viewport_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	viewport_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	viewport_background.color = MAP_BACKGROUND_COLOR
+	add_child(viewport_background)
+
 	map_viewport_container = SubViewportContainer.new()
 	map_viewport_container.name = "MapViewportContainer"
 	map_viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -772,10 +803,18 @@ func _get_camera_viewport_size() -> Vector2:
 	return Vector2(max(size.x, 1.0), max(size.y, 1.0))
 
 
+func _get_initial_zoom_level() -> float:
+	var viewport_size = _get_camera_viewport_size()
+	var width_ratio = viewport_size.x / max(world_bounds.size.x, 1.0)
+	var height_ratio = viewport_size.y / max(world_bounds.size.y, 1.0)
+	var fit_ratio = min(width_ratio, height_ratio)
+	return clamp(fit_ratio / INITIAL_CAMERA_OVERSCAN, min_zoom, max_zoom)
+
+
 func _sync_camera_zoom():
 	if map_camera == null:
 		return
-	map_camera.zoom = Vector2.ONE / _zoom_level
+	map_camera.zoom = Vector2(_zoom_level, _zoom_level)
 
 
 func _get_camera_half_extents() -> Vector2:
@@ -863,26 +902,125 @@ func focus_on_region(region_name: String):
 
 
 func _process(delta: float):
-	var pan_input = Vector2.ZERO
 	var focused = get_viewport().gui_get_focus_owner()
 	var text_focused = focused is LineEdit or focused is TextEdit
 
 	if not text_focused and panning_enabled:
-		if Input.is_action_pressed("ui_left"):
+		var pan_input = Vector2.ZERO
+		if pan_keys_pressed["left"]:
 			pan_input.x += 1
-		if Input.is_action_pressed("ui_right"):
+		if pan_keys_pressed["right"]:
 			pan_input.x -= 1
-		if Input.is_action_pressed("ui_up"):
+		if pan_keys_pressed["up"]:
 			pan_input.y += 1
-		if Input.is_action_pressed("ui_down"):
+		if pan_keys_pressed["down"]:
 			pan_input.y -= 1
+		if pan_input != Vector2.ZERO:
+			var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta / _zoom_level
+			_set_camera_position(map_camera.position + world_delta)
+	elif pan_keys_pressed["left"] or pan_keys_pressed["right"] or pan_keys_pressed["up"] or pan_keys_pressed["down"]:
+		_clear_pan_key_state()
 
-	if pan_input != Vector2.ZERO:
-		var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta / _zoom_level
-		_set_camera_position(map_camera.position + world_delta)
+
+func _input(event):
+	if event is InputEventKey:
+		_handle_pan_key_event(event)
+		return
+
+	if not _should_handle_map_pointer_event(event):
+		if event is InputEventMouseMotion:
+			_clear_hover_state()
+			queue_redraw()
+		return
+
+	if event is InputEventMouseMotion:
+		mouse_position = event.position
+		if is_panning:
+			var drag_delta = event.position - pan_start_pos
+			pan_start_pos = event.position
+			_set_camera_position(map_camera.position - drag_delta / _zoom_level)
+		else:
+			_refresh_hover_state()
+			queue_redraw()
+		return
+
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
+			get_viewport().gui_release_focus()
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)
+			return
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)
+			return
+		elif event.button_index == MOUSE_BUTTON_MIDDLE:
+			is_panning = true
+			pan_start_pos = event.position
+			return
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
+			if clicked_region == "":
+				clicked_region = hovered_region
+			if clicked_region != "":
+				region_clicked.emit(clicked_region)
+			return
+
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
+		is_panning = false
+
+
+func _handle_pan_key_event(event: InputEventKey):
+	if event.echo:
+		return
+	var focused = get_viewport().gui_get_focus_owner()
+	var text_focused = focused is LineEdit or focused is TextEdit
+	if text_focused or not panning_enabled:
+		if not event.pressed:
+			_clear_pan_key_state()
+		return
+
+	match event.keycode:
+		KEY_LEFT:
+			pan_keys_pressed["left"] = event.pressed
+		KEY_RIGHT:
+			pan_keys_pressed["right"] = event.pressed
+		KEY_UP:
+			pan_keys_pressed["up"] = event.pressed
+		KEY_DOWN:
+			pan_keys_pressed["down"] = event.pressed
+
+
+func _clear_pan_key_state():
+	pan_keys_pressed["left"] = false
+	pan_keys_pressed["right"] = false
+	pan_keys_pressed["up"] = false
+	pan_keys_pressed["down"] = false
+
+
+func _clear_hover_state():
+	hovered_marshal = {}
+	hovered_fogged_force = {}
+	_set_hovered_region("")
+
+
+func _should_handle_map_pointer_event(event) -> bool:
+	if not panning_enabled:
+		return false
+	if not (event is InputEventMouseMotion or event is InputEventMouseButton):
+		return false
+	if is_panning:
+		return true
+	var rect = get_global_rect()
+	if not rect.has_point(event.position):
+		return false
+	var hovered_control = get_viewport().gui_get_hovered_control()
+	if hovered_control != null and hovered_control != self and not is_ancestor_of(hovered_control):
+		return false
+	return true
 
 
 func _draw():
+	_update_debug_label()
 	if hovered_marshal.size() > 0:
 		_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
@@ -893,10 +1031,25 @@ func _draw():
 		tooltip_layer.clear_tooltip()
 
 
+func _update_debug_label():
+	if _debug_label == null:
+		return
+	var map_mouse = _get_map_mouse_position()
+	var xform = map_viewport.canvas_transform if map_viewport else Transform2D.IDENTITY
+	var manual = map_camera.position + (mouse_position - global_position - size / 2.0) / _zoom_level if map_camera else mouse_position
+	_debug_label.text = "Screen: %s | World(xform): %s | World(manual): %s\nCam: %s | Zoom: %.3f | GPos: %s\nSize: %s | VP: %s | Hover: %s\nXform: %s" % [
+		mouse_position, map_mouse, manual,
+		map_camera.position if map_camera else "null", _zoom_level, global_position,
+		size, Vector2(map_viewport.size) if map_viewport else "null", hovered_region,
+		xform,
+	]
+
+
 func _screen_to_map_position(screen_position: Vector2) -> Vector2:
-	if map_camera == null:
+	if map_viewport == null:
 		return screen_position
-	return map_camera.position + (screen_position - _get_camera_viewport_size() / 2.0) / _zoom_level
+	var local_pos = screen_position - global_position
+	return map_viewport.canvas_transform.affine_inverse() * local_pos
 
 
 func _get_map_mouse_position() -> Vector2:
@@ -959,48 +1112,30 @@ func _refresh_hover_state():
 	_set_hovered_region("")
 
 
-func _gui_input(event):
-	if event is InputEventMouseMotion:
-		mouse_position = event.position
-		if is_panning:
-			var drag_delta = event.position - pan_start_pos
-			pan_start_pos = event.position
-			_set_camera_position(map_camera.position - drag_delta / _zoom_level)
-		else:
-			_refresh_hover_state()
-			queue_redraw()
+func _unhandled_input(event):
+	var focused = get_viewport().gui_get_focus_owner()
+	var text_focused = focused is LineEdit or focused is TextEdit
+	if text_focused or not panning_enabled:
+		return
 
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)
-			return
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)
-			return
-		elif event.button_index == MOUSE_BUTTON_MIDDLE:
-			is_panning = true
-			pan_start_pos = event.position
-			return
-		elif event.button_index == MOUSE_BUTTON_LEFT:
-			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
-			if clicked_region == "":
-				clicked_region = hovered_region
-			if clicked_region != "":
-				region_clicked.emit(clicked_region)
-			return
-
-	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
-		is_panning = false
-
-
+	if event is InputEventKey and event.pressed and not event.echo:
+		var screen_center = global_position + size / 2.0
+		match event.physical_keycode:
+			KEY_EQUAL, KEY_KP_ADD:
+				_zoom_at_point(screen_center, 1.0 + ZOOM_SPEED)
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				_zoom_at_point(screen_center, 1.0 - ZOOM_SPEED)
+			KEY_HOME:
+				_center_view_on_map()
 func _zoom_at_point(point: Vector2, zoom_factor: float):
 	var new_zoom = clamp(_zoom_level * zoom_factor, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom, _zoom_level):
 		return
 
 	var map_point_before = _screen_to_map_position(point)
-	var viewport_center = _get_camera_viewport_size() / 2.0
-	var target_position = map_point_before - (point - viewport_center) / new_zoom
+	var local_point = point - global_position
+	var viewport_center = size / 2.0
+	var target_position = map_point_before - (local_point - viewport_center) / new_zoom
 	target_position = _clamp_camera_position(target_position)
 
 	if zoom_tween:

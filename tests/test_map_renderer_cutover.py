@@ -42,6 +42,9 @@ def test_renderer_base_declares_scene_layers():
 def test_renderer_base_isolates_map_world_in_subviewport_camera():
     source = _read(BASE_GD)
     for snippet in [
+        "viewport_background = ColorRect.new()",
+        'viewport_background.name = "ViewportBackground"',
+        "viewport_background.color = MAP_BACKGROUND_COLOR",
         "map_viewport_container = SubViewportContainer.new()",
         'map_viewport_container.name = "MapViewportContainer"',
         "map_viewport_container.stretch = true",
@@ -64,7 +67,10 @@ def test_camera_cutover_replaces_manual_world_transform():
     assert "var is_zooming: bool" not in source
     assert "world_layer.position = pan_offset" not in source
     assert "world_layer.scale = Vector2(zoom_level, zoom_level)" not in source
-    assert "map_camera.zoom = Vector2.ONE / _zoom_level" in source
+    assert "const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)" in source
+    assert "const INITIAL_CAMERA_OVERSCAN: float = 1.18" in source
+    assert "var max_zoom: float = 4.0" in source
+    assert "map_camera.zoom = Vector2(_zoom_level, _zoom_level)" in source
     assert "map_camera.position = _clamp_camera_position(target)" in source
     assert "func focus_on_region(region_name: String):" in source
 
@@ -124,9 +130,41 @@ def test_hover_and_click_lookup_use_color_map_sampling_before_fallback():
     source = _read(BASE_GD)
     assert "func _lookup_region_from_color_map(map_position: Vector2) -> String:" in source
     assert "var pixel = province_lookup_image.get_pixel(pixel_x, pixel_y)" in source
-    assert "return map_camera.position + (screen_position - _get_camera_viewport_size() / 2.0) / _zoom_level" in source
-    assert "var target_position = map_point_before - (point - viewport_center) / new_zoom" in source
+    assert "return map_viewport.canvas_transform.affine_inverse() * local_pos" in source
+    assert "var target_position = map_point_before - (local_point - viewport_center) / new_zoom" in source
     assert "var color_map_region = _lookup_region_from_color_map(map_mouse)" in source
     assert "_set_hovered_region(color_map_region)" in source
     assert "var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))" in source
     assert "region_clicked.emit(clicked_region)" in source
+
+
+def test_camera_cutover_has_keyboard_pan_and_zoom_fallbacks():
+    source = _read(BASE_GD)
+    assert 'if pan_keys_pressed["left"]:' in source
+    assert 'if pan_keys_pressed["right"]:' in source
+    assert 'if pan_keys_pressed["up"]:' in source
+    assert 'if pan_keys_pressed["down"]:' in source
+    assert "get_viewport().gui_release_focus()" in source
+    assert "func _input(event):" in source
+    assert "func _handle_pan_key_event(event: InputEventKey):" in source
+    assert "func _clear_pan_key_state():" in source
+    assert "func _clear_hover_state():" in source
+    assert "func _should_handle_map_pointer_event(event) -> bool:" in source
+    assert "func _unhandled_input(event):" in source
+    assert "KEY_EQUAL, KEY_KP_ADD:" in source
+    assert "KEY_MINUS, KEY_KP_SUBTRACT:" in source
+    assert "KEY_HOME:" in source
+    assert 'pan_keys_pressed["left"] = event.pressed' in source
+    assert 'pan_keys_pressed["right"] = event.pressed' in source
+    assert 'pan_keys_pressed["up"] = event.pressed' in source
+    assert 'pan_keys_pressed["down"] = event.pressed' in source
+
+
+def test_camera_cutover_sets_initial_zoom_and_reverses_wheel_mapping():
+    source = _read(BASE_GD)
+    assert "_set_camera_zoom_level(_get_initial_zoom_level())" in source
+    assert "func _get_initial_zoom_level() -> float:" in source
+    assert "var fit_ratio = min(width_ratio, height_ratio)" in source
+    assert "return clamp(fit_ratio / INITIAL_CAMERA_OVERSCAN, min_zoom, max_zoom)" in source
+    assert "_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)" in source
+    assert "_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)" in source
