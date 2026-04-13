@@ -20,10 +20,10 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 ### Up Next
 
 - **Bug Fixes — COMPLETE.** The frozen PL queue is closed, and Session 6 architecture follow-up is COMPLETE: `/command` response pipeline COMPLETE, typed dialogue migration COMPLETE, popup routing registry COMPLETE, turn-manager popup-flush workaround cleanup COMPLETE, and `/command` manual-field-layering reduction COMPLETE with enemy-phase notification regression coverage. See `docs/STATUS.md` and `docs/BUG_FIXES.md`.
-- **Session 8 Renderer Cutover — ACTIVE.** Slice 1 shared node-layer shell and slice 2 placeholder province-definition/color-map lookup are complete. Remaining work is commissioned art-backed layers, Camera2D/input cutover, and final Godot runtime smoke validation. See `docs/STATUS.md`.
+- **Session 8 Renderer Cutover — ACTIVE.** Slices 1-3 are complete: shared node-layer shell, placeholder province-definition/color-map lookup, and viewport-local `Camera2D` cutover. Remaining work is commissioned art-backed layers and final Godot runtime smoke validation. See `docs/STATUS.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 - **Design Refinement — NEXT AFTER SESSION 8.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
-- **Phase 6.5 remaining:** Map Renderer only. Placeholder bitmap/color-map lookup is live; commissioned art integration and Camera2D cutover still remain. Tutorial deferred to Pre-EA.
+- **Phase 6.5 remaining:** Map Renderer only. Placeholder bitmap/color-map lookup and Camera2D cutover are live; commissioned art integration and final Godot smoke validation remain. Tutorial deferred to Pre-EA.
 - **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.
 
 ### Design Gates

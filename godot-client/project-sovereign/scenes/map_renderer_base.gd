@@ -38,20 +38,22 @@ var hovered_marshal := {}
 var hovered_fogged_force := {}
 var hovered_region: String = ""
 
-var zoom_level: float = 1.0
+var _zoom_level: float = 1.0
 var min_zoom: float = 0.5
 var max_zoom: float = 2.0
-var pan_offset: Vector2 = Vector2.ZERO
 var is_panning: bool = false
 var pan_start_pos: Vector2 = Vector2.ZERO
 var zoom_tween: Tween = null
-var is_zooming: bool = false
 var panning_enabled: bool = true
 
 const PAN_SPEED_KEYS: float = 300.0
 const ZOOM_SPEED: float = 0.1
 const ZOOM_DURATION: float = 0.2
 
+var map_viewport_container: SubViewportContainer
+var map_viewport: SubViewport
+var map_root: Node2D
+var map_camera: Camera2D
 var world_layer: Control
 var connection_layer
 var region_layer: Control
@@ -72,6 +74,7 @@ var visual_map_texture = null
 var highlight_map_texture = null
 var map_origin: Vector2 = Vector2.ZERO
 var map_canvas_size: Vector2 = Vector2.ZERO
+var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
 
 
 func _get_region_positions() -> Dictionary:
@@ -104,13 +107,12 @@ func _get_active_region_positions() -> Dictionary:
 
 
 func _ready():
+	resized.connect(_on_map_area_resized)
 	_initialize_map()
 	_initialize_map_assets()
 	_create_scene_layers()
 	_build_static_map_visuals()
-	_center_view_on_map()
-	_apply_view_transform()
-	queue_redraw()
+	call_deferred("_finalize_view_setup")
 
 
 func _initialize_map():
@@ -126,6 +128,39 @@ func _initialize_map_assets():
 	province_definition = _load_province_definition()
 	_build_province_shapes()
 	_build_map_textures()
+	world_bounds = _compute_world_bounds()
+
+
+func _finalize_view_setup():
+	_on_map_area_resized()
+	_center_view_on_map()
+	queue_redraw()
+
+
+func _compute_world_bounds() -> Rect2:
+	if map_canvas_size != Vector2.ZERO:
+		return Rect2(map_origin, map_canvas_size)
+
+	var positions = _get_active_region_positions()
+	if positions.is_empty():
+		return Rect2(Vector2.ZERO, Vector2.ONE)
+
+	var padding = max(DEFAULT_MAP_PADDING, REGION_LABEL_WIDTH)
+	var min_x = INF
+	var max_x = -INF
+	var min_y = INF
+	var max_y = -INF
+
+	for pos in positions.values():
+		min_x = min(min_x, pos.x - padding)
+		max_x = max(max_x, pos.x + padding)
+		min_y = min(min_y, pos.y - padding)
+		max_y = max(max_y, pos.y + padding)
+
+	return Rect2(
+		Vector2(min_x, min_y),
+		Vector2(max(1.0, max_x - min_x), max(1.0, max_y - min_y))
+	)
 
 
 func _load_province_definition() -> Dictionary:
@@ -313,17 +348,43 @@ func _refresh_highlight_texture():
 
 
 func _create_scene_layers():
+	map_viewport_container = SubViewportContainer.new()
+	map_viewport_container.name = "MapViewportContainer"
+	map_viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_viewport_container.stretch = true
+	map_viewport_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(map_viewport_container)
+
+	map_viewport = SubViewport.new()
+	map_viewport.name = "MapViewport"
+	map_viewport.disable_3d = true
+	map_viewport.handle_input_locally = false
+	map_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	map_viewport.transparent_bg = true
+	map_viewport_container.add_child(map_viewport)
+
+	map_root = Node2D.new()
+	map_root.name = "MapRoot"
+	map_viewport.add_child(map_root)
+
+	map_camera = Camera2D.new()
+	map_camera.name = "MapCamera"
+	map_camera.enabled = true
+	map_camera.anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
+	map_root.add_child(map_camera)
+
 	world_layer = Control.new()
 	world_layer.name = "WorldLayer"
 	world_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	world_layer.show_behind_parent = true
-	world_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(world_layer)
+	world_layer.position = world_bounds.position
+	world_layer.size = world_bounds.size
+	map_root.add_child(world_layer)
 
 	visual_map_layer = TextureRect.new()
 	visual_map_layer.name = "VisualMapLayer"
 	visual_map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	visual_map_layer.position = map_origin
+	visual_map_layer.position = map_origin - world_bounds.position
 	visual_map_layer.size = map_canvas_size
 	visual_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
 	visual_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -334,7 +395,7 @@ func _create_scene_layers():
 	highlight_map_layer = TextureRect.new()
 	highlight_map_layer.name = "ProvinceHighlightLayer"
 	highlight_map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	highlight_map_layer.position = map_origin
+	highlight_map_layer.position = map_origin - world_bounds.position
 	highlight_map_layer.size = map_canvas_size
 	highlight_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
 	highlight_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -387,6 +448,10 @@ func _build_static_map_visuals():
 	_refresh_all_region_visuals()
 
 
+func _world_to_layer_position(world_position: Vector2) -> Vector2:
+	return world_position - world_bounds.position
+
+
 func _build_connection_nodes():
 	var positions = _get_active_region_positions()
 	var connections = _get_region_connections()
@@ -409,8 +474,8 @@ func _build_connection_nodes():
 				continue
 
 			segments.append({
-				"start": start_pos,
-				"end": end_pos,
+				"start": _world_to_layer_position(start_pos),
+				"end": _world_to_layer_position(end_pos),
 			})
 			drawn_connections[key_text] = true
 
@@ -421,11 +486,12 @@ func _build_region_nodes():
 	var positions = _get_active_region_positions()
 	for region_name in positions:
 		var pos: Vector2 = positions[region_name]
+		var layer_pos = _world_to_layer_position(pos)
 
 		var root = Control.new()
 		root.name = "%sRegionRoot" % region_name
 		root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.position = pos - Vector2(REGION_RADIUS, REGION_RADIUS)
+		root.position = layer_pos - Vector2(REGION_RADIUS, REGION_RADIUS)
 		root.size = Vector2(REGION_DIAMETER, REGION_DIAMETER)
 		region_layer.add_child(root)
 
@@ -446,7 +512,7 @@ func _build_region_nodes():
 		var label = Label.new()
 		label.name = "%sLabel" % region_name
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.position = pos + Vector2(-REGION_LABEL_WIDTH / 2.0, -5.0)
+		label.position = layer_pos + Vector2(-REGION_LABEL_WIDTH / 2.0, -5.0)
 		label.size = Vector2(REGION_LABEL_WIDTH, REGION_LABEL_HEIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -541,9 +607,10 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		var marshal_name = str(marshal.get("name", "?"))
 		var nation = str(marshal.get("nation", "Neutral"))
 		var icon_pos = region_pos + Vector2(start_x + i * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
+		var layer_icon_pos = _world_to_layer_position(icon_pos)
 		var icon_panel = Panel.new()
 		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_panel.position = icon_pos
+		icon_panel.position = layer_icon_pos
 		icon_panel.size = MARSHAL_ICON_SIZE
 		icon_panel.add_theme_stylebox_override("panel", _make_box_style(colors.get(nation, Color(1.0, 0.0, 1.0)), Color.BLACK, 2.0, 2))
 		force_layer.add_child(icon_panel)
@@ -551,7 +618,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
+		name_label.position = layer_icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
 		name_label.size = Vector2(name_width, 14.0)
 		name_label.text = marshal_name
 		name_label.add_theme_font_size_override("font_size", 11)
@@ -578,20 +645,21 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		var fog_level = str(force.get("fog_level", "partial"))
 		var slot = regular_marshal_offset + i
 		var icon_pos = region_pos + Vector2(start_x + slot * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
+		var layer_icon_pos = _world_to_layer_position(icon_pos)
 		var nation_color = colors.get(force_nation, Color(0.5, 0.5, 0.5))
 		var fill_color = nation_color.darkened(0.5 if fog_level == "partial" else 0.7)
 		fill_color.a = 0.7 if fog_level == "partial" else 0.5
 
 		var icon_panel = Panel.new()
 		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_panel.position = icon_pos
+		icon_panel.position = layer_icon_pos
 		icon_panel.size = MARSHAL_ICON_SIZE
 		icon_panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, Color(0.4, 0.4, 0.45, 0.6), 1.5, 2))
 		force_layer.add_child(icon_panel)
 
 		var icon_label = Label.new()
 		icon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_label.position = icon_pos
+		icon_label.position = layer_icon_pos
 		icon_label.size = MARSHAL_ICON_SIZE
 		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -603,7 +671,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		var name_width = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - slot * 14.0)
+		name_label.position = layer_icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - slot * 14.0)
 		name_label.size = Vector2(name_width, 14.0)
 		name_label.text = force_name
 		name_label.add_theme_font_size_override("font_size", 11)
@@ -650,7 +718,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	var panel = Panel.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.position = region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0)
+	panel.position = _world_to_layer_position(region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0))
 	panel.size = panel_size
 	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
 	garrison_layer.add_child(panel)
@@ -687,11 +755,82 @@ func _clear_children(node: Node):
 		child.queue_free()
 
 
+func _on_map_area_resized():
+	if map_viewport != null:
+		var viewport_size = Vector2i(
+			max(1, int(round(size.x))),
+			max(1, int(round(size.y)))
+		)
+		map_viewport.size = viewport_size
+	_update_camera_limits()
+	queue_redraw()
+
+
+func _get_camera_viewport_size() -> Vector2:
+	if map_viewport != null and map_viewport.size.x > 0 and map_viewport.size.y > 0:
+		return Vector2(map_viewport.size)
+	return Vector2(max(size.x, 1.0), max(size.y, 1.0))
+
+
+func _sync_camera_zoom():
+	if map_camera == null:
+		return
+	map_camera.zoom = Vector2.ONE / _zoom_level
+
+
+func _get_camera_half_extents() -> Vector2:
+	return _get_camera_viewport_size() / max(_zoom_level, 0.001) / 2.0
+
+
+func _clamp_camera_position(target: Vector2) -> Vector2:
+	var clamped = target
+	var half_extents = _get_camera_half_extents()
+	var bounds_end = world_bounds.position + world_bounds.size
+
+	if world_bounds.size.x <= half_extents.x * 2.0:
+		clamped.x = world_bounds.position.x + world_bounds.size.x / 2.0
+	else:
+		clamped.x = clamp(target.x, world_bounds.position.x + half_extents.x, bounds_end.x - half_extents.x)
+
+	if world_bounds.size.y <= half_extents.y * 2.0:
+		clamped.y = world_bounds.position.y + world_bounds.size.y / 2.0
+	else:
+		clamped.y = clamp(target.y, world_bounds.position.y + half_extents.y, bounds_end.y - half_extents.y)
+
+	return clamped
+
+
+func _set_camera_position(target: Vector2):
+	if map_camera == null:
+		return
+	map_camera.position = _clamp_camera_position(target)
+	_refresh_hover_state()
+	queue_redraw()
+
+
+func _set_camera_zoom_level(value: float):
+	_zoom_level = clamp(value, min_zoom, max_zoom)
+	_sync_camera_zoom()
+	if map_camera != null:
+		map_camera.position = _clamp_camera_position(map_camera.position)
+	_refresh_hover_state()
+	queue_redraw()
+
+
+func _update_camera_limits():
+	if map_camera == null:
+		return
+	map_camera.limit_left = int(floor(world_bounds.position.x))
+	map_camera.limit_top = int(floor(world_bounds.position.y))
+	map_camera.limit_right = int(ceil(world_bounds.position.x + world_bounds.size.x))
+	map_camera.limit_bottom = int(ceil(world_bounds.position.y + world_bounds.size.y))
+	_set_camera_position(map_camera.position)
+
+
 func _center_view_on_map():
 	if map_canvas_size != Vector2.ZERO:
 		var asset_center = map_origin + map_canvas_size / 2.0
-		if size.x > 0 and size.y > 0:
-			pan_offset = size / 2.0 - asset_center
+		focus_on_map_point(asset_center)
 		return
 
 	var positions = _get_active_region_positions()
@@ -710,14 +849,20 @@ func _center_view_on_map():
 		max_y = max(max_y, pos.y)
 
 	var map_center = Vector2((min_x + max_x) / 2.0, (min_y + max_y) / 2.0)
-	if size.x > 0 and size.y > 0:
-		pan_offset = size / 2.0 - map_center
+	focus_on_map_point(map_center)
+
+
+func focus_on_map_point(map_point: Vector2):
+	_set_camera_position(map_point)
+
+
+func focus_on_region(region_name: String):
+	var positions = _get_active_region_positions()
+	if positions.has(region_name):
+		focus_on_map_point(positions[region_name])
 
 
 func _process(delta: float):
-	if is_zooming:
-		_apply_view_transform()
-
 	var pan_input = Vector2.ZERO
 	var focused = get_viewport().gui_get_focus_owner()
 	var text_focused = focused is LineEdit or focused is TextEdit
@@ -733,8 +878,8 @@ func _process(delta: float):
 			pan_input.y -= 1
 
 	if pan_input != Vector2.ZERO:
-		pan_offset += pan_input * PAN_SPEED_KEYS * delta
-		_apply_view_transform()
+		var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta / _zoom_level
+		_set_camera_position(map_camera.position + world_delta)
 
 
 func _draw():
@@ -748,17 +893,10 @@ func _draw():
 		tooltip_layer.clear_tooltip()
 
 
-func _apply_view_transform():
-	if world_layer == null:
-		return
-	world_layer.position = pan_offset
-	world_layer.scale = Vector2(zoom_level, zoom_level)
-	_refresh_hover_state()
-	queue_redraw()
-
-
 func _screen_to_map_position(screen_position: Vector2) -> Vector2:
-	return (screen_position - pan_offset) / zoom_level
+	if map_camera == null:
+		return screen_position
+	return map_camera.position + (screen_position - _get_camera_viewport_size() / 2.0) / _zoom_level
 
 
 func _get_map_mouse_position() -> Vector2:
@@ -825,9 +963,9 @@ func _gui_input(event):
 	if event is InputEventMouseMotion:
 		mouse_position = event.position
 		if is_panning:
-			pan_offset += event.position - pan_start_pos
+			var drag_delta = event.position - pan_start_pos
 			pan_start_pos = event.position
-			_apply_view_transform()
+			_set_camera_position(map_camera.position - drag_delta / _zoom_level)
 		else:
 			_refresh_hover_state()
 			queue_redraw()
@@ -856,27 +994,25 @@ func _gui_input(event):
 
 
 func _zoom_at_point(point: Vector2, zoom_factor: float):
-	var new_zoom = clamp(zoom_level * zoom_factor, min_zoom, max_zoom)
-	if is_equal_approx(new_zoom, zoom_level):
+	var new_zoom = clamp(_zoom_level * zoom_factor, min_zoom, max_zoom)
+	if is_equal_approx(new_zoom, _zoom_level):
 		return
 
-	var map_point_before = (point - pan_offset) / zoom_level
+	var map_point_before = _screen_to_map_position(point)
+	var viewport_center = _get_camera_viewport_size() / 2.0
+	var target_position = map_point_before - (point - viewport_center) / new_zoom
+	target_position = _clamp_camera_position(target_position)
 
 	if zoom_tween:
 		zoom_tween.kill()
 
-	is_zooming = true
 	zoom_tween = create_tween()
 	zoom_tween.set_parallel(true)
-	zoom_tween.tween_property(self, "zoom_level", new_zoom, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-	var map_point_after = (point - pan_offset) / new_zoom
-	var pan_adjustment = (map_point_after - map_point_before) * new_zoom
-	var new_pan = pan_offset + pan_adjustment
-	zoom_tween.tween_property(self, "pan_offset", new_pan, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	zoom_tween.tween_method(Callable(self, "_set_camera_zoom_level"), _zoom_level, new_zoom, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	zoom_tween.tween_method(Callable(self, "_set_camera_position"), map_camera.position, target_position, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	zoom_tween.finished.connect(func():
-		is_zooming = false
-		_apply_view_transform()
+		_set_camera_zoom_level(new_zoom)
+		_set_camera_position(target_position)
 	)
 
 

@@ -39,6 +39,36 @@ def test_renderer_base_declares_scene_layers():
     assert "connection_layer = Node2D.new()" not in source
 
 
+def test_renderer_base_isolates_map_world_in_subviewport_camera():
+    source = _read(BASE_GD)
+    for snippet in [
+        "map_viewport_container = SubViewportContainer.new()",
+        'map_viewport_container.name = "MapViewportContainer"',
+        "map_viewport_container.stretch = true",
+        "map_viewport = SubViewport.new()",
+        'map_viewport.name = "MapViewport"',
+        "map_root = Node2D.new()",
+        'map_root.name = "MapRoot"',
+        "map_camera = Camera2D.new()",
+        'map_camera.name = "MapCamera"',
+        "map_camera.enabled = true",
+        "map_root.add_child(map_camera)",
+        "map_root.add_child(world_layer)",
+    ]:
+        assert snippet in source, f"Missing viewport/camera cutover snippet: {snippet}"
+
+
+def test_camera_cutover_replaces_manual_world_transform():
+    source = _read(BASE_GD)
+    assert "var pan_offset: Vector2" not in source
+    assert "var is_zooming: bool" not in source
+    assert "world_layer.position = pan_offset" not in source
+    assert "world_layer.scale = Vector2(zoom_level, zoom_level)" not in source
+    assert "map_camera.zoom = Vector2.ONE / _zoom_level" in source
+    assert "map_camera.position = _clamp_camera_position(target)" in source
+    assert "func focus_on_region(region_name: String):" in source
+
+
 def test_renderer_base_loads_placeholder_province_definition_and_textures():
     source = _read(BASE_GD)
     assert "func _get_map_asset_definition_path() -> String:" in source
@@ -94,6 +124,8 @@ def test_hover_and_click_lookup_use_color_map_sampling_before_fallback():
     source = _read(BASE_GD)
     assert "func _lookup_region_from_color_map(map_position: Vector2) -> String:" in source
     assert "var pixel = province_lookup_image.get_pixel(pixel_x, pixel_y)" in source
+    assert "return map_camera.position + (screen_position - _get_camera_viewport_size() / 2.0) / _zoom_level" in source
+    assert "var target_position = map_point_before - (point - viewport_center) / new_zoom" in source
     assert "var color_map_region = _lookup_region_from_color_map(map_mouse)" in source
     assert "_set_hovered_region(color_map_region)" in source
     assert "var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))" in source
