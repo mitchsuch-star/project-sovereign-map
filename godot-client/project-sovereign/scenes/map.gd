@@ -2,7 +2,8 @@ extends "res://scenes/map_renderer_base.gd"
 
 const PLACEHOLDER_PROVINCE_DEFINITION_PATH = "res://assets/maps/session8_placeholder_provinces.json"
 
-# Region positions on map (19 regions)
+# Fallback region positions for the 19-region placeholder map.
+# Runtime anchor positions should come from the province-definition asset when it loads.
 const REGION_POSITIONS = {
 	"Paris": Vector2(300, 350),
 	"Belgium": Vector2(400, 250),

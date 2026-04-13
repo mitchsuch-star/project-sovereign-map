@@ -94,6 +94,15 @@ func _get_map_asset_definition_path() -> String:
 	return ""
 
 
+func _get_active_region_positions() -> Dictionary:
+	if not province_shapes.is_empty():
+		var positions := {}
+		for region_name in province_shapes:
+			positions[region_name] = province_shapes[region_name].get("center", Vector2.ZERO)
+		return positions
+	return _get_region_positions()
+
+
 func _ready():
 	_initialize_map()
 	_initialize_map_assets()
@@ -379,7 +388,7 @@ func _build_static_map_visuals():
 
 
 func _build_connection_nodes():
-	var positions = _get_region_positions()
+	var positions = _get_active_region_positions()
 	var connections = _get_region_connections()
 	var colors = _get_colors()
 	var drawn_connections := {}
@@ -409,7 +418,7 @@ func _build_connection_nodes():
 
 
 func _build_region_nodes():
-	var positions = _get_region_positions()
+	var positions = _get_active_region_positions()
 	for region_name in positions:
 		var pos: Vector2 = positions[region_name]
 
@@ -453,7 +462,7 @@ func _build_region_nodes():
 
 
 func _refresh_all_region_visuals():
-	for region_name in _get_region_positions():
+	for region_name in _get_active_region_positions():
 		_refresh_region_visual(region_name)
 
 
@@ -499,7 +508,7 @@ func _rebuild_dynamic_nodes():
 	_clear_children(garrison_layer)
 	marshal_hitboxes.clear()
 	fogged_force_hitboxes.clear()
-	var positions = _get_region_positions()
+	var positions = _get_active_region_positions()
 
 	for region_name in positions:
 		var region_pos: Vector2 = positions[region_name]
@@ -685,7 +694,7 @@ func _center_view_on_map():
 			pan_offset = size / 2.0 - asset_center
 		return
 
-	var positions = _get_region_positions()
+	var positions = _get_active_region_positions()
 	if positions.is_empty():
 		return
 
@@ -785,7 +794,7 @@ func _refresh_hover_state():
 	hovered_fogged_force = {}
 
 	var map_mouse = _get_map_mouse_position()
-	var positions = _get_region_positions()
+	var positions = _get_active_region_positions()
 
 	for hitbox in marshal_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
@@ -1325,7 +1334,7 @@ func _format_number(num) -> String:
 
 
 func update_region(region_name: String, controller: String, marshal_data = null):
-	if not _get_region_positions().has(region_name):
+	if not _get_active_region_positions().has(region_name):
 		return
 
 	region_controllers[region_name] = controller

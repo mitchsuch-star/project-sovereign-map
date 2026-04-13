@@ -42,12 +42,17 @@ def test_renderer_base_declares_scene_layers():
 def test_renderer_base_loads_placeholder_province_definition_and_textures():
     source = _read(BASE_GD)
     assert "func _get_map_asset_definition_path() -> String:" in source
+    assert "func _get_active_region_positions() -> Dictionary:" in source
+    assert 'positions[region_name] = province_shapes[region_name].get("center", Vector2.ZERO)' in source
     assert "province_definition = _load_province_definition()" in source
     assert "var parsed = JSON.parse_string(file.get_as_text())" in source
     assert "FileAccess.file_exists(definition_path)" in source
     assert "province_lookup_image = color_map" in source
     assert "visual_map_texture = ImageTexture.create_from_image(visual_image)" in source
     assert "highlight_map_texture = ImageTexture.create_from_image(highlight_image)" in source
+    assert "var positions = _get_active_region_positions()" in source
+    assert "for region_name in _get_active_region_positions():" in source
+    assert "if not _get_active_region_positions().has(region_name):" in source
 
 
 def test_renderer_base_preserves_update_all_regions_contract():
