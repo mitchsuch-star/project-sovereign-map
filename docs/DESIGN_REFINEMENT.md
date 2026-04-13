@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** Work here begins after `BUG_FIXES.md` is clear and playtesting confirms stability.
 >
-> **Last Updated:** April 10, 2026 (fix-phase gating clarified; no new refinement scope added)
+> **Last Updated:** April 12, 2026 (post-fix routing refresh: the diplomacy bug-phase gate is now cleared, the shipped Envoys inbox / current-turn offer lifetime / response-contract refactors are recorded here as live foundations, and the next diplomacy work is grouped into five spec-needed system tracks)
 
 ---
 
@@ -10,50 +10,56 @@
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Player Feedback (Wave 3 remaining) | 7 | Deferred until the current bug phase is complete |
-| Nation Rivalry System (EU4-inspired) | 1 | Blocked on the diplomacy bug cluster clearing |
-| Territorial Promises (Wave 3) | 1 | Needs design gate after the current bug phase |
-| War System Overhaul (EU4-inspired) | 4 | Needs design gate after the current bug phase |
-| AI Diplomacy Improvements | 3 | Reference only during bug phase; do not pull into current coding batches |
-| Gold Sink Options (B4) | 1 | Needs design gate after the current bug phase |
-| Wave 4 — New Features | 19 | Needs per-item approval after the current bug phase |
-| Wave 5 — Game Review Findings | 8 | Needs design gate after the current bug phase |
-| Jealousy System | 1 | Needs design gate after the current bug phase |
+| Player Feedback (Wave 3 remaining) | 7 | Pending consolidation into post-fix diplomacy specs |
+| Nation Rivalry System (EU4-inspired) | 1 | Ready for dedicated spec work |
+| Territorial Promises (Wave 3) | 1 | Fold into the commitments spec track |
+| War System Overhaul (EU4-inspired) | 4 | Ready for dedicated spec work |
+| AI Diplomacy Improvements | 3 | Re-scope into the agenda / motive spec track |
+| Gold Sink Options (B4) | 1 | Candidate follow-up after the first diplomacy spec queue |
+| Wave 4 — New Features | 19 | Needs per-item approval after the core diplomacy spec queue |
+| Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks below |
+| Jealousy System | 1 | Separate design gate; not part of the diplomacy queue |
 | **Total** | **45** | |
 
 ---
 
-## Fix-Phase Gate
+## Post-Fix Routing Update
 
-Everything in this document is outside the current bug-fix execution plan. During the current fix phase, use this file only to check what remains blocked and what should not be pulled forward.
+The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are complete, and the diplomacy contract is now stable enough to plan legitimacy and strategy work on top of it.
 
-Sessions 6-8 from `docs/GPT_AUDIT_PLAN_RESULTS.md` are architecture hardening, not design-refinement permission. Finishing a bug session does not automatically unblock the items below unless their listed prerequisites are also closed.
+### Live foundations now documented
 
-### Blocked until the current bug phase is complete
+- `PL-27`, `PL-34`, and `PL-32` are complete.
+- The Envoys inbox / mailbox panel is live, including `GET /mailbox`, `POST /mailbox/activate`, stable mailbox identity, and `dialogue_manager.get_mailbox_count()` as the badge source.
+- `world.diplomatic_queue` is gone; the shipped follow-up refactor replaced the old cross-turn mailbox persistence with current-turn envoy items (`Not Now`, same-turn reopen, end-turn lapse).
+- Proposal / clause display ownership is centralized in backend formatters, so popup payloads and reopen flows use the same labels.
+- Session 6 contract refactors are complete: `/command` starts from `build_base_response()`, remaining diplomacy popups use typed response paths, and `main.gd` routes modals through the registry/dispatcher layer.
 
-- `R160: Nation Rivalry System`
-- `R155: AI Proposal Personality Voice`
-- `R156: Diplomacy Strategic Optionality`
-- `R162: AI Ultimatums to Player`
-- Presentation-only diplomacy polish that depends on the mailbox, typed-response, or display-contract cleanup from `PL-27`, `PL-34`, and `PL-32`
+### Current next spec queue
 
-### Deferred by phase, not by a specific technical blocker
+These five grouped systems are the next diplomacy design queue. Each one needs a dedicated written spec before implementation.
 
-- `R119`, `R131`, `R129`, `R128`, `R132`, `R17d`, `R17e`, `R17f`
-- These items remain valid later, but they are not part of the current bug batches and should not displace open PL work.
+1. `Reliability + Commitments`
+   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises.
+2. `War Purpose + Settlement`
+   Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one settlement/war-goal spec.
+3. `Nation Agendas + Motive Legibility`
+   Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec.
+4. `Talleyrand Desk + Explanation Layer`
+   Collapse `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, and `R159` into one explanation / trend / advisory surface spec.
+5. `Economic Diplomacy`
+   Collapse `R161` plus diplomacy-facing B4 candidates into one reciprocal-trade / subsidy / pressure spec.
 
-### Re-entry condition for this document
+### Still lower priority
 
-- Session 1 in `docs/BUG_FIXES.md` is closed.
-- Session 2 in `docs/BUG_FIXES.md` is closed.
-- Session 3 in `docs/BUG_FIXES.md` is closed.
-- `PL-28` has been rebased on the surviving defeat rule from `PL-31`.
+- `R162: AI Ultimatums to Player` is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above are written. It adds interruption surface before the core diplomacy has enough political weight.
+- Presentation-only diplomacy polish remains downstream of the grouped spec work above.
 
 ---
 
-## Deferred Until Bug Phase Clears
+## Secondary Post-Fix Items
 
-These refine existing systems and are still implementation-ready later, but they are intentionally out of the current bug phase.
+These refine existing systems and are still implementation-ready later, but they should not displace the grouped spec tracks above.
 
 ### R119: Nations Remember Betrayal
 - **Category:** Player Feedback
@@ -112,17 +118,18 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 - **R155: AI Proposal Personality Voice** — needs to expand from flavor text into motive legibility. The audit confirmed that AI personality currently changes a few constants, but not enough of proposal timing, persistence, target choice, or player-facing explanation.
 - **R156: Diplomacy Strategic Optionality** — confirmed. Proposals happen, but they do not create enough meaningful branching until rivalry / exclusion pressure exists.
 
-### Wait for bug-fix prerequisites
+### Prerequisites now satisfied (Apr 12)
 
-- **R160 / R155 / R156** should not start until `PL-27`, `PL-34`, and `PL-32` are closed. The current diplomacy contract is not trustworthy enough to judge legitimacy work cleanly.
-- **R162: AI Ultimatums to Player** should wait until the PL-27 / PL-34 diplomacy attention contract is fixed. The current interrupt / recovery model is not trustworthy enough to add another urgent diplomacy surface cleanly.
-- Presentation-only diplomacy polish should follow the soft-stop mailbox / typed-response cleanup, not precede it.
+- **R160 / R155 / R156** are no longer blocked by the old diplomacy contract prerequisites. `PL-27`, `PL-34`, and `PL-32` are closed, and the Envoys inbox / current-turn offer lifetime / typed popup-response foundations are live.
+- **R162: AI Ultimatums to Player** no longer waits on the mailbox/recovery transport fix, but it remains intentionally sequenced after the stronger commitment and agenda specs.
+- Presentation-only diplomacy polish should still follow the grouped spec work above, not precede it.
 
-### Smallest legitimacy stack
+### Current legitimacy stack
 
-- `docs/BUG_FIXES.md`: land PL-27 / PL-34 / PL-32 so diplomacy has a trustworthy interrupt, recovery, and display contract.
-- `R160`: make alliances politically costly and mutually constraining.
-- `R155` + `R156`: make AI motives and strategic branching legible to the player.
+- Completed foundation: Envoys inbox / same-turn offer lifetime / backend-owned display labels / typed response routing.
+- `Reliability + Commitments`: make alliances politically costly, promises meaningful, and betrayal cumulative.
+- `Nation Agendas + Motive Legibility`: make AI motives and strategic branching legible to the player.
+- `War Purpose + Settlement`: make wars resolve toward recognizable political outcomes instead of generic pressure alone.
 
 ---
 

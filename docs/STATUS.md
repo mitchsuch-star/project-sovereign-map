@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 12, 2026 (Session 8 renderer cutover slice 3 complete: `godot-client/project-sovereign/scenes/map_renderer_base.gd` now isolates the map world in a `SubViewport`, drives zoom/pan through a native `Camera2D`, clamps the camera to computed world bounds, preserves color-map hover/click lookup, and adds local focus helpers while keeping `update_all_regions(map_data)` stable for `main.gd`. Source-level guardrails in `tests/test_map_consistency.py`, `tests/test_map_renderer_cutover.py`, and `tests/test_map_placeholder_assets.py` now cover the viewport/camera cutover. 17 targeted regression tests passed. Godot runtime smoke verification is still manual-only because the engine is not installed in this environment.)
+> **Last Updated:** April 12, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the docs now record the completed diplomacy contract work: Envoys inbox/mailbox flow, current-turn offer lifetime refactor, backend-owned display labels, `/command` response refactor, typed dialogue migration, and popup routing registry. The next five diplomacy refinement items are now queued as spec-needed system tracks.)
 
 ---
 
@@ -58,6 +58,20 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 | Session 5 | Restart flow | `PL-29` | **COMPLETE** |
 | Session 6 | Response and popup contract hardening | `/command` response pipeline, typed dialogue migration, popup routing registry, turn-manager popup flush workaround cleanup, `/command` follow-up reduction | **COMPLETE** |
 
+### 2. Completed Diplomacy Foundations (reference for future planning)
+
+These changes are live. Treat them as the baseline when planning follow-up diplomacy work.
+
+| Foundation | What shipped |
+|------------|--------------|
+| Diplomacy interrupt contract | `PL-27` split hard-stop vs soft-stop diplomacy, stopped ordinary commands from being blocked by envoy decisions, and moved recovery onto typed flows instead of parser-only fallbacks. |
+| Envoys inbox / mailbox flow | Session 2 follow-up shipped the browsable Envoys inbox/mailbox panel, `GET /mailbox`, `POST /mailbox/activate`, stable mailbox identity, and consolidated pending-count ownership under `dialogue_manager.get_mailbox_count()`. |
+| Queue elimination + offer lifetime refactor | `world.diplomatic_queue` is gone. The follow-up refactor replaced cross-turn mailbox persistence with current-turn envoy items: `Not Now`, same-turn reopen, and end-turn lapse instead of silent long-lived queue state. |
+| Diplomacy display contract | `PL-32` centralized proposal/clause display ownership in backend formatters (`backend/display_names.py`) so popups and recovery payloads no longer maintain divergent token maps. |
+| Response / popup refactors | Session 6 moved `/command` onto `build_base_response()`, finished typed dialogue migration for remaining diplomacy popups, and replaced hand-ordered modal routing with the popup registry/dispatcher path in `main.gd`. |
+
+**Planning note:** do not assume the old pre-mailbox model still exists. Diplomacy refinement should build on Envoys inbox + same-turn lapse + backend-owned popup labels, not on the removed `diplomatic_queue` / cross-turn mailbox behavior.
+
 ### 3. Architecture Hardening (before full-map work)
 
 GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but NOT ready for 80-100 region expansion. These items need a plan before full-map implementation starts:
@@ -83,9 +97,19 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 
 These are existing audit items broken into implementation order. They stay after the current bug sessions and before any full-map expansion work.
 
-### 4. Design Refinement (AFTER bugs + required bug prerequisites)
+### 4. Design Refinement (next diplomacy spec queue)
 
-`docs/DESIGN_REFINEMENT.md`. Focused audit validated `R160`, `R155`, and `R156` as the highest-leverage diplomacy legitimacy items once the current diplomacy bug contract is fixed. `R162` waits on attention-contract fixes. `N1` and `A4` appear already implemented; `A3` now needs re-scope. Do not pull these items forward into Sessions 1-8.
+`docs/DESIGN_REFINEMENT.md` is now a post-fix planning doc, not a blocked-during-bugs list. The old prerequisites are complete: `PL-27`, `PL-34`, `PL-32`, the Envoys inbox/mailbox follow-up, the current-turn offer lifetime refactor, and the Session 6 response/popup refactors are all live. The next diplomacy work should be spec-first.
+
+| Order | Spec Track | Bundles / Source Items | Note |
+|-------|------------|------------------------|------|
+| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | Rivalries, betrayal memory, and territorial promises should be designed as one shared political-commitment system. **Needs dedicated spec.** |
+| 2 | War Purpose + Settlement | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. **Needs dedicated spec.** |
+| 3 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
+| 4 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
+| 5 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
+
+**Follow-up note:** `R162` (AI ultimatums to player) is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above exist. It adds interruption surface before the underlying diplomacy has enough political weight.
 
 ### Independent Tracks
 

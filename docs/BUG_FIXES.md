@@ -13,7 +13,7 @@
 - Follow the session order below unless a direct dependency note inside an item says otherwise.
 - Inspect only the exact implicated code surfaces and same-family helper paths for the active item.
 - Use `docs/GPT_AUDIT_PLAN_RESULTS.md` for routing, collapse rules, and phase sequencing only.
-- Use `docs/DESIGN_REFINEMENT.md` only to confirm what remains blocked.
+- Use `docs/DESIGN_REFINEMENT.md` for post-fix spec routing. The old "design refinement stays blocked" rule below is historical now that Sessions 1-7 are complete.
 - Update `docs/STATUS.md` whenever the open count, duplicate status, or active session changes.
 
 ---
@@ -25,7 +25,7 @@
 - No new PL items unless a direct code contradiction forces one.
 - Approved exception: the shipped Session 2 mailbox lifetime model is reopened inside the owning `PL-27` / `PL-34` family because it now conflicts with the desired diplomacy-gating behavior. Use `docs/DIPLOMATIC_OFFER_LIFETIME_SPEC.md` as the source of truth for that follow-up.
 - Same-family sibling failures on the same code path are absorbed into the owning PL item and called out explicitly below.
-- `docs/DESIGN_REFINEMENT.md` stays blocked; do not pull design work into Sessions 1-8.
+- Historical note: during the active bug phase, `docs/DESIGN_REFINEMENT.md` stayed blocked. That gate is now cleared because Sessions 1-7 are complete. Do not reopen bug sessions to do design work; use `docs/STATUS.md` + `docs/DESIGN_REFINEMENT.md` for the post-fix spec queue instead.
 
 ---
 
