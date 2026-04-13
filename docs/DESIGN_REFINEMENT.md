@@ -40,7 +40,7 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 These five grouped systems are the next diplomacy design queue. Each one needs a dedicated written spec before implementation.
 
 1. `Reliability + Commitments`
-   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises.
+   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`.
 2. `War Purpose + Settlement`
    Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one settlement/war-goal spec.
 3. `Nation Agendas + Motive Legibility`

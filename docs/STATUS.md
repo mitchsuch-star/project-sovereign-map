@@ -103,7 +103,7 @@ These are existing audit items broken into implementation order. They stay after
 
 | Order | Spec Track | Bundles / Source Items | Note |
 |-------|------------|------------------------|------|
-| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | Rivalries, betrayal memory, and territorial promises should be designed as one shared political-commitment system. **Needs dedicated spec.** |
+| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | Rivalries, betrayal memory, and territorial promises should be designed as one shared political-commitment system. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. |
 | 2 | War Purpose + Settlement | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. **Needs dedicated spec.** |
 | 3 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
 | 4 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
