@@ -1,6 +1,6 @@
 # Reliability + Commitments Spec
 
-> **Status:** Draft v0.3
+> **Status:** Draft v0.4
 > **Date:** April 12, 2026
 > **Queue Position:** Design Refinement item 1
 > **Collapses:** `R160` + `R119` + `R151`
@@ -142,11 +142,18 @@ Notes:
   - Prussia <-> Austria: `active`
   - Prussia <-> Saxony: `cold`
 
+Prussia-Saxony hardcoded escalation (v0.1 special case, not the full dynamic system):
+
+- If Prussia and Saxony enter direct war → escalate to `active`
+- If France vassalizes Saxony → escalate to `active`
+
+These are two concrete triggers checked at turn-end, not a general dynamic-formation system. They keep Prussia-Saxony from feeling inert without opening the full edge-case space.
+
 ### 7.2 Dynamic rivalry formation
 
 Dynamic rivalry formation is a valid future extension, but it is **not part of the first implementation pass**.
 
-v0.1 ships with the static starting rivalries only. Dynamic formation moves to Slice D or later after the static system is playtested.
+v0.1 ships with the static starting rivalries plus the two Prussia-Saxony escalation triggers above. General dynamic formation moves to Slice D or later after the static system is playtested.
 
 A dynamic rivalry may form when all are true:
 
@@ -175,7 +182,7 @@ Use a simple 2-step intensity model for v0.1.
 
 For v0.1:
 
-- rivalry levels are authored, not dynamically escalated
+- rivalry levels are authored, not dynamically escalated (exception: Prussia-Saxony hardcoded triggers in §7.1)
 - static rivalries may decay if conditions soften
 - dynamic escalation can be added later with the broader AI-agenda work
 
@@ -242,6 +249,17 @@ Draft default for v0.1:
 
 - `DEFENSIVE_ALLIANCE` / `ALLIANCE` across active rivals should force a choice rather than coexist.
 - Lower treaty levels may coexist, but they still anger the excluded rival.
+
+Implementation note — relationship to existing `alliance_paradox`:
+
+The codebase already has a fully wired `alliance_paradox` HARD_STOP dialogue (`dialogue_manager.py`, `diplomatic_executor.py:2620-2677`, `alliance_paradox_popup.gd`). That flow fires when a **war declaration** would violate an existing alliance. The commitment paradox fires at **ratification** when deep military alignment would span both sides of a rivalry.
+
+These are different triggers with different option sets. Implement as a **sibling dialogue type** (`commitment_paradox`) rather than overloading the existing `alliance_paradox`. This means:
+
+- new dialogue type in `HARD_STOP_TYPES`
+- new priority slot (1, between `alliance_paradox` at 0 and `vassal_rebellion_imminent` at current 1 — bump others down)
+- new Godot popup (`commitment_paradox_popup.gd`)
+- new handler methods in `diplomatic_executor.py`
 
 ### 7.6 Rivalry decay and resolution
 
@@ -401,11 +419,19 @@ On treaty ratification, create a tracked commitment:
   "rival_nation": "Saxony",
   "created_turn": 8,
   "deadline_turn": 18,
+  "suspended_turns": 0,
   "status": "active",
   "source_treaty": "alliance",
   "source_pair": "France|Prussia"
 }
 ```
+
+Deadline storage model:
+
+- Store `deadline_turn` (absolute) plus `suspended_turns` (integer counter).
+- Effective deadline = `deadline_turn + suspended_turns`.
+- Do **not** store `remaining_turns` as a decrementing counter — that requires per-turn writes and is error-prone with suspension/resume.
+- This matches the existing codebase pattern: `war_start_turns`, `turn_signed`, `armistice_turns` are all absolute turn numbers or simple counters, never decremented-per-tick values.
 
 Deadline source for v0.1:
 
@@ -419,72 +445,84 @@ Deadline source for v0.1:
 Coalition / war interaction:
 
 - coalition membership does **not** void an active promise
-- if promiser and beneficiary enter direct war, the deadline clock suspends while that war lasts
-- when peace resumes, the promise clock continues from where it stopped
+- if promiser and beneficiary enter direct war, the deadline clock suspends: increment `suspended_turns` by 1 each turn while direct war persists
+- when peace resumes, the promise clock continues (effective deadline has shifted forward by the suspension count)
 - suspension is not a free erase: if the promiser ratifies terms favoring the rival claimant against the beneficiary during suspension, treat that as bad-faith breach
+
+Source treaty interaction:
+
+- if the source treaty is **broken by France**, the promise immediately fails with full betrayal penalties (§9.7) — this stacks with the treaty-break penalties from §8.3
+- if the source treaty is **broken by the beneficiary**, the promise is voided with no penalty to France
+- if the source treaty **naturally downgrades** (e.g. via turns-below-threshold), the promise remains active — it is an independent obligation that survives treaty drift
 
 ### 9.6 Fulfillment
 
-A territorial promise is fulfilled if, by the deadline:
+A territorial promise is fulfilled when the effective deadline is reached (`current_turn >= deadline_turn + suspended_turns`) and the beneficiary controls the promised region.
 
-- the beneficiary controls the promised region, and
-- that control was achieved through conquest, treaty cession, vassal release, or allied war settlement in which France materially participated
+v0.1 fulfillment check (two prongs, both must be true):
 
-Minimum v0.1 simplification:
+1. The beneficiary controls the promised region by the effective deadline.
+2. At any point during the promise window, France held `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the beneficiary.
 
-- if beneficiary controls the promised region by deadline and France was allied / aligned through the relevant war window, count as fulfilled
+Passive allied control is sufficient. France does not need to have fought in the specific war or ceded the region directly — maintaining the alliance that gave the beneficiary strategic freedom counts as honoring the commitment. Tracking whether France contributed a defined military action would require new event-tracking infrastructure not worth the complexity for v0.1.
+
+The degenerate case where the beneficiary conquers the region entirely on its own while France does nothing is still politically acceptable: France kept its alliance, the beneficiary got what it wanted, the promise is fulfilled.
 
 ### 9.7 Failure
 
 A promise fails if:
 
-- deadline expires with no fulfillment, or
-- France signs a settlement that blocks fulfillment, or
-- France aligns with the rival holder instead
+- effective deadline expires with no fulfillment, or
+- France breaks the source treaty (immediate failure, stacks with treaty-break betrayal from §8.3), or
+- France signs a settlement that blocks fulfillment (e.g. ceding the promised region to a third party), or
+- France aligns with the rival holder instead (e.g. allying the nation that controls the promised region)
 
 Failure effects:
 
-- relation penalty with beneficiary
-- betrayal strike against France -> beneficiary
-- global reliability loss
+- relation penalty with beneficiary: -15
+- betrayal strike against France -> beneficiary: +1
+- global reliability loss: -6
 - possible rivalry escalation between beneficiary and the favored rival
+- if failure was caused by source-treaty break, these stack on top of the treaty-break penalties from §8.3
 
 ### 9.8 Renegotiation
 
 Before failure resolves, the promise owner should be able to renegotiate.
 
+Entry point: **typed command**. The player types a command like "renegotiate promise to Prussia" in the terminal. Talleyrand opens a `HARD_STOP` dialogue flow. The ledger shows commitment status and deadline as read-only context, but the action is initiated through the command interface. This avoids adding clickable action buttons to ledger tabs, which would be a new UI interaction pattern.
+
 Allowed v0.1 flow:
 
-- renegotiation is player-initiated
+- renegotiation is player-initiated via typed command
 - it uses a standard `HARD_STOP` dialogue flow
 - it offers two concrete branches:
-  - downgrade the promise scope
+  - downgrade the promise scope (e.g. reduce from 2 regions to 1)
   - cancel the promise with light penalty
 - AI may refuse a downgrade request
 - if the AI refuses, the original promise remains active and the clock continues
 - successful renegotiation must be cheaper than outright failure
+- renegotiation is available at any point while the promise is active, not only after urgency warnings fire — early renegotiation should be cheapest
 
-Draft v0.3 default:
+Renegotiation cost model:
 
-- renegotiation exists
-- compensation currencies beyond territory remain deferred
 - if the beneficiary accepts renegotiation, apply a light trust cost instead of full betrayal:
-  - small relation hit
-  - small global reliability hit
+  - relation hit: -5 (vs -15 for hard failure)
+  - global reliability hit: -3 (vs -6 for hard failure)
   - no bilateral betrayal strike
 - full betrayal applies only on hard failure or bad-faith reversal
+- compensation currencies beyond territory remain deferred
 
 ### 9.9 Promise urgency warnings
 
 Tracked promises must warn the player before failure becomes unavoidable.
 
-Required warning points:
+Required warning points (measured against effective deadline = `deadline_turn + suspended_turns`):
 
-- when 50% of the deadline window has elapsed
-- when 75% of the deadline window has elapsed
+- when 50% of the deadline window has elapsed — include renegotiation hint
+- when 75% of the deadline window has elapsed — stronger tone, explicit renegotiation call-to-action
 - final urgent warning when 3 turns or fewer remain
 
-These warnings should surface through Morning Dispatch and, if needed, the Talleyrand / commitments ledger summary.
+These warnings should surface through Morning Dispatch and the Talleyrand / commitments ledger summary. Each warning should remind the player that renegotiation is available and gets more expensive as the deadline approaches.
 
 ---
 
@@ -516,6 +554,25 @@ This spec needs four acceptance inputs.
 - positive when the offer includes a territorial promise matching the target's strategic interest
 - should be meaningful enough to change AI behavior and make offers feel politically real
 - should **not** be strong enough to erase deep bilateral distrust by itself
+
+Integration note: `SPECIAL_BONUSES` in `diplomatic_templates.py` already gives Prussia +10 for `territory_saxony` and Saxony +10 for `protection_promised`. The promise-value modifier should **replace** these static bonuses for deals that include a tracked `territorial_promise` clause, not stack independently. When a promise clause is present, use the promise-value modifier; when the old-style sweetener is present without a tracked promise, keep the static bonus. This prevents double-counting.
+
+### 10.5 Formula grouping
+
+The acceptance formula already has 15+ components. Adding 4 more risks opacity in debug output and balance tuning.
+
+Group the four new modifiers under a single **"political commitment"** composite in the formula breakdown:
+
+```
+political_commitment_mod = (
+    direct_rivalry_mod
+    + rival_conflict_mod
+    + bilateral_betrayal_mod
+    + promise_value_mod
+)
+```
+
+Report this composite as one line in debug/ledger output, with a drill-down available in verbose debug mode. This keeps the formula readable while preserving tuning granularity.
 
 Priority note:
 
@@ -657,15 +714,16 @@ Do **not** add full claims in v0.1 unless implementation proves they are require
 - clause type
 - tracked commitment creation
 - fulfillment / failure processing
-- urgency warnings and renegotiation penalties
+- urgency warnings and renegotiation flow (typed command entry point)
 - advisory + ledger surfacing
+- **minimal AI promise stub**: add `territorial_promise` generation to the `generate_suggested_terms` pipeline in `diplomatic_templates.py`, gated to nations whose `covets_regions` matches a region currently controlled by France or by that nation's rival — this is required because promises are AI-initiated only in v0.1, so without the stub no promises can exist at all
 
 ### Slice D. AI integration
 
-- optional dynamic rivalry formation
-- rival-aware proposals
+- full rival-aware proposal logic (extends the Slice C stub into strategic decision-making)
 - betrayal-aware refusals
 - promise-aware alliance offers
+- optional dynamic rivalry formation (general system, beyond the Prussia-Saxony hardcoded triggers in §7.1)
 
 ---
 
@@ -712,13 +770,59 @@ Mitigation:
 
 ---
 
-## 16. Open Gates For Design Review
+## 16. Resolved Design Gates (v0.4)
 
-These are the main questions worth pressure-testing with Claude.
+### Gate 1: Hard forced-choice vs soft penalty for rival military alignment?
 
-1. Should rival military alignments be a hard forced-choice system, or a soft but severe penalty system?
-2. Is the split of global reliability + bilateral betrayal memory the right structure, or should both be pair-specific?
-3. What exact light-cost package should accepted renegotiation apply: relation only, reliability only, or both?
+**Resolved: forced choice for deep military alignment, soft penalty below that.**
+
+`DEFENSIVE_ALLIANCE` / `ALLIANCE` across active rivals triggers a commitment paradox dialogue (§7.5). Lower treaty levels coexist but anger the excluded rival (§7.4B). This keeps diplomacy feeling political without scripting outcomes at lower engagement levels.
+
+### Gate 2: Global reliability + bilateral betrayal, or all pair-specific?
+
+**Resolved: keep the split.**
+
+Global reliability = "does France keep its word" (nation-keyed, drives broad acceptance modifiers). Bilateral betrayal = "what did France do to us specifically" (directional, drives hard-reject behavior at 3 strikes). These are different questions with different audiences. Collapsing them loses the distinction between "untrustworthy in general" and "specifically betrayed us."
+
+### Gate 3: Renegotiation cost — relation, reliability, or both?
+
+**Resolved: both, at reduced rates.**
+
+Accepted renegotiation costs -5 relation and -3 global reliability, with no bilateral betrayal strike. Hard failure costs -15 relation, -6 reliability, and +1 strike. This makes early renegotiation clearly cheaper while keeping it non-free. See §9.8.
+
+### Gate 4: Deadline storage model?
+
+**Resolved: `deadline_turn` + `suspended_turns`.**
+
+Absolute turn number plus suspension counter. Effective deadline = `deadline_turn + suspended_turns`. No decrementing counters. See §9.5.
+
+### Gate 5: Renegotiation entry point?
+
+**Resolved: typed command.**
+
+Player types a renegotiation command in the terminal. Talleyrand opens a HARD_STOP dialogue. Ledger shows read-only status. No new clickable action buttons on ledger tabs. See §9.8.
+
+### Gate 6: Slice C AI stub needed?
+
+**Resolved: yes.**
+
+Promises are AI-initiated only in v0.1. Without a minimal stub in `generate_suggested_terms`, no promises can be created and Slice C is untestable. The stub is scoped to `covets_regions` matching, not full rival-aware AI logic. See §14 Slice C.
+
+### Gate 7: Passive allied control sufficient for fulfillment?
+
+**Resolved: yes for v0.1.**
+
+Beneficiary controls the region + France held DEFENSIVE_ALLIANCE or ALLIANCE during the promise window = fulfilled. No active-contribution tracking. See §9.6.
+
+### Gate 8: Prussia-Saxony cold → active escalation?
+
+**Resolved: two hardcoded triggers.**
+
+Prussia-Saxony war or France vassalizes Saxony → escalate to `active`. Not the full dynamic system. See §7.1.
+
+### Remaining open question
+
+- Should option 3 in the commitment paradox ("proceed at severe political cost") be available in v0.1, or should the paradox strictly force a choice between options 1 and 2? Allowing option 3 adds implementation complexity but prevents the system from feeling like a hard lock.
 
 ---
 
@@ -731,5 +835,6 @@ For the first implementation pass:
 - add explicit rivalries with intensity
 - force a choice only for deep military alignment across active rivals
 - implement territorial promises as tracked obligations with exact deadlines
+- include minimal AI promise generation stub in Slice C
 
 That is enough to make diplomacy feel political without bundling in the full war-settlement overhaul too early.
