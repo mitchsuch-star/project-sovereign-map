@@ -104,7 +104,7 @@ These are existing audit items broken into implementation order. They stay after
 | Order | Spec Track | Bundles / Source Items | Note |
 |-------|------------|------------------------|------|
 | 1 | Reliability + Commitments | `R160`, `R119`, `R151` | Rivalries, betrayal memory, and territorial promises should be designed as one shared political-commitment system. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. |
-| 2 | War Purpose + Settlement | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. **Needs dedicated spec.** |
+| 2 | War Purpose + Settlement | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. Draft ally-settlement slice started in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`. |
 | 3 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
 | 4 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
 | 5 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
