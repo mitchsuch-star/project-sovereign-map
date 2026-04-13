@@ -48,12 +48,7 @@ The following questions were resolved during the v0.3 → v0.4 review. See §16 
 6. **Slice C AI stub** — yes, required for testability
 7. **Passive allied control** — sufficient for v0.1 fulfillment
 8. **Prussia-Saxony escalation** — two hardcoded triggers (war, vassalization), not full dynamic system
-
----
-
-## Remaining Open Question
-
-Should option 3 in the commitment paradox ("proceed at severe political cost") be available in v0.1, or should the paradox strictly force a choice between reject and downgrade?
+9. **Commitment paradox options** — v0.1 uses 2 options only: reject or downgrade existing alignment
 
 ---
 
@@ -71,9 +66,9 @@ Four new modifiers grouped under a "political commitment" composite. Is the grou
 
 Still allowing 1-2 regions per promise package. Should v0.1 be narrowed to single-region only?
 
-### 4. Commitment paradox — 2 options or 3?
+### 4. Remaining friction
 
-Is a strict forced choice cleaner for v0.1, or does the "proceed at cost" option add meaningful player agency?
+With the paradox now locked to 2 options, what still looks most likely to create player frustration or implementation drag in the current v0.4 scope?
 
 ---
 

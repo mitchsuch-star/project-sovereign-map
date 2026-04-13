@@ -243,12 +243,13 @@ Player options:
 
 1. Reject the new treaty
 2. Auto-downgrade the old military alignment
-3. Proceed at severe political cost if the design review decides this should be allowed
 
 Draft default for v0.1:
 
 - `DEFENSIVE_ALLIANCE` / `ALLIANCE` across active rivals should force a choice rather than coexist.
 - Lower treaty levels may coexist, but they still anger the excluded rival.
+- The paradox offers **two options only** in v0.1: reject, or downgrade the existing conflicting alignment.
+- There is no `proceed at cost` exception in the first implementation pass. If later playtests show the forced choice is too rigid, that can be designed as an advanced follow-up rather than baked into the initial paradox flow.
 
 Implementation note — relationship to existing `alliance_paradox`:
 
@@ -774,9 +775,9 @@ Mitigation:
 
 ### Gate 1: Hard forced-choice vs soft penalty for rival military alignment?
 
-**Resolved: forced choice for deep military alignment, soft penalty below that.**
+**Resolved: forced choice for deep military alignment, soft penalty below that, with two paradox options only.**
 
-`DEFENSIVE_ALLIANCE` / `ALLIANCE` across active rivals triggers a commitment paradox dialogue (§7.5). Lower treaty levels coexist but anger the excluded rival (§7.4B). This keeps diplomacy feeling political without scripting outcomes at lower engagement levels.
+`DEFENSIVE_ALLIANCE` / `ALLIANCE` across active rivals triggers a commitment paradox dialogue (§7.5). Lower treaty levels coexist but anger the excluded rival (§7.4B). The paradox does not allow `proceed at cost` in v0.1: the player must reject the new treaty or downgrade the existing conflicting alignment. This keeps diplomacy feeling political without scripting outcomes at lower engagement levels.
 
 ### Gate 2: Global reliability + bilateral betrayal, or all pair-specific?
 
