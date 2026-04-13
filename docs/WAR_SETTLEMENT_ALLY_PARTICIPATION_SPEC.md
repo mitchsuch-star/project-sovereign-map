@@ -653,6 +653,12 @@ Examples:
 - "Saxony is minor, but its survival is now a conference issue."
 - "Proceeding will honor France's promise to Prussia and likely cost us Austria."
 
+Settlement-warning presentation rule:
+
+- common peace should use the same structured `warnings[]` approach as bilateral diplomacy
+- keep the default preview scannable: max 2 inline warnings, severity-sorted, with overflow behind `View all concerns`
+- settlement-specific warnings should usually outrank generic rivalry flavor when they imply immediate promise breach or major ally fallout
+
 ### 16.4 Recommended flow
 
 **Separate peace:**

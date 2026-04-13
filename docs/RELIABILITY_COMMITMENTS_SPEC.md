@@ -820,6 +820,15 @@ It should surface:
 - any active promise skepticism or betrayal memory affecting the offer
 - the nation most likely to be angered if France proceeds
 
+Preview payload rule:
+
+- expose a structured `warnings[]` list for proposal preview / ratification surfaces
+- each warning entry should contain at least:
+  - `severity`: `info` / `warning` / `critical`
+  - `category`: e.g. `rivalry`, `promise`, `betrayal`, `strategic_focus`, `settlement`
+  - `text`: player-facing summary
+- Talleyrand flavor text may elaborate, but the warning list is the canonical scannable layer
+
 Before ratification, Talleyrand should warn:
 
 - "This will anger Austria."
@@ -832,6 +841,14 @@ Warning severity:
 
 - hard stop: `commitment_paradox`, or a treaty state that would silently create an invalid military alignment
 - soft warning / strong confirm: rivalry anger, strategic-focus tradeoff, trusted-partner upside, promise skepticism, and likely third-party fallout
+
+Preview legibility rule:
+
+- show at most **2 warnings inline** in the default proposal preview
+- always sort by severity first, then by immediate player relevance
+- if more warnings exist, collapse the remainder behind a `View all concerns` expansion
+- `critical` warning takes the first slot whenever present
+- if a hard-stop condition is already known before execution, the preview should still show its warning text, but the actual forced choice remains the HARD_STOP flow
 
 ### 12.3 Treaty display
 

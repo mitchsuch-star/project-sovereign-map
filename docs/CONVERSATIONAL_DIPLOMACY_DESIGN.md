@@ -332,6 +332,13 @@ For the upcoming diplomacy systems:
 - `commitment_paradox` should resolve as a ratification hard-stop, sibling to `alliance_paradox`, not as drafting-stage friction
 - common peace should begin with an explicit mode choice (`Separate peace` vs `Open settlement`), never as a hidden consequence of a normal "propose peace" flow
 
+Preview contract for these systems:
+
+- proposal enrichment should expose a structured `warnings[]` collection, not only raw Talleyrand prose
+- each warning should carry at minimum: `severity`, `category`, `text`
+- suggested severities: `info`, `warning`, `critical`
+- hard-stop conditions still resolve in execution / ratification flows; `warnings[]` is for preview and review surfaces only
+
 This preserves the design rule from §2: action commands stay short, while exact-state, multi-party decisions move into purpose-built structured subflows.
 
 ### 3c. SPECIFIC — "Talleyrand, propose peace with Prussia: they keep Berlin, open borders, 200 gold/turn"
