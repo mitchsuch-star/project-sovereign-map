@@ -430,6 +430,19 @@ Reference planning docs:
 - `docs/RELIABILITY_COMMITMENTS_SPEC.md`
 - `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
 
+### Post-Diplomacy Command Layer Queue
+
+Once the diplomacy refinement queue above is stable, the next interaction-layer work is the command surface itself. These items are explicitly queued after the current diplomacy fixes/refinements and all remain **NEEDS SPEC**.
+
+| Item | Description | Status |
+|------|-------------|--------|
+| **Persistent Command Focus** | Keep the current addressee/context active until the player changes it, so follow-ups like `attack`, `again`, `same target`, or `not you, Davout` become first-class commands instead of raw history recall. | **NEEDS SPEC** |
+| **Standing Tactical Intent** | Let the player express ongoing battlefield intent (`keep pressure on Wellington`, `hold unless outnumbered`, `bombard until the fort breaks`) so repetitive re-entry of the same order is reduced without flattening marshal personality. | **NEEDS SPEC** |
+| **Semantic Command History** | Track last marshal/action/target/interpretation, not just raw strings, so the parser and UI can understand follow-up intent rather than treating every line as a fresh utterance. | **NEEDS SPEC** |
+| **Command Surface Shortcuts** | Add lightweight follow-up affordances after results (`Repeat`, `Pursue`, `Fortify`, `Scout`, `Ask Berthier`, `Switch Marshal`) while preserving typed commands as the power-user path. | **NEEDS SPEC** |
+| **Map-Driven Command Context** | Clicking a marshal should set focus and clicking a region should prefill a target/context, turning the map into a command helper instead of leaving the text box as the only steering surface. | **NEEDS SPEC** |
+| **Military Follow-Up Parsing Guardrails** | Keep deterministic mechanics and use LLM/context handling for echoing, disambiguation, and conversational follow-ups rather than making combat bonuses depend on ornate phrasing. | **NEEDS SPEC** |
+
 ### Diplomacy Chat Architecture
 
 Player types natural language proposals. LLM generates leader response in-character. Rules engine resolves outcome deterministically. LLM narrates the result.
@@ -527,6 +540,8 @@ Every 3-5 turns, generate a period newspaper summarizing recent events via singl
 | **Napoleon Comparison** | "You lasted 47 turns. Napoleon lasted 120 months. Your coalition formed on turn 12; historically, the Third Coalition formed in 1805." | Post-game screen |
 
 ### Encouraging Creative Commands (Anti-Memorization)
+
+These ideas are downstream of the post-diplomacy command-layer queue above. Do not ship phrasing bonuses/penalties before `Persistent Command Focus`, `Standing Tactical Intent`, and `Semantic Command History` are specified.
 
 | Feature | Description |
 |---------|-------------|
