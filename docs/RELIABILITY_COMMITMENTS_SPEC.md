@@ -488,7 +488,7 @@ This is a much smaller UI problem than open-ended territorial promises.
 
 A war bargain is valid only if all are true:
 
-1. The source treaty being proposed or modified is `DEFENSIVE_ALLIANCE` or `ALLIANCE`, or France is issuing a war-entry request to an existing military ally.
+1. The source treaty being proposed or modified is `DEFENSIVE_ALLIANCE` or `ALLIANCE`, or France is invoking the v0.1 same-turn ally-entry decision for an existing military ally.
 2. The named enemy is:
    - an active rival of France, or
    - an active rival of the target nation, or
@@ -504,6 +504,12 @@ A war bargain is valid only if all are true:
    - allied theater adjacency, or
    - existing route / access heuristic that the AI already recognizes as feasible.
 
+Current-build note / implementation correction:
+
+- the current codebase has automatic defensive and offensive war cascade on declaration; it does **not** yet have a standalone `Call Ally` command
+- this spec changes that contract for offensive ally entry: named-enemy ally participation must go through a player-visible ally-entry evaluation rather than silent automatic cascade
+- in this spec, `ask`, `call`, and `war-entry request` mean the v0.1 ally-entry system, exposed at minimum through declaration preview and preferably through both preview intercept and a later explicit in-war request surface
+
 Invalid uses:
 
 - bargaining over ally territory
@@ -513,13 +519,14 @@ Invalid uses:
 
 ### 9.5 Scope caps and contradiction guards
 
-War bargains need hard limits in v0.1.
+War bargains need hard limits in v0.1, but the limits should target contradiction and spam rather than an arbitrary global ceiling.
 
 Caps:
 
-- maximum 1 live war bargain per beneficiary nation
-- maximum 2 live French war bargains total
+- maximum 1 live war bargain per beneficiary + named enemy pair
 - maximum 1 live bargain claiming a given region
+- maximum 1 bargain generated from a single treaty package or a single ally-entry decision
+- UI may warn once France holds 4+ live bargains, but this is advisory only, not a validation failure
 
 Hard contradiction checks:
 
@@ -527,6 +534,7 @@ Hard contradiction checks:
 - France may not create a bargain for Region X while holding `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the current holder of X unless the player first downgrades that alignment through an explicit hard-stop flow
 - France may not create a bargain with Nation A against Nation B if France already holds a live bargain with Nation B against Nation A
 - France may not stack multiple bargain clauses into one treaty; one treaty package gets at most one bargain
+- one ally-entry decision may produce at most one counter-bargain from that ally on that turn
 
 These are validation failures or hard-stop choices, not soft warnings.
 
@@ -576,47 +584,71 @@ Important v0.1 simplification:
 
 This removes the entire class of uncontrollable timer bugs from the old promise design.
 
-### 9.7 Triggering and war-entry effects
+### 9.7 War-entry decision contract
 
-When a live bargain exists and France asks the beneficiary to join war against the named enemy:
+The commitments slice needs a real ally-entry contract, not just terminology changes over today's automatic cascade.
 
-- apply a major positive war-entry modifier (`+25` on the war-entry acceptance check)
-- surface the bargain in the call-to-arms / declaration preview
-- mark the bargain `triggered` and set `triggered_turn` the first turn both are on the same side in that war
+France-facing ally entry in v0.1 has three distinct cases:
 
-If France declares on the named enemy while a live bargain exists and the beneficiary is eligible to be called:
+- `defensive_honor_call`: France is attacked by the named enemy, or France enters that war as defender. `DEFENSIVE_ALLIANCE` and `ALLIANCE` partners may answer.
+- `offensive_ally_request`: France starts or widens a war against the named enemy. `ALLIANCE` partners may answer by default; `DEFENSIVE_ALLIANCE` partners may answer only when a live bargain explicitly targets that named enemy.
+- `coalition_entry`: coalition join logic is separate from alliance logic. Coalition membership is not an ally call and cannot be sweetened by `war_bargain`.
 
-- the preview must show the beneficiary and the bargain
-- if France chooses not to call the beneficiary, that is an explicit bargain reversal and counts as breach
+Hard blocks:
 
-If France enters war against the named enemy through another direct player-controlled route while a live bargain exists:
+- armistice / cooldown or other treaty lock with the named enemy
+- already on the enemy side of that war or already a direct enemy of France
+- active coalition commitment against France in the current coalition model
+- no plausible participation path under the game's access / route heuristic
+- any other explicit backend contradiction that would create invalid war state
 
-- if the route presents an immediate beneficiary call or war-entry request opportunity, the preview must show the beneficiary and the bargain
-- if France refuses that opportunity, treat it as explicit bargain reversal and breach
-- if no such opportunity exists on entry, the bargain remains live but may not fulfill unless the beneficiary later becomes a co-belligerent against the named enemy
+Rules:
 
-If France uses the alliance against some other enemy:
+- if a hard block exists, the preview must show the exact reason
+- France does not incur bargain breach or reliability loss for failing to force an impossible join
+- if a temporary hard block prevents entry and the bargain stays live, the UI must tell the player whether a later explicit ally-entry request will be available after the block clears
 
-- the bargain remains `active`
-- no automatic breach occurs
+### 9.7.1 Defensive honor calls
+
+When France is defender against the named enemy:
+
+- defensive honor calls never generate counter-bargains
+- eligible `DEFENSIVE_ALLIANCE` and `ALLIANCE` partners should join without terms unless a hard block applies
+- implementation contract: after hard-block checks, apply a defensive-duty floor equivalent to a `war_entry_score` of at least `50`
+- if an eligible ally still refuses a defensive honor call, treat that as alliance failure: downgrade or break the source military treaty immediately; if a live bargain exists, it voids without French penalty
+- if a live bargain exists against that same named enemy and both sides become co-belligerents, mark the bargain `triggered` and set `triggered_turn`
+
+### 9.7.2 Offensive ally requests
+
+When France uses an alliance offensively against the named enemy:
+
+- apply a major positive war-entry modifier (`+25`) when a valid live bargain targets that named enemy
+- surface the bargain in the ally-entry / declaration preview
+- if France declares on the named enemy while a live bargain exists and the beneficiary is eligible for that ally-entry decision, the preview must show the beneficiary and the bargain
+- if France intentionally withholds that join opportunity from the beneficiary while no hard block exists, that is an explicit bargain reversal and counts as breach
+- if France enters war against the named enemy through another direct player-controlled route while a live bargain exists, the same preview and withholding rules apply
+- if France uses the alliance against some other enemy, the bargain remains `active` and no automatic breach occurs
 
 This keeps bargains oriented around the named enemy without turning them into universal leash mechanics.
 
-### 9.7.1 War-entry counter-bargains
+### 9.7.3 War-entry counter-bargains and rerolls
 
-An ally that did **not** negotiate a bargain at alliance time may still demand terms when France asks it to join a specific war.
+An ally that did **not** negotiate a bargain at alliance time may still demand terms when France reaches an offensive ally-entry decision for a specific war.
 
 This is the v0.1 wartime bargaining extension that fits current scope.
 
 Rules:
 
-- trigger point: France uses `Call Ally` or a war-entry request against a named enemy
-- if the ally is not willing to join for free but is within a bargain-salvage range, the ally may issue a counter-demand
+- trigger point: France invokes an offensive ally-entry decision against a named enemy, whether through a declaration-preview intercept or a later explicit request flow
+- defensive honor calls do **not** produce counter-bargains
+- if the ally is not willing to join for free but is within the bargain-salvage range, the ally may issue one counter-demand
 - the counter-demand may create a new `war_bargain` tied to that named enemy and one French claim region
-- if France is already at the live 2-bargain cap, do **not** offer a counter-bargain; the ally either joins without terms or refuses, and refusal text should mention that France's existing commitments leave no room for another bargain
-- France may accept, reject, or back out of the call
+- France may accept, reject, or back out of the request
 - if France accepts, the ally joins and the bargain is created immediately in `triggered` state
 - if France rejects or backs out, no bargain is created and no betrayal penalty applies
+- if no legal bargain can be generated because all valid claims are blocked by contradiction or scope rules, the ally either joins for free if already at the join threshold or refuses with that reason surfaced
+- same-turn rerolls are deterministic: same ally + same enemy + same request type on the same turn must reuse the same score band and the same demanded region unless a material state change occurs
+- material state changes for reroll purposes are limited to treaty depth, France-beneficiary relation, war load, coalition status, route feasibility, or bargain-region availability
 - counter-bargains use a dedicated `war_entry_counter_bargain` dialogue type: hard-stop in backend routing, rendered through the existing proposal-confirm popup component, and never mailbox-deferred, because war entry needs same-turn resolution
 
 Valid wartime asks in v0.1:
@@ -632,6 +664,16 @@ Invalid wartime asks in v0.1:
 - any request that requires settlement allocation among multiple participants
 
 This keeps wartime bargaining bilateral and legible while deferring multi-party settlement politics to the later common-peace track.
+
+### 9.7.4 Coalition overlap
+
+Coalitions and alliances need different texture in this system.
+
+- alliances are bilateral commitments and may be sweetened by a `war_bargain`
+- coalitions are bloc commitments with separate loyalty and separate-peace logic; they are not bargainable through French claim-recognition terms
+- in the current build, an active coalition against France is a hard block on accepting a French ally-entry request
+- if the beneficiary joins a coalition against France first, any live French bargain with that beneficiary voids for contrary alignment
+- current coalition implementation is anti-France-specific; the later coalition follow-up should generalize this overlap logic so coalitions can form against powers other than France too
 
 ### 9.8 Fulfillment
 
@@ -666,7 +708,7 @@ A bargain is `breached` if France does any of the following while it is active o
 - causes the source treaty to auto-decay through a French diplomatic action that directly angered the beneficiary or aligned France with the beneficiary's rival; this is constructive breach, not void
 - deepens military alignment with the named enemy or current claim holder
 - ratifies a contradictory bargain
-- declares war on the named enemy but intentionally does not call an eligible beneficiary
+- intentionally withholds an eligible beneficiary's ally-entry opportunity against the named enemy once no hard block exists
 - explicitly renounces the French claim in a later peace flow once bilateral peace hardening adds term-level claim warnings
 
 Effects:
@@ -682,7 +724,9 @@ A bargain is `void` if:
 - the beneficiary breaks the source treaty first
 - the source treaty auto-decays below `DEFENSIVE_ALLIANCE` through beneficiary-caused or external changes that France did not directly choose
 - the beneficiary enters `NON_AGGRESSION` or deeper alignment with the named enemy first
-- the beneficiary refuses a bargain-backed call to arms
+- the beneficiary joins a coalition directed against France first
+- the beneficiary refuses a bargain-backed ally-entry request
+- the beneficiary fails a non-blocked defensive honor call
 - the target enemy stops holding the claimed region through outside events not chosen by France
 - the named enemy or claim region basis disappears from the world
 - France is pulled into a contrary war against the beneficiary through third-party cascade that France did not directly declare
@@ -692,7 +736,7 @@ Void effects:
 
 - no French reliability loss
 - no French betrayal strike
-- if the void reason is beneficiary refusal of a bargain-backed call, apply a 4-turn cooldown on new bargains for that same pair and named enemy
+- if the void reason is beneficiary refusal of a bargain-backed ally-entry request, apply a 4-turn cooldown on new bargains for that same pair and named enemy
 - dispatch / campaign log must state why the bargain ended
 
 #### C. Cancellation by consent
@@ -748,7 +792,7 @@ That keeps the UX focused on moments of agency instead of warning spam.
 
 ## 10. Acceptance Formula Hooks
 
-This spec needs four acceptance inputs in v0.1.
+This spec needs four treaty-acceptance inputs in v0.1, plus a dedicated war-entry score.
 
 ### 10.1 Direct rivalry modifier
 
@@ -784,7 +828,7 @@ This spec needs four acceptance inputs in v0.1.
 - use explicit v0.1 values:
   - `+10` when sweetening `DEFENSIVE_ALLIANCE`
   - `+15` when sweetening `ALLIANCE`
-  - `+25` on an immediate war-entry / call-to-arms evaluation against the named enemy
+  - `+25` on an immediate war-entry / ally-entry evaluation against the named enemy
 - should be large enough to matter for military alignment and war-entry politics
 - should not overcome hard-resistance at 3 strikes by itself
 
@@ -794,7 +838,33 @@ Integration rule:
 - if no tracked bargain clause is present, the old static bonus may remain
 - never double-count static sweetener + tracked bargain for the same idea
 
-### 10.5 Composite grouping
+### 10.5 Dedicated war-entry score
+
+War entry should not piggyback on the generic treaty acceptance score. Use a dedicated `war_entry_score`.
+
+Evaluate hard blocks before the score. If any hard block is present, the ally does not join and no counter-bargain is offered.
+
+Use explicit v0.1 values:
+
+- `base = 20`
+- treaty depth: `DEFENSIVE_ALLIANCE +10`, `ALLIANCE +18`
+- defensive honor bonus when France is defender: `+18`
+- hostility toward the named enemy: `clamp((-relation_to_enemy) // 5, -10, +10)`
+- if the named enemy is an active rival of the beneficiary: additional `+6`
+- France-beneficiary relation: `clamp(relation_to_france // 5, -12, +12)`
+- France's global reliability contribution: `clamp(reliability // 5, -6, +6)`
+- bilateral betrayal strikes: `-8` each, cap `-24`
+- matching live bargain: `+25`
+- other-war load: `-8` for one other active war, `-18` for 2+ other active wars or war exhaustion `>= 60`
+
+Thresholds:
+
+- `50+`: join without terms
+- `25-49`: may issue one counter-bargain on offensive requests only
+- below `25`: refuse
+- defensive honor calls apply the `50` floor from 9.7.1 after hard-block checks
+
+### 10.6 Composite grouping
 
 Group the new modifiers under one composite:
 
@@ -829,7 +899,7 @@ AI should use rivalries to create branches:
 
 AI may generate a bargain only if all are true:
 
-- France is below the global live-bargain cap
+- there is room for a valid bargain under the pair + enemy and same-region constraints
 - there is no live same-region contradiction
 - named enemy is a current rival or current war enemy
 - claim region is held by that enemy or their subject
@@ -866,13 +936,22 @@ If a valid bargain exists against the named enemy:
 - AI should surface the reason in Talleyrand-facing warnings / previews
 - if AI refuses anyway, the bargain should void cleanly with no French penalty
 
-If no bargain exists yet and the ally is close to willing but not willing enough:
+Use the dedicated `war_entry_score` from 10.5 plus hard-block checks.
 
-- if France is already at the live bargain cap, do not offer a counter-bargain
+Defensive honor behavior:
+
+- eligible `DEFENSIVE_ALLIANCE` and `ALLIANCE` partners do not counter-bargain
+- absent a hard block, defensive honor should resolve as join
+- if an AI ally still refuses a non-blocked defensive honor call, downgrade or break the source treaty immediately
+
+Offensive ask behavior:
+
 - if the pre-bargain war-entry score is `50+`, join without terms
-- if the pre-bargain war-entry score is `15-49`, AI may issue a `war_entry_counter_bargain`
-- if the pre-bargain war-entry score is below `15`, refuse outright
+- if the pre-bargain war-entry score is `25-49`, AI may issue a `war_entry_counter_bargain`
+- if the pre-bargain war-entry score is below `25`, refuse outright
 - the counter-demand must still obey the same named-enemy, single-region, France-claim, and feasibility constraints as a normal bargain
+- if no legal bargain can be generated, the AI either joins for free if already over the threshold or refuses with an explicit reason
+- same-turn repeat asks reuse the same result and same demanded region unless a material state change occurs
 
 ### 11.5 Strategic focus / advisory layer
 
@@ -1075,7 +1154,14 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec.
 - explicit fulfillment / breach / void / cancellation processing
 - event-driven warnings only
 
-### Slice D. AI integration
+### Slice D. Coalition overlap + war-entry hardening
+
+- wire current coalition membership into bargain void / hard-block rules
+- replace offensive silent cascade with player-visible ally-entry evaluation
+- add or reserve later explicit in-war ally-entry requests so temporarily blocked bargains do not strand
+- keep coalition loyalty / separate-peace logic distinct from alliance / bargain logic
+
+### Slice E. AI integration
 
 Deferred follow-up only:
 
@@ -1083,6 +1169,15 @@ Deferred follow-up only:
 - power tiers
 - richer rival-aware agendas
 - broader bargain reasoning beyond the v0.1 feasibility gates
+
+### Slice F. Coalition buildout
+
+Deferred next-phase work:
+
+- generalize coalition logic so coalitions can form against powers other than France
+- define coalition identity, leader, loyalty, and overlap hooks independently from France-specific threat rules
+- extend coalition / alliance overlap rules beyond the current anti-France implementation
+- revisit war-entry scoring once generalized coalition targets exist
 
 ---
 
@@ -1116,7 +1211,7 @@ If the system allows hidden mutually impossible bargains, AI and players will bo
 Mitigation:
 
 - one live bargain per region
-- one live bargain per beneficiary
+- one live bargain per beneficiary + named enemy pair
 - hard-stop contradictory-alignment checks
 
 ### R4. Warning overload
@@ -1137,6 +1232,16 @@ Mitigation:
 
 - v0.1 is explicit that bargains create political orientation now, not full ally-aware settlement rights
 - current build must still warn whenever peace with the named enemy risks contradicting a live bargain
+
+### R6. France-centric coalition assumptions
+
+If commitments hard-code coalition overlap as "anti-France only," later coalition generalization becomes much harder.
+
+Mitigation:
+
+- keep coalition-overlap rules explicit and narrow in v0.1
+- treat current anti-France coalition behavior as an implementation reality, not a permanent world rule
+- document generic coalition follow-up in the implementation sequence now
 
 ---
 
@@ -1185,6 +1290,25 @@ Why:
 
 Those belong to the later settlement track, not this first commitments pass.
 
+### Gate 8: Global bargain cap or structural caps?
+
+**Resolved: use structural caps only.**
+
+Why:
+
+- pair + enemy and same-region limits stop contradiction and spam cleanly
+- a hard global ceiling would arbitrarily block legitimate ally-by-ally bargaining
+
+### Gate 9: Coalition obligation or alliance obligation?
+
+**Resolved: treat them as distinct textures with explicit overlap rules.**
+
+Why:
+
+- alliances are bilateral and may be sweetened by bargains
+- coalitions use separate loyalty and separate-peace pressure
+- the current anti-France coalition model should be treated as a temporary implementation scope, not the final design limit
+
 ---
 
 ## 17. Draft Recommendation
@@ -1198,8 +1322,9 @@ For the first implementation pass:
 - replace timed territorial promises with named-enemy war bargains
 - allow limited player-authored bargain construction
 - keep bargains France-claim only in v0.1
-- add contradiction guards, anti-spam caps, and explicit breach / void rules
+- add contradiction guards, structural anti-spam caps, and explicit breach / void rules
+- make offensive ally entry player-mediated, with explicit hard-block reasons and deterministic same-turn asks
 - keep warnings event-driven instead of timer-driven
-- defer ally-beneficiary settlement, common peace, bloc pressure, strategic focus, and power tiers
+- document coalition-overlap rules now and defer generalized non-France coalition buildout to the next phase
 
 That is enough to make diplomacy feel political, create real war-entry bargaining, and remove the largest failure modes from the old promise draft without bundling in the full settlement overhaul too early.
