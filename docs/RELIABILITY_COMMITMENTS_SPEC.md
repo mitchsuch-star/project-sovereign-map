@@ -109,8 +109,8 @@ The commitment system has four data concepts.
 
 This is the existing high-level reputation layer: "Does France generally honor agreements?"
 
-- Keep `world.diplomatic_reliability` as nation-keyed global reputation.
-- Clarify it as nation reputation, not pair memory.
+- Keep `world.diplomatic_reliability` as a nation-keyed shared global reputation scalar.
+- Clarify it as shared nation reputation, not pair memory.
 - Use it for broad acceptance modifiers and ledger summaries.
 
 ### 6.2 Bilateral betrayal memory
@@ -321,15 +321,16 @@ Use both direct victim penalties and tightly scoped witness penalties.
 
 | Event | Global reliability | Victim strikes | Witness effect |
 |------|--------------------|----------------|----------------|
-| Break `OPEN_BORDERS` / `PEACE`-level commitment | -4 | +1 | minor |
-| Break `NON_AGGRESSION` | -6 | +1 | minor |
-| Break `DEFENSIVE_ALLIANCE` / `ALLIANCE` | -10 | +2 | moderate |
-| Explicitly reverse an active war bargain without also breaking the source military treaty | -6 | +1 | conditional |
-| Accepted bargain cancellation | -3 | +0 | none |
+| Break `OPEN_BORDERS` / `PEACE`-level commitment | -4 | +1 | `-2` to each scoped witness |
+| Break `NON_AGGRESSION` | -6 | +1 | `-2` to each scoped witness |
+| Break `DEFENSIVE_ALLIANCE` / `ALLIANCE` | -10 | +2 | `-4` to each scoped witness |
+| Explicitly reverse an active war bargain without also breaking the source military treaty | -6 | +1 | `-3` to each scoped witness that shares the same named enemy or claim region; `0` otherwise |
+| Violate an accepted exclusivity demand by ratifying contradictory deep alignment | -6 | +1 | `-2` to each scoped witness |
+| Accepted bargain cancellation | -3 | +0 | `0` |
 
 Critical episode-cap rule:
 
-- one diplomatic episode may add at most **2 victim-side strikes total**
+- one diplomatic episode may add at most **2 victim-side strikes to any one victim**
 
 Definition:
 
@@ -338,7 +339,13 @@ Definition:
 That means:
 
 - if France breaks an alliance and an attached war bargain collapses in the same resolution step, relation and reliability penalties may stack
-- victim-side strike gain may **not** exceed +2 from that single episode
+- Austria and Prussia may each gain strikes from the same episode if both were wronged
+- no single victim's strike gain may exceed +2 from that single episode
+
+Global reliability rule:
+
+- all global reliability deltas in this spec apply to France's single shared `diplomatic_reliability["France"]` value
+- witness scoping changes relation fallout only; it does not create witness-specific reliability variants
 
 This keeps the 3-strike hard-resistance threshold from becoming a one-click diplomatic death sentence on a 5-nation map.
 
@@ -348,11 +355,16 @@ Witness penalties apply only to directly interested observers:
 
 - nations with `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the victim
 - nations with an active rivalry against the betrayer
-- nations with an active bargain that shares the same named enemy or the same claim region as the broken obligation
+- nations with a live bargain that shares the same named enemy or the same claim region as the broken obligation
 
 Everyone else gets zero witness effect.
 
 Witnesses do **not** receive victim-grade strikes in v0.1.
+
+Accepted exclusivity demand rule:
+
+- the exclusivity offense in 8.3 applies only if France previously accepted an explicit diplomatic demand from that same nation to avoid deep military alignment with a named rival
+- victim = the nation whose accepted exclusivity demand France violated
 
 ### 8.5 Faithful-play rewards
 
@@ -361,7 +373,7 @@ The system must reward sustained committed play, not only punish betrayal.
 For v0.1:
 
 - `they_chose_us = +8` on visible side-taking or bargain ratification
-- fulfilled bargain: +4 global reliability and +6 relation with the beneficiary
+- fulfilled bargain: `+4` to `diplomatic_reliability["France"]` and `+6` relation with the beneficiary
 - clear preview / ledger surfacing so loyalty feels intentional rather than invisible
 
 Do **not** add a dedicated `trusted_partner` state in v0.1.
@@ -372,8 +384,8 @@ Redemption remains possible, but stays simple.
 
 Suggested rules:
 
-- every 5 honored treaty turns: +3 global reliability
-- each fulfilled bargain: +4 global reliability
+- every 5 honored treaty turns: `+3` to `diplomatic_reliability["France"]`
+- each fulfilled bargain: `+4` to `diplomatic_reliability["France"]`
 - after honorable turns with a nation and no new offense, remove 1 bilateral strike using severity-scaled decay:
   - 6 turns: `OPEN_BORDERS` / `PEACE`-level break
   - 8 turns: `NON_AGGRESSION` break
@@ -398,9 +410,9 @@ Rule:
 Rules:
 
 - witness suspicion alone never triggers this threshold
-- survival / coalition-emergency exceptions are narrow: the 3-strike block may downgrade from absolute reject to heavy soft-resistance only when France and Nation X share a current enemy or active coalition threat, France is not at war with X, the proposal is immediate military cooperation against that same enemy, and France did not betray X in the same episode
+- survival exceptions are narrow: the 3-strike block may downgrade from absolute reject to heavy soft-resistance only when France and Nation X share a current enemy, France is not at war with X, the proposal is immediate military cooperation against that same enemy, and France did not betray X in the same episode
 - when that narrow exception opens, AI still applies a major posture tax (treat as at least `-20` before normal formula evaluation); the exception removes only the absolute lock, not the political cost
-- one episode cannot add more than 2 strikes, per 8.3
+- one episode cannot add more than 2 strikes to the same victim, per 8.3
 
 This keeps the threshold meaningful without letting one compound event instantly create 4 strikes.
 
@@ -505,15 +517,15 @@ War bargains need hard limits in v0.1.
 
 Caps:
 
-- maximum 1 active war bargain per beneficiary nation
-- maximum 2 active French war bargains total
-- maximum 1 active bargain claiming a given region
+- maximum 1 live war bargain per beneficiary nation
+- maximum 2 live French war bargains total
+- maximum 1 live bargain claiming a given region
 
 Hard contradiction checks:
 
-- France may not create a bargain for Region X if France already has an active bargain on Region X
+- France may not create a bargain for Region X if France already has a live bargain on Region X
 - France may not create a bargain for Region X while holding `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the current holder of X unless the player first downgrades that alignment through an explicit hard-stop flow
-- France may not create a bargain with Nation A against Nation B if France already holds an active bargain with Nation B against Nation A
+- France may not create a bargain with Nation A against Nation B if France already holds a live bargain with Nation B against Nation A
 - France may not stack multiple bargain clauses into one treaty; one treaty package gets at most one bargain
 
 These are validation failures or hard-stop choices, not soft warnings.
@@ -550,6 +562,12 @@ Allowed statuses:
 - `void`: basis disappeared without French bad faith
 - `breached`: France explicitly reversed the bargain
 
+Live-bargain rule:
+
+- `live` means `active` or `triggered`
+- caps, contradiction checks, AI anti-spam, and UI "active bargain" references in this spec should read `live` unless a rule explicitly names a narrower status
+- only `fulfilled`, `cancelled`, `void`, and `breached` stop counting against bargain caps
+
 Important v0.1 simplification:
 
 - there is **no** `deadline_turn`
@@ -564,12 +582,18 @@ When a live bargain exists and France asks the beneficiary to join war against t
 
 - apply a major positive war-entry modifier (`+25` on the war-entry acceptance check)
 - surface the bargain in the call-to-arms / declaration preview
-- mark the bargain `triggered` once both are on the same side in that war
+- mark the bargain `triggered` and set `triggered_turn` the first turn both are on the same side in that war
 
 If France declares on the named enemy while a live bargain exists and the beneficiary is eligible to be called:
 
 - the preview must show the beneficiary and the bargain
 - if France chooses not to call the beneficiary, that is an explicit bargain reversal and counts as breach
+
+If France enters war against the named enemy through another direct player-controlled route while a live bargain exists:
+
+- if the route presents an immediate beneficiary call or war-entry request opportunity, the preview must show the beneficiary and the bargain
+- if France refuses that opportunity, treat it as explicit bargain reversal and breach
+- if no such opportunity exists on entry, the bargain remains live but may not fulfill unless the beneficiary later becomes a co-belligerent against the named enemy
 
 If France uses the alliance against some other enemy:
 
@@ -589,7 +613,7 @@ Rules:
 - trigger point: France uses `Call Ally` or a war-entry request against a named enemy
 - if the ally is not willing to join for free but is within a bargain-salvage range, the ally may issue a counter-demand
 - the counter-demand may create a new `war_bargain` tied to that named enemy and one French claim region
-- if France is already at the active 2-bargain cap, do **not** offer a counter-bargain; the ally either joins without terms or refuses, and refusal text should mention that France's existing commitments leave no room for another bargain
+- if France is already at the live 2-bargain cap, do **not** offer a counter-bargain; the ally either joins without terms or refuses, and refusal text should mention that France's existing commitments leave no room for another bargain
 - France may accept, reject, or back out of the call
 - if France accepts, the ally joins and the bargain is created immediately in `triggered` state
 - if France rejects or backs out, no bargain is created and no betrayal penalty applies
@@ -613,10 +637,11 @@ This keeps wartime bargaining bilateral and legible while deferring multi-party 
 
 A bargain is fulfilled when all are true:
 
-1. The bargain is `active` or `triggered`.
+1. The bargain is `triggered`.
 2. France controls the claimed region in the final post-processing state of the turn.
 3. The region changed from the named enemy or that enemy's subject to France while the bargain remained valid.
 4. France still holds `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the beneficiary in that final state.
+5. The beneficiary is still a co-belligerent on France's side against the named enemy in that final state, or the named war ended that turn with both having been co-belligerents immediately before war resolution.
 
 Turn-order rule:
 
@@ -646,7 +671,7 @@ A bargain is `breached` if France does any of the following while it is active o
 
 Effects:
 
-- relation penalty with beneficiary: around -10
+- relation penalty with beneficiary: `-10`
 - betrayal strike: +1 unless the same episode already spent the 2-strike cap through a source alliance break
 - global reliability loss: -6
 
@@ -708,7 +733,7 @@ Required warning moments:
 
 - bargain ratification
 - war declaration on the named enemy
-- source treaty downgrade / break while bargain is active
+- source treaty downgrade / break while bargain is live
 - deep treaty ratification with the named enemy or current holder
 - bargain void / breach / fulfillment / cancellation
 
@@ -804,8 +829,8 @@ AI should use rivalries to create branches:
 
 AI may generate a bargain only if all are true:
 
-- France is below the global active-bargain cap
-- there is no active same-region contradiction
+- France is below the global live-bargain cap
+- there is no live same-region contradiction
 - named enemy is a current rival or current war enemy
 - claim region is held by that enemy or their subject
 - the target nation has plausible participation access
@@ -820,7 +845,7 @@ AI may generate a bargain only if all are true:
 
 AI must not:
 
-- propose a bargain when France already has an active bargain with that nation
+- propose a bargain when France already has a live bargain with that nation
 - chain multiple bargain requests in consecutive turns after cancellation or breach
 - offer bargains the target cannot plausibly help fight over
 - issue a war-entry counter-bargain that asks for ally-beneficiary land or any other multi-party settlement outcome
@@ -843,7 +868,7 @@ If a valid bargain exists against the named enemy:
 
 If no bargain exists yet and the ally is close to willing but not willing enough:
 
-- if France is already at the active bargain cap, do not offer a counter-bargain
+- if France is already at the live bargain cap, do not offer a counter-bargain
 - if the pre-bargain war-entry score is `50+`, join without terms
 - if the pre-bargain war-entry score is `15-49`, AI may issue a `war_entry_counter_bargain`
 - if the pre-bargain war-entry score is below `15`, refuse outright
@@ -878,7 +903,7 @@ Add to Nations / Talleyrand tabs:
 - each nation's active rivals
 - France's global reliability descriptor
 - bilateral betrayal warning if that nation distrusts France specifically
-- active bargains owed to or from that nation
+- live bargains owed to or from that nation
 - bargain cooldown notice when relevant
 
 Presentation rule:
@@ -893,7 +918,7 @@ It should surface:
 
 - active rivals relevant to the target
 - any bilateral betrayal memory affecting the offer
-- any active bargain with that nation
+- any live bargain with that nation
 - the main nation likely to be angered if France proceeds
 
 Canonical preview contract:
@@ -977,7 +1002,7 @@ Rendering rule:
 ### 13.1 Keep and clarify
 
 - `diplomatic_reliability: Dict[str, int]`
-  - nation-keyed global reputation
+  - nation-keyed shared global reputation scalar
 
 ### 13.2 Add
 
@@ -1090,8 +1115,8 @@ If the system allows hidden mutually impossible bargains, AI and players will bo
 
 Mitigation:
 
-- one active bargain per region
-- one active bargain per beneficiary
+- one live bargain per region
+- one live bargain per beneficiary
 - hard-stop contradictory-alignment checks
 
 ### R4. Warning overload
@@ -1111,7 +1136,7 @@ Later bilateral peace hardening will add stronger term-level claim conflict warn
 Mitigation:
 
 - v0.1 is explicit that bargains create political orientation now, not full ally-aware settlement rights
-- current build must still warn whenever peace with the named enemy risks contradicting an active bargain
+- current build must still warn whenever peace with the named enemy risks contradicting a live bargain
 
 ---
 
