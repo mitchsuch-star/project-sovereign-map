@@ -89,10 +89,11 @@
 - New `commitment_paradox` dialogue type in `HARD_STOP_TYPES`
 - Paradox check at ratification: new `DEFENSIVE_ALLIANCE` / `ALLIANCE` may not span both sides of active rival pair
 - New handler methods in `diplomatic_executor.py`
-- Reuse the existing paradox popup component if possible, extending it only for the extra consequence-warning block
+- Reuse the existing paradox popup component if possible for the base rivalry-only paradox flow
 - Register in dialog manager, popup queue, `build_base_response()`, and client popup routing
-- Show attached bargain-breach / reliability fallout in the popup before confirm
-- ~12 tests (trigger detection, popup passthrough, option routing, downgrade execution, consequence preview)
+- Show deterministic downgrade fallout available before bargains exist (old treaty outcome, offended-rival hit when knowable)
+- Defer attached bargain-breach / reliability fallout preview to Slice C once bargain data exists
+- ~12 tests (trigger detection, popup passthrough, option routing, downgrade execution, base consequence preview)
 
 ---
 
@@ -127,16 +128,18 @@
 
 ### C2. War-entry integration + surfaces + AI rules
 
-**Files:** `backend/game_logic/diplomatic_templates.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/game_logic/diplomatic_ledger.py`, `backend/campaign_log.py`, `backend/main.py`, `godot-client/project-sovereign/scripts/diplomacy_wizard.gd`, `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`, `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`, `godot-client/project-sovereign/scripts/campaign_log.gd`, `godot-client/project-sovereign/scripts/main.gd`
+**Files:** `backend/game_logic/diplomatic_templates.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/game_logic/diplomatic_ledger.py`, `backend/campaign_log.py`, `backend/main.py`, `backend/models/dialogue_manager.py`, `godot-client/project-sovereign/scripts/diplomacy_wizard.gd`, `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`, `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`, `godot-client/project-sovereign/scripts/campaign_log.gd`, `godot-client/project-sovereign/scripts/main.gd`
 
 - Add visible structured bargain picker to the existing diplomacy wizard for eligible military treaties
 - Add mandatory Bargain Review stage inside the existing proposal-confirm flow with exact beneficiary, named enemy, claim region, holder, source treaty, contradiction warnings, and total pivot-cost preview
 - Add pre-war warning when France declares on the named enemy while a live bargain exists
 - Add `war_entry_counter_bargain` flow for existing allies who did not bargain at alliance time but demand terms before joining a specific war
+- Add dedicated `war_entry_counter_bargain` dialogue type to `HARD_STOP_TYPES`, but render it through the existing proposal-confirm popup component by extending `PROPOSAL_CONFIRM_DIALOGUE_TYPES`
 - Counter-bargains use an immediate blocking confirm flow, not mailbox deferral
 - If France is already at the bargain cap, counter-bargains are not offered; refusal / join messaging must explain why
 - Add hard breach route if France intentionally skips calling an eligible bargain beneficiary
 - Apply explicit `+25` war-entry acceptance bonus when a valid bargain targets the named enemy
+- Extend the paradox popup in this slice to surface attached bargain-breach / reliability fallout once bargain records exist
 - Ledger: active bargains with named enemy, claim region, holder, status, and cooldown
 - Campaign log event types: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `bargain_cancelled`
 - Campaign log stores full bargain metadata but renders compact one-line summaries
@@ -151,7 +154,7 @@
 - AI anti-spam rules: no repeated bargain offers while one is active or cooling down
 - Counter-bargain timing: score `50+` joins for free, `15-49` may counter-bargain, `<15` refuses
 - Use existing downgrade / auto-downgrade behavior as the normal fallout path when rivalry anger drives relation collapse; do not add forced instant-break logic as part of the bargain slice
-- ~18 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, counter-bargain flow, AI gating, anti-spam behavior, compact log rendering, rivalry-hit downgrade interaction)
+- ~20 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, counter-bargain hard-stop flow, AI gating, anti-spam behavior, compact log rendering, rivalry-hit downgrade interaction, paradox-bargain preview integration)
 
 ---
 
@@ -185,9 +188,9 @@ Recommended playtest gates:
 
 - **After A2:** verify rivalry display plus empty betrayal / bargain scaffolding appear correctly in ledger / preview
 - **After B2b:** verify anger fires on deepening, betrayal records correctly, episode cap holds at 2, and redemption pause / resume works
-- **After B3:** verify commitment paradox popup fires and resolves correctly
+- **After B3:** verify the base commitment paradox popup fires and resolves correctly with rivalry-only downgrade fallout
 - **After C1a:** partial bargain testing recommended - verify creation, validation, contradiction hard stops, and pivot-cost preview before UI wiring
-- **After C2:** verify end-to-end bargain loop: author / accept -> review -> war-entry bonus -> trigger -> fulfill / void / breach / cancel
+- **After C2:** verify end-to-end bargain loop: author / accept -> review -> war-entry bonus -> trigger -> fulfill / void / breach / cancel, and verify counter-bargain hard-stop routing plus paradox-bargain preview integration
 
 Slice D stays deferred unless playtesting proves the narrowed commitments pass still lacks enough political texture.
 
@@ -204,5 +207,5 @@ Slice D stays deferred unless playtesting proves the narrowed commitments pass s
 | B3 | A1, A2 | Paradox checks rivalry data + treaty depth and needs routed popup plumbing |
 | C1a | A1, B1 | Bargain creation needs data model, contradiction helpers, and acceptance-facing values |
 | C1b | C1a, B2b | Lifecycle uses betrayal recording, constructive-breach routing, and cooldown rules |
-| C2 | C1b | Review / war-entry logic operates on commitments created by C1b |
+| C2 | C1b, B3 | Review / war-entry logic operates on commitments created by C1b and extends the existing paradox / popup routing |
 | D1 | A1, B1, B2b, C1b | Deferred follow-up only |

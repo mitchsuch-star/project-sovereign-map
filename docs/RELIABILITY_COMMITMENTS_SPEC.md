@@ -271,7 +271,9 @@ Rules:
 - no silent rejection
 - no silent coexistence
 - no "proceed at cost" exception in v0.1
-- the hard-stop must preview any deterministic downstream fallout from the chosen downgrade, including attached bargain breach, reliability loss, strike gain, and the main offended-rival relation hit when those values are knowable
+- the hard-stop must preview any deterministic downstream fallout from the chosen downgrade
+- in the base rivalry slice this means the downgraded treaty outcome and the main offended-rival relation hit when knowable
+- once war bargains ship, the same popup must also preview attached bargain breach, reliability loss, and strike gain when those values are knowable
 
 Implementation note:
 
@@ -346,7 +348,7 @@ Witness penalties apply only to directly interested observers:
 
 - nations with `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the victim
 - nations with an active rivalry against the betrayer
-- nations with an active bargain or claim-recognition state that shares the same named enemy or the same claim region as the broken obligation
+- nations with an active bargain that shares the same named enemy or the same claim region as the broken obligation
 
 Everyone else gets zero witness effect.
 
@@ -591,18 +593,18 @@ Rules:
 - France may accept, reject, or back out of the call
 - if France accepts, the ally joins and the bargain is created immediately in `triggered` state
 - if France rejects or backs out, no bargain is created and no betrayal penalty applies
-- counter-bargains use the existing immediate proposal-confirm / hard-stop flow, not mailbox deferral, because war entry needs same-turn resolution
+- counter-bargains use a dedicated `war_entry_counter_bargain` dialogue type: hard-stop in backend routing, rendered through the existing proposal-confirm popup component, and never mailbox-deferred, because war entry needs same-turn resolution
 
 Valid wartime asks in v0.1:
 
 - recognize France's claim to one region held by the named enemy
-- deepen French alignment against that named enemy
-- demand a break or downgrade with the ally's direct rival as part of the joining deal
+- deepen French alignment against that named enemy through the tracked `war_bargain` itself
 
 Invalid wartime asks in v0.1:
 
 - guaranteed ally land in the final peace
 - multi-ally conference terms
+- break or downgrade demands against an ally's rival as part of the same counter-bargain
 - any request that requires settlement allocation among multiple participants
 
 This keeps wartime bargaining bilateral and legible while deferring multi-party settlement politics to the later common-peace track.
@@ -638,7 +640,7 @@ A bargain is `breached` if France does any of the following while it is active o
 - voluntarily downgrades the source treaty below `DEFENSIVE_ALLIANCE`
 - causes the source treaty to auto-decay through a French diplomatic action that directly angered the beneficiary or aligned France with the beneficiary's rival; this is constructive breach, not void
 - deepens military alignment with the named enemy or current claim holder
-- ratifies a contradictory bargain or contradictory claim-recognition state
+- ratifies a contradictory bargain
 - declares war on the named enemy but intentionally does not call an eligible beneficiary
 - explicitly renounces the French claim in a later peace flow once bilateral peace hardening adds term-level claim warnings
 
@@ -926,7 +928,7 @@ Layout rule:
 
 - insert the review card as the final stage inside the existing proposal-confirm popup / wizard flow
 - show the bargain summary and top 1-2 warnings above the action buttons
-- reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions
+- reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions via the dedicated `war_entry_counter_bargain` hard-stop dialogue type
 
 ### 12.4 Treaty display
 
