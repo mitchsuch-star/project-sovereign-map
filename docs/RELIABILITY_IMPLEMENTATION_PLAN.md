@@ -109,6 +109,7 @@
 - Add visible structured bargain picker to the existing diplomacy wizard for eligible military treaties
 - Add mandatory Bargain Review stage with exact beneficiary, named enemy, claim region, holder, source treaty, and contradiction warnings
 - Add pre-war warning when France declares on the named enemy while a live bargain exists
+- Add `war_entry_counter_bargain` flow for existing allies who did not bargain at alliance time but demand terms before joining a specific war
 - Add hard breach route if France intentionally skips calling an eligible bargain beneficiary
 - Apply major war-entry acceptance bonus when a valid bargain targets the named enemy
 - Ledger: active bargains with named enemy, claim region, holder, status, and cooldown
@@ -121,7 +122,8 @@
   - no same-region contradiction
   - no same pair / same enemy cooldown
 - AI anti-spam rules: no repeated bargain offers while one is active or cooling down
-- ~14 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, AI gating, anti-spam behavior)
+- Use existing downgrade / auto-downgrade behavior as the normal fallout path when rivalry anger drives relation collapse; do not add forced instant-break logic as part of the bargain slice
+- ~16 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, counter-bargain flow, AI gating, anti-spam behavior, rivalry-hit downgrade interaction)
 
 ---
 

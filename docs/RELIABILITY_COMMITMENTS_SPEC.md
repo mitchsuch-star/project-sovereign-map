@@ -229,6 +229,9 @@ Rules:
 - `they_chose_us` may trigger from:
   - deep treaty ratification with a rival-marked nation
   - ratification of a war bargain against a named rival
+- the rival-reaction relation hit applies immediately on ratification and is the default pressure path
+- if that relation loss pushes an existing French treaty with the offended rival below its stability threshold, normal downgrade and auto-downgrade rules should handle the fallout; do **not** force an instant treaty break as the default outcome
+- an offended rival may still make an explicit exclusivity demand later ("break with Prussia if you want us"), but that is a special diplomatic demand, not the baseline automatic rule
 
 This is intentionally stronger than the old `+5` because the punishment side was drowning out the reward loop.
 
@@ -443,6 +446,7 @@ Unlike the older territorial-promise draft, v0.1 war bargains may be:
 
 - AI-proposed and player-confirmed
 - player-authored through a constrained structured picker
+- raised later as a **war-entry counter-bargain** when France asks an existing ally to join a specific war and that ally wants terms before entering
 
 Why this is acceptable in v0.1:
 
@@ -558,6 +562,35 @@ If France uses the alliance against some other enemy:
 - no automatic breach occurs
 
 This keeps bargains oriented around the named enemy without turning them into universal leash mechanics.
+
+### 9.7.1 War-entry counter-bargains
+
+An ally that did **not** negotiate a bargain at alliance time may still demand terms when France asks it to join a specific war.
+
+This is the v0.1 wartime bargaining extension that fits current scope.
+
+Rules:
+
+- trigger point: France uses `Call Ally` or a war-entry request against a named enemy
+- if the ally is not willing to join for free but is within a bargain-salvage range, the ally may issue a counter-demand
+- the counter-demand may create a new `war_bargain` tied to that named enemy and one French claim region
+- France may accept, reject, or back out of the call
+- if France accepts, the ally joins and the bargain is created immediately in `triggered` state
+- if France rejects or backs out, no bargain is created and no betrayal penalty applies
+
+Valid wartime asks in v0.1:
+
+- recognize France's claim to one region held by the named enemy
+- deepen French alignment against that named enemy
+- demand a break or downgrade with the ally's direct rival as part of the joining deal
+
+Invalid wartime asks in v0.1:
+
+- guaranteed ally land in the final peace
+- multi-ally conference terms
+- any request that requires settlement allocation among multiple participants
+
+This keeps wartime bargaining bilateral and legible while deferring multi-party settlement politics to the later common-peace track.
 
 ### 9.8 Fulfillment
 
@@ -751,6 +784,7 @@ AI must not:
 - propose a bargain when France already has an active bargain with that nation
 - chain multiple bargain requests in consecutive turns after cancellation or breach
 - offer bargains the target cannot plausibly help fight over
+- issue a war-entry counter-bargain that asks for ally-beneficiary land or any other multi-party settlement outcome
 
 ### 11.3 Refusal behavior
 
@@ -767,6 +801,11 @@ If a valid bargain exists against the named enemy:
 - AI should value joining that war more highly
 - AI should surface the reason in Talleyrand-facing warnings / previews
 - if AI refuses anyway, the bargain should void cleanly with no French penalty
+
+If no bargain exists yet and the ally is close to willing but not willing enough:
+
+- AI may issue a `war_entry_counter_bargain`
+- the counter-demand must still obey the same named-enemy, single-region, France-claim, and feasibility constraints as a normal bargain
 
 ### 11.5 Strategic focus / advisory layer
 
