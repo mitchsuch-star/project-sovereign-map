@@ -25,6 +25,8 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
+**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after later dedicated specs.
+
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
 ---
@@ -405,6 +407,28 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **8D** | Dispatch + Polish + Deferred | ~20 dispatch event types, campaign log, fog filtering, AI-AI diplomacy, special acceptance bonuses | ~50 | MEDIUM |
 
 **Total estimated tests: ~525.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8A → 8B/8C → 8D. Session 8 expanded to 4 sub-sessions per `docs/SESSION_8_PLAN.md`.
+
+### Post-Phase 8 Refinement Order
+
+Phase 8 implementation is complete, but the diplomacy refinement queue after it is now explicitly sequenced:
+
+1. `Reliability + Commitments`
+   First diplomacy follow-up implementation target. Keep this bilateral and legible.
+2. `Bilateral Peace Hardening`
+   Tighten separate peace, bilateral peace preview, term ownership, and promise-breach warnings before any multilateral settlement work.
+3. `War Purpose + Score Semantics`
+   Define war objectives, ticking score meaning, and settlement legitimacy at the bilateral/system layer.
+4. `Ally Participation + Common Peace`
+   Later wartime settlement flow only. Do not overload the normal nation -> proposal -> terms wizard with conference logic.
+5. Remaining diplomacy follow-ups
+   Agendas, Talleyrand explanation layers, and economic diplomacy all remain spec-gated behind the earlier items.
+
+Reference planning docs:
+
+- `docs/STATUS.md`
+- `docs/DESIGN_REFINEMENT.md`
+- `docs/RELIABILITY_COMMITMENTS_SPEC.md`
+- `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
 
 ### Diplomacy Chat Architecture
 

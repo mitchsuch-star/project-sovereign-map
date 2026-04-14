@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 13, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the docs now also record the diplomacy-wizard audit call: keep normal diplomacy bilateral, integrate commitments through preview/review/hard-stop surfaces, and route common peace plus ally settlement through a dedicated wartime settlement flow. The next five diplomacy refinement items remain queued as spec-needed system tracks.)
+> **Last Updated:** April 13, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs.)
 
 ---
 
@@ -103,13 +103,15 @@ These are existing audit items broken into implementation order. They stay after
 
 | Order | Spec Track | Bundles / Source Items | Note |
 |-------|------------|------------------------|------|
-| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | Rivalries, betrayal memory, and territorial promises should be designed as one shared political-commitment system. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. |
-| 2 | War Purpose + Settlement | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. Draft ally-settlement slice started in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`. |
-| 3 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
-| 4 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
-| 5 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
+| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | First diplomacy follow-up implementation target. Rivalries, betrayal memory, and territorial promises are now scoped as the bilateral political-commitment system in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. |
+| 2 | Bilateral Peace Hardening | separate peace UX, bilateral peace term ownership, promise-breach warnings, peace-preview clarity | Must land before any ally-aware settlement flow. **Needs dedicated spec.** |
+| 3 | War Purpose + Score Semantics | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. Do **not** bundle this directly with common peace. **Needs dedicated spec.** |
+| 4 | Ally Participation + Common Peace | ally beneficiaries, contribution / consultation rights, common peace routing, settlement fallout | Post-commitments, post-peace-hardening track only. Existing draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later wartime-flow direction, not an implementation-ready v0.1 spec. |
+| 5 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
+| 6 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
+| 7 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
 
-**Audit call (Apr 13):** the existing conversational diplomacy wizard should remain the home for normal diplomacy, separate peace, and bilateral commitment review. Common peace, ally beneficiaries, and conference-style settlement allocation should route through a dedicated wartime settlement flow instead of being overloaded into the nation -> proposal -> terms loop.
+**Audit call (Apr 13):** the existing conversational diplomacy wizard should remain the home for normal diplomacy, separate peace, bilateral commitment review, and the future bilateral peace-hardening pass. Common peace, ally beneficiaries, and conference-style settlement allocation should route through a dedicated wartime settlement flow instead of being overloaded into the nation -> proposal -> terms loop.
 
 **Follow-up note:** `R162` (AI ultimatums to player) is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above exist. It adds interruption surface before the underlying diplomacy has enough political weight.
 

@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** Work here begins after `BUG_FIXES.md` is clear and playtesting confirms stability.
 >
-> **Last Updated:** April 12, 2026 (post-fix routing refresh: the diplomacy bug-phase gate is now cleared, the shipped Envoys inbox / current-turn offer lifetime / response-contract refactors are recorded here as live foundations, and the next diplomacy work is grouped into five spec-needed system tracks)
+> **Last Updated:** April 13, 2026 (post-fix routing refresh: the diplomacy bug-phase gate is now cleared, the shipped Envoys inbox / current-turn offer lifetime / response-contract refactors are recorded here as live foundations, and the next diplomacy work is now explicitly ordered as commitments first, bilateral peace hardening second, and ally settlement only after dedicated later specs)
 
 ---
 
@@ -37,17 +37,21 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 
 ### Current next spec queue
 
-These five grouped systems are the next diplomacy design queue. Each one needs a dedicated written spec before implementation.
+These are the next diplomacy design tracks. `Reliability + Commitments` is the first implementation target; every later item below still needs a dedicated written spec before implementation.
 
 1. `Reliability + Commitments`
-   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`.
-2. `War Purpose + Settlement`
-   Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one settlement/war-goal spec.
-3. `Nation Agendas + Motive Legibility`
+   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. This is the first diplomacy follow-up implementation target.
+2. `Bilateral Peace Hardening`
+   Tighten separate peace / bilateral peace preview, explicit term ownership, promise-breach warnings, and peace-treaty legibility before any ally-aware settlement system exists. **Needs dedicated spec.**
+3. `War Purpose + Score Semantics`
+   Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one war-goal / score-legibility spec. **Needs dedicated spec.**
+4. `Ally Participation + Common Peace`
+   Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. The current draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later-direction doc, not an implementation-ready next slice. **Needs tighter dedicated spec after items 1-3.**
+5. `Nation Agendas + Motive Legibility`
    Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec.
-4. `Talleyrand Desk + Explanation Layer`
+6. `Talleyrand Desk + Explanation Layer`
    Collapse `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, and `R159` into one explanation / trend / advisory surface spec.
-5. `Economic Diplomacy`
+7. `Economic Diplomacy`
    Collapse `R161` plus diplomacy-facing B4 candidates into one reciprocal-trade / subsidy / pressure spec.
 
 ### Still lower priority
@@ -128,8 +132,10 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 
 - Completed foundation: Envoys inbox / same-turn offer lifetime / backend-owned display labels / typed response routing.
 - `Reliability + Commitments`: make alliances politically costly, promises meaningful, and betrayal cumulative.
+- `Bilateral Peace Hardening`: make separate peace and bilateral settlement review legible before multilateral settlement exists.
+- `War Purpose + Score Semantics`: make wars resolve toward recognizable political outcomes instead of generic pressure alone.
+- `Ally Participation + Common Peace`: later wartime settlement layer once the bilateral peace plumbing is strong enough.
 - `Nation Agendas + Motive Legibility`: make AI motives and strategic branching legible to the player.
-- `War Purpose + Settlement`: make wars resolve toward recognizable political outcomes instead of generic pressure alone.
 
 ---
 
