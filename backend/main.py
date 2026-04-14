@@ -507,8 +507,6 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     Keys are ALWAYS included (None if not set) so Godot can rely on their presence.
     """
     from backend.models.cooldown_manager import PopupQueue
-    # TODO: alliance_paradox_popup needs a Godot handler (M10)
-
     # V2-90: Auto-pop rebellion popup from list if single field is empty
     if (world.vassal_rebellion_imminent_popup is None
             and getattr(world, 'vassal_rebellion_imminent_popups', None)):

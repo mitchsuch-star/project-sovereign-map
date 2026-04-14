@@ -141,7 +141,7 @@ class PopupQueue:
         "diplomatic_objection_popup",
         "incoming_proposal_popup",
         "proposal_result_popup",
-        "alliance_paradox_popup",  # TODO: alliance_paradox_popup needs a Godot handler (M10)
+        "alliance_paradox_popup",
     ]
 
     # World attr → response key mapping

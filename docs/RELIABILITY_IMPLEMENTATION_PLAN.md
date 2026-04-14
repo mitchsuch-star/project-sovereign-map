@@ -1,9 +1,9 @@
 # Reliability + Commitments - Implementation Plan
 
-> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v0.7)
+> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v0.8)
 > **Created:** April 13, 2026
-> **Sessions:** 7 (A1-A2, B1-B3, C1-C2)
-> **Est. Tests:** ~120
+> **Sessions:** 9 named slices, ~7 effective on the critical path
+> **Est. Tests:** ~140
 > **Scope note:** `D1` remains a deferred follow-up, not part of the v0.1 commitments ship target.
 
 ---
@@ -12,7 +12,7 @@
 
 ### A1. Data model + serialization
 
-**Files:** `world_state.py`, `SAVE_FORMAT_REFERENCE.md`
+**Files:** `backend/models/world_state.py`, `docs/SAVE_FORMAT_REFERENCE.md`
 
 - Add `betrayal_history: Dict[str, Dict]` to WorldState (directional key `from|to`, value: `{strikes, categories, last_turn, decays_on_turn}`)
 - Add `nation_rivalries: Dict[str, Dict]` to WorldState (diplo_key, value: `{intensity, source, weight, started_turn, last_changed_turn}`)
@@ -23,18 +23,20 @@
 - Add cached helpers for rivalry lookups, active bargain lookups, and same-region contradiction checks
 - Wire `to_dict()` / `from_dict()` with `.get()` defaults
 - Update `SAVE_FORMAT_REFERENCE.md`
-- ~14 tests (serialization round-trip, starting state, helper lookups, contradiction index reads)
+- Add a save-migration regression test using a real pre-commitments fixture save
+- ~15 tests (serialization round-trip, starting state, helper lookups, contradiction index reads, migration load)
 
 ### A2. Ledger + preview scaffolding
 
-**Files:** `diplomatic_ledger.py`, `diplomatic_dialogue.py`, `main.py`, `proposal_confirm_popup.gd`
+**Files:** `backend/game_logic/diplomatic_ledger.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/main.py`, `backend/display_names.py`, `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`, `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`, `godot-client/project-sovereign/scripts/main.gd`
 
+- Add display-name maps for rivalry intensity, betrayal severity, bargain status, and warning categories before Slice C depends on them
 - Add rivalry display to diplomatic ledger Nations tab
 - Add reliability descriptor + bilateral betrayal warning to Talleyrand tab
 - Add active bargain section (empty at first, ready for Slice C)
 - Add canonical `warnings[]` / Political Context preview payload scaffolding
 - Debug endpoint for rivalry / betrayal / bargain state inspection
-- ~8 tests (ledger formatting, preview payload shape)
+- ~10 tests (ledger formatting, preview payload shape, display-name wiring)
 
 ---
 
@@ -42,8 +44,9 @@
 
 ### B1. Acceptance formula modifiers
 
-**Files:** `diplomacy.py`
+**Files:** `backend/game_logic/diplomacy.py`, `backend/display_names.py`
 
+- Add exact numeric values for `direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod`, and treaty-time `bargain_value_mod`
 - Add `direct_rivalry_mod` to `calculate_acceptance()` with primary vs secondary weighting
 - Add `rival_conflict_mod` for existing rival alignment and active bargain conflict
 - Add `bilateral_betrayal_mod` using `betrayal_history`
@@ -51,79 +54,104 @@
 - Group all under `political_commitment_mod`
 - Cap `political_commitment_mod` floor at `-40`
 - Preserve old static sweeteners only when a tracked `war_bargain` clause is not present
-- Wire debug breakdown output
-- ~20 tests (primary vs secondary values, capped stacking, bargain replacement rule, edge cases)
+- Wire debug breakdown output and acceptance feedback strings
+- Add regression tests that compare representative pre-change proposal scores against expected tolerance bands
+- ~24 tests (primary vs secondary values, capped stacking, bargain replacement rule, edge cases, regression coverage)
 
-### B2. Third-party anger + betrayal recording
+### B2a. Third-party anger + betrayal recording
 
-**Files:** `world_state.py`, `diplomacy.py`, `dispatch.py`
+**Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/game_logic/dispatch.py`
 
-- On treaty ratification: compute rival anger and apply relation penalties per spec
+- On treaty ratification: compute rival anger and apply relation penalties per spec, including explicit `VASSAL` anger
 - Apply `they_chose_us = +8` on ratified side-taking events
 - Record betrayal events on treaty break and bargain breach
-- Witness penalty logic: only allies of victim, active rivals of betrayer, and directly implicated bargain/claim observers
-- Enforce per-episode victim strike cap of 2
-- Redemption tick in `advance_turn()`: +3 reliability per 5 honored turns, severity-scaled bilateral strike decay
-- Hard-reject behavior: 3 victim-side strikes -> hard resist deep treaties
-- Prussia<->Saxony hardcoded escalation: direct war or France vassalizes Saxony -> escalate to `active`
+- Tag French-engineered treaty auto-decay as constructive breach rather than void
 - Dispatch entries for rivalry escalation, betrayal recorded, reliability change
-- ~24 tests (anger calc, they_chose_us, strike cap, witness scoping, hard-reject posture, redemption, escalation triggers)
+- ~14 tests (anger calc, they_chose_us, betrayal record creation, constructive-breach routing, dispatch entries)
+
+### B2b. Witness scoping + episode cap + redemption + hard-reject
+
+**Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/game_logic/dispatch.py`
+
+- Witness penalty logic: only allies of victim, active rivals of betrayer, and directly implicated bargain/claim observers sharing the same named enemy or region
+- Define and enforce episode boundaries across one player command or one `advance_turn()` processing step
+- Enforce per-episode victim strike cap of 2 across all consequences from that trigger
+- Redemption tick in `advance_turn()`: +3 reliability per 5 honored turns, severity-scaled bilateral strike decay
+- Pause bilateral strike decay during `WAR` / `ARMISTICE`, resume on restored non-war treaty
+- Hard-reject behavior: 3 victim-side strikes -> hard resist deep treaties except for the narrow shared-enemy survival exception
+- Prussia<->Saxony hardcoded escalation: direct war or France vassalizes Saxony -> escalate to `active`
+- ~14 tests (witness scoping, strike cap boundaries, redemption pause/resume, hard-reject posture, escalation triggers)
 
 ### B3. Commitment paradox
 
-**Files:** `diplomatic_executor.py`, `dialogue_manager.py`, Godot popup files
+**Files:** `backend/commands/diplomatic_executor.py`, `backend/models/dialogue_manager.py`, `backend/models/cooldown_manager.py`, `backend/main.py`, `godot-client/project-sovereign/scripts/main.gd`, `godot-client/project-sovereign/scripts/alliance_paradox_popup.gd`, `godot-client/project-sovereign/scenes/alliance_paradox_popup.tscn`
 
 - New `commitment_paradox` dialogue type in `HARD_STOP_TYPES`
 - Paradox check at ratification: new `DEFENSIVE_ALLIANCE` / `ALLIANCE` may not span both sides of active rival pair
 - New handler methods in `diplomatic_executor.py`
-- New `commitment_paradox_popup.gd` + `.tscn`
-- Register in dialog manager and client popup routing
-- ~10 tests (trigger detection, option routing, downgrade execution)
+- Reuse the existing paradox popup component if possible, extending it only for the extra consequence-warning block
+- Register in dialog manager, popup queue, `build_base_response()`, and client popup routing
+- Show attached bargain-breach / reliability fallout in the popup before confirm
+- ~12 tests (trigger detection, popup passthrough, option routing, downgrade execution, consequence preview)
 
 ---
 
 ## Slice C: War Bargains
 
-### C1. Clause type + validation + lifecycle
+### C1a. Clause type + validation + creation
 
-**Files:** `world_state.py`, `diplomacy.py`, `diplomatic_executor.py`, `display_names.py`, `dispatch.py`
+**Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/display_names.py`, `backend/main.py`
 
 - Add new `war_bargain` clause type
 - User-facing wording: named-enemy alignment + French claim priority while backend key remains `war_bargain`
 - Support both AI-proposed and limited player-authored bargain construction
 - Validate named enemy, claim region holder, French strategic interest, beneficiary participation feasibility, caps, cooldowns, and contradiction guards
+- Add hard-stop preview for bargain creation when France must first downgrade an existing deep treaty; include total estimated pivot cost
 - Commitment creation on ratification: create tracked record with `target_enemy`, `claim_region`, `claim_holder`, `status`, `source_treaty`, `source_pair`, `cooldown_until_turn`
-- Status transitions: `active` -> `triggered` -> `fulfilled` / `void` / `breached` / `cancelled`
 - No `deadline_turn`, no `suspended_turns`, no timer warnings
+- ~16 tests (creation, validation, contradiction hard stops, hard-stop previews, metadata shape)
+
+### C1b. Lifecycle: fulfillment + breach + void + cancellation
+
+**Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/dispatch.py`, `backend/campaign_log.py`
+
+- Status transitions: `active` -> `triggered` -> `fulfilled` / `void` / `breached` / `cancelled`
 - Fulfillment check in `advance_turn()`: France controls claimed region from named enemy while bargain still valid and source military treaty still stands
-- Breach detection: source treaty break, voluntary downgrade below `DEFENSIVE_ALLIANCE`, contradictory alignment with named enemy / holder, contradictory bargain, declaring on named enemy without calling eligible beneficiary
-- Void detection: beneficiary breaks first, source treaty auto-decays without explicit French downgrade, beneficiary allies named enemy first, beneficiary refuses bargain-backed call, claim basis disappears externally, third-party cascade creates contrary war
+- Breach detection: source treaty break, voluntary downgrade below `DEFENSIVE_ALLIANCE`, constructive breach via French-engineered auto-decay, contradictory alignment with named enemy / holder, contradictory bargain, declaring on named enemy without calling eligible beneficiary
+- Void detection: beneficiary breaks first, non-French auto-decay, beneficiary enters `NON_AGGRESSION` or deeper with the named enemy first, beneficiary refuses bargain-backed call, claim basis disappears externally, third-party cascade creates contrary war
+- Keep `fulfilled` terminal; do not retroactively reopen on later territory loss
 - Cancellation flow state + same pair / same enemy cooldown
+- Apply beneficiary-refusal void cooldown for same pair + same enemy
 - Emit dispatch + campaign log events with required metadata
-- ~30 tests (creation, validation, contradiction hard stops, status transitions, same-turn downgrade exploit guard, auto-decay and cascade voids, cooldowns, metadata shape)
+- ~18 tests (status transitions, same-turn downgrade exploit guard, constructive breach, void reasons, cooldowns, terminal fulfillment, metadata shape)
 
 ### C2. War-entry integration + surfaces + AI rules
 
-**Files:** `diplomatic_templates.py`, `diplomatic_executor.py`, `diplomacy_wizard.gd`, `proposal_confirm_popup.gd`, `diplomatic_ledger.py`, `campaign_log.py`, war-declaration / call-to-arms files
+**Files:** `backend/game_logic/diplomatic_templates.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/game_logic/diplomatic_ledger.py`, `backend/campaign_log.py`, `backend/main.py`, `godot-client/project-sovereign/scripts/diplomacy_wizard.gd`, `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`, `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`, `godot-client/project-sovereign/scripts/campaign_log.gd`, `godot-client/project-sovereign/scripts/main.gd`
 
 - Add visible structured bargain picker to the existing diplomacy wizard for eligible military treaties
-- Add mandatory Bargain Review stage with exact beneficiary, named enemy, claim region, holder, source treaty, and contradiction warnings
+- Add mandatory Bargain Review stage inside the existing proposal-confirm flow with exact beneficiary, named enemy, claim region, holder, source treaty, contradiction warnings, and total pivot-cost preview
 - Add pre-war warning when France declares on the named enemy while a live bargain exists
 - Add `war_entry_counter_bargain` flow for existing allies who did not bargain at alliance time but demand terms before joining a specific war
+- Counter-bargains use an immediate blocking confirm flow, not mailbox deferral
+- If France is already at the bargain cap, counter-bargains are not offered; refusal / join messaging must explain why
 - Add hard breach route if France intentionally skips calling an eligible bargain beneficiary
-- Apply major war-entry acceptance bonus when a valid bargain targets the named enemy
+- Apply explicit `+25` war-entry acceptance bonus when a valid bargain targets the named enemy
 - Ledger: active bargains with named enemy, claim region, holder, status, and cooldown
 - Campaign log event types: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `bargain_cancelled`
+- Campaign log stores full bargain metadata but renders compact one-line summaries
 - AI bargain generation stub with feasibility gates:
   - current rival or current war enemy only
   - claim region held by that enemy or subject
   - beneficiary has plausible participation access
+  - beneficiary has at least one active marshal and either front access or >=25% of France's active field strength
   - France below bargain cap
   - no same-region contradiction
   - no same pair / same enemy cooldown
 - AI anti-spam rules: no repeated bargain offers while one is active or cooling down
+- Counter-bargain timing: score `50+` joins for free, `15-49` may counter-bargain, `<15` refuses
 - Use existing downgrade / auto-downgrade behavior as the normal fallout path when rivalry anger drives relation collapse; do not add forced instant-break logic as part of the bargain slice
-- ~16 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, counter-bargain flow, AI gating, anti-spam behavior, rivalry-hit downgrade interaction)
+- ~18 tests (wizard review surface, pre-war warnings, war-entry bonus, eligible-call breach, counter-bargain flow, AI gating, anti-spam behavior, compact log rendering, rivalry-hit downgrade interaction)
 
 ---
 
@@ -145,14 +173,20 @@
 ## Execution Order
 
 ```text
-A1 -> A2 -> B1 -> B2 -> B3 -> C1 -> C2
+A1 -> A2
+A1 -> B1
+A1 -> B2a -> B2b
+A1 + A2 -> B3
+A1 + B1 -> C1a
+C1a + B2b -> C1b -> C2
 ```
 
 Recommended playtest gates:
 
-- **After A2:** verify rivalries and betrayal context appear correctly in ledger / preview
-- **After B2:** verify rivalry pressure affects acceptance, anger fires on deepening, betrayal records cap correctly
+- **After A2:** verify rivalry display plus empty betrayal / bargain scaffolding appear correctly in ledger / preview
+- **After B2b:** verify anger fires on deepening, betrayal records correctly, episode cap holds at 2, and redemption pause / resume works
 - **After B3:** verify commitment paradox popup fires and resolves correctly
+- **After C1a:** partial bargain testing recommended - verify creation, validation, contradiction hard stops, and pivot-cost preview before UI wiring
 - **After C2:** verify end-to-end bargain loop: author / accept -> review -> war-entry bonus -> trigger -> fulfill / void / breach / cancel
 
 Slice D stays deferred unless playtesting proves the narrowed commitments pass still lacks enough political texture.
@@ -165,8 +199,10 @@ Slice D stays deferred unless playtesting proves the narrowed commitments pass s
 |---------|-----------|-----|
 | A2 | A1 | Ledger reads new data fields |
 | B1 | A1 | Acceptance reads rivalry + betrayal + bargain stores |
-| B2 | A1, B1 | Anger writes to stores that B1 reads; betrayal feeds acceptance |
-| B3 | A1, B1 | Paradox checks rivalry data + treaty depth |
-| C1 | A1, B1, B2 | Bargains use betrayal recording, rivalry checks, and contradiction helpers |
-| C2 | C1 | Review / war-entry logic operates on commitments created by C1 |
-| D1 | A1, B1, B2, C1 | Deferred follow-up only |
+| B2a | A1 | Anger / betrayal writes new stores and dispatch events |
+| B2b | B2a | Episode cap, witness scoping, decay, and hard-reject extend betrayal records |
+| B3 | A1, A2 | Paradox checks rivalry data + treaty depth and needs routed popup plumbing |
+| C1a | A1, B1 | Bargain creation needs data model, contradiction helpers, and acceptance-facing values |
+| C1b | C1a, B2b | Lifecycle uses betrayal recording, constructive-breach routing, and cooldown rules |
+| C2 | C1b | Review / war-entry logic operates on commitments created by C1b |
+| D1 | A1, B1, B2b, C1b | Deferred follow-up only |

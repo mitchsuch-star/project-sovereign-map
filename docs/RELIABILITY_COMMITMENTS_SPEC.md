@@ -1,6 +1,6 @@
 # Reliability + Commitments Spec
 
-> **Status:** Draft v0.7
+> **Status:** Draft v0.8
 > **Date:** April 13, 2026
 > **Queue Position:** Design Refinement item 1
 > **Collapses:** `R160` + `R119` + `R151`
@@ -160,6 +160,8 @@ Notes:
 - France/Britain should be structurally rare at deep alliance, not literally impossible.
 - Prussia/Austria remains the key anti-universal-friendship fork on the current map.
 - Prussia/Saxony starts visible but weaker.
+- France/Austria is intentionally **not** a starting rivalry in v0.1; Austria remains the main swing partner on the 5-nation map.
+- Playtest tripwire: if France can still reliably hold `ALLIANCE` with Britain, Prussia, and Austria by early midgame, the first follow-up should be France<->Austria `secondary + cold`, not a new bloc system.
 
 Prussia-Saxony special-case escalation for v0.1:
 
@@ -221,10 +223,12 @@ Suggested base anger for `active` rivalries:
 | `NON_AGGRESSION` | -10 relation |
 | `DEFENSIVE_ALLIANCE` | -15 relation + advisory warning |
 | `ALLIANCE` | -20 relation + possible forced-choice flow |
+| `VASSAL` | -25 relation + severe advisory warning |
 
 Rules:
 
 - if the offended nation is only a `cold` rival of A, apply half values rounded toward zero
+- if France vassalizes a nation that is the offended rival's marked rival, apply the immediate `VASSAL` anger hit first, then process any authored escalation rule such as Prussia-Saxony
 - on a ratified side-taking action, Nation A gains `they_chose_us = +8` relation with France once per event
 - `they_chose_us` may trigger from:
   - deep treaty ratification with a rival-marked nation
@@ -267,6 +271,7 @@ Rules:
 - no silent rejection
 - no silent coexistence
 - no "proceed at cost" exception in v0.1
+- the hard-stop must preview any deterministic downstream fallout from the chosen downgrade, including attached bargain breach, reliability loss, strike gain, and the main offended-rival relation hit when those values are knowable
 
 Implementation note:
 
@@ -324,6 +329,10 @@ Critical episode-cap rule:
 
 - one diplomatic episode may add at most **2 victim-side strikes total**
 
+Definition:
+
+- one diplomatic episode = all diplomatic penalties and strike applications created by a single player command or by a single `advance_turn()` processing step
+
 That means:
 
 - if France breaks an alliance and an attached war bargain collapses in the same resolution step, relation and reliability penalties may stack
@@ -337,7 +346,7 @@ Witness penalties apply only to directly interested observers:
 
 - nations with `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the victim
 - nations with an active rivalry against the betrayer
-- nations with an active bargain or claim-recognition state directly implicated by the same target enemy or same region
+- nations with an active bargain or claim-recognition state that shares the same named enemy or the same claim region as the broken obligation
 
 Everyone else gets zero witness effect.
 
@@ -372,6 +381,8 @@ Suggested rules:
 Guardrails:
 
 - passive decay clears at most 1 strike per nation per turn
+- honorable turns require an active non-`WAR` treaty (`PEACE` or above) with that nation
+- the bilateral decay clock pauses during `WAR` and `ARMISTICE`, then resumes when a non-war treaty is re-established
 - no special co-belligerence redemption hook in v0.1
 
 ### 8.7 Hard-reject behavior
@@ -385,7 +396,8 @@ Rule:
 Rules:
 
 - witness suspicion alone never triggers this threshold
-- survival / coalition-emergency exceptions must still exist
+- survival / coalition-emergency exceptions are narrow: the 3-strike block may downgrade from absolute reject to heavy soft-resistance only when France and Nation X share a current enemy or active coalition threat, France is not at war with X, the proposal is immediate military cooperation against that same enemy, and France did not betray X in the same episode
+- when that narrow exception opens, AI still applies a major posture tax (treat as at least `-20` before normal formula evaluation); the exception removes only the absolute lock, not the political cost
 - one episode cannot add more than 2 strikes, per 8.3
 
 This keeps the threshold meaningful without letting one compound event instantly create 4 strikes.
@@ -429,6 +441,7 @@ Meaning in v0.1:
 - France and the target nation align against a named enemy
 - the target nation recognizes France's priority claim to exactly one region held by that enemy
 - if war against that enemy happens while the bargain is live, the bargain should materially improve French ability to bring that ally in
+- "priority claim" is political language only in v0.1; it does **not** create a general `nation_claims` mechanic or settlement entitlement outside this tracked bargain
 
 Player-facing phrasing should emphasize:
 
@@ -547,7 +560,7 @@ This removes the entire class of uncontrollable timer bugs from the old promise 
 
 When a live bargain exists and France asks the beneficiary to join war against the named enemy:
 
-- apply a major positive war-entry modifier
+- apply a major positive war-entry modifier (`+25` on the war-entry acceptance check)
 - surface the bargain in the call-to-arms / declaration preview
 - mark the bargain `triggered` once both are on the same side in that war
 
@@ -574,9 +587,11 @@ Rules:
 - trigger point: France uses `Call Ally` or a war-entry request against a named enemy
 - if the ally is not willing to join for free but is within a bargain-salvage range, the ally may issue a counter-demand
 - the counter-demand may create a new `war_bargain` tied to that named enemy and one French claim region
+- if France is already at the active 2-bargain cap, do **not** offer a counter-bargain; the ally either joins without terms or refuses, and refusal text should mention that France's existing commitments leave no room for another bargain
 - France may accept, reject, or back out of the call
 - if France accepts, the ally joins and the bargain is created immediately in `triggered` state
 - if France rejects or backs out, no bargain is created and no betrayal penalty applies
+- counter-bargains use the existing immediate proposal-confirm / hard-stop flow, not mailbox deferral, because war entry needs same-turn resolution
 
 Valid wartime asks in v0.1:
 
@@ -611,6 +626,7 @@ Turn-order rule:
 Exploit guard:
 
 - if France voluntarily downgrades the source military treaty on the same turn a bargain would otherwise fulfill, that counts as explicit breach, not cheap passive failure
+- `fulfilled` is terminal; later loss, trade, or renunciation of the region does not retroactively reopen the bargain, though later peace flows may still warn about political fallout
 
 ### 9.9 Breach, void, and cancellation
 
@@ -620,6 +636,7 @@ A bargain is `breached` if France does any of the following while it is active o
 
 - breaks the source treaty voluntarily
 - voluntarily downgrades the source treaty below `DEFENSIVE_ALLIANCE`
+- causes the source treaty to auto-decay through a French diplomatic action that directly angered the beneficiary or aligned France with the beneficiary's rival; this is constructive breach, not void
 - deepens military alignment with the named enemy or current claim holder
 - ratifies a contradictory bargain or contradictory claim-recognition state
 - declares war on the named enemy but intentionally does not call an eligible beneficiary
@@ -636,8 +653,8 @@ Effects:
 A bargain is `void` if:
 
 - the beneficiary breaks the source treaty first
-- the source treaty auto-decays below `DEFENSIVE_ALLIANCE` without an explicit French downgrade command
-- the beneficiary allies the named enemy first
+- the source treaty auto-decays below `DEFENSIVE_ALLIANCE` through beneficiary-caused or external changes that France did not directly choose
+- the beneficiary enters `NON_AGGRESSION` or deeper alignment with the named enemy first
 - the beneficiary refuses a bargain-backed call to arms
 - the target enemy stops holding the claimed region through outside events not chosen by France
 - the named enemy or claim region basis disappears from the world
@@ -648,6 +665,7 @@ Void effects:
 
 - no French reliability loss
 - no French betrayal strike
+- if the void reason is beneficiary refusal of a bargain-backed call, apply a 4-turn cooldown on new bargains for that same pair and named enemy
 - dispatch / campaign log must state why the bargain ended
 
 #### C. Cancellation by consent
@@ -682,6 +700,7 @@ Review must show:
 - contradiction warnings
 - the main likely offended third party
 - the practical effect: "This will make Prussia more willing to join France against Britain"
+- any deterministic direct fallout if this bargain requires a prior downgrade or would breach an attached commitment: estimated reliability hit, strike risk, and direct relation hit where known
 
 Required warning moments:
 
@@ -706,24 +725,39 @@ This spec needs four acceptance inputs in v0.1.
 
 ### 10.1 Direct rivalry modifier
 
-- negative when proposing deeper treaties to a direct rival
+- use the exact treaty-depth values from 7.3:
+  - `secondary + cold`: `OPEN_BORDERS -4`, `NON_AGGRESSION -6`, deep treaties / `VASSAL -12`
+  - `secondary + active`: `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20`
+  - `primary + active`: `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30`
 - primary active rivals must be able to swing deep-treaty outcomes on their own
 
 ### 10.2 Rival-commitment conflict modifier
 
 - negative when the target knows France is already aligned with its rival
-- stronger on military treaties than on lower-tier treaties
+- use explicit v0.1 values:
+  - France holds `OPEN_BORDERS` with the target's active rival: `-2`
+  - France holds `NON_AGGRESSION` with the target's active rival: `-4`
+  - France holds `DEFENSIVE_ALLIANCE` with the target's active rival: `-10`
+  - France holds `ALLIANCE` or `VASSAL` with the target's active rival: `-16`
+  - France holds a live bargain against the target or for territory held by the target: `-8`
+- do not double-count the same rival twice; use the strongest treaty-alignment value plus at most one bargain-conflict add-on
+- cap `rival_conflict_mod` at `-20` before the composite floor
 - France holding a live bargain against the target or for territory held by the target counts as rival-facing political alignment
 
 ### 10.3 Bilateral betrayal modifier
 
-- negative based on active victim-side strikes
+- negative based on active victim-side strikes at `-8` per strike
+- cap `bilateral_betrayal_mod` at `-24`
 - stronger than global reliability
 - three active strikes should not be cleanly erased by a single bargain sweetener
 
 ### 10.4 Bargain-value modifier
 
 - positive when the offer includes a valid `war_bargain`
+- use explicit v0.1 values:
+  - `+10` when sweetening `DEFENSIVE_ALLIANCE`
+  - `+15` when sweetening `ALLIANCE`
+  - `+25` on an immediate war-entry / call-to-arms evaluation against the named enemy
 - should be large enough to matter for military alignment and war-entry politics
 - should not overcome hard-resistance at 3 strikes by itself
 
@@ -773,9 +807,12 @@ AI may generate a bargain only if all are true:
 - named enemy is a current rival or current war enemy
 - claim region is held by that enemy or their subject
 - the target nation has plausible participation access
-- the target nation has enough military weight or strategic willingness to matter
+- the target nation has enough military weight or strategic willingness to matter:
+  - at least one active marshal, and
+  - either direct/front-access relevance to the named enemy or total active field strength >= 25% of France's current active field strength
 - no obvious contradiction with France's current deep ally network
 - the same pair + target enemy is not on bargain cooldown
+- AI timing in v0.1 is narrow: bargain offers belong on military treaty creation / upgrade, or at war-entry time when the ally is close enough to salvage with terms
 
 ### 11.2 Anti-spam rules
 
@@ -798,18 +835,25 @@ AI should refuse or resist:
 
 If a valid bargain exists against the named enemy:
 
-- AI should value joining that war more highly
+- AI should value joining that war more highly (`+25` on the war-entry acceptance check)
 - AI should surface the reason in Talleyrand-facing warnings / previews
 - if AI refuses anyway, the bargain should void cleanly with no French penalty
 
 If no bargain exists yet and the ally is close to willing but not willing enough:
 
-- AI may issue a `war_entry_counter_bargain`
+- if France is already at the active bargain cap, do not offer a counter-bargain
+- if the pre-bargain war-entry score is `50+`, join without terms
+- if the pre-bargain war-entry score is `15-49`, AI may issue a `war_entry_counter_bargain`
+- if the pre-bargain war-entry score is below `15`, refuse outright
 - the counter-demand must still obey the same named-enemy, single-region, France-claim, and feasibility constraints as a normal bargain
 
 ### 11.5 Strategic focus / advisory layer
 
 Deferred. Static rivalries plus bargains are enough for v0.1.
+
+Intentional v0.1 simplification:
+
+- bargain timing and counter-bargain logic use shared heuristics, not personality-specific bargaining agendas
 
 ### 11.6 Performance / architecture guard
 
@@ -834,6 +878,10 @@ Add to Nations / Talleyrand tabs:
 - bilateral betrayal warning if that nation distrusts France specifically
 - active bargains owed to or from that nation
 - bargain cooldown notice when relevant
+
+Presentation rule:
+
+- render this as one compact commitment block per nation, not as multiple new dense subsections repeated across tabs
 
 ### 12.2 Proposal preview / Talleyrand advisory
 
@@ -874,6 +922,12 @@ Any offer containing `war_bargain` gets a mandatory review card before send / ac
 
 The review card is the core new v0.1 promise surface.
 
+Layout rule:
+
+- insert the review card as the final stage inside the existing proposal-confirm popup / wizard flow
+- show the bargain summary and top 1-2 warnings above the action buttons
+- reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions
+
 ### 12.4 Treaty display
 
 Active treaties tab should surface:
@@ -908,7 +962,11 @@ Campaign log metadata must include:
 - relation delta
 - reliability delta
 
-No generic one-line event without those fields.
+Rendering rule:
+
+- store the full metadata payload on the event record
+- render a compact one-line summary in the Campaign Log ("Prussia voided the Hanover bargain") rather than dumping all metadata inline
+- deeper detail can be shown later through tooltip / expand affordances without changing the stored payload
 
 ---
 
