@@ -697,7 +697,7 @@ States between each nation pair, from most hostile to most friendly. **Hostility
 | **OPEN_BORDERS** | Can move through each other's territory | No combat | Trade (+100 gold/turn bilateral) | No military access — can move THROUGH, not station troops |
 | **NON_AGGRESSION** | Cannot enter each other's territory | No combat | Trade (+150 gold/turn bilateral) | Breaking pact = severe relation hit (-40) and threat spike |
 | **DEFENSIVE_ALLIANCE** | Open borders + military coordination | Defend ally if attacked | Trade (+150 gold/turn bilateral) | If ally is attacked by third party, you enter WAR with the attacker |
-| **ALLIANCE** | Full military coordination | Joint wars, coordinated attacks | Trade (+200 gold/turn bilateral) | Offensive + defensive. Can call ally into wars. |
+| **ALLIANCE** | Full military coordination | Joint wars, coordinated attacks | Trade (+200 gold/turn bilateral) | Offensive + defensive. Current implementation auto-enters full allies through offensive cascade on war declaration; no standalone `Call Ally` action exists yet. |
 | **VASSAL** | Lord controls vassal movement | Lord can order vassal troops | Tribute flows to lord | See §8 for full vassal mechanics |
 
 ### 5b. Transition Rules
