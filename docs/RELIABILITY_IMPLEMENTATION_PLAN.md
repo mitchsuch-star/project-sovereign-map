@@ -228,7 +228,10 @@ A1 -> B2a -> B2b
 A1 + A2 -> B3
 A1 + B1 -> C1a -> C1b
 C1b + B2b -> C2
+C2 -> C3 (Commitments Presentation Pass) -> Bilateral Peace Hardening
 ```
+
+`C3` is the commitments presentation pass (see `docs/COMMITMENTS_PRESENTATION_SPEC.md`). It lands after `C2` and before `Bilateral Peace Hardening`, and depends on the emit and contract additions filed against `C1b`, `C2`, and `B2a`/`B2b` below.
 
 Recommended playtest gates:
 
@@ -237,8 +240,46 @@ Recommended playtest gates:
 - **After B3:** verify the base commitment paradox popup fires and resolves correctly with rivalry-only downgrade fallout
 - **After C1a:** partial bargain testing recommended - verify creation, validation, contradiction hard stops, and pivot-cost preview before UI wiring
 - **After C2:** verify end-to-end bargain loop: author / accept -> review -> join opportunity -> war-entry bonus -> trigger -> fulfill / void / breach, and verify counter-bargain routing plus paradox-bargain preview integration
+- **After C3:** verify commitments presentation pass routes spotlights, notices, ledger emphasis, and campaign-log events per `COMMITMENTS_PRESENTATION_SPEC.md`
 
 Slice D stays deferred unless playtesting proves the narrowed commitments pass still lacks enough political texture or coalition overlap remains too muddy in play.
+
+---
+
+## C3 Cross-Cutting Contract Additions
+
+These additions are filed against existing slices to unblock the `C3` commitments presentation pass. They do not add new slices; they tighten contracts the presentation layer reads.
+
+### Against `B2a`
+
+- Emit a `witness_strike_recorded` dispatch event as part of witness-scoped betrayal recording. Payload carries `episode_id`, `victim_nation`, `perpetrator_nation`, `witness_nation`, `scope_reason` (one of `ally` / `rival` / `shared_enemy` / `region_observer`), `relation_delta`, `reliability_delta`, `turn`. Distinct from the generic "betrayal recorded" dispatch entry.
+
+### Against `B2b`
+
+- Emit a `hard_reject_posture_triggered` dispatch event on the **first** threshold crossing per `(victim_nation, perpetrator_nation)` pair. Payload: `victim_nation`, `perpetrator_nation`, `trigger_strike_episode_id`, `turn`. Subsequent turns in the same posture do not re-emit; emission is first-cross-only.
+
+### Against `C1b` (`fulfillment_snapshot` extension)
+
+- Extend the `fulfillment_snapshot` contract with narrative-ready fields beyond the mechanical snapshot:
+  - `witness_nations_at_fulfillment` — list of `{nation, scope_reason}` captured at the fulfillment instant
+  - `relation_delta` — applied reward delta
+  - `reliability_delta` — applied reward delta
+- These fields feed `C3` spotlight templates directly and are also the source for `relation_delta` / `reliability_delta` in the `C3` surface payload.
+
+### Against `C2` (`pending_declaration` enumeration)
+
+The `pending_declaration` primitive payload keyed by `declaration_transaction_id` carries, at minimum:
+
+- `declaration_transaction_id`
+- `aggressor_nation`
+- `target_nation`
+- `pending_ally_invites` — list of `{nation, bargain_draft}`
+- `staged_war_state_snapshot` — primitive, restorable staged action state
+- `turn_created`
+
+**Back Out semantics:** `Back Out` cancels the `pending_declaration` transaction, refunds DP and AP spent to stage the declaration, and is **not re-entrant within the same turn**. The rendering of Back Out is owned by `C3` (see `COMMITMENTS_PRESENTATION_SPEC.md` §12.4); the semantics are owned here.
+
+**`hard_reject_posture_triggered` rendering dependency:** `C3` spotlight rendering consumes this first-time-threshold-crossing emit. `C3` is blocked on the emit contract above landing.
 
 ---
 

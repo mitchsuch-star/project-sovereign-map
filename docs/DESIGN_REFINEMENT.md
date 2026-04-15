@@ -41,7 +41,7 @@ These are the next diplomacy design tracks. `Reliability + Commitments` is the f
 
 1. `Reliability + Commitments`
    Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. This is the first diplomacy follow-up implementation target.
-   If playtesting after the commitments `C2` slice shows the politics are strategically legible but still too bloodless in presentation, review `docs/COMMITMENTS_PRESENTATION_SPEC.md` as a narrow proposed `C3` follow-up before moving on to `Bilateral Peace Hardening`. This is intentionally smaller than the later `Talleyrand Desk + Explanation Layer` track.
+   `C3` (commitments presentation pass, `docs/COMMITMENTS_PRESENTATION_SPEC.md`) is in the active queue as the follow-up to `C2`, landing before `Bilateral Peace Hardening`. It is intentionally smaller than the later `Talleyrand Desk + Explanation Layer` track.
 2. `Bilateral Peace Hardening`
    Tighten separate peace / bilateral peace preview, explicit term ownership, promise-breach warnings, and peace-treaty legibility before any ally-aware settlement system exists. **Needs dedicated spec.**
 3. `War Purpose + Score Semantics`

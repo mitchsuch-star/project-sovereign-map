@@ -117,6 +117,7 @@ The commitments layer should feel more alive **without** reopening engine rules,
 - This spec does **not** add new screen families, cinematic cutscenes, or map animations.
 - This spec does **not** make LLM prose mandatory. Mock templates remain authoritative.
 - This spec does **not** own coalition UI generally; it may only add commitments-aware commentary where an existing coalition event is already being surfaced.
+- `C3` does **not** set rail-wide notice caps. Rail-wide budget ownership stays with `INFORMATIONAL_UI_PLAN.md`; `C3` only defines commitments-local usage within that existing budget.
 
 ---
 
@@ -160,6 +161,10 @@ Use for the largest completed or triggered political moments.
 
 This is the core new dramatic tier for commitments.
 
+**Spotlight surface:** the spotlight tier is rendered on the **persistent notice rail** using an elevated "spotlight" style — a larger card, top-stacked above ordinary notices, persisting for 2 turns before decaying to a normal notice. The rail is the immediate in-turn surface for a spotlight event.
+
+**Relationship to Morning Dispatch:** the Morning Dispatch owns a highlighted "Spotlight Carryover" section that replays any spotlight events raised during the previous turn as NEXT-TURN dispatch cards. In-turn spotlight display is the rail; next-turn reinforcement is the dispatch. Mid-turn commitments events never inject directly into `build_morning_dispatch()` — the rail is the mid-turn delivery path.
+
 The dispatch spotlight should feel like:
 
 - "something politically important just happened"
@@ -192,12 +197,14 @@ They are not the only emotional surface.
 | `bargain_fulfilled` | dispatch spotlight | notice, ledger, campaign log | One of the best positive payoffs in the system |
 | `bargain_breached` | dispatch spotlight | notice, ledger, campaign log | One of the sharpest negative payoffs in the system |
 | `bargain_voided` | persistent notice | ledger, campaign log | Visible closure without overdrama |
-| `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout |
-| `hard_reject_posture_triggered` | dispatch spotlight | ledger, campaign log | Should feel like a door closing |
+| `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout. Emission contract filed in `RELIABILITY_IMPLEMENTATION_PLAN.md` B2a. |
+| `hard_reject_posture_triggered` | dispatch spotlight | ledger, campaign log | Should feel like a door closing. First-time-threshold-crossing emit contract filed against B2b in `RELIABILITY_IMPLEMENTATION_PLAN.md`; `C3` is blocked on that emit landing. |
 | `hard_block_surfaced` on ally entry | persistent notice or inline preview only | ledger if commitment-related | No dispatch spotlight unless it creates a larger downstream consequence |
 | `ally_refused_free_join` | persistent notice | ledger, campaign log | Keep visible; do not steal the turn |
-| `commitment_paradox` | blocking hard-stop | ledger, campaign log | Existing hard-stop; `C3` enriches framing only |
-| counter-bargain accepted / rejected / backed out | existing blocking confirm | campaign log, ledger when a bargain is created | No duplicate notice on the same turn |
+| `commitment_paradox` | blocking hard-stop | ledger, campaign log | Existing hard-stop; `C3` enriches framing only. Paradox text is **reused** from the existing `commitment_paradox` dialogue copy (see `CONVERSATIONAL_DIPLOMACY_DESIGN.md` paradox section); `C3` does not re-render paradox body text. |
+| counter-bargain `Accept` | existing blocking confirm | persistent notice ("Ally joined"), campaign log, ledger bargain record | One follow-up notice; do not spawn a second spotlight. |
+| counter-bargain `Reject` | existing blocking confirm | persistent notice ("Ally refused, war continues"), campaign log | Declaration continues without the ally; notice informs the player the ally stayed out. |
+| counter-bargain `Back Out` | existing blocking confirm | ledger entry ("Declaration withdrawn"), campaign log (`declaration_backed_out`) | `pending_declaration` transaction cancelled per C2; DP/AP refunded; no "Ally refused" notice. See §12.4 and §14 test list. |
 
 ### 8.2 Spotlight threshold rules
 
@@ -205,7 +212,7 @@ Dispatch spotlight is reserved for:
 
 - `bargain_fulfilled`
 - `bargain_breached`
-- first-time `hard_reject_posture_triggered`
+- first-time `hard_reject_posture_triggered` — **blocked on B2b emit contract** (see `RELIABILITY_IMPLEMENTATION_PLAN.md` B2b add for first-time threshold crossing)
 - the highest-severity commitments event of the turn if it materially closes or opens diplomatic space
 
 Do **not** spotlight:
@@ -217,10 +224,7 @@ Do **not** spotlight:
 
 ### 8.3 One-turn emphasis rule
 
-Maximum:
-
-- 1 commitments dispatch spotlight per turn
-- 2 commitments notices promoted above the fold in the same turn
+Commitments items consume at most 1 spotlight slot and 2 non-spotlight notice slots **within the rail's existing budget**. Rail-wide budget is owned by `INFORMATIONAL_UI_PLAN.md`; `C3` only bounds commitments' local consumption.
 
 If multiple high-value commitments events occur together:
 
@@ -230,6 +234,8 @@ If multiple high-value commitments events occur together:
 4. `commitment_paradox` resolution fallout
 5. `bargain_voided`
 6. `witness_strike_recorded`
+
+Hard-reject ranks above fulfillment because it represents a diplomatic door-closing — fulfillment reinforces an existing relationship, but hard-reject ends one. Closure beats reinforcement for emphasis.
 
 The rest still enter ledger and campaign log.
 
@@ -251,7 +257,7 @@ Instead:
 
 ### 9.1 Dispatch spotlight card
 
-Use the existing Morning Dispatch delivery path.
+Spotlight delivery uses the rail-elevated "spotlight" style described in §7.2 as the in-turn surface, and the Morning Dispatch "Spotlight Carryover" section as the next-turn reinforcement. Spotlights are not injected mid-turn into `build_morning_dispatch()`.
 
 Each commitments spotlight should include:
 
@@ -279,6 +285,36 @@ Each commitments notice should show:
 
 Notice cards should be concise enough that three of them do not feel like a second dispatch.
 
+#### Icon and label contract
+
+`notification_bar.gd` `TYPE_ICONS` must be extended with commitments types. Icon keys are proposed names; actual art is commissioned later.
+
+| Event type | Icon key | Default label |
+|-----------|---------|---------------|
+| `bargain_breached` | `icon_bargain_breach` | Bargain Breached |
+| `bargain_fulfilled` | `icon_bargain_fulfill` | Bargain Fulfilled |
+| `bargain_ratified` | `icon_bargain_ratify` | Bargain Ratified |
+| `hard_reject_posture_triggered` | `icon_hard_reject` | Channel Closed |
+| `commitment_paradox` | `icon_paradox` | Alliance Paradox |
+| `witness_strike_recorded` | `icon_witness_strike` | Witness Strike |
+| `declaration_backed_out` | `icon_declaration_backed_out` | Declaration Withdrawn |
+
+#### Priority tier contract
+
+Each commitments event maps to a `backend/notifications.py` priority tier. Tiers survive `NOTIFICATION_CAP` trimming behavior (CRITICAL retained, NORMAL trimmed first).
+
+| Event type | Priority tier |
+|-----------|---------------|
+| `bargain_breached` | CRITICAL |
+| `bargain_fulfilled` | NORMAL |
+| `hard_reject_posture_triggered` | CRITICAL |
+| `commitment_paradox` | CRITICAL |
+| `witness_strike_recorded` | NORMAL |
+| `declaration_backed_out` | NORMAL |
+| `bargain_ratified` | NORMAL |
+| `bargain_triggered` | NORMAL |
+| `bargain_voided` | NORMAL |
+
 ### 9.3 Ledger emphasis
 
 This pass should add emphasis, not a new ledger family.
@@ -289,6 +325,10 @@ Recommended emphasis rules:
 - breached bargains get a recent-breach badge for a short window
 - nations in hard-reject posture display a clear closed-door marker
 - the latest commitments event should be easy to spot in the related ledger section
+
+**Badge data source:** recent-success / recent-breach badges derive from `backend/campaign_log.py` entries where `turn >= current_turn - 3` and `event_type in {"bargain_fulfilled", "bargain_breached"}`. The closed-door marker reads from the commitment record's active `hard_reject_posture` flag set by B2b, not from log scanning.
+
+**Review target routing:** the `review_target: "ledger_commitments"` action routes to the existing **Treaties** tab of the Diplomatic Ledger with a commitments section filter applied. A dedicated commitments sub-tab is **out of scope** for `C3`.
 
 ### 9.4 Campaign log
 
@@ -341,15 +381,19 @@ Default speaker by surface:
 - persistent notice: neutral system headline, optional short Talleyrand line
 - campaign log: neutral declarative summary
 
+**Render contract:** the notice detail panel must expose a speaker-attribution slot (valid values: `system`, `talleyrand`) as a field separate from body text. `notification_bar.gd` render contract is extended in `C3` scope to honor this slot.
+
+**Carve-out:** witness-strike events (`witness_strike_recorded`) use the `system` voice as a neutral third-party observer. Talleyrand attribution is not applied, to avoid voice bleed into events where Talleyrand is structurally outside the reporting frame.
+
 ### 10.4 Refusal and hard-block explanations
 
 If the engine provides:
 
-- hard-block reason
-- war-entry score breakdown
-- strongest negative factor
+- hard-block reason (promised by C2)
+- war-entry score breakdown (promised by C2)
+- severity-sorted `warnings[]` (per `RELIABILITY_COMMITMENTS_SPEC.md` §12.2)
 
-then the presentation layer should use it.
+then the presentation layer should use it. Explanation is composed from `warnings[]` sorted by severity, with the first entry used as the lead line. There is no engine-side "strongest negative factor" or `top_reason_text` synthesizer; the presentation layer does not request one.
 
 If the engine does **not** provide enough structured explanation:
 
@@ -373,6 +417,7 @@ Where one normalized surface payload is needed, use a transient structure like:
 ```python
 commitment_surface_event = {
     "event_type": "bargain_breached",
+    "episode_id": "ep_1805_austerlitz_betrayal_001",
     "severity": "high",
     "primary_surface": "dispatch_spotlight",
     "primary_nation": "Prussia",
@@ -382,9 +427,10 @@ commitment_surface_event = {
     "source_commitment_id": "commitment_12",
     "relation_delta": -12,
     "reliability_delta": -4,
-    "witness_nations": ["Austria"],
+    "witness_nations": [
+        {"nation": "Austria", "scope_reason": "ally"},
+    ],
     "hard_block_reason": None,
-    "top_reason_text": "France aligned with the named enemy instead.",
     "review_target": "ledger_commitments",
 }
 ```
@@ -394,6 +440,11 @@ Required rules:
 - all fields primitive-only
 - no live object references
 - no duplicate authority over commitment state
+- `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); `C3` collapse and dedupe logic keys off it (see §13)
+- `witness_nations` entries carry `scope_reason in {"ally", "rival", "shared_enemy", "region_observer"}` per `RELIABILITY_COMMITMENTS_SPEC.md` §8.4
+- `relation_delta` / `reliability_delta` are sourced from strike record delta fields (produced by `C1a`) for breach / witness flows, or computed at emit time from `fulfillment_snapshot` (produced by `C1b`) for fulfillment flows
+- for fulfillment flows, the payload additionally carries narrative-ready fields from the extended `fulfillment_snapshot` contract (`witness_nations_at_fulfillment`, `relation_delta`, `reliability_delta`) per `RELIABILITY_IMPLEMENTATION_PLAN.md` `C1b`
+- `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter (see §9.3)
 
 If a field is not known deterministically, omit it rather than improvising it in presentation.
 
@@ -407,7 +458,7 @@ Engine outcome:
 
 - bargain moves to `fulfilled`
 - relation and reliability rewards apply
-- `fulfillment_snapshot` written
+- `fulfillment_snapshot` written (extended with `witness_nations_at_fulfillment`, `relation_delta`, `reliability_delta` per `RELIABILITY_IMPLEMENTATION_PLAN.md` `C1b`; these feed the spotlight template directly)
 
 Player experience:
 
@@ -437,6 +488,8 @@ Desired feeling:
 - "I traded future trust for this move."
 
 ### 12.3 Hard-reject posture triggered
+
+Blocked on B2b emit contract (see §8.2 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B2b add). Spotlight fires on the first threshold crossing per victim nation only.
 
 Engine outcome:
 
@@ -468,6 +521,10 @@ Desired feeling:
 
 - "I understand why this failed."
 
+**Rendering contract:** ally-entry hard-block rendering consumes the `pending_declaration` payload per the C2 contract (see `RELIABILITY_IMPLEMENTATION_PLAN.md` C2). No duplicate authority is held here.
+
+**Back Out semantics:** counter-bargain `Back Out` cancels the `pending_declaration` transaction; DP and AP spent to stage the declaration are refunded; the action is not re-entrant within the same turn. These semantics are owned by C2; `C3` only renders.
+
 ---
 
 ## 13. Anti-Spam Rules
@@ -475,7 +532,7 @@ Desired feeling:
 - No more than 1 commitments dispatch spotlight per turn.
 - No more than 2 above-the-fold commitments notices per turn.
 - Blocking hard-stops suppress duplicate notice-generation for the same root event.
-- Multiple witness strikes from one root event should collapse into one summarized presentation event when surfaced outside the ledger.
+- Multiple witness strikes from one root event should collapse into one summarized presentation event when surfaced outside the ledger. Witness-collapse keys off `episode_id`, not event-type heuristics.
 - A `bargain_triggered` notice should be suppressed if the same bargain is fulfilled or breached in the same turn and that higher-severity event is already surfaced.
 - If a commitments event is unrelated to the current blocking popup, queue it into the normal notice/dispatch path instead of interrupting the player mid-resolution.
 
@@ -490,11 +547,12 @@ Desired feeling:
 Core tasks:
 
 - define commitments event routing rules across blocking / dispatch / notice / ledger
-- add commitments-specific spotlight and notice templates
+- add commitments-specific spotlight and notice templates under the `commitments_spotlight_*` / `commitments_notice_*` template family in `diplomatic_templates.py`
 - enrich existing hard-stop copy for paradox and counter-bargain outcomes
 - add ledger emphasis rules for recent fulfillment / breach and active hard-reject posture
 - wire duplicate suppression so one event does not surface three times
 - keep campaign-log summaries compact but more specific
+- register new event types in `backend/campaign_log.py` `CAMPAIGN_LOG_TYPES`: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `witness_strike_recorded`, `hard_reject_posture_triggered`, `declaration_backed_out` (8 types total, including the `declaration_backed_out` entry added for H-1 Back Out)
 
 Suggested tests:
 
@@ -505,6 +563,7 @@ Suggested tests:
 - witness-strike collapse into one medium surface event
 - save/load safety for any new transient surface payload
 - mock-mode template coverage for all spotlight-worthy commitments events
+- Back Out terminal: no "Ally refused" notice is generated; only a `declaration_backed_out` campaign log entry is emitted
 
 Estimated budget:
 
@@ -518,7 +577,7 @@ Estimated budget:
 This pass should hand off cleanly to later systems:
 
 - `Bilateral Peace Hardening`
-  - can reuse spotlight / notice routing for promise-adjacent peace fallout
+  - owns its own spotlight events for peace settlement theatrics; the `C3` router is commitments-specific and does not extend to peace fallout. Bilateral Peace Hardening may copy patterns from `C3`, but it does not reuse the `C3` router.
 - `Talleyrand Desk + Explanation Layer`
   - can absorb the same commitments payloads into richer advisory surfaces later
 - generalized coalition work
@@ -543,3 +602,9 @@ This pass is successful if:
 - witness fallout is legible without becoming spam
 - all of the above work identically in mock mode without LLM dependency
 - no commitments presentation surface changes any underlying outcome
+
+---
+
+## 17. Changelog
+
+- **Apr 15, 2026** — folded audit findings C-1..C-2, H-1..H-4, M-1..M-5, NEW-S1..S4, NEW-E1..E5, NEW-V1..V4 per `COMMITMENTS_PRESENTATION_AUDIT_FINDINGS.md`.
