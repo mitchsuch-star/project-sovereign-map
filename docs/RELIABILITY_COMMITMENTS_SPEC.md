@@ -1,6 +1,6 @@
 # Reliability + Commitments Spec
 
-> **Status:** Draft v0.9
+> **Status:** Draft v1.0
 > **Date:** April 14, 2026
 > **Queue Position:** Design Refinement item 1
 > **Collapses:** `R160` + `R119` + `R151`
@@ -158,9 +158,13 @@ These are implementation-facing seams, not new player-facing mechanics:
   - used by paradox checks and future coalition overlap without hard-coding France
 - `join_opportunity`
   - explicit surfaced ally-entry opportunity record used by declaration preview and later in-war requests
-  - only explicit accept / reject / back out actions on a surfaced `join_opportunity` may change bargain state
+  - explicit accept / reject / back out actions on a surfaced `join_opportunity` are the only ally-entry-local ways to change bargain state
+  - treaty breaks, paradox resolutions, peace normalization, and the other lifecycle rules in 9.8-9.9 may still end a bargain outside the ally-entry flow
 - `fulfillment_snapshot`
   - terminal bargain payload used later by settlement / peace systems
+- `commitment_event_metadata`
+  - primitive, save-safe payload attached to dispatch / campaign-log events for bargain, paradox, and hard-reject beats
+  - stores cause context the render layer cannot reconstruct later: actor, injured party, witness scope reasons, `end_reason_family`, `fault_nation`, `decision_reason`, `trigger_context`, and deterministic deltas
 
 ---
 
@@ -353,7 +357,7 @@ Removed from v0.1:
 - suspension-based promise expiry
 - passive failure caused only by AI inactivity
 - explicit exclusivity-demand offenses
-- bargain-only cancellation actions
+- costless bargain-only cancellation actions
 
 ### 8.3 Penalty model
 
@@ -386,7 +390,7 @@ That means:
 
 Global reliability rule:
 
-- all global reliability deltas in this spec apply to the acting nation's shared `diplomatic_reliability[actor]` value; the v0.1 actor is always France
+- all global reliability deltas in this spec apply to the acting nation's shared `diplomatic_reliability[actor]` value; current authored v0.1 commitments are France-authored, but storage and emit paths must stay actor-aware rather than hard-coding France
 - witness scoping changes relation fallout only; it does not create witness-specific reliability variants
 
 This keeps the 3-strike hard-resistance threshold from becoming a one-click diplomatic death sentence on a 5-nation map.
@@ -403,6 +407,13 @@ Everyone else gets zero witness effect.
 
 Witnesses do **not** receive victim-grade strikes in v0.1.
 
+Witness scope tagging:
+
+- emitted witness payloads must carry one deterministic `scope_reason`
+- precedence: `ally` (military ally of the victim) > `rival` (active rival of the betrayer) > `shared_enemy` (shares the broken bargain's named enemy through current co-belligerence or a live bargain) > `region_observer` (shares the broken claim region through a live bargain or claimant-holder interest)
+- a breach may have multiple witness nations, but each witness gets exactly one resolved `scope_reason`
+- witness payloads carry relation fallout only; any surfaced `reliability_delta` on witness events is always `0` in this layer
+
 Exclusivity-demand rule:
 
 - do **not** add exclusivity-demand betrayal logic in v0.1
@@ -417,6 +428,7 @@ For v0.1:
 - visible side-taking should feel legible through previews, warnings, and treaty outcomes rather than a bespoke hidden relation token
 - fulfilled bargain: `+4` to `diplomatic_reliability[bargain.promiser]` and `+6` relation with the beneficiary
 - reliability gain from fulfilled bargains is capped at once per (promiser, beneficiary) per 10 turns; additional fulfillments in that window still grant the beneficiary relation reward but no extra global reliability
+- fulfilled bargains must also freeze their witness set and trigger context in durable event metadata so later AI / advisory beats can reference *why* trust increased, not only that a scalar changed
 - clear preview / ledger surfacing so loyalty feels intentional rather than invisible
 
 Do **not** add a dedicated `trusted_partner` state in v0.1.
@@ -427,7 +439,7 @@ Redemption remains possible, but stays simple.
 
 Suggested rules:
 
-- every 5 honored treaty turns: `+3` to `diplomatic_reliability[actor]` (v0.1 actor = France)
+- every 5 honored treaty turns: `+3` to `diplomatic_reliability[actor]`, counted once per actor on a single global clock; a turn counts only if that actor ends the turn with at least one qualifying non-`WAR` treaty honored and no new betrayal offense created that turn
 - each fulfilled bargain: `+4` to `diplomatic_reliability[bargain.promiser]` subject to the (promiser, beneficiary) cap above
 - after honorable turns with a nation and no new offense, remove 1 bilateral strike using severity-scaled decay:
   - 6 turns: `OPEN_BORDERS` / `PEACE`-level break
@@ -458,6 +470,8 @@ Rules:
 - survival exceptions are narrow: the 3-strike block may downgrade from absolute reject to heavy soft-resistance only when France and Nation X share a current enemy, France is not at war with X, the proposal is immediate military cooperation against that same enemy, and France did not betray X in the same episode
 - when that narrow exception opens, AI still applies a major posture tax (treat as at least `-20` before normal formula evaluation); the exception removes only the absolute lock, not the political cost
 - one episode cannot add more than 2 strikes to the same victim, per 8.3
+- proposal preview and Bargain Review must warn when the contemplated action would create the third active strike against a nation (`hard_reject` category)
+- emit `hard_reject_posture_triggered` on first crossing from 2 to 3 active strikes and `hard_reject_posture_cleared` on first return from 3+ to 2 or fewer; both events persist in dispatch and campaign-log metadata for that posture span
 
 This keeps the threshold meaningful without letting one compound event instantly create 4 strikes.
 
@@ -568,7 +582,7 @@ Current-build note / implementation correction:
 
 - the current codebase has automatic defensive and offensive war cascade on declaration; it does **not** yet have a standalone `Call Ally` command
 - this spec changes that contract for offensive ally entry: named-enemy ally participation must go through a player-visible ally-entry evaluation rather than silent automatic cascade
-- in this spec, `ask`, `call`, and `war-entry request` mean the v0.1 ally-entry system, exposed at minimum through declaration preview and preferably through both preview intercept and a later explicit in-war request surface
+- in this spec, `ask`, `call`, and `war-entry request` mean the v0.1 ally-entry system, exposed through both declaration preview intercept and a later explicit in-war request surface when a live bargain survives an earlier temporary block
 - validation and scoring should read `promiser` and claimant fields from the record / payload rather than hard-coding string checks, even though current authored content still sets the claimant to France in v0.1
 
 Invalid uses:
@@ -627,6 +641,9 @@ On ratification, create a tracked commitment:
   "cooldown_key": "France|Prussia::Britain",
   "cooldown_until_turn": 0,
   "end_reason": null,
+  "end_reason_family": null,
+  "fault_nation": null,
+  "trigger_context": null,
   "fulfillment_snapshot": null
 }
 ```
@@ -642,6 +659,7 @@ Allowed statuses:
 Field note:
 
 - `triggered_turn` stores the most recent turn on which the bargain entered `triggered`
+- `trigger_context` stores `{request_type, resolution_path, was_bargain_decisive, origin_episode_id}` when the bargain reaches `triggered`; it remains `null` for untriggered bargains
 
 Live-bargain rule:
 
@@ -674,10 +692,10 @@ Every player-visible ally-entry decision should materialize as a `join_opportuni
 
 Rules:
 
-- only explicit accept / reject / back out actions on a surfaced `join_opportunity` may change bargain state
-- failure to surface a `join_opportunity`, or inability to surface one because the request path does not yet exist, never creates breach by itself
+- only explicit accept / reject / back out actions on a surfaced `join_opportunity` may change bargain state through ally-entry resolution
+- failure to surface a `join_opportunity`, or inability to surface one because the request path does not yet exist, never creates breach by itself; v0.1 must therefore ship both declaration-preview intercept and one later explicit in-war ally-entry request surface for any live bargain temporarily blocked at declaration time
 - if a `join_opportunity` or pending counter-bargain may survive save/load, serialize `context.origin_episode_id`, `context.reroll_key`, and `context.join_opportunity` on the pending dialogue state; counter-bargain payloads should also store `context.counter_bargain_context`, `context.declaration_transaction_id`, and `context.pending_declaration`
-- `context.pending_declaration` is the canonical staged offensive war-action snapshot for that transaction and must be sufficient to either commit or discard the declaration after the ally-entry decision resumes; at minimum keep `{transaction_id, actor, action_type, target_enemy, created_turn}` as primitive data
+- `context.pending_declaration` is the canonical staged offensive war-action snapshot for that transaction and must be sufficient to either commit or discard the declaration after the ally-entry decision resumes; at minimum keep `{declaration_transaction_id, aggressor_nation, target_nation, pending_ally_invites, staged_war_state_snapshot, turn_created}` as primitive data
 
 France-facing ally entry in v0.1 has three distinct cases:
 
@@ -697,7 +715,7 @@ Rules:
 
 - if a hard block exists, the preview must show the exact reason
 - France does not incur bargain breach or reliability loss for failing to force an impossible join
-- if a temporary hard block prevents entry and the bargain stays live, the UI must tell the player whether a later explicit ally-entry request will be available after the block clears
+- if a temporary hard block prevents entry and the bargain stays live, the UI must tell the player whether a later explicit ally-entry request will be available after the block clears, and the engine must surface that later request once the block is gone
 
 ### 9.7.1 Defensive honor calls
 
@@ -803,8 +821,9 @@ Exploit guard:
 
 On fulfillment:
 
-- write `fulfillment_snapshot = {claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped: bool, intended_reliability_delta: int}`
+- write `fulfillment_snapshot = {claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped: bool, intended_reliability_delta: int, witness_nations_at_fulfillment, trigger_context}`
 - `reward_capped` is `True` when the `(promiser, beneficiary)` 10-turn cap zeroed the applied reliability delta; `intended_reliability_delta` preserves the pre-cap value so later peace / settlement systems can distinguish "first fulfillment" from "capped repeat fulfillment"
+- `trigger_context.resolution_path` must resolve to one of `defensive_auto_honor`, `offensive_free_join`, `offensive_bargain_helped`, or `offensive_counter_bargain_accept`; `was_bargain_decisive` is `True` only when the bargain changed the ally from non-join / counter-bargain territory into a join outcome
 - keep the snapshot on the bargain record after terminal close so later peace / settlement systems can reason about prior fulfillment without walking the campaign log
 
 If the named war ends without fulfillment:
@@ -821,8 +840,9 @@ A bargain is `breached` if France does any of the following while it is active o
 - breaks the source treaty voluntarily
 - voluntarily downgrades the source treaty below `DEFENSIVE_ALLIANCE`
 - causes the source treaty to auto-decay through a French diplomatic action that directly angered the beneficiary or aligned France with the beneficiary's rival; this is constructive breach, not void
-- deepens military alignment with the named enemy or current claim holder
+- enters `NON_AGGRESSION` or deeper alignment with the named enemy or current claim holder
 - ratifies a contradictory bargain
+- ratifies `PEACE`, `ARMISTICE`, or equivalent de-escalation with the named enemy after a surfaced `peace_conflict` warning when that normalization would terminate or cheapen the bargain before its political purpose is resolved
 - explicitly renounces the French claim in a later peace flow once bilateral peace hardening adds term-level claim warnings
 
 Effects:
@@ -831,36 +851,41 @@ Effects:
 - betrayal strike: +1 unless the same episode already spent the 2-strike cap through a source alliance break
 - global reliability loss: -6
 - apply a 6-turn cooldown on new bargains for that same pair and named enemy
+- dispatch / campaign log must freeze `end_reason_family = "french_breach"`, `fault_nation = France`, any witness set present at the rupture point, and deterministic deltas
 
 #### B. Void without French penalty
 
-A bargain is `void` if:
+A bargain is `void` if its basis disappears without French bad faith. Use two sub-families:
 
-- the beneficiary breaks the source treaty first
-- the source treaty auto-decays below `DEFENSIVE_ALLIANCE` through beneficiary-caused or external changes that France did not directly choose
-- the beneficiary enters `NON_AGGRESSION` or deeper alignment with the named enemy first
-- the beneficiary joins a coalition directed against France first
-- the beneficiary refuses a bargain-backed ally-entry request
-- the target enemy stops holding the claimed region through outside events not chosen by France
-- the named enemy or claim region basis disappears from the world
-- France is pulled into a contrary war against the beneficiary through third-party cascade that France did not directly declare
-- France and the beneficiary become direct enemies through beneficiary-caused or external scripted state not directly chosen by France
-- the named war has been resolved (France at `PEACE` or higher with the named enemy) **and** the beneficiary is also at `PEACE` or higher with the named enemy, continuously for **5 turns**, with no re-declaration of war against the named enemy by either side in that window; this "zombie bargain" void is the legal exit when the bargain's political purpose has lapsed without French bad faith
+- `counterparty_reversal`
+  - the beneficiary breaks the source treaty first
+  - the source treaty auto-decays below `DEFENSIVE_ALLIANCE` through beneficiary-caused changes France did not directly choose
+  - the beneficiary enters `NON_AGGRESSION` or deeper alignment with the named enemy first
+  - the beneficiary joins a coalition directed against France first
+  - the beneficiary refuses a bargain-backed ally-entry request
+- `obsolescence_or_external`
+  - the target enemy stops holding the claimed region through outside events not chosen by France
+  - the named enemy or claim region basis disappears from the world
+  - France is pulled into a contrary war against the beneficiary through third-party cascade that France did not directly declare
+  - France and the beneficiary become direct enemies through beneficiary-caused or external scripted state not directly chosen by France
+  - the named war has been resolved (France at `PEACE` or higher with the named enemy) **and** the beneficiary is also at `PEACE` or higher with the named enemy, continuously for **5 turns**, with no re-declaration of war against the named enemy by either side in that window; this "zombie bargain" void is the legal exit when the bargain's political purpose has lapsed without French bad faith
 
 Void effects:
 
 - no French reliability loss
 - no French betrayal strike
 - apply a 4-turn cooldown on new bargains for that same pair and named enemy
-- dispatch / campaign log must state why the bargain ended
+- dispatch / campaign log must state why the bargain ended, including `end_reason_family`, `fault_nation` when applicable, and `decision_reason` when the counterparty made an explicit surfaced choice
+- explicit counterparty reversals do **not** silently collapse into generic obsolescence; they remain penalty-free for France, but they are mechanically distinct so downstream presentation can stage abandonment and opportunism as chosen acts
 
-#### C. No bargain-only cancellation action in v0.1
+#### C. Explicit repudiation action in v0.1
 
 Rules:
 
-- v0.1 does **not** ship a standalone "cancel bargain" action
-- if France wants out, it must use ordinary treaty downgrade / break / contradictory-alignment actions, which then resolve through normal breach or void rules
-- this avoids a parallel cancellation mini-system that would duplicate logic and create easy reward-then-unwind exploits
+- v0.1 ships one explicit `repudiate_bargain` action on live bargains
+- the action is a blocking confirmation, not a silent cancel; it resolves immediately as French breach using the penalties and cooldown above
+- `repudiate_bargain` does **not** refund prior value, preserve goodwill, or bypass source-treaty fallout; it exists to make chosen perfidy explicit, not to create a second unwind system
+- if France instead exits through treaty downgrade / contradictory alignment, use the same breach rules
 
 ### 9.10 Review and warning surfaces
 
@@ -875,15 +900,20 @@ Review must show:
 - source treaty
 - contradiction warnings
 - the main likely offended third party
-- the practical effect: "This will make Prussia more willing to join France against Britain"
+- the exact current war-entry forecast band for that beneficiary and named enemy: `join`, `counter-bargain likely`, or `refuse`
+- whether the bargain is currently decisive for that outcome or merely supportive
+- whether this action would create a third strike and trigger `hard_reject`
+- the practical effect in plain language: "This shifts Prussia from counter-bargain to join against Britain"
 - any deterministic direct fallout if this bargain requires a prior downgrade or would breach an attached commitment: estimated reliability hit, strike risk, and direct relation hit where known
 
 Required warning moments:
 
 - bargain ratification
 - war declaration on the named enemy
+- peace / armistice / normalization with the named enemy or current holder while the bargain is live
 - source treaty downgrade / break while bargain is live
 - deep treaty ratification with the named enemy or current holder
+- any action that would create the third active strike against a nation
 - bargain void / breach / fulfillment
 
 Important v0.1 rule:
@@ -949,7 +979,7 @@ War entry should not piggyback on the generic treaty acceptance score. Use a ded
 
 Evaluate hard blocks before the score. If any hard block is present, the ally does not join and no counter-bargain is offered.
 
-Use explicit v0.1 values:
+Use explicit v1.0 values:
 
 - `base = 20`
 - treaty depth: `DEFENSIVE_ALLIANCE +10`, `ALLIANCE +18`
@@ -958,20 +988,21 @@ Use explicit v0.1 values:
 - if the named enemy is an active rival of the beneficiary: additional `+6`
 - France-beneficiary relation: `clamp(relation_to_france // 5, -12, +12)`
 - bilateral betrayal strikes: `-8` each, cap `-24`
+- promiser global reliability: `clamp(diplomatic_reliability[promiser] // 10, -6, +6)`
 - matching live bargain: `+25`
 - other-war load: `-8` for one other active war, `-18` for 2+ other active wars or war exhaustion `>= 60`
 
-Intentional omission:
+Global-reputation note:
 
-- global reliability is **not** a direct `war_entry_score` input in v0.1
-- war entry already reads bilateral betrayal memory, treaty depth, war load, and explicit bargain context; adding global reliability here mostly duplicates weaker information
+- global reliability is a light input only; bilateral betrayal memory, treaty depth, and live bargain context remain stronger
+- a nation that has kept its word should cash out slightly better at war entry, but no global scalar may erase direct victim memory or hard-reject posture
 
 Thresholds:
 
 - `50+`: join without terms
 - `25-49`: may issue one counter-bargain on offensive requests only
 - below `25`: refuse
-- defensive honor calls apply the `50` floor from 9.7.1 after hard-block checks
+- defensive honor calls still auto-resolve as join after hard-block checks; compute the score anyway for preview/debug output and future generalized AI tuning, but do not use the threshold as a second defensive gate in v1.0
 
 ### 10.6 Composite grouping
 
@@ -1019,6 +1050,12 @@ AI may generate a bargain only if all are true:
 - the same pair + target enemy is not on bargain cooldown
 - AI timing in v0.1 is narrow: bargain offers belong on military treaty creation / upgrade, or at war-entry time when the ally is close enough to salvage with terms
 
+Minimal v1.0 AI decision-reason contract:
+
+- every AI-authored offer, refusal, counter-bargain, hard block, or counterparty reversal must emit one deterministic `decision_reason`
+- allowed reasons in v1.0: `rival_pressure`, `claim_trade`, `shared_enemy_survival`, `distrust_promiser`, `war_overload`, `route_blocked`, `coalition_conflict`, `counterparty_reversal`, `claim_obsolete`
+- `decision_reason` is not freeform narrative text; it is mechanical motive metadata the presentation layer, advisory logic, and campaign log can read directly
+
 ### 11.2 Anti-spam rules
 
 AI must not:
@@ -1042,7 +1079,7 @@ If a valid bargain exists against the named enemy:
 
 - AI should value joining that war more highly (`+25` on the war-entry acceptance check)
 - AI should surface the reason in Talleyrand-facing warnings / previews
-- if AI refuses anyway, the bargain should void cleanly with no French penalty
+- if AI refuses anyway, the bargain should end with `end_reason_family = counterparty_reversal`, no French penalty, and an explicit `decision_reason`
 
 Use the dedicated `war_entry_score` from 10.5 plus hard-block checks.
 
@@ -1058,12 +1095,12 @@ Offensive ask behavior:
 - if the pre-bargain war-entry score is `25-49`, AI may issue a `war_entry_counter_bargain`
 - if the pre-bargain war-entry score is below `25`, refuse outright
 - the counter-demand must still obey the same named-enemy, single-region, France-claim, and feasibility constraints as a normal bargain
-- if no legal bargain can be generated, the AI either joins for free if already over the threshold or refuses with an explicit reason
+- if no legal bargain can be generated, the AI either joins for free if already over the threshold or refuses with an explicit `decision_reason`
 - same-turn repeat asks reuse the same result and same demanded region unless a material state change occurs
 
 ### 11.5 Strategic focus / advisory layer
 
-Deferred. Static rivalries plus bargains are enough for v0.1.
+Deferred. Personality-specific bargaining agendas and richer court personas move later; the minimal `decision_reason` contract above ships in v1.0.
 
 Intentional v0.1 simplification:
 
@@ -1121,13 +1158,14 @@ Warning categories in this spec:
 - `rivalry`
 - `betrayal`
 - `bargain`
+- `hard_reject`
 - `paradox`
 - `peace_conflict`
 
 Severity contract:
 
 - severity ordinals: `critical = 3`, `high = 2`, `medium = 1`, `low = 0`
-- stable category tie-break order: `paradox`, `bargain`, `betrayal`, `rivalry`, `peace_conflict`
+- stable category tie-break order: `paradox`, `hard_reject`, `bargain`, `betrayal`, `rivalry`, `peace_conflict`
 - later categories should append after this order, not silently reshuffle it
 
 Preview legibility rules:
@@ -1146,6 +1184,7 @@ Layout rule:
 
 - insert the review card as the final stage inside the existing proposal-confirm popup / wizard flow
 - show the bargain summary and top 1-2 warnings above the action buttons
+- show the current war-entry forecast band and whether the bargain is decisive before the action buttons
 - reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions via `counter_bargain_context` on the existing proposal-confirm flow
 - when used for counter-bargains, that reused proposal-confirm instance is `blocking=True` and resolves against the serialized `pending_declaration` snapshot rather than a normal envoy-in-transit proposal
 - counter-bargain mode **must suppress** the following standard `proposal_confirm` affordances so envoy-semantics do not leak into same-turn war-entry resolution:
@@ -1170,11 +1209,14 @@ High-signal events only:
 
 - rivalry escalation
 - betrayal recorded
+- commitment paradox resolved
 - bargain ratified
 - bargain triggered
 - bargain fulfilled
 - bargain breached
 - bargain voided
+- hard-reject posture triggered
+- hard-reject posture cleared
 - major reliability improvement or drop
 
 Campaign log metadata must include:
@@ -1186,8 +1228,14 @@ Campaign log metadata must include:
 - previous status
 - new status
 - end reason
+- end reason family
+- fault nation
+- decision reason
+- witness nations with `scope_reason`
+- trigger context
 - relation delta
 - reliability delta
+- for paradox events: chosen nation and spurned nation
 
 Rendering rule:
 
@@ -1212,6 +1260,7 @@ Rendering rule:
   - each `StrikeRecord` is `{severity: str, turn: int, episode_id: str, decays_on_turn: int}`
   - episode cap queries filter by `episode_id`; severity-scaled decay reads each strike's own `decays_on_turn`
   - the pair-level `last_turn` is retained only as a cached "most recent offense" summary for ledger display; it is **not** authoritative for decay or cap enforcement
+  - storage is actor-agnostic even where authored v1.0 content still centers France; do not bake France-literal assumptions into keys or helpers
 
 - `nation_rivalries: Dict[str, Dict]`
   - key: `diplo_key`
@@ -1236,12 +1285,15 @@ Rendering rule:
     - `cooldown_key`
     - `cooldown_until_turn`
     - `end_reason`
-    - `fulfillment_snapshot` — `{claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped, intended_reliability_delta}` or `null`
+    - `end_reason_family`
+    - `fault_nation`
+    - `trigger_context` — `{request_type, resolution_path, was_bargain_decisive, origin_episode_id}` or `null`
+    - `fulfillment_snapshot` — `{claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped, intended_reliability_delta, witness_nations_at_fulfillment, trigger_context}` or `null`
 
 Cooldown note:
 
 - cooldown lookups should key off `cooldown_key = source_pair + "::" + target_enemy`, not the commitment id, so breach / void anti-spam persists across bargain replacement and save/load
-- `source_pair` should use canonical `promiser|beneficiary` ordering; in the v0.1 France-authored bargain slice this is always `France|beneficiary`
+- `source_pair` should use canonical `promiser|beneficiary` ordering; current authored v1.0 bargain content still centers France, but the contract must remain promiser-aware rather than France-literal
 
 - `next_commitment_id: int`
 
@@ -1284,7 +1336,7 @@ Do **not** add a separate `nation_claims` store in this spec; until a later sett
 - tracked bargain creation
 - contradiction validation and hard-stop checks
 - no deadline / no suspension / no passive expiry
-- no bargain-only cancellation action
+- one explicit `repudiate_bargain` action that resolves as immediate breach
 - trigger on named-enemy war entry
 - explicit fulfillment / breach / void processing plus `fulfillment_snapshot` on terminal close
 - event-driven warnings only
@@ -1293,7 +1345,7 @@ Do **not** add a separate `nation_claims` store in this spec; until a later sett
 
 - wire current coalition membership into bargain void / hard-block rules
 - replace offensive silent cascade with a surfaced `join_opportunity` / ally-entry pipeline
-- add or reserve later explicit in-war ally-entry requests so temporarily blocked bargains do not strand
+- preserve the mandatory v1.0 later explicit in-war ally-entry request flow when coalition/generalization lands, so temporarily blocked bargains do not strand
 - keep coalition loyalty / separate-peace logic distinct from alliance / bargain logic
 - do **not** add breach on mere absence of a surfaced ally-entry opportunity
 
@@ -1304,7 +1356,7 @@ Deferred follow-up only:
 - strategic focus
 - power tiers
 - richer rival-aware agendas
-- broader bargain reasoning beyond the v0.1 feasibility gates
+- broader bargain reasoning beyond the v1.0 feasibility gates and deterministic `decision_reason` contract
 
 ### Slice F. Coalition buildout
 
