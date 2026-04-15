@@ -487,6 +487,13 @@ def format_event_oneliner(event: dict) -> str:
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
         target = event.get("other") or event.get("target", "")
         reason_phrase = event.get("reason_phrase", "")
+        family = event.get("end_reason_family", "")
+        # Distinguish forced / counterparty-led ruptures from voluntary breach
+        # so the log one-liner carries the fault classification.
+        if family == "obsolescence_or_external":
+            return f"Treaty dragged apart: {nation} - {treaty_type} with {target} (cascade)"
+        if family == "counterparty_reversal":
+            return f"Treaty broken by counterparty: {target} - {treaty_type} with {nation}"
         if reason_phrase:
             return f"Treaty broken: {nation} - {treaty_type} with {target} {reason_phrase}"
         return f"Treaty broken: {nation} - {treaty_type} with {target}"

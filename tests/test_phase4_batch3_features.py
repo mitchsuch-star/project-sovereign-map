@@ -165,11 +165,15 @@ class TestR23TrustReactions:
         _set_marshal_personality(world, m_name, "cautious")
         initial = _get_marshal_trust(world, m_name)
 
+        # Commitment-bearing states now show a reliability-preview confirmation
+        # (RELIABILITY_COMMITMENTS_SPEC §9.10). Pass confirmed_break=True to
+        # skip the confirmation dialogue and actually break.
         command = {
             "action": "diplomatic_break",
             "diplomatic_data": {
                 "action": "diplomatic_break",
                 "target_nation": "Austria",
+                "confirmed_break": True,
             },
         }
         result = executor._execute_diplomatic(command, game_state)

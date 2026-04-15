@@ -191,11 +191,41 @@ _BREACH_SEVERITY_BY_TREATY = {
     "vassal": "high",
 }
 
-_BREACH_REASON_PHRASES = {
+# RELIABILITY_COMMITMENTS_SPEC §9.9 fault families.
+# `french_breach`: actor voluntarily ruptured a commitment (perpetrator at fault).
+# `counterparty_reversal`: the counterparty reversed first (no perpetrator penalty).
+# `obsolescence_or_external`: basis disappeared / external cascade (no perpetrator penalty).
+END_REASON_FAMILY_FRENCH_BREACH = "french_breach"
+END_REASON_FAMILY_COUNTERPARTY_REVERSAL = "counterparty_reversal"
+END_REASON_FAMILY_OBSOLESCENCE_OR_EXTERNAL = "obsolescence_or_external"
+
+# `end_reason_action` = what the actor did (the old substrate enum).
+# Split from `end_reason_family` (who is at fault) so presentation can stage
+# "France abandoned" vs "France forced into rupture" distinctly per §9.9.
+_REASON_ACTION_PHRASES = {
     "manual_break": "without seeking release",
     "war_declaration": "by declaring war",
     "paradox_choice": "to resolve a diplomatic paradox",
+    "cascade_forced": "when dragged into war by an ally",
 }
+
+# Per-witness scope reason (RELIABILITY_COMMITMENTS_SPEC §8.4 precedence).
+# `ally`     : witness has DEFENSIVE_ALLIANCE/ALLIANCE with the injured party
+# `rival`    : witness has an active rivalry against the breaker
+# `shared_enemy`  : witness shares a current enemy with the injured party
+# `region_observer`: witness has a live bargain over the claim region (deferred;
+#                    bargain store does not yet exist in this substrate)
+WITNESS_SCOPE_ALLY = "ally"
+WITNESS_SCOPE_RIVAL = "rival"
+WITNESS_SCOPE_SHARED_ENEMY = "shared_enemy"
+WITNESS_SCOPE_REGION_OBSERVER = "region_observer"
+
+WITNESS_SCOPE_PRECEDENCE = (
+    WITNESS_SCOPE_ALLY,
+    WITNESS_SCOPE_RIVAL,
+    WITNESS_SCOPE_SHARED_ENEMY,
+    WITNESS_SCOPE_REGION_OBSERVER,
+)
 
 
 def _get_actor_personality(world, nation: str) -> str:
@@ -207,22 +237,67 @@ def _get_actor_personality(world, nation: str) -> str:
     return str(getattr(diplomat, 'personality', "") or "")
 
 
+def _classify_witness_scope(world, witness: str, breaker: str, injured_party: str) -> str:
+    """Resolve a single witness's scope_reason using §8.4 precedence.
+
+    Returns one of WITNESS_SCOPE_* constants, or empty string if the nation
+    is not positioned to react politically to the rupture. The first matching
+    role in precedence order wins (ally > rival > shared_enemy > region_observer).
+    """
+    # ally: military alliance with the injured party
+    if world.get_diplomatic_state(witness, injured_party) in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        return WITNESS_SCOPE_ALLY
+
+    # rival: active rivalry against the breaker, or currently at war with the breaker
+    # (full rivalry store is deferred; war-state acts as the v0.1 proxy)
+    rivalries = getattr(world, 'nation_rivalries', {}) or {}
+    if rivalries:
+        pair_key = world._make_diplo_key(witness, breaker)
+        record = rivalries.get(pair_key)
+        if record and record.get("intensity") == "active":
+            return WITNESS_SCOPE_RIVAL
+    if world.is_at_war(witness, breaker):
+        return WITNESS_SCOPE_RIVAL
+
+    # shared_enemy: witness is at war with a nation the injured party is also at war with
+    for other in world.get_active_nations():
+        if other in (witness, breaker, injured_party):
+            continue
+        if world.is_at_war(witness, other) and world.is_at_war(injured_party, other):
+            return WITNESS_SCOPE_SHARED_ENEMY
+
+    # region_observer: bargain-region observation (requires bargain store; deferred)
+    return ""
+
+
 def _get_breach_witness_scope(world, breaker_nation: str, injured_party: str) -> Dict:
-    """Estimate which courts are positioned to care about a treaty rupture."""
-    witnesses = []
+    """Resolve the witness set for a rupture with per-witness scope_reasons.
+
+    Returns:
+        {
+            "witnesses": [{"nation": str, "scope_reason": str}, ...],
+            "dominant_scope": str,            # first role present in precedence order
+            "label": str,                     # audience-size flavor label
+            "count": int,
+            "sample": [str, ...],             # legacy flat nation list (back-compat)
+        }
+    """
+    witnesses = []  # list of {"nation", "scope_reason"}
     for nation in world.get_active_nations():
         if nation in (breaker_nation, injured_party):
             continue
-        breaker_state = world.get_diplomatic_state(nation, breaker_nation)
-        injured_state = world.get_diplomatic_state(nation, injured_party)
-        if (
-            breaker_state in COMMITMENT_STATES
-            or injured_state in COMMITMENT_STATES
-            or world.is_at_war(nation, breaker_nation)
-            or world.is_at_war(nation, injured_party)
-        ):
-            witnesses.append(nation)
+        scope_reason = _classify_witness_scope(world, nation, breaker_nation, injured_party)
+        if scope_reason:
+            witnesses.append({"nation": nation, "scope_reason": scope_reason})
 
+    # Dominant scope follows the spec precedence (ally > rival > shared_enemy > region_observer).
+    dominant_scope = ""
+    for role in WITNESS_SCOPE_PRECEDENCE:
+        if any(w["scope_reason"] == role for w in witnesses):
+            dominant_scope = role
+            break
+
+    # Audience-size label kept for flavor; no longer overloaded as scope_reason.
     player_nation = getattr(world, 'player_nation', 'France')
     if breaker_nation == player_nation or injured_party == player_nation or len(witnesses) >= 3:
         label = "continental"
@@ -232,10 +307,35 @@ def _get_breach_witness_scope(world, breaker_nation: str, injured_party: str) ->
         label = "private court"
 
     return {
+        "witnesses": witnesses,
+        "dominant_scope": dominant_scope,
         "label": label,
         "count": int(len(witnesses)),
-        "sample": witnesses[:4],
+        "sample": [w["nation"] for w in witnesses[:4]],
     }
+
+
+def _allocate_episode_id(world, prefix: str = "ep") -> str:
+    """Mint a fresh deterministic episode_id for a root-cause diplomatic trigger.
+
+    Used to group consequences of one explicit action (declare_war + cascaded
+    breaches, paradox resolution + forced downgrade, etc.) under a single key
+    for C3 aftermath callbacks and witness-strike collapse (RELIABILITY_COMMITMENTS_SPEC §6.5).
+    """
+    counter = int(getattr(world, 'next_episode_id', 1) or 1)
+    world.next_episode_id = counter + 1
+    return f"{prefix}_{int(world.current_turn)}_{counter:04d}"
+
+
+def _resolve_end_reason(end_reason_action: str, fault_nation: str, breaker_nation: str) -> str:
+    """Derive end_reason_family from action + fault attribution (§9.9)."""
+    if fault_nation and fault_nation != breaker_nation:
+        # Someone other than the breaker is at fault -> no perpetrator penalty.
+        return END_REASON_FAMILY_OBSOLESCENCE_OR_EXTERNAL
+    if end_reason_action == "cascade_forced":
+        # Cascade is external to the cascaded nation's choice -> no penalty.
+        return END_REASON_FAMILY_OBSOLESCENCE_OR_EXTERNAL
+    return END_REASON_FAMILY_FRENCH_BREACH
 
 
 def get_treaty_breach_preview(
@@ -243,9 +343,30 @@ def get_treaty_breach_preview(
     breaker_nation: str,
     other_nation: str,
     treaty: Dict = None,
-    reason_family: str = "manual_break",
+    reason_family: str = None,              # accepted as end_reason_family OR action for back-compat
+    end_reason_action: str = None,
+    fault_nation: str = None,
+    episode_id: str = None,
 ) -> Dict:
-    """Build deterministic breach metadata before the state changes."""
+    """Build deterministic breach metadata before the state changes.
+
+    Args:
+        reason_family: legacy argument — accepts either an end_reason_action value
+            (`manual_break`, `war_declaration`, `paradox_choice`, `cascade_forced`)
+            or an explicit end_reason_family value. For back-compat, action-shaped
+            values are promoted to end_reason_action and family is re-derived.
+        end_reason_action: explicit action axis (what the actor did).
+        fault_nation: who the rupture should be blamed on (defaults to breaker).
+        episode_id: root-cause identifier for this rupture (generated if absent).
+    """
+    # Normalize the split: callers that still pass `reason_family` as an action label
+    # get routed into end_reason_action; the family is derived from action + fault.
+    action = end_reason_action or reason_family or "manual_break"
+    if action not in _REASON_ACTION_PHRASES:
+        action = "manual_break"
+    effective_fault = fault_nation or breaker_nation
+    family = _resolve_end_reason(action, effective_fault, breaker_nation)
+
     pair_key = world._make_diplo_key(breaker_nation, other_nation)
     treaty_data = treaty or getattr(world, 'active_treaties', {}).get(pair_key, {})
     current_state = world.get_diplomatic_state(breaker_nation, other_nation)
@@ -259,14 +380,20 @@ def get_treaty_breach_preview(
 
     reliability = getattr(world, 'diplomatic_reliability', {})
     reliability_before = int(reliability.get(breaker_nation, 0))
-    reliability_after = max(-100, reliability_before - 10)
+
+    # Reliability penalty applies only on perpetrator-fault ruptures.
+    intended_delta = -10 if family == END_REASON_FAMILY_FRENCH_BREACH else 0
+    reliability_after = max(-100, reliability_before + intended_delta)
+    applied_delta = reliability_after - reliability_before
+
     witness_scope = _get_breach_witness_scope(world, breaker_nation, other_nation)
 
     return {
         "pair_key": pair_key,
         "breaker": breaker_nation,
         "injured_party": other_nation,
-        "fault_nation": breaker_nation,
+        "fault_nation": effective_fault,
+        "episode_id": episode_id or _allocate_episode_id(world),
         "treaty_type": treaty_type,
         "treaty_type_display": _proposal_display_name(treaty_type),
         "previous_state": current_state,
@@ -274,12 +401,18 @@ def get_treaty_breach_preview(
         "turns_honored": int(turns_honored),
         "reliability_before": reliability_before,
         "reliability_after": reliability_after,
-        "witness_scope": witness_scope["label"],
+        "intended_reliability_delta": int(intended_delta),
+        "applied_reliability_delta": int(applied_delta),
+        "witnesses": witness_scope["witnesses"],
+        "dominant_witness_scope": witness_scope["dominant_scope"],
+        "witness_scope_label": witness_scope["label"],
+        "witness_scope": witness_scope["label"],  # legacy alias (M-6 back-compat)
         "witness_count": witness_scope["count"],
         "witness_sample": witness_scope["sample"],
         "actor_personality": _get_actor_personality(world, breaker_nation),
-        "end_reason_family": reason_family,
-        "reason_phrase": _BREACH_REASON_PHRASES.get(reason_family, "under pressure"),
+        "end_reason_family": family,
+        "end_reason_action": action,
+        "reason_phrase": _REASON_ACTION_PHRASES.get(action, "under pressure"),
         "breach_severity": _BREACH_SEVERITY_BY_TREATY.get(treaty_type, "medium"),
     }
 
@@ -309,7 +442,8 @@ def preview_war_declaration(world, aggressor: str, target: str, casus_belli: boo
             aggressor,
             target,
             treaty=treaty,
-            reason_family="war_declaration",
+            end_reason_action="war_declaration",
+            fault_nation=aggressor,
         )
 
     return {
@@ -322,13 +456,63 @@ def preview_war_declaration(world, aggressor: str, target: str, casus_belli: boo
     }
 
 
+def _build_breach_warnings(breach_preview: Dict, war_preview: Dict = None) -> List[Dict]:
+    """Emit a structured `warnings[]` list per RELIABILITY_COMMITMENTS_SPEC §12.2.
+
+    Presentation consumes these sorted by severity (critical>high>medium>low)
+    with the stable category tie-break order: paradox>hard_reject>bargain>betrayal>rivalry>peace_conflict.
+    """
+    warnings: List[Dict] = []
+    if not breach_preview:
+        return warnings
+
+    severity = "high" if breach_preview.get("breach_severity") == "high" else "medium"
+    warnings.append({
+        "severity": severity,
+        "category": "betrayal",
+        "text": (
+            f"Reliability would fall from {breach_preview['reliability_before']} "
+            f"to {breach_preview['reliability_after']}."
+        ),
+    })
+
+    if war_preview:
+        defensive_joiners = war_preview.get("defensive_joiners", [])
+        if defensive_joiners:
+            warnings.append({
+                "severity": "medium",
+                "category": "rivalry",
+                "text": f"Likely defenders: {', '.join(defensive_joiners)}.",
+            })
+        offensive_joiners = war_preview.get("offensive_joiners", [])
+        if offensive_joiners:
+            warnings.append({
+                "severity": "medium",
+                "category": "rivalry",
+                "text": f"Likely co-belligerents: {', '.join(offensive_joiners)}.",
+            })
+
+    return warnings
+
+
 def _record_treaty_breach(
     world,
     breach_preview: Dict,
     new_state: str,
     trigger_context: Dict = None,
+    suppress_notification: bool = False,
+    suppress_dispatch_event: bool = False,
 ) -> None:
-    """Emit the remembered political event for a treaty breach."""
+    """Emit the remembered political event for a treaty breach.
+
+    Args:
+        suppress_notification: skip the TREATY_BROKEN notification when the
+            caller is already emitting a louder one (e.g. WAR_DECLARED).
+            Spec §8.4 no-duplicate-surface rule.
+        suppress_dispatch_event: skip the `diplomatic_treaty_broken` dispatch
+            event when the caller will emit `diplomatic_war_declared` with
+            `breached_treaty` in the same episode.
+    """
     from backend.game_logic.dispatch import queue_dispatch_event
     from backend.notifications import (
         create_notification, NotificationPriority, TREATY_BROKEN,
@@ -338,6 +522,8 @@ def _record_treaty_breach(
     injured_party = breach_preview["injured_party"]
     treaty_type_display = breach_preview["treaty_type_display"]
     reason_phrase = breach_preview["reason_phrase"]
+    episode_id = breach_preview.get("episode_id") or _allocate_episode_id(world)
+    breach_preview["episode_id"] = episode_id
 
     world.log_event({
         "type": "diplomatic_treaty_broken",
@@ -345,6 +531,7 @@ def _record_treaty_breach(
         "other": injured_party,
         "injured_party": injured_party,
         "fault_nation": breach_preview["fault_nation"],
+        "episode_id": episode_id,
         "treaty_type": breach_preview["treaty_type"],
         "treaty_type_display": treaty_type_display,
         "previous_state": breach_preview["previous_state"],
@@ -352,37 +539,70 @@ def _record_treaty_breach(
         "turns_honored": breach_preview["turns_honored"],
         "reliability_before": breach_preview["reliability_before"],
         "reliability_after": breach_preview["reliability_after"],
-        "witness_scope": breach_preview["witness_scope"],
+        "intended_reliability_delta": breach_preview["intended_reliability_delta"],
+        "applied_reliability_delta": breach_preview["applied_reliability_delta"],
+        "witnesses": list(breach_preview["witnesses"]),
+        "dominant_witness_scope": breach_preview["dominant_witness_scope"],
+        "witness_scope_label": breach_preview["witness_scope_label"],
+        "witness_scope": breach_preview["witness_scope"],  # legacy alias
         "witness_count": breach_preview["witness_count"],
         "witness_sample": breach_preview["witness_sample"],
         "actor_personality": breach_preview["actor_personality"],
         "end_reason_family": breach_preview["end_reason_family"],
+        "end_reason_action": breach_preview["end_reason_action"],
         "reason_phrase": reason_phrase,
         "breach_severity": breach_preview["breach_severity"],
         "trigger_context": trigger_context or {},
     })
 
-    world.notifications.add(create_notification(
-        TREATY_BROKEN,
-        NotificationPriority.HIGH,
-        f"Treaty Broken: {treaty_type_display}",
-        f"{breaker_nation} has broken the {treaty_type_display} with {injured_party} {reason_phrase}.",
-        int(world.current_turn),
-    ))
+    if not suppress_notification:
+        world.notifications.add(create_notification(
+            TREATY_BROKEN,
+            NotificationPriority.HIGH,
+            f"Treaty Broken: {treaty_type_display}",
+            f"{breaker_nation} has broken the {treaty_type_display} with {injured_party} {reason_phrase}.",
+            int(world.current_turn),
+        ))
 
-    queue_dispatch_event(world, "diplomatic_treaty_broken", {
-        "nation": breaker_nation,
-        "target": injured_party,
-        "treaty_type": treaty_type_display,
-        "reason_phrase": reason_phrase,
-        "witness_scope": breach_preview["witness_scope"],
-        "reliability_before": breach_preview["reliability_before"],
-        "reliability_after": breach_preview["reliability_after"],
-    }, "partial_on_nation")
+    if not suppress_dispatch_event:
+        queue_dispatch_event(world, "diplomatic_treaty_broken", {
+            "nation": breaker_nation,
+            "target": injured_party,
+            "treaty_type": treaty_type_display,
+            "reason_phrase": reason_phrase,
+            "episode_id": episode_id,
+            "witness_scope": breach_preview["witness_scope"],
+            "dominant_witness_scope": breach_preview["dominant_witness_scope"],
+            "end_reason_family": breach_preview["end_reason_family"],
+            "end_reason_action": breach_preview["end_reason_action"],
+            "reliability_before": breach_preview["reliability_before"],
+            "reliability_after": breach_preview["reliability_after"],
+            "applied_reliability_delta": breach_preview["applied_reliability_delta"],
+        }, "partial_on_nation")
 
-    reliability = getattr(world, 'diplomatic_reliability', {})
-    reliability[breaker_nation] = breach_preview["reliability_after"]
-    world.diplomatic_reliability = reliability
+    # One witness_strike_recorded dispatch per witness (§C3 B2a cross-cutting
+    # addition). Pre-strike-store: no relation_delta applied yet; payload is
+    # emitted so C3 presentation can render witness-scoped reactions.
+    for witness in breach_preview["witnesses"]:
+        queue_dispatch_event(world, "witness_strike_recorded", {
+            "episode_id": episode_id,
+            "victim_nation": injured_party,
+            "perpetrator_nation": breaker_nation,
+            "witness_nation": witness["nation"],
+            "scope_reason": witness["scope_reason"],
+            "relation_delta": 0,
+            "reliability_delta": 0,
+            "turn": int(world.current_turn),
+        }, "partial_on_nation")
+
+    # Apply reliability penalty only when actor is at fault.
+    # `applied_reliability_delta` is authoritative; for cascade / counterparty-
+    # reversal / obsolescence it is 0 by construction.
+    applied_delta = breach_preview.get("applied_reliability_delta", 0)
+    if applied_delta != 0:
+        reliability = getattr(world, 'diplomatic_reliability', {})
+        reliability[breaker_nation] = breach_preview["reliability_after"]
+        world.diplomatic_reliability = reliability
 
     diplomatic_history = getattr(world, 'diplomatic_history', [])
     diplomatic_history.append({
@@ -391,7 +611,9 @@ def _record_treaty_breach(
         "nation": breaker_nation,
         "target": injured_party,
         "treaty_type": breach_preview["treaty_type"],
-        "detail": breach_preview["end_reason_family"],
+        "detail": breach_preview["end_reason_action"],
+        "fault_family": breach_preview["end_reason_family"],
+        "episode_id": episode_id,
     })
     if len(diplomatic_history) > 20:
         diplomatic_history[:] = diplomatic_history[-20:]
@@ -1394,8 +1616,16 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
             "message": f"Armistice cooldown in effect with {target} ({armistice_cooldown} turns remaining). War cannot be declared."
         }
 
+    # Allocate a single root-cause episode_id for this declaration and thread
+    # it through the primary breach record (if any), the cascade, and all
+    # dispatch/log emits so C3 can collapse the resulting consequences under
+    # one political moment (RELIABILITY_COMMITMENTS_SPEC §6.5).
+    episode_id = _allocate_episode_id(world)
+
     war_preview = preview_war_declaration(world, aggressor, target, casus_belli=casus_belli)
     breach_preview = war_preview.get("breach_preview")
+    if breach_preview is not None:
+        breach_preview["episode_id"] = episode_id
 
     # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
     set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
@@ -1428,16 +1658,25 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         pass
 
     if breach_preview:
+        # Suppress the TREATY_BROKEN notification and dispatch entry: the
+        # WAR_DECLARED notification + `diplomatic_war_declared` dispatch event
+        # below carry the "shattering" phrasing and breach metadata, so
+        # surfacing both would violate the §8.4 no-duplicate-surface rule.
+        # The episode_id is threaded into both so presentation can still
+        # reconstruct the witness set and reliability delta.
         _record_treaty_breach(
             world,
             breach_preview,
             new_state="WAR",
+            suppress_notification=True,
+            suppress_dispatch_event=True,
             trigger_context={
                 "aggressor": aggressor,
                 "target": target,
                 "casus_belli": bool(casus_belli),
                 "defensive_joiners": war_preview["defensive_joiners"],
                 "offensive_joiners": war_preview["offensive_joiners"],
+                "episode_id": episode_id,
             },
         )
 
@@ -1450,10 +1689,13 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         "aggressor": aggressor,
         "target": target,
         "previous_state": current_state,
+        "episode_id": episode_id,
         "breached_treaty": breach_preview["treaty_type_display"] if breach_preview else "",
         "breach_reason_family": breach_preview["end_reason_family"] if breach_preview else "",
+        "breach_reason_action": breach_preview["end_reason_action"] if breach_preview else "",
         "reliability_before": breach_preview["reliability_before"] if breach_preview else None,
         "reliability_after": breach_preview["reliability_after"] if breach_preview else None,
+        "applied_reliability_delta": breach_preview["applied_reliability_delta"] if breach_preview else 0,
         "defensive_joiners": war_preview["defensive_joiners"],
         "offensive_joiners": war_preview["offensive_joiners"],
     })
@@ -1470,10 +1712,29 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         alliance_states = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
         if aggressor_state in alliance_states and target_state in alliance_states:
             has_paradox = True
+            # Preview the cost of the "side with aggressor" branch so the
+            # player sees the reliability fall before choosing (spec §7.5
+            # "hard-stop must preview any deterministic downstream fallout").
+            defender_treaty = getattr(world, 'active_treaties', {}).get(
+                world._make_diplo_key(player, target)
+            )
+            defender_breach_preview = get_treaty_breach_preview(
+                world,
+                player,
+                target,
+                treaty=defender_treaty,
+                end_reason_action="paradox_choice",
+                fault_nation=player,
+            )
+            paradox_warnings = _build_breach_warnings(defender_breach_preview)
             paradox_msg = (
                 f"Sire, a crisis! {aggressor} has declared war on {target}. "
                 f"We are allied with both nations. We must choose a side."
             )
+            if paradox_warnings:
+                paradox_msg += "\n\n" + "\n".join(
+                    f"Siding with {aggressor}: {w['text']}" for w in paradox_warnings
+                )
             world.alliance_paradox_popup = {
                 "attacker": aggressor,
                 "defender": target,
@@ -1486,6 +1747,8 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                 "type": "alliance_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,
+                "breach_preview": defender_breach_preview,
+                "warnings": paradox_warnings,
                 "options": [
                     {
                         "label": f"Honor alliance with {target}",
@@ -1508,7 +1771,8 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
     # ── DEFENSIVE_ALLIANCE CASCADE ──
     # If paradox detected, exclude the player from cascade (player must choose)
     cascade_skip = {aggressor, target, player} if has_paradox else None
-    cascade = _process_war_cascade(world, aggressor, target, processed=cascade_skip)
+    cascade = _process_war_cascade(world, aggressor, target, processed=cascade_skip,
+                                    root_episode_id=episode_id, root_aggressor=aggressor)
 
     # Notification: war declared (Session 8C)
     from backend.notifications import (
@@ -1534,7 +1798,9 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                         {
                             "nation": aggressor,
                             "target": target,
+                            "episode_id": episode_id,
                             "breached_treaty": breach_preview["treaty_type_display"] if breach_preview else "",
+                            "end_reason_family": breach_preview["end_reason_family"] if breach_preview else "",
                             "defensive_joiner_count": len(war_preview["defensive_joiners"]),
                             "offensive_joiner_count": len(war_preview["offensive_joiners"]),
                         },
@@ -1580,16 +1846,26 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
     }
 
 
-def _process_war_cascade(world, aggressor: str, target: str, processed: set = None) -> List[Dict]:
+def _process_war_cascade(world, aggressor: str, target: str, processed: set = None,
+                         root_episode_id: str = None, root_aggressor: str = None) -> List[Dict]:
     """Process defensive and offensive alliance cascade when war is declared.
 
     Defensive: Nations with DA/ALLIANCE with the TARGET join against the aggressor.
     Offensive: Nations with ALLIANCE (not DA) with the AGGRESSOR join against the target.
 
+    Cascade-forced ruptures are classified `obsolescence_or_external` (§9.9.B):
+    the cascaded nation did not voluntarily break its treaty, so fault is
+    attributed to the root aggressor and no reliability penalty is applied
+    to the cascaded party.
+
     Loop protection: max cascade depth = number of nations.
     """
     if processed is None:
         processed = {aggressor, target}
+
+    # Fault for any rupture caused by the cascade is the root aggressor, not
+    # whichever nation's treaty happens to flip in a recursive step.
+    fault_aggressor = root_aggressor or aggressor
 
     cascade = []
     all_nations = world.get_active_nations()  # DLF-11
@@ -1613,7 +1889,9 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                         nation,
                         aggressor,
                         treaty=existing_treaty,
-                        reason_family="war_declaration",
+                        end_reason_action="cascade_forced",
+                        fault_nation=fault_aggressor,
+                        episode_id=root_episode_id,
                     )
                 # Force WAR — bypasses armistice cooldowns (R2: centralized setter)
                 set_diplomatic_state(world, nation, aggressor, "WAR", "defensive_cascade")
@@ -1627,6 +1905,8 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                             "cascade_type": "defensive",
                             "ally": target,
                             "aggressor": aggressor,
+                            "root_aggressor": fault_aggressor,
+                            "root_episode_id": root_episode_id,
                         },
                     )
 
@@ -1665,7 +1945,9 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                                     "partial_on_nation")
 
                 # Recursive cascade: nation's allies may also join
-                sub_cascade = _process_war_cascade(world, aggressor, nation, processed)
+                sub_cascade = _process_war_cascade(world, aggressor, nation, processed,
+                                                   root_episode_id=root_episode_id,
+                                                   root_aggressor=fault_aggressor)
                 cascade.extend(sub_cascade)
 
     # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
@@ -1688,7 +1970,9 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                         nation,
                         target,
                         treaty=existing_treaty,
-                        reason_family="war_declaration",
+                        end_reason_action="cascade_forced",
+                        fault_nation=fault_aggressor,
+                        episode_id=root_episode_id,
                     )
                 set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
                 processed.add(nation)
@@ -1701,6 +1985,8 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                             "cascade_type": "offensive",
                             "aggressor": aggressor,
                             "target": target,
+                            "root_aggressor": fault_aggressor,
+                            "root_episode_id": root_episode_id,
                         },
                     )
                 world.modify_nation_relation(nation, target, -20)
@@ -1735,7 +2021,9 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                                     {"nation": nation, "aggressor": aggressor, "target": target},
                                     "partial_on_nation")
 
-                sub_cascade = _process_war_cascade(world, nation, target, processed)
+                sub_cascade = _process_war_cascade(world, nation, target, processed,
+                                                   root_episode_id=root_episode_id,
+                                                   root_aggressor=fault_aggressor)
                 cascade.extend(sub_cascade)
 
     # ── VASSAL AUTO-JOIN: Vassals follow their lord into war (Fix 12) ──
@@ -2558,7 +2846,8 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
         breaker_nation,
         other,
         treaty=treaty,
-        reason_family="manual_break",
+        end_reason_action="manual_break",
+        fault_nation=breaker_nation,
     )
 
     # Relation penalties

@@ -478,6 +478,31 @@ class TestOneLinerFormatting:
         result = format_event_oneliner(event)
         assert "shattering Alliance" in result
 
+    def test_cascade_rupture_oneliner_marks_forced_family(self):
+        event = {
+            "type": "diplomatic_treaty_broken",
+            "breaker": "Prussia",
+            "other": "France",
+            "treaty_type": "non_aggression",
+            "reason_phrase": "when dragged into war by an ally",
+            "end_reason_family": "obsolescence_or_external",
+        }
+        result = format_event_oneliner(event)
+        assert "dragged apart" in result or "cascade" in result
+        assert "Prussia" in result
+        assert "France" in result
+
+    def test_counterparty_reversal_oneliner(self):
+        event = {
+            "type": "diplomatic_treaty_broken",
+            "breaker": "France",
+            "other": "Prussia",
+            "treaty_type": "alliance",
+            "end_reason_family": "counterparty_reversal",
+        }
+        result = format_event_oneliner(event)
+        assert "counterparty" in result.lower()
+
     def test_unknown_type_fallback(self):
         event = {"type": "some_unknown_type"}
         result = format_event_oneliner(event)

@@ -490,6 +490,11 @@ class WorldState:
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
+        # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
+        # Used to group diplomatic consequences (breach + cascade + witness
+        # strikes) emitted from one explicit trigger under a single key so
+        # the C3 presentation layer can collapse them and stage aftermath.
+        self.next_episode_id: int = 1
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3142,6 +3147,7 @@ class WorldState:
             "diplomatic_reliability": {k: int(v) for k, v in self.diplomatic_reliability.items()},
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "alliance_paradox_popup": self.alliance_paradox_popup,
+            "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
 
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
@@ -3432,6 +3438,7 @@ class WorldState:
         world.diplomatic_reliability = {k: int(v) for k, v in data.get("diplomatic_reliability", {}).items()}
         world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
         world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
+        world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
 
         # Dispatch event queue (Session 8D)
         world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 15, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs. Interim substrate hardening is now live in the current diplomacy engine: war-on-partner declarations emit remembered treaty-breach events with richer context, and treaty-breaking war warnings preview the reliability fall instead of hiding it.)
+> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs. Interim substrate hardening extended: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action` per §9.9, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
 
 ---
 
@@ -116,6 +116,31 @@ These are existing audit items broken into implementation order. They stay after
 **Follow-up note:** `R162` (AI ultimatums to player) is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above exist. It adds interruption surface before the underlying diplomacy has enough political weight.
 
 **Mechanical substrate note (Apr 15):** the live diplomacy layer now records treaty rupture as a remembered political event when war shatters an active commitment, including the injured party, breach reason family, witness scope, actor personality, and pre/post reliability. The declare-war objection path also previews the reliability drop before confirmation. This is not full `Reliability + Commitments` implementation yet; it is targeted hardening so the current engine produces more legible material for the downstream commitments/presentation work.
+
+**Mechanical substrate follow-up (Apr 16):** the commitments-substrate audit's remaining high- and medium-severity gaps are now fixed in-engine. Shipped:
+
+- **Cascade attribution (H-1):** forced cascade ruptures are classified `end_reason_family=obsolescence_or_external` with `fault_nation=aggressor`; cascaded nations no longer lose reliability for treaties they did not voluntarily break (§9.9.B).
+- **`episode_id` threading (H-2):** `world.next_episode_id` serialized; one ID is allocated per root-cause declaration / break / paradox resolution and shared across all breach, cascade, and witness-strike emits so `C3` aftermath and witness-collapse can key off it (§6.5).
+- **Per-witness `scope_reason` + dominant scope (H-3):** each witness carries one of `ally | rival | shared_enemy | region_observer` resolved by §8.4 precedence (region_observer deferred to bargain layer); `dominant_witness_scope` is computed per rupture so `C3b` can branch spotlight tone.
+- **Duplicate-surface collapse (H-4):** war-on-partner no longer fires both a `TREATY_BROKEN` and a `WAR_DECLARED` notification, nor both a `diplomatic_treaty_broken` and a `diplomatic_war_declared` dispatch event. The war event owns the moment; breach metadata survives in the event log.
+- **`end_reason_family` vs `end_reason_action` split (H-6):** fault axis (`french_breach | counterparty_reversal | obsolescence_or_external`) and action axis (`manual_break | war_declaration | paradox_choice | cascade_forced`) are now separate fields, matching §9.9.
+- **Pre-choice legibility for all three breach paths (M-1):** manual `break_treaty` on a commitment state now prompts `force_break_treaty_confirmation` with a reliability + warnings preview; `alliance_paradox` dialogue surfaces the side-with-aggressor branch's reliability cost before the player chooses.
+- **Structured `warnings[]` (M-2):** declare-war and paradox dialogues now expose a typed `warnings[]` payload (`severity` + `category` + `text`) the `C3a` preview scaffolding can sort and filter, alongside the legacy free-text message for back-compat.
+- **Applied vs intended reliability delta (M-5):** breach previews carry both values so presentation can distinguish "delta truncated at -100 floor" from "fully applied"; applied delta is authoritative for the scalar update.
+- **Witness-scope label vs scope enum disambiguated (M-6):** audience-size flavor label is preserved as `witness_scope_label`; the per-witness enum sits on `witnesses[].scope_reason`.
+- **`witness_strike_recorded` dispatch emits (M-4 partial):** one event per scoped witness with `episode_id`, `scope_reason`, and zero relation/reliability delta (pre-strike-store; full `betrayal_history` still deferred).
+- **`commitment_paradox` registered in `HARD_STOP_TYPES` (H-5 backend):** taxonomy entry in place so the forthcoming `C3a-pre` Godot surface split can land without a second backend pass.
+- **AI `decision_reason` surface (M-3 partial):** breach payload now exposes `end_reason_family` + `end_reason_action` + `fault_nation` as mechanical motive metadata; full AI-side proposal-generation `decision_reason` enum (§11.1) remains `C2` scope.
+
+Deferred (not in this pass — requires dedicated slices):
+
+- Full `betrayal_history` bilateral strike store with episode cap + severity-scaled decay (Slice `A1` + `B2a` + `B2b`).
+- `hard_reject_posture_triggered` / `hard_reject_posture_cleared` emits (Slice `B2b`; `C3` §8.2 blocks spotlight rendering on this contract).
+- Dedicated Godot `commitment_paradox_popup.{tscn,gd}` surface + `main.gd` dtype whitelist entry (`C3a-pre` §14 prerequisites 2-4).
+- AI-authored-proposal `decision_reason` contract (`C2` Slice).
+- `war_bargain` clause type, creation, lifecycle, bargain review, counter-bargain flow (Slice `C1a` + `C1b` + `C2`).
+
+Test suite: 8346 passed, 2 skipped (same as baseline). Ruff: no new lint debt.
 
 ### Independent Tracks
 

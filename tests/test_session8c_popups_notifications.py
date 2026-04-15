@@ -210,7 +210,8 @@ class TestDiplomacyNotifications:
         assert result["success"]
         notifs = _get_notifications_of_type(world, TREATY_BROKEN)
         assert len(notifs) >= 1
-        assert "non_aggression" in notifs[0]["message"]
+        # Notification surfaces the display name per R7 (never raw internal keys).
+        assert "Non-Aggression Pact" in notifs[0]["message"] or "non-aggression" in notifs[0]["message"].lower()
 
     def test_war_declared_notification(self):
         """declare_war fires WAR_DECLARED notification."""

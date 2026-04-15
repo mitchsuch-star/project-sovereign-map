@@ -445,8 +445,19 @@ class DiplomaticExecutor:
     # ════════════════════════════════════════════════════════════════════════════════
 
     def _execute_diplomatic_break(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle break treaty command. Costs 1 DP."""
-        from backend.game_logic.diplomacy import break_treaty
+        """Handle break treaty command. Costs 1 DP.
+
+        Commitment-bearing states (NON_AGGRESSION / DEFENSIVE_ALLIANCE /
+        ALLIANCE / VASSAL / OPEN_BORDERS) show a reliability-preview
+        confirmation dialogue before the break, matching the pre-choice
+        legibility rule in RELIABILITY_COMMITMENTS_SPEC §9.10.
+        """
+        from backend.game_logic.diplomacy import (
+            break_treaty,
+            get_treaty_breach_preview,
+            _build_breach_warnings,
+            COMMITMENT_STATES,
+        )
 
         target_nation = diplomatic_data.get("target_nation")
         if not target_nation:
@@ -464,6 +475,51 @@ class DiplomaticExecutor:
             return {
                 "success": False,
                 "message": f"There is no treaty with {target_nation} to break, Your Excellency.",
+            }
+
+        confirmed = bool(diplomatic_data.get("confirmed_break"))
+        current_state = world.get_diplomatic_state(player, target_nation)
+        treaty = active_treaties.get(pair_key) or {}
+
+        if not confirmed and current_state in COMMITMENT_STATES:
+            breach_preview = get_treaty_breach_preview(
+                world,
+                player,
+                target_nation,
+                treaty=treaty,
+                end_reason_action="manual_break",
+                fault_nation=player,
+            )
+            warnings = _build_breach_warnings(breach_preview)
+            treaty_type_display = breach_preview["treaty_type_display"]
+            confirm_text = (
+                f"Sire, breaking the {treaty_type_display} with {target_nation} "
+                f"without offering release will mark us as oath-breakers. "
+                f"Shall I proceed?"
+            )
+            if warnings:
+                confirm_text += "\n\n" + "\n".join(w["text"] for w in warnings)
+            world.dialogue_manager.replace({
+                "type": "force_break_treaty_confirmation",
+                "target_nation": target_nation,
+                "message": confirm_text,
+                "talleyrand_text": confirm_text,
+                "breach_preview": breach_preview,
+                "warnings": warnings,
+                "options": [
+                    {"label": "Proceed — break the treaty", "action": "force_break_treaty",
+                     "target_nation": target_nation},
+                    {"label": "Reconsider", "action": "reconsider"},
+                ],
+                "turn_created": int(world.current_turn),
+                "blocking": True,
+            })
+            return {
+                "success": True,
+                "message": confirm_text,
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "awaiting_diplomatic_response": True,
+                "warnings": warnings,
             }
 
         result = break_treaty(pair_key, player, world)
@@ -567,6 +623,7 @@ class DiplomaticExecutor:
         diplo_key_treaty = world._make_diplo_key(player, target_nation)
         existing_treaty = world.active_treaties.get(diplo_key_treaty)
         if existing_treaty and not world.diplomatic_objection_popup:
+            from backend.game_logic.diplomacy import _build_breach_warnings
             treaty_type = existing_treaty.get("type", "treaty")
             war_preview = preview_war_declaration(
                 world,
@@ -578,22 +635,16 @@ class DiplomaticExecutor:
             from backend.display_names import PROPOSAL_TYPE_DISPLAY
             _display_proposal_type = lambda pt: PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
             treaty_display = _display_proposal_type(treaty_type)
-            extra_lines = []
+
+            # Structured warnings[] per RELIABILITY_COMMITMENTS_SPEC §12.2.
+            warnings = _build_breach_warnings(breach_preview, war_preview)
+            extra_lines = [w["text"] for w in warnings]
+
+            # Optional actor-personality colouring for future Voice Bible use.
+            actor_personality = ""
             if breach_preview:
-                extra_lines.append(
-                    f"Reliability would fall from {int(breach_preview.get('reliability_before', 0))} "
-                    f"to {int(breach_preview.get('reliability_after', 0))}."
-                )
-            defensive_joiners = war_preview.get("defensive_joiners", [])
-            if defensive_joiners:
-                extra_lines.append(
-                    "Likely defenders: " + ", ".join(defensive_joiners) + "."
-                )
-            offensive_joiners = war_preview.get("offensive_joiners", [])
-            if offensive_joiners:
-                extra_lines.append(
-                    "Likely co-belligerents: " + ", ".join(offensive_joiners) + "."
-                )
+                actor_personality = breach_preview.get("actor_personality", "") or ""
+
             warning_text = (
                 f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
                 f"Declaring war would shatter that commitment and mark us as oath-breakers "
@@ -608,6 +659,8 @@ class DiplomaticExecutor:
                 "talleyrand_text": warning_text,
                 "breach_preview": breach_preview,
                 "war_preview": war_preview,
+                "warnings": warnings,
+                "actor_personality": actor_personality,
                 "options": [
                     {"label": "Proceed — break the treaty", "action": "force_declare_war",
                      "target_nation": target_nation},
@@ -621,6 +674,7 @@ class DiplomaticExecutor:
                 "message": warning_text,
                 "diplomatic_dialogue": world.pending_diplomatic_dialogue,
                 "awaiting_diplomatic_response": True,
+                "warnings": warnings,
             }
 
         # DP check (1 DP)
@@ -1114,6 +1168,17 @@ class DiplomaticExecutor:
                 world.diplomatic_points -= dp_cost
                 self._apply_diplomatic_trust_reactions(world, "war_declaration", fw_target)
             return result
+
+        elif action == "force_break_treaty":
+            # Player confirmed manual treaty break after the reliability preview.
+            world.dialogue_manager.pop()
+            fb_target = selected.get("target_nation") or target_nation
+            if not fb_target:
+                return {"success": False, "message": "No target nation specified."}
+            return self._execute_diplomatic_break(
+                {"target_nation": fb_target, "confirmed_break": True},
+                world,
+            )
 
         elif action in ("execute_proposal", "send"):
             terms = selected.get("terms", {})
@@ -2685,12 +2750,14 @@ class DiplomaticExecutor:
                 execute_downgrade as _paradox_downgrade,
                 get_treaty_breach_preview as _get_treaty_breach_preview,
                 _record_treaty_breach as _record_treaty_breach,
+                _allocate_episode_id as _paradox_episode_id,
             )
             # Break alliance with defender: downgrade step by step to PEACE
             player = world.player_nation
             diplo_key = world._make_diplo_key(player, defender_nation)
             treaty_snapshot = getattr(world, 'active_treaties', {}).get(diplo_key)
             breach_preview = None
+            paradox_episode = _paradox_episode_id(world)
             if treaty_snapshot or world.get_diplomatic_state(player, defender_nation) in (
                 "ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"
             ):
@@ -2699,7 +2766,9 @@ class DiplomaticExecutor:
                     player,
                     defender_nation,
                     treaty=treaty_snapshot,
-                    reason_family="paradox_choice",
+                    end_reason_action="paradox_choice",
+                    fault_nation=player,
+                    episode_id=paradox_episode,
                 )
             current = world.diplomatic_states.get(diplo_key, "PEACE")
             while current in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"):
@@ -2719,6 +2788,7 @@ class DiplomaticExecutor:
                         "paradox_attacker": attacker_nation,
                         "paradox_defender": defender_nation,
                         "player_choice": "break_defender_alliance",
+                        "episode_id": paradox_episode,
                     },
                 )
             world.dialogue_manager.pop()

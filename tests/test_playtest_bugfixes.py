@@ -249,6 +249,78 @@ class TestWarOnTreatyAlly:
         assert breach_preview.get("reliability_after") == -10
         assert "Reliability would fall from 0 to -10." in result.get("message", "")
 
+    def test_war_on_treaty_ally_warning_ships_structured_warnings_list(self):
+        """Commitments substrate: warnings[] is a structured list, not free text."""
+        world = _make_world()
+        executor = CommandExecutor()
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance", "nations": [player, target], "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        result = executor._execute_diplomatic_declare_war(
+            {"target_nation": target, "action": "diplomatic_declare_war"}, world,
+        )
+        warnings = result.get("warnings") or []
+        assert warnings, "declare-war dialogue must expose a structured warnings[] list"
+        categories = {w["category"] for w in warnings}
+        assert "betrayal" in categories
+        for w in warnings:
+            assert w["severity"] in ("critical", "high", "medium", "low")
+            assert w["text"]
+
+
+class TestManualBreakCommitmentPreview:
+    """Manual break_treaty on a commitment state must preview the reliability
+    fall before executing (RELIABILITY_COMMITMENTS_SPEC §9.10)."""
+
+    def test_manual_break_on_alliance_shows_preview(self):
+        world = _make_world()
+        executor = CommandExecutor()
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance", "nations": [player, target], "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        result = executor._execute_diplomatic_break(
+            {"target_nation": target, "action": "diplomatic_break"}, world,
+        )
+
+        assert result.get("awaiting_diplomatic_response") is True
+        dialogue = result.get("diplomatic_dialogue") or {}
+        assert dialogue.get("type") == "force_break_treaty_confirmation"
+        breach_preview = dialogue.get("breach_preview") or {}
+        assert breach_preview.get("reliability_after") == -10
+        # Treaty must NOT be broken yet (confirmation pending).
+        assert world.diplomatic_states[diplo_key] == "ALLIANCE"
+        assert diplo_key in world.active_treaties
+
+    def test_confirmed_break_executes_after_preview(self):
+        world = _make_world()
+        executor = CommandExecutor()
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance", "nations": [player, target], "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        result = executor._execute_diplomatic_break(
+            {"target_nation": target, "confirmed_break": True}, world,
+        )
+        assert result.get("success") is True
+        assert world.diplomatic_states[diplo_key] != "ALLIANCE"
+
     def test_war_on_non_treaty_nation_no_warning(self):
         """No treaty = no special warning (existing threat objection may still fire)."""
         world = _make_world()

@@ -208,6 +208,50 @@ class TestDispatchDiplomaticEvents:
         assert "shattering" in events[0]["text"]
         assert "Alliance" in events[0]["text"]
 
+    def test_cascade_breach_renders_as_dragged_not_voluntary(self):
+        """Cascade ruptures render with forced-into-war language, not voluntary breach."""
+        world = _make_world()
+        queue_dispatch_event(world, "diplomatic_treaty_broken",
+                            {
+                                "nation": "Prussia",
+                                "target": "France",
+                                "treaty_type": "Non Aggression",
+                                "reason_phrase": "when dragged into war by an ally",
+                                "end_reason_family": "obsolescence_or_external",
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "forced to break" in events[0]["text"]
+        # The "has broken" voluntary phrasing must not leak through.
+        assert "has broken" not in events[0]["text"]
+
+    def test_witness_strike_recorded_dispatch_text(self):
+        """Per-witness strike events render with a scope-aware phrase."""
+        world = _make_world()
+        queue_dispatch_event(world, "witness_strike_recorded",
+                            {
+                                "episode_id": "ep_3_0001",
+                                "victim_nation": "Austria",
+                                "perpetrator_nation": "France",
+                                "witness_nation": "Prussia",
+                                "scope_reason": "ally",
+                                "relation_delta": 0,
+                                "reliability_delta": 0,
+                                "turn": 3,
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        text = events[0]["text"]
+        assert "Prussia" in text
+        assert "France" in text
+        assert "Austria" in text
+        # Scope phrasing should surface as an ally of the victim.
+        assert "ally of Austria" in text
+
     def test_vassal_unrest_appears_in_dispatch(self):
         world = _make_world()
         _make_vassal(world, "Saxony", lord="France", loyalty=35)

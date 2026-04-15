@@ -1155,7 +1155,8 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
     if fog_rule == "partial_on_nation":
         # Check PARTIAL+ on any nation mentioned in template_vars
         nations_to_check = []
-        for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy", "vassal_capital"):
+        for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy",
+                   "vassal_capital", "witness_nation", "perpetrator_nation", "victim_nation"):
             val = template_vars.get(key)
             if val:
                 nations_to_check.append(val)
@@ -1195,6 +1196,13 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         target = template_vars.get("target", "")
         treaty_type = template_vars.get("treaty_type", "treaty")
         reason_phrase = template_vars.get("reason_phrase", "")
+        end_reason_family = template_vars.get("end_reason_family", "")
+        # Classify forced / opportunistic ruptures distinctly so presentation
+        # can tell "France abandoned Prussia" from "Prussia was dragged into war."
+        if end_reason_family == "obsolescence_or_external" and target:
+            return f"{nation} was forced to break the {treaty_type} with {target} {reason_phrase}.".strip()
+        if end_reason_family == "counterparty_reversal" and target:
+            return f"{target} broke the {treaty_type} with {nation} first."
         if target and reason_phrase:
             return f"{nation} has broken the {treaty_type} with {target} {reason_phrase}."
         if target:
@@ -1215,6 +1223,21 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         if extra_parts:
             return f"{nation} has declared war on {target}, " + ", ".join(extra_parts) + "."
         return f"{nation} has declared war on {target}."
+
+    if event_type == "witness_strike_recorded":
+        witness = template_vars.get("witness_nation", "Unknown")
+        perpetrator = template_vars.get("perpetrator_nation", "Unknown")
+        victim = template_vars.get("victim_nation", "Unknown")
+        scope_reason = template_vars.get("scope_reason", "")
+        scope_phrase = {
+            "ally": f"as an ally of {victim}",
+            "rival": f"as a rival of {perpetrator}",
+            "shared_enemy": "as a fellow belligerent",
+            "region_observer": "from the sidelines",
+        }.get(scope_reason, "")
+        if scope_phrase:
+            return f"{witness} has taken note of {perpetrator}'s breach against {victim} {scope_phrase}."
+        return f"{witness} has taken note of {perpetrator}'s breach against {victim}."
 
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:
