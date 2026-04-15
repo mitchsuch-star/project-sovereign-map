@@ -158,6 +158,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Diplomacy execution | `diplomatic_executor.py` (_execute_diplomatic*, handle_diplomatic_dialogue_response, trust reactions, AI proposal handlers) |
 | Dialogue state (R12, PL-27) | `dialogue_manager.py` (push/pop/peek, PL-27 taxonomy: HARD_STOP/SOFT_STOP/HYBRID/LOCAL_PLANNING types), `world_state.py` (transparent properties). Only hard-stop dialogues block commands. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `docs/COALITION_SPEC.md`, `diplomacy.py`, `diplomat.py`, `diplomatic_dialogue.py`, `diplomatic_templates.py`, `ai_diplomacy.py`, `diplomatic_advisory.py`, `vassal.py`, `diplomatic_defiance.py`, `coalition.py` |
+| Commitments engine / bargains / paradox | `docs/RELIABILITY_COMMITMENTS_SPEC.md`, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`, `diplomacy.py`, `commitments` logic within `diplomatic_templates.py`, `campaign_log.py` |
+| Commitments presentation (C3a routing + C3b drama) | `docs/COMMITMENTS_PRESENTATION_SPEC.md`, `docs/COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`, `docs/DIPLOMAT_VOICE_BIBLE.md`, `diplomatic_templates.py` (`commitments_spotlight_*` / `commitments_notice_*` families), `notifications.py`, `notification_bar.gd`, `dispatch.py`. Any `speaker="envoy"` / `speaker="foreign_office"` template MUST resolve to a named diplomat per Voice Bible — anonymous voice is disallowed. |
+| Diplomat voice (register rules per named diplomat) | `docs/DIPLOMAT_VOICE_BIBLE.md`, `backend/models/diplomat.py` (cast = Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel). Read Voice Bible BEFORE authoring any new line for a named foreign diplomat. |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -335,6 +338,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
 | Combat specs (V2b, Multi-Marshal, Tactical Triangle) | `docs/V2B_DEFIANCE_SPEC.md`, `MULTI_MARSHAL_SPEC.md`, `TACTICAL_TRIANGLE_SPEC.md` |
 | Diplomacy specs (system, coalition, wizard, suggestions, jealousy) | `docs/DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `DIPLOMACY_BUTTON_SPEC.md`, `TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`, `JEALOUSY_SPEC.md` |
+| Commitments engine + presentation (reliability, bargains, paradox) | `docs/RELIABILITY_COMMITMENTS_SPEC.md`, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md`, `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` |
+| Diplomat voice bible / playtest | `docs/DIPLOMAT_VOICE_BIBLE.md`, `COMMITMENTS_PLAYTEST_SCRIPT.md` |
 | UI specs (top bar, fog) | `docs/TOP_BAR_SPEC.md`, `FOG_OF_WAR_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Adding content / modding | `docs/ADDING_CONTENT.md`, `MODDING_FORMAT.md` |
