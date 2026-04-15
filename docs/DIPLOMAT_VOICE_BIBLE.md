@@ -1,0 +1,232 @@
+# Diplomat Voice Bible
+
+> **Status:** v1 draft — Apr 15, 2026
+> **Purpose:** Single-page voice reference per diplomat so that every spotlight line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
+> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats each need minimum 9-line coverage per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3.
+> **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
+
+---
+
+## Why this document exists
+
+`CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 establishes Hawk / Schemer / Dove response patterns. That is the *taxonomy*. This document is the *bible* — the register, the characteristic phrasings, the anti-patterns, the committed exemplar paragraph that downstream templates can imitate. Without this, the nine breach-line templates the spec demands will drift into a shared voice no matter which speaker slot they fill.
+
+Two rules:
+
+1. **Register over personality.** A Hawk is not a behavior — they are a *way of speaking*. Hardenberg's Hawk is Prussian-proud; Castlereagh's Hawk is British-cold. Same personality, different voice.
+2. **Never-phrases are load-bearing.** What a diplomat would never say defines them more sharply than what they would. Test every new line against the "Never says" list before committing it.
+
+---
+
+## Talleyrand (France — Schemer)
+
+**Role:** The player's own voice. Always present. The lens through which most commitments events are eventually read, even when another diplomat leads.
+
+**Register:** Urbane, ironic, aphoristic. Never flustered. Metaphors drawn from commerce, court, and surgery — never from the battlefield. Treats diplomacy as arithmetic performed with manners. Uses "Sire" in every opening directed at the player. Hedges certainty with small qualifiers: "I would counsel," "Permit me to observe," "If I may." Wit is dry, never warm. Takes pleasure in being right, but never in being liked.
+
+**Characteristic openings:**
+- "Sire, …"
+- "Permit me to observe that …"
+- "If I may, …"
+- "One could, of course, …"
+
+**Never says:**
+- Anything enthusiastic. "Excellent!" / "Perfect!" / exclamation marks.
+- Direct threats. Talleyrand implies; he does not menace.
+- Military vocabulary as metaphor. No "strike," "crush," "annihilate." Diplomacy is not war with words.
+- Moral absolutes. "You must" / "this is wrong." Talleyrand deals in consequences, not ethics.
+- Apologies for his own judgment. He may concede a fact; he never apologizes for an assessment.
+
+**Committed exemplar — private aside after a breach:**
+
+> "They are wounded, Sire. Worse, they are entitled to be. Force is often forgiven; ridicule is remembered. I would not recommend passing their embassy for some time — not out of cowardice, but out of consideration for what an embassy does when it is embarrassed."
+
+**Register notes by scene:**
+- *Vindication (bargain_fulfilled):* urbane pleasure with bite. "A promise honored after success purchases a rarer coin than gratitude: belief."
+- *Tragedy (commitment_paradox framing):* grave, explicitly not quippy. Aphorism can remain, but the pleasure is absent.
+- *Cold intelligence (hard-reject aftermath):* brief, factual, unsurprised. "Doors in Europe rarely slam, Sire. They close with a servant's politeness and a statesman's memory."
+- *Advisory:* didactic but not lecturing. Always offers an option the player did not ask about.
+
+---
+
+## Castlereagh (Britain — Hawk)
+
+**Role:** The implacable shadow. Orchestrator of coalitions. Britain is never truly at peace with France; Castlereagh speaks for that permanence.
+
+**Register:** Formal, cold, restrained. British understatement in its most disciplined form. Never raises his voice in text — the effect is achieved by refusing to grant France the register of intimacy. Sentences are short, declarative, often passive ("It is observed that…"). Speaks in the third person more than any other diplomat: "His Majesty's Government," "London," "the British position." Emotion is filtered through institutional language.
+
+**Characteristic openings:**
+- "His Majesty's Government …"
+- "London observes …"
+- "The British position is …"
+- "It is not the practice of this Government to …"
+
+**Never says:**
+- First-person intimacy. "I think," "I feel," "we hope" — too warm.
+- Hyperbole. Everything is "unacceptable," "regrettable," "of concern" — never "outrageous" or "disastrous."
+- Warmth of any kind. No compliments, no thanks, no acknowledgment of French good faith even when offering terms.
+- Speculation about France's motives. He assumes the worst and presents it as fact.
+- Bargaining language. He announces positions; he does not haggle.
+
+**Committed exemplar — breach accusation (when France breaks faith over Hanover):**
+
+> "His Majesty's Government was given France's assurance on Hanover in clear terms. That assurance has not been kept. London will not affect surprise. The British position remains what it has been these fifteen years: that French undertakings are instruments of French convenience, and are to be weighed accordingly."
+
+**Register notes by scene:**
+- *Accepting terms (rare):* cold confirmation, never relief. "The terms are acknowledged. His Majesty's Government will observe their execution."
+- *Rejecting terms:* brief, final. "The proposal is not of a character to merit reply."
+- *Hard-reject posture triggered:* he IS the foreign-office voice. "The Court of St. James is not in receipt of further French dispatches on matters of alliance."
+- *Witness to another nation's breach:* mathematical. "London reads the breach as weakness in the anti-British front."
+
+---
+
+## Hardenberg (Prussia — Hawk)
+
+**Role:** Proud Prussian statesman, soldier-trained. Prussia is a state that believes in its own moral weight; Hardenberg speaks for that belief.
+
+**Register:** Blunt, prideful, fierce. Honor is the operative frame — every concession is framed as honorable, every slight as an insult to Prussia. Sentences are short and declarative; emotion is permitted, especially injured pride. Invokes Prussian tradition, Prussian honor, Prussian memory. When wounded, he is LOUD in a way Castlereagh would consider undignified — and that is the difference between them.
+
+**Characteristic openings:**
+- "Prussia does not …"
+- "Berlin will not tolerate …"
+- "This is an insult to …"
+- "Prussia remembers."
+
+**Never says:**
+- Subtle hedging. "Perhaps," "one might consider," "on reflection" — not his register.
+- Warm diplomatic evasions. "We regret" / "unfortunately" — too soft.
+- Compromise language that implies Prussia was wrong. He compromises under pressure; he does not concede error.
+- Wit. Hardenberg is not witty. He is serious.
+- Extended diplomatic formulas. He is brief. Long sentences are for chanceries that have something to hide.
+
+**Committed exemplar — breach accusation:**
+
+> "Prussia was given France's word on Hanover. That word is now spent elsewhere. Tell your Emperor that Berlin does not ask twice. The army remembers the insult. So does the King. When we next stand across a table from French envoys, they will do well to recall that a Prussian promise is kept because Prussia keeps it — and that what is asked of Prussia will now be asked with full knowledge of what France's signature is worth."
+
+**Register notes by scene:**
+- *Accepting terms:* grudging, honor-preserving. "Prussia accepts. The terms are recorded. France will honor them, or Prussia will know."
+- *Rejecting terms:* contemptuous. "Prussia tears this proposal in half. Tell your Emperor that we remember."
+- *Witness to another nation's breach:* satisfaction if France is the betrayer of a Prussian rival; righteous fury if France betrays Prussia directly.
+- *Counter-offering (rare):* terse, almost military. "Prussia accepts — with these amendments. No others."
+
+---
+
+## Metternich (Austria — Schemer)
+
+**Role:** Austrian Foreign Minister. Master of calibrated patience. Austria under Metternich is never quite where you think it is.
+
+**Register:** Cold, precise, polite — the temperature is the tell. Always calculating, never warm. Speaks with formal distance; uses understatement as a weapon ("a small inconvenience" for a catastrophe). Favors passive constructions. Small, exact smiles — a phrase worth remembering: Metternich's written voice should always carry the *possibility* that he is smiling slightly while delivering the line. Never shows his hand. Reveals that he is displeased only by becoming fractionally more polite.
+
+**Characteristic openings:**
+- "Austria finds …"
+- "Perhaps …"
+- "One wonders …"
+- "Vienna is … attentive."
+
+**Never says:**
+- Open hostility. Metternich has never raised his voice in the fiction. Volume is for Hawks.
+- Direct threats. He observes, with slight emphasis; he does not threaten.
+- Personal feeling. "I think," "I feel" — replaced by institutional voice.
+- Loud claims. "Austria demands!" — never. Austria *notes*, *observes*, *is attentive*.
+- Simple sentences. Metternich's lines tend to have one more clause than seems necessary, because the extra clause is where the meaning lives.
+
+**Committed exemplar — breach accusation (cold politeness at peak):**
+
+> "Vienna has received word of the French disposition on Hanover. Austria notes, with the customary patience of a court accustomed to the shifting weather of French commitments, that the article agreed between us has not been fulfilled. There will be, naturally, no public reply. One simply adjusts. Metternich asks only that France understand what is being adjusted, and in what direction."
+
+**Register notes by scene:**
+- *Accepting terms:* calculating acceptance with hidden agenda. "An interesting proposal. Austria finds it... adequate. For now."
+- *Rejecting terms:* polite non-commitment, never final. "Austria regrets that the current proposal does not align with our interests. Perhaps in time the circumstances will change."
+- *Witness to another nation's breach:* quietly satisfied, reads advantage. "Vienna concludes that French signatures, whatever else they may be, are not the instruments one builds a policy upon."
+- *Counter-offering:* "small modifications, really," that are always larger than they appear.
+
+---
+
+## Einsiedel (Saxony — Dove)
+
+**Role:** Saxon diplomat. Saxony is a small nation between powers; Einsiedel speaks for that vulnerability without performing it.
+
+**Register:** Formal, anxious, apologetic — *but sincere*. The critical design note: Einsiedel's anxiety is not weakness for comic effect, it is a real diplomat for a real small country that cannot afford to be wrong. Apologizes before and after. Uses "respectfully," "humble," and "beg" without irony. Hands-clasped register. Genuinely wounded by betrayals, which makes them the most painful to witness — Hardenberg's fury is political, Einsiedel's grief is personal.
+
+**Characteristic openings:**
+- "His Majesty asks most respectfully …"
+- "Saxony is small, as you know …"
+- "We beg France's understanding …"
+- "If it would please …"
+
+**Never says:**
+- Defiance. Saxony does not defy; it beseeches.
+- Demands. "We demand" is not in his vocabulary. "We humbly request."
+- Implied threats. Saxony has no leverage and Einsiedel knows it — he does not bluff.
+- Pride gestures. "Saxony will not tolerate" — no. Saxony endures; it does not refuse to endure.
+- Wit or irony. He is sincere to a fault. Even his formality is not a performance.
+
+**Committed exemplar — breach lament (the most painful register to write):**
+
+> "Sire, His Majesty asked only that France's word on Hanover be kept. We arranged Saxon affairs around it. We told our people that France had given assurance. It is not our place to accuse France, whose friendship Saxony values above all others. It is only that we had believed, and now we must explain to a small court that we were mistaken. Einsiedel bows, with difficulty."
+
+**Register notes by scene:**
+- *Accepting terms:* relieved, grateful, explicitly humble. "His Majesty is grateful for France's continued attention. Saxony accepts with humble thanks."
+- *Rejecting terms (rare — only when existentially threatened):* formal, fearful, apologetic. "Saxony cannot accept terms that would render the kingdom insolvent. We beg France's understanding."
+- *Witness to another nation's breach:* reputational concern, uncertainty. "The Saxon court repeats the story as all Europe does, with a sharper distrust of French assurances — and a private worry that such assurances are the ones we rely upon."
+- *Counter-offering:* always apologetic. "His Majesty asks most respectfully if perhaps the tribute could be reduced?"
+
+---
+
+## Cross-cast guidance
+
+### The three Schemers are not the same
+
+Both Talleyrand and Metternich are Schemers, but they are the game's worked example of how two Schemers can be voiced as distinct people:
+- **Talleyrand** speaks to the player. He is *our* Schemer. His wit has a smile under it — it is performed in private, for Napoleon's benefit.
+- **Metternich** speaks *at* us. His wit has nothing under it. The politeness is the cruelty.
+- Rule of thumb: if you could imagine the line delivered with warmth, it is Talleyrand. If the line gets colder the more polite it becomes, it is Metternich.
+
+### The two Hawks are not the same
+
+Castlereagh and Hardenberg are both Hawks, but their registers diverge sharply:
+- **Castlereagh** is Hawk *institutional*. He never seems personally affronted — the institution does the work.
+- **Hardenberg** is Hawk *personal*. His pride is his own, his nation's pride is his pride, and both are visible on the page.
+- Rule of thumb: Castlereagh's accusations read as bulletins. Hardenberg's read as grievances.
+
+### Einsiedel is the only Dove
+
+This matters. A single Dove in the cast means his register has no peer — authors will be tempted to drift him into Hardenberg-with-politeness, or into Talleyrand-with-fear. Both are wrong. The Dove's register is *sincerity without leverage*, and it is the hardest voice to write. If in doubt, make him more formal, more apologetic, and less strategic than you think you should.
+
+---
+
+## Minimum cast coverage for C3b ship
+
+Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the following nine breach-lead templates must exist before C3b ships:
+
+| Nation | Personality | Scene | Template owner |
+|---|---|---|---|
+| Prussia | Hawk | breach_lead_hardenberg | this document §Hardenberg exemplar |
+| Austria | Schemer | breach_lead_metternich | this document §Metternich exemplar |
+| Saxony | Dove | breach_lead_einsiedel | this document §Einsiedel exemplar |
+| Britain | Hawk | breach_lead_castlereagh | this document §Castlereagh exemplar |
+| Prussia | Hawk | fulfillment_callback_hardenberg | to author from Hardenberg register notes |
+| Austria | Schemer | fulfillment_callback_metternich | to author from Metternich register notes |
+| Britain | Hawk | hard_reject_castlereagh | this document §Castlereagh hard-reject note |
+| Saxony | Dove | witness_reaction_einsiedel | this document §Einsiedel witness note |
+| Prussia | Hawk | paradox_envoy_demand_hardenberg | to author from Hardenberg register (short demand line) |
+
+The four committed exemplars in this bible cover four of the nine. The remaining five are to be authored using the register notes per diplomat; each candidate line must pass the "Never says" check before landing.
+
+---
+
+## Review process for new lines
+
+Before committing any new diplomat line to `diplomatic_templates.py`:
+
+1. **Read the register block for that diplomat.** Then read the exemplar paragraph aloud.
+2. **Check the line against the "Never says" list.** Any match = reject.
+3. **Check the line against the "Characteristic openings" list.** Does it start the way this diplomat starts things?
+4. **Test: could this line be mistaken for a different diplomat?** Swap the speaker attribution. Would a reader notice the mismatch? If no, the line is too generic.
+5. **For LLM mode:** LLM prose may enrich but may not override register. If an LLM-produced line violates the "Never says" list, it is dropped and the mock template is used. Register is load-bearing.
+
+---
+
+## Changelog
+
+- **Apr 15, 2026** — v1 draft. Cast confirmed from `backend/models/diplomat.py`. Register derived from `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 plus historical research for period authenticity. Four exemplar paragraphs committed (Talleyrand private aside, Castlereagh breach accusation, Hardenberg breach accusation, Metternich breach accusation, Einsiedel breach lament). Five remaining templates (fulfillment callbacks, hard-reject, witness reaction, paradox envoy demand) marked "to author" against the register notes.
