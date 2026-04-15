@@ -126,6 +126,17 @@ Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Up
 | `commitment_paradox` | Ratification would span an active opposition pair | Hard-stop downgrade / cancel resolution | 1-2 exchanges | **blocking** |
 | `proactive_suggestion` | Talleyrand notices an opportunity | Morning Dispatch suggestion | 1-2 exchanges | non-blocking |
 
+**Canonical mock copy for `commitment_paradox`:** the blocking dialogue owns its buttons and consequences, but its body prose is fixed.
+
+Talleyrand opener:
+"Sire, we have arranged our promises so artfully that Europe now insists on arithmetic. If we ratify {primary_nation}, we break faith with {secondary_nation}. There is no language in which both vows remain true."
+
+Blocking body:
+"One pledge must now be withdrawn.
+To ratify {primary_nation} is to betray {secondary_nation}.
+To ratify {secondary_nation} is to betray {primary_nation}.
+France may choose which wound it opens. It may not call both injuries honor."
+
 **Implementation notes (from master audit):**
 - **Universal dismiss:** All non-blocking dialogues should include a "Never mind" / "Dismiss" option that clears the dialogue with no DP cost or consequence. Blocking dialogues (`incoming_proposal`, `sabotage_confrontation`) must NOT have a dismiss option — player must respond.
 - **Blocking `proposal_confirm` mode:** `proposal_confirm` is normally non-blocking, but becomes **blocking** when `context.counter_bargain_context` and `context.pending_declaration` are present. In that mode it must not auto-dismiss on end-turn and its terminal actions are `Accept`, `Reject`, or `Back Out` against the staged declaration snapshot.
