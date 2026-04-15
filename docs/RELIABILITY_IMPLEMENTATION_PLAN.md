@@ -1,8 +1,8 @@
 # Reliability + Commitments - Implementation Plan
 
-> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v0.8)
+> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v0.9)
 > **Created:** April 13, 2026
-> **Sessions:** 9 named slices, ~7 effective on the critical path
+> **Sessions:** 8 named slices, ~7 effective on the critical path
 > **Est. Tests:** ~140
 > **Scope note:** `D1` remains a deferred follow-up, not part of the v0.1 commitments ship target.
 
@@ -18,13 +18,15 @@
 - Add `nation_rivalries: Dict[str, Dict]` to WorldState (diplo_key, value: `{intensity, source, weight, started_turn, last_changed_turn}`)
 - Add `diplomatic_commitments: Dict[str, Dict]` to WorldState for `war_bargain` records
 - Add `next_commitment_id: int` to WorldState
+- Add root-cause `episode_id` plumbing for diplomatic consequence application (generated on root trigger; any pending dialogue or delayed decay state that may emit later consequences must serialize the originating lineage)
 - Clarify `diplomatic_reliability` docstring as nation-keyed reputation
 - Initialize 3 starting rivalries: France<->Britain `primary active`, Prussia<->Austria `primary active`, Prussia<->Saxony `secondary cold`
-- Add cached helpers for rivalry lookups, live-bargain lookups, and same-region contradiction checks
+- Seed a generic `war_bloc` interface over the existing serialized `active_coalition` record shape with `target_nation`; do not add a second stored structure
+- Add cached helpers for rivalry lookups, opposition-pair reads, live-bargain lookups, same-region contradiction checks, and fulfillment-reward gating by beneficiary
 - Wire `to_dict()` / `from_dict()` with `.get()` defaults
 - Update `SAVE_FORMAT_REFERENCE.md`
 - Add a save-migration regression test using a real pre-commitments fixture save
-- ~15 tests (serialization round-trip, starting state, helper lookups, contradiction index reads, migration load)
+- ~18 tests (serialization round-trip, starting state, episode-id plumbing, opposition graph helpers, contradiction index reads, migration load)
 
 ### A2. Ledger + preview scaffolding
 
@@ -35,8 +37,9 @@
 - Add reliability descriptor + bilateral betrayal warning to Talleyrand tab
 - Add live bargain section (empty at first, ready for Slice C)
 - Add canonical `warnings[]` / Political Context preview payload scaffolding
+- Define warning severity ordinals and stable category ordering in one shared formatter contract
 - Debug endpoint for rivalry / betrayal / bargain state inspection
-- ~10 tests (ledger formatting, preview payload shape, display-name wiring)
+- ~12 tests (ledger formatting, preview payload shape, display-name wiring, warning ordering)
 
 ---
 
@@ -63,24 +66,24 @@
 **Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/game_logic/dispatch.py`
 
 - On treaty ratification: compute rival anger and apply relation penalties per spec, including explicit `VASSAL` anger
-- Apply `they_chose_us = +8` on ratified side-taking events
 - Record betrayal events on treaty break and bargain breach
 - Tag French-engineered treaty auto-decay as constructive breach rather than void
 - Dispatch entries for rivalry escalation, betrayal recorded, reliability change
-- ~14 tests (anger calc, they_chose_us, betrayal record creation, constructive-breach routing, dispatch entries)
+- ~12 tests (anger calc, betrayal record creation, constructive-breach routing, dispatch entries)
 
 ### B2b. Witness scoping + episode cap + redemption + hard-reject
 
 **Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/game_logic/dispatch.py`
 
 - Witness penalty logic: only allies of victim, active rivals of betrayer, and directly implicated bargain/claim observers sharing the same named enemy or region
-- Define and enforce episode boundaries across one player command or one `advance_turn()` processing step
+- Define and enforce episode boundaries by root-cause `episode_id`, not by whole `advance_turn()`
 - Enforce per-episode victim strike cap of 2 across all consequences from that trigger
 - Redemption tick in `advance_turn()`: +3 reliability per 5 honored turns, severity-scaled bilateral strike decay
-- Pause bilateral strike decay during `WAR` / `ARMISTICE`, resume on restored non-war treaty
+- Strike age continues to mature during `WAR` / `ARMISTICE`; actual bilateral strike removal only occurs while a non-war treaty is restored
+- Gate fulfilled-bargain reliability gain to once per beneficiary per 10 turns
 - Hard-reject behavior: 3 victim-side strikes -> hard resist deep treaties except for the narrow shared-enemy survival exception
 - Prussia<->Saxony hardcoded escalation: direct war or France vassalizes Saxony -> escalate to `active`
-- ~14 tests (witness scoping, strike cap boundaries, redemption pause/resume, hard-reject posture, escalation triggers)
+- ~18 tests (witness scoping, strike cap boundaries, multi-episode turn batching, redemption maturation, hard-reject posture, escalation triggers, fulfillment reward gating)
 
 ### B3. Commitment paradox
 
@@ -88,6 +91,8 @@
 
 - New `commitment_paradox` dialogue type in `HARD_STOP_TYPES`
 - Paradox check at ratification: new `DEFENSIVE_ALLIANCE` / `ALLIANCE` may not span both sides of active rival pair
+- Read paradox input from shared opposition-pair helpers so later coalition target pairs can plug in without rewriting the flow
+- `commitment_paradox` preempts the old conflicting-alliance flow for same-ratification opposition-pair conflicts; the older flow remains only for later war-declaration or legacy conflicts not caught at ratification
 - New handler methods in `diplomatic_executor.py`
 - Reuse the existing paradox popup component if possible for the base rivalry-only paradox flow
 - Register in dialog manager, popup queue, `build_base_response()`, and client popup routing
@@ -105,26 +110,30 @@
 
 - Add new `war_bargain` clause type
 - User-facing wording: named-enemy alignment + French claim priority while backend key remains `war_bargain`
+- Represent each bargain record as one object with linked `entry_term` + `claim_term`
 - Support both AI-proposed and limited player-authored bargain construction
 - Validate named enemy, claim region holder, French strategic interest, beneficiary participation feasibility, caps, cooldowns, and contradiction guards
 - Add hard-stop preview for bargain creation when France must first downgrade an existing deep treaty; include total estimated pivot cost
-- Commitment creation on ratification: create tracked record with `target_enemy`, `claim_region`, `claim_holder`, `status`, `source_treaty`, `source_pair`, `cooldown_until_turn`
-- No `deadline_turn`, no `suspended_turns`, no timer warnings
-- ~16 tests (creation, validation, contradiction hard stops, hard-stop previews, metadata shape)
+- Commitment creation on ratification: create tracked record with `origin_mode`, `target_enemy`, `entry_term`, `claim_term`, `status`, `source_treaty`, `source_pair`, `cooldown_key`, `cooldown_until_turn`, `end_reason`, `fulfillment_snapshot`
+- No `deadline_turn`, no `suspended_turns`, no timer warnings, and no bargain-only cancellation action
+- This slice must land together with lifecycle hooks below; do not ship creation without transition handling
+- ~18 tests (creation, validation, contradiction hard stops, hard-stop previews, metadata shape)
 
-### C1b. Lifecycle: fulfillment + breach + void + cancellation
+### C1b. Lifecycle: fulfillment + breach + void (same implementation session as C1a)
 
 **Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/dispatch.py`, `backend/campaign_log.py`
 
-- Status transitions: `active` -> `triggered` -> `fulfilled` / `void` / `breached` / `cancelled`
+- Status transitions: `active` -> `triggered` -> `fulfilled` / `void` / `breached`
 - Fulfillment check in `advance_turn()`: bargain is `triggered`, France controls the claimed region from the named enemy while the bargain remains valid, source military treaty still stands, and beneficiary co-belligerence still holds through war resolution
-- Breach detection: source treaty break, voluntary downgrade below `DEFENSIVE_ALLIANCE`, constructive breach via French-engineered auto-decay, contradictory alignment with named enemy / holder, contradictory bargain, intentionally withholding an eligible beneficiary's ally-entry opportunity once no hard block exists
-- Void detection: beneficiary breaks first, non-French auto-decay, beneficiary enters `NON_AGGRESSION` or deeper with the named enemy first, beneficiary joins a coalition against France first, beneficiary refuses bargain-backed ally-entry request, beneficiary fails a non-blocked defensive honor call, claim basis disappears externally, third-party cascade creates contrary war
+- On fulfillment, write `fulfillment_snapshot` with claim region, beneficiary, target enemy, fulfilled turn, and reward deltas
+- If the named war ends inconclusively while the source treaty and claim basis still stand, transition `triggered` back to `active`; do not leave it stuck live-occupied forever
+- Breach detection: source treaty break, voluntary downgrade below `DEFENSIVE_ALLIANCE`, constructive breach via French-engineered auto-decay, contradictory alignment with named enemy / holder, contradictory bargain, later explicit French claim renunciation once peace hardening exists
+- Void detection: beneficiary breaks first, non-French auto-decay, beneficiary enters `NON_AGGRESSION` or deeper with the named enemy first, beneficiary joins a coalition against France first, beneficiary refuses bargain-backed ally-entry request, claim basis disappears externally, third-party cascade creates contrary war
 - Keep `fulfilled` terminal; do not retroactively reopen on later territory loss
-- Cancellation flow state + same pair / same enemy cooldown
-- Apply beneficiary-refusal void cooldown for same pair + same enemy
+- Apply 6-turn same pair + named enemy cooldown on breach
+- Apply 4-turn same pair + named enemy cooldown on void
 - Emit dispatch + campaign log events with required metadata
-- ~18 tests (status transitions, same-turn downgrade exploit guard, constructive breach, void reasons, cooldowns, terminal fulfillment, metadata shape)
+- ~24 tests (status transitions, same-turn downgrade exploit guard, constructive breach, inconclusive-war reactivation, void reasons, cooldowns, terminal fulfillment, fulfillment snapshot shape, metadata shape)
 
 ### C2. War-entry integration + surfaces + AI rules
 
@@ -133,28 +142,37 @@
 - Add visible structured bargain picker to the existing diplomacy wizard for eligible military treaties
 - Add mandatory Bargain Review stage inside the existing proposal-confirm flow with exact beneficiary, named enemy, claim region, holder, source treaty, contradiction warnings, and total pivot-cost preview
 - Add pre-war warning when France declares on the named enemy while a live bargain exists
-- Replace offensive silent cascade with a player-visible ally-entry evaluation in declaration preview
+- Replace offensive silent cascade with a surfaced `join_opportunity` / `AllyEntryPipeline` in declaration preview
+- Offensive declaration preview must be transactional: no offensive war-state mutation commits until surfaced ally-entry / counter-bargain resolution finishes
 - Add or reserve a later explicit in-war ally-entry request surface so temporarily blocked bargains do not strand
 - Split war-entry handling into defensive honor calls, offensive ally requests, and coalition-overlap hard blocks
 - Add `war_entry_counter_bargain` flow for military allies who did not bargain at alliance time but demand terms at the same-turn ally-entry decision for a specific war
-- Add dedicated `war_entry_counter_bargain` dialogue type to `HARD_STOP_TYPES`, but render it through the existing proposal-confirm popup component by extending `PROPOSAL_CONFIRM_DIALOGUE_TYPES`
+- Render counter-bargains through the existing proposal-confirm popup with `counter_bargain_context`; do not add a second dialogue family for same-turn war entry
 - Counter-bargains use an immediate blocking confirm flow, not mailbox deferral
-- Counter-bargains only apply to offensive ally requests; defensive honor calls do not bargain
+- Counter-bargains only apply to offensive ally requests; defensive honor calls auto-resolve as join after hard-block checks
+- `Reject` on a counter-bargain continues the declaration / war action without that ally if otherwise legal; `Back Out` cancels the pending declaration preview transaction before war-state mutation
+- Commitments-layer hard blocks override the old defensive-cascade armistice bypass where the two rules would conflict
 - Enforce structural bargain caps instead of a global French bargain cap:
   - one live bargain per beneficiary + named enemy pair
   - one live bargain per claim region
   - one bargain generated from a single treaty package or ally-entry decision
-- Add deterministic same-turn request memory so same ally + same enemy + same request type reuses the same ask unless a material state change occurs
+- Add deterministic same-turn request memory so same ally + same enemy + same request type reuses the same ask unless one of the spec-listed material changes occurs:
+  - France-beneficiary treaty depth
+  - France-beneficiary relation
+  - beneficiary war load
+  - coalition / bloc status involving the beneficiary or named enemy
+  - route-feasibility changes caused by beneficiary / named-enemy territorial, treaty, or war-state changes
+  - bargain-region availability changes caused by beneficiary / named-enemy war resolution
 - Add explicit hard-block reason surfacing (armistice, contrary war state, coalition conflict, no route, etc.)
-- Add dedicated `war_entry_score` with explicit inputs, `50+` join threshold, `25-49` offensive counter-bargain band, and defensive-duty floor
-- Add hard breach route if France intentionally withholds an eligible bargain beneficiary's ally-entry opportunity once no hard block exists
+- Add dedicated `war_entry_score` with explicit inputs, `50+` join threshold, `25-49` offensive counter-bargain band, and hard defensive-honor auto-join after block checks
+- Absence of a surfaced `join_opportunity`, or a blocked request path, must not create breach by itself
 - Apply explicit `+25` war-entry acceptance bonus when a valid bargain targets the named enemy
 - Add current anti-France coalition overlap hooks:
-  - coalition membership can hard-block French ally-entry requests
+  - `war_bloc.target_nation`-aware coalition membership can hard-block French ally-entry requests
   - joining a coalition against France voids contradictory French bargains
 - Extend the paradox popup in this slice to surface attached bargain-breach / reliability fallout once bargain records exist
 - Ledger: live bargains with named enemy, claim region, holder, status, and cooldown
-- Campaign log event types: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `bargain_cancelled`
+- Campaign log event types: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`
 - Campaign log stores full bargain metadata but renders compact one-line summaries
 - AI bargain generation stub with feasibility gates:
   - current rival or current war enemy only
@@ -167,7 +185,7 @@
 - AI anti-spam rules: no repeated bargain offers while one is live or cooling down
 - Counter-bargain timing: score `50+` joins for free, `25-49` may counter-bargain, `<25` refuses
 - Use existing downgrade / auto-downgrade behavior as the normal fallout path when rivalry anger drives relation collapse; do not add forced instant-break logic as part of the bargain slice
-- ~24 tests (wizard review surface, pre-war warnings, war-entry bonus, ally-entry breach, counter-bargain hard-stop flow, AI gating, hard-block messaging, deterministic rerolls, coalition-overlap voids, compact log rendering, rivalry-hit downgrade interaction, paradox-bargain preview integration)
+- ~34 tests (wizard review surface, pre-war warnings, AllyEntryPipeline routing, transactional declaration ordering, war-entry bonus, counter-bargain flow, AI gating, hard-block messaging, deterministic rerolls, unrelated-route non-rerolls, coalition-overlap voids, compact log rendering, rivalry-hit downgrade interaction, paradox-bargain preview integration, defensive-honor-vs-armistice arbitration, M5-vs-paradox arbitration, save/load reroll identity, save/load `origin_episode_id` persistence)
 
 ---
 
@@ -189,6 +207,7 @@
 **Files:** `backend/game_logic/coalition.py`, `backend/game_logic/diplomacy.py`, `backend/game_logic/ai_diplomacy.py`, `backend/ai/enemy_ai.py`, `backend/game_logic/war_status.py`, relevant ledger / popup / log surfaces
 
 - Lift current anti-France coalition assumptions into generic coalition identity / target tracking
+- Build on the seeded `target_nation` / opposition-graph seams from Slice A rather than adding a second coalition representation
 - Define coalition-vs-alliance overlap hooks for powers other than France
 - Keep coalition loyalty / separate-peace logic distinct from treaty acceptance and bargain sweetening
 - Revisit war-entry scoring once generalized coalition targets exist
@@ -203,8 +222,8 @@ A1 -> A2
 A1 -> B1
 A1 -> B2a -> B2b
 A1 + A2 -> B3
-A1 + B1 -> C1a
-C1a + B2b -> C1b -> C2
+A1 + B1 -> C1a -> C1b
+C1b + B2b -> C2
 ```
 
 Recommended playtest gates:
@@ -213,7 +232,7 @@ Recommended playtest gates:
 - **After B2b:** verify anger fires on deepening, betrayal records correctly, episode cap holds at 2, and redemption pause / resume works
 - **After B3:** verify the base commitment paradox popup fires and resolves correctly with rivalry-only downgrade fallout
 - **After C1a:** partial bargain testing recommended - verify creation, validation, contradiction hard stops, and pivot-cost preview before UI wiring
-- **After C2:** verify end-to-end bargain loop: author / accept -> review -> war-entry bonus -> trigger -> fulfill / void / breach / cancel, and verify counter-bargain hard-stop routing plus paradox-bargain preview integration
+- **After C2:** verify end-to-end bargain loop: author / accept -> review -> join opportunity -> war-entry bonus -> trigger -> fulfill / void / breach, and verify counter-bargain routing plus paradox-bargain preview integration
 
 Slice D stays deferred unless playtesting proves the narrowed commitments pass still lacks enough political texture or coalition overlap remains too muddy in play.
 
@@ -229,7 +248,7 @@ Slice D stays deferred unless playtesting proves the narrowed commitments pass s
 | B2b | B2a | Episode cap, witness scoping, decay, and hard-reject extend betrayal records |
 | B3 | A1, A2 | Paradox checks rivalry data + treaty depth and needs routed popup plumbing |
 | C1a | A1, B1 | Bargain creation needs data model, contradiction helpers, and acceptance-facing values |
-| C1b | C1a, B2b | Lifecycle uses betrayal recording, constructive-breach routing, and cooldown rules |
+| C1b | C1a, B2b | Lifecycle uses betrayal recording, constructive-breach routing, fulfillment snapshots, and cooldown rules |
 | C2 | C1b, B3 | Review / war-entry logic operates on commitments created by C1b and extends the existing paradox / popup routing |
 | D1 | A1, B1, B2b, C1b | Deferred follow-up only |
 | D2 | C2, D1 | Deferred coalition generalization should build on the finalized ally-entry / bargain overlap contract |

@@ -697,7 +697,7 @@ States between each nation pair, from most hostile to most friendly. **Hostility
 | **OPEN_BORDERS** | Can move through each other's territory | No combat | Trade (+100 gold/turn bilateral) | No military access — can move THROUGH, not station troops |
 | **NON_AGGRESSION** | Cannot enter each other's territory | No combat | Trade (+150 gold/turn bilateral) | Breaking pact = severe relation hit (-40) and threat spike |
 | **DEFENSIVE_ALLIANCE** | Open borders + military coordination | Defend ally if attacked | Trade (+150 gold/turn bilateral) | If ally is attacked by third party, you enter WAR with the attacker |
-| **ALLIANCE** | Full military coordination | Joint wars, coordinated attacks | Trade (+200 gold/turn bilateral) | Offensive + defensive. Current implementation auto-enters full allies through offensive cascade on war declaration; no standalone `Call Ally` action exists yet. |
+| **ALLIANCE** | Full military coordination | Joint wars, coordinated attacks | Trade (+200 gold/turn bilateral) | Offensive + defensive. Current engine still auto-enters full allies on offensive declarations; the commitments follow-up replaces only that offensive auto-entry path with a player-visible ally-entry decision, while defensive honor remains automatic unless commitments hard blocks apply. |
 | **VASSAL** | Lord controls vassal movement | Lord can order vassal troops | Tribute flows to lord | See §8 for full vassal mechanics |
 
 ### 5b. Transition Rules
@@ -761,7 +761,7 @@ After an armistice expires or is broken, the same nation pair cannot enter anoth
 | OPEN_BORDERS/above → VASSAL (treaty) | 3 | Relation > +20 OR war score > 60. Requires OPEN_BORDERS minimum (E3). | |
 | Any → WAR | 1 | None | PLUS relation -30 target, -15 all others, threat +20 (see §5c for full costs) |
 
-**Alliance cascade bypasses armistice cooldowns:** War declarations caused by defensive alliance cascade (ally attacked → you enter WAR) bypass armistice cooldowns entirely. These are forced entries into war, not voluntary — the cooldown only prevents voluntary armistice-chaining. If France attacks Austria (Prussia's defensive ally), Prussia enters WAR with France regardless of any existing armistice cooldown between France and Prussia.
+**Commitments-era defensive honor rule:** The old defensive cascade bypass for armistice cooldowns is superseded once the commitments ally-entry layer ships. Forced defensive entry remains the baseline expectation, but explicit commitments-layer hard blocks (including armistice / cooldown with the attacker) may still suppress entry. The cooldown only prevents voluntary armistice-chaining; commitments now decide whether a blocked defensive honor call can legally resolve into war entry.
 
 ### 5b.3. Conflicting Alliance Obligations (M5)
 
@@ -772,6 +772,8 @@ A nation cannot maintain ALLIANCE or DEFENSIVE_ALLIANCE with two nations that ar
 - **AI resolution:** Choose the alliance with the higher-relation partner. If tied, choose the alliance with the more powerful partner (higher total army strength).
 - **Player resolution (if player alliance causes conflict):** Confrontation popup: "Sire, our alliance with Prussia conflicts with their existing alliance with Britain, whom we are at war with. Prussia must choose." (Player observes the outcome — the choice is Prussia's.)
 - The dropped alliance follows standard downgrade penalties (§5b.1).
+
+**Commitments follow-up precedence:** If the newer commitments layer detects an active-opposition-pair paradox at ratification time, `commitment_paradox` resolves first and this M5 flow does not also fire for the same ratification. M5 remains the fallback for conflicts introduced later by war declaration or by legacy treaty states that were not intercepted at ratification.
 
 **Timing:** Conflict check runs immediately when a new alliance is ratified or when war is declared. The conflicting nation resolves the conflict on their next turn (AI phase).
 
@@ -801,7 +803,7 @@ Declaring war on a neutral/friendly nation:
 - Relation with ALL other nations: -15 ("aggressor" penalty)
 - Threat level: +20 (tracked on WorldState, feeds into COALITION_SPEC coalition formation)
 - Talleyrand will object (STRONG concern) if target is neutral and threat > 50
-- If target has allies: all allies enter WAR with you (defensive alliance trigger)
+- If target has allies: defensive responders may enter WAR with you, subject to the commitments-era defensive-honor arbitration and hard-block rules
 
 **Casus Belli (reduces penalties):**
 If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, but threat is always +20 — casus belli does not reduce threat). Casus belli is tracked automatically from treaty breaks and attacks.
@@ -1319,9 +1321,9 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 8.  Armistice expiration — minimum 3 turns reached (§5b.2)
 9.  Cooldown decrements — ai_proposal_cooldowns, player_proposal_cooldowns,
     armistice_cooldowns, vassal investment cooldowns (all -1/turn)
-9a. War exhaustion update — +5/turn at war with France, -5/turn at peace (COALITION_SPEC §10a)
+9a. War exhaustion update — +8/turn at war with France, -5/turn at peace (COALITION_SPEC §10a)
 9b. Threat accumulation — apply battle/capture/control sources from this turn (COALITION_SPEC §2a)
-9c. Threat decay — max(2, threat // 10) per turn (COALITION_SPEC §2b)
+9c. Threat decay — apply the canonical peace-count decay formula from COALITION_SPEC §2b
 9d. Coalition check — brewing countdown, formation threshold, instant ≥80 (COALITION_SPEC §3c)
 10. Income phase — region income, trade income (§7e), treaty clause gold/turn
 11. Treaty obligation checks — gold/turn defaults (EC-MM)
@@ -1988,6 +1990,15 @@ self.war_scores: Dict[str, int] = {}
 # Pending diplomatic dialogue (from CONVERSATIONAL_DIPLOMACY_DESIGN §2b).
 # All proposal presentation routes through this field.
 # Dict or None. Serialization: already primitive-only (str, int, bool, list, dict).
+# Commitments follow-up requirement: pending paradox / counter-bargain / join-opportunity
+# payloads must preserve reroll identity and originating episode lineage across save/load.
+# Canonical context keys for commitments-generated payloads:
+# - context.origin_episode_id
+# - context.reroll_key
+# - context.join_opportunity
+# - context.counter_bargain_context (when applicable)
+# - context.declaration_transaction_id (when tied to a pending offensive declaration)
+# - context.opposition_pair_key (for commitment_paradox follow-ups)
 # See CONVERSATIONAL_DIPLOMACY_DESIGN §2b for full schema.
 self.pending_diplomatic_dialogue: Optional[Dict] = None
 
@@ -2163,7 +2174,7 @@ self.coalition_count: int = 0                    # Total coalitions formed this 
 
 # War exhaustion per nation (COALITION_SPEC §6a + §10a)
 # Key: nation name. Value: int 0-200 CLAMPED.
-# +casualties_taken//1000 per battle (cap +20), +5/turn at war with France, -5/turn at peace.
+# +casualties_taken//1000 per battle (cap +20), +8/turn at war with France, -5/turn at peace.
 # Used in coalition loyalty penalty formula: penalty = min(-15 + war_exhaustion // 10, 0)
 self.war_exhaustion: Dict[str, int] = {}
 
@@ -2617,7 +2628,7 @@ All design questions resolved in v1.1 feedback pass:
 **Final pre-implementation master audit across all 3 specs. 4 CRITICAL + 4 MAJOR findings resolved.**
 
 **Critical Fixes:**
-- **C1: `war_exhaustion` undefined** — Defined in COALITION_SPEC §10a (Dict[str,int], 0-200, +casualties//1000 per battle, ±5/turn at war/peace) and cross-referenced in §13.
+- **C1: `war_exhaustion` undefined** — Defined in COALITION_SPEC §10a (Dict[str,int], 0-200, +casualties//1000 per battle, +8/turn at war with France, -5/turn at peace) and cross-referenced in §13.
 - **C2: Session plan mismatch** — §14 updated from 7→8 sessions. Session 7 = Coalition (NEW), Session 8 = Ledger UI (was 7). CONV_DESIGN §14c updated.
 - **C3: §7f missing coalition processing** — Added steps 9a (war exhaustion), 9b (threat accumulation), 9c (threat decay), 9d (coalition check) between steps 9 and 10.
 - **C4: Coalition fields missing from §13** — Added cross-reference block for 6 COALITION_SPEC fields (threat_sources_this_turn, active_coalition, coalition_brewing, coalition_cooldown, coalition_count, war_exhaustion).

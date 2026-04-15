@@ -106,6 +106,8 @@ pending_diplomatic_dialogue = {
 world.pending_diplomatic_dialogue = d.get("pending_diplomatic_dialogue", None)
 ```
 
+**Commitments follow-up reserved `context` keys:** commitments-generated dialogue payloads should serialize `origin_episode_id`, `reroll_key`, and `join_opportunity` whenever a surfaced ally-entry decision may resume after save/load. Counter-bargain payloads additionally use `counter_bargain_context`; pending offensive declaration previews additionally use `declaration_transaction_id`; commitment paradox follow-ups use `opposition_pair_key`. Keep these keys primitive-only and inside `context`, not as live backend references.
+
 Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Update `docs/SAVE_FORMAT_REFERENCE.md` with the new field.
 
 ### 2c. Dialogue Types

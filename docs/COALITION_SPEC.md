@@ -4,6 +4,7 @@
 > **Status:** DRAFT — Awaiting design gate approval
 > **Scope:** Threat accumulation, coalition formation, coalition structure, coalition AI, coalition breaking, dissolution
 > **Design principle:** Threat from success + diplomatic windows + coalition splitting = the Napoleonic strategic puzzle
+> **Current implementation scope:** coalition formation still targets France, but the record shape should already be generic enough to support later target generalization
 
 ---
 
@@ -150,16 +151,16 @@ Cautious play keeps threat well below 40. **Coalition never forms.** This is cor
 A nation qualifies for coalition membership if ALL conditions are met:
 
 ```python
-def qualifies_for_coalition(nation, france, world):
-    if nation == france:
+def qualifies_for_coalition(nation, target_nation, world):
+    if nation == target_nation:
         return False
-    relation = world.get_relation(france, nation)
+    relation = world.get_relation(target_nation, nation)
     is_vassal = nation in world.vassals
-    already_at_war = get_diplomatic_state(france, nation) == "WAR"
+    already_at_war = get_diplomatic_state(target_nation, nation) == "WAR"
     return relation < -10 and not is_vassal and not already_at_war
 ```
 
-**At game start:** Austria (relation -30) qualifies. Saxony (+40) does not. Britain/Prussia already at war — they auto-join the coalition structure (§3e) but don't trigger formation.
+**At game start:** Austria (relation -30 to France) qualifies. Saxony (+40) does not. Britain/Prussia already at war — they auto-join the coalition structure (§3e) but don't trigger formation.
 
 **Minimum coalition size:** At least **1 qualifying nation** must be pulled in. A coalition cannot form if the only hostile nations are already at war with France — they're just individual belligerents, not a coordinated coalition.
 
@@ -209,13 +210,13 @@ If threat reaches 80 at any point (even during an existing brewing window):
 When a coalition declares (either countdown expiry or instant):
 
 1. **Identify coalition members:**
-   - All qualifying nations from §3b → enter WAR with France simultaneously.
-   - All nations already at war with France → join the coalition structure automatically.
+   - All qualifying nations from §3b → enter WAR with the coalition's `target_nation` simultaneously.
+   - All nations already at war with the same `target_nation` → join the coalition structure automatically.
    - Vassals are excluded (they fight for France, unless they rebel).
 
 2. **Apply diplomatic penalties:**
-   - Each new war declaration: relation -30 with France (standard, per DIPLOMACY_SPEC §5c).
-   - France does NOT pay the +20 threat per declaration (these are defensive wars against France).
+   - Each new war declaration: relation -30 with the coalition `target_nation` (standard, per DIPLOMACY_SPEC §5c).
+   - In the current build, France does NOT pay the +20 threat per declaration because these are defensive wars against France.
    - Each new belligerent's relation with other coalition members: +10 ("united cause").
 
 3. **Select coalition leader** (§4a).
@@ -253,17 +254,17 @@ Track `coalition_count` on WorldState for numbering.
 When a coalition forms, the leader is the member with the highest **leadership score**:
 
 ```python
-def coalition_leadership_score(nation, world):
+def coalition_leadership_score(nation, target_nation, world):
     military = sum(m.strength for m in world.marshals.values()
                    if m.nation == nation and m.strength > 0) // 1000  # In thousands!
-    hostility = abs(world.get_nation_relation("France", nation))
+    hostility = abs(world.get_nation_relation(target_nation, nation))
     authority = world.nation_authority.get(nation, 60)
     return int(military + hostility + authority)
 ```
 
 **Components (all normalized to similar scale, ~0-100 each):**
 - **Military strength:** Total troop count in thousands (`// 1000`). Range: 0-100+.
-- **Hostility:** Absolute value of relation to France (more hostile = more motivated to lead). Range: 0-100.
+- **Hostility:** Absolute value of relation to the coalition target (more hostile = more motivated to lead). Range: 0-100.
 - **Authority:** Nation's internal authority score (DIPLOMACY_SPEC §13). Range: 0-100.
 
 **Tiebreaker:** If scores are equal, the nation with more marshals leads. If still tied, alphabetical.
@@ -286,13 +287,13 @@ If no valid successor exists (< 2 members), the coalition dissolves (§7).
 
 ### §4c. Strategic Posture
 
-**Coalition war score** is the weighted average of individual member war scores against France, weighted by each member's current army size (total troops across all marshals). Formula:
+**Coalition war score** is the weighted average of individual member war scores against the coalition `target_nation`, weighted by each member's current army size (total troops across all marshals). Formula:
 
 ```
-coalition_war_score = sum(war_score[member|France] * army_size[member] for member in members) // sum(army_size[member] for member in members)
+coalition_war_score = sum(war_score[member|target_nation] * army_size[member] for member in members) // sum(army_size[member] for member in members)
 ```
 
-If no member is at war with France (shouldn't happen in an active coalition, but defensive), coalition war score = 0. All values are `int()`.
+If no member is at war with the coalition target (shouldn't happen in an active coalition, but defensive), coalition war score = 0. All values are `int()`.
 
 The coalition leader determines the coalition's **strategic posture**, reassessed each turn during the enemy AI phase. The posture biases AI decision-making for all coalition members.
 
@@ -346,17 +347,17 @@ This is not a coalition-specific mechanic — it's an existing DIPLOMACY_SPEC fe
 
 ### §5b. Convergence Bias
 
-During a coalition war, AI strategic movement (P7) receives a **convergence bias** toward French-controlled territory:
+During a coalition war, AI strategic movement (P7) receives a **convergence bias** toward the coalition target's controlled territory:
 
 ```python
-# During coalition war, add bias toward regions adjacent to French territory
+# During coalition war, add bias toward regions adjacent to target territory
 if is_coalition_active and marshal.nation in coalition_members:
     for candidate_region in reachable_regions:
-        if any(adj in french_regions for adj in candidate_region.adjacent_regions):
+        if any(adj in target_regions for adj in candidate_region.adjacent_regions):
             score += 8  # Convergence bias
 ```
 
-This makes coalition armies naturally advance toward France from multiple directions — the historical coalition strategy — without requiring explicit coordination.
+This makes coalition armies naturally advance toward the target nation from multiple directions. In the current build, that target is France.
 
 **Posture modifier:**
 - Aggressive Advance: convergence bias +12 (instead of +8)
@@ -400,7 +401,7 @@ Coalition AI uses the **same executor** as player and individual AI. No special 
 
 All of which use existing systems.
 
-**Bilateral wars with non-France nations:** Coalition members may have pre-existing bilateral wars or diplomatic states with non-coalition nations (e.g., Austria at war with Saxony). These are **unaffected** by coalition membership — the coalition is specifically anti-France. Pre-existing wars continue independently. Coalition strategic posture only affects movement decisions against French-controlled territory.
+**Bilateral wars with non-target nations:** Coalition members may have pre-existing bilateral wars or diplomatic states with non-coalition nations (e.g., Austria at war with Saxony). These are **unaffected** by coalition membership. In the current build the coalition target is France, but code should read `active_coalition.target_nation` rather than assuming that permanently. Pre-existing wars continue independently. Coalition strategic posture only affects movement decisions against the target nation's controlled territory.
 
 ---
 
@@ -646,10 +647,13 @@ self.war_exhaustion: Dict[str, int] = {}  # Default 0 for all nations
 
 ### §10b. Active Coalition Dict
 
+`active_coalition` is the serialized v0.1 instance of the generic `war_bloc` shape referenced by the commitments work. Do **not** add a second parallel stored structure for the same concept.
+
 ```python
 active_coalition = {
     "id": "coalition_12",               # str — unique ID
     "name": "The British Coalition",     # str — display name
+    "target_nation": "France",           # str — current target; record is intentionally generic
     "leader": "Britain",                 # str — nation name
     "members": ["Britain", "Prussia", "Austria"],  # List[str]
     "formed_turn": 12,                   # int
@@ -702,9 +706,9 @@ Coalition logic lives in the existing diplomacy engine — no new files for Sess
 | `process_threat_sources()` | `diplomacy.py` | Called from executor after battles, captures, vassalization |
 | `process_threat_decay()` | `diplomacy.py` | Called from `advance_turn()` |
 | `check_coalition_formation()` | `diplomacy.py` | Called from `advance_turn()` after threat processing |
-| `evaluate_coalition_posture()` | `diplomacy.py` | Called during enemy AI phase |
+| `evaluate_coalition_posture()` | `diplomacy.py` | Called during enemy AI phase; reads `active_coalition.target_nation` |
 | `get_coalition_friction()` | `diplomacy.py` | Called from `enemy_ai.py` adjacency scoring |
-| `get_convergence_bias()` | `enemy_ai.py` | Inline in P7 movement scoring (small addition) |
+| `get_convergence_bias()` | `enemy_ai.py` | Inline in P7 movement scoring (small addition); target-aware via `active_coalition.target_nation` |
 | Coalition UI templates | `diplomatic_templates.py` | 7 new template categories (§8d) |
 | Coalition declaration popup | `main.gd` | Same pattern as defiance confrontation popups |
 | Coalition notifications | `notifications.py` | 7 new notification types (§9b) |
