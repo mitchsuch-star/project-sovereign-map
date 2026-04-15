@@ -14,7 +14,7 @@
 
 **Files:** `backend/models/world_state.py`, `docs/SAVE_FORMAT_REFERENCE.md`
 
-- Add `betrayal_history: Dict[str, Dict]` to WorldState (directional key `from|to`, value: `{strikes, categories, last_turn, decays_on_turn}`)
+- Add `betrayal_history: Dict[str, Dict]` to WorldState (directional key `from|to`, value: `{strikes: List[StrikeRecord], categories: Set[str], last_turn: int}`); each `StrikeRecord` is `{severity, turn, episode_id, decays_on_turn}` so episode-cap queries and severity-scaled decay can run off a single authoritative list
 - Add `nation_rivalries: Dict[str, Dict]` to WorldState (diplo_key, value: `{intensity, source, weight, started_turn, last_changed_turn}`)
 - Add `diplomatic_commitments: Dict[str, Dict]` to WorldState for `war_bargain` records
 - Add `next_commitment_id: int` to WorldState
@@ -83,22 +83,23 @@
 - Gate fulfilled-bargain reliability gain to once per beneficiary per 10 turns
 - Hard-reject behavior: 3 victim-side strikes -> hard resist deep treaties except for the narrow shared-enemy survival exception
 - Prussia<->Saxony hardcoded escalation: direct war or France vassalizes Saxony -> escalate to `active`
-- ~18 tests (witness scoping, strike cap boundaries, multi-episode turn batching, redemption maturation, hard-reject posture, escalation triggers, fulfillment reward gating)
+- ~20 tests (witness scoping, strike cap boundaries, multi-episode turn batching, cross-perpetrator single-victim episode cap, per-severity decay with mixed-severity strikes, redemption maturation, hard-reject posture, escalation triggers, fulfillment reward gating)
 
 ### B3. Commitment paradox
 
 **Files:** `backend/commands/diplomatic_executor.py`, `backend/models/dialogue_manager.py`, `backend/models/cooldown_manager.py`, `backend/main.py`, `godot-client/project-sovereign/scripts/main.gd`, `godot-client/project-sovereign/scripts/alliance_paradox_popup.gd`, `godot-client/project-sovereign/scenes/alliance_paradox_popup.tscn`
 
 - New `commitment_paradox` dialogue type in `HARD_STOP_TYPES`
-- Paradox check at ratification: new `DEFENSIVE_ALLIANCE` / `ALLIANCE` may not span both sides of active rival pair
+- Paradox check at ratification: the ratifying nation may not hold `DEFENSIVE_ALLIANCE` / `ALLIANCE` with both sides of an active opposition pair (rule body written generically; v0.1 ratifier is always France)
 - Read paradox input from shared opposition-pair helpers so later coalition target pairs can plug in without rewriting the flow
+- Implement `ConflictResolutionPass` that collects all opposition-pair and legacy war-cross conflicts introduced by a single ratification, renders one consolidated resolution dialogue, re-evaluates after each chosen downgrade, and rejects the ratification if any conflict remains
 - `commitment_paradox` preempts the old conflicting-alliance flow for same-ratification opposition-pair conflicts; the older flow remains only for later war-declaration or legacy conflicts not caught at ratification
 - New handler methods in `diplomatic_executor.py`
 - Reuse the existing paradox popup component if possible for the base rivalry-only paradox flow
 - Register in dialog manager, popup queue, `build_base_response()`, and client popup routing
 - Show deterministic downgrade fallout available before bargains exist (old treaty outcome, offended-rival hit when knowable)
 - Defer attached bargain-breach / reliability fallout preview to Slice C once bargain data exists
-- ~12 tests (trigger detection, popup passthrough, option routing, downgrade execution, base consequence preview)
+- ~14 tests (trigger detection, popup passthrough, option routing, downgrade execution, base consequence preview, multi-conflict ratification consolidated pass, mixed opposition + legacy conflict single-dialogue resolution)
 
 ---
 
@@ -124,6 +125,7 @@
 **Files:** `backend/models/world_state.py`, `backend/game_logic/diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/game_logic/dispatch.py`, `backend/campaign_log.py`
 
 - Status transitions: `active` -> `triggered` -> `fulfilled` / `void` / `breached`
+- Add zombie-bargain void: 5 continuous turns of `PEACE`-or-higher between the promiser and the named enemy AND between the beneficiary and the named enemy, with no re-declaration, voids the bargain with no penalty and the standard 4-turn cooldown
 - Fulfillment check in `advance_turn()`: bargain is `triggered`, France controls the claimed region from the named enemy while the bargain remains valid, source military treaty still stands, and beneficiary co-belligerence still holds through war resolution
 - On fulfillment, write `fulfillment_snapshot` with claim region, beneficiary, target enemy, fulfilled turn, and reward deltas
 - If the named war ends inconclusively while the source treaty and claim basis still stand, transition `triggered` back to `active`; do not leave it stuck live-occupied forever
@@ -133,7 +135,7 @@
 - Apply 6-turn same pair + named enemy cooldown on breach
 - Apply 4-turn same pair + named enemy cooldown on void
 - Emit dispatch + campaign log events with required metadata
-- ~24 tests (status transitions, same-turn downgrade exploit guard, constructive breach, inconclusive-war reactivation, void reasons, cooldowns, terminal fulfillment, fulfillment snapshot shape, metadata shape)
+- ~26 tests (status transitions, same-turn downgrade exploit guard, constructive breach, inconclusive-war reactivation, void reasons, zombie-bargain void path, cooldowns, terminal fulfillment, fulfillment snapshot shape including `reward_capped` / `intended_reliability_delta`, metadata shape)
 
 ### C2. War-entry integration + surfaces + AI rules
 
@@ -148,6 +150,7 @@
 - Split war-entry handling into defensive honor calls, offensive ally requests, and coalition-overlap hard blocks
 - Add `war_entry_counter_bargain` flow for military allies who did not bargain at alliance time but demand terms at the same-turn ally-entry decision for a specific war
 - Render counter-bargains through the existing proposal-confirm popup with `counter_bargain_context`; do not add a second dialogue family for same-turn war entry
+- In counter-bargain mode, suppress standard `proposal_confirm` affordances that leak envoy semantics: Renegotiate / counter-offer chain, envoy-in-transit status, DP cost display and DP spend, mailbox deferral, and dismiss / never-mind — only `Accept`, `Reject`, and `Back Out` remain terminal
 - Counter-bargains use an immediate blocking confirm flow, not mailbox deferral
 - Serialize the staged offensive declaration inside pending dialogue context as primitive `pending_declaration` payload keyed by `declaration_transaction_id`; do not rely on an ID with no restorable staged action
 - Counter-bargains only apply to offensive ally requests; defensive honor calls auto-resolve as join after hard-block checks

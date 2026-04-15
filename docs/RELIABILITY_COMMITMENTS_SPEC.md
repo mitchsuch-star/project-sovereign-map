@@ -274,7 +274,8 @@ Deep military commitments may not silently span both sides of the same `active` 
 
 Rule:
 
-- France may not hold `DEFENSIVE_ALLIANCE` or `ALLIANCE` with both sides of the same `active` rivalry pair.
+- the ratifying nation may not hold `DEFENSIVE_ALLIANCE` or `ALLIANCE` with both sides of the same `active` opposition pair
+- in v0.1, the ratifying nation is always France and opposition pairs are authored rivalries; the rule is written generically so D2 coalition-driven opposition pairs plug in without rewriting it
 
 Implementation seam:
 
@@ -283,6 +284,19 @@ Implementation seam:
 - later coalition generalization may add `war_bloc.member <-> war_bloc.target_nation` opposition pairs without rewriting the paradox rule
 - `commitment_paradox` preempts the older conflicting-alliance flow on same-ratification conflicts across active opposition pairs
 - the older conflicting-alliance flow remains only for conflicts introduced later by war declaration or by non-opposition treaty states that were not intercepted at ratification
+
+Rule body generalization:
+
+- the rule subject is **the ratifying nation**, not a France-literal check
+- in v0.1, the ratifying nation is always France, but the evaluator must already accept `(ratifier, new_treaty)` and reject when `ratifier` would span both sides of any active opposition pair
+
+Multi-conflict ratification contract:
+
+- a single ratification may surface more than one conflict (opposition-pair conflicts and legacy war-cross-alliance conflicts together)
+- a single `ConflictResolutionPass` evaluator must collect **all** conflicts introduced by that ratification, classify each as `opposition` or `legacy`, and drive one consolidated resolution dialogue that lists every conflict and every downgrade option
+- do not queue two sequential popups for one ratification; the player sees one decision surface covering the whole conflict set
+- if resolving one conflict makes another moot, the pass must re-evaluate and drop the resolved conflict from the remaining set before committing the ratification
+- if any unresolved conflict remains after the pass, the ratification is rejected
 
 The paradox check runs on ratification, regardless of who proposed the treaty.
 
@@ -372,7 +386,7 @@ That means:
 
 Global reliability rule:
 
-- all global reliability deltas in this spec apply to France's single shared `diplomatic_reliability["France"]` value
+- all global reliability deltas in this spec apply to the acting nation's shared `diplomatic_reliability[actor]` value; the v0.1 actor is always France
 - witness scoping changes relation fallout only; it does not create witness-specific reliability variants
 
 This keeps the 3-strike hard-resistance threshold from becoming a one-click diplomatic death sentence on a 5-nation map.
@@ -401,8 +415,8 @@ The system must reward sustained committed play, not only punish betrayal.
 For v0.1:
 
 - visible side-taking should feel legible through previews, warnings, and treaty outcomes rather than a bespoke hidden relation token
-- fulfilled bargain: `+4` to `diplomatic_reliability["France"]` and `+6` relation with the beneficiary
-- reliability gain from fulfilled bargains is capped at once per beneficiary per 10 turns; additional fulfillments in that window still grant the beneficiary relation reward but no extra global reliability
+- fulfilled bargain: `+4` to `diplomatic_reliability[bargain.promiser]` and `+6` relation with the beneficiary
+- reliability gain from fulfilled bargains is capped at once per (promiser, beneficiary) per 10 turns; additional fulfillments in that window still grant the beneficiary relation reward but no extra global reliability
 - clear preview / ledger surfacing so loyalty feels intentional rather than invisible
 
 Do **not** add a dedicated `trusted_partner` state in v0.1.
@@ -413,8 +427,8 @@ Redemption remains possible, but stays simple.
 
 Suggested rules:
 
-- every 5 honored treaty turns: `+3` to `diplomatic_reliability["France"]`
-- each fulfilled bargain: `+4` to `diplomatic_reliability["France"]` subject to the beneficiary cap above
+- every 5 honored treaty turns: `+3` to `diplomatic_reliability[actor]` (v0.1 actor = France)
+- each fulfilled bargain: `+4` to `diplomatic_reliability[bargain.promiser]` subject to the (promiser, beneficiary) cap above
 - after honorable turns with a nation and no new offense, remove 1 bilateral strike using severity-scaled decay:
   - 6 turns: `OPEN_BORDERS` / `PEACE`-level break
   - 8 turns: `NON_AGGRESSION` break
@@ -424,7 +438,8 @@ Suggested rules:
 Guardrails:
 
 - passive decay clears at most 1 strike per nation per turn
-- strike age continues to mature from `last_offense_turn` during `WAR` and `ARMISTICE`
+- each strike decays on its own clock using its recorded `turn` + severity-scaled interval; the per-pair dict does **not** store a single shared decay clock
+- strike age continues to mature during `WAR` and `ARMISTICE`
 - actual strike removal requires an active non-`WAR` treaty (`PEACE` or above) with that nation
 - once a non-war treaty is restored, any matured strikes may decay at the normal per-turn limit until caught up
 - no special co-belligerence redemption hook in v0.1
@@ -495,6 +510,12 @@ Internal structure:
   - France's priority over exactly one region held by that enemy
 
 These stay on one record in v0.1, but later systems may consume them separately.
+
+`origin_mode` enum (v0.1):
+
+- `treaty_clause` — authored as part of a ratified `DEFENSIVE_ALLIANCE` / `ALLIANCE` treaty package
+- `counter_bargain` — issued as a `war_entry_counter_bargain` on an offensive ally-entry decision and ratified in `triggered` state
+- later authoring paths append to this enum; do not overload existing values
 
 Player-facing phrasing should emphasize:
 
@@ -720,6 +741,7 @@ Rules:
 - if France backs out from declaration preview, the pending war-state mutation is cancelled and no bargain is created
 - if no legal bargain can be generated because all valid claims are blocked by contradiction or scope rules, the ally either joins for free if already at the join threshold or refuses with that reason surfaced
 - same-turn rerolls are deterministic: same ally + same enemy + same request type on the same turn must reuse the same score band and the same demanded region unless a material state change occurs
+- `reroll_key = f"{beneficiary}|{named_enemy}|{request_type}|{turn_created}"`; the evaluator caches the last resolved (score_band, demanded_region) against this key and must return the cached pair unless a material state change invalidates it
 - material state changes for reroll purposes are limited to:
   - treaty depth between France and the beneficiary
   - France-beneficiary relation
@@ -753,8 +775,8 @@ Coalitions and alliances need different texture in this system.
 - coalitions are bloc commitments with separate loyalty and separate-peace logic; they are not bargainable through French claim-recognition terms
 - coalition overlap rules and paradox evaluators should read from `war_bloc.target_nation` and the shared `opposition_graph`, not from literal "France" checks
 - current gameplay still instantiates only anti-France `war_bloc`s, but the data and evaluator seams should already be target-aware
-- in the current build, an active coalition against France is a hard block on accepting a French ally-entry request
-- if the beneficiary joins a coalition against France first, any live French bargain with that beneficiary voids for contrary alignment
+- an active `war_bloc` whose `target_nation` equals the ally-entry initiator is a hard block on accepting that initiator's ally-entry request; in the current build the only instantiated `war_bloc.target_nation` is France, but the rule is written target-aware so D2 does not require a rewrite
+- if the beneficiary joins a `war_bloc` whose `target_nation` equals the bargain's `promiser` first, any live bargain from that promiser with that beneficiary voids for contrary alignment
 - current coalition implementation is anti-France-specific; the later coalition follow-up should generalize this overlap logic so coalitions can form against powers other than France too
 
 ### 9.8 Fulfillment
@@ -781,7 +803,8 @@ Exploit guard:
 
 On fulfillment:
 
-- write `fulfillment_snapshot = {claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta}`
+- write `fulfillment_snapshot = {claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped: bool, intended_reliability_delta: int}`
+- `reward_capped` is `True` when the `(promiser, beneficiary)` 10-turn cap zeroed the applied reliability delta; `intended_reliability_delta` preserves the pre-cap value so later peace / settlement systems can distinguish "first fulfillment" from "capped repeat fulfillment"
 - keep the snapshot on the bargain record after terminal close so later peace / settlement systems can reason about prior fulfillment without walking the campaign log
 
 If the named war ends without fulfillment:
@@ -822,6 +845,7 @@ A bargain is `void` if:
 - the named enemy or claim region basis disappears from the world
 - France is pulled into a contrary war against the beneficiary through third-party cascade that France did not directly declare
 - France and the beneficiary become direct enemies through beneficiary-caused or external scripted state not directly chosen by France
+- the named war has been resolved (France at `PEACE` or higher with the named enemy) **and** the beneficiary is also at `PEACE` or higher with the named enemy, continuously for **5 turns**, with no re-declaration of war against the named enemy by either side in that window; this "zombie bargain" void is the legal exit when the bargain's political purpose has lapsed without French bad faith
 
 Void effects:
 
@@ -1124,6 +1148,12 @@ Layout rule:
 - show the bargain summary and top 1-2 warnings above the action buttons
 - reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions via `counter_bargain_context` on the existing proposal-confirm flow
 - when used for counter-bargains, that reused proposal-confirm instance is `blocking=True` and resolves against the serialized `pending_declaration` snapshot rather than a normal envoy-in-transit proposal
+- counter-bargain mode **must suppress** the following standard `proposal_confirm` affordances so envoy-semantics do not leak into same-turn war-entry resolution:
+  - `renegotiate` action / counter-offer chain
+  - envoy-in-transit status and turn-of-delivery language
+  - DP cost display and DP spend on submit (the ally is not charging France DP for a demand)
+  - mailbox deferral / "carry to them later" phrasing
+  - dismiss / "never mind" action (blocking mode has no non-terminal exit; only `Accept`, `Reject`, `Back Out`)
 
 ### 12.4 Treaty display
 
@@ -1178,7 +1208,10 @@ Rendering rule:
 
 - `betrayal_history: Dict[str, Dict]`
   - key: `from|to`
-  - value: `{strikes, categories, last_turn, decays_on_turn}`
+  - value: `{strikes: List[StrikeRecord], categories: Set[str], last_turn: int}`
+  - each `StrikeRecord` is `{severity: str, turn: int, episode_id: str, decays_on_turn: int}`
+  - episode cap queries filter by `episode_id`; severity-scaled decay reads each strike's own `decays_on_turn`
+  - the pair-level `last_turn` is retained only as a cached "most recent offense" summary for ledger display; it is **not** authoritative for decay or cap enforcement
 
 - `nation_rivalries: Dict[str, Dict]`
   - key: `diplo_key`
@@ -1190,7 +1223,7 @@ Rendering rule:
     - `type`
     - `promiser`
     - `beneficiary`
-    - `origin_mode`
+    - `origin_mode` — enum: `treaty_clause` | `counter_bargain`
     - `target_enemy`
     - `entry_term`
     - `claim_term`
@@ -1203,7 +1236,7 @@ Rendering rule:
     - `cooldown_key`
     - `cooldown_until_turn`
     - `end_reason`
-    - `fulfillment_snapshot`
+    - `fulfillment_snapshot` — `{claim_region, beneficiary, target_enemy, fulfilled_turn, reliability_delta, relation_delta, reward_capped, intended_reliability_delta}` or `null`
 
 Cooldown note:
 
