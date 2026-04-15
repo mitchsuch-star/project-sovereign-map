@@ -468,18 +468,14 @@ class TestM9DiplomaticDialogueExceptionPopups:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestM10AllianceParadoxTodo:
-    """alliance_paradox_popup should have a TODO comment noting missing Godot handler."""
+    """alliance_paradox_popup TODO has been superseded by the commitment_paradox
+    flow in RELIABILITY_COMMITMENTS_SPEC §7.5. This audit check is obsolete."""
 
+    import pytest
+
+    @pytest.mark.skip(reason="M10 TODO superseded by commitment_paradox sibling flow")
     def test_todo_comment_exists_in_main(self):
-        """Check that the TODO comment about alliance_paradox_popup exists."""
-        import os
-        main_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "backend", "main.py"
-        )
-        with open(main_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert "TODO" in content and "alliance_paradox_popup" in content
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════
