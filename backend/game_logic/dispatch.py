@@ -1190,6 +1190,32 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
 
 def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     """Format event text from template + variables."""
+    if event_type == "diplomatic_treaty_broken":
+        nation = template_vars.get("nation", "Unknown")
+        target = template_vars.get("target", "")
+        treaty_type = template_vars.get("treaty_type", "treaty")
+        reason_phrase = template_vars.get("reason_phrase", "")
+        if target and reason_phrase:
+            return f"{nation} has broken the {treaty_type} with {target} {reason_phrase}."
+        if target:
+            return f"{nation} has broken the {treaty_type} with {target}."
+
+    if event_type == "diplomatic_war_declared":
+        nation = template_vars.get("nation", "Unknown")
+        target = template_vars.get("target", "Unknown")
+        breached_treaty = template_vars.get("breached_treaty", "")
+        defensive_joiners = int(template_vars.get("defensive_joiner_count", 0) or 0)
+        offensive_joiners = int(template_vars.get("offensive_joiner_count", 0) or 0)
+        extra_parts = []
+        if breached_treaty:
+            extra_parts.append(f"shattering the {breached_treaty}")
+        total_joiners = defensive_joiners + offensive_joiners
+        if total_joiners > 0:
+            extra_parts.append(f"with {total_joiners} allied court{'s' if total_joiners != 1 else ''} poised to follow")
+        if extra_parts:
+            return f"{nation} has declared war on {target}, " + ", ".join(extra_parts) + "."
+        return f"{nation} has declared war on {target}."
+
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:
         return f"Diplomatic event: {event_type}"

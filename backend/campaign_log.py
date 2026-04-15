@@ -477,6 +477,20 @@ def format_event_oneliner(event: dict) -> str:
     """
     event_type = event.get("type", "")
 
+    if event_type in ("diplomatic_war_declared", "war_declaration") and event.get("breached_treaty"):
+        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
+        target = event.get("target", "Unknown")
+        return f"War declared: {aggressor} -> {target} (shattering {event.get('breached_treaty')})"
+
+    if event_type == "diplomatic_treaty_broken" and (event.get("other") or event.get("target")):
+        nation = event.get("breaker") or event.get("nation", "Unknown")
+        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        target = event.get("other") or event.get("target", "")
+        reason_phrase = event.get("reason_phrase", "")
+        if reason_phrase:
+            return f"Treaty broken: {nation} - {treaty_type} with {target} {reason_phrase}"
+        return f"Treaty broken: {nation} - {treaty_type} with {target}"
+
     if event_type == "battle":
         attacker = event.get("attacker", "Unknown")
         atk_nation = event.get("attacker_nation", "")

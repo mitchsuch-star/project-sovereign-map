@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 13, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs.)
+> **Last Updated:** April 15, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs. Interim substrate hardening is now live in the current diplomacy engine: war-on-partner declarations emit remembered treaty-breach events with richer context, and treaty-breaking war warnings preview the reliability fall instead of hiding it.)
 
 ---
 
@@ -114,6 +114,8 @@ These are existing audit items broken into implementation order. They stay after
 **Audit call (Apr 13):** the existing conversational diplomacy wizard should remain the home for normal diplomacy, separate peace, bilateral commitment review, and the future bilateral peace-hardening pass. Common peace, ally beneficiaries, and conference-style settlement allocation should route through a dedicated wartime settlement flow instead of being overloaded into the nation -> proposal -> terms loop.
 
 **Follow-up note:** `R162` (AI ultimatums to player) is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above exist. It adds interruption surface before the underlying diplomacy has enough political weight.
+
+**Mechanical substrate note (Apr 15):** the live diplomacy layer now records treaty rupture as a remembered political event when war shatters an active commitment, including the injured party, breach reason family, witness scope, actor personality, and pre/post reliability. The declare-war objection path also previews the reliability drop before confirmation. This is not full `Reliability + Commitments` implementation yet; it is targeted hardening so the current engine produces more legible material for the downstream commitments/presentation work.
 
 ### Independent Tracks
 

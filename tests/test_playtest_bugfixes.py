@@ -223,6 +223,32 @@ class TestWarOnTreatyAlly:
         # War should NOT be declared yet
         assert world.diplomatic_states[diplo_key] != "WAR"
 
+    def test_war_on_treaty_ally_warning_includes_reliability_preview(self):
+        world = _make_world()
+        executor = CommandExecutor()
+
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance",
+            "nations": [player, target],
+            "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        result = executor._execute_diplomatic_declare_war(
+            {"target_nation": target, "action": "diplomatic_declare_war"},
+            world,
+        )
+
+        dialogue = result.get("diplomatic_dialogue") or {}
+        breach_preview = dialogue.get("breach_preview") or {}
+        assert breach_preview.get("reliability_before") == 0
+        assert breach_preview.get("reliability_after") == -10
+        assert "Reliability would fall from 0 to -10." in result.get("message", "")
+
     def test_war_on_non_treaty_nation_no_warning(self):
         """No treaty = no special warning (existing threat objection may still fire)."""
         world = _make_world()

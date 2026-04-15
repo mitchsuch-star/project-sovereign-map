@@ -456,6 +456,28 @@ class TestOneLinerFormatting:
         assert "Ney ordered to hold" in result
         assert "Brussels" not in result
 
+    def test_treaty_broken_with_target_and_reason(self):
+        event = {
+            "type": "diplomatic_treaty_broken",
+            "breaker": "France",
+            "other": "Austria",
+            "treaty_type": "alliance",
+            "reason_phrase": "by declaring war",
+        }
+        result = format_event_oneliner(event)
+        assert "Austria" in result
+        assert "declaring war" in result
+
+    def test_war_declaration_with_shattered_treaty(self):
+        event = {
+            "type": "war_declaration",
+            "aggressor": "France",
+            "target": "Austria",
+            "breached_treaty": "Alliance",
+        }
+        result = format_event_oneliner(event)
+        assert "shattering Alliance" in result
+
     def test_unknown_type_fallback(self):
         event = {"type": "some_unknown_type"}
         result = format_event_oneliner(event)

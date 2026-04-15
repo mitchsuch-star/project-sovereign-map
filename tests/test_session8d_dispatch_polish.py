@@ -165,6 +165,22 @@ class TestDispatchDiplomaticEvents:
         assert len(events) == 1
         assert "non aggression" in events[0]["text"]
 
+    def test_treaty_broken_dispatch_uses_target_and_reason_when_present(self):
+        world = _make_world()
+        queue_dispatch_event(world, "diplomatic_treaty_broken",
+                            {
+                                "nation": "France",
+                                "target": "Austria",
+                                "treaty_type": "Alliance",
+                                "reason_phrase": "by declaring war",
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "Austria" in events[0]["text"]
+        assert "declaring war" in events[0]["text"]
+
     def test_war_declared_appears_in_dispatch(self):
         world = _make_world()
         queue_dispatch_event(world, "diplomatic_war_declared",
@@ -175,6 +191,22 @@ class TestDispatchDiplomaticEvents:
         assert len(events) == 1
         assert "Austria" in events[0]["text"]
         assert "Prussia" in events[0]["text"]
+
+    def test_war_declared_dispatch_mentions_shattered_treaty(self):
+        world = _make_world()
+        queue_dispatch_event(world, "diplomatic_war_declared",
+                            {
+                                "nation": "France",
+                                "target": "Austria",
+                                "breached_treaty": "Alliance",
+                                "defensive_joiner_count": 2,
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "shattering" in events[0]["text"]
+        assert "Alliance" in events[0]["text"]
 
     def test_vassal_unrest_appears_in_dispatch(self):
         world = _make_world()

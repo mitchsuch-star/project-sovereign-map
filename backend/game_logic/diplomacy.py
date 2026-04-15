@@ -137,7 +137,10 @@ SPECIAL_BONUSES = {
 }
 
 # Feedback strings — single source in display_names.py (R7)
-from backend.display_names import FEEDBACK_STRINGS
+from backend.display_names import (
+    FEEDBACK_STRINGS,
+    proposal_display_name as _proposal_display_name,
+)
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
 SWEETENER_VALUES = {
@@ -169,6 +172,230 @@ DEMAND_VALUES = {
     "ap_per_turn": -25,             # -25 per AP demanded (extreme)
     "unit_swap": -2,                # -2 per unfavorable trade
 }
+
+# Commitment-bearing states. Breaking out of one of these should produce a
+# remembered political breach, not just a generic state flip.
+COMMITMENT_STATES = {
+    "OPEN_BORDERS",
+    "NON_AGGRESSION",
+    "DEFENSIVE_ALLIANCE",
+    "ALLIANCE",
+    "VASSAL",
+}
+
+_BREACH_SEVERITY_BY_TREATY = {
+    "open_borders": "low",
+    "non_aggression": "medium",
+    "defensive_alliance": "high",
+    "alliance": "high",
+    "vassal": "high",
+}
+
+_BREACH_REASON_PHRASES = {
+    "manual_break": "without seeking release",
+    "war_declaration": "by declaring war",
+    "paradox_choice": "to resolve a diplomatic paradox",
+}
+
+
+def _get_actor_personality(world, nation: str) -> str:
+    """Best-effort diplomatic personality for the actor's court."""
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(nation)
+    if diplomat is None:
+        return ""
+    return str(getattr(diplomat, 'personality', "") or "")
+
+
+def _get_breach_witness_scope(world, breaker_nation: str, injured_party: str) -> Dict:
+    """Estimate which courts are positioned to care about a treaty rupture."""
+    witnesses = []
+    for nation in world.get_active_nations():
+        if nation in (breaker_nation, injured_party):
+            continue
+        breaker_state = world.get_diplomatic_state(nation, breaker_nation)
+        injured_state = world.get_diplomatic_state(nation, injured_party)
+        if (
+            breaker_state in COMMITMENT_STATES
+            or injured_state in COMMITMENT_STATES
+            or world.is_at_war(nation, breaker_nation)
+            or world.is_at_war(nation, injured_party)
+        ):
+            witnesses.append(nation)
+
+    player_nation = getattr(world, 'player_nation', 'France')
+    if breaker_nation == player_nation or injured_party == player_nation or len(witnesses) >= 3:
+        label = "continental"
+    elif witnesses:
+        label = "aligned courts"
+    else:
+        label = "private court"
+
+    return {
+        "label": label,
+        "count": int(len(witnesses)),
+        "sample": witnesses[:4],
+    }
+
+
+def get_treaty_breach_preview(
+    world,
+    breaker_nation: str,
+    other_nation: str,
+    treaty: Dict = None,
+    reason_family: str = "manual_break",
+) -> Dict:
+    """Build deterministic breach metadata before the state changes."""
+    pair_key = world._make_diplo_key(breaker_nation, other_nation)
+    treaty_data = treaty or getattr(world, 'active_treaties', {}).get(pair_key, {})
+    current_state = world.get_diplomatic_state(breaker_nation, other_nation)
+    treaty_type = str(
+        treaty_data.get("type")
+        or current_state.lower()
+        or "treaty"
+    )
+    turn_signed = int(treaty_data.get("turn_signed") or 0)
+    turns_honored = max(0, int(world.current_turn) - turn_signed) if turn_signed else 0
+
+    reliability = getattr(world, 'diplomatic_reliability', {})
+    reliability_before = int(reliability.get(breaker_nation, 0))
+    reliability_after = max(-100, reliability_before - 10)
+    witness_scope = _get_breach_witness_scope(world, breaker_nation, other_nation)
+
+    return {
+        "pair_key": pair_key,
+        "breaker": breaker_nation,
+        "injured_party": other_nation,
+        "fault_nation": breaker_nation,
+        "treaty_type": treaty_type,
+        "treaty_type_display": _proposal_display_name(treaty_type),
+        "previous_state": current_state,
+        "turn_signed": turn_signed,
+        "turns_honored": int(turns_honored),
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "witness_scope": witness_scope["label"],
+        "witness_count": witness_scope["count"],
+        "witness_sample": witness_scope["sample"],
+        "actor_personality": _get_actor_personality(world, breaker_nation),
+        "end_reason_family": reason_family,
+        "reason_phrase": _BREACH_REASON_PHRASES.get(reason_family, "under pressure"),
+        "breach_severity": _BREACH_SEVERITY_BY_TREATY.get(treaty_type, "medium"),
+    }
+
+
+def preview_war_declaration(world, aggressor: str, target: str, casus_belli: bool = False) -> Dict:
+    """Forecast the political consequences of declaring war without mutating state."""
+    penalty_factor = 0.5 if casus_belli else 1.0
+    defensive_joiners = []
+    offensive_joiners = []
+    for nation in world.get_active_nations():
+        if nation in (aggressor, target):
+            continue
+        if world.get_diplomatic_state(nation, target) in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            if not world.is_at_war(nation, aggressor):
+                defensive_joiners.append(nation)
+        if world.get_diplomatic_state(nation, aggressor) == "ALLIANCE":
+            if not world.is_at_war(nation, target):
+                offensive_joiners.append(nation)
+
+    pair_key = world._make_diplo_key(aggressor, target)
+    treaty = getattr(world, 'active_treaties', {}).get(pair_key)
+    current_state = world.get_diplomatic_state(aggressor, target)
+    breach_preview = None
+    if treaty or current_state in COMMITMENT_STATES:
+        breach_preview = get_treaty_breach_preview(
+            world,
+            aggressor,
+            target,
+            treaty=treaty,
+            reason_family="war_declaration",
+        )
+
+    return {
+        "direct_relation_penalty": int(-30 * penalty_factor),
+        "indirect_relation_penalty": int(-15 * penalty_factor),
+        "war_threat": 10 if casus_belli else 20,
+        "breach_preview": breach_preview,
+        "defensive_joiners": defensive_joiners,
+        "offensive_joiners": offensive_joiners,
+    }
+
+
+def _record_treaty_breach(
+    world,
+    breach_preview: Dict,
+    new_state: str,
+    trigger_context: Dict = None,
+) -> None:
+    """Emit the remembered political event for a treaty breach."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.notifications import (
+        create_notification, NotificationPriority, TREATY_BROKEN,
+    )
+
+    breaker_nation = breach_preview["breaker"]
+    injured_party = breach_preview["injured_party"]
+    treaty_type_display = breach_preview["treaty_type_display"]
+    reason_phrase = breach_preview["reason_phrase"]
+
+    world.log_event({
+        "type": "diplomatic_treaty_broken",
+        "breaker": breaker_nation,
+        "other": injured_party,
+        "injured_party": injured_party,
+        "fault_nation": breach_preview["fault_nation"],
+        "treaty_type": breach_preview["treaty_type"],
+        "treaty_type_display": treaty_type_display,
+        "previous_state": breach_preview["previous_state"],
+        "new_state": new_state,
+        "turns_honored": breach_preview["turns_honored"],
+        "reliability_before": breach_preview["reliability_before"],
+        "reliability_after": breach_preview["reliability_after"],
+        "witness_scope": breach_preview["witness_scope"],
+        "witness_count": breach_preview["witness_count"],
+        "witness_sample": breach_preview["witness_sample"],
+        "actor_personality": breach_preview["actor_personality"],
+        "end_reason_family": breach_preview["end_reason_family"],
+        "reason_phrase": reason_phrase,
+        "breach_severity": breach_preview["breach_severity"],
+        "trigger_context": trigger_context or {},
+    })
+
+    world.notifications.add(create_notification(
+        TREATY_BROKEN,
+        NotificationPriority.HIGH,
+        f"Treaty Broken: {treaty_type_display}",
+        f"{breaker_nation} has broken the {treaty_type_display} with {injured_party} {reason_phrase}.",
+        int(world.current_turn),
+    ))
+
+    queue_dispatch_event(world, "diplomatic_treaty_broken", {
+        "nation": breaker_nation,
+        "target": injured_party,
+        "treaty_type": treaty_type_display,
+        "reason_phrase": reason_phrase,
+        "witness_scope": breach_preview["witness_scope"],
+        "reliability_before": breach_preview["reliability_before"],
+        "reliability_after": breach_preview["reliability_after"],
+    }, "partial_on_nation")
+
+    reliability = getattr(world, 'diplomatic_reliability', {})
+    reliability[breaker_nation] = breach_preview["reliability_after"]
+    world.diplomatic_reliability = reliability
+
+    diplomatic_history = getattr(world, 'diplomatic_history', [])
+    diplomatic_history.append({
+        "turn": int(world.current_turn),
+        "type": "treaty_broken",
+        "nation": breaker_nation,
+        "target": injured_party,
+        "treaty_type": breach_preview["treaty_type"],
+        "detail": breach_preview["end_reason_family"],
+    })
+    if len(diplomatic_history) > 20:
+        diplomatic_history[:] = diplomatic_history[-20:]
+    world.diplomatic_history = diplomatic_history
 
 
 # ═══════════════════════════════════════════════════════
@@ -1167,6 +1394,9 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
             "message": f"Armistice cooldown in effect with {target} ({armistice_cooldown} turns remaining). War cannot be declared."
         }
 
+    war_preview = preview_war_declaration(world, aggressor, target, casus_belli=casus_belli)
+    breach_preview = war_preview.get("breach_preview")
+
     # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
     set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
 
@@ -1197,6 +1427,20 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         # Being attacked doesn't change authority directly
         pass
 
+    if breach_preview:
+        _record_treaty_breach(
+            world,
+            breach_preview,
+            new_state="WAR",
+            trigger_context={
+                "aggressor": aggressor,
+                "target": target,
+                "casus_belli": bool(casus_belli),
+                "defensive_joiners": war_preview["defensive_joiners"],
+                "offensive_joiners": war_preview["offensive_joiners"],
+            },
+        )
+
     # DP cost: 1
     dp_cost = WAR_DP_COST
 
@@ -1206,6 +1450,12 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         "aggressor": aggressor,
         "target": target,
         "previous_state": current_state,
+        "breached_treaty": breach_preview["treaty_type_display"] if breach_preview else "",
+        "breach_reason_family": breach_preview["end_reason_family"] if breach_preview else "",
+        "reliability_before": breach_preview["reliability_before"] if breach_preview else None,
+        "reliability_after": breach_preview["reliability_after"] if breach_preview else None,
+        "defensive_joiners": war_preview["defensive_joiners"],
+        "offensive_joiners": war_preview["offensive_joiners"],
     })
 
     # ── R12: ALLIANCE PARADOX CHECK (must run BEFORE cascade) ──
@@ -1264,18 +1514,30 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
     from backend.notifications import (
         create_notification, NotificationPriority, WAR_DECLARED,
     )
+    war_message = f"{aggressor} has declared war on {target}."
+    if breach_preview:
+        war_message = (
+            f"{aggressor} has declared war on {target}, shattering the "
+            f"{breach_preview['treaty_type_display']}."
+        )
     world.notifications.add(create_notification(
         WAR_DECLARED,
         NotificationPriority.HIGH,
         f"War with {target}!" if aggressor == world.player_nation else f"{aggressor} Declares War!",
-        f"{aggressor} has declared war on {target}.",
+        war_message,
         int(world.current_turn),
     ))
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_war_declared",
-                        {"nation": aggressor, "target": target},
+                        {
+                            "nation": aggressor,
+                            "target": target,
+                            "breached_treaty": breach_preview["treaty_type_display"] if breach_preview else "",
+                            "defensive_joiner_count": len(war_preview["defensive_joiners"]),
+                            "offensive_joiner_count": len(war_preview["offensive_joiners"]),
+                        },
                         "partial_on_nation")
 
     # R29: Log to diplomatic history
@@ -1285,12 +1547,18 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         "type": "war_declared",
         "nation": aggressor,
         "target": target,
+        "detail": breach_preview["treaty_type"] if breach_preview else "",
     })
     if len(diplomatic_history) > 20:
         diplomatic_history[:] = diplomatic_history[-20:]
     world.diplomatic_history = diplomatic_history
 
-    messages = [f"{aggressor} declares war on {target}!"]
+    if breach_preview:
+        messages = [
+            f"{aggressor} declares war on {target}, shattering the {breach_preview['treaty_type_display']}!"
+        ]
+    else:
+        messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
         if c.get("cascade_type") == "offensive":
             messages.append(
@@ -1335,9 +1603,32 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         if state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
             # Check if already at war with aggressor
             if not world.is_at_war(nation, aggressor):
+                existing_treaty = getattr(world, 'active_treaties', {}).get(
+                    world._make_diplo_key(nation, aggressor)
+                )
+                breach_preview = None
+                if existing_treaty or world.get_diplomatic_state(nation, aggressor) in COMMITMENT_STATES:
+                    breach_preview = get_treaty_breach_preview(
+                        world,
+                        nation,
+                        aggressor,
+                        treaty=existing_treaty,
+                        reason_family="war_declaration",
+                    )
                 # Force WAR — bypasses armistice cooldowns (R2: centralized setter)
                 set_diplomatic_state(world, nation, aggressor, "WAR", "defensive_cascade")
                 processed.add(nation)
+                if breach_preview:
+                    _record_treaty_breach(
+                        world,
+                        breach_preview,
+                        new_state="WAR",
+                        trigger_context={
+                            "cascade_type": "defensive",
+                            "ally": target,
+                            "aggressor": aggressor,
+                        },
+                    )
 
                 # R100: Apply relation penalty for cascaded war
                 world.modify_nation_relation(aggressor, nation, -20)
@@ -1387,8 +1678,31 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
             if not world.is_at_war(nation, target):
+                existing_treaty = getattr(world, 'active_treaties', {}).get(
+                    world._make_diplo_key(nation, target)
+                )
+                breach_preview = None
+                if existing_treaty or world.get_diplomatic_state(nation, target) in COMMITMENT_STATES:
+                    breach_preview = get_treaty_breach_preview(
+                        world,
+                        nation,
+                        target,
+                        treaty=existing_treaty,
+                        reason_family="war_declaration",
+                    )
                 set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
                 processed.add(nation)
+                if breach_preview:
+                    _record_treaty_breach(
+                        world,
+                        breach_preview,
+                        new_state="WAR",
+                        trigger_context={
+                            "cascade_type": "offensive",
+                            "aggressor": aggressor,
+                            "target": target,
+                        },
+                    )
                 world.modify_nation_relation(nation, target, -20)
 
                 cascade.append({
@@ -2235,6 +2549,17 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     nations = treaty.get("nations", [])
     other_nation = [n for n in nations if n != breaker_nation]
     other = other_nation[0] if other_nation else ""
+    if not other:
+        parts = pair_key.split("|")
+        if len(parts) == 2:
+            other = parts[1] if parts[0] == breaker_nation else parts[0]
+    breach_preview = get_treaty_breach_preview(
+        world,
+        breaker_nation,
+        other,
+        treaty=treaty,
+        reason_family="manual_break",
+    )
 
     # Relation penalties
     relation_changes = []
@@ -2272,11 +2597,6 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     }
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")
-    # Extract nations from pair_key when treaty has no nations list
-    if not other:
-        parts = pair_key.split("|")
-        if len(parts) == 2:
-            other = parts[1] if parts[0] == breaker_nation else parts[0]
     set_diplomatic_state(world, breaker_nation, other, new_state, "treaty_break")
 
     # Deep audit fix 3: Clean up war data if breaking from WAR/ARMISTICE
@@ -2296,54 +2616,24 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
             if pit_key == pair_key:
                 world.proposal_in_transit = None
 
-    # Log
-    world.log_event({
-        "type": "diplomatic_treaty_broken",
-        "breaker": breaker_nation,
-        "other": other,
-        "treaty_type": treaty_type,
-        "new_state": new_state,
-    })
-
-    # Notification: treaty broken (Session 8C)
-    from backend.notifications import (
-        create_notification, NotificationPriority, TREATY_BROKEN,
+    _record_treaty_breach(
+        world,
+        breach_preview,
+        new_state=new_state,
+        trigger_context={
+            "breaker": breaker_nation,
+            "other": other,
+            "treaty_type": treaty_type,
+            "mode": "manual_break",
+        },
     )
-    world.notifications.add(create_notification(
-        TREATY_BROKEN,
-        NotificationPriority.HIGH,
-        f"Treaty Broken: {treaty_type}",
-        f"{breaker_nation} has broken the {treaty_type} with {other}.",
-        int(world.current_turn),
-    ))
-
-    # Dispatch event (Session 8D)
-    from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, "diplomatic_treaty_broken",
-                        {"nation": breaker_nation, "treaty_type": treaty_type},
-                        "partial_on_nation")
-
-    # R34: Decrease diplomatic reliability for breaker
-    reliability = getattr(world, 'diplomatic_reliability', {})
-    reliability[breaker_nation] = max(-100, reliability.get(breaker_nation, 0) - 10)
-    world.diplomatic_reliability = reliability
-
-    # R29: Log to diplomatic history
-    diplomatic_history = getattr(world, 'diplomatic_history', [])
-    diplomatic_history.append({
-        "turn": int(world.current_turn),
-        "type": "treaty_broken",
-        "nation": breaker_nation,
-        "target": other,
-        "treaty_type": treaty_type,
-    })
-    if len(diplomatic_history) > 20:
-        diplomatic_history[:] = diplomatic_history[-20:]
-    world.diplomatic_history = diplomatic_history
 
     return {
         "success": True,
-        "message": f"{breaker_nation} has broken the {treaty_type} with {other}! Relations plummet.",
+        "message": (
+            f"{breaker_nation} has broken the {breach_preview['treaty_type_display']} "
+            f"with {other} {breach_preview['reason_phrase']}! Relations plummet."
+        ),
         "new_state": new_state,
         "relation_changes": relation_changes,
         "treaty_broken_event": treaty_type,  # R23: signal for trust reactions

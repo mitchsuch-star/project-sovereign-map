@@ -528,7 +528,7 @@ class DiplomaticExecutor:
 
     def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
         """Handle war declaration command (R10). Costs 1 DP."""
-        from backend.game_logic.diplomacy import declare_war
+        from backend.game_logic.diplomacy import declare_war, preview_war_declaration
         confirmed_objection = bool(diplomatic_data.get("confirmed_objection"))
 
         # Fix 3: Clear previous war declaration objection (it's been handled if we're here again)
@@ -568,15 +568,46 @@ class DiplomaticExecutor:
         existing_treaty = world.active_treaties.get(diplo_key_treaty)
         if existing_treaty and not world.diplomatic_objection_popup:
             treaty_type = existing_treaty.get("type", "treaty")
+            war_preview = preview_war_declaration(
+                world,
+                player,
+                target_nation,
+                casus_belli=world.casus_belli.get(diplo_key_treaty, False),
+            )
+            breach_preview = war_preview.get("breach_preview", {})
             from backend.display_names import PROPOSAL_TYPE_DISPLAY
             _display_proposal_type = lambda pt: PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
             treaty_display = _display_proposal_type(treaty_type)
+            extra_lines = []
+            if breach_preview:
+                extra_lines.append(
+                    f"Reliability would fall from {int(breach_preview.get('reliability_before', 0))} "
+                    f"to {int(breach_preview.get('reliability_after', 0))}."
+                )
+            defensive_joiners = war_preview.get("defensive_joiners", [])
+            if defensive_joiners:
+                extra_lines.append(
+                    "Likely defenders: " + ", ".join(defensive_joiners) + "."
+                )
+            offensive_joiners = war_preview.get("offensive_joiners", [])
+            if offensive_joiners:
+                extra_lines.append(
+                    "Likely co-belligerents: " + ", ".join(offensive_joiners) + "."
+                )
+            warning_text = (
+                f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
+                f"Declaring war would shatter that commitment and mark us as oath-breakers "
+                f"in the eyes of Europe. Shall I proceed regardless?"
+            )
+            if extra_lines:
+                warning_text += "\n\n" + "\n".join(extra_lines)
             world.dialogue_manager.replace({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
-                "message": (f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
-                            f"Declaring war would break this treaty and mark us as oath-breakers "
-                            f"in the eyes of all Europe. Shall I proceed regardless?"),
+                "message": warning_text,
+                "talleyrand_text": warning_text,
+                "breach_preview": breach_preview,
+                "war_preview": war_preview,
                 "options": [
                     {"label": "Proceed — break the treaty", "action": "force_declare_war",
                      "target_nation": target_nation},
@@ -587,7 +618,7 @@ class DiplomaticExecutor:
             })
             return {
                 "success": True,
-                "message": world.pending_diplomatic_dialogue["message"],
+                "message": warning_text,
                 "diplomatic_dialogue": world.pending_diplomatic_dialogue,
                 "awaiting_diplomatic_response": True,
             }
@@ -2650,10 +2681,26 @@ class DiplomaticExecutor:
             if not attacker_nation or not defender_nation:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
-            from backend.game_logic.diplomacy import execute_downgrade as _paradox_downgrade
+            from backend.game_logic.diplomacy import (
+                execute_downgrade as _paradox_downgrade,
+                get_treaty_breach_preview as _get_treaty_breach_preview,
+                _record_treaty_breach as _record_treaty_breach,
+            )
             # Break alliance with defender: downgrade step by step to PEACE
             player = world.player_nation
             diplo_key = world._make_diplo_key(player, defender_nation)
+            treaty_snapshot = getattr(world, 'active_treaties', {}).get(diplo_key)
+            breach_preview = None
+            if treaty_snapshot or world.get_diplomatic_state(player, defender_nation) in (
+                "ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"
+            ):
+                breach_preview = _get_treaty_breach_preview(
+                    world,
+                    player,
+                    defender_nation,
+                    treaty=treaty_snapshot,
+                    reason_family="paradox_choice",
+                )
             current = world.diplomatic_states.get(diplo_key, "PEACE")
             while current in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"):
                 dg_result = _paradox_downgrade(world, player, defender_nation)
@@ -2663,6 +2710,17 @@ class DiplomaticExecutor:
             # Also remove active treaty
             active_treaties = getattr(world, 'active_treaties', {})
             active_treaties.pop(diplo_key, None)
+            if breach_preview:
+                _record_treaty_breach(
+                    world,
+                    breach_preview,
+                    new_state=current,
+                    trigger_context={
+                        "paradox_attacker": attacker_nation,
+                        "paradox_defender": defender_nation,
+                        "player_choice": "break_defender_alliance",
+                    },
+                )
             world.dialogue_manager.pop()
             world.alliance_paradox_popup = None
             # Dismiss stale alliance cascade notification

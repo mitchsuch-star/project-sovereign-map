@@ -76,6 +76,32 @@ class TestR97DeclareWarCleansTreaties:
         result = declare_war(world, "France", "Prussia")
         assert result["success"] is True
 
+    def test_declare_war_on_treaty_partner_records_breach_memory(self):
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Austria")
+        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
+        world.active_treaties[diplo_key] = {
+            "nations": ["France", "Austria"],
+            "type": "alliance",
+            "clauses": [],
+            "turn_signed": 2,
+            "harshness": 0,
+        }
+
+        result = declare_war(world, "France", "Austria")
+
+        assert result["success"] is True
+        assert world.diplomatic_reliability.get("France", 0) == -10
+        breach_events = [
+            e for e in world.event_log
+            if e.get("type") == "diplomatic_treaty_broken"
+        ]
+        assert breach_events, "war declaration should emit a treaty-broken memory event"
+        latest = breach_events[-1]
+        assert latest.get("other") == "Austria"
+        assert latest.get("end_reason_family") == "war_declaration"
+        assert latest.get("reason_phrase") == "by declaring war"
+
 
 # ═══════════════════════════════════════════════════════
 # R98: Wire check_relation_requirement + validate_ap_clause
