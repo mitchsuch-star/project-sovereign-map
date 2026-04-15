@@ -149,6 +149,7 @@
 - Add `war_entry_counter_bargain` flow for military allies who did not bargain at alliance time but demand terms at the same-turn ally-entry decision for a specific war
 - Render counter-bargains through the existing proposal-confirm popup with `counter_bargain_context`; do not add a second dialogue family for same-turn war entry
 - Counter-bargains use an immediate blocking confirm flow, not mailbox deferral
+- Serialize the staged offensive declaration inside pending dialogue context as primitive `pending_declaration` payload keyed by `declaration_transaction_id`; do not rely on an ID with no restorable staged action
 - Counter-bargains only apply to offensive ally requests; defensive honor calls auto-resolve as join after hard-block checks
 - `Reject` on a counter-bargain continues the declaration / war action without that ally if otherwise legal; `Back Out` cancels the pending declaration preview transaction before war-state mutation
 - Commitments-layer hard blocks override the old defensive-cascade armistice bypass where the two rules would conflict
@@ -185,7 +186,7 @@
 - AI anti-spam rules: no repeated bargain offers while one is live or cooling down
 - Counter-bargain timing: score `50+` joins for free, `25-49` may counter-bargain, `<25` refuses
 - Use existing downgrade / auto-downgrade behavior as the normal fallout path when rivalry anger drives relation collapse; do not add forced instant-break logic as part of the bargain slice
-- ~34 tests (wizard review surface, pre-war warnings, AllyEntryPipeline routing, transactional declaration ordering, war-entry bonus, counter-bargain flow, AI gating, hard-block messaging, deterministic rerolls, unrelated-route non-rerolls, coalition-overlap voids, compact log rendering, rivalry-hit downgrade interaction, paradox-bargain preview integration, defensive-honor-vs-armistice arbitration, M5-vs-paradox arbitration, save/load reroll identity, save/load `origin_episode_id` persistence)
+- ~36 tests (wizard review surface, pre-war warnings, AllyEntryPipeline routing, transactional declaration ordering, pending-declaration save/load resume, pending-declaration cancel/continue semantics, war-entry bonus, counter-bargain flow, AI gating, hard-block messaging, deterministic rerolls, unrelated-route non-rerolls, coalition-overlap voids, compact log rendering, rivalry-hit downgrade interaction, paradox-bargain preview integration, defensive-honor-vs-armistice arbitration, M5-vs-paradox arbitration, save/load reroll identity, save/load `origin_episode_id` persistence)
 
 ---
 

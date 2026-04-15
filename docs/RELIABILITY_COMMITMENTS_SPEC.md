@@ -655,7 +655,8 @@ Rules:
 
 - only explicit accept / reject / back out actions on a surfaced `join_opportunity` may change bargain state
 - failure to surface a `join_opportunity`, or inability to surface one because the request path does not yet exist, never creates breach by itself
-- if a `join_opportunity` or pending counter-bargain may survive save/load, serialize `context.origin_episode_id`, `context.reroll_key`, and `context.join_opportunity` on the pending dialogue state; counter-bargain payloads should also store `context.counter_bargain_context` and any in-flight offensive declaration should retain its `context.declaration_transaction_id`
+- if a `join_opportunity` or pending counter-bargain may survive save/load, serialize `context.origin_episode_id`, `context.reroll_key`, and `context.join_opportunity` on the pending dialogue state; counter-bargain payloads should also store `context.counter_bargain_context`, `context.declaration_transaction_id`, and `context.pending_declaration`
+- `context.pending_declaration` is the canonical staged offensive war-action snapshot for that transaction and must be sufficient to either commit or discard the declaration after the ally-entry decision resumes; at minimum keep `{transaction_id, actor, action_type, target_enemy, created_turn}` as primitive data
 
 France-facing ally entry in v0.1 has three distinct cases:
 
@@ -727,7 +728,8 @@ Rules:
   - route-feasibility changes caused by beneficiary / named-enemy territorial, treaty, or war-state changes
   - bargain-region availability changes caused by beneficiary / named-enemy war resolution
 - France signing unrelated third-party treaties or opening unrelated third-party routes does **not** qualify as a reroll trigger
-- counter-bargains should use the existing proposal-confirm shell with a `counter_bargain_context` payload; do **not** create a second dialogue family or mailbox flow for same-turn war entry
+- counter-bargains should use the existing proposal-confirm shell with a `counter_bargain_context` payload in **blocking** mode; do **not** create a second dialogue family or mailbox flow for same-turn war entry
+- a blocking counter-bargain confirm must not auto-dismiss on end turn and must offer terminal `Accept`, `Reject`, and `Back Out` actions against the staged `pending_declaration`
 
 Valid wartime asks in v0.1:
 
@@ -1121,6 +1123,7 @@ Layout rule:
 - insert the review card as the final stage inside the existing proposal-confirm popup / wizard flow
 - show the bargain summary and top 1-2 warnings above the action buttons
 - reuse the same card for war-entry counter-bargains with immediate Accept / Refuse / Back Out actions via `counter_bargain_context` on the existing proposal-confirm flow
+- when used for counter-bargains, that reused proposal-confirm instance is `blocking=True` and resolves against the serialized `pending_declaration` snapshot rather than a normal envoy-in-transit proposal
 
 ### 12.4 Treaty display
 
@@ -1205,6 +1208,7 @@ Rendering rule:
 Cooldown note:
 
 - cooldown lookups should key off `cooldown_key = source_pair + "::" + target_enemy`, not the commitment id, so breach / void anti-spam persists across bargain replacement and save/load
+- `source_pair` should use canonical `promiser|beneficiary` ordering; in the v0.1 France-authored bargain slice this is always `France|beneficiary`
 
 - `next_commitment_id: int`
 

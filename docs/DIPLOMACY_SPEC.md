@@ -1998,6 +1998,7 @@ self.war_scores: Dict[str, int] = {}
 # - context.join_opportunity
 # - context.counter_bargain_context (when applicable)
 # - context.declaration_transaction_id (when tied to a pending offensive declaration)
+# - context.pending_declaration (primitive staged offensive declaration snapshot for that transaction)
 # - context.opposition_pair_key (for commitment_paradox follow-ups)
 # See CONVERSATIONAL_DIPLOMACY_DESIGN §2b for full schema.
 self.pending_diplomatic_dialogue: Optional[Dict] = None

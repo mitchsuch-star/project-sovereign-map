@@ -106,7 +106,9 @@ pending_diplomatic_dialogue = {
 world.pending_diplomatic_dialogue = d.get("pending_diplomatic_dialogue", None)
 ```
 
-**Commitments follow-up reserved `context` keys:** commitments-generated dialogue payloads should serialize `origin_episode_id`, `reroll_key`, and `join_opportunity` whenever a surfaced ally-entry decision may resume after save/load. Counter-bargain payloads additionally use `counter_bargain_context`; pending offensive declaration previews additionally use `declaration_transaction_id`; commitment paradox follow-ups use `opposition_pair_key`. Keep these keys primitive-only and inside `context`, not as live backend references.
+**Commitments follow-up reserved `context` keys:** commitments-generated dialogue payloads should serialize `origin_episode_id`, `reroll_key`, and `join_opportunity` whenever a surfaced ally-entry decision may resume after save/load. Counter-bargain payloads additionally use `counter_bargain_context`, `declaration_transaction_id`, and a primitive `pending_declaration` snapshot. Commitment paradox follow-ups use `opposition_pair_key`. Keep these keys primitive-only and inside `context`, not as live backend references.
+
+For commitments-generated offensive ally-entry interrupts, `context.pending_declaration` is the canonical staged war-action payload for the in-flight transaction. It must contain enough primitive data to either continue or cancel the declaration after the hard-stop resolves; at minimum store `{transaction_id, actor, action_type, target_enemy, created_turn}`.
 
 Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Update `docs/SAVE_FORMAT_REFERENCE.md` with the new field.
 
@@ -115,16 +117,18 @@ Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Up
 | Type | Trigger | Talleyrand Behavior | Depth |
 |------|---------|-------------------|-------|
 | `proposal_options` | Vague command ("deal with Prussia") | Presents 2-3 approaches | 2 exchanges |
-| `proposal_confirm` | Medium command ("offer peace to Prussia") | Suggests specific terms, asks confirmation | 2 exchanges |
+| `proposal_confirm` | Medium command ("offer peace to Prussia") or commitments hard-stop confirm | Suggests specific terms, asks confirmation | 2 exchanges |
 | `proposal_execute` | Specific command (full clause list) | Objects or executes (existing §2d flow) | 1-2 exchanges |
 | `advisory` | "What about Austria?" / "Who's the threat?" | Strategic analysis, recommendations | 2-3 exchanges |
 | `feasibility` | "What would it take to...?" | Formula-backed assessment with Schemer bias | 1 exchange |
 | `incoming_proposal` | AI sends proposal | Presents proposal with his spin | 2 exchanges | **blocking** |
 | `sabotage_confrontation` | Sabotage discovered | Dramatic reveal, player choice | 2 exchanges | **blocking** |
+| `commitment_paradox` | Ratification would span an active opposition pair | Hard-stop downgrade / cancel resolution | 1-2 exchanges | **blocking** |
 | `proactive_suggestion` | Talleyrand notices an opportunity | Morning Dispatch suggestion | 1-2 exchanges | non-blocking |
 
 **Implementation notes (from master audit):**
 - **Universal dismiss:** All non-blocking dialogues should include a "Never mind" / "Dismiss" option that clears the dialogue with no DP cost or consequence. Blocking dialogues (`incoming_proposal`, `sabotage_confrontation`) must NOT have a dismiss option — player must respond.
+- **Blocking `proposal_confirm` mode:** `proposal_confirm` is normally non-blocking, but becomes **blocking** when `context.counter_bargain_context` and `context.pending_declaration` are present. In that mode it must not auto-dismiss on end-turn and its terminal actions are `Accept`, `Reject`, or `Back Out` against the staged declaration snapshot.
 - **Mission pause during confrontation:** If `sabotage_confrontation` fires while Talleyrand has an `active_diplomatic_mission`, the mission pauses (`paused=True`) until the confrontation resolves. After resolution, mission resumes or is cancelled per player choice.
 - **is_enemy() and vassals:** When vassalization changes a nation's allegiance, `is_enemy()` checks must consult `world.vassals` dict — a vassalized nation's marshals are no longer enemies. Implementation should check `enemy_nations` AND `vassals` to determine hostility.
 
@@ -1524,7 +1528,7 @@ Player input during pending_diplomatic_dialogue:
 
 1. `pending_objection` — combat/tactical objections (always top priority)
 2. `pending_strategic_objection` — strategic order objections
-3. `pending_diplomatic_dialogue` (blocking=True) — incoming AI proposals, sabotage confrontation
+3. `pending_diplomatic_dialogue` (blocking=True) — incoming AI proposals, sabotage confrontation, commitments hard-stops (`commitment_paradox`, blocking `proposal_confirm`)
 4. `pending_diplomatic_dialogue` (blocking=False) — player-initiated dialogues (advisory, proposal_options, etc.)
 
 When a higher-priority state is set, lower-priority states are preserved but not displayed. The player resolves them in priority order. Strategic per-turn execution (`_strategic_execution = True`) ignores `pending_diplomatic_dialogue` entirely — it's autonomous and doesn't require player input.
@@ -1535,8 +1539,9 @@ When a higher-priority state is set, lower-priority states are preserved but not
 |---|---|---|
 | `incoming_proposal` | **Yes** | Blocks end-turn. Player MUST respond (Accept/Reject/Counter). |
 | `sabotage_confrontation` | **Yes** | Blocks end-turn. Player MUST choose (Confront/Overlook). |
+| `commitment_paradox` | **Yes** | Blocks end-turn. Player MUST resolve the ratification conflict. |
 | `proposal_options` | No | Auto-dismisses on end-turn. |
-| `proposal_confirm` | No | Auto-dismisses on end-turn. |
+| `proposal_confirm` | No by default. **Yes** in commitments counter-bargain mode. | Standard mode auto-dismisses on end-turn. Counter-bargain mode blocks end-turn until Accept / Reject / Back Out resolves the staged declaration. |
 | `proposal_execute` | No | Auto-dismisses on end-turn. |
 | `advisory` | No | Auto-dismisses on end-turn. |
 | `feasibility` | No | Auto-dismisses on end-turn. |
