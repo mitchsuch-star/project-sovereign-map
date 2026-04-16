@@ -4,7 +4,7 @@ Session 8A Tests — Diplomatic Ledger, Debug Arsenal, Pass-throughs, Top Bar
 Tests cover:
   - Diplomatic Ledger builder (4 tabs × ~5 tests)
   - Fog design for army_strength
-  - Cheat commands (10 × 2 tests)
+  - Cheat commands (11 × 2 tests)
   - Debug endpoints (8 tests)
   - Pass-through wiring (3 tests)
   - Top-bar /test fields (1 test)
@@ -411,7 +411,7 @@ class TestDiplomaticLedgerTalleyrand:
 # ════════════════════════════════════════════════════════════════
 
 class TestCheatCommands:
-    """Tests for 10 cheat commands in executor."""
+    """Tests for 11 cheat commands in executor."""
 
     def _run_cheat(self, world, cheat_type, cheat_args=None):
         executor = CommandExecutor()
@@ -514,6 +514,38 @@ class TestCheatCommands:
         assert active is not None
         assert active["type"] == "incoming_proposal"
         assert active["target_nation"] == "Austria"
+
+    def test_seed_hard_reject_sets_warning_ready_history(self):
+        from backend.game_logic.diplomacy import has_hard_reject_posture
+        from backend.game_logic.diplomatic_dialogue import generate_dialogue
+
+        world = _make_world()
+        result = self._run_cheat(world, "seed_hard_reject", ["Austria"])
+
+        assert result["success"] is True
+        assert has_hard_reject_posture(world, "France", "Austria") is True
+        record = world.betrayal_history["France|Austria"]
+        assert len(record["strikes"]) == 3
+
+        dialogue = generate_dialogue("proposal_confirm", {
+            "target_nation": "Austria",
+            "proposal_type": "alliance",
+            "raw_text": "propose alliance with Austria",
+            "has_diplomatic_keywords": True,
+        }, world)
+        warnings = dialogue.get("warnings") or []
+        assert warnings
+        assert warnings[0]["category"] == "hard_reject"
+
+    def test_seed_hard_reject_accepts_custom_count(self):
+        from backend.game_logic.diplomacy import has_hard_reject_posture
+
+        world = _make_world()
+        result = self._run_cheat(world, "seed_hard_reject", ["Austria", "2"])
+
+        assert result["success"] is True
+        assert has_hard_reject_posture(world, "France", "Austria") is False
+        assert len(world.betrayal_history["France|Austria"]["strikes"]) == 2
 
     def test_cheat_guard_rejects_non_mock(self):
         """Cheat should be rejected when not in mock/debug mode."""

@@ -1899,7 +1899,7 @@ RETREAT RECOVERY (3 turns):
 
         Supported: set_threat, set_relation, give_dp, trigger_coalition,
         set_war_exhaustion, set_diplo_state, create_vassal,
-        set_vassal_loyalty, queue_ai_proposal,
+        set_vassal_loyalty, queue_ai_proposal, seed_hard_reject,
         clear_dialogue
         """
         import os
@@ -2021,6 +2021,60 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": f"Queued {_proposal_display_name(proposal_type)} proposal from {nation} to France.",
+            }
+
+        if cheat_type == "seed_hard_reject":
+            if not cheat_args:
+                return {
+                    "success": False,
+                    "message": "Usage: cheat seed_hard_reject <nation> [active_strikes]",
+                }
+            nation = cheat_args[0]
+            strike_count = 3
+            if len(cheat_args) >= 2:
+                strike_count = max(0, int(cheat_args[1]))
+            player = world.player_nation
+            pair_key = f"{player}|{nation}"
+            current_turn = int(getattr(world, "current_turn", 0))
+            history = dict(getattr(world, "betrayal_history", {}) or {})
+
+            if strike_count == 0:
+                history.pop(pair_key, None)
+                world.betrayal_history = history
+                return {
+                    "success": True,
+                    "message": f"Cleared remembered betrayal strikes for {player} -> {nation}.",
+                }
+
+            strikes = []
+            for index in range(strike_count):
+                strikes.append({
+                    "severity": "medium",
+                    "turn": max(1, current_turn - (strike_count - index - 1)),
+                    "episode_id": f"debug_betrayal_{nation.lower()}_{index + 1}",
+                    "decays_on_turn": current_turn + 20 + index,
+                })
+
+            history[pair_key] = {
+                "strikes": strikes,
+                "categories": ["treaty_breach"],
+                "last_turn": current_turn,
+            }
+            world.betrayal_history = history
+
+            from backend.game_logic.diplomacy import has_hard_reject_posture
+
+            if has_hard_reject_posture(world, player, nation):
+                posture_text = f"{nation} will hard-reject deep treaties."
+            else:
+                posture_text = f"{nation} has remembered betrayal strikes, but hard reject is not yet armed."
+
+            return {
+                "success": True,
+                "message": (
+                    f"Seeded {strike_count} active betrayal strike(s) for {player} -> {nation}. "
+                    f"{posture_text}"
+                ),
             }
 
         if cheat_type == "clear_dialogue":
