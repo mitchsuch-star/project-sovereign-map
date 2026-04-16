@@ -542,6 +542,30 @@ Every 3-5 turns, generate a period newspaper summarizing recent events via singl
 | **LLM Objection Arguments** | Objection references real game state | Objection popup (Tier 2) |
 | **Napoleon Comparison** | "You lasted 47 turns. Napoleon lasted 120 months. Your coalition formed on turn 12; historically, the Third Coalition formed in 1805." | Post-game screen |
 
+### Diplomatic LLM Features (Memory and Pressure era — added April 16 creative audit)
+
+These hook into the Memory and Pressure substrate (betrayal memory, rivalries, named diplomats, `episode_id` lineage) and the Voice Bible cast. All Haiku, all mock-safe, ~$0.003/game total.
+
+| Feature | Description | Trigger | Cost/game |
+|---------|-------------|---------|-----------|
+| **Betrayal Memory Voice** | When a nation rejects a proposal due to bilateral strikes, the named diplomat voices *why* in their register (Hawk accusation, Schemer calculation, Dove lament). Uses `bilateral_betrayal_mod` + Voice Bible register. | Proposal rejection where `bilateral_betrayal_mod < -8` | ~$0.0005 |
+| **Rival Pressure Rationale** | When deepening with Nation A angers rival Nation B, B's named diplomat explains the rivalry concern in the `warnings[]` preview. Transforms "-12 rivalry mod" into Metternich's words. | Proposal preview where `rival_conflict_mod < -4` | ~$0.0004 |
+| **Make Amends Response** | When France successfully executes Make Amends (§8.6.1), the target's named diplomat acknowledges the gesture in their register — grudging Hawk acceptance vs relieved Dove gratitude. | `_execute_make_amends()` success | ~$0.0009 |
+| **Strategic Order Narration** | When a marshal executes a strategic order autonomously, narrate their inner first-person moment. Extends "talk to generals" to "hear them think." | Strategic order execution where `actor != player_commanded` | ~$0.0008 |
+| **Inter-Turn Moment Snapshots** | Once per 3-5 turns, a named voice (diplomat or marshal) delivers one private evocative line in the Morning Dispatch. Threads personality through quiet turns. | Turn-end dispatch, personality-random trigger | ~$0.0008 |
+
+### LLM Mechanical Expansion Path (design gate — not Phase 8.5 scope)
+
+The golden rule is "LLM never affects mechanics — parsing only, executor is deterministic" (CLAUDE.md). Three expansions stay within the rule while giving LLM a mechanical-adjacent role:
+
+1. **Diplomatic quality preview (advisory, not input).** LLM reads game state + betrayal memory + rivalry data and generates a natural-language "strategic situation briefing" richer than the raw ledger. Talleyrand says "I estimate Metternich will find this 60% acceptable" — that's player advisory, not formula input. The executor ignores it; the deterministic acceptance formula remains authoritative. Mock-safe: template fallback uses `warnings[]` text directly.
+
+2. **Strategic_score → authority bonus (carrot path).** The existing `strategic_score` from creative-phrasing evaluation (see "Encouraging Creative Commands" below) is currently display-only. A future design could gate a small constant authority bonus (+1) on `strategic_score > threshold` per game. This makes LLM availability affect outcomes — **requires a dedicated design gate** before implementation. Mock mode must provide a default passing score so LLM-off players aren't penalized.
+
+3. **AI proposal coherence filter.** LLM evaluates AI-generated proposals for historical plausibility before surfacing them. This IS mechanical (filtering bad proposals) but can be framed as "Talleyrand reviewing his own work before presenting it to the Emperor." Mock-safe: without LLM, proposals pass unfiltered (current behavior). With LLM, proposals that read as historically implausible get re-rolled. Low priority but high immersion upside.
+
+These are **design-gated** — do not implement any as part of Phase 8.5 without a dedicated spec. The golden rule must be explicitly amended by a design gate, not silently stretched.
+
 ### Encouraging Creative Commands (Anti-Memorization)
 
 These ideas are downstream of the post-diplomacy command-layer queue above. Do not ship phrasing bonuses/penalties before `Persistent Command Focus`, `Standing Tactical Intent`, and `Semantic Command History` are specified.

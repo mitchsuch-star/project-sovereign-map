@@ -67,10 +67,9 @@ These are the next diplomacy design tracks. `Memory and Pressure` is the first i
 
 These refine existing systems and are still implementation-ready later, but they should not displace the grouped spec tracks above.
 
-### R119: Nations Remember Betrayal
+### R119: Nations Remember Betrayal — **COVERED**
 - **Category:** Player Feedback
-- **Summary:** Escalating betrayal tracking — nations penalize repeated broken agreements.
-- **Details:** New `world.betrayal_history` dict. 1st offense -10, 2nd -20, 3rd+ -30 + AI hard reject. Half penalty for witness nations. Redemption: 20 honored treaty turns removes oldest betrayal.
+- **Status:** **Fully covered** by the Memory and Pressure substrate (shipped April 15-16, 2026). `world.betrayal_history` with severity-scaled decay, per-episode strike caps, bilateral `bilateral_betrayal_mod` in acceptance formula, hard-reject posture at 3 active strikes, witness scoping, Make Amends active-redemption verb (v2.1). The original R119 design (flat -10/-20/-30 with half-witness, 20-turn redemption) was superseded by the spec's graded model. No further work needed on R119 itself.
 - **Files:** `diplomacy.py`
 
 ### R131: Cooldown Pre-Check Warning
@@ -112,6 +111,15 @@ These refine existing systems and are still implementation-ready later, but they
 - **Summary:** Estimated completion turn for active missions.
 - **Files:** `diplomatic_ledger.py`
 
+### Memory and Pressure interaction notes (added April 16 creative audit)
+
+These are not new items — they annotate existing items whose scope or interaction changes now that Memory and Pressure (v2.1) is the active spec.
+
+- **R162 (AI Ultimatums to Player):** Hard-reject posture (3+ bilateral strikes) from Memory and Pressure now informs AI ultimatum behavior. A nation at hard-reject posture toward France is both more likely to issue ultimatums (anger-driven) and less likely to accept French counter-offers. Wire this interaction when R162 ships.
+- **R123 / R124 (Economic Strategy & Diplomatic Isolation AI):** These collapse into queue item 5 (Nation Agendas + Motive Legibility). AI should now read `bilateral_betrayal_mod`, `rival_conflict_mod`, and `nation_rivalries` to drive subsidy offers, alliance-breaking proposals, and isolation strategy. The Memory and Pressure substrate provides the data; the agenda spec provides the decision logic.
+- **R17d (DP Breakdown Display):** Will need to display the new `political_commitment_mod` components (`direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod`) once Memory and Pressure ships. Consider showing these per-proposal in the breakdown, not just the composite.
+- **R155 / R157 (AI Proposal Voice / Talleyrand Voice Depth):** The C3-lite presentation pass (`COMMITMENTS_PRESENTATION_SPEC.md` v0.3) adds named-diplomat spotlight + split-voice for three live events with committed mock prose per `DIPLOMAT_VOICE_BIBLE.md`. This covers the commitments-surface subset of R155/R157. The broader scope (personality-driven proposal timing, AI-initiated proposal voice, deep Talleyrand commentary across all diplomacy) remains open and routes to queue items 5-6.
+
 ---
 
 ## Focused Audit Validation (Apr 10, 2026)
@@ -143,29 +151,16 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 
 ## Needs Design Gate
 
-### R160: Nation Rivalry System (EU4-Inspired)
+### R160: Nation Rivalry System (EU4-Inspired) — **PARTIALLY COVERED**
 - **Category:** Diplomacy — Balance
-- **Source:** Playtest (Apr 6) — player befriended all 4 nations simultaneously with no friction
-- **Problem:** Nothing prevents France from being allied with everyone at once. No nation objects to France allying their historical enemy. Diplomacy has no tension — it's a one-way ramp to universal friendship. In the playtest, France achieved ALLIANCE with Britain, Prussia, and Austria while vassalizing Saxony in 7 turns. There's no strategic choice about *who* to ally because allying everyone is always optimal.
-- **Proposed design — Rivalry system:**
-  - **Rival pairs:** Nations have natural rivals (historical + dynamic). Rivals are upset when you befriend their enemy.
-    - Starting rivals: Britain↔France (colonial), Prussia↔Austria (German hegemony), Prussia↔Saxony (annexation threat)
-    - Dynamic: AI can declare rivalry when relation drops below -40 or when France allies their enemy
-  - **Alliance anger:** When France allies Nation A, nations that are rivals of A get a relation penalty (-10 to -20) and may break treaties. "Austria protests your alliance with Prussia."
-  - **Rival exclusion:** Cannot be allied with both members of a rival pair simultaneously. Choosing one means losing the other. Forces strategic branching.
-  - **Jealous AI proposals:** Nations offer alliance specifically to BLOCK you from allying their rival. "Prussia offers alliance — but only if you break ties with Austria."
-  - **Rival decay:** Rivalries fade if nations have common enemies (+2/turn at war with same target). New rivalries form from repeated wars.
-- **EU4 parallels:** Rival system, opinion penalties for allying rivals, alliance capacity limits, diplomatic reputation
-- **Design gates:** How many rivals per nation? Can the player influence rival pairs? Should there be an alliance capacity limit (max 2 allies)? How does this interact with coalitions?
-- **Files:** `diplomacy.py` (rival pairs, anger penalties), `ai_diplomacy.py` (rival-aware proposals, exclusion checks), `diplomatic_ledger.py` (display rivals), `world_state.py` (rival tracking)
-- **Est. sessions:** 2-3
+- **Status:** **Core system shipped** via Memory and Pressure v2.1. Static rivalry seed (4 authored pairs: France↔Britain, France↔Austria, Prussia↔Austria, Prussia↔Saxony), `direct_rivalry_mod` + `rival_conflict_mod` in acceptance formula, third-party anger on ratification, two authored Prussia↔Saxony escalation triggers. The original R160 design is superseded by `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 §7.
+- **Remaining (unshipped):** dynamic rivalry formation (AI declares rivalry when relation drops below threshold or when France allies their enemy). This was explicitly deferred in spec §7.2 to "later AI-agenda work." The jealous-AI-proposals and rival-decay designs from R160 are also not yet implemented but folded into the queue-5 `Nation Agendas + Motive Legibility` track.
+- **Files:** `diplomacy.py`, `ai_diplomacy.py`, `diplomatic_ledger.py`, `world_state.py`
 
-### R151: Territorial Promise Clauses
+### R151: Territorial Promise Clauses — **MOVED to WAR_BARGAIN_SPEC**
 - **Category:** Diplomacy Feature
-- **Summary:** New clause type — nations promise territorial cessions they don't yet control. Enables "France promises to help Prussia take Saxony in exchange for peace."
-- **Details:** New `territorial_promise` clause, acceptance bonus, obligation tracking, reputation penalty if broken. Historically accurate to Napoleonic diplomacy.
-- **Gates needed:** Obligation mechanics, AI understanding of promises, betrayal consequences.
-- **Files:** `diplomacy.py`, `ai_diplomacy.py`
+- **Status:** The broader concept (France makes named-enemy promises to allies, tracking obligation, breach/fulfillment, betrayal consequences) is now fully designed as the `war_bargain` clause type in `docs/WAR_BARGAIN_SPEC.md`. The spec covers creation, validation, lifecycle, fulfillment, breach/void, war-entry integration, and the Bargain Review surface. Scheduled in the Peace Deals phase after `Bilateral Peace Hardening` + `War Purpose + Score Semantics` (queue items 2-3.5).
+- **Files:** `diplomacy.py`, `ai_diplomacy.py`, `diplomatic_executor.py`
 
 ### Jealousy System (v3.1 spec)
 - **Category:** Marshal Feature
@@ -273,6 +268,17 @@ These are new feature designs. Each needs individual approval before implementat
 - **Gates needed:** AI trigger conditions (when is ultimatum better than war declaration?), player response popup design, threat direction (does AI ultimatum reduce or increase player threat?).
 - **Files:** `enemy_ai.py` (new P-trigger), `diplomatic_executor.py` (AI ultimatum handler), `main.gd` (new popup), `ai_diplomacy.py`
 - **Est. sessions:** 2-3, ~12 tests
+
+### National Power Tiers (Great Power / Secondary / Minor) — Design Gate
+- **Category:** Diplomacy + War — Balance + Immersion
+- **Summary:** Dynamic numeric power tiers (`great_power / secondary_power / minor_power`) calculated from controlled regions, income, military strength, and partial vassal contribution. Affects acceptance formula (great powers resist vassalization), coalition formation (great powers lead coalitions, minor powers join), war settlement (consultation rights scale with tier), and AI threat assessment (great powers escalate coalition faster).
+- **Origin:** Conceptual three-tier model exists in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §8.3. Data fields (`nation_power_scores`, `nation_power_tiers`) listed as deferred in `RELIABILITY_COMMITMENTS_SPEC.md` §12.3.
+- **Design decision from WAR_SETTLEMENT spec:** "These tiers come from numbers, not authored nation labels. The map can create a new quadrangle if power shifts."
+- **Interaction with Memory and Pressure:** great powers could have different rivalry intensity defaults (primary only between great powers; secondary between great-and-minor), betrayal tolerance thresholds (great powers hold grudges longer), and Make Amends cost scaling (reparations to a great power should cost more than to a minor).
+- **Gates needed:** numeric formula for calculating power scores, threshold ranges (what income/strength makes a "great power"), whether tiers are recalculated per turn or per-war, how tiers interact with the acceptance formula's existing modifier caps.
+- **Natural home:** alongside `War Purpose + Score Semantics` (queue item 3) since power tiers inform war objectives and settlement legitimacy. Or as a sub-item of the later `Ally Participation + Common Peace` (queue item 4).
+- **Files:** `world_state.py` (data), `diplomacy.py` (formula + tiers), `diplomatic_ledger.py` (display), `ai_diplomacy.py` (threat evaluation)
+- **Est. sessions:** 1-2 for the data layer + formula, plus formula-integration touches across existing systems
 
 ---
 
