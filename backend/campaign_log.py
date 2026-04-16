@@ -63,6 +63,7 @@ CAMPAIGN_LOG_TYPES = {
     "diplomatic_treaty_broken",
     "diplomatic_alliance_cascade",
     "diplomatic_ai_ai_treaty",
+    "commitment_paradox_resolved",
     # Deep audit fix: missing event types
     "war_declaration",
     "defensive_cascade",
@@ -129,6 +130,7 @@ CATEGORY_MAP = {
     "diplomatic_treaty_broken": "diplomacy",
     "diplomatic_alliance_cascade": "diplomacy",
     "diplomatic_ai_ai_treaty": "diplomacy",
+    "commitment_paradox_resolved": "diplomacy",
     # Deep audit fix: missing event types
     "war_declaration": "diplomacy",
     "defensive_cascade": "diplomacy",
@@ -244,6 +246,10 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # Player-nation events — always show
         if _is_player_event(event, player_nation):
+            filtered.append(event)
+            continue
+
+        if event_type == "commitment_paradox_resolved":
             filtered.append(event)
             continue
 
@@ -498,6 +504,18 @@ def format_event_oneliner(event: dict) -> str:
             return f"Treaty broken: {nation} - {treaty_type} with {target} {reason_phrase}"
         return f"Treaty broken: {nation} - {treaty_type} with {target}"
 
+    if event_type == "commitment_paradox_resolved":
+        chosen = event.get("chosen_nation", "Unknown")
+        spurned = event.get("spurned_nation", "Unknown")
+        reliability_before = event.get("reliability_before")
+        reliability_after = event.get("reliability_after")
+        if reliability_before is not None and reliability_after is not None:
+            return (
+                f"Commitment paradox resolved: chose {chosen} over {spurned} "
+                f"({reliability_before} -> {reliability_after} reliability)"
+            )
+        return f"Commitment paradox resolved: chose {chosen} over {spurned}"
+
     if event_type == "battle":
         attacker = event.get("attacker", "Unknown")
         atk_nation = event.get("attacker_nation", "")
@@ -630,6 +648,9 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "diplomatic_war_declared":
         aggressor = event.get("aggressor") or event.get("nation", "Unknown")
         target = event.get("target", "Unknown")
+        breached_treaty = event.get("breached_treaty", "")
+        if breached_treaty:
+            return f"War declared: {aggressor} → {target} (shattering {breached_treaty})"
         return f"War declared: {aggressor} → {target}"
 
     if event_type == "diplomatic_vassal_rebellion":
@@ -639,7 +660,23 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "diplomatic_treaty_broken":
         nation = event.get("breaker") or event.get("nation", "Unknown")
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        target = event.get("other") or event.get("target", "")
+        reason_phrase = event.get("reason_phrase", "")
+        family = event.get("end_reason_family", "")
+        if family == "obsolescence_or_external" and target:
+            return f"Treaty dragged apart: {nation} — {treaty_type} with {target} (cascade)"
+        if family == "counterparty_reversal" and target:
+            return f"Treaty broken by counterparty: {target} — {treaty_type} with {nation}"
+        if target and reason_phrase:
+            return f"Treaty broken: {nation} — {treaty_type} with {target} {reason_phrase}"
+        if target:
+            return f"Treaty broken: {nation} — {treaty_type} with {target}"
         return f"Treaty broken: {nation} — {treaty_type}"
+
+    if event_type == "commitment_paradox_resolved":
+        chosen = event.get("chosen_nation", "Unknown")
+        spurned = event.get("spurned_nation", "Unknown")
+        return f"Commitment paradox resolved: {chosen} chosen over {spurned}"
 
     if event_type == "diplomatic_alliance_cascade":
         nation = event.get("defender") or event.get("nation", "Unknown")

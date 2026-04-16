@@ -207,6 +207,26 @@ class TestR12AllianceParadox:
         assert dialogue["options"][0]["action"] == "honor_defender"
         assert dialogue["options"][1]["action"] == "break_defender_alliance"
 
+    def test_paradox_dialogue_previews_both_branches_under_one_episode(self, world):
+        """Both paradox branches should carry deterministic fallout under one origin episode."""
+        from backend.game_logic.diplomacy import declare_war
+        player = world.player_nation
+        world.diplomatic_states[world._make_diplo_key(player, "Prussia")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
+
+        declare_war(world, "Prussia", "Austria")
+
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
+        dialogue = world.pending_diplomatic_dialogue
+        assert dialogue is not None
+        assert "Honor Austria:" in dialogue.get("talleyrand_text", "")
+        assert "Side with Prussia:" in dialogue.get("talleyrand_text", "")
+        assert dialogue.get("origin_episode_id")
+        assert dialogue["honor_defender_preview"]["episode_id"] == dialogue["origin_episode_id"]
+        assert dialogue["break_defender_preview"]["episode_id"] == dialogue["origin_episode_id"]
+
     def test_honor_defender_choice(self, world, executor, game_state):
         """Choosing 'honor defender' declares war on the attacker."""
         from backend.game_logic.diplomacy import declare_war
@@ -227,6 +247,31 @@ class TestR12AllianceParadox:
         # Dialogue and popup should be cleared
         assert world.pending_diplomatic_dialogue is None
         assert world.alliance_paradox_popup is None
+
+    def test_honor_defender_logs_commitment_paradox_resolution(self, world, executor, game_state):
+        from backend.game_logic.diplomacy import declare_war
+        player = world.player_nation
+        world.diplomatic_states[world._make_diplo_key(player, "Prussia")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
+
+        declare_war(world, "Prussia", "Austria")
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
+        paradox_episode = world.pending_diplomatic_dialogue["origin_episode_id"]
+
+        result = executor.handle_diplomatic_dialogue_response("1", game_state)
+
+        assert result.get("success"), result.get("message")
+        paradox_events = [
+            e for e in world.event_log
+            if e.get("type") == "commitment_paradox_resolved"
+        ]
+        assert paradox_events
+        latest = paradox_events[-1]
+        assert latest.get("episode_id") == paradox_episode
+        assert latest.get("chosen_nation") == "Austria"
+        assert latest.get("spurned_nation") == "Prussia"
 
     def test_break_defender_choice(self, world, executor, game_state):
         """Choosing 'break defender alliance' downgrades alliance with defender."""
@@ -251,3 +296,28 @@ class TestR12AllianceParadox:
         # Dialogue and popup should be cleared
         assert world.pending_diplomatic_dialogue is None
         assert world.alliance_paradox_popup is None
+
+    def test_break_defender_logs_commitment_paradox_resolution(self, world, executor, game_state):
+        from backend.game_logic.diplomacy import declare_war
+        player = world.player_nation
+        world.diplomatic_states[world._make_diplo_key(player, "Prussia")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
+        world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
+
+        declare_war(world, "Prussia", "Austria")
+        if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+            world.dialogue_manager.promote_if_empty()
+        paradox_episode = world.pending_diplomatic_dialogue["origin_episode_id"]
+
+        result = executor.handle_diplomatic_dialogue_response("2", game_state)
+
+        assert result.get("success"), result.get("message")
+        paradox_events = [
+            e for e in world.event_log
+            if e.get("type") == "commitment_paradox_resolved"
+        ]
+        assert paradox_events
+        latest = paradox_events[-1]
+        assert latest.get("episode_id") == paradox_episode
+        assert latest.get("chosen_nation") == "Prussia"
+        assert latest.get("spurned_nation") == "Austria"

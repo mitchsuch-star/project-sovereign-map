@@ -456,6 +456,7 @@ class DiplomaticExecutor:
             break_treaty,
             get_treaty_breach_preview,
             _build_breach_warnings,
+            _allocate_episode_id,
             COMMITMENT_STATES,
         )
 
@@ -482,6 +483,7 @@ class DiplomaticExecutor:
         treaty = active_treaties.get(pair_key) or {}
 
         if not confirmed and current_state in COMMITMENT_STATES:
+            preview_episode_id = _allocate_episode_id(world)
             breach_preview = get_treaty_breach_preview(
                 world,
                 player,
@@ -489,6 +491,7 @@ class DiplomaticExecutor:
                 treaty=treaty,
                 end_reason_action="manual_break",
                 fault_nation=player,
+                episode_id=preview_episode_id,
             )
             warnings = _build_breach_warnings(breach_preview)
             treaty_type_display = breach_preview["treaty_type_display"]
@@ -504,6 +507,7 @@ class DiplomaticExecutor:
                 "target_nation": target_nation,
                 "message": confirm_text,
                 "talleyrand_text": confirm_text,
+                "origin_episode_id": preview_episode_id,
                 "breach_preview": breach_preview,
                 "warnings": warnings,
                 "options": [
@@ -522,7 +526,12 @@ class DiplomaticExecutor:
                 "warnings": warnings,
             }
 
-        result = break_treaty(pair_key, player, world)
+        result = break_treaty(
+            pair_key,
+            player,
+            world,
+            origin_episode_id=diplomatic_data.get("origin_episode_id"),
+        )
 
         # R23: Marshal trust reactions for treaty broken
         if result.get("success"):
@@ -584,7 +593,11 @@ class DiplomaticExecutor:
 
     def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
         """Handle war declaration command (R10). Costs 1 DP."""
-        from backend.game_logic.diplomacy import declare_war, preview_war_declaration
+        from backend.game_logic.diplomacy import (
+            declare_war,
+            preview_war_declaration,
+            _allocate_episode_id,
+        )
         confirmed_objection = bool(diplomatic_data.get("confirmed_objection"))
 
         # Fix 3: Clear previous war declaration objection (it's been handled if we're here again)
@@ -625,11 +638,13 @@ class DiplomaticExecutor:
         if existing_treaty and not world.diplomatic_objection_popup:
             from backend.game_logic.diplomacy import _build_breach_warnings
             treaty_type = existing_treaty.get("type", "treaty")
+            preview_episode_id = _allocate_episode_id(world)
             war_preview = preview_war_declaration(
                 world,
                 player,
                 target_nation,
                 casus_belli=world.casus_belli.get(diplo_key_treaty, False),
+                episode_id=preview_episode_id,
             )
             breach_preview = war_preview.get("breach_preview", {})
             from backend.display_names import PROPOSAL_TYPE_DISPLAY
@@ -657,6 +672,7 @@ class DiplomaticExecutor:
                 "target_nation": target_nation,
                 "message": warning_text,
                 "talleyrand_text": warning_text,
+                "origin_episode_id": preview_episode_id,
                 "breach_preview": breach_preview,
                 "war_preview": war_preview,
                 "warnings": warnings,
@@ -710,8 +726,13 @@ class DiplomaticExecutor:
                 }
 
         # Execute war declaration
-        result = declare_war(world, player, target_nation,
-                             casus_belli=world.casus_belli.get(world._make_diplo_key(player, target_nation), False))
+        result = declare_war(
+            world,
+            player,
+            target_nation,
+            casus_belli=world.casus_belli.get(world._make_diplo_key(player, target_nation), False),
+            origin_episode_id=diplomatic_data.get("origin_episode_id"),
+        )
 
         if result.get("success"):
             world.diplomatic_points -= dp_cost
@@ -1163,7 +1184,11 @@ class DiplomaticExecutor:
                 }
             result = declare_war(world, world.player_nation, fw_target,
                                  casus_belli=world.casus_belli.get(
-                                     world._make_diplo_key(world.player_nation, fw_target), False))
+                                     world._make_diplo_key(world.player_nation, fw_target), False),
+                                 origin_episode_id=(
+                                     dialogue.get("origin_episode_id")
+                                     or (dialogue.get("breach_preview") or {}).get("episode_id")
+                                 ))
             if result.get("success"):
                 world.diplomatic_points -= dp_cost
                 self._apply_diplomatic_trust_reactions(world, "war_declaration", fw_target)
@@ -1176,7 +1201,14 @@ class DiplomaticExecutor:
             if not fb_target:
                 return {"success": False, "message": "No target nation specified."}
             return self._execute_diplomatic_break(
-                {"target_nation": fb_target, "confirmed_break": True},
+                {
+                    "target_nation": fb_target,
+                    "confirmed_break": True,
+                    "origin_episode_id": (
+                        dialogue.get("origin_episode_id")
+                        or (dialogue.get("breach_preview") or {}).get("episode_id")
+                    ),
+                },
                 world,
             )
 
@@ -2724,9 +2756,39 @@ class DiplomaticExecutor:
             if not attacker_nation or not defender_nation:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
-            from backend.game_logic.diplomacy import declare_war as _paradox_declare_war
+            from backend.game_logic.diplomacy import (
+                declare_war as _paradox_declare_war,
+                _allocate_episode_id as _paradox_episode_id,
+            )
+            paradox_episode = (
+                dialogue.get("origin_episode_id")
+                or (dialogue.get("honor_defender_preview") or {}).get("episode_id")
+                or (dialogue.get("breach_preview") or {}).get("episode_id")
+            )
+            if not paradox_episode:
+                paradox_episode = _paradox_episode_id(world)
+            honor_preview = dict(dialogue.get("honor_defender_preview") or {})
             # Honor alliance with defender: declare war on attacker
-            war_result = _paradox_declare_war(world, world.player_nation, attacker_nation)
+            war_result = _paradox_declare_war(
+                world,
+                world.player_nation,
+                attacker_nation,
+                origin_episode_id=paradox_episode,
+            )
+            if war_result.get("success"):
+                world.log_event({
+                    "type": "commitment_paradox_resolved",
+                    "episode_id": paradox_episode,
+                    "chosen_nation": defender_nation,
+                    "spurned_nation": attacker_nation,
+                    "resolution_action": "honor_defender",
+                    "paradox_attacker": attacker_nation,
+                    "paradox_defender": defender_nation,
+                    "fallout_preview": honor_preview,
+                    "reliability_before": honor_preview.get("reliability_before"),
+                    "reliability_after": honor_preview.get("reliability_after"),
+                    "applied_reliability_delta": honor_preview.get("applied_reliability_delta", 0),
+                })
             world.dialogue_manager.pop()
             world.alliance_paradox_popup = None
             # Dismiss stale alliance cascade notification
@@ -2756,20 +2818,31 @@ class DiplomaticExecutor:
             player = world.player_nation
             diplo_key = world._make_diplo_key(player, defender_nation)
             treaty_snapshot = getattr(world, 'active_treaties', {}).get(diplo_key)
-            breach_preview = None
-            paradox_episode = _paradox_episode_id(world)
+            paradox_episode = (
+                dialogue.get("origin_episode_id")
+                or (dialogue.get("break_defender_preview") or {}).get("episode_id")
+                or (dialogue.get("breach_preview") or {}).get("episode_id")
+            )
+            if not paradox_episode:
+                paradox_episode = _paradox_episode_id(world)
+            breach_preview = dict(
+                dialogue.get("break_defender_preview")
+                or dialogue.get("breach_preview")
+                or {}
+            ) or None
             if treaty_snapshot or world.get_diplomatic_state(player, defender_nation) in (
                 "ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"
             ):
-                breach_preview = _get_treaty_breach_preview(
-                    world,
-                    player,
-                    defender_nation,
-                    treaty=treaty_snapshot,
-                    end_reason_action="paradox_choice",
-                    fault_nation=player,
-                    episode_id=paradox_episode,
-                )
+                if not breach_preview:
+                    breach_preview = _get_treaty_breach_preview(
+                        world,
+                        player,
+                        defender_nation,
+                        treaty=treaty_snapshot,
+                        end_reason_action="paradox_choice",
+                        fault_nation=player,
+                        episode_id=paradox_episode,
+                    )
             current = world.diplomatic_states.get(diplo_key, "PEACE")
             while current in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"):
                 dg_result = _paradox_downgrade(world, player, defender_nation)
@@ -2791,6 +2864,19 @@ class DiplomaticExecutor:
                         "episode_id": paradox_episode,
                     },
                 )
+            world.log_event({
+                "type": "commitment_paradox_resolved",
+                "episode_id": paradox_episode,
+                "chosen_nation": attacker_nation,
+                "spurned_nation": defender_nation,
+                "resolution_action": "break_defender_alliance",
+                "paradox_attacker": attacker_nation,
+                "paradox_defender": defender_nation,
+                "fallout_preview": dict(breach_preview or {}),
+                "reliability_before": (breach_preview or {}).get("reliability_before"),
+                "reliability_after": (breach_preview or {}).get("reliability_after"),
+                "applied_reliability_delta": (breach_preview or {}).get("applied_reliability_delta", 0),
+            })
             world.dialogue_manager.pop()
             world.alliance_paradox_popup = None
             # Dismiss stale alliance cascade notification

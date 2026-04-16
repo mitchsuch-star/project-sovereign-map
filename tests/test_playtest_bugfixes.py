@@ -321,6 +321,40 @@ class TestManualBreakCommitmentPreview:
         assert result.get("success") is True
         assert world.diplomatic_states[diplo_key] != "ALLIANCE"
 
+    def test_confirmed_break_reuses_preview_episode_id(self):
+        world = _make_world()
+        executor = CommandExecutor()
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance", "nations": [player, target], "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        preview = executor._execute_diplomatic_break(
+            {"target_nation": target, "action": "diplomatic_break"}, world,
+        )
+        dialogue = preview.get("diplomatic_dialogue") or {}
+        preview_episode = dialogue.get("origin_episode_id")
+        assert preview_episode
+
+        result = executor._process_dialogue_choice(
+            "force_break_treaty",
+            {"action": "force_break_treaty", "target_nation": target},
+            dialogue,
+            world,
+        )
+
+        assert result.get("success") is True
+        breach_events = [
+            e for e in world.event_log
+            if e.get("type") == "diplomatic_treaty_broken"
+        ]
+        assert breach_events
+        assert breach_events[-1].get("episode_id") == preview_episode
+
     def test_war_on_non_treaty_nation_no_warning(self):
         """No treaty = no special warning (existing threat objection may still fire)."""
         world = _make_world()
@@ -388,3 +422,44 @@ class TestManualBreakCommitmentPreview:
         assert world.diplomatic_points == 4
         # Dialogue should be cleared
         assert world.pending_diplomatic_dialogue is None
+
+    def test_force_declare_war_reuses_preview_episode_id(self):
+        world = _make_world()
+        executor = CommandExecutor()
+
+        target = "Austria"
+        player = world.player_nation
+        diplo_key = world._make_diplo_key(player, target)
+        world.active_treaties[diplo_key] = {
+            "type": "alliance",
+            "nations": [player, target],
+            "turn_signed": 1,
+        }
+        world.diplomatic_states[diplo_key] = "ALLIANCE"
+        world.diplomatic_points = 5
+
+        preview = executor._execute_diplomatic_declare_war(
+            {"target_nation": target, "action": "diplomatic_declare_war"},
+            world,
+        )
+        dialogue = preview.get("diplomatic_dialogue") or {}
+        preview_episode = dialogue.get("origin_episode_id")
+        assert preview_episode
+
+        result = executor._process_dialogue_choice(
+            "force_declare_war",
+            {"action": "force_declare_war", "target_nation": target},
+            dialogue,
+            world,
+        )
+
+        assert result.get("success") is True
+        war_events = [e for e in world.event_log if e.get("type") == "war_declaration"]
+        breach_events = [
+            e for e in world.event_log
+            if e.get("type") == "diplomatic_treaty_broken"
+        ]
+        assert war_events
+        assert breach_events
+        assert war_events[-1].get("episode_id") == preview_episode
+        assert breach_events[-1].get("episode_id") == preview_episode

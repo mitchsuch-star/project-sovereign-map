@@ -478,6 +478,29 @@ class TestOneLinerFormatting:
         result = format_event_oneliner(event)
         assert "shattering Alliance" in result
 
+    def test_diplomatic_war_declared_with_shattered_treaty(self):
+        event = {
+            "type": "diplomatic_war_declared",
+            "nation": "France",
+            "target": "Austria",
+            "breached_treaty": "Alliance",
+        }
+        result = format_event_oneliner(event)
+        assert "shattering Alliance" in result
+
+    def test_commitment_paradox_resolved_oneliner(self):
+        event = {
+            "type": "commitment_paradox_resolved",
+            "chosen_nation": "Austria",
+            "spurned_nation": "Prussia",
+            "reliability_before": 0,
+            "reliability_after": -10,
+        }
+        result = format_event_oneliner(event)
+        assert "Austria" in result
+        assert "Prussia" in result
+        assert "0 -> -10" in result
+
     def test_cascade_rupture_oneliner_marks_forced_family(self):
         event = {
             "type": "diplomatic_treaty_broken",

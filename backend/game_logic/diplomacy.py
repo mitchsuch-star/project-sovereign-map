@@ -417,7 +417,13 @@ def get_treaty_breach_preview(
     }
 
 
-def preview_war_declaration(world, aggressor: str, target: str, casus_belli: bool = False) -> Dict:
+def preview_war_declaration(
+    world,
+    aggressor: str,
+    target: str,
+    casus_belli: bool = False,
+    episode_id: str = None,
+) -> Dict:
     """Forecast the political consequences of declaring war without mutating state."""
     penalty_factor = 0.5 if casus_belli else 1.0
     defensive_joiners = []
@@ -444,6 +450,7 @@ def preview_war_declaration(world, aggressor: str, target: str, casus_belli: boo
             treaty=treaty,
             end_reason_action="war_declaration",
             fault_nation=aggressor,
+            episode_id=episode_id,
         )
 
     return {
@@ -1585,7 +1592,13 @@ def modify_nation_authority(world, nation: str, delta: int) -> int:
 # WAR DECLARATION & CASCADE
 # ═══════════════════════════════════════════════════════
 
-def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -> Dict:
+def declare_war(
+    world,
+    aggressor: str,
+    target: str,
+    casus_belli: bool = False,
+    origin_episode_id: str = None,
+) -> Dict:
     """Declare war: transition to WAR, apply penalties, handle cascade.
 
     Args:
@@ -1620,9 +1633,15 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
     # it through the primary breach record (if any), the cascade, and all
     # dispatch/log emits so C3 can collapse the resulting consequences under
     # one political moment (RELIABILITY_COMMITMENTS_SPEC §6.5).
-    episode_id = _allocate_episode_id(world)
+    episode_id = origin_episode_id or _allocate_episode_id(world)
 
-    war_preview = preview_war_declaration(world, aggressor, target, casus_belli=casus_belli)
+    war_preview = preview_war_declaration(
+        world,
+        aggressor,
+        target,
+        casus_belli=casus_belli,
+        episode_id=episode_id,
+    )
     breach_preview = war_preview.get("breach_preview")
     if breach_preview is not None:
         breach_preview["episode_id"] = episode_id
@@ -1712,11 +1731,24 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         alliance_states = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
         if aggressor_state in alliance_states and target_state in alliance_states:
             has_paradox = True
-            # Preview the cost of the "side with aggressor" branch so the
-            # player sees the reliability fall before choosing (spec §7.5
-            # "hard-stop must preview any deterministic downstream fallout").
+            paradox_episode_id = _allocate_episode_id(world)
+            # Preview both branches of the paradox using one durable
+            # origin_episode_id so the hard-stop survives save/load and the
+            # eventual choice can log one coherent remembered political moment.
+            attacker_treaty = getattr(world, 'active_treaties', {}).get(
+                world._make_diplo_key(player, aggressor)
+            )
             defender_treaty = getattr(world, 'active_treaties', {}).get(
                 world._make_diplo_key(player, target)
+            )
+            attacker_breach_preview = get_treaty_breach_preview(
+                world,
+                player,
+                aggressor,
+                treaty=attacker_treaty,
+                end_reason_action="paradox_choice",
+                fault_nation=player,
+                episode_id=paradox_episode_id,
             )
             defender_breach_preview = get_treaty_breach_preview(
                 world,
@@ -1725,30 +1757,53 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                 treaty=defender_treaty,
                 end_reason_action="paradox_choice",
                 fault_nation=player,
+                episode_id=paradox_episode_id,
             )
-            paradox_warnings = _build_breach_warnings(defender_breach_preview)
+            attacker_paradox_warnings = _build_breach_warnings(attacker_breach_preview)
+            defender_paradox_warnings = _build_breach_warnings(defender_breach_preview)
             paradox_msg = (
                 f"Sire, a crisis! {aggressor} has declared war on {target}. "
                 f"We are allied with both nations. We must choose a side."
             )
-            if paradox_warnings:
-                paradox_msg += "\n\n" + "\n".join(
-                    f"Siding with {aggressor}: {w['text']}" for w in paradox_warnings
+            preview_lines = []
+            if attacker_paradox_warnings:
+                preview_lines.append(
+                    "Honor "
+                    + target
+                    + ": "
+                    + " ".join(w["text"] for w in attacker_paradox_warnings)
                 )
+            if defender_paradox_warnings:
+                preview_lines.append(
+                    "Side with "
+                    + aggressor
+                    + ": "
+                    + " ".join(w["text"] for w in defender_paradox_warnings)
+                )
+            if preview_lines:
+                paradox_msg += "\n\n" + "\n".join(preview_lines)
             world.alliance_paradox_popup = {
                 "attacker": aggressor,
                 "defender": target,
                 "attacker_alliance": aggressor_state,
                 "defender_alliance": target_state,
                 "message": paradox_msg,
+                "origin_episode_id": paradox_episode_id,
+                "honor_defender_preview": attacker_breach_preview,
+                "break_defender_preview": defender_breach_preview,
             }
             # V2-89 → R12C: push() auto-queues if another dialogue is active
             world.dialogue_manager.push({
                 "type": "alliance_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,
-                "breach_preview": defender_breach_preview,
-                "warnings": paradox_warnings,
+                "origin_episode_id": paradox_episode_id,
+                "breach_preview": defender_breach_preview,  # legacy alias: "side with aggressor"
+                "warnings": defender_paradox_warnings,  # legacy alias for current UI consumers
+                "honor_defender_preview": attacker_breach_preview,
+                "honor_defender_warnings": attacker_paradox_warnings,
+                "break_defender_preview": defender_breach_preview,
+                "break_defender_warnings": defender_paradox_warnings,
                 "options": [
                     {
                         "label": f"Honor alliance with {target}",
@@ -2804,7 +2859,12 @@ def _check_mission_target_eliminated(world) -> List[Dict]:
     return events
 
 
-def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
+def break_treaty(
+    pair_key: str,
+    breaker_nation: str,
+    world,
+    origin_episode_id: str = None,
+) -> Dict:
     """Break an active treaty. Costs 1 DP.
 
     Returns:
@@ -2848,6 +2908,7 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
         treaty=treaty,
         end_reason_action="manual_break",
         fault_nation=breaker_nation,
+        episode_id=origin_episode_id,
     )
 
     # Relation penalties
