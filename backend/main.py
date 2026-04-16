@@ -413,6 +413,17 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
     # alongside enemy_phase; other choice popups stay deferred on world.
     proposal_result = world.proposal_result_popup
     if proposal_result is not None:
+        from backend.display_names import diplomatic_decision_reason_display
+
+        proposal_result = dict(proposal_result)
+        if (
+            proposal_result.get("decision_reason")
+            and not proposal_result.get("decision_reason_display")
+        ):
+            proposal_result["decision_reason_display"] = diplomatic_decision_reason_display(
+                str(proposal_result.get("decision_reason", ""))
+            )
+            world.proposal_result_popup = proposal_result
         response["proposal_result"] = proposal_result
         world.proposal_result_popup = None
 
@@ -518,11 +529,27 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     # Include the winner in response (Golden Rule 4: already cleared by pop)
     if winner_key is not None:
         if winner_key == "incoming_proposal" and isinstance(winner_value, dict):
-            from backend.display_names import proposal_display_name
+            from backend.display_names import (
+                diplomatic_decision_reason_display,
+                proposal_display_name,
+            )
 
             popup = winner_value.copy()
             if "proposal_type" in popup and "proposal_type_display" not in popup:
                 popup["proposal_type_display"] = proposal_display_name(popup.get("proposal_type"))
+            if popup.get("decision_reason") and "decision_reason_display" not in popup:
+                popup["decision_reason_display"] = diplomatic_decision_reason_display(
+                    str(popup.get("decision_reason", ""))
+                )
+            response[winner_key] = popup
+        elif winner_key == "proposal_result" and isinstance(winner_value, dict):
+            from backend.display_names import diplomatic_decision_reason_display
+
+            popup = winner_value.copy()
+            if popup.get("decision_reason") and "decision_reason_display" not in popup:
+                popup["decision_reason_display"] = diplomatic_decision_reason_display(
+                    str(popup.get("decision_reason", ""))
+                )
             response[winner_key] = popup
         else:
             response[winner_key] = winner_value
@@ -548,8 +575,13 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 context = dialogue.get("context", {})
                 proposal = context.get("proposal", {})
                 sv_proposal_type = proposal.get("type", "unknown")
-                from backend.display_names import PERSONALITY_DISPLAY, proposal_display_name
+                from backend.display_names import (
+                    PERSONALITY_DISPLAY,
+                    diplomatic_decision_reason_display,
+                    proposal_display_name,
+                )
                 from backend.game_logic.mailbox_payloads import build_proposal_popup_clauses
+                decision_reason = str(context.get("decision_reason", ""))
                 response["incoming_proposal"] = {
                     "from_nation": dialogue.get("target_nation", "Unknown"),
                     "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
@@ -562,6 +594,8 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     "acceptance_hint": "Review the proposal carefully.",
                     "rejection_hint": "",
                     "is_counter_offer": False,
+                    "decision_reason": decision_reason,
+                    "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
                 }
             else:
                 response[response_key] = None
@@ -1298,6 +1332,7 @@ async def respond_to_diplomatic_dialogue(request: dict):
                     "outcome": _derive_proposal_result_outcome(result),
                     "message": msg,
                     "feedback": "",
+                    "decision_reason": result.get("decision_reason", ""),
                 }
                 # Rebuild response to pick up the newly-set popup
                 response = build_base_response(
@@ -1943,6 +1978,7 @@ def _build_pending_envoy_popup_from_terms(
     is_counter_offer=False,
     acceptance=None,
     acceptance_score=None,
+    decision_reason="",
 ):
     """Build the popup payload shape incoming_proposal_popup.gd expects."""
     from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
@@ -1955,6 +1991,7 @@ def _build_pending_envoy_popup_from_terms(
         is_counter_offer=is_counter_offer,
         acceptance=acceptance,
         acceptance_score=acceptance_score,
+        decision_reason=decision_reason,
     )
 
 
@@ -2001,6 +2038,7 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
         assessment=dialogue.get("talleyrand_text", ""),
         is_counter_offer=dialogue.get("type", "") in ("counter_offer", "counter_offer_response"),
         acceptance_score=context.get("acceptance_score"),
+        decision_reason=context.get("decision_reason", ""),
     )
 
 

@@ -125,11 +125,12 @@ These are existing audit items broken into implementation order. They stay after
 - **Duplicate-surface collapse (H-4):** war-on-partner no longer fires both a `TREATY_BROKEN` and a `WAR_DECLARED` notification, nor both a `diplomatic_treaty_broken` and a `diplomatic_war_declared` dispatch event. The war event owns the moment; breach metadata survives in the event log.
 - **`end_reason_family` vs `end_reason_action` split (H-6):** fault axis (`french_breach | counterparty_reversal | obsolescence_or_external`) and action axis (`manual_break | war_declaration | paradox_choice | cascade_forced`) are now separate fields, matching §9.9.
 - **Pre-choice legibility for all three breach paths (M-1):** manual `break_treaty` on a commitment state now prompts `force_break_treaty_confirmation` with a reliability + warnings preview; `alliance_paradox` now carries deterministic fallout for both branches before the player chooses.
-- **Structured `warnings[]` (M-2):** declare-war and paradox dialogues now expose a typed `warnings[]` payload (`severity` + `category` + `text`) the `C3a` preview scaffolding can sort and filter, alongside the legacy free-text message for back-compat.
+- **Structured `warnings[]` (M-2):** declare-war, paradox, and player-authored `proposal_confirm` dialogues now expose a typed `warnings[]` payload (`severity` + `category` + `text`) the `C3a` preview scaffolding can sort and filter; the proposal confirm popup now surfaces the top warnings under `Political Context`.
 - **Applied vs intended reliability delta (M-5):** breach previews carry both values so presentation can distinguish "delta truncated at -100 floor" from "fully applied"; applied delta is authoritative for the scalar update.
 - **Witness-scope label vs scope enum disambiguated (M-6):** audience-size flavor label is preserved as `witness_scope_label`; the per-witness enum sits on `witnesses[].scope_reason`.
-- **`witness_strike_recorded` dispatch emits (M-4 partial):** one event per scoped witness with `episode_id`, `scope_reason`, and zero relation/reliability delta (pre-strike-store; full `betrayal_history` still deferred).
+- **Bilateral `betrayal_history` + hard reject posture (M-4 / B2b):** remembered breach strikes now persist per actor/victim pair with severity-scaled decay; the third active strike triggers `hard_reject_posture_triggered`, decay back to two strikes emits `hard_reject_posture_cleared`, and deep-treaty acceptance/preview paths respect that posture.
 - **`commitment_paradox` registered in `HARD_STOP_TYPES` (H-5 backend):** taxonomy entry in place so the forthcoming `C3a-pre` Godot surface split can land without a second backend pass.
+- **AI `decision_reason` follow-through (M-3b):** AI-authored proposals, counterparty responses, campaign-log entries, incoming proposal popups, and proposal-result popups now carry a deterministic `decision_reason` plus player-facing display text. The enum set is still a subset of the full commitments spec, but motive legibility is no longer breach-only.
 - **AI `decision_reason` surface (M-3 partial):** breach payload now exposes `end_reason_family` + `end_reason_action` + `fault_nation` as mechanical motive metadata; full AI-side proposal-generation `decision_reason` enum (§11.1) remains `C2` scope.
 - **Preview→resolution `episode_id` continuity (H-7):** `force_declare_war`, `force_break_treaty`, and alliance-paradox confirmations now reuse the preview's `origin_episode_id` instead of silently minting a second root event on confirm.
 - **Durable paradox-resolution memory (H-8):** alliance-paradox choices now emit `commitment_paradox_resolved` with `chosen_nation`, `spurned_nation`, deterministic fallout preview, and the same origin `episode_id` that keyed the blocking choice.
@@ -137,13 +138,14 @@ These are existing audit items broken into implementation order. They stay after
 
 Deferred (not in this pass — requires dedicated slices):
 
-- Full `betrayal_history` bilateral strike store with episode cap + severity-scaled decay (Slice `A1` + `B2a` + `B2b`).
+- Backend `hard_reject_posture_triggered` / `hard_reject_posture_cleared` emits are now live; what remains is the dedicated `C3` spotlight / popup treatment on top of that contract.
+- Full `C3a-pre` spotlight contract: split-voice attribution, attributed lines, callback affordances, and richer hard-reject / join-opportunity context.
 - `hard_reject_posture_triggered` / `hard_reject_posture_cleared` emits (Slice `B2b`; `C3` §8.2 blocks spotlight rendering on this contract).
 - Dedicated Godot `commitment_paradox_popup.{tscn,gd}` surface + `main.gd` dtype whitelist entry (`C3a-pre` §14 prerequisites 2-4).
-- AI-authored-proposal `decision_reason` contract (`C2` Slice).
+- Full commitments-spec `decision_reason` enum coverage (`C2` Slice); current substrate covers the main hostility / distrust / coalition / shared-enemy paths but not the entire taxonomy.
 - `war_bargain` clause type, creation, lifecycle, bargain review, counter-bargain flow (Slice `C1a` + `C1b` + `C2`).
 
-Test suite: 8346 passed, 2 skipped (same as baseline). Ruff: no new lint debt.
+Focused follow-up suite: 220 passed (`test_phase2b_diplomacy`, `test_playtest_bugfixes`, `test_session8c_popups_notifications`, `test_session8d_dispatch_polish`, `test_campaign_log`, `test_diplomacy_display_contract`). Full baseline suite not rerun in this pass. Ruff: not rerun in this pass.
 
 ### Independent Tracks
 

@@ -38,6 +38,7 @@ func show_result(data: Dictionary):
 	var proposal_type = data.get("proposal_type", "Proposal")
 	var message = data.get("message", "")
 	var feedback = data.get("feedback", "")
+	var decision_reason_display = data.get("decision_reason_display", "")
 	var is_accept = _is_accept_result(data)
 
 	var bbcode = ""
@@ -55,6 +56,11 @@ func show_result(data: Dictionary):
 
 	if feedback != "":
 		bbcode += Utils.bbcode_color("Talleyrand: \"%s\"" % feedback, Utils.COLOR_INFO)
+	if decision_reason_display != "":
+		bbcode += "\n" + Utils.bbcode_color(
+			"Court rationale: %s." % decision_reason_display,
+			Utils.COLOR_DIMMED,
+		)
 
 	content_label.text = ""
 	content_label.append_text(bbcode)

@@ -55,9 +55,14 @@ def build_pending_envoy_popup_from_terms(
     is_counter_offer: bool = False,
     acceptance: Optional[Dict] = None,
     acceptance_score: Optional[int] = None,
+    decision_reason: str = "",
 ) -> Dict:
     """Build the popup payload shape incoming_proposal_popup.gd expects."""
-    from backend.display_names import PERSONALITY_DISPLAY, proposal_display_name
+    from backend.display_names import (
+        PERSONALITY_DISPLAY,
+        diplomatic_decision_reason_display,
+        proposal_display_name,
+    )
 
     diplomats = getattr(world, "diplomats", {})
     diplomat = diplomats.get(nation)
@@ -90,4 +95,6 @@ def build_pending_envoy_popup_from_terms(
         "acceptance_hint": acceptance_hint,
         "rejection_hint": rejection_hint,
         "is_counter_offer": bool(is_counter_offer),
+        "decision_reason": decision_reason,
+        "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
     }

@@ -12,6 +12,8 @@ Tests cover:
 """
 
 
+from pathlib import Path
+
 from backend.models.world_state import WorldState
 from backend.notifications import (
     NotificationCollector, NotificationPriority, create_notification,
@@ -461,6 +463,7 @@ class TestPopupDataContracts:
                 "sweeteners": [],
             },
             "talleyrand_assessment": "Talleyrand advises: accept.",
+            "decision_reason": "shared_enemy_survival",
         }
         deliver_ai_proposal(proposal, world)
         popup = world.incoming_proposal_popup
@@ -473,6 +476,8 @@ class TestPopupDataContracts:
         assert isinstance(popup["talleyrand_assessment"], str)
         assert isinstance(popup["acceptance_hint"], str)
         assert isinstance(popup["rejection_hint"], str)
+        assert popup["decision_reason"] == "shared_enemy_survival"
+        assert popup["decision_reason_display"] == "shared-enemy survival"
 
     def test_popup_fields_cleared_after_read(self):
         """Popup fields are None by default and can be cleared."""
@@ -489,6 +494,29 @@ class TestPopupDataContracts:
         assert world.coalition_popup is not None
         world.coalition_popup = None
         assert world.coalition_popup is None
+
+
+class TestPopupScriptWiring:
+    """Static checks for the Godot popup seams fed by the new payload fields."""
+
+    def test_proposal_confirm_popup_reads_structured_warnings(self):
+        source = Path(
+            "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd"
+        ).read_text(encoding="utf-8")
+        assert 'data.get("warnings", [])' in source
+        assert "Political Context:" in source
+
+    def test_envoy_and_result_popups_render_decision_reason(self):
+        incoming = Path(
+            "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd"
+        ).read_text(encoding="utf-8")
+        result = Path(
+            "godot-client/project-sovereign/scripts/proposal_result_popup.gd"
+        ).read_text(encoding="utf-8")
+        assert 'decision_reason_display' in incoming
+        assert 'Court rationale:' in incoming
+        assert 'decision_reason_display' in result
+        assert 'Court rationale:' in result
 
 
 # ════════════════════════════════════════════════════════════════

@@ -2641,6 +2641,7 @@ class DiplomaticExecutor:
                 "type": "counter_offer_accepted",
                 "source": source_nation,
                 "proposal_type": counter_terms.get("type", "unknown"),
+                "decision_reason": context.get("decision_reason", ""),
             })
             return {
                 "success": True,
@@ -2671,6 +2672,7 @@ class DiplomaticExecutor:
                 "type": "counter_offer_rejected",
                 "source": source_nation,
                 "proposal_type": ptype,
+                "decision_reason": "counterparty_reversal",
             })
             return {
                 "success": True,
@@ -3452,6 +3454,7 @@ class DiplomaticExecutor:
             "type": "ai_proposal_accepted",
             "source": source_nation,
             "proposal_type": proposal_type,
+            "decision_reason": context.get("decision_reason", ""),
         })
 
         return {
@@ -3482,6 +3485,7 @@ class DiplomaticExecutor:
             "type": "ai_proposal_rejected",
             "source": source_nation,
             "proposal_type": proposal_type,
+            "decision_reason": "counterparty_reversal",
         })
 
         return {
@@ -3531,6 +3535,7 @@ class DiplomaticExecutor:
             world.log_event({
                 "type": "ai_proposal_counter_failed",
                 "source": source_nation,
+                "decision_reason": "counterparty_reversal",
             })
 
             return {
@@ -3557,6 +3562,7 @@ class DiplomaticExecutor:
             assessment=f"Talleyrand has negotiated revised terms with {source_nation}.",
             is_counter_offer=True,
             acceptance=acceptance,
+            decision_reason=context.get("decision_reason", ""),
         )
 
         world.dialogue_manager.replace({
@@ -3583,6 +3589,7 @@ class DiplomaticExecutor:
                 "proposal": counter_terms,
                 "source_nation": source_nation,
                 "is_counter": True,
+                "decision_reason": context.get("decision_reason", ""),
             },
             "turn_created": int(world.current_turn),
             "blocking": True,

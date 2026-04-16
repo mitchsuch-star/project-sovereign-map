@@ -79,8 +79,8 @@ class TestTypeWhitelist:
         assert result[1]["type"] == "recruitment"
 
     def test_fortyfive_types_in_constant(self):
-        """Verify the type set has exactly 53 entries after paradox-resolution logging."""
-        assert len(CAMPAIGN_LOG_TYPES) == 53
+        """Verify the type set has exactly 55 entries after hard-reject logging."""
+        assert len(CAMPAIGN_LOG_TYPES) == 55
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""
@@ -525,6 +525,26 @@ class TestOneLinerFormatting:
         }
         result = format_event_oneliner(event)
         assert "counterparty" in result.lower()
+
+    def test_hard_reject_triggered_oneliner(self):
+        event = {
+            "type": "hard_reject_posture_triggered",
+            "perpetrator_nation": "France",
+            "victim_nation": "Austria",
+        }
+        result = format_event_oneliner(event)
+        assert "shut the chancery" in result
+        assert "Austria" in result
+
+    def test_proposal_arrived_oneliner_appends_decision_reason(self):
+        event = {
+            "type": "proposal_arrived",
+            "source": "Prussia",
+            "proposal_type": "peace",
+            "decision_reason": "shared_enemy_survival",
+        }
+        result = format_event_oneliner(event)
+        assert "shared-enemy survival" in result
 
     def test_unknown_type_fallback(self):
         event = {"type": "some_unknown_type"}

@@ -274,6 +274,63 @@ class TestWarOnTreatyAlly:
             assert w["text"]
 
 
+class TestProposalCommitmentWarnings:
+    """Proposal-confirm surfaces should expose remembered-commitment context."""
+
+    def test_deep_treaty_preview_shows_hard_reject_warning(self):
+        from backend.game_logic.diplomatic_dialogue import generate_dialogue
+
+        world = _make_world()
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                    {"severity": "medium", "turn": 2, "episode_id": "ep_2", "decays_on_turn": 10},
+                    {"severity": "medium", "turn": 3, "episode_id": "ep_3", "decays_on_turn": 11},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 3,
+            }
+        }
+
+        dialogue = generate_dialogue("proposal_confirm", {
+            "target_nation": "Austria",
+            "proposal_type": "alliance",
+            "raw_text": "propose alliance with Austria",
+            "has_diplomatic_keywords": True,
+        }, world)
+
+        warnings = dialogue.get("warnings") or []
+        assert warnings
+        assert warnings[0]["category"] == "hard_reject"
+        assert dialogue.get("speaker_attribution") == "talleyrand"
+
+    def test_shallow_treaty_preview_shows_betrayal_memory_warning(self):
+        from backend.game_logic.diplomatic_dialogue import generate_dialogue
+
+        world = _make_world()
+        world.betrayal_history = {
+            "France|Prussia": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 1,
+            }
+        }
+
+        dialogue = generate_dialogue("proposal_confirm", {
+            "target_nation": "Prussia",
+            "proposal_type": "non_aggression",
+            "raw_text": "propose non aggression with Prussia",
+            "has_diplomatic_keywords": True,
+        }, world)
+
+        warnings = dialogue.get("warnings") or []
+        assert warnings
+        assert warnings[0]["category"] == "betrayal"
+
+
 class TestManualBreakCommitmentPreview:
     """Manual break_treaty on a commitment state must preview the reliability
     fall before executing (RELIABILITY_COMMITMENTS_SPEC §9.10)."""

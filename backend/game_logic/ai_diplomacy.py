@@ -30,6 +30,7 @@ from typing import Dict, List, Optional
 
 from backend.game_logic.diplomacy import (
     calculate_acceptance,
+    determine_ai_offer_decision_reason,
     get_war_score_for,
 )
 from backend.game_logic.diplomatic_dialogue import get_game_bucket
@@ -742,6 +743,7 @@ def _make_proposal(
 
     # Fix 11: Metadata moved to generate_ai_proposal after acceptance check
     # (was here before, but recorded even for rejected proposals)
+    decision_reason = determine_ai_offer_decision_reason(nation, proposal_type, world)
 
     return {
         "source": nation,
@@ -749,6 +751,7 @@ def _make_proposal(
         "priority": int(priority),
         "terms": terms,
         "talleyrand_assessment": assessment,
+        "decision_reason": decision_reason,
         "turn_generated": int(world.current_turn),
     }
 
@@ -762,6 +765,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
+    decision_reason = proposal.get("decision_reason", "")
 
     diplomats = getattr(world, 'diplomats', {})
     diplomat = diplomats.get(nation)
@@ -775,6 +779,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
         terms=terms,
         assessment=assessment,
         acceptance=acceptance,
+        decision_reason=decision_reason,
     )
 
     return {
@@ -806,6 +811,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             "proposal": terms,
             "source_nation": nation,
             "acceptance_score": int(acceptance["score"]),
+            "decision_reason": decision_reason,
         },
         "turn_created": int(world.current_turn),
         "blocking": False,
@@ -832,6 +838,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "type": "proposal_arrived",
         "source": nation,
         "proposal_type": proposal.get("proposal_type", ""),
+        "decision_reason": proposal.get("decision_reason", ""),
         "turn": int(world.current_turn),
     })
 

@@ -16,6 +16,7 @@ from backend.models.intel import FULL, PARTIAL
 # Action display names — single source in display_names.py (R7)
 from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
+from backend.display_names import diplomatic_decision_reason_display
 
 
 def _display_action(action: str) -> str:
@@ -30,6 +31,13 @@ def _display_defiance_action(action: str) -> str:
     if not action:
         return action
     return _DEFIANCE_DISPLAY.get(action, action.replace("_", " "))
+
+
+def _decision_reason_suffix(event: dict) -> str:
+    reason = str(event.get("decision_reason", "") or "")
+    if not reason:
+        return ""
+    return f" ({diplomatic_decision_reason_display(reason)})"
 
 
 # ============================================================================
@@ -101,6 +109,8 @@ CAMPAIGN_LOG_TYPES = {
     "proposal_dropped_overflow",
     # Offer lifetime: lapsed at end of turn
     "offer_lapsed",
+    "hard_reject_posture_triggered",
+    "hard_reject_posture_cleared",
 }
 
 # ============================================================================
@@ -168,6 +178,8 @@ CATEGORY_MAP = {
     "proposal_dropped_overflow": "diplomacy",
     # Offer lifetime: lapsed at end of turn
     "offer_lapsed": "diplomacy",
+    "hard_reject_posture_triggered": "diplomacy",
+    "hard_reject_posture_cleared": "diplomacy",
 }
 
 
@@ -407,7 +419,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # PL-27/PL-34: Proposal queue events + lapse — always show (player-facing)
         if event_type in ("proposal_arrived", "proposal_expired_unseen",
-                          "proposal_dropped_overflow", "offer_lapsed"):
+                          "proposal_dropped_overflow", "offer_lapsed",
+                          "hard_reject_posture_triggered", "hard_reject_posture_cleared"):
             filtered.append(event)
             continue
 
@@ -731,16 +744,16 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "ai_proposal_accepted":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} accepted our {proposal_type} proposal"
+        return f"{source} accepted our {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_rejected":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} rejected our {proposal_type} proposal"
+        return f"{source} rejected our {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_counter_failed":
         source = event.get("source", "Unknown")
-        return f"{source} rejected our counter-offer"
+        return f"{source} rejected our counter-offer{_decision_reason_suffix(event)}"
 
     if event_type == "auto_downgrade":
         nation_a = event.get("nation_a", "Unknown")
@@ -761,12 +774,12 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "counter_offer_accepted":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} accepted our counter-offer ({proposal_type})"
+        return f"{source} accepted our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
 
     if event_type == "counter_offer_rejected":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} rejected our counter-offer ({proposal_type})"
+        return f"{source} rejected our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
 
     if event_type == "diplomatic_discrepancy":
         message = event.get("message", "Talleyrand altered your proposal")
@@ -797,7 +810,17 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "proposal_arrived":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"An envoy from {source} has arrived with a {proposal_type} proposal"
+        return f"An envoy from {source} has arrived with a {proposal_type} proposal{_decision_reason_suffix(event)}"
+
+    if event_type == "hard_reject_posture_triggered":
+        victim = event.get("victim_nation", "Unknown")
+        perpetrator = event.get("perpetrator_nation", "France")
+        return f"{victim} has shut the chancery to {perpetrator} after repeated betrayals"
+
+    if event_type == "hard_reject_posture_cleared":
+        victim = event.get("victim_nation", "Unknown")
+        perpetrator = event.get("perpetrator_nation", "France")
+        return f"{victim} has reopened deeper diplomacy with {perpetrator}"
 
     if event_type == "proposal_expired_unseen":
         source = event.get("source", "Unknown")

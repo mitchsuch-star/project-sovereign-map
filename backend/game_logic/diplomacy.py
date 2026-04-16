@@ -227,6 +227,196 @@ WITNESS_SCOPE_PRECEDENCE = (
     WITNESS_SCOPE_REGION_OBSERVER,
 )
 
+WARNING_SEVERITY_ORDINAL = {
+    "critical": 3,
+    "high": 2,
+    "medium": 1,
+    "low": 0,
+}
+
+WARNING_CATEGORY_ORDER = {
+    "paradox": 0,
+    "hard_reject": 1,
+    "bargain": 2,
+    "betrayal": 3,
+    "rivalry": 4,
+    "peace_conflict": 5,
+}
+
+_BETRAYAL_DECAY_BY_SEVERITY = {
+    "low": 6,
+    "medium": 8,
+    "high": 10,
+}
+
+_DEEP_TREATY_TYPES = {"defensive_alliance", "alliance"}
+_NON_WAR_TREATY_STATES = {
+    "PEACE",
+    "OPEN_BORDERS",
+    "NON_AGGRESSION",
+    "DEFENSIVE_ALLIANCE",
+    "ALLIANCE",
+    "VASSAL",
+}
+
+
+def _sort_structured_warnings(warnings: List[Dict]) -> List[Dict]:
+    """Apply the shared commitments warning ordering contract."""
+    return sorted(
+        warnings,
+        key=lambda warning: (
+            -WARNING_SEVERITY_ORDINAL.get(str(warning.get("severity", "low")), 0),
+            WARNING_CATEGORY_ORDER.get(str(warning.get("category", "")), 99),
+            str(warning.get("text", "")),
+        ),
+    )
+
+
+def _betrayal_key(actor: str, victim: str) -> str:
+    return f"{actor}|{victim}"
+
+
+def _get_active_betrayal_strikes(world, actor: str, victim: str) -> List[Dict]:
+    """Return the still-active bilateral strikes for actor -> victim."""
+    history = getattr(world, "betrayal_history", {}) or {}
+    record = history.get(_betrayal_key(actor, victim), {}) or {}
+    current_turn = int(getattr(world, "current_turn", 0))
+    active = []
+    for strike in record.get("strikes", []) or []:
+        decays_on_turn = int(strike.get("decays_on_turn", current_turn + 1) or current_turn + 1)
+        if decays_on_turn > current_turn:
+            active.append({
+                "severity": str(strike.get("severity", "")),
+                "turn": int(strike.get("turn", 0)),
+                "episode_id": str(strike.get("episode_id", "")),
+                "decays_on_turn": decays_on_turn,
+            })
+    return active
+
+
+def _get_active_betrayal_strike_count(world, actor: str, victim: str) -> int:
+    return int(len(_get_active_betrayal_strikes(world, actor, victim)))
+
+
+def _shared_enemy_exists(world, nation_a: str, nation_b: str) -> bool:
+    """Check whether two nations currently fight a common enemy."""
+    for other in world.get_active_nations():
+        if other in (nation_a, nation_b):
+            continue
+        if world.is_at_war(nation_a, other) and world.is_at_war(nation_b, other):
+            return True
+    return False
+
+
+def has_hard_reject_posture(world, actor: str, victim: str) -> bool:
+    """Public helper for pair-specific hard-reject posture."""
+    return _get_active_betrayal_strike_count(world, actor, victim) >= 3
+
+
+def _record_betrayal_strike(
+    world,
+    *,
+    actor: str,
+    victim: str,
+    severity: str,
+    episode_id: str,
+) -> Dict:
+    """Persist one remembered bilateral betrayal strike."""
+    current_turn = int(getattr(world, "current_turn", 0))
+    history = getattr(world, "betrayal_history", {}) or {}
+    key = _betrayal_key(actor, victim)
+    record = history.get(key) or {"strikes": [], "categories": [], "last_turn": 0}
+    active_before = _get_active_betrayal_strike_count(world, actor, victim)
+
+    active_same_episode = [
+        strike
+        for strike in _get_active_betrayal_strikes(world, actor, victim)
+        if strike.get("episode_id") == episode_id
+    ]
+    if len(active_same_episode) >= 2:
+        return {
+            "recorded": False,
+            "active_before": active_before,
+            "active_after": active_before,
+            "triggered_hard_reject": False,
+        }
+
+    decay_turns = _BETRAYAL_DECAY_BY_SEVERITY.get(severity, 8)
+    record.setdefault("strikes", []).append({
+        "severity": severity,
+        "turn": current_turn,
+        "episode_id": episode_id,
+        "decays_on_turn": current_turn + decay_turns,
+    })
+    categories = set(record.get("categories", []) or [])
+    categories.add("treaty_breach")
+    record["categories"] = sorted(categories)
+    record["last_turn"] = current_turn
+    history[key] = record
+    world.betrayal_history = history
+
+    active_after = _get_active_betrayal_strike_count(world, actor, victim)
+    return {
+        "recorded": True,
+        "active_before": active_before,
+        "active_after": active_after,
+        "triggered_hard_reject": active_before < 3 <= active_after,
+    }
+
+
+def _process_betrayal_decay(world) -> None:
+    """Decay matured bilateral betrayal strikes once a non-war treaty exists."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    history = getattr(world, "betrayal_history", {}) or {}
+    if not history:
+        return
+
+    current_turn = int(getattr(world, "current_turn", 0))
+    updated = {}
+    for key, record in history.items():
+        actor, victim = key.split("|", 1)
+        strikes = list(record.get("strikes", []) or [])
+        active_before = len([
+            strike for strike in strikes
+            if int(strike.get("decays_on_turn", current_turn + 1) or current_turn + 1) >= current_turn
+        ])
+        if world.get_diplomatic_state(actor, victim) in _NON_WAR_TREATY_STATES:
+            matured = [
+                strike for strike in strikes
+                if int(strike.get("decays_on_turn", current_turn + 1) or current_turn + 1) <= current_turn
+            ]
+            if matured:
+                oldest = min(matured, key=lambda strike: int(strike.get("decays_on_turn", current_turn)))
+                strikes.remove(oldest)
+        if strikes:
+            record["strikes"] = strikes
+            updated[key] = record
+        active_after = len([
+            strike for strike in strikes
+            if int(strike.get("decays_on_turn", current_turn + 1) or current_turn + 1) > current_turn
+        ])
+        if active_before >= 3 and active_after <= 2:
+            episode_id = ""
+            if strikes:
+                episode_id = str(strikes[-1].get("episode_id", ""))
+            world.log_event({
+                "type": "hard_reject_posture_cleared",
+                "perpetrator_nation": actor,
+                "victim_nation": victim,
+                "episode_id": episode_id,
+                "turn": current_turn,
+                "speaker_attribution": "foreign_office",
+            })
+            queue_dispatch_event(world, "hard_reject_posture_cleared", {
+                "perpetrator_nation": actor,
+                "victim_nation": victim,
+                "episode_id": episode_id,
+                "turn": current_turn,
+                "speaker_attribution": "foreign_office",
+            }, "partial_on_nation")
+    world.betrayal_history = updated
+
 
 def _get_actor_personality(world, nation: str) -> str:
     """Best-effort diplomatic personality for the actor's court."""
@@ -387,6 +577,18 @@ def get_treaty_breach_preview(
     applied_delta = reliability_after - reliability_before
 
     witness_scope = _get_breach_witness_scope(world, breaker_nation, other_nation)
+    active_betrayal_strikes_before = _get_active_betrayal_strike_count(
+        world,
+        breaker_nation,
+        other_nation,
+    )
+    active_betrayal_strikes_after = active_betrayal_strikes_before
+    if family == END_REASON_FAMILY_FRENCH_BREACH:
+        active_betrayal_strikes_after += 1
+    would_trigger_hard_reject = (
+        family == END_REASON_FAMILY_FRENCH_BREACH
+        and active_betrayal_strikes_before < 3 <= active_betrayal_strikes_after
+    )
 
     return {
         "pair_key": pair_key,
@@ -414,6 +616,10 @@ def get_treaty_breach_preview(
         "end_reason_action": action,
         "reason_phrase": _REASON_ACTION_PHRASES.get(action, "under pressure"),
         "breach_severity": _BREACH_SEVERITY_BY_TREATY.get(treaty_type, "medium"),
+        "active_betrayal_strikes_before": int(active_betrayal_strikes_before),
+        "active_betrayal_strikes_after": int(active_betrayal_strikes_after),
+        "would_trigger_hard_reject": bool(would_trigger_hard_reject),
+        "hard_reject_target_nation": other_nation,
     }
 
 
@@ -483,6 +689,17 @@ def _build_breach_warnings(breach_preview: Dict, war_preview: Dict = None) -> Li
         ),
     })
 
+    if breach_preview.get("would_trigger_hard_reject"):
+        target = breach_preview.get("hard_reject_target_nation", breach_preview.get("injured_party", "this court"))
+        warnings.append({
+            "severity": "critical",
+            "category": "hard_reject",
+            "text": (
+                f"{target} would mark this as a third remembered betrayal and close the door "
+                "to deep treaties."
+            ),
+        })
+
     if war_preview:
         defensive_joiners = war_preview.get("defensive_joiners", [])
         if defensive_joiners:
@@ -499,7 +716,7 @@ def _build_breach_warnings(breach_preview: Dict, war_preview: Dict = None) -> Li
                 "text": f"Likely co-belligerents: {', '.join(offensive_joiners)}.",
             })
 
-    return warnings
+    return _sort_structured_warnings(warnings)
 
 
 def _record_treaty_breach(
@@ -559,7 +776,11 @@ def _record_treaty_breach(
         "end_reason_action": breach_preview["end_reason_action"],
         "reason_phrase": reason_phrase,
         "breach_severity": breach_preview["breach_severity"],
+        "active_betrayal_strikes_before": int(breach_preview.get("active_betrayal_strikes_before", 0)),
+        "active_betrayal_strikes_after": int(breach_preview.get("active_betrayal_strikes_after", 0)),
+        "would_trigger_hard_reject": bool(breach_preview.get("would_trigger_hard_reject")),
         "trigger_context": trigger_context or {},
+        "speaker_attribution": "foreign_office",
     })
 
     if not suppress_notification:
@@ -610,6 +831,33 @@ def _record_treaty_breach(
         reliability = getattr(world, 'diplomatic_reliability', {})
         reliability[breaker_nation] = breach_preview["reliability_after"]
         world.diplomatic_reliability = reliability
+
+    if breach_preview.get("end_reason_family") == END_REASON_FAMILY_FRENCH_BREACH:
+        betrayal_record = _record_betrayal_strike(
+            world,
+            actor=breaker_nation,
+            victim=injured_party,
+            severity=str(breach_preview.get("breach_severity", "medium")),
+            episode_id=episode_id,
+        )
+        if betrayal_record.get("triggered_hard_reject"):
+            queue_dispatch_event(world, "hard_reject_posture_triggered", {
+                "perpetrator_nation": breaker_nation,
+                "victim_nation": injured_party,
+                "trigger_strike_episode_id": episode_id,
+                "episode_id": episode_id,
+                "turn": int(world.current_turn),
+                "speaker_attribution": "foreign_office",
+            }, "partial_on_nation")
+            world.log_event({
+                "type": "hard_reject_posture_triggered",
+                "perpetrator_nation": breaker_nation,
+                "victim_nation": injured_party,
+                "trigger_strike_episode_id": episode_id,
+                "episode_id": episode_id,
+                "turn": int(world.current_turn),
+                "speaker_attribution": "foreign_office",
+            })
 
     diplomatic_history = getattr(world, 'diplomatic_history', [])
     diplomatic_history.append({
@@ -1435,6 +1683,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     )
 
     score = int(round(raw_score))
+    hard_reject_posture = 0
+    if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
+        if _shared_enemy_exists(world, proposer, target) and not world.is_at_war(proposer, target):
+            hard_reject_posture = -20
+            score += hard_reject_posture
+        else:
+            hard_reject_posture = -100
+            score = min(score, 0)
 
     if score >= 50:
         outcome = "ACCEPT"
@@ -1464,6 +1720,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "reliability_modifier": reliability_modifier,
         "ultimatum_bonus": ultimatum_bonus,
         "territory_escalation": int(territory_penalty),
+        "hard_reject_posture": int(hard_reject_posture),
     }
 
     # ── Feedback (§6f) ──
@@ -1518,6 +1775,87 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         key = largest_positive[0]
         phrase = FEEDBACK_STRINGS.get(key, {}).get("positive", "favorable conditions")
         return f"The decisive factor was {phrase}."
+
+
+def build_proposal_commitment_warnings(
+    world,
+    proposer_nation: str,
+    target_nation: str,
+    proposal_type: str,
+) -> List[Dict]:
+    """Build structured commitments warnings for proposal preview surfaces."""
+    warnings: List[Dict] = []
+    betrayal_strikes = _get_active_betrayal_strike_count(world, proposer_nation, target_nation)
+    if betrayal_strikes >= 3 and proposal_type in _DEEP_TREATY_TYPES:
+        warnings.append({
+            "severity": "critical",
+            "category": "hard_reject",
+            "text": (
+                f"{target_nation} is in hard-reject posture after repeated betrayals and will resist "
+                f"a {_proposal_display_name(proposal_type)}."
+            ),
+        })
+    elif betrayal_strikes > 0:
+        severity = "high" if betrayal_strikes >= 2 else "medium"
+        warnings.append({
+            "severity": severity,
+            "category": "betrayal",
+            "text": (
+                f"{target_nation} still remembers {betrayal_strikes} broken commitment"
+                f"{'' if betrayal_strikes == 1 else 's'} from {proposer_nation}."
+            ),
+        })
+
+    return _sort_structured_warnings(warnings)
+
+
+def determine_ai_offer_decision_reason(
+    nation: str,
+    proposal_type: str,
+    world,
+) -> str:
+    """Deterministic reason enum for AI-authored offers in the current substrate."""
+    player = getattr(world, "player_nation", "France")
+    if proposal_type in ("armistice_losing", "armistice", "peace", "harsh_peace"):
+        return "war_overload"
+    if _shared_enemy_exists(world, nation, player):
+        return "shared_enemy_survival"
+    wars_against_player = sum(
+        1 for other in getattr(world, "enemy_nations", [])
+        if world.is_at_war(player, other)
+    )
+    if int(getattr(world, "threat_level", 0)) > 60 or wars_against_player >= 2:
+        return "rival_pressure"
+    return "rival_pressure"
+
+
+def determine_counterparty_decision_reason(
+    proposal: Dict,
+    world,
+    acceptance_result: Dict = None,
+    *,
+    stale: bool = False,
+) -> str:
+    """Deterministic reason enum for AI responses to player proposals."""
+    proposer = proposal.get("proposer_nation", getattr(world, "player_nation", "France"))
+    target = proposal.get("target_nation", "")
+    proposal_type = proposal.get("type", "")
+
+    if stale:
+        return "route_blocked"
+    if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
+        return "distrust_promiser"
+
+    components = (acceptance_result or {}).get("components", {}) or {}
+    if int(components.get("coalition_penalty", 0) or 0) < 0:
+        return "coalition_conflict"
+    if int(components.get("war_weariness", 0) or 0) <= -10:
+        return "war_overload"
+    if int(components.get("hard_reject_posture", 0) or 0) < 0:
+        return "distrust_promiser"
+    if _shared_enemy_exists(world, proposer, target):
+        return "shared_enemy_survival"
+    return "rival_pressure"
 
 
 # ═══════════════════════════════════════════════════════
@@ -3145,6 +3483,7 @@ def _process_diplomatic_reliability(world) -> None:
                 reliability[nation] = min(100, current + 5)
 
     world.diplomatic_reliability = reliability
+    _process_betrayal_decay(world)
 
 
 # ═══════════════════════════════════════════════════════

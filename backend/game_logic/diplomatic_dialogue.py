@@ -536,7 +536,12 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     These fields let the frontend popup display the mechanical content of the
     proposal alongside Talleyrand's thematic commentary.
     """
-    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost, get_transition_dp_cost
+    from backend.game_logic.diplomacy import (
+        build_proposal_commitment_warnings,
+        calculate_acceptance,
+        get_dp_cost,
+        get_transition_dp_cost,
+    )
     from backend.game_logic.diplomatic_templates import generate_suggested_terms, calculate_treaty_harshness
 
     # Find terms from the first execute_proposal option, or generate fresh
@@ -641,6 +646,16 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
 
     # Display name
     dialogue["proposal_type_display"] = _display_proposal_type(proposal_type)
+    dialogue["speaker_attribution"] = "talleyrand"
+
+    warnings = build_proposal_commitment_warnings(
+        world,
+        proposer_nation=player_nation,
+        target_nation=target_nation,
+        proposal_type=proposal_type,
+    )
+    if warnings:
+        dialogue["warnings"] = warnings
 
     return dialogue
 

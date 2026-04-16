@@ -56,6 +56,17 @@ class TestDiplomacyDisplayContract:
         assert popup["proposal_type"] == "OPEN_BORDERS"
         assert popup["proposal_type_display"] == "Open Borders Agreement"
 
+    def test_pending_envoy_popup_exposes_decision_reason_display(self):
+        popup = build_pending_envoy_popup_from_terms(
+            _make_world(),
+            nation="Prussia",
+            terms={"type": "peace", "demands": [], "sweeteners": [], "clauses": []},
+            decision_reason="shared_enemy_survival",
+        )
+
+        assert popup["decision_reason"] == "shared_enemy_survival"
+        assert popup["decision_reason_display"] == "shared-enemy survival"
+
     def test_dialogue_summary_never_leaks_raw_tokens(self):
         lines = _format_terms_for_display(
             {

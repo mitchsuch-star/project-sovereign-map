@@ -123,6 +123,27 @@ func _build_content(data: Dictionary) -> String:
 	if dp_cost >= 0:
 		bbcode += "DP cost: [color=#80a0d0]%d[/color]\n" % dp_cost
 
+	var warnings = data.get("warnings", [])
+	if not warnings.is_empty():
+		bbcode += "\n[b]Political Context:[/b]\n"
+		var shown = mini(warnings.size(), 2)
+		for idx in range(shown):
+			var warning = warnings[idx]
+			var severity = str(warning.get("severity", "low"))
+			var color = "#e0c070"
+			if severity == "critical":
+				color = "#e04040"
+			elif severity == "high":
+				color = "#e09040"
+			elif severity == "medium":
+				color = "#e0c060"
+			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
+		if warnings.size() > shown:
+			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+				warnings.size() - shown,
+				"" if (warnings.size() - shown) == 1 else "s",
+			]
+
 	# Talleyrand commentary
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
@@ -246,6 +267,26 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#e09040]%s[/color]\n" % ttext
+	var warnings = data.get("warnings", [])
+	if not warnings.is_empty():
+		bbcode += "\n[b]Political Context:[/b]\n"
+		var shown = mini(warnings.size(), 2)
+		for idx in range(shown):
+			var warning = warnings[idx]
+			var severity = str(warning.get("severity", "low"))
+			var color = "#e0c070"
+			if severity == "critical":
+				color = "#e04040"
+			elif severity == "high":
+				color = "#e09040"
+			elif severity == "medium":
+				color = "#e0c060"
+			bbcode += "  [color=%s]â€¢[/color] %s\n" % [color, str(warning.get("text", ""))]
+		if warnings.size() > shown:
+			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+				warnings.size() - shown,
+				"" if (warnings.size() - shown) == 1 else "s",
+			]
 	return bbcode
 
 func _build_conflict_alert_content(data: Dictionary) -> String:
@@ -254,6 +295,26 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+	var warnings = data.get("warnings", [])
+	if not warnings.is_empty():
+		bbcode += "\n[b]Political Context:[/b]\n"
+		var shown = mini(warnings.size(), 2)
+		for idx in range(shown):
+			var warning = warnings[idx]
+			var severity = str(warning.get("severity", "low"))
+			var color = "#e0c070"
+			if severity == "critical":
+				color = "#e04040"
+			elif severity == "high":
+				color = "#e09040"
+			elif severity == "medium":
+				color = "#e0c060"
+			bbcode += "  [color=%s]â€¢[/color] %s\n" % [color, str(warning.get("text", ""))]
+		if warnings.size() > shown:
+			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+				warnings.size() - shown,
+				"" if (warnings.size() - shown) == 1 else "s",
+			]
 	return bbcode
 
 func _on_option_selected(action: String):

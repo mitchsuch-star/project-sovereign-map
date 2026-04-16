@@ -14,6 +14,10 @@ from backend.models.world_state import WorldState
 from backend.game_logic.diplomacy import (
     declare_war, break_treaty, cleanup_war_end,
     _process_mission_effects,
+    _process_diplomatic_reliability,
+    calculate_acceptance,
+    get_treaty_breach_preview,
+    has_hard_reject_posture,
 )
 
 
@@ -296,6 +300,121 @@ class TestCommitmentsSubstrateHardening:
         assert breach["end_reason_action"] == "manual_break"
         assert breach["fault_nation"] == "France"
         assert world.diplomatic_reliability.get("France", 0) == -10
+
+
+class TestCommitmentsHardRejectPosture:
+    """B2b follow-up: repeated remembered betrayals hard-block deep treaties."""
+
+    def test_third_breach_triggers_hard_reject_posture(self):
+        world = make_world()
+        world.current_turn = 5
+        diplo_key = world._make_diplo_key("France", "Austria")
+        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
+        world.active_treaties[diplo_key] = {
+            "nations": ["France", "Austria"],
+            "type": "alliance",
+            "clauses": [],
+            "turn_signed": 3,
+        }
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                    {"severity": "medium", "turn": 2, "episode_id": "ep_2", "decays_on_turn": 10},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 2,
+            }
+        }
+
+        result = declare_war(world, "France", "Austria")
+
+        assert result["success"] is True
+        assert has_hard_reject_posture(world, "France", "Austria") is True
+        triggered = [e for e in world.event_log if e.get("type") == "hard_reject_posture_triggered"]
+        assert triggered
+        assert triggered[-1]["victim_nation"] == "Austria"
+        dispatch = [e for e in world.pending_dispatch_events if e.get("type") == "hard_reject_posture_triggered"]
+        assert dispatch
+
+    def test_decay_clears_hard_reject_posture_and_emits_event(self):
+        world = make_world()
+        world.current_turn = 9
+        _set_diplo_state(world, "France", "Austria", "NON_AGGRESSION")
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                    {"severity": "medium", "turn": 2, "episode_id": "ep_2", "decays_on_turn": 10},
+                    {"severity": "medium", "turn": 3, "episode_id": "ep_3", "decays_on_turn": 11},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 3,
+            }
+        }
+
+        _process_diplomatic_reliability(world)
+
+        assert has_hard_reject_posture(world, "France", "Austria") is False
+        cleared = [e for e in world.event_log if e.get("type") == "hard_reject_posture_cleared"]
+        assert cleared
+        assert cleared[-1]["victim_nation"] == "Austria"
+        dispatch = [e for e in world.pending_dispatch_events if e.get("type") == "hard_reject_posture_cleared"]
+        assert dispatch
+
+    def test_breach_preview_flags_hard_reject_crossing(self):
+        world = make_world()
+        world.current_turn = 4
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                    {"severity": "medium", "turn": 2, "episode_id": "ep_2", "decays_on_turn": 10},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 2,
+            }
+        }
+        preview = get_treaty_breach_preview(
+            world,
+            "France",
+            "Austria",
+            treaty={"type": "alliance", "nations": ["France", "Austria"]},
+            end_reason_action="war_declaration",
+            fault_nation="France",
+        )
+
+        assert preview["active_betrayal_strikes_before"] == 2
+        assert preview["active_betrayal_strikes_after"] == 3
+        assert preview["would_trigger_hard_reject"] is True
+
+    def test_hard_reject_blocks_deep_treaty_acceptance(self):
+        world = make_world()
+        world.current_turn = 6
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {"severity": "medium", "turn": 1, "episode_id": "ep_1", "decays_on_turn": 9},
+                    {"severity": "medium", "turn": 2, "episode_id": "ep_2", "decays_on_turn": 10},
+                    {"severity": "medium", "turn": 3, "episode_id": "ep_3", "decays_on_turn": 11},
+                ],
+                "categories": ["treaty_breach"],
+                "last_turn": 3,
+            }
+        }
+
+        result = calculate_acceptance({
+            "type": "alliance",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }, world)
+
+        assert result["components"]["hard_reject_posture"] == -100
+        assert result["outcome"] == "REJECT"
 
 
 # ═══════════════════════════════════════════════════════

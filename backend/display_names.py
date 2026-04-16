@@ -287,6 +287,10 @@ FEEDBACK_STRINGS = {
         "negative": "the sheer scale of territorial demands",
         "positive": "modest territorial terms",
     },
+    "hard_reject_posture": {
+        "negative": "their remembered betrayals of France",
+        "positive": "the chancery remains open to deeper commitments",
+    },
 }
 
 # ============================================================================
@@ -331,6 +335,18 @@ TRUST_TIER_DISPLAY = {
     "DEVOTED": "Devoted",
 }
 
+DECISION_REASON_DISPLAY = {
+    "claim_obsolete": "claim obsolete",
+    "claim_trade": "claim trade",
+    "coalition_conflict": "coalition conflict",
+    "counterparty_reversal": "counterparty reversal",
+    "distrust_promiser": "remembered betrayals",
+    "rival_pressure": "rival pressure",
+    "route_blocked": "route blocked",
+    "shared_enemy_survival": "shared-enemy survival",
+    "war_overload": "war exhaustion",
+}
+
 
 # ============================================================================
 # UNIVERSAL TRANSLATOR
@@ -355,6 +371,12 @@ _CATEGORY_MAPS = {
 def action_display_name(action: str) -> str:
     """Translate internal action name to player-readable text."""
     return ACTION_DISPLAY.get(action, action.replace("_", " "))
+
+
+def diplomatic_decision_reason_display(reason: str) -> str:
+    """Translate a deterministic decision_reason enum to player-facing text."""
+    result, raw = _lookup_display_name(DECISION_REASON_DISPLAY, reason)
+    return result or _fallback_display_name(raw, default="")
 
 
 def _lookup_display_name(display_map: dict, internal_name: str):
@@ -399,6 +421,11 @@ def proposal_summary_display_name(proposal_type: str, target_nation: str = "") -
     if (raw or "").strip().lower() == "vassalage" and target_nation:
         return f"{proposal_label} ({target_nation} becomes a subject state)"
     return proposal_label
+
+
+def decision_reason_display_name(reason: str) -> str:
+    """Backward-compatible alias for decision-reason copy."""
+    return diplomatic_decision_reason_display(reason)
 
 
 def _format_display_value(value) -> str:

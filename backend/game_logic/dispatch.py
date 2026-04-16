@@ -1068,6 +1068,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
     "diplomatic_armistice_expired_peace": "The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
     "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
+    "hard_reject_posture_triggered": "{victim_nation} has closed the chancery to {perpetrator_nation}.",
+    "hard_reject_posture_cleared": "{victim_nation} has reopened deeper diplomacy with {perpetrator_nation}.",
     "nation_eliminated": "{nation} has been eliminated from the war.",
 }
 
@@ -1106,6 +1108,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_relation_shift": "MEDIUM",
     "diplomatic_armistice_expired_peace": "HIGH",
     "diplomatic_armistice_expired_war": "HIGH",
+    "hard_reject_posture_triggered": "HIGH",
+    "hard_reject_posture_cleared": "MEDIUM",
     "nation_eliminated": "HIGH",
 }
 
@@ -1238,6 +1242,20 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         if scope_phrase:
             return f"{witness} has taken note of {perpetrator}'s breach against {victim} {scope_phrase}."
         return f"{witness} has taken note of {perpetrator}'s breach against {victim}."
+
+    if event_type == "hard_reject_posture_triggered":
+        victim = template_vars.get("victim_nation", "Unknown")
+        perpetrator = template_vars.get("perpetrator_nation", "Unknown")
+        return (
+            f"{victim} has shut the chancery to {perpetrator} after repeated betrayals."
+        )
+
+    if event_type == "hard_reject_posture_cleared":
+        victim = template_vars.get("victim_nation", "Unknown")
+        perpetrator = template_vars.get("perpetrator_nation", "Unknown")
+        return (
+            f"{victim} has reopened deeper diplomacy with {perpetrator}."
+        )
 
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:

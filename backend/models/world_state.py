@@ -488,6 +488,7 @@ class WorldState:
         self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
         # ultimatum_global_cooldown now managed by _cooldown_manager (R6, PL-14 migrated dict→scalar)
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
+        self.betrayal_history: Dict[str, Dict] = {}      # actor|victim -> remembered bilateral strikes
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
@@ -3145,6 +3146,22 @@ class WorldState:
             "casus_belli": self.casus_belli.copy(),
             "ultimatum_global_cooldown": int(self.ultimatum_global_cooldown),
             "diplomatic_reliability": {k: int(v) for k, v in self.diplomatic_reliability.items()},
+            "betrayal_history": {
+                key: {
+                    "strikes": [
+                        {
+                            "severity": str(strike.get("severity", "")),
+                            "turn": int(strike.get("turn", 0)),
+                            "episode_id": str(strike.get("episode_id", "")),
+                            "decays_on_turn": int(strike.get("decays_on_turn", 0)),
+                        }
+                        for strike in (record.get("strikes", []) or [])
+                    ],
+                    "categories": [str(cat) for cat in (record.get("categories", []) or [])],
+                    "last_turn": int(record.get("last_turn", 0)),
+                }
+                for key, record in self.betrayal_history.items()
+            },
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "alliance_paradox_popup": self.alliance_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
@@ -3436,6 +3453,22 @@ class WorldState:
         else:
             world.ultimatum_global_cooldown = 0
         world.diplomatic_reliability = {k: int(v) for k, v in data.get("diplomatic_reliability", {}).items()}
+        world.betrayal_history = {
+            key: {
+                "strikes": [
+                    {
+                        "severity": str(strike.get("severity", "")),
+                        "turn": int(strike.get("turn", 0)),
+                        "episode_id": str(strike.get("episode_id", "")),
+                        "decays_on_turn": int(strike.get("decays_on_turn", 0)),
+                    }
+                    for strike in (record.get("strikes", []) or [])
+                ],
+                "categories": [str(cat) for cat in (record.get("categories", []) or [])],
+                "last_turn": int(record.get("last_turn", 0)),
+            }
+            for key, record in data.get("betrayal_history", {}).items()
+        }
         world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
         world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
         world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
@@ -4372,7 +4405,11 @@ class WorldState:
         if turn_sent >= self.current_turn:
             return events  # Not yet — wait until next turn
 
-        from backend.game_logic.diplomacy import calculate_acceptance, _UPGRADE_ORDER
+        from backend.game_logic.diplomacy import (
+            calculate_acceptance,
+            determine_counterparty_decision_reason,
+            _UPGRADE_ORDER,
+        )
         target = pit.get("target", "")
         proposal = pit.get("proposal", {})
 
@@ -4423,6 +4460,11 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"The diplomatic situation with {target} has changed — our proposal is no longer viable.",
                     "feedback": "The current relations have already surpassed the proposed terms.",
+                    "decision_reason": determine_counterparty_decision_reason(
+                        proposal,
+                        self,
+                        stale=True,
+                    ),
                 }
                 self.proposal_in_transit = None
                 # Restore Talleyrand state (same logic as normal resolution path)
@@ -4450,6 +4492,7 @@ class WorldState:
             result["outcome"] = "COUNTER_OFFER"
         outcome = result.get("outcome", "REJECT")
         feedback = result.get("feedback", "")
+        decision_reason = determine_counterparty_decision_reason(proposal, self, result)
 
         from backend.game_logic.dispatch import queue_dispatch_event
 
@@ -4481,6 +4524,7 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"{target} agreed in principle, but the diplomatic situation has changed.",
                     "feedback": feedback,
+                    "decision_reason": decision_reason,
                 }
             else:
                 events.append({
@@ -4498,6 +4542,7 @@ class WorldState:
                     "outcome": "ACCEPT",
                     "message": f"{target} has accepted our {ptype_display}!",
                     "feedback": feedback,
+                    "decision_reason": decision_reason,
                 }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
@@ -4529,6 +4574,7 @@ class WorldState:
                     terms=counter_terms,
                     assessment=feedback,
                     is_counter_offer=True,
+                    decision_reason=decision_reason,
                 )
                 # R12C: push() instead of overwrite — fixes latent bug where counter-offer
                 # could silently overwrite an active blocking dialogue during advance_turn
@@ -4556,6 +4602,7 @@ class WorldState:
                         "source_nation": target,
                         "original_proposal": proposal,
                         "counter_terms": counter_terms,
+                        "decision_reason": decision_reason,
                     },
                     "turn_created": int(self.current_turn),
                     "blocking": True,
@@ -4588,6 +4635,7 @@ class WorldState:
                     "outcome": "REJECT",
                     "message": f"{target} was not entirely opposed, but could not agree to any terms.",
                     "feedback": feedback,
+                    "decision_reason": decision_reason,
                 }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
@@ -4615,6 +4663,7 @@ class WorldState:
                 "outcome": "REJECT",
                 "message": f"{target} has rejected our {proposal_display_name(ptype)}.",
                 "feedback": feedback,
+                "decision_reason": decision_reason,
             }
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")

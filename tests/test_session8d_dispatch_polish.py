@@ -252,6 +252,34 @@ class TestDispatchDiplomaticEvents:
         # Scope phrasing should surface as an ally of the victim.
         assert "ally of Austria" in text
 
+    def test_hard_reject_triggered_dispatch_text(self):
+        world = _make_world()
+        queue_dispatch_event(world, "hard_reject_posture_triggered",
+                            {
+                                "perpetrator_nation": "France",
+                                "victim_nation": "Austria",
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "shut the chancery" in events[0]["text"]
+        assert events[0]["priority"] == "HIGH"
+
+    def test_hard_reject_cleared_dispatch_text(self):
+        world = _make_world()
+        queue_dispatch_event(world, "hard_reject_posture_cleared",
+                            {
+                                "perpetrator_nation": "France",
+                                "victim_nation": "Austria",
+                            },
+                            "always")
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "reopened deeper diplomacy" in events[0]["text"]
+        assert events[0]["priority"] == "MEDIUM"
+
     def test_vassal_unrest_appears_in_dispatch(self):
         world = _make_world()
         _make_vassal(world, "Saxony", lord="France", loyalty=35)

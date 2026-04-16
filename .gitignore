@@ -44,6 +44,7 @@ saves/
 
 # Testing
 .pytest_cache/
+pytest_cache_local/
 .coverage
 htmlcov/
 
