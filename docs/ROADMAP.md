@@ -439,6 +439,9 @@ Once the diplomacy refinement queue above is stable, the next interaction-layer 
 
 | Item | Description | Status |
 |------|-------------|--------|
+| **Personality-Biased Disambiguation** | Same ambiguous order, different results based on who you're talking to. "Ney, deal with Wellington" → attack (Aggressive). "Davout, deal with Wellington" → hold/scout (Cautious). "Grouchy, deal with Wellington" → asks for clarification (Literal). LLM parses THROUGH the marshal's personality lens instead of neutrally. Zero additional LLM calls — same parse call with personality-aware system prompt. **Within golden rule** (parsing determines action; executor stays deterministic). This is the game's signature LLM innovation: no other strategy game has personality-filtered command interpretation. Mock-safe: keyword parser falls back to neutral disambiguation. | **NEEDS SPEC — can prototype early (prompt engineering change)** |
+| **Conversational Objection Negotiation** | Marshal objects → player argues back in natural language instead of clicking Insist/Trust/Compromise. LLM evaluates whether the player's argument addresses the marshal's stated concern using real game state. Cogent argument → resolves as Trust with +2 trust bonus. Poor argument → resolves as Insist. Mock mode: three buttons remain as fallback. **Pushes golden rule safely** — LLM classifies player response into one of three existing deterministic resolution buckets, not new outcomes. ~$0.0002/objection (Haiku). Cross-ref: Phase 8.5 Novel LLM Applications. | **NEEDS SPEC — design gate required (LLM affects trust outcome bucket)** |
+| **Conditional and Compound Orders** | "If they retreat, pursue. Otherwise hold." / "Ney and Davout, pincer from Belgium and Holland." LLM extracts conditional logic and multi-marshal coordination that the keyword parser can't handle. Conditionals become reactive triggers in the strategic order system. Compound orders could grant a planning coherence bonus. Mock-safe: keyword parser handles simple orders; complex ones get Berthier clarification. Depends on Standing Tactical Intent + Semantic Command History. | **NEEDS SPEC — after Standing Tactical Intent** |
 | **Persistent Command Focus** | Keep the current addressee/context active until the player changes it, so follow-ups like `attack`, `again`, `same target`, or `not you, Davout` become first-class commands instead of raw history recall. | **NEEDS SPEC** |
 | **Standing Tactical Intent** | Let the player express ongoing battlefield intent (`keep pressure on Wellington`, `hold unless outnumbered`, `bombard until the fort breaks`) so repetitive re-entry of the same order is reduced without flattening marshal personality. | **NEEDS SPEC** |
 | **Semantic Command History** | Track last marshal/action/target/interpretation, not just raw strings, so the parser and UI can understand follow-up intent rather than treating every line as a fresh utterance. | **NEEDS SPEC** |
@@ -540,6 +543,8 @@ Every 3-5 turns, generate a period newspaper summarizing recent events via singl
 | **Command Echoing** | Player typed "unleash hell" -> "Ney unleashed hell on Wellington's lines — 12,000 casualties." | Combat report |
 | **Autonomy Inner Monologue** | "Ney sees the gap and cannot resist" | Autonomous marshal acts |
 | **LLM Objection Arguments** | Objection references real game state | Objection popup (Tier 2) |
+| **Conversational Objection Negotiation** | Marshal objects → player argues back in NL → LLM evaluates whether the argument addresses the marshal's concern using real game state → resolves into existing Insist/Trust/Compromise bucket with trust modifier. The game's "talk to your generals" fantasy fully realized. Cross-ref: Post-Diplomacy Command Layer Queue. **Needs design gate.** | Objection popup (replaces 3-button flow for LLM-on players) |
+| **Personality-Biased Parsing** | Same ambiguous order → different action based on marshal personality. "Deal with Wellington" → attack (Aggressive), scout (Cautious), clarify (Literal). Zero extra LLM calls — system prompt change. Cross-ref: Post-Diplomacy Command Layer Queue. **Can prototype early.** | Every ambiguous command parse |
 | **Napoleon Comparison** | "You lasted 47 turns. Napoleon lasted 120 months. Your coalition formed on turn 12; historically, the Third Coalition formed in 1805." | Post-game screen |
 
 ### Diplomatic LLM Features (Memory and Pressure era — added April 16 creative audit)
@@ -568,7 +573,7 @@ These are **design-gated** — do not implement any as part of Phase 8.5 without
 
 ### Encouraging Creative Commands (Anti-Memorization)
 
-These ideas are downstream of the post-diplomacy command-layer queue above. Do not ship phrasing bonuses/penalties before `Persistent Command Focus`, `Standing Tactical Intent`, and `Semantic Command History` are specified.
+These ideas are downstream of the post-diplomacy command-layer queue above. Do not ship phrasing bonuses/penalties before `Persistent Command Focus`, `Standing Tactical Intent`, and `Semantic Command History` are specified. **Exception:** `Personality-Biased Disambiguation` can prototype earlier — it is a system-prompt change to the existing parse call, not a new command-surface feature.
 
 | Feature | Description |
 |---------|-------------|
