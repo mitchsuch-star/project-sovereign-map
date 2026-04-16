@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track, and the diplomacy planning docs now lock the refinement order: `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after dedicated post-commitments specs. Interim substrate hardening extended: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action` per Â§9.9, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
+> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track. Diplomacy planning docs rescoped on April 16: `Reliability + Commitments` renamed to `Memory and Pressure`; war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md` and rescheduled into the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`. The substrate (betrayal memory + episode_id + witness scope + hard-reject posture + structured warnings + paradox episode continuity) is shipped; the remaining `Memory and Pressure` work is rivalry seed + acceptance-formula additions + paradox rename + C3-lite presentation pass (~40 tests, ~2 sessions). Earlier April 16 substrate hardening: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action`, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
 
 ---
 
@@ -103,10 +103,11 @@ These are existing audit items broken into implementation order. They stay after
 
 | Order | Spec Track | Bundles / Source Items | Note |
 |-------|------------|------------------------|------|
-| 1 | Reliability + Commitments | `R160`, `R119`, `R151` | First diplomacy follow-up implementation target. Rivalries, betrayal memory, and territorial promises are now scoped as the bilateral political-commitment system in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. |
-| 2 | Bilateral Peace Hardening | separate peace UX, bilateral peace term ownership, promise-breach warnings, peace-preview clarity | Must land before any ally-aware settlement flow. **Needs dedicated spec.** |
+| 1 | Memory and Pressure (renamed Apr 16; was `Reliability + Commitments`) | `R160`, `R119` | First diplomacy follow-up implementation target. Substrate is shipped; remaining work: rivalry seed, acceptance-formula modifiers, third-party anger, redemption tick, paradox rename, C3-lite presentation. See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0 + `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0 + `COMMITMENTS_PRESENTATION_SPEC.md` v0.3. ~40 tests, ~2 sessions. |
+| 2 | Bilateral Peace Hardening | separate peace UX, bilateral peace term ownership, promise-breach warnings, peace-preview clarity | Must land before any ally-aware settlement flow OR before war bargains. **Needs dedicated spec.** |
 | 3 | War Purpose + Score Semantics | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. Do **not** bundle this directly with common peace. **Needs dedicated spec.** |
-| 4 | Ally Participation + Common Peace | ally beneficiaries, contribution / consultation rights, common peace routing, settlement fallout | Post-commitments, post-peace-hardening track only. Existing draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later wartime-flow direction, not an implementation-ready v0.1 spec. |
+| 3.5 | War Bargains | `R151`, full `war_bargain` mechanic split out of `Reliability + Commitments` v1.0 in April 16 rescope | The bilateral named-enemy promise mechanic. `docs/WAR_BARGAIN_SPEC.md` v1.0. Slices WB-A (data + creation), WB-B (lifecycle), WB-C (war-entry contract), WB-D (presentation extension). **Depends on items 1-3.** ~80-90 tests. |
+| 4 | Ally Participation + Common Peace | ally beneficiaries, contribution / consultation rights, common peace routing, settlement fallout | Post-bargains track. Existing draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later wartime-flow direction, not implementation-ready. |
 | 5 | Nation Agendas + Motive Legibility | `R155`, `R156`, `A3`, `R123`, `R124` | Make nations feel nation-smart, not threshold-smart: agendas, diplomacy-vs-war choice, visible motives, and isolation behavior. **Needs dedicated spec.** |
 | 6 | Talleyrand Desk + Explanation Layer | `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, `R159` | Unify cooldown warnings, relationship/vassal trends, mission projections, and explanatory advisory text into one desk/explanation surface. **Needs dedicated spec.** |
 | 7 | Economic Diplomacy | `R161` plus B4 diplomacy-facing gold-sink candidates | Build the non-coercive diplomatic economy around reciprocal trade, subsidies, and pressure, not disconnected one-off features. **Needs dedicated spec.** |
@@ -136,14 +137,22 @@ These are existing audit items broken into implementation order. They stay after
 - **Durable paradox-resolution memory (H-8):** alliance-paradox choices now emit `commitment_paradox_resolved` with `chosen_nation`, `spurned_nation`, deterministic fallout preview, and the same origin `episode_id` that keyed the blocking choice.
 - **Campaign-log legibility follow-through (M-7):** campaign-log formatting now preserves shattered-treaty wording, target/reason/fault distinctions for breach events, and a direct one-liner for `commitment_paradox_resolved` rather than collapsing back to ledger-generic phrasing.
 
-Deferred (not in this pass â€” requires dedicated slices):
+Deferred (April 16 rescope finalized scope; remaining items are now part of either `Memory and Pressure` final implementation slice or `WAR_BARGAIN_SPEC.md`):
 
-- Backend `hard_reject_posture_triggered` / `hard_reject_posture_cleared` emits are now live; what remains is the dedicated `C3` spotlight / popup treatment on top of that contract.
-- Full `C3a-pre` spotlight contract: split-voice attribution, attributed lines, callback affordances, and richer hard-reject / join-opportunity context.
-- `hard_reject_posture_triggered` / `hard_reject_posture_cleared` emits (Slice `B2b`; `C3` Â§8.2 blocks spotlight rendering on this contract).
-- Dedicated Godot `commitment_paradox_popup.{tscn,gd}` surface + `main.gd` dtype whitelist entry (`C3a-pre` Â§14 prerequisites 2-4).
-- Full commitments-spec `decision_reason` enum coverage (`C2` Slice); current substrate covers the main hostility / distrust / coalition / shared-enemy paths but not the entire taxonomy.
-- `war_bargain` clause type, creation, lifecycle, bargain review, counter-bargain flow (Slice `C1a` + `C1b` + `C2`).
+**Remaining for `Memory and Pressure` phase to ship (covered by `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0):**
+
+- Rivalry seed (`nation_rivalries` dict + 3 authored pairs France-Britain primary active, Prussia-Austria primary active, Prussia-Saxony secondary cold) — Slice A1-fill.
+- Acceptance-formula additions: `direct_rivalry_mod`, `rival_conflict_mod`, graduated `bilateral_betrayal_mod = -8 * active_strikes cap -24`, composite `political_commitment_mod = max(-40, raw)` — Slice B1.
+- Third-party anger applied at treaty ratification (relation-hit half of B2a; metadata side already shipped) — Slice B2a-fill.
+- Redemption tick: `actor_honored_turns` global clock + `+3` reliability per 5 honored turns — Slice B6.
+- Rename push-side `alliance_paradox` dialogue type to `commitment_paradox` (legacy alias on read) — Slice B3.
+- C3-lite presentation pass: spotlight tier, split-voice render (`attributed_lines[]`), named-diplomat resolution per `DIPLOMAT_VOICE_BIBLE.md`, dedicated `commitment_paradox_popup.{tscn,gd}` Godot surface, three live spotlight events (`hard_reject_posture_triggered`, `diplomatic_treaty_broken` french_breach, `commitment_paradox`), one N+1 Talleyrand aside per `episode_id`, advisory-route reactive affordances. See `COMMITMENTS_PRESENTATION_SPEC.md` v0.3.
+
+**Moved to `WAR_BARGAIN_SPEC.md` (Peace Deals phase):**
+
+- `war_bargain` clause type, creation, lifecycle, Bargain Review surface, counter-bargain flow, `join_opportunity` + `pending_declaration` + `AllyEntryPipeline`, dedicated `war_entry_score`, `bargain_value_mod` acceptance modifier, `fulfillment_snapshot` extended contract.
+- Bargain-specific `decision_reason` enum entries (`claim_trade`, `claim_obsolete`, full `counterparty_reversal` paths beyond what substrate already covers).
+- WB-D bargain-era presentation extension: `bargain_*` spotlights, scope-branched witness reaction copy, response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`), 5-beat paradox staging when rivalry-driven ratification paradox fires the new triggers, N+5 fallback grievance slot.
 
 Focused follow-up suite: 220 passed (`test_phase2b_diplomacy`, `test_playtest_bugfixes`, `test_session8c_popups_notifications`, `test_session8d_dispatch_polish`, `test_campaign_log`, `test_diplomacy_display_contract`). Full baseline suite not rerun in this pass. Ruff: not rerun in this pass.
 

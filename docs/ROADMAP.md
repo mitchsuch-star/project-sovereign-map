@@ -25,7 +25,7 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Reliability + Commitments` first, `Bilateral Peace Hardening` second, and ally-participation / common-peace work only after later dedicated specs.
+**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (formerly `Reliability + Commitments`; rescoped April 16 — see `RELIABILITY_COMMITMENTS_SPEC.md` v2.0), `Bilateral Peace Hardening` second, `War Purpose + Score Semantics` third, then `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`.
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 

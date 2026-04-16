@@ -22,7 +22,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Bug Fixes — COMPLETE.** PL queue closed, Session 6 architecture follow-up COMPLETE. See `docs/BUG_FIXES.md`.
 - **Session 8 Renderer Cutover — ACTIVE.** Slices 1-3 are complete: shared node-layer shell, placeholder province-definition/color-map lookup, and viewport-local `Camera2D` cutover. Remaining work is commissioned art-backed layers and final Godot runtime smoke validation. See `docs/STATUS.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
-- **Design Refinement — NEXT AFTER SESSION 8.** 7 ready + 38 need design gates (incl. R160 Rivalry, R161 One-Time Trade, R162 AI Ultimatums). See `docs/DESIGN_REFINEMENT.md`.
+- **Design Refinement — NEXT AFTER SESSION 8.** First implementation target rescoped April 16: `Memory and Pressure` (formerly `Reliability + Commitments`) — substrate shipped, remaining work is rivalry seed + acceptance-formula additions + paradox rename + C3-lite presentation pass (~40 tests, ~2 sessions). War bargains moved to dedicated `docs/WAR_BARGAIN_SPEC.md` in the later Peace Deals phase. See `docs/DESIGN_REFINEMENT.md` for full queue.
 - **Phase 6.5 remaining:** Map Renderer only. Placeholder bitmap/color-map lookup and Camera2D cutover are live; commissioned art integration and final Godot smoke validation remain. Tutorial deferred to Pre-EA.
 - **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.
 
@@ -158,8 +158,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Diplomacy execution | `diplomatic_executor.py` (_execute_diplomatic*, handle_diplomatic_dialogue_response, trust reactions, AI proposal handlers) |
 | Dialogue state (R12, PL-27) | `dialogue_manager.py` (push/pop/peek, PL-27 taxonomy: HARD_STOP/SOFT_STOP/HYBRID/LOCAL_PLANNING types), `world_state.py` (transparent properties). Only hard-stop dialogues block commands. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `docs/COALITION_SPEC.md`, `diplomacy.py`, `diplomat.py`, `diplomatic_dialogue.py`, `diplomatic_templates.py`, `ai_diplomacy.py`, `diplomatic_advisory.py`, `vassal.py`, `diplomatic_defiance.py`, `coalition.py` |
-| Commitments engine / bargains / paradox | `docs/RELIABILITY_COMMITMENTS_SPEC.md`, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`, `diplomacy.py`, `commitments` logic within `diplomatic_templates.py`, `campaign_log.py` |
-| Commitments presentation (C3a routing + C3b drama) | `docs/COMMITMENTS_PRESENTATION_SPEC.md`, `docs/COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`, `docs/DIPLOMAT_VOICE_BIBLE.md`, `diplomatic_templates.py` (`commitments_spotlight_*` / `commitments_notice_*` families), `notifications.py`, `notification_bar.gd`, `dispatch.py`. Any `speaker="envoy"` / `speaker="foreign_office"` template MUST resolve to a named diplomat per Voice Bible — anonymous voice is disallowed. |
+| Memory and Pressure substrate (rivalries / betrayal memory / paradox / reliability) | `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v2.0), `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`, `diplomacy.py`, `world_state.py` (`betrayal_history`, `next_episode_id`, `nation_rivalries` when seeded), `commitments` logic within `diplomatic_templates.py`, `campaign_log.py` |
+| War bargains (deferred to Peace Deals phase) | `docs/WAR_BARGAIN_SPEC.md`. Do NOT add bargain logic until Bilateral Peace Hardening + War Purpose specs land first. Substrate seams (`region_observer` witness scope, `bargain_value_mod`, `war_entry_score`, `commitment_paradox` rivalry-driven trigger) are intentionally inert until that phase. |
+| C3-lite presentation (Memory and Pressure final slice) | `docs/COMMITMENTS_PRESENTATION_SPEC.md` (v0.3), `docs/COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` (historical), `docs/DIPLOMAT_VOICE_BIBLE.md`, `diplomatic_templates.py` (`commitments_spotlight_*` / `commitments_notice_*` families), `notifications.py`, `notification_bar.gd`, `dispatch.py`. Any `speaker="envoy"` / `speaker="foreign_office"` template MUST resolve to a named diplomat per Voice Bible — anonymous voice is disallowed. Three live spotlight events: `diplomatic_treaty_broken` (french_breach), `hard_reject_posture_triggered`, `commitment_paradox`. |
 | Diplomat voice (register rules per named diplomat) | `docs/DIPLOMAT_VOICE_BIBLE.md`, `backend/models/diplomat.py` (cast = Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel). Read Voice Bible BEFORE authoring any new line for a named foreign diplomat. |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
@@ -338,7 +339,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
 | Combat specs (V2b, Multi-Marshal, Tactical Triangle) | `docs/V2B_DEFIANCE_SPEC.md`, `MULTI_MARSHAL_SPEC.md`, `TACTICAL_TRIANGLE_SPEC.md` |
 | Diplomacy specs (system, coalition, wizard, suggestions, jealousy) | `docs/DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `DIPLOMACY_BUTTON_SPEC.md`, `TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`, `JEALOUSY_SPEC.md` |
-| Commitments engine + presentation (reliability, bargains, paradox) | `docs/RELIABILITY_COMMITMENTS_SPEC.md`, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md`, `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` |
+| Memory and Pressure (substrate + presentation) | `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v2.0), `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (v0.3 C3-lite), `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` (historical) |
+| War bargains (deferred — Peace Deals phase) | `docs/WAR_BARGAIN_SPEC.md` (depends on Bilateral Peace Hardening + War Purpose specs) |
 | Diplomat voice bible / playtest | `docs/DIPLOMAT_VOICE_BIBLE.md`, `COMMITMENTS_PLAYTEST_SCRIPT.md` |
 | UI specs (top bar, fog) | `docs/TOP_BAR_SPEC.md`, `FOG_OF_WAR_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |

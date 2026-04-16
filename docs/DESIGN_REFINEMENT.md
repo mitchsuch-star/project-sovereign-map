@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** Work here begins after `BUG_FIXES.md` is clear and playtesting confirms stability.
 >
-> **Last Updated:** April 13, 2026 (post-fix routing refresh: the diplomacy bug-phase gate is now cleared, the shipped Envoys inbox / current-turn offer lifetime / response-contract refactors are recorded here as live foundations, and the next diplomacy work is now explicitly ordered as commitments first, bilateral peace hardening second, and ally settlement only after dedicated later specs)
+> **Last Updated:** April 16, 2026 (Memory and Pressure rescope: war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md`, scheduled in the later Peace Deals phase; queue item 1 renamed `Reliability + Commitments` → `Memory and Pressure`. April 13 routing context preserved below.)
 
 ---
 
@@ -11,8 +11,8 @@
 | Category | Count | Status |
 |----------|-------|--------|
 | Player Feedback (Wave 3 remaining) | 7 | Pending consolidation into post-fix diplomacy specs |
-| Nation Rivalry System (EU4-inspired) | 1 | Ready for dedicated spec work |
-| Territorial Promises (Wave 3) | 1 | Fold into the commitments spec track |
+| Nation Rivalry System (EU4-inspired) | 1 | Folded into `Memory and Pressure` spec (substrate shipped; remaining: rivalry seed + acceptance formula + C3-lite presentation) |
+| Territorial Promises (Wave 3) | 1 | Folded into `WAR_BARGAIN_SPEC.md` — deferred to Peace Deals phase |
 | War System Overhaul (EU4-inspired) | 4 | Ready for dedicated spec work |
 | AI Diplomacy Improvements | 3 | Re-scope into the agenda / motive spec track |
 | Gold Sink Options (B4) | 1 | Candidate follow-up after the first diplomacy spec queue |
@@ -35,19 +35,20 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 - Proposal / clause display ownership is centralized in backend formatters, so popup payloads and reopen flows use the same labels.
 - Session 6 contract refactors are complete: `/command` starts from `build_base_response()`, remaining diplomacy popups use typed response paths, and `main.gd` routes modals through the registry/dispatcher layer.
 
-### Current next spec queue
+### Current next spec queue (April 16, 2026 rescope)
 
-These are the next diplomacy design tracks. `Reliability + Commitments` is the first implementation target; every later item below still needs a dedicated written spec before implementation.
+These are the next diplomacy design tracks. `Memory and Pressure` is the first implementation target; every later item below still needs a dedicated written spec before implementation.
 
-1. `Reliability + Commitments`
-   Collapse `R160`, `R119`, and `R151` into one political-commitment system covering rivalries, betrayal memory, and territorial promises. Draft started in `docs/RELIABILITY_COMMITMENTS_SPEC.md`. This is the first diplomacy follow-up implementation target.
-   `C3` (commitments presentation pass, `docs/COMMITMENTS_PRESENTATION_SPEC.md`) is in the active queue as the follow-up to `C2`, landing before `Bilateral Peace Hardening`. It is intentionally smaller than the later `Talleyrand Desk + Explanation Layer` track.
+1. `Memory and Pressure` (renamed from `Reliability + Commitments` April 16)
+   Substrate (betrayal memory, rivalry witness scope, hard-reject posture, episode_id, structured warnings) is **shipped**. Remaining work this phase: seed `nation_rivalries` (3 authored pairs), wire `direct_rivalry_mod` + `rival_conflict_mod` + graduated `bilateral_betrayal_mod` into acceptance, wire third-party anger on ratification, redemption tick (`actor_honored_turns` +3 / 5 turns), rename `alliance_paradox` → `commitment_paradox`, ship C3-lite presentation pass (spotlight tier, split-voice render, named-diplomat resolution per Voice Bible). See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 (C3-lite). ~40 tests, ~2 sessions remaining.
 2. `Bilateral Peace Hardening`
    Tighten separate peace / bilateral peace preview, explicit term ownership, promise-breach warnings, and peace-treaty legibility before any ally-aware settlement system exists. **Needs dedicated spec.**
 3. `War Purpose + Score Semantics`
    Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one war-goal / score-legibility spec. **Needs dedicated spec.**
+3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
+   The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Adds `war_bargain` clause type, lifecycle (active / triggered / fulfilled / void / breached), `join_opportunity` ally-entry contract, counter-bargains, `war_entry_score`, Bargain Review surface, and the WB-D presentation extension (bargain spotlights, scope-branched copy, response routes). **Depends on items 1-3.** Implementable as a single Peace Deals phase precursor before item 4. ~80-90 tests.
 4. `Ally Participation + Common Peace`
-   Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. The current draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later-direction doc, not an implementation-ready next slice. **Needs tighter dedicated spec after items 1-3.**
+   Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. The current draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later-direction doc, not an implementation-ready next slice. **Needs tighter dedicated spec after items 1-3.5.**
 5. `Nation Agendas + Motive Legibility`
    Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec.
 6. `Talleyrand Desk + Explanation Layer`

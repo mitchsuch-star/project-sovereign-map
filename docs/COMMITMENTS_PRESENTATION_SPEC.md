@@ -1,68 +1,73 @@
-# Commitments Presentation Pass Spec
+# Commitments Presentation Pass — C3-lite Spec
 
-> **Status:** Draft v0.2
-> **Date:** April 15, 2026
-> **Queue Position:** Proposed post-`C2` follow-up inside `Reliability + Commitments`, split into `C3a` routing and `C3b` drama
-> **Recommended Placement:** `C3a` immediately after `C2`; `C3b` immediately after `C3a`, before `Bilateral Peace Hardening`
-> **Depends On:** `docs/RELIABILITY_COMMITMENTS_SPEC.md`, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`, `docs/DIPLOMACY_SPEC.md`, `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `docs/INFORMATIONAL_UI_PLAN.md`
+> **Status:** v0.3 (rescope — single C3-lite slice replaces former C3a + C3b split)
+> **Date:** April 16, 2026 (rescope); v0.1 April 15, 2026
+> **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
+> **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.0 (substrate + paradox rename), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
+> **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain spotlights, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
+
+---
+
+## v0.3 Rescope Note (April 16, 2026)
+
+The April 16 audit established that the v0.2 spec was specced two audit rounds deep (`C3a` routing + `C3b` drama) for events the engine cannot produce. War bargains were never implemented, and the `bargain_*` events the spec dramatized — `bargain_fulfilled`, `bargain_breached`, `bargain_triggered`, `bargain_voided`, `bargain_ratified` — cannot fire in the current build.
+
+The rescope:
+
+1. **War bargain presentation moves to `WAR_BARGAIN_SPEC.md` slice WB-D**, where it lands when the bargain mechanic itself ships in the Peace Deals phase.
+2. **`C3a` + `C3b` collapse into one `C3-lite` slice** that ships alongside the rest of `Memory and Pressure`.
+3. **Three live events get the full spotlight + split-voice + named-diplomat treatment**: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (where `end_reason_family = french_breach`), and `commitment_paradox_resolved`.
+4. **Paradox §12.5 staging simplifies from 5 beats to 3 beats** — Talleyrand framing → blocking body → spurned-envoy + Talleyrand after-choice. The five-beat scene with envoys from both spurned nations speaking before Talleyrand requires bargains-driven multi-conflict ratification (which doesn't exist in v0.1) to feel justified.
+5. **Reactive affordances cut to advisory routes only**. Response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`) move to WB-D — they depend on bargain templates and on proposal_options seed defaults that don't exist yet.
+6. **N+5 fallback grievance slot cut** as edge-case polish.
+7. **Overflow spotlight digest cut** — multi-spotlight turns are rare on the 5-nation map; revisit if playtest shows the cap is starving climactic turns.
+
+**Preserved from v0.2 (the flavor that matters):**
+
+- Spotlight tier on the notification rail (elevated card, 2-turn persist, action buttons)
+- Split-voice render (`attributed_lines[]` with `lead` / `witness` / `aside` regions)
+- Typographic + cadence contract for split-voice (§9.1)
+- Named-diplomat resolution mandatory for `envoy` and `foreign_office` per Voice Bible (§10.3)
+- Committed mock prose for the three live events
+- Period labels in player-facing notice icons (§9.2)
+- One N+1 Talleyrand aside keyed by `episode_id`
+- Dedicated `commitment_paradox_popup.{tscn,gd}` surface
+- Anti-spam rules, no-duplicate-surface rule, dispatch carryover
+
+The v0.2 audit findings (F1-F8, P2-H1 through P2-H10) and prior version of this spec are preserved in `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` for design history; they should not be re-read as live requirements.
 
 ---
 
 ## 1. Purpose
 
-The commitments engine now creates real political moments:
+The Memory and Pressure substrate now creates real political moments:
 
-- rival anger
-- betrayal memory
-- bargain ratification / triggering / fulfillment / breach / void
-- ally-entry refusal and hard blocks
-- hard-reject diplomatic shutdown
-- paradox hard stops
+- betrayal memory (graded acceptance impact + hard-reject posture)
+- rivalry pressure (direct + third-party anger on ratification — when the seed and B1/B2a-fill ship)
+- commitment paradox hard stops (renamed alliance-cross-war; `commitment_paradox_resolved` log + dispatch event)
 
-What it does **not** yet fully do is make those moments feel important in play.
+What it does **not** yet do is make those moments feel important in play. They land as one-liner notification rows.
 
-Right now too many commitments consequences are likely to land as:
+This spec defines the narrow presentation pass that delivers political weight for the events that *do* fire today, without inventing drama for events that don't (those go to WB-D).
 
-- a warning row
-- a relation delta
-- a strike counter
-- a compact campaign-log line
-
-This spec adds a narrow presentation pass over the commitments layer so the player feels the political consequences the engine already computes.
-
-The pass must remain **mechanically inert**. It owns framing, pacing, and surfacing. It does not own any diplomatic outcome.
-
-This document therefore splits the work in two:
-
-- `C3a` makes commitments presentation structurally correct: routing, suppression, payload ownership, and ledger emphasis.
-- `C3b` makes it dramatically alive: committed prose, cast discipline, aftermath beats, and reactive conversational follow-ups.
-
-`C3a` may land first if schedule requires it. Full narrative sign-off does not happen until `C3b` lands.
+The pass remains **mechanically inert**. It owns framing, pacing, and surfacing. It does not own any diplomatic outcome.
 
 ---
 
 ## 2. Phase Placement
 
-This is **not** a new major diplomacy phase.
+Final slice of `Memory and Pressure`. Sits after the spec/plan code work (rivalry seed, formula additions, paradox rename). Before any bargain work.
 
-This is a narrow post-`C2` follow-up that should sit **inside** the `Reliability + Commitments` track:
-
-1. `A1-A2` foundations and preview scaffolding
-2. `B1-B3` rivalry / betrayal / paradox logic
-3. `C1a-C1b` war bargain creation + lifecycle
-4. `C2` ally-entry integration and commitments surfaces
-5. `C3a` commitments presentation routing
-6. `C3b` commitments drama pass
-7. `Bilateral Peace Hardening`
-8. later `War Purpose + Score Semantics`
-9. later `Ally Participation + Common Peace`
-
-Why it belongs here:
-
-- `C2` creates the meaningful commitments events.
-- `C3a` makes those events legible and correctly routed while the player still remembers the new systems.
-- `C3b` makes those same events sound and linger like political drama rather than release-note copy.
-- waiting until the broader `Talleyrand Desk + Explanation Layer` track would bury a commitments-specific need inside a much larger advisory/UI pass.
+```text
+A1 (✓) → A1-fill (rivalry seed) → A2 fill (ledger rivalry display)
+                                → B1 (acceptance formula additions)
+                                → B2a-fill (ratification anger)
+                                → B6 (redemption tick)
+                                → B3 (paradox rename)
+                                → C3-lite (this spec)
+                                → END OF MEMORY AND PRESSURE PHASE
+[Peace Deals phase later: Bilateral Peace Hardening → War Purpose → WAR_BARGAIN_SPEC → WB-D bargain presentation]
+```
 
 What this is **not**:
 
@@ -71,66 +76,56 @@ What this is **not**:
 - not coalition generalization
 - not generic diplomacy polish
 - not a new screen-family project
+- not the bargain presentation pass (that is WB-D in `WAR_BARGAIN_SPEC.md`)
 
 ---
 
 ## 3. Problems To Solve
 
-### P1. Big political moments currently risk landing as accounting
+### P1. The three live commitments events land as accounting
 
-Fulfilling or betraying a bargain should feel like a diplomatic event, not just a number change.
+`hard_reject_posture_triggered`, `diplomatic_treaty_broken` (french_breach), and `commitment_paradox_resolved` all emit rich payloads. Players see them as one-liner notification icons indistinguishable from "Relations with Prussia have worsened."
 
-### P2. The commitments system has multiple valid surfaces but no priority rule for dramatic emphasis
+### P2. Existing surfaces are not commitments-aware
 
-The project already has:
+Notification rail has three priority tiers rendered as identical 38×28 icons with color rings. There is no spotlight tier. Popup scenes have one text region. There is no split-voice render.
 
-- blocking popups
-- Morning Dispatch
-- persistent notices
-- ledger
-- campaign log
+### P3. The named cast is benched at the critical beats
 
-What is missing is a commitments-specific rule for which moments deserve which surface.
+`speaker="envoy"` and `speaker="foreign_office"` are emitted in metadata but resolve nowhere. The Voice Bible defines five named diplomats with distinct registers; none reach the player.
 
-### P3. Existing conversation / dispatch systems are broad, not commitments-aware
+### P4. Player needs felt closure without new mechanics
 
-The current Talleyrand and dispatch systems can carry this work, but they do not yet define:
-
-- which commitments moments get spotlight treatment
-- how to suppress spam
-- how to turn structured commitment payloads into memorable commentary
-
-### P4. The player needs to feel political closure without adding mechanics
-
-The commitments layer should feel more alive **without** reopening engine rules, timing, or AI outcomes.
+The presentation layer should make the substrate's existing events feel alive without reopening engine rules, timing, or AI outcomes.
 
 ---
 
 ## 4. Goals
 
-- Make the largest commitments consequences feel memorable.
+- Make the three live events feel memorable.
 - Keep all mechanics deterministic and unchanged.
 - Reuse existing surfaces rather than inventing a new diplomacy UI family.
-- Create consistent priority rules for spotlight vs notice vs ledger-only moments.
 - Ensure mock mode stays fully valid without LLM prose.
-- Commit at least one canonical mock-mode prose template for every spotlight-worthy commitments family.
-- Stage breach and paradox across more than one beat so they feel remembered, not merely emitted.
-- Restore limited no-cost player response options through existing conversation surfaces.
-- Keep this pass narrow enough to ship as two focused follow-up sessions.
+- Commit canonical mock-mode prose templates for each live event.
+- Stage the paradox across more than one beat so it feels remembered, not just emitted.
+- Restore one no-cost player advisory hook so the player isn't only a reader.
+- Keep the pass narrow enough to ship as a single focused slice.
 
 ---
 
 ## 5. Non-Goals
 
-- This spec does **not** change betrayal numbers, bargain logic, war-entry thresholds, or paradox rules.
-- This spec does **not** redesign Morning Dispatch globally.
-- This spec does **not** redesign the broader Talleyrand desk / trend / explanation surface.
-- This spec does **not** add common peace, settlement allocation, or beneficiary spoils theatrics.
-- This spec does **not** add new screen families, cinematic cutscenes, or map animations.
-- This spec does **not** make LLM prose mandatory. Mock templates remain authoritative.
-- This spec does **not** own coalition UI generally; it may only add commitments-aware commentary where an existing coalition event is already being surfaced.
-- `C3` does **not** set rail-wide notice caps. Rail-wide budget ownership stays with `INFORMATIONAL_UI_PLAN.md`; `C3` only defines commitments-local usage within that existing budget.
-- This spec does **not** add new commitment outcomes, negotiation branches, or action costs; any new follow-up actions are no-cost advisory or inspection routes only.
+- Does **not** change betrayal numbers, paradox rules, hard-reject thresholds.
+- Does **not** redesign Morning Dispatch globally.
+- Does **not** redesign the broader Talleyrand desk / trend / explanation surface.
+- Does **not** add common peace, settlement allocation, or beneficiary spoils theatrics.
+- Does **not** add new screen families, cinematic cutscenes, or map animations.
+- Does **not** make LLM prose mandatory. Mock templates remain authoritative.
+- Does **not** own coalition UI generally.
+- Does **not** set rail-wide notice caps. Rail-wide budget ownership stays with `INFORMATIONAL_UI_PLAN.md`; this spec only defines commitments-local usage within that existing budget.
+- Does **not** add new commitment outcomes, negotiation branches, or action costs.
+- Does **not** dramatize bargain events (deferred to `WAR_BARGAIN_SPEC.md` slice WB-D).
+- Does **not** add response-route reactive affordances (deferred to WB-D).
 
 ---
 
@@ -154,29 +149,26 @@ Golden rules:
 
 ## 7. Presentation Model
 
-The commitments presentation pass uses four existing surface tiers.
+This pass uses four existing surface tiers, plus one new tier (the spotlight tier).
 
 ### 7.1 Blocking hard-stop
 
 Use only when the player must decide **now**.
 
-This tier already exists and remains mechanically owned by prior slices:
+Already exists:
 
-- `commitment_paradox`
-- war-entry counter-bargain
-- any future commitments hard-stop already defined elsewhere
+- `commitment_paradox` (renamed in B3 from `alliance_paradox`)
+- `force_declare_war_confirmation`, `force_break_treaty_confirmation`
 
-`C3` does not create new hard-stop mechanics. It only improves copy, emphasis, and fallout framing on these existing surfaces.
+This spec does not create new hard-stop mechanics. It improves copy, emphasis, and fallout framing on `commitment_paradox` only (the other two already render their warnings via `proposal_confirm_popup`).
 
-### 7.2 Dispatch spotlight
+### 7.2 Dispatch spotlight (NEW tier — this spec ships)
 
-Use for the largest completed or triggered political moments.
+Use for the three largest live political moments.
 
-This is the core new dramatic tier for commitments.
+**Spotlight surface:** rendered on the **persistent notice rail** using an elevated "spotlight" style — a larger card, top-stacked above ordinary notices, persisting for 2 turns before decaying to a normal notice. The rail is the immediate in-turn surface.
 
-**Spotlight surface:** the spotlight tier is rendered on the **persistent notice rail** using an elevated "spotlight" style — a larger card, top-stacked above ordinary notices, persisting for 2 turns before decaying to a normal notice. The rail is the immediate in-turn surface for a spotlight event.
-
-**Relationship to Morning Dispatch:** the Morning Dispatch owns a highlighted "Spotlight Carryover" section that replays any spotlight events raised during the previous turn as NEXT-TURN dispatch cards. In-turn spotlight display is the rail; next-turn reinforcement is the dispatch. Mid-turn commitments events never inject directly into `build_morning_dispatch()` — the rail is the mid-turn delivery path.
+**Relationship to Morning Dispatch:** Morning Dispatch owns a "Spotlight Carryover" section that replays any spotlight events raised during the previous turn as NEXT-TURN dispatch cards. In-turn spotlight display is the rail; next-turn reinforcement is the dispatch. Mid-turn commitments events never inject directly into `build_morning_dispatch()` — the rail is the mid-turn delivery path.
 
 The dispatch spotlight should feel like:
 
@@ -186,73 +178,61 @@ The dispatch spotlight should feel like:
 
 ### 7.3 Persistent notice
 
-Use for medium-weight events that matter but should not dominate the whole turn.
-
-These remain visible and reviewable, but they do not stop play.
+Existing tier. Used for medium-weight events. Remains visible and reviewable, does not stop play.
 
 ### 7.4 Ledger / campaign log reference
 
-Every commitments event should still appear in the durable reference layer.
-
-The ledger and log remain the source of truth.
-They are not the only emotional surface.
+Every commitments event still appears in the durable reference layer. Ledger and log remain the source of truth.
 
 ---
 
 ## 8. Event Routing
 
-### 8.1 Core event table
+### 8.1 Core event table (v0.3 — only live events)
 
 | Event | Primary surface | Supporting surfaces | Notes |
 |------|------------------|---------------------|-------|
-| `bargain_ratified` | persistent notice | ledger, campaign log | Important, but usually not turn-defining |
-| `bargain_triggered` | persistent notice | ledger, campaign log | "The deal is now live in war" should be visible but not overblown |
-| `bargain_fulfilled` | dispatch spotlight | notice, ledger, campaign log, optional aftermath callback | One of the best positive payoffs in the system. Spotlight uses Talleyrand voice and `C3b` commits a full mock template. |
-| `bargain_breached` | dispatch spotlight | notice, ledger, campaign log, required aftermath callback | One of the sharpest negative payoffs in the system. `C3b` treats it as a three-beat sequence: injured-party accusation, one scoped witness reaction, next-turn Talleyrand aside. |
-| `bargain_voided` | persistent notice | ledger, campaign log | Visible closure without overdrama |
-| `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout. Emission contract filed in `RELIABILITY_IMPLEMENTATION_PLAN.md` B2a. |
-| `hard_reject_posture_triggered` | dispatch spotlight | ledger, campaign log, optional aftermath callback | Should feel like a door closing. Uses foreign-court or chancery voice rather than default Talleyrand narration. First-time-threshold-crossing emit contract filed against B2b in `RELIABILITY_IMPLEMENTATION_PLAN.md`; `C3` is blocked on that emit landing. |
-| `hard_block_surfaced` on ally entry | persistent notice or inline preview only | ledger if commitment-related | No dispatch spotlight unless it creates a larger downstream consequence |
-| `ally_refused_free_join` | persistent notice | ledger, campaign log | Keep visible; do not steal the turn |
-| `commitment_paradox` | blocking hard-stop | ledger, campaign log, required aftermath callback | Existing hard-stop; `C3b` adds grave framing, canonical blocking body copy, after-choice aside, and next-turn callback. The dialogue layer mirrors that blocking body in `CONVERSATIONAL_DIPLOMACY_DESIGN.md`. |
-| counter-bargain `Accept` | existing blocking confirm | persistent notice ("Ally joined"), campaign log, ledger bargain record | One follow-up notice; do not spawn a second spotlight. |
-| counter-bargain `Reject` | existing blocking confirm | persistent notice ("Ally refused, war continues"), campaign log | Declaration continues without the ally; notice informs the player the ally stayed out. |
-| counter-bargain `Back Out` | existing blocking confirm | ledger entry ("Declaration withdrawn"), campaign log (`declaration_backed_out`) | `pending_declaration` transaction cancelled per C2; DP/AP refunded; no "Ally refused" notice. See §12.4 and §14 test list. |
+| `commitment_paradox` | blocking hard-stop | ledger, campaign log, required after-choice aside | Renamed in B3. Three-beat staged scene per §12.5. |
+| `hard_reject_posture_triggered` | dispatch spotlight | ledger, campaign log, optional N+1 aftermath | Door-closing moment. Voice = `foreign_office` resolved to "The Chancery of {nation}" with register from that nation's named diplomat. |
+| `diplomatic_treaty_broken` (where `end_reason_family=french_breach`) | dispatch spotlight | ledger, campaign log, optional N+1 aftermath | Sharpest negative payoff in the live engine. Split-voice: lead = injured-party named diplomat, aside = Talleyrand. |
+| `commitment_paradox_resolved` | persistent notice (reinforced by after-choice aside in §7.1 surface) | ledger, campaign log | Reinforces closure of the paradox. Not its own spotlight — the paradox itself was the spotlight moment. |
+| `hard_reject_posture_cleared` | persistent notice | ledger, campaign log | Reopening should feel like cool-down, not its own spotlight. |
+| `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout. |
+| `diplomatic_treaty_broken` (other end_reason families) | persistent notice | ledger, campaign log | Cascade ruptures don't get spotlights — France isn't at fault. |
+
+**Bargain events routed to WB-D:**
+
+`bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `hard_block_surfaced` (ally-entry), `ally_refused_free_join`, `declaration_backed_out`, counter-bargain Accept/Reject/Back Out flows. None of these are addressed here — they ship with the bargain mechanic in `WAR_BARGAIN_SPEC.md` slice WB-D.
 
 ### 8.2 Spotlight threshold rules
 
 Dispatch spotlight is reserved for:
 
-- `bargain_fulfilled`
-- `bargain_breached`
-- first-time `hard_reject_posture_triggered` — **blocked on B2b emit contract** (see `RELIABILITY_IMPLEMENTATION_PLAN.md` B2b add for first-time threshold crossing)
-- the highest-severity commitments event of the turn if it materially closes or opens diplomatic space
+- `hard_reject_posture_triggered` (first-time per pair only — emit contract enforces)
+- `diplomatic_treaty_broken` where `end_reason_family = french_breach`
+
+That's the v0.3 set. The paradox is its own blocking surface (§7.1) and consumes the spotlight slot on the turn it fires.
 
 Do **not** spotlight:
 
 - every witness strike
 - every void
-- every hard block
-- every trigger transition
+- every cascade-caused treaty break
+- every paradox resolution after the player has chosen (the choice was the moment)
 
 ### 8.3 One-turn emphasis rule
 
-Commitments items consume at most 1 spotlight slot and 2 non-spotlight notice slots **within the rail's existing budget**. Rail-wide budget is owned by `INFORMATIONAL_UI_PLAN.md`; `C3` only bounds commitments' local consumption.
+Commitments items consume at most 1 spotlight slot and 2 non-spotlight notice slots **within the rail's existing budget**. Rail-wide budget is owned by `INFORMATIONAL_UI_PLAN.md`.
 
 If multiple high-value commitments events occur together:
 
-1. `bargain_breached`
+1. `commitment_paradox` (always wins — blocking)
 2. `hard_reject_posture_triggered`
-3. `bargain_fulfilled`
-4. `commitment_paradox` resolution fallout
-5. `bargain_voided`
-6. `witness_strike_recorded`
+3. `diplomatic_treaty_broken` (french_breach)
 
-Hard-reject ranks above fulfillment because it represents a diplomatic door-closing — fulfillment reinforces an existing relationship, but hard-reject ends one. Closure beats reinforcement for emphasis.
+The rest enter persistent-notice tier or ledger / campaign log.
 
-The rest still enter ledger and campaign log.
-
-**Overflow on climactic turns.** When two or more spotlight-worthy events fire in the same turn, the second- and third-ranked events render as "spotlight-lite" — a compact single-line variant that retains the period headline, primary nation, and one-line consequence, but drops the 2-4 line body and split-voice staging. A single overflow digest strip at the foot of the primary spotlight card names the remaining events ("Also today: The Chancery Shut in Vienna · Word Kept in Bavaria"). This preserves the anti-spam goal of one primary moment per turn without silently muting the second- and third-biggest political events of the year. The full prose for demoted events still lands in Morning Dispatch carryover and the campaign log.
+**Multi-spotlight overflow:** v0.3 cuts the v0.2 "spotlight-lite + overflow digest" rule as edge-case polish. On the 5-nation map, two spotlight-worthy events on the same turn are rare. If playtest shows climactic turns are losing political weight to the cap, revisit.
 
 ### 8.4 No duplicate-surface rule
 
@@ -274,14 +254,14 @@ Instead:
 
 Spotlight delivery uses the rail-elevated "spotlight" style described in §7.2 as the in-turn surface, and the Morning Dispatch "Spotlight Carryover" section as the next-turn reinforcement. Spotlights are not injected mid-turn into `build_morning_dispatch()`.
 
-Each commitments spotlight is "Scene 1" of a political moment, not a headline-only notice. The card contract is:
+Each spotlight is "Scene 1" of a political moment, not a headline-only notice. Card contract:
 
-- a short player-facing period headline
+- short player-facing period headline
 - 2-4 lines of committed prose
 - 1 compact consequence line naming the main political effect
-- one obvious review action such as `Open Ledger` or `Review Bargains`
-- zero, one, or two no-cost follow-up actions when the event family allows it
-- an optional lower-weight secondary aside line with its own speaker attribution
+- one obvious review action (`Open Ledger` or `Review Treaties`)
+- one no-cost advisory follow-up action when the event family allows it (see §12.6)
+- optional lower-weight secondary aside line with its own speaker attribution
 
 Do **not** overload it with:
 
@@ -302,7 +282,7 @@ Spotlight rendering must support both:
 - `witness` renders as a subordinate middle line
 - `aside` renders as a visually separated lower-weight strip or footer line
 
-**Typographic contract for split-voice rendering.** The three roles must read as three registers, not three paragraphs with labels. Minimum commitments:
+**Typographic contract for split-voice rendering.** The three roles must read as three registers, not three paragraphs with labels:
 
 | Role | Weight | Size vs body | Treatment |
 |---|---|---|---|
@@ -312,82 +292,59 @@ Spotlight rendering must support both:
 
 The three lines must not share a single text block. They are three distinct rendered regions in a single card.
 
-**Reveal cadence.** On initial spotlight render, the three lines fade in at a 400-600ms stagger so the witness's judgment and Talleyrand's privacy arrive AFTER the accusation, not simultaneously. A player who dismisses the card early sees all three immediately — cadence is ornament, not gate.
+**Reveal cadence.** On initial spotlight render, the lines fade in at a 400-600ms stagger so the witness reaction and Talleyrand's privacy arrive AFTER the lead, not simultaneously. A player who dismisses the card early sees all lines immediately — cadence is ornament, not gate.
 
-`bargain_breached` uses a split-voice spotlight:
+`diplomatic_treaty_broken` (french_breach) uses a split-voice spotlight:
 
-- lead line: injured party or envoy accusation
-- optional witness line: one scoped reaction based on the dominant witness scope
-- lower strip: private Talleyrand aside
+- lead line: injured-party named diplomat accusation (per Voice Bible register)
+- aside line: private Talleyrand aside
 
-`hard_reject_posture_triggered` does **not** default to Talleyrand. It should read like a chancery or foreign-court closure notice. `commitment_paradox` remains blocking, but its post-choice fallout uses the same 2-4 line discipline for the callback beat.
+Witness scope branching is **deferred to WB-D**. v0.3 ships single-tone breach copy. Once bargains exist, scope-branched copy lights up.
 
-#### Dominant witness scope branching
-
-When `witness_nations` is non-empty, spotlight copy selects one dominant witness scope. This is not cosmetic; it changes the dramatic meaning of the same breach.
-
-Deterministic precedence when multiple scopes are present:
-
-1. `ally`
-2. `rival`
-3. `shared_enemy`
-4. `region_observer`
-
-If presentation receives `dominant_witness_scope`, use it. Otherwise derive it using the order above.
-
-| Dominant scope | Breach tone | Example direction |
-|-----------|---------|---------------|
-| `ally` | disappointment / trust collapse | "Vienna notes that Berlin's word was given publicly..." |
-| `rival` | satisfaction / opportunism | "Prussia finds advantage in France's embarrassment..." |
-| `shared_enemy` | recalculation / strategic opportunity | "London reads the breach as weakness in the anti-British front..." |
-| `region_observer` | gossip / reputational chill | "The Italian courts repeat the story as proof that French assurances travel lightly..." |
-
-Only one witness court is named in the spotlight. Full witness enumeration stays in ledger and campaign log.
+`hard_reject_posture_triggered` uses a single-voice card with `speaker="foreign_office"` resolved per §10.3.
 
 ### 9.2 Persistent notice card
 
 Each commitments notice should show:
 
-- event headline
-- the main nation affected
+- event headline (using period vocabulary)
+- main nation affected
 - one-line consequence summary
-- optional review action if the player can inspect a relevant surface quickly
+- optional review action
 
 Notice cards should be concise enough that three of them do not feel like a second dispatch.
 
-#### Icon and label contract
+#### Icon and label contract (v0.3 — only live events)
 
-`notification_bar.gd` `TYPE_ICONS` must be extended with commitments types. Icon keys are proposed names; actual art is commissioned later.
+`notification_bar.gd` `TYPE_ICONS` extended with commitments types. Icon keys are proposed names; actual art is commissioned later.
 
 Player-facing labels use period vocabulary. Internal `event_type` values remain unchanged.
 
 | Event type | Icon key | Player-facing label |
 |-----------|---------|---------------|
-| `bargain_breached` | `icon_bargain_breach` | Word Broken |
-| `bargain_fulfilled` | `icon_bargain_fulfill` | Word Kept |
-| `bargain_ratified` | `icon_bargain_ratify` | Articles Agreed |
-| `bargain_triggered` | `icon_bargain_triggered` | The Pledge Comes Due |
-| `bargain_voided` | `icon_bargain_voided` | Articles Lapsed |
+| `diplomatic_treaty_broken` (french_breach) | `icon_treaty_broken` | Word Broken |
+| `diplomatic_treaty_broken` (other families) | `icon_treaty_dragged` | Treaty Dragged Apart / Articles Lapsed |
 | `hard_reject_posture_triggered` | `icon_hard_reject` | The Chancery Shut |
+| `hard_reject_posture_cleared` | `icon_chancery_reopened` | The Chancery Reopens |
 | `commitment_paradox` | `icon_paradox` | Conflicting Oaths |
+| `commitment_paradox_resolved` | `icon_paradox_resolved` | The Wound Chosen |
 | `witness_strike_recorded` | `icon_witness_strike` | Europe Is Aware |
-| `declaration_backed_out` | `icon_declaration_backed_out` | The Demand Withdrawn |
+
+Bargain icons (`Word Kept`, `Articles Agreed`, `The Pledge Comes Due`, etc.) are deferred to WB-D.
 
 #### Priority tier contract
 
-Each commitments event maps to a `backend/notifications.py` priority tier. Tiers survive `NOTIFICATION_CAP` trimming behavior (CRITICAL retained, NORMAL trimmed first).
+Each commitments event maps to a `backend/notifications.py` priority tier. CRITICAL retained, NORMAL trimmed first under cap.
 
 | Event type | Priority tier |
 |-----------|---------------|
-| `bargain_breached` | CRITICAL |
-| `bargain_fulfilled` | NORMAL |
-| `hard_reject_posture_triggered` | CRITICAL |
 | `commitment_paradox` | CRITICAL |
+| `diplomatic_treaty_broken` (french_breach) | CRITICAL |
+| `hard_reject_posture_triggered` | CRITICAL |
+| `commitment_paradox_resolved` | NORMAL |
+| `diplomatic_treaty_broken` (other families) | NORMAL |
+| `hard_reject_posture_cleared` | NORMAL |
 | `witness_strike_recorded` | NORMAL |
-| `declaration_backed_out` | NORMAL |
-| `bargain_ratified` | NORMAL |
-| `bargain_triggered` | NORMAL |
-| `bargain_voided` | NORMAL |
 
 ### 9.3 Ledger emphasis
 
@@ -395,33 +352,27 @@ This pass should add emphasis, not a new ledger family.
 
 Recommended emphasis rules:
 
-- fulfilled bargains get a recent-success badge for a short window
-- breached bargains get a recent-breach badge for a short window
+- breached treaties (where France is at fault) get a recent-breach badge for a short window
 - nations in hard-reject posture display a clear closed-door marker
 - the latest commitments event should be easy to spot in the related ledger section
 
-**Badge data source:** recent-success / recent-breach badges derive from `backend/campaign_log.py` entries where `turn >= current_turn - 3` and `event_type in {"bargain_fulfilled", "bargain_breached"}`. The closed-door marker reads from the commitment record's active `hard_reject_posture` flag set by B2b, not from log scanning.
+**Badge data source:** recent-breach badges derive from `backend/campaign_log.py` entries where `turn >= current_turn - 3` and `event_type == "diplomatic_treaty_broken"` with `end_reason_family == "french_breach"`. The closed-door marker reads from `has_hard_reject_posture(world, France, nation)` — not from log scanning.
 
-**Review target routing:** the `review_target: "ledger_commitments"` action routes to the existing **Treaties** tab of the Diplomatic Ledger with a commitments section filter applied. A dedicated commitments sub-tab is **out of scope** for `C3`.
+**Review target routing:** the `review_target: "ledger_commitments"` action routes to the existing **Treaties** tab of the Diplomatic Ledger with a memory-and-pressure section filter applied. A dedicated commitments sub-tab is **out of scope** for v0.3.
 
-### 9.4 Scene 2: Aftermath
+(Recent-success / fulfillment badges deferred to WB-D — they need bargain fulfillment events that don't fire yet.)
 
-`episode_id` is not only a dedupe key. For spotlight-worthy or blocking commitments events, it is the memory hook for one aftermath sequence.
+### 9.4 Aftermath: minimum viable callback architecture
 
-That sequence may contain up to three distinct beats:
+`episode_id` is not only a dedupe key. For spotlight-worthy or blocking commitments events, it is the memory hook for one aftermath beat.
 
-- one immediate result aside on turn N when the originating surface already owns the main moment
-- one N+1 dispatch aftermath beat
-- one later callback on a future proposal / refusal / advisory surface when the event family allows it
+Minimum contract by family (v0.3 — narrowed):
 
-Minimum contract by family:
-
-| Event family | Immediate result beat | N+1 aftermath | Later callback window |
+| Event family | Immediate result beat | N+1 aftermath | Later callback |
 |-----------|---------|---------|---------------|
-| `bargain_breached` | optional private aside inside the breach spotlight | required private Talleyrand aside in the next Morning Dispatch | one callback allowed on the injured party's next `incoming_proposal` or advisory appearance within 10 turns |
-| `bargain_fulfilled` | none beyond the spotlight body | optional private aside if the bargain materially changed trust | one positive callback allowed on the next relevant proposal or advisory appearance within 10 turns |
-| `hard_reject_posture_triggered` | none | optional dispatch aside | one closure callback on the next actual treaty refusal from that nation; preview is fallback only if no refusal surface appears within 3 eligible turns |
-| `commitment_paradox` | required after-choice aside | required next-turn dispatch callback | none |
+| `diplomatic_treaty_broken` (french_breach) | optional private aside inside the breach spotlight | optional private Talleyrand aside in next Morning Dispatch | deferred to WB-D |
+| `hard_reject_posture_triggered` | none | optional Talleyrand aside in next Morning Dispatch | deferred to WB-D |
+| `commitment_paradox` | required after-choice aside (in the popup, after the player chooses) | required next-turn dispatch callback | none |
 
 Beats are short: 1-2 lines, not a second essay.
 
@@ -429,20 +380,14 @@ Caps:
 
 - no more than 1 immediate result aside per `episode_id`
 - no more than 1 N+1 aftermath beat per `episode_id`
-- no more than 1 later callback per `episode_id`
 
-Later-callback arbitration:
-
-- if multiple live `episode_id`s want the same future surface, choose one deterministically
-- priority order for later callbacks is `bargain_breached` > `hard_reject_posture_triggered` > `bargain_fulfilled`
-- ties break by oldest unresolved `episode_id`
-- episodes that lose arbitration remain eligible until they fire or expire
+Aftermath metadata may be stored on the originating surface payload or campaign-log entry keyed by `episode_id`; do **not** create a second authoritative commitments state store.
 
 Escalation rule:
 
-- a turn-`N+1` Talleyrand aside may not merely restate the turn-`N` aside; it must add one new beat such as a prediction, a posture read, or a named downstream consequence
+- a turn-`N+1` Talleyrand aside may not merely restate the turn-`N` aside; it must add one new beat such as a prediction, a posture read, or a named downstream consequence.
 
-Aftermath metadata may be stored on the originating surface payload or campaign-log entry keyed by `episode_id`; do **not** create a second authoritative commitments state store. If a later callback has not fired by turn `N+10`, expire it quietly.
+**N+5 fallback grievance slot, later-callback arbitration, and competing-callback priority** are all deferred — they are polish that depends on having more than one aftermath callback per episode (which v0.3 doesn't have).
 
 ### 9.5 Campaign log
 
@@ -456,6 +401,14 @@ This pass may improve:
 
 It should **not** turn the campaign log into a second dispatch essay surface.
 
+Eight new campaign-log event types from v0.2 are now narrowed to the **three live ones**:
+
+- `commitment_paradox_resolved` (already shipped)
+- `hard_reject_posture_triggered` (already shipped)
+- `diplomatic_treaty_broken` with `end_reason_family` field (already shipped)
+
+The five bargain types (`bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`) and `declaration_backed_out` are deferred to WB-D.
+
 ---
 
 ## 10. Voice Contract
@@ -464,20 +417,17 @@ It should **not** turn the campaign log into a second dispatch essay surface.
 
 Mock mode must remain fully authoritative.
 
-Every commitments event that receives spotlight or notice treatment should have:
+Every commitments event that receives spotlight or notice treatment has:
 
 - a deterministic headline template
 - a deterministic body template
 - slot values pulled from structured payloads
 
-Every commitments event family that can occupy spotlight or blocking prominence must ship with at least one canonical mock template committed in this spec and mirrored in `diplomatic_templates.py`.
+For v0.3 (mandatory committed templates):
 
-For `C3b`, these are mandatory:
-
-- `bargain_fulfilled`
-- `bargain_breached`
-- `hard_reject_posture_triggered`
-- `commitment_paradox` framing, blocking body, and after-choice callback
+- `commitment_paradox` framing, blocking body, after-choice aside
+- `hard_reject_posture_triggered` (with named-diplomat resolution)
+- `diplomatic_treaty_broken` (french_breach) lead + aside
 
 The worked examples in §12 are not decorative. They are the acceptance fixtures for tone, slot usage, and surface length.
 
@@ -485,28 +435,20 @@ The worked examples in §12 are not decorative. They are the acceptance fixtures
 
 LLM mode may vary prose only.
 
-It may:
+It may: enrich tone, vary wording, sharpen diplomatic flavor.
 
-- enrich tone
-- vary wording
-- sharpen diplomatic flavor
-
-It may **not**:
-
-- invent new facts
-- imply uncomputed motives
-- contradict the structured payload
+It may **not**: invent new facts, imply uncomputed motives, contradict the structured payload.
 
 ### 10.3 Speaker rules
 
 Talleyrand is **not** the default speaker for every important commitments moment.
 
-| Event family | Lead speaker | Supporting speaker | Register |
+| Event | Lead speaker | Supporting speaker | Register |
 |-----------|---------|---------------|---------------|
-| `bargain_fulfilled` | `talleyrand` | none or neutral consequence line | urbane vindication; a little bite is welcome |
-| `bargain_breached` | `envoy` | `talleyrand` private aside | accusation first, private counsel second |
-| `hard_reject_posture_triggered` | `foreign_office` or `system` | optional Talleyrand aftermath only | formal closure, no quips |
-| `commitment_paradox` | `talleyrand` | none | grave, tragic, explicitly not quippy |
+| `commitment_paradox` | `talleyrand` | spurned-envoy aside after choice (named diplomat) | grave, tragic, explicitly not quippy |
+| `commitment_paradox_resolved` | `system` (campaign log only) | none | neutral declarative |
+| `diplomatic_treaty_broken` (french_breach) | `envoy` (named diplomat per §10.3) | `talleyrand` private aside | accusation first, private counsel second |
+| `hard_reject_posture_triggered` | `foreign_office` (resolved as "The Chancery of {nation}") | optional Talleyrand N+1 aftermath aside | formal closure, no quips |
 | `witness_strike_recorded` | `system` or `foreign_office` | none | terse third-party observation |
 | campaign log | `system` | none | neutral declarative summary |
 
@@ -516,13 +458,18 @@ Spotlight cards and expanded notice detail must support `speaker_attribution` an
 
 **Named-diplomat resolution (mandatory for envoy / foreign_office).** Abstract speaker roles are routing hints, not render values. At render time:
 
-- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh, Godoy, etc.) and render with that diplomat's personality register per `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6. Hawk registers are blunt and prideful ("France gave its word. France has made its word cheap."). Schemer registers are cold and calculating ("France has reminded us what French assurances purchase."). Dove registers are wounded and bewildered ("We had believed France's hand on this matter. We were mistaken.").
+- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh, Godoy, etc.) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`. Hawk registers are blunt and prideful. Schemer registers are cold and calculating. Dove registers are wounded and bewildered.
 - `speaker="foreign_office"` MUST render as "The Chancery of {nation}" — never as the generic string "foreign_office". Register derives from that nation's dominant diplomat's personality.
-- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or spotlight surface, `system` is disallowed — route to `foreign_office` or a named observer ("A dispatch from the Austrian court") instead. The word "system" must never reach the player.
+- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or spotlight surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word "system" must never reach the player.
 
-For each breach lead-line template committed in §12.2, the mock template library must ship at least three register variants (one Hawk, one Schemer, one Dove) so the felt difference between Hardenberg's accusation and Einsiedel's is real, not cosmetic. LLM mode may enrich; mock mode is authoritative.
+For each breach lead-line template committed in §12.2, the mock template library should ship at least one register variant per nation that can be a victim of French breach. **v0.3 minimum cast coverage:**
 
-**Cast coverage for C3b ship:** minimum committed lead-line coverage is three nations × three personality registers = 9 breach lead-line templates. Nations covered at ship: Prussia (Hawk), Austria (Schemer), Bavaria (Dove). Other nations fall back to register-matched templates until per-nation coverage extends.
+- Prussia (Hardenberg, Hawk) — breach lead-line + hard-reject Chancery line
+- Austria (Metternich, Schemer) — breach lead-line
+- Saxony (Einsiedel, Dove) — breach lead-line
+- Britain (Castlereagh, Hawk) — hard-reject Chancery line (Britain rarely receives a French breach since France-Britain is a permanent rivalry and rarely deepens)
+
+The previous v0.2 nine-line cast coverage requirement (3 nations × 3 personality registers) was sized for bargain breach scenarios. v0.3 minimum is **4 lines** (one per nation likely to be wronged in this phase).
 
 ### 10.4 Witness scope as dramatic input
 
@@ -531,24 +478,19 @@ For each breach lead-line template committed in §12.2, the mock template librar
 - `ally` witnesses sound disappointed, wary, or reconsidering.
 - `rival` witnesses sound pleased, amused, or opportunistic.
 - `shared_enemy` witnesses sound calculating; they smell a strategic opening.
-- `region_observer` witnesses sound gossipy or reputational; the story is spreading.
+- `region_observer` witnesses sound gossipy or reputational; the story is spreading. (Inactive in v0.3 — region_observer scope only fires when bargains exist.)
 
-This branching applies first to `bargain_breached` spotlight copy, and later to any callback line that references the same `episode_id`.
+**v0.3 application:** scope-branched witness reaction lines are **deferred to WB-D**. The substrate emits `dominant_witness_scope` already, but this pass does not branch breach copy on it. Single-tone breach lead-line per nation is enough for v0.3.
 
 ### 10.5 Refusal and hard-block explanations
 
 If the engine provides:
 
-- hard-block reason (promised by C2)
-- war-entry score breakdown (promised by C2)
-- severity-sorted `warnings[]` (per `RELIABILITY_COMMITMENTS_SPEC.md` §12.2)
+- structured `warnings[]` (per `RELIABILITY_COMMITMENTS_SPEC.md` §11.2)
 
-then the presentation layer should use it. Explanation is composed from `warnings[]` sorted by severity, with the first entry used as the lead line. There is no engine-side "strongest negative factor" or `top_reason_text` synthesizer; the presentation layer does not request one.
+then the presentation layer should use it. Explanation is composed from `warnings[]` sorted by severity, with the first entry used as the lead line. There is no engine-side "strongest negative factor" or `top_reason_text` synthesizer.
 
-If the engine does **not** provide enough structured explanation:
-
-- prefer a short, honest explanation
-- do not let the voice layer invent causal detail
+If the engine does **not** provide enough structured explanation, prefer a short, honest explanation; do not let the voice layer invent causal detail.
 
 ---
 
@@ -556,36 +498,32 @@ If the engine does **not** provide enough structured explanation:
 
 Do **not** create a second long-lived commitments presentation store.
 
-This pass should build on:
+This pass builds on:
 
 - existing dispatch metadata
 - campaign-log metadata
 - response payloads already produced by commitments systems
 
-Where one normalized surface payload is needed, use a transient structure like:
+Where one normalized surface payload is needed, use a transient structure:
 
 ```python
 commitment_surface_event = {
-    "event_type": "bargain_breached",
-    "episode_id": "ep_1805_austerlitz_betrayal_001",
+    "event_type": "diplomatic_treaty_broken",
+    "episode_id": "ep_1805_breach_001",
     "severity": "high",
     "primary_surface": "dispatch_spotlight",
     "primary_nation": "Prussia",
     "secondary_nation": "France",
     "injured_party": "Prussia",
-    "target_enemy": "Britain",
-    "claim_region": "Hanover",
-    "source_commitment_id": "commitment_12",
+    "source_treaty_type": "alliance",
+    "end_reason_family": "french_breach",
+    "end_reason_action": "war_declaration",
+    "fault_nation": "France",
     "attributed_lines": [
         {
             "speaker": "envoy",
             "role": "lead",
-            "text": "France gave its word on Hanover; today that word is spent elsewhere."
-        },
-        {
-            "speaker": "foreign_office",
-            "role": "witness",
-            "text": "Vienna notes that the pledge was given publicly and asks what French assurances are worth."
+            "text": "Prussia was given France's word in clear terms..."
         },
         {
             "speaker": "talleyrand",
@@ -593,16 +531,16 @@ commitment_surface_event = {
             "text": "They are wounded, Sire. Worse, they are entitled to be."
         }
     ],
-    "dominant_witness_scope": "ally",
-    "aftermath_mode": "private_aside_required",
-    "callback_window_end_turn": 25,
-    "follow_up_actions": ["talk_talleyrand", "summon_envoy", "open_ledger"],
-    "relation_delta": -12,
-    "reliability_delta": -4,
+    "dominant_witness_scope": "ally",  # passed through but not branched on in v0.3
+    "aftermath_mode": "private_aside_optional",
+    "follow_up_actions": ["talk_talleyrand", "open_ledger"],
+    "relation_delta": -10,
+    "reliability_delta": -10,
+    "applied_reliability_delta": -10,
+    "intended_reliability_delta": -10,
     "witness_nations": [
         {"nation": "Austria", "scope_reason": "ally"},
     ],
-    "hard_block_reason": None,
     "review_target": "ledger_commitments",
 }
 ```
@@ -612,20 +550,16 @@ Required rules:
 - all fields primitive-only
 - no live object references
 - no duplicate authority over commitment state
-- `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); `C3` collapse, dedupe, and aftermath callback logic key off it (see §9.4 and §13)
-- `witness_nations` entries carry `scope_reason in {"ally", "rival", "shared_enemy", "region_observer"}` per `RELIABILITY_COMMITMENTS_SPEC.md` §8.4
-- `speaker_attribution` is optional shorthand for single-voice surfaces and must satisfy `speaker_attribution in {"system", "talleyrand", "envoy", "foreign_office"}`
+- `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); collapse, dedupe, and aftermath callback logic key off it
+- `witness_nations` entries carry `scope_reason in {"ally", "rival", "shared_enemy", "region_observer"}` — `region_observer` inactive until WB-D
+- `speaker_attribution` is optional shorthand for single-voice surfaces and must satisfy `speaker_attribution in {"talleyrand", "envoy", "foreign_office"}` (`system` reserved for campaign log only)
 - `attributed_lines` is optional for split-voice surfaces; if present it overrides single-speaker render and may contain at most 3 ordered blocks
-- `attributed_lines[].speaker in {"system", "talleyrand", "envoy", "foreign_office"}`
+- `attributed_lines[].speaker in {"talleyrand", "envoy", "foreign_office"}`
 - `attributed_lines[].role in {"lead", "witness", "aside"}`
-- `attributed_lines[].role` carries render-weight semantics per §9.1 and is not descriptive metadata only
-- `dominant_witness_scope` is optional; if omitted, presentation derives it deterministically from `witness_nations` using the precedence in §9.1
-- `aftermath_mode in {"none", "private_aside_optional", "private_aside_required", "proposal_callback_required"}`
-- `callback_window_end_turn` is presentation-only expiration data, never mechanic authority
-- `follow_up_actions` entries are UI routing hints only; they may reference only existing no-cost advisory or inspection surfaces
-- `relation_delta` / `reliability_delta` are sourced from strike record delta fields (produced by `C1a`) for breach / witness flows, or computed at emit time from `fulfillment_snapshot` (produced by `C1b`) for fulfillment flows
-- for fulfillment flows, the payload additionally carries narrative-ready fields from the extended `fulfillment_snapshot` contract (`witness_nations_at_fulfillment`, `relation_delta`, `reliability_delta`) per `RELIABILITY_IMPLEMENTATION_PLAN.md` `C1b`
-- `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter (see §9.3)
+- `aftermath_mode in {"none", "private_aside_optional", "private_aside_required"}`
+- `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.3 (response routes deferred to WB-D)
+- `relation_delta` / `reliability_delta` are sourced from breach metadata
+- `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter
 
 If a field is not known deterministically, omit it rather than improvising it in presentation.
 
@@ -633,129 +567,90 @@ If a field is not known deterministically, omit it rather than improvising it in
 
 ## 12. Example Player Experience
 
-### 12.1 Bargain fulfilled
+### 12.1 Treaty broken (French breach)
 
 Engine outcome:
 
-- bargain moves to `fulfilled`
-- relation and reliability rewards apply
-- `fulfillment_snapshot` written (extended with `witness_nations_at_fulfillment`, `relation_delta`, `reliability_delta` per `RELIABILITY_IMPLEMENTATION_PLAN.md` `C1b`; these feed the spotlight template directly)
+- France voluntarily breaks an alliance / DA / NA with Prussia (manual break, war declaration, paradox choice, or constructive breach via auto-decay)
+- breach metadata applied; reliability and bilateral strike penalties applied per Memory and Pressure §8.3
+- `dominant_witness_scope` computed (passed through to presentation but not branched on in v0.3)
 
 Player experience:
 
-- turn-N spotlight frames it as France having kept its word
-- optional N+1 callback or proposal echo keyed by `episode_id` reinforces that the remembered promise changed trust
-- ledger marks the bargain as newly fulfilled
-- campaign log records the durable event
-
-Canonical mock spotlight template:
-
-- Headline: `Word Kept in {primary_nation}`
-- Speaker: `talleyrand`
-- Body:
-
-  "Sire, {primary_nation} has received exactly what we named, and Europe is now
-  obliged to admit that France can still distinguish victory from oath.
-  A promise honored after success purchases a rarer coin than gratitude:
-  belief. They may not love us for it. They will calculate with us."
-
-- Consequence line: `{primary_nation} relation {relation_delta:+}; reliability {reliability_delta:+}.`
-
-Desired feeling:
-
-- "This alliance meant something."
-
-### 12.2 Bargain breached
-
-Engine outcome:
-
-- bargain moves to `breached`
-- betrayal fallout applies
-- witness strikes and injured-party deltas are available to presentation
-
-Player experience:
-
-- turn-N spotlight lands as a three-beat card:
-  1. injured-party accusation
-  2. one witness reaction based on `dominant_witness_scope`
-  3. short private Talleyrand aside
-- next-morning dispatch carries a private callback keyed by `episode_id`
-- the injured party's next `incoming_proposal` or advisory scene may carry one barbed callback line inside the normal surface
+- turn-N spotlight lands as a two-beat split-voice card:
+  1. injured-party named diplomat accusation
+  2. private Talleyrand aside
+- next-morning dispatch optionally carries a private callback keyed by `episode_id`
 - ledger and log preserve the exact fallout
 
-Canonical mock spotlight template (ally-witness example):
+Canonical mock spotlight templates (per Voice Bible registers):
 
 - Headline: `Word Broken Before {injured_party}`
-- Lead speaker: `envoy`
-- Lead line:
 
-  "{secondary_nation} gave its word on {claim_region}; today that word is spent
-  elsewhere. {injured_party} will remember the price of trusting it."
+**Hardenberg (Prussia, Hawk) lead:**
 
-- Required witness branch variants:
+> "Prussia was given France's word in clear terms. That word is now spent elsewhere. Tell your Emperor that Berlin does not ask twice. The army remembers the insult. So does the King."
 
-  `ally`:
-  "Vienna notes that the pledge was given publicly and asks what, then, French
-  assurances are worth."
+**Metternich (Austria, Schemer) lead:**
 
-  `rival`:
-  "{witness_nation} receives the news with satisfaction. A French promise, it
-  seems, may be broken by whichever hand profits."
+> "Vienna has received word of the French disposition. Austria notes, with the customary patience of a court accustomed to the shifting weather of French commitments, that the article agreed between us has not been honored. There will be, naturally, no public reply. One simply adjusts."
 
-  `shared_enemy`:
-  "{witness_nation} concludes that a camp unable to keep faith within itself
-  may be divided from without."
+**Einsiedel (Saxony, Dove) lead:**
 
-  `region_observer`:
-  "The court of {witness_nation} repeats the tale as all Europe does: with
-  relish, and with a sharper distrust of French assurances."
+> "Sire, His Majesty asked only that France's word be kept. We arranged Saxon affairs around it. We told our people that France had given assurance. It is not our place to accuse France, whose friendship Saxony values above all others. It is only that we had believed, and now we must explain to a small court that we were mistaken."
 
-- Private aside:
+**Talleyrand (private aside, all variants):**
 
-  "They are wounded, Sire. Worse, they are entitled to be. Force is often
-  forgiven; ridicule is remembered."
+> "They are wounded, Sire. Worse, they are entitled to be. Force is often forgiven; ridicule is remembered."
 
-- Next-morning callback:
+**Next-morning callback (one new beat, not a restate):**
 
-  "Hardenberg has not forgotten {claim_region}, Sire. He need not mention it
-  each morning for it to sit at table."
-
-- Callback rule:
-
-  The N+1 aside must add a new downstream read rather than restating the
-  breach-card aside. It should name who is hardening, who is pleased, or what
-  future negotiation has been made colder.
+> "Hardenberg has not forgotten the matter, Sire. He need not mention it each morning for it to sit at table."
 
 Desired feeling:
 
-- "I traded future trust for this move."
+- "Europe noticed. The named court that I wronged has spoken in their own register."
 
-### 12.3 Hard-reject posture triggered
+(Scope-branched witness lines from v0.2 — Vienna-disappointed vs London-satisfied vs Italian-courts-gossiping — defer to WB-D when bargain breach gives them more political weight.)
 
-Blocked on B2b emit contract (see §8.2 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B2b add). Spotlight fires on the first threshold crossing per victim nation only.
+### 12.2 Hard-reject posture triggered
 
 Engine outcome:
 
-- a nation reaches the strike threshold and will now hard-resist deep treaties
+- a nation crosses 3 active bilateral strikes and will now hard-resist deep treaties
+- `hard_reject_posture_triggered` emitted (first-time-per-pair contract enforces single emission)
 
 Player experience:
 
 - one featured spotlight tells the player that this channel is effectively closing
-- the next relevant preview / refusal reinforces that state
-- the ledger makes it obvious that the posture is active
+- the next relevant preview / refusal reinforces the state
+- the ledger makes it obvious the posture is active
 
 Canonical mock spotlight template:
 
-- Headline: `The Chancery Shut`
-- Speaker: `foreign_office`
+- Headline: `The Chancery Shut` (or `The Court of St. James Closes Its Doors` for Britain)
+- Speaker: `foreign_office` resolved per §10.3
 - Body:
 
-  "The {primary_nation} chancery no longer receives French dispatches on matters
+  "The chancery of {primary_nation} no longer receives French dispatches on matters
   of alliance, guarantee, or common cause.
   Courtesies may continue. Trust will not."
 
+For Britain (Castlereagh's voice):
+
+  "The Court of St. James is not in receipt of further French dispatches on
+  matters of alliance. His Majesty's Government will weigh French undertakings
+  by the conduct, not the assurance, of the French chancery."
+
+For Prussia (Hardenberg's voice):
+
+  "Berlin will not entertain further French overtures. Prussia has Prussia's
+  own memory of what French signatures have been worth, and Prussia keeps her
+  own counsel from this day forward."
+
 - Consequence line: `{primary_nation} will hard-refuse deep treaty asks until posture cools.`
-- Optional N+1 aside:
+
+- Optional N+1 aside (Talleyrand):
 
   "Doors in Europe rarely slam, Sire. They close with a servant's politeness
   and a statesman's memory."
@@ -764,128 +659,83 @@ Desired feeling:
 
 - "That nation is not just numerically colder. They are diplomatically shut."
 
-### 12.4 Ally-entry hard block
+### 12.3 Commitment paradox (3-beat staged)
 
 Engine outcome:
 
-- ally cannot legally or plausibly join
-
-Player experience:
-
-- keep the main explanation inline at the ally-entry surface
-- optionally raise a compact notice if a live bargain was implicated
-- if the surface is already conversational, offer a no-cost `Ask Talleyrand why not` follow-up rather than a second dramatic card
-- do not promote this into a dramatic dispatch unless it caused a larger downstream state change
-
-Desired feeling:
-
-- "I understand why this failed."
-
-**Rendering contract:** ally-entry hard-block rendering consumes the `pending_declaration` payload per the C2 contract (see `RELIABILITY_IMPLEMENTATION_PLAN.md` C2). No duplicate authority is held here.
-
-**Back Out semantics:** counter-bargain `Back Out` cancels the `pending_declaration` transaction; DP and AP spent to stage the declaration are refunded; the action is not re-entrant within the same turn. These semantics are owned by C2; `C3` only renders.
-
-### 12.5 Commitment paradox
-
-Engine outcome:
-
-- ratification would span an active opposition pair
+- ratification or war declaration would force the player into both sides of an existing alliance (legacy alliance-cross-war trigger; type renamed to `commitment_paradox` in B3)
 - the existing blocking hard-stop pauses resolution until the player chooses which promise survives
 
 Player experience:
 
-- envoys from BOTH spurned nations each deliver a one-line demand before Talleyrand speaks — the paradox is staged as two parties in contradictory demand, not as Talleyrand's monologue
-- Talleyrand's grave framing line lands after both envoy demands, NAMING the contradiction he did not create
-- the blocking options remain mechanically owned by the existing `commitment_paradox` dialogue contract in `CONVERSATIONAL_DIPLOMACY_DESIGN.md`
-- the blocking body prose below is canonical and must be mirrored into that dialogue template
-- after the player chooses, a short aside from the SPURNED nation's envoy precedes Talleyrand's aside — the wound speaks before Talleyrand names it
-- the next morning dispatch carries one callback naming the spurned court
+- Talleyrand frames the contradiction in grave register
+- the blocking body lays out the binary choice
+- the player chooses
+- the spurned nation's named envoy responds first; then Talleyrand's closing aside
+- next-turn dispatch carries one callback naming the spurned court
 
-Canonical staged template (three-voice before choice, two-voice after):
+Canonical staged template (3 beats: framing → blocking body → after-choice aside):
 
-**Beat 1 — Envoy of `primary_nation`** (speaker resolves per §10.3 named-diplomat rule, register per diplomat personality):
-
-  "The articles of {primary_claim} were agreed between us, Sire. Our court
-  awaits ratification. {register_specific_coda}"
-
-  *Register coda variants:*
-  *Hawk:* "Prussia does not ask twice."
-  *Schemer:* "Austria would not wish France to misplace her signatures."
-  *Dove:* "Bavaria has arranged her affairs around your word."
-
-**Beat 2 — Envoy of `secondary_nation`** (paired demand, register per diplomat):
-
-  "Sire, the understanding with {secondary_claim} stands. What was promised
-  cannot now be promised elsewhere. {register_specific_coda}"
-
-**Beat 3 — Talleyrand framing** (grave, explicitly not quippy):
+**Beat 1 — Talleyrand framing** (grave, explicitly not quippy):
 
   "Sire, we have arranged our promises so artfully that Europe now insists on
-  arithmetic. If we ratify {primary_nation}, we break faith with
+  arithmetic. If we honor {primary_nation}, we break faith with
   {secondary_nation}. There is no language in which both vows remain true."
 
-**Blocking body text (canonical, renders in the popup between the three beats and the choice):**
+**Blocking body text (canonical, renders in the popup between framing and choice):**
 
   "One pledge must now be withdrawn.
-  To ratify {primary_nation} is to betray {secondary_nation}.
-  To ratify {secondary_nation} is to betray {primary_nation}.
+  To honor {primary_nation} is to betray {secondary_nation}.
+  To honor {secondary_nation} is to betray {primary_nation}.
   France may choose which wound it opens. It may not call both injuries honor."
 
-**Beat 4 — Spurned envoy aside (after choice):**
+**Beat 2 — Spurned envoy aside (after choice — register from spurned nation's named diplomat):**
 
-  *Hawk:* "{spurned_diplomat} has left court without taking leave."
-  *Schemer:* "{spurned_diplomat} received the news with a small, exact smile."
-  *Dove:* "{spurned_diplomat} asked only whether France had understood what was being withdrawn."
+  *Hawk (Hardenberg, Castlereagh):* "{spurned_diplomat} has left court without taking leave."
+  *Schemer (Metternich):* "{spurned_diplomat} received the news with a small, exact smile."
+  *Dove (Einsiedel):* "{spurned_diplomat} asked only whether France had understood what was being withdrawn."
 
-**Beat 5 — Talleyrand closing aside (after choice):**
+**Beat 3 — Talleyrand closing aside (after choice):**
 
   "We have preserved one promise by choosing which wound to open. Europe
   forgives necessity sooner than contradiction, but it will call this necessity
   ours."
 
-**Next-turn callback:**
+**Next-turn callback (Morning Dispatch):**
 
   "{spurned_nation} has received the news with the composure of a court
   counting knives."
 
 Desired feeling:
 
-- "I heard both courts demand their due, and I had to choose which to betray."
+- "I had to choose which to betray, and the spurned court spoke before Talleyrand named what I'd done."
 
-**Implementation contract:** this §12.5 staging REQUIRES `commitment_paradox` to be registered as a HARD_STOP dialogue type, and REQUIRES a dedicated `commitment_paradox_popup` surface — the existing `alliance_paradox_popup` is single-label and cannot host five beats. See §14 for the surface prerequisite list.
+**Implementation contract:**
 
-### 12.6 Reactive affordances
+- `commitment_paradox` is registered as HARD_STOP (already done in `dialogue_manager.py`); B3 activates it on the push side
+- requires dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four C3a-pre prerequisites in §14)
+- existing `alliance_paradox_popup.gd` is single-label and **cannot host** the three-beat scene; it must be replaced
 
-Commitments surfaces may not leave the player as a reader only. `C3b` adds reactive follow-ups in two bands — **advisory routes** (no cost, inspect / discuss) and **response routes** (route into existing action surfaces at their existing costs, so the player can answer drama with action).
+(The five-beat scene from v0.2 — envoys from BOTH spurned nations speaking before Talleyrand frames — is **deferred to WB-D** when rivalry-driven multi-conflict ratification fires the paradox from new triggers.)
 
-**Firewall clarification:** the Non-Goal firewall (§5) bars INVENTING new outcomes, branches, or action costs. It does NOT bar routing into existing action surfaces. A `Propose redress` button that opens `proposal_options` seeded with protection-guarantee defaults is a route, not an invention — the underlying action and its DP cost already exist in the diplomatic executor. Response-route affordances preserve the firewall by re-using the existing wizard, not by adding a new verb.
+### 12.4 Reactive affordances (advisory routes only in v0.3)
 
-**Advisory routes (no cost, inspect / discuss):**
+Commitments surfaces may not leave the player as a reader only. v0.3 ships **advisory routes** (no cost, inspect / discuss). Response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`) are **deferred to WB-D** because they depend on bargain-era proposal templates and `proposal_options` seed defaults that don't exist yet.
+
+**Advisory routes (v0.3 — no cost, inspect / discuss):**
 
 | Action | Availability | Route | Mechanical effect |
 |-----------|---------|---------------|---------------|
 | `Speak to Talleyrand about this` | all commitments spotlights + paradox aftermath | opens scoped `advisory` dialogue with `context.origin_episode_id = episode_id` | none |
 | `Summon {named_envoy}` | breach spotlight only | reuses advisory shell; opener is one-exchange foreign-court response in the named envoy's register, seeded by `episode_id`, then hands back to Talleyrand | none |
-| `Review the pledge` | any commitments spotlight or paradox resolution | routes to filtered Treaties tab / commitments section | none |
-
-**Response routes (route into existing action surfaces — existing costs apply):**
-
-| Action | Availability | Route | Mechanical effect |
-|-----------|---------|---------------|---------------|
-| `Propose redress to {injured_party}` | breach spotlight (when episode injured `injured_party ≠ France`) | opens `proposal_options` seeded with protection-guarantee / gold-per-turn defaults; pre-targeted at `injured_party` | existing `proposal_options` costs — no new cost invented |
-| `Deepen the bond with {primary_nation}` | fulfillment spotlight | opens `proposal_options` seeded with alliance-upgrade defaults pre-targeted at `primary_nation` | existing `proposal_options` costs |
-| `Attempt to reopen the chancery` | hard-reject spotlight (first-time only) | opens `proposal_confirm` with low-acceptance preview clearly shown; player sees the odds before committing | existing `proposal_confirm` DP cost |
-| `Denounce the refusal publicly` | Back Out spotlight | routes to `proposal_options` pre-selected at the refusing ally, defaulted to a posture/non-aggression downgrade | existing `proposal_options` costs |
-| `Offer redress to {spurned_nation}` | `commitment_paradox` AFTER-choice aftermath (next-turn dispatch affordance) | opens `proposal_options` seeded with consolation defaults pre-targeted at the nation the player just spurned | existing `proposal_options` costs |
+| `Review the broken treaty` | breach spotlight + paradox resolution | routes to filtered Treaties tab | none |
 
 Rules:
 
 - advisory routes remain no-cost, no state change, no notice on dismiss
-- response routes CAN cost DP/AP and CAN change state — but ONLY via existing action surfaces. C3 never invents a new action, a new DP tier, or a new clause. The route IS the affordance; the action IS the existing mechanic.
-- every spotlight family must expose at least one response route so the player can respond in-fiction within one click
-- if a route's preconditions fail (e.g. insufficient DP for `proposal_options`), display the option with "(2 DP — insufficient)" rather than hiding it — the player should see what WOULD be possible
-- on breach spotlights, the advisory route (`Speak to Talleyrand`) and the response route (`Propose redress`) appear together; the response route takes primary visual emphasis
-- the paradox itself remains a strict binary — the player MUST choose one pledge. Agency after paradox is where the player gets to answer the tragedy (via `Offer redress to {spurned_nation}` the turn after). The paradox is not diluted by a delay option; the paradox's weight IS the player's inability to rescue both.
+- every spotlight family must expose at least one advisory route so the player can engage in-fiction within one click
+- on the breach spotlight, both `Speak to Talleyrand` and `Summon {named_envoy}` may appear together; the named-envoy summon takes primary visual emphasis
+- the paradox itself remains a strict binary — the player MUST choose. v0.3 has no `Offer redress to {spurned_nation}` next-turn affordance (that depended on bargain templates).
 
 ---
 
@@ -894,94 +744,65 @@ Rules:
 - No more than 1 commitments dispatch spotlight per turn.
 - No more than 2 above-the-fold commitments notices per turn.
 - Blocking hard-stops suppress duplicate notice-generation for the same root event.
-- Multiple witness strikes from one root event should collapse into one summarized presentation event when surfaced outside the ledger. Witness-collapse keys off `episode_id`, not event-type heuristics.
-- A `bargain_triggered` notice should be suppressed if the same bargain is fulfilled or breached in the same turn and that higher-severity event is already surfaced.
+- Multiple witness strikes from one root event collapse into one summarized presentation event when surfaced outside the ledger. Witness-collapse keys off `episode_id`, not event-type heuristics.
 - If a commitments event is unrelated to the current blocking popup, queue it into the normal notice/dispatch path instead of interrupting the player mid-resolution.
-- No more than 1 immediate result aside, 1 N+1 aftermath beat, and 1 later callback may fire per `episode_id`.
-- No later callback may survive past turn `N+10`.
-- When multiple later callbacks compete for the same future surface, use the deterministic arbitration order from §9.4 instead of whichever episode is evaluated first.
+- No more than 1 immediate result aside and 1 N+1 aftermath beat may fire per `episode_id`.
 - Quick-action follow-ups do not generate their own notices if opened and dismissed without state change.
-- **N+5 fallback surface.** If a breach or hard-reject episode has found no eligible callback surface (no `incoming_proposal`, no advisory appearance, no refusal) by turn N+5, the callback fires on N+5's Morning Dispatch as an "unresolved grievance" slot — one line, speaker of the injured party's named diplomat, referencing the episode by `episode_id`. This prevents cold relationships from muting their own memory. The fallback consumes the episode's single later-callback budget.
+
+(Later-callback arbitration, N+5 fallback grievance slot, and competing-callback priority rules are deferred — v0.3 has no later callbacks to arbitrate.)
 
 ---
 
-## 14. Proposed Implementation Slice
+## 14. Implementation Slice
 
-### C3a-pre. Surface contract prerequisites
+### C3-lite. The single slice
 
-Before `C3a` routing can land, four surface contracts must be stood up. These are prerequisite because the spec routes payloads into them; without them, `C3a` is a backend-only pass writing to nothing.
+**Files:** `backend/game_logic/dispatch.py`, `backend/game_logic/diplomatic_templates.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/game_logic/diplomatic_ledger.py`, `backend/campaign_log.py`, `backend/notifications.py`, `backend/models/dialogue_manager.py`, `backend/main.py`, `godot-client/.../main.gd`, `godot-client/.../notification_bar.gd`, `godot-client/.../diplomatic_ledger.gd`, `godot-client/.../campaign_log.gd`, new `commitment_paradox_popup.{tscn,gd}`, notice/dispatch surfaces already used by diplomacy
 
-1. **Register `commitment_paradox` as a HARD_STOP dialogue type.** Add to `backend/models/dialogue_manager.py` `HARD_STOP_TYPES` (currently `{"force_declare_war_confirmation", "alliance_paradox"}`). Add to `godot-client/.../main.gd` dtype whitelist (~line 697 per CLAUDE.md). Without this, the paradox auto-lapses on end-turn and the five-beat staged scene in §12.5 lands on a non-blocking surface.
-2. **Build `commitment_paradox_popup` as a dedicated surface.** The existing `alliance_paradox_popup.gd` is a single-label modal with two buttons; it cannot host before-choice envoy demands, blocking body, after-choice envoy aside, and Talleyrand closing aside. Register on a CanvasLayer in the 101-118 range per the "Adding a new popup/dialog" pattern in CLAUDE.md. Re-uses the same HARD_STOP machinery as `alliance_paradox_popup` but does NOT share scene.
-3. **Add split-voice render capability.** No `attributed_lines[]` or `speaker_attribution` field exists today. Extend the notice/spotlight card scene to render three distinct regions (lead / witness / aside) with the typographic contract in §9.1. Extend `backend/notifications.py` payload dataclass to carry `attributed_lines` and `speaker_attribution`.
-4. **Build the spotlight tier itself.** `godot-client/.../notification_bar.gd` priority tiers (0/1/2) render identical icons. Add a "spotlight" tier with elevated 2-turn-persisting card, per-notice review/follow-up action buttons, overflow-digest strip per §8.3. Without this, every event spec-routed to "dispatch spotlight" lands as a color-ringed icon.
+**Prerequisite work (must land before render contracts work):**
 
-Prerequisites 1-4 are prerequisite to `C3a`, not optional polish.
+1. **Dedicated `commitment_paradox_popup.{tscn,gd}` surface.** Existing `alliance_paradox_popup` is single-label; cannot host three-beat staged scene. Build new popup on a CanvasLayer in the 101-118 range per CLAUDE.md "Adding a new popup/dialog" pattern. Re-uses HARD_STOP machinery, does NOT share scene with `alliance_paradox_popup`.
+2. **HARD_STOP type activation.** B3 (paradox rename) ships push-side alias; this slice ensures Godot dtype whitelist (~main.gd line 697) routes `commitment_paradox` to the new popup.
+3. **Split-voice render capability.** Extend notice/spotlight card scene to render three distinct regions (`lead` / `witness` / `aside`) with the typographic contract in §9.1. Extend `backend/notifications.py` payload dataclass to carry `attributed_lines[]` and `speaker_attribution`.
+4. **Spotlight tier.** Add elevated 2-turn-persisting card variant to `notification_bar.gd` priority tiers, with per-notice review/follow-up action buttons. Without this, every event spec-routed to "dispatch spotlight" lands as a color-ringed icon.
 
-### C3a. Commitments presentation routing
+**Core tasks:**
 
-**Files:** `backend/game_logic/dispatch.py`, `backend/game_logic/diplomatic_templates.py`, `backend/game_logic/diplomatic_dialogue.py`, `backend/game_logic/diplomatic_ledger.py`, `backend/campaign_log.py`, `backend/notifications.py`, `backend/models/dialogue_manager.py`, `backend/main.py`, `godot-client/project-sovereign/scripts/main.gd`, `godot-client/project-sovereign/scripts/notification_bar.gd`, `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`, `godot-client/project-sovereign/scripts/campaign_log.gd`, new `commitment_paradox_popup.{tscn,gd}`, notice / dispatch surfaces already used by diplomacy
+- Define commitments event routing rules across blocking / dispatch / notice / ledger per §8.1
+- Add commitments-specific spotlight and notice templates under the `commitments_spotlight_*` / `commitments_notice_*` template family in `diplomatic_templates.py`
+- Commit canonical mock prose for `diplomatic_treaty_broken` (french_breach), `hard_reject_posture_triggered`, and `commitment_paradox` (framing, blocking body, after-choice aside)
+- Add player-facing period labels per §9.2
+- Resolve `speaker="envoy"` and `speaker="foreign_office"` to named diplomats per §10.3 — single helper in backend that reads `world.diplomats[nation]` and returns `{name, register}`
+- Commit minimum 4-line cast coverage per §10.3
+- Stage `commitment_paradox` as 3-beat scene per §12.3 (Talleyrand framing → blocking body → spurned-envoy + Talleyrand asides)
+- Add ledger emphasis rules for recent breach and active hard-reject posture (§9.3)
+- Wire duplicate suppression so one event does not surface three times (§8.4)
+- Keep campaign-log summaries compact but more specific
+- Turn `episode_id` into a minimal memory hook for one N+1 aftermath beat per §9.4
+- Inject N+1 callback lines into the next Morning Dispatch without changing mechanics
+- Add advisory-route reactive affordances per §12.4 (`Speak to Talleyrand about this`, `Summon {named_envoy}`, `Review the broken treaty`)
 
-Core tasks:
+**Suggested tests (~16-22):**
 
-- define commitments event routing rules across blocking / dispatch / notice / ledger
-- add commitments-specific spotlight and notice templates under the `commitments_spotlight_*` / `commitments_notice_*` template family in `diplomatic_templates.py`
-- enrich existing hard-stop copy for paradox and counter-bargain outcomes
-- add ledger emphasis rules for recent fulfillment / breach and active hard-reject posture
-- wire duplicate suppression so one event does not surface three times
-- keep campaign-log summaries compact but more specific
-- register new event types in `backend/campaign_log.py` `CAMPAIGN_LOG_TYPES`: `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `witness_strike_recorded`, `hard_reject_posture_triggered`, `declaration_backed_out` (8 types total, including the `declaration_backed_out` entry added for H-1 Back Out)
+- Spotlight priority ordering across multiple same-turn commitments events
+- No duplicate notice after blocking paradox resolution
+- Hard-reject posture gets one featured moment, not a repeated every-turn notice
+- Witness-strike collapse into one medium surface event per `episode_id`
+- Save/load safety for any new transient surface payload
+- Mock-mode template coverage for all spotlight-worthy commitments events
+- `attributed_lines[]` rendering: lead / witness / aside as distinct regions
+- Named-diplomat resolution: `envoy` → Hardenberg/Metternich/Einsiedel/Castlereagh per nation context, with correct register
+- `foreign_office` → "The Chancery of {nation}"
+- `system` speaker disallowed on rail surfaces
+- Paradox 3-beat staging: framing renders before choice, after-choice aside renders post-choice
+- N+1 aftermath beat fires once per `episode_id` and adds new content (escalation rule)
+- N+1 aside does not restate the originating beat
+- Advisory routes are no-cost: `Speak to Talleyrand` opens advisory dialogue with `context.origin_episode_id`; dismiss leaves no state change
 
-Suggested tests:
+**Estimated budget:**
 
-- spotlight priority ordering across multiple same-turn commitments events
-- no duplicate notice after blocking counter-bargain resolution
-- `bargain_triggered` suppression when same-turn `fulfilled`
-- hard-reject posture gets one featured moment, not a repeated every-turn notice
-- witness-strike collapse into one medium surface event
-- save/load safety for any new transient surface payload
-- mock-mode template coverage for all spotlight-worthy commitments events
-- Back Out terminal: no "Ally refused" notice is generated; only a `declaration_backed_out` campaign log entry is emitted
-
-Estimated budget:
-
-- one focused session
+- one focused implementation session
 - approximately 16-22 tests
-
-### C3b. Commitments drama pass
-
-**Files:** same surface/render files as `C3a`, plus any existing dialogue or dispatch renderer that already exposes speaker attribution or quick actions
-
-Core tasks:
-
-- commit canonical mock templates for `bargain_fulfilled`, `bargain_breached`, `hard_reject_posture_triggered`, and `commitment_paradox` framing / blocking body / aftermath
-- add player-facing period labels and voice-by-event-family mapping
-- support split-voice breach spotlight and one lower-weight private aside line
-- define visual weighting for `lead` / `witness` / `aside` render roles per §9.1 typographic contract
-- resolve `speaker="envoy"` and `speaker="foreign_office"` to named diplomats with per-personality register per §10.3
-- commit the minimum 9-line cast coverage per §10.3 (Prussia/Austria/Bavaria × Hawk/Schemer/Dove)
-- stage `commitment_paradox` as five-beat scene per §12.5 (envoy₁ demand → envoy₂ demand → Talleyrand framing → blocking body → spurned-envoy aside → Talleyrand aside)
-- branch breach copy on `dominant_witness_scope`
-- turn `episode_id` into a minimal memory hook for N+1 aftermath, one later callback, and N+5 fallback Morning Dispatch grievance slot per §13
-- arbitrate competing later callbacks deterministically
-- add reactive affordances per §12.6: advisory routes AT no cost, response routes ROUTED into existing action surfaces (proposal_options, proposal_confirm) at existing costs
-- inject callback lines into the next relevant `incoming_proposal` or advisory surface without changing mechanics
-
-Suggested tests:
-
-- committed mock template renders for every spotlight family with required slots
-- breach spotlight uses `attributed_lines[]` to stage `envoy` lead, scope-branched witness line, and Talleyrand aside
-- paradox shows grave framing before choice and after-choice callback after resolution
-- `episode_id` schedules exactly one N+1 aftermath beat and no more than one later callback before expiry
-- competing later callbacks resolve by priority order rather than iteration order
-- `hard_reject_posture_triggered` uses `foreign_office` or `system` voice and infects the next relevant refusal line
-- breach N+1 callback adds a new downstream beat instead of repeating the spotlight aside
-- quick actions open the correct no-cost surfaces and never alter DP/AP or relation state
-
-Estimated budget:
-
-- one focused narrative session plus verification
-- approximately 12-18 tests
 
 ---
 
@@ -989,57 +810,46 @@ Estimated budget:
 
 This pass should hand off cleanly to later systems:
 
-- `Bilateral Peace Hardening`
-  - owns its own spotlight events for peace settlement theatrics; the `C3` router is commitments-specific and does not extend to peace fallout. Bilateral Peace Hardening may copy patterns from `C3`, but it does not reuse the `C3` router.
-- `Talleyrand Desk + Explanation Layer`
-  - can absorb the same commitments payloads into richer advisory surfaces later, but it does **not** own inventing the first breach/paradox aftermath beats from scratch. `C3b` already commits the minimum callback and follow-up architecture.
-- generalized coalition work
-  - may later reuse the same spotlight principles for bloc pressure and split events
+- **`Bilateral Peace Hardening`**
+  - owns its own spotlight events for peace settlement theatrics; the commitments router is commitments-specific and does not extend to peace fallout. Bilateral Peace Hardening may copy patterns, but it does not reuse the commitments router.
+- **`WAR_BARGAIN_SPEC.md` slice WB-D (bargain presentation extension)**
+  - extends this pass with `bargain_fulfilled` / `bargain_breached` / `bargain_voided` / `bargain_ratified` / `bargain_triggered` / `declaration_backed_out` spotlights and notices
+  - adds scope-branched witness reaction copy (uses `dominant_witness_scope` payload that this pass already passes through)
+  - adds response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`)
+  - adds N+5 fallback grievance slot
+  - adds five-beat paradox staging when rivalry-driven ratification paradox fires the new triggers
+- **`Talleyrand Desk + Explanation Layer`**
+  - can absorb the same commitments payloads into richer advisory surfaces later, but it does **not** own inventing the first breach/paradox aftermath beats from scratch. C3-lite already commits the minimum callback architecture.
+- **Generalized coalition work**
+  - may later reuse the same spotlight principles for bloc pressure and split events.
 
 This spec should **not** pre-own those future systems.
-
-Its job is narrower:
-
-- make the current commitments layer feel alive
-- without dragging later systems forward prematurely
-
-What is no longer deferred:
-
-- committed spotlight prose for the four core families
-- breach accusation / witness / private-aside sequencing
-- period labels and voice mapping
-- minimal aftermath memory keyed by `episode_id`
-- no-cost reactive affordances
 
 ---
 
 ## 16. Acceptance Criteria
 
-`C3a` is successful if:
+C3-lite is successful if:
 
 - a player can tell the difference between routine diplomacy bookkeeping and a major commitments moment
-- bargain fulfillment and breach feel materially different in presentation weight
+- breach (where France is at fault) feels materially different in presentation weight from cascade
 - hard-reject posture feels like a diplomatic state change, not just an invisible threshold
 - witness fallout is legible without becoming spam
+- when France breaks faith with Prussia, the player hears Hardenberg's accusation in Hardenberg's register, not "envoy"
+- when Britain closes its chancery, the player hears Castlereagh's institutional finality, not Talleyrand's wit
+- the paradox lands as a staged scene with grave Talleyrand framing, committed blocking body, and a spurned-court reaction after the choice
+- `episode_id` supports one bounded N+1 aftermath beat per spotlight event
+- at least one no-cost conversational follow-up exists on every spotlight family
 - all of the above work identically in mock mode without LLM dependency
 - no commitments presentation surface changes any underlying outcome
 
-`C3b` is successful if:
-
-- each spotlight-worthy commitments family ships with a committed mock template
-- `bargain_breached` lands as accusation + scoped witness reaction + next-turn private aside
-- `commitment_paradox` has a before / during / after arc with grave Talleyrand framing and committed blocking body text
-- player-facing labels read as political drama rather than engineering nouns
-- `episode_id` supports a bounded aftermath sequence, so major moments linger beyond the origin turn without becoming spam
-- at least one no-cost conversational follow-up exists on breach spotlights
-- no commitments presentation surface changes any underlying outcome
-
-Full `C3` sign-off requires both slices.
+Bargain-era acceptance criteria (`bargain_breached` 3-beat sequence, scope-branched copy, response routes, etc.) move to `WAR_BARGAIN_SPEC.md` WB-D.
 
 ---
 
 ## 17. Changelog
 
-- **Apr 15, 2026** - folded audit findings C-1..C-2, H-1..H-4, M-1..M-5, NEW-S1..S4, NEW-E1..E5, NEW-V1..V4 per `COMMITMENTS_PRESENTATION_AUDIT_FINDINGS.md`.
-- **Apr 15, 2026** - split `C3` into `C3a` routing and `C3b` drama, and folded designer-eye audit findings F1-F8 per `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
-- **Apr 15, 2026 (Pass 2)** - folded 4-lens review findings per Pass 2 of `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`. Changes: §8.3 overflow spotlight digest for climactic turns; §9.1 typographic contract + reveal cadence for split-voice; §9.2 period-label fixes (`The Courts Noticed → Europe Is Aware`; `Ultimatum Recalled → The Demand Withdrawn`); §10.3 named-diplomat routing mandatory for `envoy` / `foreign_office` with per-personality register coverage; §12.5 paradox restaged as five-beat scene with envoys from both spurned nations speaking before Talleyrand frames; §12.6 reactive affordances split into advisory routes (no cost) and response routes (route into existing action surfaces at existing costs); §13 N+5 fallback Morning Dispatch grievance slot; §14 new `C3a-pre` slice explicitly lists four prerequisite surface contracts (HARD_STOP registration, dedicated paradox popup, split-voice render, spotlight tier).
+- **April 16, 2026 — v0.3 rescope.** War bargain presentation moved to `WAR_BARGAIN_SPEC.md` slice WB-D. Collapsed `C3a` + `C3b` into one `C3-lite` slice. Three live events get spotlight + split-voice + named-diplomat treatment. Paradox simplified from 5-beat to 3-beat (framing → blocking body → after-choice aside). Reactive affordances cut to advisory routes only; response routes deferred to WB-D. N+5 fallback grievance slot cut as edge-case polish. Multi-spotlight overflow digest cut as edge-case polish. Witness scope-branching deferred to WB-D. Cast coverage minimum reduced from 9 lines (3 nations × 3 registers) to 4 lines (one per likely-victim nation). Acceptance criteria narrowed accordingly.
+- **April 15, 2026 (Pass 2)** — folded 4-lens review findings per Pass 2 of `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`. Changes: §8.3 overflow spotlight digest for climactic turns; §9.1 typographic contract + reveal cadence for split-voice; §9.2 period-label fixes; §10.3 named-diplomat routing mandatory; §12.5 paradox restaged as five-beat scene; §12.6 reactive affordances split into advisory routes and response routes; §13 N+5 fallback Morning Dispatch grievance slot; §14 new `C3a-pre` slice. **Most of these audit folds were narrowed back in the v0.3 rescope; they remain documented in the audit file as design history.**
+- **April 15, 2026** — split `C3` into `C3a` routing and `C3b` drama, and folded designer-eye audit findings F1-F8 per `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`. **Collapsed back into C3-lite in v0.3 rescope.**
+- **April 15, 2026** — folded audit findings C-1..C-2, H-1..H-4, M-1..M-5, NEW-S1..S4, NEW-E1..E5, NEW-V1..V4 per `COMMITMENTS_PRESENTATION_AUDIT_FINDINGS.md`.

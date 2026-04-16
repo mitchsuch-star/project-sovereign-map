@@ -1,8 +1,9 @@
 # Diplomat Voice Bible
 
 > **Status:** v1 draft — Apr 15, 2026
+> **v0.3 scope note (Apr 16, 2026):** Cast coverage requirement reduced for the `Memory and Pressure` C3-lite ship. `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 §10.3 requires only **4 lead-line templates** (one per nation likely to be wronged in this phase: Hardenberg, Metternich, Einsiedel, Castlereagh's hard-reject Chancery line) instead of the v0.2 9-line cast coverage (3 nations × 3 personality registers). The 9-line target was sized for bargain breach scenarios across multiple registers per nation; with bargains deferred to `docs/WAR_BARGAIN_SPEC.md`, the larger cast coverage moves with them to slice WB-D. The four committed exemplars in this bible already satisfy the v0.3 minimum. The remaining "to author" lines in §Minimum cast coverage stay open for WB-D ship.
 > **Purpose:** Single-page voice reference per diplomat so that every spotlight line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
-> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats each need minimum 9-line coverage per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3.
+> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats each need minimum 4-line coverage per `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 §10.3 (was 9-line in v0.2; reduced in v0.3 rescope).
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
 
 ---
