@@ -1,6 +1,6 @@
 # War Bargain Spec
 
-> **Status:** Draft v1.0
+> **Status:** Draft v1.1
 > **Date:** April 16, 2026
 > **Phase placement:** Peace Deals track, after `Memory and Pressure`, after `Bilateral Peace Hardening`, after `War Purpose + Score Semantics`. Sits alongside / before `Ally Participation + Common Peace`.
 > **Origin:** Extracted from `docs/RELIABILITY_COMMITMENTS_SPEC.md` v1.0 §6.4 / §9 / §10.4 / §10.5 / §12.3 / §12.4 / §13 during the v2.0 rescope on April 16, 2026. The Memory and Pressure substrate (rivalries, betrayal memory, episode_id, witness scope, hard-reject posture) shipped without bargains; this spec defines the promise mechanic that was deferred out of v0.1.
@@ -92,6 +92,7 @@ That means:
 
 - France only as claimant in v0.1
 - France only as bargain promiser in v0.1
+- AI-to-AI bargains are **excluded** in v0.1 (AI nations may propose bargains to the player, but two AI nations may not create bargains between themselves)
 - single named enemy
 - single claim region
 - breach is triggered only by explicit, surfaced French actions
@@ -110,13 +111,15 @@ That means:
 - `fulfillment_snapshot` — terminal bargain payload preserved on the bargain record after `fulfilled` close.
 - `commitment_event_metadata` — primitive payload attached to bargain dispatch / log events; carries `episode_id`, `end_reason_family`, `fault_nation`, `decision_reason`, `trigger_context`, deterministic deltas, and witness set at rupture.
 
-### 7.2 Reused substrate (already shipped in Memory and Pressure)
+### 7.2 Reused substrate (Memory and Pressure)
+
+**Implementation note:** the substrate fields below (`episode_id`, `betrayal_history`, `scope_reason`, `warnings[]`, `hard_reject_posture`) are shipped. The three acceptance modifiers (`direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod`) and their `political_commitment_mod` composite are **designed but not yet in code** — they are remaining Memory and Pressure v2.1 work. This spec's acceptance formula additions (§9) depend on those modifiers being wired first. Either Memory and Pressure v2.1 ships them before this spec begins, or Slice WB-A absorbs their implementation as a prerequisite.
 
 - `episode_id` allocator for root-cause grouping
 - `betrayal_history` strike memory with severity-scaled decay and per-episode strike cap of 2
 - per-witness `scope_reason` resolution (ally / rival / shared_enemy / region_observer); region_observer scope is **only valid once the bargain store exists**, so it lights up here for the first time
 - structured `warnings[]` payload contract in proposal previews
-- `commitment_paradox` HARD_STOP machinery (paradox surface evolves under this spec to read from rivalry data + bargain conflict, not just the legacy alliance-cross-war trigger)
+- `commitment_paradox` HARD_STOP machinery (paradox surface evolves under this spec to read from rivalry data + bargain conflict, not just the legacy alliance-cross-war trigger). **Note:** as of April 16, 2026, codebase still uses `alliance_paradox_popup` as the WorldState field name. The rename to `commitment_paradox` is part of remaining Memory and Pressure work and must land before this spec's implementation begins. If the rename has not shipped, implementation should map to whichever name is current.
 - `hard_reject_posture` blocking deep-treaty acceptance after 3 active strikes
 
 ### 7.3 Coalition / opposition seams (v0.1 minimal)
@@ -222,7 +225,9 @@ On ratification, create a tracked commitment:
   "end_reason_family": null,
   "fault_nation": null,
   "trigger_context": null,
-  "fulfillment_snapshot": null
+  "fulfillment_snapshot": null,
+  "zombie_clock_turns_elapsed": 0,
+  "dormant_notice_fired": false
 }
 ```
 
@@ -253,7 +258,18 @@ v0.1 simplification (preserved):
 
 Every player-visible ally-entry decision materializes as a `join_opportunity`:
 
-- `id`, `beneficiary`, `named_enemy`, `request_type`, `surfaced_turn`, `hard_blocks[]`, `origin_episode_id`, `reroll_key`
+```json
+{
+  "id": 3,
+  "beneficiary": "Prussia",
+  "named_enemy": "Britain",
+  "request_type": "offensive_ally_request",
+  "surfaced_turn": 10,
+  "hard_blocks": [],
+  "origin_episode_id": 5,
+  "reroll_key": "Prussia|Britain|offensive_ally_request|10"
+}
+```
 
 Rules:
 
@@ -280,7 +296,8 @@ Hard blocks (preview shows the exact reason):
 - armistice / cooldown or treaty lock with named enemy
 - already on the enemy side of that war or a direct enemy of France
 - active anti-France `war_bloc` membership in the current coalition model
-- no plausible participation path under existing route heuristic
+- `hard_reject_posture` active (3+ bilateral betrayal strikes from France toward this nation) — applies to offensive ally requests only; defensive honor calls bypass this block because the treaty obligation itself overrides bilateral distrust
+- no plausible participation path (direct border, allied-theater adjacency, or adjacency reachable within 2 hops through allied/neutral territory)
 - any other backend contradiction creating invalid war state
 
 ### 8.7.1 Defensive honor calls
@@ -311,6 +328,7 @@ An ally that did **not** negotiate at alliance time may still demand terms when 
 - Reroll determinism: same ally + same enemy + same request type + same turn must reuse the same score band and demanded region unless a material state change occurs.
 - `reroll_key = f"{beneficiary}|{named_enemy}|{request_type}|{turn_created}"`.
 - Material state changes for reroll: treaty depth between France and beneficiary; France-beneficiary relation; beneficiary war load; coalition / bloc status involving beneficiary or named enemy; route-feasibility changes from beneficiary / named-enemy territorial / treaty / war-state changes; bargain-region availability changes from beneficiary / named-enemy war resolution.
+- Enemy-phase actions within the same turn count as material changes if they alter any of the above inputs. Implementation should snapshot the `war_entry_score` inputs at first evaluation and compare on re-entry; reroll only if any input changed.
 - Unrelated third-party treaty signings or unrelated route openings do **not** qualify as rerolls.
 - Counter-bargains use the existing `proposal_confirm` shell with `counter_bargain_context` payload in **blocking** mode — do not create a second dialogue family.
 - Counter-bargain mode **must suppress** envoy-leak affordances: `renegotiate`, envoy-in-transit status, DP cost display / DP spend, mailbox deferral, `dismiss` / "never mind." Only `Accept`, `Reject`, `Back Out` remain terminal.
@@ -340,9 +358,9 @@ A bargain is `fulfilled` when **all** are true at the final post-processing stat
 Turn-order rule:
 
 1. Resolve treaty ratifications, breaks, and downgrades.
-2. Resolve war-state changes and region ownership.
+2. Resolve war-state changes and region ownership (including vassal processing, which can change region control).
 3. Resolve bargain status changes caused by those results.
-4. Evaluate fulfillment / breach / void using the final state.
+4. Evaluate fulfillment / breach / void using the final state after all region-control mutations.
 
 Exploit guard:
 
@@ -353,12 +371,12 @@ On fulfillment, write `fulfillment_snapshot`:
 
 ```text
 {claim_region, beneficiary, target_enemy, fulfilled_turn,
- reliability_delta, relation_delta, reward_capped: bool,
+ reliability_delta, relation_delta, reward_reduced: str,
  intended_reliability_delta: int, witness_nations_at_fulfillment,
  trigger_context}
 ```
 
-- `reward_capped = True` when the (promiser, beneficiary) 10-turn cap zeroed the applied reliability delta; `intended_reliability_delta` preserves the pre-cap value.
+- `reward_reduced` field: `"none"` (full reward applied), `"partial"` (10-turn cap reduced but did not zero the delta), or `"full"` (10-turn cap zeroed the applied delta). `intended_reliability_delta` preserves the pre-cap value in all cases.
 - `trigger_context.resolution_path` resolves to one of `defensive_auto_honor`, `offensive_free_join`, `offensive_bargain_helped`, `offensive_counter_bargain_accept`. `was_bargain_decisive = True` only when the bargain changed the ally from non-join / counter-bargain territory into a join outcome.
 
 Reward (per Memory and Pressure §8.5):
@@ -379,7 +397,7 @@ A bargain is `breached` if France does any of the following while it is `active`
 
 - breaks source treaty voluntarily
 - voluntarily downgrades source treaty below `DEFENSIVE_ALLIANCE`
-- causes source treaty to auto-decay through a French diplomatic action that directly angered the beneficiary or aligned France with the beneficiary's rival (constructive breach, not void)
+- causes source treaty to auto-decay below `DEFENSIVE_ALLIANCE` through a constructive-breach action: (a) France ratifies `NON_AGGRESSION` or deeper with an active rival of the beneficiary, (b) France attacks an ally of the beneficiary, or (c) France ratifies a contradictory bargain whose named enemy is the beneficiary or the beneficiary's ally. Only these explicit French diplomatic choices count as constructive breach — passive relation drift from third-party events does not
 - enters `NON_AGGRESSION` or deeper alignment with named enemy or current claim holder
 - ratifies a contradictory bargain
 - ratifies `PEACE`, `ARMISTICE`, or equivalent de-escalation with named enemy after a surfaced `peace_conflict` warning when normalization would terminate or cheapen the bargain before its political purpose is resolved
@@ -409,9 +427,9 @@ A bargain is `void` if its basis disappears without French bad faith. Two sub-fa
 
 - target enemy stops holding claimed region through outside events not chosen by France
 - named enemy or claim region basis disappears
-- France pulled into contrary war against beneficiary through third-party cascade France did not directly declare
+- France pulled into contrary war against beneficiary through third-party cascade France did not directly declare (this includes cascades that arise from France's existing alliance network — the test is whether France explicitly chose **this specific war entry**, not whether France's prior alliances made it foreseeable)
 - France and beneficiary become direct enemies through beneficiary-caused or external scripted state France did not directly choose
-- "zombie bargain" lapse: named war resolved (France at `PEACE` or higher with named enemy) AND beneficiary at `PEACE` or higher with named enemy continuously for **5 turns**, no re-declaration in that window
+- "zombie bargain" lapse: `zombie_clock_turns_elapsed` increments each turn where France is at `ARMISTICE` or higher with the named enemy AND beneficiary is at `ARMISTICE` or higher with the named enemy. When the counter reaches **5**, the bargain voids. The counter resets to 0 only if either France or the beneficiary re-enters `WAR` with the named enemy. A brief re-declaration followed by immediate armistice does **not** reset the counter — only actual `WAR` state does. `ARMISTICE` qualifies because it represents a de facto end of hostilities; without this, a bargain could strand indefinitely if both sides sit in `ARMISTICE` without progressing to `PEACE`
 
 Void effects:
 
@@ -431,7 +449,7 @@ Void effects:
 
 ## 9. Acceptance formula additions
 
-Memory and Pressure shipped two of the four spec §10 modifiers (graduated `bilateral_betrayal_mod`, `direct_rivalry_mod`). This spec adds the bargain-dependent two:
+Memory and Pressure shipped three of the four acceptance modifiers from its §9 (graduated `bilateral_betrayal_mod`, `direct_rivalry_mod`, `rival_conflict_mod` base treaty term). This spec adds the fourth (`bargain_value_mod`) and extends `rival_conflict_mod` with a live-bargain add-on:
 
 ### 9.1 `bargain_value_mod`
 
@@ -469,6 +487,8 @@ political_commitment_mod = max(-40, raw_political_commitment_mod)
 
 Note: the per-modifier caps (`bilateral_betrayal_mod` at `-24`, `rival_conflict_mod` at `-20`, etc.) are **superseded** by the composite floor when `raw < -40`. Spec readers should treat the floor as authoritative.
 
+**Relationship to existing `reliability_modifier`:** the existing `calculate_acceptance()` in `diplomacy.py` includes a `reliability_modifier` (`max(-10, min(10, reliability // 5))`). `political_commitment_mod` is a **separate, parallel** group that captures bilateral and rivalry-specific political pressure. It does **not** replace `reliability_modifier`, which stays as the global reputation input. Both contribute independently to the final acceptance score.
+
 ### 9.4 Dedicated `war_entry_score`
 
 War entry should not piggyback on the generic treaty acceptance score. Use a dedicated `war_entry_score`. Evaluate hard blocks before the score; if any hard block is present, ally does not join and no counter-bargain is offered.
@@ -486,7 +506,7 @@ Inputs:
 - matching live bargain: `+25`
 - other-war load: `-8` for one other active war, `-18` for 2+ or war exhaustion `>= 60`
 
-Global reliability is a light input only; bilateral betrayal and treaty depth dominate.
+Global reliability is a light input only; bilateral betrayal and treaty depth dominate. **Note:** the `// 10` divisor and `±6` clamp here are intentionally different from the acceptance formula's `// 5` and `±10` — war entry should weight reliability less than treaty proposals. Do not "fix" this to match the acceptance formula.
 
 Thresholds:
 
@@ -532,7 +552,7 @@ Layout:
 - any action that would create the third active strike against a nation
 - bargain void / breach / fulfillment
 
-**No periodic per-turn bargain reminders.** Warnings are event-driven.
+**No periodic per-turn bargain reminders.** Warnings are event-driven. **Exception:** if a bargain has been `active` for 8+ consecutive turns without entering `triggered`, a single one-time dispatch notice surfaces as a low-priority reminder (not a warning). This fires once per bargain (`dormant_notice_fired` flag on commitment record), not per turn, to prevent fatigue while catching dormant commitments players may have forgotten. If the bargain transitions to `triggered` and later reverts to `active` (inconclusive war), the `dormant_notice_fired` flag resets and the 8-turn clock restarts from the reversion turn.
 
 ### 10.3 Diplomatic Ledger additions
 
@@ -656,6 +676,7 @@ If a valid bargain exists against the named enemy:
 - `pending_declaration` persists as primitive payload inside dialogue context per §8.7
 - counter-bargain `proposal_confirm` instances in blocking mode reference `pending_declaration` via `declaration_transaction_id`
 - zombie-bargain void clock (§8.9.B) requires a serialized `zombie_clock_turns_elapsed` per commitment so save/load mid-clock preserves continuity (this field is not in the original spec §13 — adding it here so v1.0 implementation does not miss the seam)
+- **Mid-transaction save/load recovery:** if save/load occurs while a `join_opportunity` or `counter_bargain` dialogue is active, the serialized dialogue context must restore the blocking popup on reload. The player sees the same Accept/Reject/Back Out choice with the same `reroll_key` and score band. No implicit resolution on load — the transaction resumes exactly where it left off
 
 ### 12.4 Region-observer witness scope (re-activated)
 
@@ -663,6 +684,10 @@ The Memory and Pressure substrate stubs `region_observer` scope but never return
 
 - `region_observer` — witness has a live bargain over the same claim region as the broken obligation
 - precedence stays `ally > rival > shared_enemy > region_observer`
+
+### 12.5 Multi-bargain witness scoping
+
+When France breaches bargain #1 (e.g., with Prussia against Britain), witness classification for the breach event uses the standard scope precedence against the **injured party** (Prussia), not against France. A nation holding an unrelated bargain #2 with France (e.g., Austria against Russia) witnesses the breach only through its normal scope relationship with Prussia — `ally`, `rival`, `shared_enemy`, or `region_observer` of the same claim region. Holding an unrelated bargain with France does **not** create a new witness scope category. This prevents cross-contamination: a bargain breach in one theater should not poison an unrelated bargain's beneficiary through artificial witness amplification.
 
 ---
 
@@ -719,7 +744,7 @@ The Memory and Pressure substrate stubs `region_observer` scope but never return
 - AI bargain generation with feasibility gates and full v1.0 `decision_reason` enum (§11.1)
 - AI anti-spam (§11.2)
 - AI counter-bargain timing and refusal (§11.3-§11.4)
-- ~44 tests
+- ~52 tests (increased from 44 to account for reroll determinism, counter-bargain suppression, and multi-bargain witness scoping)
 
 ### Slice WB-D. Bargain-era presentation extension
 
@@ -756,6 +781,14 @@ Bilateral peace hardening must land first so peace with the named enemy can prev
 
 If bargain validation hard-codes coalition overlap as "anti-France only," later coalition generalization becomes much harder. **Mitigation:** keep helpers parameterized; do not create parallel `war_bloc` / `opposition_graph` stores until the generalization spec asks for them.
 
+### R6. DIPLOMACY_SPEC armistice duration contradiction
+
+`DIPLOMACY_SPEC.md` is internally inconsistent on armistice minimum duration: §5a/§5b.2/§7d say 5 turns, but the turn-order processing (line ~1321), EC-Z, and the design decisions table say 3 turns. The zombie-bargain void clock depends on knowing when ARMISTICE represents a genuine ceasefire. **Mitigation:** resolve the DIPLOMACY_SPEC contradiction before this spec's implementation begins. This spec's zombie clock is agnostic to armistice minimum duration — it counts any turn at ARMISTICE or higher regardless.
+
+### R7. Dual acceptance formula maintenance
+
+`war_entry_score` (§9.4) runs parallel to `calculate_acceptance()` with intentionally different reliability scaling. Two score systems with different constants for similar concepts will confuse future contributors. **Mitigation:** document the intentional divergence in both the spec (done in §9.4) and in code comments on `war_entry_score()` at implementation time. Consider consolidating into a shared base with mode-specific overrides in a future refactor if maintenance cost proves real.
+
 ---
 
 ## 15. Resolved design calls (carried from RELIABILITY_COMMITMENTS_SPEC.md v1.0)
@@ -773,3 +806,4 @@ If bargain validation hard-codes coalition overlap as "anti-France only," later 
 ## 16. Changelog
 
 - **April 16, 2026** — v1.0 extracted from `RELIABILITY_COMMITMENTS_SPEC.md` v1.0 §6.4 / §9 / §10.4 / §10.5 / §12.3 / §12.4 / §13 during the v2.0 rescope. Bargain mechanic deferred from Memory and Pressure ship; this spec carries the full bargain layer as a Peace Deals phase precursor. Added `zombie_clock_turns_elapsed` save-load seam (§12.3) and explicit composite-floor-supersedes-cap note (§9.3) — both flagged in the original audit. Region-observer witness scope (§12.4) reactivated here since the original substrate stubbed it pending bargain store.
+- **April 16, 2026** — v1.1 edge-case audit (two rounds). Round 1 (13 findings): (CD-1) fixed shipped modifier count from "two" to "three" and corrected §10→§9 section reference; (CD-2) added commitment_paradox rename dependency note in §7.2; (CD-3) clarified political_commitment_mod is parallel to existing reliability_modifier, not a replacement; (E-1) fixed zombie clock to start at ARMISTICE, not PEACE, preventing indefinite stranding; (E-2) replaced vague "directly angered" constructive breach with bright-line trigger list; (E-3) added hard_reject_posture to hard-block list for offensive ally requests, defensive honor bypasses; (E-4) clarified enemy-phase material changes qualify for reroll; (E-5) added §12.5 multi-bargain witness scoping to prevent cross-contamination; (E-7) clarified cascade void applies even when France's alliances made it foreseeable; (E-8) replaced boolean reward_capped with three-value reward_reduced enum; (A-1) explicitly excluded AI-to-AI bargains in v0.1; (A-2) added mid-transaction save/load recovery rule in §12.3; (A-3) defined participation-access heuristic in hard-block list; (F-1) noted intentional war_entry_score reliability divergence; (PX-1) added 8-turn dormant-bargain one-time dispatch notice. Round 2 (8 findings from 3-agent design/code/cross-doc review): added §7.2 implementation note that acceptance modifiers are designed but not yet in code (Memory and Pressure v2.1 prerequisite); added `zombie_clock_turns_elapsed` and `dormant_notice_fired` to §8.6 JSON example; changed zombie clock from continuous to cumulative counting (prevents re-declare-to-reset exploit); added vassal processing to §8.8 turn-order rule; specified dormant-notice flag reset on triggered→active reversion; added `join_opportunity` typed JSON example in §8.7; added R6 (DIPLOMACY_SPEC armistice contradiction) and R7 (dual formula maintenance) to Risks; bumped WB-C test count from 44 to 52.
