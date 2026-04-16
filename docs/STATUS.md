@@ -1207,10 +1207,10 @@ New helpers: `_is_capital_lost()`, `_count_lost_regions()`, `_nation_has_threat_
 ## Quick Commands
 
 ```bash
-pytest tests/ -v                          # Full suite
-pytest tests/ -v --tb=no -q              # Quick count
-pytest tests/test_objection_v2.py -v     # V2 tests only
-python backend/main.py                    # Backend on port 8005
+.\.venv\Scripts\python.exe -m pytest tests/ -v                      # Full suite
+.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=no -q          # Quick count
+.\.venv\Scripts\python.exe -m pytest tests/test_objection_v2.py -v # V2 tests only
+.\.venv\Scripts\python.exe backend/main.py                          # Backend on port 8005
 ```
 
 ---
