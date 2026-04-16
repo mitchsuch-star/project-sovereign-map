@@ -171,7 +171,7 @@ The substrate decays betrayal strikes (the punishment side). v0.1 also wants the
 
 See `COMMITMENTS_PRESENTATION_SPEC.md` v0.3.
 
-This slice lands the four C3a-pre prerequisites and the narrowed drama scope:
+This slice lands the four Slice C Godot prerequisites and the narrowed drama scope:
 
 1. **Spotlight tier.** `notification_bar.gd` gains an elevated card variant (2-turn persist, action buttons) above ordinary notice tiers.
 2. **Split-voice render.** Notice / popup scenes gain support for `attributed_lines[]` blocks (`lead` / `witness` / `aside` regions with distinct visual weight per spec §9.1).
@@ -261,7 +261,7 @@ These are small fixes the April 16 audit flagged. Not gating the rescope; gather
 | F1 | Tighten `determine_ai_offer_decision_reason` / `determine_counterparty_decision_reason` fallback from `rival_pressure` catch-all to `unknown_baseline` (new enum value per spec §10.1) when no real pressure is computed | `backend/game_logic/diplomacy.py` |
 | F2 | Verify `next_episode_id` resets cleanly on `/new_game` (currently relies on `WorldState.__init__`; `/new_game` should re-init or explicitly reset) | `backend/main.py` (new_game handler), `backend/models/world_state.py` |
 | F3 | Replace text-sort tie-break in `_sort_structured_warnings` with stable emit-sequence index | `backend/game_logic/diplomacy.py:263-272` |
-| F4 | Vassal strike-decay edge: ensure strike memory follows the nation when a vassal is released or assimilated | `backend/game_logic/vassal.py`, `backend/game_logic/diplomacy.py` |
+| F4 | Regression test only — not a bug fix. `_betrayal_key(actor, victim)` in `diplomacy.py` keys by nation, so strikes already follow the nation when a vassal is released or assimilated (matches spec §8.6). Add a test asserting strikes survive the vassal transition so the invariant stays correct. | `tests/`, `backend/game_logic/vassal.py`, `backend/game_logic/diplomacy.py` |
 | F5 | Drop the `applied_reliability_delta == 0` warning case where text reads "Reliability would fall from 10 to 10" — show "(no penalty applied — cascade)" instead | `backend/game_logic/diplomacy.py:_build_breach_warnings` |
 
 ---

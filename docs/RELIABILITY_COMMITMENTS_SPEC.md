@@ -639,7 +639,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.3. Ships with this phase:
 - Named-diplomat resolution: `speaker="envoy"` resolves to nation's named diplomat per Voice Bible; `speaker="foreign_office"` renders as "The Chancery of {nation}"
 - Committed mock prose for the three events that fire: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (french_breach), `commitment_paradox_resolved`
 - One N+1 Talleyrand aside keyed by `episode_id`
-- Dedicated `commitment_paradox_popup.{tscn,gd}` surface (the four C3a-pre prerequisites)
+- Dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four Slice C Godot prerequisites; see `COMMITMENTS_PRESENTATION_SPEC.md` §14)
 - ~16-22 tests
 
 ### Slice D. Deferred follow-up
@@ -687,7 +687,7 @@ If warnings fire every turn, players stop reading them.
 
 If commitments hard-code coalition overlap as "anti-France only," later coalition generalization becomes much harder.
 
-**Mitigation:** keep helpers parameterized on actor / victim / promiser. Do not create parallel `war_bloc` / `opposition_graph` stores in v0.1 (the rescope cut these forward-compat stubs). When `Coalition Generalization` lands, generalization is a one-helper refactor.
+**Mitigation:** keep helpers parameterized on actor / victim / promiser. Do not create parallel `war_bloc` / `opposition_graph` stores in v0.1 (the rescope cut these forward-compat stubs). The commitments helpers (`_classify_witness_scope`, `_betrayal_key`, `_get_breach_witness_scope`) are already actor-parameterized and need no rewrite for non-France actors; however, surrounding `diplomacy.py` wiring still uses `world.player_nation` as shorthand for France in ~14 sites (e.g. `get_active_nations` callers, player-relation updaters, Talleyrand-dispatch attribution), so `Coalition Generalization` is a one-helper refactor for the scope / rivalry evaluators **plus** a broader audit of those surrounding paths.
 
 ---
 

@@ -461,6 +461,7 @@ Spotlight cards and expanded notice detail must support `speaker_attribution` an
 - `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh, Godoy, etc.) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`. Hawk registers are blunt and prideful. Schemer registers are cold and calculating. Dove registers are wounded and bewildered.
 - `speaker="foreign_office"` MUST render as "The Chancery of {nation}" — never as the generic string "foreign_office". Register derives from that nation's dominant diplomat's personality.
 - `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or spotlight surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word "system" must never reach the player.
+- **Loyalist fallback.** `backend/models/diplomat.py` permits a fourth personality value `loyalist` with no `DIPLOMAT_VOICE_BIBLE.md` entry. The v0.1 cast (Talleyrand / Castlereagh / Hardenberg / Metternich / Einsiedel) is schemer/hawk/dove only, so this is latent, not a current bug. If a future diplomat (new scenario, mod content) uses `loyalist`, the resolver MUST fail loudly (assert or explicit warning) rather than silently rendering unkeyed — pick a default register only after the Voice Bible adds a loyalist entry or a modding author supplies one.
 
 For each breach lead-line template committed in §12.2, the mock template library should ship at least one register variant per nation that can be a victim of French breach. **v0.3 minimum cast coverage:**
 
@@ -713,7 +714,7 @@ Desired feeling:
 **Implementation contract:**
 
 - `commitment_paradox` is registered as HARD_STOP (already done in `dialogue_manager.py`); B3 activates it on the push side
-- requires dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four C3a-pre prerequisites in §14)
+- requires dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four Slice C Godot prerequisites in §14)
 - existing `alliance_paradox_popup.gd` is single-label and **cannot host** the three-beat scene; it must be replaced
 
 (The five-beat scene from v0.2 — envoys from BOTH spurned nations speaking before Talleyrand frames — is **deferred to WB-D** when rivalry-driven multi-conflict ratification fires the paradox from new triggers.)

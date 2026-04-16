@@ -145,9 +145,9 @@ Ask exactly these questions, in this order, without editorializing between them.
 
 | Q4 score sum (of three items) | Interpretation |
 |---|---|
-| 3-6 | Prediction confirmed. Current surfacing lands as accounting. C3b is high-value. |
-| 7-10 | Mixed. Parts land, parts flatten. Ship C3a; let C3b findings drive prioritization. |
-| 11-15 | Prediction challenged. Baseline is better than the review assumed. Question whether the C3b investment is necessary. |
+| 3-6 | Prediction confirmed. Current surfacing lands as accounting. C3-lite presentation pass is high-value; WB-D extensions (scope-branched copy, response routes) stay well-motivated for when bargains land. |
+| 7-10 | Mixed. Parts land, parts flatten. Ship C3-lite as planned; let playtest findings drive WB-D prioritization when bargains ship. |
+| 11-15 | Prediction challenged. Baseline is better than the review assumed. Question whether the full C3-lite scope is necessary, or whether narrower surfaces would serve. |
 
 ### Secondary signals
 
@@ -169,15 +169,15 @@ Ask exactly these questions, in this order, without editorializing between them.
 
 1. Within 24 hours of the session, the facilitator writes a 300-word summary including: Q4 scores, verbatim Q1 recap, verbatim Q3 speaker-recall, and one paragraph of qualitative observation.
 2. The summary is appended to `docs/COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` as a "Playtest Findings" section, dated.
-3. If Q4 sum is 6 or below: the summary is labeled "baseline confirmed flat" and C3b is treated as high-priority.
-4. If Q4 sum is 11 or above: convene a design review to question the scope of C3b.
+3. If Q4 sum is 6 or below: the summary is labeled "baseline confirmed flat" and C3-lite is treated as high-priority.
+4. If Q4 sum is 11 or above: convene a design review to question the scope of C3-lite.
 5. Raw notes and any recording are archived; they are not published.
 
 ---
 
-## Re-test contract (after C3 ships)
+## Re-test contract (after C3-lite ships)
 
-After both C3a and C3b land, re-run this exact script with a new fresh-eyes player. Compare Q4 sums and Q1 vocabulary.
+After C3-lite lands (one slice replacing the former C3a + C3b split per the April 16, 2026 rescope), re-run this exact script with a new fresh-eyes player. Compare Q4 sums and Q1 vocabulary.
 
 Success criteria for C3:
 - Q4 sum improves by at least 3 points.
@@ -187,7 +187,7 @@ Success criteria for C3:
 Failure modes to watch for:
 - Q4 scores go up but Q1 vocabulary stays mechanical → we achieved weight without achieving *political* weight. The spec prose needs another pass.
 - Q3 improvement but Q5 unchanged → drama landed, agency didn't. §12.6 response routes may not have been wired correctly.
-- Both Q3 and Q5 improve, Q7 stays cold → we added named actors and verbs but the staging still feels menu-like. Reveal cadence, typographic contract, and surface-tier work (§9.1, §14 C3a-pre) were skipped.
+- Both Q3 and Q5 improve, Q7 stays cold → we added named actors and verbs but the staging still feels menu-like. Reveal cadence, typographic contract, and surface-tier work (§9.1, §14 Slice C Godot prerequisites) were skipped.
 
 ---
 

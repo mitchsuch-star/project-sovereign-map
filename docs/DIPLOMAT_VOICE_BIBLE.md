@@ -196,9 +196,9 @@ This matters. A single Dove in the cast means his register has no peer — autho
 
 ---
 
-## Minimum cast coverage for C3b ship
+## Minimum cast coverage (C3-lite required + deferred WB-D)
 
-Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the following nine breach-lead templates must exist before C3b ships:
+Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the full nine-line cast coverage below was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope, **C3-lite requires only the first four lines** (Hardenberg breach lead, Metternich breach lead, Einsiedel breach lead, Castlereagh hard-reject Chancery line); the remaining five lines move with the bargain presentation pass to `WAR_BARGAIN_SPEC.md` slice WB-D. All nine are retained here for reference so the deferred work does not need re-authoring later.
 
 | Nation | Personality | Scene | Template owner |
 |---|---|---|---|
