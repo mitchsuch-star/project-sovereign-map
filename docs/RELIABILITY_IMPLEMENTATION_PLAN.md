@@ -1,10 +1,30 @@
 # Memory and Pressure — Implementation Plan
 
-> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0 (renamed from "Reliability + Commitments" to "Memory and Pressure" in the April 16, 2026 rescope)
+> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.1 (v2.0 April 16 rescope; v2.1 April 16 creative-audit folds added Make Amends verb, France-Austria rivalry, rewritten §3 goal)
 > **Created:** April 13, 2026
-> **Last Updated:** April 16, 2026 (v2.0 rescope — bargain slices moved to `WAR_BARGAIN_SPEC.md`)
+> **Last Updated:** April 16, 2026 (v2.1 creative-audit folds: Make Amends verb + France-Austria rivalry + goal-1 reword + naming map; ~8 tests added; session count unchanged)
 > **Sessions remaining:** ~3 effective on the critical path (Slice A/B folds into one session; Slice C splits into one Godot-surfaces session + one tests-and-mock-prose session per §Slice C below)
-> **Est. tests remaining:** ~60-66 (slice-level sum: A1-fill 8 + A2-fill 4 + B1 14 + B2a-fill 10 + B6 5 + B3 3 + Slice C 16-22; down from ~200 in v1.0 — bargain test budget moved to bargain spec)
+> **Est. tests remaining:** ~68-74 (slice-level sum: A1-fill 8 + A2-fill 4 + B1 14 + B2a-fill 10 + B6 5 + B3 3 + B7 Make Amends 8 + Slice C 16-22; down from ~200 in v1.0 — bargain test budget moved to bargain spec)
+
+---
+
+## Naming map
+
+Several overlapping labels appear in this plan. The decoder ring:
+
+| Term | What it means | Where it lives |
+|---|---|---|
+| **Slice A / B / C** | This plan's top-level implementation slices (Foundations / Rivalry pressure / C3-lite presentation) | `RELIABILITY_IMPLEMENTATION_PLAN.md` |
+| **A1-fill / A2-fill / B2a-fill** | Targeted work within a slice that fills a partially-shipped area | `RELIABILITY_IMPLEMENTATION_PLAN.md` §Slice A/B |
+| **B1 / B6 / B7 / B3** | Sub-slices within Slice B (formula / redemption tick / Make Amends / paradox rename) | `RELIABILITY_IMPLEMENTATION_PLAN.md` §Slice B |
+| **WB-A / WB-B / WB-C / WB-D** | Deferred War Bargain slices in a separate spec, not part of this phase | `WAR_BARGAIN_SPEC.md` §13 |
+| **C3-lite** | The narrowed single-slice presentation pass that replaces the former v0.2 `C3a` + `C3b` split | `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 |
+| **C3a / C3b / C3a-pre** | **Historical only.** Former pre-v0.3 labels. Appears in changelogs and the archived designer audit; do **not** use in new work | — |
+| **F1 / F2 / F3 / F4 / F5** | Small code-fix tasks queued at the end of this plan | `RELIABILITY_IMPLEMENTATION_PLAN.md` §Code-Fix Tasks |
+| **H-1…H-6 / M-1…M-6** | Historical substrate-audit findings (shipped April 15-16 as substrate hardening); preserved in `STATUS.md` commitments-substrate follow-up block | — |
+| **P1 / P2 / P3** | Future precision items (period-accurate diplomats, Britain bloc pressure, ledger scale UX) — tracked but not v0.1 scope | `docs/DESIGN_REFINEMENT.md` §Historical Precision |
+
+If you encounter a name not in this map, it is either an archived label or a typo.
 
 ---
 
@@ -165,6 +185,25 @@ The substrate decays betrayal strikes (the punishment side). v0.1 also wants the
 - Preserve all the existing fallout-preview behavior (`origin_episode_id` continuity, `commitment_paradox_resolved` log + dispatch event with `chosen_nation` / `spurned_nation`).
 - ~3 tests (rename smoke test, alias load test, no double-emit on rename)
 
+### B7. Make Amends active-redemption verb (NEW in v2.1)
+
+**Files:** `backend/commands/diplomatic_executor.py`, `backend/commands/parser.py`, `backend/game_logic/diplomacy.py`, `backend/models/world_state.py`, `backend/display_names.py`, `backend/campaign_log.py`, `backend/ai/llm_client.py`, `backend/ai/validation.py`
+
+Per spec §8.6.1. Ships the one v0.1 active-redemption verb so repaired relationships are a deliberate political gesture, not passive waiting. This is the v0.1 fun/agency lever — without it, the player's only response to accumulated strikes is to wait.
+
+- Add `make_amends` to `VALID_ACTIONS` in `validation.py`
+- Add `_execute_make_amends(world, command)` in `diplomatic_executor.py`:
+  - pre-validate: target has ≥ 1 active victim-side strike from France, non-`WAR` treaty state (`PEACE` or above), cooldown ≤ current turn, gold ≥ 200, DP ≥ 1
+  - on success: spend 200g + 1 DP, remove 1 strike (oldest matured strike first, else lowest-severity active strike — same rule as passive decay), `diplomatic_reliability["France"]` += 2, `nation_relation` France → target += 5, set `reparations_cooldown[diplo_key] = current_turn + 10`, emit `amends_offered` campaign log event with `episode_id` lineage linked to the cleared strike
+  - on refusal: return Talleyrand-voiced advisory per spec §8.6.1 refusal conditions
+- Parser keywords: `make amends`, `amends`, `offer amends`, `repair relations`, `make amends with {nation}`
+- Mock parser keyword mapping in `llm_client.py` (~line 416 per CLAUDE.md "ADD NEW ACTION" marker)
+- Display-name maps: `AMENDS_REFUSAL_DISPLAY` in `campaign_log.py`, `ACTION_DISPLAY` entry for "Make Amends" in `display_names.py`
+- Add `reparations_cooldown: Dict[str, int]` field to WorldState (spec §12.2), with `to_dict` / `from_dict` round-trip per `tests/test_serialization_enforcement.py` contract
+- No per-turn tick needed — cooldown entry is an absolute turn number, not a decrementing counter
+- Enemy AI does NOT use this action in v0.1; enemy-AI redemption stays passive-only
+- ~8 tests (success path, 4 refusal conditions, serialization round-trip, cooldown enforcement across save/load, strike-selection rule = oldest matured first)
+
 ---
 
 ## Slice C. C3-lite presentation pass
@@ -233,19 +272,23 @@ War bargain implementation moved to `WAR_BARGAIN_SPEC.md`:
 ## Execution Order (this phase)
 
 ```text
-A1 (✓) -> A1-fill (rivalry seed) -> B1 (formula) -> B2a-fill (ratification anger)
-                                  -> B6 (redemption tick)
-                                  -> B3 (paradox rename)
+A1 (✓) -> A1-fill (rivalry seed, 4 pairs)
+       -> B1 (formula)
+       -> B2a-fill (ratification anger)
+       -> B6 (redemption tick)
+       -> B7 (Make Amends verb)
+       -> B3 (paradox rename)
 A2 (partial ✓) -> A1-fill -> A2 ledger rivalry display
 B3 (rename) -> Slice C (C3-lite presentation, including dedicated paradox popup)
 ```
 
 Recommended playtest gates:
 
-- **After A1-fill + A2 fill:** verify rivalry display appears in ledger; rivalry data round-trips through save/load.
+- **After A1-fill + A2 fill:** verify rivalry display appears in ledger; rivalry data round-trips through save/load; France-Austria and France-Britain both show as active rivalries (v2.1 seed).
 - **After B1:** verify proposal acceptance reflects rivalry pressure and graduated betrayal; representative regression scores within tolerance band.
-- **After B2a-fill:** verify ratifying a deep treaty with Britain triggers Prussia-Austria-rival anger relations dropping; cold rivals scale to half.
+- **After B2a-fill:** verify ratifying a deep treaty with Britain triggers Prussia-Austria-rival anger relations dropping; cold rivals scale to half; France-Austria direct rivalry fires `direct_rivalry_mod` at `secondary + active` values.
 - **After B6:** verify keeping all treaties for 5 honored turns awards +3 reliability once.
+- **After B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
 - **After B3 + Slice C:** verify the renamed paradox surfaces through the new dedicated popup; mock prose lands; spotlight tier reads as different from notice tier.
 
 Slice D stays deferred unless playtest proves the v0.1 pressure layer still lacks political texture or coalition overlap remains too muddy in play.
@@ -308,17 +351,18 @@ Moved to `WAR_BARGAIN_SPEC.md` along with the war-entry contract.
 
 ## Test Budget Comparison
 
-| Slice | v1.0 estimate | v2.0 estimate | Notes |
+| Slice | v1.0 estimate | v2.1 estimate | Notes |
 |-------|---------------|---------------|-------|
 | A1 | 18 | shipped | Done |
 | A2 | 14 | 4 (fill only) | Display-name + ledger row addition |
-| A1-fill (NEW) | — | 8 | Rivalry seed |
+| A1-fill (v2.0) | — | 8 | Rivalry seed (4 authored pairs including France↔Austria per v2.1) |
 | B1 | 24 | 14 | Trimmed: no `bargain_value_mod` test paths |
 | B2a | 14 | shipped + 10 (fill) | Half shipped (metadata); fill is ratification anger |
 | B2b | 24 | shipped | Done |
-| B6 (NEW) | — | 5 | Redemption tick |
+| B6 (v2.0) | — | 5 | Redemption tick |
+| B7 (NEW in v2.1) | — | 8 | Make Amends active-redemption verb |
 | B3 | 16 | 3 | Trimmed: rivalry-driven paradox deferred; this is pure rename |
 | C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | → `WAR_BARGAIN_SPEC.md` |
 | Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | One slice, narrower scope |
 | Slice D | deferred | deferred | Same |
-| **Total** | **~200** | **~60-66 remaining** | Plus ~98 moved to `WAR_BARGAIN_SPEC.md` |
+| **Total** | **~200** | **~68-74 remaining** | Plus ~98 moved to `WAR_BARGAIN_SPEC.md` |

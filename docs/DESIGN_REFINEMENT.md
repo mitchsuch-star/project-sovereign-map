@@ -40,7 +40,7 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 These are the next diplomacy design tracks. `Memory and Pressure` is the first implementation target; every later item below still needs a dedicated written spec before implementation.
 
 1. `Memory and Pressure` (renamed from `Reliability + Commitments` April 16)
-   Substrate (betrayal memory, rivalry witness scope, hard-reject posture, episode_id, structured warnings) is **shipped**. Remaining work this phase: seed `nation_rivalries` (3 authored pairs), wire `direct_rivalry_mod` + `rival_conflict_mod` + graduated `bilateral_betrayal_mod` into acceptance, wire third-party anger on ratification, redemption tick (`actor_honored_turns` +3 / 5 turns), rename `alliance_paradox` → `commitment_paradox`, ship C3-lite presentation pass (spotlight tier, split-voice render, named-diplomat resolution per Voice Bible). See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 (C3-lite). ~60-66 tests, ~3 sessions remaining (Slice C split into Godot-surfaces + tests/mock-prose sessions per the April 16 confidence-validation audit).
+   Substrate (betrayal memory, rivalry witness scope, hard-reject posture, episode_id, structured warnings) is **shipped**. Remaining work this phase: seed `nation_rivalries` (3 authored pairs), wire `direct_rivalry_mod` + `rival_conflict_mod` + graduated `bilateral_betrayal_mod` into acceptance, wire third-party anger on ratification, redemption tick (`actor_honored_turns` +3 / 5 turns), rename `alliance_paradox` → `commitment_paradox`, ship C3-lite presentation pass (spotlight tier, split-voice render, named-diplomat resolution per Voice Bible). See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.1, `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.1, `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 (C3-lite). ~68-74 tests, ~3 sessions remaining (Slice C split into Godot-surfaces + tests/mock-prose sessions; v2.1 adds Make Amends verb + France-Austria rivalry + other creative-audit folds).
 2. `Bilateral Peace Hardening`
    Tighten separate peace / bilateral peace preview, explicit term ownership, promise-breach warnings, and peace-treaty legibility before any ally-aware settlement system exists. **Needs dedicated spec.**
 3. `War Purpose + Score Semantics`
@@ -326,6 +326,31 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | R157 | Talleyrand Voice Depth | Partially absorbed into PL-25 (situational flavor, personality pen nudge). Remaining: deep commentary integration |
 | R158 | NL Parser Confidence Feedback | Show parse confidence to player |
 | R159 | Information Screen Teaching | Screens don't teach mechanics |
+
+---
+
+## Historical Precision (1805 Campaign — Future Refinement)
+
+These items are conscious trade-offs where v0.1 chose recognizability, immersion, or implementation speed over strict period accuracy. Each has an audit trail, not a bug. Track for EA scope when the full 1805 campaign lands. Added April 16, 2026 from the Memory and Pressure creative audit.
+
+### P1: Period-accurate diplomat roster for 1805
+- **Summary:** The four foreign diplomats in `backend/models/diplomat.py` (Hardenberg / Metternich / Castlereagh / Einsiedel) are recognizable Napoleonic-era names but historically took their depicted roles **after** the 1805 campaign start: Hardenberg as Prussian chancellor from 1810, Metternich as Austrian foreign minister from 1809, Castlereagh as British foreign secretary from 1812, Einsiedel as Saxon minister from 1813. The actual 1805 ministers were Haugwitz (Prussia), Stadion or Cobenzl (Austria), Mulgrave (Britain), and Bose or Löss (Saxony).
+- **Design trade-off (deliberate):** recognizability was prioritized for v0.1 because the four chosen figures are well known to strategy players and the Voice Bible's Hawk / Schemer / Dove register distinctions were drawn from their historical voices. Swapping them in v0.1 would lose the established register voices without adding mechanical value and would force the Voice Bible exemplars to be re-authored before any useful commitments work shipped.
+- **When to revisit:** once the full 1805 campaign ships (Early Access) and the game claims period fidelity as a feature. Swap to the 1805-accurate ministers and port the register notes. The Voice Bible's "Characteristic openings" / "Never says" framework should transfer cleanly — Haugwitz was a Prussian Hawk in the Hardenberg mold, Stadion a Schemer adjacent to Metternich, Mulgrave less distinctive than Castlereagh but workable, Bose closer to Einsiedel's dove register.
+- **Files:** `backend/models/diplomat.py`, `docs/DIPLOMAT_VOICE_BIBLE.md`, `backend/game_logic/diplomatic_templates.py`, any committed breach / hard-reject mock prose
+- **Est. sessions:** 1 (cast swap + voice port + test refresh)
+
+### P2: Britain reactive bloc pressure (continental-hegemon pattern)
+- **Summary:** The v0.1 rivalry model has Britain as France's direct rival but gives Britain no *reactive* posture when France deepens ties with a continental power. Historically Britain opposed any continental hegemon on principle, paying subsidies to any continental power willing to fight France. Flagged in `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 §7.4.C as the #1 historical-texture debt for Memory and Pressure.
+- **When to land:** `Coalition Generalization` (D2, follow-up after Memory and Pressure). D2 should include continental-hegemon reactive threat accumulation — not just bloc-target parameterization — so Britain gains automatic threat against any power approaching continental hegemony, not only France by name.
+- **Files:** `backend/game_logic/coalition.py`, `backend/game_logic/diplomacy.py`
+- **Est. sessions:** folded into D2 spec work
+
+### P3: Diplomatic Ledger sort / filter at scale
+- **Summary:** The Diplomatic Ledger's Nations tab currently renders one row per nation. At 5 nations this is clean; at 6-8 full 1805 nations with multiple rivals each, the list becomes dense. Commitments rows (active rivals, betrayal warnings, posture markers) multiply the cell count.
+- **When to land:** Pre-EA polish alongside Map Renderer UX pass, or absorbed into the Talleyrand Desk + Explanation Layer spec (diplomacy queue item 6).
+- **Files:** `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`
+- **Est. sessions:** 1 as a standalone UX slice, or folded into the Talleyrand Desk pass
 
 ---
 

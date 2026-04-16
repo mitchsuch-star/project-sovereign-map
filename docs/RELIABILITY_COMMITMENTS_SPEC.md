@@ -61,10 +61,11 @@ Even after the substrate ships, the live formula treats betrayal as a 0-or-100 g
 
 ## 3. Goals
 
-- Make alliances politically costly rather than purely additive.
+- Make alliance choice a **forced political tradeoff** with visible long memory — owning which rivals to anger IS the verb, even without a new command layer.
 - Separate "France is generally reliable" from "this nation thinks France betrayed it."
 - Express both as graded numeric pressure on acceptance, not only as a brute-force gate.
 - Make the moments that matter (door-closing, paradox, betrayal) feel like political events.
+- Give the player **one deliberate repair gesture** (Make Amends, §8.6.1) so repaired relationships are a chosen act, not a waiting game.
 - Keep rules machine-readable for AI and tests.
 - Keep the first implementation legible on the current 5-nation / 19-region map.
 
@@ -148,16 +149,17 @@ Initial set:
 | Pair | Weight | Intensity | Why |
 |------|--------|-----------|-----|
 | France ↔ Britain | `primary` | `active` | Core geopolitical enemy pair |
+| France ↔ Austria | `secondary` | `active` | Third Coalition adversary (1805); Austria was one of France's most persistent opponents — hot war in 1805, 1809, 1813-14 |
 | Prussia ↔ Austria | `primary` | `active` | German hegemony conflict |
 | Prussia ↔ Saxony | `secondary` | `cold` | Expansion pressure / annexation fear |
 
 Notes:
 
 - France/Britain is structurally rare at deep alliance, not literally impossible.
-- Prussia/Austria is the key anti-universal-friendship fork on the current map.
+- France/Austria is seeded `secondary + active` (added v2.1 per creative audit) to match the 1805 setting. The earlier "Austria as flexible swing partner" framing misread the period — Austria was *the* main continental opponent of Napoleonic France, not a neutral. Keeping France/Austria cold-neutral would let France drift into Austrian alliance without political cost on turn 3, which is historically and design-wise wrong.
+- Prussia/Austria is the German-hegemony fork; together with France/Austria it forces France to choose a continental ally rather than default to both.
 - Prussia/Saxony starts visible but weaker.
-- France/Austria is intentionally **not** a starting rivalry; Austria remains the main swing partner on the 5-nation map.
-- Playtest tripwire: if France can still reliably hold `ALLIANCE` with Britain, Prussia, and Austria by early midgame, the first follow-up is France↔Austria `secondary + cold`, not a new bloc system.
+- Playtest tripwire: if France/Austria at `secondary + active` feels too hostile and France cannot credibly pursue any continental alliance without angering either Austria or Prussia, consider dropping France/Austria to `secondary + cold` before adding a new bloc system.
 
 Authored escalation rules for Prussia/Saxony:
 
@@ -230,6 +232,8 @@ The v0.1 side-picking package is:
 - legacy commitment paradox (renamed; see §7.5)
 
 War bargains, when `WAR_BARGAIN_SPEC` ships, will add the explicit named-enemy promise layer on top.
+
+**Historical-texture debt flagged for `Coalition Generalization` / D2:** the v0.1 rivalry model has Britain as France's direct rival but does not give Britain any *reactive* posture when France deepens ties with a continental power. Historically, Britain opposed any continental hegemon on principle, paying subsidies to any power willing to fight France. D2 scope should therefore include a "continental hegemon reaction" pattern — bloc-threat accumulation against any nation approaching hegemony, not just France — and not reduce to a simple anti-France-literal refactor. Tracked in `docs/DESIGN_REFINEMENT.md` §P2.
 
 ### 7.5 Commitment paradox
 
@@ -365,6 +369,51 @@ Guardrails (shipped):
 - actual strike removal requires an active non-`WAR` treaty (`PEACE` or above) with that nation
 - once a non-war treaty is restored, any matured strikes may decay at the normal per-turn limit until caught up
 - vassal note: `_NON_WAR_TREATY_STATES` includes `VASSAL`, so a vassal's strikes can decay while vassalized; if the vassal is released or assimilated, strikes follow the nation, not the vassal relationship
+
+### 8.6.1 Active redemption: Make Amends (this phase ships)
+
+Passive decay is the floor. v0.1 also ships one explicit player verb so repaired relationships can be a deliberate political act, not a waiting game.
+
+**Action:** `make amends with {nation}` (internal: `make_amends`)
+
+**Preconditions:**
+
+- France has at least 1 active victim-side strike against the target
+- France and target share a non-`WAR` treaty state (`PEACE` or above)
+- Cooldown not active: `reparations_cooldown[diplo_key]` ≤ `current_turn`
+- France has ≥ 200g gold and ≥ 1 DP
+
+**Effects on success:**
+
+- Consume 200g and 1 DP
+- Remove 1 active strike from France's victim-side strikes with target (same selection rule as passive decay: oldest strike whose severity-scaled decay clock has matured, else the lowest-severity active strike)
+- `diplomatic_reliability["France"]` += 2 (France demonstrates willingness to repair)
+- `nation_relation` France → target += 5 (acknowledgment / goodwill)
+- `reparations_cooldown[diplo_key]` = `current_turn + 10` (one Make Amends per pair per 10 turns)
+- Emit `amends_offered` campaign log event with `episode_id`, the cleared strike's original episode lineage, deterministic deltas, and the named diplomat of the target nation
+- Target's named diplomat may acknowledge per scope-branched register (§10.4 of `COMMITMENTS_PRESENTATION_SPEC.md`) — not required for mechanical success
+
+**Refusal conditions (non-actionable, Talleyrand-voiced advisory):**
+
+- no active strikes: *"There is nothing to repair with {nation}, Sire. They hold no living grievance against France."*
+- cooldown active: *"We offered amends to {nation} only {turns_since} turns ago. Too soon would read as petition, not as state."*
+- at `WAR` or `ARMISTICE`: *"Amends before peace read as ransom, Sire. Restore the treaty first."*
+- insufficient resources: normal resource-shortfall warning surfaced through the existing DP/gold refusal path
+
+**Design intent:**
+
+- **Costly enough** that France cannot cheap-clear a whole stack of strikes
+- **Cadence-limited** so each gesture is a real political moment, not a per-turn click
+- **Feels like a deliberate act** — Talleyrand delivers the preview line in his register; the target's named diplomat may respond per Voice Bible
+- **Complements, not replaces, passive decay** — at full use, Make Amends clears 1 strike per 10 turns per pair; passive decay still clears its own stream
+
+**Non-goals for v0.1:**
+
+- no manpower / territory tributes (gold + DP only)
+- no "reparations package" clearing multiple strikes at once
+- no self-directed use (France cannot Make Amends with itself)
+- no use from any nation **other than** France (keeps authoring surface narrow; enemy AI uses passive decay only in v0.1)
+- no relationship recovery with a nation France has no strikes against — that is relation giftgiving, not commitments work
 
 ### 8.7 Hard-reject behavior (already shipped)
 
@@ -590,6 +639,7 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
   - key: `diplo_key`
   - value: `{intensity, source, weight, started_turn, last_changed_turn}`
 - `actor_honored_turns: Dict[str, int]` — single global honored-turn clock per actor for §8.6 reliability tick
+- `reparations_cooldown: Dict[str, int]` — pair-key → turn number at which Make Amends (§8.6.1) becomes available again for that pair; `0` or absent = immediately available
 
 ### 12.3 Deferred
 
@@ -629,6 +679,7 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do *
 - **B-B2a-fill: third-party anger on ratification.** Apply rival-reaction relation hits per §7.4.B at treaty ratification, scaled half for `cold`. Special handling for vassalize-rival-of-rival. Use existing downgrade / auto-downgrade behavior as the normal fallout path; do **not** add forced instant-break logic. ~10 tests.
 - **B-B6: redemption tick.** Add `actor_honored_turns` global clock per §8.6 with the +3 reliability award once per actor per 5 honored turns. ~5 tests.
 - **B-B3: paradox rename.** Rename push-side `dialogue_manager.push({"type": "alliance_paradox", ...})` to `commitment_paradox`; keep `alliance_paradox` as accepted alias on read for save-load. Rename the popup type passthrough on the Godot side (`alliance_paradox_popup.gd` field reads). The dedicated `commitment_paradox_popup.{tscn,gd}` surface ships in the `C3-lite` slice (Slice C below). ~3 tests.
+- **B-B7: Make Amends verb (NEW in v2.1).** Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. ~8 tests.
 
 ### Slice C. C3-lite presentation pass
 
@@ -753,5 +804,6 @@ That is enough to make diplomacy feel political, create real rivalry pressure, a
 
 ## 17. Changelog
 
+- **April 16, 2026 — v2.1 creative-audit folds.** §3 Goal 1 rewritten to own the "forced political tradeoff" framing (previously read as apologetic pressure-without-promise). §7.1 seeded France↔Austria as `secondary + active` to match the 1805 Third Coalition setting (previously absent on the claim Austria was a "swing partner"; creative audit flagged that framing as a period misread). §7.4.C flagged Britain-anti-continental-hegemon as the #1 historical-texture debt for D2 Coalition Generalization scope. §8.6.1 added **Make Amends** active-redemption verb — the v0.1 fun/agency lever that closes the passive-redemption gap (200g + 1 DP → remove 1 strike, 10-turn cooldown per pair, France-only actor in v0.1). §12.2 added `reparations_cooldown` field. §13 Slice B added B-B7 (Make Amends). Test budget bumped from ~60-66 to ~68-74 tests; session count unchanged at ~3.
 - **April 16, 2026 — v2.0 rescope.** Renamed phase to "Memory and Pressure". War bargains moved to dedicated `WAR_BARGAIN_SPEC.md` (Peace Deals phase). Acceptance formula trimmed to three modifiers (no `bargain_value_mod`, no `war_entry_score`). §7.5 rivalry-driven paradox cut; legacy alliance-cross-war paradox renamed to `commitment_paradox`. §6.4 commitment store and §13 commitment data fields moved to `WAR_BARGAIN_SPEC.md`. Coalition forward-compat seams (`opposition_graph`, `war_bloc.target_nation` stores) cut from v0.1 — helpers stay parameterized. New Gate 10 added. New §6.5 note that `region_observer` witness scope reactivates when `WAR_BARGAIN_SPEC` ships. New §10.1 enum entry `unknown_baseline` to retire the current AI catch-all. Honored-turn reliability tick (§8.6) added explicitly as this-phase work. Vassal-decay edge case noted (§8.6). Composite-floor-supersedes-per-modifier-cap clarification added (§9.4). Stable-tie-break-index flagged as future improvement (§11.2).
 - **April 14, 2026 — v1.0 draft** (`Reliability + Commitments`). Original spec covered rivalries, betrayal memory, and war bargains together. Rescoped April 16 after audit established the bargain layer was unimplementable in the same phase as the substrate. Original v1.0 content now split between this spec (substrate + rivalry pressure + paradox rename + presentation hand-off) and `WAR_BARGAIN_SPEC.md` (war bargains).

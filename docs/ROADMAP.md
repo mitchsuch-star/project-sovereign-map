@@ -25,7 +25,7 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (formerly `Reliability + Commitments`; rescoped April 16 — see `RELIABILITY_COMMITMENTS_SPEC.md` v2.0), `Bilateral Peace Hardening` second, `War Purpose + Score Semantics` third, then `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`.
+**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (formerly `Reliability + Commitments`; rescoped April 16 — see `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 which folded in creative-audit additions: Make Amends verb, France-Austria rivalry, rewritten goal 1), `Bilateral Peace Hardening` second, `War Purpose + Score Semantics` third, then `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`. Period precision items (1805-accurate diplomat roster, Britain reactive bloc pressure, ledger scale UX) tracked separately in `DESIGN_REFINEMENT.md` §Historical Precision (P1 / P2 / P3) for EA scope.
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
@@ -734,6 +734,7 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 | Map Interaction | Click provinces, zoom, pan | Integrated in 6.5 | |
 | 6-8 Nations | France, Austria, Russia, Prussia, (Britain off-map), Spain, Bavaria, Ottoman | HIGH | Data + balance |
 | 20+ Marshals | Historical personalities per nation | Medium | Data entry |
+| **1805-accurate Diplomats** | Swap recognizable-but-post-1805 diplomats (Hardenberg / Metternich / Castlereagh / Einsiedel) for the historically-accurate 1805 ministers (Haugwitz / Stadion / Mulgrave / Bose). Voice Bible port of existing register notes. See `DESIGN_REFINEMENT.md` §P1. | Low | Period fidelity upgrade; deferred from Memory and Pressure v0.1 |
 | Year-Based Turns | Monthly 1805-1815 | Low | |
 | 1805 Win Conditions | Per-nation victory conditions | Medium | |
 | **Greyed-Out Expansion** | Remaining 40-70 provinces visible but non-interactive | Low | Visual promise |

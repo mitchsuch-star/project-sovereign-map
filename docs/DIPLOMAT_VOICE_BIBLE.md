@@ -198,21 +198,34 @@ This matters. A single Dove in the cast means his register has no peer — autho
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)
 
-Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the full nine-line cast coverage below was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope, **C3-lite requires only the first four lines** (Hardenberg breach lead, Metternich breach lead, Einsiedel breach lead, Castlereagh hard-reject Chancery line); the remaining five lines move with the bargain presentation pass to `WAR_BARGAIN_SPEC.md` slice WB-D. All nine are retained here for reference so the deferred work does not need re-authoring later.
+Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the full nine-line cast coverage below was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope, the work splits as follows. All nine lines remain documented so the deferred work does not need re-authoring later.
 
-| Nation | Personality | Scene | Template owner |
+### Required for C3-lite (v0.3 — must land in this phase)
+
+Four lines. All four already have committed exemplars in this bible:
+
+| Nation | Personality | Scene | Template source |
 |---|---|---|---|
-| Prussia | Hawk | breach_lead_hardenberg | this document §Hardenberg exemplar |
-| Austria | Schemer | breach_lead_metternich | this document §Metternich exemplar |
-| Saxony | Dove | breach_lead_einsiedel | this document §Einsiedel exemplar |
-| Britain | Hawk | breach_lead_castlereagh | this document §Castlereagh exemplar |
-| Prussia | Hawk | fulfillment_callback_hardenberg | to author from Hardenberg register notes |
-| Austria | Schemer | fulfillment_callback_metternich | to author from Metternich register notes |
-| Britain | Hawk | hard_reject_castlereagh | this document §Castlereagh hard-reject note |
-| Saxony | Dove | witness_reaction_einsiedel | this document §Einsiedel witness note |
-| Prussia | Hawk | paradox_envoy_demand_hardenberg | to author from Hardenberg register (short demand line) |
+| Prussia | Hawk | `breach_lead_hardenberg` | this document §Hardenberg exemplar |
+| Austria | Schemer | `breach_lead_metternich` | this document §Metternich exemplar |
+| Saxony | Dove | `breach_lead_einsiedel` | this document §Einsiedel exemplar |
+| Britain | Hawk | `hard_reject_castlereagh` | this document §Castlereagh hard-reject note |
 
-The four committed exemplars in this bible cover four of the nine. The remaining five are to be authored using the register notes per diplomat; each candidate line must pass the "Never says" check before landing.
+### Deferred to WB-D (bargain-era presentation extension)
+
+Five lines. Authored when bargains ship. Each candidate line must pass the "Never says" check before landing.
+
+| Nation | Personality | Scene | Template source |
+|---|---|---|---|
+| Britain | Hawk | `breach_lead_castlereagh` | this document §Castlereagh exemplar (breach is rare; retained for scenarios where France breaches a temporary Britain accommodation) |
+| Prussia | Hawk | `fulfillment_callback_hardenberg` | to author from Hardenberg register notes |
+| Austria | Schemer | `fulfillment_callback_metternich` | to author from Metternich register notes |
+| Saxony | Dove | `witness_reaction_einsiedel` | this document §Einsiedel witness note |
+| Prussia | Hawk | `paradox_envoy_demand_hardenberg` | to author from Hardenberg register (short demand line) |
+
+### Note on period accuracy
+
+The four named diplomats above (Hardenberg, Metternich, Einsiedel, Castlereagh) are recognizable Napoleonic-era figures but historically took their depicted roles **after** the 1805 campaign start: Hardenberg as Prussian chancellor from 1810, Metternich as Austrian foreign minister from 1809, Castlereagh as British foreign secretary from 1812, Einsiedel as Saxon minister from 1813. The actual 1805 foreign ministers were Haugwitz (Prussia), Stadion or Cobenzl (Austria), Mulgrave (Britain), and Bose or Löss (Saxony). Recognizability was chosen over chronological precision for v0.1; the period-accurate cast swap is tracked in `docs/DESIGN_REFINEMENT.md` §P1 as a future EA-scope refinement.
 
 ---
 

@@ -481,7 +481,16 @@ The previous v0.2 nine-line cast coverage requirement (3 nations × 3 personalit
 - `shared_enemy` witnesses sound calculating; they smell a strategic opening.
 - `region_observer` witnesses sound gossipy or reputational; the story is spreading. (Inactive in v0.3 — region_observer scope only fires when bargains exist.)
 
-**v0.3 application:** scope-branched witness reaction lines are **deferred to WB-D**. The substrate emits `dominant_witness_scope` already, but this pass does not branch breach copy on it. Single-tone breach lead-line per nation is enough for v0.3.
+**v0.3 application:** full scope-branched witness reaction copy with **named-diplomat registers** is deferred to WB-D (where bargain breaches justify that depth of cast work). But v0.3 ships **one skeletal canonical line per scope** so witness payloads do not all render identically on the rail:
+
+| Scope | Skeletal canonical line (mock mode, v0.3 required) |
+|---|---|
+| `ally` | *"The court of {witness_nation} received the news in silence, and that silence is the register to note."* |
+| `rival` | *"{witness_nation} has noted the news with the practiced calm of a court that has long been expecting it."* |
+| `shared_enemy` | *"{witness_nation} has taken note; they understand France's hand was elsewhere this week, and they have drawn their own strategic reading."* |
+| `region_observer` | *(inactive in v0.3 — no line authored until WB-D reactivates the scope)* |
+
+These lines are **deliberately unvoiced** — no named diplomat, no personality register. They are the minimum visible difference between scopes. WB-D replaces each row with the full per-nation Hawk/Schemer/Dove voiced variant sourced from the Voice Bible cast. The skeletal v0.3 lines prevent the flatness failure ("every witness strike reads the same on the rail") without committing the full register work that belongs with the bargain era.
 
 ### 10.5 Refusal and hard-block explanations
 
