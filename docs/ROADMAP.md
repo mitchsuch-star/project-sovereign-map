@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** April 12, 2026 (Session 8 Renderer Cutover slices 1-3 COMPLETE — shared layers, province color-map, Camera2D+SubViewport)
+> **Last Updated:** April 16, 2026 (Post-Phase 8 Refinement Order rescoped: item 1 renamed to `Memory and Pressure`, War Bargains inserted as 3.5, `WAR_BARGAIN_SPEC.md` added to reference list. Earlier April 12 Session 8 renderer cutover note preserved.)
 
 ---
 
@@ -412,12 +412,14 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 Phase 8 implementation is complete, but the diplomacy refinement queue after it is now explicitly sequenced:
 
-1. `Reliability + Commitments`
-   First diplomacy follow-up implementation target. Keep this bilateral and legible.
+1. `Memory and Pressure` (renamed April 16, 2026 from `Reliability + Commitments`)
+   First diplomacy follow-up implementation target. Keep this bilateral and legible. See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0.
 2. `Bilateral Peace Hardening`
    Tighten separate peace, bilateral peace preview, term ownership, and promise-breach warnings before any multilateral settlement work.
 3. `War Purpose + Score Semantics`
    Define war objectives, ticking score meaning, and settlement legitimacy at the bilateral/system layer.
+3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
+   The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Depends on items 1-3; implementable as a Peace Deals phase precursor before item 4.
 4. `Ally Participation + Common Peace`
    Later wartime settlement flow only. Do not overload the normal nation -> proposal -> terms wizard with conference logic.
 5. Remaining diplomacy follow-ups
@@ -428,6 +430,7 @@ Reference planning docs:
 - `docs/STATUS.md`
 - `docs/DESIGN_REFINEMENT.md`
 - `docs/RELIABILITY_COMMITMENTS_SPEC.md`
+- `docs/WAR_BARGAIN_SPEC.md`
 - `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
 
 ### Post-Diplomacy Command Layer Queue

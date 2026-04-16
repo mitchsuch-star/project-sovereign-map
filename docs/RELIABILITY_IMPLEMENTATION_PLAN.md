@@ -3,8 +3,8 @@
 > **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0 (renamed from "Reliability + Commitments" to "Memory and Pressure" in the April 16, 2026 rescope)
 > **Created:** April 13, 2026
 > **Last Updated:** April 16, 2026 (v2.0 rescope — bargain slices moved to `WAR_BARGAIN_SPEC.md`)
-> **Sessions remaining:** ~2 effective on the critical path
-> **Est. tests remaining:** ~40 (down from ~200 in v1.0 — bargain test budget moved to bargain spec)
+> **Sessions remaining:** ~3 effective on the critical path (Slice A/B folds into one session; Slice C splits into one Godot-surfaces session + one tests-and-mock-prose session per §Slice C below)
+> **Est. tests remaining:** ~60-66 (slice-level sum: A1-fill 8 + A2-fill 4 + B1 14 + B2a-fill 10 + B6 5 + B3 3 + Slice C 16-22; down from ~200 in v1.0 — bargain test budget moved to bargain spec)
 
 ---
 
@@ -186,7 +186,12 @@ Other deferred-from-v1.0 contract items (per `COMMITMENTS_PRESENTATION_SPEC.md` 
 - Committed mock prose for the three live events using Voice Bible registers
 - Cut response routes (`Propose redress` etc.) — defer to `WAR_BARGAIN_SPEC` slice WB-D
 
-Estimated ~16-22 tests. Detailed breakdown in `COMMITMENTS_PRESENTATION_SPEC.md` §14.
+Estimated ~16-22 tests across **two sessions**:
+
+1. **Godot surfaces session** — new `commitment_paradox_popup.{tscn,gd}`, split-voice render capability in `notification_bar.gd`, elevated-card spotlight tier, HARD_STOP dtype whitelist routing for the renamed type.
+2. **Tests + mock prose session** — named-diplomat resolution helper, committed prose for the three live events (`hard_reject_posture_triggered`, `diplomatic_treaty_broken` french_breach, `commitment_paradox_resolved`), ledger emphasis wiring, N+1 aftermath callback.
+
+Detailed breakdown in `COMMITMENTS_PRESENTATION_SPEC.md` §14.
 
 ---
 
@@ -316,4 +321,4 @@ Moved to `WAR_BARGAIN_SPEC.md` along with the war-entry contract.
 | C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | → `WAR_BARGAIN_SPEC.md` |
 | Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | One slice, narrower scope |
 | Slice D | deferred | deferred | Same |
-| **Total** | **~200** | **~40 remaining** | Plus ~98 moved to `WAR_BARGAIN_SPEC.md` |
+| **Total** | **~200** | **~60-66 remaining** | Plus ~98 moved to `WAR_BARGAIN_SPEC.md` |

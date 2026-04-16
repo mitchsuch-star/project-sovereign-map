@@ -801,8 +801,10 @@ Rules:
 
 **Estimated budget:**
 
-- one focused implementation session
-- approximately 16-22 tests
+- **two implementation sessions:**
+  1. *Godot surfaces* — new `commitment_paradox_popup.{tscn,gd}` (3-beat staged scene per §12.3, on its own CanvasLayer in the 101-118 range), split-voice render capability in `notification_bar.gd` (three distinct regions for `lead` / `witness` / `aside` per §9.1 typographic contract), elevated-card spotlight tier (2-turn persist, action buttons, per-notice review/follow-up), HARD_STOP dtype whitelist routing in `main.gd` for the renamed `commitment_paradox` type.
+  2. *Tests + mock prose* — named-diplomat resolution helper (`speaker="envoy"` / `speaker="foreign_office"` per §10.3), committed prose for the three live events using Voice Bible registers, ledger emphasis rules (§9.3), N+1 aftermath callback wiring, advisory-route reactive affordances (§12.4).
+- approximately 16-22 tests total across the two sessions
 
 ---
 
