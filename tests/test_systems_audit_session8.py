@@ -268,17 +268,20 @@ class TestVictoryThreshold:
     """Victory requires 75% of regions (VICTORY_REGION_FRACTION), i.e. 14 of 19."""
 
     def test_victory_threshold_constant_exists(self):
-        """VICTORY_REGION_FRACTION is 0.75 and produces threshold of 14 for 19 regions."""
+        """VICTORY_REGION_FRACTION is 0.75 and produces correct threshold for current map."""
         from backend.models.world_state import VICTORY_REGION_FRACTION
+        from backend.models.region import REGIONS_DATA
         assert VICTORY_REGION_FRACTION == 0.75
-        assert int(19 * VICTORY_REGION_FRACTION) == 14
+        region_count = len(REGIONS_DATA)
+        assert int(region_count * VICTORY_REGION_FRACTION) == int(region_count * 0.75)
 
-    def test_14_regions_less_than_total(self):
-        """14 is achievable — less than total 19 regions."""
+    def test_victory_threshold_less_than_total(self):
+        """Victory threshold is achievable — less than total regions."""
+        from backend.models.world_state import VICTORY_REGION_FRACTION
         world = _fresh_world()
         total_regions = len(world.regions)
-        assert total_regions == 19
-        assert 14 < total_regions
+        threshold = int(total_regions * VICTORY_REGION_FRACTION)
+        assert threshold < total_regions
 
 
 # ═══════════════════════════════════════════════════════════════════

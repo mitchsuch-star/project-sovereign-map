@@ -143,9 +143,8 @@ class TestRegionIncomeValues:
             assert REGIONS_DATA[name]["region_type"] == "rural"
             assert REGIONS_DATA[name]["income"] == 50
 
-    def test_all_19_regions_have_region_type(self):
+    def test_all_regions_have_region_type(self):
         """Every region in REGIONS_DATA has a region_type."""
-        assert len(REGIONS_DATA) == 19
         for name, data in REGIONS_DATA.items():
             assert "region_type" in data, f"{name} missing region_type"
             assert data["region_type"] in VALID_REGION_TYPES, f"{name} has invalid type"

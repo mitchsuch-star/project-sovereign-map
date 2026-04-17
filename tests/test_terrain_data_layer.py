@@ -249,8 +249,7 @@ class TestRegionTerrainSerialization:
 class TestRegionsDataTerrain:
     """Verify REGIONS_DATA terrain assignments and create_regions()."""
 
-    def test_all_19_regions_have_terrain(self):
-        assert len(REGIONS_DATA) == 19
+    def test_all_regions_have_terrain(self):
         for name, data in REGIONS_DATA.items():
             assert "terrain" in data, f"Region '{name}' missing terrain in REGIONS_DATA"
             assert data["terrain"] in VALID_TERRAINS, (
@@ -258,7 +257,10 @@ class TestRegionsDataTerrain:
             )
 
     def test_terrain_distribution(self):
-        """Verify expected terrain distribution across all regions."""
+        """Verify expected terrain distribution across all regions.
+
+        These counts are intentional for the current 19-region map. Update when regions are added.
+        """
         terrain_counts = {}
         for name, data in REGIONS_DATA.items():
             t = data["terrain"]
@@ -287,7 +289,7 @@ class TestRegionsDataTerrain:
 
     def test_create_regions_assigns_terrain(self):
         regions = create_regions()
-        assert len(regions) == 19
+        assert len(regions) == len(REGIONS_DATA)
         for name, region in regions.items():
             expected_terrain = REGIONS_DATA[name]["terrain"]
             assert region.terrain == expected_terrain, (

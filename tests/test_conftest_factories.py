@@ -7,6 +7,7 @@ code is modified.
 """
 
 from backend.models.marshal import Marshal
+from backend.models.region import REGIONS_DATA
 from backend.models.world_state import WorldState  # noqa: F401 - used in isinstance checks
 from backend.commands.executor import CommandExecutor  # noqa: F401 - used in isinstance checks
 from backend.game_logic.combat import CombatResolver  # noqa: F401 - used in isinstance checks
@@ -119,9 +120,9 @@ class TestMarshalFactoryOverrides:
 class TestWorldFactory:
     """Test WorldFactory methods."""
 
-    def test_basic_has_19_regions(self):
+    def test_basic_has_all_regions(self):
         world = WorldFactory.basic()
-        assert len(world.regions) == 19
+        assert len(world.regions) == len(REGIONS_DATA)
 
     def test_basic_overrides(self):
         world = WorldFactory.basic(current_turn=5)
@@ -159,7 +160,7 @@ class TestWorldFactory:
     def test_diplomatic_returns_valid_world(self):
         world = WorldFactory.diplomatic()
         assert hasattr(world, "diplomatic_states")
-        assert len(world.regions) == 19
+        assert len(world.regions) == len(REGIONS_DATA)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

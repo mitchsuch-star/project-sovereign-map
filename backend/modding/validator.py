@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Set
 
+from backend.models.region import NATION_CAPITALS
 from backend.nation_config import validate_scenario_runtime_support
 
 
@@ -68,7 +69,8 @@ class ValidationResult:
 
 VALID_PERSONALITIES = {"aggressive", "cautious", "literal", "balanced", "loyal"}
 VALID_STANCES = {"neutral", "defensive", "aggressive"}
-VALID_NATIONS = {"France", "Britain", "Prussia", "Austria", "Russia", "Spain", "Saxony"}
+
+VALID_NATIONS = set(NATION_CAPITALS.keys())
 VALID_SKILLS = {"tactical", "shock", "defense", "logistics", "administration", "command"}
 
 MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}

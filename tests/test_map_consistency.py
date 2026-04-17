@@ -76,3 +76,41 @@ def test_no_extra_regions_in_godot(map_gd_content):
 
     extra = gd_regions - backend_regions
     assert not extra, f"map.gd has regions not in region.py: {extra}"
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# ADJACENCY GRAPH INTEGRITY
+# ════════════════════════════════════════════════════════════════════════════════
+
+
+def test_adjacency_graph_is_connected():
+    """All regions must be reachable from any starting region via adjacency."""
+    start = next(iter(REGIONS_DATA))
+    visited = set()
+    queue = [start]
+    while queue:
+        current = queue.pop(0)
+        if current in visited:
+            continue
+        visited.add(current)
+        for neighbor in REGIONS_DATA[current]["adjacent"]:
+            if neighbor not in visited:
+                queue.append(neighbor)
+    unreachable = set(REGIONS_DATA.keys()) - visited
+    assert not unreachable, f"Regions not reachable from {start}: {unreachable}"
+
+
+def test_adjacency_is_bilateral():
+    """If A lists B as adjacent, B must also list A."""
+    for name, data in REGIONS_DATA.items():
+        for neighbor in data["adjacent"]:
+            assert neighbor in REGIONS_DATA, f"{name} lists unknown region {neighbor}"
+            assert name in REGIONS_DATA[neighbor]["adjacent"], (
+                f"{name} lists {neighbor} as adjacent, but {neighbor} does not list {name}"
+            )
+
+
+def test_no_self_adjacency():
+    """No region should list itself as adjacent."""
+    for name, data in REGIONS_DATA.items():
+        assert name not in data["adjacent"], f"{name} lists itself as adjacent"

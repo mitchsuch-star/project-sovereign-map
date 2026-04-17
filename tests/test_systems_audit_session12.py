@@ -66,10 +66,12 @@ class TestVictoryThresholdConstant:
     def test_constant_value(self):
         assert VICTORY_REGION_FRACTION == 0.75
 
-    def test_threshold_calculation_19_regions(self):
-        """With 19 regions, threshold should be 14 (int(19 * 0.75) = 14)."""
-        threshold = max(1, int(19 * VICTORY_REGION_FRACTION))
-        assert threshold == 14
+    def test_threshold_calculation_current_regions(self):
+        """Threshold scales correctly for current region count."""
+        from backend.models.region import REGIONS_DATA
+        region_count = len(REGIONS_DATA)
+        threshold = max(1, int(region_count * VICTORY_REGION_FRACTION))
+        assert threshold == max(1, int(region_count * 0.75))
 
     def test_threshold_scales_with_region_count(self):
         """Threshold should scale if map expands."""
