@@ -57,10 +57,13 @@ This section is the canonical source for `power_tier` and related taxonomy. Any 
 - Any future runtime strength model (for AI threat weighting, coalition calculations, dispatch priority) must be a **separate field**, e.g. `power_score`. A runtime `power_score` must never overwrite `power_tier`. Nations that weaken or strengthen during play keep their authored tier.
 - Storage shape: `power_tier` is a field on the authored nation record, colocated with other authored nation data (capital, color, starting AP). There is no separate tier map. The authored scenario config is the single source of truth; runtime code reads from it and does not mutate it.
 
-**`political_status` — runtime state (unchanged)**
+**`political_status` — runtime state**
 
-- Values include at least `independent`, `vassal`. Additional subject forms may be added later.
+- Schema version `1` for scale work uses `independent`, `vassal`, and `protectorate`.
+- `vassal` and `protectorate` are both `subject` statuses for DG-5 hegemonization and DG-2 sphere membership.
+- Only `vassal` auto-enters under DG-4's `include_vassals = true`. `protectorate` does not create automatic war-entry on its own.
 - `political_status` may change during play (`independent` -> `vassal` -> `independent` after rebellion, etc.) and must never be conflated with `power_tier`.
+- Any future subject form must explicitly declare whether it counts as a `subject` for victory, sphere membership, and war-entry. The default is "no" until authored.
 
 **Scenario roster mapping (current DG-1 roster)**
 
@@ -76,14 +79,17 @@ Future scenarios (1806, 1809, etc.) extend this roster by adding authored nation
 
 **`strategic_power` — derived convenience set**
 
-- `strategic_power` = non-French nations whose `power_tier` is `major` or `secondary` in the current scenario.
+- `strategic_power` = non-French nations whose `power_tier` is `major` or `secondary` **and** whose authored scenario record sets `counts_for_strategic_power = true`.
 - Used by: DG-2 salience filtering, DG-5 hegemony victory count, dispatch priority, coalition weighting.
-- Current scenario produces 8 strategic powers (4 non-French `major` + 4 `secondary`). DG-5's "majority of strategic powers" resolves to 5.
+- The France-led 1805 prototype sets `counts_for_strategic_power = true` for all 8 non-French `major` / `secondary` nations, so DG-5's "majority of strategic powers" resolves to 5.
+- Off-map or partially wired interim builds must not infer strategic-power participation from map wiring alone; the authored scenario flag decides.
 - **Not used for war entry.** Cascade legality is treaty-edge only per DG-4; tier does not create or block call-to-arms.
 
 **Current full-map scope note**
 
 - This scale-readiness plan targets the first full-map Europe prototype for the France-led 1805 campaign.
+- For that prototype, the authored scenario roster is the full 13-nation DG-1 set, not a silent 6-8 nation subset.
+- If an interim content build keeps a nation partially off-map or temporarily unwired, the scenario data must say so explicitly (`on_map`, `counts_for_strategic_power`, etc.) rather than silently changing salience, victory, or AP denominators.
 - References to France, Paris, and the French sphere in DG-2 and DG-5 are intentional for that scope.
 - Runtime hardening for `player_nation` remains valuable and should stay intact, but non-France full-map campaigns are not a prerequisite for "real map ready" in this plan.
 - If a later scenario ships with a different player nation, translate these gates through scenario data (`player_nation`, `home_capital`, `player_sphere`) rather than silently hardcoding a second nation-specific variant.
@@ -114,23 +120,32 @@ Future scenarios (1806, 1809, etc.) extend this roster by adding authored nation
 
 The underlying diplomacy model stays bilateral. Do not add regional blocs or transitive patron automation as a prerequisite for Europe. The scale fix is presentation and prioritization, not a new diplomatic ontology.
 
-**Forced-expand relationship states:**
+**Forced-expand relationship states (precedence order, shared across all consumers):**
 
-- Any nation currently at war with France
-- Any nation with an active proposal or objection involving France
-- Any nation with an active Talleyrand mission
-- Any nation with active rivalry or betrayal-memory pressure involving France
-- Any nation with frontier contact against the French sphere
+1. Any nation currently at war with France
+2. Any nation with an active proposal or objection involving France
+3. Any nation with an active Talleyrand mission
+4. Any nation with active concern / betrayal-memory / `commitment_paradox` pressure involving France
+5. Any nation with frontier contact against the French sphere
 
-**French sphere definition:** France + current French vassals + regions currently occupied by France or a French vassal.
+If more than 5 nations satisfy force-expand on the same turn, trim within that force-expand set by the same shared salience helper and the same locked tiebreak rules below. No screen may invent a second cutoff rule.
 
-**Remaining visible slots:** Fill the remaining expanded rows by a weighted salience score. The score must be a weighted sum whose exact weights and tiebreak rules are picked during implementation with a short design review, not improvised per screen. Candidate inputs are `power_tier`, military strength, recent diplomatic change, and coalition threat. The structure (weighted sum over these inputs) is locked; the specific coefficients are not.
+**French sphere definition:** France + current French subjects whose `political_status` is `vassal` or `protectorate` + regions currently occupied by France or a French vassal.
+
+**Remaining visible slots:** Fill the remaining expanded rows by a weighted salience score. The score structure is locked:
+
+- Inputs are exactly `power_tier`, `power_score_or_military_strength`, `recent_diplomatic_change`, and `coalition_threat`.
+- `recent_diplomatic_change` means a treaty-state change, proposal created / expired / refused, war declaration / armistice / peace ratification, or `commitment_paradox` episode within the last 3 turns.
+- `coalition_threat` reuses the coalition / threat scalar already maintained by the coalition model. If a nation has no current threat entry, treat it as `0` rather than inventing a second proxy.
+- Exact coefficients are still picked in implementation review, but every consumer must use the same coefficients from the same helper.
+- Tiebreak order is locked: higher force-expand precedence, then higher `power_tier`, then higher `power_score_or_military_strength`, then more recent diplomatic change, then stable nation-name sort.
+- Implementation must expose one shared backend helper (for example `rank_diplomatic_salience(player_nation)`) used by Talleyrand, the Diplomatic Ledger, and any dispatch spotlight that ranks nations by relevance.
 
 **UI cap (locked):** 5 expanded bilateral rows maximum. 4 is tight at 13 nations, 6 starts feeling like "show everything"; 5 is the authored choice and must not drift. Everything beyond 5 collapses into grouped rows such as `Secondary Powers` and `Minor Powers`. Grouped rows are clickable to expand a full list in a secondary view but do not occupy expanded-slot budget.
 
-**Sphere definition for frontier contact:** The "French sphere" for the frontier-contact force-expand rule is France + current French vassals + regions currently occupied by France or a French vassal. This definition is shared with any other force-expand rule that references the sphere; do not re-derive it per consumer.
+**Sphere definition for frontier contact:** The "French sphere" for the frontier-contact force-expand rule is France + current French subjects whose `political_status` is `vassal` or `protectorate` + regions currently occupied by France or a French vassal. This definition is shared with any other force-expand rule that references the sphere; do not re-derive it per consumer.
 
-**Implementation note:** "Top 3-4 relevant nations" is not a vague design aspiration. The force-expand rules, the weighted salience score structure, and the 5-row cap together are the contract. Weight values and tiebreaks are implementation review items, not gate items.
+**Implementation note:** "Top 3-4 relevant nations" is not a vague design aspiration. The force-expand rules, the shared helper, the weighted salience score inputs, the locked tiebreak order, and the 5-row cap together are the contract.
 
 ---
 
@@ -177,8 +192,9 @@ War-entry obligation travels one treaty edge only. When France declares war on A
 **Rules:**
 
 - Direct defender allies and defender vassals may receive a call-to-arms
+- Defender-side `ALLIANCE` / `DEFENSIVE_ALLIANCE` honor calls auto-enter when legal. There is no soft-refusal path for an eligible defender-side obligation in schema version `1`; only hard illegality blocks entry.
 - Direct attacker allies and attacker vassals may receive a call-to-arms when applicable
-- Each recipient decides yes or no under bilateral treaty logic
+- Attacker-side `ALLIANCE` entry is discretionary and must route through one attacker-side decision seam that later war-entry UI can surface as a `join_opportunity`; do not hardcode a second silent path elsewhere.
 - No transitive propagation, ever
 
 **Qualifying entry relationships (locked list):** A nation receives a call-to-arms only if it holds one of the following direct relationships with the attacked or attacking nation:
@@ -187,9 +203,11 @@ War-entry obligation travels one treaty edge only. When France declares war on A
 - `DEFENSIVE_ALLIANCE` — defensive obligation only; attacker-side call does not fire for defensive-only treaties
 - Vassal relationship — vassals of the attacked or attacking nation auto-enter under the same direct-only rule, subject to existing vassal autonomy / loyalty gates in `vassal.py`
 
+- For schema version `1`, only `political_status = vassal` satisfies the vassal auto-entry path. `protectorate` counts as a subject for DG-2 / DG-5 but does **not** auto-enter here.
+
 Any other bilateral state (guarantee, trade agreement, non-aggression, neutrality, etc.) does **not** produce a call-to-arms on its own. New treaty types added in future specs must explicitly declare whether they create call-to-arms obligation; the default is "no."
 
-**Refusal event contract (concrete):** When a direct ally refuses a call-to-arms, emit a `commitment_paradox` episode in the Memory and Pressure substrate. Contract:
+**Refusal event contract (concrete):** When a direct ally explicitly declines a surfaced attacker-side call-to-arms, emit a `commitment_paradox` episode in the Memory and Pressure substrate. Contract:
 
 - `episode_type = "call_to_arms_refused"`
 - `breaker` = the refusing ally
@@ -199,6 +217,8 @@ Any other bilateral state (guarantee, trade agreement, non-aggression, neutralit
 - Trust / honor fallout still applies on top of the episode; the episode is additional durable memory, not a replacement
 
 Without this event contract the direct-only rule quietly becomes a pacifist switch — refusal must be visibly costly over time, which is what keeps the model's teeth.
+
+Defender-side hard illegality blocks do **not** emit `call_to_arms_refused`; they are legality failures, not discretionary refusals.
 
 **Later war entry:** Nations that did not enter through direct treaty obligation may still join later, but only through separate systems such as coalition threat, British subsidy, opportunistic AI entry, worsening opinion, or new bilateral agreements. Those are not part of cascade propagation.
 
@@ -236,8 +256,10 @@ Europe victory uses a raw-region hegemony check, not weighted income share and n
 **A strategic power counts as hegemonized if at least one of the following is currently true:**
 
 - Its capital is occupied by France or a French vassal
-- It is currently a French vassal / subject
-- It has an active `peace_hegemony` marker created by a French-victory peace at `>= +40` war score that included at least one qualifying concession from the locked list below
+- It is currently a French subject
+- It has an active `peace_hegemony` marker created by a French-victory peace at `>= +40` war score that included at least one qualifying path from the locked evaluator contract below
+
+For DG-5, `subject` means `political_status in {vassal, protectorate}`. Only `vassal` participates in DG-4 auto-entry.
 
 **Peace-based hegemonization is not permanent by default.**
 
@@ -250,12 +272,20 @@ Europe victory uses a raw-region hegemony check, not weighted income share and n
   - capital-occupation settlement
 - If the active marker expires or its qualifying clause is no longer in force, that strategic power no longer counts toward the hegemonized-majority check.
 
-**Locked qualifying concession list (each concession is a distinct clause type in the peace):**
+**Locked peace-hegemony evaluator contract (not a free-form clause list):**
 
 - **Territorial cession** to France or to a French vassal — any region transfer clause
 - **Forced alliance / protectorate clause** — the peace imposes an `ALLIANCE` or `DEFENSIVE_ALLIANCE` state on the defeated nation toward France for at least 12 turns, OR imposes a protectorate-style clause that restricts the defeated nation's foreign policy (no third-party alliances, no war declarations without French consent, or equivalent). The protectorate must be a first-class peace-clause type in the taxonomy — not a prose "peace felt harsh" judgment.
 - **Indemnity above threshold** — a peace-transfer clause whose declared `gold_equivalent_value` is `>= 5000` gold OR `>= 15%` of the defeated nation's current annual income, whichever is larger. Plain gold payments satisfy this directly. Any non-gold transfer must carry an explicit `gold_equivalent_value` on the clause definition or it does not satisfy the indemnity path.
 - **Capital-occupation settlement** — the peace is signed while France (or a French vassal) occupies the defeated nation's capital, even if that region reverts to the defeated nation as part of the peace
+
+This evaluator is intentionally structured because not every qualifying path is "a clause type":
+
+- territorial cession, forced alliance, and protectorate are first-class peace-clause types
+- indemnity is a threshold check over a clause's declared `gold_equivalent_value`
+- capital-occupation settlement is a signature-time war-state condition
+
+Do not compress these back into a flat `[clause_type]` list in scenario schema or save data.
 
 If none of those concessions apply, the peace does not count toward the hegemonized-majority check even if France reached `+40` war score. White peace does not count (war score is 0 by definition, so the `>= +40` gate already excludes it — this is said for readers coming from earlier drafts).
 
@@ -284,6 +314,19 @@ Turn limit, AP budget, and related pacing rules are authored per scenario. Do no
 
 ```yaml
 scenario_schema_version: 1
+player_nation: <nation>
+home_capital: <region>
+player_sphere:
+  subject_statuses: [vassal, protectorate]
+  include_occupied_regions: <bool>
+nations:
+  <nation>:
+    capital: <region>
+    power_tier: major | secondary | minor
+    starting_political_status: independent | vassal | protectorate
+    overlord: <nation> | null
+    on_map: <bool>
+    counts_for_strategic_power: <bool>
 max_turns: <int>
 base_ap:
   by_nation:
@@ -296,9 +339,23 @@ victory_profile:
   regions_required_fraction: <float>        # e.g. 0.40
   required_capitals_held: [<nation>]        # e.g. [France]
   hegemonized_target: "majority_strategic_powers" | <int>
-  qualifying_concessions: [<clause_type>]   # references DG-5 locked list
+  current_subject_statuses: [vassal, protectorate]
   war_score_threshold: <int>                # e.g. 40
   peace_hegemony_memory_turns: <int>        # e.g. 12 for one-shot settlements
+  hegemony_paths:
+    territorial_cession:
+      active_while: "france_or_vassal_controls_any_ceded_region"
+    forced_alliance:
+      minimum_turns: <int>                  # e.g. 12
+      active_while: "clause_active"
+    protectorate:
+      active_while: "clause_active"
+    indemnity:
+      minimum_gold_equivalent: <int>        # e.g. 5000
+      minimum_income_fraction: <float>      # e.g. 0.15
+      requires_declared_gold_equivalent_value: <bool>
+    capital_occupation_settlement:
+      requires_capital_occupied_at_signature: <bool>
 cascade_profile:
   mode: "direct_only"                       # DG-4 locks this; future modes require a gate reopen
   qualifying_treaty_states:
@@ -313,18 +370,26 @@ free_basic_actions:
 **Schema notes:**
 
 - `scenario_schema_version` is required from the first implementation so later scenarios have a migration path. Version `1` is the shape above; future shape changes bump the version and the loader gains a migration path.
-- `base_ap` is a hybrid. `by_nation` entries always win for named nations. Unnamed nations fall back to `by_tier_default[power_tier]`. This is the intentional shape — neither pure-by-nation nor pure-by-tier works, because France and Britain are both `major` with different AP.
+- The shorthand `by_tier_default[power_tier]` means `by_tier_default[nations[nation].power_tier]`; the nation's tier comes from authored scenario data, not a separate runtime map.
+- `player_nation`, `home_capital`, `player_sphere`, and authored `nations` are required in version `1`. Do not keep a hidden global nation table and layer scenario overrides on top of it.
+- `base_ap` is a hybrid. `by_nation` entries always win for named nations. Nations present in authored scenario data but unnamed in `by_nation` fall back to `by_tier_default[nations[nation].power_tier]`. This is the intentional shape - neither pure-by-nation nor pure-by-tier works, because France and Britain are both `major` with different AP.
+- `counts_for_strategic_power` is authored because map wiring / off-map presentation must not silently change the victory denominator.
 - `victory_profile` and `cascade_profile` are structured sub-schemas with the fields above. Additional fields may be added in later schema versions; do not write free-form blobs.
+- `current_subject_statuses` is the canonical DG-5 subject set. Under the current plan it is `[vassal, protectorate]`.
+- `hegemony_paths` is structured because some qualifying paths are first-class clause types and others are runtime threshold / war-state checks. Do not collapse it back to `[clause_type]`.
 - `peace_hegemony_memory_turns` applies only to one-shot peace outcomes such as indemnity and capital-occupation settlements. Persistent clauses use their active duration instead.
 - `free_basic_actions` references the canonical command action IDs shared by parser / executor / meta-executor. DG-7 may group resulting events for dispatch, but dispatch categories are not action identifiers.
 
 **Initial Europe target values:**
 
+- `player_nation = France`, `home_capital = Paris`
+- `player_sphere = {subject_statuses: [vassal, protectorate], include_occupied_regions = true}`
+- `nations`: all 13 DG-1 nations are authored in scenario data for the France-led 1805 prototype; all are currently `on_map = true`; `counts_for_strategic_power = true` for Britain, Austria, Prussia, Russia, Spain, Ottoman Empire, Sweden, and Naples/Two Sicilies
 - `max_turns = 80`
 - `base_ap`:
   - `by_nation`: France 5, Britain 4, Prussia 4, Austria 3, Russia 3
   - `by_tier_default`: `major: 3`, `secondary: 2`, `minor: 2`
-- `victory_profile`: `regions_required_fraction = 0.40`, `required_capitals_held = [France]`, `hegemonized_target = "majority_strategic_powers"`, `war_score_threshold = 40`, `qualifying_concessions` = the full DG-5 locked list, `peace_hegemony_memory_turns = 12`
+- `victory_profile`: `regions_required_fraction = 0.40`, `required_capitals_held = [France]`, `hegemonized_target = "majority_strategic_powers"`, `current_subject_statuses = [vassal, protectorate]`, `war_score_threshold = 40`, `peace_hegemony_memory_turns = 12`, `hegemony_paths = {territorial_cession, forced_alliance(minimum_turns = 12), protectorate, indemnity(minimum_gold_equivalent = 5000, minimum_income_fraction = 0.15, requires_declared_gold_equivalent_value = true), capital_occupation_settlement(requires_capital_occupied_at_signature = true)}`
 - `cascade_profile`: `mode = "direct_only"`, `qualifying_treaty_states = {defender_side: [ALLIANCE, DEFENSIVE_ALLIANCE], attacker_side: [ALLIANCE]}`, `include_vassals = true`, `refusal_event_type = "call_to_arms_refused"`
 - `free_basic_actions`: authored from the canonical command action-ID set during Phase 5.5 implementation
 
@@ -801,7 +866,7 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Why:** Game mechanics designed for 5 nations need retuning, not just performance fixes.
 **Estimated effort:** 2-3 sessions.
 **Depends on:** Phase 0 design decisions.
-**Execution order inside this phase:** `5.5` first as schema/loader prerequisite, then `5.1`, `5.2`, and `5.4`, then `5.3` and `5.6`.
+**Execution order inside this phase:** `5.5` first as schema/loader prerequisite, then `5.1` and `5.2`, then `5.4` **only after** the minimum peace-clause metadata from the Peace Deals track is present, then `5.3` and `5.6`.
 
 ### 5.5 Scenario-Configured Pacing Loader
 
@@ -810,16 +875,17 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Files:** `world_state.py` (`max_turns`, per-nation AP init), `nation_config.py` (`BASE_NATION_ACTIONS`), new scenario config loader (e.g., `backend/scenario_config.py`).
 
 **Changes:**
-- Define a `scenario_config` data structure matching DG-6's schema: `scenario_schema_version`, `max_turns`, `base_ap.by_nation`, `base_ap.by_tier_default`, `victory_profile`, `cascade_profile`, `free_basic_actions`.
+- Define a `scenario_config` data structure matching DG-6's schema: `scenario_schema_version`, `player_nation`, `home_capital`, `player_sphere`, authored `nations`, `max_turns`, `base_ap.by_nation`, `base_ap.by_tier_default`, `victory_profile`, `cascade_profile`, `free_basic_actions`.
 - Loader resolves AP per nation as: use `base_ap.by_nation[nation]` if present, else `base_ap.by_tier_default[nation.power_tier]`. This is the authored hybrid — both paths are required.
+- In version `1`, the tier fallback comes from `scenario_config.nations[nation].power_tier`; do not look it up from a separate runtime tier map.
 - Create a canonical command action-ID registry shared by parser / executor / meta-executor, then have `free_basic_actions` reference that registry instead of duplicated string lists.
 - Migrate the current 19-region scenario to `scenario_schema_version: 1`. Its authored values stay the same (`max_turns = 40`, current AP per nation) but now live in the scenario config instead of global constants.
-- Europe scenario authors its own values: `max_turns = 80`, `base_ap.by_nation = {France: 5, Britain: 4, Prussia: 4, Austria: 3, Russia: 3}`, `base_ap.by_tier_default = {major: 3, secondary: 2, minor: 2}`.
+- Europe scenario authors its own values: `player_nation = France`, `home_capital = Paris`, all 13 DG-1 nations in `nations`, `max_turns = 80`, `base_ap.by_nation = {France: 5, Britain: 4, Prussia: 4, Austria: 3, Russia: 3}`, `base_ap.by_tier_default = {major: 3, secondary: 2, minor: 2}`.
 - `world_state.py __init__` reads from scenario config. `VICTORY_REGION_FRACTION` and `BASE_NATION_ACTIONS` constants become fallback defaults only; the scenario overrides them.
 - `victory_profile` and `cascade_profile` are consumed by `5.4` and `5.1` respectively.
 - `free_basic_actions` reuses the canonical command action IDs already shared by parser / executor / meta-executor — no second classification.
 
-**Test:** Load both scenarios end-to-end; verify 19-region scenario keeps historical turn count and AP, Europe scenario applies its own values, and an unknown nation falls back to its tier default.
+**Test:** Load both scenarios end-to-end; verify 19-region scenario keeps historical turn count and AP, Europe scenario applies its own values, and a nation present in scenario data but omitted from `base_ap.by_nation` falls back to its tier default.
 
 ---
 
@@ -832,12 +898,14 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Changes:**
 - Strip recursive propagation. A single call-to-arms pass fires for the defender's direct allies and vassals, and (when applicable) for the attacker's direct allies and vassals.
 - `qualifying_treaty_states` per DG-4: defender-side `[ALLIANCE, DEFENSIVE_ALLIANCE]`, attacker-side `[ALLIANCE]`. Vassal auto-entry is modeled separately via `include_vassals = true`, not as a treaty state.
-- Each recipient decides yes or no under existing bilateral treaty logic; accepted entries do NOT trigger a further pass on their own allies.
+- Defender-side eligible treaty partners auto-enter if legal; defender-side hard illegality blocks do not create a soft-refusal branch.
+- Attacker-side eligible `ALLIANCE` partners resolve through one explicit attacker-side decision helper that can later surface `join_opportunity`; accepted entries do NOT trigger a further pass on their own allies.
+- Only explicit attacker-side declines emit `call_to_arms_refused`; defender-side legality failures do not.
 - Batch cascade dispatch events into one grouped line per side: "Austrian allies enter the war: Russia, Prussia." Do not emit one line per ally.
 
-**File:** `vassal.py` — Vassal auto-entry obeys the same direct-only rule and the same `qualifying_treaty_states` list. No recursive pull through a vassal's own subjects.
+**File:** `vassal.py` — Vassal auto-entry obeys the same direct-only depth rule, but only nations with `political_status = vassal` use this path. No recursive pull through a vassal's own subjects.
 
-**File:** Memory and Pressure substrate (`diplomacy.py` / `world_state.py` commitment_paradox emission) — Emit `commitment_paradox` episode on refusal with `episode_type = "call_to_arms_refused"`, `breaker` = refusing ally, `victim` = calling principal, `witnesses` = all `ALLIANCE` / `DEFENSIVE_ALLIANCE` counterparts of either side at refusal moment, severity scaled by the principal's war exposure and aggressor `power_tier`.
+**File:** Memory and Pressure substrate (`diplomacy.py` / `world_state.py` commitment_paradox emission) — Emit `commitment_paradox` episode on explicit attacker-side refusal with `episode_type = "call_to_arms_refused"`, `breaker` = refusing ally, `victim` = calling principal, `witnesses` = all `ALLIANCE` / `DEFENSIVE_ALLIANCE` counterparts of either side at refusal moment, severity scaled by the principal's war exposure and aggressor `power_tier`.
 
 **Test:** Synthetic 10-nation alliance chain verifying exactly depth-1 entry and zero transitive propagation. Refusal event emits a `call_to_arms_refused` episode with the expected witnesses list.
 
@@ -881,6 +949,8 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 **Implements:** DG-5 decision (locked hegemony-victory definition).
 
+**Dependency note:** `5.4` starts only after the minimum peace-clause metadata from `docs/BILATERAL_PEACE_HARDENING_SPEC.md` and `docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` exists for `forced_alliance`, `protectorate`, declared `gold_equivalent_value`, and signature-time capital-occupation checks. Do not ship ad-hoc peace-hegemony heuristics earlier.
+
 **Files:** `world_state.py` (VICTORY_REGION_FRACTION), `turn_manager.py` (victory-check block, current lines ~867-942), peace-clause taxonomy in `diplomatic_templates.py` / `diplomacy.py` for concession detection.
 
 **Changes:**
@@ -888,9 +958,9 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 - Victory check per DG-5:
   1. France controls `>=` `regions_required_fraction` of wired regions by raw count.
   2. France controls Paris (and any other nations in `required_capitals_held`).
-  3. France has hegemonized a majority of `strategic_power` nations (`power_tier` in {`major`, `secondary`}, non-French) in the current scenario.
-- Hegemonized check uses the DG-5 locked list: capital occupied, current vassal, or an active `peace_hegemony` marker created by peace at `>= +40` war score with at least one clause from the locked concession list (territorial cession, forced-alliance/protectorate clause, indemnity above threshold, capital-occupation settlement).
-- Indemnity threshold: a clause counts only if its declared `gold_equivalent_value` is `>= 5000` gold OR `>= 15%` of the defeated nation's annual income at settlement time, whichever is larger.
+  3. France has hegemonized a majority of `strategic_power` nations in the current scenario, where `strategic_power` participation comes from authored scenario data (`counts_for_strategic_power = true`).
+- Hegemonized check uses the DG-5 structured contract: capital occupied, current subject status from `victory_profile.current_subject_statuses`, or an active `peace_hegemony` marker created by peace at `>= +40` war score through one of the `victory_profile.hegemony_paths`.
+- Indemnity threshold: a transfer counts only if its declared `gold_equivalent_value` is `>= victory_profile.hegemony_paths.indemnity.minimum_gold_equivalent` OR `>= victory_profile.hegemony_paths.indemnity.minimum_income_fraction` of the defeated nation's annual income at settlement time, whichever is larger.
 - One-shot peace outcomes (indemnity, capital-occupation settlement) set `peace_hegemony_until_turn = current_turn + peace_hegemony_memory_turns`. Persistent outcomes (territorial cession, forced alliance, protectorate) remain valid only while their qualifying clause stays active.
 - Protectorate clause: add an explicit peace-clause type that restricts the defeated nation's foreign policy (no third-party alliances, no war declarations without French consent, or equivalent). Must be a first-class clause type in the peace taxonomy, not a prose descriptor.
 
