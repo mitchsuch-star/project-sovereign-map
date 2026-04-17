@@ -10,6 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 import copy  # noqa: F401 - used in to_dict() for deepcopy
+from collections import deque
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
@@ -101,6 +102,7 @@ class WorldState:
         # Rebuilt at turn start, after from_dict(), and after __init__.
         # NOT serialized — always rebuilt from live marshal data.
         self._marshals_by_region: Dict[str, List[Marshal]] = {}
+        self._distance_cache: Dict[Tuple[str, str], int] = {}
 
         # R20: Idempotency guard — tracks last turn that advance_turn ran.
         # Prevents double-processing (double income, double treaty costs) on retry.
@@ -1260,6 +1262,10 @@ class WorldState:
         for m in self.marshals.values():
             self._marshals_by_region.setdefault(m.location, []).append(m)
 
+    def refresh_marshal_indexes(self) -> None:
+        """Rebuild transient marshal indexes for AI and other hot-path queries."""
+        self._build_marshal_index()
+
     def _get_marshals_in_region_indexed(self, region_name: str) -> List[Marshal]:
         """R9: O(1) indexed lookup. Only for internal hot paths where
         the index is guaranteed fresh (within _advance_turn_internal,
@@ -1268,6 +1274,33 @@ class WorldState:
         Returns a REFERENCE to the internal list — callers must not modify.
         """
         return self._marshals_by_region.get(region_name, [])
+
+    def get_marshals_in_region_indexed(self, region_name: str) -> List[Marshal]:
+        """Indexed region lookup for callers that already refreshed indexes."""
+        return list(self._get_marshals_in_region_indexed(region_name))
+
+    def get_hostile_marshals_in_region_indexed(self, region_name: str, nation: str) -> List[Marshal]:
+        """Indexed hostile lookup for callers that already refreshed indexes."""
+        return [
+            marshal for marshal in self._get_marshals_in_region_indexed(region_name)
+            if marshal.nation != nation
+            and marshal.strength > 0
+            and self.is_at_war(nation, marshal.nation)
+        ]
+
+    def get_friendly_marshals_in_region_indexed(
+        self,
+        region_name: str,
+        nation: str,
+        exclude_name: Optional[str] = None,
+    ) -> List[Marshal]:
+        """Indexed friendly lookup for callers that already refreshed indexes."""
+        return [
+            marshal for marshal in self._get_marshals_in_region_indexed(region_name)
+            if marshal.nation == nation
+            and marshal.strength > 0
+            and (exclude_name is None or marshal.name != exclude_name)
+        ]
 
     def get_marshals_in_region(self, region_name: str) -> List[Marshal]:
         """Get all marshals currently in a specific region.
@@ -1549,6 +1582,43 @@ class WorldState:
             m for m in self.get_enemies_of_nation(nation)
             if self.get_region_intel(m.location).visibility_at_least(PARTIAL)
         ]
+
+    def get_live_visible_regions_for_nation(self, nation: str) -> Set[str]:
+        """Return regions visible under a nation's current live sight rules."""
+        visible_regions: Set[str] = set()
+
+        for region_name, region in self.regions.items():
+            if region.controller == nation:
+                visible_regions.add(region_name)
+                if getattr(region, "watchtower", "none") == "active":
+                    visible_regions.update(region.adjacent_regions)
+
+        for marshal in self.get_marshals_by_nation(nation):
+            visible_regions.add(marshal.location)
+            region = self.regions.get(marshal.location)
+            if region:
+                visible_regions.update(region.adjacent_regions)
+
+        return visible_regions
+
+    def is_region_live_visible_to_nation(self, region_name: str, nation: str) -> bool:
+        """Check whether a region is visible under live, non-persistent sight rules."""
+        return region_name in self.get_live_visible_regions_for_nation(nation)
+
+    def get_live_visible_enemies_in_region(self, region_name: str, nation: str) -> List[Marshal]:
+        """Return hostile marshals in a visible region using the indexed hot-path seam."""
+        if not self.is_region_live_visible_to_nation(region_name, nation):
+            return []
+        return self.get_hostile_marshals_in_region_indexed(region_name, nation)
+
+    def get_live_visible_enemies(self, nation: str) -> List[Marshal]:
+        """Return enemies visible to any nation under live sight rules only."""
+        visible_regions = self.get_live_visible_regions_for_nation(nation)
+        self.refresh_marshal_indexes()
+        enemies: List[Marshal] = []
+        for region_name in visible_regions:
+            enemies.extend(self.get_hostile_marshals_in_region_indexed(region_name, nation))
+        return enemies
 
     def get_enemy_by_name_for_nation(self, name: str, attacker_nation: str) -> Optional[Marshal]:
         """
@@ -2003,7 +2073,6 @@ class WorldState:
                 return capital
 
         # 3. BFS from capital to find nearest friendly region
-        from collections import deque
         start = capital if capital in self.regions else spawn_loc
         visited = {start}
         queue = deque([start])
@@ -2034,24 +2103,42 @@ class WorldState:
         if region_a not in self.regions or region_b not in self.regions:
             return 999  # Invalid regions
 
+        cache_key = self._make_distance_cache_key(region_a, region_b)
+        cached_distance = self._distance_cache.get(cache_key)
+        if cached_distance is not None:
+            return cached_distance
+
         # BFS to find shortest path
         visited = {region_a}
-        queue = [(region_a, 0)]  # (region, distance)
+        queue = deque([(region_a, 0)])  # (region, distance)
 
         while queue:
-            current, distance = queue.pop(0)
+            current, distance = queue.popleft()
 
             # Check adjacent regions
             current_region = self.regions[current]
             for adjacent in current_region.adjacent_regions:
                 if adjacent == region_b:
-                    return distance + 1
+                    result = distance + 1
+                    self._distance_cache[cache_key] = result
+                    return result
 
                 if adjacent not in visited:
                     visited.add(adjacent)
                     queue.append((adjacent, distance + 1))
 
+        self._distance_cache[cache_key] = 999
         return 999  # Not reachable
+
+    def _make_distance_cache_key(self, region_a: str, region_b: str) -> Tuple[str, str]:
+        """Use a symmetric cache key because region distance is undirected."""
+        if region_a <= region_b:
+            return region_a, region_b
+        return region_b, region_a
+
+    def invalidate_distance_cache(self) -> None:
+        """Clear cached region distances after an explicit topology change."""
+        self._distance_cache.clear()
 
     def is_enemy_nearby(self, region_name: str, nation: str, max_distance: int = 2) -> bool:
         """Check if any enemy marshal is within max_distance of the given region."""
@@ -2120,10 +2207,10 @@ class WorldState:
 
         # BFS with path tracking
         visited = {start}
-        queue = [(start, [start])]  # (current_region, path_to_here)
+        queue = deque([(start, [start])])  # (current_region, path_to_here)
 
         while queue:
-            current, path = queue.pop(0)
+            current, path = queue.popleft()
 
             # Check adjacent regions
             current_region = self.regions[current]

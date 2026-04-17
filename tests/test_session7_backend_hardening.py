@@ -77,18 +77,20 @@ def test_enemy_ai_player_contacts_use_visible_enemy_cache():
     world.get_enemies_of_nation.assert_not_called()
 
 
-def test_enemy_ai_non_player_contacts_use_omniscient_cache():
+def test_enemy_ai_non_player_contacts_use_live_visibility_cache():
     world = WorldState(player_nation="France")
     ai = EnemyAI(executor=None)
     player_marshal = next(marshal for marshal in world.marshals.values() if marshal.nation == "France")
 
     world.get_visible_enemies = MagicMock(return_value=[])
-    world.get_enemies_of_nation = MagicMock(return_value=[player_marshal])
+    world.get_live_visible_enemies = MagicMock(return_value=[player_marshal])
+    world.get_enemies_of_nation = MagicMock(return_value=[])
 
     assert ai._get_enemy_contacts("Britain", world) == [player_marshal]
     assert ai._get_enemy_contacts("Britain", world) == [player_marshal]
-    world.get_enemies_of_nation.assert_called_once_with("Britain")
+    world.get_live_visible_enemies.assert_called_once_with("Britain")
     world.get_visible_enemies.assert_not_called()
+    world.get_enemies_of_nation.assert_not_called()
 
 
 def test_runtime_support_validator_accepts_supported_large_scenario():
