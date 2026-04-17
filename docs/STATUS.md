@@ -34,9 +34,18 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | ~~P3 - QOL~~ | ~~PL-29~~ | ~~No new game / restart endpoint~~ **FIXED** |
  
-**Current routed next step:** Session 8 - Renderer cutover prep and replacement (blocked on art commission).
+**Actionable now (no blockers):**
 
-**Next planning item:** `Scale Readiness Plan` — Europe-map implementation plan is built out. Phase 0 (7 design gates) must be resolved before code work begins. Phase 1 (test safety net) has a full session spec ready to execute. See `docs/SCALE_READINESS_PLAN.md`. Audit findings in `docs/SCALE_READYNESS.md`.
+1. **Scale Readiness Phase 1 — Test Safety Net.** Nation config completeness tests, fix hardcoded `== 19` in test assertions, adjacency connectivity tests, validator fix. ~1-2 hours. Session-ready spec in `docs/SCALE_READINESS_PLAN.md` §Phase 1. No design gates required.
+2. **Scale Readiness Phase 0 — Design Gates.** 7 design decisions (nation roster, diplomacy model, supply lines, war cascade, victory conditions, pacing, dispatch density) that gate Phases 2-7. See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+3. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+
+**Blocked:**
+
+- **Session 8 Renderer — remaining slices.** Commissioned art-backed renderer swap and Godot smoke validation. Blocked on art assets.
+- **Scale Readiness Phases 2-7.** Blocked on Phase 0 design gate decisions.
+
+**Audit context:** `docs/SCALE_READYNESS.md` has the full Europe-scale audit (17 findings).
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 

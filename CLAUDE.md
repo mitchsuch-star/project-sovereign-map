@@ -19,11 +19,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Bug Fixes — COMPLETE.** PL queue closed, Session 6 architecture follow-up COMPLETE. See `docs/BUG_FIXES.md`.
-- **Session 8 Renderer Cutover — ACTIVE.** Slices 1-3 are complete: shared node-layer shell, placeholder province-definition/color-map lookup, and viewport-local `Camera2D` cutover. Remaining work is commissioned art-backed layers and final Godot runtime smoke validation. See `docs/STATUS.md`.
+- **Scale Readiness Phase 1 — ACTIONABLE NOW.** Test safety net: nation config completeness tests, fix hardcoded `== 19`, adjacency connectivity tests, validator fix. ~1-2 hours. See `docs/SCALE_READINESS_PLAN.md` §Phase 1.
+- **Scale Readiness Phase 0 — DESIGN GATES.** 7 decisions (nation roster, diplomacy model, supply lines, war cascade, victory, pacing, dispatch density) gate Phases 2-7. See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+- **Memory and Pressure — ACTIONABLE NOW.** Next diplomacy slice. Substrate shipped; remaining: rivalry seed (4 pairs) + acceptance-formula + paradox rename + Make Amends + C3-lite presentation (~68-74 tests, ~3 sessions). See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+- **Session 8 Renderer — ART-BLOCKED.** Slices 1-3 complete. Remaining: commissioned art-backed layers + Godot smoke validation. See `docs/STATUS.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
-- **Design Refinement — NEXT AFTER SESSION 8.** First implementation target rescoped April 16: `Memory and Pressure` (formerly `Reliability + Commitments`) — substrate shipped, v2.1 remaining work is rivalry seed (4 authored pairs) + acceptance-formula additions + paradox rename + Make Amends active-redemption verb + C3-lite presentation pass (~68-74 tests, ~3 sessions; Slice C is two sessions per `COMMITMENTS_PRESENTATION_SPEC.md` §14). War bargains moved to dedicated `docs/WAR_BARGAIN_SPEC.md` in the later Peace Deals phase. Period precision items (1805-accurate diplomat cast, Britain reactive bloc pressure, ledger scale UX) tracked in `docs/DESIGN_REFINEMENT.md` §Historical Precision as future EA-scope refinements. See `docs/DESIGN_REFINEMENT.md` for full queue.
-- **Phase 6.5 remaining:** Map Renderer only. Placeholder bitmap/color-map lookup and Camera2D cutover are live; commissioned art integration and final Godot smoke validation remain. Tutorial deferred to Pre-EA.
+- **Design Refinement — full queue.** War bargains deferred to Peace Deals phase (`docs/WAR_BARGAIN_SPEC.md`). Period precision items tracked in `docs/DESIGN_REFINEMENT.md` §Historical Precision.
 - **Jealousy System — NEEDS DESIGN GATE.** v3.1 spec drafted. DO NOT CODE WITHOUT USER APPROVAL. See `docs/JEALOUSY_SPEC.md`.
 
 ### Design Gates
