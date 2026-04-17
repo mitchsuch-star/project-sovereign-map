@@ -224,6 +224,139 @@ Defender-side hard illegality blocks do **not** emit `call_to_arms_refused`; the
 
 **Presentation rule:** Same-turn ally entry is grouped in dispatch ("Austrian allies enter the war"), not emitted as an unreadable chain of line-by-line declarations.
 
+#### DG-4 Amendment — April 17, 2026: Defender-side choice with memory cost
+
+The original DG-4 auto-entered eligible defenders whenever the call was legal. That produces a sharp edge: loyal allies get dragged into hopeless wars with no agency and no memory signal distinguishing prudence from cowardice. This amendment splits defender-side resolution into three paths and routes the discretionary path through the Memory and Pressure substrate.
+
+**Three-path resolution (replaces single "auto-enter if legal" rule):**
+
+| Path | Condition | Outcome | Memory |
+|------|-----------|---------|--------|
+| **Hard-illegal** | Already at war with principal, no common frontier, active truce, etc. | Blocked | None — legality failure, not choice |
+| **Impossible war** | Call evaluated as hopeless at the moment of the call (see predicate below) | Auto-decline | None — rational decision, not betrayal |
+| **Discretionary** | Legal and not impossible | Player/AI choice: honor or refuse | Episode emitted in either direction |
+
+The discretionary path is the behavioral change. Defender-side eligible calls that are legal and not impossible now route through the same explicit decision seam as attacker-side calls, and declining emits a durable memory episode — a larger one than attacker-side.
+
+**Impossibility predicate (locked structure, tunable coefficients):**
+
+Evaluated once at call-moment, not continuously. Inputs:
+
+- `aggressor_coalition_power_score / defender_coalition_power_score` ratio exceeds an authored threshold
+- Defender's capital is already under hostile threat or occupation
+- Defender is already in a losing war on another front (war_score below authored floor)
+
+Any one trigger fires the impossibility branch. Single shared helper (for example `is_impossible_defensive_call(caller, callee, world)`) used everywhere the predicate is needed. Same discipline as `rank_diplomatic_salience`. Exact coefficients picked in implementation review; `cascade_profile.impossibility_threshold` in the scenario schema.
+
+**Critical rule:** impossibility is measured *at call moment only*. Otherwise players game it by stacking overwhelming force mid-war to shake loose enemy allies. The evaluation is snapshot-based.
+
+**Player agency:** Even when impossibility auto-declines, the player may override and honor the call anyway ("hopeless last stand"). Override emits `call_to_arms_honored_costly`, not `_refused_defensive`. This preserves dramatic agency without reopening the pacifist-switch risk.
+
+**Episode contract (extends DG-4 refusal event contract):**
+
+Three episode types, each a distinct entry in the Memory and Pressure substrate:
+
+| Episode type | Fires when | Severity baseline | Witness scope |
+|--------------|-----------|-------------------|---------------|
+| `call_to_arms_refused_offensive` | Attacker-side ally explicitly declines discretionary offensive call | Baseline (the DG-4 original) | ALLIANCE / DEFENSIVE_ALLIANCE counterparts of either side |
+| `call_to_arms_refused_defensive` | Defender-side ally refuses a legal, not-impossible defensive call | **1.5–2.0x baseline** | **All nations with any active treaty with the refuser** (wider than offensive) |
+| `call_to_arms_honored_costly` | Defender-side ally honors a call flagged as costly (impossibility predicate true, player/AI chose to honor anyway) | Positive episode | Same scope as `_refused_defensive` |
+
+Payload fields (shared shape):
+
+- `episode_type` — one of the three above
+- `breaker` or `honorer` — the deciding nation
+- `victim` — calling principal (attacked or attacking, by context)
+- `witnesses` — per scope rule above
+- `severity` — scaled by principal's war exposure, aggressor `power_tier`, and authored `honor_bias` if present
+- `call_context` — `defensive` or `offensive`, plus snapshot of impossibility evaluation
+- `episode_id` — continues through any downstream fallout per existing substrate rules
+
+**Defender-side refusal severity is larger for two reasons:**
+
+1. Historical weight: breaking a defensive oath was a more severe reputation event than declining an opportunistic offensive call.
+2. Game balance: the direct-only cascade relies on memory accumulation to prevent a pacifist spiral. Defender refusal must bite harder than offensive refusal, or the expected value of refusal-always dominates.
+
+**Victim-grade grievance (not a witness strike):**
+
+The calling principal is not a witness — it is the victim. For defensive refusals, the victim takes a victim-grade strike (per §8.3 of `RELIABILITY_COMMITMENTS_SPEC.md`) and seeds a rivalry entry when rivalries expand. This is permanent until actively repaired via Make Amends; it is not a decaying relation modifier.
+
+**Habitual-refusal compounding:**
+
+N `call_to_arms_refused_defensive` episodes within M turns (authored — candidate `N=2`, `M=15`) promotes the refuser into a standing "oathbreaker" posture: any ALLIANCE or DEFENSIVE_ALLIANCE proposal to that nation auto-rejects for a cooldown window. This makes habitual refusal genuinely self-destructive and prevents the refuser from drifting between obligations for free. The posture decays with observed honoring of future calls.
+
+**Anti-renewal cooldown:**
+
+A refused defensive call blocks re-signing ALLIANCE or DEFENSIVE_ALLIANCE between the same pair for an authored window (candidate 15 turns). Re-alliance is possible afterward but not the same turn.
+
+**Multi-victim compounding:**
+
+If the same refuser receives multiple calls in the same turn (two allies attacked at once), each call resolves independently and each refusal emits its own episode. Severity stacks rather than deduplicates. A refuser who abandons two allies in one turn is worse than one who abandons one.
+
+**Coalition-formation hook:**
+
+The refuser's unreliability signal feeds the coalition-threat scalar already maintained for coalition formation. Nations that repeatedly break defensive obligations accumulate threat, making coalitions against them easier to brew.
+
+**Chained-refusal inter-ally signaling (deferred):**
+
+Within a single call to multiple allies, resolutions are simultaneous in schema version `1`. Ally X does not see ally Y refuse before deciding. Inter-ally gossip or sequential resolution is reserved for a later spec — the substrate can support it without rework.
+
+**Audit trail:**
+
+Every war's first-turn records a `war_entry_ledger` in campaign log: for each potentially called nation, the path taken (`hard_illegal` / `impossible_auto_declined` / `honored` / `refused_discretionary` / `honored_costly`) and the reason. The Diplomatic Ledger later surfaces this as "Russia has refused 2 defensive calls in the last 10 turns."
+
+**Scenario authoring: `honor_bias`:**
+
+Optional per-nation scalar (default `1.0`), authored in scenario config. Multiplies refusal severity and can shift episode decay rate. Lets scenario authors encode period texture — Prussia's rigid honor culture might be `1.15`, Spain's volatile loyalties `0.85`.
+
+Amendment to `cascade_profile` in the DG-6 scenario schema:
+
+```yaml
+cascade_profile:
+  mode: "direct_only"
+  qualifying_treaty_states:
+    defender_side: [ALLIANCE, DEFENSIVE_ALLIANCE]
+    attacker_side: [ALLIANCE]
+  include_vassals: true
+  refusal_event_type_offensive: "call_to_arms_refused_offensive"
+  refusal_event_type_defensive: "call_to_arms_refused_defensive"
+  honored_costly_event_type: "call_to_arms_honored_costly"
+  defender_refusal_allowed: true
+  impossibility_threshold:
+    power_ratio: 2.5                         # aggressor/defender coalition power
+    capital_threat_auto_impossible: true
+    losing_war_score_floor: -40
+  defensive_refusal_severity_multiplier: 1.75
+  oathbreaker_posture:
+    refusals_required: 2
+    window_turns: 15
+    auto_reject_ally_proposals_turns: 10
+  anti_renewal_window_turns: 15
+```
+
+**Vassal exception (unchanged):**
+
+Vassals do *not* get the discretionary path. Vassal auto-entry still fires under existing autonomy / loyalty gates in `vassal.py`. A disloyal vassal that would "refuse" rebels through the existing rebellion path instead. Amendment does not add refusal UI or episodes to the vassal layer.
+
+**Jealousy v3.1 hook (deferred):**
+
+When Jealousy ships, defensive refusals and costly honorings are candidate signals for its input set. Hook is mentioned here so the Jealousy spec can reference it; no code added until Jealousy is approved.
+
+**Affected specs:**
+
+- `RELIABILITY_COMMITMENTS_SPEC.md` — new episode types, wider witness scope for defensive refusals, severity table row additions, oathbreaker posture (see §8.4 amendment)
+- `RELIABILITY_IMPLEMENTATION_PLAN.md` — new slice for call-to-arms episode emission + player-facing UI
+- `COMMITMENTS_PRESENTATION_SPEC.md` + `DIPLOMAT_VOICE_BIBLE.md` — three new event families need authored lines
+- `diplomatic_templates.py` — spotlight/notice copy for the three episodes
+- Phase 6 of this plan — player UI for the defensive-call decision (new item 6.6, specced when Phase 6 lands)
+
+**Design success criteria (first-playtest):**
+
+- Player never feels "my ally was obligated and it was ignored" (the sharp edge)
+- Refuser never feels "I refused for free" (the pacifist-spiral failure mode)
+- Witness cost is observable in future dealings with the refuser (acceptance formula, reliability signals, coalition threat)
+- Impossibility auto-decline does not become the dominant refusal path — most refusals are discretionary with cost
+
 ---
 
 ### DG-5. Campaign Objectives / Victory Conditions

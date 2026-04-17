@@ -1,9 +1,9 @@
 # Memory and Pressure Spec
 
-> **Status:** v2.2 (audit fixes + scale architecture)
-> **Date:** April 16, 2026 (v2.2 audit); v2.0 rescope; v1.0 April 14, 2026
+> **Status:** v2.3 (DG-4 call-to-arms amendment absorbed — see §8.8)
+> **Date:** April 17, 2026 (v2.3 DG-4 amendment); April 16, 2026 (v2.2 audit); v2.0 rescope; v1.0 April 14, 2026
 > **Phase placement:** Design Refinement queue item 1 (formerly "Reliability + Commitments"; renamed in v2.0).
-> **Companion docs:** `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (the `C3-lite` presentation pass), `WAR_BARGAIN_SPEC.md` (bargain mechanic, deferred to Peace Deals phase).
+> **Companion docs:** `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (the `C3-lite` presentation pass), `WAR_BARGAIN_SPEC.md` (bargain mechanic, deferred to Peace Deals phase), `SCALE_READINESS_PLAN.md` §DG-4 Amendment (call-to-arms refusal / honored-costly contract, source of truth for §8.8).
 
 ---
 
@@ -474,6 +474,177 @@ Rules:
 - proposal preview must warn when the contemplated action would create the third active strike against a nation (`hard_reject` category warning — already wired)
 - emit `hard_reject_posture_triggered` on first crossing from 2 to 3 active strikes and `hard_reject_posture_cleared` on first return from 3+ to 2 or fewer (already wired); both events persist in dispatch and campaign-log metadata for that posture span
 
+### 8.8 Call-to-arms refusal episodes (DG-4 amendment — April 17, 2026)
+
+**Source of truth:** the design for this section is the DG-4 Amendment in `docs/SCALE_READINESS_PLAN.md`. This section specifies what the Memory and Pressure substrate must add to implement that amendment. Any conflict between the two documents resolves to the amendment text; update both if the amendment changes.
+
+**Why this lives here:** the amendment introduces three new durable episode types that ride on the existing betrayal-memory substrate (`betrayal_history`, `episode_id` threading, witness scoping, acceptance formula). Without calling it out in this spec, the substrate owners have no visibility into the new obligations.
+
+#### 8.8.1 Three new episode types
+
+Added to the category tie-break order (currently §11 stable order: `paradox`, `hard_reject`, `bargain`, `betrayal`, `concern`, `peace_conflict`) as members of the `betrayal` family:
+
+- `call_to_arms_refused_offensive`
+- `call_to_arms_refused_defensive`
+- `call_to_arms_honored_costly` (positive episode — §8.5 faithful-play; see §8.8.5)
+
+All three share the payload shape defined in the amendment (`episode_type`, `breaker` or `honorer`, `victim`, `witnesses`, `severity`, `call_context`, `episode_id`). Episode continuity rules from §8.3 apply unchanged — a refusal that directly downgrades an existing treaty reuses the same `episode_id`.
+
+#### 8.8.2 Severity table additions (extends §8.3)
+
+| Event | Global reliability | Victim strikes | Witness effect |
+|------|--------------------|----------------|----------------|
+| `call_to_arms_refused_offensive` | `-6` | `+1` | `-2` to each scoped witness |
+| `call_to_arms_refused_defensive` | `-10` | **`+2` victim-grade, plus permanent grievance flag (see §8.8.4)** | **`-3` to each scoped witness** (wider scope — see §8.8.3) |
+| `call_to_arms_honored_costly` | **`+5`** | `0` (no strike; positive episode does not touch strike table) | **`+2`** to each scoped witness |
+
+Defensive refusal severity intentionally exceeds `ALLIANCE` break (`-10 / +2 / -4`) in *reach* (wider witness scope, §8.8.3) rather than in raw reliability drop. The reliability number is the same; what makes defensive refusal bite harder than alliance-break is who hears about it.
+
+The `defensive_refusal_severity_multiplier` (authored in `cascade_profile`, default `1.75`) applies on top of the base `-10` victim side and `-3` witness side. Resolved severity = base × multiplier × `honor_bias`.
+
+#### 8.8.3 Wider witness scope for defensive refusals (extends §8.4)
+
+Existing §8.4 scopes witnesses to: `ally` (`DEFENSIVE_ALLIANCE` / `ALLIANCE` with victim), `rival` (active rivalry against the breaker), `shared_enemy`, `region_observer` (deferred).
+
+For `call_to_arms_refused_defensive` and `call_to_arms_honored_costly`, witness scope expands:
+
+- **All nations holding any active treaty with the refuser/honorer**, not just with the victim
+- This is the substrate answer to "defensive refusals change how everyone scores your reliability, not just the abandoned party's allies"
+- New `scope_reason`: `treaty_partner_of_breaker` (or `..._of_honorer` for the positive case)
+- Precedence insertion: `ally` > `rival` > **`treaty_partner_of_breaker`** > `shared_enemy` > `region_observer`
+- A witness that qualifies under multiple scopes still resolves to one `scope_reason` per the single-reason rule
+
+Scale note: at 13 nations this widens witness lists from ~2-4 nations to ~6-9. Already flagged in §7.7 "Witness scope loop | O(active_nations) per witness" — revisit caching when this lands.
+
+#### 8.8.4 Victim-grade permanent grievance
+
+Defensive-refusal victims take the normal `+2` victim-side strike and also gain a **permanent grievance flag** (`grievance_type: "defensive_call_refused"`) on the pair. Properties:
+
+- Does **not** decay under §8.6 passive decay rules (the +2 strike does decay normally; the flag does not)
+- Removable only via Make Amends (§8.6.1) targeted at this specific grievance — one explicit political act, not a waiting game
+- Make Amends cost for grievance removal is authored higher than a standard strike (candidate: 400g + 2 DP, vs the standard 200g + 1 DP), and only the grievance flag clears — any standalone strikes continue to require their own Make Amends calls
+- When rivalry data seeds in a later slice (v0.2+), unremoved grievance flags upgrade to rivalry entries; this is the intended graduation path
+- Surfaces in Diplomatic Ledger with a distinct row: *"Austria remembers being abandoned by Russia — 14 turns ago"*
+
+Without this, a well-timed Make Amends tour could scrub defensive refusal entirely. The grievance flag is what makes defensive refusal feel historically durable.
+
+#### 8.8.5 `call_to_arms_honored_costly` as faithful-play reward
+
+Extends §8.5 with a specific positive-episode trigger. First concrete faithful-play event in the substrate. Behavior:
+
+- Fires when the honorer enters a defensive ally's war despite the impossibility predicate firing at call moment, OR enters a defensive call where the aggressor coalition's power-score ratio exceeded an authored "costly" threshold (lower than impossibility, e.g. 1.8×)
+- Positive payload routed through the same substrate seams as `_refused_defensive`, with opposite sign on reliability, relation, and witness effect
+- Victim (the rescued principal) gains a loyalty bond: `nation_relation` +10, persistent for 30 turns, stackable up to authored cap
+- Emits `call_to_arms_honored_costly` spotlight through C3-lite presentation (see §8.8.8)
+
+Design intent: the amendment cannot ship only the punishment side. If honoring an impossible call is free but refusing is costly, players/AI learn "always honor" — boring. If both cost and reward exist, the decision carries weight.
+
+#### 8.8.6 Habitual-refusal oathbreaker posture
+
+New posture in the substrate, parallel in shape to §8.7 `hard_reject_posture` but keyed on refusal history, not strike count.
+
+Rule:
+
+- N `call_to_arms_refused_defensive` episodes in which the acting nation is `breaker`, within the last M turns (authored — candidate `N=2`, `M=15`), promotes the nation into `oathbreaker_posture`
+- While in `oathbreaker_posture`: the nation's AI auto-rejects any incoming `ALLIANCE` or `DEFENSIVE_ALLIANCE` proposal targeting it for the authored cooldown window (`oathbreaker_posture.auto_reject_ally_proposals_turns`, candidate 10 turns)
+- Proposals to or from France must preview this posture using the same `hard_reject` category warning already wired (so the player is not blindsided by auto-rejection)
+- Emit `oathbreaker_posture_triggered` and `oathbreaker_posture_cleared` on transitions, analogous to hard-reject events, persisted in dispatch and campaign-log metadata
+
+Clearance: the posture decays when a `call_to_arms_honored_costly` episode lands while the posture is active, or when `M` turns elapse without a new defensive refusal. Both paths are authored so later balance passes can make oathbreaker status harder or easier to escape.
+
+#### 8.8.7 Anti-renewal cooldown between the pair
+
+Orthogonal to oathbreaker posture. Applies specifically to the refuser-victim pair:
+
+- A `call_to_arms_refused_defensive` episode blocks new `ALLIANCE` / `DEFENSIVE_ALLIANCE` ratification **between that specific pair** for an authored window (candidate 15 turns)
+- Blocking is mechanical, not advisory — the proposal flow returns a dedicated refusal reason (`anti_renewal_active`) and the UI surfaces the remaining turns
+- Peace and non-aggression remain available during the window; only deep defensive ties are blocked
+- Once the window elapses, a new alliance is possible but must be actively ratified through normal diplomatic flow; the prior alliance does not auto-restore
+
+#### 8.8.8 Coalition-formation hook
+
+Refusal accumulation also feeds the coalition-threat scalar maintained in `COALITION_SPEC.md`:
+
+- Each active `call_to_arms_refused_defensive` episode contributes a standing `+threat` signal to any nation holding an active treaty with the refuser's *victim* at refusal moment
+- Signal decays with the episode's severity decay
+- This is the mechanical representation of "a nation that abandons allies is seen as a bigger threat by other small states who might be next"
+
+Implementation: the coalition-threat scalar already reads from betrayal events; this adds a new event family to its input set. No new system.
+
+#### 8.8.9 Acceptance formula input (extends §9.3)
+
+The bilateral betrayal modifier in §9.3 currently reads victim-side strike count. Amendment adds a second term:
+
+- `grievance_modifier` — a nation with a live grievance flag against the asker applies an authored flat penalty to **any** proposal from the asker (not only ally proposals), on top of the existing strike-derived modifier
+- Candidate value: `-30` to acceptance score per active grievance (tunable)
+- Stacks with normal strike modifier; does not double-count the strike itself
+
+This is how the abandoned nation's memory shows up in everyday diplomacy — not just "don't trust them as an ally" but "don't trust them on trade, passage, peace terms, anything."
+
+#### 8.8.10 Presentation surface (C3-lite event families)
+
+Per `COMMITMENTS_PRESENTATION_SPEC.md`, three new speaker="envoy" / speaker="foreign_office" event families are needed for C3-lite:
+
+- `call_to_arms_refused_offensive`
+- `call_to_arms_refused_defensive`
+- `call_to_arms_honored_costly`
+
+Each needs authored spotlight and notice copy in `diplomatic_templates.py`, resolved through the Voice Bible named cast (anonymous voice is disallowed per Voice Bible). Default voices:
+
+- Victim's diplomat leads the refusal spotlight when the victim has a named diplomat
+- French Foreign Office (Talleyrand) leads when France is breaker or honorer
+- Third-party witness notices are one-liners rendered in the notification bar
+
+#### 8.8.11 Audit trail (`war_entry_ledger`)
+
+Extends `campaign_log.py`. On war declaration, emit one `war_entry_ledger` event with structured per-nation records:
+
+```json
+{
+  "episode_id": "...",
+  "war_id": "...",
+  "entries": [
+    {"nation": "Russia", "path": "honored", "side": "defender", "reason": "ALLIANCE with Austria"},
+    {"nation": "Prussia", "path": "refused_discretionary", "side": "defender", "reason": "DEFENSIVE_ALLIANCE with Austria", "refusal_episode_id": "..."},
+    {"nation": "Saxony", "path": "impossible_auto_declined", "side": "defender", "reason": "aggressor_power_ratio=3.1"}
+  ]
+}
+```
+
+Enables later Diplomatic Ledger queries ("Russia has refused 2 defensive calls in the last 10 turns") without scanning the full episode history. `path` values are the locked strings listed in the amendment.
+
+#### 8.8.12 Scenario authoring interaction (`honor_bias`)
+
+Per-nation scalar authored in scenario config, default `1.0`. Reads:
+
+- Multiplies resolved `severity` on all three new episode types (including the positive `honored_costly`)
+- Multiplies strike decay interval in §8.6 for strikes created from these episodes (higher `honor_bias` → slower decay, consistent with "rigid honor culture remembers longer")
+
+`honor_bias` is authored scenario data, colocated with `power_tier`. Like `power_tier` it is stable for a campaign and never mutated at runtime.
+
+#### 8.8.13 Implementation plan call-outs
+
+Adds work to `RELIABILITY_IMPLEMENTATION_PLAN.md`. New slice `B-B4: call-to-arms episodes` covering:
+
+- Episode emission at the three decision seams (attacker-side refuse, defender-side refuse, defender-side honor-costly)
+- `oathbreaker_posture` state field + transitions
+- `anti_renewal_cooldown` per-pair field
+- Grievance flag on `betrayal_history` pair entries
+- `war_entry_ledger` campaign-log event
+- New acceptance formula term (`grievance_modifier`)
+- Target test count: ~25 new (parallel to paradox rename slice)
+
+Slice C (C3-lite) grows by three event families. Slice deferral is acceptable if scale work is urgent — substrate-only ship of 8.8.1–8.8.9 (no presentation, no C3-lite copy) is viable as an interim state, provided presentation lands within the same phase to avoid "mechanic fires silently" UX.
+
+#### 8.8.14 Deferred for later slices
+
+Explicitly not in the amendment's scope, flagged here so later work has a handle:
+
+- Sequential inter-ally signaling (ally X seeing ally Y refuse first) — v2 of the amendment at earliest
+- Vassal refusal path (vassals still use rebellion path, not refusal)
+- Per-episode severity adjustment by *defender's* `power_tier` (currently only aggressor's tier feeds severity)
+- Jealousy v3.1 signal integration (hook named, not built)
+
 ---
 
 ## 9. Acceptance Formula Hooks
@@ -847,6 +1018,7 @@ That is enough to make diplomacy feel political, create real rivalry pressure, a
 
 ## 17. Changelog
 
+- **April 17, 2026 — v2.3 DG-4 call-to-arms amendment absorbed.** Added §8.8 specifying three new episode types (`call_to_arms_refused_offensive`, `call_to_arms_refused_defensive`, `call_to_arms_honored_costly`) that implement the SCALE_READINESS_PLAN §DG-4 Amendment. Defensive refusal gets wider witness scope (`treaty_partner_of_breaker`), victim-grade permanent grievance flag (Make Amends-removable only), oathbreaker posture parallel to hard-reject, anti-renewal cooldown, and a new `grievance_modifier` acceptance-formula term. Positive episode `call_to_arms_honored_costly` is the first concrete §8.5 faithful-play trigger. New audit-trail artifact `war_entry_ledger` in campaign log. New scenario authoring scalar `honor_bias`. New implementation slice B-B4 flagged for `RELIABILITY_IMPLEMENTATION_PLAN.md` (~25 tests). Deferred: sequential inter-ally signaling, vassal refusal path, defender-tier severity weighting, Jealousy v3.1 integration.
 - **April 16, 2026 — v2.2 audit fixes + scale architecture.** Renamed "rivalry" → "concern" throughout (field: `nation_concerns`) to align with target balance-of-power architecture where bilateral friction is dynamic, not static labels (§7 terminology note). Fixed seeded-pair count from 3 → 4 (stale after v2.1 added France↔Austria). Tightened redemption tick (§8.6) to require `OPEN_BORDERS` or above — `PEACE` alone no longer qualifies as active commitment. Clarified "deep treaties" = `DEFENSIVE_ALLIANCE` + `ALLIANCE` + `VASSAL` (§7.3). Added auto-downgrade rule: concern intensity drops `active` → `cold` when the concern pair reaches `DEFENSIVE_ALLIANCE` or above (§7.1). Added §7.7 Scale Architecture Note documenting the target dynamic-concern system for full Europe and listing what breaks at 15+ nations. Acceptance formula modifiers renamed: `direct_rivalry_mod` → `direct_concern_mod`, `rival_conflict_mod` → `concern_conflict_mod`. AI decision_reason enum: `rival_pressure` → `concern_pressure`. Warning category: `rivalry` → `concern`.
 - **April 16, 2026 — v2.1 creative-audit folds.** §3 Goal 1 rewritten to own the "forced political tradeoff" framing (previously read as apologetic pressure-without-promise). §7.1 seeded France↔Austria as `secondary + active` to match the 1805 Third Coalition setting (previously absent on the claim Austria was a "swing partner"; creative audit flagged that framing as a period misread). §7.4.C flagged Britain-anti-continental-hegemon as the #1 historical-texture debt for D2 Coalition Generalization scope. §8.6.1 added **Make Amends** active-redemption verb — the v0.1 fun/agency lever that closes the passive-redemption gap (200g + 1 DP → remove 1 strike, 10-turn cooldown per pair, France-only actor in v0.1). §12.2 added `reparations_cooldown` field. §13 Slice B added B-B7 (Make Amends). Test budget bumped from ~60-66 to ~68-74 tests; session count unchanged at ~3.
 - **April 16, 2026 — v2.0 rescope.** Renamed phase to "Memory and Pressure". War bargains moved to dedicated `WAR_BARGAIN_SPEC.md` (Peace Deals phase). Acceptance formula trimmed to three modifiers (no `bargain_value_mod`, no `war_entry_score`). §7.5 rivalry-driven paradox cut; legacy alliance-cross-war paradox renamed to `commitment_paradox`. §6.4 commitment store and §13 commitment data fields moved to `WAR_BARGAIN_SPEC.md`. Coalition forward-compat seams (`opposition_graph`, `war_bloc.target_nation` stores) cut from v0.1 — helpers stay parameterized. New Gate 10 added. New §6.5 note that `region_observer` witness scope reactivates when `WAR_BARGAIN_SPEC` ships. New §10.1 enum entry `unknown_baseline` to retire the current AI catch-all. Honored-turn reliability tick (§8.6) added explicitly as this-phase work. Vassal-decay edge case noted (§8.6). Composite-floor-supersedes-per-modifier-cap clarification added (§9.4). Stable-tie-break-index flagged as future improvement (§11.2).
