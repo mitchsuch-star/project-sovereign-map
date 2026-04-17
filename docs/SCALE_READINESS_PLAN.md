@@ -30,7 +30,19 @@ These are decisions, not code. Each one affects downstream implementation. Answe
 
 **Downstream impact:** Determines urgency of bilateral pair explosion fix (CC2), coalition retuning, UI density work.
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: 13 independent nations, architecture supports 20+.**
+
+Ship with 13 independent nations in three tiers. All systems (diplomacy, dispatch, UI, cascade, AI) must be architected to handle 20+ nations so the roster can grow post-EA without structural rework.
+
+**Tier 1 — Major Powers (5):** France, Britain, Austria, Prussia, Russia. Core antagonists, full marshal rosters, full diplomatic agency.
+
+**Tier 2 — Active Secondary Powers (4):** Spain (French ally → enemy, Peninsular War), Ottoman Empire (eastern tension, Russian pressure), Sweden (Third Coalition, Bernadotte), Naples/Two Sicilies (Italian theater, Murat).
+
+**Tier 3 — Key Minors (4):** Bavaria (France's key German ally, later defection), Saxony (already in-game), Portugal (British ally, invasion target), Denmark-Norway (French ally post-1807).
+
+**As vassals, not independent nations:** Netherlands/Batavian Republic, Poland/Duchy of Warsaw, Württemberg, Switzerland. The existing vassal system handles these — the player creates them through conquest and diplomacy.
+
+**Scale note:** 13 nations = 78 bilateral pairs. Smart filtering (DG-2) keeps this manageable. At 20 nations = 190 pairs — the filtering and dispatch systems (DG-7) must handle this without UI changes.
 
 ---
 
@@ -66,7 +78,13 @@ These are decisions, not code. Each one affects downstream implementation. Answe
 
 **Affected files:** `world_state.py` (process_supply_attrition), `region.py` (supply_capacity), `enemy_ai.py` (AI must consider supply), `strategic_ledger.gd` (show supply status).
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Deferred. Build after Europe map is playable.**
+
+Supply lines is a gameplay feature, not a scaling prerequisite. The current local `supply_capacity` per region already applies attrition — armies in distant regions take losses. Distance-from-capital supply would make the game *better* but does not block having a functional Europe map.
+
+**Plan:** Ship Europe with current local supply. After first Europe playtest, evaluate whether the game *feels* like it needs overextension pressure or whether attrition + economy already create it. If needed, implement as a "Campaign Feel" pass — likely Option A (distance penalty) as the simplest high-impact choice.
+
+**No code changes required for map scaling.** The existing `process_supply_attrition` and `region.supply_capacity` work at any region count.
 
 ---
 
@@ -134,7 +152,45 @@ These are decisions, not code. Each one affects downstream implementation. Answe
 
 **Affected files:** `dispatch.py` (queue_dispatch_event, build), `dispatch_view.gd` (rendering), `diplomatic_advisory.py` (Talleyrand prioritization).
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Categorized sections with priority escalation. Must handle 20+ nations.**
+
+Hybrid of Options A + B. Dispatches are grouped into themed sections with period-appropriate voices, and events within sections are filtered by priority. This matches how Napoleon actually received information — through different channels and aides.
+
+**Four dispatch sections:**
+
+| Section | Voice | Contains |
+|---------|-------|----------|
+| **Military Affairs** | Berthier | Battles, movements, retreats, garrison events, attrition, reinforcements |
+| **Diplomatic Affairs** | Talleyrand | Proposals, treaty changes, war declarations, coalition shifts, rivalry events |
+| **Imperial Treasury** | Narrator | Income, trade, bankruptcy warnings, upkeep, building completion |
+| **Intelligence** | Berthier | Fog reveals, scouting results, enemy sightings, watchtower reports |
+
+**Priority tiers (per event, not per section):**
+
+| Priority | Behavior | Examples |
+|----------|----------|----------|
+| **CRITICAL** | Always shown, expanded | Wars declared on player, proposals requiring response, battles involving player marshals, capital threats, coalition formation |
+| **MAJOR** | Shown, collapsed | AI-AI wars near player borders, relation shifts with neighbors, coalition brewing, ally requests |
+| **MINOR** | Summarized as count | Distant AI-AI diplomacy, minor trade income, routine relation drift, minor attrition |
+
+**Collapse rules:**
+- Sections with zero events are hidden entirely
+- MINOR events within a section collapse into a summary line: *"3 minor diplomatic developments occurred"* with expand option
+- Cap: if a section exceeds 15 events after filtering, collapse MAJOR events too and show *"8 military developments — expand to review"*
+- Empty sections don't render at all (at 5 nations, Treasury and Intelligence may be empty most turns)
+
+**Scale behavior at 20+ nations:**
+- At 13 nations: ~15-25 events/turn, most sections have 3-8 items. Manageable.
+- At 20 nations: ~30-50 events/turn. MINOR collapse kicks in heavily. Player sees ~12-18 expanded items across 4 sections. Distant AI-AI noise vanishes into summary lines.
+- At 30+ nations: Same structure holds. MAJOR collapse may trigger in Diplomatic Affairs. Player focuses on CRITICAL items, drills into sections on demand.
+
+**Implementation approach:**
+1. Add `category` field (`military`, `diplomatic`, `treasury`, `intelligence`) and `priority` field (`critical`, `major`, `minor`) to dispatch events in `dispatch.py`
+2. `build()` groups events by category, sorts by priority within each group
+3. `dispatch_view.gd` renders sections with headers, collapse/expand per section
+4. No new UI screens — this replaces the flat list inside the existing dispatch view
+
+**Affected files:** `dispatch.py` (event category/priority fields, grouped build), `dispatch_view.gd` (sectioned rendering, collapse/expand), `campaign_log.py` (event types may need category mapping).
 
 ---
 
@@ -748,13 +804,13 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 
 | # | Item | Phase | Status | Session |
 |---|------|-------|--------|---------|
-| DG-1 | Nation roster decision | 0 | | |
+| DG-1 | Nation roster decision | 0 | DECIDED | April 17, 2026 |
 | DG-2 | Diplomacy model decision | 0 | | |
-| DG-3 | Supply lines decision | 0 | | |
+| DG-3 | Supply lines decision | 0 | DEFERRED | April 17, 2026 |
 | DG-4 | War cascade policy | 0 | | |
 | DG-5 | Victory conditions | 0 | | |
 | DG-6 | Pacing (turns, AP) | 0 | | |
-| DG-7 | Dispatch density | 0 | | |
+| DG-7 | Dispatch density | 0 | DECIDED | April 17, 2026 |
 | 1.1 | Nation config test | 1 | DONE | April 16, 2026 |
 | 1.2 | Fix hardcoded `== 19` | 1 | DONE | April 16, 2026 |
 | 1.3 | Adjacency connectivity test | 1 | DONE | April 16, 2026 |
