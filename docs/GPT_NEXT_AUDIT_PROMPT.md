@@ -30,6 +30,7 @@ Read these files before producing findings:
 - `docs/GPT_AUDIT_PLAN_RESULTS.md`
 - `docs/BUG_FIXES.md` sections `PL-26` through `PL-29`
 - `docs/STATUS.md`
+- `docs/SCALE_READYNESS.md`
 - `docs/VISION.md`
 - `docs/DESIGN_REFINEMENT.md`
 - `docs/ENEMY_AI_REFERENCE.md`
@@ -62,6 +63,13 @@ Read other files only as needed to support or challenge a finding.
 5. Do not confuse "different constants" with "meaningful personality differentiation."
 6. Do not recommend a rewrite unless you can prove the current structure is not survivable.
 7. Every finding must include evidence: file references, tests, command probes, or directly observed behavior.
+8. Treat `docs/SCALE_READYNESS.md` as a prior risk register, not as proof. For each major scale finding, state whether it is:
+   - confirmed from current code
+   - changed since the doc was written
+   - genuinely new
+9. Do not simply restate known scale risks. Your value is in verifying, falsifying, narrowing, or reprioritizing them from current code and probes.
+10. For every `Critical` or `Major` finding, do at least one disconfirming check. If you could not perform one, say so explicitly.
+11. If a prior bug label or doc framing is misleading, rename the problem based on current evidence instead of inheriting the old framing blindly.
 
 ## Required Method
 
@@ -81,6 +89,22 @@ If time is limited, do not skip:
 - first-hour experience
 - enemy AI gameplay/personality
 - enemy AI organization/efficiency
+
+## Scale Readiness Cross-Check
+
+You must explicitly cross-check current evidence against `docs/SCALE_READYNESS.md`.
+
+For the scale-readiness portion of the audit:
+
+1. Verify which listed risks are still true in current code.
+2. Call out any risk in that doc that is now partially mitigated or outdated.
+3. Identify any important Europe-scale risk missing from that doc.
+4. Separate:
+   - current-game issue on the 19-region shell
+   - future-scale issue for 80-100+ regions
+   - issue that is both already visible now and certain to worsen later
+
+Do not pad the audit with speculative full-Europe redesign work. Keep the scale section focused on concrete current assumptions, extension risk, and likely failure points.
 
 ## Baseline Snapshot
 
@@ -237,6 +261,7 @@ If you cannot run a test or probe, say so clearly and explain the limitation.
 - `PL-29` should be verified as a real usability gap, but it does not need a deep standalone audit unless it uncovers state-reset or save/load corruption risk.
 - Full renderer replacement is not the primary target of this audit unless it directly blocks first-hour clarity or AI evaluation.
 - Full 80-100 region optimization is not the primary target either; instead, identify current AI and contract assumptions that would clearly fail at that scale.
+- `docs/SCALE_READYNESS.md` is required context for the scale portion of the audit. Use it to avoid rediscovering the same risk list blindly, but do not trust it without code verification.
 
 ## Output Format
 
@@ -265,6 +290,7 @@ For each finding, include:
 - severity
 - category
 - evidence
+- counter-evidence considered
 - why it matters
 - smallest credible fix direction
 
@@ -295,7 +321,16 @@ Use these buckets:
 - design-gate next
 - defer until map-scale work
 
-### 8. Confidence Statement
+### 8. Scale Readiness Delta
+
+For each top scale item, report:
+
+- status: `confirmed`, `changed`, `new`, or `not reproduced`
+- evidence
+- whether it matters now, only at Europe scale, or both
+- smallest next action
+
+### 9. Confidence Statement
 
 Separate:
 

@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track. Diplomacy planning docs rescoped on April 16: `Reliability + Commitments` renamed to `Memory and Pressure`; war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md` and rescheduled into the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`. The substrate (betrayal memory + episode_id + witness scope + hard-reject posture + structured warnings + paradox episode continuity) is shipped; the remaining `Memory and Pressure` work is rivalry seed (4 authored pairs including France↔Austria per v2.1) + acceptance-formula additions + paradox rename + Make Amends active-redemption verb (v2.1) + C3-lite presentation pass (~68-74 tests, ~3 sessions — v2.1 creative-audit folds added Make Amends plus France-Austria rivalry; Slice C stays two sessions per `COMMITMENTS_PRESENTATION_SPEC.md` §14). Earlier April 16 substrate hardening: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action`, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
+> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track. April 16 planning follow-up: `docs/SCALE_READYNESS.md` now captures the current Europe-map scaling risks and smaller-map assumptions, and is tracked below as the next planning item after the active renderer slice. Diplomacy planning docs rescoped on April 16: `Reliability + Commitments` renamed to `Memory and Pressure`; war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md` and rescheduled into the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`. The substrate (betrayal memory + episode_id + witness scope + hard-reject posture + structured warnings + paradox episode continuity) is shipped; the remaining `Memory and Pressure` work is rivalry seed (4 authored pairs including France-Austria per v2.1) + acceptance-formula additions + paradox rename + Make Amends active-redemption verb (v2.1) + C3-lite presentation pass (~68-74 tests, ~3 sessions - v2.1 creative-audit folds added Make Amends plus France-Austria rivalry; Slice C stays two sessions per `COMMITMENTS_PRESENTATION_SPEC.md` §14). Earlier April 16 substrate hardening: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action`, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
 
 ---
 
@@ -35,6 +35,8 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 | ~~P3 - QOL~~ | ~~PL-29~~ | ~~No new game / restart endpoint~~ **FIXED** |
  
 **Current routed next step:** Session 8 - Renderer cutover prep and replacement.
+
+**Next planning item:** `Scale Readyness` - consolidate Europe-map scaling risks, smaller-map assumptions, and pre-expansion priorities. See `docs/SCALE_READYNESS.md`.
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
@@ -85,7 +87,7 @@ GPT audit confirmed the codebase is "fragile but manageable" at 19 regions but N
 | Popup routing registry | **FIXED Apr 12, 2026 (Session 6 slice 3).** `main.gd` now routes modal response precedence through ordered registries plus a shared dispatcher. | This session |
 | Typed dialogue migration | **FIXED Apr 12, 2026 (Session 6 slice 2).** Remaining diplomacy popups now route through typed endpoints/actions, including a dedicated typed objection path. | This session |
 
-**Needs:** A consolidated pre-expansion plan that sequences these items after Sessions 1-5. The GPT audit priority roadmaps in `docs/GPT_AUDIT_PLAN_RESULTS.md` now cover both the broader architecture audit and the focused diplomacy attention / legitimacy audit. No item from this list moved earlier as a full prerequisite for the current bug sessions.
+**Needs:** A consolidated pre-expansion plan that sequences these items after Sessions 1-5. `docs/SCALE_READYNESS.md` now holds the current risk register and smaller-map assumption list for that planning pass. The GPT audit priority roadmaps in `docs/GPT_AUDIT_PLAN_RESULTS.md` now cover both the broader architecture audit and the focused diplomacy attention / legitimacy audit. No item from this list moved earlier as a full prerequisite for the current bug sessions.
 
 **Post-bug architecture sessions:**
 
