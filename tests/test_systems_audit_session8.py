@@ -265,7 +265,7 @@ class TestAdminAPGold:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestVictoryThreshold:
-    """Victory requires 75% of regions (VICTORY_REGION_FRACTION), i.e. 14 of 19."""
+    """Victory requires 75% of regions via VICTORY_REGION_FRACTION."""
 
     def test_victory_threshold_constant_exists(self):
         """VICTORY_REGION_FRACTION is 0.75 and produces correct threshold for current map."""
