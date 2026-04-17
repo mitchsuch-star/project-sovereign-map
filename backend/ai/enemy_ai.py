@@ -4928,8 +4928,7 @@ class EnemyAI:
         """Check if nation should invest in stables."""
         has_cavalry_marshal = any(
             getattr(m, 'cavalry', False)
-            for m in world.marshals.values()
-            if m.nation == nation
+            for m in world.get_marshals_by_nation(nation)
         )
         if not has_cavalry_marshal:
             return False
@@ -4945,11 +4944,30 @@ class EnemyAI:
         region = world.get_region(marshal.location)
         if not region:
             return False
-        for m in world.marshals.values():
-            if m.name != marshal.name and m.nation == nation and m.strength > 0:
-                if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
-                    if m.location == marshal.location or m.location in region.adjacent_regions:
-                        return True
+        self._ensure_marshal_indexes(world)
+
+        same_region = world.get_friendly_marshals_in_region_indexed(
+            marshal.location,
+            nation,
+            exclude_name=marshal.name,
+        )
+        if any(
+            not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False)
+            for m in same_region
+        ):
+            return True
+
+        for adj_name in region.adjacent_regions:
+            adjacent_friendlies = world.get_friendly_marshals_in_region_indexed(
+                adj_name,
+                nation,
+                exclude_name=marshal.name,
+            )
+            if any(
+                not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False)
+                for m in adjacent_friendlies
+            ):
+                return True
         return False
 
     def _enemy_cavalry_within_range(self, marshal: Marshal, nation: str, world: WorldState, max_range: int = 2) -> bool:
@@ -4957,13 +4975,14 @@ class EnemyAI:
         region = world.get_region(marshal.location)
         if not region:
             return False
+        self._ensure_marshal_indexes(world)
         checked = {marshal.location}
         frontier = set(region.adjacent_regions)
         for depth in range(1, max_range + 1):
             for rname in frontier:
-                for m in world.marshals.values():
-                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == rname and world.is_at_war(nation, m.nation):
-                        return True
+                enemies_there = world.get_hostile_marshals_in_region_indexed(rname, nation)
+                if any(getattr(m, 'cavalry', False) for m in enemies_there):
+                    return True
                 checked.add(rname)
             if depth < max_range:
                 next_frontier = set()
@@ -4984,8 +5003,13 @@ class EnemyAI:
         region = world.get_region(region_name)
         if not region:
             return -1000
+        self._ensure_marshal_indexes(world)
 
         score = 0
+        adjacent_hostiles = {
+            adj_name: world.get_hostile_marshals_in_region_indexed(adj_name, nation)
+            for adj_name in region.adjacent_regions
+        }
 
         # Prefer hills terrain (+30)
         terrain = getattr(region, 'terrain', 'plains')
@@ -5003,31 +5027,43 @@ class EnemyAI:
             if adj_region and adj_region.controller and adj_region.controller != nation:
                 is_frontline = True
                 score += 15
-                for m in world.marshals.values():
-                    if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
-                        if getattr(m, 'defense_bonus', 0) > 0:
-                            score += 25
+                score += sum(
+                    25 for m in adjacent_hostiles[adj_name]
+                    if getattr(m, 'defense_bonus', 0) > 0
+                )
 
         # Prefer positions with friendly infantry screen (+20 same, +10 adjacent)
         has_screen = False
         has_local_infantry = False
-        for m in world.marshals.values():
-            if m.name != marshal.name and m.nation == nation and m.strength > 0:
+        same_region_friendlies = world.get_friendly_marshals_in_region_indexed(
+            region_name,
+            nation,
+            exclude_name=marshal.name,
+        )
+        for m in same_region_friendlies:
+            if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
+                score += 20
+                has_screen = True
+                has_local_infantry = True
+
+        for adj_name in region.adjacent_regions:
+            adjacent_friendlies = world.get_friendly_marshals_in_region_indexed(
+                adj_name,
+                nation,
+                exclude_name=marshal.name,
+            )
+            for m in adjacent_friendlies:
                 if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
-                    if m.location == region_name:
-                        score += 20
-                        has_screen = True
-                        has_local_infantry = True
-                    elif m.location in region.adjacent_regions:
-                        score += 10
-                        has_screen = True
+                    score += 10
+                    has_screen = True
 
         # Avoid positions near enemy cavalry without screen (-30)
         if not has_screen:
             for adj_name in region.adjacent_regions:
-                for m in world.marshals.values():
-                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == adj_name and world.is_at_war(nation, m.nation):
-                        score -= 30
+                score -= 30 * sum(
+                    1 for m in adjacent_hostiles[adj_name]
+                    if getattr(m, 'cavalry', False)
+                )
 
         # Own territory preferred (+10)
         if region.controller == nation:
@@ -5062,20 +5098,31 @@ class EnemyAI:
         # this position is safely behind the screen — ideal for
         # artillery bombardment support.
         if not is_frontline:
-            for m in world.marshals.values():
-                if m.name != marshal.name and m.nation == nation and m.strength > 0:
-                    if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
-                        if m.location in region.adjacent_regions:
-                            inf_region = world.get_region(m.location)
-                            if inf_region:
-                                inf_on_front = any(
-                                    world.get_region(a) and world.get_region(a).controller
-                                    and world.get_region(a).controller != nation
-                                    for a in inf_region.adjacent_regions
-                                )
-                                if inf_on_front:
-                                    score += 15  # Behind an infantry screen on the front
-                                    break  # Count once
+            for adj_name in region.adjacent_regions:
+                adjacent_friendlies = world.get_friendly_marshals_in_region_indexed(
+                    adj_name,
+                    nation,
+                    exclude_name=marshal.name,
+                )
+                infantry_screen = next(
+                    (
+                        m for m in adjacent_friendlies
+                        if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False)
+                    ),
+                    None,
+                )
+                if infantry_screen is None:
+                    continue
+                inf_region = world.get_region(infantry_screen.location)
+                if inf_region:
+                    inf_on_front = any(
+                        world.get_region(a) and world.get_region(a).controller
+                        and world.get_region(a).controller != nation
+                        for a in inf_region.adjacent_regions
+                    )
+                    if inf_on_front:
+                        score += 15  # Behind an infantry screen on the front
+                        break  # Count once
 
         return score
 
@@ -5083,8 +5130,8 @@ class EnemyAI:
         """Find region of nearest friendly non-cavalry, non-artillery marshal for screen retreat."""
         best_dest = None
         best_dist = 999
-        for m in world.marshals.values():
-            if m.name != marshal.name and m.nation == nation and m.strength > 0:
+        for m in world.get_marshals_by_nation(nation):
+            if m.name != marshal.name:
                 if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
                     dist = world.get_distance(marshal.location, m.location)
                     if dist < best_dist:
@@ -5148,13 +5195,16 @@ class EnemyAI:
         # Must not have moved this turn (settled here, not just arrived)
         if getattr(marshal, 'moved_this_turn', False):
             return False
+        self._ensure_marshal_indexes(world)
 
         # Check for co-located same-nation allies
         co_located_allies = [
-            m for m in world.marshals.values()
-            if m.nation == nation and m.name != marshal.name
-            and m.location == marshal.location and m.strength > 0
-            and not getattr(m, 'broken', False)
+            m for m in world.get_friendly_marshals_in_region_indexed(
+                marshal.location,
+                nation,
+                exclude_name=marshal.name,
+            )
+            if not getattr(m, 'broken', False)
         ]
         if not co_located_allies:
             return False
@@ -5165,20 +5215,15 @@ class EnemyAI:
             return False
 
         # War enemy in same region
-        enemies_here = [
-            m for m in world.marshals.values()
-            if m.location == marshal.location and m.nation != nation and m.strength > 0
-            and world.is_at_war(nation, m.nation)
-        ]
+        enemies_here = world.get_hostile_marshals_in_region_indexed(marshal.location, nation)
         if enemies_here:
             return True
 
         # War enemy in adjacent region
         for adj_name in marshal_region.adjacent_regions:
-            for m in world.marshals.values():
-                if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
-                    ai_debug(f"    P4.76: {marshal.name} maintaining co-location — threat at {adj_name}")
-                    return True
+            if world.get_hostile_marshals_in_region_indexed(adj_name, nation):
+                ai_debug(f"    P4.76: {marshal.name} maintaining co-location — threat at {adj_name}")
+                return True
 
         return False
 
@@ -5195,6 +5240,7 @@ class EnemyAI:
             return None
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
+        self._ensure_marshal_indexes(world)
 
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
@@ -5202,11 +5248,7 @@ class EnemyAI:
 
         # For each adjacent enemy-held region with defenders
         for adj_name in marshal_region.adjacent_regions:
-            enemies_there = [
-                m for m in world.marshals.values()
-                if m.location == adj_name and m.nation != nation and m.strength > 0
-                and world.is_at_war(nation, m.nation)
-            ]
+            enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
             if not enemies_there:
                 continue  # Skip undefended — P4.5 handles
 
@@ -5220,23 +5262,45 @@ class EnemyAI:
 
             # Find co-located allies with relationship >= Rival for combined estimate
             co_located_allies = [
-                m for m in world.marshals.values()
-                if m.nation == nation and m.name != marshal.name
-                and m.location == marshal.location and m.strength > 0
-                and not getattr(m, 'broken', False)
+                m for m in world.get_friendly_marshals_in_region_indexed(
+                    marshal.location,
+                    nation,
+                    exclude_name=marshal.name,
+                )
+                if not getattr(m, 'broken', False)
                 and not getattr(m, 'retreated_this_turn', False)
                 and marshal.get_relationship(m.name) >= -1  # >= Rival
             ]
 
             # Find nearby allies (within 2 distance, not co-located) with relationship >= Rival
+            nearby_regions = set()
+            frontier = {marshal.location}
+            checked_regions = {marshal.location}
+            for _ in range(2):
+                next_frontier = set()
+                for region_name in frontier:
+                    region = world.get_region(region_name)
+                    if not region:
+                        continue
+                    for candidate in region.adjacent_regions:
+                        if candidate in checked_regions:
+                            continue
+                        checked_regions.add(candidate)
+                        nearby_regions.add(candidate)
+                        next_frontier.add(candidate)
+                frontier = next_frontier
+
             nearby_allies = [
-                m for m in world.marshals.values()
-                if m.nation == nation and m.name != marshal.name
-                and m.strength > 0 and m.location != marshal.location
-                and not getattr(m, 'broken', False)
+                m
+                for region_name in nearby_regions
+                for m in world.get_friendly_marshals_in_region_indexed(
+                    region_name,
+                    nation,
+                    exclude_name=marshal.name,
+                )
+                if not getattr(m, 'broken', False)
                 and not getattr(m, 'retreated_this_turn', False)
                 and marshal.get_relationship(m.name) >= -1  # >= Rival
-                and 0 < world.get_distance(marshal.location, m.location) <= 2
             ]
 
             if not nearby_allies and not co_located_allies:
@@ -5263,11 +5327,7 @@ class EnemyAI:
                     if move_adj in visited:
                         continue
                     # Don't move into war enemies
-                    enemies_blocking = [
-                        m for m in world.marshals.values()
-                        if m.location == move_adj and m.nation != nation and m.strength > 0
-                        and world.is_at_war(nation, m.nation)
-                    ]
+                    enemies_blocking = world.get_hostile_marshals_in_region_indexed(move_adj, nation)
                     if enemies_blocking:
                         continue
                     if not self._can_ai_move_to(world, nation, move_adj):
@@ -5302,6 +5362,7 @@ class EnemyAI:
             return None
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
+        self._ensure_marshal_indexes(world)
 
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
@@ -5309,8 +5370,8 @@ class EnemyAI:
 
         # Find allies with relationship >= Rival
         allies = [
-            m for m in world.marshals.values()
-            if m.nation == nation and m.name != marshal.name and m.strength > 0
+            m for m in world.get_marshals_by_nation(nation)
+            if m.name != marshal.name
             and not getattr(m, 'broken', False)
             and marshal.get_relationship(m.name) >= -1  # >= Rival
         ]
@@ -5327,17 +5388,14 @@ class EnemyAI:
 
             is_threatened = False
             # War enemies in same region as ally
-            for m in world.marshals.values():
-                if m.location == ally.location and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
-                    is_threatened = True
-                    break
+            if world.get_hostile_marshals_in_region_indexed(ally.location, nation):
+                is_threatened = True
             # War enemies adjacent to ally
             if not is_threatened:
                 for adj_name in ally_region.adjacent_regions:
-                    for m in world.marshals.values():
-                        if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
-                            is_threatened = True
-                            break
+                    if world.get_hostile_marshals_in_region_indexed(adj_name, nation):
+                        is_threatened = True
+                        break
                     if is_threatened:
                         break
 
@@ -5377,11 +5435,7 @@ class EnemyAI:
                     continue
 
                 # Don't move into war-enemy-occupied regions
-                enemies_there = [
-                    m for m in world.marshals.values()
-                    if m.location == adj_name and m.nation != nation and m.strength > 0
-                    and world.is_at_war(nation, m.nation)
-                ]
+                enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                 if enemies_there:
                     continue
                 if not self._can_ai_move_to(world, nation, adj_name):
@@ -5390,10 +5444,9 @@ class EnemyAI:
                 score = 10  # Base score for being near ally
                 # Prefer positions also adjacent to war enemy (enables own attacks)
                 for adj2 in adj_region.adjacent_regions:
-                    for m in world.marshals.values():
-                        if m.location == adj2 and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
-                            score += 5
-                            break
+                    if world.get_hostile_marshals_in_region_indexed(adj2, nation):
+                        score += 5
+                        break
                     if score > 10:
                         break  # Found enemy adjacency, don't double-count
 
@@ -5421,38 +5474,38 @@ class EnemyAI:
         region = world.get_region(region_name)
         if not region:
             return 0
+        self._ensure_marshal_indexes(world)
 
         check_locations = {region_name} | set(region.adjacent_regions)
 
-        for m in world.marshals.values():
-            if m.name == marshal.name or m.strength <= 0:
-                continue
-            if m.location not in check_locations:
-                continue
+        from backend.game_logic.coalition import get_coalition_friction, is_coalition_member
 
-            # Ally check: same nation OR both coalition members (Session 7)
-            from backend.game_logic.coalition import is_coalition_member
-            is_ally = (m.nation == nation)
-            if not is_ally and is_coalition_member(m.nation, world) and is_coalition_member(nation, world):
-                is_ally = True
-            if not is_ally:
-                continue
+        for location_name in check_locations:
+            for m in world.get_marshals_in_region_indexed(location_name):
+                if m.name == marshal.name or m.strength <= 0:
+                    continue
 
-            rel = marshal.get_relationship(m.name)
-            raw_bonus = 0
-            if rel >= 2:  # Devoted
-                raw_bonus = 10
-            elif rel >= 0:  # Professional or Friendly
-                raw_bonus = 5
-            # Rival (-1) or Hostile (-2): no bonus
+                # Ally check: same nation OR both coalition members (Session 7)
+                is_ally = (m.nation == nation)
+                if not is_ally and is_coalition_member(m.nation, world) and is_coalition_member(nation, world):
+                    is_ally = True
+                if not is_ally:
+                    continue
 
-            # Apply coalition friction for cross-nation allies (§5c)
-            if m.nation != nation:
-                from backend.game_logic.coalition import get_coalition_friction
-                friction = get_coalition_friction(m.nation, nation, world)
-                bonus += int(raw_bonus * friction)
-            else:
-                bonus += raw_bonus
+                rel = marshal.get_relationship(m.name)
+                raw_bonus = 0
+                if rel >= 2:  # Devoted
+                    raw_bonus = 10
+                elif rel >= 0:  # Professional or Friendly
+                    raw_bonus = 5
+                # Rival (-1) or Hostile (-2): no bonus
+
+                # Apply coalition friction for cross-nation allies (§5c)
+                if m.nation != nation:
+                    friction = get_coalition_friction(m.nation, nation, world)
+                    bonus += int(raw_bonus * friction)
+                else:
+                    bonus += raw_bonus
 
         return bonus
 
@@ -5490,11 +5543,12 @@ class EnemyAI:
         If two of three unit types are already co-located at a position and
         this marshal would be the third type, returns +20.
         """
-        units_there = [
-            m for m in world.marshals.values()
-            if m.location == region_name and m.nation == nation
-            and m.name != marshal.name and m.strength > 0
-        ]
+        self._ensure_marshal_indexes(world)
+        units_there = world.get_friendly_marshals_in_region_indexed(
+            region_name,
+            nation,
+            exclude_name=marshal.name,
+        )
         if not units_there:
             return 0
 

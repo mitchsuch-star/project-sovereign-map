@@ -1,4 +1,6 @@
 from tests.conftest import MarshalFactory, WorldFactory
+from backend.ai.enemy_ai import EnemyAI
+from backend.commands.executor import CommandExecutor
 
 
 def _set_war(world, nation_a, nation_b):
@@ -99,3 +101,77 @@ def test_watchtower_expands_live_visibility_without_friendly_marshal_presence():
 
     assert watched_region in world.get_live_visible_regions_for_nation("Prussia")
     assert "Watchtower Target" in visible_names
+
+
+def test_ai_artillery_helpers_refresh_indexes_for_direct_calls():
+    artillery = MarshalFactory.artillery(name="Drouot", location="Paris", nation="France")
+    screen = MarshalFactory.infantry(name="Soult", location="Paris", nation="France")
+    enemy_cavalry = MarshalFactory.cavalry(
+        name="Uxbridge",
+        location="Belgium",
+        nation="Prussia",
+    )
+    world = WorldFactory.with_marshals(
+        [artillery, screen, enemy_cavalry],
+        player_nation="France",
+    )
+    _set_war(world, "France", "Prussia")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+
+    assert ai._artillery_has_screen(artillery, "France", world) is True
+    assert ai._enemy_cavalry_within_range(artillery, "France", world, max_range=1) is True
+
+
+def test_ai_coordinated_attack_refreshes_indexes_for_direct_calls():
+    attacker = MarshalFactory.infantry(
+        name="Ney",
+        location="Belgium",
+        strength=25000,
+        nation="Coalition",
+        personality="aggressive",
+    )
+    ally = MarshalFactory.infantry(
+        name="Blucher",
+        location="Waterloo",
+        strength=15000,
+        nation="Coalition",
+        personality="cautious",
+    )
+    defender = MarshalFactory.enemy(
+        name="Davout",
+        location="Rhineland",
+        strength=20000,
+        nation="France",
+    )
+    attacker.set_relationship("Blucher", 0)
+    world = WorldFactory.with_marshals(
+        [attacker, ally, defender],
+        player_nation="France",
+    )
+    _set_war(world, "Coalition", "France")
+    world.get_region("Belgium").controller = "Coalition"
+    world.get_region("Waterloo").controller = "Coalition"
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._find_coordinated_attack(attacker, "Coalition", world)
+
+    assert action is not None
+    assert action["action"] == "move"
+
+
+def test_ai_combined_arms_bonus_refreshes_indexes_for_direct_calls():
+    infantry = MarshalFactory.infantry(name="Soult", location="Belgium", nation="France")
+    cavalry = MarshalFactory.cavalry(name="Murat", location="Belgium", nation="France")
+    artillery = MarshalFactory.artillery(name="Drouot", location="Paris", nation="France")
+    world = WorldFactory.with_marshals(
+        [infantry, cavalry, artillery],
+        player_nation="France",
+    )
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+
+    assert ai._get_combined_arms_bonus("Belgium", artillery, "France", world) == 20
