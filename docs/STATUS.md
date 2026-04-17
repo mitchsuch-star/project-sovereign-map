@@ -34,9 +34,9 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 | ~~P2 - UX~~ | ~~PL-34~~ | ~~Queued diplomatic proposals can expire unseen~~ **FIXED** (eliminated; mailbox inbox) |
 | ~~P3 - QOL~~ | ~~PL-29~~ | ~~No new game / restart endpoint~~ **FIXED** |
  
-**Current routed next step:** Session 8 - Renderer cutover prep and replacement.
+**Current routed next step:** Session 8 - Renderer cutover prep and replacement (blocked on art commission).
 
-**Next planning item:** `Scale Readyness` - consolidate Europe-map scaling risks, smaller-map assumptions, and pre-expansion priorities. See `docs/SCALE_READYNESS.md`.
+**Next planning item:** `Scale Readiness Plan` — Europe-map implementation plan is built out. Phase 0 (7 design gates) must be resolved before code work begins. Phase 1 (test safety net) has a full session spec ready to execute. See `docs/SCALE_READINESS_PLAN.md`. Audit findings in `docs/SCALE_READYNESS.md`.
 
 **Next bug-owned implementation slice:** none - current fix queue closed.
 
