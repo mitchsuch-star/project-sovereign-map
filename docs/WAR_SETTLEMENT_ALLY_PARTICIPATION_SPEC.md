@@ -263,17 +263,19 @@ war_lead_score =
 
 This keeps great powers relevant without making contribution meaningless.
 
-### 8.3 Dynamic power tiers
+### 8.3 Power tiers
 
-Use the tier model already drafted in `RELIABILITY_COMMITMENTS_SPEC.md`:
+**SUPERSEDED — April 17, 2026.** This section's original text described dynamic numeric tiers (`great_power / secondary_power / minor_power`) recomputed from nation strength. That model is superseded by the canonical Phase 0 definition in `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy". Under the canonical rule:
 
-- `great_power`
-- `secondary_power`
-- `minor_power`
+- Tier names are `major / secondary / minor` (not `great_power / secondary_power / minor_power`)
+- `power_tier` is **authored scenario data**, stable for the campaign. It is never recomputed at runtime.
+- Any runtime numeric strength signal lives in a separate `power_score` field and does not overwrite `power_tier`.
 
-These tiers come from numbers, not authored nation labels. The map can create a new quadrangle if power shifts.
+The settlement-rights structure in §11 ("Seat rules") carries over under the new names: replace `great_power` with `major`, `secondary_power` with `secondary`, `minor_power` with `minor`. The seat / consult / beneficiary-only expectation levels are unchanged.
 
-Power tier should affect consultation rights, not free settlement score.
+Power tier affects consultation rights, not free settlement score — this design intent is preserved.
+
+*(Original superseded text: "Use the tier model already drafted in `RELIABILITY_COMMITMENTS_SPEC.md`: `great_power`, `secondary_power`, `minor_power`. These tiers come from numbers, not authored nation labels. The map can create a new quadrangle if power shifts.")*
 
 ---
 
@@ -429,15 +431,17 @@ Instead, give participants one of three expectation levels:
 
 ### 11.2 Seat rules
 
-`great_power`
+*(Tier names updated April 17, 2026 to match canonical `power_tier` enum in `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy".)*
+
+`major`
 
 - always gets a settlement seat if it is an active participant
 
-`secondary_power`
+`secondary`
 
 - gets a seat if contribution share is meaningful, or if its claim / promise is directly involved
 
-`minor_power`
+`minor`
 
 - gets a seat only when its own territory, survival, capital, or promised reward is being decided
 

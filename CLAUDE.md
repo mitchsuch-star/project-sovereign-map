@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 ### Up Next
 
 - **Scale Readiness Phase 1 — COMPLETE.** 11 new tests, hardcoded `== 19` removed, validator derives from NATION_CAPITALS.
-- **Scale Readiness Phase 0 — 3/7 DECIDED, 4 REMAINING.** Decided: DG-1 (13 nations, 20+ capable), DG-3 (supply deferred), DG-7 (categorized dispatch). Remaining: DG-2 (diplomacy model), DG-4 (war cascade), DG-5 (victory), DG-6 (pacing). See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+- **Scale Readiness Phase 0 — COMPLETE (7/7 DECIDED).** DG-1 (13 nations, 20+ capable), DG-2 (bilateral + salience filter, 5-row cap), DG-3 (supply deferred), DG-4 (direct-only bilateral call-to-arms, no transitive cascade), DG-5 (raw-count hegemony victory), DG-6 (scenario-configured pacing, `scenario_schema_version: 1`), DG-7 (categorized dispatch). Cross-cutting: `power_tier` is authored scenario data with canonical enum `major / secondary / minor`; `political_status` is runtime state. See `docs/SCALE_READINESS_PLAN.md` §Phase 0 for the canonical taxonomy.
 - **Scale Readiness Phase 2 — ACTIONABLE NOW.** Performance: cache `get_distance()`, wire spatial index into AI, extend fog to all nations. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 - **Memory and Pressure — ACTIONABLE NOW.** Next diplomacy slice. Substrate shipped; remaining: rivalry seed (4 pairs) + acceptance-formula + paradox rename + Make Amends + C3-lite presentation (~68-74 tests, ~3 sessions). See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 - **Session 8 Renderer — ART-BLOCKED.** Slices 1-3 complete. Remaining: commissioned art-backed layers + Godot smoke validation. See `docs/STATUS.md`.

@@ -686,7 +686,8 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
 ### 12.3 Deferred
 
 - `diplomatic_commitments`, `next_commitment_id` → `WAR_BARGAIN_SPEC.md`
-- `trusted_partners`, `nation_strategic_focus`, `nation_power_scores`, `nation_power_tiers` → later phases
+- `trusted_partners`, `nation_strategic_focus`, `nation_power_scores` → later phases
+- `nation_power_tiers` is now authored scenario data, not a runtime deferred field. See `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy" for the canonical `power_tier` (values `major / secondary / minor`). A future `nation_power_scores` field, if added, is a separate runtime signal that must not overwrite `power_tier`.
 
 Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do **not** add a separate `nation_claims` store — until a settlement system defines a canonical claim model, claim-like state stays inside bargain records (in `WAR_BARGAIN_SPEC.md`).
 
