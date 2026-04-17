@@ -729,16 +729,23 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Why:** The #1 and #2 blockers from the audit. Without these, AI turns take 2-4 seconds at 100 regions, and AI cheats by seeing through fog.
 **Estimated effort:** 1-2 sessions.
 
+**Clarification lock (April 17, 2026):**
+
+- Phase 2.1 distance caching is for adjacency topology only. Region controller changes do **not** invalidate `get_distance()`.
+- Phase 2.2 should keep `_marshals_by_region` private and expose AI-safe helpers instead of teaching AI code to read private cache fields directly.
+- Phase 2.3 does **not** generalize `RegionIntel` into a serialized per-nation intel store. It adds a lightweight nation-perspective live visibility seam for AI decision-making only.
+
 ### 2.1 Cache `get_distance()` + Fix BFS
 
 **Problem:** 32 `get_distance()` calls per marshal per turn, no caching, `queue.pop(0)` is O(n).
 
 **Changes in `world_state.py`:**
 1. Replace `queue.pop(0)` with `collections.deque.popleft()` in `get_distance()` (~line 2029) and `find_path()` (~line 2099)
-2. Add `@lru_cache` or manual dict cache on `get_distance()`. Key: `(origin, destination)` tuple. The graph is static per turn — only invalidate on region capture (inside `_capture_region()` or wherever controller changes).
-3. Add `invalidate_distance_cache()` method, call it from capture logic
+2. Add `@lru_cache` or manual dict cache on `get_distance()`. Use a symmetric key so `("Paris", "Lyon")` and `("Lyon", "Paris")` share one entry.
+3. Treat the cache as adjacency-topology-only: ordinary region capture / controller changes do **not** invalidate it because `get_distance()` only reads graph connectivity, not ownership.
+4. Add `invalidate_distance_cache()` for future adjacency edits, synthetic benchmark setup, or any later topology mutation seam. Do **not** call it from capture logic unless region adjacency can actually change there.
 
-**Test:** Benchmark before/after with 100-region synthetic graph. Verify cache invalidation on capture.
+**Test:** Benchmark before/after with 100-region synthetic graph. Verify the cache survives a controller change and only changes after an explicit adjacency mutation + invalidation call.
 
 **Depends on:** Phase 1 (safety net tests passing)
 
@@ -746,19 +753,21 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 ### 2.2 Wire Spatial Index Into AI
 
-**Problem:** 59 `world.marshals.values()` scans in `enemy_ai.py`. `_marshals_by_region` index already exists at `world_state.py:1249` but AI doesn't use it.
+**Problem:** As of April 17, 2026, `backend/ai/enemy_ai.py` still has 69 direct `world.marshals.values()` / `marshals.values()` scans. `_marshals_by_region` already exists at `world_state.py:1249`, but the current public `get_marshals_in_region()` deliberately stays linear for correctness because some callers and tests still mutate marshal locations outside indexed hot paths.
 
-**Changes in `enemy_ai.py`:**
-1. Identify the 59 scan sites (grep for `world.marshals.values()` and `marshals.values()`)
+**Changes in `backend/ai/enemy_ai.py`:**
+1. Re-count scan sites before each batch (`69` is the current baseline, not a permanent invariant)
 2. Categorize each: needs all marshals? needs marshals in a region? needs marshals of a nation?
-3. Replace region-specific scans with `world._marshals_by_region[region_name]`
-4. For nation-specific scans, add `get_nation_marshals(nation)` helper to `world_state.py`
-5. For "all enemy marshals" scans, add `get_marshals_of_nations(nation_list)` helper
+3. Replace region-specific scans with an AI-safe indexed helper on `WorldState`, **not** direct `world._marshals_by_region[...]` reads
+4. Reuse the existing `get_marshals_by_nation(nation)` helper for nation-specific scans; add per-turn caching only if profiling shows it matters
+5. Add `get_marshals_of_nations(nation_list)` only for repeated multi-nation unions that remain hot after the region-index pass
 
 **Changes in `world_state.py`:**
-- Add `get_nation_marshals(nation)` — returns list filtered from `self.marshals.values()`, cached per-turn
-- Add `get_marshals_of_nations(nation_list)` — union of above
-- Ensure `_marshals_by_region` updates when marshals move (check `_move_marshal()` and combat retreat logic)
+- Keep `_marshals_by_region` private
+- Add a clearly-scoped AI hot-path helper (for example `get_marshals_in_region_indexed(region_name)`) whose contract explicitly requires a fresh index
+- Add `refresh_marshal_indexes()` / equivalent call sites so AI evaluation scopes rebuild the index before indexed reads; if a marshal relocation happens and later AI logic in the same turn depends on indexed reads again, rebuild before those reads rather than silently trusting stale cache state
+- Preserve the existing correctness-first `get_marshals_in_region()` linear helper for general callers and tests
+- Add `get_marshals_of_nations(nation_list)` only if the AI batching pass still needs it after the region-index conversions
 
 **Test:** Run full test suite after each batch of replacements. Spot-check AI behavior in a few turns.
 
@@ -766,17 +775,24 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 ### 2.3 Extend Fog to All AI Nations
 
-**Problem:** Only player nation uses fog-aware path. Enemy AI sees everything.
+**Problem:** `backend/ai/enemy_ai.py` already has a fog-aware seam, but it currently only activates for the player nation because `RegionIntel` is intentionally player-perspective only. Enemy AI still falls back to omniscient contact scans.
 
-**Changes in `enemy_ai.py`:**
-1. Replace omniscient `get_enemies_of_nation()` calls with `get_visible_enemies()` (already exists at `world_state.py:1534`)
-2. For AI-vs-AI decisions, each AI nation should only "see" marshals within its fog range
+**Clarified scope for this phase:** do **not** build a full per-nation serialized intel/history system yet. Phase 2 only adds a lightweight nation-perspective **live** visibility helper for AI decision-making.
+
+**Changes in `backend/ai/enemy_ai.py`:**
+1. Route scale-sensitive enemy-contact queries through the nation-perspective live-visibility helper instead of omniscient `get_enemies_of_nation()`
+2. Expand `_should_use_fog_aware_enemy_query()` so AI nations use the new live visibility seam once it exists
+3. Keep the allowed asymmetry narrow: AI nations always know their own marshal positions and own-controlled regions, but enemy positions still require visibility under the same live rules
 
 **Changes in `world_state.py`:**
-- Ensure `get_visible_enemies(nation)` works for any nation, not just player
-- If intel model is player-only (comment at `enemy_ai.py:452-464` acknowledges this), extend it to track per-nation visibility
+- Keep `get_visible_enemies(nation)` player-facing and backed by `RegionIntel`
+- Add a separate live helper for arbitrary nation perspective (for example `get_live_visible_enemies(nation)` or `get_visible_enemies_for_nation(nation)`) that evaluates current sight rules without creating persistent intel history
+- Baseline sight rules for the live helper should mirror the existing player visibility model where applicable: friendly-marshal presence, own-region sight, adjacency to friendly marshals, and watchtower adjacency
+- No stale-memory persistence, per-nation intel event log, or save-format expansion in this phase
 
-**Design note:** AI can be "smarter" than fog allows in limited ways (e.g., knowing its own marshals' locations). But it should not see enemy positions it hasn't scouted.
+**Design note:** AI can be "smarter" than fog allows in narrow ways (for example knowing its own marshal positions), but it should not see enemy positions it has not currently revealed through the live visibility rules above.
+
+**Test:** Add nation-perspective visibility tests for at least player, one AI nation, and one AI-vs-AI pair. Verify that player `RegionIntel` behavior is unchanged while AI contact queries stop seeing enemy marshals outside live sight.
 
 **Depends on:** 2.2 (spatial index should be in place first)
 
