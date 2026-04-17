@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 17, 2026 (Scale Readiness Phase 0 COMPLETE + implementation-closure doc pass. All 7/7 design gates resolved and sharpened to be implementation-ready: DG-1 uses a current 13-nation 1805 draft roster with 20+ nation architecture headroom, not an engine cap; DG-2 keeps diplomacy bilateral with force-expand salience rules, a weighted-sum salience score, and a locked 5-row expanded cap; DG-3 defers supply lines; DG-4 locks direct-only bilateral call-to-arms with no transitive cascade, an explicit qualifying-treaty list (`ALLIANCE`, `DEFENSIVE_ALLIANCE`, vassal), and a concrete refusal event contract (`call_to_arms_refused` commitment_paradox episode); DG-5 no longer requires a mandatory hard victory condition for Europe-map readiness; DG-6 locks scenario-configured pacing with `scenario_schema_version: 1`, a hybrid `base_ap` (`by_nation` + `by_tier_default`), optional `objectives_profile`, and structured `cascade_profile`; DG-7 uses categorized dispatch with priority escalation. Cross-cutting taxonomy is canonical: `power_tier` is authored scenario data with enum `major / secondary / minor`, never runtime-derived; any future numeric strength signal uses a separate `power_score` field. Old names `great_power / secondary_power / minor_power` in `DESIGN_REFINEMENT.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §8.3 / §11.2, and `RELIABILITY_COMMITMENTS_SPEC.md` §12.3 are marked superseded. Scale Readiness Phase 1 also remains COMPLETE — 11 new tests, all hardcoded `== 19` removed, validator derives from NATION_CAPITALS.)
+> **Last Updated:** April 17, 2026 (Scale Readiness Phase 2 stabilization follow-up. Phase 0 design gates and Phase 1 safety-net tests remain COMPLETE. Phase 2 is now partially landed and regression-stabilized: `world_state.py` has deque-based BFS plus a symmetric distance cache with explicit invalidation, AI-safe indexed region helpers are live, non-player AI contact queries now use live nation-perspective visibility instead of omniscient nation scans, stale-index regressions were closed with guarded refreshes on direct AI entry points, and strategic movement falls back to hostile-controlled regions when no live contacts are visible. Verification is green at suite level: `8389 passed, 2 skipped`.)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **17 targeted renderer regression tests** passed in this slice (`tests/test_map_consistency.py`, `tests/test_map_renderer_cutover.py`, `tests/test_map_placeholder_assets.py`). Godot runtime smoke verification is still manual-only because the engine is not installed in this environment. |
-| **Current Phase** | **Frozen bug-fix scope COMPLETE, then routed architecture hardening.** Sessions 1-7 are now **COMPLETE**. Post-bug architecture proceeds to Session 8 renderer cutover prep and replacement. See `docs/BUG_FIXES.md`. |
-| **Blockers** | None - the bug-fix queue is closed, Session 7 backend hardening is complete, and the remaining routed work is Session 8 renderer prep. |
+| **Tests Passing** | **Full Python suite green:** `8389 passed, 2 skipped` (`.\\.venv\\Scripts\\python.exe -m pytest tests/ -q`). Godot runtime smoke verification is still manual-only because the engine is not installed in this environment. |
+| **Current Phase** | **Scale Readiness Phase 2 — IN PROGRESS / stabilized.** Bug-fix scope and Sessions 1-7 remain complete. Distance caching, indexed AI seams, and live AI fog are in; the remaining Phase 2 work is the broader `enemy_ai.py` scan-conversion pass before the phase can be called complete. |
+| **Blockers** | Renderer swap is still blocked on art assets. Scale Readiness Phase 2 itself is not blocked, but it is also not finished: `backend/ai/enemy_ai.py` still has 58 direct marshal scans to convert off the full-map linear path. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -36,7 +36,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
  
 **Actionable now (no blockers):**
 
-1. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI through helper seams, then extend live fog visibility to all AI nations without building a serialized per-nation intel store in this phase. Phase 0 decisions are locked and the Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
+1. **Scale Readiness Phase 2 — finish the AI scan-conversion pass.** The distance cache, indexed helper seam, and live AI fog path are already landed and suite-green. The remaining work is converting more region-local `world.marshals.values()` scans in `backend/ai/enemy_ai.py` to indexed helpers so Phase 2 can be marked complete. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 2. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 
 **Complete:**
@@ -55,9 +55,11 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Current Session 7 progress:** COMPLETE. `backend/nation_config.py` now centralizes scenario/runtime nation defaults, non-France campaigns preserve their player nation through world init + `/new_game` reset paths, diplomacy/advisory/template/defiance flows now derive state and proposal ownership from `world.player_nation`, enemy AI scale-sensitive contact scans route through cached fog-aware helper seams, and modding/scenario validation now fails unsupported nation rosters before load.
 
+**Current Scale Readiness Phase 2 progress:** IN PROGRESS / stabilized. `backend/models/world_state.py` now ships deque-based `get_distance()`/`find_path()`, a symmetric distance cache plus explicit invalidation seam, and AI-safe indexed region helpers. `backend/ai/enemy_ai.py` now refreshes marshal indexes at evaluation-scope boundaries, guards direct-entry helpers against stale indexed reads, and routes non-player nation contact queries through live nation-perspective visibility while letting long-range P7/stagnation movement steer off hostile-controlled regions instead of hidden marshal positions. Full Python verification is green (`8389 passed, 2 skipped`), but Phase 2 is not complete yet because `enemy_ai.py` still has 58 direct `world.marshals.values()` / `marshals.values()` scans that need conversion before the spatial-index pass is actually done.
+
 **Current Session 8 progress:** Cutover slices 1-3 COMPLETE. The map renderer now builds shared scene-node layers behind `map_renderer_base.gd`, keeps the existing `map.gd` data wrapper and `update_all_regions(map_data)` contract stable for `main.gd`, includes a placeholder province-definition asset plus hidden color-map lookup path for the current 19-region map, and now isolates the map world inside a `SubViewport` with native `Camera2D` zoom/pan plus world-bound clamping. Slice 3 replaced the manual world-layer transform path with viewport-local camera movement while preserving the existing marshal/garrison/tooltips stack and color-sampled hover/click lookup. Remaining Session 8 work is the commissioned art-backed renderer swap and final Godot runtime smoke validation.
 
-**Routing note:** later references in this file to older "Session 7", "Session 8", or "Session 8A" Phase 8 diplomacy milestones are archival implementation history. They do not override the active post-bug routing above, which is currently Session 8 renderer cutover prep and replacement.
+**Routing note:** later references in this file to older "Session 7", "Session 8", or "Session 8A" Phase 8 diplomacy milestones are archival implementation history. They do not override the active post-bug routing above, which is currently Scale Readiness Phase 2 completion work; the renderer cutover remains blocked on art assets rather than being the active implementation slice.
 
 **Implementation sessions in current order:**
 

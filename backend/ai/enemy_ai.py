@@ -152,7 +152,15 @@ def has_enemy_in_same_region(marshal: Marshal, world: WorldState) -> bool:
     Returns:
         True if at least one enemy is in the same region
     """
-    return bool(world.get_live_visible_enemies_in_region(marshal.location, marshal.nation))
+    for other in world.marshals.values():
+        if (
+            other.location == marshal.location
+            and other.nation != marshal.nation
+            and other.strength > 0
+            and world.is_at_war(marshal.nation, other.nation)
+        ):
+            return True
+    return False
 
 
 def has_adjacent_enemies(marshal: Marshal, world: WorldState) -> bool:
@@ -170,8 +178,14 @@ def has_adjacent_enemies(marshal: Marshal, world: WorldState) -> bool:
     if not current_region:
         return False
 
-    for region_name in current_region.adjacent_regions:
-        if world.get_live_visible_enemies_in_region(region_name, marshal.nation):
+    adjacent = current_region.adjacent_regions
+    for other in world.marshals.values():
+        if (
+            other.nation != marshal.nation
+            and other.strength > 0
+            and other.location in adjacent
+            and world.is_at_war(marshal.nation, other.nation)
+        ):
             return True
     return False
 
@@ -191,9 +205,15 @@ def can_crush_adjacent_enemy(marshal: Marshal, world: WorldState) -> bool:
     if not current_region:
         return False
 
-    for region_name in current_region.adjacent_regions:
-        for enemy in world.get_live_visible_enemies_in_region(region_name, marshal.nation):
-            if marshal.strength / enemy.strength >= 2.0:
+    adjacent = current_region.adjacent_regions
+    for other in world.marshals.values():
+        if (
+            other.nation != marshal.nation
+            and other.strength > 0
+            and other.location in adjacent
+            and world.is_at_war(marshal.nation, other.nation)
+        ):
+            if marshal.strength / other.strength >= 2.0:
                 return True
     return False
 
@@ -346,6 +366,9 @@ class EnemyAI:
         self._enemy_query_cache: Dict[Tuple[str, bool], Tuple[Marshal, ...]] = {}
         self._enemy_query_world_id: Optional[int] = None
         self._enemy_query_turn: Optional[int] = None
+        self._indexed_scope_world_id: Optional[int] = None
+        self._indexed_scope_turn: Optional[int] = None
+        self._indexed_scope_active: bool = False
 
         # ═══════════════════════════════════════════════════════════════════
         # FAILED ACTION COOLDOWN SYSTEM
@@ -434,6 +457,29 @@ class EnemyAI:
         self._enemy_query_world_id = id(world) if world is not None else None
         self._enemy_query_turn = getattr(world, "current_turn", None) if world is not None else None
 
+    def _enter_indexed_evaluation_scope(self, world: WorldState) -> None:
+        """Mark marshal indexes as fresh for a tight evaluation loop."""
+        world.refresh_marshal_indexes()
+        self._indexed_scope_active = True
+        self._indexed_scope_world_id = id(world)
+        self._indexed_scope_turn = getattr(world, "current_turn", None)
+
+    def _exit_indexed_evaluation_scope(self) -> None:
+        """Clear the active indexed-evaluation scope marker."""
+        self._indexed_scope_active = False
+        self._indexed_scope_world_id = None
+        self._indexed_scope_turn = None
+
+    def _ensure_marshal_indexes(self, world: WorldState) -> None:
+        """Refresh marshal indexes unless the caller already entered a fresh scope."""
+        if (
+            self._indexed_scope_active
+            and self._indexed_scope_world_id == id(world)
+            and self._indexed_scope_turn == getattr(world, "current_turn", None)
+        ):
+            return
+        world.refresh_marshal_indexes()
+
     def _should_use_fog_aware_enemy_query(
         self,
         nation: str,
@@ -474,6 +520,16 @@ class EnemyAI:
                 self._enemy_query_cache[cache_key] = tuple(world.get_enemies_of_nation(nation))
 
         return list(self._enemy_query_cache[cache_key])
+
+    def _get_strategic_enemy_regions(self, nation: str, world: WorldState) -> List[str]:
+        """Return hostile-controlled regions as coarse targets when no enemies are visible."""
+        return [
+            region_name
+            for region_name, region in world.regions.items()
+            if region.controller
+            and region.controller not in (nation, "Neutral")
+            and world.is_at_war(nation, region.controller)
+        ]
 
     # ═══════════════════════════════════════════════════════════════════
     # FAILED ACTION COOLDOWN HELPERS
@@ -766,18 +822,21 @@ class EnemyAI:
         max_consecutive_skips = len(marshals) + 1  # If we skip everyone, stop
 
         while actions_remaining > 0:
-            world.refresh_marshal_indexes()
+            self._enter_indexed_evaluation_scope(world)
             self._reset_enemy_query_cache(world)
-            # Refresh marshals list (in case one was destroyed)
-            marshals = world.get_marshals_by_nation(nation)
-            if not marshals:
-                print(f"  All marshals destroyed for {nation}")
-                break
+            try:
+                # Refresh marshals list (in case one was destroyed)
+                marshals = world.get_marshals_by_nation(nation)
+                if not marshals:
+                    print(f"  All marshals destroyed for {nation}")
+                    break
 
-            # Select next marshal using priority + fairness (excluding failed actions)
-            selected_marshal, selected_action, action_priority = self._select_next_marshal_action(
-                marshals, nation, world, actions_used, failed_actions
-            )
+                # Select next marshal using priority + fairness (excluding failed actions)
+                selected_marshal, selected_action, action_priority = self._select_next_marshal_action(
+                    marshals, nation, world, actions_used, failed_actions
+                )
+            finally:
+                self._exit_indexed_evaluation_scope()
 
             if not selected_marshal or not selected_action:
                 print(f"  No valid actions remaining for {nation}")
@@ -1131,6 +1190,7 @@ class EnemyAI:
         Returns:
             Tuple of (action_dict, priority) or (None, 999)
         """
+        self._ensure_marshal_indexes(world)
         # ═══════════════════════════════════════════════════════════════════
         # DECISION FLOW (called from _select_next_marshal_action)
         # ═══════════════════════════════════════════════════════════════════
@@ -2966,11 +3026,24 @@ class EnemyAI:
 
             # Force move toward nearest enemy (ignore risk assessment)
             enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
+            target_region = None
+            target_label = None
             if enemies:
+                nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+                target_region = nearest.location
+                target_label = nearest.name
+            else:
+                strategic_targets = self._get_strategic_enemy_regions(nation, world)
+                if strategic_targets:
+                    target_region = min(
+                        strategic_targets,
+                        key=lambda region_name: world.get_distance(marshal.location, region_name),
+                    )
+                    target_label = target_region
+            if target_region:
                 marshal_region = world.get_region(marshal.location)
                 if marshal_region:
-                    nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
-                    current_dist = world.get_distance(marshal.location, nearest.location)
+                    current_dist = world.get_distance(marshal.location, target_region)
                     visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
 
                     best_dest = None
@@ -2985,13 +3058,16 @@ class EnemyAI:
                             continue  # Still don't walk into enemy-occupied regions
                         if not self._can_ai_move_to(world, nation, adj_name):
                             continue  # DLF-12
-                        dist = world.get_distance(adj_name, nearest.location)
+                        dist = world.get_distance(adj_name, target_region)
                         if dist < best_dist:
                             best_dest = adj_name
                             best_dist = dist
 
                     if best_dest:
-                        print(f"  [STAGNATION] {marshal.name}: Force move toward {nearest.name} via {best_dest} (stagnation override)")
+                        print(
+                            f"  [STAGNATION] {marshal.name}: Force move toward "
+                            f"{target_label} via {best_dest} (stagnation override)"
+                        )
                         return {
                             "marshal": marshal.name,
                             "action": "move",
@@ -3285,6 +3361,8 @@ class EnemyAI:
         ideally be "no other friendly marshal with HOLD order" to avoid
         garrisoning when all friendlies are passing through.
         """
+        self._ensure_marshal_indexes(world)
+
         # Can't garrison if drilling or fortified (executor would reject, but skip early)
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             ai_debug(f"    P6.75: {marshal.name} cannot garrison - drilling")
@@ -3365,6 +3443,8 @@ class EnemyAI:
 
     def _consider_strategic_move(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Consider moving strategically."""
+        self._ensure_marshal_indexes(world)
+
         personality = self._get_effective_personality(marshal, world)
 
         # Don't move if fortified (lose bonus)
@@ -3393,8 +3473,10 @@ class EnemyAI:
                     return None  # Skip P7, let P4 handle attack
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
-
+        strategic_targets = []
         if not enemies:
+            strategic_targets = self._get_strategic_enemy_regions(nation, world)
+        if not enemies and not strategic_targets:
             return None
 
         # Get visited locations to prevent oscillation
@@ -3443,8 +3525,14 @@ class EnemyAI:
             return None
 
         if personality == "aggressive":
-            # Move toward nearest enemy
-            nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+            # Move toward nearest enemy contact or hostile-controlled region
+            if enemies:
+                target_region = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location)).location
+            else:
+                target_region = min(
+                    strategic_targets,
+                    key=lambda region_name: world.get_distance(marshal.location, region_name),
+                )
 
             # Find adjacent region closest to enemy, with P4.77 + combined arms tiebreakers
             marshal_region = world.get_region(marshal.location)
@@ -3453,7 +3541,7 @@ class EnemyAI:
 
             best_dest = None
             best_score = -999
-            current_distance = world.get_distance(marshal.location, nearest.location)
+            current_distance = world.get_distance(marshal.location, target_region)
 
             for adj_name in marshal_region.adjacent_regions:
                 # Skip visited locations — one hop per action, revisiting = backtracking
@@ -3470,7 +3558,7 @@ class EnemyAI:
                 if not self._can_ai_move_to(world, nation, adj_name):
                     continue  # DLF-12
 
-                dist = world.get_distance(adj_name, nearest.location)
+                dist = world.get_distance(adj_name, target_region)
                 if dist >= current_distance:
                     continue  # Must reduce distance to enemy
 
@@ -3563,8 +3651,17 @@ class EnemyAI:
                 is_fortified = getattr(marshal, 'fortified', False)
 
                 if not is_fortified and stagnation >= 1:
-                    nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
-                    current_dist = world.get_distance(marshal.location, nearest.location)
+                    if enemies:
+                        target_region = min(
+                            enemies,
+                            key=lambda e: world.get_distance(marshal.location, e.location),
+                        ).location
+                    else:
+                        target_region = min(
+                            strategic_targets,
+                            key=lambda region_name: world.get_distance(marshal.location, region_name),
+                        )
+                    current_dist = world.get_distance(marshal.location, target_region)
 
                     best_dest = None
                     best_score = -999
@@ -3578,7 +3675,7 @@ class EnemyAI:
                             continue
                         if not self._can_ai_move_to(world, nation, adj_name):
                             continue  # DLF-12
-                        dist = world.get_distance(adj_name, nearest.location)
+                        dist = world.get_distance(adj_name, target_region)
                         if dist >= current_dist:
                             continue  # Must reduce distance
 
@@ -3594,7 +3691,10 @@ class EnemyAI:
                             best_dest = adj_name
 
                     if best_dest:
-                        ai_debug(f"    P7: Cautious advance toward {nearest.name} via {best_dest} (stagnation={stagnation})")
+                        ai_debug(
+                            f"    P7: Cautious advance toward {target_region} "
+                            f"via {best_dest} (stagnation={stagnation})"
+                        )
                         return {
                             "marshal": marshal.name,
                             "action": "move",
@@ -4104,6 +4204,8 @@ class EnemyAI:
         Returns:
             Unfortify action dict, or None if should stay fortified
         """
+        self._ensure_marshal_indexes(world)
+
         # Only applies to fortified marshals
         if not getattr(marshal, 'fortified', False):
             return None
