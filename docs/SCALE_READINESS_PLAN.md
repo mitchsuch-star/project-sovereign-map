@@ -8,7 +8,7 @@
 
 ## How to Use This Document
 
-Work top-to-bottom within each phase. Phase 0 (design gates) still governs design-dependent scale work, but Phase 1 was intentionally completed early as low-risk test infrastructure. Within code phases, items are ordered by dependency — later items may depend on earlier ones.
+Work top-to-bottom within each phase unless a phase explicitly declares an internal execution order. Phase 0 (design gates) still governs design-dependent scale work, but Phase 1 was intentionally completed early as low-risk test infrastructure. Within code phases, items are ordered by dependency unless a phase note says otherwise.
 
 **Estimated total effort:** 8-12 focused sessions across all phases.
 
@@ -80,6 +80,13 @@ Future scenarios (1806, 1809, etc.) extend this roster by adding authored nation
 - Used by: DG-2 salience filtering, DG-5 hegemony victory count, dispatch priority, coalition weighting.
 - Current scenario produces 8 strategic powers (4 non-French `major` + 4 `secondary`). DG-5's "majority of strategic powers" resolves to 5.
 - **Not used for war entry.** Cascade legality is treaty-edge only per DG-4; tier does not create or block call-to-arms.
+
+**Current full-map scope note**
+
+- This scale-readiness plan targets the first full-map Europe prototype for the France-led 1805 campaign.
+- References to France, Paris, and the French sphere in DG-2 and DG-5 are intentional for that scope.
+- Runtime hardening for `player_nation` remains valuable and should stay intact, but non-France full-map campaigns are not a prerequisite for "real map ready" in this plan.
+- If a later scenario ships with a different player nation, translate these gates through scenario data (`player_nation`, `home_capital`, `player_sphere`) rather than silently hardcoding a second nation-specific variant.
 
 **Superseded language**
 
@@ -174,7 +181,7 @@ War-entry obligation travels one treaty edge only. When France declares war on A
 - Each recipient decides yes or no under bilateral treaty logic
 - No transitive propagation, ever
 
-**Qualifying treaty states (locked list):** A nation receives a call-to-arms only if it holds one of the following direct bilateral states with the attacked or attacking nation:
+**Qualifying entry relationships (locked list):** A nation receives a call-to-arms only if it holds one of the following direct relationships with the attacked or attacking nation:
 
 - `ALLIANCE` — full alliance, offensive and defensive obligation
 - `DEFENSIVE_ALLIANCE` — defensive obligation only; attacker-side call does not fire for defensive-only treaties
@@ -226,17 +233,28 @@ Europe victory uses a raw-region hegemony check, not weighted income share and n
 
 **Region share is raw count, not income-weighted.** "At least 40% of wired regions" means raw count of wired regions controlled by France divided by total wired region count. Income-weighted views can live in the strategic ledger, but the victory check itself is raw count for legibility and player-facing clarity.
 
-**A strategic power counts as hegemonized if at least one of the following is true:**
+**A strategic power counts as hegemonized if at least one of the following is currently true:**
 
 - Its capital is occupied by France or a French vassal
 - It is currently a French vassal / subject
-- It has concluded a French-victory peace at `>= +40` war score that includes at least one qualifying concession from the locked list below
+- It has an active `peace_hegemony` marker created by a French-victory peace at `>= +40` war score that included at least one qualifying concession from the locked list below
+
+**Peace-based hegemonization is not permanent by default.**
+
+- A qualifying peace creates a `peace_hegemony` marker instead of granting permanent victory credit forever.
+- Persistent settlement states keep the marker active while the qualifying clause remains in force:
+  - territorial cession counts while France or a French vassal still controls at least one region ceded by that settlement
+  - forced alliance / protectorate counts while the clause is still active
+- One-shot settlement states create a temporary marker that expires after `peace_hegemony_memory_turns` turns:
+  - indemnity above threshold
+  - capital-occupation settlement
+- If the active marker expires or its qualifying clause is no longer in force, that strategic power no longer counts toward the hegemonized-majority check.
 
 **Locked qualifying concession list (each concession is a distinct clause type in the peace):**
 
 - **Territorial cession** to France or to a French vassal — any region transfer clause
-- **Forced alliance / protectorate clause** — the peace imposes an `ALLIANCE` or `DEFENSIVE_ALLIANCE` state on the defeated nation toward France for at least N turns, OR imposes a protectorate-style clause that restricts the defeated nation's foreign policy (no third-party alliances, no war declarations without French consent, or equivalent). The exact protectorate clause enumeration is locked during implementation but must be explicit in the peace clause taxonomy — not a prose "peace felt harsh" judgment.
-- **Indemnity above threshold** — gold, manpower, or AP transfer in the peace where the gold-equivalent value is `>= 5000` gold OR `>= 15%` of the defeated nation's current annual income, whichever is larger. These are the locked thresholds; tune during first-Europe playtest but do not leave them as "above a defined threshold."
+- **Forced alliance / protectorate clause** — the peace imposes an `ALLIANCE` or `DEFENSIVE_ALLIANCE` state on the defeated nation toward France for at least 12 turns, OR imposes a protectorate-style clause that restricts the defeated nation's foreign policy (no third-party alliances, no war declarations without French consent, or equivalent). The protectorate must be a first-class peace-clause type in the taxonomy — not a prose "peace felt harsh" judgment.
+- **Indemnity above threshold** — a peace-transfer clause whose declared `gold_equivalent_value` is `>= 5000` gold OR `>= 15%` of the defeated nation's current annual income, whichever is larger. Plain gold payments satisfy this directly. Any non-gold transfer must carry an explicit `gold_equivalent_value` on the clause definition or it does not satisfy the indemnity path.
 - **Capital-occupation settlement** — the peace is signed while France (or a French vassal) occupies the defeated nation's capital, even if that region reverts to the defeated nation as part of the peace
 
 If none of those concessions apply, the peace does not count toward the hegemonized-majority check even if France reached `+40` war score. White peace does not count (war score is 0 by definition, so the `>= +40` gate already excludes it — this is said for readers coming from earlier drafts).
@@ -280,9 +298,13 @@ victory_profile:
   hegemonized_target: "majority_strategic_powers" | <int>
   qualifying_concessions: [<clause_type>]   # references DG-5 locked list
   war_score_threshold: <int>                # e.g. 40
+  peace_hegemony_memory_turns: <int>        # e.g. 12 for one-shot settlements
 cascade_profile:
   mode: "direct_only"                       # DG-4 locks this; future modes require a gate reopen
-  qualifying_treaty_states: [<state>]       # ALLIANCE, DEFENSIVE_ALLIANCE, vassal
+  qualifying_treaty_states:
+    defender_side: [<state>]                # ALLIANCE, DEFENSIVE_ALLIANCE
+    attacker_side: [<state>]                # ALLIANCE
+  include_vassals: <bool>
   refusal_event_type: "call_to_arms_refused"
 free_basic_actions:
   - <action_id>
@@ -293,7 +315,8 @@ free_basic_actions:
 - `scenario_schema_version` is required from the first implementation so later scenarios have a migration path. Version `1` is the shape above; future shape changes bump the version and the loader gains a migration path.
 - `base_ap` is a hybrid. `by_nation` entries always win for named nations. Unnamed nations fall back to `by_tier_default[power_tier]`. This is the intentional shape — neither pure-by-nation nor pure-by-tier works, because France and Britain are both `major` with different AP.
 - `victory_profile` and `cascade_profile` are structured sub-schemas with the fields above. Additional fields may be added in later schema versions; do not write free-form blobs.
-- `free_basic_actions` references the DG-7 categorized dispatch action taxonomy as its source of truth for action identifiers. Do not maintain a second classification here — this field just names which dispatch-taxonomy action IDs are AP-free in this scenario.
+- `peace_hegemony_memory_turns` applies only to one-shot peace outcomes such as indemnity and capital-occupation settlements. Persistent clauses use their active duration instead.
+- `free_basic_actions` references the canonical command action IDs shared by parser / executor / meta-executor. DG-7 may group resulting events for dispatch, but dispatch categories are not action identifiers.
 
 **Initial Europe target values:**
 
@@ -301,9 +324,9 @@ free_basic_actions:
 - `base_ap`:
   - `by_nation`: France 5, Britain 4, Prussia 4, Austria 3, Russia 3
   - `by_tier_default`: `major: 3`, `secondary: 2`, `minor: 2`
-- `victory_profile`: `regions_required_fraction = 0.40`, `required_capitals_held = [France]`, `hegemonized_target = "majority_strategic_powers"`, `war_score_threshold = 40`, `qualifying_concessions` = the full DG-5 locked list
-- `cascade_profile`: `mode = "direct_only"`, `qualifying_treaty_states = [ALLIANCE, DEFENSIVE_ALLIANCE, vassal]`, `refusal_event_type = "call_to_arms_refused"`
-- `free_basic_actions`: authored from the DG-7 action taxonomy during Phase 5.5 implementation
+- `victory_profile`: `regions_required_fraction = 0.40`, `required_capitals_held = [France]`, `hegemonized_target = "majority_strategic_powers"`, `war_score_threshold = 40`, `qualifying_concessions` = the full DG-5 locked list, `peace_hegemony_memory_turns = 12`
+- `cascade_profile`: `mode = "direct_only"`, `qualifying_treaty_states = {defender_side: [ALLIANCE, DEFENSIVE_ALLIANCE], attacker_side: [ALLIANCE]}`, `include_vassals = true`, `refusal_event_type = "call_to_arms_refused"`
+- `free_basic_actions`: authored from the canonical command action-ID set during Phase 5.5 implementation
 
 The current 19-region scenario keeps its own authored pacing values and migrates to `scenario_schema_version: 1` when the loader lands. Future scenarios such as 1806 or 1809 extend the same schema rather than adding bespoke knobs in unrelated files.
 
@@ -778,6 +801,27 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Why:** Game mechanics designed for 5 nations need retuning, not just performance fixes.
 **Estimated effort:** 2-3 sessions.
 **Depends on:** Phase 0 design decisions.
+**Execution order inside this phase:** `5.5` first as schema/loader prerequisite, then `5.1`, `5.2`, and `5.4`, then `5.3` and `5.6`.
+
+### 5.5 Scenario-Configured Pacing Loader
+
+**Implements:** DG-6 decision (locked to scenario-configured pacing, schema version 1). This item is a prerequisite for `5.1` and `5.4` because those items consume `cascade_profile` and `victory_profile`.
+
+**Files:** `world_state.py` (`max_turns`, per-nation AP init), `nation_config.py` (`BASE_NATION_ACTIONS`), new scenario config loader (e.g., `backend/scenario_config.py`).
+
+**Changes:**
+- Define a `scenario_config` data structure matching DG-6's schema: `scenario_schema_version`, `max_turns`, `base_ap.by_nation`, `base_ap.by_tier_default`, `victory_profile`, `cascade_profile`, `free_basic_actions`.
+- Loader resolves AP per nation as: use `base_ap.by_nation[nation]` if present, else `base_ap.by_tier_default[nation.power_tier]`. This is the authored hybrid — both paths are required.
+- Create a canonical command action-ID registry shared by parser / executor / meta-executor, then have `free_basic_actions` reference that registry instead of duplicated string lists.
+- Migrate the current 19-region scenario to `scenario_schema_version: 1`. Its authored values stay the same (`max_turns = 40`, current AP per nation) but now live in the scenario config instead of global constants.
+- Europe scenario authors its own values: `max_turns = 80`, `base_ap.by_nation = {France: 5, Britain: 4, Prussia: 4, Austria: 3, Russia: 3}`, `base_ap.by_tier_default = {major: 3, secondary: 2, minor: 2}`.
+- `world_state.py __init__` reads from scenario config. `VICTORY_REGION_FRACTION` and `BASE_NATION_ACTIONS` constants become fallback defaults only; the scenario overrides them.
+- `victory_profile` and `cascade_profile` are consumed by `5.4` and `5.1` respectively.
+- `free_basic_actions` reuses the canonical command action IDs already shared by parser / executor / meta-executor — no second classification.
+
+**Test:** Load both scenarios end-to-end; verify 19-region scenario keeps historical turn count and AP, Europe scenario applies its own values, and an unknown nation falls back to its tier default.
+
+---
 
 ### 5.1 Direct-Only War Entry + Refusal Event
 
@@ -787,7 +831,7 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 **Changes:**
 - Strip recursive propagation. A single call-to-arms pass fires for the defender's direct allies and vassals, and (when applicable) for the attacker's direct allies and vassals.
-- `qualifying_treaty_states` per DG-4: `ALLIANCE`, `DEFENSIVE_ALLIANCE`, vassal. `DEFENSIVE_ALLIANCE` does not fire on the attacker side.
+- `qualifying_treaty_states` per DG-4: defender-side `[ALLIANCE, DEFENSIVE_ALLIANCE]`, attacker-side `[ALLIANCE]`. Vassal auto-entry is modeled separately via `include_vassals = true`, not as a treaty state.
 - Each recipient decides yes or no under existing bilateral treaty logic; accepted entries do NOT trigger a further pass on their own allies.
 - Batch cascade dispatch events into one grouped line per side: "Austrian allies enter the war: Russia, Prussia." Do not emit one line per ally.
 
@@ -845,30 +889,12 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
   1. France controls `>=` `regions_required_fraction` of wired regions by raw count.
   2. France controls Paris (and any other nations in `required_capitals_held`).
   3. France has hegemonized a majority of `strategic_power` nations (`power_tier` in {`major`, `secondary`}, non-French) in the current scenario.
-- Hegemonized check uses the DG-5 locked list: capital occupied, current vassal, or peace at `>= +40` war score with at least one clause from the locked concession list (territorial cession, forced-alliance/protectorate clause, indemnity above threshold, capital-occupation settlement).
-- Indemnity threshold: `>= 5000` gold-equivalent OR `>= 15%` of defeated nation's annual income at settlement time, whichever is larger.
+- Hegemonized check uses the DG-5 locked list: capital occupied, current vassal, or an active `peace_hegemony` marker created by peace at `>= +40` war score with at least one clause from the locked concession list (territorial cession, forced-alliance/protectorate clause, indemnity above threshold, capital-occupation settlement).
+- Indemnity threshold: a clause counts only if its declared `gold_equivalent_value` is `>= 5000` gold OR `>= 15%` of the defeated nation's annual income at settlement time, whichever is larger.
+- One-shot peace outcomes (indemnity, capital-occupation settlement) set `peace_hegemony_until_turn = current_turn + peace_hegemony_memory_turns`. Persistent outcomes (territorial cession, forced alliance, protectorate) remain valid only while their qualifying clause stays active.
 - Protectorate clause: add an explicit peace-clause type that restricts the defeated nation's foreign policy (no third-party alliances, no war declarations without French consent, or equivalent). Must be a first-class clause type in the peace taxonomy, not a prose descriptor.
 
 **Test:** Synthetic scenario hitting each hegemonization path (capital, vassal, concession peace) and verifying a white peace or bare `+40` peace with no qualifying concession does NOT count.
-
----
-
-### 5.5 Scenario-Configured Pacing Loader
-
-**Implements:** DG-6 decision (locked to scenario-configured pacing, schema version 1).
-
-**Files:** `world_state.py` (`max_turns`, per-nation AP init), `nation_config.py` (`BASE_NATION_ACTIONS`), new scenario config loader (e.g., `backend/scenario_config.py`).
-
-**Changes:**
-- Define a `scenario_config` data structure matching DG-6's schema: `scenario_schema_version`, `max_turns`, `base_ap.by_nation`, `base_ap.by_tier_default`, `victory_profile`, `cascade_profile`, `free_basic_actions`.
-- Loader resolves AP per nation as: use `base_ap.by_nation[nation]` if present, else `base_ap.by_tier_default[nation.power_tier]`. This is the authored hybrid — both paths are required.
-- Migrate the current 19-region scenario to `scenario_schema_version: 1`. Its authored values stay the same (`max_turns = 40`, current AP per nation) but now live in the scenario config instead of global constants.
-- Europe scenario authors its own values: `max_turns = 80`, `base_ap.by_nation = {France: 5, Britain: 4, Prussia: 4, Austria: 3, Russia: 3}`, `base_ap.by_tier_default = {major: 3, secondary: 2, minor: 2}`.
-- `world_state.py __init__` reads from scenario config. `VICTORY_REGION_FRACTION` and `BASE_NATION_ACTIONS` constants become fallback defaults only; the scenario overrides them.
-- `victory_profile` and `cascade_profile` are consumed by 5.4 and 5.1 respectively.
-- `free_basic_actions` reuses the DG-7 dispatch action taxonomy for its IDs — no second classification.
-
-**Test:** Load both scenarios end-to-end; verify 19-region scenario keeps historical turn count and AP, Europe scenario applies its own values, and an unknown nation falls back to its tier default.
 
 ---
 
@@ -1016,11 +1042,11 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 4.2 | External bitmap loading | 4 | | |
 | 4.3 | Color-map validator | 4 | | |
 | 4.4 | Unwired province support | 4 | | |
-| 5.1 | War cascade depth cap | 5 | | |
-| 5.2 | Dispatch event batching | 5 | | |
+| 5.1 | Direct-only war entry + refusal event | 5 | | |
+| 5.2 | Categorized dispatch sections + priority escalation | 5 | | |
 | 5.3 | Coalition friction scaling | 5 | | |
-| 5.4 | Victory condition alternatives | 5 | | |
-| 5.5 | Turn limit & AP scaling | 5 | | |
+| 5.4 | Hegemony victory check | 5 | | |
+| 5.5 | Scenario-configured pacing loader | 5 | | |
 | 5.6 | Bilateral diplomacy O(N^2) | 5 | | |
 | 6.1 | Marshal management pagination | 6 | | |
 | 6.2 | Strategic ledger sectioning | 6 | | |
