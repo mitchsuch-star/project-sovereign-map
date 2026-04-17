@@ -1,6 +1,8 @@
 # GPT Next Audit Prompt
 
 > Copy everything below the line into a fresh GPT audit session.
+>
+> If the target is full-Europe scaling readiness rather than first-hour / gameplay clarity, use [docs/SESSION7_SCALE_HARDENING_AUDIT_PROMPT.md](docs/SESSION7_SCALE_HARDENING_AUDIT_PROMPT.md) instead. That prompt is the dedicated follow-up to [docs/SCALE_READYNESS.md](docs/SCALE_READYNESS.md).
 
 ---
 
