@@ -19,8 +19,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Scale Readiness Phase 1 — ACTIONABLE NOW.** Test safety net: nation config completeness tests, fix hardcoded `== 19`, adjacency connectivity tests, validator fix. ~1-2 hours. See `docs/SCALE_READINESS_PLAN.md` §Phase 1.
-- **Scale Readiness Phase 0 — DESIGN GATES.** 7 decisions (nation roster, diplomacy model, supply lines, war cascade, victory, pacing, dispatch density) gate Phases 2-7. See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+- **Scale Readiness Phase 1 — COMPLETE.** 11 new tests, hardcoded `== 19` removed, validator derives from NATION_CAPITALS.
+- **Scale Readiness Phase 0 — 3/7 DECIDED, 4 REMAINING.** Decided: DG-1 (13 nations, 20+ capable), DG-3 (supply deferred), DG-7 (categorized dispatch). Remaining: DG-2 (diplomacy model), DG-4 (war cascade), DG-5 (victory), DG-6 (pacing). See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+- **Scale Readiness Phase 2 — ACTIONABLE NOW.** Performance: cache `get_distance()`, wire spatial index into AI, extend fog to all nations. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 - **Memory and Pressure — ACTIONABLE NOW.** Next diplomacy slice. Substrate shipped; remaining: rivalry seed (4 pairs) + acceptance-formula + paradox rename + Make Amends + C3-lite presentation (~68-74 tests, ~3 sessions). See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 - **Session 8 Renderer — ART-BLOCKED.** Slices 1-3 complete. Remaining: commissioned art-backed layers + Godot smoke validation. See `docs/STATUS.md`.
 - **Architecture Refactoring — Sessions 1-16 COMPLETE.** R19 (modding) remaining. R14a-d deferred. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.

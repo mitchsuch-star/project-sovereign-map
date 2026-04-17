@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 16, 2026 (Session 8 renderer cutover slice 3 remains the active code track. April 16 planning follow-up: `docs/SCALE_READYNESS.md` now captures the current Europe-map scaling risks and smaller-map assumptions, and is tracked below as the next planning item after the active renderer slice. Diplomacy planning docs rescoped on April 16: `Reliability + Commitments` renamed to `Memory and Pressure`; war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md` and rescheduled into the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`. The substrate (betrayal memory + episode_id + witness scope + hard-reject posture + structured warnings + paradox episode continuity) is shipped; the remaining `Memory and Pressure` work is rivalry seed (4 authored pairs including France-Austria per v2.1) + acceptance-formula additions + paradox rename + Make Amends active-redemption verb (v2.1) + C3-lite presentation pass (~68-74 tests, ~3 sessions - v2.1 creative-audit folds added Make Amends plus France-Austria rivalry; Slice C stays two sessions per `COMMITMENTS_PRESENTATION_SPEC.md` §14). Earlier April 16 substrate hardening: cascade-rupture fault attribution fixed, root-cause `episode_id` threaded through all breach/cascade/witness-strike emits, per-witness `scope_reason` + dominant-witness-scope resolved, `end_reason_family` split from `end_reason_action`, war-on-partner no longer double-surfaces, and manual-break + paradox paths now preview reliability fallout before the choice.)
+> **Last Updated:** April 17, 2026 (Scale Readiness Phase 1 COMPLETE — 11 new tests, all hardcoded `== 19` removed, validator derives from NATION_CAPITALS. Phase 0 design gates: 3/7 decided — DG-1 nation roster 13 nations, DG-3 supply lines deferred, DG-7 categorized dispatch with priority escalation. All systems must handle 20+ nations.)
 
 ---
 
@@ -36,14 +36,19 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
  
 **Actionable now (no blockers):**
 
-1. **Scale Readiness Phase 1 — Test Safety Net.** Nation config completeness tests, fix hardcoded `== 19` in test assertions, adjacency connectivity tests, validator fix. ~1-2 hours. Session-ready spec in `docs/SCALE_READINESS_PLAN.md` §Phase 1. No design gates required.
-2. **Scale Readiness Phase 0 — Design Gates.** 7 design decisions (nation roster, diplomacy model, supply lines, war cascade, victory conditions, pacing, dispatch density) that gate Phases 2-7. See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+1. **Scale Readiness Phase 0 — Remaining Design Gates.** 4 of 7 decisions remaining: DG-2 (diplomacy model), DG-4 (war cascade), DG-5 (victory conditions), DG-6 (pacing). See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
+2. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI, extend fog to all AI nations. Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 3. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+
+**Complete:**
+
+- **Scale Readiness Phase 1 — Test Safety Net.** COMPLETE (April 17, 2026). 11 new tests (8 nation config + 3 adjacency), all hardcoded `== 19` removed from test assertions, validator VALID_NATIONS derives from NATION_CAPITALS.
+- **Scale Readiness Phase 0 — 3/7 decided.** DG-1: 13 nations (5 major, 4 secondary, 4 minor), systems must handle 20+. DG-3: supply lines deferred to post-map. DG-7: categorized dispatch with priority escalation (Military/Diplomatic/Treasury/Intelligence sections).
 
 **Blocked:**
 
 - **Session 8 Renderer — remaining slices.** Commissioned art-backed renderer swap and Godot smoke validation. Blocked on art assets.
-- **Scale Readiness Phases 2-7.** Blocked on Phase 0 design gate decisions.
+- **Scale Readiness Phases 5-7.** Blocked on remaining Phase 0 design gate decisions (DG-2, DG-4, DG-5, DG-6).
 
 **Audit context:** `docs/SCALE_READYNESS.md` has the full Europe-scale audit (17 findings).
 
