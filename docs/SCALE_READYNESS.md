@@ -63,18 +63,18 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 - **Evidence:** `world_state.py:2029-2054` — pure BFS with `queue.pop(0)` (O(n) deque op), no memoization, no symmetry exploitation. Called from `enemy_ai.py` at 32+ call sites per marshal evaluation (lines 2189, 2502, 2533, 2613, 2927, 2946, 2996, 3012, 3076, 3120, 3145, 3161, 3177, 3472, 3481, 3498, 3590, 3607, 3743, 4266, 4267, 4274, 4347, 5015, 5036, 5167, 5184, 5203, 5204).
 - **Counter-evidence:** `find_weighted_path()` at `world_state.py:2140` uses Dijkstra, which is better. But `find_path()` (line 2099) is also BFS, and `get_distance()` is the hot call — both use naive BFS with `queue.pop(0)`. *(Corrected in Verification Pass: original audit incorrectly stated find_path uses Dijkstra.)*
 - **Scale impact:** 19 regions: ~16K BFS steps/turn. 100 regions: ~256K steps/turn (16x). At Python speed (~50-100us/step): 2-4 seconds per AI turn.
-- **Fix direction:** LRU cache on `get_distance()` (static graph, only invalidated on capture). Replace `queue.pop(0)` with `collections.deque.popleft()`. Consider all-pairs precomputation at load time for maps under 150 regions.
+- **Fix direction:** LRU/manual cache on `get_distance()` with symmetric keys. Replace `queue.pop(0)` with `collections.deque.popleft()`. Treat the cache as adjacency-topology-only: ordinary controller changes do **not** invalidate it, and any future invalidation seam should be tied to adjacency edits rather than capture. Consider all-pairs precomputation at load time for maps under 150 regions.
 - **Blocker class:** Must fix before Europe wiring
 
-### F2. Omniscient AI — 40+ Unfogged Marshal Scans
+### F2. Omniscient AI — 69 Direct Marshal Scans Bypassing Fog
 
 - **Severity:** Critical
 - **Category:** AI quality / fairness problem
 - **Visibility:** Already visible now (AI sees fogged enemies), certain to worsen at scale
-- **Evidence:** `enemy_ai.py` has 40+ direct `world.marshals.values()` iterations without fog filtering. Examples: line 1200 (defender detection), 2375 (force density), 2604 (blocking enemies), 2843 (ally threats), 4031 (adjacent strength). The fog-aware path (`_get_enemy_contacts()` at line 485) only applies to the player nation; enemy nations use omniscient `get_enemies_of_nation()`.
-- **Counter-evidence:** Comment at line 452-464 acknowledges this: "current intel model is player-perspective only." Infrastructure exists (`get_visible_enemies()` at `world_state.py:1534`).
-- **Scale impact:** Fairness asymmetry grows with map size (more hidden information). Cost: 40 marshals x 40 scans x 80 items = 128K list ops per AI turn.
-- **Fix direction:** Build spatial index (`marshals_by_region` dict, O(1) lookup). Extend fog model to all nations, not just player. Smallest viable: index + fog-aware queries for all enemy AI paths.
+- **Evidence:** As of April 17, 2026, `backend/ai/enemy_ai.py` has 69 direct `world.marshals.values()` / `marshals.values()` scans. Examples include defender detection, force density, blocking enemies, ally threats, and adjacent-strength checks. The fog-aware seam (`_get_enemy_contacts()`) exists, but `_should_use_fog_aware_enemy_query()` still only activates it for the player nation; enemy nations fall back to omniscient `get_enemies_of_nation()`.
+- **Counter-evidence:** The seam already acknowledges that the current intel model is player-perspective only. Infrastructure exists for player-facing fog, but the live AI visibility path is not generalized yet.
+- **Scale impact:** Fairness asymmetry grows with map size (more hidden information). Cost remains high because dozens of AI paths still linearly rescan the full marshal set.
+- **Fix direction:** Build spatial index access through helper seams, not private-cache reads from AI code. Then add a lightweight nation-perspective **live** visibility helper for AI decision-making; do **not** expand this phase into a serialized per-nation intel/history system.
 - **Blocker class:** Must fix before Europe wiring
 
 ### F3. 5-Nation Roster Hardcoded Across 5 Config Surfaces
@@ -279,7 +279,7 @@ Cross-check against prior claims in the original SCALE_READYNESS.md:
 
 ### "Omniscient AI outside player-side fog"
 - **Status:** Confirmed
-- **Evidence:** 40+ `world.marshals.values()` scans in enemy_ai.py without fog. Only player nation uses fog-aware path. Comment at line 452-464 acknowledges this.
+- **Evidence:** As of April 17, 2026, `backend/ai/enemy_ai.py` still has 69 direct marshal scans bypassing fog-aware helper seams. Only the player nation currently uses the fog-aware contact path; the AI generalization still needs a nation-perspective live visibility helper.
 - **Matters:** Both (fairness issue now, cost issue at scale)
 - **Prior assessment:** Correctly sized. Infrastructure exists but is bypassed.
 
@@ -324,7 +324,7 @@ Ranked from highest to lowest expansion risk *(updated by Verification Pass)*:
 | Rank | Finding | Why | Status |
 |------|---------|-----|--------|
 | 1 | **F1: Uncached BFS pathfinding** | 2-4 second AI turns at 100 regions. Hard performance wall. | NOT DONE — no cache on `get_distance()` |
-| 2 | **F2: Omniscient AI (59 unfogged scans)** | Unfair + expensive. 59 raw `world.marshals.values()` scans. | PARTIAL — `_marshals_by_region` index exists at `world_state.py:1249` but enemy_ai.py doesn't use it |
+| 2 | **F2: Omniscient AI (69 direct scans bypassing fog)** | Unfair + expensive. Dozens of raw marshal scans still bypass indexed/fog-aware seams. | PARTIAL — `_marshals_by_region` index exists at `world_state.py:1249` but enemy_ai.py doesn't use it and AI fog still needs a live visibility helper |
 | 3 | **F3: 5-nation roster hardcoded** | Cannot add nations without cascading config + content work. | NOT DONE |
 | 4 | **F18: War cascade no depth limit** | One `declare_war()` → world war at 10+ nations. Design decision needed. | NOT DONE *(Verification Pass addition)* |
 | 5 | **F4: Frontend adjacency duplication** | 6-7 files per region. Drift guaranteed at 80+ regions. | NOT DONE |
@@ -349,9 +349,9 @@ These must be done before adding regions beyond 19:
 
 1. **Add test guardrails FIRST** — Nation config completeness test, parametric region count test, adjacency connectivity test. Safety net before structural changes. (~1 hour) **NOT DONE**
 2. **Fix hardcoded region count in tests** — Replace `== 19` with `== len(REGIONS_DATA)` in 6 assertions across 4 files. (~30 min) **NOT DONE**
-3. **Cache `get_distance()`** — LRU cache with invalidation on capture. Replace `queue.pop(0)` with `deque.popleft()`. (~2 hours) **NOT DONE**
-4. **Wire spatial index into AI** — `_marshals_by_region` index already exists (`world_state.py:1249`). Need to replace 59 `world.marshals.values()` scans in `enemy_ai.py` with indexed lookups via `_get_marshals_in_region_indexed()` or new region-filtered helpers. (~4 hours) **PARTIAL — index exists, AI doesn't use it**
-5. **Extend fog model to all AI nations** — Replace omniscient `get_enemies_of_nation()` calls in enemy_ai.py with fog-aware queries. (~4-6 hours) **NOT DONE**
+3. **Cache `get_distance()`** — LRU/manual cache with symmetric keys. Replace `queue.pop(0)` with `deque.popleft()`. Tie invalidation to adjacency/topology edits, not ordinary region capture. (~2 hours) **NOT DONE**
+4. **Wire spatial index into AI** — `_marshals_by_region` index already exists (`world_state.py:1249`). Replace the current 69 direct marshal scans in `backend/ai/enemy_ai.py` with indexed lookups via AI-safe region helpers, not direct private-cache reads. (~4 hours) **PARTIAL — index exists, AI doesn't use it**
+5. **Extend live visibility to all AI nations** — Replace omniscient `get_enemies_of_nation()` usage on scale-sensitive AI paths with a nation-perspective live visibility helper. Do **not** expand this phase into a serialized per-nation intel/history system. (~4-6 hours) **NOT DONE**
 6. **Make nation config extensible** — Sensible defaults for new nations in all 5 config surfaces. Factory pattern for marshals/diplomats. (~1 session) **NOT DONE**
 7. **Eliminate frontend adjacency duplication** — Frontend loads adjacency from backend API or shared JSON asset. (~4 hours) **NOT DONE**
 8. **Design decision: turn limit, AP, and victory scaling** — Make `max_turns` and base AP scenario-configured. Decide formula or per-scenario constant. This is a design gate, not just code. (~2 hours for code, design decision needed first) **NOT DONE**
@@ -431,7 +431,7 @@ These can wait until after the first playable Europe prototype:
 The BFS at `world_state.py:2029` with `queue.pop(0)` is real. 32 `get_distance()` call sites in enemy_ai.py confirmed. However, the audit's counter-evidence is **wrong**: it states "`find_path()` at `world_state.py:2099-2197` uses Dijkstra." In fact, `find_path()` (line 2099) also uses BFS with `queue.pop(0)` (line 2126). The Dijkstra implementation is a separate method: `find_weighted_path()` at line 2140. The "Not Verified" entry at line 370 ("Whether `find_path()` Dijkstra performance is acceptable") is based on a false premise — there is no Dijkstra in `find_path()`. **Situation is slightly worse than stated**: both primary pathfinding methods are naive BFS.
 
 **F2 (Omniscient AI) — CONFIRMED, underestimated.**
-The audit claims "40+ direct `world.marshals.values()` scans." Actual count: **59 scans** (grep-verified). The fog-aware `_get_enemy_contacts()` cache at line 469-489 exists but only covers the "enemy contacts" query path. The 59 raw scans are spread across scoring, movement eval, targeting, and formation code — none filtered through the fog-aware path. The audit correctly identified the seam (`_should_use_fog_aware_enemy_query` at line 452) but underestimated the scope of bypass.
+The audit claims "40+ direct `world.marshals.values()` scans." As of April 17, 2026, the current count is **69 direct scans** (grep-verified). The fog-aware `_get_enemy_contacts()` cache exists but only covers the enemy-contacts query path, and `_should_use_fog_aware_enemy_query` still limits that path to the player nation. The direct scans are spread across scoring, movement eval, targeting, and formation code, so the audit correctly identified the seam but underestimated the scope of bypass.
 
 **F3 (5-nation hardcoding) — CONFIRMED, fairly stated.**
 `nation_config.py:43-53` builds `RUNTIME_NATIONS` from all 5 config surfaces — the validation architecture (`validate_runtime_nation_support()`) is sound. The real blocker is content authoring: `create_player_marshals()` and `create_enemy_marshals()` are 470-line hand-authored functions. Confirmed as-described.

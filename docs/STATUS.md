@@ -36,7 +36,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
  
 **Actionable now (no blockers):**
 
-1. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI, extend fog to all AI nations. Phase 0 decisions are locked and the Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
+1. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI through helper seams, then extend live fog visibility to all AI nations without building a serialized per-nation intel store in this phase. Phase 0 decisions are locked and the Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 2. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 
 **Complete:**

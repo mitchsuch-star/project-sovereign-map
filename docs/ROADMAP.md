@@ -793,7 +793,7 @@ At 19 regions, AI omniscience is fine — too few regions for fog to matter stra
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
 - AI uses watchtowers and scouts like the player but with priority logic already built
 
-The `get_visible_enemies_near()` helper added in Session 36 is the toggle point — currently returns actual data, switch to fog-filtered for AI fog. The 12 objection helper TODO markers (V2b) also apply here since AI nations' marshals would need fog-aware objection triggers.
+The practical Phase 2 seam is a nation-perspective **live** visibility helper for AI decision-making, not a serialized per-nation intel store. The older `get_visible_enemies_near()` note was directionally right about the toggle point, but the current implementation target is narrower: switch scale-sensitive AI queries onto live fog-filtered contacts first, then revisit deeper AI-side intel/history later if Europe playtests need it. The 12 objection helper TODO markers (V2b) also apply here since AI nations' marshals would need fog-aware objection triggers.
 
 ### Executor Refactoring for 1805
 
