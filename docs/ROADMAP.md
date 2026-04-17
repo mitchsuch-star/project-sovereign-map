@@ -55,7 +55,7 @@
 
 ## Phase 6: Core Campaign Systems
 
-**Goal:** Complete playable campaign loop with resources and win conditions.
+**Goal:** Complete playable campaign loop with resources and campaign pressure. Hard victory conditions are optional scenario content, not a core requirement.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
@@ -756,18 +756,18 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 
 **Goal:** Option C — commission full Europe map, wire partial regions, expand over EA updates.
 
-**Scale-readiness scope lock:** The authored scenario roster for the France-led 1805 prototype is the 13-nation DG-1 set from `docs/SCALE_READINESS_PLAN.md`; EA geography may still wire regions in stages, but salience, victory, and AP contracts are authored against that roster unless a scenario explicitly flags off-map exclusions.
+**Scale-readiness scope lock:** The current France-led 1805 draft scenario uses the 13-nation DG-1 roster from `docs/SCALE_READINESS_PLAN.md`, but that is not an engine cap. EA geography may still wire regions in stages, and larger maps / later scenarios may author more nations as needed.
 
 | Feature | Description | Complexity | Notes |
 |---------|-------------|------------|-------|
 | **~80-100 Wired Regions** | Western/Central Europe playable | Medium | Data entry + balance |
 | **EU4-Style Bitmap Map** | Province color map, visual overlay | Integrated in 6.5 | Commissioned art |
 | Map Interaction | Click provinces, zoom, pan | Integrated in 6.5 | |
-| **13 Independent Nations (France-led 1805 prototype)** | France, Britain, Austria, Prussia, Russia, Spain, Ottoman Empire, Sweden, Naples/Two Sicilies, Bavaria, Saxony, Portugal, Denmark-Norway | HIGH | Scenario data + balance. If an interim build keeps a nation off-map, that scenario must explicitly author whether it counts for `strategic_power` / victory. |
+| **Scenario-authored Nation Roster** | Current 1805 draft: France, Britain, Austria, Prussia, Russia, Spain, Ottoman Empire, Sweden, Naples/Two Sicilies, Bavaria, Saxony, Portugal, Denmark-Norway | HIGH | Scenario data + balance. The draft roster is 13 nations today, but the map / engine are not capped there. |
 | 20+ Marshals | Historical personalities per nation | Medium | Data entry |
 | **1805-accurate Diplomats** | Swap recognizable-but-post-1805 diplomats (Hardenberg / Metternich / Castlereagh / Einsiedel) for the historically-accurate 1805 ministers (Haugwitz / Stadion / Mulgrave / Bose). Voice Bible port of existing register notes. See `DESIGN_REFINEMENT.md` §P1. | Low | Period fidelity upgrade; deferred from Memory and Pressure v0.1 |
 | Year-Based Turns | Monthly 1805-1815 | Low | |
-| 1805 Win Conditions | Per-nation victory conditions | Medium | |
+| Optional 1805 Objectives | Scenario-authored goals if a later build wants them; no hard victory required for the base sandbox | Low | Deferred |
 | **Greyed-Out Expansion** | Remaining 40-70 provinces visible but non-interactive | Low | Visual promise |
 | **AI Fog of War** | AI gets fog (softer than player's) at 80+ regions | Medium | Omniscient AI unfair at scale. Toggle point: `get_visible_enemies_near()` |
 
@@ -779,7 +779,7 @@ The 19-region map has known balance tensions surfaced by Session 26 Opus audit:
 - **France cannot go bankrupt** under normal play (+85 to +235/turn). Bankruptcy is Coalition-only.
 - **Buildings expensive for Coalition** — a 350g market is 44% of Prussia's starting gold.
 
-These are acceptable for the tutorial scenario (France should feel dominant). For the 13-nation France-led 1805 prototype with 80+ regions:
+These are acceptable for the tutorial scenario (France should feel dominant). For the France-led 1805 prototype at 80+ regions and a multi-nation Europe roster:
 - Income sources will be more numerous and distributed
 - Admin AP bonus should scale differently (flat 150g matters less with 2000g income)
 - Building costs may need scaling by era or nation
