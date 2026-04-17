@@ -1,7 +1,7 @@
 # Commitments Presentation Pass — C3-lite Spec
 
-> **Status:** v0.3 (rescope — single C3-lite slice replaces former C3a + C3b split)
-> **Date:** April 16, 2026 (rescope); v0.1 April 15, 2026
+> **Status:** v0.4 (audit fixes)
+> **Date:** April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
 > **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
 > **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.0 (substrate + paradox rename), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
 > **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain spotlights, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
@@ -43,7 +43,7 @@ The v0.2 audit findings (F1-F8, P2-H1 through P2-H10) and prior version of this 
 The Memory and Pressure substrate now creates real political moments:
 
 - betrayal memory (graded acceptance impact + hard-reject posture)
-- rivalry pressure (direct + third-party anger on ratification — when the seed and B1/B2a-fill ship)
+- concern pressure (direct + third-party anger on ratification — when the seed and B1/B2a-fill ship)
 - commitment paradox hard stops (renamed alliance-cross-war; `commitment_paradox_resolved` log + dispatch event)
 
 What it does **not** yet do is make those moments feel important in play. They land as one-liner notification rows.
@@ -56,10 +56,10 @@ The pass remains **mechanically inert**. It owns framing, pacing, and surfacing.
 
 ## 2. Phase Placement
 
-Final slice of `Memory and Pressure`. Sits after the spec/plan code work (rivalry seed, formula additions, paradox rename). Before any bargain work.
+Final slice of `Memory and Pressure`. Sits after the spec/plan code work (concern seed, formula additions, paradox rename). Before any bargain work.
 
 ```text
-A1 (✓) → A1-fill (rivalry seed) → A2 fill (ledger rivalry display)
+A1 (✓) → A1-fill (concern seed) → A2 fill (ledger concern display)
                                 → B1 (acceptance formula additions)
                                 → B2a-fill (ratification anger)
                                 → B6 (redemption tick)
@@ -446,7 +446,7 @@ Talleyrand is **not** the default speaker for every important commitments moment
 | Event | Lead speaker | Supporting speaker | Register |
 |-----------|---------|---------------|---------------|
 | `commitment_paradox` | `talleyrand` | spurned-envoy aside after choice (named diplomat) | grave, tragic, explicitly not quippy |
-| `commitment_paradox_resolved` | `system` (campaign log only) | none | neutral declarative |
+| `commitment_paradox_resolved` | `talleyrand` (notice), `system` (campaign log) | none | Talleyrand reflective on notice surfaces; neutral declarative in campaign log. `system` is disallowed on rail surfaces per §10.3 — the resolution of a paradox should carry Talleyrand's voice, not feel like a system message. |
 | `diplomatic_treaty_broken` (french_breach) | `envoy` (named diplomat per §10.3) | `talleyrand` private aside | accusation first, private counsel second |
 | `hard_reject_posture_triggered` | `foreign_office` (resolved as "The Chancery of {nation}") | optional Talleyrand N+1 aftermath aside | formal closure, no quips |
 | `witness_strike_recorded` | `system` or `foreign_office` | none | terse third-party observation |
@@ -458,7 +458,7 @@ Spotlight cards and expanded notice detail must support `speaker_attribution` an
 
 **Named-diplomat resolution (mandatory for envoy / foreign_office).** Abstract speaker roles are routing hints, not render values. At render time:
 
-- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh, Godoy, etc.) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`. Hawk registers are blunt and prideful. Schemer registers are cold and calculating. Dove registers are wounded and bewildered.
+- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh — the v0.1 cast from `diplomat.py`) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`. Hawk registers are blunt and prideful. Schemer registers are cold and calculating. Dove registers are wounded and bewildered.
 - `speaker="foreign_office"` MUST render as "The Chancery of {nation}" — never as the generic string "foreign_office". Register derives from that nation's dominant diplomat's personality.
 - `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or spotlight surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word "system" must never reach the player.
 - **Loyalist fallback.** `backend/models/diplomat.py` permits a fourth personality value `loyalist` with no `DIPLOMAT_VOICE_BIBLE.md` entry. The v0.1 cast (Talleyrand / Castlereagh / Hardenberg / Metternich / Einsiedel) is schemer/hawk/dove only, so this is latent, not a current bug. If a future diplomat (new scenario, mod content) uses `loyalist`, the resolver MUST fail loudly (assert or explicit warning) rather than silently rendering unkeyed — pick a default register only after the Voice Bible adds a loyalist entry or a modding author supplies one.
@@ -468,7 +468,7 @@ For each breach lead-line template committed in §12.2, the mock template librar
 - Prussia (Hardenberg, Hawk) — breach lead-line + hard-reject Chancery line
 - Austria (Metternich, Schemer) — breach lead-line
 - Saxony (Einsiedel, Dove) — breach lead-line
-- Britain (Castlereagh, Hawk) — hard-reject Chancery line (Britain rarely receives a French breach since France-Britain is a permanent rivalry and rarely deepens)
+- Britain (Castlereagh, Hawk) — hard-reject Chancery line (Britain rarely receives a French breach since France-Britain is a primary concern and rarely deepens)
 
 The previous v0.2 nine-line cast coverage requirement (3 nations × 3 personality registers) was sized for bargain breach scenarios. v0.3 minimum is **4 lines** (one per nation likely to be wronged in this phase).
 
@@ -861,6 +861,7 @@ Bargain-era acceptance criteria (`bargain_breached` 3-beat sequence, scope-branc
 
 ## 17. Changelog
 
+- **April 16, 2026 — v0.4 audit fixes.** Removed stale Godoy/Spain reference from §10.3 named-diplomat list (only 5 diplomats exist in v0.1 cast: Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel). Fixed `commitment_paradox_resolved` speaker from `system` to `talleyrand` on notice surfaces — `system` is disallowed on rail surfaces per §10.3's own rule. Aligned terminology with `RELIABILITY_COMMITMENTS_SPEC.md` v2.2 rename: "rivalry" → "concern" where referenced.
 - **April 16, 2026 — v0.3 rescope.** War bargain presentation moved to `WAR_BARGAIN_SPEC.md` slice WB-D. Collapsed `C3a` + `C3b` into one `C3-lite` slice. Three live events get spotlight + split-voice + named-diplomat treatment. Paradox simplified from 5-beat to 3-beat (framing → blocking body → after-choice aside). Reactive affordances cut to advisory routes only; response routes deferred to WB-D. N+5 fallback grievance slot cut as edge-case polish. Multi-spotlight overflow digest cut as edge-case polish. Witness scope-branching deferred to WB-D. Cast coverage minimum reduced from 9 lines (3 nations × 3 registers) to 4 lines (one per likely-victim nation). Acceptance criteria narrowed accordingly.
 - **April 15, 2026 (Pass 2)** — folded 4-lens review findings per Pass 2 of `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`. Changes: §8.3 overflow spotlight digest for climactic turns; §9.1 typographic contract + reveal cadence for split-voice; §9.2 period-label fixes; §10.3 named-diplomat routing mandatory; §12.5 paradox restaged as five-beat scene; §12.6 reactive affordances split into advisory routes and response routes; §13 N+5 fallback Morning Dispatch grievance slot; §14 new `C3a-pre` slice. **Most of these audit folds were narrowed back in the v0.3 rescope; they remain documented in the audit file as design history.**
 - **April 15, 2026** — split `C3` into `C3a` routing and `C3b` drama, and folded designer-eye audit findings F1-F8 per `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`. **Collapsed back into C3-lite in v0.3 rescope.**

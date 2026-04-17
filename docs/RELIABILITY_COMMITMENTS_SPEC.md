@@ -1,7 +1,7 @@
 # Memory and Pressure Spec
 
-> **Status:** v2.0 (rescope)
-> **Date:** April 16, 2026 (rescope); v1.0 April 14, 2026
+> **Status:** v2.2 (audit fixes + scale architecture)
+> **Date:** April 16, 2026 (v2.2 audit); v2.0 rescope; v1.0 April 14, 2026
 > **Phase placement:** Design Refinement queue item 1 (formerly "Reliability + Commitments"; renamed in v2.0).
 > **Companion docs:** `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (the `C3-lite` presentation pass), `WAR_BARGAIN_SPEC.md` (bargain mechanic, deferred to Peace Deals phase).
 
@@ -20,7 +20,7 @@ The rescope:
 
 1. **War bargains move out** to `WAR_BARGAIN_SPEC.md`, scheduled in the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`.
 2. **Phase rename:** `Reliability + Commitments` → `Memory and Pressure`. The new name reflects the actual scope: betrayal memory + rivalry / formula pressure + the legacy paradox renamed.
-3. **Scope what remains to ship:** seed `nation_rivalries`, fill the acceptance formula with the spec values for the modifiers we have data for, wire third-party anger on treaty deepening, rename `alliance_paradox` to `commitment_paradox`, and ship the narrow `C3-lite` presentation pass.
+3. **Scope what remains to ship:** seed `nation_concerns`, fill the acceptance formula with the spec values for the modifiers we have data for, wire third-party anger on treaty deepening, rename `alliance_paradox` to `commitment_paradox`, and ship the narrow `C3-lite` presentation pass.
 4. **Presentation rescope:** `COMMITMENTS_PRESENTATION_SPEC.md` collapses `C3a` + `C3b` into one `C3-lite` slice that delivers the named-diplomat / spotlight-tier / split-voice flavor for the events that *do* fire today.
 
 This spec covers the engine half of the rescope. Bargain content is preserved in `WAR_BARGAIN_SPEC.md` so nothing is lost; section numbers below intentionally skip slots that moved (e.g. former §9 is now in `WAR_BARGAIN_SPEC.md` §8).
@@ -123,9 +123,9 @@ The pressure layer has four player-facing data concepts plus shared engine seams
 
 ### 6.3 Rivalries (data missing — this phase ships it)
 
-- `world.nation_rivalries: Dict[str, Dict]` — pair key `diplo_key`.
+- `world.nation_concerns: Dict[str, Dict]` — pair key `diplo_key`.
 - Value: `{intensity, source, weight, started_turn, last_changed_turn}`.
-- v0.1 ships **3 authored seeded pairs only**; no dynamic formation.
+- v0.1 ships **4 authored seeded pairs only**; no dynamic formation.
 
 ### 6.4 War bargains
 
@@ -140,9 +140,13 @@ The pressure layer has four player-facing data concepts plus shared engine seams
 
 ---
 
-## 7. Rivalry System
+## 7. Concern System
 
-### 7.1 Starting rivalries (this phase ships seeding)
+> **Terminology note (v2.2):** v2.0-v2.1 used "rivalry" for this system. Renamed to "concern" in v2.2 to reflect the target architecture: at full-Europe scale, bilateral diplomatic friction is driven by dynamic balance-of-power concern, not static rival labels. v0.1 ships static seeded concern values with identical mechanical behavior; the field name `nation_concerns` is chosen so the data model grows naturally into dynamic evaluation without a rename refactor. See §7.7 for the scale architecture note.
+
+### 7.1 Starting concerns (this phase ships seeding)
+
+v0.1 seeds 4 concern pairs. Each represents a structural interest conflict that creates diplomatic friction — not a permanent enemy label, but a starting political reality that extraordinary diplomacy can reshape.
 
 Initial set:
 
@@ -160,47 +164,50 @@ Notes:
 - Prussia/Austria is the German-hegemony fork; together with France/Austria it forces France to choose a continental ally rather than default to both.
 - Prussia/Saxony starts visible but weaker.
 - Playtest tripwire: if France/Austria at `secondary + active` feels too hostile and France cannot credibly pursue any continental alliance without angering either Austria or Prussia, consider dropping France/Austria to `secondary + cold` before adding a new bloc system.
+- **Auto-downgrade rule:** if a concern pair reaches `DEFENSIVE_ALLIANCE` or above with each other, their concern intensity drops from `active` → `cold`. The concern is not removed — structural interests persist — but extraordinary diplomatic investment is rewarded with reduced friction. This is the France-Austria 1810 marriage arc: deep alliance doesn't erase the structural tension, but it lowers the active pressure. If the alliance later breaks, authored escalation rules or future dynamic evaluation (§7.7) can re-escalate.
 
 Authored escalation rules for Prussia/Saxony:
 
 - if Prussia and Saxony enter direct war → escalate to `active`
 - if France vassalizes Saxony → escalate to `active`
 
-These are explicit authored checks, not a general dynamic-rivalry system.
+These are explicit authored checks, not a general dynamic-concern system.
 
-### 7.2 Dynamic rivalry formation
+### 7.2 Dynamic concern formation
 
 Deferred. v0.1 ships only the static starting rivalries plus the two Prussia-Saxony escalation triggers above. General emergent rivalry formation moves to later AI-agenda work.
 
-### 7.3 Rivalry intensity (acceptance values)
+### 7.3 Concern intensity (acceptance values)
 
-Two-step model — exact values used by `direct_rivalry_mod` (§9.1):
+Two-step model — exact values used by `direct_concern_mod` (§9.1):
 
 | Weight / Intensity | Meaning | Direct treaty effects |
 |--------------------|---------|-----------------------|
 | `secondary + cold` | low but visible friction | `OPEN_BORDERS -4`, `NON_AGGRESSION -6`, deep treaties / `VASSAL -12` |
-| `secondary + active` | live regional rivalry | `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20` |
-| `primary + active` | major geopolitical rivalry | `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30` |
+| `secondary + active` | live regional concern | `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20` |
+| `primary + active` | major geopolitical concern | `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30` |
+
+"Deep treaties" = `DEFENSIVE_ALLIANCE`, `ALLIANCE`, and `VASSAL`. All three use the same column.
 
 Rules:
 
-- `cold` rivalries never trigger paradox by themselves (paradox stays on legacy alliance-cross-war trigger; see §7.5).
-- `active` rivalries can swing deep-treaty acceptance on their own.
-- Primary rivalry is what makes France-Britain alliance "extraordinary but possible" rather than merely uncommon.
+- `cold` concerns never trigger paradox by themselves (paradox stays on legacy alliance-cross-war trigger; see §7.5).
+- `active` concerns can swing deep-treaty acceptance on their own.
+- Primary active concern is what makes France-Britain alliance "extraordinary but possible" rather than merely uncommon.
 
-### 7.4 Rivalry effects on diplomacy
+### 7.4 Concern effects on diplomacy
 
 Two pressure paths.
 
-#### A. Direct rivalry friction
+#### A. Direct concern friction
 
-Trying to deepen treaties with a direct rival applies acceptance penalties using §7.3. Lower treaty levels stay flexible; deep military friendship across major rival lines becomes structurally rare.
+Trying to deepen treaties with a nation you have high concern with applies acceptance penalties using §7.3. Lower treaty levels stay flexible; deep military friendship across major concern lines becomes structurally rare.
 
 #### B. Third-party commitment pressure (this phase ships wiring)
 
-When France deepens ties with Nation A, each rival of A reacts.
+When France deepens ties with Nation A, each nation with active concern about A reacts.
 
-Suggested base anger for `active` rivalries:
+Suggested base anger for `active` concerns:
 
 | New state with A | Rival reaction |
 |------------------|----------------|
@@ -212,8 +219,8 @@ Suggested base anger for `active` rivalries:
 
 Rules:
 
-- if the offended nation is only a `cold` rival of A, apply **half values rounded toward zero**
-- if France vassalizes a nation that is the offended rival's marked rival, apply the immediate `VASSAL` anger hit first, then process any authored escalation rule such as Prussia-Saxony
+- if the offended nation has only `cold` concern about A, apply **half values rounded toward zero**
+- if France vassalizes a nation that the offended party has concern about, apply the immediate `VASSAL` anger hit first, then process any authored escalation rule such as Prussia-Saxony
 - the rival-reaction relation hit applies immediately on ratification and is the default pressure path
 - if that relation loss pushes an existing French treaty with the offended rival below its stability threshold, normal downgrade and auto-downgrade rules handle the fallout — do **not** force an instant treaty break as the default outcome
 - do **not** add a separate `they_chose_us` token; the reward loop comes from treaty depth, fulfilled commitments, and visible preview / ledger surfacing
@@ -226,14 +233,14 @@ Deferred. Do not add a separate bloc-pressure layer in v0.1.
 
 The v0.1 side-picking package is:
 
-- direct rivalry penalties
+- direct concern penalties
 - third-party anger
 - bilateral betrayal memory
 - legacy commitment paradox (renamed; see §7.5)
 
 War bargains, when `WAR_BARGAIN_SPEC` ships, will add the explicit named-enemy promise layer on top.
 
-**Historical-texture debt flagged for `Coalition Generalization` / D2:** the v0.1 rivalry model has Britain as France's direct rival but does not give Britain any *reactive* posture when France deepens ties with a continental power. Historically, Britain opposed any continental hegemon on principle, paying subsidies to any power willing to fight France. D2 scope should therefore include a "continental hegemon reaction" pattern — bloc-threat accumulation against any nation approaching hegemony, not just France — and not reduce to a simple anti-France-literal refactor. Tracked in `docs/DESIGN_REFINEMENT.md` §P2.
+**Historical-texture debt flagged for `Coalition Generalization` / D2:** the v0.1 concern model has Britain as France's direct concern but does not give Britain any *reactive* posture when France deepens ties with a continental power. Historically, Britain opposed any continental hegemon on principle, paying subsidies to any power willing to fight France. D2 scope should therefore include a "continental hegemon reaction" pattern — bloc-threat accumulation against any nation approaching hegemony, not just France — and not reduce to a simple anti-France-literal refactor. Tracked in `docs/DESIGN_REFINEMENT.md` §P2.
 
 ### 7.5 Commitment paradox
 
@@ -253,9 +260,44 @@ What this phase **does not** ship:
 - `opposition_graph` reads
 - bargain-attached fallout preview (no bargains to attach)
 
-### 7.6 Rivalry decay and resolution
+### 7.6 Concern decay and resolution
 
-Deferred except for the two Prussia-Saxony escalation triggers. Primary rivalries stay sticky in v0.1. Broader thaw / decay rules can return later.
+Deferred except for the two Prussia-Saxony escalation triggers and the auto-downgrade rule in §7.1. Primary concerns stay sticky in v0.1 unless actively lowered by deep alliance. Broader dynamic thaw / decay rules arrive with the Nation Agendas spec (queue item 5).
+
+### 7.7 Scale architecture note (v2.2)
+
+The v0.1 concern system ships static seeded values. At full-Europe scale (15-30 nations), the system evolves into dynamic balance-of-power evaluation:
+
+**Target architecture (Nation Agendas, queue item 5):**
+
+- `nation_concerns` becomes a continuous bilateral meter, not a labeled-pair table
+- Concern rises from observable events: territory gain near the concerned nation, vassalization of neighbors, alliance with the concerned nation's opponents, military power exceeding a relative threshold
+- Concern falls from: territory loss, treaty investment, diplomatic gestures (Make Amends), military defeats
+- Concern shares event triggers with coalition threat (`COALITION_SPEC.md` §2a) but tracks bilaterally — coalition threat is the macro collective response, concern is the micro per-nation response
+- AI nations evaluate concern periodically and adjust posture: high concern → oppose, low concern → receptive, concern dropping after peak → bandwagoning window
+- Small-state bandwagoning emerges naturally: when a great power's military dominance makes local resistance suicidal, concern inverts into survival-driven alignment
+
+**What v0.1 seeds for that future:**
+
+- the field is named `nation_concerns`, not `nation_rivalries` — grows without rename
+- the penalty table (§7.3) reads intensity thresholds, not hardcoded pair names — works with continuous values via threshold mapping
+- the auto-downgrade rule (§7.1) establishes that concern is mutable, not permanent
+- the acceptance formula (§9) reads concern data through helper functions, not direct field access — helpers can switch from static lookup to dynamic evaluation transparently
+
+**What breaks at 15+ nations and needs recalibration:**
+
+| Element | v0.1 assumption | Full-Europe concern |
+|---------|-----------------|---------------------|
+| Seeded pairs | 4 hand-authored | Cannot hand-author all pairs; need dynamic evaluation |
+| 3-strike hard-reject | Meaningful at 4 partners | May trigger too frequently or be diluted across 20+ partners |
+| Composite floor `-40` | Significant vs 4 options | May be irrelevant when 15 alternatives exist |
+| Make Amends cadence | 200g + 10-turn cooldown per pair | At 15+ strike-holding nations, repair tour becomes prohibitive |
+| Preview warning cap | 2 inline warnings | Any deep alliance may anger 6+ nations |
+| Anti-spam budget | 1 spotlight + 2 notices | Multiple simultaneous diplomatic crises become normal |
+| Witness scope loop | O(active_nations) per witness | O(25+) needs caching or batch processing |
+| Voice Bible cast | 5 named diplomats | Needs 15+ named voices or a generic-register fallback |
+
+These are flagged for recalibration when map expansion lands; they do not block v0.1 ship.
 
 ---
 
@@ -322,7 +364,7 @@ Global reliability rule:
 Witness penalties apply only to directly interested observers:
 
 - nations with `DEFENSIVE_ALLIANCE` or `ALLIANCE` with the victim
-- nations with an active rivalry against the betrayer (currently uses war-state proxy; switches to `nation_rivalries` data once seeded — see §7.1)
+- nations with an active rivalry against the betrayer (currently uses war-state proxy; switches to `nation_concerns` data once seeded — see §7.1)
 - nations with a live bargain that shares the same named enemy or claim region (deferred until `WAR_BARGAIN_SPEC` lands)
 
 Everyone else gets zero witness effect. Witnesses do **not** receive victim-grade strikes in v0.1.
@@ -355,7 +397,7 @@ Do **not** add a dedicated `trusted_partner` state in v0.1.
 
 Suggested rules:
 
-- every 5 honored treaty turns: `+3` to `diplomatic_reliability[actor]`, counted once per actor on a single global clock; a turn counts only if that actor ends the turn with at least one qualifying non-`WAR` treaty honored and no new betrayal offense created that turn — **wire this in this phase** (currently absent)
+- every 5 honored treaty turns: `+3` to `diplomatic_reliability[actor]`, counted once per actor on a single global clock; a turn counts only if that actor ends the turn with at least one treaty at `OPEN_BORDERS` or above honored and no new betrayal offense created that turn — **wire this in this phase** (currently absent). `PEACE` alone does not qualify — merely not being at war is not active commitment. The tick rewards invested diplomatic relationships, not passive coexistence.
 - after honorable turns with a nation and no new offense, remove 1 bilateral strike using severity-scaled decay:
   - 6 turns: `OPEN_BORDERS` / `PEACE`-level break
   - 8 turns: `NON_AGGRESSION` break
@@ -438,7 +480,7 @@ Rules:
 
 This phase needs three treaty-acceptance inputs in v0.1. The fourth (`bargain_value_mod`) and the dedicated `war_entry_score` live in `WAR_BARGAIN_SPEC.md`.
 
-### 9.1 Direct rivalry modifier (this phase ships)
+### 9.1 Direct concern modifier (this phase ships)
 
 Use the exact treaty-depth values from §7.3:
 
@@ -446,21 +488,21 @@ Use the exact treaty-depth values from §7.3:
 - `secondary + active`: `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20`
 - `primary + active`: `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30`
 
-Primary active rivals must be able to swing deep-treaty outcomes on their own.
+Primary active concerns must be able to swing deep-treaty outcomes on their own.
 
-### 9.2 Rival-commitment conflict modifier (this phase ships, partial)
+### 9.2 Concern-conflict modifier (this phase ships, partial)
 
-Negative when the target knows France is already aligned with its rival:
+Negative when the target knows France is already aligned with a nation the target has active concern about:
 
-- France holds `OPEN_BORDERS` with the target's active rival: `-2`
-- France holds `NON_AGGRESSION` with the target's active rival: `-4`
-- France holds `DEFENSIVE_ALLIANCE` with the target's active rival: `-10`
-- France holds `ALLIANCE` or `VASSAL` with the target's active rival: `-16`
+- France holds `OPEN_BORDERS` with the target's active concern: `-2`
+- France holds `NON_AGGRESSION` with the target's active concern: `-4`
+- France holds `DEFENSIVE_ALLIANCE` with the target's active concern: `-10`
+- France holds `ALLIANCE` or `VASSAL` with the target's active concern: `-16`
 - (bargain-conflict add-on lives in `WAR_BARGAIN_SPEC.md` §9.2)
 
-Do not double-count the same rival twice; use the strongest treaty-alignment value.
+Do not double-count the same concern pair twice; use the strongest treaty-alignment value.
 
-Cap `rival_conflict_mod` at `-20` before the composite floor.
+Cap `concern_conflict_mod` at `-20` before the composite floor.
 
 ### 9.3 Bilateral betrayal modifier (this phase ships — currently missing from formula)
 
@@ -477,8 +519,8 @@ Group the new modifiers under one composite:
 
 ```python
 raw_political_commitment_mod = (
-    direct_rivalry_mod
-    + rival_conflict_mod
+    direct_concern_mod
+    + concern_conflict_mod
     + bilateral_betrayal_mod
 )
 
@@ -489,7 +531,7 @@ Rules:
 
 - the cap prevents formula-level total lockout
 - hard-reject posture at 3 strikes still exists outside the formula
-- the per-modifier caps (`bilateral_betrayal_mod -24`, `rival_conflict_mod -20`) are **superseded** by the composite floor when `raw < -40`. The floor is authoritative; per-modifier caps document intent but do not stack as combined limits.
+- the per-modifier caps (`bilateral_betrayal_mod -24`, `concern_conflict_mod -20`) are **superseded** by the composite floor when `raw < -40`. The floor is authoritative; per-modifier caps document intent but do not stack as combined limits.
 - the per-episode strike cap in §8.3 is what keeps the hard-reject posture from becoming too punishing
 
 When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins this composite (positive contribution).
@@ -500,15 +542,15 @@ When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins this composite (positiv
 
 ### 10.1 Proposal generation
 
-AI uses rivalries to create branches:
+AI uses concern data to create branches:
 
-- court France against their rival
+- court France against the nation they're concerned about
 - (bargain offers move to `WAR_BARGAIN_SPEC.md`)
 
 Minimal v1.0 AI decision-reason contract (already shipped in subset; this phase tightens):
 
 - every AI-authored offer, refusal, hard block, or counterparty reversal emits one deterministic `decision_reason`
-- v0.1 enum: `rival_pressure`, `shared_enemy_survival`, `distrust_promiser`, `war_overload`, `route_blocked`, `coalition_conflict`, `counterparty_reversal`, **`unknown_baseline`** (added in this phase to replace the current `rival_pressure` catch-all when no actual rivalry pressure is computed)
+- v0.1 enum: `concern_pressure`, `shared_enemy_survival`, `distrust_promiser`, `war_overload`, `route_blocked`, `coalition_conflict`, `counterparty_reversal`, **`unknown_baseline`** (added in this phase to replace the current `rival_pressure` catch-all when no actual concern pressure is computed)
 - bargain-specific reasons (`claim_trade`, `claim_obsolete`) live in `WAR_BARGAIN_SPEC.md`
 - `decision_reason` is mechanical motive metadata the presentation layer, advisory logic, and campaign log can read directly — it is not freeform narrative text
 
@@ -517,7 +559,7 @@ Minimal v1.0 AI decision-reason contract (already shipped in subset; this phase 
 AI must not:
 
 - offer redundant proposals to a target with whom France currently has an unresolved hard-reject posture
-- escalate ratification with rivals when a recent hard-stop was rejected
+- escalate ratification with high-concern nations when a recent hard-stop was rejected
 
 (Bargain-specific anti-spam moves to `WAR_BARGAIN_SPEC.md`.)
 
@@ -525,7 +567,7 @@ AI must not:
 
 AI should refuse or resist:
 
-- deep alliance while France is already militarily aligned with the AI's rival (uses §9.2)
+- deep alliance while France is already militarily aligned with a nation the AI has concern about (uses §9.2)
 - deep treaties at 3 active victim-side strikes except under explicit survival exceptions (already wired)
 
 ### 10.4 Strategic focus / advisory layer
@@ -538,7 +580,7 @@ No new hot-path per-region scans.
 
 Use:
 
-- cached rivalry lookups (per-turn cache when the rivalry seed lands)
+- cached concern lookups (per-turn cache when the concern seed lands)
 - direct pair-key reads on `betrayal_history`
 - targeted validation checks on key event hooks
 
@@ -552,7 +594,7 @@ Use:
 
 Add to Nations / Talleyrand tabs:
 
-- each nation's active rivals
+- each nation's active concerns
 - France's global reliability descriptor (already present)
 - bilateral betrayal warning when that nation distrusts France specifically (already present)
 - bargain section deferred to `WAR_BARGAIN_SPEC.md`
@@ -565,7 +607,7 @@ Dedicated **Political context** panel on proposal preview / ratification surface
 
 Surfaces:
 
-- active rivals relevant to the target
+- active concerns relevant to the target
 - any bilateral betrayal memory affecting the offer
 - main nation likely to be angered if France proceeds
 
@@ -576,7 +618,7 @@ Canonical preview contract (shipped):
 
 Warning categories used in this phase:
 
-- `rivalry`
+- `concern`
 - `betrayal`
 - `hard_reject`
 - `paradox`
@@ -587,7 +629,7 @@ Warning categories used in this phase:
 Severity contract (shipped):
 
 - ordinals: `critical = 3`, `high = 2`, `medium = 1`, `low = 0`
-- stable category tie-break order: `paradox`, `hard_reject`, `bargain`, `betrayal`, `rivalry`, `peace_conflict`
+- stable category tie-break order: `paradox`, `hard_reject`, `bargain`, `betrayal`, `concern`, `peace_conflict`
 - later categories should append after this order, not silently reshuffle it
 - tie-break beyond severity + category currently uses text sort; a stable emit-sequence index would be more robust at scale (low priority; flagged for future)
 
@@ -605,7 +647,7 @@ Active treaties tab — no new content in this phase. (Bargain rows live in `WAR
 
 High-signal events for this phase:
 
-- rivalry escalation (Prussia-Saxony triggers)
+- concern escalation (Prussia-Saxony triggers)
 - betrayal recorded
 - commitment paradox resolved (already shipped via legacy alliance_paradox flow)
 - hard-reject posture triggered (already shipped)
@@ -635,7 +677,7 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
 
 ### 12.2 To add this phase
 
-- `nation_rivalries: Dict[str, Dict]` per §6.3
+- `nation_concerns: Dict[str, Dict]` per §6.3
   - key: `diplo_key`
   - value: `{intensity, source, weight, started_turn, last_changed_turn}`
 - `actor_honored_turns: Dict[str, int]` — single global honored-turn clock per actor for §8.6 reliability tick
@@ -674,9 +716,9 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do *
 
 **This phase ships:**
 
-- **B-A1-fill: rivalry seed.** Add `nation_rivalries` to WorldState init with the 3 authored pairs from §7.1. `to_dict` / `from_dict` round-trip. ~8 tests.
-- **B-B1: acceptance formula additions.** Add `direct_rivalry_mod`, `rival_conflict_mod`, graduated `bilateral_betrayal_mod` with composite `political_commitment_mod` floored at `-40`. Wire debug breakdown output and acceptance feedback strings. Preserve old static sweeteners only when no graded rivalry / betrayal data applies. Add regression tests comparing representative pre-change proposal scores against expected tolerance bands. ~14 tests.
-- **B-B2a-fill: third-party anger on ratification.** Apply rival-reaction relation hits per §7.4.B at treaty ratification, scaled half for `cold`. Special handling for vassalize-rival-of-rival. Use existing downgrade / auto-downgrade behavior as the normal fallout path; do **not** add forced instant-break logic. ~10 tests.
+- **B-A1-fill: concern seed.** Add `nation_concerns` to WorldState init with the 4 authored pairs from §7.1. `to_dict` / `from_dict` round-trip. ~8 tests.
+- **B-B1: acceptance formula additions.** Add `direct_concern_mod`, `concern_conflict_mod`, graduated `bilateral_betrayal_mod` with composite `political_commitment_mod` floored at `-40`. Wire debug breakdown output and acceptance feedback strings. Preserve old static sweeteners only when no graded concern / betrayal data applies. Add regression tests comparing representative pre-change proposal scores against expected tolerance bands. ~14 tests.
+- **B-B2a-fill: third-party anger on ratification.** Apply concern-reaction relation hits per §7.4.B at treaty ratification, scaled half for `cold`. Special handling for vassalize-concern-target. Use existing downgrade / auto-downgrade behavior as the normal fallout path; do **not** add forced instant-break logic. ~10 tests.
 - **B-B6: redemption tick.** Add `actor_honored_turns` global clock per §8.6 with the +3 reliability award once per actor per 5 honored turns. ~5 tests.
 - **B-B3: paradox rename.** Rename push-side `dialogue_manager.push({"type": "alliance_paradox", ...})` to `commitment_paradox`; keep `alliance_paradox` as accepted alias on read for save-load. Rename the popup type passthrough on the Godot side (`alliance_paradox_popup.gd` field reads). The dedicated `commitment_paradox_popup.{tscn,gd}` surface ships in the `C3-lite` slice (Slice C below). ~3 tests.
 - **B-B7: Make Amends verb (NEW in v2.1).** Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. ~8 tests.
@@ -712,9 +754,9 @@ War bargain implementation moved to `WAR_BARGAIN_SPEC.md` slices WB-A through WB
 
 ### R1. Over-hard locking
 
-If rivalry becomes pure binary prohibition, diplomacy feels scripted.
+If concern becomes pure binary prohibition, diplomacy feels scripted.
 
-**Mitigation:** keep lower treaty levels flexible; force choices only on deep military commitments; keep France-Britain extraordinary but technically possible.
+**Mitigation:** keep lower treaty levels flexible; force choices only on deep military commitments; keep France-Britain extraordinary but technically possible. The auto-downgrade rule (§7.1) ensures concern can be reduced through treaty investment.
 
 ### R2. Pressure-without-promise feels punitive
 
@@ -732,7 +774,7 @@ If acceptance formula floor (-40) hides real underlying pressure, players can't 
 
 If warnings fire every turn, players stop reading them.
 
-**Mitigation:** event-driven warning model only; preview capped to 2 inline warnings; rivalry seed is small (3 pairs) so anger events are rare.
+**Mitigation:** event-driven warning model only; preview capped to 2 inline warnings; concern seed is small (4 pairs) so anger events are rare.
 
 ### R5. France-centric coalition assumptions
 
@@ -791,8 +833,8 @@ If commitments hard-code coalition overlap as "anti-France only," later coalitio
 For Memory and Pressure v2.0:
 
 - keep global reliability and bilateral betrayal substrate (already shipped)
-- seed `nation_rivalries` with the 3 authored pairs (this phase)
-- fill the acceptance formula with `direct_rivalry_mod`, `rival_conflict_mod`, graduated `bilateral_betrayal_mod` under a `-40` composite floor (this phase)
+- seed `nation_concerns` with the 4 authored pairs (this phase)
+- fill the acceptance formula with `direct_concern_mod`, `concern_conflict_mod`, graduated `bilateral_betrayal_mod` under a `-40` composite floor (this phase)
 - wire third-party anger on treaty ratification (this phase)
 - rename `alliance_paradox` → `commitment_paradox` (this phase)
 - ship the `C3-lite` presentation pass — spotlight tier, split-voice render, named-diplomat resolution, committed mock prose for the three live events, one N+1 callback (this phase)
@@ -804,6 +846,7 @@ That is enough to make diplomacy feel political, create real rivalry pressure, a
 
 ## 17. Changelog
 
+- **April 16, 2026 — v2.2 audit fixes + scale architecture.** Renamed "rivalry" → "concern" throughout (field: `nation_concerns`) to align with target balance-of-power architecture where bilateral friction is dynamic, not static labels (§7 terminology note). Fixed seeded-pair count from 3 → 4 (stale after v2.1 added France↔Austria). Tightened redemption tick (§8.6) to require `OPEN_BORDERS` or above — `PEACE` alone no longer qualifies as active commitment. Clarified "deep treaties" = `DEFENSIVE_ALLIANCE` + `ALLIANCE` + `VASSAL` (§7.3). Added auto-downgrade rule: concern intensity drops `active` → `cold` when the concern pair reaches `DEFENSIVE_ALLIANCE` or above (§7.1). Added §7.7 Scale Architecture Note documenting the target dynamic-concern system for full Europe and listing what breaks at 15+ nations. Acceptance formula modifiers renamed: `direct_rivalry_mod` → `direct_concern_mod`, `rival_conflict_mod` → `concern_conflict_mod`. AI decision_reason enum: `rival_pressure` → `concern_pressure`. Warning category: `rivalry` → `concern`.
 - **April 16, 2026 — v2.1 creative-audit folds.** §3 Goal 1 rewritten to own the "forced political tradeoff" framing (previously read as apologetic pressure-without-promise). §7.1 seeded France↔Austria as `secondary + active` to match the 1805 Third Coalition setting (previously absent on the claim Austria was a "swing partner"; creative audit flagged that framing as a period misread). §7.4.C flagged Britain-anti-continental-hegemon as the #1 historical-texture debt for D2 Coalition Generalization scope. §8.6.1 added **Make Amends** active-redemption verb — the v0.1 fun/agency lever that closes the passive-redemption gap (200g + 1 DP → remove 1 strike, 10-turn cooldown per pair, France-only actor in v0.1). §12.2 added `reparations_cooldown` field. §13 Slice B added B-B7 (Make Amends). Test budget bumped from ~60-66 to ~68-74 tests; session count unchanged at ~3.
 - **April 16, 2026 — v2.0 rescope.** Renamed phase to "Memory and Pressure". War bargains moved to dedicated `WAR_BARGAIN_SPEC.md` (Peace Deals phase). Acceptance formula trimmed to three modifiers (no `bargain_value_mod`, no `war_entry_score`). §7.5 rivalry-driven paradox cut; legacy alliance-cross-war paradox renamed to `commitment_paradox`. §6.4 commitment store and §13 commitment data fields moved to `WAR_BARGAIN_SPEC.md`. Coalition forward-compat seams (`opposition_graph`, `war_bloc.target_nation` stores) cut from v0.1 — helpers stay parameterized. New Gate 10 added. New §6.5 note that `region_observer` witness scope reactivates when `WAR_BARGAIN_SPEC` ships. New §10.1 enum entry `unknown_baseline` to retire the current AI catch-all. Honored-turn reliability tick (§8.6) added explicitly as this-phase work. Vassal-decay edge case noted (§8.6). Composite-floor-supersedes-per-modifier-cap clarification added (§9.4). Stable-tie-break-index flagged as future improvement (§11.2).
 - **April 14, 2026 — v1.0 draft** (`Reliability + Commitments`). Original spec covered rivalries, betrayal memory, and war bargains together. Rescoped April 16 after audit established the bargain layer was unimplementable in the same phase as the substrate. Original v1.0 content now split between this spec (substrate + rivalry pressure + paradox rename + presentation hand-off) and `WAR_BARGAIN_SPEC.md` (war bargains).
