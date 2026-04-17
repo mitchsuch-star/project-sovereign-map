@@ -61,7 +61,7 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 - **Category:** AI efficiency / hot-path problem
 - **Visibility:** Acceptable now but certain to break at Europe scale
 - **Evidence:** `world_state.py:2029-2054` — pure BFS with `queue.pop(0)` (O(n) deque op), no memoization, no symmetry exploitation. Called from `enemy_ai.py` at 32+ call sites per marshal evaluation (lines 2189, 2502, 2533, 2613, 2927, 2946, 2996, 3012, 3076, 3120, 3145, 3161, 3177, 3472, 3481, 3498, 3590, 3607, 3743, 4266, 4267, 4274, 4347, 5015, 5036, 5167, 5184, 5203, 5204).
-- **Counter-evidence:** `find_path()` at `world_state.py:2099-2197` uses Dijkstra, which is better. But `get_distance()` is the hot call and uses naive BFS.
+- **Counter-evidence:** `find_weighted_path()` at `world_state.py:2140` uses Dijkstra, which is better. But `find_path()` (line 2099) is also BFS, and `get_distance()` is the hot call — both use naive BFS with `queue.pop(0)`. *(Corrected in Verification Pass: original audit incorrectly stated find_path uses Dijkstra.)*
 - **Scale impact:** 19 regions: ~16K BFS steps/turn. 100 regions: ~256K steps/turn (16x). At Python speed (~50-100us/step): 2-4 seconds per AI turn.
 - **Fix direction:** LRU cache on `get_distance()` (static graph, only invalidated on capture). Replace `queue.pop(0)` with `collections.deque.popleft()`. Consider all-pairs precomputation at load time for maps under 150 regions.
 - **Blocker class:** Must fix before Europe wiring
@@ -204,7 +204,7 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 - **Severity:** Moderate
 - **Category:** Tooling / test / workflow problem
 - **Visibility:** Both
-- **Evidence:** `test_conftest_factories.py:124` and `test_economy_foundations.py:148` assert `len(world.regions) == 19`. Would break on any map expansion.
+- **Evidence:** 6 hardcoded `== 19` assertions across 4 test files: `test_conftest_factories.py:124,162`, `test_economy_foundations.py:148`, `test_systems_audit_session8.py:280`, `test_terrain_data_layer.py:253,290`. *(Verification Pass correction: original audit found only 2 in 2 files.)*
 - **Fix direction:** Replace with `assert len(world.regions) == len(REGIONS_DATA)`.
 - **Blocker class:** Must fix before Europe wiring
 
@@ -225,6 +225,39 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 - **Evidence:** `test_map_consistency.py` validates bilateral adjacency but doesn't check for isolated regions or disconnected graph components.
 - **Fix direction:** Add connected-component test for REGIONS_DATA adjacency graph.
 - **Blocker class:** Must fix before Europe wiring
+
+### F18. War Cascade Has No Depth Limit *(Verification Pass)*
+
+- **Severity:** Major
+- **Category:** Game design / pacing problem
+- **Visibility:** Only at Europe scale (5 nations can't form deep alliance chains)
+- **Evidence:** `diplomacy.py:2242-2341` — `_process_war_cascade()` recurses through alliance chains. Loop protection via `processed` set (line 2256) prevents revisiting a nation, but there is no depth limit. At 10+ nations with interlocking alliances (A allied with B, B allied with C, C allied with D…), a single `declare_war()` can cascade through the entire diplomatic graph in one turn. Each cascade step calls `set_diplomatic_state()` (line 2290) and can trigger sub-cascades (lines 2341, 2417). Comment at line 2254 acknowledges: "max cascade depth = number of nations."
+- **Counter-evidence:** The `processed` set prevents infinite loops. At 5 nations cascade is bounded. The problem is not correctness but gameplay coherence at 10+ nations.
+- **Scale impact:** One war declaration → 8-12 new wars in a single turn → player loses control of diplomatic situation. Combined with CC1 (dispatch spam), one action produces 30-50 events.
+- **Fix direction:** Design decision: cap cascade depth at 2 levels? Batch cascade notifications ("Coalition forms: X, Y, Z join war against France" instead of N separate events)? Require ally confirmation before joining cascade (1-turn delay)?
+- **Blocker class:** Must fix before Europe wiring
+
+### F19. Dispatch Has No Event Volume Cap *(Verification Pass)*
+
+- **Severity:** Major
+- **Category:** Renderer / UI density problem + Game design / pacing problem
+- **Visibility:** Only at Europe scale
+- **Evidence:** `dispatch.py` — `queue_dispatch_event()` appends to `pending_dispatch_events` with no size cap. `_build_diplomatic_events_section()` iterates all queued events. At 10+ nations, each turn can generate: AI-AI proposals, cascade notifications, rivalry shifts, trade income changes, coalition friction updates, vassal loyalty changes. Combined with F18 (war cascade), a single active turn can produce 30-50 dispatch lines.
+- **Counter-evidence:** At 5 nations, dispatch volume is 5-10 events per turn — readable and useful.
+- **Scale impact:** Morning dispatch becomes a wall of text. Player can't find what matters. JSON payload balloons to 50KB+.
+- **Fix direction:** Cap dispatch queue at ~20 events/turn. Batch similar events ("3 nations join coalition" not 3 separate lines). Add priority filtering: show Critical events always, collapse Minor events into a summary line.
+- **Blocker class:** Fix during first Europe prototype
+
+### F20. Coalition Adjacency Friction Tuned for Sparse Maps *(Verification Pass)*
+
+- **Severity:** Major
+- **Category:** Pacing / scenario-tuning problem
+- **Visibility:** Only at Europe scale
+- **Evidence:** `coalition.py:408-425` applies friction (relation degradation) between adjacent enemy nations. The friction value was tuned for 19 regions where most nations have 1-2 adjacencies. At 80+ regions with 10+ nations, most nations border 3-5 others. Every adjacent non-allied pair degrades toward conflict every turn.
+- **Counter-evidence:** Friction has scaling factors (1.0-0.25 range). But the base rate assumes sparse adjacency.
+- **Scale impact:** At Europe density, friction creates a perpetual war machine. The player cannot diplomatically stabilize neighbors because adjacency friction constantly degrades relations faster than diplomacy can repair them.
+- **Fix direction:** Scale friction inversely with adjacency count (more neighbors = less friction per neighbor). Or cap total friction received per nation per turn. Design decision needed.
+- **Blocker class:** Fix during first Europe prototype
 
 ---
 
@@ -276,66 +309,77 @@ Cross-check against prior claims in the original SCALE_READYNESS.md:
 
 ### Missing risks not in prior doc
 - **Status:** New missing risk — **no nation config completeness test**. Validator and runtime enforce coverage, but no test exercises this path. Adding a nation to one surface but not all 5 causes runtime crash.
-- **Status:** New missing risk — **hardcoded region count in tests** (2 tests assert `== 19`). Would break on any map expansion.
+- **Status:** New missing risk — **hardcoded region count in tests** (6 assertions in 4 files, not 2 as originally reported). Would break on any map expansion.
 - **Status:** New missing risk — **no adjacency connectivity test**. Could introduce isolated regions in a larger map without detection.
+- **Status:** New missing risk (Verification Pass) — **war cascade has no depth limit** (F18). Recursive alliance cascade at `diplomacy.py:2242` can turn one war declaration into world war at 10+ nations.
+- **Status:** New missing risk (Verification Pass) — **dispatch has no event volume cap** (F19). At 10+ nations, morning dispatch becomes unreadable wall of text.
+- **Status:** New missing risk (Verification Pass) — **coalition adjacency friction tuned for sparse maps** (F20). At Europe density, friction creates perpetual war between all neighbors.
 
 ---
 
 ## 5. Blocker Ranking
 
-Ranked from highest to lowest expansion risk:
+Ranked from highest to lowest expansion risk *(updated by Verification Pass)*:
 
-| Rank | Finding | Why |
-|------|---------|-----|
-| 1 | **F1: Uncached BFS pathfinding** | 2-4 second AI turns at 100 regions. Hard performance wall. |
-| 2 | **F2: Omniscient AI (40+ unfogged scans)** | Unfair + expensive. Fairness breaks at any scale; cost compounds. |
-| 3 | **F3: 5-nation roster hardcoded** | Cannot add nations without cascading config + content work. |
-| 4 | **F4: Frontend adjacency duplication** | 6-7 files per region. Drift guaranteed at 80+ regions. |
-| 5 | **F8: Turn limit hardcoded at 40** | Campaign unwinnable at Europe scale. Trivial to fix but must be decided. |
-| 6 | **F10: Action economy doesn't scale** | 4 APs insufficient for 80-120 regions. Tuning decision needed. |
-| 7 | **F14/F15/F17: Test gaps** | Silent regression when map changes. Quick to fix. |
-| 8 | **F5: Nation colors scattered** | 3+ edits per nation. Linear cost growth. |
-| 9 | **F6: Full map rebuild** | Performance concern, not a crash risk. |
-| 10 | **F7/F9: UI density (marshal mgmt, ledger)** | Unusable at 40+ marshals but doesn't block wiring. |
+| Rank | Finding | Why | Status |
+|------|---------|-----|--------|
+| 1 | **F1: Uncached BFS pathfinding** | 2-4 second AI turns at 100 regions. Hard performance wall. | NOT DONE — no cache on `get_distance()` |
+| 2 | **F2: Omniscient AI (59 unfogged scans)** | Unfair + expensive. 59 raw `world.marshals.values()` scans. | PARTIAL — `_marshals_by_region` index exists at `world_state.py:1249` but enemy_ai.py doesn't use it |
+| 3 | **F3: 5-nation roster hardcoded** | Cannot add nations without cascading config + content work. | NOT DONE |
+| 4 | **F18: War cascade no depth limit** | One `declare_war()` → world war at 10+ nations. Design decision needed. | NOT DONE *(Verification Pass addition)* |
+| 5 | **F4: Frontend adjacency duplication** | 6-7 files per region. Drift guaranteed at 80+ regions. | NOT DONE |
+| 6 | **F8: Turn limit hardcoded at 40** | Campaign unwinnable at Europe scale. Trivial to fix but must be decided. | NOT DONE |
+| 7 | **F10: Action economy doesn't scale** | 4 APs insufficient for 80-120 regions. Design decision, not code blocker. | NOT DONE — downgraded to "Fix during prototype" |
+| 8 | **F14/F15/F17: Test gaps** | Silent regression when map changes. 6 hardcoded `== 19` assertions. | NOT DONE |
+| 9 | **F19: Dispatch event volume** | Morning dispatch becomes unreadable at 10+ nations. | NOT DONE *(Verification Pass addition)* |
+| 10 | **F20: Coalition friction tuning** | Adjacency friction creates perpetual war on dense maps. | NOT DONE *(Verification Pass addition)* |
+| 11 | **F5: Nation colors scattered** | 3+ edits per nation. Linear cost growth. | NOT DONE |
+| 12 | **F6: Full map rebuild** | Performance concern, not a crash risk. | NOT DONE |
+| 13 | **F7/F9: UI density (marshal mgmt, ledger)** | Unusable at 40+ marshals but doesn't block wiring. | NOT DONE |
 
 ---
 
 ## 6. Phased Roadmap
 
+*(Status column added by Verification Pass — April 16, 2026)*
+
 ### Before Europe Wiring
 
 These must be done before adding regions beyond 19:
 
-1. **Cache `get_distance()`** — LRU cache with invalidation on capture. Replace `queue.pop(0)` with `deque.popleft()`. (~2 hours)
-2. **Build spatial index for AI** — `marshals_by_region` dict for O(1) lookups instead of 40 O(N) scans. (~4 hours)
-3. **Extend fog model to all AI nations** — Replace omniscient `get_enemies_of_nation()` calls in enemy_ai.py with fog-aware queries. (~4-6 hours)
-4. **Make nation config extensible** — Sensible defaults for new nations in all 5 config surfaces. Factory pattern for marshals/diplomats. (~1 session)
-5. **Eliminate frontend adjacency duplication** — Frontend loads adjacency from backend API or shared JSON asset. (~4 hours)
-6. **Scale turn limit and AP with map size** — Make `max_turns` and base AP scenario-configured. Decision: formula or per-scenario constant? (~2 hours)
-7. **Add test guardrails** — Nation config completeness test, parametric region count test, adjacency connectivity test. (~1 hour)
-8. **Fix hardcoded region count in tests** — Replace `== 19` with `== len(REGIONS_DATA)`. (~15 min)
+1. **Add test guardrails FIRST** — Nation config completeness test, parametric region count test, adjacency connectivity test. Safety net before structural changes. (~1 hour) **NOT DONE**
+2. **Fix hardcoded region count in tests** — Replace `== 19` with `== len(REGIONS_DATA)` in 6 assertions across 4 files. (~30 min) **NOT DONE**
+3. **Cache `get_distance()`** — LRU cache with invalidation on capture. Replace `queue.pop(0)` with `deque.popleft()`. (~2 hours) **NOT DONE**
+4. **Wire spatial index into AI** — `_marshals_by_region` index already exists (`world_state.py:1249`). Need to replace 59 `world.marshals.values()` scans in `enemy_ai.py` with indexed lookups via `_get_marshals_in_region_indexed()` or new region-filtered helpers. (~4 hours) **PARTIAL — index exists, AI doesn't use it**
+5. **Extend fog model to all AI nations** — Replace omniscient `get_enemies_of_nation()` calls in enemy_ai.py with fog-aware queries. (~4-6 hours) **NOT DONE**
+6. **Make nation config extensible** — Sensible defaults for new nations in all 5 config surfaces. Factory pattern for marshals/diplomats. (~1 session) **NOT DONE**
+7. **Eliminate frontend adjacency duplication** — Frontend loads adjacency from backend API or shared JSON asset. (~4 hours) **NOT DONE**
+8. **Design decision: turn limit, AP, and victory scaling** — Make `max_turns` and base AP scenario-configured. Decide formula or per-scenario constant. This is a design gate, not just code. (~2 hours for code, design decision needed first) **NOT DONE**
+9. **Design decision: war cascade depth policy** — Cap cascade depth at 2 levels, or add 1-turn ally confirmation delay, or batch cascade into single event. Affects gameplay feel at 10+ nations. (~2 hours for code, design decision needed first) **NOT DONE** *(Verification Pass addition)*
 
 ### During First Europe Prototype
 
 These should be addressed while building the first 80+ region map:
 
-9. **Centralize nation colors** — Single source (utils.gd or backend), all files import. (~2 hours)
-10. **Fix prompt fallback** — Import from REGIONS_DATA.keys() instead of hardcoded string. (~30 min)
-11. **Align validator VALID_NATIONS** — Derive from NATION_CAPITALS at import time. (~15 min)
-12. **Incremental map updates** — Region-scoped rebuild instead of full clear+recreate. (~4 hours)
-13. **Marshal management pagination** — Paginated cards, lazy-load relationships. (~1 session)
-14. **Strategic ledger sectioning** — Split by location/status, collapse by default. (~4 hours)
-15. **Victory condition scaling** — Dynamic fraction or alternative conditions for larger maps. (~2 hours)
+10. **Centralize nation colors** — Single source (utils.gd or backend), all files import. (~2 hours) **NOT DONE**
+11. **Fix prompt fallback** — Import from REGIONS_DATA.keys() instead of hardcoded string. (~30 min) **NOT DONE**
+12. **Align validator VALID_NATIONS** — Derive from NATION_CAPITALS at import time. (~15 min) **NOT DONE**
+13. **Incremental map updates** — Region-scoped rebuild instead of full clear+recreate. (~4 hours) **NOT DONE**
+14. **Marshal management pagination** — Paginated cards, lazy-load relationships. (~1 session) **NOT DONE**
+15. **Strategic ledger sectioning** — Split by location/status, collapse by default. (~4 hours) **NOT DONE**
+16. **Victory condition scaling** — Dynamic fraction or alternative conditions for larger maps. (~2 hours) **NOT DONE**
+17. **Dispatch event batching + cap** — Cap dispatch queue at ~20 events/turn. Batch similar events. Priority filtering for Critical vs Minor. (~4 hours) **NOT DONE** *(Verification Pass addition)*
+18. **Coalition friction density scaling** — Scale adjacency friction inversely with neighbor count, or cap total friction per nation per turn. (~2 hours) **NOT DONE** *(Verification Pass addition)*
 
 ### After Europe Map Exists
 
 These can wait until after the first playable Europe prototype:
 
-16. **Tooltip caching** — Cache tooltip text, regenerate only on data change. (~2 hours)
-17. **Coalition parameter scaling** — Adjust threat/friction for 10+ nations. (~2 hours)
-18. **All-pairs distance precomputation** — Floyd-Warshall at load time for O(1) lookup. (~4 hours)
-19. **Save file migration** — Handle loading 19-region saves into 80-region world. (~4 hours)
-20. **Diplomatic ledger collapsibles** — Collapsible AI relations sections. (~2 hours)
+19. **Tooltip caching** — Cache tooltip text, regenerate only on data change. (~2 hours) **NOT DONE**
+20. **Coalition parameter scaling** — Adjust threat/friction for 10+ nations (beyond F20 friction fix). (~2 hours) **NOT DONE**
+21. **All-pairs distance precomputation** — Floyd-Warshall at load time for O(1) lookup. (~4 hours) **NOT DONE**
+22. **Save file migration** — Handle loading 19-region saves into 80-region world. (~4 hours) **NOT DONE**
+23. **Diplomatic ledger collapsibles** — Collapsible AI relations sections. (~2 hours) **NOT DONE**
 
 ---
 
@@ -345,15 +389,17 @@ These can wait until after the first playable Europe prototype:
 
 - BFS implementation and lack of caching (`world_state.py:2029-2054`)
 - `get_distance()` call count in enemy_ai.py (32+ sites counted)
-- Omniscient `world.marshals.values()` scan count in enemy_ai.py (40+)
+- Omniscient `world.marshals.values()` scan count in enemy_ai.py (59)
 - Fog-aware path only for player nation (`enemy_ai.py:485-487`)
 - Nation config limited to 5 nations across all 5 surfaces
 - Frontend adjacency hardcoded separately from backend
 - Nation colors duplicated in 3+ Godot files
 - Marshal management keyboard shortcuts capped at 9
 - Turn limit at 40, victory at 75%, AP at 4
-- Test hardcoded region count `== 19` in 2 files
+- Test hardcoded region count `== 19` in 4 files (6 assertions)
 - Validator VALID_NATIONS mismatch with nation_config
+- Current renderer builds placeholder visual + lookup textures from circle metadata rather than loading commissioned bitmap assets
+- Current province-definition schema only includes `anchor`, `radius`, `lookup_color`, and `visual_tint`
 
 ### Strong Inference
 
@@ -367,11 +413,204 @@ These can wait until after the first playable Europe prototype:
 - Actual Godot frame-time impact of 200-500 node rebuilds (no Godot runtime in audit environment)
 - Whether tooltip O(n^2) relationship scan causes visible frame drops at scale
 - Whether save file loading handles region expansion gracefully (no migration test exists to run)
-- Whether `find_path()` Dijkstra performance is acceptable at 100 regions (only BFS was analyzed in detail)
+- Whether `find_weighted_path()` Dijkstra performance is acceptable at 100 regions (note: `find_path()` is BFS, not Dijkstra — see Verification §Spot-Check F1)
 - Exact LRU cache hit rate for `get_distance()` under realistic AI play patterns
+- Whether a commissioned visual map + province lookup image pair will survive the real asset pipeline without dimension/export mismatches
 
 ---
 
-## Working Assumption
+## 8. Verification Pass
 
-Session 8 renderer work can continue on the current 19-region shell. Full Europe wiring should not start until items 1-8 from the "Before Europe Wiring" roadmap have been completed. Estimated effort for the pre-wiring items: 2-3 focused sessions.
+> Date: April 16, 2026
+> Verifier: Independent review of 6-agent parallel audit
+> Method: Spot-checked 5 critical/major findings against source code, searched for cross-cutting risks and game design gaps
+
+### Spot-Check Results
+
+**F1 (Uncached BFS) — CONFIRMED with factual error.**
+The BFS at `world_state.py:2029` with `queue.pop(0)` is real. 32 `get_distance()` call sites in enemy_ai.py confirmed. However, the audit's counter-evidence is **wrong**: it states "`find_path()` at `world_state.py:2099-2197` uses Dijkstra." In fact, `find_path()` (line 2099) also uses BFS with `queue.pop(0)` (line 2126). The Dijkstra implementation is a separate method: `find_weighted_path()` at line 2140. The "Not Verified" entry at line 370 ("Whether `find_path()` Dijkstra performance is acceptable") is based on a false premise — there is no Dijkstra in `find_path()`. **Situation is slightly worse than stated**: both primary pathfinding methods are naive BFS.
+
+**F2 (Omniscient AI) — CONFIRMED, underestimated.**
+The audit claims "40+ direct `world.marshals.values()` scans." Actual count: **59 scans** (grep-verified). The fog-aware `_get_enemy_contacts()` cache at line 469-489 exists but only covers the "enemy contacts" query path. The 59 raw scans are spread across scoring, movement eval, targeting, and formation code — none filtered through the fog-aware path. The audit correctly identified the seam (`_should_use_fog_aware_enemy_query` at line 452) but underestimated the scope of bypass.
+
+**F3 (5-nation hardcoding) — CONFIRMED, fairly stated.**
+`nation_config.py:43-53` builds `RUNTIME_NATIONS` from all 5 config surfaces — the validation architecture (`validate_runtime_nation_support()`) is sound. The real blocker is content authoring: `create_player_marshals()` and `create_enemy_marshals()` are 470-line hand-authored functions. Confirmed as-described.
+
+**F8 (Turn limit at 40) — CONFIRMED.**
+`world_state.py:125`: `self.max_turns: int = 40`. Instance field, trivially changeable. Correctly identified.
+
+**F10 (AP doesn't scale) — CONFIRMED but severity overstated.**
+`nation_config.py:27-33` defines AP per nation. The audit ranks this "Must fix before Europe wiring" — but it's a design decision plus a trivial config change, not a structural blocker. Should be "Fix during first Europe prototype" (decision gate, not code gate).
+
+### Cross-Cutting Risks Missed
+
+These risks only appear at the intersection of areas the parallel agents audited independently.
+
+**CC1. War cascade × dispatch spam compound.**
+War cascade at `diplomacy.py:2242` is recursive with no depth limit (only loop protection via `processed` set, line 2256). Each cascade step generates dispatch events. At 10+ nations with interlocking alliance chains, a SINGLE `declare_war()` call could cascade into 8-12 new wars, each producing 3-5 dispatch events. The dispatch system (`dispatch.py`) has no queue size cap. Combined: one player action → 30-50 dispatch events in a single turn → UI overwhelm + JSON payload bloat. Neither the AI agent nor the UI agent caught this because cascade lives in diplomacy and dispatch lives in the morning-briefing pipeline.
+
+**CC2. Bilateral diplomacy pair explosion × AI per-turn processing.**
+At 5 nations: 10 bilateral pairs. At 15 nations: 105 pairs. Each pair maintains `diplomatic_states`, `war_scores`, `nation_relations`, `armistice_cooldowns`, and `proposal_metadata`. Trade income at `diplomacy.py:2823` iterates all pairs. AI diplomacy (`ai_diplomacy.py:570`) runs full proposal evaluation per AI nation per turn. Coalition rivalry (`ai_diplomacy.py:1211`) checks all AI-AI pairs for adjacency degradation. Combined: 10 AI nations × (war score + proposal eval + cooldown check) × coalition member checks = hundreds of function calls per turn. The pathfinding agent flagged get_distance cost; the scenario agent flagged AP tuning; neither caught that **diplomacy itself** is O(N²) per turn.
+
+**CC3. Vassal count × war cascade recursion.**
+No vassal count limit exists in `vassal.py:50-97`. France historically had 10+ satellite states; the code allows unlimited. Vassals auto-enlist in their lord's wars (`diplomacy.py:2350`). With 10+ vassals, each potentially having their own alliance chains, a single war declaration triggers recursive cascade through vassal→alliance→vassal chains. Combined with CC1, this is the most explosive single-action risk at Europe scale.
+
+### Game Design Gaps Not Considering Europe
+
+The audit focused on code scaling but missed several places where the **game design itself** was built for 5 nations and won't produce coherent gameplay at Europe scale, regardless of performance:
+
+**GD1. No supply-line mechanic — breaks Napoleonic core at 80+ regions.**
+Supply at `world_state.py:2661-2728` is purely local: `base_cap = region.supply_capacity`. No distance-from-capital penalty, no supply-route vulnerability, no interdiction. At 80+ regions, a 50K army sustains identically whether adjacent to Paris or deep in Russia. This removes the central strategic tension of Napoleonic warfare (overextension). The audit flagged supply_capacity as a tuning value but missed that the design lacks the distance dimension entirely.
+
+**GD2. Diplomacy assumes the player manages all bilateral relationships.**
+The diplomatic ledger, Talleyrand advisory, and proposal system present every nation as an individual bilateral relationship. At 5 nations this is 4 relationships to track. At 15 nations it's 14 — and the AI generates proposals from each one. The player drowns in individual nation-by-nation diplomacy when the historical period featured regional blocs, spheres of influence, and Congress-system collective diplomacy. No grouping, no regional bloc mechanics, no "deal with all of Iberia at once."
+
+**GD3. Coalition rivalry tuned for sparse maps becomes pathological on dense maps.**
+Coalition friction at `coalition.py:408-425` applies -3 relation per turn for adjacent enemy nations. At 19 regions, most nations have 1-2 adjacencies. At 80+ regions with 10+ nations, most nations border 3-5 others. The friction mechanism assumes sparse adjacency; at Europe density, ALL non-allied neighbors degrade toward war every turn, creating a perpetual war machine that the player cannot diplomatically stabilize.
+
+**GD4. Victory conditions assume a single dominant adversary.**
+Victory at 75% regions (`world_state.py:60`) and the capital-capture/army-elimination checks (`turn_manager.py:867-942`) assume France vs. a coalition. At 10+ nations with independent wars, the player could control 40% of Europe and still be nowhere near victory while 3 AI nations fight each other over the other 60%. The victory model needs "hegemony" or "Congress peace" conditions, not raw territorial percentage.
+
+**GD5. Morning dispatch becomes a news ticker, not a strategic briefing.**
+Dispatch (`dispatch.py`) collects all turn events and presents them. At 5 nations: 5-10 events, readable. At 10+ nations with active diplomacy: 30-50 events per turn including AI-AI proposals, cascade notifications, rivalry shifts, trade income changes. The dispatch design assumes "few important events per turn" — at Europe scale it's a wall of text where the player can't find what matters.
+
+**GD6. Talleyrand advisory becomes generic at 10+ nations.**
+Talleyrand's threat assessment and action recommendations (`diplomatic_advisory.py`) evaluate each nation individually. At 5 nations, "I recommend we approach Prussia" is actionable advice. At 15 nations, Talleyrand recommends 8 different approaches and the advice loses strategic clarity. The advisory system has no concept of prioritization or "these 3 nations matter most right now."
+
+### Blocker Ranking Challenges
+
+| Finding | Audit Rank | Verification Assessment | Reason |
+|---------|-----------|------------------------|--------|
+| F1 (BFS) | #1 Critical | **Confirmed #1** | Worse than stated (find_path also BFS, 59 not 40 marshal scans) |
+| F2 (Omniscient AI) | #2 Critical | **Confirmed #2** | 59 scans, not 40+. Underestimated. |
+| F10 (AP scaling) | #6, "Must fix" | **Downgrade to "Fix during prototype"** | Design decision, not code blocker. Trivial config change. |
+| War cascade depth | Not ranked | **Should be Major, rank 5-6** | Recursive with no depth limit. World-war-in-one-turn at 10+ nations. |
+| Bilateral O(N²) | Not ranked | **Should be Major, rank 6-7** | 105 pairs at 15 nations, each with per-turn processing. |
+| Supply design gap | Not ranked | **Should be noted as design gate** | No supply-line mechanic breaks Napoleonic core. Not a code fix. |
+
+### Roadmap Ordering Issues
+
+1. **Item 7 (test guardrails) should come FIRST, not 7th.** Adding regression tests before structural changes (BFS caching, spatial index, fog extension) is basic safety. Refactoring pathfinding without tests covering current behavior invites silent breakage.
+
+2. **Item 6 (scale turn limit/AP) is a design decision, not an implementation task.** The AP and turn-limit choices affect how aggressively AI optimization (items 1-3) needs to perform. If turns double from 40→80, AI turn time tolerance also doubles. This decision should be a gate BEFORE optimization work, not after.
+
+3. **Item 4 (nation config extensible) is blocked on game design decisions** not in the roadmap: which nations, how many marshals each, what starting relationships. The code factory pattern is straightforward; the content design is the actual dependency.
+
+4. **Missing: design gate for Europe-scale diplomacy model.** The roadmap assumes the current bilateral diplomacy system carries forward unchanged. Before items 1-8, the project needs a design decision: does Europe use the same bilateral N² model, or does it need regional blocs / spheres of influence? This decision affects how many nations the code must support, which determines the urgency of items 1-3.
+
+### Most Dangerous Assumption
+
+**The audit treats Europe scaling as a code problem. It is fundamentally a game design problem.**
+
+The audit's implicit frame: "The game mechanics work correctly at 5 nations; we just need faster code and more extensible data for 15 nations." This is wrong. Several core mechanics — bilateral diplomacy, war cascade, supply, victory conditions, dispatch volume, advisory clarity, coalition rivalry friction — were **designed** for a 5-nation theater. Making the code run efficiently on 100 regions doesn't help if:
+
+- The diplomacy system presents 105 bilateral relationships to manage (GD2)
+- Every war declaration cascades into world war (CC1/CC3)
+- Supply lines don't exist so geography is irrelevant (GD1)
+- The morning dispatch is unreadable (GD5)
+- Coalition friction makes perpetual war inevitable (GD3)
+
+The most dangerous path is optimizing BFS and extending fog (the audit's top recommendations) while leaving the game design unchanged — producing a fast, fair, and completely unplayable Europe campaign.
+
+**Recommendation:** Before the "Before Europe Wiring" roadmap begins, add a **Design Gate: Europe Diplomacy & Pacing Model** that decides: bilateral vs. bloc diplomacy, supply-line existence, cascade depth policy, victory condition type, and dispatch prioritization strategy. The code roadmap should follow from those design decisions, not precede them.
+
+---
+
+## 9. EU4-Style Bitmap Map Readiness Addendum
+
+> Date: April 16, 2026
+> Scope: Compare the current Session 8 placeholder renderer with the intended EU4-style bitmap province pipeline.
+
+### External Reference Check
+
+The online cross-check matches the project's internal roadmap direction:
+
+- EU4 modding tutorials consistently treat `provinces.bmp`, `definition.csv`, and `positions.txt` as separate but paired map inputs. The province bitmap carries the unique RGB regions; the definition file maps those RGB values; the positions data separately places units/labels/cities.
+- The EU4 community map references also warn against anti-aliasing and blurred brush edges on province maps because stray colors break province identification.
+
+Reference links:
+
+- Steam guide: https://steamcommunity.com/sharedfiles/filedetails/?id=681319197
+- Xylozi EU4 tutorial (adding provinces): https://xylozi.wordpress.com/eu4/adding-provinces/
+- Xylozi EU4 tutorial (`positions.txt`): https://xylozi.wordpress.com/eu4/reference-positions-txt/
+- EU4 community wiki mirror (map files): https://www.eu4cn.com/wiki/%E5%9C%B0%E5%9B%BE%E4%BF%AE%E6%94%B9
+- EU4 community wiki mirror (mod file structure): https://www.eu4cn.com/wiki/Mod%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84
+
+### What Is Already Ready
+
+- **The color-map hover model is already correct.** `map_renderer_base.gd:1067-1079` samples `province_lookup_image.get_pixel(...)` and resolves a region through `province_color_lookup`. That is the right O(1) interaction pattern for a Paradox-style province map.
+- **The camera/input architecture is already good enough to keep.** The current renderer already uses `SubViewport` + `Camera2D`, so zoom/pan/input do not need another architectural reset before commissioned art lands.
+- **The placeholder asset tests do prove the basic lookup contract.** `tests/test_map_placeholder_assets.py` verifies 19-region coverage, unique lookup colors, and anchor alignment against the fallback map positions.
+
+### New Map Findings
+
+**M1. The renderer proves the lookup concept, not the production asset pipeline.**
+
+- **Severity:** Critical
+- **Category:** Renderer / asset-pipeline readiness
+- **Evidence:** `map.gd:3` still hardcodes `session8_placeholder_provinces.json`. `map_renderer_base.gd:261-282` synthesizes both the visible map and the lookup image by drawing circles from `anchor` + `radius`; it does not load an artist-delivered visual map plus a pixel-aligned province bitmap.
+- **Why it matters:** The real EU4-style failure cases are asset-ingest failures: wrong dimensions, stray RGB values, bad export settings, and artist/backend drift. The current placeholder path bypasses all of them.
+- **Fix direction:** Replace generated textures with external visual + lookup image loading while preserving the current `get_pixel()` lookup path.
+- **Blocker class:** Must fix before commissioned Europe map integration
+
+**M2. The province metadata schema is too thin for Europe-density presentation.**
+
+- **Severity:** Critical
+- **Category:** Renderer / content-schema readiness
+- **Evidence:** `_build_province_shapes()` only reads `anchor`, `radius`, `lookup_color`, and `visual_tint` (`map_renderer_base.gd:235-245`). Grep verification found no `province_id`, `playable`/`unplayable`, or separate label/unit/garrison anchor fields in the renderer, placeholder JSON, or map tests.
+- **External reference:** EU4-style map tooling keeps province definition separate from positions data; the `positions.txt` tutorial shows distinct coordinates for city, unit, and province-name text.
+- **Why it matters:** A Europe map with 80-100 playable provinces and greyed-out edge provinces cannot reliably place stacks, garrisons, labels, buildings, and future ports off one shared anchor.
+- **Fix direction:** Expand the province registry before art handoff: stable `province_id`, `unit_anchor`, `label_anchor`, `garrison_anchor`, `building_anchor`, and an `interactive`/`wired` flag at minimum.
+- **Blocker class:** Must fix before commissioned Europe map integration
+
+**M3. There is no automated validation for final bitmap deliverables.**
+
+- **Severity:** Critical
+- **Category:** Tooling / asset-validation readiness
+- **Evidence:** `tests/test_map_placeholder_assets.py` only checks JSON coverage, anchor alignment, and unique lookup colors. `tests/test_map_renderer_cutover.py` asserts that the sampling code exists, but it never inspects a real bitmap asset pair.
+- **External reference:** EU4 map references warn that province RGB values must exactly match the definition data and that anti-aliasing / blurred brush edges create invalid province pixels.
+- **Why it matters:** A single anti-aliased border, wrong export mode, or unexpected RGB pixel can create silent hover holes or misidentified provinces.
+- **Fix direction:** Implement the roadmap's planned validator before artist integration: verify exact dimension match, every bitmap color exists in the JSON, every JSON province appears in the bitmap, no unexpected colors exist, no province uses the sentinel color, and tiny stray pixel islands are flagged as likely export artifacts.
+- **Blocker class:** Must fix before commissioned Europe map integration
+
+**M4. Greyed-out non-playable provinces are a design requirement, but not yet represented in runtime data.**
+
+- **Severity:** Major
+- **Category:** Renderer / UX readiness
+- **Evidence:** `docs/ROADMAP.md` explicitly plans 120-150 outlined provinces with only 80-100 wired for EA v1 and expects greyed-out unwired provinces. Current renderer data is keyed off active backend region names plus the placeholder JSON; there is no province-level `interactive`/`wired` state in the schema or `update_all_regions()` contract (`map_renderer_base.gd:1631-1669`).
+- **Why it matters:** The commissioned Europe map is supposed to show more geography than the first gameplay build actually supports. That distinction does not exist yet.
+- **Fix direction:** Add province registry metadata for `wired`, `visible`, and `ignore_input`, then make hover/click logic explicitly reject unwired provinces while still rendering them.
+- **Blocker class:** Must fix before Europe art integration
+
+**M5. Shared province topology is still split across frontend placeholder data and backend gameplay data.**
+
+- **Severity:** Major
+- **Category:** Data-model / content-coupling problem
+- **Evidence:** `map.gd:30-69` still hardcodes `REGION_CONNECTIONS` and fallback positions, while the backend remains authoritative for actual gameplay region data. This was already a risk at 19 regions; it becomes worse once the art contains visible straits, coastline cues, and greyed-out provinces that the frontend can "see" but gameplay may not support.
+- **Why it matters:** On a Paradox-style map, visible geography feels authoritative. If straits, coast touches, or border contact disagree with gameplay adjacency, the map teaches the player the wrong rules.
+- **Fix direction:** Finish F4 and move adjacency / strait / topology data to a shared province registry or backend-fed payload before the Europe map lands.
+- **Blocker class:** Must fix before Europe wiring
+
+### Map-Specific Roadmap Insert
+
+Add these items before commissioned Europe art integration:
+
+1. **Introduce a production province registry schema** — stable province IDs, separate anchors, unwired-province flags, label metadata. (~2-4 hours)
+2. **Load external visual + lookup images instead of generating circle textures** — keep the current pixel-sampling logic, replace only the placeholder asset path. (~1 session)
+3. **Ship the color-map validator before artist handoff** — fail fast on unknown RGBs, dimension mismatch, sentinel misuse, and anti-alias artifacts. (~2 hours)
+4. **Support greyed-out visible-but-unwired provinces in the renderer contract** — render them, ignore clicks, and keep them out of `map_data`. (~2 hours)
+5. **Unify adjacency/topology data before Europe map import** — no second hardcoded frontend graph. (~4 hours)
+
+### Updated Readiness Statement
+
+The project is directionally aligned with an EU4-style province map: hidden color-map hit detection, camera-based navigation, and placeholder province definitions are already in place. But it is **not yet ready to ingest a commissioned Europe bitmap map safely**. The missing work is not "figure out hover by color" -- that part is already done. The missing work is the production pipeline: real asset loading, richer province metadata, automated bitmap validation, unwired-province handling, and a single shared topology source.
+
+---
+
+## 10. Working Assumption
+
+Session 8 renderer work can continue on the current 19-region shell. Full Europe wiring should not start until items 1-9 from the "Before Europe Wiring" roadmap have been completed. Estimated effort for those pre-wiring items remains 2-3 focused sessions.
+
+**Verification addendum:** The pre-wiring roadmap should be preceded by a Europe design gate covering diplomacy model, supply mechanics, cascade policy, and victory conditions. Without design decisions first, the code changes risk optimizing toward a game model that doesn't work at scale.
+
+**Renderer addendum:** Commissioned Europe art should not be integrated until the province registry, bitmap validator, and unwired-province contract from Section 9 exist. Otherwise the team will be debugging asset-pipeline failures at the same time it is trying to validate first-pass Europe gameplay.
