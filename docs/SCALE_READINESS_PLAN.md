@@ -330,11 +330,11 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Expected new test count:** ~14 new tests (8 config + 3 adjacency + 3 existing map consistency remain)
 
 **Done-done criteria:**
-- [ ] All new tests pass
-- [ ] Full suite passes (no regressions)
-- [ ] No hardcoded `19` in any test assertion about region/world count
-- [ ] `VALID_NATIONS` derives from `NATION_CAPITALS`
-- [ ] Test method names don't reference `19`
+- [x] All new tests pass (11 new: 8 config + 3 adjacency)
+- [x] Full suite passes (8,385 passed, 0 failures)
+- [x] No hardcoded `19` in any test assertion about region/world count
+- [x] `VALID_NATIONS` derives from `NATION_CAPITALS`
+- [x] Test method names don't reference `19`
 
 ---
 
@@ -755,9 +755,9 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | DG-5 | Victory conditions | 0 | | |
 | DG-6 | Pacing (turns, AP) | 0 | | |
 | DG-7 | Dispatch density | 0 | | |
-| 1.1 | Nation config test | 1 | | |
-| 1.2 | Fix hardcoded `== 19` | 1 | | |
-| 1.3 | Adjacency connectivity test | 1 | | |
+| 1.1 | Nation config test | 1 | DONE | April 16, 2026 |
+| 1.2 | Fix hardcoded `== 19` | 1 | DONE | April 16, 2026 |
+| 1.3 | Adjacency connectivity test | 1 | DONE | April 16, 2026 |
 | 2.1 | Cache `get_distance()` | 2 | | |
 | 2.2 | Wire spatial index into AI | 2 | | |
 | 2.3 | Extend fog to all AI nations | 2 | | |
