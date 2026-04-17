@@ -8,7 +8,7 @@
 
 ## How to Use This Document
 
-Work top-to-bottom within each phase. Phase 0 (design gates) must be complete before Phase 1 code work begins. Within code phases, items are ordered by dependency — later items may depend on earlier ones.
+Work top-to-bottom within each phase. Phase 0 (design gates) still governs design-dependent scale work, but Phase 1 was intentionally completed early as low-risk test infrastructure. Within code phases, items are ordered by dependency — later items may depend on earlier ones.
 
 **Estimated total effort:** 8-12 focused sessions across all phases.
 
@@ -16,7 +16,7 @@ Work top-to-bottom within each phase. Phase 0 (design gates) must be complete be
 
 ## Phase 0: Design Gates
 
-These are decisions, not code. Each one affects downstream implementation. Answer them in a short design doc or inline in this file before writing code. No code should be written until all gates in this phase are resolved.
+These are decisions, not code. Each one affects downstream implementation. The Phase 0 decisions are now recorded inline below and define the constraints for later scale work. Phase 1's test safety net was pulled forward safely, but the remaining code phases should follow these gate decisions rather than inventing policy during implementation.
 
 ### DG-1. Nation Roster & Starting Situation
 
@@ -44,6 +44,14 @@ Ship with 13 independent nations in three tiers. All systems (diplomacy, dispatc
 
 **Scale note:** 13 nations = 78 bilateral pairs. Smart filtering (DG-2) keeps this manageable. At 20 nations = 190 pairs — the filtering and dispatch systems (DG-7) must handle this without UI changes.
 
+### Phase 0 Cross-Cutting Taxonomy
+
+**DECIDED — April 17, 2026.**
+
+- `power_tier` is authored scenario data, never derived at runtime. Use stable authored values such as `major`, `secondary`, and `minor`. Nations can weaken or strengthen during play without changing tier.
+- `political_status` is runtime state. It may change during play (`independent` -> `vassal` -> `independent` again, etc.) and must not be conflated with `power_tier`.
+- `strategic_power` for salience, dispatch importance, and hegemony victory means the non-French Tier 1 + Tier 2 powers defined by the current scenario unless that scenario explicitly overrides the list.
+
 ---
 
 ### DG-2. Diplomacy Model — Bilateral vs. Regional Blocs
@@ -61,7 +69,25 @@ Ship with 13 independent nations in three tiers. All systems (diplomacy, dispatc
 
 **Affected files if blocs:** New `bloc.py` system, rewrite `diplomatic_templates.py`, redesign `diplomatic_ledger.gd`, new bloc proposal flow in `diplomatic_executor.py`.
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Keep diplomacy bilateral, but make the presentation salience-filtered.**
+
+The underlying diplomacy model stays bilateral. Do not add regional blocs or transitive patron automation as a prerequisite for Europe. The scale fix is presentation and prioritization, not a new diplomatic ontology.
+
+**Forced-expand relationship states:**
+
+- Any nation currently at war with France
+- Any nation with an active proposal or objection involving France
+- Any nation with an active Talleyrand mission
+- Any nation with active rivalry or betrayal-memory pressure involving France
+- Any nation with frontier contact against the French sphere
+
+**French sphere definition:** France + current French vassals + regions currently occupied by France or a French vassal.
+
+**Remaining visible slots:** Fill the remaining expanded rows by a weighted salience score. The score must be a weighted sum whose weights are locked during implementation, not improvised per screen. Candidate inputs are `power_tier`, military strength, recent diplomatic change, and coalition threat.
+
+**UI cap:** Show at most 4-6 expanded bilateral rows at once. Everything else collapses into grouped rows such as `Secondary Powers` and `Minor Powers`.
+
+**Implementation note:** "Top 3-4 relevant nations" is not a vague design aspiration. The force-expand rules, the weighted salience score, and the 4-6 row cap together are the contract.
 
 ---
 
@@ -101,7 +127,22 @@ Supply lines is a gameplay feature, not a scaling prerequisite. The current loca
 
 **Affected files:** `diplomacy.py` (_process_war_cascade), `dispatch.py` (event batching), `vassal.py` (auto-enlistment depth).
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Direct-only bilateral call-to-arms. No transitive cascade.**
+
+War-entry obligation travels one treaty edge only. When France declares war on Austria, Austria may call its direct allies and vassals. Those nations decide whether to join or refuse. Their own allies are not called through that acceptance. The same direct-only rule applies symmetrically on the attacker side so offensive alliance chains cannot recreate the explosion from the other direction.
+
+**Rules:**
+
+- Direct defender allies and defender vassals may receive a call-to-arms
+- Direct attacker allies and attacker vassals may receive a call-to-arms when applicable
+- Each recipient decides yes or no under bilateral treaty logic
+- No transitive propagation, ever
+
+**Refusal consequence:** Refusing a direct call-to-arms must create durable cost, not just a one-turn opinion nudge. Record refusal as a concrete commitment-paradox / treaty-refusal event for the `Memory and Pressure` substrate in addition to trust / honor fallout.
+
+**Later war entry:** Nations that did not enter through direct treaty obligation may still join later, but only through separate systems such as coalition threat, British subsidy, opportunistic AI entry, worsening opinion, or new bilateral agreements. Those are not part of cascade propagation.
+
+**Presentation rule:** Same-turn ally entry is grouped in dispatch ("Austrian allies enter the war"), not emitted as an unreadable chain of line-by-line declarations.
 
 ---
 
@@ -118,7 +159,34 @@ Supply lines is a gameplay feature, not a scaling prerequisite. The current loca
 
 **Affected files:** `world_state.py` (VICTORY_REGION_FRACTION), `turn_manager.py` (victory checks at line 867-942).
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Hegemony victory, not map-painting victory.**
+
+Europe victory uses a raw-region hegemony check, not weighted income share and not 75% territorial domination.
+
+**Victory profile:**
+
+- France controls at least 40% of wired regions by raw count
+- France still controls Paris
+- France has hegemonized a majority of non-French strategic powers in the current scenario
+
+**Strategic powers:** Use the `strategic_power` taxonomy defined above (current DG-1 roster = 8 non-French Tier 1 + Tier 2 powers, so the current majority target is 5).
+
+**A strategic power counts as hegemonized if at least one of the following is true:**
+
+- Its capital is occupied by France or a French vassal
+- It is currently a French vassal / subject
+- It has concluded a French-victory peace at `>= +40` war score that includes at least one qualifying concession from the locked list below
+
+**Locked qualifying concession list:**
+
+- territorial cession to France or a French vassal
+- forced alliance / protectorate-style clause
+- indemnity above a defined threshold
+- capital-occupation settlement
+
+If none of those concessions apply, the peace does not count toward the hegemonized-majority check even if France reached `+40` war score. White peace does not count.
+
+**Intentional design note:** Hegemony requires a majority of strategic powers, not unanimity. This intentionally allows Britain or another holdout major to remain outside French control while the campaign still resolves as a French continental hegemony.
 
 ---
 
@@ -135,7 +203,35 @@ Supply lines is a gameplay feature, not a scaling prerequisite. The current loca
 
 **Affected files:** `world_state.py` (max_turns), `nation_config.py` (BASE_NATION_ACTIONS), `turn_manager.py` (time victory check).
 
-**Record decision here:** _____________
+**DECIDED — April 17, 2026: Scenario-configured pacing.**
+
+Turn limit, AP budget, and related pacing rules are authored per scenario. Do not derive Europe pacing from a single global formula.
+
+**Scenario pacing schema (initial contract):**
+
+```yaml
+scenario_schema_version: 1
+max_turns: <int>
+base_ap_by_nation:
+  <nation>: <int>
+victory_profile: <structured sub-schema>
+cascade_profile: <structured sub-schema>
+free_basic_actions:
+  - <action_id>
+```
+
+**Schema notes:**
+
+- `scenario_schema_version` is required from the first implementation so later scenarios have a migration path
+- `victory_profile` and `cascade_profile` are structured sub-schemas, not free-form JSON blobs
+- `free_basic_actions` should reuse the same player-facing action taxonomy / notification discipline that DG-7 establishes for scale-readiness UX rather than creating a second ad hoc classification
+
+**Initial Europe target values:**
+
+- `max_turns = 80`
+- `base_ap_by_nation = {France: 5, Britain: 4, Prussia: 4, Austria: 3, Russia: 3, minor_nations: 2}`
+
+The current 19-region scenario keeps its own authored pacing values. Future scenarios such as 1806 or 1809 extend the same schema rather than adding bespoke knobs in unrelated files.
 
 ---
 
@@ -196,7 +292,8 @@ Hybrid of Options A + B. Dispatches are grouped into themed sections with period
 
 ## Phase 1: Test Safety Net — Session Spec
 
-**When:** Immediately after Phase 0 decisions are recorded.
+**Status:** COMPLETE (April 17, 2026).
+**When:** Pulled forward before Phase 0 closure to establish regression coverage ahead of scale work.
 **Why:** Regression safety before any structural changes. If BFS caching or fog extension breaks something, these tests catch it.
 **Estimated effort:** 1-2 hours.
 **Acceptance criteria:** All new tests pass. Full test suite still passes. No hardcoded `19` remains in any test assertion about region/world count.
@@ -805,15 +902,16 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | # | Item | Phase | Status | Session |
 |---|------|-------|--------|---------|
 | DG-1 | Nation roster decision | 0 | DECIDED | April 17, 2026 |
-| DG-2 | Diplomacy model decision | 0 | | |
+| DG-2 | Diplomacy model decision | 0 | DECIDED | April 17, 2026 |
 | DG-3 | Supply lines decision | 0 | DEFERRED | April 17, 2026 |
-| DG-4 | War cascade policy | 0 | | |
-| DG-5 | Victory conditions | 0 | | |
-| DG-6 | Pacing (turns, AP) | 0 | | |
+| DG-4 | War cascade policy | 0 | DECIDED | April 17, 2026 |
+| DG-5 | Victory conditions | 0 | DECIDED | April 17, 2026 |
+| DG-6 | Pacing (turns, AP) | 0 | DECIDED | April 17, 2026 |
 | DG-7 | Dispatch density | 0 | DECIDED | April 17, 2026 |
 | 1.1 | Nation config test | 1 | DONE | April 16, 2026 |
 | 1.2 | Fix hardcoded `== 19` | 1 | DONE | April 16, 2026 |
 | 1.3 | Adjacency connectivity test | 1 | DONE | April 16, 2026 |
+| 1.4 | Validator derives `VALID_NATIONS` from `NATION_CAPITALS` | 1 | DONE | April 16, 2026 |
 | 2.1 | Cache `get_distance()` | 2 | | |
 | 2.2 | Wire spatial index into AI | 2 | | |
 | 2.3 | Extend fog to all AI nations | 2 | | |

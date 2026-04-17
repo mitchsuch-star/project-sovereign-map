@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 17, 2026 (Scale Readiness Phase 1 COMPLETE — 11 new tests, all hardcoded `== 19` removed, validator derives from NATION_CAPITALS. Phase 0 design gates: 3/7 decided — DG-1 nation roster 13 nations, DG-3 supply lines deferred, DG-7 categorized dispatch with priority escalation. All systems must handle 20+ nations.)
+> **Last Updated:** April 17, 2026 (Scale Readiness Phase 0 COMPLETE — all 7/7 design gates resolved. DG-1 locks 13 nations with 20+ nation architecture headroom, DG-2 keeps diplomacy bilateral with salience filtering, DG-3 defers supply lines, DG-4 locks direct-only bilateral call-to-arms with no transitive cascade, DG-5 defines raw-count hegemony victory, DG-6 locks scenario-configured pacing with schema versioning, and DG-7 uses categorized dispatch with priority escalation. Cross-cutting taxonomy is now explicit: `power_tier` is authored scenario data, `political_status` is runtime state. Scale Readiness Phase 1 also remains COMPLETE — 11 new tests, all hardcoded `== 19` removed, validator derives from NATION_CAPITALS.)
 
 ---
 
@@ -36,19 +36,17 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
  
 **Actionable now (no blockers):**
 
-1. **Scale Readiness Phase 0 — Remaining Design Gates.** 4 of 7 decisions remaining: DG-2 (diplomacy model), DG-4 (war cascade), DG-5 (victory conditions), DG-6 (pacing). See `docs/SCALE_READINESS_PLAN.md` §Phase 0.
-2. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI, extend fog to all AI nations. Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
-3. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+1. **Scale Readiness Phase 2 — Performance Infrastructure.** Cache `get_distance()` + BFS fix, wire spatial index into AI, extend fog to all AI nations. Phase 0 decisions are locked and the Phase 1 safety net is in place. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
+2. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 
 **Complete:**
 
+- **Scale Readiness Phase 0 — Design Gates.** COMPLETE (April 17, 2026). `DG-1` 13 independent nations with 20+ headroom; `DG-2` bilateral diplomacy with force-expand salience rules and weighted relevance cap; `DG-3` supply lines deferred; `DG-4` direct-only bilateral call-to-arms with no transitive cascade; `DG-5` raw-count hegemony victory over a majority of strategic powers; `DG-6` scenario-configured pacing with `scenario_schema_version: 1`; `DG-7` categorized dispatch with priority escalation. Cross-cutting taxonomy: `power_tier` is authored scenario data, `political_status` is runtime state.
 - **Scale Readiness Phase 1 — Test Safety Net.** COMPLETE (April 17, 2026). 11 new tests (8 nation config + 3 adjacency), all hardcoded `== 19` removed from test assertions, validator VALID_NATIONS derives from NATION_CAPITALS.
-- **Scale Readiness Phase 0 — 3/7 decided.** DG-1: 13 nations (5 major, 4 secondary, 4 minor), systems must handle 20+. DG-3: supply lines deferred to post-map. DG-7: categorized dispatch with priority escalation (Military/Diplomatic/Treasury/Intelligence sections).
 
 **Blocked:**
 
 - **Session 8 Renderer — remaining slices.** Commissioned art-backed renderer swap and Godot smoke validation. Blocked on art assets.
-- **Scale Readiness Phases 5-7.** Blocked on remaining Phase 0 design gate decisions (DG-2, DG-4, DG-5, DG-6).
 
 **Audit context:** `docs/SCALE_READYNESS.md` has the full Europe-scale audit (17 findings).
 
