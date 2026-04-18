@@ -2834,13 +2834,13 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} cannot support ally - fortified")
             return None
 
+        self._ensure_marshal_indexes(world)
+
         # Get all allies from same nation (excluding self)
         # P4.75 relationship filter: exclude Hostile (-2), prioritize by relationship
         allies = [
-            m for m in world.marshals.values()
-            if m.nation == nation
-            and m.name != marshal.name
-            and m.strength > 0
+            m for m in world.get_marshals_by_nation(nation)
+            if m.name != marshal.name
             and marshal.get_relationship(m.name) >= -1  # Hostile excluded
         ]
 
@@ -2864,23 +2864,24 @@ class EnemyAI:
             if not ally_region:
                 continue
 
+            present_non_friendlies = [
+                m
+                for m in world.get_marshals_in_region_indexed(ally.location)
+                if m.nation != nation and m.strength > 0
+            ]
+
             # Check if ally is engaged in combat (enemy in same region)
             # Fix 3: Only count nations actually at war, not allies/neutrals
             enemies_at_ally = [
-                m for m in world.marshals.values()
-                if m.location == ally.location
-                and m.nation != nation
-                and world.is_at_war(nation, m.nation)
-                and m.strength > 0
+                m for m in present_non_friendlies
+                if world.is_at_war(nation, m.nation)
             ]
 
             # Also check if ally is threatened (enemy adjacent)
             enemies_adjacent_to_ally = [
-                m for m in world.marshals.values()
-                if m.location in ally_region.adjacent_regions
-                and m.nation != nation
-                and world.is_at_war(nation, m.nation)
-                and m.strength > 0
+                enemy
+                for adj_name in ally_region.adjacent_regions
+                for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation)
             ]
 
             # Determine if ally needs support
@@ -2929,12 +2930,7 @@ class EnemyAI:
             # Can we reach ally? Check if ally's location is adjacent to us
             if ally.location in marshal_region.adjacent_regions:
                 # Check if there are enemies blocking the path
-                enemies_at_dest = [
-                    m for m in world.marshals.values()
-                    if m.location == ally.location
-                    and m.nation != nation
-                    and m.strength > 0
-                ]
+                enemies_at_dest = present_non_friendlies
                 if enemies_at_dest:
                     # Must attack to join ally
                     weakest = min(enemies_at_dest, key=lambda e: e.strength)
@@ -2969,10 +2965,9 @@ class EnemyAI:
                     continue
                 # Skip if enemies present (would need to attack, handled above)
                 enemies_there = [
-                    m for m in world.marshals.values()
-                    if m.location == adj_name
-                    and m.nation != nation
-                    and m.strength > 0
+                    m
+                    for m in world.get_marshals_in_region_indexed(adj_name)
+                    if m.nation != nation and m.strength > 0
                 ]
                 if enemies_there:
                     continue
@@ -3007,6 +3002,7 @@ class EnemyAI:
         Returns action dict or None if no stagnation action available.
         """
         print(f"  [STAGNATION ESCALATION] {marshal.name}: idle {stagnation} turns, personality={personality}")
+        self._ensure_marshal_indexes(world)
 
         # Can't act if broken or in retreat recovery
         if getattr(marshal, 'broken', False) or getattr(marshal, 'retreat_recovery', 0) > 0:
@@ -3051,9 +3047,7 @@ class EnemyAI:
                     for adj_name in marshal_region.adjacent_regions:
                         if adj_name in visited:
                             continue
-                        enemies_there = [m for m in world.marshals.values()
-                                        if m.location == adj_name and m.nation != nation and m.strength > 0
-                                        and world.is_at_war(nation, m.nation)]
+                        enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                         if enemies_there:
                             continue  # Still don't walk into enemy-occupied regions
                         if not self._can_ai_move_to(world, nation, adj_name):
@@ -3078,11 +3072,7 @@ class EnemyAI:
                     fallback_dests = [
                         adj_name for adj_name in marshal_region.adjacent_regions
                         if adj_name not in visited
-                        and not any(
-                            m.location == adj_name and m.nation != nation and m.strength > 0
-                            and world.is_at_war(nation, m.nation)
-                            for m in world.marshals.values()
-                        )
+                        and not world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                         and self._can_ai_move_to(world, nation, adj_name)  # DLF-12
                     ]
                     if fallback_dests:
@@ -3099,9 +3089,7 @@ class EnemyAI:
                         weakest_adjacent = None
                         weakest_strength = float('inf')
                         for adj_name in marshal_region.adjacent_regions:
-                            for enemy in [m for m in world.marshals.values()
-                                         if m.location == adj_name and m.nation != nation and m.strength > 0
-                                         and world.is_at_war(nation, m.nation)]:
+                            for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation):
                                 if enemy.strength < weakest_strength:
                                     weakest_adjacent = enemy
                                     weakest_strength = enemy.strength
@@ -4223,11 +4211,7 @@ class EnemyAI:
         # CHECK 0: ENGAGED with enemy in same region (must unfortify!)
         # If enemy is in our region, we MUST fight them.
         # ════════════════════════════════════════════════════════════
-        enemies_in_region = [
-            m for m in world.marshals.values()
-            if m.location == marshal.location and m.nation != nation and m.strength > 0
-            and world.is_at_war(nation, m.nation)
-        ]
+        enemies_in_region = world.get_hostile_marshals_in_region_indexed(marshal.location, nation)
         if enemies_in_region:
             ai_debug(f"    P3.5: ENGAGED while fortified! Enemies in region: {[e.name for e in enemies_in_region]}")
             # Check if we have good odds to attack
@@ -4259,9 +4243,7 @@ class EnemyAI:
                 continue
 
             # Check if undefended
-            defenders = [m for m in world.marshals.values()
-                        if m.location == adj_name and m.strength > 0 and m.nation != nation
-                        and world.is_at_war(nation, m.nation)]
+            defenders = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
 
             if not defenders:
                 # Undefended enemy region! Check safety before unfortifying
@@ -4377,8 +4359,8 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         if not adjacent_enemies:
             allies = [
-                m for m in world.marshals.values()
-                if m.nation == nation and m.name != marshal.name and m.strength > 0
+                m for m in world.get_marshals_by_nation(nation)
+                if m.name != marshal.name
             ]
 
             for ally in allies:
@@ -4387,17 +4369,13 @@ class EnemyAI:
                     continue
 
                 # Check if ally is in combat (war enemy in same region)
-                enemies_at_ally = [
-                    m for m in world.marshals.values()
-                    if m.location == ally.location and m.nation != nation and m.strength > 0
-                    and world.is_at_war(nation, m.nation)
-                ]
+                enemies_at_ally = world.get_hostile_marshals_in_region_indexed(ally.location, nation)
 
                 # Check if ally is threatened (war enemy adjacent and ally outnumbered)
                 enemies_adjacent_to_ally = [
-                    m for m in world.marshals.values()
-                    if m.location in ally_region.adjacent_regions and m.nation != nation and m.strength > 0
-                    and world.is_at_war(nation, m.nation)
+                    enemy
+                    for adj_name in ally_region.adjacent_regions
+                    for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                 ]
 
                 ally_needs_help = False

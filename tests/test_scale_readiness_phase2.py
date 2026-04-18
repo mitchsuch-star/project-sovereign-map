@@ -288,6 +288,47 @@ def test_ai_defensive_reinforcement_refreshes_indexes_for_direct_calls():
     assert action["target"] in ("Belgium", "Lyon")
 
 
+def test_ai_ally_support_refreshes_indexes_for_direct_calls():
+    supporter = MarshalFactory.infantry(
+        name="Ney",
+        location="Lyon",
+        strength=30000,
+        nation="Coalition",
+        personality="aggressive",
+    )
+    ally = MarshalFactory.infantry(
+        name="Blucher",
+        location="Paris",
+        strength=10000,
+        nation="Coalition",
+        personality="cautious",
+    )
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location="Paris",
+        strength=30000,
+        nation="France",
+    )
+    supporter.set_relationship("Blucher", 1)
+    world = WorldFactory.with_marshals(
+        [supporter, ally, enemy],
+        player_nation="France",
+    )
+    _set_war(world, "Coalition", "France")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._find_ally_support_opportunity(supporter, "Coalition", world)
+
+    assert action is not None
+    assert action["action"] == "attack"
+    assert action["target"] == "Davout"
+    assert {marshal.name for marshal in world.get_marshals_in_region_indexed("Paris")} == {
+        "Blucher",
+        "Davout",
+    }
+
+
 def test_ai_ally_adjacency_bonus_refreshes_indexes_for_direct_calls():
     marshal = MarshalFactory.infantry(
         name="Ney",
@@ -328,3 +369,75 @@ def test_ai_combined_arms_bonus_refreshes_indexes_for_direct_calls():
     ai = EnemyAI(CommandExecutor())
 
     assert ai._get_combined_arms_bonus("Belgium", artillery, "France", world) == 20
+
+
+def test_ai_stagnation_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Waterloo",
+        strength=50000,
+        nation="Britain",
+        personality="cautious",
+    )
+    adjacent_regions = WorldFactory.basic().get_region("Waterloo").adjacent_regions
+    weakest_enemy_name = "French 1"
+    enemies = [
+        MarshalFactory.enemy(
+            name=f"French {index}",
+            location=region_name,
+            strength=20000 + (index * 5000),
+            nation="France",
+        )
+        for index, region_name in enumerate(adjacent_regions, start=1)
+    ]
+    world = WorldFactory.with_marshals(
+        [marshal, *enemies],
+        player_nation="France",
+    )
+    _set_war(world, "Britain", "France")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._get_stagnation_action(marshal, "Britain", world, 5, "cautious")
+
+    assert action is not None
+    assert action["action"] == "attack"
+    assert action["target"] == weakest_enemy_name
+    weakest_enemy_region = next(enemy.location for enemy in enemies if enemy.name == weakest_enemy_name)
+    assert {
+        enemy.name for enemy in world.get_hostile_marshals_in_region_indexed(weakest_enemy_region, "Britain")
+    } == {weakest_enemy_name}
+
+
+def test_ai_fortification_opportunity_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Belgium",
+        strength=60000,
+        nation="Britain",
+        personality="cautious",
+    )
+    marshal.fortified = True
+    marshal.defense_bonus = 0.10
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location="Belgium",
+        strength=10000,
+        nation="France",
+    )
+    world = WorldFactory.with_marshals(
+        [marshal, enemy],
+        player_nation="France",
+    )
+    _set_war(world, "Britain", "France")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._check_fortification_opportunity(marshal, "Britain", world)
+
+    assert action is not None
+    assert action["action"] == "unfortify"
+    assert world.ai_refortify_cooldown["Wellington"] == 2
+    assert {m.name for m in world.get_hostile_marshals_in_region_indexed("Belgium", "Britain")} == {
+        "Davout"
+    }
