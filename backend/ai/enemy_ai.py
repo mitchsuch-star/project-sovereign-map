@@ -5272,6 +5272,9 @@ class EnemyAI:
                 and marshal.get_relationship(m.name) >= -1  # >= Rival
             ]
 
+            # Coordination uses a topological 2-hop radius, not weighted path cost.
+            # If strategic pathfinding becomes terrain/ZOC-aware later, keep this
+            # helper on "can stage together soon" semantics unless the design changes.
             # Find nearby allies (within 2 distance, not co-located) with relationship >= Rival
             nearby_regions = set()
             frontier = {marshal.location}
