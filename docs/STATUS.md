@@ -36,7 +36,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
  
 **Actionable now (no blockers):**
 
-1. **Scale Readiness Phase 2 — finish the AI scan-conversion pass.** The distance cache, indexed helper seam, live AI fog path, and late artillery / coordination helper slice are already landed and suite-green. The remaining work is converting the remaining 36 direct `world.marshals.values()` scans in `backend/ai/enemy_ai.py` to indexed helpers so Phase 2 can be marked complete. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
+1. **Scale Readiness Phase 2 — finish the AI scan-conversion pass.** The distance cache, indexed helper seam, live AI fog path, and late artillery / coordination helper slice are already landed and suite-green. The remaining work is converting the remaining 36 direct `world.marshals.values()` scans in `backend/ai/enemy_ai.py` to indexed helpers so Phase 2 can be marked complete. **Recommended next slice:** `_find_ally_support_opportunity()` + `_check_fortification_opportunity()` first (10 remaining direct scans with strong existing test coverage), then `_get_stagnation_action()` as the next cleanup batch. See `docs/SCALE_READINESS_PLAN.md` §Phase 2.
 2. **Memory and Pressure — Slice A (rivalry seed).** 4 authored rivalry pairs. Substrate is shipped; this is the next diplomacy implementation slice. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 
 **Complete:**
