@@ -1388,7 +1388,7 @@ def create_marshals_from_data(marshal_definitions: Sequence[Mapping]) -> dict[st
 # ════════════════════════════════════════════════════════════
 # FRENCH MARSHALS — data-driven definitions (Waterloo scenario)
 # ════════════════════════════════════════════════════════════
-FRENCH_MARSHALS_DATA: list[dict] = [
+_FRENCH_MARSHALS_DATA: list[dict] = [
     {
         "name": "Ney",
         "location": "Belgium",
@@ -1517,7 +1517,7 @@ FRENCH_MARSHALS_DATA: list[dict] = [
 
 def create_starting_marshals() -> dict[str, Marshal]:
     """Create the starting marshals for France."""
-    return create_marshals_from_data(FRENCH_MARSHALS_DATA)
+    return create_marshals_from_data(_FRENCH_MARSHALS_DATA)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1528,7 +1528,7 @@ def create_starting_marshals() -> dict[str, Marshal]:
 # asymmetric pairs from the legacy hand-authored function, including the
 # intentional non-entries for Uxbridge ↔ ArchdukeCharles / Schwarzenberg
 # (which the original code did not set). See git history for rationale.
-ENEMY_MARSHALS_DATA: list[dict] = [
+_ENEMY_MARSHALS_DATA: list[dict] = [
     {
         "name": "Wellington",
         "location": "Waterloo",
@@ -1787,5 +1787,5 @@ ENEMY_MARSHALS_DATA: list[dict] = [
 
 def create_enemy_marshals() -> dict[str, Marshal]:
     """Create the enemy marshals (persistent across turns)."""
-    return create_marshals_from_data(ENEMY_MARSHALS_DATA)
+    return create_marshals_from_data(_ENEMY_MARSHALS_DATA)
 

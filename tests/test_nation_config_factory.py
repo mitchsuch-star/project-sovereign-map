@@ -12,14 +12,11 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from backend.models.diplomat import (
-    DIPLOMAT_DEFINITIONS,
     STARTING_DIPLOMATS,
     create_diplomat_from_data,
     create_starting_diplomats,
 )
 from backend.models.marshal import (
-    ENEMY_MARSHALS_DATA,
-    FRENCH_MARSHALS_DATA,
     Marshal,
     create_enemy_marshals,
     create_marshal_from_data,
@@ -89,10 +86,12 @@ class TestMarshalFactory:
         # Intentional asymmetry preserved: Uxbridge never got an Austria link
         assert "ArchdukeCharles" not in enemies["Uxbridge"].relationships
         assert "Schwarzenberg" not in enemies["Uxbridge"].relationships
+        assert "Uxbridge" not in enemies["ArchdukeCharles"].relationships
+        assert "Uxbridge" not in enemies["Schwarzenberg"].relationships
 
-    def test_french_and_enemy_data_lists_cover_full_roster(self):
-        names_french = {d["name"] for d in FRENCH_MARSHALS_DATA}
-        names_enemy = {d["name"] for d in ENEMY_MARSHALS_DATA}
+    def test_factory_wrappers_cover_full_roster(self):
+        names_french = set(create_starting_marshals().keys())
+        names_enemy = set(create_enemy_marshals().keys())
         assert names_french == {"Ney", "Davout", "Grouchy", "Drouot"}
         assert names_enemy == {
             "Wellington", "Uxbridge", "Blucher", "Gneisenau",
@@ -101,23 +100,36 @@ class TestMarshalFactory:
 
 
 class TestDiplomatFactory:
-    def test_create_diplomat_from_data_sets_nation(self):
+    def test_create_diplomat_from_data_forces_factory_nation(self):
         d = create_diplomat_from_data(
             "Testland",
-            {"name": "Envoy", "personality": "dove", "skill": 5, "biography": "Keeps the peace."},
+            {
+                "name": "Envoy",
+                "nation": "Wrongland",
+                "personality": "dove",
+                "skill": 5,
+                "biography": "Keeps the peace.",
+            },
         )
         assert d.nation == "Testland"
         assert d.name == "Envoy"
         assert d.skill == 5
         assert d.biography == "Keeps the peace."
 
-    def test_starting_diplomats_matches_definitions(self):
-        assert set(STARTING_DIPLOMATS.keys()) == set(DIPLOMAT_DEFINITIONS.keys())
-        for nation, defn in DIPLOMAT_DEFINITIONS.items():
+    def test_starting_diplomats_match_expected_templates(self):
+        expected = {
+            "France": ("Talleyrand", "schemer", 10),
+            "Britain": ("Castlereagh", "hawk", 7),
+            "Prussia": ("Hardenberg", "hawk", 6),
+            "Austria": ("Metternich", "schemer", 9),
+            "Saxony": ("Einsiedel", "dove", 4),
+        }
+        assert set(STARTING_DIPLOMATS.keys()) == set(expected.keys())
+        for nation, (name, personality, skill) in expected.items():
             d = STARTING_DIPLOMATS[nation]
-            assert d.name == defn["name"]
-            assert d.personality == defn["personality"]
-            assert d.skill == defn["skill"]
+            assert d.name == name
+            assert d.personality == personality
+            assert d.skill == skill
             assert d.nation == nation
 
     def test_create_starting_diplomats_returns_fresh_instances(self):

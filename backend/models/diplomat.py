@@ -58,7 +58,7 @@ class DiplomaticRepresentative:
 # Nation → diplomat definition. Adding a new nation = adding one entry here.
 # No function edits required.
 
-DIPLOMAT_DEFINITIONS: Dict[str, Dict] = {
+_DIPLOMAT_DEFINITIONS: Dict[str, Dict] = {
     "France": {
         "name": "Talleyrand",
         "personality": "schemer",
@@ -103,18 +103,29 @@ def create_diplomat_from_data(nation: str, data: Mapping) -> 'DiplomaticRepresen
     )
 
 
-# STARTING_DIPLOMATS is materialized from DIPLOMAT_DEFINITIONS for backward
+# STARTING_DIPLOMATS is materialized from _DIPLOMAT_DEFINITIONS for backward
 # compatibility with code that imports the template dict directly (e.g. the
 # nation_config roster composition and completeness tests).
 STARTING_DIPLOMATS: Dict[str, 'DiplomaticRepresentative'] = {
     nation: create_diplomat_from_data(nation, defn)
-    for nation, defn in DIPLOMAT_DEFINITIONS.items()
+    for nation, defn in _DIPLOMAT_DEFINITIONS.items()
 }
+
+
+def _clone_diplomat(template: 'DiplomaticRepresentative') -> 'DiplomaticRepresentative':
+    """Clone a diplomat template while preserving legacy STARTING_DIPLOMATS semantics."""
+    return DiplomaticRepresentative(
+        name=template.name,
+        nation=template.nation,
+        personality=template.personality,
+        skill=int(template.skill),
+        biography=template.biography,
+    )
 
 
 def create_starting_diplomats() -> Dict[str, 'DiplomaticRepresentative']:
     """Create fresh copies of all starting diplomats, keyed by nation."""
     return {
-        nation: create_diplomat_from_data(nation, defn)
-        for nation, defn in DIPLOMAT_DEFINITIONS.items()
+        nation: _clone_diplomat(template)
+        for nation, template in STARTING_DIPLOMATS.items()
     }

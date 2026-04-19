@@ -1,39 +1,45 @@
 """
 Scale Readiness Phase 1: Nation config completeness tests.
 
-Ensures every nation with a capital has matching entries across all config
-surfaces (gold, AP, authority, diplomats, marshals). Catches drift when
-adding new nations.
+Ensures every nation with a capital has complete runtime coverage across
+roster surfaces plus gold/AP/authority resolution. Catches drift when
+adding new nations under the fallback-default contract.
 """
 
 from backend.models.region import NATION_CAPITALS
 from backend.nation_config import (
-    DEFAULT_NATION_GOLD, BASE_NATION_ACTIONS, DEFAULT_NATION_AUTHORITY,
-    RUNTIME_NATIONS, validate_runtime_nation_support,
+    RUNTIME_NATIONS,
+    build_default_nation_actions,
+    build_default_nation_authority,
+    build_default_nation_gold,
+    validate_runtime_nation_support,
 )
 from backend.models.diplomat import STARTING_DIPLOMATS
 from backend.models.world_state import WorldState
 
 
 class TestNationConfigCompleteness:
-    """Every nation with a capital must have all config surfaces wired."""
+    """Every nation with a capital must have full runtime coverage."""
 
-    def test_all_capital_nations_have_gold_config(self):
+    def test_all_capital_nations_have_gold_resolution(self):
+        resolved = build_default_nation_gold("France")
         for nation in NATION_CAPITALS:
-            assert nation in DEFAULT_NATION_GOLD, (
-                f"{nation} in NATION_CAPITALS but missing from DEFAULT_NATION_GOLD"
+            assert nation in resolved, (
+                f"{nation} in NATION_CAPITALS but missing from resolved nation gold"
             )
 
-    def test_all_capital_nations_have_action_config(self):
+    def test_all_capital_nations_have_action_resolution(self):
+        resolved = build_default_nation_actions("__test_player__")
         for nation in NATION_CAPITALS:
-            assert nation in BASE_NATION_ACTIONS, (
-                f"{nation} in NATION_CAPITALS but missing from BASE_NATION_ACTIONS"
+            assert nation in resolved, (
+                f"{nation} in NATION_CAPITALS but missing from resolved action budget"
             )
 
-    def test_all_capital_nations_have_authority_config(self):
+    def test_all_capital_nations_have_authority_resolution(self):
+        resolved = build_default_nation_authority("__test_player__")
         for nation in NATION_CAPITALS:
-            assert nation in DEFAULT_NATION_AUTHORITY, (
-                f"{nation} in NATION_CAPITALS but missing from DEFAULT_NATION_AUTHORITY"
+            assert nation in resolved, (
+                f"{nation} in NATION_CAPITALS but missing from resolved authority"
             )
 
     def test_all_capital_nations_have_diplomat(self):
@@ -60,10 +66,11 @@ class TestNationConfigCompleteness:
     def test_all_config_surfaces_consistent(self):
         surfaces = {
             "NATION_CAPITALS": set(NATION_CAPITALS.keys()),
-            "DEFAULT_NATION_GOLD": set(DEFAULT_NATION_GOLD.keys()),
-            "BASE_NATION_ACTIONS": set(BASE_NATION_ACTIONS.keys()),
-            "DEFAULT_NATION_AUTHORITY": set(DEFAULT_NATION_AUTHORITY.keys()),
             "STARTING_DIPLOMATS": set(STARTING_DIPLOMATS.keys()),
+            "RUNTIME_NATIONS": set(RUNTIME_NATIONS),
+            "RESOLVED_GOLD": set(build_default_nation_gold("France").keys()),
+            "RESOLVED_ACTIONS": set(build_default_nation_actions("__test_player__").keys()),
+            "RESOLVED_AUTHORITY": set(build_default_nation_authority("__test_player__").keys()),
         }
         reference = surfaces["NATION_CAPITALS"]
         mismatches = []
