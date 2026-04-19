@@ -353,18 +353,23 @@ self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
 self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat", "NewMarshal"]
 ```
 
-#### Step 3: Update Known Enemies (if enemy marshal)
+#### Step 3: Ensure Enemy Factory Covers It (if enemy marshal)
 
-**File:** `backend/commands/parser.py`
+**File:** `backend/models/marshal.py`
 
-**Location:** Line ~68
+**Location:** `create_enemy_marshals()`
 
 ```python
-# Before
-self.known_enemies = ["Wellington", "Blucher"]
+# parser.py no longer maintains a hardcoded `known_enemies` list.
+# Cold parsing derives fallback enemy names from create_enemy_marshals(),
+# and normal gameplay reads the live roster from world.marshals.
 
-# After (add enemy marshal)
-self.known_enemies = ["Wellington", "Blucher", "NewEnemy"]
+# Add the marshal to the canonical enemy factory instead:
+enemies = {
+    "Wellington": Marshal(...),
+    "Blucher": Marshal(...),
+    "NewEnemy": Marshal(...),  # Added here
+}
 ```
 
 #### Step 4: Set Up Bidirectional Relationships
@@ -627,7 +632,7 @@ Before committing, verify ALL items:
 
 #### Parser
 - [ ] Marshal name added to `valid_marshals` list
-- [ ] If enemy: name added to `known_enemies` list
+- [ ] If enemy: marshal added to `create_enemy_marshals()` so parser fallback sees it
 - [ ] Name doesn't conflict with existing names (case-insensitive)
 - [ ] Fuzzy matching works (test with typos)
 
@@ -737,16 +742,21 @@ skills={
 }
 ```
 
-#### Pitfall 5: Forgetting to Update Parser
+#### Pitfall 5: Forgetting to Update Parser or Enemy Factory
 
 Marshal is added but commands don't work:
 
 ```python
-# parser.py - MUST ADD TO THIS LIST:
+# parser.py - MUST ADD TO THIS LIST for player-accessible marshals:
 self.valid_marshals = ["Ney", "Davout", "Grouchy", "NewMarshal"]  # Added!
 
-# For enemies:
-self.known_enemies = ["Wellington", "Blucher", "NewEnemy"]  # Added!
+# Enemy marshals are NOT maintained in parser.py anymore.
+# Add them to create_enemy_marshals() so parser fallback derives them:
+enemies = {
+    "Wellington": Marshal(...),
+    "Blucher": Marshal(...),
+    "NewEnemy": Marshal(...),  # Added!
+}
 ```
 
 #### Pitfall 6: Missing Nation Color in Godot
@@ -1050,8 +1060,11 @@ self.diplomats["NewNation"] = DiplomaticRepresentative(
 #### 12. Update Parsers
 
 ```python
-# parser.py — add new nation's marshals to known_enemies
-known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "NewMarshal"]
+# parser.py — add player-accessible marshals to valid_marshals when needed
+valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot", "NewMarshal"]
+
+# marshal.py — add enemy marshals to create_enemy_marshals();
+# parser fallback derives enemy names from that factory automatically
 
 # llm_client.py — add nation name to mock parser nation detection
 # prompt_builder.py — include nation in diplomatic context

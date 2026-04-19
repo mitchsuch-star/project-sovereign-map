@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 19, 2026 (Map Readiness Closure Pass — warm-up bundle §3.3 + §3.4 landed. `utils.gd` is now the single authoritative source for nation colors; `map.gd`, `war_detail_popup.gd`, and `war_status_panel.gd` no longer carry private copies. `prompt_builder._get_regions_list()` and `parser.CommandParser` derive their region / enemy-marshal rosters from canonical backend data (REGIONS_DATA, create_enemy_marshals, or live WorldState) instead of hardcoded 19-region / 8-marshal literals. Drift prevention: new `tests/test_gdscript_color_centralization.py` (3 tests) guards against future duplicate nation-color definitions. Full Python suite green: 8416 passed, 2 skipped. Remaining Phase 3 items (§3.2 shared topology, §3.1 nation config factory) and all Phase 4 map-art pipeline items are still the next non-art prerequisites before commissioned Europe-map integration.)
+> **Last Updated:** April 19, 2026 (Map Readiness Closure Pass — warm-up bundle §3.3 + §3.4 landed, and the same-day documentation consistency pass synced STATUS / SCALE_READYNESS / ADDING_CONTENT / CLAUDE with the live code. `utils.gd` is now the single authoritative source for nation colors; `map.gd`, `war_detail_popup.gd`, and `war_status_panel.gd` no longer carry private copies. `prompt_builder._get_regions_list()` and `parser.CommandParser` derive their region / enemy-marshal rosters from canonical backend data (REGIONS_DATA, create_enemy_marshals, or live WorldState) instead of hardcoded 19-region / 8-marshal literals. Drift prevention: new `tests/test_gdscript_color_centralization.py` (3 tests) guards against future duplicate nation-color definitions. Full Python suite green: 8416 passed, 2 skipped. Remaining Phase 3 items (§3.2 shared topology, §3.1 nation config factory) and all Phase 4 map-art pipeline items are still the next non-art prerequisites before commissioned Europe-map integration.)
 
 ---
 
@@ -56,7 +56,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 2. **Scale-facing nation / region data flow is fully data-driven.**
    - Adding nations or regions no longer depends on lingering hand-authored factory duplication or shell-sized prompt / parser assumptions.
-   - The remaining Phase 3 data-pipeline cleanup is closed: nation/runtime config factory work is sufficient for Europe expansion, prompt/parser fallback strings are not hardcoded to the 19-region shell, and nation-color ownership is single-sourced instead of drifting across frontend surfaces.
+   - Prompt/parser fallback strings and nation-color ownership are now data-driven, but the remaining Phase 3 data-pipeline cleanup is **not** closed yet: nation/runtime config factory work (§3.1) and shared topology ownership (§3.2) still have to land before this gate is satisfied.
 
 3. **Frontend/backend topology has one authoritative source.**
    - `map.gd` no longer carries a second hardcoded gameplay adjacency graph that can drift from backend `REGIONS_DATA`.
