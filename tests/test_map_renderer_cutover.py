@@ -166,6 +166,99 @@ def test_tooltip_drawing_delegates_to_overlay_layer():
     assert "func clear_tooltip()" in overlay
 
 
+def test_renderer_base_declares_bitmap_loader_hooks():
+    """§4.2: the base exposes subclass hooks for artist-delivered bitmap paths.
+
+    Both hooks default to "" so the placeholder scene keeps falling back to
+    generated circle geometry without any subclass opt-out work.
+    """
+    source = _read(BASE_GD)
+    assert "func _get_map_visual_bitmap_path() -> String:" in source
+    assert "func _get_map_lookup_bitmap_path() -> String:" in source
+    visual_hook_body = _func_body(source, "func _get_map_visual_bitmap_path() -> String:")
+    lookup_hook_body = _func_body(source, "func _get_map_lookup_bitmap_path() -> String:")
+    assert 'return ""' in visual_hook_body
+    assert 'return ""' in lookup_hook_body
+
+
+def test_renderer_base_declares_load_map_images():
+    """§4.2: base has a bitmap loader that guards file-exists + load + size match."""
+    source = _read(BASE_GD)
+    assert "func _load_map_images() -> bool:" in source
+    body = _func_body(source, "func _load_map_images() -> bool:")
+    # Empty path → skip (no subclass bitmap opt-in).
+    assert 'if visual_path == "" or lookup_path == "":' in body
+    # Imported res:// textures are loaded through the resource pipeline, not
+    # Image.load(), so exported builds keep working.
+    assert 'var visual_image = _load_bitmap_texture_image(visual_path, "visual")' in body
+    assert 'var lookup_image = _load_bitmap_texture_image(lookup_path, "lookup")' in body
+    # Visual and lookup bitmaps must agree on size — §4.3 will deepen this
+    # into a full asset validator; §4.2 just guards the obvious mismatch.
+    assert "visual_image.get_size() != lookup_image.get_size()" in body
+    assert "_validate_lookup_bitmap_image(lookup_image, lookup_path)" in body
+    # On success the loader wires the visual texture + lookup image and
+    # aligns the canvas to the bitmap dimensions.
+    assert "province_lookup_image = lookup_image" in body
+    assert "visual_map_texture = ImageTexture.create_from_image(visual_image)" in body
+    assert "map_origin = Vector2.ZERO" in body
+    assert "map_canvas_size = Vector2(visual_image.get_size())" in body
+    # Explicit success/failure return values — the caller branches on this.
+    assert "return true" in body
+    assert "return false" in body
+
+
+def test_renderer_base_loads_bitmap_resources_via_texture_pipeline():
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _load_bitmap_texture_image(resource_path: String, label: String) -> Image:")
+    assert "ResourceLoader.exists(resource_path)" in body
+    assert "var resource = ResourceLoader.load(resource_path)" in body
+    assert "var texture := resource as Texture2D" in body
+    assert "var image := texture.get_image()" in body
+    assert "FileAccess.file_exists" not in body
+    assert "Image.new()" not in body
+
+
+def test_renderer_base_validates_lookup_colors_and_latches_failures():
+    source = _read(BASE_GD)
+    assert "static var _bitmap_load_error_latch := {}" in source
+    validate_body = _func_body(
+        source,
+        "func _validate_lookup_bitmap_image(lookup_image: Image, lookup_path: String) -> bool:",
+    )
+    assert "var no_province_key = _color_to_key(NO_PROVINCE_COLOR)" in validate_body
+    assert "province_color_lookup.has(pixel_key)" in validate_body
+    assert "seen_region_keys[pixel_key] = true" in validate_body
+    assert "Map lookup bitmap has unmapped province color" in validate_body
+    assert "Map lookup bitmap is missing province color" in validate_body
+    error_body = _func_body(source, "func _report_bitmap_load_error_once(message: String) -> void:")
+    assert "_bitmap_load_error_latch.has(message)" in error_body
+    assert "_bitmap_load_error_latch[message] = true" in error_body
+    assert "push_error(message)" in error_body
+
+
+def test_build_map_textures_tries_bitmap_loader_before_circle_fallback():
+    """§4.2: bitmap mode must win over generated circles when both paths are set.
+
+    The loader must be invoked FROM WITHIN _build_map_textures BEFORE the
+    circle-generation block so that a successful bitmap load short-circuits
+    the fallback instead of being overwritten.
+    """
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _build_map_textures():")
+    loader_index = body.index("_load_map_images()")
+    # Circle generation is identified by the per-shape draw calls that only
+    # appear inside the fallback path.
+    circle_fill_index = body.index("_draw_circle_on_image(visual_image")
+    assert loader_index < circle_fill_index, (
+        "_load_map_images() must run before circle generation so a successful "
+        "bitmap load short-circuits the fallback."
+    )
+    # The early-return on successful bitmap load is what enforces the skip.
+    assert "if _load_map_images():" in body
+    assert_return_after_loader = body[body.index("if _load_map_images():"):]
+    assert "return" in assert_return_after_loader.split("\n")[1]
+
+
 def test_hover_and_click_lookup_use_color_map_sampling_before_fallback():
     source = _read(BASE_GD)
     assert "func _lookup_region_from_color_map(map_position: Vector2) -> String:" in source

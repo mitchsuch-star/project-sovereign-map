@@ -200,3 +200,24 @@ def test_renderer_consumes_new_anchor_fields():
     for field in ("unit_anchor", "label_anchor", "garrison_anchor", "building_anchor"):
         assert f'"{field}"' in source, f"Renderer must read {field} from province data"
     assert '"province_id"' in source, "Renderer must read province_id from province data"
+
+
+def test_placeholder_map_script_does_not_opt_into_bitmap_mode():
+    """§4.2: the 19-region placeholder scene must NOT declare bitmap paths.
+
+    The placeholder has no commissioned art — it relies on the circle-fallback
+    path inside `_build_map_textures()`. If `map.gd` ever overrides
+    `_get_map_visual_bitmap_path()` or `_get_map_lookup_bitmap_path()` to a
+    non-empty value without shipping the actual PNGs, the loader will log a
+    warning every load and silently keep running on circles — this test pins
+    the "dev mode stays on circles" invariant.
+    """
+    source = _read_text(MAP_GD)
+    assert "_get_map_visual_bitmap_path" not in source, (
+        "Placeholder map.gd must not override _get_map_visual_bitmap_path — "
+        "the base default (empty string) keeps circle fallback active."
+    )
+    assert "_get_map_lookup_bitmap_path" not in source, (
+        "Placeholder map.gd must not override _get_map_lookup_bitmap_path — "
+        "the base default (empty string) keeps circle fallback active."
+    )

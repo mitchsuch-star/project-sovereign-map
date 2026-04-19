@@ -20,6 +20,7 @@ const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
 const INITIAL_CAMERA_OVERSCAN: float = 1.18
 const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
+static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
 	"partial": Color(0.15, 0.15, 0.2, 0.3),
@@ -104,6 +105,19 @@ func _get_capital_regions() -> Array:
 
 
 func _get_map_asset_definition_path() -> String:
+	return ""
+
+
+func _get_map_visual_bitmap_path() -> String:
+	# Subclasses override to return the artist-delivered "pretty map" bitmap.
+	# Empty string means: fall back to generated circle visuals.
+	return ""
+
+
+func _get_map_lookup_bitmap_path() -> String:
+	# Subclasses override to return the artist-delivered province color-map
+	# (the hidden image used for pixel-perfect hit detection).
+	# Empty string means: fall back to generated circle color-map.
 	return ""
 
 
@@ -276,6 +290,12 @@ func _build_map_textures():
 	if province_shapes.is_empty() or map_canvas_size == Vector2.ZERO:
 		return
 
+	# §4.2: prefer artist-delivered bitmaps when the subclass declares them.
+	# Fall back to generated circles so the 19-region placeholder scene
+	# (which has no bitmap) keeps working unchanged.
+	if _load_map_images():
+		return
+
 	var image_width = max(1, int(ceil(map_canvas_size.x)))
 	var image_height = max(1, int(ceil(map_canvas_size.y)))
 	var visual_image = Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
@@ -295,6 +315,114 @@ func _build_map_textures():
 	province_lookup_image = color_map
 	visual_map_texture = ImageTexture.create_from_image(visual_image)
 	_clear_highlight_texture()
+
+
+func _load_map_images() -> bool:
+	# Attempts to load artist-delivered visual + lookup bitmaps declared by the
+	# subclass via _get_map_visual_bitmap_path() / _get_map_lookup_bitmap_path().
+	#
+	# Returns true iff both bitmaps loaded successfully and their dimensions
+	# match. On success: sets visual_map_texture + province_lookup_image,
+	# overrides map_origin to Vector2.ZERO and map_canvas_size to the bitmap
+	# dimensions (so authored anchors are interpreted in bitmap-pixel coords),
+	# and clears any stale highlight texture.
+	#
+	# Returns false on any failure — caller falls back to circle generation.
+	# Deeper asset validation (color-map vs registry coverage, artifact pixels,
+	# etc.) is §4.3's job; this routine only checks that the files exist, load,
+	# and agree on size.
+	var visual_path = _get_map_visual_bitmap_path()
+	var lookup_path = _get_map_lookup_bitmap_path()
+	if visual_path == "" or lookup_path == "":
+		return false
+
+	var visual_image = _load_bitmap_texture_image(visual_path, "visual")
+	if visual_image == null:
+		return false
+
+	var lookup_image = _load_bitmap_texture_image(lookup_path, "lookup")
+	if lookup_image == null:
+		return false
+
+	if visual_image.get_size() != lookup_image.get_size():
+		_report_bitmap_load_error_once(
+			"Map visual/lookup bitmap size mismatch: visual=%s lookup=%s" %
+			[visual_image.get_size(), lookup_image.get_size()]
+		)
+		return false
+
+	if not _validate_lookup_bitmap_image(lookup_image, lookup_path):
+		return false
+
+	# Bitmap mode convention: the bitmap's (0, 0) is the map origin in world
+	# coords, and anchors in the province registry are authored in bitmap-pixel
+	# coords. _build_province_shapes() already populated province_color_lookup
+	# from the registry, so hit detection via province_lookup_image.get_pixel()
+	# + province_color_lookup keeps working unchanged.
+	map_origin = Vector2.ZERO
+	map_canvas_size = Vector2(visual_image.get_size())
+	province_lookup_image = lookup_image
+	visual_map_texture = ImageTexture.create_from_image(visual_image)
+	_clear_highlight_texture()
+	return true
+
+
+func _load_bitmap_texture_image(resource_path: String, label: String) -> Image:
+	if not ResourceLoader.exists(resource_path):
+		_report_bitmap_load_error_once("Map %s bitmap resource missing: %s" % [label, resource_path])
+		return null
+
+	var resource = ResourceLoader.load(resource_path)
+	if resource == null:
+		_report_bitmap_load_error_once("Failed to load map %s bitmap resource: %s" % [label, resource_path])
+		return null
+
+	var texture := resource as Texture2D
+	if texture == null:
+		_report_bitmap_load_error_once("Map %s bitmap is not a Texture2D: %s" % [label, resource_path])
+		return null
+
+	var image := texture.get_image()
+	if image == null or image.get_width() <= 0 or image.get_height() <= 0:
+		_report_bitmap_load_error_once("Map %s bitmap returned no image data: %s" % [label, resource_path])
+		return null
+
+	return image
+
+
+func _validate_lookup_bitmap_image(lookup_image: Image, lookup_path: String) -> bool:
+	var no_province_key = _color_to_key(NO_PROVINCE_COLOR)
+	var seen_region_keys := {}
+
+	for y in range(lookup_image.get_height()):
+		for x in range(lookup_image.get_width()):
+			var pixel_key = _color_to_key(lookup_image.get_pixel(x, y))
+			if pixel_key == no_province_key:
+				continue
+			if not province_color_lookup.has(pixel_key):
+				_report_bitmap_load_error_once(
+					"Map lookup bitmap has unmapped province color %s at (%d, %d): %s" %
+					[pixel_key, x, y, lookup_path]
+				)
+				return false
+			seen_region_keys[pixel_key] = true
+
+	for pixel_key in province_color_lookup.keys():
+		if not seen_region_keys.has(pixel_key):
+			_report_bitmap_load_error_once(
+				"Map lookup bitmap is missing province color %s (%s): %s" %
+				[pixel_key, province_color_lookup[pixel_key], lookup_path]
+			)
+			return false
+
+	return true
+
+
+func _report_bitmap_load_error_once(message: String) -> void:
+	if _bitmap_load_error_latch.has(message):
+		return
+	_bitmap_load_error_latch[message] = true
+	push_error(message)
 
 
 func _vector_from_array(values, fallback: Vector2) -> Vector2:
