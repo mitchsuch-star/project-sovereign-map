@@ -614,3 +614,38 @@ Session 8 renderer work can continue on the current 19-region shell. Full Europe
 **Verification addendum:** The pre-wiring roadmap should be preceded by a Europe design gate covering diplomacy model, supply mechanics, cascade policy, and victory conditions. Without design decisions first, the code changes risk optimizing toward a game model that doesn't work at scale.
 
 **Renderer addendum:** Commissioned Europe art should not be integrated until the province registry, bitmap validator, and unwired-province contract from Section 9 exist. Otherwise the team will be debugging asset-pipeline failures at the same time it is trying to validate first-pass Europe gameplay.
+
+---
+
+## 11. Verification Delta — April 19, 2026
+
+> Independent re-audit of HEAD (master @ Phase 2 closeout). Supersedes the stale
+> "NOT DONE" / "PARTIAL" status labels in §§3, 5, 6 for the Phase 2 items.
+
+### What changed on HEAD since the April 16 audit
+
+- **F1 (Uncached BFS) — RESOLVED.** `backend/models/world_state.py:2116` now ships a symmetric-keyed distance cache (`_distance_cache` at line 105, `_make_distance_cache_key` at line 2151, explicit `invalidate_distance_cache()` at line 2157). `queue.pop(0)` is gone — `popleft()` is used in `get_distance` (line 2134), `find_path` (line 2098), and `find_weighted_path` (line 2231). Plan §2.1's 100-region synthetic benchmark now ships as `tools/benchmark_distance_cache.py` (10x10 4-neighbor grid) and measured ~34x speedup cached vs. uncached on developer hardware. The adjacency-topology-only invariance contract is pinned by three new tests in `tests/test_scale_readiness_phase2.py` (`test_distance_cache_scales_to_100_region_synthetic_graph`, `test_distance_cache_is_adjacency_topology_only_on_100_region_graph`, `test_distance_cache_measurably_faster_on_100_region_graph`, 2x conservative lower bound).
+- **F2 (Omniscient AI, 69/59 direct scans) — RESOLVED on `enemy_ai.py`.** Grep of `backend/ai/enemy_ai.py` for `world.marshals.values()` / `marshals.values()` returns **0** matches. AI-safe indexed helpers on `WorldState` (`_get_marshals_in_region_indexed` at line 1301, `get_marshals_in_region_indexed` at line 1310, `get_marshals_by_nation` at line 1562, `refresh_marshal_indexes` at line 1269) are the wired call path. Live-visibility seam (`get_live_visible_regions_for_nation` at line 1618, `get_live_visible_enemies` at line 1632) routes scale-sensitive AI contact queries through nation-perspective rules; no serialized per-nation intel history was added, matching the plan's narrow scope. §5 blocker ranking row 2 ("PARTIAL") and §7 "Directly Verified" scan counts are now stale.
+- **F11/F16 partial — VALID_NATIONS derivation complete.** `backend/modding/validator.py:73` now derives `VALID_NATIONS` from `NATION_CAPITALS.keys()` (Phase 1 bonus item). `prompt_builder.py:567` and `parser.py:103-108` remain hardcoded — those are Phase 3.4.
+
+### Phase 2 closeout verdict
+
+Phase 2 §§2.1-2.3 are complete on HEAD: code, correctness tests, and plan-required benchmark all land. `enemy_ai.py` is at 0 raw marshal scans. Incremental Phase 2 verification (28 tests) is green; last full-suite verification was `8410 passed, 2 skipped` prior to the benchmark addition.
+
+### Still not done — non-art real-map blockers (Phase 3 + Phase 4)
+
+These items are untouched on HEAD and are the next prerequisites for commissioned Europe-map integration. `SCALE_READINESS_PLAN.md` holds the per-item contract; the short form:
+
+- **Phase 3.1 nation config factory — NOT DONE.** `backend/nation_config.py:19-35` still uses three parallel dicts; `backend/models/marshal.py:1509` still defines hand-authored `create_enemy_marshals()`. No `DEFAULT_NATION_DEFAULTS` dict, no `create_marshals_from_data()` helper.
+- **Phase 3.2 shared topology — NOT DONE.** `godot-client/project-sovereign/scenes/map.gd:30-50` still hardcodes a full `REGION_CONNECTIONS` dict duplicated from backend; `map.gd:7-27` still hardcodes all 19 region positions. No `/map_data` endpoint, no shared JSON asset.
+- **Phase 3.3 centralize nation colors — NOT DONE.** `map.gd:53-61` still defines a local `COLORS` dict alongside `utils.gd` NATION_COLORS.
+- **Phase 3.4 prompt/parser fallback hardcoding — NOT DONE.** `backend/ai/prompt_builder.py:567` still returns the hardcoded 19-region string; `backend/commands/parser.py:103-108` still hardcodes 8 enemy marshal names.
+- **Phase 4.1 province registry schema — NOT DONE.** Only `session8_placeholder_provinces.json` exists. No stable `province_id`, no `unit_anchor` / `label_anchor` / `garrison_anchor` / `building_anchor`, no `wired` / `interactive` flags anywhere.
+- **Phase 4.2 external bitmap loading — NOT DONE.** No `_load_map_images()` method, no `europe_visual.png` / `europe_provinces.png` assets. Renderer still generates circle textures as the only path.
+- **Phase 4.3 color-map validator — NOT DONE.** No `tools/validate_province_map.py`, no `tests/test_province_map_assets.py`.
+- **Phase 4.4 unwired province support — NOT DONE.** No `wired` / `interactive` state plumbed through renderer or data contract.
+
+### Out-of-strict-Phase-2-scope follow-ups (surfaced during audit)
+
+- `backend/ai/strategic_parser.py:596` still iterates `world.marshals.values()` in the `SUPPORT` literal-interpretation path. Plan §2.2 explicitly scopes the scan conversion to `backend/ai/enemy_ai.py`, so this is not a Phase 2 contract violation — but it is the one remaining ally enumeration in the AI module that should move to `get_marshals_by_nation()` when Phase 3 work revisits scale-sensitive helpers.
+- `strategic_parser.py:585` also falls back to omniscient `get_enemies_of_nation()` for AI nations. Phase 2.3 scopes the fog generalization narrowly to `enemy_ai.py`; this one is a candidate for the same later pass.

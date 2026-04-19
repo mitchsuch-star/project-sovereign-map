@@ -728,3 +728,85 @@ def test_get_marshal_priority_refreshes_indexes_for_direct_calls():
     priority = get_marshal_priority(marshal, world)
 
     assert priority == 40
+
+
+# --- Phase 2.1 scale-up coverage: 100-region synthetic graph ------------------
+# Plan §2.1 requires a benchmark on a 100-region synthetic graph plus the
+# adjacency-topology-only invariance contract. The standalone benchmark lives at
+# tools/benchmark_distance_cache.py; the tests below assert the same invariants
+# and a conservative cache-speedup lower bound so CI catches regressions.
+
+
+def _build_synthetic_world(side: int = 10):
+    """Return a WorldState whose regions form a side x side grid with 4-neighbor adjacency."""
+    from tools.benchmark_distance_cache import build_grid, make_synthetic_world
+    world = make_synthetic_world() if side == 10 else None
+    if world is None:
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        world.regions = build_grid(side)
+        world.invalidate_distance_cache()
+    return world
+
+
+def test_distance_cache_scales_to_100_region_synthetic_graph():
+    world = _build_synthetic_world(side=10)
+
+    assert len(world.regions) == 100
+
+    corner_to_corner = world.get_distance("R_0_0", "R_9_9")
+    assert corner_to_corner == 18  # Manhattan distance on 4-neighbor grid
+
+    assert world.get_distance("R_9_9", "R_0_0") == 18  # symmetric
+    cache_key = tuple(sorted(("R_0_0", "R_9_9")))
+    assert cache_key in world._distance_cache
+
+
+def test_distance_cache_is_adjacency_topology_only_on_100_region_graph():
+    world = _build_synthetic_world(side=10)
+
+    distance = world.get_distance("R_0_0", "R_9_9")
+    cache_size = len(world._distance_cache)
+
+    # Controller change is not a topology change; cache must survive.
+    world.regions["R_0_0"].controller = "SomeNation"
+    assert world.get_distance("R_0_0", "R_9_9") == distance
+    assert len(world._distance_cache) == cache_size
+
+    # Explicit invalidation is the only sanctioned clear.
+    world.invalidate_distance_cache()
+    assert world._distance_cache == {}
+
+
+def test_distance_cache_measurably_faster_on_100_region_graph():
+    """Conservative perf gate: cached path must beat uncached on a 100-region graph.
+
+    Threshold is a 2x lower bound to avoid CI flakiness; in practice the speedup
+    is 20-100x (see tools/benchmark_distance_cache.py).
+    """
+    import random
+    from time import perf_counter
+
+    world = _build_synthetic_world(side=10)
+    names = list(world.regions.keys())
+    rng = random.Random(42)
+    pairs = [(rng.choice(names), rng.choice(names)) for _ in range(500)]
+
+    t0 = perf_counter()
+    for a, b in pairs:
+        world.invalidate_distance_cache()
+        world.get_distance(a, b)
+    t_uncached = perf_counter() - t0
+
+    world.invalidate_distance_cache()
+    for a, b in pairs:
+        world.get_distance(a, b)  # warm
+    t0 = perf_counter()
+    for a, b in pairs:
+        world.get_distance(a, b)
+    t_cached = perf_counter() - t0
+
+    assert t_cached * 2 < t_uncached, (
+        f"Cached path must be at least 2x faster on 100-region graph; "
+        f"got uncached={t_uncached * 1000:.1f}ms vs cached={t_cached * 1000:.1f}ms"
+    )
