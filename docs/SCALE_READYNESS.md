@@ -1,5 +1,7 @@
 # Scale Readiness — Europe Audit Report
 
+> **HISTORICAL SNAPSHOT** — frozen at audit date April 16, 2026.
+> **Do not use this document as current routing.** For the active map-readiness state see `docs/STATUS.md` "Actionable now" and `docs/SCALE_READINESS_PLAN.md` §§3-4 (per-item contracts). As of April 19, 2026 the non-art map-readiness closure pass is COMPLETE: §§3.1-3.4 and §§4.1-4.4 all landed. Real-map readiness is art-blocked only.
 > Last Updated: April 16, 2026
 > Audit Date: April 16, 2026
 
@@ -24,15 +26,15 @@
 
 ## 2. Executive Verdict
 
-**Is the project structurally ready to start full-Europe wiring now?**
+**Is the project structurally ready to start full-Europe wiring now?** (answer frozen at April 16, 2026 audit date)
 
-No. Current HEAD is in a much better state than the original audit snapshot: Phase 2 resolved the pathfinding and AI-omniscience blockers, and Phase 3 §§3.2-3.4 resolved shared-topology / nation-color / prompt-parser drift. The remaining readiness work is now narrower and more concrete: Phase 3 §3.1 (nation config factory), then the Phase 4 production map pipeline (§§4.1-4.4).
+No, as of the audit date. **Superseded April 19, 2026:** all three "current top 3 blockers" below have since landed. The non-art map-readiness closure pass is complete (§§3.1-3.4 + §§4.1-4.4). The only remaining gate is commissioned-art delivery + final renderer smoke validation. See `docs/STATUS.md` for current state.
 
-**Current top 3 blockers:**
+**Current top 3 blockers (frozen at audit date — ALL RESOLVED April 19, 2026):**
 
-1. **Nation config factory is still not data-driven** - adding nations still depends on hand-authored defaults / factories rather than a single extensible data shape.
-2. **Province registry schema is still placeholder-only** - no stable `province_id`, split anchors, or `wired` / `interactive` flags for Europe-density content.
-3. **Production map asset pipeline is not landed yet** - no external bitmap loading path, no color-map validator, and no unwired-province runtime contract.
+1. **Nation config factory is still not data-driven** — RESOLVED (§3.1). `backend/nation_config.py` now ships `DEFAULT_NATION_DEFAULTS` + factory helpers; `backend/models/marshal.py` + `backend/models/diplomat.py` expose `*_from_data()` factories.
+2. **Province registry schema is still placeholder-only** — RESOLVED (§4.1). Placeholder JSON is at `schema_version: 2` with `province_id`, per-feature anchors, and `wired` / `interactive` flags; renderer parses and gates on all of them.
+3. **Production map asset pipeline is not landed yet** — RESOLVED (§§4.2-4.4). `map_renderer_base.gd` exposes bitmap-ingest hooks + `_load_map_images()` loader with runtime lookup-color validation and circle fallback; `tools/validate_province_map.py` gates commissioned deliveries with six error codes + TINY_ISLAND warning; unwired province grey overlay + "(not yet in play)" tooltip + click-gate all land on both circle + bitmap paths.
 
 **Historical top 3 blockers at audit time:**
 
@@ -648,12 +650,12 @@ Phase 2 §§2.1-2.3 are complete on HEAD: code, correctness tests, and plan-requ
 
 These remaining items are still open on HEAD and are the next prerequisites for commissioned Europe-map integration. `SCALE_READINESS_PLAN.md` holds the per-item contract; the short form:
 
-- **Phase 3.1 nation config factory — NOT DONE.** `backend/nation_config.py:19-35` still uses three parallel dicts; `backend/models/marshal.py:1509` still defines hand-authored `create_enemy_marshals()`. No `DEFAULT_NATION_DEFAULTS` dict, no `create_marshals_from_data()` helper.
+- **Phase 3.1 nation config factory — DONE (April 19, 2026).** `backend/nation_config.py` ships `DEFAULT_NATION_DEFAULTS` (gold=800, actions=3, authority=60) with `_resolve_*` helpers routing through override → default. `backend/models/marshal.py` ships `create_marshal_from_data()` + `create_marshals_from_data()` fed by `FRENCH_MARSHALS_DATA` / `ENEMY_MARSHALS_DATA`; `backend/models/diplomat.py` ships `DIPLOMAT_DEFINITIONS` + `create_diplomat_from_data()`. `validate_runtime_nation_support()` accepts a nation with only capital + diplomat. Tests: `tests/test_nation_config_factory.py` (15 tests).
 - **Phase 3.2 shared topology — DONE (April 19, 2026).** Backend exposes `GET /map_topology` (authored from `REGIONS_DATA` + `NATION_CAPITALS`). Godot `map.gd` no longer hardcodes `REGION_CONNECTIONS` — adjacency is populated at runtime via `set_region_topology()` from the backend payload. `REGION_POSITIONS` remains as a fallback for the placeholder renderer but runtime anchors still come from the province-definition JSON. Tests: `tests/test_map_topology_endpoint.py` (7 endpoint parity / invariant tests) + `tests/test_map_consistency.py::test_map_gd_has_no_hardcoded_connections` (drift prevention against renamed or inline hardcoded adjacency tables). No shared JSON asset was required — option A (HTTP endpoint) was taken per `SCALE_READINESS_PLAN.md` §3.2.
-- **Phase 4.1 province registry schema — NOT DONE.** Only `session8_placeholder_provinces.json` exists. No stable `province_id`, no `unit_anchor` / `label_anchor` / `garrison_anchor` / `building_anchor`, no `wired` / `interactive` flags anywhere.
-- **Phase 4.2 external bitmap loading — NOT DONE.** No `_load_map_images()` method, no `europe_visual.png` / `europe_provinces.png` assets. Renderer still generates circle textures as the only path.
-- **Phase 4.3 color-map validator — NOT DONE.** No `tools/validate_province_map.py`, no `tests/test_province_map_assets.py`.
-- **Phase 4.4 unwired province support — NOT DONE.** No `wired` / `interactive` state plumbed through renderer or data contract.
+- **Phase 4.1 province registry schema — DONE (April 19, 2026).** `session8_placeholder_provinces.json` is now `schema_version: 2` with `province_id` + per-feature anchors (`unit_anchor`, `label_anchor`, `garrison_anchor`, `building_anchor` — currently collapsed to `anchor` in the placeholder) + `wired` / `interactive` flags on every entry. Renderer parses all new fields; `_lookup_region_from_color_map()` gates on `interactive`; `update_all_regions()` pre-filters on `wired`. Tests: `tests/test_map_placeholder_assets.py` (4 → 12 tests) + 4 §4.1 tests in `tests/test_map_renderer_cutover.py`.
+- **Phase 4.2 external bitmap loading — DONE (April 19, 2026).** `map_renderer_base.gd` exposes `_get_map_visual_bitmap_path()` + `_get_map_lookup_bitmap_path()` hooks plus `_load_map_images() -> bool`. Loader uses `ResourceLoader` + `Texture2D.get_image()` (exported-build-safe), validates visual/lookup size match + lookup-color compatibility with `province_color_lookup`, latches failures once, and `_build_map_textures()` tries the bitmap loader BEFORE circle fallback. Placeholder `map.gd` never overrides the hooks — dev mode stays on circles. Tests: `tests/test_map_renderer_cutover.py` (hook declarations, loader ordering, validation paths) + new `tests/test_map_bitmap_contract.py` (fixture-driven behavioral coverage).
+- **Phase 4.3 color-map validator — DONE (April 19, 2026).** `tools/validate_province_map.py` is a stdlib-only standalone CLI. Six error codes (`SENTINEL_COLLISION`, `DUPLICATE_LOOKUP_COLOR`, `SIZE_MISMATCH`, `MISSING_PROVINCE`, `INSUFFICIENT_COVERAGE`, `UNMAPPED_COLOR`) + `TINY_ISLAND` warning. `--json` + `--strict` CLI modes. Header-only visual PNG sizing + pure-Python lookup PNG decoder for 8-bit RGB/RGBA with all five scanline filters. Tests: 29 in `tests/test_province_map_validator.py`. Placeholder JSON pinned to pass registry-only checks.
+- **Phase 4.4 unwired province support — DONE (April 19, 2026).** `_apply_unwired_grey_overlay(visual_image, lookup_image)` lerps `UNWIRED_GREY_COLOR (0.32, 0.32, 0.34)` over unwired lookup pixels by `UNWIRED_GREY_BLEND = 0.7`; called on BOTH circle-fallback AND bitmap paths after `province_lookup_image` is set but before texture creation. `_is_region_wired()` + `_unwired_lookup_keys()` gate through `province_shapes`. `MOUSE_BUTTON_LEFT` click handler short-circuits on unwired before `region_clicked` emit. `_draw()` routes unwired hovers to `_draw_unwired_region_tooltip()` ("(not yet in play)"). Tests: 10 in `tests/test_map_renderer_cutover.py` + new `tests/test_map_unwired_overlay.py` (behavioral mirror).
 
 ### Out-of-strict-Phase-2-scope follow-ups (surfaced during audit)
 

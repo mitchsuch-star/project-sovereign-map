@@ -317,11 +317,55 @@ def test_camera_cutover_sets_initial_zoom_and_reverses_wheel_mapping():
 def test_renderer_declares_unwired_grey_overlay_constants():
     """§4.4: the renderer pins a single grey-tint color and blend factor so
     unwired regions look uniform across the bitmap and circle-fallback paths.
+    The tooltip palette constants pin the warm-sepia treatment that keeps the
+    unwired tooltip visually unmistakable next to the cold blue-grey fogged
+    tooltip (audit 2026-04-19).
     """
     source = _read(BASE_GD)
     assert "const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)" in source
     assert "const UNWIRED_GREY_BLEND: float = 0.7" in source
     assert 'const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"' in source
+    # Warm-sepia tooltip palette — must differ meaningfully from the fogged
+    # tooltip's cold blue-grey panel/border so the two states are instantly
+    # distinguishable.
+    assert "const UNWIRED_TOOLTIP_PANEL := Color(0.14, 0.11, 0.08, 0.95)" in source
+    assert "const UNWIRED_TOOLTIP_BORDER := Color(0.55, 0.42, 0.28, 0.9)" in source
+    assert "const UNWIRED_TOOLTIP_TITLE_COLOR := Color(0.82, 0.72, 0.55)" in source
+    assert "const UNWIRED_TOOLTIP_SUFFIX_COLOR := Color(0.72, 0.58, 0.38)" in source
+
+
+def test_unwired_tooltip_palette_distinct_from_fogged():
+    """§4.4: the unwired panel/border must not collapse back to the cold
+    blue-grey fogged palette. This test compares the declared channels so a
+    future edit can't silently drift them to near-identical values (the
+    pre-audit panels only differed by 0.02 on one channel).
+    """
+    import re
+
+    source = _read(BASE_GD)
+
+    def _find_color(const_name: str) -> tuple[float, ...]:
+        # Match `const <name> := Color(r, g, b[, a])` with decimal channels.
+        pattern = (
+            rf"const\s+{re.escape(const_name)}\s*:=\s*Color\("
+            r"([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)(?:,\s*([0-9.]+))?\)"
+        )
+        match = re.search(pattern, source)
+        assert match is not None, f"missing or malformed constant: {const_name}"
+        parts = [p for p in match.groups() if p is not None]
+        return tuple(float(v) for v in parts)
+
+    unwired_panel = _find_color("UNWIRED_TOOLTIP_PANEL")
+    unwired_border = _find_color("UNWIRED_TOOLTIP_BORDER")
+
+    # Warm-sepia panel: red channel must dominate over blue (cold-panel would
+    # have blue >= red). Keep this constraint tight enough to prevent drift.
+    assert unwired_panel[0] > unwired_panel[2] + 0.03, (
+        f"unwired panel must read warm (R > B by > 0.03), got {unwired_panel}"
+    )
+    assert unwired_border[0] > unwired_border[2] + 0.2, (
+        f"unwired border must read warm (R > B by > 0.2), got {unwired_border}"
+    )
 
 
 def test_renderer_exposes_is_region_wired_helper():
@@ -448,6 +492,13 @@ def test_unwired_region_tooltip_renders_name_and_suffix():
     assert "_push_tooltip_line(lines, hovered_region" in body
     assert "_push_tooltip_line(lines, UNWIRED_TOOLTIP_SUFFIX" in body
     assert "_draw_tooltip_lines(lines" in body
+    # The tooltip must route through the named warm-sepia palette constants,
+    # not open-coded colors — the latter is how the panel drifted back toward
+    # the fogged-tooltip palette before the 2026-04-19 audit fix.
+    assert "UNWIRED_TOOLTIP_TITLE_COLOR" in body
+    assert "UNWIRED_TOOLTIP_SUFFIX_COLOR" in body
+    assert "UNWIRED_TOOLTIP_PANEL" in body
+    assert "UNWIRED_TOOLTIP_BORDER" in body
 
 
 def test_lookup_region_from_color_map_still_returns_unwired_regions():

@@ -76,6 +76,33 @@ def _apply_overlay(
     return out
 
 
+def _apply_overlay_rgba(
+    visual: list[list[tuple[int, int, int, int]]],
+    lookup: list[list[tuple[int, int, int]]],
+    unwired_keys: set[str],
+) -> list[list[tuple[int, int, int, int]]]:
+    """RGBA mirror of `_apply_unwired_grey_overlay`.
+
+    The renderer computes `base.lerp(UNWIRED_GREY_COLOR, UNWIRED_GREY_BLEND)`
+    and then explicitly restores `tinted.a = base.a`, so alpha is pinned to
+    the source pixel. This mirror replicates that contract exactly: RGB
+    channels lerp toward UNWIRED_GREY_RGB, alpha comes from the source.
+    """
+    height = len(visual)
+    width = len(visual[0])
+    out = [row[:] for row in visual]
+    for y in range(height):
+        for x in range(width):
+            key = _color_key(lookup[y][x])
+            if key not in unwired_keys:
+                continue
+            base_rgb = visual[y][x][:3]
+            base_alpha = visual[y][x][3]
+            tinted_rgb = _lerp_rgb(base_rgb, UNWIRED_GREY_RGB, UNWIRED_GREY_BLEND)
+            out[y][x] = (tinted_rgb[0], tinted_rgb[1], tinted_rgb[2], base_alpha)
+    return out
+
+
 def test_overlay_constants_match_renderer_source():
     """Pin the renderer constants so the Python mirror stays in sync."""
     source = BASE_GD.read_text(encoding="utf-8")
@@ -201,3 +228,57 @@ def test_renderer_source_unwired_lookup_keys_excludes_sentinel_by_construction()
     shape_body = source[shape_start : source.index("\nfunc ", shape_start + 1)]
     assert "province_color_lookup[_color_to_key(lookup_color)] = region_name" in shape_body
     assert "province_color_lookup[_color_to_key(NO_PROVINCE_COLOR)]" not in shape_body
+
+
+def test_overlay_preserves_alpha_channel_under_rgba_mirror():
+    """§4.4 audit 2026-04-19: the renderer restores `tinted.a = base.a` after
+    lerping so partially transparent commissioned-art pixels don't drift to
+    opaque (or leak toward UNWIRED_GREY_COLOR's alpha = 1.0). The RGBA mirror
+    pins that contract end-to-end: partial, zero, and full alpha inputs all
+    survive the overlay unchanged on their alpha channel.
+    """
+    province_data = _load_province_definition()
+    belgium_rgb = tuple(province_data["regions"]["Belgium"]["lookup_color"])
+    unwired_keys = {_color_key(belgium_rgb)}
+
+    # Three pixels spanning the alpha range: fully transparent, half, fully
+    # opaque. All three sit on an unwired province, so all three WILL be
+    # touched by the overlay — but only on RGB. Alpha must be identical.
+    visual_rgba = [[(200, 150, 100, 0), (50, 80, 200, 128), (10, 10, 10, 255)]]
+    lookup = [[belgium_rgb, belgium_rgb, belgium_rgb]]
+
+    result = _apply_overlay_rgba(visual_rgba, lookup, unwired_keys)
+
+    assert result[0][0][3] == 0, "fully transparent pixel must stay transparent"
+    assert result[0][1][3] == 128, "half-alpha pixel must keep alpha=128"
+    assert result[0][2][3] == 255, "fully opaque pixel must stay opaque"
+
+    # Sanity: RGB channels DID change (overlay fired), so we know the test
+    # is actually exercising the blend path, not short-circuiting.
+    for x in range(3):
+        base_rgb = visual_rgba[0][x][:3]
+        expected_rgb = _lerp_rgb(base_rgb, UNWIRED_GREY_RGB, UNWIRED_GREY_BLEND)
+        assert result[0][x][:3] == expected_rgb
+
+
+def test_renderer_source_explicitly_restores_alpha_after_lerp():
+    """§4.4 audit 2026-04-19: the overlay body must contain the explicit
+    `tinted.a = base.a` line. Without it, Color.lerp would drift alpha toward
+    UNWIRED_GREY_COLOR's alpha=1.0 and partially transparent commissioned-art
+    pixels would lose their transparency. This source-level assertion binds
+    the RGBA mirror above to the runtime implementation.
+    """
+    source = BASE_GD.read_text(encoding="utf-8")
+    func_start = source.index("func _apply_unwired_grey_overlay(")
+    func_body = source[func_start : source.index("\nfunc ", func_start + 1)]
+    assert "var tinted = base.lerp(UNWIRED_GREY_COLOR, UNWIRED_GREY_BLEND)" in func_body
+    # The critical alpha-restoration line the audit flagged: if a future edit
+    # removes it, this test fails even though the RGB-only mirror tests stay
+    # green on their own.
+    assert "tinted.a = base.a" in func_body
+    # Order matters — alpha restoration must happen AFTER the lerp, BEFORE
+    # set_pixel; otherwise the blended alpha lands in the image.
+    lerp_idx = func_body.index("var tinted = base.lerp(")
+    restore_idx = func_body.index("tinted.a = base.a")
+    set_idx = func_body.index("visual_image.set_pixel(")
+    assert lerp_idx < restore_idx < set_idx

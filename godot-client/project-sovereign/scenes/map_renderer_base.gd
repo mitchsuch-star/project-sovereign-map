@@ -28,6 +28,14 @@ const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
 const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)
 const UNWIRED_GREY_BLEND: float = 0.7
 const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"
+# §4.4 tooltip palette: warm sepia so "unwired" is visually unmistakable next to
+# the cold blue-grey fogged-region tooltip (panel `(0.08, 0.08, 0.12, 0.95)`,
+# border `(0.4, 0.4, 0.5)`). The panel reads as an old-paper map margin —
+# "drawn but not yet in play" — instead of another shade of intel darkness.
+const UNWIRED_TOOLTIP_PANEL := Color(0.14, 0.11, 0.08, 0.95)
+const UNWIRED_TOOLTIP_BORDER := Color(0.55, 0.42, 0.28, 0.9)
+const UNWIRED_TOOLTIP_TITLE_COLOR := Color(0.82, 0.72, 0.55)
+const UNWIRED_TOOLTIP_SUFFIX_COLOR := Color(0.72, 0.58, 0.38)
 static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
@@ -1625,13 +1633,16 @@ func _draw_fogged_force_tooltip():
 
 
 func _draw_unwired_region_tooltip():
-	# §4.4: named but unimplemented province. Keep the panel visually distinct
-	# from the full region tooltip so authors never mistake an unwired province
-	# for a fogged one.
+	# §4.4: named but unimplemented province. Panel uses the dedicated warm
+	# sepia palette (UNWIRED_TOOLTIP_*) so authors can never mistake an unwired
+	# province for a fogged one — the fogged tooltip uses a cold blue-grey
+	# panel. The suffix line also sits in its own warmer accent color so the
+	# "(not yet in play)" state reads at a glance without relying on panel
+	# deltas alone.
 	var lines: Array = []
-	_push_tooltip_line(lines, hovered_region, Color(0.75, 0.75, 0.8), 14)
-	_push_tooltip_line(lines, UNWIRED_TOOLTIP_SUFFIX, Color(0.55, 0.55, 0.6))
-	_draw_tooltip_lines(lines, 220.0, Color(0.08, 0.08, 0.1, 0.92), Color(0.35, 0.35, 0.4, 0.85))
+	_push_tooltip_line(lines, hovered_region, UNWIRED_TOOLTIP_TITLE_COLOR, 14)
+	_push_tooltip_line(lines, UNWIRED_TOOLTIP_SUFFIX, UNWIRED_TOOLTIP_SUFFIX_COLOR)
+	_draw_tooltip_lines(lines, 220.0, UNWIRED_TOOLTIP_PANEL, UNWIRED_TOOLTIP_BORDER)
 
 
 func _draw_region_tooltip():
