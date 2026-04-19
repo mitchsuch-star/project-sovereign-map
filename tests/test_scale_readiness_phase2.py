@@ -1,3 +1,5 @@
+import pytest
+
 from tests.conftest import MarshalFactory, WorldFactory
 from backend.ai.enemy_ai import EnemyAI
 from backend.commands.executor import CommandExecutor
@@ -103,6 +105,47 @@ def test_watchtower_expands_live_visibility_without_friendly_marshal_presence():
     assert "Watchtower Target" in visible_names
 
 
+def test_live_visibility_cache_rebuilds_after_marshal_index_refresh():
+    world = WorldFactory.basic(player_nation="France")
+    own_region, visible_enemy_region = _find_border_region(world, "Prussia")
+    scout = MarshalFactory.enemy(name="Blue Scout", nation="Prussia", location=own_region)
+
+    temp_world = WorldFactory.with_marshals([scout], player_nation="France")
+    temp_world.regions = world.regions
+    initial_visible_regions = temp_world.get_live_visible_regions_for_nation("Prussia")
+    hidden_enemy_region = next(
+        region_name for region_name in temp_world.regions
+        if region_name not in initial_visible_regions
+    )
+
+    visible_enemy = MarshalFactory.enemy(
+        name="Visible Austrian",
+        nation="Austria",
+        location=visible_enemy_region,
+    )
+    hidden_enemy = MarshalFactory.enemy(
+        name="Hidden Austrian",
+        nation="Austria",
+        location=hidden_enemy_region,
+    )
+    world = WorldFactory.with_marshals(
+        [scout, visible_enemy, hidden_enemy],
+        player_nation="France",
+    )
+    _set_war(world, "Prussia", "Austria")
+
+    assert not world.get_live_visible_enemies_in_region(hidden_enemy_region, "Prussia")
+
+    scout.location = hidden_enemy_region
+    world.refresh_marshal_indexes()
+
+    visible_names = {
+        marshal.name for marshal in world.get_live_visible_enemies_in_region(hidden_enemy_region, "Prussia")
+    }
+
+    assert "Hidden Austrian" in visible_names
+
+
 def test_ai_artillery_helpers_refresh_indexes_for_direct_calls():
     artillery = MarshalFactory.artillery(name="Drouot", location="Paris", nation="France")
     screen = MarshalFactory.infantry(name="Soult", location="Paris", nation="France")
@@ -122,6 +165,37 @@ def test_ai_artillery_helpers_refresh_indexes_for_direct_calls():
 
     assert ai._artillery_has_screen(artillery, "France", world) is True
     assert ai._enemy_cavalry_within_range(artillery, "France", world, max_range=1) is True
+
+
+def test_ai_target_ratio_refreshes_indexes_for_direct_calls():
+    target = MarshalFactory.infantry(name="Davout", location="Belgium", nation="Prussia")
+    overwatch = MarshalFactory.artillery(name="Drouot", location="Belgium", nation="Prussia")
+    world = WorldFactory.with_marshals(
+        [target, overwatch],
+        player_nation="France",
+    )
+    _set_war(world, "France", "Prussia")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    effective_ratio = ai._evaluate_target_ratio(1.0, target, world)
+
+    assert effective_ratio == pytest.approx(0.97)
+
+
+def test_ai_decide_single_action_refreshes_indexes_before_evaluation():
+    world = WorldFactory.basic(player_nation="France")
+    ai = EnemyAI(CommandExecutor())
+    game_state = {"world": world, "debug_mode": True}
+    ney = world.get_marshal("Ney")
+    starting_location = ney.location
+    world._marshals_by_region = {}
+
+    result = ai.decide_single_action(ney, "France", world, game_state)
+
+    assert result is not None
+    assert world._marshals_by_region
+    assert starting_location in world._marshals_by_region
 
 
 def test_ai_coordinated_attack_refreshes_indexes_for_direct_calls():

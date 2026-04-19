@@ -480,6 +480,52 @@ class EnemyAI:
             return
         world.refresh_marshal_indexes()
 
+    def _get_hostile_marshals_in_same_region(self, marshal: Marshal, world: WorldState) -> List[Marshal]:
+        """AI-only same-region hostile lookup backed by the marshal index."""
+        self._ensure_marshal_indexes(world)
+        return world.get_hostile_marshals_in_region_indexed(marshal.location, marshal.nation)
+
+    def _get_hostile_marshals_in_adjacent_regions(self, marshal: Marshal, world: WorldState) -> List[Marshal]:
+        """AI-only adjacent hostile lookup backed by indexed region helpers."""
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return []
+
+        self._ensure_marshal_indexes(world)
+        return [
+            enemy
+            for adj_name in marshal_region.adjacent_regions
+            for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, marshal.nation)
+        ]
+
+    def _get_marshal_priority_for_turn_order(self, marshal: Marshal, world: WorldState) -> int:
+        """Indexed marshal-priority variant for AI turn-order hot paths."""
+        priority = 100
+
+        enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)
+        if enemies_in_region:
+            priority -= 50
+
+        adjacent_enemies = self._get_hostile_marshals_in_adjacent_regions(marshal, world)
+        if marshal.morale < 30 and adjacent_enemies:
+            priority -= 40
+
+        if any(marshal.strength / enemy.strength >= 2.0 for enemy in adjacent_enemies):
+            priority -= 30
+
+        personality = getattr(marshal, 'personality', 'balanced')
+        if personality == "literal":
+            is_player_controlled = (
+                marshal.nation == world.player_nation
+                and not getattr(marshal, 'autonomous', False)
+            )
+            if not is_player_controlled:
+                personality = "cautious"
+        if personality == "aggressive":
+            priority -= 10
+
+        return priority
+
     def _should_use_fog_aware_enemy_query(
         self,
         nation: str,
@@ -649,13 +695,20 @@ class EnemyAI:
             self._threat_responder_assigned = set()
         if not hasattr(self, '_current_world'):
             self._current_world = world
+        else:
+            self._current_world = world
 
         # Record starting location if not already tracked
         if marshal.name not in self._marshal_visited_locations:
             self._marshal_visited_locations[marshal.name] = {marshal.location}
 
         # Use the same evaluation logic as enemy AI
-        action, priority = self._evaluate_marshal(marshal, nation, world)
+        self._enter_indexed_evaluation_scope(world)
+        self._reset_enemy_query_cache(world)
+        try:
+            action, priority = self._evaluate_marshal(marshal, nation, world)
+        finally:
+            self._exit_indexed_evaluation_scope()
 
         if not action:
             ai_debug(f"  No action available for {marshal.name}")
@@ -797,10 +850,17 @@ class EnemyAI:
             self._marshal_visited_locations[m.name] = {m.location}
 
         # Sort marshals by priority for logging
-        marshal_names = sorted(
-            [m.name for m in marshals],
-            key=lambda name: (get_marshal_priority(world.get_marshal(name), world), name)
-        )
+        self._enter_indexed_evaluation_scope(world)
+        try:
+            marshal_names = sorted(
+                [m.name for m in marshals],
+                key=lambda name: (
+                    self._get_marshal_priority_for_turn_order(world.get_marshal(name), world),
+                    name,
+                )
+            )
+        finally:
+            self._exit_indexed_evaluation_scope()
 
         print(f"\n{'='*60}")
         print(f"=== {nation} TURN: {actions_remaining} actions, {len(marshals)} marshals {marshal_names} ===")
@@ -880,7 +940,7 @@ class EnemyAI:
             consecutive_skips = 0
 
             # Execute the action
-            marshal_priority = get_marshal_priority(selected_marshal, world)
+            marshal_priority = self._get_marshal_priority_for_turn_order(selected_marshal, world)
             print(f"\n  [?/{actions_remaining}] {selected_marshal.name} (priority {marshal_priority}): {selected_action['action']} -> {selected_action.get('target', 'N/A')}")
 
             result = self._execute_action(selected_action, game_state)
@@ -1138,7 +1198,7 @@ class EnemyAI:
                     if self._should_skip_stance_change(action.get("marshal")):
                         continue
 
-                marshal_priority = get_marshal_priority(marshal, world)
+                marshal_priority = self._get_marshal_priority_for_turn_order(marshal, world)
                 used = actions_used.get(marshal.name, 0)
                 candidates.append((marshal, action, action_priority, marshal_priority, used))
 
@@ -1957,6 +2017,9 @@ class EnemyAI:
         effective_ratio = base_ratio
         bonuses_applied = []
 
+        if world:
+            self._ensure_marshal_indexes(world)
+
         # Drilling targets are vulnerable (-25% defense penalty)
         is_drilling = getattr(target, 'drilling', False) or getattr(target, 'drilling_locked', False)
         if is_drilling:
@@ -1982,11 +2045,13 @@ class EnemyAI:
         if getattr(target, 'retreated_this_turn', False) and world:
             # Check if there's a covering ally in the same region
             covering_candidates = [
-                m for m in world.marshals.values()
-                if m.location == target.location
-                and m.nation == target.nation
-                and m.name != target.name
-                and m.strength > 0
+                m
+                for m in world.get_friendly_marshals_in_region_indexed(
+                    target.location,
+                    target.nation,
+                    exclude_name=target.name,
+                )
+                if m.strength > 0
                 and not getattr(m, 'retreated_this_turn', False)
             ]
             if not covering_candidates:
@@ -1997,17 +2062,16 @@ class EnemyAI:
         # OVERWATCH (Session 68): Enemy artillery in target's region penalizes attacker
         # -3% per non-broken, non-moved artillery (capped at 3 = -9%)
         if world:
-            enemy_art_in_target = 0
-            for m in world.marshals.values():
-                if (m.location == target.location
-                        and m.nation == target.nation
-                        and getattr(m, 'artillery', False)
-                        and m.strength > 0
-                        and not getattr(m, 'broken', False)
-                        and not getattr(m, 'retreated_this_turn', False)
-                        and getattr(m, 'retreat_recovery', 0) == 0
-                        and not getattr(m, 'moved_this_turn', False)):
-                    enemy_art_in_target += 1
+            enemy_art_in_target = sum(
+                1
+                for m in world.get_friendly_marshals_in_region_indexed(target.location, target.nation)
+                if getattr(m, 'artillery', False)
+                and m.strength > 0
+                and not getattr(m, 'broken', False)
+                and not getattr(m, 'retreated_this_turn', False)
+                and getattr(m, 'retreat_recovery', 0) == 0
+                and not getattr(m, 'moved_this_turn', False)
+            )
             capped_art = min(enemy_art_in_target, 3)
             if capped_art > 0:
                 effective_ratio *= (1.0 - capped_art * 0.03)
@@ -2149,16 +2213,17 @@ class EnemyAI:
         single marshal. This prevents AI from thinking it's too weak when
         it has allies ready to follow up.
         """
-        total = marshal.strength
-        for other in world.marshals.values():
-            if (other.name != marshal.name
-                    and other.nation == nation
-                    and other.location == marshal.location
-                    and other.strength > 0
-                    and not getattr(other, 'broken', False)
-                    and not getattr(other, 'retreated_this_turn', False)):
-                total += other.strength
-        return total
+        self._ensure_marshal_indexes(world)
+        return marshal.strength + sum(
+            other.strength
+            for other in world.get_friendly_marshals_in_region_indexed(
+                marshal.location,
+                nation,
+                exclude_name=marshal.name,
+            )
+            if not getattr(other, 'broken', False)
+            and not getattr(other, 'retreated_this_turn', False)
+        )
 
     def _find_attack_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Find a valid attack target based on personality."""
@@ -2187,6 +2252,7 @@ class EnemyAI:
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
+        self._ensure_marshal_indexes(world)
 
         if not marshal_region:
             return None
@@ -2199,9 +2265,9 @@ class EnemyAI:
         # Pre-compute co-located allies for coordination estimate (+8% per ally)
         # Includes cross-nation coalition allies (friction applied later)
         co_located_allies = [
-            a for a in world.marshals.values()
+            a for a in world.get_marshals_in_region_indexed(marshal.location)
             if a.name != marshal.name
-            and a.location == marshal.location and a.strength > 0
+            and a.strength > 0
             and not getattr(a, 'broken', False)
             and (a.nation == nation
                  or (_is_member and is_coalition_member(a.nation, world)))
@@ -4233,6 +4299,10 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # CHECK 1: Undefended enemy region nearby (always capture)
         # ════════════════════════════════════════════════════════════
+        safe_capture_candidates = []
+        from backend.models.region import get_starting_controllers
+        starting_controllers = get_starting_controllers()
+
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)
             if not adj_region:
@@ -4250,21 +4320,33 @@ class EnemyAI:
                 is_safe, reason = self._evaluate_capture_safety(marshal, adj_name, nation, world)
 
                 if is_safe:
-                    print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: Undefended region {adj_name} - unfortifying to capture")
-                    # Store the intent to capture this region after unfortifying (Bug #1 fix)
-                    self._pending_intents[marshal.name] = {
-                        "intent": "capture",
-                        "target": adj_name
-                    }
-                    ai_debug(f"    [INTENT STORED] {marshal.name} will capture {adj_name} after unfortify")
-                    # Set 2-turn refortify cooldown to prevent fortify-unfortify oscillation
-                    world.ai_refortify_cooldown[marshal.name] = 2
-                    return {
-                        "marshal": marshal.name,
-                        "action": "unfortify"
-                    }
+                    starting_controller = starting_controllers.get(adj_name)
+                    displaced_controller_bonus = 1000 if (
+                        starting_controller
+                        and starting_controller != adj_region.controller
+                    ) else 0
+                    safe_capture_candidates.append(
+                        (
+                            displaced_controller_bonus + getattr(adj_region, 'income_value', 0),
+                            adj_name,
+                        )
+                    )
                 else:
                     print(f"  [FORTIFICATION CHECK] {marshal.name}: {adj_name} undefended but unsafe - {reason}")
+
+        if safe_capture_candidates:
+            _, capture_target = max(safe_capture_candidates)
+            print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: Undefended region {capture_target} - unfortifying to capture")
+            self._pending_intents[marshal.name] = {
+                "intent": "capture",
+                "target": capture_target
+            }
+            ai_debug(f"    [INTENT STORED] {marshal.name} will capture {capture_target} after unfortify")
+            world.ai_refortify_cooldown[marshal.name] = 2
+            return {
+                "marshal": marshal.name,
+                "action": "unfortify"
+            }
 
         # ════════════════════════════════════════════════════════════
         # CHECK 2: "Defending nothing" - no enemies adjacent

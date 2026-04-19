@@ -103,6 +103,8 @@ class WorldState:
         # NOT serialized — always rebuilt from live marshal data.
         self._marshals_by_region: Dict[str, List[Marshal]] = {}
         self._distance_cache: Dict[Tuple[str, str], int] = {}
+        self._live_visible_regions_cache: Dict[str, Set[str]] = {}
+        self._live_visible_regions_cache_turn: Optional[int] = None
 
         # R20: Idempotency guard — tracks last turn that advance_turn ran.
         # Prevents double-processing (double income, double treaty costs) on retry.
@@ -1261,10 +1263,40 @@ class WorldState:
         self._marshals_by_region = {}
         for m in self.marshals.values():
             self._marshals_by_region.setdefault(m.location, []).append(m)
+        self._live_visible_regions_cache = {}
+        self._live_visible_regions_cache_turn = getattr(self, "current_turn", None)
 
     def refresh_marshal_indexes(self) -> None:
         """Rebuild transient marshal indexes for AI and other hot-path queries."""
         self._build_marshal_index()
+
+    def _get_live_visible_regions_cached(self, nation: str) -> Set[str]:
+        """Return a cached live-visibility region set for AI hot-path queries."""
+        current_turn = getattr(self, "current_turn", None)
+        if self._live_visible_regions_cache_turn != current_turn:
+            self._live_visible_regions_cache = {}
+            self._live_visible_regions_cache_turn = current_turn
+
+        cached_regions = self._live_visible_regions_cache.get(nation)
+        if cached_regions is not None:
+            return cached_regions
+
+        visible_regions: Set[str] = set()
+
+        for region_name, region in self.regions.items():
+            if region.controller == nation:
+                visible_regions.add(region_name)
+                if getattr(region, "watchtower", "none") == "active":
+                    visible_regions.update(region.adjacent_regions)
+
+        for marshal in self.get_marshals_by_nation(nation):
+            visible_regions.add(marshal.location)
+            region = self.regions.get(marshal.location)
+            if region:
+                visible_regions.update(region.adjacent_regions)
+
+        self._live_visible_regions_cache[nation] = visible_regions
+        return visible_regions
 
     def _get_marshals_in_region_indexed(self, region_name: str) -> List[Marshal]:
         """R9: O(1) indexed lookup. Only for internal hot paths where
@@ -1585,36 +1617,22 @@ class WorldState:
 
     def get_live_visible_regions_for_nation(self, nation: str) -> Set[str]:
         """Return regions visible under a nation's current live sight rules."""
-        visible_regions: Set[str] = set()
-
-        for region_name, region in self.regions.items():
-            if region.controller == nation:
-                visible_regions.add(region_name)
-                if getattr(region, "watchtower", "none") == "active":
-                    visible_regions.update(region.adjacent_regions)
-
-        for marshal in self.get_marshals_by_nation(nation):
-            visible_regions.add(marshal.location)
-            region = self.regions.get(marshal.location)
-            if region:
-                visible_regions.update(region.adjacent_regions)
-
-        return visible_regions
+        return set(self._get_live_visible_regions_cached(nation))
 
     def is_region_live_visible_to_nation(self, region_name: str, nation: str) -> bool:
         """Check whether a region is visible under live, non-persistent sight rules."""
-        return region_name in self.get_live_visible_regions_for_nation(nation)
+        return region_name in self._get_live_visible_regions_cached(nation)
 
     def get_live_visible_enemies_in_region(self, region_name: str, nation: str) -> List[Marshal]:
         """Return hostile marshals in a visible region using the indexed hot-path seam."""
-        if not self.is_region_live_visible_to_nation(region_name, nation):
+        if region_name not in self._get_live_visible_regions_cached(nation):
             return []
         return self.get_hostile_marshals_in_region_indexed(region_name, nation)
 
     def get_live_visible_enemies(self, nation: str) -> List[Marshal]:
         """Return enemies visible to any nation under live sight rules only."""
-        visible_regions = self.get_live_visible_regions_for_nation(nation)
         self.refresh_marshal_indexes()
+        visible_regions = self._get_live_visible_regions_cached(nation)
         enemies: List[Marshal] = []
         for region_name in visible_regions:
             enemies.extend(self.get_hostile_marshals_in_region_indexed(region_name, nation))
