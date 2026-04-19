@@ -26,15 +26,21 @@
 
 **Is the project structurally ready to start full-Europe wiring now?**
 
-No. Three categories of blocker must be addressed first: pathfinding cost, AI omniscience, and content-model coupling. The codebase is stable and well-tested at 19 regions, but multiple systems assume a small, fixed map in ways that would cause correctness failures, unfair AI behavior, and unacceptable turn times at 80-120 regions.
+No. Current HEAD is in a much better state than the original audit snapshot: Phase 2 resolved the pathfinding and AI-omniscience blockers, and Phase 3 §§3.2-3.4 resolved shared-topology / nation-color / prompt-parser drift. The remaining readiness work is now narrower and more concrete: Phase 3 §3.1 (nation config factory), then the Phase 4 production map pipeline (§§4.1-4.4).
 
-**Top 3 blockers:**
+**Current top 3 blockers:**
+
+1. **Nation config factory is still not data-driven** - adding nations still depends on hand-authored defaults / factories rather than a single extensible data shape.
+2. **Province registry schema is still placeholder-only** - no stable `province_id`, split anchors, or `wired` / `interactive` flags for Europe-density content.
+3. **Production map asset pipeline is not landed yet** - no external bitmap loading path, no color-map validator, and no unwired-province runtime contract.
+
+**Historical top 3 blockers at audit time:**
 
 1. **Uncached BFS pathfinding in AI hot loop** — 32 distance calls per marshal per turn with no caching. At 100 regions and 40 marshals, estimated 2-4 seconds per turn in Python. Clear performance blocker.
 2. **Omniscient AI bypasses fog of war** — 40+ direct `world.marshals.values()` scans in enemy_ai.py see all marshals regardless of visibility. Both unfair and expensive at scale.
 3. **5-nation roster hardcoded across 5 config surfaces** — Adding nation 6 triggers cascading validation failures. Marshal/diplomat creation is manual, not data-driven.
 
-**Which smaller-map assumptions are most dangerous?**
+**Historical smaller-map assumptions highlighted by the audit:**
 
 - Turn limit hardcoded at 40 (0.3 turns/region at Europe scale — unwinnable)
 - Frontend adjacency table manually duplicated from backend (drift guaranteed at 80+ regions)
@@ -44,6 +50,9 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 **Which parts are already good enough to carry forward?**
 
 - Backend region data model (REGIONS_DATA) is centralized and data-driven
+- Shared topology now comes from backend `GET /map_topology`
+- Nation-color ownership and prompt/parser fallback rosters are no longer hardcoded
+- Phase 2 distance-cache / AI-fog fixes are landed and suite-green
 - Nation config validation (`validate_runtime_nation_support()`) catches missing config early
 - Serialization enforcement tests are comprehensive
 - Map consistency tests catch backend/frontend region drift

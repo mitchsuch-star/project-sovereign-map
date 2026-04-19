@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **Full Python suite green:** `8423 passed, 2 skipped` (`.\\.venv\\Scripts\\python.exe -m pytest tests/ -q`). Godot runtime smoke verification is still manual-only because the engine is not installed in this environment. |
 | **Current Phase** | **Map Readiness Closure Pass — §3.2 LANDED (April 19, 2026).** Phase 3 §3.2 (shared topology endpoint via `GET /map_topology`) + §3.3 (centralize nation colors) + §3.4 (prompt/parser fallback de-hardcoding) all complete with 10 drift-prevention / parity tests. Phase 2 remains COMPLETE. Next: Phase 3 §3.1 (nation config factory), then Phase 4 map-art pipeline items. |
-| **Blockers** | Real map readiness is **not** just "wait for art." The raw `enemy_ai.py` scan pass is complete, but active non-art blockers remain: remaining scale-facing data/config hardcoding in the nation / prompt / parser pipeline still needs closure; the production province registry / bitmap-loading / validator / unwired-province pipeline is not landed yet. Commissioned art integration and final renderer smoke remain blocked on art assets. |
+| **Blockers** | Real map readiness is **not** just "wait for art." The raw `enemy_ai.py` scan pass is complete, and prompt/parser/adjacency drift is closed. Active non-art blockers are now narrower: Phase 3 §3.1 nation-config factory work, plus the Phase 4 province-registry / bitmap-loading / validator / unwired-province pipeline. Commissioned art integration and final renderer smoke remain blocked on art assets. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
