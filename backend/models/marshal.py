@@ -27,7 +27,7 @@ Implemented fields:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Mapping, Sequence
 from backend.models.trust import Trust
 
 
@@ -1354,427 +1354,438 @@ class Marshal:
         return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
 
 
-def create_starting_marshals() -> dict[str, Marshal]:
+def create_marshal_from_data(data: Mapping) -> Marshal:
+    """Create a single Marshal from a data-driven definition dict.
+
+    All keys except ``biography`` and ``relationships`` are passed straight
+    through to the Marshal constructor. Biography is assigned after
+    construction; relationships are applied by ``create_marshals_from_data``
+    after the full roster exists so cross-references resolve.
     """
-    Create the starting marshals for France.
+    ctor_kwargs = {k: v for k, v in data.items() if k not in ("biography", "relationships")}
+    marshal = Marshal(**ctor_kwargs)
+    biography = data.get("biography", "")
+    if biography:
+        marshal.biography = biography
+    return marshal
 
-    Returns:
-        Dictionary of marshal_name -> Marshal object
+
+def create_marshals_from_data(marshal_definitions: Sequence[Mapping]) -> dict[str, Marshal]:
+    """Create a dict of marshals from a list of data-driven definition dicts.
+
+    Adding a new nation only requires appending one dict per marshal to a list
+    — no new function needs to be authored.
     """
-    marshals = {
-        "Ney": Marshal(
-            name="Ney",
-            location="Belgium",
-            strength=72000,
-            personality="aggressive",
-            nation="France",
-            movement_range=2,  # Cavalry commander - can attack 2 regions away
-            tactical_skill=8,  # Brave and inspiring, but sometimes reckless
-            skills={
-                "tactical": 7,      # Good tactician, not brilliant
-                "shock": 9,         # "The Bravest of the Brave" - devastating attacker
-                "defense": 4,       # Poor defender, too aggressive
-                "logistics": 5,     # Average logistics
-                "administration": 4,  # Not great at administration
-                "command": 8        # Inspiring leader, men would follow him anywhere
-            },
-            ability={
-                "name": "Bravest of the Brave",
-                "description": "Ney's aggressive leadership inspires devastating attacks",
-                "trigger": "when_attacking",
-                "effect": "+2 Shock skill when attacking (not defending)"
-            },
-            starting_trust=75,  # Loyal but headstrong, starts slightly above average
-            cavalry=True,  # Cavalry commander - enables Fighting Retreat and 2-tile attacks
-            spawn_location="Paris"  # French capital - respawn location when broken
-        ),
-        "Davout": Marshal(
-            name="Davout",
-            location="Paris",
-            strength=48000,
-            personality="cautious",
-            nation="France",
-            movement_range=1,  # Infantry commander
-            tactical_skill=10,  # "The Iron Marshal" - Napoleon's best tactician
-            skills={
-                "tactical": 9,      # Brilliant tactician
-                "shock": 7,         # Strong attacker but not reckless
-                "defense": 8,       # Excellent defender
-                "logistics": 8,     # Outstanding logistics
-                "administration": 8,  # Excellent administrator
-                "command": 9        # Iron discipline, feared and respected
-            },
-            ability={
-                "name": "Counter-Punch Mastery",
-                "description": "Davout's counterattacks strike with devastating force after absorbing an enemy assault",
-                "trigger": "after_defending",
-                "effect": "+20% attack on next attack after being attacked"
-            },
-            starting_trust=85,  # Most trusted marshal, proven record
-            spawn_location="Paris"  # French capital - respawn location when broken
-        ),
-        "Grouchy": Marshal(
-            name="Grouchy",
-            location="Lyon",
-            strength=28000,  # Balance patch: was 33000, reduced for economy balance
-            personality="literal",
-            nation="France",
-            movement_range=1,  # Infantry commander
-            tactical_skill=6,  # Competent but unlucky
-            skills={
-                "tactical": 5,      # Average tactician
-                "shock": 5,         # Average attacker
-                "defense": 5,       # Average defender
-                "logistics": 6,     # Slightly better at logistics
-                "administration": 5,  # Average administrator
-                "command": 5        # Average leader
-            },
-            ability={
-                "name": "Literal Obedience",
-                "description": "Grouchy follows orders exactly, never taking initiative",
-                "trigger": "receiving_orders",
-                "effect": "Never questions orders, always obeys exactly (TODO: Phase 2.4 order delay system)"
-            },
-            starting_trust=65,  # Newly promoted, unproven, follows orders literally
-            spawn_location="Paris"  # French capital - respawn location when broken
-        ),
-        "Drouot": Marshal(
-            name="Drouot",
-            location="Paris",
-            strength=25000,
-            personality="cautious",
-            nation="France",
-            movement_range=1,
-            tactical_skill=8,
-            skills={
-                "tactical": 8,
-                "shock": 7,
-                "defense": 6,
-                "logistics": 7,
-                "administration": 6,
-                "command": 7
-            },
-            ability={
-                "name": "Sage of the Grand Army",
-                "description": "Drouot's precise artillery fire is devastatingly accurate",
-                "trigger": "when_attacking_fortified",
-                "effect": "Fort degradation 10% → 15% when attacking fortified positions"
-            },
-            starting_trust=80,
-            artillery=True,
-            spawn_location="Paris"
-        )
-    }
-
-    # ════════════════════════════════════════════════════════════
-    # BIOGRAPHY BLURBS — Berthier's briefing to the Emperor
-    # ════════════════════════════════════════════════════════════
-    marshals["Ney"].biography = (
-        "The Bravest of the Brave. Charges before his orders are read. "
-        "Inspires devotion in his men and despair in his staff officers."
-    )
-    marshals["Davout"].biography = (
-        "The Iron Marshal. Has never lost a battle. "
-        "Methodical, unshakeable, and answers only to the Emperor himself."
-    )
-    marshals["Grouchy"].biography = (
-        "Steady and dependable. Follows orders to the letter — no more, no less. "
-        "One prays the orders are correct."
-    )
-    marshals["Drouot"].biography = (
-        "The Sage of the Grand Army. Manages his guns with the precision "
-        "of a watchmaker. Quiet, devout, and devastating."
-    )
-
-    # ════════════════════════════════════════════════════════════
-    # WATERLOO SCENARIO: Historical Relationships
-    # ════════════════════════════════════════════════════════════
-    # Ney-Davout rivalry: Ney hates Davout, Davout merely dislikes Ney
-    marshals["Ney"].set_relationship("Davout", -2)
-    marshals["Ney"].set_relationship("Grouchy", 0)
-    marshals["Ney"].set_relationship("Drouot", 0)
-    marshals["Davout"].set_relationship("Ney", -1)
-    marshals["Davout"].set_relationship("Grouchy", 0)
-    marshals["Davout"].set_relationship("Drouot", 1)  # Respects methodical approach
-    marshals["Grouchy"].set_relationship("Ney", 0)
-    marshals["Grouchy"].set_relationship("Davout", 0)
-    marshals["Grouchy"].set_relationship("Drouot", 0)
-    marshals["Drouot"].set_relationship("Ney", 0)
-    marshals["Drouot"].set_relationship("Davout", 1)  # Respects Iron Marshal
-    marshals["Drouot"].set_relationship("Grouchy", 0)
-
+    marshals: dict[str, Marshal] = {}
+    for defn in marshal_definitions:
+        marshals[defn["name"]] = create_marshal_from_data(defn)
+    for defn in marshal_definitions:
+        for other, value in defn.get("relationships", {}).items():
+            marshals[defn["name"]].set_relationship(other, int(value))
     return marshals
 
 
+# ════════════════════════════════════════════════════════════
+# FRENCH MARSHALS — data-driven definitions (Waterloo scenario)
+# ════════════════════════════════════════════════════════════
+FRENCH_MARSHALS_DATA: list[dict] = [
+    {
+        "name": "Ney",
+        "location": "Belgium",
+        "strength": 72000,
+        "personality": "aggressive",
+        "nation": "France",
+        "movement_range": 2,  # Cavalry commander - can attack 2 regions away
+        "tactical_skill": 8,  # Brave and inspiring, but sometimes reckless
+        "skills": {
+            "tactical": 7,      # Good tactician, not brilliant
+            "shock": 9,         # "The Bravest of the Brave" - devastating attacker
+            "defense": 4,       # Poor defender, too aggressive
+            "logistics": 5,     # Average logistics
+            "administration": 4,  # Not great at administration
+            "command": 8,       # Inspiring leader, men would follow him anywhere
+        },
+        "ability": {
+            "name": "Bravest of the Brave",
+            "description": "Ney's aggressive leadership inspires devastating attacks",
+            "trigger": "when_attacking",
+            "effect": "+2 Shock skill when attacking (not defending)",
+        },
+        "starting_trust": 75,  # Loyal but headstrong, starts slightly above average
+        "cavalry": True,       # Enables Fighting Retreat and 2-tile attacks
+        "spawn_location": "Paris",  # French capital - respawn location when broken
+        "biography": (
+            "The Bravest of the Brave. Charges before his orders are read. "
+            "Inspires devotion in his men and despair in his staff officers."
+        ),
+        # Ney-Davout rivalry: Ney hates Davout, Davout merely dislikes Ney
+        "relationships": {"Davout": -2, "Grouchy": 0, "Drouot": 0},
+    },
+    {
+        "name": "Davout",
+        "location": "Paris",
+        "strength": 48000,
+        "personality": "cautious",
+        "nation": "France",
+        "movement_range": 1,
+        "tactical_skill": 10,  # "The Iron Marshal" - Napoleon's best tactician
+        "skills": {
+            "tactical": 9,
+            "shock": 7,
+            "defense": 8,
+            "logistics": 8,
+            "administration": 8,
+            "command": 9,
+        },
+        "ability": {
+            "name": "Counter-Punch Mastery",
+            "description": "Davout's counterattacks strike with devastating force after absorbing an enemy assault",
+            "trigger": "after_defending",
+            "effect": "+20% attack on next attack after being attacked",
+        },
+        "starting_trust": 85,  # Most trusted marshal, proven record
+        "spawn_location": "Paris",
+        "biography": (
+            "The Iron Marshal. Has never lost a battle. "
+            "Methodical, unshakeable, and answers only to the Emperor himself."
+        ),
+        "relationships": {"Ney": -1, "Grouchy": 0, "Drouot": 1},  # Respects methodical approach
+    },
+    {
+        "name": "Grouchy",
+        "location": "Lyon",
+        "strength": 28000,  # Balance patch: was 33000, reduced for economy balance
+        "personality": "literal",
+        "nation": "France",
+        "movement_range": 1,
+        "tactical_skill": 6,
+        "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 5,
+            "logistics": 6,
+            "administration": 5,
+            "command": 5,
+        },
+        "ability": {
+            "name": "Literal Obedience",
+            "description": "Grouchy follows orders exactly, never taking initiative",
+            "trigger": "receiving_orders",
+            "effect": "Never questions orders, always obeys exactly (TODO: Phase 2.4 order delay system)",
+        },
+        "starting_trust": 65,
+        "spawn_location": "Paris",
+        "biography": (
+            "Steady and dependable. Follows orders to the letter — no more, no less. "
+            "One prays the orders are correct."
+        ),
+        "relationships": {"Ney": 0, "Davout": 0, "Drouot": 0},
+    },
+    {
+        "name": "Drouot",
+        "location": "Paris",
+        "strength": 25000,
+        "personality": "cautious",
+        "nation": "France",
+        "movement_range": 1,
+        "tactical_skill": 8,
+        "skills": {
+            "tactical": 8,
+            "shock": 7,
+            "defense": 6,
+            "logistics": 7,
+            "administration": 6,
+            "command": 7,
+        },
+        "ability": {
+            "name": "Sage of the Grand Army",
+            "description": "Drouot's precise artillery fire is devastatingly accurate",
+            "trigger": "when_attacking_fortified",
+            "effect": "Fort degradation 10% → 15% when attacking fortified positions",
+        },
+        "starting_trust": 80,
+        "artillery": True,
+        "spawn_location": "Paris",
+        "biography": (
+            "The Sage of the Grand Army. Manages his guns with the precision "
+            "of a watchmaker. Quiet, devout, and devastating."
+        ),
+        "relationships": {"Ney": 0, "Davout": 1, "Grouchy": 0},  # Respects Iron Marshal
+    },
+]
+
+
+def create_starting_marshals() -> dict[str, Marshal]:
+    """Create the starting marshals for France."""
+    return create_marshals_from_data(FRENCH_MARSHALS_DATA)
+
+
+# ════════════════════════════════════════════════════════════
+# ENEMY MARSHALS — data-driven definitions (Waterloo scenario)
+# ════════════════════════════════════════════════════════════
+# Enemy spawn locations match NATION_CAPITALS in region.py.
+# Relationships below are authored to reproduce the exact symmetric /
+# asymmetric pairs from the legacy hand-authored function, including the
+# intentional non-entries for Uxbridge ↔ ArchdukeCharles / Schwarzenberg
+# (which the original code did not set). See git history for rationale.
+ENEMY_MARSHALS_DATA: list[dict] = [
+    {
+        "name": "Wellington",
+        "location": "Waterloo",
+        "strength": 52000,  # Balance patch: was 68000, reduced to make beatable by 2-marshal assault
+        "personality": "cautious",
+        "nation": "Britain",
+        "tactical_skill": 10,  # Defensive genius, never lost a battle
+        "skills": {
+            "tactical": 9,
+            "shock": 4,
+            "defense": 10,
+            "logistics": 8,
+            "administration": 7,
+            "command": 9,
+        },
+        "ability": {
+            "name": "Reverse Slope Defense",
+            "description": "Wellington masters defensive terrain, hiding troops behind hills",
+            "trigger": "when_defending",
+            "effect": "+5% flat defense bonus when defending",
+        },
+        "starting_trust": 80,
+        "spawn_location": "Netherlands",  # Britain capital proxy
+        "biography": (
+            "The Iron Duke. Master of the reverse slope and the patient defense. "
+            "He does not attack — he lets you destroy yourself."
+        ),
+        "relationships": {
+            "Blucher": 2,           # Devoted allies
+            "Gneisenau": 1,         # Allied commanders
+            "Uxbridge": 1,          # Valued cavalry commander
+            "ArchdukeCharles": 0,   # Austria-Britain cross-nation
+            "Schwarzenberg": 0,     # Austria-Britain cross-nation
+            "Reynier": 0,           # Saxony neutral
+        },
+    },
+    {
+        "name": "Uxbridge",
+        "location": "Hanover",
+        "strength": 24000,
+        "personality": "aggressive",
+        "nation": "Britain",
+        "movement_range": 2,
+        "tactical_skill": 6,
+        "skills": {
+            "tactical": 6,
+            "shock": 9,
+            "defense": 3,
+            "logistics": 5,
+            "administration": 5,
+            "command": 7,
+        },
+        "ability": {
+            "name": "Pursuit Master",
+            "description": "Uxbridge's cavalry excels at running down broken enemies",
+            "trigger": "when_enemy_retreats",
+            "effect": "+5,000 pursuit casualties when cavalry runs down retreating enemies (floor 1000)",
+        },
+        "starting_trust": 75,
+        "cavalry": True,
+        "spawn_location": "Netherlands",
+        "biography": (
+            "Commands the cavalry with reckless brilliance. "
+            "Where the charge is thickest, Uxbridge will be found."
+        ),
+        # Legacy note: original did not set Uxbridge ↔ Austrian marshals; preserved.
+        "relationships": {
+            "Wellington": 1,
+            "Blucher": 1,
+            "Gneisenau": 0,
+            "Reynier": 0,
+        },
+    },
+    {
+        "name": "Blucher",
+        "location": "Berlin",
+        "strength": 40000,
+        "personality": "aggressive",
+        "nation": "Prussia",
+        "tactical_skill": 7,
+        "skills": {
+            "tactical": 6,
+            "shock": 8,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 4,
+            "command": 7,
+        },
+        "ability": {
+            "name": "Vorwärts!",
+            "description": "Blücher's aggressive pursuit inflicts extra casualties on retreating enemies",
+            "trigger": "when_enemy_retreats",
+            "effect": "+3,000 pursuit casualties to retreating enemies (floor 1000)",
+        },
+        "starting_trust": 70,
+        "spawn_location": "Berlin",
+        "biography": (
+            "Marshal Vorwärts. Seventy-three years old and still the first man "
+            "to draw his sword. He does not understand retreat."
+        ),
+        "relationships": {
+            "Wellington": 2,
+            "Gneisenau": 2,
+            "Uxbridge": 1,
+            "ArchdukeCharles": 0,   # Austria-Prussia cross-nation
+            "Schwarzenberg": 0,     # Austria-Prussia cross-nation
+            "Reynier": 0,
+        },
+    },
+    {
+        "name": "Gneisenau",
+        "location": "Rhineland",
+        "strength": 32000,
+        "personality": "cautious",
+        "nation": "Prussia",
+        "tactical_skill": 8,
+        "skills": {
+            "tactical": 8,
+            "shock": 4,
+            "defense": 7,
+            "logistics": 9,
+            "administration": 8,
+            "command": 7,
+        },
+        "ability": {
+            "name": "Staff Work",
+            "description": "Gneisenau's meticulous planning improves army coordination",
+            "trigger": "when_in_same_region_as_ally",
+            "effect": "+5% atk/def to allies in same region (deferred to Phase 7 Session 58 — needs coordination fields)",
+        },
+        "starting_trust": 75,
+        "spawn_location": "Berlin",
+        "biography": (
+            "Blucher's brain. What the old man lacks in strategy, Gneisenau "
+            "provides tenfold. The true architect of Prussian operations."
+        ),
+        "relationships": {
+            "Blucher": 2,
+            "Wellington": 1,
+            "Uxbridge": 0,
+            "ArchdukeCharles": 0,
+            "Schwarzenberg": 0,
+            "Reynier": 0,
+        },
+    },
+    {
+        "name": "ArchdukeCharles",
+        "location": "Vienna",
+        "strength": 35000,
+        "personality": "cautious",
+        "nation": "Austria",
+        "tactical_skill": 8,
+        "skills": {
+            "tactical": 7,
+            "shock": 5,
+            "defense": 8,
+            "logistics": 7,
+            "administration": 7,
+            "command": 7,
+        },
+        "ability": {
+            "name": "Habsburg Resolve",
+            "description": "Archduke Charles steadies the line with calm under fire",
+            "trigger": "when_defending",
+            "effect": "+3% flat defense bonus when defending",
+        },
+        "starting_trust": 75,
+        "spawn_location": "Vienna",
+        "biography": (
+            "The only man to beat Napoleon in open battle — at Aspern-Essling. "
+            "Cautious but capable, he is Austria's finest general."
+        ),
+        # Legacy note: original did not set ArchdukeCharles ↔ Uxbridge; preserved.
+        "relationships": {
+            "Schwarzenberg": 1,
+            "Blucher": 0,
+            "Gneisenau": 0,
+            "Wellington": 0,
+            "Reynier": 0,
+        },
+    },
+    {
+        "name": "Schwarzenberg",
+        "location": "Bohemia",
+        "strength": 25000,
+        "personality": "cautious",
+        "nation": "Austria",
+        "tactical_skill": 6,
+        "skills": {
+            "tactical": 5,
+            "shock": 4,
+            "defense": 6,
+            "logistics": 6,
+            "administration": 6,
+            "command": 5,
+        },
+        "ability": {
+            "name": "Coalition Coordinator",
+            "description": "Schwarzenberg excels at holding multinational forces together",
+            "trigger": "when_in_same_region_as_ally",
+            "effect": "No mechanical effect (placeholder for Phase 8 coalition coordination)",
+        },
+        "starting_trust": 70,
+        "spawn_location": "Vienna",
+        "biography": (
+            "A diplomat in uniform. Commanded the Allied army at Leipzig but "
+            "prefers negotiation to bloodshed. Cautious to a fault."
+        ),
+        # Legacy note: original did not set Schwarzenberg ↔ Uxbridge; preserved.
+        "relationships": {
+            "ArchdukeCharles": 1,
+            "Blucher": 0,
+            "Gneisenau": 0,
+            "Wellington": 0,
+            "Reynier": 0,
+        },
+    },
+    {
+        "name": "Reynier",
+        "location": "Dresden",
+        "strength": 18000,
+        "personality": "literal",
+        "nation": "Saxony",
+        "tactical_skill": 5,
+        "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5,
+        },
+        "ability": {
+            "name": "Saxon Discipline",
+            "description": "Reynier maintains strict order in his Saxon corps",
+            "trigger": "passive",
+            "effect": "No mechanical effect (placeholder)",
+        },
+        "starting_trust": 65,
+        "spawn_location": "Dresden",
+        "biography": (
+            "A French-born general in Saxon service. Competent and obedient, "
+            "he follows orders to the letter and asks no questions."
+        ),
+        "relationships": {
+            "Wellington": 0,
+            "Uxbridge": 0,
+            "Blucher": 0,
+            "Gneisenau": 0,
+            "ArchdukeCharles": 0,
+            "Schwarzenberg": 0,
+        },
+    },
+]
+
+
 def create_enemy_marshals() -> dict[str, Marshal]:
-    """
-    Create the enemy marshals (persistent across turns).
-
-    These marshals exist in the world from game start and:
-    - Defend their regions when attacked
-    - Persist casualties and morale between battles
-    - Can be completely destroyed
-
-    Returns:
-        Dictionary of marshal_name -> Marshal object
-    """
-    # Enemy spawn locations match NATION_CAPITALS in region.py
-    enemies = {
-        "Wellington": Marshal(
-            name="Wellington",
-            location="Waterloo",
-            strength=52000,  # Balance patch: was 68000, reduced to make beatable by 2-marshal assault
-            personality="cautious",
-            nation="Britain",
-            tactical_skill=10,  # Defensive genius, never lost a battle
-            skills={
-                "tactical": 9,      # Brilliant tactician
-                "shock": 4,         # Poor attacker, defensive-minded
-                "defense": 10,      # Best defender in Europe
-                "logistics": 8,     # Excellent logistics (Peninsular War)
-                "administration": 7,  # Good administrator
-                "command": 9        # Respected and competent leader
-            },
-            ability={
-                "name": "Reverse Slope Defense",
-                "description": "Wellington masters defensive terrain, hiding troops behind hills",
-                "trigger": "when_defending",
-                "effect": "+5% flat defense bonus when defending"
-            },
-            starting_trust=80,  # Wellington trusts his government
-            spawn_location="Netherlands"  # Britain capital proxy
-        ),
-        "Uxbridge": Marshal(
-            name="Uxbridge",
-            location="Hanover",
-            strength=24000,
-            personality="aggressive",
-            nation="Britain",
-            movement_range=2,  # Cavalry commander - can attack 2 regions away
-            tactical_skill=6,
-            skills={
-                "tactical": 6,      # Decent tactician
-                "shock": 9,         # Excellent cavalry charge
-                "defense": 3,       # Cavalry weak on defense
-                "logistics": 5,     # Average
-                "administration": 5,  # Average
-                "command": 7        # Inspirational cavalry leader
-            },
-            ability={
-                "name": "Pursuit Master",
-                "description": "Uxbridge's cavalry excels at running down broken enemies",
-                "trigger": "when_enemy_retreats",
-                "effect": "+5,000 pursuit casualties when cavalry runs down retreating enemies (floor 1000)"
-            },
-            starting_trust=75,
-            cavalry=True,  # Cavalry commander - enables Recklessness system (aggressive + cavalry)
-            spawn_location="Netherlands"  # Britain capital proxy
-        ),
-        "Blucher": Marshal(
-            name="Blucher",
-            location="Berlin",
-            strength=40000,
-            personality="aggressive",
-            nation="Prussia",
-            tactical_skill=7,  # Aggressive and determined, but impetuous
-            skills={
-                "tactical": 6,      # Good but not brilliant tactician
-                "shock": 8,         # "Marshal Forward" - aggressive attacker
-                "defense": 5,       # Average defender, prefers attack
-                "logistics": 5,     # Average logistics
-                "administration": 4,  # Poor administrator, soldier's soldier
-                "command": 7        # Inspirational leader, loved by troops
-            },
-            ability={
-                "name": "Vorwärts!",
-                "description": "Blücher's aggressive pursuit inflicts extra casualties on retreating enemies",
-                "trigger": "when_enemy_retreats",
-                "effect": "+3,000 pursuit casualties to retreating enemies (floor 1000)"
-            },
-            starting_trust=70,  # Blucher trusts Prussia's king
-            spawn_location="Berlin"  # Prussia capital
-        ),
-        "Gneisenau": Marshal(
-            name="Gneisenau",
-            location="Rhineland",
-            strength=32000,
-            personality="cautious",
-            nation="Prussia",
-            tactical_skill=8,  # Brilliant strategist and planner
-            skills={
-                "tactical": 8,      # Brilliant planner
-                "shock": 4,         # Not an attacker
-                "defense": 7,       # Solid defender
-                "logistics": 9,     # Organizational genius
-                "administration": 8,  # Reformed Prussian army
-                "command": 7        # Respected leader
-            },
-            ability={
-                "name": "Staff Work",
-                "description": "Gneisenau's meticulous planning improves army coordination",
-                "trigger": "when_in_same_region_as_ally",
-                "effect": "+5% atk/def to allies in same region (deferred to Phase 7 Session 58 — needs coordination fields)"
-            },
-            starting_trust=75,  # Gneisenau serves Prussia faithfully
-            spawn_location="Berlin"  # Prussia capital
-        ),
-        "ArchdukeCharles": Marshal(
-            name="ArchdukeCharles",
-            location="Vienna",
-            strength=35000,
-            personality="cautious",
-            nation="Austria",
-            tactical_skill=8,
-            skills={
-                "tactical": 7,      # Solid tactician
-                "shock": 5,         # Not an attacker
-                "defense": 8,       # Strong defender — Aspern-Essling victor
-                "logistics": 7,     # Good organizer
-                "administration": 7,  # Military reformer
-                "command": 7        # Respected Habsburg commander
-            },
-            ability={
-                "name": "Habsburg Resolve",
-                "description": "Archduke Charles steadies the line with calm under fire",
-                "trigger": "when_defending",
-                "effect": "+3% flat defense bonus when defending"
-            },
-            starting_trust=75,
-            spawn_location="Vienna"  # Austria capital
-        ),
-        "Schwarzenberg": Marshal(
-            name="Schwarzenberg",
-            location="Bohemia",
-            strength=25000,
-            personality="cautious",
-            nation="Austria",
-            tactical_skill=6,
-            skills={
-                "tactical": 5,      # Mediocre tactician
-                "shock": 4,         # Reluctant attacker
-                "defense": 6,       # Adequate defender
-                "logistics": 6,     # Adequate organizer
-                "administration": 6,  # Competent administrator
-                "command": 5        # Coalition figurehead, not inspirational
-            },
-            ability={
-                "name": "Coalition Coordinator",
-                "description": "Schwarzenberg excels at holding multinational forces together",
-                "trigger": "when_in_same_region_as_ally",
-                "effect": "No mechanical effect (placeholder for Phase 8 coalition coordination)"
-            },
-            starting_trust=70,
-            spawn_location="Vienna"  # Austria capital
-        ),
-        "Reynier": Marshal(
-            name="Reynier",
-            location="Dresden",
-            strength=18000,
-            personality="literal",
-            nation="Saxony",
-            tactical_skill=5,
-            skills={
-                "tactical": 5,      # Average tactician
-                "shock": 5,         # Average
-                "defense": 5,       # Average
-                "logistics": 5,     # Average
-                "administration": 5,  # Average
-                "command": 5        # Competent but uninspired
-            },
-            ability={
-                "name": "Saxon Discipline",
-                "description": "Reynier maintains strict order in his Saxon corps",
-                "trigger": "passive",
-                "effect": "No mechanical effect (placeholder)"
-            },
-            starting_trust=65,
-            spawn_location="Dresden"  # Saxony capital
-        ),
-    }
-
-    # ════════════════════════════════════════════════════════════
-    # BIOGRAPHY BLURBS — Berthier's briefing to the Emperor
-    # ════════════════════════════════════════════════════════════
-    enemies["Wellington"].biography = (
-        "The Iron Duke. Master of the reverse slope and the patient defense. "
-        "He does not attack — he lets you destroy yourself."
-    )
-    enemies["Uxbridge"].biography = (
-        "Commands the cavalry with reckless brilliance. "
-        "Where the charge is thickest, Uxbridge will be found."
-    )
-    enemies["Blucher"].biography = (
-        "Marshal Vorwärts. Seventy-three years old and still the first man "
-        "to draw his sword. He does not understand retreat."
-    )
-    enemies["Gneisenau"].biography = (
-        "Blucher's brain. What the old man lacks in strategy, Gneisenau "
-        "provides tenfold. The true architect of Prussian operations."
-    )
-    enemies["ArchdukeCharles"].biography = (
-        "The only man to beat Napoleon in open battle — at Aspern-Essling. "
-        "Cautious but capable, he is Austria's finest general."
-    )
-    enemies["Schwarzenberg"].biography = (
-        "A diplomat in uniform. Commanded the Allied army at Leipzig but "
-        "prefers negotiation to bloodshed. Cautious to a fault."
-    )
-    enemies["Reynier"].biography = (
-        "A French-born general in Saxon service. Competent and obedient, "
-        "he follows orders to the letter and asks no questions."
-    )
-
-    # ════════════════════════════════════════════════════════════
-    # HISTORICAL RELATIONSHIPS
-    # ════════════════════════════════════════════════════════════
-    # Wellington-Blucher: Devoted allies
-    enemies["Wellington"].set_relationship("Blucher", 2)
-    enemies["Blucher"].set_relationship("Wellington", 2)
-
-    # Gneisenau-Blucher: Chief of staff and commander (devoted)
-    enemies["Gneisenau"].set_relationship("Blucher", 2)
-    enemies["Blucher"].set_relationship("Gneisenau", 2)
-
-    # Gneisenau-Wellington: Allied commanders (friendly)
-    enemies["Gneisenau"].set_relationship("Wellington", 1)
-    enemies["Wellington"].set_relationship("Gneisenau", 1)
-
-    # Uxbridge-Wellington: Valued cavalry commander (friendly)
-    enemies["Uxbridge"].set_relationship("Wellington", 1)
-    enemies["Wellington"].set_relationship("Uxbridge", 1)
-
-    # Uxbridge-Blucher: Fellow aggressive commanders (friendly)
-    enemies["Uxbridge"].set_relationship("Blucher", 1)
-    enemies["Blucher"].set_relationship("Uxbridge", 1)
-
-    # Uxbridge-Gneisenau: Professional respect (neutral)
-    enemies["Uxbridge"].set_relationship("Gneisenau", 0)
-    enemies["Gneisenau"].set_relationship("Uxbridge", 0)
-
-    # Austria — Archduke Charles and Schwarzenberg
-    enemies["ArchdukeCharles"].set_relationship("Schwarzenberg", 1)
-    enemies["Schwarzenberg"].set_relationship("ArchdukeCharles", 1)
-
-    # Austria-Prussia cross-nation (DEFENSIVE_ALLIANCE per §1e)
-    enemies["ArchdukeCharles"].set_relationship("Blucher", 0)
-    enemies["Blucher"].set_relationship("ArchdukeCharles", 0)
-    enemies["ArchdukeCharles"].set_relationship("Gneisenau", 0)
-    enemies["Gneisenau"].set_relationship("ArchdukeCharles", 0)
-    enemies["Schwarzenberg"].set_relationship("Blucher", 0)
-    enemies["Blucher"].set_relationship("Schwarzenberg", 0)
-    enemies["Schwarzenberg"].set_relationship("Gneisenau", 0)
-    enemies["Gneisenau"].set_relationship("Schwarzenberg", 0)
-
-    # Austria-Britain cross-nation (NON_AGGRESSION per §1e)
-    enemies["ArchdukeCharles"].set_relationship("Wellington", 0)
-    enemies["Wellington"].set_relationship("ArchdukeCharles", 0)
-    enemies["Schwarzenberg"].set_relationship("Wellington", 0)
-    enemies["Wellington"].set_relationship("Schwarzenberg", 0)
-
-    # Reynier (Saxony) — neutral with everyone
-    for name in ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "ArchdukeCharles", "Schwarzenberg"]:
-        enemies["Reynier"].set_relationship(name, 0)
-        enemies[name].set_relationship("Reynier", 0)
-
-    return enemies
+    """Create the enemy marshals (persistent across turns)."""
+    return create_marshals_from_data(ENEMY_MARSHALS_DATA)
 

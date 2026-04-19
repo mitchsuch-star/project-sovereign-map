@@ -6,7 +6,7 @@ Diplomats are NOT marshals — they go in world.diplomats, never world.marshals.
 Diplomat personalities are completely separate from marshal personalities.
 """
 
-from typing import Dict
+from typing import Dict, Mapping
 
 
 # Valid diplomat personalities (separate from marshal personalities)
@@ -54,56 +54,67 @@ class DiplomaticRepresentative:
         return f"Diplomat({self.name}, {self.nation}, {self.personality}, skill={self.skill})"
 
 
-# ═══════ STARTING DIPLOMATS ═══════
+# ═══════ STARTING DIPLOMAT DEFINITIONS (data-only) ═══════
+# Nation → diplomat definition. Adding a new nation = adding one entry here.
+# No function edits required.
 
-STARTING_DIPLOMATS = {
-    "France": DiplomaticRepresentative(
-        name="Talleyrand",
-        nation="France",
-        personality="schemer",
-        skill=10,
-        biography="The devil's diplomat. Serves France — or rather, serves what he believes France should be.",
-    ),
-    "Britain": DiplomaticRepresentative(
-        name="Castlereagh",
-        nation="Britain",
-        personality="hawk",
-        skill=7,
-        biography="Cold, calculating, implacable. Views any French advantage as a threat to the balance of power.",
-    ),
-    "Prussia": DiplomaticRepresentative(
-        name="Hardenberg",
-        nation="Prussia",
-        personality="hawk",
-        skill=6,
-        biography="Demands respect, offers little.",
-    ),
-    "Austria": DiplomaticRepresentative(
-        name="Metternich",
-        nation="Austria",
-        personality="schemer",
-        skill=9,
-        biography="Spider diplomat, delays & leverages.",
-    ),
-    "Saxony": DiplomaticRepresentative(
-        name="Einsiedel",
-        nation="Saxony",
-        personality="dove",
-        skill=4,
-        biography="Fears aggression, hopes for peace.",
-    ),
+DIPLOMAT_DEFINITIONS: Dict[str, Dict] = {
+    "France": {
+        "name": "Talleyrand",
+        "personality": "schemer",
+        "skill": 10,
+        "biography": "The devil's diplomat. Serves France — or rather, serves what he believes France should be.",
+    },
+    "Britain": {
+        "name": "Castlereagh",
+        "personality": "hawk",
+        "skill": 7,
+        "biography": "Cold, calculating, implacable. Views any French advantage as a threat to the balance of power.",
+    },
+    "Prussia": {
+        "name": "Hardenberg",
+        "personality": "hawk",
+        "skill": 6,
+        "biography": "Demands respect, offers little.",
+    },
+    "Austria": {
+        "name": "Metternich",
+        "personality": "schemer",
+        "skill": 9,
+        "biography": "Spider diplomat, delays & leverages.",
+    },
+    "Saxony": {
+        "name": "Einsiedel",
+        "personality": "dove",
+        "skill": 4,
+        "biography": "Fears aggression, hopes for peace.",
+    },
+}
+
+
+def create_diplomat_from_data(nation: str, data: Mapping) -> 'DiplomaticRepresentative':
+    """Create a DiplomaticRepresentative from a data-driven definition dict."""
+    return DiplomaticRepresentative(
+        name=data["name"],
+        nation=nation,
+        personality=data["personality"],
+        skill=int(data["skill"]),
+        biography=data.get("biography", ""),
+    )
+
+
+# STARTING_DIPLOMATS is materialized from DIPLOMAT_DEFINITIONS for backward
+# compatibility with code that imports the template dict directly (e.g. the
+# nation_config roster composition and completeness tests).
+STARTING_DIPLOMATS: Dict[str, 'DiplomaticRepresentative'] = {
+    nation: create_diplomat_from_data(nation, defn)
+    for nation, defn in DIPLOMAT_DEFINITIONS.items()
 }
 
 
 def create_starting_diplomats() -> Dict[str, 'DiplomaticRepresentative']:
     """Create fresh copies of all starting diplomats, keyed by nation."""
-    result = {}
-    for nation, template in STARTING_DIPLOMATS.items():
-        result[nation] = DiplomaticRepresentative(
-            name=template.name,
-            nation=template.nation,
-            personality=template.personality,
-            skill=template.skill,
-            biography=template.biography,
-        )
-    return result
+    return {
+        nation: create_diplomat_from_data(nation, defn)
+        for nation, defn in DIPLOMAT_DEFINITIONS.items()
+    }

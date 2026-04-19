@@ -804,26 +804,18 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Why:** Cannot add nations or regions without this. Currently adding one region requires 6-7 file edits.
 **Estimated effort:** 1-2 sessions.
 
-### 3.1 Nation Config Factory Pattern
+### 3.1 Nation Config Factory Pattern — **DONE April 19, 2026**
 
-**Problem:** 5 nations hardcoded across 5 config surfaces. Marshal/diplomat creation is 470-line hand-authored functions.
+**Landed:** Nation/marshal/diplomat creation is now data-driven. New nations only need a capital + diplomat definition (plus optional per-nation overrides) — no 100-line function edit.
 
-**Changes in `nation_config.py`:**
-- Add `DEFAULT_NATION_DEFAULTS` dict with sensible fallback values for gold, AP, authority
-- New nations only need to override what differs from defaults
-- `validate_runtime_nation_support()` checks defaults + overrides
+**Files changed:**
+- `backend/nation_config.py` — new `DEFAULT_NATION_DEFAULTS = {"gold": 800, "actions": 3, "authority": 60}`; internal `_resolve_gold` / `_resolve_actions` / `_resolve_authority` route through per-nation override → default baseline. `validate_runtime_nation_support()` now treats missing gold / action / authority overrides as valid if the default baseline exists (still errors on missing capital or diplomat).
+- `backend/models/marshal.py` — new `create_marshal_from_data()` + `create_marshals_from_data()` factories; marshal data extracted to module-level `FRENCH_MARSHALS_DATA` + `ENEMY_MARSHALS_DATA` constants. `create_starting_marshals()` / `create_enemy_marshals()` are one-line wrappers. Cross-nation relationship matrix preserved exactly, including the legacy Uxbridge ↔ Austria non-entries.
+- `backend/models/diplomat.py` — new `DIPLOMAT_DEFINITIONS` data dict + `create_diplomat_from_data()` factory. `STARTING_DIPLOMATS` + `create_starting_diplomats()` remain as factory-derived wrappers.
 
-**Changes in `marshal.py`:**
-- Create `create_marshals_from_data(nation, marshal_definitions)` factory
-- `marshal_definitions` is a list of dicts: `{name, personality, ability, troops, cavalry, ...}`
-- Keep existing `create_player_marshals()` / `create_enemy_marshals()` as wrappers that feed data into the factory
-- New nations add a data list, not a 100-line function
+**Tests:** 15 new tests in `tests/test_nation_config_factory.py` lock factory behavior, default fallback semantics, validator acceptance of default-only new nations, and preservation of explicit overrides for the current roster. Full Python suite green: 8438 passed, 2 skipped.
 
-**Changes in `diplomat.py`:**
-- Similar factory: `create_diplomat_from_data(nation, diplomat_def)`
-- Diplomat definitions: `{name, voice_style, ...}`
-
-**Depends on:** DG-1 (need to know which nations to add)
+**Depends on:** DG-1 (need to know which nations to add) — satisfied; 13-nation 1805 draft roster is authored scenario content, not an engine cap.
 
 ---
 

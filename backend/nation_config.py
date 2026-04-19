@@ -16,6 +16,15 @@ from backend.models.region import NATION_CAPITALS
 
 DEFAULT_PLAYER_NATION = "France"
 
+# DEFAULT_NATION_DEFAULTS — sensible fallback values for nations that don't
+# override the per-nation dicts below. New nations only need to override what
+# differs from these defaults.
+DEFAULT_NATION_DEFAULTS = {
+    "gold": 800,
+    "actions": 3,
+    "authority": 60,
+}
+
 DEFAULT_NATION_GOLD = {
     "France": 800,
     "Britain": 1500,
@@ -78,28 +87,34 @@ def build_enemy_nations(player_nation: str = DEFAULT_PLAYER_NATION) -> list[str]
     return [nation for nation in RUNTIME_NATIONS if nation != player_nation]
 
 
+def _resolve_gold(nation: str) -> int:
+    return int(DEFAULT_NATION_GOLD.get(nation, DEFAULT_NATION_DEFAULTS["gold"]))
+
+
+def _resolve_actions(nation: str) -> int:
+    return int(BASE_NATION_ACTIONS.get(nation, DEFAULT_NATION_DEFAULTS["actions"]))
+
+
+def _resolve_authority(nation: str) -> int:
+    return int(DEFAULT_NATION_AUTHORITY.get(nation, DEFAULT_NATION_DEFAULTS["authority"]))
+
+
 def build_default_nation_gold(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
     """Return default gold values for all configured nations."""
-    defaults = {nation: int(DEFAULT_NATION_GOLD[nation]) for nation in RUNTIME_NATIONS}
+    defaults = {nation: _resolve_gold(nation) for nation in RUNTIME_NATIONS}
     if player_nation and player_nation not in defaults:
-        defaults[player_nation] = int(DEFAULT_NATION_GOLD[DEFAULT_PLAYER_NATION])
+        defaults[player_nation] = _resolve_gold(player_nation)
     return defaults
 
 
 def build_default_nation_actions(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
     """Return default AI action budgets for the non-player nations."""
-    return {
-        nation: int(BASE_NATION_ACTIONS.get(nation, BASE_NATION_ACTIONS[DEFAULT_PLAYER_NATION]))
-        for nation in build_enemy_nations(player_nation)
-    }
+    return {nation: _resolve_actions(nation) for nation in build_enemy_nations(player_nation)}
 
 
 def build_default_nation_authority(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
     """Return default authority values for the non-player nations."""
-    return {
-        nation: int(DEFAULT_NATION_AUTHORITY.get(nation, 60))
-        for nation in build_enemy_nations(player_nation)
-    }
+    return {nation: _resolve_authority(nation) for nation in build_enemy_nations(player_nation)}
 
 
 def get_player_diplomat(world: Any):
@@ -167,11 +182,14 @@ def validate_runtime_nation_support(
             errors.append(f"{nation}: missing capital mapping")
         if nation not in STARTING_DIPLOMATS:
             errors.append(f"{nation}: missing diplomat config")
-        if nation not in DEFAULT_NATION_GOLD:
+        # Gold / action-budget / authority fall back to DEFAULT_NATION_DEFAULTS
+        # when no per-nation override is present, so a missing entry is only
+        # an error if the baseline default has also been removed.
+        if nation not in DEFAULT_NATION_GOLD and "gold" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing economy default")
-        if nation not in BASE_NATION_ACTIONS:
+        if nation not in BASE_NATION_ACTIONS and "actions" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing action-budget default")
-        if nation not in DEFAULT_NATION_AUTHORITY:
+        if nation not in DEFAULT_NATION_AUTHORITY and "authority" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing authority default")
 
         capital = NATION_CAPITALS.get(nation)
