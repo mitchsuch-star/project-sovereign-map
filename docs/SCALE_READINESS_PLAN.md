@@ -923,16 +923,54 @@ Notes on authored-vs-default behavior:
 
 ---
 
-### 4.2 External Bitmap Loading
+### 4.2 External Bitmap Loading — COMPLETE (April 19, 2026)
 
-**Problem:** `map_renderer_base.gd:261-282` generates circle textures instead of loading artist-delivered images.
+**Problem:** `map_renderer_base.gd:_build_map_textures()` generated circle textures instead of loading artist-delivered images. With no seam for bitmap ingestion, debugging asset-pipeline failures would collide with validating Europe gameplay.
 
-**Changes in `map_renderer_base.gd`:**
-1. Add `_load_map_images()` method that loads:
-   - `assets/map/europe_visual.png` — the pretty map players see
-   - `assets/map/europe_provinces.png` — the hidden color-map for hit detection
-2. Fall back to current circle generation if files don't exist (preserves 19-region dev mode)
-3. Keep the existing `province_lookup_image.get_pixel()` path unchanged
+**What landed:**
+
+Two new subclass hooks plus a loader in `map_renderer_base.gd`:
+
+```gdscript
+func _get_map_visual_bitmap_path() -> String:
+    return ""  # Subclass returns the "pretty map" PNG; "" = circle fallback.
+
+func _get_map_lookup_bitmap_path() -> String:
+    return ""  # Subclass returns the province color-map PNG; "" = circle fallback.
+
+func _load_map_images() -> bool:
+    # Loads both bitmaps through the imported resource pipeline, validates
+    # size + lookup-color compatibility, and returns true on success so the
+    # caller skips circle generation.
+```
+
+`_build_map_textures()` now calls `_load_map_images()` BEFORE the circle-generation block. On successful load the function returns early, leaving `visual_map_texture` bound to the visual PNG and `province_lookup_image` bound to the lookup PNG. The post-landing hardening in `d67992b` changed the loader to resolve imported `res://` assets through `ResourceLoader` / `Texture2D.get_image()` instead of `Image.load(res://...)`, so exported builds keep the bitmap path. On failure (empty path, resource missing, non-texture resource, no image data, size mismatch, or lookup-color validation failure), the function falls through to the existing circle path — so the 19-region placeholder scene keeps working unchanged.
+
+**Coordinate convention in bitmap mode:** the loader overrides `map_origin = Vector2.ZERO` and `map_canvas_size = bitmap.get_size()` on success. This means province-registry anchors are interpreted in bitmap-pixel coords when bitmaps are present. Circle mode keeps the bbox-based `map_origin` that `_build_province_shapes()` computed.
+
+**What does NOT change:** the `_lookup_region_from_color_map()` hit-test path (still `province_lookup_image.get_pixel()` keyed into `province_color_lookup`), the `_refresh_hover_state()` distance fallback, the §4.1 wired/interactive gates, and the subclass contract for `_get_map_asset_definition_path()`.
+
+**Validation scope:** the runtime loader now checks that both bitmaps resolve through the resource pipeline, agree on size, and that every non-sentinel RGB in the lookup image maps to a declared province color while every declared province color appears at least once. Remaining offline asset validation (sentinel misuse in authored data, anti-alias artifacts, tiny islands, minimum pixel coverage thresholds, CI-time acceptance checks) is §4.3's job.
+
+**Placeholder invariant:** `godot-client/project-sovereign/scenes/map.gd` does NOT override the bitmap hooks, so the circle-fallback path is always active for the 19-region dev scene. Explicit bitmap opt-in failures now log once per unique message (`push_error`) instead of warning every `_ready()`, but the placeholder never reaches that path. A test pins this so a future author can't silently break dev mode by pointing the placeholder at non-existent PNGs.
+
+**Tests added:**
+
+- `tests/test_map_renderer_cutover.py::test_renderer_base_declares_bitmap_loader_hooks` — both hooks default to `""`.
+- `tests/test_map_renderer_cutover.py::test_renderer_base_declares_load_map_images` — loader checks empty paths, imported-resource loading, size match, and runtime lookup-color validation; on success wires the texture + lookup image, overrides canvas + origin.
+- `tests/test_map_renderer_cutover.py::test_renderer_base_loads_bitmap_resources_via_texture_pipeline` — pins `ResourceLoader` / `Texture2D.get_image()` instead of `Image.load(res://...)`.
+- `tests/test_map_renderer_cutover.py::test_renderer_base_validates_lookup_colors_and_latches_failures` — pins runtime lookup-color validation and one-shot error reporting.
+- `tests/test_map_renderer_cutover.py::test_build_map_textures_tries_bitmap_loader_before_circle_fallback` — pins the ordering (loader runs BEFORE circle draw calls) so a successful bitmap load short-circuits the fallback.
+- `tests/test_map_placeholder_assets.py::test_placeholder_map_script_does_not_opt_into_bitmap_mode` — pins the "dev mode stays on circles" invariant.
+- `tests/test_map_bitmap_contract.py` — fixture-driven behavioral coverage for missing-file fallback, size mismatch rejection, lookup-color rejection, and bitmap hit-test round-trips.
+
+**Follow-ups this does _not_ cover:**
+
+- The Europe subclass that overrides the bitmap hooks and ships the PNGs (unblocks commissioned-art integration; separate from the renderer substrate).
+- Asset-level validation (§4.3).
+- Unwired-province grey-tint rendering (§4.4).
+
+**Focused map verification after the hardening follow-up:** `36 passed` (`tests/test_map_renderer_cutover.py tests/test_map_placeholder_assets.py tests/test_map_bitmap_contract.py -q`). Last full-suite baseline from the initial §4.2 landing remains `8453 passed, 2 skipped`.
 
 ---
 
@@ -941,12 +979,13 @@ Notes on authored-vs-default behavior:
 **Create:** `tools/validate_province_map.py` (or `tests/test_province_map_assets.py`)
 
 **What it validates:**
-- Visual and lookup images have identical dimensions
-- Every RGB color in the lookup image exists in `province_registry.json`
-- Every province in the registry appears in the lookup image (at least N pixels)
-- No unexpected colors exist (catches anti-aliasing artifacts)
-- No province uses the sentinel/background color
+- Sentinels/background colors are only used where intended and are not assigned to provinces
+- No unexpected colors exist after import (anti-aliasing / stray-pixel detection)
+- Every province in the registry appears in the lookup image with at least N pixels
 - Flags tiny pixel islands (< 5 pixels of a color) as likely export artifacts
+- Emits a CI-readable failure report before any commissioned art is accepted
+
+**Important:** do not duplicate the runtime loader's size-match and lookup-color-presence checks blindly. §4.2 now enforces those at load time; §4.3 should focus on offline acceptance checks that are expensive, noisy, or art-pipeline-specific.
 
 **Run:** Before integrating any new art delivery. Also runs in CI.
 
@@ -1199,7 +1238,7 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 3.3 | Centralize nation colors | 3 | DONE | April 19, 2026 |
 | 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
 | 4.1 | Province registry schema | 4 | DONE | April 19, 2026 |
-| 4.2 | External bitmap loading | 4 | | |
+| 4.2 | External bitmap loading | 4 | DONE | April 19, 2026 |
 | 4.3 | Color-map validator | 4 | | |
 | 4.4 | Unwired province support | 4 | | |
 | 5.1 | Direct-only war entry + refusal event | 5 | | |
