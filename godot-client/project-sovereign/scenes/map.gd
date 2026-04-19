@@ -49,16 +49,9 @@ const REGION_CONNECTIONS = {
 	"Tyrol": ["Bavaria", "Vienna", "Milan"]
 }
 
-# Color scheme
-const COLORS = {
-	"France": Color(0.255, 0.412, 0.882),
-	"Britain": Color(0.863, 0.078, 0.235),
-	"Prussia": Color(0.2, 0.2, 0.2),
-	"Austria": Color(1.0, 0.843, 0.0),
-	"Saxony": Color(0.4, 0.6, 0.3),
-	"Neutral": Color(0.565, 0.933, 0.565),
-	"connection": Color(0.6, 0.6, 0.6)
-}
+# Color scheme — built from Utils.NATION_COLORS + connection line color (§3.3).
+# Do NOT define nation colors locally; update Utils.NATION_COLORS instead.
+var _colors_cache: Dictionary = {}
 
 
 func _get_region_positions() -> Dictionary:
@@ -70,7 +63,10 @@ func _get_region_connections() -> Dictionary:
 
 
 func _get_colors() -> Dictionary:
-	return COLORS
+	if _colors_cache.is_empty():
+		_colors_cache = Utils.NATION_COLORS.duplicate()
+		_colors_cache["connection"] = Utils.COLOR_CONNECTION
+	return _colors_cache
 
 
 func _get_map_asset_definition_path() -> String:

@@ -556,15 +556,25 @@ def _get_regions_list(game_state: Dict[str, Any]) -> str:
     """
     Get comma-separated list of valid regions.
 
-    Extracts from map_data keys or falls back to hardcoded list.
+    Extracts from map_data keys, the live WorldState, or REGIONS_DATA as a
+    last-resort fallback. The fallback used to be a 19-region string literal;
+    scaling to full-Europe scenarios made that hardcoded list drift-prone,
+    so we now derive it from the backend source of truth (§3.4).
     """
     map_data = game_state.get("map_data", {})
     if map_data:
-        regions = sorted(map_data.keys())
-        return ", ".join(regions)
+        return ", ".join(sorted(map_data.keys()))
 
-    # Fallback to known regions if map_data not available
-    return "Paris, Belgium, Netherlands, Waterloo, Rhineland, Bavaria, Vienna, Lyon, Milan, Marseille, Brittany, Bordeaux, Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol"
+    world = game_state.get("world")
+    if world is not None:
+        world_regions = getattr(world, "regions", None)
+        if world_regions:
+            return ", ".join(sorted(world_regions.keys()))
+
+    # Last-resort fallback: derive from REGIONS_DATA so adding or removing
+    # scenario regions never requires editing this prompt builder again.
+    from backend.models.region import REGIONS_DATA
+    return ", ".join(sorted(REGIONS_DATA.keys()))
 
 
 def _format_examples() -> str:

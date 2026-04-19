@@ -1174,13 +1174,13 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 1.2 | Fix hardcoded `== 19` | 1 | DONE | April 16, 2026 |
 | 1.3 | Adjacency connectivity test | 1 | DONE | April 16, 2026 |
 | 1.4 | Validator derives `VALID_NATIONS` from `NATION_CAPITALS` | 1 | DONE | April 16, 2026 |
-| 2.1 | Cache `get_distance()` | 2 | | |
-| 2.2 | Wire spatial index into AI | 2 | | |
-| 2.3 | Extend fog to all AI nations | 2 | | |
+| 2.1 | Cache `get_distance()` | 2 | DONE | April 19, 2026 |
+| 2.2 | Wire spatial index into AI | 2 | DONE | April 19, 2026 |
+| 2.3 | Extend fog to all AI nations | 2 | DONE | April 19, 2026 |
 | 3.1 | Nation config factory | 3 | | |
 | 3.2 | Frontend loads adjacency from backend | 3 | | |
-| 3.3 | Centralize nation colors | 3 | | |
-| 3.4 | Fix prompt/parser/validator hardcoding | 3 | | |
+| 3.3 | Centralize nation colors | 3 | DONE | April 19, 2026 |
+| 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
 | 4.1 | Province registry schema | 4 | | |
 | 4.2 | External bitmap loading | 4 | | |
 | 4.3 | Color-map validator | 4 | | |

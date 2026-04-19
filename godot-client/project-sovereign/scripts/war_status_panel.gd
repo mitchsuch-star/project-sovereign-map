@@ -17,17 +17,7 @@ signal coalition_header_clicked()
 @onready var vbox = $PanelContainer/ScrollContainer/VBoxContainer
 @onready var header_label = $PanelContainer/ScrollContainer/VBoxContainer/HeaderLabel
 
-# Nation colors (must match map.gd COLORS)
-const NATION_COLORS = {
-	"France": Color(0.255, 0.412, 0.882),
-	"Britain": Color(0.863, 0.078, 0.235),
-	"Prussia": Color(0.2, 0.2, 0.2),
-	"Austria": Color(1.0, 0.843, 0.0),
-	"Saxony": Color(0.4, 0.6, 0.3),
-}
-
-const COLOR_FRANCE = Color(0.255, 0.412, 0.882)
-const COLOR_ENEMY_DEFAULT = Color(0.7, 0.2, 0.2)
+# Nation tints — single source is Utils.NATION_COLORS (§3.3).
 const COLOR_GREEN = Color(0.29, 0.67, 0.29)
 const COLOR_RED = Color(0.67, 0.27, 0.27)
 const COLOR_WHITE = Color(0.75, 0.75, 0.78)
@@ -258,7 +248,7 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 
 	# Score fill
 	var normalized = clamp(score, -100, 100)
-	var enemy_color = NATION_COLORS.get(opponent, COLOR_ENEMY_DEFAULT)
+	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
 	var half_w = bar_width / 2.0
 
 	if normalized > 0:
@@ -266,7 +256,7 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 		var fill_width = int((normalized / 100.0) * half_w)
 		if fill_width > 0:
 			var fill = ColorRect.new()
-			fill.color = COLOR_FRANCE
+			fill.color = Utils.NATION_COLORS["France"]
 			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			fill.position = Vector2(int(half_w), 0)
 			fill.size = Vector2(fill_width, bar_height)

@@ -32,15 +32,26 @@ const COLOR_GREY = "808080"         # Same as COLOR_DIMMED — semantic alias
 const COLOR_HEADER = "B8860B"       # Same as COLOR_BERTHIER — semantic alias for ledger headers
 
 # === Nation Colors (Color objects for UI elements) ===
+# Single source of truth for nation colors (SCALE_READINESS_PLAN §3.3).
+# Any script needing a nation color reads Utils.NATION_COLORS — do NOT
+# redefine these locally. Drift is guarded by
+# tests/test_gdscript_color_centralization.py.
 const NATION_COLORS = {
 	"France": Color(0.255, 0.412, 0.882),
-	"Prussia": Color(0.2, 0.2, 0.5),
-	"Austria": Color(0.7, 0.2, 0.2),
-	"Russia": Color(0.2, 0.5, 0.2),
-	"Britain": Color(0.7, 0.1, 0.1),
+	"Britain": Color(0.863, 0.078, 0.235),
+	"Prussia": Color(0.2, 0.2, 0.2),
+	"Austria": Color(1.0, 0.843, 0.0),
 	"Saxony": Color(0.4, 0.6, 0.3),
+	"Russia": Color(0.2, 0.5, 0.2),
 	"Spain": Color(0.8, 0.6, 0.1),
+	"Neutral": Color(0.565, 0.933, 0.565),
 }
+
+# === Map Connection Line Color ===
+const COLOR_CONNECTION = Color(0.6, 0.6, 0.6)
+
+# === Default Fallback Colors for Unknown Nations ===
+const COLOR_ENEMY_DEFAULT = Color(0.7, 0.2, 0.2)
 
 # === Formatting Helpers ===
 

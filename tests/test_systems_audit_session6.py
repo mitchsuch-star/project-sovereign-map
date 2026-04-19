@@ -119,7 +119,12 @@ class TestKnownEnemiesComplete:
     """All enemy marshals must be in parser.known_enemies for fuzzy matching."""
 
     def test_all_enemy_marshals_present(self):
-        """ArchdukeCharles, Schwarzenberg, Reynier must be in known_enemies."""
+        """ArchdukeCharles, Schwarzenberg, Reynier must be visible to the parser.
+
+        The parser now derives its enemy roster from ``create_enemy_marshals``
+        (or live world state) rather than a hardcoded list (§3.4). This test
+        therefore asserts against the helper that gameplay code uses.
+        """
         with _suppress_output():
             parser = CommandParser()
         expected = [
@@ -128,9 +133,10 @@ class TestKnownEnemiesComplete:
             "ArchdukeCharles", "Schwarzenberg",
             "Reynier",
         ]
+        fallback = parser._get_known_enemies()
         for name in expected:
-            assert name in parser.known_enemies, \
-                f"{name} missing from parser.known_enemies"
+            assert name in fallback, \
+                f"{name} missing from parser fallback enemy roster"
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -33,19 +33,9 @@ const COLOR_HEADER = "#B8860B"
 const COLOR_DIMMED = "#808080"
 const COLOR_INFO = "#a0a0a8"
 
-# Bar colors
-const COLOR_FRANCE = Color(0.255, 0.412, 0.882)
-const COLOR_ENEMY_DEFAULT = Color(0.7, 0.2, 0.2)
+# Bar colors — nation tints come from Utils.NATION_COLORS (§3.3).
 const COLOR_BAR_BG = Color(0.15, 0.15, 0.2, 0.8)
 const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
-
-const NATION_COLORS = {
-	"France": Color(0.255, 0.412, 0.882),
-	"Britain": Color(0.863, 0.078, 0.235),
-	"Prussia": Color(0.2, 0.2, 0.2),
-	"Austria": Color(1.0, 0.843, 0.0),
-	"Saxony": Color(0.4, 0.6, 0.3),
-}
 
 
 func _ready():
@@ -206,14 +196,14 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 
 	# Score fill
 	var normalized = clamp(score, -100, 100)
-	var enemy_color = NATION_COLORS.get(opponent, COLOR_ENEMY_DEFAULT)
+	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
 	var half_w = bar_width / 2.0
 
 	if normalized > 0:
 		var fill_width = int((normalized / 100.0) * half_w)
 		if fill_width > 0:
 			var fill = ColorRect.new()
-			fill.color = COLOR_FRANCE
+			fill.color = Utils.NATION_COLORS["France"]
 			fill.position = Vector2(int(half_w), 0)
 			fill.size = Vector2(fill_width, bar_height)
 			container.add_child(fill)
