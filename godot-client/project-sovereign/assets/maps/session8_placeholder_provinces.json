@@ -1,121 +1,255 @@
 {
-  "version": 1,
+  "version": 2,
+  "schema_version": 2,
   "padding": 140,
   "no_province_color": [0, 0, 0],
   "regions": {
     "Paris": {
+      "province_id": "paris",
       "anchor": [300, 350],
+      "unit_anchor": [300, 350],
+      "label_anchor": [300, 350],
+      "garrison_anchor": [300, 350],
+      "building_anchor": [300, 350],
       "radius": 72,
       "lookup_color": [179, 68, 55],
-      "visual_tint": [147, 118, 92]
+      "visual_tint": [147, 118, 92],
+      "wired": true,
+      "interactive": true
     },
     "Belgium": {
+      "province_id": "belgium",
       "anchor": [400, 250],
+      "unit_anchor": [400, 250],
+      "label_anchor": [400, 250],
+      "garrison_anchor": [400, 250],
+      "building_anchor": [400, 250],
       "radius": 58,
       "lookup_color": [198, 97, 34],
-      "visual_tint": [149, 125, 93]
+      "visual_tint": [149, 125, 93],
+      "wired": true,
+      "interactive": true
     },
     "Netherlands": {
+      "province_id": "netherlands",
       "anchor": [450, 150],
+      "unit_anchor": [450, 150],
+      "label_anchor": [450, 150],
+      "garrison_anchor": [450, 150],
+      "building_anchor": [450, 150],
       "radius": 54,
       "lookup_color": [210, 137, 52],
-      "visual_tint": [158, 139, 103]
+      "visual_tint": [158, 139, 103],
+      "wired": true,
+      "interactive": true
     },
     "Waterloo": {
+      "province_id": "waterloo",
       "anchor": [500, 300],
+      "unit_anchor": [500, 300],
+      "label_anchor": [500, 300],
+      "garrison_anchor": [500, 300],
+      "building_anchor": [500, 300],
       "radius": 46,
       "lookup_color": [180, 158, 50],
-      "visual_tint": [143, 139, 104]
+      "visual_tint": [143, 139, 104],
+      "wired": true,
+      "interactive": true
     },
     "Rhineland": {
+      "province_id": "rhineland",
       "anchor": [600, 300],
+      "unit_anchor": [600, 300],
+      "label_anchor": [600, 300],
+      "garrison_anchor": [600, 300],
+      "building_anchor": [600, 300],
       "radius": 60,
       "lookup_color": [120, 165, 62],
-      "visual_tint": [123, 143, 102]
+      "visual_tint": [123, 143, 102],
+      "wired": true,
+      "interactive": true
     },
     "Bavaria": {
+      "province_id": "bavaria",
       "anchor": [750, 400],
+      "unit_anchor": [750, 400],
+      "label_anchor": [750, 400],
+      "garrison_anchor": [750, 400],
+      "building_anchor": [750, 400],
       "radius": 58,
       "lookup_color": [62, 146, 91],
-      "visual_tint": [110, 138, 107]
+      "visual_tint": [110, 138, 107],
+      "wired": true,
+      "interactive": true
     },
     "Vienna": {
+      "province_id": "vienna",
       "anchor": [1000, 450],
+      "unit_anchor": [1000, 450],
+      "label_anchor": [1000, 450],
+      "garrison_anchor": [1000, 450],
+      "building_anchor": [1000, 450],
       "radius": 72,
       "lookup_color": [44, 146, 136],
-      "visual_tint": [103, 138, 125]
+      "visual_tint": [103, 138, 125],
+      "wired": true,
+      "interactive": true
     },
     "Lyon": {
+      "province_id": "lyon",
       "anchor": [400, 500],
+      "unit_anchor": [400, 500],
+      "label_anchor": [400, 500],
+      "garrison_anchor": [400, 500],
+      "building_anchor": [400, 500],
       "radius": 66,
       "lookup_color": [50, 132, 190],
-      "visual_tint": [102, 128, 144]
+      "visual_tint": [102, 128, 144],
+      "wired": true,
+      "interactive": true
     },
     "Marseille": {
+      "province_id": "marseille",
       "anchor": [350, 650],
+      "unit_anchor": [350, 650],
+      "label_anchor": [350, 650],
+      "garrison_anchor": [350, 650],
+      "building_anchor": [350, 650],
       "radius": 60,
       "lookup_color": [84, 110, 210],
-      "visual_tint": [114, 124, 154]
+      "visual_tint": [114, 124, 154],
+      "wired": true,
+      "interactive": true
     },
     "Milan": {
+      "province_id": "milan",
       "anchor": [700, 600],
+      "unit_anchor": [700, 600],
+      "label_anchor": [700, 600],
+      "garrison_anchor": [700, 600],
+      "building_anchor": [700, 600],
       "radius": 60,
       "lookup_color": [131, 84, 199],
-      "visual_tint": [135, 115, 152]
+      "visual_tint": [135, 115, 152],
+      "wired": true,
+      "interactive": true
     },
     "Brittany": {
+      "province_id": "brittany",
       "anchor": [150, 400],
+      "unit_anchor": [150, 400],
+      "label_anchor": [150, 400],
+      "garrison_anchor": [150, 400],
+      "building_anchor": [150, 400],
       "radius": 50,
       "lookup_color": [173, 79, 170],
-      "visual_tint": [145, 116, 140]
+      "visual_tint": [145, 116, 140],
+      "wired": true,
+      "interactive": true
     },
     "Bordeaux": {
+      "province_id": "bordeaux",
       "anchor": [200, 600],
+      "unit_anchor": [200, 600],
+      "label_anchor": [200, 600],
+      "garrison_anchor": [200, 600],
+      "building_anchor": [200, 600],
       "radius": 54,
       "lookup_color": [210, 94, 148],
-      "visual_tint": [159, 119, 130]
+      "visual_tint": [159, 119, 130],
+      "wired": true,
+      "interactive": true
     },
     "Normandy": {
+      "province_id": "normandy",
       "anchor": [200, 250],
+      "unit_anchor": [200, 250],
+      "label_anchor": [200, 250],
+      "garrison_anchor": [200, 250],
+      "building_anchor": [200, 250],
       "radius": 50,
       "lookup_color": [122, 74, 74],
-      "visual_tint": [127, 112, 103]
+      "visual_tint": [127, 112, 103],
+      "wired": true,
+      "interactive": true
     },
     "Hanover": {
+      "province_id": "hanover",
       "anchor": [650, 150],
+      "unit_anchor": [650, 150],
+      "label_anchor": [650, 150],
+      "garrison_anchor": [650, 150],
+      "building_anchor": [650, 150],
       "radius": 56,
       "lookup_color": [119, 107, 42],
-      "visual_tint": [133, 126, 96]
+      "visual_tint": [133, 126, 96],
+      "wired": true,
+      "interactive": true
     },
     "Berlin": {
+      "province_id": "berlin",
       "anchor": [800, 100],
+      "unit_anchor": [800, 100],
+      "label_anchor": [800, 100],
+      "garrison_anchor": [800, 100],
+      "building_anchor": [800, 100],
       "radius": 70,
       "lookup_color": [74, 102, 47],
-      "visual_tint": [112, 124, 95]
+      "visual_tint": [112, 124, 95],
+      "wired": true,
+      "interactive": true
     },
     "Saxony": {
+      "province_id": "saxony",
       "anchor": [700, 250],
+      "unit_anchor": [700, 250],
+      "label_anchor": [700, 250],
+      "garrison_anchor": [700, 250],
+      "building_anchor": [700, 250],
       "radius": 64,
       "lookup_color": [62, 116, 89],
-      "visual_tint": [108, 123, 106]
+      "visual_tint": [108, 123, 106],
+      "wired": true,
+      "interactive": true
     },
     "Dresden": {
+      "province_id": "dresden",
       "anchor": [800, 300],
+      "unit_anchor": [800, 300],
+      "label_anchor": [800, 300],
+      "garrison_anchor": [800, 300],
+      "building_anchor": [800, 300],
       "radius": 56,
       "lookup_color": [67, 134, 148],
-      "visual_tint": [102, 129, 132]
+      "visual_tint": [102, 129, 132],
+      "wired": true,
+      "interactive": true
     },
     "Bohemia": {
+      "province_id": "bohemia",
       "anchor": [850, 200],
+      "unit_anchor": [850, 200],
+      "label_anchor": [850, 200],
+      "garrison_anchor": [850, 200],
+      "building_anchor": [850, 200],
       "radius": 60,
       "lookup_color": [98, 78, 143],
-      "visual_tint": [126, 114, 139]
+      "visual_tint": [126, 114, 139],
+      "wired": true,
+      "interactive": true
     },
     "Tyrol": {
+      "province_id": "tyrol",
       "anchor": [800, 500],
+      "unit_anchor": [800, 500],
+      "label_anchor": [800, 500],
+      "garrison_anchor": [800, 500],
+      "building_anchor": [800, 500],
       "radius": 52,
       "lookup_color": [150, 96, 72],
-      "visual_tint": [139, 119, 103]
+      "visual_tint": [139, 119, 103],
+      "wired": true,
+      "interactive": true
     }
   }
 }

@@ -94,11 +94,15 @@ def test_renderer_base_loads_placeholder_province_definition_and_textures():
 def test_renderer_base_preserves_update_all_regions_contract():
     source = _read(BASE_GD)
     assert "func update_all_regions(map_data: Dictionary):" in source
-    assert "region_full_data = map_data" in source
+    # §4.1 introduced a wired/interactive gate: region_full_data now holds the
+    # wired subset of map_data so unwired provinces can still render but never
+    # populate gameplay state.
+    assert "region_full_data = wired_data" in source
     assert "_refresh_all_region_visuals()" in source
     assert "_rebuild_dynamic_nodes()" in source
     update_body = source.split("func update_all_regions(map_data: Dictionary):", 1)[1]
     assert "queue_redraw()" in update_body
+    assert "wired" in update_body, "update_all_regions must gate on the wired flag"
 
 
 def test_update_region_accepts_legacy_and_new_payload_shapes():

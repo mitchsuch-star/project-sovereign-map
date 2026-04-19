@@ -863,34 +863,62 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 **Why:** The current renderer proves the color-lookup concept but can't ingest real bitmap art. Without this phase, debugging asset pipeline failures happens at the same time as validating Europe gameplay.
 **Estimated effort:** 1-2 sessions.
 
-### 4.1 Province Registry Schema
+### 4.1 Province Registry Schema — COMPLETE (April 19, 2026)
 
-**Problem:** Province metadata only has `anchor`, `radius`, `lookup_color`, `visual_tint`. Europe needs separate anchors for units/labels/garrisons, plus wired/unwired flags.
+**Problem:** Province metadata only had `anchor`, `radius`, `lookup_color`, `visual_tint`. Europe needs separate anchors for units/labels/garrisons, plus wired/unwired flags.
 
-**Create:** `assets/map/province_registry.json` (or expand the existing placeholder JSON)
+**What landed:** Instead of creating a new `assets/map/province_registry.json`, the existing placeholder `godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json` was expanded in place to `schema_version: 2`. Every region entry now carries:
 
-**Schema per province:**
 ```json
 {
   "province_id": "paris",
-  "lookup_color": [255, 0, 0],
-  "visual_tint": [0.8, 0.2, 0.2],
-  "anchor": [400, 300],
-  "unit_anchor": [410, 310],
-  "label_anchor": [400, 280],
-  "garrison_anchor": [390, 320],
-  "building_anchor": [420, 310],
+  "anchor": [300, 350],
+  "unit_anchor": [300, 350],
+  "label_anchor": [300, 350],
+  "garrison_anchor": [300, 350],
+  "building_anchor": [300, 350],
+  "radius": 72,
+  "lookup_color": [179, 68, 55],
+  "visual_tint": [147, 118, 92],
   "wired": true,
   "interactive": true
 }
 ```
 
-**Changes in `map_renderer_base.gd`:**
-- `_build_province_shapes()` reads new fields
-- Hover/click rejects provinces where `interactive == false`
-- `update_all_regions()` skips unwired provinces for gameplay data but still renders them
+Notes on authored-vs-default behavior:
 
-**Test:** Update `tests/test_map_placeholder_assets.py` to validate new schema fields.
+- `province_id` is authored per region (snake_case, unique).
+- The four per-feature anchors default to `anchor` when omitted so commissioned Europe art can author only the ones it needs.
+- `wired` defaults to `true`; `interactive` defaults to `true`. Placeholder keeps all 19 regions wired/interactive — unwired-province rendering semantics land in §4.4.
+- `lookup_color` continues to be an RGB byte triple (0-255). `visual_tint` is also byte-triple encoded for backward compatibility with the existing `_color_from_rgb_array` helper; the example in prior revisions that showed `[0.8, 0.2, 0.2]` is a documentation artifact, not the runtime contract.
+
+**`map_renderer_base.gd` changes that landed:**
+
+- `_build_province_shapes()` reads `province_id`, `unit_anchor`, `label_anchor`, `garrison_anchor`, `building_anchor`, `wired`, and `interactive` from each province entry and stores them on the `province_shapes[region_name]` dict.
+- `_lookup_region_from_color_map()` returns `""` when the resolved region has `interactive == false`, so neither hover nor click fire for non-interactive provinces.
+- `_refresh_hover_state()` skips non-interactive entries in the distance-based fallback check as well, so the interactive gate is consistent across the color-map path and the circle-distance fallback.
+- `update_all_regions()` filters out unwired provinces before populating `region_full_data`, `region_controllers`, `region_visibility`, `region_marshals`, `region_fogged_forces`, and `region_garrisons`. Unwired provinces are still drawn by the static-visuals path — they just never receive gameplay state.
+- `update_region()` short-circuits if the targeted region is unwired, so the single-region update path is consistent with `update_all_regions()`.
+
+**Tests that landed:**
+
+- `tests/test_map_placeholder_assets.py` now has 12 tests (was 4). New pins:
+  - `test_placeholder_province_asset_declares_schema_version_2`
+  - `test_placeholder_province_entries_have_province_id`
+  - `test_placeholder_province_ids_are_unique`
+  - `test_placeholder_province_entries_have_all_anchor_fields`
+  - `test_placeholder_province_entries_have_wired_and_interactive_flags`
+  - `test_placeholder_all_current_provinces_are_wired_and_interactive`
+  - `test_renderer_consumes_wired_and_interactive_flags`
+  - `test_renderer_consumes_new_anchor_fields`
+- `tests/test_map_renderer_cutover.py::test_renderer_base_preserves_update_all_regions_contract` was updated to pin the new `region_full_data = wired_data` shape and the presence of a `wired` gate inside `update_all_regions()`.
+
+**Follow-ups this does _not_ cover (remain open for §4.4):**
+
+- Grey-tint rendering + "(not yet in play)" hover copy for unwired provinces.
+- Authoring-side per-feature anchor offsets (currently all anchors collapse to `anchor` in the placeholder — commissioned art will supply real offsets).
+
+**Full Python suite after this slice: 8446 passed, 2 skipped.**
 
 ---
 

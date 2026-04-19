@@ -237,12 +237,26 @@ func _build_province_shapes():
 		var radius = float(region_data.get("radius", REGION_RADIUS * 1.8))
 		var lookup_color = _color_from_rgb_array(region_data.get("lookup_color", []), _fallback_lookup_color(region_name))
 		var visual_tint = _color_from_rgb_array(region_data.get("visual_tint", []), lookup_color.lightened(0.45))
+		var province_id = str(region_data.get("province_id", region_name.to_lower()))
+		var unit_anchor = _vector_from_array(region_data.get("unit_anchor", []), center)
+		var label_anchor = _vector_from_array(region_data.get("label_anchor", []), center)
+		var garrison_anchor = _vector_from_array(region_data.get("garrison_anchor", []), center)
+		var building_anchor = _vector_from_array(region_data.get("building_anchor", []), center)
+		var wired = bool(region_data.get("wired", true))
+		var interactive = bool(region_data.get("interactive", true))
 
 		province_shapes[region_name] = {
 			"center": center,
 			"radius": radius,
 			"lookup_color": lookup_color,
 			"visual_tint": visual_tint,
+			"province_id": province_id,
+			"unit_anchor": unit_anchor,
+			"label_anchor": label_anchor,
+			"garrison_anchor": garrison_anchor,
+			"building_anchor": building_anchor,
+			"wired": wired,
+			"interactive": interactive,
 		}
 		province_color_lookup[_color_to_key(lookup_color)] = region_name
 
@@ -1077,7 +1091,12 @@ func _lookup_region_from_color_map(map_position: Vector2) -> String:
 		return ""
 
 	var pixel = province_lookup_image.get_pixel(pixel_x, pixel_y)
-	return province_color_lookup.get(_color_to_key(pixel), "")
+	var region_name = province_color_lookup.get(_color_to_key(pixel), "")
+	if region_name == "":
+		return ""
+	if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("interactive", true)):
+		return ""
+	return region_name
 
 
 func _refresh_hover_state():
@@ -1105,6 +1124,8 @@ func _refresh_hover_state():
 		return
 
 	for region_name in positions:
+		if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("interactive", true)):
+			continue
 		if map_mouse.distance_to(positions[region_name]) <= REGION_RADIUS:
 			_set_hovered_region(region_name)
 			return
@@ -1607,6 +1628,8 @@ func _format_number(num) -> String:
 func update_region(region_name: String, controller: String, marshal_data = null):
 	if not _get_active_region_positions().has(region_name):
 		return
+	if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("wired", true)):
+		return
 
 	region_controllers[region_name] = controller
 	if marshal_data == null:
@@ -1629,10 +1652,21 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 
 
 func update_all_regions(map_data: Dictionary):
-	region_full_data = map_data
-
+	var wired_data := {}
 	for region_name in map_data:
-		var data: Dictionary = map_data[region_name]
+		if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("wired", true)):
+			region_controllers.erase(region_name)
+			region_visibility.erase(region_name)
+			region_marshals.erase(region_name)
+			region_fogged_forces.erase(region_name)
+			region_garrisons.erase(region_name)
+			continue
+		wired_data[region_name] = map_data[region_name]
+
+	region_full_data = wired_data
+
+	for region_name in wired_data:
+		var data: Dictionary = wired_data[region_name]
 		var controller = data.get("controller", "Neutral")
 		if controller == null:
 			controller = "Neutral"
