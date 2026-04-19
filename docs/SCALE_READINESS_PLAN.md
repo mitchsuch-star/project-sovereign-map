@@ -988,7 +988,7 @@ func _load_map_images() -> bool:
 | `MISSING_PROVINCE` | error | A declared province occupies zero pixels in the lookup | Runtime requires "every declared color appears at least once"; this distinguishes "missing entirely" from "insufficient" with a separate code |
 | `INSUFFICIENT_COVERAGE` | error | Province occupies fewer than `--min-coverage-pixels` pixels (default 50) | Runtime allows any pixel count >= 1; offline gate catches "exists but unclickable in practice" |
 | `UNMAPPED_COLOR` | error | Non-sentinel color in lookup is not declared | Runtime fails on the FIRST stray pixel; offline pass collects ALL strays + their counts and sample coordinates so commissioned-art deliveries triage in one pass |
-| `TINY_ISLAND` | warning | Any color (mapped or not) with `1 <= count < --tiny-island-threshold` pixels (default 5) | Pure offline acceptance signal — flags export artifacts and anti-alias bleed regardless of whether the color is declared |
+| `TINY_ISLAND` | warning | Each connected lookup-color island smaller than `--tiny-island-threshold` pixels (default 5) | Pure offline acceptance signal — flags export artifacts and anti-alias bleed even when the aggregate color count is larger |
 
 `SENTINEL_COLLISION` and `DUPLICATE_LOOKUP_COLOR` are registry-only and run when `--visual`/`--lookup` are omitted, so the cheapest acceptance gate works before any PNG exists.
 
@@ -997,15 +997,15 @@ func _load_map_images() -> bool:
 - `--min-coverage-pixels` and `--tiny-island-threshold` tune the two thresholds per delivery.
 - `--json` emits a structured `{ok, error_count, warning_count, failures[]}` report on stdout (suppresses human output) for CI consumption.
 - `--strict` promotes a warnings-only run to a non-zero exit.
-- Exit codes: `0` = pass (no errors; warnings allowed unless `--strict`), `1` = validation failures, `2` = bad input (missing files, malformed registry, unsupported PNG).
+- Exit codes: `0` = pass (no errors; warnings allowed unless `--strict`), `1` = validation failures, `2` = bad input (missing files, malformed/empty registry, unsupported or corrupt PNG).
 
-**PNG decoder scope:** pure-Python decoder (stdlib `zlib` + `struct`) supporting 8-bit RGB (color_type 2) and RGBA (color_type 6) with all five PNG scanline filters (None / Sub / Up / Average / Paeth). Rejects interlaced PNGs, non-zero compression/filter methods, and unsupported bit depths with a clear `PNGDecodeError`. Pillow is intentionally NOT a dependency — the validator stays in the project's existing dependency surface (see `requirements.txt`).
+**PNG decoder scope:** pure-Python decoder (stdlib `zlib` + `struct`) supporting 8-bit RGB (color_type 2) and RGBA (color_type 6) with all five PNG scanline filters (None / Sub / Up / Average / Paeth). Rejects interlaced PNGs, non-zero compression/filter methods, malformed IHDR / truncated chunk payloads, corrupt IDAT streams, and unsupported bit depths with a clear `PNGDecodeError`. The visual PNG's size check now uses the same structural parse without fully decoding pixel rows, so large deliveries do not pay for unnecessary visual-side pixel decoding. Pillow is intentionally NOT a dependency — the validator stays in the project's existing dependency surface (see `requirements.txt`).
 
-**Test coverage (22 tests, `tests/test_province_map_validator.py`):**
-- Registry checks: shipped placeholder passes; sentinel collision detected; duplicate colors detected; loader rejects missing fields and malformed lookup colors.
-- Image checks: clean baseline produces no findings; size mismatch detected (both sizes reported); missing province detected; insufficient coverage detected with default 50-pixel minimum; tiny islands produce both `TINY_ISLAND` warning and `UNMAPPED_COLOR` error when appropriate; high-pixel-count unmapped colors stay error-only (no spurious tiny-island warning); sentinel pixels never produce findings; RGB-only PNGs decode correctly.
-- CLI: exit 0 on clean placeholder; exit 1 on validation error (with code in stdout); exit 2 on missing registry; exit 2 when `--visual` is supplied without `--lookup`; `--json` emits parseable structured report; `--strict` promotes warnings.
-- PNG decoder: rejects interlaced PNGs; rejects non-PNG signatures; round-trips a 5-row RGBA fixture exercising all five filter types.
+**Test coverage (29 tests, `tests/test_province_map_validator.py`):**
+- Registry checks: shipped placeholder passes; sentinel collision detected; duplicate colors detected; loader rejects missing fields, malformed lookup colors, and empty registries.
+- Image checks: clean baseline produces no findings; size mismatch detected (both sizes reported); missing province detected; insufficient coverage detected with default 50-pixel minimum; connected tiny islands produce `TINY_ISLAND` warnings even when repeated specks of the same stray color exceed the threshold in aggregate; high-pixel-count unmapped colors stay error-only (no spurious tiny-island warning); sentinel pixels never produce findings; RGBA alpha is dropped before color comparison; RGB-only PNGs decode correctly.
+- CLI: exit 0 on clean placeholder; exit 1 on validation error (with code in stdout); exit 2 on missing registry, empty registry, malformed PNG streams, and when `--visual` is supplied without `--lookup`; `--json` emits parseable structured report; `--strict` promotes warnings.
+- PNG decoder: rejects interlaced PNGs and non-PNG signatures; supports multiple IDAT chunks; rejects malformed IHDR payloads; round-trips a 5-row RGBA fixture exercising all five filter types.
 
 **Important:** the runtime loader's size-match and lookup-color-presence checks already shipped in §4.2; this validator deliberately goes beyond them rather than duplicating them blindly — collecting ALL findings in one report, distinguishing missing-vs-insufficient-vs-stray, and detecting tiny pixel islands the runtime cannot.
 

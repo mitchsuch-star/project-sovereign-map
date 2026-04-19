@@ -12,9 +12,9 @@ tool covers the offline acceptance checks that the runtime cannot do well:
     3. Image dimension match -- visual + lookup PNGs agree on size.
     4. Province minimum coverage -- every declared province occupies at least
        ``min_coverage_pixels`` pixels in the lookup image (default 50).
-    5. Tiny pixel islands -- any color with ``1 <= count < tiny_island_threshold``
-       pixels is reported as a likely export artifact / anti-alias bleed
-       (default threshold 5).
+    5. Tiny pixel islands -- each connected lookup-color island smaller than
+       ``tiny_island_threshold`` pixels is reported as a likely export artifact
+       / anti-alias bleed (default threshold 5).
     6. Unmapped colors -- any non-sentinel color in the lookup image that is
        not declared in the registry is reported with pixel count and a
        sample ``(x, y)`` coordinate.
@@ -40,11 +40,13 @@ Exit codes::
 
     0   all checks passed (no errors; warnings allowed unless --strict)
     1   one or more error-severity failures
-    2   bad input (missing files, malformed registry, unsupported PNG)
+    2   bad input (missing files, malformed registry, empty registry,
+        unsupported PNG)
 """
 from __future__ import annotations
 
 import argparse
+from array import array
 import json
 import struct
 import sys
@@ -110,6 +112,14 @@ class PNGDecodeError(Exception):
     pass
 
 
+def _rgb_to_int(rgb: tuple[int, int, int]) -> int:
+    return (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]
+
+
+def _int_to_rgb(color: int) -> tuple[int, int, int]:
+    return ((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF)
+
+
 def _paeth(a: int, b: int, c: int) -> int:
     p = a + b - c
     pa = abs(p - a)
@@ -157,39 +167,58 @@ def _unfilter_scanlines(raw: bytes, width: int, height: int, bpp: int) -> bytear
     return out
 
 
-def read_png_pixels(path: Path) -> tuple[int, int, list[list[tuple[int, int, int]]]]:
-    """Decode an 8-bit RGB or RGBA PNG into (width, height, rows of (r, g, b)).
-
-    Alpha is dropped if present; only the RGB triple is used for color-map
-    lookups. Raises :class:`PNGDecodeError` for unsupported formats.
-    """
+def _parse_png_structure(
+    path: Path,
+    *,
+    collect_idat: bool,
+) -> tuple[int, int, int, bytearray]:
+    """Parse PNG structure, validating the supported validator subset."""
     blob = path.read_bytes()
     if not blob.startswith(PNG_SIGNATURE):
         raise PNGDecodeError(f"{path.name} is not a PNG file (missing signature)")
 
     cursor = len(PNG_SIGNATURE)
-    width = height = bit_depth = color_type = None
+    width = height = color_type = None
+    saw_ihdr = False
+    saw_idat = False
+    saw_iend = False
     idat = bytearray()
     while cursor < len(blob):
         if cursor + 8 > len(blob):
             raise PNGDecodeError(f"{path.name}: truncated chunk header")
-        length = struct.unpack(">I", blob[cursor:cursor + 4])[0]
+        try:
+            length = struct.unpack(">I", blob[cursor:cursor + 4])[0]
+        except struct.error as exc:
+            raise PNGDecodeError(f"{path.name}: malformed chunk length") from exc
         cursor += 4
         chunk_type = blob[cursor:cursor + 4]
         cursor += 4
+        if cursor + length + 4 > len(blob):
+            chunk_label = chunk_type.decode("ascii", errors="replace")
+            raise PNGDecodeError(f"{path.name}: truncated {chunk_label} chunk payload")
         payload = blob[cursor:cursor + length]
         cursor += length
         cursor += 4  # skip CRC; trust the file
         if chunk_type == b"IHDR":
-            (
-                width,
-                height,
-                bit_depth,
-                color_type,
-                compression,
-                filter_method,
-                interlace,
-            ) = struct.unpack(">IIBBBBB", payload)
+            if saw_ihdr:
+                raise PNGDecodeError(f"{path.name}: multiple IHDR chunks are not supported")
+            if length != 13:
+                raise PNGDecodeError(f"{path.name}: IHDR payload must be 13 bytes (got {length})")
+            try:
+                (
+                    width,
+                    height,
+                    bit_depth,
+                    color_type,
+                    compression,
+                    filter_method,
+                    interlace,
+                ) = struct.unpack(">IIBBBBB", payload)
+            except struct.error as exc:
+                raise PNGDecodeError(f"{path.name}: malformed IHDR chunk") from exc
+            saw_ihdr = True
+            if width <= 0 or height <= 0:
+                raise PNGDecodeError(f"{path.name}: PNG width/height must be > 0")
             if compression != 0 or filter_method != 0:
                 raise PNGDecodeError(
                     f"{path.name}: unsupported compression/filter "
@@ -205,17 +234,39 @@ def read_png_pixels(path: Path) -> tuple[int, int, list[list[tuple[int, int, int
                     f"({bit_depth}/{color_type}); expected 8-bit RGB (2) or RGBA (6)"
                 )
         elif chunk_type == b"IDAT":
-            idat.extend(payload)
+            if not saw_ihdr:
+                raise PNGDecodeError(f"{path.name}: IDAT chunk appears before IHDR")
+            saw_idat = True
+            if collect_idat:
+                idat.extend(payload)
         elif chunk_type == b"IEND":
+            saw_iend = True
             break
 
-    if width is None or height is None or color_type is None:
+    if not saw_ihdr or width is None or height is None or color_type is None:
         raise PNGDecodeError(f"{path.name}: missing IHDR chunk")
-    if not idat:
+    if not saw_idat:
         raise PNGDecodeError(f"{path.name}: missing IDAT chunk")
+    if not saw_iend:
+        raise PNGDecodeError(f"{path.name}: missing IEND chunk")
+    return width, height, color_type, idat
+
+
+def read_png_size(path: Path) -> tuple[int, int]:
+    """Read PNG dimensions without decoding the image payload."""
+    width, height, _color_type, _idat = _parse_png_structure(path, collect_idat=False)
+    return width, height
+
+
+def read_png_rgb_bytes(path: Path) -> tuple[int, int, bytearray]:
+    """Decode an 8-bit RGB/RGBA PNG into a flat RGB bytearray."""
+    width, height, color_type, idat = _parse_png_structure(path, collect_idat=True)
+    try:
+        raw = zlib.decompress(bytes(idat))
+    except zlib.error as exc:
+        raise PNGDecodeError(f"{path.name}: failed to decompress IDAT stream ({exc})") from exc
 
     bpp = 3 if color_type == 2 else 4
-    raw = zlib.decompress(bytes(idat))
     expected_len = (1 + width * bpp) * height
     if len(raw) != expected_len:
         raise PNGDecodeError(
@@ -223,14 +274,36 @@ def read_png_pixels(path: Path) -> tuple[int, int, list[list[tuple[int, int, int
         )
 
     pixel_bytes = _unfilter_scanlines(raw, width, height, bpp)
+    if color_type == 2:
+        return width, height, pixel_bytes
+
+    rgb_bytes = bytearray(width * height * 3)
+    read_cursor = 0
+    write_cursor = 0
+    for _ in range(width * height):
+        rgb_bytes[write_cursor] = pixel_bytes[read_cursor]
+        rgb_bytes[write_cursor + 1] = pixel_bytes[read_cursor + 1]
+        rgb_bytes[write_cursor + 2] = pixel_bytes[read_cursor + 2]
+        read_cursor += 4
+        write_cursor += 3
+    return width, height, rgb_bytes
+
+
+def read_png_pixels(path: Path) -> tuple[int, int, list[list[tuple[int, int, int]]]]:
+    """Decode an 8-bit RGB or RGBA PNG into (width, height, rows of (r, g, b)).
+
+    Alpha is dropped if present; only the RGB triple is used for color-map
+    lookups. Raises :class:`PNGDecodeError` for unsupported formats.
+    """
+    width, height, rgb_bytes = read_png_rgb_bytes(path)
     rows: list[list[tuple[int, int, int]]] = []
-    stride = width * bpp
+    stride = width * 3
     for y in range(height):
         row_start = y * stride
         row: list[tuple[int, int, int]] = []
         for x in range(width):
-            base = row_start + x * bpp
-            row.append((pixel_bytes[base], pixel_bytes[base + 1], pixel_bytes[base + 2]))
+            base = row_start + x * 3
+            row.append((rgb_bytes[base], rgb_bytes[base + 1], rgb_bytes[base + 2]))
         rows.append(row)
     return width, height, rows
 
@@ -264,8 +337,12 @@ def load_registry(path: Path) -> dict:
         raise ValueError("registry missing 'regions' dict")
     if "no_province_color" not in raw:
         raise ValueError("registry missing 'no_province_color'")
+    if not raw["regions"]:
+        raise ValueError("registry 'regions' must not be empty")
     _coerce_rgb(raw["no_province_color"], "no_province_color")
     for name, entry in raw["regions"].items():
+        if not isinstance(entry, dict):
+            raise ValueError(f"region {name!r} must be an object")
         if "lookup_color" not in entry:
             raise ValueError(f"region {name!r} missing 'lookup_color'")
         _coerce_rgb(entry["lookup_color"], f"region {name!r} lookup_color")
@@ -314,18 +391,131 @@ def validate_registry(province_data: dict) -> list[ValidationFailure]:
 # ---------------------------------------------------------------------------
 
 
-def _count_colors(
-    rows: list[list[tuple[int, int, int]]],
-) -> tuple[dict[tuple[int, int, int], int], dict[tuple[int, int, int], tuple[int, int]]]:
-    """Return (counts, first_seen_xy) keyed by RGB triple."""
-    counts: dict[tuple[int, int, int], int] = {}
-    first_seen: dict[tuple[int, int, int], tuple[int, int]] = {}
-    for y, row in enumerate(rows):
-        for x, pixel in enumerate(row):
-            counts[pixel] = counts.get(pixel, 0) + 1
-            if pixel not in first_seen:
-                first_seen[pixel] = (x, y)
-    return counts, first_seen
+def _count_color_keys(
+    rgb_bytes: bytearray,
+    width: int,
+) -> tuple[dict[int, int], dict[int, tuple[int, int]], array]:
+    """Return (counts, first_seen_xy, flat color-key array) keyed by RGB int."""
+    counts: dict[int, int] = {}
+    first_seen: dict[int, tuple[int, int]] = {}
+    color_keys = array("I")
+    append_color_key = color_keys.append
+    x = 0
+    y = 0
+    for base in range(0, len(rgb_bytes), 3):
+        color_key = (
+            (rgb_bytes[base] << 16)
+            | (rgb_bytes[base + 1] << 8)
+            | rgb_bytes[base + 2]
+        )
+        append_color_key(color_key)
+        counts[color_key] = counts.get(color_key, 0) + 1
+        if color_key not in first_seen:
+            first_seen[color_key] = (x, y)
+        x += 1
+        if x == width:
+            x = 0
+            y += 1
+    return counts, first_seen, color_keys
+
+
+def _find_tiny_islands(
+    color_keys: array,
+    width: int,
+    height: int,
+    *,
+    tiny_island_threshold: int,
+    sentinel_key: int,
+    color_to_region: dict[int, str],
+) -> list[ValidationFailure]:
+    """Return one warning per connected color island smaller than the threshold."""
+    if tiny_island_threshold <= 1:
+        return []
+
+    def _find_label(label: int, parent: list[int]) -> int:
+        while parent[label] != label:
+            parent[label] = parent[parent[label]]
+            label = parent[label]
+        return label
+
+    def _union_labels(left: int, right: int, parent: list[int], size: list[int]) -> int:
+        left_root = _find_label(left, parent)
+        right_root = _find_label(right, parent)
+        if left_root == right_root:
+            return left_root
+        if left_root > right_root:
+            left_root, right_root = right_root, left_root
+        parent[right_root] = left_root
+        size[left_root] += size[right_root]
+        return left_root
+
+    findings: list[ValidationFailure] = []
+    parent: list[int] = []
+    size: list[int] = []
+    samples: list[tuple[int, int]] = []
+    colors: list[int] = []
+    previous_runs: list[tuple[int, int, int, int]] = []
+    next_label = 0
+
+    for y in range(height):
+        row_start = y * width
+        current_runs: list[tuple[int, int, int, int]] = []
+        x = 0
+        while x < width:
+            color_key = color_keys[row_start + x]
+            run_start = x
+            x += 1
+            while x < width and color_keys[row_start + x] == color_key:
+                x += 1
+            run_end = x - 1
+            if color_key == sentinel_key:
+                continue
+
+            label = next_label
+            next_label += 1
+            parent.append(label)
+            size.append(run_end - run_start + 1)
+            samples.append((run_start, y))
+            colors.append(color_key)
+
+            for prev_start, prev_end, prev_color, prev_label in previous_runs:
+                if prev_color != color_key:
+                    continue
+                if prev_end < run_start - 1 or prev_start > run_end + 1:
+                    continue
+                label = _union_labels(label, prev_label, parent, size)
+
+            current_runs.append(
+                (run_start, run_end, color_key, _find_label(label, parent))
+            )
+        previous_runs = current_runs
+
+    for label, color_key in enumerate(colors):
+        root = _find_label(label, parent)
+        if root != label:
+            continue
+        island_size = size[root]
+        if island_size < tiny_island_threshold:
+            rgb = _int_to_rgb(color_key)
+            sample = samples[root]
+            findings.append(
+                ValidationFailure(
+                    code="TINY_ISLAND",
+                    severity=WARNING,
+                    message=(
+                        f"Color {_color_key(rgb)} has a tiny island of {island_size} pixel(s) "
+                        f"at {sample[0]},{sample[1]} -- likely export artifact / anti-alias bleed."
+                    ),
+                    detail={
+                        "color": list(rgb),
+                        "pixel_count": island_size,
+                        "sample_xy": list(sample),
+                        "region": color_to_region.get(color_key),
+                    },
+                )
+            )
+
+    return findings
 
 
 def validate_images(
@@ -338,8 +528,8 @@ def validate_images(
 ) -> list[ValidationFailure]:
     """Image-side checks: dimensions, coverage, tiny islands, unmapped colors."""
     findings: list[ValidationFailure] = []
-    visual_width, visual_height, _ = read_png_pixels(visual_path)
-    lookup_width, lookup_height, lookup_rows = read_png_pixels(lookup_path)
+    visual_width, visual_height = read_png_size(visual_path)
+    lookup_width, lookup_height, lookup_rgb_bytes = read_png_rgb_bytes(lookup_path)
     if (visual_width, visual_height) != (lookup_width, lookup_height):
         findings.append(
             ValidationFailure(
@@ -359,25 +549,27 @@ def validate_images(
         # against the lookup image even when the visual is wrong.
 
     sentinel = tuple(province_data["no_province_color"])
-    color_to_region: dict[tuple[int, int, int], str] = {
-        tuple(entry["lookup_color"]): name
+    sentinel_key = _rgb_to_int(sentinel)
+    color_to_region: dict[int, str] = {
+        _rgb_to_int(tuple(entry["lookup_color"])): name
         for name, entry in province_data["regions"].items()
     }
-    counts, first_seen = _count_colors(lookup_rows)
+    counts, first_seen, color_keys = _count_color_keys(lookup_rgb_bytes, lookup_width)
 
     # Province coverage: missing entirely vs. insufficient pixels.
-    for color, region in color_to_region.items():
-        pixel_count = counts.get(color, 0)
+    for color_key, region in color_to_region.items():
+        pixel_count = counts.get(color_key, 0)
+        rgb = _int_to_rgb(color_key)
         if pixel_count == 0:
             findings.append(
                 ValidationFailure(
                     code="MISSING_PROVINCE",
                     severity=ERROR,
                     message=(
-                        f"Province {region!r} (color {_color_key(color)}) does not "
+                        f"Province {region!r} (color {_color_key(rgb)}) does not "
                         f"appear in the lookup image."
                     ),
-                    detail={"region": region, "color": list(color), "pixel_count": 0},
+                    detail={"region": region, "color": list(rgb), "pixel_count": 0},
                 )
             )
         elif pixel_count < min_coverage_pixels:
@@ -386,12 +578,12 @@ def validate_images(
                     code="INSUFFICIENT_COVERAGE",
                     severity=ERROR,
                     message=(
-                        f"Province {region!r} (color {_color_key(color)}) covers only "
+                        f"Province {region!r} (color {_color_key(rgb)}) covers only "
                         f"{pixel_count} pixel(s) (minimum: {min_coverage_pixels})."
                     ),
                     detail={
                         "region": region,
-                        "color": list(color),
+                        "color": list(rgb),
                         "pixel_count": pixel_count,
                         "min_required": min_coverage_pixels,
                     },
@@ -399,44 +591,38 @@ def validate_images(
             )
 
     # Unmapped colors and tiny islands across the whole lookup.
-    for color, count in counts.items():
-        if color == sentinel:
+    for color_key, count in counts.items():
+        if color_key == sentinel_key:
             continue
-        sample = first_seen[color]
-        if color not in color_to_region:
+        sample = first_seen[color_key]
+        if color_key not in color_to_region:
+            rgb = _int_to_rgb(color_key)
             findings.append(
                 ValidationFailure(
                     code="UNMAPPED_COLOR",
                     severity=ERROR,
                     message=(
-                        f"Lookup contains undeclared color {_color_key(color)} "
+                        f"Lookup contains undeclared color {_color_key(rgb)} "
                         f"({count} pixel(s); first seen at {sample[0]},{sample[1]})."
                     ),
                     detail={
-                        "color": list(color),
+                        "color": list(rgb),
                         "pixel_count": count,
                         "sample_xy": list(sample),
                     },
                 )
             )
-        if 0 < count < tiny_island_threshold:
-            findings.append(
-                ValidationFailure(
-                    code="TINY_ISLAND",
-                    severity=WARNING,
-                    message=(
-                        f"Color {_color_key(color)} appears as {count} pixel(s) at "
-                        f"{sample[0]},{sample[1]} -- likely export artifact / "
-                        f"anti-alias bleed."
-                    ),
-                    detail={
-                        "color": list(color),
-                        "pixel_count": count,
-                        "sample_xy": list(sample),
-                        "region": color_to_region.get(color),
-                    },
-                )
-            )
+
+    findings.extend(
+        _find_tiny_islands(
+            color_keys,
+            lookup_width,
+            lookup_height,
+            tiny_island_threshold=tiny_island_threshold,
+            sentinel_key=sentinel_key,
+            color_to_region=color_to_region,
+        )
+    )
 
     return findings
 

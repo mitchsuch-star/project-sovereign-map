@@ -57,41 +57,72 @@ def _chunk(chunk_type: bytes, payload: bytes) -> bytes:
     )
 
 
-def _write_rgba_png(path: Path, rows: list[list[tuple[int, int, int]]]) -> None:
+def _build_png_payload(
+    *,
+    width: int,
+    height: int,
+    raw: bytes,
+    color_type: int,
+    split_idat: bool = False,
+) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, color_type, 0, 0, 0)
+    compressed = zlib.compress(raw)
+    if split_idat and len(compressed) > 2:
+        midpoint = len(compressed) // 2
+        idat = _chunk(b"IDAT", compressed[:midpoint]) + _chunk(b"IDAT", compressed[midpoint:])
+    else:
+        idat = _chunk(b"IDAT", compressed)
+    return PNG_SIGNATURE + _chunk(b"IHDR", ihdr) + idat + _chunk(b"IEND", b"")
+
+
+def _write_rgba_png(
+    path: Path,
+    rows: list[list[tuple[int, int, int]]],
+    *,
+    alpha_fn=None,
+    split_idat: bool = False,
+) -> None:
     """Write a minimal 8-bit RGBA PNG with filter type 0 (no prediction)."""
     height = len(rows)
     width = len(rows[0]) if rows else 0
     assert width > 0 and height > 0
     raw = bytearray()
-    for row in rows:
+    for y, row in enumerate(rows):
         raw.append(0)  # filter type
-        for r, g, b in row:
-            raw.extend((r, g, b, 255))
-    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    payload = (
-        PNG_SIGNATURE
-        + _chunk(b"IHDR", ihdr)
-        + _chunk(b"IDAT", zlib.compress(bytes(raw)))
-        + _chunk(b"IEND", b"")
+        for x, (r, g, b) in enumerate(row):
+            alpha = 255 if alpha_fn is None else alpha_fn(x, y, r, g, b)
+            raw.extend((r, g, b, alpha))
+    payload = _build_png_payload(
+        width=width,
+        height=height,
+        raw=bytes(raw),
+        color_type=6,
+        split_idat=split_idat,
     )
     path.write_bytes(payload)
 
 
-def _write_rgb_png(path: Path, rows: list[list[tuple[int, int, int]]]) -> None:
+def _write_rgb_png(
+    path: Path,
+    rows: list[list[tuple[int, int, int]]],
+    *,
+    split_idat: bool = False,
+) -> None:
     """Write a minimal 8-bit RGB PNG (color_type 2)."""
     height = len(rows)
     width = len(rows[0]) if rows else 0
+    assert width > 0 and height > 0
     raw = bytearray()
     for row in rows:
         raw.append(0)
         for r, g, b in row:
             raw.extend((r, g, b))
-    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    payload = (
-        PNG_SIGNATURE
-        + _chunk(b"IHDR", ihdr)
-        + _chunk(b"IDAT", zlib.compress(bytes(raw)))
-        + _chunk(b"IEND", b"")
+    payload = _build_png_payload(
+        width=width,
+        height=height,
+        raw=bytes(raw),
+        color_type=2,
+        split_idat=split_idat,
     )
     path.write_bytes(payload)
 
@@ -180,6 +211,16 @@ def test_registry_loader_rejects_malformed_lookup_color(tmp_path):
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="channels must be ints"):
+        vpm.load_registry(bad_path)
+
+
+def test_registry_loader_rejects_empty_regions(tmp_path):
+    bad_path = tmp_path / "bad.json"
+    bad_path.write_text(
+        json.dumps({"no_province_color": [0, 0, 0], "regions": {}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="must not be empty"):
         vpm.load_registry(bad_path)
 
 
@@ -305,6 +346,42 @@ def test_image_validation_flags_tiny_islands_as_warning(tmp_path):
     assert unmapped[0].detail["sample_xy"] == [4, 3]
 
 
+def test_image_validation_flags_disconnected_repeated_tiny_islands(tmp_path):
+    """Repeated 1-pixel specks of the same undeclared color must still be
+    flagged as tiny islands even when their aggregate color count exceeds the
+    threshold."""
+    paris = (179, 68, 55)
+    sentinel = (0, 0, 0)
+    splash = (1, 2, 3)
+    data = _make_registry({"Paris": paris}, sentinel)
+
+    visual = tmp_path / "visual.png"
+    lookup = tmp_path / "lookup.png"
+    rows = [[paris] * 10 for _ in range(10)]
+    for x, y in ((0, 0), (2, 0), (4, 0), (6, 0), (8, 0), (0, 2)):
+        rows[y][x] = splash
+    _write_rgba_png(visual, rows)
+    _write_rgba_png(lookup, rows)
+
+    findings = vpm.validate_images(visual, lookup, data, min_coverage_pixels=1)
+
+    unmapped = [f for f in findings if f.code == "UNMAPPED_COLOR"]
+    assert len(unmapped) == 1
+    assert unmapped[0].detail["pixel_count"] == 6
+
+    tiny = [f for f in findings if f.code == "TINY_ISLAND"]
+    assert len(tiny) == 6
+    assert all(f.detail["pixel_count"] == 1 for f in tiny)
+    assert {tuple(f.detail["sample_xy"]) for f in tiny} == {
+        (0, 0),
+        (2, 0),
+        (4, 0),
+        (6, 0),
+        (8, 0),
+        (0, 2),
+    }
+
+
 def test_image_validation_flags_unmapped_color_with_high_pixel_count(tmp_path):
     """A high-pixel-count unmapped color must produce an UNMAPPED_COLOR
     error WITHOUT a tiny-island warning."""
@@ -372,6 +449,22 @@ def test_image_validation_handles_rgb_png_input(tmp_path):
     assert findings == []
 
 
+def test_image_validation_drops_alpha_before_color_comparison(tmp_path):
+    paris = (179, 68, 55)
+    belgium = (198, 97, 34)
+    sentinel = (0, 0, 0)
+    data = _make_registry({"Paris": paris, "Belgium": belgium}, sentinel)
+
+    visual = tmp_path / "visual.png"
+    lookup = tmp_path / "lookup.png"
+    rows = [[paris, belgium] * 5 for _ in range(10)]
+    _write_rgba_png(visual, rows)
+    _write_rgba_png(lookup, rows, alpha_fn=lambda x, _y, *_rgb: 0 if x % 2 == 0 else 255)
+
+    findings = vpm.validate_images(visual, lookup, data, min_coverage_pixels=1)
+    assert findings == []
+
+
 # ---------------------------------------------------------------------------
 # CLI: exit codes and JSON output mode.
 # ---------------------------------------------------------------------------
@@ -418,6 +511,19 @@ def test_cli_exit_two_on_visual_without_lookup(tmp_path):
         )
     assert rc == 2
     assert "must be provided together" in err_buf.getvalue()
+
+
+def test_cli_exit_two_on_empty_registry(tmp_path):
+    registry = _write_registry(
+        tmp_path,
+        {"no_province_color": [0, 0, 0], "regions": {}},
+    )
+
+    err_buf = io.StringIO()
+    with redirect_stderr(err_buf):
+        rc = vpm.main(["--registry", str(registry)])
+    assert rc == 2
+    assert "must not be empty" in err_buf.getvalue()
 
 
 def test_cli_json_mode_emits_structured_report(tmp_path):
@@ -495,6 +601,36 @@ def test_cli_strict_mode_promotes_warnings_to_failure_exit(tmp_path):
     assert rc == 1  # --strict promotes warnings
 
 
+def test_cli_exit_two_on_malformed_png_stream(tmp_path):
+    registry = _write_registry(tmp_path, _make_registry({"Paris": (179, 68, 55)}))
+    visual = tmp_path / "visual.png"
+    lookup = tmp_path / "lookup.png"
+    _write_rgba_png(visual, [[(179, 68, 55)]])
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
+    lookup.write_bytes(
+        PNG_SIGNATURE
+        + _chunk(b"IHDR", ihdr)
+        + _chunk(b"IDAT", b"not-zlib")
+        + _chunk(b"IEND", b"")
+    )
+
+    err_buf = io.StringIO()
+    with redirect_stderr(err_buf):
+        rc = vpm.main(
+            [
+                "--registry",
+                str(registry),
+                "--visual",
+                str(visual),
+                "--lookup",
+                str(lookup),
+            ]
+        )
+    assert rc == 2
+    assert "failed to decompress IDAT stream" in err_buf.getvalue()
+
+
 # ---------------------------------------------------------------------------
 # PNG decoder coverage for all 5 filter types and unsupported formats.
 # ---------------------------------------------------------------------------
@@ -518,6 +654,30 @@ def test_png_decoder_rejects_non_png_signature(tmp_path):
     path = tmp_path / "not_a_png.png"
     path.write_bytes(b"hello world")
     with pytest.raises(vpm.PNGDecodeError, match="not a PNG"):
+        vpm.read_png_pixels(path)
+
+
+def test_png_decoder_handles_multiple_idat_chunks(tmp_path):
+    path = tmp_path / "multi_idat.png"
+    rows = [
+        [(1, 2, 3), (4, 5, 6)],
+        [(7, 8, 9), (10, 11, 12)],
+    ]
+    _write_rgb_png(path, rows, split_idat=True)
+
+    assert vpm.read_png_pixels(path) == (2, 2, rows)
+
+
+def test_png_decoder_rejects_malformed_ihdr_payload(tmp_path):
+    path = tmp_path / "bad_ihdr.png"
+    path.write_bytes(
+        PNG_SIGNATURE
+        + _chunk(b"IHDR", b"abc")
+        + _chunk(b"IDAT", zlib.compress(b"\x00\x00\x00\x00"))
+        + _chunk(b"IEND", b"")
+    )
+
+    with pytest.raises(vpm.PNGDecodeError, match="IHDR payload must be 13 bytes"):
         vpm.read_png_pixels(path)
 
 
