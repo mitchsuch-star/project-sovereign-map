@@ -20,6 +20,14 @@ const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
 const INITIAL_CAMERA_OVERSCAN: float = 1.18
 const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
+# §4.4: unwired provinces are painted over with a flat grey tint so authors can
+# see map coverage without exposing outlined-but-unimplemented territory as
+# playable. `UNWIRED_GREY_BLEND` is the lerp factor toward `UNWIRED_GREY_COLOR`:
+# 0.0 = underlying visual unchanged, 1.0 = fully flat grey. Kept high enough to
+# clearly read as "not yet in play" without erasing the underlying shape.
+const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)
+const UNWIRED_GREY_BLEND: float = 0.7
+const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"
 static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
@@ -313,6 +321,7 @@ func _build_map_textures():
 		_draw_circle_on_image(color_map, center, radius, shape["lookup_color"])
 
 	province_lookup_image = color_map
+	_apply_unwired_grey_overlay(visual_image, color_map)
 	visual_map_texture = ImageTexture.create_from_image(visual_image)
 	_clear_highlight_texture()
 
@@ -362,6 +371,7 @@ func _load_map_images() -> bool:
 	map_origin = Vector2.ZERO
 	map_canvas_size = Vector2(visual_image.get_size())
 	province_lookup_image = lookup_image
+	_apply_unwired_grey_overlay(visual_image, lookup_image)
 	visual_map_texture = ImageTexture.create_from_image(visual_image)
 	_clear_highlight_texture()
 	return true
@@ -453,6 +463,53 @@ func _color_to_key(color: Color) -> String:
 		int(round(color.g * 255.0)),
 		int(round(color.b * 255.0)),
 	]
+
+
+func _is_region_wired(region_name: String) -> bool:
+	# §4.4: unwired provinces render in grey tint, hover shows "(not yet in
+	# play)", and clicks are suppressed. Regions not in province_shapes
+	# (legacy paths without registry data) default to wired so existing
+	# behavior is preserved.
+	if not province_shapes.has(region_name):
+		return true
+	return bool(province_shapes[region_name].get("wired", true))
+
+
+func _unwired_lookup_keys() -> Dictionary:
+	# Returns a set (dict-as-set) of lookup-color keys belonging to unwired
+	# provinces, used to stamp the grey overlay onto the visual image in one
+	# pass.
+	var keys := {}
+	for color_key in province_color_lookup.keys():
+		var region_name = province_color_lookup[color_key]
+		if not _is_region_wired(region_name):
+			keys[color_key] = true
+	return keys
+
+
+func _apply_unwired_grey_overlay(visual_image: Image, lookup_image: Image) -> void:
+	# §4.4: blend UNWIRED_GREY_COLOR over every visual pixel whose lookup color
+	# belongs to an unwired province. Runs after either the bitmap loader or
+	# the circle fallback has populated visual_image, so the tint applies
+	# uniformly regardless of source. No-op when every province is wired.
+	if visual_image == null or lookup_image == null:
+		return
+	var unwired_keys := _unwired_lookup_keys()
+	if unwired_keys.is_empty():
+		return
+	if visual_image.get_size() != lookup_image.get_size():
+		return
+	var width = lookup_image.get_width()
+	var height = lookup_image.get_height()
+	for y in range(height):
+		for x in range(width):
+			var pixel_key = _color_to_key(lookup_image.get_pixel(x, y))
+			if not unwired_keys.has(pixel_key):
+				continue
+			var base = visual_image.get_pixel(x, y)
+			var tinted = base.lerp(UNWIRED_GREY_COLOR, UNWIRED_GREY_BLEND)
+			tinted.a = base.a
+			visual_image.set_pixel(x, y, tinted)
 
 
 func _draw_circle_on_image(image: Image, center: Vector2, radius: float, color: Color):
@@ -1104,6 +1161,10 @@ func _input(event):
 			if clicked_region == "":
 				clicked_region = hovered_region
 			if clicked_region != "":
+				# §4.4: clicks on unwired provinces are no-ops — the region is
+				# outlined for coverage preview but has no gameplay data.
+				if not _is_region_wired(clicked_region):
+					return
 				region_clicked.emit(clicked_region)
 			return
 
@@ -1167,6 +1228,11 @@ func _draw():
 		_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
 		_draw_fogged_force_tooltip()
+	elif hovered_region != "" and not _is_region_wired(hovered_region):
+		# §4.4: unwired provinces never populate region_full_data, so the
+		# standard region tooltip cannot render. Show a dedicated placeholder
+		# tooltip so authors can still identify the province by name.
+		_draw_unwired_region_tooltip()
 	elif hovered_region != "" and region_full_data.has(hovered_region):
 		_draw_region_tooltip()
 	elif tooltip_layer != null:
@@ -1556,6 +1622,16 @@ func _draw_fogged_force_tooltip():
 	_push_tooltip_line(lines, intel_text, intel_color)
 
 	_draw_tooltip_lines(lines, 220.0, Color(0.12, 0.1, 0.18, 0.95), Color(0.6, 0.6, 0.7, 0.8))
+
+
+func _draw_unwired_region_tooltip():
+	# §4.4: named but unimplemented province. Keep the panel visually distinct
+	# from the full region tooltip so authors never mistake an unwired province
+	# for a fogged one.
+	var lines: Array = []
+	_push_tooltip_line(lines, hovered_region, Color(0.75, 0.75, 0.8), 14)
+	_push_tooltip_line(lines, UNWIRED_TOOLTIP_SUFFIX, Color(0.55, 0.55, 0.6))
+	_draw_tooltip_lines(lines, 220.0, Color(0.08, 0.08, 0.1, 0.92), Color(0.35, 0.35, 0.4, 0.85))
 
 
 func _draw_region_tooltip():

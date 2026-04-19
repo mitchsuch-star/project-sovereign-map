@@ -312,3 +312,157 @@ def test_camera_cutover_sets_initial_zoom_and_reverses_wheel_mapping():
     assert "return clamp(fit_ratio / INITIAL_CAMERA_OVERSCAN, min_zoom, max_zoom)" in source
     assert "_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)" in source
     assert "_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)" in source
+
+
+def test_renderer_declares_unwired_grey_overlay_constants():
+    """§4.4: the renderer pins a single grey-tint color and blend factor so
+    unwired regions look uniform across the bitmap and circle-fallback paths.
+    """
+    source = _read(BASE_GD)
+    assert "const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)" in source
+    assert "const UNWIRED_GREY_BLEND: float = 0.7" in source
+    assert 'const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"' in source
+
+
+def test_renderer_exposes_is_region_wired_helper():
+    source = _read(BASE_GD)
+    assert "func _is_region_wired(region_name: String) -> bool:" in source
+    body = _func_body(source, "func _is_region_wired(region_name: String) -> bool:")
+    # Regions missing from province_shapes default to wired so legacy call
+    # sites (no registry loaded) keep their existing behavior.
+    assert "if not province_shapes.has(region_name):" in body
+    assert "return true" in body
+    assert 'return bool(province_shapes[region_name].get("wired", true))' in body
+
+
+def test_renderer_defines_unwired_overlay_function():
+    """§4.4: the overlay helper is declared and stamps grey over any lookup
+    pixel belonging to an unwired province. The early-return on empty set
+    keeps the placeholder (all-wired) path zero-cost.
+    """
+    source = _read(BASE_GD)
+    assert (
+        "func _apply_unwired_grey_overlay(visual_image: Image, lookup_image: Image) -> void:"
+        in source
+    )
+    body = _func_body(
+        source,
+        "func _apply_unwired_grey_overlay(visual_image: Image, lookup_image: Image) -> void:",
+    )
+    assert "if visual_image == null or lookup_image == null:" in body
+    assert "var unwired_keys := _unwired_lookup_keys()" in body
+    assert "if unwired_keys.is_empty():" in body
+    assert "if visual_image.get_size() != lookup_image.get_size():" in body
+    assert "lookup_image.get_pixel(x, y)" in body
+    assert "base.lerp(UNWIRED_GREY_COLOR, UNWIRED_GREY_BLEND)" in body
+    assert "visual_image.set_pixel(x, y, tinted)" in body
+
+
+def test_renderer_defines_unwired_lookup_keys_helper():
+    source = _read(BASE_GD)
+    assert "func _unwired_lookup_keys() -> Dictionary:" in source
+    body = _func_body(source, "func _unwired_lookup_keys() -> Dictionary:")
+    assert "for color_key in province_color_lookup.keys():" in body
+    assert "var region_name = province_color_lookup[color_key]" in body
+    assert "if not _is_region_wired(region_name):" in body
+    assert "keys[color_key] = true" in body
+
+
+def test_build_map_textures_applies_unwired_overlay_in_circle_fallback():
+    """§4.4: after the circle fallback populates visual_image, the grey
+    overlay must run BEFORE the texture is created so unwired pixels are
+    tinted in the final texture.
+    """
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _build_map_textures():")
+    overlay_index = body.index("_apply_unwired_grey_overlay(visual_image, color_map)")
+    texture_index = body.index("visual_map_texture = ImageTexture.create_from_image(visual_image)")
+    assert overlay_index < texture_index, (
+        "grey overlay must run before texture creation in circle fallback"
+    )
+
+
+def test_load_map_images_applies_unwired_overlay_before_texture():
+    """§4.4: the bitmap path must also pass visual_image through the overlay
+    BEFORE converting it to a texture so unwired regions of commissioned art
+    render grey.
+    """
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _load_map_images() -> bool:")
+    overlay_index = body.index("_apply_unwired_grey_overlay(visual_image, lookup_image)")
+    texture_index = body.index("visual_map_texture = ImageTexture.create_from_image(visual_image)")
+    assert overlay_index < texture_index, (
+        "grey overlay must run before texture creation in bitmap path"
+    )
+    # The overlay must sit AFTER province_lookup_image is assigned so
+    # _unwired_lookup_keys() has the registry-backed keys populated.
+    lookup_assign_index = body.index("province_lookup_image = lookup_image")
+    assert lookup_assign_index < overlay_index
+
+
+def test_click_handler_gates_emit_on_wired_flag():
+    """§4.4: clicking an unwired province must NOT emit region_clicked.
+
+    The guard lives inside the MOUSE_BUTTON_LEFT branch, AFTER resolving the
+    clicked_region (via color-map lookup or hover fallback) but BEFORE the
+    region_clicked.emit() call.
+    """
+    source = _read(BASE_GD)
+    # Extract the button-press block so we can reason about order within it.
+    left_click_anchor = "elif event.button_index == MOUSE_BUTTON_LEFT:"
+    assert left_click_anchor in source
+    post_left = source.split(left_click_anchor, 1)[1]
+    # Stop at the next elif/else at the same indent, which in this file is the
+    # button-release branch.
+    click_block = post_left.split("if event is InputEventMouseButton and not event.pressed", 1)[0]
+    guard = "if not _is_region_wired(clicked_region):"
+    emit = "region_clicked.emit(clicked_region)"
+    assert guard in click_block, "click handler must gate on _is_region_wired()"
+    assert emit in click_block
+    assert click_block.index(guard) < click_block.index(emit), (
+        "wired guard must precede region_clicked.emit"
+    )
+
+
+def test_draw_routes_unwired_regions_to_placeholder_tooltip():
+    """§4.4: _draw() must check the wired flag BEFORE region_full_data.has(),
+    because update_all_regions() deliberately excludes unwired regions from
+    region_full_data — the standard tooltip would render nothing otherwise.
+    """
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _draw():")
+    unwired_branch = 'elif hovered_region != "" and not _is_region_wired(hovered_region):'
+    wired_branch = 'elif hovered_region != "" and region_full_data.has(hovered_region):'
+    assert unwired_branch in body
+    assert wired_branch in body
+    assert body.index(unwired_branch) < body.index(wired_branch), (
+        "unwired branch must be evaluated before the wired-region branch"
+    )
+    assert "_draw_unwired_region_tooltip()" in body
+
+
+def test_unwired_region_tooltip_renders_name_and_suffix():
+    source = _read(BASE_GD)
+    assert "func _draw_unwired_region_tooltip():" in source
+    body = _func_body(source, "func _draw_unwired_region_tooltip():")
+    assert "_push_tooltip_line(lines, hovered_region" in body
+    assert "_push_tooltip_line(lines, UNWIRED_TOOLTIP_SUFFIX" in body
+    assert "_draw_tooltip_lines(lines" in body
+
+
+def test_lookup_region_from_color_map_still_returns_unwired_regions():
+    """§4.4: the color-map hit-test must keep returning unwired region names
+    so hover can identify them. Only `interactive` gates the lookup; `wired`
+    is enforced at the click/tooltip layer, not here.
+    """
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _lookup_region_from_color_map(map_position: Vector2) -> String:")
+    # The existing interactive gate stays — unwired provinces with
+    # interactive=true (the §4.4 default) still produce hover hits.
+    assert (
+        'if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("interactive", true)):'
+        in body
+    )
+    # Must NOT short-circuit on wired here; unwired provinces need to hover.
+    assert "_is_region_wired" not in body
+    assert '"wired"' not in body

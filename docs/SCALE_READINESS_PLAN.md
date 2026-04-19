@@ -967,8 +967,8 @@ func _load_map_images() -> bool:
 **Follow-ups this does _not_ cover:**
 
 - The Europe subclass that overrides the bitmap hooks and ships the PNGs (unblocks commissioned-art integration; separate from the renderer substrate).
-- Asset-level validation (§4.3).
-- Unwired-province grey-tint rendering (§4.4).
+- Asset-level validation (§4.3 — COMPLETE).
+- Unwired-province grey-tint rendering (§4.4 — COMPLETE).
 
 **Focused map verification after the hardening follow-up:** `36 passed` (`tests/test_map_renderer_cutover.py tests/test_map_placeholder_assets.py tests/test_map_bitmap_contract.py -q`). Last full-suite baseline from the initial §4.2 landing remains `8453 passed, 2 skipped`.
 
@@ -1015,12 +1015,28 @@ func _load_map_images() -> bool:
 
 ### 4.4 Unwired Province Support
 
+**Status:** COMPLETE (April 19, 2026).
+
 **Problem:** Roadmap plans 120-150 outlined provinces with only 80-100 wired for EA v1.
 
-**Changes:**
-- `map_renderer_base.gd`: Render unwired provinces in grey tint. Hover shows "Province Name (not yet in play)". Click does nothing.
-- `map.gd`: `update_all_regions()` skips unwired provinces for gameplay data
-- Province registry: `wired: false` provinces have lookup colors for hover identification but no gameplay data
+**Delivered changes:**
+- `map_renderer_base.gd`:
+  - Constants: `UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)`, `UNWIRED_GREY_BLEND: float = 0.7`, `UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"`.
+  - `_is_region_wired(region_name) -> bool` + `_unwired_lookup_keys() -> Dictionary` — registry-backed helpers; regions missing from `province_shapes` default to wired so legacy call sites keep working.
+  - `_apply_unwired_grey_overlay(visual_image, lookup_image)` — stamps `base.lerp(UNWIRED_GREY_COLOR, UNWIRED_GREY_BLEND)` over every visual pixel whose lookup color belongs to an unwired province; short-circuits on empty set + size mismatch.
+  - `_build_map_textures()` — circle fallback calls the overlay after `province_lookup_image = color_map` and before `visual_map_texture = ImageTexture.create_from_image(visual_image)`.
+  - `_load_map_images()` — bitmap path calls the overlay after `province_lookup_image = lookup_image` and before texture creation, so unwired tint applies uniformly regardless of art source.
+  - `_unhandled_input()` `MOUSE_BUTTON_LEFT` branch short-circuits on `not _is_region_wired(clicked_region)` before emitting `region_clicked`.
+  - `_draw()` routes unwired hovers to a dedicated `_draw_unwired_region_tooltip()` (renders `"<name>"` + `UNWIRED_TOOLTIP_SUFFIX` against a dim panel) BEFORE the `region_full_data.has(hovered_region)` branch, because §4.1's `update_all_regions()` deliberately excludes unwired regions from `region_full_data`.
+  - `_lookup_region_from_color_map()` is UNCHANGED. It still gates only on `interactive` so unwired-but-interactive provinces remain identifiable via hover.
+- `map.gd`: unchanged in §4.4 — §4.1 already stripped unwired gameplay data from `update_all_regions()`.
+- Province registry: unchanged — `wired: false` provinces already have lookup colors per §4.1. Placeholder remains fully wired; unwired regions will appear when commissioned Europe art authors them.
+
+**Test coverage (16 new tests):**
+- `tests/test_map_renderer_cutover.py` (+10): pins constants, `_is_region_wired` contract, `_apply_unwired_grey_overlay` body shape, `_unwired_lookup_keys` construction, overlay-before-texture ordering in both paths, click-gate precedence (guard before `emit`), `_draw()` branch order (unwired before wired), unwired tooltip helper renders both lines, and a negative assertion that `_lookup_region_from_color_map()` never gates on `wired`.
+- `tests/test_map_unwired_overlay.py` (+6, NEW file): behavioral fixture tests mirror the overlay math in Python — constants mirror, all-wired no-op, selective blend, pure-tint target, sentinel ignored, source-level guarantee that `_unwired_lookup_keys()` cannot emit the sentinel by construction.
+
+**Verification:** Focused map suite `94 passed`. Full Python suite `8503 passed, 2 skipped` (was `8487`). Ruff clean.
 
 ---
 
@@ -1262,7 +1278,7 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 4.1 | Province registry schema | 4 | DONE | April 19, 2026 |
 | 4.2 | External bitmap loading | 4 | DONE | April 19, 2026 |
 | 4.3 | Color-map validator | 4 | DONE | April 19, 2026 |
-| 4.4 | Unwired province support | 4 | | |
+| 4.4 | Unwired province support | 4 | COMPLETE | April 19, 2026 |
 | 5.1 | Direct-only war entry + refusal event | 5 | | |
 | 5.2 | Categorized dispatch sections + priority escalation | 5 | | |
 | 5.3 | Coalition friction scaling | 5 | | |
