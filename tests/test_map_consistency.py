@@ -32,33 +32,21 @@ def test_godot_region_positions_match_backend(map_gd_content):
         )
 
 
-def test_godot_connections_match_backend_adjacency(map_gd_content):
-    """Adjacency in map.gd REGION_CONNECTIONS must match region.py."""
-    # Extract REGION_CONNECTIONS block from GDScript
-    connections_match = re.search(
-        r'const REGION_CONNECTIONS\s*=\s*\{(.*?)\}',
+def test_map_gd_has_no_hardcoded_connections(map_gd_content):
+    """map.gd must NOT re-hardcode REGION_CONNECTIONS — adjacency comes from `/map_topology` (§3.2).
+
+    Drift prevention: if somebody re-introduces the const, this test fails and
+    they get routed back to backend/models/region.py REGIONS_DATA as the source
+    of truth. See docs/SCALE_READINESS_PLAN.md §3.2.
+    """
+    assert not re.search(
+        r'const\s+REGION_CONNECTIONS\b',
         map_gd_content,
-        re.DOTALL
+    ), (
+        "map.gd re-introduced a hardcoded REGION_CONNECTIONS const. "
+        "Adjacency must come from backend /map_topology (§3.2). "
+        "Update backend/models/region.py REGIONS_DATA instead."
     )
-    assert connections_match, "Could not find REGION_CONNECTIONS in map.gd"
-    connections_block = connections_match.group(1)
-
-    # Parse each region's adjacency list from GDScript
-    gd_adjacency = {}
-    for match in re.finditer(r'"(\w+)":\s*\[(.*?)\]', connections_block):
-        region_name = match.group(1)
-        neighbors_str = match.group(2)
-        neighbors = [n.strip().strip('"') for n in neighbors_str.split(",") if n.strip()]
-        gd_adjacency[region_name] = sorted(neighbors)
-
-    # Compare with backend REGIONS_DATA
-    for name, data in REGIONS_DATA.items():
-        backend_adj = sorted(data["adjacent"])
-        gd_adj = sorted(gd_adjacency.get(name, []))
-        assert backend_adj == gd_adj, (
-            f"Adjacency mismatch for '{name}': "
-            f"backend={backend_adj}, map.gd={gd_adj}"
-        )
 
 
 def test_no_extra_regions_in_godot(map_gd_content):

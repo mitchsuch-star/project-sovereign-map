@@ -827,23 +827,19 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 ---
 
-### 3.2 Frontend Loads Adjacency From Backend
+### 3.2 Frontend Loads Adjacency From Backend — **DONE April 19, 2026**
 
-**Problem:** `map.gd:30-50` hardcodes `REGION_CONNECTIONS` separately from backend `REGIONS_DATA`.
+**Landed:** Backend exposes `GET /map_topology` (adjacency + terrain + grid + nation_capitals). `map.gd` no longer hardcodes `REGION_CONNECTIONS`; `main.gd` fetches topology on connection test and hands it to `map_area.set_region_topology()`, which rebuilds the connection layer.
 
-**Option A — Backend API endpoint:**
-- Add `GET /map_data` to `main.py` returning `{regions: {name: {adjacencies, position, terrain, ...}}}`
-- `map.gd` fetches on game start instead of hardcoding
-- Remove `REGION_CONNECTIONS` dict from `map.gd`
+**Files changed:**
+- `backend/main.py` — new `GET /map_topology` endpoint (sources `REGIONS_DATA` + `NATION_CAPITALS`).
+- `godot-client/.../api_client.gd` — `get_map_topology(callback)` helper.
+- `godot-client/.../scenes/map.gd` — hardcoded const removed; `_region_connections` dict populated via `set_region_topology()`.
+- `godot-client/.../scripts/main.gd` — `_on_map_topology_received` handler wired after connection test.
 
-**Option B — Shared JSON asset:**
-- Generate `assets/map/region_topology.json` from `REGIONS_DATA` at build time
-- Both backend and frontend read the same file
-- Add a test that verifies the JSON matches `REGIONS_DATA`
+**Tests:** 7 new endpoint tests in `tests/test_map_topology_endpoint.py` (success shape, adjacency/static-field parity, bilateral invariant, nation capitals, JSON-array grid serialization). `tests/test_map_consistency.py` now enforces a drift-prevention rule (`test_map_gd_has_no_hardcoded_connections`) — if anyone re-introduces the const, the test fails.
 
-**Recommendation:** Option A is simpler and already fits the existing `api_client.gd` pattern.
-
-**Files:** `main.py` (new endpoint), `map.gd` (remove hardcoded dict, add fetch), `api_client.gd` (new request)
+**Rationale for option A:** `REGIONS_DATA` remains the single Python source; the frontend consumes it via the already-established HTTP pattern. No build step or asset regeneration required.
 
 ---
 
@@ -1178,7 +1174,7 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 2.2 | Wire spatial index into AI | 2 | DONE | April 19, 2026 |
 | 2.3 | Extend fog to all AI nations | 2 | DONE | April 19, 2026 |
 | 3.1 | Nation config factory | 3 | | |
-| 3.2 | Frontend loads adjacency from backend | 3 | | |
+| 3.2 | Frontend loads adjacency from backend | 3 | DONE | April 19, 2026 |
 | 3.3 | Centralize nation colors | 3 | DONE | April 19, 2026 |
 | 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
 | 4.1 | Province registry schema | 4 | | |

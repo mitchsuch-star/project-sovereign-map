@@ -273,7 +273,7 @@ Cross-check against prior claims in the original SCALE_READYNESS.md:
 
 ### "Static map and nation coupling"
 - **Status:** Confirmed, narrowed
-- **Evidence:** Backend region data (REGIONS_DATA) is actually well-centralized. At audit time, the coupling was in frontend duplication (adjacencies in map.gd, colors in 3+ files), prompt fallback, and parser enemy roster assumptions. On current HEAD, the color / prompt / parser drift is fixed; shared topology ownership in `map.gd` remains the live frontend coupling risk.
+- **Evidence:** Backend region data (REGIONS_DATA) is actually well-centralized. At audit time, the coupling was in frontend duplication (adjacencies in map.gd, colors in 3+ files), prompt fallback, and parser enemy roster assumptions. On current HEAD, adjacencies, colors, prompt fallback, and parser enemy roster are all backend-sourced — `map.gd` fetches topology from `GET /map_topology` and no longer carries a `REGION_CONNECTIONS` const. Nation-config factory (§3.1) is the remaining live coupling risk.
 - **Matters:** Both
 - **Prior assessment:** Slightly overrated for backend (which is mostly data-driven), underrated for frontend (which has severe duplication).
 
@@ -640,7 +640,7 @@ Phase 2 §§2.1-2.3 are complete on HEAD: code, correctness tests, and plan-requ
 These remaining items are still open on HEAD and are the next prerequisites for commissioned Europe-map integration. `SCALE_READINESS_PLAN.md` holds the per-item contract; the short form:
 
 - **Phase 3.1 nation config factory — NOT DONE.** `backend/nation_config.py:19-35` still uses three parallel dicts; `backend/models/marshal.py:1509` still defines hand-authored `create_enemy_marshals()`. No `DEFAULT_NATION_DEFAULTS` dict, no `create_marshals_from_data()` helper.
-- **Phase 3.2 shared topology — NOT DONE.** `godot-client/project-sovereign/scenes/map.gd:30-50` still hardcodes a full `REGION_CONNECTIONS` dict duplicated from backend; `map.gd:7-27` still hardcodes all 19 region positions. No `/map_data` endpoint, no shared JSON asset.
+- **Phase 3.2 shared topology — DONE (April 19, 2026).** Backend exposes `GET /map_topology` (authored from `REGIONS_DATA` + `NATION_CAPITALS`). Godot `map.gd` no longer hardcodes `REGION_CONNECTIONS` — adjacency is populated at runtime via `set_region_topology()` from the backend payload. `REGION_POSITIONS` remains as a fallback for the placeholder renderer but runtime anchors still come from the province-definition JSON. Tests: `tests/test_map_topology_endpoint.py` (7 endpoint parity / invariant tests) + `tests/test_map_consistency.py::test_map_gd_has_no_hardcoded_connections` (drift prevention). No shared JSON asset was required — option A (HTTP endpoint) was taken per `SCALE_READINESS_PLAN.md` §3.2.
 - **Phase 4.1 province registry schema — NOT DONE.** Only `session8_placeholder_provinces.json` exists. No stable `province_id`, no `unit_anchor` / `label_anchor` / `garrison_anchor` / `building_anchor`, no `wired` / `interactive` flags anywhere.
 - **Phase 4.2 external bitmap loading — NOT DONE.** No `_load_map_images()` method, no `europe_visual.png` / `europe_provinces.png` assets. Renderer still generates circle textures as the only path.
 - **Phase 4.3 color-map validator — NOT DONE.** No `tools/validate_province_map.py`, no `tests/test_province_map_assets.py`.

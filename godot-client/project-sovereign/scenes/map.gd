@@ -26,28 +26,9 @@ const REGION_POSITIONS = {
 	"Tyrol": Vector2(800, 500)
 }
 
-# Region adjacencies (from region.py)
-const REGION_CONNECTIONS = {
-	"Paris": ["Normandy", "Belgium", "Lyon", "Bordeaux"],
-	"Belgium": ["Paris", "Normandy", "Netherlands", "Waterloo", "Rhineland"],
-	"Netherlands": ["Belgium", "Waterloo", "Hanover"],
-	"Waterloo": ["Belgium", "Netherlands", "Hanover"],
-	"Rhineland": ["Belgium", "Bavaria", "Lyon", "Saxony"],
-	"Bavaria": ["Rhineland", "Saxony", "Vienna", "Tyrol"],
-	"Vienna": ["Bavaria", "Bohemia", "Tyrol", "Milan"],
-	"Lyon": ["Paris", "Bordeaux", "Marseille", "Rhineland", "Milan"],
-	"Milan": ["Lyon", "Marseille", "Tyrol", "Vienna"],
-	"Marseille": ["Lyon", "Bordeaux", "Milan"],
-	"Brittany": ["Normandy", "Bordeaux"],
-	"Bordeaux": ["Brittany", "Paris", "Lyon", "Marseille"],
-	"Normandy": ["Paris", "Belgium", "Brittany"],
-	"Hanover": ["Netherlands", "Waterloo", "Saxony", "Berlin"],
-	"Berlin": ["Hanover", "Saxony", "Bohemia"],
-	"Saxony": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia", "Rhineland"],
-	"Dresden": ["Saxony", "Bohemia"],
-	"Bohemia": ["Berlin", "Saxony", "Dresden", "Vienna"],
-	"Tyrol": ["Bavaria", "Vienna", "Milan"]
-}
+# Region adjacencies come from backend `/map_topology` (§3.2).
+# Do NOT re-hardcode here; update backend/models/region.py REGIONS_DATA instead.
+var _region_connections: Dictionary = {}
 
 # Color scheme — built from Utils.NATION_COLORS + connection line color (§3.3).
 # Do NOT define nation colors locally; update Utils.NATION_COLORS instead.
@@ -59,7 +40,22 @@ func _get_region_positions() -> Dictionary:
 
 
 func _get_region_connections() -> Dictionary:
-	return REGION_CONNECTIONS
+	return _region_connections
+
+
+func set_region_topology(topology: Dictionary) -> void:
+	"""Populate adjacency from the backend /map_topology payload and rebuild visuals.
+
+	Called once on game start (main.gd after connection test). Safe to call
+	again on reconnect — _build_static_map_visuals() clears and rebuilds."""
+	var connections := {}
+	var regions: Dictionary = topology.get("regions", {})
+	for region_name in regions:
+		var entry: Dictionary = regions[region_name]
+		connections[region_name] = entry.get("adjacent", [])
+	_region_connections = connections
+	if is_inside_tree():
+		_build_static_map_visuals()
 
 
 func _get_colors() -> Dictionary:

@@ -114,6 +114,9 @@ func get_pending_envoy(callback: Callable):
 func get_mailbox(callback: Callable):
 	_send_get("/mailbox", callback)
 
+func get_map_topology(callback: Callable):
+	_send_get("/map_topology", callback)
+
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
 

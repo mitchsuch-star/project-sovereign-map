@@ -1,7 +1,7 @@
 ﻿# Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** April 19, 2026 (Map Readiness Closure Pass — warm-up bundle §3.3 + §3.4 landed, and the same-day documentation consistency pass synced STATUS / SCALE_READYNESS / ADDING_CONTENT / CLAUDE with the live code. `utils.gd` is now the single authoritative source for nation colors; `map.gd`, `war_detail_popup.gd`, and `war_status_panel.gd` no longer carry private copies. `prompt_builder._get_regions_list()` and `parser.CommandParser` derive their region / enemy-marshal rosters from canonical backend data (REGIONS_DATA, create_enemy_marshals, or live WorldState) instead of hardcoded 19-region / 8-marshal literals. Drift prevention: new `tests/test_gdscript_color_centralization.py` (3 tests) guards against future duplicate nation-color definitions. Full Python suite green: 8416 passed, 2 skipped. Remaining Phase 3 items (§3.2 shared topology, §3.1 nation config factory) and all Phase 4 map-art pipeline items are still the next non-art prerequisites before commissioned Europe-map integration.)
+> **Last Updated:** April 19, 2026 (Map Readiness Closure Pass — §3.2 shared topology endpoint landed. Backend now exposes `GET /map_topology` returning adjacency, terrain, region type, starting controller, grid position, and nation capitals from `REGIONS_DATA`/`NATION_CAPITALS`. Godot `map.gd` no longer hardcodes `REGION_CONNECTIONS`; `main.gd` fetches topology on connection test and hands it to `map_area.set_region_topology()`, which rebuilds the connection layer. New `tests/test_map_topology_endpoint.py` (7 tests) pins the payload shape, parity with `REGIONS_DATA`, bilateral-adjacency invariant, and JSON list serialization of `grid_position`; `tests/test_map_consistency.py` now drift-checks that `map.gd` has not re-introduced the const. Earlier same-day warm-up bundle (§3.3 centralize nation colors + §3.4 prompt/parser/validator de-hardcoding) remains landed with its 3 drift-prevention tests. Full Python suite green: 8423 passed, 2 skipped. Remaining Phase 3 item (§3.1 nation config factory) and all Phase 4 map-art pipeline items are the next non-art prerequisites before commissioned Europe-map integration.)
 
 ---
 
@@ -9,8 +9,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **Full Python suite green:** `8416 passed, 2 skipped` (`.\\.venv\\Scripts\\python.exe -m pytest tests/ -q`). Godot runtime smoke verification is still manual-only because the engine is not installed in this environment. |
-| **Current Phase** | **Map Readiness Closure Pass — warm-up bundle COMPLETE (April 19, 2026).** Phase 3 §3.3 (centralize nation colors) + §3.4 (prompt/parser fallback de-hardcoding) landed with 3 new drift-prevention tests. Phase 2 remains COMPLETE. Next: Phase 3 §3.2 (shared topology endpoint), then §3.1 (nation config factory), then Phase 4 map-art pipeline items. |
+| **Tests Passing** | **Full Python suite green:** `8423 passed, 2 skipped` (`.\\.venv\\Scripts\\python.exe -m pytest tests/ -q`). Godot runtime smoke verification is still manual-only because the engine is not installed in this environment. |
+| **Current Phase** | **Map Readiness Closure Pass — §3.2 LANDED (April 19, 2026).** Phase 3 §3.2 (shared topology endpoint via `GET /map_topology`) + §3.3 (centralize nation colors) + §3.4 (prompt/parser fallback de-hardcoding) all complete with 10 drift-prevention / parity tests. Phase 2 remains COMPLETE. Next: Phase 3 §3.1 (nation config factory), then Phase 4 map-art pipeline items. |
 | **Blockers** | Real map readiness is **not** just "wait for art." The raw `enemy_ai.py` scan pass is complete, but active non-art blockers remain: remaining scale-facing data/config hardcoding in the nation / prompt / parser / frontend data pipeline still needs closure; frontend/backend topology is still split; the production province registry / bitmap-loading / validator / unwired-province pipeline is not landed yet. Commissioned art integration and final renderer smoke remain blocked on art assets. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -37,11 +37,12 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 **Actionable now (no blockers):**
 
 1. **Scale Readiness Phase 2 — COMPLETE (April 19, 2026).** Distance cache, indexed helper seam, live AI fog path, indexed autonomous-evaluation scope, target-ratio attack-path cleanup, live-visibility cache, the `enemy_ai.py` raw scan-conversion pass, and plan §2.1's 100-region synthetic benchmark (`tools/benchmark_distance_cache.py`, pinned by 3 scale tests in `test_scale_readiness_phase2.py`) have all landed suite-green. Audit gaps the April 19 closeout surfaced are captured in `docs/SCALE_READYNESS.md` §11 (Verification Delta).
-2. **Map Readiness Closure Pass — warm-up bundle COMPLETE (April 19, 2026).**
+2. **Map Readiness Closure Pass — §3.2 LANDED (April 19, 2026).**
+   - **§3.2 Shared topology endpoint — DONE.** Backend `GET /map_topology` returns authored static topology (`adjacent`, `terrain`, `region_type`, `is_capital`, `starting_controller`, `grid_position`) plus `nation_capitals` from `REGIONS_DATA` / `NATION_CAPITALS`. Godot `map.gd` no longer defines `const REGION_CONNECTIONS`; adjacency is populated at runtime via `set_region_topology()` after `main.gd` fetches the payload. New `tests/test_map_topology_endpoint.py` (7 tests) pins endpoint parity; `tests/test_map_consistency.py` now enforces that the const stays removed (`test_map_gd_has_no_hardcoded_connections`).
    - **§3.3 Centralize nation colors — DONE.** `utils.gd` NATION_COLORS is now single-source; `map.gd`, `war_detail_popup.gd`, and `war_status_panel.gd` read from `Utils.NATION_COLORS` + `Utils.COLOR_ENEMY_DEFAULT` / `Utils.COLOR_CONNECTION` instead of local dicts. New `tests/test_gdscript_color_centralization.py` guards against drift (3 tests).
    - **§3.4 Prompt / parser / validator hardcoding — DONE.** `prompt_builder._get_regions_list()` now derives from `map_data` → `world.regions` → `REGIONS_DATA` instead of a 19-region string literal. `parser.CommandParser` now computes its fallback enemy roster via `create_enemy_marshals()` and reads live rosters from `world.marshals` when available, instead of a hardcoded 8-name list. (`validator.py VALID_NATIONS` was already derived from `NATION_CAPITALS` in Phase 1.)
-   - **Remaining Phase 3 / Phase 4 items are still open.** Full pre-art gate still requires §3.2 (shared topology endpoint), §3.1 (nation config factory), and all §§4.1-4.4 map-art pipeline items. See `docs/SCALE_READINESS_PLAN.md` §§3.1-3.4, 4.1-4.4 and `docs/SCALE_READYNESS.md` §§9 + 11.
-   - **Suggested next cold-start sequencing:** §3.2 (shared topology endpoint) so Phase 4 can build on one source of truth, then §3.1 (nation config factory — biggest data-model change, solo item), then §4.1 → §4.2 → §4.3 → §4.4. A fresh session only needs CLAUDE.md + this STATUS.md + `SCALE_READINESS_PLAN.md` §§3-4.
+   - **Remaining Phase 3 / Phase 4 items are still open.** Full pre-art gate still requires §3.1 (nation config factory) and all §§4.1-4.4 map-art pipeline items. See `docs/SCALE_READINESS_PLAN.md` §§3.1, 4.1-4.4 and `docs/SCALE_READYNESS.md` §§9 + 11.
+   - **Suggested next cold-start sequencing:** §3.1 (nation config factory — biggest data-model change, solo item), then §4.1 → §4.2 → §4.3 → §4.4. A fresh session only needs CLAUDE.md + this STATUS.md + `SCALE_READINESS_PLAN.md` §§3-4.
 3. **Memory and Pressure — Slice A (rivalry seed).** This remains the next diplomacy feature track, but it is not part of the map-readiness gate. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
 
 ## Real Map Readiness Gate
@@ -56,11 +57,10 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 2. **Scale-facing nation / region data flow is fully data-driven.**
    - Adding nations or regions no longer depends on lingering hand-authored factory duplication or shell-sized prompt / parser assumptions.
-   - Prompt/parser fallback strings and nation-color ownership are now data-driven, but the remaining Phase 3 data-pipeline cleanup is **not** closed yet: nation/runtime config factory work (§3.1) and shared topology ownership (§3.2) still have to land before this gate is satisfied.
+   - Prompt/parser fallback strings, nation-color ownership, and adjacency ownership are now data-driven. Nation/runtime config factory work (§3.1) is the last remaining Phase 3 gap before this gate is satisfied.
 
-3. **Frontend/backend topology has one authoritative source.**
-   - `map.gd` no longer carries a second hardcoded gameplay adjacency graph that can drift from backend `REGIONS_DATA`.
-   - Shared topology comes from a backend-fed payload or a generated shared asset as described in `SCALE_READINESS_PLAN.md` §3.2.
+3. **Frontend/backend topology has one authoritative source.** ✅ DONE (April 19, 2026 — §3.2).
+   - `map.gd` no longer carries a hardcoded gameplay adjacency graph. Shared topology comes from backend `GET /map_topology` (authored from `REGIONS_DATA`) as described in `SCALE_READINESS_PLAN.md` §3.2.
 
 4. **The renderer has a production province registry schema.**
    - Province metadata includes stable `province_id`, separate anchors for unit / label / garrison / building placement, and explicit `wired` / `interactive` flags.

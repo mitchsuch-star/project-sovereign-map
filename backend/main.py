@@ -828,6 +828,33 @@ def test_connection():
     return response
 
 
+@app.get("/map_topology")
+def get_map_topology():
+    """Static map topology (adjacency, terrain, grid) for frontend rendering.
+
+    Source of truth for region adjacency shared between backend and Godot.
+    Per-turn state (controller, marshals, fog) still lives in
+    `game_state.map_data`; this endpoint exposes only authored scenario data.
+    """
+    from backend.models.region import REGIONS_DATA, NATION_CAPITALS
+
+    regions = {}
+    for name, data in REGIONS_DATA.items():
+        regions[name] = {
+            "adjacent": list(data["adjacent"]),
+            "terrain": data.get("terrain", "plains"),
+            "region_type": data.get("region_type", "town"),
+            "is_capital": bool(data.get("is_capital", False)),
+            "starting_controller": data.get("starting_controller"),
+            "grid_position": list(data.get("grid_position", (0, 0))),
+        }
+    return {
+        "success": True,
+        "regions": regions,
+        "nation_capitals": dict(NATION_CAPITALS),
+    }
+
+
 @app.post("/command")
 def execute_command(request: CommandRequest):
     """Execute a game command and return result."""

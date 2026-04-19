@@ -371,6 +371,10 @@ func _on_connection_test(response):
 		# N4i: Initialize war status HUD on game start
 		_process_active_wars(response)
 
+		# Fetch static map topology (adjacencies) from backend — §3.2 replaces
+		# the hardcoded REGION_CONNECTIONS that used to live in map.gd.
+		api_client.get_map_topology(_on_map_topology_received)
+
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
 			if DEBUG_VERBOSE:
@@ -394,6 +398,17 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python backend/main.py[/color]")
 		add_output("")
+
+
+func _on_map_topology_received(response):
+	"""Backend /map_topology payload — hand off adjacency to the map renderer (§3.2)."""
+	if not response or not response.get("success", false):
+		if DEBUG_VERBOSE:
+			print("⚠️  MAIN: /map_topology fetch failed: %s" % response)
+		return
+	if map_area and map_area.has_method("set_region_topology"):
+		map_area.set_region_topology(response)
+
 
 func _on_send_button_pressed():
 	"""Handle send button click."""
