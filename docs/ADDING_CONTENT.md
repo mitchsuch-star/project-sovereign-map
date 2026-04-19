@@ -1093,7 +1093,7 @@ valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot", "NewMarshal"]
 - [ ] `NATION_DESIRES` entry in `ai_diplomacy.py` (AI counter-offer desires)
 - [ ] `SPECIAL_BONUSES` entry in `diplomacy.py` (if nation has territory/clause bonuses)
 - [ ] `pytest tests/test_serialization_enforcement.py -v` passes
-- [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS + REGION_CONNECTIONS)
+- [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS; adjacency comes from backend `/map_topology`)
 
 ---
 
@@ -1815,7 +1815,7 @@ These files now derive their region data from `region.py` automatically:
 | # | File | What to Update | Notes |
 |---|------|----------------|-------|
 | 11 | `godot-client/.../scenes/map.gd` | `REGION_POSITIONS` dict (~line 4) — pixel coordinates for rendering | Must match backend region.py exactly |
-| 12 | `godot-client/.../scenes/map.gd` | `REGION_CONNECTIONS` dict (~line 21) — adjacency for drawing edges | Must match backend region.py adjacency |
+| 12 | `backend/models/region.py` + `backend/main.py` | `REGIONS_DATA["adjacent"]` -> `/map_topology` payload — adjacency for drawing edges | Godot consumes backend topology at runtime; do not add a local adjacency dict back to `map.gd` |
 
 #### Test Files (Fix after backend/frontend)
 
@@ -1893,13 +1893,16 @@ const REGION_POSITIONS = {
     "Hamburg": Vector2(520, 130),   # Pixel position on map
 }
 
-# REGION_CONNECTIONS (~line 21):
-const REGION_CONNECTIONS = {
-    # ...existing...
-    "Hamburg": ["Netherlands", "Rhineland"],
-    # Also update Netherlands and Rhineland entries:
-    "Netherlands": ["Belgium", "Hamburg"],
-    "Rhineland": ["Belgium", "Saxony", "Bavaria", "Lyon", "Hamburg"],
+# No local REGION_CONNECTIONS block exists in map.gd anymore.
+# Adjacency is authored once in backend/models/region.py REGIONS_DATA and
+# reaches Godot through GET /map_topology.
+# Example backend data to add:
+"Hamburg": {
+    "adjacent": ["Netherlands", "Rhineland"],
+    "terrain": "port",
+    "region_type": "city",
+    "starting_controller": "Britain",
+    "grid_position": (1, 1),
 }
 ```
 
@@ -1941,7 +1944,7 @@ rg "OldName" docs/ -l
 
 #### Step 3: Update Backend + Godot
 
-Update `REGIONS_DATA` in `region.py` (auto-derived files will pick it up). Update `map.gd` REGION_POSITIONS and REGION_CONNECTIONS. Check `llm_client.py` and `prompt_builder.py` for old name references.
+Update `REGIONS_DATA` in `region.py` (auto-derived files will pick it up). Update `map.gd` REGION_POSITIONS only if the placeholder renderer needs a fallback pixel anchor. Do **not** add a local `REGION_CONNECTIONS` table back to Godot; `/map_topology` derives from backend data. Check `llm_client.py` and `prompt_builder.py` for old name references.
 
 #### Step 4: Update All Test Files
 
@@ -2165,11 +2168,11 @@ time_victory_threshold = math.ceil(total * 0.77)  # ~77% control at time limit
 
 #### Pitfall 2: Backend + Godot Duplication
 
-Region data exists in TWO places that must stay synchronized:
-1. `region.py` — `REGIONS_DATA` (source of truth — parser.py, strategic_parser.py, world_state.py, enemy_ai.py all auto-derive)
-2. `map.gd` — `REGION_POSITIONS` + `REGION_CONNECTIONS` (rendering — GDScript can't import Python)
+Region data no longer duplicates adjacency across backend and Godot:
+1. `region.py` — `REGIONS_DATA` (source of truth for gameplay + topology)
+2. `map.gd` — `REGION_POSITIONS` only (placeholder fallback pixel anchors for the current renderer)
 
-`tests/test_map_consistency.py` catches drift between them. Missing from region.py: Region doesn't exist in game. Missing from map.gd: Region exists but invisible on map.
+`tests/test_map_topology_endpoint.py` verifies backend topology parity, and `tests/test_map_consistency.py` prevents hardcoded adjacency from returning to `map.gd`. Missing from region.py: region doesn't exist in game. Missing from `map.gd` positions: placeholder renderer may not have a fallback anchor.
 
 #### Pitfall 3: Forgetting grid_position in REGIONS_DATA
 
@@ -2193,7 +2196,7 @@ Capital lookups now use `NATION_CAPITALS` in `region.py` (single source of truth
 
 #### Pitfall 8: Godot Connections Not Matching Backend Adjacency
 
-`REGION_CONNECTIONS` in `map.gd` is used for drawing connection lines on the map. If it doesn't match `REGIONS_DATA` adjacency in `region.py`, the map shows incorrect connections. Always update both simultaneously.
+Connection lines are now driven by backend `GET /map_topology`. If adjacency looks wrong on the map, fix `REGIONS_DATA` in `region.py` and let the endpoint/tests propagate it. Do not patch Godot with a private adjacency table.
 
 ---
 

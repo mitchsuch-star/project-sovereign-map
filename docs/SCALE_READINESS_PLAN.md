@@ -837,7 +837,7 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 - `godot-client/.../scenes/map.gd` — hardcoded const removed; `_region_connections` dict populated via `set_region_topology()`.
 - `godot-client/.../scripts/main.gd` — `_on_map_topology_received` handler wired after connection test.
 
-**Tests:** 7 new endpoint tests in `tests/test_map_topology_endpoint.py` (success shape, adjacency/static-field parity, bilateral invariant, nation capitals, JSON-array grid serialization). `tests/test_map_consistency.py` now enforces a drift-prevention rule (`test_map_gd_has_no_hardcoded_connections`) — if anyone re-introduces the const, the test fails.
+**Tests:** 7 new endpoint tests in `tests/test_map_topology_endpoint.py` (success shape, adjacency/static-field parity, bilateral invariant, nation capitals, JSON-array grid serialization). `tests/test_map_consistency.py` now enforces a drift-prevention rule (`test_map_gd_has_no_hardcoded_connections`) — if anyone re-introduces the const or a renamed / inline hardcoded adjacency table, the test fails.
 
 **Rationale for option A:** `REGIONS_DATA` remains the single Python source; the frontend consumes it via the already-established HTTP pattern. No build step or asset regeneration required.
 

@@ -93,7 +93,7 @@ No. Three categories of blocker must be addressed first: pathfinding cost, AI om
 - **Severity:** Critical
 - **Category:** Data-model / content-coupling problem
 - **Visibility:** Already a maintenance risk now, guaranteed drift at 80+ regions
-- **Evidence:** Backend: `region.py:328-500` (REGIONS_DATA, authoritative). Frontend: `map.gd:30-50` hardcodes identical REGION_CONNECTIONS dict. Both must be edited for any region change. `test_map_consistency.py` catches drift, but the duplication itself is the problem.
+- **Evidence (historical finding):** At audit time, backend `region.py:328-500` (REGIONS_DATA) was authoritative while frontend `map.gd` hardcoded an identical `REGION_CONNECTIONS` dict. On current HEAD this is resolved: Godot loads adjacency from backend `GET /map_topology`, and `tests/test_map_consistency.py` now rejects renamed or inline hardcoded adjacency tables.
 - **Counter-evidence:** The test catches it — drift won't go silently. But at 80+ regions, maintaining two copies is error-prone and slow.
 - **Scale impact:** Adding one region requires editing 6-7 files (region.py, map.gd adjacencies, map.gd positions, prompt_builder fallback, potentially parser, renderer base).
 - **Fix direction:** Frontend loads adjacency from backend API or shared JSON asset, not hardcoded dict.
@@ -582,14 +582,14 @@ Reference links:
 - **Fix direction:** Add province registry metadata for `wired`, `visible`, and `ignore_input`, then make hover/click logic explicitly reject unwired provinces while still rendering them.
 - **Blocker class:** Must fix before Europe art integration
 
-**M5. Shared province topology is still split across frontend placeholder data and backend gameplay data.**
+**M5. Shared province topology was split across frontend placeholder data and backend gameplay data (resolved on HEAD).**
 
 - **Severity:** Major
 - **Category:** Data-model / content-coupling problem
-- **Evidence:** `map.gd:30-69` still hardcodes `REGION_CONNECTIONS` and fallback positions, while the backend remains authoritative for actual gameplay region data. This was already a risk at 19 regions; it becomes worse once the art contains visible straits, coastline cues, and greyed-out provinces that the frontend can "see" but gameplay may not support.
+- **Evidence (historical finding):** At audit time, `map.gd:30-69` still hardcoded `REGION_CONNECTIONS` and fallback positions while the backend remained authoritative for gameplay region data. On current HEAD, adjacency is backend-fed via `GET /map_topology`; the remaining map-art risks are province-schema, bitmap-loading, validator, and unwired-province gaps.
 - **Why it matters:** On a Paradox-style map, visible geography feels authoritative. If straits, coast touches, or border contact disagree with gameplay adjacency, the map teaches the player the wrong rules.
-- **Fix direction:** Finish F4 and move adjacency / strait / topology data to a shared province registry or backend-fed payload before the Europe map lands.
-- **Blocker class:** Must fix before Europe wiring
+- **Fix direction:** Landed via backend-fed `GET /map_topology`. When the production province registry arrives, keep adjacency / strait / topology in that shared backend-owned contract.
+- **Blocker class:** Was a blocker before Europe wiring; resolved on current HEAD
 
 ### Map-Specific Roadmap Insert
 
@@ -599,11 +599,11 @@ Add these items before commissioned Europe art integration:
 2. **Load external visual + lookup images instead of generating circle textures** — keep the current pixel-sampling logic, replace only the placeholder asset path. (~1 session)
 3. **Ship the color-map validator before artist handoff** — fail fast on unknown RGBs, dimension mismatch, sentinel misuse, and anti-alias artifacts. (~2 hours)
 4. **Support greyed-out visible-but-unwired provinces in the renderer contract** — render them, ignore clicks, and keep them out of `map_data`. (~2 hours)
-5. **Unify adjacency/topology data before Europe map import** — no second hardcoded frontend graph. (~4 hours)
+5. **Topology unification — DONE on HEAD via `GET /map_topology`.** Keep that shared contract when the production province registry lands. (~4 hours originally)
 
 ### Updated Readiness Statement
 
-The project is directionally aligned with an EU4-style province map: hidden color-map hit detection, camera-based navigation, and placeholder province definitions are already in place. But it is **not yet ready to ingest a commissioned Europe bitmap map safely**. The missing work is not "figure out hover by color" -- that part is already done. The missing work is the production pipeline: real asset loading, richer province metadata, automated bitmap validation, unwired-province handling, and a single shared topology source.
+The project is directionally aligned with an EU4-style province map: hidden color-map hit detection, camera-based navigation, and placeholder province definitions are already in place. But it is **not yet ready to ingest a commissioned Europe bitmap map safely**. The missing work is not "figure out hover by color" -- that part is already done. The missing work is the production pipeline: real asset loading, richer province metadata, automated bitmap validation, and unwired-province handling. The shared topology source is already in place via backend `GET /map_topology`.
 
 ---
 
@@ -633,14 +633,14 @@ Session 8 renderer work can continue on the current 19-region shell. Full Europe
 
 ### Phase 2 closeout verdict
 
-Phase 2 §§2.1-2.3 are complete on HEAD: code, correctness tests, and plan-required benchmark all land. `enemy_ai.py` is at 0 raw marshal scans. Incremental Phase 2 verification (28 tests) is green; current full-suite verification is `8416 passed, 2 skipped`.
+Phase 2 §§2.1-2.3 are complete on HEAD: code, correctness tests, and plan-required benchmark all land. `enemy_ai.py` is at 0 raw marshal scans. Incremental Phase 2 verification (28 tests) is green; current full-suite verification is `8423 passed, 2 skipped`.
 
 ### Still not done — non-art real-map blockers (Phase 3 + Phase 4)
 
 These remaining items are still open on HEAD and are the next prerequisites for commissioned Europe-map integration. `SCALE_READINESS_PLAN.md` holds the per-item contract; the short form:
 
 - **Phase 3.1 nation config factory — NOT DONE.** `backend/nation_config.py:19-35` still uses three parallel dicts; `backend/models/marshal.py:1509` still defines hand-authored `create_enemy_marshals()`. No `DEFAULT_NATION_DEFAULTS` dict, no `create_marshals_from_data()` helper.
-- **Phase 3.2 shared topology — DONE (April 19, 2026).** Backend exposes `GET /map_topology` (authored from `REGIONS_DATA` + `NATION_CAPITALS`). Godot `map.gd` no longer hardcodes `REGION_CONNECTIONS` — adjacency is populated at runtime via `set_region_topology()` from the backend payload. `REGION_POSITIONS` remains as a fallback for the placeholder renderer but runtime anchors still come from the province-definition JSON. Tests: `tests/test_map_topology_endpoint.py` (7 endpoint parity / invariant tests) + `tests/test_map_consistency.py::test_map_gd_has_no_hardcoded_connections` (drift prevention). No shared JSON asset was required — option A (HTTP endpoint) was taken per `SCALE_READINESS_PLAN.md` §3.2.
+- **Phase 3.2 shared topology — DONE (April 19, 2026).** Backend exposes `GET /map_topology` (authored from `REGIONS_DATA` + `NATION_CAPITALS`). Godot `map.gd` no longer hardcodes `REGION_CONNECTIONS` — adjacency is populated at runtime via `set_region_topology()` from the backend payload. `REGION_POSITIONS` remains as a fallback for the placeholder renderer but runtime anchors still come from the province-definition JSON. Tests: `tests/test_map_topology_endpoint.py` (7 endpoint parity / invariant tests) + `tests/test_map_consistency.py::test_map_gd_has_no_hardcoded_connections` (drift prevention against renamed or inline hardcoded adjacency tables). No shared JSON asset was required — option A (HTTP endpoint) was taken per `SCALE_READINESS_PLAN.md` §3.2.
 - **Phase 4.1 province registry schema — NOT DONE.** Only `session8_placeholder_provinces.json` exists. No stable `province_id`, no `unit_anchor` / `label_anchor` / `garrison_anchor` / `building_anchor`, no `wired` / `interactive` flags anywhere.
 - **Phase 4.2 external bitmap loading — NOT DONE.** No `_load_map_images()` method, no `europe_visual.png` / `europe_provinces.png` assets. Renderer still generates circle textures as the only path.
 - **Phase 4.3 color-map validator — NOT DONE.** No `tools/validate_province_map.py`, no `tests/test_province_map_assets.py`.

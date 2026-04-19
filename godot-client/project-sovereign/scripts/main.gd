@@ -51,6 +51,10 @@ var top_bar = null
 
 # Map reference
 @onready var map_area = $MapArea
+var _pending_initial_map_data: Dictionary = {}
+var _pending_initial_map_topology: Dictionary = {}
+var _initial_map_bootstrapped: bool = false
+var _initial_topology_failed: bool = false
 
 # Dialog Manager (R16)
 var dialog_manager = null
@@ -326,6 +330,10 @@ func _ready():
 
 	# Start disabled until connected
 	set_input_enabled(false)
+	if map_area:
+		# Keep the placeholder renderer hidden until `/map_topology` arrives so
+		# startup does not flash an empty connection layer before the rebuild.
+		map_area.visible = false
 
 	# Welcome message
 	_show_welcome()
@@ -373,13 +381,18 @@ func _on_connection_test(response):
 
 		# Fetch static map topology (adjacencies) from backend — §3.2 replaces
 		# the hardcoded REGION_CONNECTIONS that used to live in map.gd.
+		_initial_topology_failed = false
 		api_client.get_map_topology(_on_map_topology_received)
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
 			if DEBUG_VERBOSE:
-				print("MAIN: Connection test - map_data found, updating map")
-			map_area.update_all_regions(response.game_state.map_data)
+				print("MAIN: Connection test - map_data found, awaiting topology bootstrap")
+			if _initial_map_bootstrapped:
+				map_area.update_all_regions(response.game_state.map_data)
+			else:
+				_pending_initial_map_data = response.game_state.map_data.duplicate(true)
+				_try_finalize_initial_map_bootstrap()
 		elif DEBUG_VERBOSE:
 			print("⚠️  MAIN: Connection test - NO map_data in response!")
 
@@ -405,9 +418,33 @@ func _on_map_topology_received(response):
 	if not response or not response.get("success", false):
 		if DEBUG_VERBOSE:
 			print("⚠️  MAIN: /map_topology fetch failed: %s" % response)
+		if not _initial_map_bootstrapped:
+			_initial_topology_failed = true
+			_try_finalize_initial_map_bootstrap()
 		return
-	if map_area and map_area.has_method("set_region_topology"):
-		map_area.set_region_topology(response)
+	if _initial_map_bootstrapped:
+		if map_area and map_area.has_method("set_region_topology"):
+			map_area.set_region_topology(response)
+		return
+	_pending_initial_map_topology = response.duplicate(true)
+	_initial_topology_failed = false
+	_try_finalize_initial_map_bootstrap()
+
+
+func _try_finalize_initial_map_bootstrap() -> void:
+	if _initial_map_bootstrapped or map_area == null:
+		return
+	if _pending_initial_map_topology.is_empty():
+		if not _initial_topology_failed:
+			return
+	elif map_area.has_method("set_region_topology"):
+		map_area.set_region_topology(_pending_initial_map_topology)
+	if not _pending_initial_map_data.is_empty():
+		map_area.update_all_regions(_pending_initial_map_data)
+	_pending_initial_map_data.clear()
+	_pending_initial_map_topology.clear()
+	map_area.visible = true
+	_initial_map_bootstrapped = true
 
 
 func _on_send_button_pressed():

@@ -35,15 +35,22 @@ def test_godot_region_positions_match_backend(map_gd_content):
 def test_map_gd_has_no_hardcoded_connections(map_gd_content):
     """map.gd must NOT re-hardcode REGION_CONNECTIONS — adjacency comes from `/map_topology` (§3.2).
 
-    Drift prevention: if somebody re-introduces the const, this test fails and
-    they get routed back to backend/models/region.py REGIONS_DATA as the source
-    of truth. See docs/SCALE_READINESS_PLAN.md §3.2.
+    Drift prevention: this must catch the obvious const name and sneakier
+    renamed / inline adjacency tables such as `CONNECTIONS_BY_REGION = {
+    "Paris": [...] }` or `connections["Paris"] = [...]`. See
+    docs/SCALE_READINESS_PLAN.md §3.2.
     """
-    assert not re.search(
+    region_names = "|".join(re.escape(name) for name in sorted(REGIONS_DATA))
+    hardcoded_patterns = [
         r'const\s+REGION_CONNECTIONS\b',
+        rf'"(?:{region_names})"\s*:\s*\[',
+        rf'\[\s*"(?:{region_names})"\s*\]\s*=\s*\[',
+    ]
+    assert not re.search(
+        "|".join(f"(?:{pattern})" for pattern in hardcoded_patterns),
         map_gd_content,
     ), (
-        "map.gd re-introduced a hardcoded REGION_CONNECTIONS const. "
+        "map.gd re-introduced hardcoded adjacency data. "
         "Adjacency must come from backend /map_topology (§3.2). "
         "Update backend/models/region.py REGIONS_DATA instead."
     )
