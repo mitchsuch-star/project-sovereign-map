@@ -900,7 +900,7 @@ Notes on authored-vs-default behavior:
 - `update_all_regions()` filters out unwired provinces before populating `region_full_data`, `region_controllers`, `region_visibility`, `region_marshals`, `region_fogged_forces`, and `region_garrisons`. Unwired provinces are still drawn by the static-visuals path — they just never receive gameplay state.
 - `update_region()` short-circuits if the targeted region is unwired, so the single-region update path is consistent with `update_all_regions()`.
 
-**Tests that landed:**
+**Tests now in place:**
 
 - `tests/test_map_placeholder_assets.py` now has 12 tests (was 4). New pins:
   - `test_placeholder_province_asset_declares_schema_version_2`
@@ -912,13 +912,14 @@ Notes on authored-vs-default behavior:
   - `test_renderer_consumes_wired_and_interactive_flags`
   - `test_renderer_consumes_new_anchor_fields`
 - `tests/test_map_renderer_cutover.py::test_renderer_base_preserves_update_all_regions_contract` was updated to pin the new `region_full_data = wired_data` shape and the presence of a `wired` gate inside `update_all_regions()`.
+- `tests/test_map_renderer_cutover.py` also now pins the non-interactive skip in `_refresh_hover_state()`'s distance fallback, the unwired-dict erasure block inside `update_all_regions()`, and the unwired early return inside `update_region()`.
 
 **Follow-ups this does _not_ cover (remain open for §4.4):**
 
 - Grey-tint rendering + "(not yet in play)" hover copy for unwired provinces.
 - Authoring-side per-feature anchor offsets (currently all anchors collapse to `anchor` in the placeholder — commissioned art will supply real offsets).
 
-**Full Python suite after this slice: 8446 passed, 2 skipped.**
+**Full Python suite after this slice and follow-up guardrail hardening: 8449 passed, 2 skipped.**
 
 ---
 
@@ -1197,7 +1198,7 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 3.2 | Frontend loads adjacency from backend | 3 | DONE | April 19, 2026 |
 | 3.3 | Centralize nation colors | 3 | DONE | April 19, 2026 |
 | 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
-| 4.1 | Province registry schema | 4 | | |
+| 4.1 | Province registry schema | 4 | DONE | April 19, 2026 |
 | 4.2 | External bitmap loading | 4 | | |
 | 4.3 | Color-map validator | 4 | | |
 | 4.4 | Unwired province support | 4 | | |

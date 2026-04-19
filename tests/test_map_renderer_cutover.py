@@ -13,6 +13,10 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _func_body(source: str, signature: str) -> str:
+    return source.split(signature, 1)[1].split("\nfunc ", 1)[0]
+
+
 def test_map_script_extends_renderer_base():
     source = _read(MAP_GD)
     assert 'extends "res://scenes/map_renderer_base.gd"' in source
@@ -100,9 +104,41 @@ def test_renderer_base_preserves_update_all_regions_contract():
     assert "region_full_data = wired_data" in source
     assert "_refresh_all_region_visuals()" in source
     assert "_rebuild_dynamic_nodes()" in source
-    update_body = source.split("func update_all_regions(map_data: Dictionary):", 1)[1]
+    update_body = _func_body(source, "func update_all_regions(map_data: Dictionary):")
     assert "queue_redraw()" in update_body
     assert "wired" in update_body, "update_all_regions must gate on the wired flag"
+
+
+def test_update_all_regions_erases_unwired_regions_from_all_gameplay_dicts():
+    source = _read(BASE_GD)
+    update_body = _func_body(source, "func update_all_regions(map_data: Dictionary):")
+    assert "var wired_data := {}" in update_body
+    assert 'if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("wired", true)):' in update_body
+    for snippet in [
+        "region_controllers.erase(region_name)",
+        "region_visibility.erase(region_name)",
+        "region_marshals.erase(region_name)",
+        "region_fogged_forces.erase(region_name)",
+        "region_garrisons.erase(region_name)",
+    ]:
+        assert snippet in update_body, f"Missing unwired erase in update_all_regions: {snippet}"
+    assert "continue" in update_body
+    assert "wired_data[region_name] = map_data[region_name]" in update_body
+    assert "region_full_data = wired_data" in update_body
+
+
+def test_update_region_short_circuits_before_writing_unwired_regions():
+    source = _read(BASE_GD)
+    update_body = _func_body(
+        source,
+        "func update_region(region_name: String, controller: String, marshal_data = null):",
+    )
+    wired_guard = 'if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("wired", true)):'
+    assert wired_guard in update_body
+    guard_index = update_body.index(wired_guard)
+    return_index = update_body.index("return", guard_index)
+    controller_write_index = update_body.index("region_controllers[region_name] = controller")
+    assert return_index < controller_write_index
 
 
 def test_update_region_accepts_legacy_and_new_payload_shapes():
@@ -140,6 +176,17 @@ def test_hover_and_click_lookup_use_color_map_sampling_before_fallback():
     assert "_set_hovered_region(color_map_region)" in source
     assert "var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))" in source
     assert "region_clicked.emit(clicked_region)" in source
+
+
+def test_hover_distance_fallback_skips_noninteractive_regions():
+    source = _read(BASE_GD)
+    hover_body = _func_body(source, "func _refresh_hover_state():")
+    interactive_guard = 'if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("interactive", true)):'
+    assert interactive_guard in hover_body
+    guard_index = hover_body.index(interactive_guard)
+    continue_index = hover_body.index("continue", guard_index)
+    distance_index = hover_body.index("map_mouse.distance_to(positions[region_name]) <= REGION_RADIUS")
+    assert continue_index < distance_index
 
 
 def test_camera_cutover_has_keyboard_pan_and_zoom_fallbacks():

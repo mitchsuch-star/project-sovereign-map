@@ -11,6 +11,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 
+@pytest.fixture(autouse=True)
+def mock_parser(monkeypatch):
+    """Keep endpoint wiring tests deterministic even when real API keys exist."""
+    import backend.main as main_module
+    from backend.commands.parser import CommandParser
+
+    monkeypatch.setattr(main_module, "parser", CommandParser(use_real_llm=False))
+
+
 @pytest.fixture
 def client():
     """Create a TestClient for the FastAPI app."""
