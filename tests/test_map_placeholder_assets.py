@@ -169,6 +169,31 @@ def test_placeholder_all_current_provinces_are_wired_and_interactive():
         )
 
 
+def test_every_backend_region_is_wired_in_registry():
+    """Cross-file drift guard: every REGIONS_DATA region must be `wired: true`.
+
+    `test_placeholder_province_asset_covers_all_backend_regions` already pins
+    set equality between the backend roster and the registry keys, but a
+    future author could silently flip `wired: false` on an entry that the
+    backend AI, ledger, and dispatch still treat as a live gameplay region.
+    The renderer §4.4 unwired-gate would then block clicks + grey-overlay a
+    province that the rest of the game considers in-play — a silent
+    desync. This test fails loudly if that ever happens.
+    """
+    province_data = _load_province_definition()
+    regions = province_data["regions"]
+    unwired = sorted(
+        name
+        for name in REGIONS_DATA
+        if regions.get(name, {}).get("wired") is not True
+    )
+    assert not unwired, (
+        "Every region in backend.models.region.REGIONS_DATA must have "
+        "wired: true in session8_placeholder_provinces.json. "
+        f"Unwired backend regions: {unwired}"
+    )
+
+
 def test_renderer_consumes_wired_and_interactive_flags():
     """The GDScript renderer must reference the new schema flags so the
     placeholder JSON plumbing actually affects runtime behavior.

@@ -109,3 +109,30 @@ def test_no_self_adjacency():
     """No region should list itself as adjacent."""
     for name, data in REGIONS_DATA.items():
         assert name not in data["adjacent"], f"{name} lists itself as adjacent"
+
+
+def test_regions_adjacency_is_bidirectional():
+    """Cross-cutting drift guard: iterates REGIONS_DATA and collects EVERY
+    asymmetric adjacency edge (A lists B, B does not list A) in a single
+    failure message instead of bailing on the first mismatch.
+
+    Distinct from `test_adjacency_is_bilateral` (which asserts pair-by-pair):
+    this variant reports the complete set so an author can triage a batch of
+    edits in one pass. Following the audit contract, the test does NOT
+    auto-fix REGIONS_DATA — it only reports the asymmetries so the user can
+    decide which side is authoritative.
+    """
+    asymmetries: list[str] = []
+    for name, data in REGIONS_DATA.items():
+        for neighbor in data["adjacent"]:
+            if neighbor not in REGIONS_DATA:
+                asymmetries.append(
+                    f"{name} -> {neighbor} (neighbor missing from REGIONS_DATA)"
+                )
+                continue
+            if name not in REGIONS_DATA[neighbor]["adjacent"]:
+                asymmetries.append(f"{name} -> {neighbor} but {neighbor} does NOT -> {name}")
+    assert not asymmetries, (
+        "REGIONS_DATA adjacency is not bidirectional. Asymmetric edges:\n  "
+        + "\n  ".join(asymmetries)
+    )

@@ -1923,6 +1923,68 @@ Update the region tables in:
 
 ---
 
+### Province Registry (schema v2)
+
+**What it is.** The province registry is the Godot-side asset that maps each backend region to renderer data: lookup colors for the color-keyed hit-test bitmap, radii / anchors for overlay placement, and the `wired` / `interactive` gameplay flags introduced in Map Readiness §4.1. Placeholder file: [`godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json`](../godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json). Commissioned Europe art will ship its own file alongside the visual/lookup PNG pair.
+
+**`schema_version: 2` contract.** Every region entry must carry these fields:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `province_id` | `string` | Stable lowercase snake_case id. Distinct from the display-name key — survives renames. Must be unique across the registry. |
+| `anchor` | `[x, y]` | Legacy single anchor. Currently mirrored across all four per-feature anchors below; commissioned art will split them. |
+| `unit_anchor` | `[x, y]` | Marshal sprite placement. Currently equal to `anchor` for the placeholder. |
+| `label_anchor` | `[x, y]` | Region-name label placement. Currently equal to `anchor` for the placeholder. |
+| `garrison_anchor` | `[x, y]` | Garrison shield placement. Currently equal to `anchor` for the placeholder. |
+| `building_anchor` | `[x, y]` | Building icon placement. Currently equal to `anchor` for the placeholder. |
+| `lookup_color` | `[r, g, b]` | RGB key into the lookup PNG. Must be unique across the registry and must NOT collide with `no_province_color`. |
+| `radius` | `int` | Circle-fallback radius in pixels. Only used when commissioned bitmaps are not loaded. |
+| `wired` | `bool` | Gameplay gate. `true` = region is in play, used by backend AI / ledger / dispatch. `false` = rendered as grey tint via `_apply_unwired_grey_overlay()`, click short-circuits in `MOUSE_BUTTON_LEFT` handler, hover routes to `_draw_unwired_region_tooltip()`. |
+| `interactive` | `bool` | Hover/hit-test gate. `_lookup_region_from_color_map()` returns `""` for non-interactive regions. Decoupled from `wired` so commissioned art can ship "visible but not clickable" purely-decorative tiles. |
+
+**Minimum valid entry.**
+
+```json
+"Hamburg": {
+  "province_id": "hamburg",
+  "anchor": [520, 130],
+  "unit_anchor": [520, 130],
+  "label_anchor": [520, 130],
+  "garrison_anchor": [520, 130],
+  "building_anchor": [520, 130],
+  "radius": 54,
+  "lookup_color": [120, 200, 80],
+  "wired": true,
+  "interactive": true
+}
+```
+
+**Cross-reference — this is enforced by tests:** Every region in `REGIONS_DATA` **must** have `wired: true` in the registry — `test_every_backend_region_is_wired_in_registry` in `tests/test_map_placeholder_assets.py` will fail otherwise. Set equality against `REGIONS_DATA` is also pinned by `test_placeholder_province_asset_covers_all_backend_regions`.
+
+**Running the offline validator.** Registry-only mode (cheapest gate, no PNGs needed) for day-to-day edits:
+
+```bash
+".venv\Scripts\python.exe" -m tools.validate_province_map --registry godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json
+```
+
+Full-delivery mode for commissioned art acceptance (both PNGs required together):
+
+```bash
+".venv\Scripts\python.exe" -m tools.validate_province_map \
+  --registry godot-client/project-sovereign/assets/maps/europe.json \
+  --visual   godot-client/project-sovereign/assets/maps/europe_visual.png \
+  --lookup   godot-client/project-sovereign/assets/maps/europe_lookup.png
+```
+
+Exit codes: `0` = pass, `1` = validation failure, `2` = bad input. Use `--json` for CI consumption and `--strict` to promote `TINY_ISLAND` warnings into errors.
+
+**Thresholds to respect when commissioning.**
+
+- `--min-coverage-pixels` (default `50`) — gates `INSUFFICIENT_COVERAGE`. Every declared province must have at least this many lookup-bitmap pixels, so tiny mis-drawn provinces can't silently slip through. Raise it for a higher-resolution delivery if the art's tightest genuine province still comfortably exceeds the new floor.
+- `--tiny-island-threshold` (default `5`) — gates the `TINY_ISLAND` warning. Each connected island (mapped or not) with `1 <= pixel_count < threshold` becomes a warning. These are almost always anti-aliased stragglers or JPEG bleed — if you see them in a "lossless" delivery, re-export without compression before raising the threshold.
+
+---
+
 ### Step-by-Step: Renaming a Region
 
 Renaming is harder than adding because every string reference must change.
