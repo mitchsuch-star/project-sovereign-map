@@ -974,20 +974,42 @@ func _load_map_images() -> bool:
 
 ---
 
-### 4.3 Color-Map Validator
+### 4.3 Color-Map Validator — COMPLETE (April 19, 2026)
 
-**Create:** `tools/validate_province_map.py` (or `tests/test_province_map_assets.py`)
+**Tool:** `tools/validate_province_map.py` — invoke as `.venv\Scripts\python.exe -m tools.validate_province_map --registry <json> [--visual <png> --lookup <png>]`. Standalone (no project imports beyond stdlib + the registry JSON), so it can run before any backend code loads.
 
-**What it validates:**
-- Sentinels/background colors are only used where intended and are not assigned to provinces
-- No unexpected colors exist after import (anti-aliasing / stray-pixel detection)
-- Every province in the registry appears in the lookup image with at least N pixels
-- Flags tiny pixel islands (< 5 pixels of a color) as likely export artifacts
-- Emits a CI-readable failure report before any commissioned art is accepted
+**Checks landed (six failure codes, two severities):**
 
-**Important:** do not duplicate the runtime loader's size-match and lookup-color-presence checks blindly. §4.2 now enforces those at load time; §4.3 should focus on offline acceptance checks that are expensive, noisy, or art-pipeline-specific.
+| Code | Severity | What it catches | Why it is offline-only |
+|------|----------|-----------------|-------------------------|
+| `SENTINEL_COLLISION` | error | Province `lookup_color` equals registry `no_province_color` | Runtime loader rejects on first sentinel pixel; this catches it at the registry level before any image pass |
+| `DUPLICATE_LOOKUP_COLOR` | error | Two provinces share the same `lookup_color` | Runtime would route both to the last-loaded region with no warning |
+| `SIZE_MISMATCH` | error | Visual + lookup PNG dimensions disagree | Mirrors §4.2 runtime check, but reports both sizes for art-pipeline triage instead of bailing |
+| `MISSING_PROVINCE` | error | A declared province occupies zero pixels in the lookup | Runtime requires "every declared color appears at least once"; this distinguishes "missing entirely" from "insufficient" with a separate code |
+| `INSUFFICIENT_COVERAGE` | error | Province occupies fewer than `--min-coverage-pixels` pixels (default 50) | Runtime allows any pixel count >= 1; offline gate catches "exists but unclickable in practice" |
+| `UNMAPPED_COLOR` | error | Non-sentinel color in lookup is not declared | Runtime fails on the FIRST stray pixel; offline pass collects ALL strays + their counts and sample coordinates so commissioned-art deliveries triage in one pass |
+| `TINY_ISLAND` | warning | Any color (mapped or not) with `1 <= count < --tiny-island-threshold` pixels (default 5) | Pure offline acceptance signal — flags export artifacts and anti-alias bleed regardless of whether the color is declared |
 
-**Run:** Before integrating any new art delivery. Also runs in CI.
+`SENTINEL_COLLISION` and `DUPLICATE_LOOKUP_COLOR` are registry-only and run when `--visual`/`--lookup` are omitted, so the cheapest acceptance gate works before any PNG exists.
+
+**CLI contract:**
+- `--registry <path>` is required; `--visual` and `--lookup` must be supplied together (or both omitted).
+- `--min-coverage-pixels` and `--tiny-island-threshold` tune the two thresholds per delivery.
+- `--json` emits a structured `{ok, error_count, warning_count, failures[]}` report on stdout (suppresses human output) for CI consumption.
+- `--strict` promotes a warnings-only run to a non-zero exit.
+- Exit codes: `0` = pass (no errors; warnings allowed unless `--strict`), `1` = validation failures, `2` = bad input (missing files, malformed registry, unsupported PNG).
+
+**PNG decoder scope:** pure-Python decoder (stdlib `zlib` + `struct`) supporting 8-bit RGB (color_type 2) and RGBA (color_type 6) with all five PNG scanline filters (None / Sub / Up / Average / Paeth). Rejects interlaced PNGs, non-zero compression/filter methods, and unsupported bit depths with a clear `PNGDecodeError`. Pillow is intentionally NOT a dependency — the validator stays in the project's existing dependency surface (see `requirements.txt`).
+
+**Test coverage (22 tests, `tests/test_province_map_validator.py`):**
+- Registry checks: shipped placeholder passes; sentinel collision detected; duplicate colors detected; loader rejects missing fields and malformed lookup colors.
+- Image checks: clean baseline produces no findings; size mismatch detected (both sizes reported); missing province detected; insufficient coverage detected with default 50-pixel minimum; tiny islands produce both `TINY_ISLAND` warning and `UNMAPPED_COLOR` error when appropriate; high-pixel-count unmapped colors stay error-only (no spurious tiny-island warning); sentinel pixels never produce findings; RGB-only PNGs decode correctly.
+- CLI: exit 0 on clean placeholder; exit 1 on validation error (with code in stdout); exit 2 on missing registry; exit 2 when `--visual` is supplied without `--lookup`; `--json` emits parseable structured report; `--strict` promotes warnings.
+- PNG decoder: rejects interlaced PNGs; rejects non-PNG signatures; round-trips a 5-row RGBA fixture exercising all five filter types.
+
+**Important:** the runtime loader's size-match and lookup-color-presence checks already shipped in §4.2; this validator deliberately goes beyond them rather than duplicating them blindly — collecting ALL findings in one report, distinguishing missing-vs-insufficient-vs-stray, and detecting tiny pixel islands the runtime cannot.
+
+**Run:** Before integrating any new art delivery. Wire into CI alongside the existing pytest suite. The shipped placeholder JSON already passes all registry-only checks (pinned by `test_placeholder_registry_passes_registry_only_checks`).
 
 ---
 
@@ -1239,7 +1261,7 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
 | 4.1 | Province registry schema | 4 | DONE | April 19, 2026 |
 | 4.2 | External bitmap loading | 4 | DONE | April 19, 2026 |
-| 4.3 | Color-map validator | 4 | | |
+| 4.3 | Color-map validator | 4 | DONE | April 19, 2026 |
 | 4.4 | Unwired province support | 4 | | |
 | 5.1 | Direct-only war entry + refusal event | 5 | | |
 | 5.2 | Categorized dispatch sections + priority escalation | 5 | | |
