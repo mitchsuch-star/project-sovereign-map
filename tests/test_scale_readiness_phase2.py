@@ -1,7 +1,7 @@
 import pytest
 
 from tests.conftest import MarshalFactory, WorldFactory
-from backend.ai.enemy_ai import EnemyAI
+from backend.ai.enemy_ai import EnemyAI, get_marshal_priority
 from backend.commands.executor import CommandExecutor
 
 
@@ -515,3 +515,216 @@ def test_ai_fortification_opportunity_refreshes_indexes_for_direct_calls():
     assert {m.name for m in world.get_hostile_marshals_in_region_indexed("Belgium", "Britain")} == {
         "Davout"
     }
+
+
+def test_ai_homeland_defense_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Paris",
+        strength=35000,
+        nation="Britain",
+        personality="aggressive",
+    )
+    world = WorldFactory.with_marshals([marshal], player_nation="France")
+    _set_war(world, "Britain", "France")
+    world.nation_starting_regions["Britain"] = ["Belgium"]
+    world.get_region("Belgium").controller = "France"
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    ai._recapture_targets_claimed = set()
+    ai._recapture_marshal_assignments = {}
+
+    action = ai._find_homeland_defense(marshal, "Britain", world)
+
+    assert action is not None
+    assert action["action"] == "attack"
+    assert action["target"] == "Belgium"
+
+
+def test_ai_undefended_capture_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Paris",
+        strength=30000,
+        nation="Britain",
+        personality="aggressive",
+    )
+    world = WorldFactory.with_marshals([marshal], player_nation="France")
+    _set_war(world, "Britain", "France")
+    world.get_region("Belgium").controller = "France"
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._find_undefended_capture(marshal, "Britain", world)
+
+    assert action is not None
+    assert action["action"] == "attack"
+    assert action["target"] == "Belgium"
+
+
+def test_ai_consolidation_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Ney",
+        location="Paris",
+        strength=10000,
+        nation="Coalition",
+        personality="cautious",
+    )
+    ally = MarshalFactory.infantry(
+        name="Blucher",
+        location="Lyon",
+        strength=30000,
+        nation="Coalition",
+        personality="aggressive",
+    )
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location="Belgium",
+        strength=30000,
+        nation="France",
+    )
+    world = WorldFactory.with_marshals([marshal, ally, enemy], player_nation="France")
+    _set_war(world, "Coalition", "France")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._consider_consolidation(marshal, "Coalition", world)
+
+    assert action is not None
+    assert action["action"] == "move"
+    assert action["target"] == "Lyon"
+
+
+def test_ai_default_action_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Paris",
+        strength=30000,
+        nation="Britain",
+        personality="cautious",
+    )
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location="Paris",
+        strength=10000,
+        nation="France",
+    )
+    world = WorldFactory.with_marshals([marshal, enemy], player_nation="France")
+    _set_war(world, "Britain", "France")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    action = ai._get_default_action(marshal, world)
+
+    assert action is not None
+    assert action["action"] == "attack"
+    assert action["target"] == "Davout"
+
+
+def test_ai_retreat_destination_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Ney",
+        location="Paris",
+        strength=12000,
+        nation="France",
+        personality="aggressive",
+    )
+    marshal_region = WorldFactory.basic().get_region("Paris")
+    safe_region = marshal_region.adjacent_regions[0]
+    blocked_region = marshal_region.adjacent_regions[1]
+    blocker = MarshalFactory.enemy(
+        name="Wellington",
+        location=blocked_region,
+        strength=25000,
+        nation="Britain",
+    )
+    world = WorldFactory.with_marshals([marshal, blocker], player_nation="France")
+    _set_war(world, "France", "Britain")
+
+    for adj_name in marshal_region.adjacent_regions:
+        world.get_region(adj_name).controller = "Neutral"
+    world.get_region(safe_region).controller = "France"
+    world.get_region(blocked_region).controller = "France"
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    destination = ai._find_retreat_destination(marshal, "France", world)
+
+    assert destination == safe_region
+
+
+def test_ai_path_blocked_refreshes_indexes_for_direct_calls():
+    blocker = MarshalFactory.enemy(
+        name="Wellington",
+        location="Belgium",
+        strength=25000,
+        nation="Britain",
+    )
+    world = WorldFactory.with_marshals([blocker], player_nation="France")
+    _set_war(world, "France", "Britain")
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    is_blocked, blocker_name = ai._path_is_blocked(["Paris", "Belgium", "Rhineland"], "France", world)
+
+    assert is_blocked is True
+    assert blocker_name == "Wellington"
+
+
+def test_ai_capture_safety_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Paris",
+        strength=30000,
+        nation="Britain",
+        personality="cautious",
+    )
+    target_region = WorldFactory.basic().get_region("Belgium")
+    friendly_support_region = target_region.adjacent_regions[0]
+    hostile_region = target_region.adjacent_regions[1]
+    supporter = MarshalFactory.infantry(
+        name="Blucher",
+        location=friendly_support_region,
+        strength=20000,
+        nation="Britain",
+        personality="aggressive",
+    )
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location=hostile_region,
+        strength=20000,
+        nation="France",
+    )
+    world = WorldFactory.with_marshals([marshal, supporter, enemy], player_nation="France")
+    _set_war(world, "Britain", "France")
+    world.get_region("Belgium").controller = "France"
+    world._marshals_by_region = {}
+
+    ai = EnemyAI(CommandExecutor())
+    is_safe, _reason = ai._evaluate_capture_safety(marshal, "Belgium", "Britain", world)
+
+    assert is_safe is True
+
+
+def test_get_marshal_priority_refreshes_indexes_for_direct_calls():
+    marshal = MarshalFactory.infantry(
+        name="Wellington",
+        location="Paris",
+        strength=30000,
+        nation="Britain",
+        personality="aggressive",
+    )
+    enemy = MarshalFactory.enemy(
+        name="Davout",
+        location="Paris",
+        strength=10000,
+        nation="France",
+    )
+    world = WorldFactory.with_marshals([marshal, enemy], player_nation="France")
+    _set_war(world, "Britain", "France")
+    world._marshals_by_region = {}
+
+    priority = get_marshal_priority(marshal, world)
+
+    assert priority == 40
