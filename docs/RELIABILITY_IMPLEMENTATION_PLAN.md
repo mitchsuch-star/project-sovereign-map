@@ -1,9 +1,9 @@
 # Memory and Pressure — Implementation Plan
 
-> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.2 (April 19, 2026 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
+> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (April 20, 2026 deep-audit fixes on top of v2.4.2 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 19, 2026 (v2.4.2 plan alignment to spec audit — B-Hegemony prerequisite-helper list expanded, test budget raised, power_tier scenario authoring added)
-> **Sessions remaining:** ~1.5 effective on the critical path (B-Hegemony expanded with scenario-data authoring + four prerequisite helpers; B-B1-lite + B-B3 + B-B7 fold into the same session; trimmed Slice C-lite may slip to a short follow-up)
+> **Last Updated:** April 20, 2026 (v2.4.3 plan alignment: `world.nation_power_tiers` runtime map dropped in favor of direct authored-record reads; B-Hegemony test list expanded with recursive vassal-chain + cycle-safety + non-France-hegemon guard; `add_threat` wire-up gated on `hegemon == world.player_nation`; new "Merge ordering — B-B1-lite and B-B4" section in Execution Order)
+> **Sessions remaining:** ~1.5 effective on the critical path (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 fold into the same session; trimmed Slice C-lite may slip to a short follow-up)
 > **Est. tests remaining:** ~45-54 (B-Hegemony 18-22 + B-B1-lite 7-8 + B-B3 3 + B-B7 8 + Slice C-lite trimmed 10-12; down from v2.3 ~68-74, up from v2.4 ~35-42 after prerequisite-helper audit)
 
 ---
@@ -90,8 +90,8 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 
 **Prerequisite helpers (added because spec §7 consumes them but no equivalent exists):**
 
-- `world.get_power_tier(nation: str) -> Optional[str]` — reads from a new `world.nation_power_tiers: Dict[str, str]` map hydrated from scenario config; returns `None` when unknown. ~5 LOC + scenario-data hydration path.
-- Scenario config wiring: `power_tier` field on each authored nation record, loaded at `new_game` time into `world.nation_power_tiers`, serialized through `to_dict` / `from_dict`. 1805 roster values per `SCALE_READINESS_PLAN.md` §Phase 0 (France/Britain/Austria/Prussia/Russia = `major`; Spain/Ottoman/Sweden/Naples = `secondary`; Bavaria/Saxony/Portugal/Denmark-Norway = `minor`). ~20 LOC including the scenario-record read and serialization hook.
+- `world.get_power_tier(nation: str) -> Optional[str]` — reads directly from the authored nation record (scenario data) with a `_POWER_TIER_DEFAULT = "secondary"` fallback when the field is missing. **No runtime `world.nation_power_tiers` map is introduced** — per `SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy", the authored scenario config is the single source of truth; runtime code reads from it and does not mutate or shadow it. ~5 LOC accessor, routed through whatever structure currently holds authored nation data (`world.nation_config`, `world.scenario_data`, or equivalent — audit during implementation).
+- Scenario config authoring: `power_tier` field added to each nation record in scenario config, colocated with capital / color / starting AP. 1805 roster values per `SCALE_READINESS_PLAN.md` §Phase 0 (France/Britain/Austria/Prussia/Russia = `major`; Spain/Ottoman/Sweden/Naples = `secondary`; Bavaria/Saxony/Portugal/Denmark-Norway = `minor`). ~10 LOC on the scenario-record side (adding the field + default). Authored scenario data is recreated from scenario files on load, not persisted through `to_dict` / `from_dict` — no serialization-enforcement test needed for the field itself.
 - (Deliberately not adding `world.get_vassals_of` or `world.get_treaty_state` — bloc-member calc iterates `world.vassals` inline and reads `world.get_diplomatic_state(a, b)` directly per spec v2.4.2 §7.1.)
 - (Deliberately not adding `world.get_major_powers` — `_calculate_hegemony_pressure` derives majors inline from `get_power_tier(n) == "major"` per spec v2.4.2 §7.3.)
 
@@ -106,7 +106,7 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
-- Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty, call `add_threat(world, increment, source_key="hegemony_passive")`. ~5 LOC.
+- Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
 
 **Coalition leader update:**
 
@@ -115,8 +115,10 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 **Tests (~18-22):**
 
 - `world.get_power_tier` returns authored tier for each roster tier; returns `None` for unauthored nation
-- Scenario loader round-trips `power_tier` through `to_dict` / `from_dict`
-- `get_bloc_members` for various treaty configurations: France alone, France+1 vassal, France+1 ally, France+vassal+ally, vassal-of-vassal cascade, NON_AGGRESSION does not count, OPEN_BORDERS does not count
+- `world.get_power_tier` reads live from the authored scenario record (not a runtime map); mutation test verifies there is no writable `world.nation_power_tiers` field
+- Scenario loader surfaces `power_tier` correctly on the first call after `/new_game`
+- `get_bloc_members` for various treaty configurations: France alone, France+1 vassal, France+1 ally, France+vassal+ally, vassal-of-vassal cascade (top-overlord walk), sub-vassal-of-vassal cascade (3-deep chain), NON_AGGRESSION does not count, OPEN_BORDERS does not count
+- `get_bloc_members` cycle-safety: a vassal data error where A->B and B->A terminates cleanly at `_top_overlord` rather than looping
 - `get_bloc_members` cache invalidation: treaty ratification / vassal change / war declaration / peace each invalidate the right entry
 - `power_score` with major/secondary/minor tiers
 - `power_score` fallback to `"secondary"` default when `get_power_tier` returns `None`
@@ -124,6 +126,7 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 - `_calculate_hegemony_pressure` returns `{}` when share < 30%, returns hegemon at 35% / 45% / 55% / 65% with correct ladder values
 - `_calculate_hegemony_pressure` defensive fallback when no nation is authored `major` — derives from active-nations set
 - `process_coalition_turn` integration: passive contribution adds to `threat_level`, decay still drains it, `threat_sources_this_turn` records `"hegemony_passive"` source key
+- `process_coalition_turn` non-France-hegemon guard: synthetic test where `_calculate_hegemony_pressure` returns `{Russia: +5}` asserts `threat_level` does NOT change (guard skips `add_threat`); Balance of Europe headline copy still names Russia correctly
 - `coalition_leadership_score` favors highest-bloc-share-against among non-bloc members (France-hegemon precondition asserted)
 - France-bloc shrinks (vassal released or ally defects) → next turn pressure stops accruing
 - Balance of Europe headline composition across: no hegemon, France at 35%, France at 55% with Brewing coalition
@@ -239,8 +242,20 @@ B-Hegemony (helpers + engine + coalition wire-up)
        -> B-B7 (Make Amends)
        -> Slice C-lite (named-diplomat helper + paradox popup + prose + Balance headline)
 
-B-B4 (DG-4 call-to-arms episodes) — parallel slice, independent of hegemony refactor
+B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below)
 ```
+
+### Merge ordering — B-B1-lite and B-B4 (DG-4) composite-floor interaction
+
+B-B1-lite's acceptance-formula collapse (spec §9.3 pre-DG-4 clause: "no composite floor needed") is only valid while the only terms are `hegemony_target_mod` (max `-20`) and `bilateral_betrayal_mod` (max `-18` under normal hard-reject blocking). **B-B4's DG-4 `grievance_modifier` (§8.8.9: `-30 per active grievance`, stacking across defensive-call refusals) breaks this invariant.** Three grievances alone reach `-90`; compounded with hegemony `-20` and betrayal `-18` the raw score reaches `-128`.
+
+**Required ordering (one of):**
+
+- **Option A — preferred: B-B4 lands AFTER or SIMULTANEOUSLY with B-B1-lite.** B-B1-lite ships the no-floor collapse; B-B4 then re-introduces the composite floor (`-60`, per spec §9.3 with-DG-4 clause) together with the `grievance_modifier` term and the per-pair grievance stacking cap (3 grievances per pair). The floor is rarely reached in normal play because hard-reject blocks before stacking saturates, but the floor is defensive and non-negotiable once `grievance_modifier` is live.
+
+- **Option B — acceptable if sequencing forces it: B-B4 lands BEFORE B-B1-lite.** B-B1-lite's formula-collapse work must NOT delete the v2.3 composite-floor logic while `grievance_modifier` is already live in code; instead, narrow the floor to exactly the three-term case (`hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier`) with the same `-60` bound, and remove only the *explanatory surface* of the old composite aggregation.
+
+**Prohibited ordering:** under no circumstance may B-B1-lite ship alone with the no-floor claim while B-B4's `grievance_modifier` term is live in code. This produces unbounded negative scores on the §8.7 survival-exception path and makes the acceptance-formula debug output deceptive (component sums inconsistent with the stored composite value). The v2.4.2 deep audit (`MEMORY_AND_PRESSURE_V2_4_2_DEEP_AUDIT.md` A2) flagged this as a critical cross-slice ordering constraint; treat it as a merge gate, not a style preference.
 
 Recommended playtest gates:
 

@@ -59,13 +59,15 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 | Control >60% of regions (12+) | +1/turn | During `advance_turn` | Continental dominance |
 | Control >70% of regions (14+) | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
 | Control >80% of regions (16+) | +3/turn | During `advance_turn` (replaces +2) | Empire at its zenith |
+| Hegemony pressure (bloc share ≥ 30%) | +1/+3/+5/+8/turn (share-scaled ladder) | During `advance_turn` via `_calculate_hegemony_pressure` (Memory and Pressure §7.3) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
 
 **Notes:**
 - "Win any battle" and "Win decisive battle" stack: a decisive victory = +3 + +5 = **+8 total**.
 - "Capture enemy capital" stacks with "Win any battle" if a battle was fought for the capital.
 - Region control % uses `len(france_controlled) / len(all_regions)`. France starts with 8/19 = 42%.
 - All values are `int()`. No fractional threat.
-- **Alliance formation does NOT generate threat.** Only aggressive actions (war, conquest, vassalization, battles, annexation) raise threat. Defensive alliances formed by other nations are their response to threat, not a source of it.
+- **Alliance ratification does NOT directly generate threat on the signing turn.** However, when a nation's bloc (leader + vassals + deep-treaty partners) crosses 30% of continental power, the Memory and Pressure hegemony engine (`RELIABILITY_COMMITMENTS_SPEC.md` §7) contributes a passive per-turn threat increment against the hegemon. This is the Napoleonic balance-of-power doctrine: sustained bloc dominance invites coordinated response even without fresh aggressive action. The `hegemony_passive` row above is the mechanical surface for this signal; direct aggressive actions (war, conquest, vassalization, battles, annexation) continue to be the primary threat generators.
+- **Region-control ticks vs hegemony pressure:** the two are distinct signals. Region-control ticks (60/70/80% of raw regions) are a territorial threshold; hegemony pressure reads bloc shares including vassals and allies (weighted by `power_tier`). A France at 55% regions but with only one minor ally may trigger region-control +1/turn without triggering hegemony pressure; a France at 45% regions but with Prussia + Austria both in bloc may trigger hegemony +5/turn without region-control firing. Both contribute to the same `threat_level` scalar via `add_threat()`.
 
 ### §2b. Threat Reduction Table
 
