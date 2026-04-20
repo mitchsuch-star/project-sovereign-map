@@ -1,6 +1,6 @@
 # MP v2.4.3 — Block 2: Substrate Alignment
 
-> **Source:** [MP_V243_AUDIT_COMBINED.md](docs/audits/MP_V243_AUDIT_COMBINED.md) — Block 2 (~1.5-3 hours, one session, doc + code).
+> **Source:** [MP_V243_AUDIT_COMBINED.md](docs/audits/MP_V243_AUDIT_COMBINED.md) — Block 2 (~1.5-3 hours, one session, doc + code). **Addendum (2026-04-20):** follow-up meta-audit added items B1-B5 (see [Addendum](#addendum--follow-up-findings-2026-04-20)) — fold each into its partner U-item's commit.
 >
 > **Ships as:** 2-3 small focused commits (U4, U3, optional U2). Don't split U3 and U4 across sessions — coupling them makes the "v2.4.3 enum + speaker discipline" boundary legible in `git log`.
 >
@@ -12,7 +12,7 @@
 
 ## Scope
 
-2-3 unified findings, live-code changes with doc echoes. Each is a narrow diff.
+2-3 unified findings + 5 addendum items, live-code changes with doc echoes. Each is a narrow diff.
 
 | # | Finding | Work | Est. | Gating? |
 |---|---------|------|------|---------|
@@ -275,3 +275,104 @@ SAVE_FORMAT_REFERENCE.md documents the alias policy.
 - `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION` constant (B-B4).
 
 All of the above are already scheduled in [`RELIABILITY_IMPLEMENTATION_PLAN.md`](docs/RELIABILITY_IMPLEMENTATION_PLAN.md); Block 2 only closes the substrate-alignment gaps that would block those slices from running against today's master.
+
+---
+
+## Addendum — follow-up findings (2026-04-20)
+
+Second-pass meta-audit surfaced five additional substrate gaps. Each folds into its partner U-item's commit rather than shipping standalone — keeps the commit count unchanged.
+
+| # | Finding | Folds into | Severity | Est. |
+|---|---------|-----------|----------|------|
+| B1 | U4 extension — add `unknown_baseline` enum value per spec §964 catch-all | U4 | MAJOR | 15 min |
+| B2 | U3 extension — name and import the `END_REASON_FAMILY_FRENCH_BREACH` constant (defined at `diplomacy.py:198-200`) | U3 | MINOR | 5 min |
+| B3 | U2 extension — rename `dialogue_manager.push({"type": "alliance_paradox", ...})` and add `commitment_paradox` entry to `DIALOGUE_PRIORITY` | U2 | MAJOR | 15 min |
+| B4 | Campaign-log dead-code cleanup — remove duplicate event-type branches at `backend/campaign_log.py:673-687` and `689-692` | standalone (new commit, ~10 min) | MINOR | 10 min |
+| B5 | Block 2 DoD — add post-suite test-count expectation (combined audit §373) | DoD | MINOR | 2 min |
+
+**Addendum subtotal: ~45 min on top of U3+U4 (~1.5h base), ~1h on top of U3+U4+U2 (~3h base).**
+
+---
+
+### B1 — U4 extension: add `unknown_baseline` enum
+
+Spec [§964](docs/RELIABILITY_COMMITMENTS_SPEC.md:964) v2.4.3 enum is `hegemony_pressure` **+ `unknown_baseline`** (not just the rename). The catch-all value fires when pressure cannot be attributed to a specific hegemon (e.g., pre-engine state, ambiguous bloc share, calculation skipped). Currently `diplomacy.py:1828, 1829, 1858` all return the same non-default string.
+
+**In U4 step 1** (after flipping the three sites to `"hegemony_pressure"`), audit the surrounding function in [`backend/game_logic/diplomacy.py`](backend/game_logic/diplomacy.py:1828): which of the three return paths is the genuine *default / fallback* path (not the specific-pressure path)? That path returns `"unknown_baseline"` instead. If none of the three is a true default, introduce one — the function must have a default path because consumers rely on the enum being exhaustive.
+
+**In U4 step 2** (display_names): after the rename, add `"unknown_baseline": "unknown baseline"` as a third key. Three keys total in the family:
+```python
+"hegemony_pressure": "hegemony pressure",
+"unknown_baseline": "unknown baseline",
+"rival_pressure": "hegemony pressure",  # legacy alias
+```
+
+**In U4 step 3** (tests): add a fourth unit test — default/fallback path returns `"unknown_baseline"`.
+
+**In U4 step 4** (verification): expected `grep` output is unchanged (`rival_pressure` only in test fixtures).
+
+---
+
+### B2 — U3 extension: name `END_REASON_FAMILY_FRENCH_BREACH`
+
+U3 step 1 sketches `speaker = "envoy" if end_reason_family == END_REASON_FAMILY_FRENCH_BREACH else "foreign_office"`. The constant is already defined at [`backend/game_logic/diplomacy.py:198-200`](backend/game_logic/diplomacy.py:198) — ensure the U3 implementer uses the existing constant by name (not a string literal). Verify import ordering if the constant is defined in the same module.
+
+If the conditional is written outside `diplomacy.py` (it should not be — `_record_treaty_broken` is in `diplomacy.py` so this is self-referential), import the constant explicitly.
+
+No extra tests; this is a code-hygiene rider on U3's existing tests.
+
+---
+
+### B3 — U2 extension: dialogue_manager push + DIALOGUE_PRIORITY
+
+If U2 lands in Block 2 (B-B3 pulled forward per audit §354), the rename touches one more surface the combined audit under-sampled:
+
+1. **[`backend/game_logic/diplomacy.py:2134-2135`](backend/game_logic/diplomacy.py:2134)** — this is the `dialogue_manager.push({"type": "alliance_paradox", ...})` call. Rename the type string to `"commitment_paradox"` in the same pass as the popup-field rename. (Separate from U2 step 2.1, which handles the popup-field emitter at the same line range.)
+
+2. **[`backend/models/dialogue_manager.py:87`](backend/models/dialogue_manager.py:87)** — `DIALOGUE_PRIORITY` map currently has `"alliance_paradox": 0` only. After the rename, the new type `"commitment_paradox"` would default to 99 (lowest priority) — the paradox would silently stop outranking other dialogues. Add `"commitment_paradox": 0` alongside `"alliance_paradox": 0` (keep both during transition).
+
+3. **[`backend/models/dialogue_manager.py`](backend/models/dialogue_manager.py) HARD_STOP_TYPES** — verify `"commitment_paradox"` is in the hard-stop list (it must block commands per R12 / PL-27). If `"alliance_paradox"` is there today, add the new name alongside it.
+
+Fold into U2's existing commit — the commit message should add one line: *"Also renames dialogue push + DIALOGUE_PRIORITY; both legacy and canonical keys listed for transition."*
+
+**Verification** (augments U2 step 6):
+```bash
+grep -n "alliance_paradox\|commitment_paradox" backend/models/dialogue_manager.py backend/game_logic/diplomacy.py
+```
+Both names should appear in DIALOGUE_PRIORITY and HARD_STOP_TYPES; production emit sites should use only `commitment_paradox`.
+
+---
+
+### B4 — Campaign-log dead-code cleanup
+
+[`backend/campaign_log.py:504-518`](backend/campaign_log.py:504) vs lines 673-687, and lines 520-530 vs 689-692: each pair is a duplicate branch for the same event type. Because `format_event_oneliner()` returns on the first match, the second occurrence is dead code.
+
+**Fix:**
+1. Read both branches to confirm they produce identical output (they should — grep the two ranges to diff).
+2. Delete the second occurrence (lines 673-687 and 689-692).
+3. Run the full test suite to confirm no campaign-log test was implicitly relying on the shadowed code.
+
+This is a **separate commit** (not folded into U3 or U4) — unrelated diff, keeps git blame clean.
+
+Commit message approximately:
+```
+MP v2.4.3 Block 2 cleanup: remove duplicate campaign_log branches
+
+Two event types had mirrored handlers at two different line ranges
+in campaign_log.py. The first return wins; the second was dead
+code. Deleting removes ~30 lines without behavior change.
+```
+
+---
+
+### B5 — Block 2 DoD — test count expectation
+
+Combined audit [§373](docs/audits/MP_V243_AUDIT_COMBINED.md:373) specifies the post-merge suite should show *"pre-existing count + 4-6 new from U3/U4, +4-6 more if U2 is in"*. Add to this work order's DoD (both Minimum and Full sections):
+
+**Minimum (U3 + U4 + B1):**
+- [ ] Full test suite: **pre-existing count + 5-7 new** (U3 adds 2-3, U4 adds 3-4 incl. `unknown_baseline`).
+
+**Full (U3 + U4 + U2 + B1 + B3):**
+- [ ] Full test suite: **pre-existing count + 9-13 new** (U3: 2-3, U4: 3-4, U2: 4-6 incl. DIALOGUE_PRIORITY round-trip).
+
+The count expectation gives the reviewer a quick sanity check without running `pytest -q` count-by-count.
