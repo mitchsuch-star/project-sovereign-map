@@ -1,10 +1,10 @@
 # Memory and Pressure — Implementation Plan
 
-> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4 (April 19, 2026 Hegemony refactor — static concern seed replaced by power-based balance-of-power engine)
+> **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.2 (April 19, 2026 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 19, 2026 (v2.4 rewrite — Slice B replaced with B-Hegemony engine; B-A1-fill / B-B2a-fill / B-B6 cancelled; Slice C trimmed)
-> **Sessions remaining:** ~1 effective on the critical path (B-Hegemony + B-B1-lite + B-B3 + B-B7 fold into one session; trimmed Slice C is small enough to fit in the same session or a short follow-up)
-> **Est. tests remaining:** ~35-42 (B-Hegemony 12 + B-B1-lite 6 + B-B3 3 + B-B7 8 + Slice C trimmed 10-12; down from v2.3 ~68-74)
+> **Last Updated:** April 19, 2026 (v2.4.2 plan alignment to spec audit — B-Hegemony prerequisite-helper list expanded, test budget raised, power_tier scenario authoring added)
+> **Sessions remaining:** ~1.5 effective on the critical path (B-Hegemony expanded with scenario-data authoring + four prerequisite helpers; B-B1-lite + B-B3 + B-B7 fold into the same session; trimmed Slice C-lite may slip to a short follow-up)
+> **Est. tests remaining:** ~45-54 (B-Hegemony 18-22 + B-B1-lite 7-8 + B-B3 3 + B-B7 8 + Slice C-lite trimmed 10-12; down from v2.3 ~68-74, up from v2.4 ~35-42 after prerequisite-helper audit)
 
 ---
 
@@ -84,35 +84,49 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 
 ### B-Hegemony. Balance-of-power engine (NEW THIS PHASE)
 
-**Files:** `backend/game_logic/coalition.py`, `backend/models/world_state.py`, `backend/game_logic/diplomacy.py` (acceptance formula reader)
+**Files:** `backend/game_logic/coalition.py`, `backend/models/world_state.py`, `backend/game_logic/diplomacy.py` (acceptance formula reader), scenario config layer (authoring + loader for `power_tier`).
 
-The single biggest new piece. Three pure helpers + one wire-up.
+The single biggest new piece. Four prerequisite helpers, three engine helpers, one wire-up, one scenario-data wiring step.
 
-**Helpers to add (no new state fields):**
+**Prerequisite helpers (added because spec §7 consumes them but no equivalent exists):**
 
-- `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached helper. Returns leader + vassals + nations holding ALLIANCE/DEFENSIVE_ALLIANCE with leader. ~15 LOC. Cache key invalidated on treaty ratification, vassal change, war declaration, peace.
-- `power_score(nation: str, world) -> int` — `region_count * tier_weight` where `tier_weight = {"major": 3, "secondary": 2, "minor": 1}` from authored scenario `power_tier`. ~10 LOC. Reads cached `get_nation_regions()`.
+- `world.get_power_tier(nation: str) -> Optional[str]` — reads from a new `world.nation_power_tiers: Dict[str, str]` map hydrated from scenario config; returns `None` when unknown. ~5 LOC + scenario-data hydration path.
+- Scenario config wiring: `power_tier` field on each authored nation record, loaded at `new_game` time into `world.nation_power_tiers`, serialized through `to_dict` / `from_dict`. 1805 roster values per `SCALE_READINESS_PLAN.md` §Phase 0 (France/Britain/Austria/Prussia/Russia = `major`; Spain/Ottoman/Sweden/Naples = `secondary`; Bavaria/Saxony/Portugal/Denmark-Norway = `minor`). ~20 LOC including the scenario-record read and serialization hook.
+- (Deliberately not adding `world.get_vassals_of` or `world.get_treaty_state` — bloc-member calc iterates `world.vassals` inline and reads `world.get_diplomatic_state(a, b)` directly per spec v2.4.2 §7.1.)
+- (Deliberately not adding `world.get_major_powers` — `_calculate_hegemony_pressure` derives majors inline from `get_power_tier(n) == "major"` per spec v2.4.2 §7.3.)
+
+**Bloc geometry helpers (no new state fields):**
+
+- `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached helper. Returns leader + entries in `world.vassals` whose `lord == leader` + nations whose `world.get_diplomatic_state(leader, other)` is `"ALLIANCE"` or `"DEFENSIVE_ALLIANCE"`. ~18 LOC including cache plumbing.
+- `power_score(nation: str, world) -> int` — `region_count * tier_weight` where `tier_weight = {"major": 3, "secondary": 2, "minor": 1}[world.get_power_tier(nation) or "secondary"]`. ~8 LOC. Reads cached `get_nation_regions()`.
 - `bloc_power(leader: str, world) -> int` — sum of `power_score(n)` across `get_bloc_members(leader)`. ~5 LOC.
+- Cache invalidation: `world._bloc_members_cache` invalidated alongside the existing per-turn caches on treaty ratification, vassal add/remove, war declaration, peace ratification. Audit the four call sites during implementation.
 
 **Engine to add in `coalition.py`:**
 
-- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~20 LOC.
+- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty, call `add_threat(world, increment, source_key="hegemony_passive")`. ~5 LOC.
 
 **Coalition leader update:**
 
-- `coalition_leadership_score(nation, world)` — add `bloc_share_against` term: `+int((bloc_power(nation, world) / european_power) * 50)`. ~5 LOC.
+- `coalition_leadership_score(nation, world)` — add `bloc_share_against` term: `+int((bloc_power(nation, world) / european_power) * 50)`. ~5 LOC. Test must explicitly assert the French-hegemon precondition — the function's `france = world.player_nation` anchor is an existing D2 item, not a v2.4 regression.
 
-**Tests (~12):**
+**Tests (~18-22):**
 
-- `get_bloc_members` for various treaty configurations: France alone, France+1 vassal, France+1 ally, France+vassal+ally, vassal-of-vassal cascade, NON_AGGRESSION does not count
-- `power_score` with major/secondary/minor tiers, missing tier falls back to default
+- `world.get_power_tier` returns authored tier for each roster tier; returns `None` for unauthored nation
+- Scenario loader round-trips `power_tier` through `to_dict` / `from_dict`
+- `get_bloc_members` for various treaty configurations: France alone, France+1 vassal, France+1 ally, France+vassal+ally, vassal-of-vassal cascade, NON_AGGRESSION does not count, OPEN_BORDERS does not count
+- `get_bloc_members` cache invalidation: treaty ratification / vassal change / war declaration / peace each invalidate the right entry
+- `power_score` with major/secondary/minor tiers
+- `power_score` fallback to `"secondary"` default when `get_power_tier` returns `None`
 - `bloc_power` aggregation correctness
 - `_calculate_hegemony_pressure` returns `{}` when share < 30%, returns hegemon at 35% / 45% / 55% / 65% with correct ladder values
-- `process_coalition_turn` integration: passive contribution adds to `threat_level`, decay still drains it
-- `coalition_leadership_score` favors highest-bloc-share-against among non-bloc members
+- `_calculate_hegemony_pressure` defensive fallback when no nation is authored `major` — derives from active-nations set
+- `process_coalition_turn` integration: passive contribution adds to `threat_level`, decay still drains it, `threat_sources_this_turn` records `"hegemony_passive"` source key
+- `coalition_leadership_score` favors highest-bloc-share-against among non-bloc members (France-hegemon precondition asserted)
 - France-bloc shrinks (vassal released or ally defects) → next turn pressure stops accruing
+- Balance of Europe headline composition across: no hegemon, France at 35%, France at 55% with Brewing coalition
 
 ### B-B1-lite. Acceptance formula collapse (THIS PHASE)
 
@@ -120,19 +134,21 @@ The single biggest new piece. Three pure helpers + one wire-up.
 
 - Add `hegemony_target_mod(asker, target, world)` per spec §9.1. Single negative term, scales -2 to -20 with bloc share. Returns 0 when no hegemon, 0 when asker outside hegemon bloc, 0 for intra-bloc proposals.
 - Replace existing acceptance formula's `direct_concern_mod` / `concern_conflict_mod` slots (if any partial wiring exists) with single `hegemony_target_mod` call.
-- Add `bilateral_betrayal_mod(asker, target, world) = -6 * world.get_active_strike_count(target, asker)`. Flat, no cap (hard-reject at 3 strikes is the door-shut, already shipped).
+- Add `bilateral_betrayal_mod(asker, target, world) = -6 * _get_active_betrayal_strike_count(world, asker, target)` (module function already in `diplomacy.py`; arg order is `(actor, victim)` so asker=actor, target=victim). Flat, no cap (hard-reject at 3 strikes is the door-shut, already shipped).
 - Tighten `reliability_modifier` to `clamp(diplomatic_reliability[asker] // 10, -6, +6)` (current code is `// 5` capped ±10 — legacy R34).
 - Wire debug breakdown output (`components` dict) and feedback strings (`FEEDBACK_STRINGS`) for the new modifiers.
 - Add `hegemony` warning category to preview pipeline; legacy `concern` reads as `hegemony` for save-load back-compat.
 
-**Tests (~6):**
+**Tests (~7-8):**
 
 - `hegemony_target_mod` returns 0 outside hegemon bloc
 - `hegemony_target_mod` returns 0 for intra-bloc proposals
-- `hegemony_target_mod` scales linearly -2 to -20 across share buckets
+- `hegemony_target_mod` scales linearly -1 to -20 across share buckets (covers the 33% floor and the 60%+ clamp)
 - `bilateral_betrayal_mod` returns -6 / -12 / -18 for 1 / 2 / 3 strikes (hard-reject blocks at 3)
 - Reliability narrowing: `// 10` capped ±6, regression check vs prior representative scores
 - Composite acceptance score: when both hegemony pressure and betrayal apply, both surface independently in `components` dict
+- Warning-category alias round-trip: legacy `concern` warnings on a saved pre-v2.4 save load back as `hegemony` without data loss
+- AI `decision_reason` alias round-trip: legacy `concern_pressure` reads as `hegemony_pressure` per spec §10.1
 
 ### B-B3. Commitment paradox rename (THIS PHASE — unchanged from v2.3)
 
@@ -251,23 +267,23 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 
 ## Test Budget Comparison
 
-| Slice | v1.0 estimate | v2.3 estimate | v2.4 estimate | Notes |
-|-------|---------------|---------------|---------------|-------|
-| A1 | 18 | shipped | shipped | Done |
-| A2 | 14 | 4 (fill only) | shipped (fill cancelled) | Replaced by Balance headline in Slice C-lite |
-| A1-fill (v2.0) | — | 8 | **0 (cancelled)** | Replaced by hegemony engine |
-| **B-Hegemony (NEW v2.4)** | — | — | **12** | Bloc helpers + engine + coalition wire-up |
-| B1 | 24 | 14 | **6 (B1-lite)** | Collapsed to 2 modifiers |
-| B2a | 14 | shipped + 10 (fill) | shipped (fill cancelled) | Captured by hegemony pressure naturally |
-| B2b | 24 | shipped | shipped | Done |
-| B6 (v2.0) | — | 5 | **0 (cancelled)** | Redemption tick cut |
-| B7 (v2.1) | — | 8 | 8 | Make Amends — unchanged |
-| B3 | 16 | 3 | 3 | Paradox rename — unchanged |
-| C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | moved | → `WAR_BARGAIN_SPEC.md` |
-| Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | **10-12 (trimmed)** | Cut spotlight-tier infra + split-voice + N+1 |
-| §8.8 DG-4 (B-B4) | — | 25 | 25 | Unchanged, parallel slice |
-| Slice D | deferred | deferred | deferred | Same |
-| **Total this phase** | **~200** | **~68-74** | **~35-42** | (+25 DG-4 if shipped together = ~60-67) |
+| Slice | v1.0 estimate | v2.3 estimate | v2.4 estimate | v2.4.2 estimate | Notes |
+|-------|---------------|---------------|---------------|-----------------|-------|
+| A1 | 18 | shipped | shipped | shipped | Done |
+| A2 | 14 | 4 (fill only) | shipped (fill cancelled) | shipped | Replaced by Balance headline in Slice C-lite |
+| A1-fill (v2.0) | — | 8 | **0 (cancelled)** | **0 (cancelled)** | Replaced by hegemony engine |
+| **B-Hegemony (v2.4 rescope)** | — | — | 12 | **18-22** | +4 prerequisite-helper tests (power_tier loader + cache invalidation + fallback paths) surfaced in audit |
+| B1 | 24 | 14 | 6 (B1-lite) | **7-8 (B1-lite)** | +2 alias round-trip tests (warning category + decision_reason) |
+| B2a | 14 | shipped + 10 (fill) | shipped (fill cancelled) | shipped | Captured by hegemony pressure naturally |
+| B2b | 24 | shipped | shipped | shipped | Done |
+| B6 (v2.0) | — | 5 | **0 (cancelled)** | **0 (cancelled)** | Redemption tick cut; risk R7 tracks re-opening |
+| B7 (v2.1) | — | 8 | 8 | 8 | Make Amends — unchanged |
+| B3 | 16 | 3 | 3 | 3 | Paradox rename — unchanged |
+| C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | moved | moved | → `WAR_BARGAIN_SPEC.md` |
+| Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | 10-12 (trimmed) | 10-12 | Presentation spec bumped to v0.5 hegemony-aligned |
+| §8.8 DG-4 (B-B4) | — | 25 | 25 | 25 | Unchanged, parallel slice |
+| Slice D | deferred | deferred | deferred | deferred | Same |
+| **Total this phase** | **~200** | **~68-74** | **~35-42** | **~45-54** | (+25 DG-4 if shipped together = ~70-79) |
 
 ---
 

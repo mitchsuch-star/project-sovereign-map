@@ -1,10 +1,35 @@
 # Commitments Presentation Pass — C3-lite Spec
 
-> **Status:** v0.4 (audit fixes)
-> **Date:** April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
+> **Status:** v0.5 (Hegemony alignment pass)
+> **Date:** April 19, 2026 (v0.5 — v2.4 hegemony alignment); April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
 > **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
-> **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.0 (substrate + paradox rename), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
+> **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.2 (hegemony engine + Balance of Europe headline + paradox rename), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
 > **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain spotlights, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
+
+---
+
+## v0.5 Rescope Note (April 19, 2026) — Hegemony alignment
+
+The April 19 `RELIABILITY_COMMITMENTS_SPEC.md` v2.4 hegemony refactor cancelled several Slice C items this spec had specified as live. v0.5 aligns the presentation surface list with what v2.4 actually ships.
+
+**v0.5 CUT (was live in v0.2-v0.4, cancelled by v2.4):**
+
+- ❌ **Spotlight tier on the notification rail** (elevated card, 2-turn persist, action buttons) — three events do not justify the infra. Live events route through the existing notification system with named-diplomat copy carrying the dramatic lift. §7.2 and §8.2 below describe infrastructure that is NOT built in this phase.
+- ❌ **Split-voice render `attributed_lines[]` with `lead` / `witness` / `aside` regions** — single-voice with named-diplomat attribution suffices at 5-nation scale. §9.1 typographic contract for split-voice rendering is NOT authoritative for v0.5 ship.
+- ❌ **N+1 Talleyrand aside callback keyed by `episode_id`** — deferred to a later presentation pass if playtest shows the gap. §9.4 aftermath architecture reduces to the required after-choice aside on `commitment_paradox` only.
+- ❌ **A1-fill, A2 fill, B2a-fill, B6** upstream dependencies in §2 Phase Placement — all cancelled in v2.4.
+
+**v0.5 KEEPS (v2.4 ship list):**
+
+- ✓ **Named-diplomat resolution helper** — `speaker="envoy"` resolves to the nation's named diplomat per Voice Bible; `speaker="foreign_office"` resolves to "The Chancery of {nation}". §10.3 is authoritative.
+- ✓ **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (`end_reason_family=french_breach`), `commitment_paradox_resolved`. §12 worked examples remain authoritative.
+- ✓ **Dedicated `commitment_paradox_popup.{tscn,gd}` surface** — replaces legacy `alliance_paradox_popup` for the renamed type.
+- ✓ **Balance of Europe headline** — new for v2.4. Three dynamically composed lines at the top of Diplomatic Ledger Nations tab per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1. Rendering lives in `diplomatic_ledger.gd`.
+- ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
+
+**Reading order for implementers:** treat any section below that describes infrastructure on the CUT list as non-normative. Build only the v0.5 KEEPS items. When this spec and v2.4 disagree, v2.4 wins.
+
+**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three event copy paths, paradox popup field wiring, Balance of Europe headline composition for various states).
 
 ---
 
