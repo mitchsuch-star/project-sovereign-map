@@ -244,7 +244,7 @@ Per turn, during `process_coalition_turn` in `coalition.py`:
 
 ```python
 def _calculate_hegemony_pressure(world) -> Dict[str, int]:
-    """Per-turn passive threat from bloc-share dominance. Quadrangle doctrine."""
+    """Per-turn passive threat from bloc-share dominance. Balance-of-power doctrine."""
     active = world.get_active_nations()
     european_power = sum(power_score(n, world) for n in active)
     if european_power == 0:
@@ -270,7 +270,7 @@ def _hegemony_pressure_for_share(share: float) -> int:
     if share < 0.30: return 0   # safe
     if share < 0.40: return 1   # noticed
     if share < 0.50: return 3   # alarming
-    if share < 0.60: return 5   # Quadrangle stirring (Castlereagh subsidies)
+    if share < 0.60: return 5   # coalition stirring (Castlereagh subsidies)
     return 8                     # naked hegemony (1812 / 1813)
 ```
 
@@ -372,7 +372,7 @@ Hegemony Pressure and the existing `coalition.py` coalition system are **complem
 
 Before v2.4, coalitions formed only from **event-based** threat — battles fought, capitals captured, vassalizations. Pure aggression-driven.
 
-After v2.4, coalitions also form from **passive** threat — France becoming too big is itself enough to assemble the Quadrangle, even without recent French aggression.
+After v2.4, coalitions also form from **passive** threat — France becoming too big is itself enough to assemble a coalition, even without recent French aggression.
 
 Historically this is correct. The 1805 Third Coalition formed *before* any French attack that year — Britain paid Austria £1.5M in subsidies because France's bloc was perceived as too large after Pressburg, not in response to a specific French move. Event-threat-only could not model that; v2.4 can.
 
@@ -830,7 +830,7 @@ Illustrative scaling at v0.1 scale (5 nations, 19 regions, `power_tier` weights 
 | France + 1 major (Austria) | ~40% | `-6` | Harder; real diplomatic investment needed |
 | France + 1 major + 1 minor | ~45% | `-9` | Hard but possible with surplus DP / gold |
 | France + 2 majors | ~55% | `-15` | Structurally rare; passive coalition threat at `BREWING` |
-| France + 3+ majors | ~65%+ | `-20` | Quadrangle inevitable; coalition forms within 2-3 turns |
+| France + 3+ majors | ~65%+ | `-20` | Coalition formation inevitable within 2-3 turns |
 
 Values in the "mod" column derive from `hegemony_target_mod = max(-20, -int((share - 0.30) * 60))`; the 33-35% band crosses the -1 / -2 / -3 integer boundary depending on exact region allocation.
 
@@ -844,7 +844,7 @@ What the engine makes hard is **broad new recruitment** — France-as-hegemon tr
 **Playtest gates** (tune the `1/3/5/8` ladder in §7.3 or the `30%` threshold if these fail):
 
 - France SHOULD be able to maintain 2 minor allies (Bavaria + Saxony) without triggering coalition formation
-- France SHOULD be able to add 1 major ally (Austria) with real diplomatic effort but without immediate Quadrangle
+- France SHOULD be able to add 1 major ally (Austria) with real diplomatic effort but without immediate coalition formation
 - France SHOULD NOT be able to hold 3+ major allies simultaneously — that's when the historical coalition dynamic fires
 
 ---
@@ -1109,7 +1109,7 @@ War bargain implementation moved to `WAR_BARGAIN_SPEC.md` slices WB-A through WB
 
 If `hegemony_target_mod` swings deep-treaty acceptance from possible to impossible whenever France's bloc passes 30%, players may feel the engine is too on-rails.
 
-**Mitigation:** the pressure ladder values (1/3/5/8 by share bucket) are authored in `coalition.py` and tunable. Playtest gates: France should be able to maintain Bavaria + Saxony in its bloc (~35% share) without immediately triggering coalition formation; only deep over-extension (50%+) should make the Quadrangle inevitable. If 30% threshold trips too early, raise to 35% or scale the ladder gentler.
+**Mitigation:** the pressure ladder values (1/3/5/8 by share bucket) are authored in `coalition.py` and tunable. Playtest gates: France should be able to maintain Bavaria + Saxony in its bloc (~35% share) without immediately triggering coalition formation; only deep over-extension (50%+) should make coalition formation inevitable. If 30% threshold trips too early, raise to 35% or scale the ladder gentler.
 
 ### R2. Pressure-without-promise feels punitive
 
@@ -1221,6 +1221,7 @@ That is enough to make diplomacy feel like Napoleonic balance-of-power politics,
 
 ## 17. Changelog
 
+- **April 19, 2026 — v2.4.2 Terminology fix (same-day).** Replaced six uses of "Quadrangle" as a synonym for the forming enemy coalition. The Quadruple Alliance (1815) was the post-Napoleonic Concert of Europe diplomatic framework among Britain / Austria / Prussia / Russia — a *great-power management* structure, not the 1805-era anti-French coalition configuration. The game's mechanical term is and remains "Coalition". §7.3 ladder comment, §7.8.2 prose, §9.5 table, §9.5 playtest gates, §14 R1 mitigation, and §7.3 docstring all updated. No mechanical change.
 - **April 19, 2026 — v2.4.2 Audit cleanup.** Pre-implementation audit pass (`MEMORY_AND_PRESSURE_V2_4_1_AUDIT_REPORT.md`) surfaced cross-doc stale references and substrate-helper gaps; v2.4.2 applies the doc-only fixes. §7.1 `get_bloc_members` code snippet rewritten to consume existing helpers (`world.vassals` dict iteration + `world.get_diplomatic_state(a, b)` returning string literals); the non-existent `TreatyState` enum and `world.get_vassals_of(leader)` / `world.get_treaty_state(a, b)` calls removed; helper-compat note added. §7.2 `power_score` given an explicit `_POWER_TIER_DEFAULT = "secondary"` fallback and a note that scenario-data wiring for `power_tier` is part of B-Hegemony. §7.3 `_calculate_hegemony_pressure` rewritten to derive majors inline via `world.get_power_tier(nation) == "major"` with a defensive fallback when no nation is authored major (no `world.get_major_powers()` dependency). §7.4 leader-selection update gained a France-hostility anchoring caveat scoping the v0.1 precondition. §8.4 witness-scoping line dropped the obsolete "switches to `nation_concerns` data once seeded" clause. §8.8.1 and §11.2 category tie-break order updated `concern` → `hegemony`. §8.8.3 rival scope reworded as war-state proxy. §8.8.4 grievance graduation path rewritten to name durable witness tags as the post-v0.1 target. §9.2 `bilateral_betrayal_mod` code snippet switched to the existing `_get_active_betrayal_strike_count(world, actor, victim)` module function with an arg-order note. §9.5 33% row expanded to 33-35% / `-1 to -3` to match the §9.1 formula at the bucket boundary. §10.2, §10.3, §10.5, §11.2, §11.4, §15 Gate 1 concern prose cleaned up — "high-concern nations" / "concern about" / "cached concern lookups" / "active concerns" / "View all concerns" / "concern escalation (Prussia-Saxony triggers)" / composite `political_commitment_mod` resolution text. §14 added R7 (no passive reliability recovery after B-B6 cancel) and R8 (one-turn delay on third-party reaction after B-B2a-fill cancel), each with mitigation options. No mechanical changes — all edits are doc alignment to v2.4 intent.
 - **April 19, 2026 — v2.4.1 Clarification pass.** Added §7.8 "Relationship to Coalition Formation" — explicit two-layer distinction, state comparison table, historical 1805 Third Coalition example, three-state classification of non-bloc nations (neutral observer / alarmed neutral / belligerent), key playtest implication that peaceful hegemons can still trigger coalition formation through passive pressure. Added §9.5 "Gameplay scaling — France's alliance-building capacity" — illustrative share table showing France can still ally 1-2 minor powers freely, face mild friction at 3, real friction at 4+, structural rarity at 5+; documents the two escape valves (bandwagoning TO France is free, intra-bloc proposals are free); playtest gates for the ladder values. No mechanical changes — pure documentation fills gaps identified in a design-review conversation that would otherwise leave auditors and implementers deriving the answers themselves.
 - **April 19, 2026 — v2.4 Hegemony refactor.** Replaced the static 4-pair `nation_concerns` seed with a per-turn `_calculate_hegemony_pressure(world)` engine that reads bloc shares dynamically (the §7.7 "target architecture" becomes v0.1, no transitional static layer). Renamed §7 from "Concern System" to "Hegemony Pressure System". §9 acceptance formula collapsed: `direct_concern_mod` + `concern_conflict_mod` + composite `political_commitment_mod` floor → single `hegemony_target_mod`. `bilateral_betrayal_mod` simplified to `-6 per active strike` flat (cap removed; hard-reject at 3 still gates the door). §6.3 deleted `nation_concerns` field. §10.1 AI `decision_reason`: `concern_pressure` → `hegemony_pressure` (legacy alias on read). §11.1 added Balance of Europe headline (dynamically composed three-line summary at top of Diplomatic Ledger). §11.2 warning category `concern` → `hegemony` (legacy alias on read). §12 data model: removed `nation_concerns` and `actor_honored_turns` from this-phase ship list. §13 Slice B rewritten: cancelled B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick); added B-Hegemony slice (~12 tests); B-B1 collapsed to B-B1-lite (~6 tests); B-B3 and B-B7 unchanged. §13 Slice C trimmed: cut spotlight-tier elevated card variant + split-voice render + N+1 aside; kept named-diplomat resolution + paradox popup + committed prose for three live events. §14 risks rewritten around hegemony engine. §16 recommendation rewritten. §8.8 DG-4 amendment unchanged (orthogonal). All shipped substrate (`betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata) unchanged. Test budget: ~35-42 tests, 1 session (down from v2.3 ~68-74 / 3 sessions). Companion docs: `RELIABILITY_IMPLEMENTATION_PLAN.md` rewritten in parallel; `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 will trim the cut Slice C items.

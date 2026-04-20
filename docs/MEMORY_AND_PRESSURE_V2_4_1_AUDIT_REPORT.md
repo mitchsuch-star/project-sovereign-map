@@ -88,7 +88,7 @@ Coalition thresholds (coalition.py:34-37): TENSION 30, MURMURS 40, BREWING 60, I
 | 50-60% | 5 | ~3/turn | 15-20 turns |
 | 60%+ | 8 | ~6/turn | 8-10 turns |
 
-This matches the spec's design intent (60%+ = "Quadrangle inevitable"; 40% = "harder but possible"). The §7.8.4 playtest implication that peaceful hegemons eventually get coalitioned is mechanically consistent with these numbers. §9.5 playtest gates are internally coherent with §7.3.
+This matches the spec's design intent (60%+ = "coalition formation inevitable"; 40% = "harder but possible"). The §7.8.4 playtest implication that peaceful hegemons eventually get coalitioned is mechanically consistent with these numbers. §9.5 playtest gates are internally coherent with §7.3.
 
 ---
 
