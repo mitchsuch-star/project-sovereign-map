@@ -3,7 +3,7 @@
 > **Status:** v0.5.1 (Non-normative bulk trim — v2.4.2 deep-audit C7)
 > **Date:** April 20, 2026 (v0.5.1 — non-normative bulk trimmed); April 19, 2026 (v0.5 — v2.4 hegemony alignment); April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
 > **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
-> **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (hegemony engine + Balance of Europe headline + paradox rename + deep-audit fixes), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.2, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
+> **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (hegemony engine + Balance of Europe headline + paradox rename + deep-audit fixes), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
 > **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain spotlights, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
 
 ---
@@ -27,7 +27,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ❌ **N+1 Talleyrand aside callback** keyed by `episode_id` on breach and hard-reject (§9.4)
 - ❌ **A1-fill, A2 fill, B2a-fill, B6** upstream dependencies (all cancelled in v2.4)
 
-**Reading order:** sections below are now normative end-to-end. Prior v0.3/v0.4 content that was non-normative has been removed from the body rather than disclaimed. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
+**Reading order:** sections below are normative except for the dated historical notes and changelog entries. Prior v0.3/v0.4 content that was non-normative has been removed from the live contract rather than disclaimed in place. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
 
 **Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three event copy paths, paradox popup field wiring, Balance of Europe headline composition across the four state cases).
 
@@ -68,7 +68,7 @@ The v0.2 audit findings (F1-F8, P2-H1 through P2-H10) and prior version of this 
 The Memory and Pressure substrate now creates real political moments:
 
 - betrayal memory (graded acceptance impact + hard-reject posture)
-- concern pressure (direct + third-party anger on ratification — when the seed and B1/B2a-fill ship)
+- hegemony pressure (bloc-share friction + Balance of Europe headline)
 - commitment paradox hard stops (renamed alliance-cross-war; `commitment_paradox_resolved` log + dispatch event)
 
 What it does **not** yet do is make those moments feel important in play. They land as one-liner notification rows.
@@ -81,16 +81,16 @@ The pass remains **mechanically inert**. It owns framing, pacing, and surfacing.
 
 ## 2. Phase Placement
 
-Final slice of `Memory and Pressure`. Sits after the spec/plan code work (concern seed, formula additions, paradox rename). Before any bargain work.
+Final slice of `Memory and Pressure`. Sits after the spec/plan code work (B-Hegemony, B-B1-lite, B-B3, B-B7) and alongside the tightened DG-4 slice when those events need presentation follow-through. Before any bargain work.
 
 ```text
-A1 (✓) → A1-fill (concern seed) → A2 fill (ledger concern display)
-                                → B1 (acceptance formula additions)
-                                → B2a-fill (ratification anger)
-                                → B6 (redemption tick)
-                                → B3 (paradox rename)
-                                → C3-lite (this spec)
-                                → END OF MEMORY AND PRESSURE PHASE
+A1 (✓) → B-Hegemony (bloc helpers + Balance of Europe)
+      → B-B1-lite (collapsed acceptance formula)
+      → B-B3 (paradox rename)
+      → B-B7 (standard Make Amends)
+      → C3-lite (this spec)
+      → END OF MEMORY AND PRESSURE PHASE
+[Parallel: B-B4 DG-4 call-to-arms follow-through, including grievance-variant Make Amends and defensive-refusal termination]
 [Peace Deals phase later: Bilateral Peace Hardening → War Purpose → WAR_BARGAIN_SPEC → WB-D bargain presentation]
 ```
 
@@ -174,7 +174,7 @@ Golden rules:
 
 ## 7. Presentation Model
 
-This pass uses four existing surface tiers, plus one new tier (the spotlight tier).
+This pass uses existing surfaces only: blocking popups, CRITICAL/NORMAL notices, and the durable ledger / campaign log reference layer. There is no new spotlight tier in v0.5.1.
 
 ### 7.1 Blocking hard-stop
 
@@ -207,17 +207,17 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 ## 8. Event Routing
 
-### 8.1 Core event table (v0.3 — only live events)
+### 8.1 Core event table (v0.5.1 ship list)
 
 | Event | Primary surface | Supporting surfaces | Notes |
 |------|------------------|---------------------|-------|
-| `commitment_paradox` | blocking hard-stop | ledger, campaign log, required after-choice aside | Renamed in B3. Three-beat staged scene per §12.5. |
-| `hard_reject_posture_triggered` | dispatch spotlight | ledger, campaign log, optional N+1 aftermath | Door-closing moment. Voice = `foreign_office` resolved to "The Chancery of {nation}" with register from that nation's named diplomat. |
-| `diplomatic_treaty_broken` (where `end_reason_family=french_breach`) | dispatch spotlight | ledger, campaign log, optional N+1 aftermath | Sharpest negative payoff in the live engine. Split-voice: lead = injured-party named diplomat, aside = Talleyrand. |
-| `commitment_paradox_resolved` | persistent notice (reinforced by after-choice aside in §7.1 surface) | ledger, campaign log | Reinforces closure of the paradox. Not its own spotlight — the paradox itself was the spotlight moment. |
+| `commitment_paradox` | blocking hard-stop | ledger, campaign log, required after-choice aside | Renamed in B3. Three-beat staged scene per §12.5; the after-choice aside renders inside the popup, not as a later callback. |
+| `hard_reject_posture_triggered` | CRITICAL notice | ledger, campaign log | Door-closing moment. Voice = `foreign_office` resolved to "The Chancery of {nation}" with register from that nation's named diplomat. |
+| `diplomatic_treaty_broken` (where `end_reason_family=french_breach`) | CRITICAL notice | ledger, campaign log | Sharpest negative payoff in the live engine. Single-voice notice led by the injured party's named diplomat. |
+| `commitment_paradox_resolved` | persistent notice (reinforced by after-choice aside in §7.1 surface) | ledger, campaign log | Reinforces closure of the paradox. The paradox popup itself is the dramatic peak; no later spotlight/callback follows. |
 | `hard_reject_posture_cleared` | persistent notice | ledger, campaign log | Reopening should feel like cool-down, not its own spotlight. |
 | `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout. |
-| `diplomatic_treaty_broken` (other end_reason families) | persistent notice | ledger, campaign log | Cascade ruptures don't get spotlights — France isn't at fault. |
+| `diplomatic_treaty_broken` (other end_reason families) | persistent notice | ledger, campaign log | Cascade ruptures don't get CRITICAL treatment — France isn't at fault. |
 
 **Bargain events routed to WB-D:**
 
@@ -400,14 +400,12 @@ Talleyrand is **not** the default speaker for every important commitments moment
 |-----------|---------|---------------|---------------|
 | `commitment_paradox` | `talleyrand` | spurned-envoy aside after choice (named diplomat) | grave, tragic, explicitly not quippy |
 | `commitment_paradox_resolved` | `talleyrand` (notice), `system` (campaign log) | none | Talleyrand reflective on notice surfaces; neutral declarative in campaign log. `system` is disallowed on rail surfaces per §10.3 — the resolution of a paradox should carry Talleyrand's voice, not feel like a system message. |
-| `diplomatic_treaty_broken` (french_breach) | `envoy` (named diplomat per §10.3) | `talleyrand` private aside | accusation first, private counsel second |
-| `hard_reject_posture_triggered` | `foreign_office` (resolved as "The Chancery of {nation}") | optional Talleyrand N+1 aftermath aside | formal closure, no quips |
+| `diplomatic_treaty_broken` (french_breach) | `envoy` (named diplomat per §10.3) | none | accusation first; no inline Talleyrand aside in v0.5.1 |
+| `hard_reject_posture_triggered` | `foreign_office` (resolved as "The Chancery of {nation}") | none | formal closure, no quips |
 | `witness_strike_recorded` | `system` or `foreign_office` | none | terse third-party observation |
 | campaign log | `system` | none | neutral declarative summary |
 
-**Render contract:** single-voice notice detail uses `speaker_attribution` (valid values: `system`, `talleyrand`, `envoy`, `foreign_office`) as a field separate from body text. Split-voice spotlight/detail cards may instead provide ordered `attributed_lines[]` blocks, each with its own `speaker`.
-
-Spotlight cards and expanded notice detail must support `speaker_attribution` and `attributed_lines[].speaker` values `system`, `talleyrand`, `envoy`, and `foreign_office` as structured attribution, not fake quoted text.
+**Render contract:** single-voice notice/detail surfaces use `speaker_attribution` (valid values: `system`, `talleyrand`, `envoy`, `foreign_office`) as a field separate from body text. v0.5.1 does not ship split-voice `attributed_lines[]` on live surfaces.
 
 **Named-diplomat resolution (mandatory for envoy / foreign_office).** Abstract speaker roles are routing hints, not render values. At render time:
 
@@ -474,7 +472,7 @@ commitment_surface_event = {
     "event_type": "diplomatic_treaty_broken",
     "episode_id": "ep_1805_breach_001",
     "severity": "high",
-    "primary_surface": "dispatch_spotlight",
+    "primary_surface": "critical_notice",
     "primary_nation": "Prussia",
     "secondary_nation": "France",
     "injured_party": "Prussia",
@@ -482,20 +480,9 @@ commitment_surface_event = {
     "end_reason_family": "french_breach",
     "end_reason_action": "war_declaration",
     "fault_nation": "France",
-    "attributed_lines": [
-        {
-            "speaker": "envoy",
-            "role": "lead",
-            "text": "Prussia was given France's word in clear terms..."
-        },
-        {
-            "speaker": "talleyrand",
-            "role": "aside",
-            "text": "They are wounded, Sire. Worse, they are entitled to be."
-        }
-    ],
+    "speaker_attribution": "envoy",
+    "notice_priority": "CRITICAL",
     "dominant_witness_scope": "ally",  # passed through but not branched on in v0.3
-    "aftermath_mode": "private_aside_optional",
     "follow_up_actions": ["talk_talleyrand", "open_ledger"],
     "relation_delta": -10,
     "reliability_delta": -10,
@@ -513,13 +500,9 @@ Required rules:
 - all fields primitive-only
 - no live object references
 - no duplicate authority over commitment state
-- `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); collapse, dedupe, and aftermath callback logic key off it
+- `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); collapse and dedupe logic key off it
 - `witness_nations` entries carry `scope_reason in {"ally", "rival", "shared_enemy", "region_observer"}` — `region_observer` inactive until WB-D
 - `speaker_attribution` is optional shorthand for single-voice surfaces and must satisfy `speaker_attribution in {"talleyrand", "envoy", "foreign_office"}` (`system` reserved for campaign log only)
-- `attributed_lines` is optional for split-voice surfaces; if present it overrides single-speaker render and may contain at most 3 ordered blocks
-- `attributed_lines[].speaker in {"talleyrand", "envoy", "foreign_office"}`
-- `attributed_lines[].role in {"lead", "witness", "aside"}`
-- `aftermath_mode in {"none", "private_aside_optional", "private_aside_required"}`
 - `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.3 (response routes deferred to WB-D)
 - `relation_delta` / `reliability_delta` are sourced from breach metadata
 - `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter
@@ -689,27 +672,26 @@ Commitments surfaces may not leave the player as a reader only. v0.3 ships **adv
 
 | Action | Availability | Route | Mechanical effect |
 |-----------|---------|---------------|---------------|
-| `Speak to Talleyrand about this` | all commitments spotlights + paradox aftermath | opens scoped `advisory` dialogue with `context.origin_episode_id = episode_id` | none |
-| `Summon {named_envoy}` | breach spotlight only | reuses advisory shell; opener is one-exchange foreign-court response in the named envoy's register, seeded by `episode_id`, then hands back to Talleyrand | none |
-| `Review the broken treaty` | breach spotlight + paradox resolution | routes to filtered Treaties tab | none |
+| `Speak to Talleyrand about this` | all CRITICAL commitments notices + paradox aftermath | opens scoped `advisory` dialogue with `context.origin_episode_id = episode_id` | none |
+| `Summon {named_envoy}` | french-breach CRITICAL notice only | reuses advisory shell; opener is one-exchange foreign-court response in the named envoy's register, seeded by `episode_id`, then hands back to Talleyrand | none |
+| `Review the broken treaty` | french-breach notice + paradox resolution | routes to filtered Treaties tab | none |
 
 Rules:
 
 - advisory routes remain no-cost, no state change, no notice on dismiss
-- every spotlight family must expose at least one advisory route so the player can engage in-fiction within one click
-- on the breach spotlight, both `Speak to Talleyrand` and `Summon {named_envoy}` may appear together; the named-envoy summon takes primary visual emphasis
+- every CRITICAL commitments notice family must expose at least one advisory route so the player can engage in-fiction within one click
+- on the breach notice, both `Speak to Talleyrand` and `Summon {named_envoy}` may appear together; the named-envoy summon takes primary visual emphasis
 - the paradox itself remains a strict binary — the player MUST choose. v0.3 has no `Offer redress to {spurned_nation}` next-turn affordance (that depended on bargain templates).
 
 ---
 
 ## 13. Anti-Spam Rules
 
-- No more than 1 commitments dispatch spotlight per turn.
 - No more than 2 above-the-fold commitments notices per turn.
 - Blocking hard-stops suppress duplicate notice-generation for the same root event.
 - Multiple witness strikes from one root event collapse into one summarized presentation event when surfaced outside the ledger. Witness-collapse keys off `episode_id`, not event-type heuristics.
 - If a commitments event is unrelated to the current blocking popup, queue it into the normal notice/dispatch path instead of interrupting the player mid-resolution.
-- No more than 1 immediate result aside and 1 N+1 aftermath beat may fire per `episode_id`.
+- No more than 1 post-choice aside may fire per `commitment_paradox` `episode_id`; v0.5.1 ships no N+1 aftermath beats.
 - Quick-action follow-ups do not generate their own notices if opened and dismissed without state change.
 
 (Later-callback arbitration, N+5 fallback grievance slot, and competing-callback priority rules are deferred — v0.3 has no later callbacks to arbitrate.)
@@ -799,8 +781,8 @@ C3-lite is successful if:
 - when France breaks faith with Prussia, the player hears Hardenberg's accusation in Hardenberg's register, not "envoy"
 - when Britain closes its chancery, the player hears Castlereagh's institutional finality, not Talleyrand's wit
 - the paradox lands as a staged scene with grave Talleyrand framing, committed blocking body, and a spurned-court reaction after the choice
-- `episode_id` supports one bounded N+1 aftermath beat per spotlight event
-- at least one no-cost conversational follow-up exists on every spotlight family
+- `episode_id` dedupes repeated commitments fallout from one root event across blocking / notice / ledger surfaces
+- at least one no-cost conversational follow-up exists on every CRITICAL commitments notice family
 - all of the above work identically in mock mode without LLM dependency
 - no commitments presentation surface changes any underlying outcome
 

@@ -36,7 +36,7 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
 - Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance of Europe headline render
 
-**§8.8 DG-4 call-to-arms (B-B4) — unchanged.** Tracked in its own slice per the DG-4 amendment in spec §8.8 + `SCALE_READINESS_PLAN.md`. ~25 tests, parallel to this slice.
+**§8.8 DG-4 call-to-arms (B-B4) — parallel slice, tightened by v2.4.3.** Tracked in its own slice per the DG-4 amendment in spec §8.8 + `SCALE_READINESS_PLAN.md`. v2.4.3 adds explicit follow-through work for the grievance-variant Make Amends path, same-turn alliance termination on defensive refusal, and the R9/R10/R11 playtest gates. ~25-29 tests, parallel to this slice.
 
 **Moved to `WAR_BARGAIN_SPEC.md` — unchanged from v2.0:**
 
@@ -97,7 +97,7 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 
 **Bloc geometry helpers (no new state fields):**
 
-- `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached helper. Returns leader + entries in `world.vassals` whose `lord == leader` + nations whose `world.get_diplomatic_state(leader, other)` is `"ALLIANCE"` or `"DEFENSIVE_ALLIANCE"`. ~18 LOC including cache plumbing.
+- `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached helper. Returns leader + any nation whose `_top_overlord(world, nation)` resolves to `leader` + nations whose `world.get_diplomatic_state(leader, other)` is `"ALLIANCE"` or `"DEFENSIVE_ALLIANCE"`. Includes the `_top_overlord` cycle-safe walker so vassal-of-vassal and 3-deep chains surface on the top overlord's bloc list rather than stopping at one hop. ~24 LOC including cache plumbing and the helper.
 - `power_score(nation: str, world) -> int` — `region_count * tier_weight` where `tier_weight = {"major": 3, "secondary": 2, "minor": 1}[world.get_power_tier(nation) or "secondary"]`. ~8 LOC. Reads cached `get_nation_regions()`.
 - `bloc_power(leader: str, world) -> int` — sum of `power_score(n)` across `get_bloc_members(leader)`. ~5 LOC.
 - Cache invalidation: `world._bloc_members_cache` invalidated alongside the existing per-turn caches on treaty ratification, vassal add/remove, war declaration, peace ratification. Audit the four call sites during implementation.
@@ -135,7 +135,7 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 
 **Files:** `backend/game_logic/diplomacy.py`, `backend/display_names.py`
 
-- Add `hegemony_target_mod(asker, target, world)` per spec §9.1. Single negative term, scales -2 to -20 with bloc share. Returns 0 when no hegemon, 0 when asker outside hegemon bloc, 0 for intra-bloc proposals.
+- Add `hegemony_target_mod(asker, target, world)` per spec §9.1. Single negative term: 0 at exactly 30% share, then scales down to -20 with bloc share. Returns 0 when no hegemon, 0 when asker outside hegemon bloc, 0 for intra-bloc proposals.
 - Replace existing acceptance formula's `direct_concern_mod` / `concern_conflict_mod` slots (if any partial wiring exists) with single `hegemony_target_mod` call.
 - Add `bilateral_betrayal_mod(asker, target, world) = -6 * _get_active_betrayal_strike_count(world, asker, target)` (module function already in `diplomacy.py`; arg order is `(actor, victim)` so asker=actor, target=victim). Flat, no cap (hard-reject at 3 strikes is the door-shut, already shipped).
 - Tighten `reliability_modifier` to `clamp(diplomatic_reliability[asker] // 10, -6, +6)` (current code is `// 5` capped ±10 — legacy R34).
@@ -169,7 +169,7 @@ The single biggest new piece. Four prerequisite helpers, three engine helpers, o
 
 **Files:** `backend/commands/diplomatic_executor.py`, `backend/commands/parser.py`, `backend/game_logic/diplomacy.py`, `backend/models/world_state.py`, `backend/display_names.py`, `backend/campaign_log.py`, `backend/ai/llm_client.py`, `backend/ai/validation.py`
 
-Per spec §8.6.1. Ships the v0.1 active-redemption verb so repaired relationships are a deliberate political gesture.
+Per spec §8.6.1. Ships the v0.1 standard strike-clearing verb so repaired relationships are a deliberate political gesture. The grievance-clearing variant added in spec §8.6.1a is part of B-B4, not this slice.
 
 - Add `make_amends` to `VALID_ACTIONS` in `validation.py`
 - Add `_execute_make_amends(world, command)` in `diplomatic_executor.py`:
@@ -186,16 +186,43 @@ Per spec §8.6.1. Ships the v0.1 active-redemption verb so repaired relationship
 
 ---
 
+### B-B4. DG-4 call-to-arms follow-through (parallel slice; v2.4.3 tightened contract)
+
+**Files:** `backend/game_logic/diplomacy.py`, `backend/commands/diplomatic_executor.py`, `backend/commands/parser.py`, `backend/models/world_state.py`, `backend/game_logic/coalition.py`, `backend/campaign_log.py`, `backend/display_names.py`, `backend/notifications.py`
+
+Tracked in the DG-4 amendment slice, but v2.4.3 adds three implementation-defining follow-through items that implementers must see in the plan:
+
+- **Make Amends (grievance variant).** Add the distinct grievance-clearing path from spec §8.6.1a: parser-disambiguated verb (`make amends with {nation} for the abandoned alliance`), `400g + 2 DP` cost, oldest-grievance removal, `+3` reliability / `+8` relation, shared `reparations_cooldown`, and `amends_offered` log metadata flagging `grievance_variant: True`.
+- **Alliance termination on defensive refusal.** On `call_to_arms_refused_defensive`, terminate the existing `ALLIANCE` / `DEFENSIVE_ALLIANCE` to `PEACE` in the same turn, emit `diplomatic_treaty_broken` with `end_reason_family = "defensive_refusal_termination"`, invalidate bloc caches on that treaty-state change, and let `anti_renewal_cooldown` gate re-ratification.
+- **Acceptance-formula interaction.** B-B4 owns the `grievance_modifier` term, the per-pair 3-grievance stacking cap, and the debug / warning exposure expected by spec §9.3 when the floor clamps. Merge ordering against B-B1-lite stays mandatory per the section below.
+
+**Tests (~6-9 added on top of DG-4 core coverage):**
+
+- Standard vs grievance-variant Make Amends parse as distinct verbs when both are legal
+- Grievance-variant Make Amends shares cooldown with the standard variant and cannot clear ordinary strikes
+- `call_to_arms_refused_defensive` terminates an existing alliance to `PEACE` and emits `end_reason_family = "defensive_refusal_termination"`
+- Same-turn treaty termination invalidates `get_bloc_members` cache and shrinks bloc membership before later same-turn proposal reads
+- `grievance_modifier` saturates at 3 active grievances per pair
+- Composite floor debug output surfaces raw hegemony / betrayal / grievance terms plus the synthetic `composite_floor` row when clamped
+
+**Playtest / audit gates from v2.4.3 risks:**
+
+- **R9:** verify repeated Make Amends use in one turn reads as acceptable political cost; if the "repair tour" feels gamey, add a global per-turn cap before closing the slice
+- **R10:** audit `ai_diplomacy.py` P-series triggers so non-bloc minors can still bandwagon to the hegemon; if Bavaria / Saxony never propose into a dominant French bloc, add the trigger before phase close
+- **R11:** spot-check exact-30% share states in playtest; if the boundary artifact is visible enough to confuse players, retune the threshold rather than leaving it undocumented
+
+---
+
 ## Slice C-lite. Trimmed presentation pass
 
-See `COMMITMENTS_PRESENTATION_SPEC.md` (v0.4 forthcoming — will trim cut items).
+See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
 **v2.4 keeps:**
 
 - **Named-diplomat resolution helper** (single backend helper that reads `world.diplomats[nation]` and resolves `speaker="envoy"` to the named diplomat with their personality register, and `speaker="foreign_office"` to "The Chancery of {nation}" per `DIPLOMAT_VOICE_BIBLE.md`)
 - **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` where `end_reason_family=french_breach`, `commitment_paradox_resolved`
 - **Dedicated `commitment_paradox_popup.{tscn,gd}`** — replaces legacy `alliance_paradox_popup` for the renamed type
-- **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — three dynamically composed lines at top of Nations tab per spec §11.1
+- **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — state-composed headline at top of Nations tab per spec §11.1 (no hegemon, hegemon only, BREWING without leader, DECLARED with leader)
 
 **v2.4 cuts:**
 
@@ -261,6 +288,7 @@ Recommended playtest gates:
 
 - **After B-Hegemony:** verify France-bloc share calculation tracks treaty/vassal changes correctly; passive threat accrues at 35%+ share; coalition leader emerges as Britain (highest bloc-share-against) when France hits 40%+; pressure stops when France releases a vassal.
 - **After B-B1-lite:** verify proposal acceptance reflects hegemony pressure (Britain refuses deep treaties from Bavaria when France is hegemon; Bavaria-Russia still possible); bilateral betrayal modifier scales correctly; representative regression scores within tolerance band.
+- **After B-B4:** verify grievance-variant Make Amends clears only grievance flags at `400g + 2 DP`, defensive refusal terminates the existing alliance with `defensive_refusal_termination`, and the R9/R10/R11 playtest checks are explicitly reviewed before slice close.
 - **After B-B3 + Slice C-lite:** verify the renamed paradox surfaces through the new dedicated popup; named-diplomat copy lands for three live events; Balance of Europe headline reads naturally.
 - **After B-B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
 
@@ -282,7 +310,7 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 
 ## Test Budget Comparison
 
-| Slice | v1.0 estimate | v2.3 estimate | v2.4 estimate | v2.4.2 estimate | Notes |
+| Slice | v1.0 estimate | v2.3 estimate | v2.4 estimate | v2.4.3 estimate | Notes |
 |-------|---------------|---------------|---------------|-----------------|-------|
 | A1 | 18 | shipped | shipped | shipped | Done |
 | A2 | 14 | 4 (fill only) | shipped (fill cancelled) | shipped | Replaced by Balance headline in Slice C-lite |
@@ -295,10 +323,10 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 | B7 (v2.1) | — | 8 | 8 | 8 | Make Amends — unchanged |
 | B3 | 16 | 3 | 3 | 3 | Paradox rename — unchanged |
 | C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | moved | moved | → `WAR_BARGAIN_SPEC.md` |
-| Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | 10-12 (trimmed) | 10-12 | Presentation spec bumped to v0.5 hegemony-aligned |
-| §8.8 DG-4 (B-B4) | — | 25 | 25 | 25 | Unchanged, parallel slice |
+| Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | 10-12 (trimmed) | 10-12 | Presentation spec bumped to v0.5.1 trimmed ship scope |
+| §8.8 DG-4 (B-B4) | — | 25 | 25 | **25-29** | Parallel slice; v2.4.3 adds grievance-variant Make Amends, defensive-refusal termination, and R9/R10/R11 gate coverage |
 | Slice D | deferred | deferred | deferred | deferred | Same |
-| **Total this phase** | **~200** | **~68-74** | **~35-42** | **~45-54** | (+25 DG-4 if shipped together = ~70-79) |
+| **Total this phase** | **~200** | **~68-74** | **~35-42** | **~45-54** | (+25-29 DG-4 if shipped together = ~70-83) |
 
 ---
 
@@ -311,6 +339,6 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 | B-B3 (rename) | A1 (✓) | Pure rename, no new state |
 | B-B7 (Make Amends) | A1 (✓), B-B1-lite (formula reads `reparations_cooldown`) | Standalone verb |
 | Slice C-lite | B-B3, B-Hegemony | Needs renamed paradox + bloc data for Balance headline |
-| B-B4 (DG-4) | A1, A2, B2a, B2b (all ✓) | Independent of hegemony refactor |
+| B-B4 (DG-4) | A1, A2, B2a, B2b (all ✓), merge ordering with B-B1-lite | Parallel slice, but no longer independent once `grievance_modifier` and the composite-floor interaction are live |
 | Slice D1 / D2 | This phase complete | Deferred follow-up |
 | Slice WB-* | This phase complete + Bilateral Peace Hardening + War Purpose | See `WAR_BARGAIN_SPEC.md` |

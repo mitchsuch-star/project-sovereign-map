@@ -231,6 +231,10 @@ Rules:
 - A nation can only have one lord in normal data; `_top_overlord` handles the self-cycle / mutual-lord data-error case by terminating at the first revisited nation rather than looping. There is no "two-lord collision" tie-break in v0.1 because the `lord` field is scalar. If a future multi-overlord system lands (joint protectorates, etc.), resolve collisions by `power_score(overlord_a)` vs `power_score(overlord_b)`, then alphabetical on nation name.
 - Per-turn cache; invalidated on treaty ratification, vassal change, war declaration, peace.
 
+Worked example:
+
+- France is the top overlord of Bavaria, and Saxony's `lord` is Bavaria. `get_bloc_members(world, "France")` includes both Bavaria and Saxony even though Saxony is not France's direct vassal. If Austria is also in `DEFENSIVE_ALLIANCE` with France, the returned bloc is `["Austria", "Bavaria", "France", "Saxony"]` after sorting.
+
 **Helper-compat note:** v0.1 code currently lacks `world.get_vassals_of(leader)`, `world.get_treaty_state(a, b)`, and a `TreatyState` enum. The engine reads through existing seams: the `world.vassals` dict is iterated inline, `world.get_diplomatic_state(a, b)` returns string literals like `"ALLIANCE"`, and the bloc-treaty test uses the string-set `_DEEP_BLOC_TREATY_STATES` shown above. If a future refactor introduces a `TreatyState` enum, the helper swap is mechanical.
 
 ### 7.2 Power score
@@ -817,7 +821,7 @@ Explicitly not in the amendment's scope, flagged here so later work has a handle
 
 ## 9. Acceptance Formula Hooks
 
-v2.4 collapses the four-modifier composite into two terms. The hegemony engine (§7) drives the political-pressure side; bilateral betrayal memory drives the trust side. No composite floor is needed because the two terms cannot stack into runaway values — the per-term caps are absolute.
+v2.4 collapses the four-modifier composite into two core terms. The hegemony engine (§7) drives the political-pressure side; bilateral betrayal memory drives the trust side. With only those two terms live, no composite floor is needed. Once DG-4's `grievance_modifier` joins the formula, §9.3 reintroduces a conditional `-60` floor.
 
 ### 9.1 Hegemony target modifier (this phase ships — replaces direct_concern_mod and concern_conflict_mod)
 
@@ -1186,13 +1190,13 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do *
 - **B-Hegemony: balance-of-power engine (NEW).** Add `_calculate_hegemony_pressure(world)`, `world.get_bloc_members(leader)`, `power_score(nation, world)` helpers. Wire passive contribution into `coalition.py` `process_coalition_turn` via existing `add_threat()` API, gated on `hegemon == world.player_nation` (v0.1 France-only scalar; see §14 R5 and the plan wire-up). Update `coalition_leadership_score` with bloc-share-against term. Per-turn caches per CLAUDE.md golden rule 8. **~18-22 tests** (includes four prerequisite-helper tests surfaced in v2.4.2 audit: `world.get_power_tier` reads authored scenario record with no shadow runtime map; cache invalidation at four call sites — treaty ratification, vassal change, war declaration, peace; `_POWER_TIER_DEFAULT` fallback path; recursive `_top_overlord` vassal-chain walk with cycle safety and 3-deep nesting; non-France-hegemon guard skips `add_threat`). See `RELIABILITY_IMPLEMENTATION_PLAN.md` §B-Hegemony for the full test list.
 - **B-B1-lite: acceptance formula collapse.** Add `hegemony_target_mod` (single negative term per §9.1) and `bilateral_betrayal_mod = -6 * strike_count` per §9.2. Tighten `reliability_modifier` to `// 10` capped ±6 per §9.4. Wire debug breakdown output and feedback strings. ~6 tests (hegemony mod returns 0 when asker outside bloc, hegemony mod scales with share, bilateral betrayal scales with strike count, hard-reject still fires at 3 strikes).
 - **B-B3: paradox rename.** Unchanged from v2.3. Rename push-side `dialogue_manager.push({"type": "alliance_paradox", ...})` to `commitment_paradox`; keep `alliance_paradox` as accepted alias on read for save-load. Rename the popup type passthrough on the Godot side (`alliance_paradox_popup.gd` field reads). The dedicated `commitment_paradox_popup.{tscn,gd}` surface ships in the `C3-lite` slice (Slice C below). ~3 tests.
-- **B-B7: Make Amends verb.** Unchanged from v2.1/v2.3. Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. ~8 tests.
+- **B-B7: Make Amends verb.** Standard strike-clearing path unchanged from v2.1/v2.3. Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. The grievance-clearing variant in §8.6.1a belongs to B-B4. ~8 tests.
 
-**§8.8 DG-4 call-to-arms (B-B4) — unchanged.** Tracked in its own slice per the DG-4 amendment. ~25 tests, parallel to this slice.
+**§8.8 DG-4 call-to-arms (B-B4) — parallel slice, tightened by v2.4.3.** Still tracked in its own slice per the DG-4 amendment, but the slice now explicitly owns three follow-through contracts: §8.6.1a grievance-variant Make Amends (distinct verb, shared cooldown, `400g + 2 DP`), §8.8.7a same-turn alliance termination with `end_reason_family = "defensive_refusal_termination"`, and the R9/R10/R11 playtest gates added in §14. ~25-29 tests once those additions are covered, parallel to this slice.
 
 ### Slice C. C3-lite presentation pass (v2.4 trimmed)
 
-See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5. Ships with this phase:
+See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1. Ships with this phase:
 
 **v2.4 keeps:**
 
@@ -1378,7 +1382,7 @@ That is enough to make diplomacy feel like Napoleonic balance-of-power politics,
   - **§9.2 — `bilateral_betrayal_mod` comment.** Corrected the misleading *"natural cap at -18 because 3 strikes triggers hard-reject"* — hard-reject blocks most proposals but does NOT cap strike accumulation. Survival-exception proposals (§8.7) with 4+ strikes compute -24+. Added explicit rules entry for above-3-strikes behavior. (Audit B5.)
   - **§9.3 — composite floor reintroduced conditionally.** The v2.4 "no composite floor needed" claim was broken by §8.8.9's stackable `grievance_modifier` (three grievances alone reach -90). §9.3 now has two clauses: *pre-DG-4* (no floor — only terms are hegemony -20 and betrayal -18), and *with DG-4* (composite floor -60 applies, grievance stacking caps at 3 per pair). Added plan-ordering callout to `RELIABILITY_IMPLEMENTATION_PLAN.md`. (Audit A2 — CRITICAL.)
   - **§11.1 — Balance of Europe state machine.** Specified four composition cases: no hegemon (equilibrium line), hegemon without coalition, coalition BREWING (no leader yet per COALITION_SPEC §3-§4), coalition DECLARED. Fixes the prior example's assumption that brewing has a named leader. (Audit A12, B6.)
-  - **§13 — Slice B references updated.** `COMMITMENTS_PRESENTATION_SPEC.md` reference bumped v0.3 → v0.5. B-Hegemony test count raised from ~12 to ~18-22 matching the implementation plan audit. Wire-up guarded on `hegemon == world.player_nation`. (Audit B2, B3.)
+  - **§13 — Slice B references updated.** `COMMITMENTS_PRESENTATION_SPEC.md` reference bumped v0.3 → v0.5.1. B-Hegemony test count raised from ~12 to ~18-22 matching the implementation plan audit. Wire-up guarded on `hegemon == world.player_nation`. (Audit B2, B3.)
   - **§14 — three new risks.** R9 (Make Amends flood per turn, cap if playtest shows gamey), R10 (bandwagoning AI-completeness, audit `ai_diplomacy.py` during B-Hegemony), R11 (exact-30% dead zone, boundary artifact). R8 rewritten to distinguish `hegemony_target_mod` (no lag — per-turn cache is invalidated on treaty ratification) from coalition `threat_level` scalar (one-turn lag — `add_threat` runs at end-of-turn). (Audit A11, A13, A14, A8.)
   - **§17 — v2.4.2 changelog bullet broken into sub-bullets** per audit C4 (a ~900-word single-blob bullet was hard to skim).
   - **Companion-doc edits.**
