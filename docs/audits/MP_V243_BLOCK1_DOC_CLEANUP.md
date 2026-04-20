@@ -402,3 +402,107 @@ The following live-code gaps are **C-lite scope** (per audit §334, plan row 326
 **Campaign log dedup:** `backend/campaign_log.py` lines 504-518 vs 673-687 (and 520-530 vs 689-692) have duplicate event-type branches. The second pair is dead code (first return wins). Delete the second pair.
 
 **This checklist is a C-lite pre-merge contract**, not a Block 1 or Block 2 task. Copying it here now ensures the C-lite implementer's file list is complete.
+
+---
+
+## Addendum v2 — third-pass findings (2026-04-20)
+
+Third meta-audit (test-suite + Godot + spec-internal cross-refs) surfaced **one CRITICAL** structural defect plus additional doc drift. Still fits the same atomic Block 1 commit — all doc-only.
+
+| # | Finding | Severity | Primary file | Est. |
+|---|---------|----------|--------------|------|
+| **CR1** | **`§8.7` has no header** — content orphaned between §8.6.1a and §8.8; 6 cross-references dangle | **CRITICAL** | `RELIABILITY_COMMITMENTS_SPEC.md` ~lines 613-628 | 15 min |
+| CR2 | `§12.5` referenced in presentation spec but sections only reach §12.4; paradox scene is at §12.3 | MAJOR | `COMMITMENTS_PRESENTATION_SPEC.md:45, 214` | 5 min |
+| CR3 | §11.1 Case 2 silent for `threat_level ∈ [40, 60)` Murmurs band (only [30, 40) has copy) | MINOR | `RELIABILITY_COMMITMENTS_SPEC.md:1023-1026` | 5 min |
+| CR4 | §9.3 composite worst-case arithmetic omits `reliability_modifier` (-128 raw should be -134 raw) | MINOR | `RELIABILITY_COMMITMENTS_SPEC.md:901` | 2 min |
+| CR5 | `scenario_schema_version: 1` not cross-cited in `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony slice | MINOR | `RELIABILITY_IMPLEMENTATION_PLAN.md:94` | 5 min |
+| G1+G2+G4+G5 | Expanded C-lite ship-checklist (A12) — Godot-side gaps in `diplomatic_ledger.gd` + `dispatch_view.gd` + `incoming_proposal_popup.gd` | reference | A12 expansion | 10 min |
+
+**Addendum v2 subtotal: ~45 min. Combined Block 1: ~5.75 hours.** Still one atomic commit.
+
+---
+
+### CR1 — §8.7 missing section header (CRITICAL)
+
+[`docs/RELIABILITY_COMMITMENTS_SPEC.md`](docs/RELIABILITY_COMMITMENTS_SPEC.md) — the document jumps from `### 8.6.1 Active redemption: Make Amends` (line 539) → `#### 8.6.1a` (grievance variant) → directly to `### 8.8 Call-to-arms refusal episodes` (line 629). **There is no `### 8.7` section header.** Content that should be under §8.7 (hard-reject posture: 3-strike threshold, survival-exception, `hard_reject_posture_triggered` emit contract) is orphaned after §8.6.1a and reads as if it belongs to the grievance variant.
+
+**Six internal cites dangle:**
+- Line 698: *"parallel in shape to §8.7 `hard_reject_posture` but keyed on refusal history"*
+- Line 878: *"§8.7 survival-exception path with 4+ strikes computes -24+"*
+- Line 883: *"the 3-strike hard-reject (§8.7, already shipped)"*
+- Line 886: *"reachable only via the §8.7 survival-exception path"*
+- Line 958: *"per §9.2 + §8.7 hard-reject posture"*
+- Line 1382 (changelog): *"Survival-exception proposals (§8.7) with 4+ strikes compute -24+"*
+
+**Fix:** Locate the orphaned content (between the end of §8.6.1a and line 629) and insert a `### 8.7 Hard-reject posture` header immediately before it. The section body is already written; only the header is missing. Verify by running:
+```bash
+grep -n "^### 8\." docs/RELIABILITY_COMMITMENTS_SPEC.md
+```
+Expected: `8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.6.1, 8.6.1a, 8.7, 8.8`. Currently the output shows no `8.7`.
+
+**This is the single most important Block 1 fix** — every other §8.7 cite in the spec, plan, and downstream artifacts points into a structural void.
+
+---
+
+### CR2 — §12.5 dangling reference
+
+[`docs/COMMITMENTS_PRESENTATION_SPEC.md`](docs/COMMITMENTS_PRESENTATION_SPEC.md:45) lines 45 and 214 reference `§12.5` for paradox staging. The §12.x sections only reach §12.4 (Reactive affordances at line 667). The paradox scene lives at §12.3 (line 608, "Commitment paradox (3-beat staged)").
+
+**Line 45 current:** *"**Paradox §12.5 staging simplifies from 5 beats to 3 beats** — Talleyrand framing → blocking body → spurned-envoy + Talleyrand after-choice."*
+**Fix:** `§12.5` → `§12.3`.
+
+**Line 214 current:** *"Three-beat staged scene per §12.5; the after-choice aside renders inside the popup, not as a later callback."*
+**Fix:** `§12.5` → `§12.3`.
+
+**Line 807** (changelog) is historical — references the old 5-beat staging that got narrowed back in v0.3 rescope. Leave as-is (audit history).
+
+---
+
+### CR3 — §11.1 Case 2 Murmurs-band silence
+
+[`docs/RELIABILITY_COMMITMENTS_SPEC.md`](docs/RELIABILITY_COMMITMENTS_SPEC.md:1023), lines 1023-1026. Case 2 (hegemon without coalition) gates the "European courts have taken note" line on `30 ≤ threat_level < 40` (the Tension band per COALITION_SPEC §3a). The `[40, 60)` Murmurs band still matches Case 2 (no coalition yet formed) but has no secondary-line template — the player sees only the bare hegemon-share line despite notable threat.
+
+**Fix:** Extend the gate to cover the full Tension-to-Murmurs range, or author a distinct Murmurs-band line:
+- Option A: change the gate to `30 ≤ threat_level < 60`; reuse the Tension copy.
+- Option B: add a second flavor line template for `40 ≤ threat_level < 60` — stronger wording (e.g., *"European courts exchange quiet letters — nothing yet agreed"*).
+
+Authoring choice at spec-writer's discretion. Whichever way, the `threat_level` state space must partition without silence.
+
+---
+
+### CR4 — §9.3 worst-case arithmetic
+
+[`docs/RELIABILITY_COMMITMENTS_SPEC.md`](docs/RELIABILITY_COMMITMENTS_SPEC.md:901), line 901 worst-case example *"reaches -128 raw"* omits `reliability_modifier` from §9.4 (clamps `// 10` ±6, worst case -6). Actual worst-case raw composite = -20 + -18 + -90 + -6 = -134. The -60 floor still clamps correctly, so behavior is unaffected; the illustrative arithmetic is short one term.
+
+**Fix:** Replace `-20 + -18 + -90 = -128` → `-20 + -18 + -90 + -6 = -134` and add parenthetical *"(reliability_modifier at floor; §9.4)"*.
+
+---
+
+### CR5 — scenario_schema_version cross-cite
+
+[`docs/RELIABILITY_IMPLEMENTATION_PLAN.md`](docs/RELIABILITY_IMPLEMENTATION_PLAN.md:94), line 94 B-Hegemony prerequisite block says `power_tier` is colocated with capital/color/starting AP in scenario config but does not cite `scenario_schema_version: 1` (the key SCALE_READINESS_PLAN introduced at DG-6).
+
+**Fix:** Append to the bullet: *"— per `scenario_schema_version: 1` (see SCALE_READINESS_PLAN §DG-6)"*. This makes the plan self-contained for the B-Hegemony implementer.
+
+---
+
+### G1/G2/G4/G5 — expand C-lite ship-checklist (A12 expansion)
+
+A12 catalogs notification_bar + dispatch + notifications.py drift. Third-pass audit found four more Godot surfaces with v2.4.3 drift. Append to the C-lite ship-checklist section above:
+
+**In `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`:**
+- `_render_nations()` lines ~181-322 must emit the Balance of Europe headline (per A8 payload schema) at the top of the Nations tab — currently jumps straight into the nation loop.
+- `_render_talleyrand()` line ~672, ~688-689 treats `diplomatic_reliability` as a Talleyrand scalar. Per spec §6.1 it is a `Dict[str, int]` keyed by nation (nation-level global reputation). Move the render to per-nation rows in the Nations tab (one reliability value per nation row, per spec §11.1 commitment block).
+- `_render_history()` lines ~692-722 renders event type names with `h_type.replace("_", " ").capitalize()` (produces "Diplomatic Treaty Broken"). The spec §9.2 canonical labels are "Word Broken", "The Chancery Shut", "The Wound Chosen". Add a label-map keyed on the routing join-table (A12 §2) rather than relying on string mangling.
+
+**In `godot-client/project-sovereign/scripts/dispatch_view.gd`:**
+- Lines ~249-265 render `diplomatic_events` with generic `text + priority` only. Per spec §9.2 CRITICAL commitments events need their specific icons and canonical labels. Wire through the same routing join-table (A12 §2) so dispatch surface matches notification_bar surface.
+
+**In `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd`:**
+- Lines ~44, 46, 73-80 double-render `decision_reason` — "Court rationale" (line 74) + "Court motive" (line 80) display the same field via two different resolution paths. After U4's `hegemony_pressure` rename, both paths yield the same display string and the duplicate becomes visible to the player. Consolidate to one render site; remove the fallback-resolved duplicate.
+
+**Verification notes (likely clean, confirm during C-lite):**
+- `talleyrand_objection_popup.gd:36-46` hardcodes MILD/MODERATE/STRONG concern levels — orthogonal to v2.4.3's `hegemony_pressure` rename because `objection_text` is backend-preformatted prose. Confirm objection payloads remain pre-formatted during C-lite's backend pass.
+- `diplomacy_wizard.gd:323-402` renders `acceptance_preview.positive/negative[]` generically. If backend preview emits `category: "hegemony"` warnings per spec §11.2, wizard may need a category-specific affordance. Verify backend preview shape during B-Hegemony.
+
+**Clean Godot surfaces** (no v2.4.3 drift): `api_client.gd`, `war_status_panel.gd`, `war_detail_popup.gd`, `sabotage_discovery_popup.gd`, `vassal_rebellion_popup.gd`, `coalition_declaration_popup.gd`, `campaign_log.gd`, `mailbox_panel.gd`, `top_bar.gd`. No Godot-side `.gd` test files exist.

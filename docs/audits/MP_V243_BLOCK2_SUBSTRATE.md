@@ -376,3 +376,132 @@ Combined audit [§373](docs/audits/MP_V243_AUDIT_COMBINED.md:373) specifies the 
 - [ ] Full test suite: **pre-existing count + 9-13 new** (U3: 2-3, U4: 3-4, U2: 4-6 incl. DIALOGUE_PRIORITY round-trip).
 
 The count expectation gives the reviewer a quick sanity check without running `pytest -q` count-by-count.
+
+---
+
+## Addendum v2 — test-suite gaps (2026-04-20)
+
+Third-pass audit found substantial test coverage gaps. Fold these into the U-item commits rather than shipping standalone tests.
+
+| # | Finding | Folds into | Severity | Est. |
+|---|---------|-----------|----------|------|
+| **T4** | **NO serialization round-trip test for `betrayal_history` / `next_episode_id`** — golden-rule violation ("If it exists on the object, it must serialize") currently unenforced | U2 commit (or new substrate commit if U2 deferred) | **HIGH** | 15 min |
+| **T8** | **Composite floor completely untested** — full grep for `composite_floor` / `grievance_modifier` in `tests/` returns 0 matches | B-B1-lite + B-B4 (out of Block 2 — flag in work order) | **HIGH** | tracked separately |
+| T1 | ~40 test sites hardcode `"alliance_paradox"` across 15+ files; U2 alias-on-load would silently pass them (no `commitment_paradox` positive counterparts) | U2 commit | MAJOR | 30 min |
+| T3 | No test asserts `speaker_attribution == "foreign_office"` in french_breach contexts — U3's flip lands without regression coverage | U3 commit | MEDIUM | 10 min |
+| T6 | No test asserts `DIALOGUE_PRIORITY["commitment_paradox"]` or membership in `HARD_STOP_TYPES` | U2 commit (B3 extension) | MEDIUM | 10 min |
+| T7 | No unit test exercises §7.5 opposition-graph `commitment_paradox` emission trigger directly | U2 commit | MEDIUM | 10 min |
+| T10 | 5 audit-test files hardcode `{"type": "alliance_paradox", ...}` dialogue-manager push payloads (test_audit_part1, test_audit_playtest, test_audit_session4, test_audit_2_3, test_systems_audit_v2_session4) | U2 commit | MEDIUM | 20 min |
+
+**Addendum v2 subtotal: ~1.5 hours on top of U2+U3+U4 (~5 hours with full U2 + B1 + B3 + addendum v2).**
+
+---
+
+### T4 — betrayal substrate round-trip (HIGH)
+
+**[`tests/test_serialization_enforcement.py`](tests/test_serialization_enforcement.py)** has zero matches for `betrayal_history` or `next_episode_id`. Both are shipped v2.4.3 substrate fields on `WorldState`; both serialize through `to_dict` / `from_dict` today ([world_state.py:3253-3272, 3578](backend/models/world_state.py:3253)); neither has a round-trip test.
+
+**Golden rule violated:** CLAUDE.md "Serialization Enforcement (MANDATORY)" — *"If it exists on the object, it must serialize."*
+
+**Fix:** add to `tests/test_serialization_enforcement.py` (or a new `tests/test_memory_substrate_serialization.py`):
+
+- Round-trip `betrayal_history` with a representative entry (actor, victim, turn, episode_id, type).
+- Round-trip `next_episode_id` with a non-default value (e.g., 7) — verify monotonic counter survives load.
+- Round-trip legacy saves (missing these keys) — confirm `.get()` defaults work.
+
+This is a **pre-merge gate for U2**, because B-B3's alias-on-load (U2 step 2.5) extends the `from_dict` path and without a round-trip test, the alias contract is itself untested.
+
+Commit folds into U2 commit with the addition: *"Adds round-trip coverage for betrayal_history + next_episode_id (previously untested v2.4.3 substrate)."*
+
+---
+
+### T8 — Composite floor (HIGH, out of Block 2 scope)
+
+Full-suite grep for `composite_floor`, `grievance_modifier`, `grievance_floor`, `acceptance_floor`, `acceptance.*<=.*-` returns **zero matches** across all `tests/`.
+
+Spec §9.3 authors a `-60` composite floor when DG-4's `grievance_modifier` is live. Spec §905 requires B-B4 to land with-or-after B-B1-lite's no-floor collapse. **Neither slice has a regression net today because no test pins the floor value.**
+
+B-B1-lite will flip the formula (remove old floor) and B-B4 will reintroduce the conditional floor. Without coverage, either slice can silently introduce drift.
+
+**This is OUT of Block 2's scope** (Block 2 is substrate-alignment only). Flag for B-B1-lite and B-B4 work orders:
+
+- **B-B1-lite test budget:** add 1-2 tests asserting *"after no-floor collapse, composite score can go below -60 in the specific 3-term case when DG-4 is not live"*.
+- **B-B4 test budget:** add 2-3 tests asserting *"when `grievance_modifier` is live, composite floor clamps at -60 for the 4-term case (hegemony + betrayal + grievance + reliability)"*.
+
+Add an explicit note to [`RELIABILITY_IMPLEMENTATION_PLAN.md`](docs/RELIABILITY_IMPLEMENTATION_PLAN.md) B-B1-lite and B-B4 sections. **This note lives in Block 1** (doc-only, already in Addendum v2 of Block 1 per A11 DoD expansion) — here, just ensure Block 2 acknowledges the hand-off.
+
+---
+
+### T1 — alliance_paradox test-string sweep (MAJOR, folds into U2)
+
+When U2 renames to `commitment_paradox` with alias-on-load, the ~40 existing test sites hardcoding `"alliance_paradox"` silently continue passing via the alias. That's the alias-on-load's *purpose* for save compatibility, but it masks test coverage of the new code path.
+
+**Fix (fold into U2 commit):** for each hardcoded-string site, add a parallel positive test using the new name. Representative sites from audit:
+
+- `tests/test_dialogue_manager.py:76, 90, 298, 301, 315, 318, 442, 446, 518` (HARD_STOP + priority)
+- `tests/test_offer_lifetime.py:75, 125, 222, 247, 258, 459, 582`
+- `tests/test_cooldown_popup_characterization.py:188, 191, 193` (priority comment bakes old string)
+- `tests/test_session_3_commands.py:365` (docstring)
+- `tests/test_audit_major_2026_03.py:471-478` (already-skipped with `commitment_paradox sibling flow` reason — resurrect as B3's first test)
+
+For each: don't delete the old-name assertion (it validates the alias). Add a `commitment_paradox` assertion alongside it. Typical shape:
+```python
+# Existing (alias path — keep)
+dialogue_manager.push({"type": "alliance_paradox", ...})
+assert "alliance_paradox" in active_dialogue_types
+
+# New (canonical path)
+dialogue_manager.push({"type": "commitment_paradox", ...})
+assert "commitment_paradox" in active_dialogue_types
+```
+
+Also: `test_cooldown_popup_characterization.py:191` has a priority comment citing `"alliance_paradox (0)"`. Update the comment inline — documentation rot otherwise.
+
+---
+
+### T3 — french_breach speaker assertion (MEDIUM, folds into U3)
+
+`tests/test_playtest_bugfixes.py:306` is the only `speaker_attribution` assertion in the suite — and it checks `"talleyrand"`. [`test_phase2b_diplomacy.py:109, 299`](tests/test_phase2b_diplomacy.py:109) assert `end_reason_family == "french_breach"` but never assert the resulting speaker. U3's flip (foreign_office → envoy) lands without regression coverage.
+
+**Fix (fold into U3 commit):** add one test — set up a french_breach scenario, trigger the emit, assert `speaker_attribution == "envoy"`. Add the symmetric negative for `obsolescence_or_external` — assert it still emits `"foreign_office"`.
+
+Natural home: `tests/test_phase2b_diplomacy.py` alongside the existing `french_breach` end-reason coverage.
+
+---
+
+### T6 + T7 — DIALOGUE_PRIORITY + paradox emission (MEDIUM, fold into U2 / B3)
+
+**T6:** add two assertions alongside B3 extension:
+1. `DIALOGUE_PRIORITY["commitment_paradox"] == 0` (same priority as the legacy alias).
+2. `"commitment_paradox" in HARD_STOP_TYPES`.
+
+**T7:** add one unit test for the §7.5 opposition-graph trigger path — wire up a scenario where an ally-of-enemy relationship forces a paradox without going through the executor (which is covered by `test_phase4_batch4_ledger.py:251, 300`). The emitter at [`diplomacy.py:2123-2135`](backend/game_logic/diplomacy.py:2123) is the unit under test.
+
+---
+
+### T10 — audit-test alliance_paradox sweep (MEDIUM)
+
+Five audit-test files hardcode `{"type": "alliance_paradox", ...}` as the dialogue-manager push payload:
+- `tests/test_audit_part1.py:51, 140`
+- `tests/test_audit_playtest.py:179`
+- `tests/test_audit_session4.py:135`
+- `tests/test_audit_2_3.py:1348, 1394`
+- `tests/test_systems_audit_v2_session4.py:358, 365`
+
+These were written during the Mar 2026 Diplomacy Deep Audit (memory note, not a current spec). They exercise the dialogue-manager push contract; under U2's alias-on-load they'll keep passing but won't exercise the new path.
+
+**Fix (fold into U2 commit):** for each, add a parallel test with `"type": "commitment_paradox"`. Don't remove the old string — those tests anchor the alias contract. Aim to double the paradox-push coverage (~8 new tests across 5 files).
+
+---
+
+### Summary — updated test-count expectations
+
+| Scenario | Pre-existing | U3 | U4 + B1 | U2 + T1 + T6 + T7 + T10 | T4 | Total new |
+|---|---|---|---|---|---|---|
+| Minimum (U3 + U4 + B1) | (suite) | 2-3 | 4-5 | — | — | 6-8 |
+| Full (U3 + U4 + U2 + B1 + B3) | (suite) | 2-3 | 4-5 | 15-20 | 2-3 | 23-31 |
+
+Replaces the Block 2 DoD count (B5). Updated DoD line:
+
+- [ ] Minimum: Full test suite **pre-existing + 6-8 new**.
+- [ ] Full: Full test suite **pre-existing + 23-31 new**.
