@@ -1,9 +1,33 @@
 # Memory and Pressure Spec
 
-> **Status:** v2.3 (DG-4 call-to-arms amendment absorbed — see §8.8)
-> **Date:** April 17, 2026 (v2.3 DG-4 amendment); April 16, 2026 (v2.2 audit); v2.0 rescope; v1.0 April 14, 2026
+> **Status:** v2.4 (Hegemony refactor — static concern seed replaced by power-based balance-of-power engine)
+> **Date:** April 19, 2026 (v2.4 hegemony refactor); April 17, 2026 (v2.3 DG-4 amendment); April 16, 2026 (v2.2 audit); v2.0 rescope; v1.0 April 14, 2026
 > **Phase placement:** Design Refinement queue item 1 (formerly "Reliability + Commitments"; renamed in v2.0).
-> **Companion docs:** `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (the `C3-lite` presentation pass), `WAR_BARGAIN_SPEC.md` (bargain mechanic, deferred to Peace Deals phase), `SCALE_READINESS_PLAN.md` §DG-4 Amendment (call-to-arms refusal / honored-costly contract, source of truth for §8.8).
+> **Companion docs:** `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (the `C3-lite` presentation pass), `WAR_BARGAIN_SPEC.md` (bargain mechanic, deferred to Peace Deals phase), `SCALE_READINESS_PLAN.md` §DG-4 Amendment (call-to-arms refusal / honored-costly contract, source of truth for §8.8), `COALITION_SPEC.md` (threat ladder; Hegemony Pressure adds passive bloc-share contribution).
+
+---
+
+## v2.4 rescope note (April 19, 2026) — Hegemony refactor
+
+The April 19 design pass established that the v2.3 plan had grown too prescriptive for its own goals. The substrate that shipped is excellent — bilateral betrayal memory, episode_id threading, witness scoping, hard-reject posture all map cleanly to "Britain never forgets Amiens" / "Austria remembers being humiliated three times." The remaining ~68-74 tests across Slice B were stacking acceptance-formula constants players cannot feel and a 4-pair static concern seed that the spec itself (§7.7) admitted gets thrown away at full-Europe scale.
+
+The Napoleonic period's diplomatic engine was the **balance-of-power doctrine**: whoever's bloc is largest, the others converge against it. Castlereagh's pentarchy, Pitt's continental subsidies, Metternich's Vienna framework — all derive from one principle expressible as a single per-turn calculation.
+
+The rescope:
+
+1. **§7 Concern System → Hegemony Pressure System.** Static seeded `nation_concerns` is deleted. Per-turn `_calculate_hegemony_pressure(world)` reads bloc shares dynamically and contributes passive threat against whichever bloc is largest. Hegemon-agnostic by construction — France today, but any bloc that crosses the threshold tomorrow.
+2. **§9 Acceptance formula collapses.** `direct_concern_mod` / `concern_conflict_mod` / composite `political_commitment_mod` floor are deleted. Replaced by one `hegemony_target_mod` (negative on proposals from a nation in the hegemon bloc, scaling with bloc share). `bilateral_betrayal_mod` simplifies to `-6 per active strike` flat — the existing 3-strike hard-reject posture still does the door-shut work.
+3. **No data structure for rivalries.** Rivalries become *derived signals* read from bloc geometry + betrayal_history, not stored fields. The `nation_concerns` field is removed from the v0.1 ship list.
+4. **Slice B rewrites.** B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick) are cancelled. New B-Hegemony slice replaces them. B-B1 collapses to two simple modifiers. B-B3 (paradox rename) and B-B7 (Make Amends) keep their existing scope.
+5. **Slice C presentation trims.** Named-diplomat resolution + paradox popup keep. Elevated spotlight-tier card variant + split-voice render infrastructure cut — three events do not justify the infra.
+6. **Substrate already shipped is unchanged.** No removal of `betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata. The hegemony engine layers on top of the existing `coalition.py` threat ladder.
+7. **§8.8 DG-4 call-to-arms work is unchanged.** Orthogonal to the balance-of-power refactor; rides on the same betrayal substrate.
+
+**Test budget:** ~25-30 tests, 1 session (down from ~68-74 / 3 sessions).
+
+**What this preserves vs v2.3:** all shipped substrate, all design intent (Napoleonic friction, betrayal memory, repair gestures, named diplomats), DG-4 work, paradox rename, Make Amends concept.
+
+**What this drops:** static concern seed, three new acceptance modifiers + composite floor, redemption tick, third-party ratification anger loop, spotlight-tier infra. Each was load-bearing only for design pressure that the hegemony engine now expresses more directly.
 
 ---
 
@@ -61,13 +85,14 @@ Even after the substrate ships, the live formula treats betrayal as a 0-or-100 g
 
 ## 3. Goals
 
-- Make alliance choice a **forced political tradeoff** with visible long memory — owning which rivals to anger IS the verb, even without a new command layer.
-- Separate "France is generally reliable" from "this nation thinks France betrayed it."
-- Express both as graded numeric pressure on acceptance, not only as a brute-force gate.
-- Make the moments that matter (door-closing, paradox, betrayal) feel like political events.
+- Make **bloc dominance** the central political pressure — when one alliance bloc holds too much of European power, the other major powers converge against it. Players feel the Napoleonic balance-of-power doctrine through a single visible meter, not through hidden formula stacking.
+- Separate "France is generally reliable" (global reliability) from "this nation thinks France betrayed it" (bilateral betrayal memory). Both still drive acceptance and posture.
+- Express bilateral memory as graded pressure (strike count → acceptance penalty + door-shut at 3) rather than a brute-force gate alone.
+- Make the moments that matter (door-closing, paradox, betrayal) feel like political events through named-diplomat copy and the existing presentation surfaces.
 - Give the player **one deliberate repair gesture** (Make Amends, §8.6.1) so repaired relationships are a chosen act, not a waiting game.
 - Keep rules machine-readable for AI and tests.
-- Keep the first implementation legible on the current 5-nation / 19-region map.
+- Keep the engine **hegemon-agnostic** — France today is the hegemon by starting position; any bloc that crosses the share threshold later becomes the coalition target without code changes.
+- Keep the first implementation legible on the current 5-nation / 19-region map; same engine generalizes to 13-20 nations without rewrite.
 
 ---
 
@@ -121,11 +146,16 @@ The pressure layer has four player-facing data concepts plus shared engine seams
 - Episode-cap queries filter by `episode_id`; severity-scaled decay reads each strike's own `decays_on_turn`.
 - Pair-level `last_turn` is cached "most recent offense" for ledger only — not authoritative for decay or cap enforcement.
 
-### 6.3 Rivalries (data missing — this phase ships it)
+### 6.3 Hegemony Pressure (no stored data — computed per turn)
 
-- `world.nation_concerns: Dict[str, Dict]` — pair key `diplo_key`.
-- Value: `{intensity, source, weight, started_turn, last_changed_turn}`.
-- v0.1 ships **4 authored seeded pairs only**; no dynamic formation.
+**v2.4 change:** the static `nation_concerns: Dict[str, Dict]` field is **deleted from the v0.1 ship list**. Bilateral concern is no longer a stored authored data structure. It is a derived signal computed from bloc geometry each turn.
+
+- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — returns `{hegemon_nation: threat_increment}` per turn, or `{}` if no bloc crosses the threshold.
+- `world.get_bloc_members(nation: str) -> List[str]` — per-turn cached helper. Returns nation + its vassals + nations holding `ALLIANCE` or `DEFENSIVE_ALLIANCE` with it.
+- `power_score(nation: str, world) -> int` — territory count weighted by `power_tier` from scenario data (`major=3, secondary=2, minor=1` multiplier on region count).
+- v0.1 ships **no authored static rivalry seed**. Bilateral friction emerges from: (a) the asker being part of the current hegemon's bloc, (b) accumulated betrayal strikes, (c) §8.8 grievance flags from defensive-call refusals.
+
+The hegemony engine is described in §7.
 
 ### 6.4 War bargains
 
@@ -140,107 +170,110 @@ The pressure layer has four player-facing data concepts plus shared engine seams
 
 ---
 
-## 7. Concern System
+## 7. Hegemony Pressure System
 
-> **Terminology note (v2.2):** v2.0-v2.1 used "rivalry" for this system. Renamed to "concern" in v2.2 to reflect the target architecture: at full-Europe scale, bilateral diplomatic friction is driven by dynamic balance-of-power concern, not static rival labels. v0.1 ships static seeded concern values with identical mechanical behavior; the field name `nation_concerns` is chosen so the data model grows naturally into dynamic evaluation without a rename refactor. See §7.7 for the scale architecture note.
+> **v2.4 terminology:** v2.0-v2.3 called this the "Concern System" with a static `nation_concerns` data structure. v2.4 collapses that into a per-turn **Hegemony Pressure** calculation. The concept is the Napoleonic balance-of-power doctrine — Castlereagh's pentarchy, Pitt's continental subsidies, Metternich's Vienna framework — expressible as one principle: *whoever's bloc is largest, the others converge against it.* No authored rivalry pairs; rivalry emerges from bloc geometry.
 
-### 7.1 Starting concerns (this phase ships seeding)
+### 7.1 Bloc definition
 
-v0.1 seeds 4 concern pairs. Each represents a structural interest conflict that creates diplomatic friction — not a permanent enemy label, but a starting political reality that extraordinary diplomacy can reshape.
+A nation's **bloc** at any given turn is the set of nations whose military and diplomatic interest is bound to it:
 
-Initial set:
-
-| Pair | Weight | Intensity | Why |
-|------|--------|-----------|-----|
-| France ↔ Britain | `primary` | `active` | Core geopolitical enemy pair |
-| France ↔ Austria | `secondary` | `active` | Third Coalition adversary (1805); Austria was one of France's most persistent opponents — hot war in 1805, 1809, 1813-14 |
-| Prussia ↔ Austria | `primary` | `active` | German hegemony conflict |
-| Prussia ↔ Saxony | `secondary` | `cold` | Expansion pressure / annexation fear |
-
-Notes:
-
-- France/Britain is structurally rare at deep alliance, not literally impossible.
-- France/Austria is seeded `secondary + active` (added v2.1 per creative audit) to match the 1805 setting. The earlier "Austria as flexible swing partner" framing misread the period — Austria was *the* main continental opponent of Napoleonic France, not a neutral. Keeping France/Austria cold-neutral would let France drift into Austrian alliance without political cost on turn 3, which is historically and design-wise wrong.
-- Prussia/Austria is the German-hegemony fork; together with France/Austria it forces France to choose a continental ally rather than default to both.
-- Prussia/Saxony starts visible but weaker.
-- Playtest tripwire: if France/Austria at `secondary + active` feels too hostile and France cannot credibly pursue any continental alliance without angering either Austria or Prussia, consider dropping France/Austria to `secondary + cold` before adding a new bloc system.
-- **Auto-downgrade rule:** if a concern pair reaches `DEFENSIVE_ALLIANCE` or above with each other, their concern intensity drops from `active` → `cold`. The concern is not removed — structural interests persist — but extraordinary diplomatic investment is rewarded with reduced friction. This is the France-Austria 1810 marriage arc: deep alliance doesn't erase the structural tension, but it lowers the active pressure. If the alliance later breaks, authored escalation rules or future dynamic evaluation (§7.7) can re-escalate.
-
-Authored escalation rules for Prussia/Saxony:
-
-- if Prussia and Saxony enter direct war → escalate to `active`
-- if France vassalizes Saxony → escalate to `active`
-
-These are explicit authored checks, not a general dynamic-concern system.
-
-### 7.2 Dynamic concern formation
-
-Deferred. v0.1 ships only the static starting rivalries plus the two Prussia-Saxony escalation triggers above. General emergent rivalry formation moves to later AI-agenda work.
-
-### 7.3 Concern intensity (acceptance values)
-
-Two-step model — exact values used by `direct_concern_mod` (§9.1):
-
-| Weight / Intensity | Meaning | Direct treaty effects |
-|--------------------|---------|-----------------------|
-| `secondary + cold` | low but visible friction | `OPEN_BORDERS -4`, `NON_AGGRESSION -6`, deep treaties / `VASSAL -12` |
-| `secondary + active` | live regional concern | `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20` |
-| `primary + active` | major geopolitical concern | `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30` |
-
-"Deep treaties" = `DEFENSIVE_ALLIANCE`, `ALLIANCE`, and `VASSAL`. All three use the same column.
+```python
+def get_bloc_members(world, leader: str) -> List[str]:
+    """Per-turn cached helper. Returns leader + dependents + close allies."""
+    members = {leader}
+    members |= set(world.get_vassals_of(leader))
+    for other in world.get_active_nations():
+        if other == leader:
+            continue
+        treaty = world.get_treaty_state(leader, other)
+        if treaty in {TreatyState.ALLIANCE, TreatyState.DEFENSIVE_ALLIANCE}:
+            members.add(other)
+    return sorted(members)
+```
 
 Rules:
 
-- `cold` concerns never trigger paradox by themselves (paradox stays on legacy alliance-cross-war trigger; see §7.5).
-- `active` concerns can swing deep-treaty acceptance on their own.
-- Primary active concern is what makes France-Britain alliance "extraordinary but possible" rather than merely uncommon.
+- Mutual ALLIANCE / DEFENSIVE_ALLIANCE counts both directions — Saxony in France's bloc means France in Saxony's bloc.
+- A vassal is in its overlord's bloc only; vassal-of-vassal cascades up to the top overlord.
+- NON_AGGRESSION and OPEN_BORDERS do **not** count as bloc membership — they are non-commitment treaty levels.
+- A nation can be in only one bloc at a time. If two overlords both claim a nation (data error), the highest-power overlord wins (deterministic tie-break by alphabetical name).
+- Per-turn cache; invalidated on treaty ratification, vassal change, war declaration, peace.
 
-### 7.4 Concern effects on diplomacy
+### 7.2 Power score
 
-Two pressure paths.
+A nation's **power score** is the input to hegemony detection. v0.1 uses a simple, scenario-data-driven formula that scales without rewrite:
 
-#### A. Direct concern friction
-
-Trying to deepen treaties with a nation you have high concern with applies acceptance penalties using §7.3. Lower treaty levels stay flexible; deep military friendship across major concern lines becomes structurally rare.
-
-#### B. Third-party commitment pressure (this phase ships wiring)
-
-When France deepens ties with Nation A, each nation with active concern about A reacts.
-
-Suggested base anger for `active` concerns:
-
-| New state with A | Rival reaction |
-|------------------|----------------|
-| `OPEN_BORDERS` | -5 relation |
-| `NON_AGGRESSION` | -10 relation |
-| `DEFENSIVE_ALLIANCE` | -15 relation + advisory warning |
-| `ALLIANCE` | -20 relation + possible forced-choice flow |
-| `VASSAL` | -25 relation + severe advisory warning |
+```python
+def power_score(nation: str, world) -> int:
+    """Territory count weighted by authored power_tier. v0.1 simple form."""
+    region_count = len(world.get_nation_regions(nation))  # already cached
+    tier_weight = {"major": 3, "secondary": 2, "minor": 1}[
+        world.get_power_tier(nation)
+    ]
+    return region_count * tier_weight
+```
 
 Rules:
 
-- if the offended nation has only `cold` concern about A, apply **half values rounded toward zero**
-- if France vassalizes a nation that the offended party has concern about, apply the immediate `VASSAL` anger hit first, then process any authored escalation rule such as Prussia-Saxony
-- the rival-reaction relation hit applies immediately on ratification and is the default pressure path
-- if that relation loss pushes an existing French treaty with the offended rival below its stability threshold, normal downgrade and auto-downgrade rules handle the fallout — do **not** force an instant treaty break as the default outcome
-- do **not** add a separate `they_chose_us` token; the reward loop comes from treaty depth, fulfilled commitments, and visible preview / ledger surfacing
+- `power_tier` is authored scenario data per `SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy". Stable for a campaign, never mutated at runtime.
+- Territory count is already cached per turn via `get_nation_regions()` (CLAUDE.md golden rule 8).
+- This formula is intentionally simple. v0.2+ may add manpower / treasury / military-strength terms; the helper signature stays stable.
+- A `bloc_power(leader, world)` helper sums power_score across `get_bloc_members(leader)`.
 
-This is intentionally stronger than the old `+5` because the punishment side was drowning out the reward loop.
+### 7.3 Hegemony detection (the engine)
 
-#### C. Great-power bloc pressure
+Per turn, during `process_coalition_turn` in `coalition.py`:
 
-Deferred. Do not add a separate bloc-pressure layer in v0.1.
+```python
+def _calculate_hegemony_pressure(world) -> Dict[str, int]:
+    """Per-turn passive threat from bloc-share dominance. Quadrangle doctrine."""
+    european_power = sum(power_score(n, world) for n in world.get_active_nations())
+    if european_power == 0:
+        return {}
+    bloc_shares = {
+        leader: bloc_power(leader, world) / european_power
+        for leader in world.get_major_powers()
+    }
+    hegemon, share = max(bloc_shares.items(), key=lambda kv: kv[1])
+    if share < 0.30:
+        return {}  # no hegemon — balance is healthy
+    pressure = _hegemony_pressure_for_share(share)
+    return {hegemon: pressure}
 
-The v0.1 side-picking package is:
 
-- direct concern penalties
-- third-party anger
-- bilateral betrayal memory
-- legacy commitment paradox (renamed; see §7.5)
+def _hegemony_pressure_for_share(share: float) -> int:
+    """Threat increment per turn based on bloc share. Authored ladder."""
+    if share < 0.30: return 0   # safe
+    if share < 0.40: return 1   # noticed
+    if share < 0.50: return 3   # alarming
+    if share < 0.60: return 5   # Quadrangle stirring (Castlereagh subsidies)
+    return 8                     # naked hegemony (1812 / 1813)
+```
 
-War bargains, when `WAR_BARGAIN_SPEC` ships, will add the explicit named-enemy promise layer on top.
+Output: `{hegemon_nation: threat_increment}`. The increment is added to `coalition.py`'s existing `threat_level` scalar via the existing `add_threat()` API.
 
-**Historical-texture debt flagged for `Coalition Generalization` / D2:** the v0.1 concern model has Britain as France's direct concern but does not give Britain any *reactive* posture when France deepens ties with a continental power. Historically, Britain opposed any continental hegemon on principle, paying subsidies to any power willing to fight France. D2 scope should therefore include a "continental hegemon reaction" pattern — bloc-threat accumulation against any nation approaching hegemony, not just France — and not reduce to a simple anti-France-literal refactor. Tracked in `docs/DESIGN_REFINEMENT.md` §P2.
+Rules:
+
+- Hegemon-agnostic by construction — the engine identifies whichever bloc is largest. France today by starting position; any bloc later.
+- Below 30% share, no passive pressure accrues. Coalitions can still form from event-based threat (battles, captures, vassalizations) per the existing `coalition.py` ladder.
+- Bloc share is recomputed each turn from current treaty / vassal state. Pressure decays naturally when the hegemon's bloc shrinks (allies defect, vassals released, territories lost).
+- The pressure ladder values (1/3/5/8) are authored constants in `coalition.py`. Tunable in playtest.
+- v0.1 the threat scalar in `coalition.py` remains France-targeted by current implementation; the engine returns the hegemon for forward-compat surface (so display copy can name the actual hegemon nation rather than hardcoding "France"). Generalizing the threat scalar to per-target `Dict[str, int]` is a one-helper refactor when a non-French hegemon becomes possible — explicitly out of v0.1 scope.
+
+### 7.4 Coalition target and leader selection
+
+The existing `coalition.py` flow handles formation, qualification, leader selection, and dissolution. Hegemony pressure adds two semantic refinements:
+
+- **Coalition target = current hegemon.** When formation fires, the coalition's named target is the nation returned by `_calculate_hegemony_pressure`. In v0.1 this is France for the entire campaign barring extraordinary play.
+- **Leader selection biases toward bloc-share-against.** The existing `coalition_leadership_score(nation, world)` (which weights troops, gold, recent damage) gains a bloc-share-against term:
+
+  ```python
+  bloc_share_against = bloc_power(nation, world) / european_power
+  score += int(bloc_share_against * 50)  # tunable weight
+  ```
+
+  This naturally surfaces the largest non-hegemon power as coalition leader — Britain in 1805 once France's bloc passes 35%, switches to Russia post-1807 if Britain's bloc shrinks, etc.
 
 ### 7.5 Commitment paradox
 
@@ -260,44 +293,40 @@ What this phase **does not** ship:
 - `opposition_graph` reads
 - bargain-attached fallout preview (no bargains to attach)
 
-### 7.6 Concern decay and resolution
+### 7.6 Hegemony pressure decay
 
-Deferred except for the two Prussia-Saxony escalation triggers and the auto-downgrade rule in §7.1. Primary concerns stay sticky in v0.1 unless actively lowered by deep alliance. Broader dynamic thaw / decay rules arrive with the Nation Agendas spec (queue item 5).
+Pressure decays naturally — no separate decay clock. Each turn the engine recomputes bloc shares from current state. If France allies with Bavaria, share jumps and pressure increment grows next turn. If Bavaria defects, share drops and pressure stops accruing. The existing `coalition.py` `_calculate_threat_decay` continues to drain the threat scalar between aggressive events.
 
-### 7.7 Scale architecture note (v2.2)
+This means players can *see and act on* the pressure source: vassalize fewer minor states, release a vassal as a goodwill gesture, accept a separate peace that breaks an alliance. Each of these immediately reduces bloc share next turn, which immediately reduces passive threat accrual.
 
-The v0.1 concern system ships static seeded values. At full-Europe scale (15-30 nations), the system evolves into dynamic balance-of-power evaluation:
+The auto-downgrade rule from earlier drafts (deep alliance reduces "concern intensity") is no longer needed — deep alliances raise bloc share, not lower friction. Friction is the share, not a label on a pair.
 
-**Target architecture (Nation Agendas, queue item 5):**
+### 7.7 Scale architecture note (v2.4: this IS what we ship)
 
-- `nation_concerns` becomes a continuous bilateral meter, not a labeled-pair table
-- Concern rises from observable events: territory gain near the concerned nation, vassalization of neighbors, alliance with the concerned nation's opponents, military power exceeding a relative threshold
-- Concern falls from: territory loss, treaty investment, diplomatic gestures (Make Amends), military defeats
-- Concern shares event triggers with coalition threat (`COALITION_SPEC.md` §2a) but tracks bilaterally — coalition threat is the macro collective response, concern is the micro per-nation response
-- AI nations evaluate concern periodically and adjust posture: high concern → oppose, low concern → receptive, concern dropping after peak → bandwagoning window
-- Small-state bandwagoning emerges naturally: when a great power's military dominance makes local resistance suicidal, concern inverts into survival-driven alignment
+The v2.2 / v2.3 spec described "static seeded concerns now, dynamic evaluation later." v2.4 collapses both into one model: **the dynamic evaluation IS v0.1.** No transitional static layer.
 
-**What v0.1 seeds for that future:**
+What this buys at scale:
 
-- the field is named `nation_concerns`, not `nation_rivalries` — grows without rename
-- the penalty table (§7.3) reads intensity thresholds, not hardcoded pair names — works with continuous values via threshold mapping
-- the auto-downgrade rule (§7.1) establishes that concern is mutable, not permanent
-- the acceptance formula (§9) reads concern data through helper functions, not direct field access — helpers can switch from static lookup to dynamic evaluation transparently
+| Element | v0.1 (5 nations) | Full Europe (13-20 nations) | Same engine? |
+|---------|------------------|------------------------------|--------------|
+| Hegemony detection | bloc shares of 5 majors | bloc shares of 13+ majors | ✓ same calc |
+| Coalition target | France (starting position) | Whichever bloc passes threshold | ✓ same calc |
+| Coalition leader | Britain (highest non-French power) | Whichever non-bloc major has highest bloc-share-against | ✓ same calc |
+| Pressure ladder | 1/3/5/8 by share bucket | same buckets | ✓ same authored constants |
+| Bilateral memory | strikes + hard-reject | strikes + hard-reject | ✓ unchanged |
+| Make Amends cadence | 200g + 10-turn cooldown per pair | same — repair tour scales naturally | ✓ |
+| Preview warning cap | 2 inline | 2 inline | ✓ |
+| Voice Bible cast | 5 named diplomats | 13+ named diplomats *or* generic-register fallback for unnamed minors | needs cast expansion |
 
-**What breaks at 15+ nations and needs recalibration:**
+What the v2.4 engine does not depend on:
+- No authored rivalry pairs — engine reads bloc shares
+- No per-pair concern intensity lookup — replaced by single hegemony pressure value
+- No composite acceptance-formula floor — single negative term per asker
 
-| Element | v0.1 assumption | Full-Europe concern |
-|---------|-----------------|---------------------|
-| Seeded pairs | 4 hand-authored | Cannot hand-author all pairs; need dynamic evaluation |
-| 3-strike hard-reject | Meaningful at 4 partners | May trigger too frequently or be diluted across 20+ partners |
-| Composite floor `-40` | Significant vs 4 options | May be irrelevant when 15 alternatives exist |
-| Make Amends cadence | 200g + 10-turn cooldown per pair | At 15+ strike-holding nations, repair tour becomes prohibitive |
-| Preview warning cap | 2 inline warnings | Any deep alliance may anger 6+ nations |
-| Anti-spam budget | 1 spotlight + 2 notices | Multiple simultaneous diplomatic crises become normal |
-| Witness scope loop | O(active_nations) per witness | O(25+) needs caching or batch processing |
-| Voice Bible cast | 5 named diplomats | Needs 15+ named voices or a generic-register fallback |
-
-These are flagged for recalibration when map expansion lands; they do not block v0.1 ship.
+What's flagged for later (unchanged from v2.3):
+- Voice Bible cast expansion when nations >5
+- Per-target threat scalar generalization in `coalition.py` when non-French hegemon becomes possible
+- Witness scope caching at 13+ nations
 
 ---
 
@@ -649,63 +678,75 @@ Explicitly not in the amendment's scope, flagged here so later work has a handle
 
 ## 9. Acceptance Formula Hooks
 
-This phase needs three treaty-acceptance inputs in v0.1. The fourth (`bargain_value_mod`) and the dedicated `war_entry_score` live in `WAR_BARGAIN_SPEC.md`.
+v2.4 collapses the four-modifier composite into two terms. The hegemony engine (§7) drives the political-pressure side; bilateral betrayal memory drives the trust side. No composite floor is needed because the two terms cannot stack into runaway values — the per-term caps are absolute.
 
-### 9.1 Direct concern modifier (this phase ships)
+### 9.1 Hegemony target modifier (this phase ships — replaces direct_concern_mod and concern_conflict_mod)
 
-Use the exact treaty-depth values from §7.3:
-
-- `secondary + cold`: `OPEN_BORDERS -4`, `NON_AGGRESSION -6`, deep treaties / `VASSAL -12`
-- `secondary + active`: `OPEN_BORDERS -5`, `NON_AGGRESSION -10`, deep treaties / `VASSAL -20`
-- `primary + active`: `OPEN_BORDERS -6`, `NON_AGGRESSION -12`, deep treaties / `VASSAL -30`
-
-Primary active concerns must be able to swing deep-treaty outcomes on their own.
-
-### 9.2 Concern-conflict modifier (this phase ships, partial)
-
-Negative when the target knows France is already aligned with a nation the target has active concern about:
-
-- France holds `OPEN_BORDERS` with the target's active concern: `-2`
-- France holds `NON_AGGRESSION` with the target's active concern: `-4`
-- France holds `DEFENSIVE_ALLIANCE` with the target's active concern: `-10`
-- France holds `ALLIANCE` or `VASSAL` with the target's active concern: `-16`
-- (bargain-conflict add-on lives in `WAR_BARGAIN_SPEC.md` §9.2)
-
-Do not double-count the same concern pair twice; use the strongest treaty-alignment value.
-
-Cap `concern_conflict_mod` at `-20` before the composite floor.
-
-### 9.3 Bilateral betrayal modifier (this phase ships — currently missing from formula)
-
-- `-8` per active victim-side strike
-- cap `bilateral_betrayal_mod` at `-24`
-- stronger than global reliability
-- three active strikes should not be cleanly erased by a single sweetener
-
-This is the single highest-value formula change in this phase. The substrate already counts strikes; the formula must read them.
-
-### 9.4 Composite grouping
-
-Group the new modifiers under one composite:
+When a nation receives a proposal from an asker who is part of the current hegemon's bloc, friction applies:
 
 ```python
-raw_political_commitment_mod = (
-    direct_concern_mod
-    + concern_conflict_mod
-    + bilateral_betrayal_mod
-)
-
-political_commitment_mod = max(-40, raw_political_commitment_mod)
+def hegemony_target_mod(asker: str, proposal_target: str, world) -> int:
+    """Single negative term — replaces direct_concern_mod + concern_conflict_mod."""
+    pressure = _calculate_hegemony_pressure(world)
+    if not pressure:
+        return 0  # no hegemon — diplomacy is open
+    hegemon = next(iter(pressure))
+    asker_bloc = world.get_bloc_members(hegemon)
+    if asker not in asker_bloc:
+        return 0  # asker is not in hegemon bloc
+    if proposal_target in asker_bloc:
+        return 0  # intra-bloc proposals are unrestricted
+    share = bloc_power(hegemon, world) / sum(power_score(n, world) for n in world.get_active_nations())
+    # Linear scaling from -2 at 30% to -20 at 60%+
+    raw = int((share - 0.30) * 60)
+    return max(-20, -raw)
 ```
 
-Rules:
+Effect:
 
-- the cap prevents formula-level total lockout
-- hard-reject posture at 3 strikes still exists outside the formula
-- the per-modifier caps (`bilateral_betrayal_mod -24`, `concern_conflict_mod -20`) are **superseded** by the composite floor when `raw < -40`. The floor is authoritative; per-modifier caps document intent but do not stack as combined limits.
-- the per-episode strike cap in §8.3 is what keeps the hard-reject posture from becoming too punishing
+- Returns 0 when no hegemon exists (bloc share < 30%).
+- Returns 0 when asker is outside the hegemon bloc — non-bloc nations don't carry the hegemony tax.
+- Returns 0 for intra-bloc proposals (France ↔ Bavaria when both are in French bloc).
+- Returns -2 to -20 negative on cross-bloc proposals from a hegemon-bloc nation, scaled by share.
 
-When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins this composite (positive contribution).
+This single term replaces:
+- The 3-tier `direct_concern_mod` table (no per-pair lookup needed)
+- The 4-tier `concern_conflict_mod` ladder (alignment with hegemon IS the conflict)
+
+Captures the same player feel: France-Britain alliance is structurally hard once France is the hegemon, easier when France's bloc shrinks. France-Austria alliance is free when France's bloc is small, costly when France is dominant.
+
+### 9.2 Bilateral betrayal modifier (this phase ships — simplified from v2.3)
+
+```python
+def bilateral_betrayal_mod(asker: str, target: str, world) -> int:
+    """One penalty per active victim-side strike. Hard-reject at 3 still gates the door."""
+    strike_count = world.get_active_strike_count(target, asker)  # victim, perpetrator
+    return -6 * strike_count  # natural cap at -18 because 3 strikes triggers hard-reject
+```
+
+Effect:
+
+- `-6 per active victim-side strike` flat. No stacking cap is needed because the 3-strike hard-reject (§8.7, already shipped) stops further proposals from reaching this calculation.
+- Below 3 strikes: graded penalty (-6, -12) on every proposal from the breach-actor.
+- At 3 strikes: hard-reject posture engages and most proposals are blocked outright.
+- Above 3 strikes: not reachable in normal play (cap at 2 per episode + hard-reject blocking).
+
+This replaces the v2.3 `-8 per strike, cap -24` formulation. The simpler `-6` flat is easier to reason about, and the hard-reject does the heavy lifting that the cap previously did.
+
+### 9.3 No composite floor
+
+v2.4 removes the v2.3 `political_commitment_mod = max(-40, raw)` aggregation. With only two terms (max -20 + max -18 = -38 before hard-reject blocks), no floor is needed. The terms surface independently in debug output and `warnings[]` so player legibility is preserved.
+
+### 9.4 Reliability modifier (already shipped — narrowed in this phase)
+
+Tighten the existing `reliability_modifier` to the `RELIABILITY_COMMITMENTS_SPEC` baseline:
+
+- `clamp(diplomatic_reliability[asker] // 10, -6, +6)` (current code is `// 5` capped ±10 — legacy R34)
+- Narrowing keeps reliability a light input so bilateral memory dominates
+
+This is unchanged from v2.3 §B1 spec.
+
+When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins as a positive contribution; no composite floor will be needed because the additive terms remain bounded.
 
 ---
 
@@ -713,17 +754,19 @@ When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins this composite (positiv
 
 ### 10.1 Proposal generation
 
-AI uses concern data to create branches:
+AI uses hegemony pressure + bilateral memory to shape branches:
 
-- court France against the nation they're concerned about
+- non-hegemon-bloc nations refuse deep treaties from hegemon-bloc askers (per §9.1)
+- nations with active strikes resist treaties from the breach-actor (per §9.2 + §8.7 hard-reject posture)
 - (bargain offers move to `WAR_BARGAIN_SPEC.md`)
 
-Minimal v1.0 AI decision-reason contract (already shipped in subset; this phase tightens):
+Minimal AI decision-reason contract (already shipped in subset; this phase tightens):
 
 - every AI-authored offer, refusal, hard block, or counterparty reversal emits one deterministic `decision_reason`
-- v0.1 enum: `concern_pressure`, `shared_enemy_survival`, `distrust_promiser`, `war_overload`, `route_blocked`, `coalition_conflict`, `counterparty_reversal`, **`unknown_baseline`** (added in this phase to replace the current `rival_pressure` catch-all when no actual concern pressure is computed)
+- v0.1 enum: **`hegemony_pressure`** (replaces v2.3 `concern_pressure`), `shared_enemy_survival`, `distrust_promiser`, `war_overload`, `route_blocked`, `coalition_conflict`, `counterparty_reversal`, **`unknown_baseline`** (added in this phase to replace the current `rival_pressure` catch-all when no actual pressure is computed)
 - bargain-specific reasons (`claim_trade`, `claim_obsolete`) live in `WAR_BARGAIN_SPEC.md`
 - `decision_reason` is mechanical motive metadata the presentation layer, advisory logic, and campaign log can read directly — it is not freeform narrative text
+- save-load alias: `concern_pressure` reads as `hegemony_pressure` for back-compat with v2.3-era saves
 
 ### 10.2 Anti-spam rules
 
@@ -763,14 +806,29 @@ Use:
 
 ### 11.1 Diplomatic Ledger
 
-Add to Nations / Talleyrand tabs:
+**v2.4 headline:** add a "Balance of Europe" line at the top of the Nations tab — one dynamically generated sentence that names the current hegemon, their bloc share, and the coalition leader if formed:
 
-- each nation's active concerns
+```
+Balance of Europe — France leads with 47% of Continental power.
+Castlereagh has begun assembling subsidies. Berlin and Vienna are listening.
+Coalition pressure against France: Brewing (62/100) — Britain leads.
+```
+
+Lines compose from current state — no authored copy table:
+
+- *"{Hegemon} leads with {share}% of Continental power."* — always present when share ≥ 30%
+- *"{Coalition leader's diplomat} has begun assembling subsidies."* — present when coalition status ≥ MURMURS
+- *"Coalition pressure against {hegemon}: {ladder_label} ({threat}/100) — {leader} leads."* — present when coalition formed
+
+Per-nation rows on the Nations tab (already present) gain:
+
+- bloc membership badge: `[French Bloc]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`
 - France's global reliability descriptor (already present)
 - bilateral betrayal warning when that nation distrusts France specifically (already present)
+- §8.8 grievance flags from defensive-call refusals (already specced in DG-4 amendment)
 - bargain section deferred to `WAR_BARGAIN_SPEC.md`
 
-Presentation rule: render as one compact commitment block per nation, not as multiple new dense subsections repeated across tabs.
+Presentation rule: render as one compact commitment block per nation, not as multiple new dense subsections repeated across tabs. The Balance of Europe headline is the ledger's new entry point — players see the geopolitical situation in three lines before scanning per-nation detail.
 
 ### 11.2 Proposal preview / Talleyrand advisory (already shipped)
 
@@ -789,13 +847,13 @@ Canonical preview contract (shipped):
 
 Warning categories used in this phase:
 
-- `concern`
+- `hegemony` (v2.4 — replaces `concern`)
 - `betrayal`
 - `hard_reject`
 - `paradox`
 - `peace_conflict`
 
-(`bargain` category reserved for `WAR_BARGAIN_SPEC.md`.)
+(`bargain` category reserved for `WAR_BARGAIN_SPEC.md`. Save-load alias: legacy `concern` reads as `hegemony`.)
 
 Severity contract (shipped):
 
@@ -846,13 +904,22 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
 - `next_episode_id: int` per §6.5
 - `alliance_paradox_popup: Optional[Dict]` (renamed `commitment_paradox_popup` in this phase; legacy field name kept for save-load back-compat)
 
-### 12.2 To add this phase
+### 12.2 To add this phase (v2.4)
 
-- `nation_concerns: Dict[str, Dict]` per §6.3
-  - key: `diplo_key`
-  - value: `{intensity, source, weight, started_turn, last_changed_turn}`
-- `actor_honored_turns: Dict[str, int]` — single global honored-turn clock per actor for §8.6 reliability tick
 - `reparations_cooldown: Dict[str, int]` — pair-key → turn number at which Make Amends (§8.6.1) becomes available again for that pair; `0` or absent = immediately available
+
+**v2.4 removed from this phase:**
+
+- `nation_concerns: Dict[str, Dict]` — replaced by per-turn `_calculate_hegemony_pressure(world)` (no stored field)
+- `actor_honored_turns: Dict[str, int]` — redemption tick cancelled (B6 cut as not legible to players)
+
+**v2.4 added (no new fields — pure helpers):**
+
+- `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached, derived from existing vassal + treaty state
+- `power_score(nation: str, world) -> int` — derived from existing region count + scenario `power_tier`
+- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — pure function over current state
+
+§8.8 DG-4 fields (`oathbreaker_posture`, `anti_renewal_cooldown`, grievance flag on `betrayal_history`, `war_entry_ledger`) are unchanged from v2.3 and tracked in their own slice.
 
 ### 12.3 Deferred
 
@@ -874,9 +941,9 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do *
 - substrate ledger surfacing for reliability and bilateral betrayal
 - `commitment_paradox` HARD_STOP type registration (placeholder)
 
-### Slice B. Rivalry pressure
+### Slice B. Hegemony pressure (v2.4 rewrite)
 
-**Already shipped (B2a/B2b):**
+**Already shipped (B2a/B2b — unchanged):**
 
 - third-party anger metadata produced for breach events
 - witness scoping with `scope_reason` precedence
@@ -884,28 +951,41 @@ Do **not** add ally-beneficiary settlement entitlement fields in this spec. Do *
 - redemption decay (severity-scaled) — strike-removal half
 - hard-reject posture trigger / clear emits
 - preview plumbing for `hard_reject` warnings
-- Prussia↔Saxony escalation triggers (data-driven; activated by §7.1 seed)
 
-**This phase ships:**
+**v2.4 cancelled (was in v2.3 plan, no longer ships):**
 
-- **B-A1-fill: concern seed.** Add `nation_concerns` to WorldState init with the 4 authored pairs from §7.1. `to_dict` / `from_dict` round-trip. ~8 tests.
-- **B-B1: acceptance formula additions.** Add `direct_concern_mod`, `concern_conflict_mod`, graduated `bilateral_betrayal_mod` with composite `political_commitment_mod` floored at `-40`. Wire debug breakdown output and acceptance feedback strings. Preserve old static sweeteners only when no graded concern / betrayal data applies. Add regression tests comparing representative pre-change proposal scores against expected tolerance bands. ~14 tests.
-- **B-B2a-fill: third-party anger on ratification.** Apply concern-reaction relation hits per §7.4.B at treaty ratification, scaled half for `cold`. Special handling for vassalize-concern-target. Use existing downgrade / auto-downgrade behavior as the normal fallout path; do **not** add forced instant-break logic. ~10 tests.
-- **B-B6: redemption tick.** Add `actor_honored_turns` global clock per §8.6 with the +3 reliability award once per actor per 5 honored turns. ~5 tests.
-- **B-B3: paradox rename.** Rename push-side `dialogue_manager.push({"type": "alliance_paradox", ...})` to `commitment_paradox`; keep `alliance_paradox` as accepted alias on read for save-load. Rename the popup type passthrough on the Godot side (`alliance_paradox_popup.gd` field reads). The dedicated `commitment_paradox_popup.{tscn,gd}` surface ships in the `C3-lite` slice (Slice C below). ~3 tests.
-- **B-B7: Make Amends verb (NEW in v2.1).** Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. ~8 tests.
+- ❌ B-A1-fill (concern seed) — replaced by hegemony engine
+- ❌ B-B2a-fill (third-party ratification anger) — captured by hegemony pressure naturally rising when France allies with someone (asker's bloc grows → next turn hegemony pressure rises against asker's bloc)
+- ❌ B-B6 (redemption tick) — invisible to players, cut
+- ❌ Prussia-Saxony authored escalation triggers — no longer needed without static rivalry seed
 
-### Slice C. C3-lite presentation pass
+**This phase ships (v2.4):**
+
+- **B-Hegemony: balance-of-power engine (NEW).** Add `_calculate_hegemony_pressure(world)`, `world.get_bloc_members(leader)`, `power_score(nation, world)` helpers. Wire passive contribution into `coalition.py` `process_coalition_turn` via existing `add_threat()` API. Update `coalition_leadership_score` with bloc-share-against term. Per-turn caches per CLAUDE.md golden rule 8. ~12 tests (bloc membership for various treaty configurations, power score with major/secondary/minor tiers, hegemony detection across share buckets, pressure ladder, coalition leader emerges from bloc-share-against, France-bloc shrinks → pressure stops, scenario without `power_tier` data falls back to default).
+- **B-B1-lite: acceptance formula collapse.** Add `hegemony_target_mod` (single negative term per §9.1) and `bilateral_betrayal_mod = -6 * strike_count` per §9.2. Tighten `reliability_modifier` to `// 10` capped ±6 per §9.4. Wire debug breakdown output and feedback strings. ~6 tests (hegemony mod returns 0 when asker outside bloc, hegemony mod scales with share, bilateral betrayal scales with strike count, hard-reject still fires at 3 strikes).
+- **B-B3: paradox rename.** Unchanged from v2.3. Rename push-side `dialogue_manager.push({"type": "alliance_paradox", ...})` to `commitment_paradox`; keep `alliance_paradox` as accepted alias on read for save-load. Rename the popup type passthrough on the Godot side (`alliance_paradox_popup.gd` field reads). The dedicated `commitment_paradox_popup.{tscn,gd}` surface ships in the `C3-lite` slice (Slice C below). ~3 tests.
+- **B-B7: Make Amends verb.** Unchanged from v2.1/v2.3. Implement the active-redemption action per §8.6.1: parser entry, `_execute_make_amends` in `diplomatic_executor.py`, cost validation, `reparations_cooldown` serialization, campaign-log emit, Talleyrand-voiced refusal advisory for each of the four refusal conditions. France-only in v0.1. ~8 tests.
+
+**§8.8 DG-4 call-to-arms (B-B4) — unchanged.** Tracked in its own slice per the DG-4 amendment. ~25 tests, parallel to this slice.
+
+### Slice C. C3-lite presentation pass (v2.4 trimmed)
 
 See `COMMITMENTS_PRESENTATION_SPEC.md` v0.3. Ships with this phase:
 
-- Spotlight tier on the notification rail (elevated card, 2-turn persist, action buttons)
-- Split-voice render (`attributed_lines[]`) on popup scene
-- Named-diplomat resolution: `speaker="envoy"` resolves to nation's named diplomat per Voice Bible; `speaker="foreign_office"` renders as "The Chancery of {nation}"
+**v2.4 keeps:**
+
+- Named-diplomat resolution helper: `speaker="envoy"` resolves to nation's named diplomat per Voice Bible; `speaker="foreign_office"` renders as "The Chancery of {nation}"
 - Committed mock prose for the three events that fire: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (french_breach), `commitment_paradox_resolved`
-- One N+1 Talleyrand aside keyed by `episode_id`
-- Dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four Slice C Godot prerequisites; see `COMMITMENTS_PRESENTATION_SPEC.md` §14)
-- ~16-22 tests
+- Dedicated `commitment_paradox_popup.{tscn,gd}` surface (replaces legacy `alliance_paradox_popup`)
+- Balance of Europe headline rendering (new for v2.4 — see §11.1)
+
+**v2.4 cuts:**
+
+- ❌ Spotlight tier elevated card variant on notification rail — three events do not justify the infra; route through existing notification system with named-diplomat copy doing the dramatic lift
+- ❌ Split-voice render `attributed_lines[]` on popup scene — single-voice with named-diplomat attribution is enough at 5-nation scale
+- ❌ N+1 Talleyrand aside callback — defer to later presentation pass if playtest shows the gap
+
+Estimated tests: ~10-12 (named-diplomat resolution, three event copy paths, paradox popup field wiring, Balance of Europe headline composition).
 
 ### Slice D. Deferred follow-up
 
@@ -924,35 +1004,41 @@ War bargain implementation moved to `WAR_BARGAIN_SPEC.md` slices WB-A through WB
 
 ## 14. Risks
 
-### R1. Over-hard locking
+### R1. Hegemony pressure dominates everything
 
-If concern becomes pure binary prohibition, diplomacy feels scripted.
+If `hegemony_target_mod` swings deep-treaty acceptance from possible to impossible whenever France's bloc passes 30%, players may feel the engine is too on-rails.
 
-**Mitigation:** keep lower treaty levels flexible; force choices only on deep military commitments; keep France-Britain extraordinary but technically possible. The auto-downgrade rule (§7.1) ensures concern can be reduced through treaty investment.
+**Mitigation:** the pressure ladder values (1/3/5/8 by share bucket) are authored in `coalition.py` and tunable. Playtest gates: France should be able to maintain Bavaria + Saxony in its bloc (~35% share) without immediately triggering coalition formation; only deep over-extension (50%+) should make the Quadrangle inevitable. If 30% threshold trips too early, raise to 35% or scale the ladder gentler.
 
 ### R2. Pressure-without-promise feels punitive
 
 Without bargains, the player has more friction and less new agency. Risk: "diplomacy got harder but I can't do anything new."
 
-**Mitigation:** the C3-lite presentation pass is the agency restoration path — events that already fire should land as memorable political moments rather than log lines. Playtest after this phase ships; if friction-without-agency reads as flat, accelerate `Bilateral Peace Hardening` so `WAR_BARGAIN_SPEC` can land sooner.
+**Mitigation:** the C3-lite presentation pass + Make Amends + Balance of Europe headline are the agency restoration paths — events that already fire should land as memorable political moments rather than log lines. Playtest after this phase ships; if friction-without-agency reads as flat, accelerate `Bilateral Peace Hardening` so `WAR_BARGAIN_SPEC` can land sooner.
 
-### R3. Contradiction opacity
+### R3. Bloc-share calc opacity
 
-If acceptance formula floor (-40) hides real underlying pressure, players can't reason about why proposals fail.
+If players see the pressure but can't predict which actions raise/lower bloc share, the engine feels arbitrary.
 
-**Mitigation:** preview UI (`warnings[]`) exposes the contributing factors; debug breakdown output shows individual modifier values for tuning.
+**Mitigation:** the Balance of Europe headline names the hegemon and bloc share explicitly. Diplomatic Ledger nation rows show bloc membership badges. Proposal preview `warnings[]` includes a `hegemony` category warning explaining the share-driven penalty. Debug breakdown output shows `hegemony_target_mod` and `bilateral_betrayal_mod` independently for tuning.
 
 ### R4. Warning overload
 
 If warnings fire every turn, players stop reading them.
 
-**Mitigation:** event-driven warning model only; preview capped to 2 inline warnings; concern seed is small (4 pairs) so anger events are rare.
+**Mitigation:** event-driven warning model only; preview capped to 2 inline warnings; hegemony pressure surfaces once via the Balance of Europe headline rather than as per-nation warnings. Per-proposal warning fires only when a specific proposal would trigger a meaningful penalty (not every cross-bloc proposal).
 
-### R5. France-centric coalition assumptions
+### R5. Hegemon-agnostic engine but France-targeted threat scalar
 
-If commitments hard-code coalition overlap as "anti-France only," later coalition generalization becomes much harder.
+The hegemony engine returns the actual hegemon (forward-compat), but `coalition.py`'s `threat_level` scalar remains France-targeted in v0.1.
 
-**Mitigation:** keep helpers parameterized on actor / victim / promiser. Do not create parallel `war_bloc` / `opposition_graph` stores in v0.1 (the rescope cut these forward-compat stubs). The commitments helpers (`_classify_witness_scope`, `_betrayal_key`, `_get_breach_witness_scope`) are already actor-parameterized and need no rewrite for non-France actors; however, surrounding `diplomacy.py` wiring still uses `world.player_nation` as shorthand for France in ~14 sites (e.g. `get_active_nations` callers, player-relation updaters, Talleyrand-dispatch attribution), so `Coalition Generalization` is a one-helper refactor for the scope / rivalry evaluators **plus** a broader audit of those surrounding paths.
+**Mitigation:** the engine returns `{hegemon: pressure}` shape now; display copy reads the hegemon name from this dict, not from a hardcoded literal. When a non-French hegemon becomes possible (full-Europe scale + non-French player nation support), the threat scalar generalization is a one-helper refactor (`int` → `Dict[str, int]`) plus updates to `add_threat`, `reduce_threat`, formation/dissolution. Tracked as Coalition Generalization (D2) but not v0.1 scope.
+
+### R6. Power score formula too simple
+
+`region_count * tier_weight` ignores manpower, treasury, military strength. A nation with 6 regions but a depleted treasury and broken army still reads as powerful.
+
+**Mitigation:** v0.1 simplicity is intentional — a more complex formula is hard to playtest. The helper signature `power_score(nation, world)` is stable, so v0.2+ can swap the implementation without touching the hegemony engine. Flag for playtest: if Saxony's "strength" reads as obviously wrong, accelerate the formula upgrade.
 
 ---
 
@@ -1000,24 +1086,29 @@ If commitments hard-code coalition overlap as "anti-France only," later coalitio
 
 ---
 
-## 16. Draft Recommendation
+## 16. Draft Recommendation (v2.4)
 
-For Memory and Pressure v2.0:
+For Memory and Pressure v2.4:
 
-- keep global reliability and bilateral betrayal substrate (already shipped)
-- seed `nation_concerns` with the 4 authored pairs (this phase)
-- fill the acceptance formula with `direct_concern_mod`, `concern_conflict_mod`, graduated `bilateral_betrayal_mod` under a `-40` composite floor (this phase)
-- wire third-party anger on treaty ratification (this phase)
-- rename `alliance_paradox` → `commitment_paradox` (this phase)
-- ship the `C3-lite` presentation pass — spotlight tier, split-voice render, named-diplomat resolution, committed mock prose for the three live events, one N+1 callback (this phase)
-- defer war bargains to `WAR_BARGAIN_SPEC.md`
+- **Keep all shipped substrate** — global reliability, bilateral betrayal memory, episode_id threading, witness scoping, hard-reject posture, structured warnings, cascade metadata. Nothing comes out.
+- **Add the hegemony engine** (§7) — `_calculate_hegemony_pressure(world)`, `get_bloc_members`, `power_score`. Three pure helpers, ~60 LOC. Wires into existing `coalition.py` threat ladder via `add_threat()`.
+- **Collapse the acceptance formula** (§9) — `hegemony_target_mod` (single negative term reading bloc geometry) + simplified `bilateral_betrayal_mod = -6 * strikes`. No composite floor needed.
+- **Add the Balance of Europe headline** (§11.1) — three dynamically composed lines at the top of the Diplomatic Ledger naming the hegemon, share, and coalition leader.
+- **Rename `alliance_paradox` → `commitment_paradox`** (B-B3, unchanged from v2.3).
+- **Ship Make Amends** (B-B7, unchanged from v2.1/v2.3) — France's deliberate repair gesture.
+- **Trim Slice C** to named-diplomat resolution + paradox popup + committed prose for three events. Cut spotlight-tier card variant + split-voice render infra.
+- **Defer war bargains** to `WAR_BARGAIN_SPEC.md` (unchanged).
+- **Keep §8.8 DG-4 work as-is** (unchanged) — orthogonal to the balance refactor.
 
-That is enough to make diplomacy feel political, create real rivalry pressure, and remove the largest "events land as log lines" failure mode without bundling in the full settlement overhaul too early.
+That is enough to make diplomacy feel like Napoleonic balance-of-power politics, with bilateral memory still driving distrust, and named-diplomat copy carrying the dramatic moments — without authoring static rivalry pairs or stacking acceptance formula constants players cannot feel.
+
+**Test budget:** ~25-30 tests (B-Hegemony 12 + B-B1-lite 6 + B-B3 3 + B-B7 8) + ~10-12 Slice C trimmed = **~35-42 tests, 1 session**. Down from v2.3 ~68-74 tests / 3 sessions.
 
 ---
 
 ## 17. Changelog
 
+- **April 19, 2026 — v2.4 Hegemony refactor.** Replaced the static 4-pair `nation_concerns` seed with a per-turn `_calculate_hegemony_pressure(world)` engine that reads bloc shares dynamically (the §7.7 "target architecture" becomes v0.1, no transitional static layer). Renamed §7 from "Concern System" to "Hegemony Pressure System". §9 acceptance formula collapsed: `direct_concern_mod` + `concern_conflict_mod` + composite `political_commitment_mod` floor → single `hegemony_target_mod`. `bilateral_betrayal_mod` simplified to `-6 per active strike` flat (cap removed; hard-reject at 3 still gates the door). §6.3 deleted `nation_concerns` field. §10.1 AI `decision_reason`: `concern_pressure` → `hegemony_pressure` (legacy alias on read). §11.1 added Balance of Europe headline (dynamically composed three-line summary at top of Diplomatic Ledger). §11.2 warning category `concern` → `hegemony` (legacy alias on read). §12 data model: removed `nation_concerns` and `actor_honored_turns` from this-phase ship list. §13 Slice B rewritten: cancelled B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick); added B-Hegemony slice (~12 tests); B-B1 collapsed to B-B1-lite (~6 tests); B-B3 and B-B7 unchanged. §13 Slice C trimmed: cut spotlight-tier elevated card variant + split-voice render + N+1 aside; kept named-diplomat resolution + paradox popup + committed prose for three live events. §14 risks rewritten around hegemony engine. §16 recommendation rewritten. §8.8 DG-4 amendment unchanged (orthogonal). All shipped substrate (`betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata) unchanged. Test budget: ~35-42 tests, 1 session (down from v2.3 ~68-74 / 3 sessions). Companion docs: `RELIABILITY_IMPLEMENTATION_PLAN.md` rewritten in parallel; `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 will trim the cut Slice C items.
 - **April 17, 2026 — v2.3 DG-4 call-to-arms amendment absorbed.** Added §8.8 specifying three new episode types (`call_to_arms_refused_offensive`, `call_to_arms_refused_defensive`, `call_to_arms_honored_costly`) that implement the SCALE_READINESS_PLAN §DG-4 Amendment. Defensive refusal gets wider witness scope (`treaty_partner_of_breaker`), victim-grade permanent grievance flag (Make Amends-removable only), oathbreaker posture parallel to hard-reject, anti-renewal cooldown, and a new `grievance_modifier` acceptance-formula term. Positive episode `call_to_arms_honored_costly` is the first concrete §8.5 faithful-play trigger. New audit-trail artifact `war_entry_ledger` in campaign log. New scenario authoring scalar `honor_bias`. New implementation slice B-B4 flagged for `RELIABILITY_IMPLEMENTATION_PLAN.md` (~25 tests). Deferred: sequential inter-ally signaling, vassal refusal path, defender-tier severity weighting, Jealousy v3.1 integration.
 - **April 16, 2026 — v2.2 audit fixes + scale architecture.** Renamed "rivalry" → "concern" throughout (field: `nation_concerns`) to align with target balance-of-power architecture where bilateral friction is dynamic, not static labels (§7 terminology note). Fixed seeded-pair count from 3 → 4 (stale after v2.1 added France↔Austria). Tightened redemption tick (§8.6) to require `OPEN_BORDERS` or above — `PEACE` alone no longer qualifies as active commitment. Clarified "deep treaties" = `DEFENSIVE_ALLIANCE` + `ALLIANCE` + `VASSAL` (§7.3). Added auto-downgrade rule: concern intensity drops `active` → `cold` when the concern pair reaches `DEFENSIVE_ALLIANCE` or above (§7.1). Added §7.7 Scale Architecture Note documenting the target dynamic-concern system for full Europe and listing what breaks at 15+ nations. Acceptance formula modifiers renamed: `direct_rivalry_mod` → `direct_concern_mod`, `rival_conflict_mod` → `concern_conflict_mod`. AI decision_reason enum: `rival_pressure` → `concern_pressure`. Warning category: `rivalry` → `concern`.
 - **April 16, 2026 — v2.1 creative-audit folds.** §3 Goal 1 rewritten to own the "forced political tradeoff" framing (previously read as apologetic pressure-without-promise). §7.1 seeded France↔Austria as `secondary + active` to match the 1805 Third Coalition setting (previously absent on the claim Austria was a "swing partner"; creative audit flagged that framing as a period misread). §7.4.C flagged Britain-anti-continental-hegemon as the #1 historical-texture debt for D2 Coalition Generalization scope. §8.6.1 added **Make Amends** active-redemption verb — the v0.1 fun/agency lever that closes the passive-redemption gap (200g + 1 DP → remove 1 strike, 10-turn cooldown per pair, France-only actor in v0.1). §12.2 added `reparations_cooldown` field. §13 Slice B added B-B7 (Make Amends). Test budget bumped from ~60-66 to ~68-74 tests; session count unchanged at ~3.
