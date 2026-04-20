@@ -1,176 +1,184 @@
 # MP v2.4.3 — Block 2: Substrate Alignment
 
-> **Source:** [MP_V243_AUDIT_COMBINED.md](docs/audits/MP_V243_AUDIT_COMBINED.md) — Block 2 (~1.5-3 hours, one session, doc + code). **Addendum (2026-04-20):** follow-up meta-audit added items B1-B5 (see [Addendum](#addendum--follow-up-findings-2026-04-20)) — fold each into its partner U-item's commit.
+> **Source:** 4 audit passes landed across [`MP_V243_AUDIT_COMBINED.md`](docs/audits/MP_V243_AUDIT_COMBINED.md) + [`MP_V243_AUDIT_PASS4.md`](docs/audits/MP_V243_AUDIT_PASS4.md) + two follow-up passes (commits c88b013, 5fcc93c). This work order integrates all code/test findings as first-class items — no addendum sectioning.
 >
-> **Ships as:** 2-3 small focused commits (U4, U3, optional U2). Don't split U3 and U4 across sessions — coupling them makes the "v2.4.3 enum + speaker discipline" boundary legible in `git log`.
+> **Ships as:** 3-4 focused commits organized by severity boundary. Order: BLOCKER/HIGH (P1, P3, P2, T4) → MAJOR substrate (U4, U3, U2+extensions, P6) → MINOR cleanup (B4, P5) → test sweep (T1, T10).
 >
-> **Pre-merge gate for:** B-B4 (needs U3). Unblocks B-Hegemony tests that assert on `hegemony_pressure` (U4).
+> **Pre-merge gate for:** B-B4 (needs U3, P6). Unblocks B-Hegemony tests (needs U4 + B1). C-lite pre-work (needs U2 + P1 + P3 + P2 if B-B3 pulled forward).
 >
-> **Depends on:** Block 1 ([`MP_V243_BLOCK1_DOC_CLEANUP.md`](docs/audits/MP_V243_BLOCK1_DOC_CLEANUP.md)) should land first so the spec contracts these code changes match are already current.
+> **Depends on:** Block 1 should land first so spec contracts these code changes match are current.
+>
+> **Total effort:** ~4-6 hours depending on whether U2 (B-B3 rename) is pulled forward into this block.
 
 ---
 
-## Scope
+## Scope summary
 
-2-3 unified findings + 5 addendum items, live-code changes with doc echoes. Each is a narrow diff.
+| Severity | Count | Dimension |
+|----------|-------|-----------|
+| BLOCKER | 1 | P1 — PopupQueue registry hardcode blocks post-rename delivery |
+| HIGH | 3 | P3 half-migration, P2 dialogue_manager state, T4 round-trip tests |
+| HIGH (out-of-scope) | 1 | T8 composite floor untested — hand off to B-B1-lite + B-B4 |
+| MAJOR | 6 | U4+B1, U3+T3, U2+B3+P4, P6 |
+| MINOR | 7 | B2, B4, B5, P5, P7, T6+T7, T10 |
 
-| # | Finding | Work | Est. | Gating? |
-|---|---------|------|------|---------|
-| 1 | U4 — `rival_pressure` → `hegemony_pressure` | 3 line changes + display_names alias + 2-3 unit tests | 45 min | Blocks B-Hegemony tests |
-| 2 | U3 — `french_breach` speaker_attribution | 1 conditional + payload addition + 2 unit tests | 45 min | Blocks B-B4 |
-| 3 | U2 — `commitment_paradox` rename (optional — B-B3's slot) | Rename attribute + emitter type; alias-on-load; new Godot popup scene + script; update routing | 90-120 min | Unblocks C-lite §14 artifacts |
-
-**Subtotal without U2: ~1.5 hours. With U2: ~3 hours.**
-
-**Recommendation:** run U3 + U4 now; defer U2 to B-B3's scheduled slot unless B-B3 is imminent.
+All items here are **code or test** changes, except T8's hand-off note (which goes into B-B1-lite and B-B4 plan entries via Block 1 item 21).
 
 ---
 
-## Execution checklist
+## BLOCKER
 
-### U4 — `decision_reason` enum drift
+### 1. P1 — `cooldown_manager.py:144, 155` PopupQueue hardcoded `alliance_paradox_popup`
 
-**Spec requires** `hegemony_pressure` + `unknown_baseline`; `concern_pressure` kept as read-alias only (per [RELIABILITY_COMMITMENTS_SPEC.md:964-967](docs/RELIABILITY_COMMITMENTS_SPEC.md:964)).
-**Live code returns** `rival_pressure` from three sites.
+[`backend/models/cooldown_manager.py:144, 155`](backend/models/cooldown_manager.py:144) — `PopupQueue.PRIORITY_ORDER` and `RESPONSE_KEYS` both list `"alliance_paradox_popup"` as the popup key.
 
-#### 1. Backend emit sites
+**This is the actual delivery gate.** `main.py`'s `_include_popup_passthroughs` (via `build_base_response`) reads this registry to decide which popups to emit. Prior audits tracked `world.alliance_paradox_popup` attribute and the Godot scene only — the cooldown_manager registry was never sampled.
 
-[`backend/game_logic/diplomacy.py`](backend/game_logic/diplomacy.py:1828):
-- Line 1828: `return "rival_pressure"` → `return "hegemony_pressure"`
-- Line 1829: `return "rival_pressure"` → `return "hegemony_pressure"`
-- Line 1858: `return "rival_pressure"` → `return "hegemony_pressure"`
+**Post-rename impact without fix:** Popup silently stops being delivered. `world.commitment_paradox_popup` is set, but PopupQueue doesn't know to look for it.
 
-Before flipping these, read the surrounding function context to confirm no branch is the "unknown/default baseline" case — if there is, that one should return `"unknown_baseline"` instead of `"hegemony_pressure"`.
+**Fix (fold into U2 commit):**
+1. `PRIORITY_ORDER` line 144: rename key to `"commitment_paradox_popup"`; keep `"alliance_paradox_popup"` as a parallel entry for save-compat (read-only alias — if both are set on load, canonical wins).
+2. `RESPONSE_KEYS` line 155: same dual-entry pattern.
+3. Add a test asserting both keys resolve to the same popup slot (legacy alias contract).
 
-#### 2. Display mapping
-
-[`backend/display_names.py`](backend/display_names.py:344):
-- Rename the existing key: `"rival_pressure": "rival pressure"` → `"hegemony_pressure": "hegemony pressure"`.
-- Keep a read-alias entry: `"rival_pressure": "hegemony pressure"` (same display, so legacy saves render correctly).
-- If there's a `concern_pressure` key elsewhere in the file, keep it and point it at the same display string.
-
-#### 3. Tests
-
-Add to the existing `tests/` module that covers decision-reason strings (search for `rival_pressure` in tests first — any references there are pointing at the old enum).
-
-- **Unit test 1:** calling the emitter path returns `"hegemony_pressure"` (not `"rival_pressure"`).
-- **Unit test 2:** `display_names` maps both `"hegemony_pressure"` and `"rival_pressure"` to a non-empty display string.
-- **Unit test 3 (optional):** if saves are deserialized with `decision_reason: "rival_pressure"`, they still render.
-
-#### 4. Verification
-
-```bash
-grep -rn rival_pressure backend/ tests/
-```
-
-Expected: only test fixtures asserting the alias behavior remain. Production code should be clean.
-
-#### 5. Commit
-
-Single commit, message approximately:
-```
-MP v2.4.3 U4: rival_pressure → hegemony_pressure enum
-
-3 emit sites in diplomacy.py flipped; display_names renames key and
-retains rival_pressure as read-alias for save compatibility.
-Unblocks B-Hegemony tests that assert on the v2.4.3 enum.
-```
+**Verification:** `grep -n "alliance_paradox_popup" backend/` post-fix returns only alias-declaration sites.
 
 ---
 
-### U3 — `french_breach` speaker_attribution
+## HIGH
 
-**Spec requires** family=`french_breach` → `speaker="envoy"` → victim's named diplomat (Hardenberg / Metternich / Einsiedel per Voice Bible).
-**Live code** writes `speaker_attribution: "foreign_office"` unconditionally at [`backend/game_logic/diplomacy.py:783`](backend/game_logic/diplomacy.py:783).
+### 2. P3 — `diplomatic_executor.py:2782, 2870` half-migration in live code
 
-#### 1. Backend emit
+[`backend/commands/diplomatic_executor.py:2782, 2870`](backend/commands/diplomatic_executor.py:2782) — emits `"type": "commitment_paradox_resolved"` (new name) but clears `world.alliance_paradox_popup = None` (old attribute).
 
-[`backend/game_logic/diplomacy.py`](backend/game_logic/diplomacy.py:775) — the `_record_treaty_broken()` (or equivalent) function around lines 775-809.
+`campaign_log.py` already routes the new event-type at multiple sites (74/143/264/520/689). **Live code today is shipping a half-migration** — not just docs drift. Block 2's U2 rename must reconcile both sides.
 
-Change the literal `"speaker_attribution": "foreign_office"` at line 783 to a conditional:
+**Fix (fold into U2 commit):** after U2 step 2 renames `world.alliance_paradox_popup` → `world.commitment_paradox_popup`, the clear-state writes at lines 2795, 2883 automatically update to the new attribute name via the rename. Add a unit test asserting `commitment_paradox_resolved` emission properly clears `commitment_paradox_popup`.
 
-```python
-speaker = "envoy" if end_reason_family == END_REASON_FAMILY_FRENCH_BREACH else "foreign_office"
-...
-"speaker_attribution": speaker,
-```
+### 3. P2 — `dialogue_manager.py:49, 87` state inconsistent
 
-**Also add** `victim_nation` to the payload (if not already present) so the downstream resolver has enough context to pick the named diplomat without re-deriving it. The victim is the counterparty — `fault_nation` is the breaker (usually France), the other participant in the treaty is the victim.
+[`backend/models/dialogue_manager.py:49, 87`](backend/models/dialogue_manager.py:49):
+- Line 49 `HARD_STOP_TYPES` lists BOTH `"alliance_paradox"` and `"commitment_paradox"` (comment says transitional).
+- Line 87 `DIALOGUE_PRIORITY` only maps `"alliance_paradox": 0`.
 
-**Do not touch** `hard_reject_posture_triggered` at lines 844-850 or `hard_reject_posture_cleared` at lines 403-416 — those correctly use `foreign_office`. Only the breach family is mis-attributed.
+The rename is half-staged: hard-stop check passes for either name, but priority lookup for the new name returns the 99 default. Comment at lines 39-45 flags the transition plan; code never landed.
 
-**Don't touch** the `obsolescence_or_external` / `counterparty_reversal` / `defensive_refusal_termination` families either — they all keep `foreign_office` under the spec.
+**Fix (fold into U2 commit):**
+1. `DIALOGUE_PRIORITY` line 87: add `"commitment_paradox": 0` alongside the existing legacy entry.
+2. Decision: keep or drop `"alliance_paradox"` in `HARD_STOP_TYPES`? Keep for legacy-save replay; add a comment: *"`alliance_paradox` kept as legacy alias; production emitters use `commitment_paradox`."*
+3. Add tests: `DIALOGUE_PRIORITY["commitment_paradox"] == 0` AND `"commitment_paradox" in HARD_STOP_TYPES`.
 
-#### 2. Central resolver signature (sketch only, do not wire)
+### 4. T4 — `betrayal_history` / `next_episode_id` round-trip untested
 
-Leave a named but stubbed helper at the natural home (likely `backend/game_logic/diplomatic_templates.py` or a new `speaker_resolver.py`) with a docstring saying C-lite §13 wires this:
+[`tests/test_serialization_enforcement.py`](tests/test_serialization_enforcement.py) has zero matches for either field. Both are shipped v2.4.3 substrate; both serialize through `world_state.to_dict/from_dict` today ([world_state.py:3253-3272, 3578](backend/models/world_state.py:3253)); no round-trip test.
 
-```python
-def resolve_named_diplomat(speaker: str, nation: str) -> str:
-    """Resolve a speaker role + nation pair to an attribution label.
+**Golden rule violated:** CLAUDE.md "Serialization Enforcement (MANDATORY)" — *"If it exists on the object, it must serialize."*
 
-    Scheduled for C-lite §13 full implementation. Stub for now so
-    notices, logs, and popups can import-and-call without crashing.
-    """
-    raise NotImplementedError("Wired in C-lite §13; see COMMITMENTS_PRESENTATION_SPEC §10.3")
-```
+**Fix (fold into U2 commit or standalone "substrate test" commit):**
+- Round-trip `betrayal_history` with a representative entry (actor, victim, turn, episode_id, type).
+- Round-trip `next_episode_id` with a non-default value (e.g., 7) — verify monotonic counter survives.
+- Round-trip legacy saves (missing keys) — confirm `.get()` defaults work.
 
-This is strictly a signature so Block 2's code-review pass does not reintroduce per-caller resolver logic.
+**This is a pre-merge gate for U2**, because B-B3's alias-on-load extends the `from_dict` path. Without round-trip tests, the alias contract itself is untested.
 
-#### 3. Tests
+### 5. T8 — Composite floor untested (out of Block 2 scope — handoff)
 
-- **Unit test 1:** `french_breach` emit path sets `speaker_attribution == "envoy"`.
-- **Unit test 2:** `obsolescence_or_external` and `counterparty_reversal` still set `speaker_attribution == "foreign_office"`.
-- **Unit test 3:** the payload includes `victim_nation` when emit is `french_breach`.
+Full-suite grep for `composite_floor`, `grievance_modifier`, `grievance_floor`, `acceptance_floor`, `acceptance.*<=.*-` returns **zero matches** across `tests/`. Spec §9.3 authors a `-60` composite floor when DG-4's `grievance_modifier` is live. B-B1-lite flips the formula; B-B4 reintroduces the conditional floor. **Neither slice has a regression net today.**
 
-#### 4. Verification
-
-```bash
-grep -n 'speaker_attribution' backend/game_logic/diplomacy.py
-```
-
-Expected: line 783 now conditional on family; lines 409, 416, 850, 859 still literal `"foreign_office"`.
-
-#### 5. Commit
-
-Single commit, message approximately:
-```
-MP v2.4.3 U3: french_breach emits speaker_attribution=envoy
-
-Per COMMITMENTS_PRESENTATION_SPEC §10.3 the injured-party envoy
-voices the breach notice. Live emitter previously wrote
-"foreign_office" unconditionally, which would render as an
-anonymous chancery bulletin rather than Hardenberg's accusation.
-Other end_reason_family values unchanged. Adds victim_nation to
-payload so downstream resolver can pick the named diplomat.
-Unblocks B-B4.
-```
+**This is out of Block 2** (substrate-alignment only). Block 1 item 21 adds the following to B-B1-lite and B-B4 test budgets in the plan:
+- **B-B1-lite:** 1-2 tests asserting composite score can go below -60 in the 3-term case when DG-4 is not live.
+- **B-B4:** 2-3 tests asserting floor clamps at -60 for the 4-term case when `grievance_modifier` is live.
 
 ---
 
-### U2 — `commitment_paradox` rename (optional — B-B3's scheduled work)
+## MAJOR — substrate code
 
-**Only do this now if B-B3 is the next coding slice.** Otherwise leave it in its plan slot.
+### 6. U4 + B1 — `rival_pressure` → `hegemony_pressure` + `unknown_baseline`
 
-**Spec canonical** is `commitment_paradox` on `commitment_paradox_popup.{tscn,gd}` (per [COMMITMENTS_PRESENTATION_SPEC.md:19, 214, 709, 746](docs/COMMITMENTS_PRESENTATION_SPEC.md:214)).
-**Live code** uses `alliance_paradox` everywhere.
+Spec [§964](docs/RELIABILITY_COMMITMENTS_SPEC.md:964): v2.4.3 enum is `hegemony_pressure` + `unknown_baseline`; `concern_pressure` kept as read-alias.
 
-#### Scope summary
+**Fix (single commit):**
 
-6 surfaces touch this:
+1. **[`backend/game_logic/diplomacy.py:1828-1829, 1858`](backend/game_logic/diplomacy.py:1828)** — all three emit sites currently return `"rival_pressure"`.
+   - Line 1828-1829 have **both branches returning the same value** (P6 dead-conditional bug exposed). Pick one: threshold branch returns `"hegemony_pressure"`; else-branch returns `"unknown_baseline"`. The if-threshold becomes meaningful instead of decorative.
+   - Line 1858: return `"hegemony_pressure"`.
 
-| Surface | Files | Change type |
-|---------|-------|-------------|
-| Emitter type string | [diplomacy.py:2123-2135](backend/game_logic/diplomacy.py:2123) | Rename |
+2. **[`backend/display_names.py:344`](backend/display_names.py:344)** — update the enum family:
+   ```python
+   "hegemony_pressure": "hegemony pressure",
+   "unknown_baseline": "unknown baseline",
+   "rival_pressure": "hegemony pressure",  # legacy alias
+   ```
+
+3. **Tests:**
+   - Threshold-branch test: high threat / multiple wars → `"hegemony_pressure"`.
+   - Else-branch test: low threat / zero wars → `"unknown_baseline"`.
+   - Display mapping test: all three enum values resolve to non-empty display.
+   - Legacy-save deserialization test: `decision_reason == "rival_pressure"` still renders.
+
+4. **Verification:** `grep -rn rival_pressure backend/ tests/` returns only test fixtures asserting alias behavior.
+
+### 7. U3 + T3 — `french_breach` speaker_attribution + regression coverage
+
+Spec [COMMITMENTS_PRESENTATION_SPEC.md:216, 403-413](docs/COMMITMENTS_PRESENTATION_SPEC.md:216): family=`french_breach` → `speaker="envoy"` → victim's named diplomat.
+
+**Live code** ([`diplomacy.py:775-783`](backend/game_logic/diplomacy.py:775)) writes `"speaker_attribution": "foreign_office"` unconditionally. U3 rename + add payload + regression test.
+
+**Fix (single commit):**
+
+1. **[`diplomacy.py:775-783`](backend/game_logic/diplomacy.py:775)** — change literal to conditional:
+   ```python
+   speaker = "envoy" if end_reason_family == END_REASON_FAMILY_FRENCH_BREACH else "foreign_office"
+   ...
+   "speaker_attribution": speaker,
+   ```
+   Import `END_REASON_FAMILY_FRENCH_BREACH` from [`diplomacy.py:198-200`](backend/game_logic/diplomacy.py:198) if not already in scope (it's self-referential).
+
+2. **Add `victim_nation` to payload** so the downstream resolver can pick the named diplomat.
+
+3. **Do NOT touch** `hard_reject_posture_triggered` at 844-850, `hard_reject_posture_cleared` at 403-416 — those correctly use `foreign_office`.
+
+4. **Stub central resolver** at `backend/game_logic/diplomatic_templates.py` or `speaker_resolver.py`:
+   ```python
+   def resolve_named_diplomat(speaker: str, nation: str) -> str:
+       raise NotImplementedError("Wired in C-lite §13; see COMMITMENTS_PRESENTATION_SPEC §10.3")
+   ```
+   Stub only — full wire-up is C-lite.
+
+5. **Tests (T3 coverage):**
+   - `french_breach` emit path: `speaker_attribution == "envoy"`.
+   - `obsolescence_or_external` / `counterparty_reversal`: `speaker_attribution == "foreign_office"`.
+   - Payload includes `victim_nation` when family is `french_breach`.
+
+6. **Verification:** `grep -n 'speaker_attribution' backend/game_logic/diplomacy.py` — line 783 conditional; lines 409, 416, 850, 859 literal `"foreign_office"`.
+
+### 8. U2 + B3 + P4 — `commitment_paradox` rename
+
+**Only land in Block 2 if B-B3 is the next coding slice.** Otherwise leave in B-B3 plan slot.
+
+**Spec canonical** is `commitment_paradox` on `commitment_paradox_popup.{tscn,gd}` per [COMMITMENTS_PRESENTATION_SPEC.md:19, 45, 214](docs/COMMITMENTS_PRESENTATION_SPEC.md:19) (after Block 1 CR2 fix).
+
+**Rename surfaces** (consolidated from U2 + B3 + P4):
+
+| Surface | Files / sites | Action |
+|---------|---------------|--------|
+| Emitter type string | [diplomacy.py:2134-2135](backend/game_logic/diplomacy.py:2134) | Rename |
 | WorldState attribute + serialization | [world_state.py:497, 668-673, 3271, 3578](backend/models/world_state.py:497) | Rename + alias-on-load |
-| Godot main.gd registration + routing | [main.gd:100, 226-228, 726, 776-782, 2997](godot-client/project-sovereign/scripts/main.gd:226) | Rename |
-| Godot popup scene | `scenes/alliance_paradox_popup.tscn` | New file (`commitment_paradox_popup.tscn`) |
-| Godot popup script | `scripts/alliance_paradox_popup.gd` | New file (`commitment_paradox_popup.gd`) |
-| Save format doc | `SAVE_FORMAT_REFERENCE.md` | Document alias-on-load |
+| Dialogue manager push | [diplomacy.py:2134](backend/game_logic/diplomacy.py:2134) dict type | Rename (B3 extension) |
+| Dialogue manager priority | [dialogue_manager.py:87](backend/models/dialogue_manager.py:87) | Add canonical entry, keep alias (P2 + B3) |
+| Dialogue manager hard-stop | [dialogue_manager.py:49](backend/models/dialogue_manager.py:49) | Keep both (P2) |
+| PopupQueue registry | [cooldown_manager.py:144, 155](backend/models/cooldown_manager.py:144) | Dual-entry (P1 — **BLOCKER**) |
+| diplomatic_executor clear-state | [diplomatic_executor.py:2795, 2883](backend/commands/diplomatic_executor.py:2795) | Auto via attribute rename (P3) |
+| Turn manager priority comment | [turn_manager.py:248](backend/game_logic/turn_manager.py:248) | Update comment |
+| Turn manager clear-state | [turn_manager.py:358](backend/game_logic/turn_manager.py:358) | Auto via attribute rename (P4) |
+| executor comment | [executor.py:450](backend/commands/executor.py:450) | Update comment (P5) |
+| meta_executor comment | [meta_executor.py:115](backend/commands/meta_executor.py:115) | Update comment (P5) |
+| Godot main.gd routing | [main.gd:100, 226-228, 726, 776-782, 2997](godot-client/project-sovereign/scripts/main.gd:100) | Rename |
+| Godot popup scene | New `scenes/commitment_paradox_popup.tscn` | Create (copy from legacy) |
+| Godot popup script | New `scripts/commitment_paradox_popup.gd` | Create (copy from legacy) |
+| Save format doc | `SAVE_FORMAT_REFERENCE.md` | Block 1 item 5 covers alias policy |
 
-#### 1. Lock the payload schema first
-
-Before renaming, fix the popup payload schema. Per presentation §12.3:
+**Step 1 — lock payload schema first:**
 
 ```python
 {
@@ -180,328 +188,119 @@ Before renaming, fix the popup payload schema. Per presentation §12.3:
     "attacker": str,
     "defender": str,
     "ally": str,
-    # preview snapshots for the three-beat scene
     "attacker_preview": {...},
     "defender_preview": {...},
     "ally_preview": {...},
 }
 ```
 
-Confirm today's payload at [`diplomacy.py:2123-2131`](backend/game_logic/diplomacy.py:2123) matches (fields may be named slightly differently; reconcile with the spec before renaming).
+Reconcile today's payload at [`diplomacy.py:2123-2131`](backend/game_logic/diplomacy.py:2123) with this shape before renaming.
 
-#### 2. Backend rename
+**Step 2 — backend rename:** rename emitter type string, WorldState attribute + serialization. `from_dict` keeps alias-on-load:
+```python
+world.commitment_paradox_popup = (
+    data.get("commitment_paradox_popup")
+    or data.get("alliance_paradox_popup")  # legacy v1.0 alias
+)
+```
 
-- [`backend/game_logic/diplomacy.py:2135`](backend/game_logic/diplomacy.py:2135): `"type": "alliance_paradox"` → `"type": "commitment_paradox"`.
-- [`backend/models/world_state.py:497`](backend/models/world_state.py:497): `self.alliance_paradox_popup: Optional[Dict] = None` → `self.commitment_paradox_popup: Optional[Dict] = None`.
-- [`backend/models/world_state.py:668-673`](backend/models/world_state.py:668): property + setter rename.
-- [`backend/models/world_state.py:3271`](backend/models/world_state.py:3271): `to_dict` key `"alliance_paradox_popup"` → `"commitment_paradox_popup"`.
-- [`backend/models/world_state.py:3578`](backend/models/world_state.py:3578): `from_dict` — **keep as alias-on-load**:
-  ```python
-  world.commitment_paradox_popup = (
-      data.get("commitment_paradox_popup")
-      or data.get("alliance_paradox_popup")  # legacy v1.0 alias
-  )
-  ```
+**Step 3 — PopupQueue + dialogue_manager:** dual-entry for PopupQueue (P1); add canonical entry to DIALOGUE_PRIORITY (P2); keep HARD_STOP_TYPES as-is with dual entries.
 
-#### 3. Godot rename + new scene/script
+**Step 4 — Godot:** create new scene + script; update main.gd routing; keep or delete legacy scene (grep first).
 
-- Create `godot-client/project-sovereign/scenes/commitment_paradox_popup.tscn` (copy from `alliance_paradox_popup.tscn`; adjust any label changes needed for the three-beat scene per §12.3).
-- Create `godot-client/project-sovereign/scripts/commitment_paradox_popup.gd` (copy from `alliance_paradox_popup.gd`; rename class if applicable).
-- [`godot-client/project-sovereign/scripts/main.gd:100`](godot-client/project-sovereign/scripts/main.gd:100): `var alliance_paradox_popup = null` → `var commitment_paradox_popup = null`.
-- [`godot-client/project-sovereign/scripts/main.gd:226-228`](godot-client/project-sovereign/scripts/main.gd:226): rename dialog key + scene path.
-- [`godot-client/project-sovereign/scripts/main.gd:726`](godot-client/project-sovereign/scripts/main.gd:726): rename dialog routing entry (id, matches, show).
-- [`godot-client/project-sovereign/scripts/main.gd:776-782`](godot-client/project-sovereign/scripts/main.gd:776): rename response-detection helper + route-handler function.
-- [`godot-client/project-sovereign/scripts/main.gd:2997`](godot-client/project-sovereign/scripts/main.gd:2997): rename `_on_alliance_paradox_choice` → `_on_commitment_paradox_choice`.
-- Delete or keep `alliance_paradox_popup.{tscn,gd}` — if deleting, grep the codebase one more time to confirm no stragglers reference the old path.
+**Step 5 — comment rot:** update turn_manager:248, executor:450, meta_executor:115 comments (P5).
 
-#### 4. Doc echo
+**Step 6 — tests (T1 + T6 + T7 + T10 sweep):**
+- Round-trip both key names through to_dict/from_dict.
+- `DIALOGUE_PRIORITY["commitment_paradox"] == 0`.
+- `"commitment_paradox" in HARD_STOP_TYPES`.
+- PopupQueue `PRIORITY_ORDER` + `RESPONSE_KEYS` both reference new name.
+- Emitter `type` string is `"commitment_paradox"`.
+- **T1 sweep:** for each of ~40 existing `"alliance_paradox"` test sites across `test_dialogue_manager.py:76,90,298,301,315,318,442,446,518`, `test_offer_lifetime.py:75,125,222,247,258,459,582`, `test_cooldown_popup_characterization.py:188,191,193`, `test_session_3_commands.py:365`, `test_audit_major_2026_03.py:471-478`, add a parallel `"commitment_paradox"` assertion.
+- **T10 sweep:** for each of 5 audit-test files (`test_audit_part1.py:51,140`, `test_audit_playtest.py:179`, `test_audit_session4.py:135`, `test_audit_2_3.py:1348,1394`, `test_systems_audit_v2_session4.py:358,365`) add parallel canonical-name tests.
+- **T7:** unit test exercising §7.5 opposition-graph paradox trigger path (the emitter at diplomacy.py:2123-2135 directly).
 
-[`docs/SAVE_FORMAT_REFERENCE.md`](docs/SAVE_FORMAT_REFERENCE.md) — confirm Block 1's U7 edit already documents the `alliance_paradox_popup` → `commitment_paradox_popup` alias. If not, add it.
-
-#### 5. Tests
-
-- **Unit test 1:** `world.commitment_paradox_popup = X; d = world.to_dict()` round-trips with key `"commitment_paradox_popup"`.
-- **Unit test 2:** `world.from_dict({"alliance_paradox_popup": X})` loads X into `world.commitment_paradox_popup` (alias-on-load).
-- **Unit test 3:** `world.from_dict({"commitment_paradox_popup": X})` loads X into `world.commitment_paradox_popup` (canonical).
-- **Unit test 4:** emitter `type` string is `"commitment_paradox"`.
-
-#### 6. Verification
-
+**Step 7 — verification:**
 ```bash
-grep -rn alliance_paradox backend/ tests/ godot-client/project-sovereign/scripts/
+grep -rn alliance_paradox backend/ tests/ godot-client/
 ```
+Expected: alias-on-load sites, PopupQueue dual-entries, test fixtures asserting alias, comment rot cleaned up. Production emit sites should all use `commitment_paradox`.
 
-Expected: only alias-on-load references and test fixtures asserting alias behavior remain.
+### 9. P6 — `diplomacy.py:1828-1829` dead conditional
 
-#### 7. Commit
+See item 6 above — folded into U4 commit. The fix makes the if-threshold meaningful by returning different values in the two branches (`"hegemony_pressure"` vs `"unknown_baseline"`).
 
-Single commit, message approximately:
-```
-MP v2.4.3 U2 (B-B3): alliance_paradox → commitment_paradox rename
+---
 
-Canonical type is commitment_paradox per COMMITMENTS_PRESENTATION_SPEC.
-Renames emitter type string, WorldState attribute + serialization,
-Godot routing, and popup scene + script. Old alliance_paradox_popup
-key is preserved as alias-on-load in from_dict for save compatibility.
-SAVE_FORMAT_REFERENCE.md documents the alias policy.
-```
+## MINOR — hygiene + tests
+
+### 10. B2 — `END_REASON_FAMILY_FRENCH_BREACH` constant naming
+
+Covered in item 7 step 1. Import by name, not string literal.
+
+### 11. B4 — Campaign log dead-code cleanup
+
+[`backend/campaign_log.py:504-518`](backend/campaign_log.py:504) vs `673-687`; `520-530` vs `689-692`. Each pair is a duplicate event-type branch. First return wins; second is dead code.
+
+**Fix (standalone commit, not folded):**
+1. Diff the two ranges of each pair to confirm identical output.
+2. Delete the second occurrences (lines 673-687 and 689-692).
+3. Run full test suite to confirm no test relies on the shadowed code.
+
+Commit message: *"MP v2.4.3 Block 2 cleanup: remove duplicate campaign_log branches."*
+
+### 12. B5 — Test count DoD
+
+Updated in Definition of done below.
+
+### 13. P5 — Comment rot cleanup
+
+[`backend/commands/executor.py:450`](backend/commands/executor.py:450) + [`backend/commands/meta_executor.py:115`](backend/commands/meta_executor.py:115) — both hard-stop blocking comments name `alliance_paradox`. Code indirects through `HARD_STOP_TYPES`, so behavior is fine; comments rot after rename.
+
+**Fix (fold into U2 commit):** update both comments to reference `commitment_paradox` with parenthetical `(alias: alliance_paradox)`.
+
+### 14. P7 — AI proposal migration note
+
+[`backend/game_logic/ai_diplomacy.py:746, 754, 768, 782, 814, 841`](backend/game_logic/ai_diplomacy.py:746) — threads `decision_reason` end-to-end. Values come from `determine_ai_offer_decision_reason` (fixed in item 6). After U4, in-flight proposals in saves carry legacy enum until turn flush.
+
+**Fix (documentation only):** add a one-line comment at [ai_diplomacy.py:841](backend/game_logic/ai_diplomacy.py:841) where `decision_reason` is emitted into `log_event`: *"# decision_reason: v2.4.3 emits 'hegemony_pressure' / 'unknown_baseline'; legacy saves carry 'rival_pressure' until next turn flush."*
+
+### 15. T6 + T7 — DIALOGUE_PRIORITY + paradox emission tests
+
+T6 folded into item 3 (P2) tests. T7 folded into item 8 step 6 (U2 test sweep).
 
 ---
 
 ## Definition of done
 
-### Minimum (U3 + U4)
+### Minimum path (no U2 pull-forward)
 
-- [ ] `grep -rn rival_pressure backend/` returns no production-code hits (only test fixtures).
-- [ ] `french_breach` emit path sets `speaker_attribution == "envoy"`; other families unchanged.
-- [ ] Full test suite green (`".venv\Scripts\python.exe" -m pytest tests/ -v --tb=no -q`).
-- [ ] Two commits landed: U4 enum flip + U3 speaker attribution.
+- [ ] Items 6 (U4 + B1), 7 (U3 + T3), 11 (B4), 14 (P7 comment) landed.
+- [ ] Test suite: **pre-existing count + 6-8 new** (U4+B1: 3-4, U3+T3: 2-3, B4: 0-1).
+- [ ] `grep -rn rival_pressure backend/` returns no production-code hits (only test fixtures asserting alias).
+- [ ] `grep -n "speaker_attribution" backend/game_logic/diplomacy.py` shows conditional at 783; `foreign_office` literal at 409/416/850/859.
+- [ ] 2-3 commits landed: U4+B1 (+ P6 fix), U3+T3+B2, B4.
 
-### Full (U3 + U4 + U2)
+### Full path (U2 pulled forward for B-B3)
 
-- [ ] All above, plus:
-- [ ] `grep -rn alliance_paradox backend/ godot-client/` returns only alias-on-load references and test fixtures.
+- [ ] All minimum-path items, plus:
+- [ ] Items 1 (P1), 2 (P3), 3 (P2), 4 (T4), 8 (U2+B3+P4+P5+T1+T6+T7+T10) landed.
+- [ ] Test suite: **pre-existing count + 23-31 new** (minimum: 6-8, plus U2 sweep: 15-20, T4: 2-3).
+- [ ] `grep -rn alliance_paradox backend/ godot-client/` returns only alias-on-load sites, PopupQueue dual-entries, test fixtures, legacy Godot scene (if kept), and comment aliases.
 - [ ] `commitment_paradox_popup.tscn` + `.gd` exist on disk.
-- [ ] Round-trip save/load tests cover both legacy and canonical paradox popup keys.
-- [ ] Three commits landed: U4, U3, U2.
+- [ ] Round-trip save/load tests cover both canonical and legacy paradox popup keys.
+- [ ] Round-trip save/load tests cover `betrayal_history` + `next_episode_id`.
+- [ ] `DIALOGUE_PRIORITY["commitment_paradox"] == 0` asserted.
+- [ ] PopupQueue `PRIORITY_ORDER` + `RESPONSE_KEYS` both reference `"commitment_paradox_popup"`.
+- [ ] 4-5 commits landed: U4+B1, U3+T3+B2, U2+extensions, B4, (optional) substrate-tests.
 
 ## Out of scope
 
-- Full commitments notice template family authoring (C-lite §13).
-- Named-diplomat resolver implementation (C-lite §13 — this block leaves a stubbed signature only).
-- Balance of Europe payload block + renderer (B-Hegemony + C-lite §14).
-- Make Amends emitters + `reparations_cooldown` field (B-B7).
-- DG-4 call-to-arms event emitters (B-B4).
-- `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION` constant (B-B4).
-
-All of the above are already scheduled in [`RELIABILITY_IMPLEMENTATION_PLAN.md`](docs/RELIABILITY_IMPLEMENTATION_PLAN.md); Block 2 only closes the substrate-alignment gaps that would block those slices from running against today's master.
-
----
-
-## Addendum — follow-up findings (2026-04-20)
-
-Second-pass meta-audit surfaced five additional substrate gaps. Each folds into its partner U-item's commit rather than shipping standalone — keeps the commit count unchanged.
-
-| # | Finding | Folds into | Severity | Est. |
-|---|---------|-----------|----------|------|
-| B1 | U4 extension — add `unknown_baseline` enum value per spec §964 catch-all | U4 | MAJOR | 15 min |
-| B2 | U3 extension — name and import the `END_REASON_FAMILY_FRENCH_BREACH` constant (defined at `diplomacy.py:198-200`) | U3 | MINOR | 5 min |
-| B3 | U2 extension — rename `dialogue_manager.push({"type": "alliance_paradox", ...})` and add `commitment_paradox` entry to `DIALOGUE_PRIORITY` | U2 | MAJOR | 15 min |
-| B4 | Campaign-log dead-code cleanup — remove duplicate event-type branches at `backend/campaign_log.py:673-687` and `689-692` | standalone (new commit, ~10 min) | MINOR | 10 min |
-| B5 | Block 2 DoD — add post-suite test-count expectation (combined audit §373) | DoD | MINOR | 2 min |
-
-**Addendum subtotal: ~45 min on top of U3+U4 (~1.5h base), ~1h on top of U3+U4+U2 (~3h base).**
-
----
-
-### B1 — U4 extension: add `unknown_baseline` enum
-
-Spec [§964](docs/RELIABILITY_COMMITMENTS_SPEC.md:964) v2.4.3 enum is `hegemony_pressure` **+ `unknown_baseline`** (not just the rename). The catch-all value fires when pressure cannot be attributed to a specific hegemon (e.g., pre-engine state, ambiguous bloc share, calculation skipped). Currently `diplomacy.py:1828, 1829, 1858` all return the same non-default string.
-
-**In U4 step 1** (after flipping the three sites to `"hegemony_pressure"`), audit the surrounding function in [`backend/game_logic/diplomacy.py`](backend/game_logic/diplomacy.py:1828): which of the three return paths is the genuine *default / fallback* path (not the specific-pressure path)? That path returns `"unknown_baseline"` instead. If none of the three is a true default, introduce one — the function must have a default path because consumers rely on the enum being exhaustive.
-
-**In U4 step 2** (display_names): after the rename, add `"unknown_baseline": "unknown baseline"` as a third key. Three keys total in the family:
-```python
-"hegemony_pressure": "hegemony pressure",
-"unknown_baseline": "unknown baseline",
-"rival_pressure": "hegemony pressure",  # legacy alias
-```
-
-**In U4 step 3** (tests): add a fourth unit test — default/fallback path returns `"unknown_baseline"`.
-
-**In U4 step 4** (verification): expected `grep` output is unchanged (`rival_pressure` only in test fixtures).
-
----
-
-### B2 — U3 extension: name `END_REASON_FAMILY_FRENCH_BREACH`
-
-U3 step 1 sketches `speaker = "envoy" if end_reason_family == END_REASON_FAMILY_FRENCH_BREACH else "foreign_office"`. The constant is already defined at [`backend/game_logic/diplomacy.py:198-200`](backend/game_logic/diplomacy.py:198) — ensure the U3 implementer uses the existing constant by name (not a string literal). Verify import ordering if the constant is defined in the same module.
-
-If the conditional is written outside `diplomacy.py` (it should not be — `_record_treaty_broken` is in `diplomacy.py` so this is self-referential), import the constant explicitly.
-
-No extra tests; this is a code-hygiene rider on U3's existing tests.
-
----
-
-### B3 — U2 extension: dialogue_manager push + DIALOGUE_PRIORITY
-
-If U2 lands in Block 2 (B-B3 pulled forward per audit §354), the rename touches one more surface the combined audit under-sampled:
-
-1. **[`backend/game_logic/diplomacy.py:2134-2135`](backend/game_logic/diplomacy.py:2134)** — this is the `dialogue_manager.push({"type": "alliance_paradox", ...})` call. Rename the type string to `"commitment_paradox"` in the same pass as the popup-field rename. (Separate from U2 step 2.1, which handles the popup-field emitter at the same line range.)
-
-2. **[`backend/models/dialogue_manager.py:87`](backend/models/dialogue_manager.py:87)** — `DIALOGUE_PRIORITY` map currently has `"alliance_paradox": 0` only. After the rename, the new type `"commitment_paradox"` would default to 99 (lowest priority) — the paradox would silently stop outranking other dialogues. Add `"commitment_paradox": 0` alongside `"alliance_paradox": 0` (keep both during transition).
-
-3. **[`backend/models/dialogue_manager.py`](backend/models/dialogue_manager.py) HARD_STOP_TYPES** — verify `"commitment_paradox"` is in the hard-stop list (it must block commands per R12 / PL-27). If `"alliance_paradox"` is there today, add the new name alongside it.
-
-Fold into U2's existing commit — the commit message should add one line: *"Also renames dialogue push + DIALOGUE_PRIORITY; both legacy and canonical keys listed for transition."*
-
-**Verification** (augments U2 step 6):
-```bash
-grep -n "alliance_paradox\|commitment_paradox" backend/models/dialogue_manager.py backend/game_logic/diplomacy.py
-```
-Both names should appear in DIALOGUE_PRIORITY and HARD_STOP_TYPES; production emit sites should use only `commitment_paradox`.
-
----
-
-### B4 — Campaign-log dead-code cleanup
-
-[`backend/campaign_log.py:504-518`](backend/campaign_log.py:504) vs lines 673-687, and lines 520-530 vs 689-692: each pair is a duplicate branch for the same event type. Because `format_event_oneliner()` returns on the first match, the second occurrence is dead code.
-
-**Fix:**
-1. Read both branches to confirm they produce identical output (they should — grep the two ranges to diff).
-2. Delete the second occurrence (lines 673-687 and 689-692).
-3. Run the full test suite to confirm no campaign-log test was implicitly relying on the shadowed code.
-
-This is a **separate commit** (not folded into U3 or U4) — unrelated diff, keeps git blame clean.
-
-Commit message approximately:
-```
-MP v2.4.3 Block 2 cleanup: remove duplicate campaign_log branches
-
-Two event types had mirrored handlers at two different line ranges
-in campaign_log.py. The first return wins; the second was dead
-code. Deleting removes ~30 lines without behavior change.
-```
-
----
-
-### B5 — Block 2 DoD — test count expectation
-
-Combined audit [§373](docs/audits/MP_V243_AUDIT_COMBINED.md:373) specifies the post-merge suite should show *"pre-existing count + 4-6 new from U3/U4, +4-6 more if U2 is in"*. Add to this work order's DoD (both Minimum and Full sections):
-
-**Minimum (U3 + U4 + B1):**
-- [ ] Full test suite: **pre-existing count + 5-7 new** (U3 adds 2-3, U4 adds 3-4 incl. `unknown_baseline`).
-
-**Full (U3 + U4 + U2 + B1 + B3):**
-- [ ] Full test suite: **pre-existing count + 9-13 new** (U3: 2-3, U4: 3-4, U2: 4-6 incl. DIALOGUE_PRIORITY round-trip).
-
-The count expectation gives the reviewer a quick sanity check without running `pytest -q` count-by-count.
-
----
-
-## Addendum v2 — test-suite gaps (2026-04-20)
-
-Third-pass audit found substantial test coverage gaps. Fold these into the U-item commits rather than shipping standalone tests.
-
-| # | Finding | Folds into | Severity | Est. |
-|---|---------|-----------|----------|------|
-| **T4** | **NO serialization round-trip test for `betrayal_history` / `next_episode_id`** — golden-rule violation ("If it exists on the object, it must serialize") currently unenforced | U2 commit (or new substrate commit if U2 deferred) | **HIGH** | 15 min |
-| **T8** | **Composite floor completely untested** — full grep for `composite_floor` / `grievance_modifier` in `tests/` returns 0 matches | B-B1-lite + B-B4 (out of Block 2 — flag in work order) | **HIGH** | tracked separately |
-| T1 | ~40 test sites hardcode `"alliance_paradox"` across 15+ files; U2 alias-on-load would silently pass them (no `commitment_paradox` positive counterparts) | U2 commit | MAJOR | 30 min |
-| T3 | No test asserts `speaker_attribution == "foreign_office"` in french_breach contexts — U3's flip lands without regression coverage | U3 commit | MEDIUM | 10 min |
-| T6 | No test asserts `DIALOGUE_PRIORITY["commitment_paradox"]` or membership in `HARD_STOP_TYPES` | U2 commit (B3 extension) | MEDIUM | 10 min |
-| T7 | No unit test exercises §7.5 opposition-graph `commitment_paradox` emission trigger directly | U2 commit | MEDIUM | 10 min |
-| T10 | 5 audit-test files hardcode `{"type": "alliance_paradox", ...}` dialogue-manager push payloads (test_audit_part1, test_audit_playtest, test_audit_session4, test_audit_2_3, test_systems_audit_v2_session4) | U2 commit | MEDIUM | 20 min |
-
-**Addendum v2 subtotal: ~1.5 hours on top of U2+U3+U4 (~5 hours with full U2 + B1 + B3 + addendum v2).**
-
----
-
-### T4 — betrayal substrate round-trip (HIGH)
-
-**[`tests/test_serialization_enforcement.py`](tests/test_serialization_enforcement.py)** has zero matches for `betrayal_history` or `next_episode_id`. Both are shipped v2.4.3 substrate fields on `WorldState`; both serialize through `to_dict` / `from_dict` today ([world_state.py:3253-3272, 3578](backend/models/world_state.py:3253)); neither has a round-trip test.
-
-**Golden rule violated:** CLAUDE.md "Serialization Enforcement (MANDATORY)" — *"If it exists on the object, it must serialize."*
-
-**Fix:** add to `tests/test_serialization_enforcement.py` (or a new `tests/test_memory_substrate_serialization.py`):
-
-- Round-trip `betrayal_history` with a representative entry (actor, victim, turn, episode_id, type).
-- Round-trip `next_episode_id` with a non-default value (e.g., 7) — verify monotonic counter survives load.
-- Round-trip legacy saves (missing these keys) — confirm `.get()` defaults work.
-
-This is a **pre-merge gate for U2**, because B-B3's alias-on-load (U2 step 2.5) extends the `from_dict` path and without a round-trip test, the alias contract is itself untested.
-
-Commit folds into U2 commit with the addition: *"Adds round-trip coverage for betrayal_history + next_episode_id (previously untested v2.4.3 substrate)."*
-
----
-
-### T8 — Composite floor (HIGH, out of Block 2 scope)
-
-Full-suite grep for `composite_floor`, `grievance_modifier`, `grievance_floor`, `acceptance_floor`, `acceptance.*<=.*-` returns **zero matches** across all `tests/`.
-
-Spec §9.3 authors a `-60` composite floor when DG-4's `grievance_modifier` is live. Spec §905 requires B-B4 to land with-or-after B-B1-lite's no-floor collapse. **Neither slice has a regression net today because no test pins the floor value.**
-
-B-B1-lite will flip the formula (remove old floor) and B-B4 will reintroduce the conditional floor. Without coverage, either slice can silently introduce drift.
-
-**This is OUT of Block 2's scope** (Block 2 is substrate-alignment only). Flag for B-B1-lite and B-B4 work orders:
-
-- **B-B1-lite test budget:** add 1-2 tests asserting *"after no-floor collapse, composite score can go below -60 in the specific 3-term case when DG-4 is not live"*.
-- **B-B4 test budget:** add 2-3 tests asserting *"when `grievance_modifier` is live, composite floor clamps at -60 for the 4-term case (hegemony + betrayal + grievance + reliability)"*.
-
-Add an explicit note to [`RELIABILITY_IMPLEMENTATION_PLAN.md`](docs/RELIABILITY_IMPLEMENTATION_PLAN.md) B-B1-lite and B-B4 sections. **This note lives in Block 1** (doc-only, already in Addendum v2 of Block 1 per A11 DoD expansion) — here, just ensure Block 2 acknowledges the hand-off.
-
----
-
-### T1 — alliance_paradox test-string sweep (MAJOR, folds into U2)
-
-When U2 renames to `commitment_paradox` with alias-on-load, the ~40 existing test sites hardcoding `"alliance_paradox"` silently continue passing via the alias. That's the alias-on-load's *purpose* for save compatibility, but it masks test coverage of the new code path.
-
-**Fix (fold into U2 commit):** for each hardcoded-string site, add a parallel positive test using the new name. Representative sites from audit:
-
-- `tests/test_dialogue_manager.py:76, 90, 298, 301, 315, 318, 442, 446, 518` (HARD_STOP + priority)
-- `tests/test_offer_lifetime.py:75, 125, 222, 247, 258, 459, 582`
-- `tests/test_cooldown_popup_characterization.py:188, 191, 193` (priority comment bakes old string)
-- `tests/test_session_3_commands.py:365` (docstring)
-- `tests/test_audit_major_2026_03.py:471-478` (already-skipped with `commitment_paradox sibling flow` reason — resurrect as B3's first test)
-
-For each: don't delete the old-name assertion (it validates the alias). Add a `commitment_paradox` assertion alongside it. Typical shape:
-```python
-# Existing (alias path — keep)
-dialogue_manager.push({"type": "alliance_paradox", ...})
-assert "alliance_paradox" in active_dialogue_types
-
-# New (canonical path)
-dialogue_manager.push({"type": "commitment_paradox", ...})
-assert "commitment_paradox" in active_dialogue_types
-```
-
-Also: `test_cooldown_popup_characterization.py:191` has a priority comment citing `"alliance_paradox (0)"`. Update the comment inline — documentation rot otherwise.
-
----
-
-### T3 — french_breach speaker assertion (MEDIUM, folds into U3)
-
-`tests/test_playtest_bugfixes.py:306` is the only `speaker_attribution` assertion in the suite — and it checks `"talleyrand"`. [`test_phase2b_diplomacy.py:109, 299`](tests/test_phase2b_diplomacy.py:109) assert `end_reason_family == "french_breach"` but never assert the resulting speaker. U3's flip (foreign_office → envoy) lands without regression coverage.
-
-**Fix (fold into U3 commit):** add one test — set up a french_breach scenario, trigger the emit, assert `speaker_attribution == "envoy"`. Add the symmetric negative for `obsolescence_or_external` — assert it still emits `"foreign_office"`.
-
-Natural home: `tests/test_phase2b_diplomacy.py` alongside the existing `french_breach` end-reason coverage.
-
----
-
-### T6 + T7 — DIALOGUE_PRIORITY + paradox emission (MEDIUM, fold into U2 / B3)
-
-**T6:** add two assertions alongside B3 extension:
-1. `DIALOGUE_PRIORITY["commitment_paradox"] == 0` (same priority as the legacy alias).
-2. `"commitment_paradox" in HARD_STOP_TYPES`.
-
-**T7:** add one unit test for the §7.5 opposition-graph trigger path — wire up a scenario where an ally-of-enemy relationship forces a paradox without going through the executor (which is covered by `test_phase4_batch4_ledger.py:251, 300`). The emitter at [`diplomacy.py:2123-2135`](backend/game_logic/diplomacy.py:2123) is the unit under test.
-
----
-
-### T10 — audit-test alliance_paradox sweep (MEDIUM)
-
-Five audit-test files hardcode `{"type": "alliance_paradox", ...}` as the dialogue-manager push payload:
-- `tests/test_audit_part1.py:51, 140`
-- `tests/test_audit_playtest.py:179`
-- `tests/test_audit_session4.py:135`
-- `tests/test_audit_2_3.py:1348, 1394`
-- `tests/test_systems_audit_v2_session4.py:358, 365`
-
-These were written during the Mar 2026 Diplomacy Deep Audit (memory note, not a current spec). They exercise the dialogue-manager push contract; under U2's alias-on-load they'll keep passing but won't exercise the new path.
-
-**Fix (fold into U2 commit):** for each, add a parallel test with `"type": "commitment_paradox"`. Don't remove the old string — those tests anchor the alias contract. Aim to double the paradox-push coverage (~8 new tests across 5 files).
-
----
-
-### Summary — updated test-count expectations
-
-| Scenario | Pre-existing | U3 | U4 + B1 | U2 + T1 + T6 + T7 + T10 | T4 | Total new |
-|---|---|---|---|---|---|---|
-| Minimum (U3 + U4 + B1) | (suite) | 2-3 | 4-5 | — | — | 6-8 |
-| Full (U3 + U4 + U2 + B1 + B3) | (suite) | 2-3 | 4-5 | 15-20 | 2-3 | 23-31 |
-
-Replaces the Block 2 DoD count (B5). Updated DoD line:
-
-- [ ] Minimum: Full test suite **pre-existing + 6-8 new**.
-- [ ] Full: Full test suite **pre-existing + 23-31 new**.
+- Balance of Europe payload block in `build_diplomatic_ledger` (B-Hegemony + C-lite).
+- `commitments_notice_*` template family (C-lite §13).
+- `notification_bar.gd` icon map extension (C-lite §14).
+- `resolve_named_diplomat` full wire-up (C-lite §13 — stubbed here only).
+- Make Amends emitters + `reparations_cooldown` (B-B7).
+- DG-4 call-to-arms emitters + `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION` (B-B4).
+- Composite floor tests (T8 — handed off to B-B1-lite + B-B4 via Block 1).
+- Non-diplomacy-adjacent tests (`test_enemy_ai.py`, `test_turn_manager.py`, etc.) — confirmed clean by pass-4.
