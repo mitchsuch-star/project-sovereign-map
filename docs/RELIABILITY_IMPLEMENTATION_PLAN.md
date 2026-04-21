@@ -98,7 +98,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 
 - `world.get_power_tier(nation: str) -> Optional[str]` — reads directly from the authored nation record (scenario data) with a `_POWER_TIER_DEFAULT = "secondary"` fallback when the field is missing. **No runtime `world.nation_power_tiers` map is introduced** — per `SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy" and `scenario_schema_version: 1`, the authored scenario config is the single source of truth; runtime code reads from it and does not mutate or shadow it. ~5 LOC accessor, routed through whatever structure currently holds authored nation data (`world.nation_config`, `world.scenario_data`, or equivalent — audit during implementation).
 - Scenario config authoring: `power_tier` field added to each nation record in scenario config, colocated with capital / color / starting AP. 1805 roster values per `SCALE_READINESS_PLAN.md` §Phase 0 (France/Britain/Austria/Prussia/Russia = `major`; Spain/Ottoman/Sweden/Naples = `secondary`; Bavaria/Saxony/Portugal/Denmark-Norway = `minor`). ~10 LOC on the scenario-record side (adding the field + default). Authored scenario data is recreated from scenario files on load, not persisted through `to_dict` / `from_dict` — no serialization-enforcement test needed for the field itself.
-- `world.last_hegemony_signal_band: int` — tiny presentation-memory field used only to suppress repeat 33/50/60 balance-of-power beats. Defaults to `0`; resets when share falls below `30%`; add `to_dict` / `from_dict` round-trip with missing-field default `0`. This is a dedupe aid, **not** a second pressure meter.
+- `world.last_hegemony_signal_band: int` — tiny presentation-memory field used only to suppress repeat 33/50/60 balance-of-power beats. Defaults to `0`; resets when share falls below `33%` (matches the §7.3 ladder pressure-floor); add `to_dict` / `from_dict` round-trip with missing-field default `0`. This is a dedupe aid, **not** a second pressure meter.
 - (Deliberately not adding `world.get_vassals_of` or `world.get_treaty_state` — bloc-member calc iterates `world.vassals` inline and reads `world.get_diplomatic_state(a, b)` directly per spec v2.4.2 §7.1.)
 - (Deliberately not adding `world.get_major_powers` — `_calculate_hegemony_pressure` derives majors inline from `get_power_tier(n) == "major"` per spec v2.4.2 §7.3.)
 
@@ -112,16 +112,16 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 
 **Engine to add in `coalition.py`:**
 
-- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
+- `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 33% (post-realignment ladder floor). ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
 - `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-59%`, `3` for `60%+`. Used only for same-turn signal beats and dedupe.
 - `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `descriptive_label`, `adjective`, `is_proper_bloc_name`). Label taxonomy + activation thresholds (`33 / 50 / 60`) + hegemon→label table + fallback rule are authored in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a; this helper is the single backend implementation of that contract. It feeds the Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, and coalition-declaration contrast copy. It does **not** create a new save surface and does **not** drive member badges in this phase.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
-- Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` event on existing notice / dispatch surfaces with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `30%` resets `world.last_hegemony_signal_band` to `0`. This is the preferred low-complexity answer to the N+1 scalar lag.
+- Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` named-diplomat notification (NOT the ledger headline or Morning Dispatch Balance line — both display state, not events; see §7.3 + §11.1 surface contract) with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `33%` resets `world.last_hegemony_signal_band` to `0`. This is the canonical answer to the N+1 scalar lag — option (a) of §14 R8 and ships with B-Hegemony, not deferred.
 
 **AI escape-valve work (belongs here, not as later polish):**
 
-- Add an explicit bandwagon P-series rule in `ai_diplomacy.py`: non-bloc minors and exposed secondaries may propose TO the hegemon once bloc share reaches the alarming band (`~45%+` representative target), relations are not hostile, and the nation is not already locked into a rival deep bloc. This is the canonical escape valve that keeps hegemony from reading as a hard ban on growth.
+- Add an explicit bandwagon P-series rule in `ai_diplomacy.py`: non-bloc minors and exposed secondaries may propose TO the hegemon once bloc share reaches the **alarming** band (`50%+` per `_hegemony_signal_band == 2`), relations are not hostile, and the nation is not already locked into a rival deep bloc. The trigger is intentionally aligned with the player-facing proper-noun reveal threshold (§8.1a) — bandwagoning before the player can see *"the French System"* by name reads as the AI knowing something hidden, which is the unfair-opaque failure mode this escape valve is supposed to prevent. This is the canonical escape valve that keeps hegemony from reading as a hard ban on growth.
 - `counterplay_hint` generation is capability-aware: before B-B7 ships, surface only currently legal hegemony levers (release a vassal, avoid a new major ally, let an alliance lapse, shrink the bloc). `Make Amends` may appear only once the verb is live and legal against the cited court.
 
 **Coalition leader update:**
@@ -140,13 +140,13 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `power_score` with major/secondary/minor tiers
 - `power_score` fallback to `"secondary"` default when `get_power_tier` returns `None`
 - `bloc_power` aggregation correctness
-- `_calculate_hegemony_pressure` returns `{}` when share < 30%, returns hegemon at 35% / 45% / 55% / 65% with correct ladder values
+- `_calculate_hegemony_pressure` returns `{}` when share < 33% (ladder pressure-floor), returns hegemon at 35% / 55% / 65% / 75% with correct ladder values `1 / 3 / 5 / 8` (one sample per realigned band)
 - `_calculate_hegemony_pressure` defensive fallback when no nation is authored `major` — derives from active-nations set
 - `process_coalition_turn` integration: passive contribution adds to `threat_level`, decay still drains it, `threat_sources_this_turn` records `"hegemony_passive"` source key
 - `process_coalition_turn` non-France-hegemon guard: synthetic test where `_calculate_hegemony_pressure` returns `{Russia: +5}` asserts `threat_level` does NOT change (guard skips `add_threat`); Balance of Europe headline copy still names Russia correctly
 - `_hegemony_signal_band` returns 0 / 1 / 2 / 3 at the correct thresholds and only upward crossings emit beats
 - `describe_hegemon_bloc` returns descriptive labels at `33-49%`, proper names at `50%+`, and never renames again at `60%+`
-- `balance_of_europe_shifted` fires exactly once per new band, resets after bloc share falls below `30%`, and chooses deterministic speaker fallback
+- `balance_of_europe_shifted` fires exactly once per new band, resets after bloc share falls below `33%` (matches ladder pressure-floor), and chooses deterministic speaker fallback
 - same-turn treaty ratification / vassal change that crosses a band emits the signal beat even though passive scalar accrual lands on the next turn
 - `coalition_leadership_score` favors highest-bloc-share-against among non-bloc members (France-hegemon precondition asserted)
 - France-bloc shrinks (vassal released or ally defects) → next turn pressure stops accruing

@@ -299,6 +299,11 @@ Explicitly deferred out of this phase:
 
 Final committed prose lives in `commitments_notice_balance_of_europe_shifted` templates plus the Balance-of-Europe headline composition in `diplomatic_ledger.gd`. Register per foreign court is defined in `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage (the `hegemony_beat_*_{noticed,alarming,crisis}` family).
 
+**Voice constraints (load-bearing — see Voice Bible before authoring):**
+
+- **Talleyrand on French-bloc naming:** *dry acknowledgment, never pride.* Talleyrand may name the French System as an instrument of policy, but he must not narrate it as a boast — see `DIPLOMAT_VOICE_BIBLE.md` §Bloc-naming voice contract for the exact register. This guardrail is load-bearing: a single Talleyrand line that reads as triumphalism re-frames the entire mechanic as French-glory rather than European-balance.
+- **Forbidden jargon:** the Voice Bible's no-modern-strategy-game list (`meta`, `sphere control`, `stack`, `synergy`, `faction lock`, `alignment graph`, `coalition math`, naked percentage-speak as the entire sentence) applies to every bloc-naming template authored against this contract. See `DIPLOMAT_VOICE_BIBLE.md` §Bloc-naming voice contract for the full list.
+
 #### 8.1a.6 Implementation constraint
 
 - One derived helper in `backend/game_logic/coalition.py`: `describe_hegemon_bloc(world, hegemon, share) -> {bloc_label, descriptive_label, adjective, is_proper_bloc_name}`.
@@ -493,7 +498,7 @@ Talleyrand is **not** the default speaker for every important commitments moment
 - `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh — the v0.1 cast from `diplomat.py`) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`.
 - If a cast-nation `speaker="envoy"` path cannot resolve a supported register, raise `ValueError(f"loyalist register unsupported: {nation}/{personality}")` rather than silently falling back to `system`.
 - `speaker="foreign_office"` MUST render as `The Chancery of {nation}` — never as the generic string `foreign_office`. Register derives from that nation's dominant diplomat's personality.
-- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or notice surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word `system` must never reach the player.
+- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or notice surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word `system` must never reach the player. **Render-time guard (mandatory):** the rail/notice render path MUST raise `ValueError(f"system speaker disallowed on rail surface: {event_type}")` when `speaker == "system"` reaches it. Documentation is not enforcement; without the guard, one missed `else:` in a template author's branch leaks the modern-jargon failure mode the Voice Bible exists to prevent.
 - v0.1 scope assumes the 5-nation roster (France, Britain, Austria, Prussia, Saxony). If a future event targets a non-cast nation, render falls back to `foreign_office` -> `The Chancery of {nation}` with no personality register until the cast expands. The fail-loud `ValueError` fires only for the cast-nation `speaker="envoy"` path; it does not fire on this non-cast fallback.
 
 **Minimum live cast coverage.** `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage is authoritative for v0.5.1. The old v0.3 four-line minimum is retired. Live coverage now includes:

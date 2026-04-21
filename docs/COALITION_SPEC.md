@@ -59,7 +59,7 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 | Control >60% of regions (12+) | +1/turn | During `advance_turn` | Continental dominance |
 | Control >70% of regions (14+) | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
 | Control >80% of regions (16+) | +3/turn | During `advance_turn` (replaces +2) | Empire at its zenith |
-| Hegemony pressure (bloc share ≥ 30%) | +1 (30% ≤ share < 40%) / +3 (40% ≤ share < 50%) / +5 (50% ≤ share < 60%) / +8 (share ≥ 60%) | During `advance_turn` via `_calculate_hegemony_pressure` (Memory and Pressure §7.3 ladder) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
+| Hegemony pressure (bloc share ≥ 33%) | +1 (33% ≤ share < 50%) / +3 (50% ≤ share < 60%) / +5 (60% ≤ share < 70%) / +8 (share ≥ 70%) | During `advance_turn` via `_calculate_hegemony_pressure` (Memory and Pressure §7.3 ladder; gates aligned to the 33 / 50 / 60 beat thresholds) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
 
 **Notes:**
 - "Win any battle" and "Win decisive battle" stack: a decisive victory = +3 + +5 = **+8 total**.
@@ -144,7 +144,7 @@ Cautious play keeps threat well below 40. **Coalition never forms.** This is cor
 |--------------|------|--------|
 | **0–29** | Calm | No diplomatic concern. Threat not shown in top bar. |
 | **30–39** | Tension | Threat indicator appears in top bar (amber). Talleyrand may comment. No mechanical effect. |
-| **40–59** | Murmurs | Morning Dispatch includes diplomatic tension flavor. Talleyrand advisory warns "the courts grow restless." Notification: "European courts are concerned." |
+| **40–59** | Murmurs | Morning Dispatch includes diplomatic tension flavor. Talleyrand advisory warns "the courts grow restless." Notification copy is owned by the Memory and Pressure v2.4.3 hegemony clue chain (`balance_of_europe_shifted` named-diplomat beats per `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 + §11.1) — *not* a generic anonymous "European courts are concerned" line. Anonymous-voice notifications at this tier violate the v2.4.3 voice contract (`COMMITMENTS_PRESENTATION_SPEC.md` §10.3 disallows `system` speaker on rail/notice surfaces). |
 | **60–79** | Brewing | **3-turn countdown begins.** Specific qualifying nations listed. Player can defuse. See §3c. |
 | **80+** | Instant Declaration | Coalition declares **immediately**, skipping remaining countdown. See §3d. |
 
