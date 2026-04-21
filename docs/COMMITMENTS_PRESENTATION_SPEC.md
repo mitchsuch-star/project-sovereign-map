@@ -229,7 +229,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
 
-`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`.
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`. On this family, if the chosen `speaker_nation` has no authored envoy register, prefer a Talleyrand advisory line over a generic non-cast chancery fallback so the beat stays voiced rather than bureaucratic.
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
@@ -305,6 +305,8 @@ Explicitly deferred out of this phase:
 - `70%+` (crisis intensified, no new beat): *"The French System now approaches a continental completeness; hostile courts speak as if the map is already being redrafted around it."*
 - `DECLARED` (coalition contrast): *"Britain's coalition marches against the French System."*
 
+The `70%+` line is a Case-2 / Case-4 headline intensifier, not a fourth beat family. It reuses the existing proper noun and crisis register rather than introducing a new reveal.
+
 Final committed prose lives in `commitments_notice_balance_of_europe_shifted` templates plus the Balance-of-Europe headline composition in `diplomatic_ledger.gd`. Register per foreign court is defined in `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage (the `hegemony_beat_*_{noticed,alarming,crisis}` family).
 No separate `balance_of_europe_relaxed` rail family is introduced in this phase; downward relaxations reuse Talleyrand's existing bloc-naming register as a quiet advisory aside.
 
@@ -316,6 +318,7 @@ No separate `balance_of_europe_relaxed` rail family is introduced in this phase;
 #### 8.1a.6 Implementation constraint
 
 - One derived helper in `backend/game_logic/coalition.py`: `describe_hegemon_bloc(world, hegemon, share) -> {bloc_label, descriptive_label, adjective, is_proper_bloc_name}`.
+- Callers must gate on `share >= 0.33`. Below that threshold the helper return is unspecified; surfaces should not call it.
 - No serialized `bloc_names`, `bloc_identity`, or `alignment_store` field.
 - No new membership mechanic; membership still derives from existing bloc helpers / treaty state per `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony.
 
@@ -596,14 +599,14 @@ balance_of_europe = {
     "share": float,  # 0.0-1.0
     "bloc_label": Optional[str],  # descriptive at 33-49%, proper name at 50%+
     "is_proper_bloc_name": bool,
-    "threat_level": int,  # 0-100
+    "threat_level": int,  # 0-100; v0.1 anti-world.player_nation coalition scalar
     "coalition_state": Literal["NONE", "BREWING", "DECLARED", "COOLDOWN"],
     "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
     "leader": Optional[str],  # coalition leader when DECLARED
 }
 ```
 
-Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case.
+Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. When `hegemon != world.player_nation` in v0.1, renderer ownership of the coalition sub-line follows §11.1's suppression / retarget rule rather than attaching this anti-player scalar to the foreign hegemon's bloc text.
 
 Required rules:
 
