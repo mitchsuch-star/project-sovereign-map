@@ -1825,8 +1825,8 @@ def determine_ai_offer_decision_reason(
         if world.is_at_war(player, other)
     )
     if int(getattr(world, "threat_level", 0)) > 60 or wars_against_player >= 2:
-        return "rival_pressure"
-    return "rival_pressure"
+        return "hegemony_pressure"
+    return "unknown_baseline"
 
 
 def determine_counterparty_decision_reason(
@@ -1855,7 +1855,7 @@ def determine_counterparty_decision_reason(
         return "distrust_promiser"
     if _shared_enemy_exists(world, proposer, target):
         return "shared_enemy_survival"
-    return "rival_pressure"
+    return "hegemony_pressure"
 
 
 # ═══════════════════════════════════════════════════════

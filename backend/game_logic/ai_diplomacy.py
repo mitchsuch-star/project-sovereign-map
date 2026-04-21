@@ -838,6 +838,8 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "type": "proposal_arrived",
         "source": nation,
         "proposal_type": proposal.get("proposal_type", ""),
+        # v2.4.3 emits `hegemony_pressure` / `unknown_baseline`; legacy saves
+        # may still carry `rival_pressure` until the next turn flush rewrites them.
         "decision_reason": proposal.get("decision_reason", ""),
         "turn": int(world.current_turn),
     })

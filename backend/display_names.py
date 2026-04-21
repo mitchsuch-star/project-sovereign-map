@@ -339,11 +339,14 @@ DECISION_REASON_DISPLAY = {
     "claim_obsolete": "claim obsolete",
     "claim_trade": "claim trade",
     "coalition_conflict": "coalition conflict",
+    "concern_pressure": "hegemony pressure",
     "counterparty_reversal": "counterparty reversal",
     "distrust_promiser": "remembered betrayals",
-    "rival_pressure": "rival pressure",
+    "hegemony_pressure": "hegemony pressure",
+    "rival_pressure": "hegemony pressure",
     "route_blocked": "route blocked",
     "shared_enemy_survival": "shared-enemy survival",
+    "unknown_baseline": "unknown baseline",
     "war_overload": "war exhaustion",
 }
 
