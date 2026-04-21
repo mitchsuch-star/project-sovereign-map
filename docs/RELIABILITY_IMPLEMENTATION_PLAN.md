@@ -36,6 +36,8 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
 - Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance of Europe headline render
 
+**Block 3 decision lock (April 20, 2026):** v2.4.3 adopts deterministic bloc naming. Implementation should target the constrained surface set only: Balance-of-Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview hegemony warnings, and coalition-declaration contrast copy. Member badges / ledger-row bloc stamps are explicitly deferred. Block 3 also owns the specific post-Block-2 closure items formerly hanging off `C-lite`, `B-B4`, `B-B7`, and the composite-floor regression net.
+
 **§8.8 DG-4 call-to-arms (B-B4) — parallel slice, tightened by v2.4.3.** Tracked in its own slice per the DG-4 amendment in spec §8.8 + `SCALE_READINESS_PLAN.md`. v2.4.3 adds explicit follow-through work for the grievance-variant Make Amends path, same-turn alliance termination on defensive refusal, and the R9/R10/R11 playtest gates. ~25-29 tests, parallel to this slice.
 
 **Moved to `WAR_BARGAIN_SPEC.md` — unchanged from v2.0:**
@@ -111,6 +113,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
 - `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-59%`, `3` for `60%+`. Used only for same-turn signal beats and dedupe.
+- `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `adjective`, `is_proper_bloc_name`). This helper feeds the Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, and coalition-declaration contrast copy. It does **not** create a new save surface and does **not** drive member badges in this phase.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
 - Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` event on existing notice / dispatch surfaces with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `30%` resets `world.last_hegemony_signal_band` to `0`. This is the preferred low-complexity answer to the N+1 scalar lag.
 
@@ -140,6 +143,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `process_coalition_turn` integration: passive contribution adds to `threat_level`, decay still drains it, `threat_sources_this_turn` records `"hegemony_passive"` source key
 - `process_coalition_turn` non-France-hegemon guard: synthetic test where `_calculate_hegemony_pressure` returns `{Russia: +5}` asserts `threat_level` does NOT change (guard skips `add_threat`); Balance of Europe headline copy still names Russia correctly
 - `_hegemony_signal_band` returns 0 / 1 / 2 / 3 at the correct thresholds and only upward crossings emit beats
+- `describe_hegemon_bloc` returns descriptive labels at `33-49%`, proper names at `50%+`, and never renames again at `60%+`
 - `balance_of_europe_shifted` fires exactly once per new band, resets after bloc share falls below `30%`, and chooses deterministic speaker fallback
 - same-turn treaty ratification / vassal change that crosses a band emits the signal beat even though passive scalar accrual lands on the next turn
 - `coalition_leadership_score` favors highest-bloc-share-against among non-bloc members (France-hegemon precondition asserted)
@@ -303,6 +307,8 @@ B-Hegemony (helpers + engine + coalition wire-up)
 
 B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below)
 ```
+
+**Block 3 execution note:** before the broader plan resumes, Block 3 consumes the formerly deferred narrow follow-through items: the adopted bloc-naming surface contract, the former `C-lite` Balance payload/template/icon-map/named-diplomat follow-through, the former `B-B7` Make Amends emitters + `reparations_cooldown`, the former `B-B4` defensive-refusal surfacing, and the composite-floor regression tests. Remaining slice work after Block 3 should exclude only those consumed items, not the entirety of `C-lite`, `B-B4`, or `B-B7`.
 
 ### Merge ordering — B-B1-lite and B-B4 (DG-4) composite-floor interaction
 

@@ -1,6 +1,6 @@
-# MP v2.4.3 - Block 3: Bloc Naming and Post-Block-2 Closure Gate
+# MP v2.4.3 - Block 3: Adopted Bloc Naming and Post-Block-2 Closure Gate
 
-> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next closure pass in sequence before the remaining v2.4.3 implementation continues. It owns the bloc-legibility decision and also absorbs the specific post-Block-2 follow-through items that were deferred but still need to land.
+> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next closure pass in sequence before the remaining v2.4.3 implementation continues. The bloc-legibility decision is now locked: v2.4.3 adopts deterministic bloc naming on existing surfaces, and Block 3 owns the implementation/closure work that follows from that call.
 >
 > **Ships as:** scoped spec + implementation closure block now.
 >
@@ -8,7 +8,7 @@
 >
 > **Depends on:** Block 1 and Block 2 routing being current in `STATUS.md`, plus `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony + C-lite, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, `docs/DIPLOMAT_VOICE_BIBLE.md`.
 >
-> **Total effort if adopted:** ~1 focused spec pass, ~1 implementation session, ~8-12 tests.
+> **Total effort:** ~1 focused spec pass, ~1 implementation session, ~8-12 tests.
 
 ---
 
@@ -21,9 +21,24 @@
 | MAJOR | 4 | Voice contract, implementation constraints, tests, playtest gates |
 | MINOR | 2 | Copy examples, scale fallback hygiene |
 
-This block still centers the bloc-legibility pass, but it is no longer purely narrow. It now also owns the specifically deferred post-Block-2 closures that were never actually completed elsewhere.
+This block still centers the bloc-legibility pass, but it is no longer purely narrow. The core design choice is already made, and the block now owns the specifically deferred post-Block-2 closures that were never actually completed elsewhere.
 
 That does **not** mean Block 3 owns the entirety of `C-lite`, `B-B4`, or `B-B7`. It owns the enumerated deferred pieces below so they are no longer living in handoff limbo.
+
+---
+
+## Locked decisions
+
+The following decisions are no longer open:
+
+- **ADOPT deterministic bloc naming for v2.4.3.** The hegemon-side camp should be named so the player feels Europe hardening into camps rather than merely reading a hidden penalty.
+- **Use the `33 / 50 / 60` staging already described below.** `33-49%` is descriptive only, `50-59%` unlocks the proper name, and `60%+` reuses that proper name in crisis language.
+- **Keep the naming layer on existing high-value surfaces only.** Block 3 owns the Balance-of-Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview warnings, and coalition-declaration contrast copy.
+- **Defer member badges / ledger-row bloc stamps.** They are not required to close Block 3 and should not expand scope unless a later playtest pass explicitly asks for them.
+- **Keep the implementation derived and cheap.** One helper, no new serialized bloc identity, no new membership mechanic.
+- **Do not descope the owned post-Block-2 follow-through items by default.** CF1-CF4 are mandatory Block 3 closure items unless this document and `STATUS.md` record a written descoping reason.
+
+No further go/no-go design decision is needed for bloc naming in this phase. The remaining work is implementation and verification.
 
 ---
 
@@ -31,8 +46,8 @@ That does **not** mean Block 3 owns the entirety of `C-lite`, `B-B4`, or `B-B7`.
 
 Treat Block 3 as a **scoped closure block**, not as an open-ended brainstorm. A fresh session should leave this block with two things resolved:
 
-1. **Bloc naming decision for v2.4.3.**
-   Either adopt the naming layer and record it in the live docs, or explicitly decline it and close that part of the block on purpose.
+1. **Implement the adopted bloc-naming contract for v2.4.3.**
+   Wire the deterministic naming layer into the live docs/code paths that own the Balance headline, threshold beats, proposal warnings, and coalition declaration contrast.
 2. **Deferred post-Block-2 follow-through.**
    The enumerated `C-lite` / `B-B4` / `B-B7` / composite-floor leftovers below are now owned by Block 3 and should be implemented or explicitly descoped here rather than left implied for a later session.
 
@@ -40,20 +55,12 @@ Block 3 is **not done** if it only generates discussion or merely re-lists defer
 
 ### Expected outputs
 
-If Block 3 is **adopted**, the pass should leave behind:
-
 - a presentation-spec update in `docs/COMMITMENTS_PRESENTATION_SPEC.md` that owns the `33%` / `50%` / `60%` bloc-label contract and surface routing
 - an implementation-plan update in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` that places the derived-helper/test work in the correct follow-on slice
 - a voice-bible update in `docs/DIPLOMAT_VOICE_BIBLE.md` that covers the named-bloc reveal beat and its crisis restatement
-- a `STATUS.md` note confirming Block 3 was adopted and naming any remaining post-Block-3 implementation that is still open
+- a `STATUS.md` note confirming the bloc-naming call is already made and naming any remaining post-Block-3 implementation that is still open
 
-If Block 3 is **declined**, the pass should leave behind:
-
-- a `STATUS.md` note that no additional bloc-naming layer is required for v2.4.3
-- a short close-out note in this document explaining why the baseline hegemony/beats/headline surface was judged sufficient
-- the remaining owned follow-through items still resolved or explicitly descoped here, since they no longer belong to some vague future owner by default
-
-Regardless of the naming decision, the pass should also leave behind:
+The pass should also leave behind:
 
 - implemented or deliberately descoped closure of the owned deferred items listed below
 - updated routing in `STATUS.md` so the next session does not have to guess what Block 3 already consumed versus what remains after it
@@ -62,26 +69,20 @@ Regardless of the naming decision, the pass should also leave behind:
 
 Block 3 can be considered closed only when all of the following are true:
 
-- the docs explicitly say whether bloc naming was adopted or declined for v2.4.3
+- the docs explicitly say bloc naming is adopted for v2.4.3
 - `bloc` versus `coalition` terminology is protected across the affected docs
-- the `33%` / `50%` / `60%` activation behavior is either canonized or deliberately rejected
+- the `33%` / `50%` / `60%` activation behavior is canonized across the affected docs
 - implementation ownership is clear: this block may authorize later code work, but it must not quietly create a new mechanic or save surface
 - the deferred items listed below are either closed in Block 3 or explicitly descoped in writing with a reason
 
-### Closure states
+### Closure state
 
-Close Block 3 as **ADOPTED** only when:
+Close Block 3 as **CLOSED (ADOPTED CONTRACT EXECUTED)** only when:
 
 - `docs/COMMITMENTS_PRESENTATION_SPEC.md` owns the bloc-label threshold/surface contract
 - `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` names the follow-on implementation owner and test expectations
 - `docs/DIPLOMAT_VOICE_BIBLE.md` covers the reveal/crisis voice beats
 - `STATUS.md` says Block 3 was adopted and points the next session only at the work still remaining after the owned deferred items were consumed here
-
-Close Block 3 as **DECLINED** only when:
-
-- `STATUS.md` explicitly says no additional bloc-naming layer is required for v2.4.3
-- this document carries a short written reason for declining the feature expansion
-- the owned deferred items are still closed or deliberately descoped, rather than vanishing behind the bloc-naming decision
 
 ### Verification bundle
 
@@ -89,7 +90,7 @@ Before closing Block 3, perform a short doc-level audit:
 
 - grep for player-facing `coalition` usage in the affected diplomacy docs and confirm it is reserved for the formal anti-hegemon war structure
 - confirm the same threshold story appears everywhere relevant: `33%` noticed, `50%` named reveal, `60%` hardened camps
-- confirm `STATUS.md` and this document agree on whether Block 3 is still open, adopted, or deliberately declined
+- confirm `STATUS.md` and this document agree that bloc naming is already adopted and Block 3 is now executing that contract
 - confirm the owned deferred items are either explicitly completed here or explicitly descoped here
 
 ---
@@ -208,13 +209,16 @@ Do not let LLM prose invent bloc names ad hoc. Name selection must be determinis
 
 Bloc naming should ride the surfaces that already exist. Do not invent a new UI family for this block.
 
-**Required surfaces once proper naming is adopted:**
+**Required surfaces in Block 3:**
 
 - **Balance of Europe headline:** first-class owner of the bloc label.
 - **`balance_of_europe_shifted` beats:** `50%` is the reveal moment; `60%` is the hardened-camps restatement.
 - **Proposal preview warnings:** use the bloc name once unlocked so treaty friction reads politically.
-- **Nation badges / ledger rows:** members of the hegemon bloc may display the proper label once it unlocks.
 - **Coalition declaration copy:** if war coalition forms, the copy should contrast the coalition against the named hegemon bloc.
+
+**Explicitly deferred out of Block 3:**
+
+- **Nation badges / ledger rows:** do not add bloc stamps there in this pass. Keep the naming layer concentrated on the headline, threshold beats, warnings, and declaration contrast.
 
 **Headline examples:**
 
@@ -282,7 +286,7 @@ This block should land only if it clears these feel checks:
 - Players do **not** confuse the named bloc with an already-declared war coalition.
 - The naming layer increases drama without making the map feel over-labeled or gamey.
 
-**Fail condition:** if playtest shows repeated confusion between "named bloc" and "formal coalition," keep bloc naming headline-only and defer member badges / broader warning use.
+**Fail condition:** if playtest still shows repeated confusion between "named bloc" and "formal coalition," keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Member badges are already deferred by decision.
 
 ---
 
@@ -319,4 +323,4 @@ This naming pass should still hold at larger rosters:
 
 ## Recommendation
 
-Treat this as the **third audit/design gate in the v2.4.3 queue**, immediately after Block 2 and before the remaining implementation slices. If adopted, it gives us a clean chance to lock bloc-legibility language before B-Hegemony / C-lite prose hardens in code. If the team later decides the baseline beats/headline are already enough, this block can still be closed quickly with a deliberate "no additional bloc naming needed" call rather than being forgotten.
+Treat this as the **third closure block in the v2.4.3 queue**, immediately after Block 2 and before the remaining implementation slices. The bloc-legibility decision is already made: adopt deterministic bloc naming on the constrained surface set above, close the owned post-Block-2 items here, and then let the remaining implementation continue without another design-go/no-go pass.

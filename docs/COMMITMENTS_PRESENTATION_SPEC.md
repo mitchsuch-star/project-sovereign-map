@@ -232,6 +232,25 @@ Single source of truth: notifications, dispatch formatting, campaign log labels,
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
+### 8.1a Bloc-naming decision (locked for v2.4.3)
+
+Block 3 locks the bloc-naming call as **adopted** for v2.4.3. The adopted surface contract is:
+
+- `33-49%` share: descriptive bloc label only, no proper name
+- `50-59%` share: proper bloc name unlocks
+- `60%+` share: same proper name persists in crisis copy
+
+Required player-facing owners in this phase:
+
+- Balance of Europe headline
+- `balance_of_europe_shifted` notice family
+- proposal-preview hegemony warnings
+- coalition declaration contrast copy when formal war breaks out against the named bloc
+
+Explicit defer for this phase:
+
+- member badges / ledger-row bloc stamps are **not** required in Block 3; the headline remains the authoritative owner of the label layer
+
 **Bargain events routed to WB-D:**
 
 `bargain_ratified`, `bargain_triggered`, `bargain_fulfilled`, `bargain_breached`, `bargain_voided`, `hard_block_surfaced` (ally-entry), `ally_refused_free_join`, `declaration_backed_out`, counter-bargain Accept/Reject/Back Out flows. None of these are addressed here — they ship with the bargain mechanic in `WAR_BARGAIN_SPEC.md` slice WB-D.
@@ -496,6 +515,8 @@ Balance of Europe payload block (used by the Nations-tab headline in C-lite §14
 balance_of_europe = {
     "hegemon": Optional[str],
     "share": float,  # 0.0-1.0
+    "bloc_label": Optional[str],  # descriptive at 33-49%, proper name at 50%+
+    "is_proper_bloc_name": bool,
     "threat_level": int,  # 0-100
     "coalition_state": Literal["NONE", "BREWING", "DECLARED", "COOLDOWN"],
     "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
@@ -516,6 +537,7 @@ Required rules:
 - `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.5.1 (response routes deferred to WB-D)
 - `relation_delta` / `reliability_delta` are sourced from breach metadata
 - `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter
+- `bloc_label` / `is_proper_bloc_name` are transient display helpers derived from hegemon + share, never serialized state
 
 If a field is not known deterministically, omit it rather than improvising it in presentation.
 

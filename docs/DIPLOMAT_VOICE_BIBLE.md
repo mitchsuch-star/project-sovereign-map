@@ -1,7 +1,7 @@
 # Diplomat Voice Bible
 
 > **Status:** v1.1 — v0.5.1 aligned — 2026-04-20
-> **v0.5.1 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with noticed / alarming / crisis variants, and (c) one `amends_offered` acknowledgment line per foreign court. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
+> **v0.5.1 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with noticed / alarming / crisis variants, and (c) one `amends_offered` acknowledgment line per foreign court. Block 3 locks bloc naming as adopted for v2.4.3, but keeps the voiced scope on the headline / threshold-beat / warning family surfaces; member-badge microcopy still defers. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
 > **Purpose:** Single-page voice reference per diplomat so that every headline commitments line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
 > **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
@@ -211,6 +211,8 @@ Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the older nine-line cast coverage
 ### Required for C3-lite (v0.5.1 — must land in this phase)
 
 The live minimum is now the four breach / hard-reject leads plus the hegemony-warning and repair-acknowledgment families below:
+
+The Block 3 decision lock means authors do **not** need to prepare separate member-badge or ledger-stamp microcopy for named blocs in this phase. The required voiced surfaces remain the headline-adjacent threshold beats, warnings, breach/paradox lines, and amends acknowledgments.
 
 | Nation | Personality | Scene | Template source |
 |---|---|---|---|
