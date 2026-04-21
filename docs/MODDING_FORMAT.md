@@ -42,6 +42,7 @@ A scenario file is a JSON object with the following structure:
 
 ```json
 {
+    "scenario_schema_version": 1,
     "scenario_name": "Battle of Waterloo",
     "scenario_description": "June 18, 1815",
     "player_nation": "France",
@@ -65,6 +66,7 @@ A scenario file is a JSON object with the following structure:
 |-------|------|---------|-------------|
 | `scenario_name` | string | - | Display name (metadata only) |
 | `scenario_description` | string | - | Description (metadata only) |
+| `scenario_schema_version` | integer | 1 | Scenario schema version. `1` is the current scale-readiness era shape. |
 | `player_nation` | string | "France" | Nation the player controls |
 | `current_turn` | integer | 1 | Starting turn number |
 | `max_turns` | integer | 40 | Game length in turns |
@@ -72,6 +74,14 @@ A scenario file is a JSON object with the following structure:
 | `regions` | object | (default map) | Custom map regions |
 | `marshals` | object | (default marshals) | Custom marshals |
 | `enemy_nations` | array | ["Britain", "Prussia"] | AI-controlled nations |
+| `nations` | object | {} | Optional authored nation records. In schema v1, this is where static nation metadata like `power_tier` belongs. Runtime `political_status` is not authored here. |
+
+### Nations in schema v1
+
+When a scenario defines nation records, keep authored static taxonomy separate from runtime diplomatic state:
+
+- `power_tier` is authored scenario data: `major`, `secondary`, or `minor`
+- `political_status` is runtime state (`independent`, `vassal`, `protectorate`, etc.) and should not be hardcoded into the scenario taxonomy as a substitute for `power_tier`
 
 ---
 
@@ -468,4 +478,4 @@ Region A says it's adjacent to B, but B doesn't say it's adjacent to A. Add the 
 
 Scenario files are forward-compatible. Fields added in future versions will be ignored by older game versions. However, older scenarios may not have access to newer features.
 
-Current format version: **1.0**
+Current format version: **1.1**

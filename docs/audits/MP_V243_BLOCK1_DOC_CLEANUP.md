@@ -1,5 +1,7 @@
 # MP v2.4.3 — Block 1: Doc-Only Cleanup
 
+> **Status:** COMPLETE — April 20, 2026. This work order's doc pass is closed; routing now advances to `docs/audits/MP_V243_BLOCK2_SUBSTRATE.md`.
+
 > **Source:** 4 audit passes landed across [`MP_V243_AUDIT_COMBINED.md`](docs/audits/MP_V243_AUDIT_COMBINED.md) + [`MP_V243_AUDIT_PASS4.md`](docs/audits/MP_V243_AUDIT_PASS4.md) + two follow-up passes (commits c88b013, 5fcc93c). This work order integrates all doc-only findings as first-class items — no addendum sectioning.
 >
 > **Ships as:** single atomic commit. All edits anchor on the v2.4.3 contract; splitting creates windows where sections disagree.
@@ -382,19 +384,19 @@ Not a Block 1 task — catalogued here so C-lite implementer hits them determini
 
 ## Definition of done
 
-- [ ] CR1 verified: `grep -n "^### 8\." docs/RELIABILITY_COMMITMENTS_SPEC.md` shows `8.7` in the output.
-- [ ] A1 verified: `grep -n "immediately before the floor" docs/RELIABILITY_COMMITMENTS_SPEC.md` returns nothing.
-- [ ] U1 verified: `grep -n spotlight docs/RELIABILITY_COMMITMENTS_SPEC.md docs/COMMITMENTS_PRESENTATION_SPEC.md` returns only historical/changelog/stub refs.
-- [ ] U5 present: §8.1 routing join-table exists and is flagged as single source of truth.
-- [ ] A8 present: §11 `balance_of_europe` payload schema block exists.
-- [ ] U15 present: logger channel + ValueError + `_bloc_members_cache` named in RCS.
-- [ ] A2 present: CLAUDE.md:26 Remaining list contains "B-B4" explicitly.
-- [ ] A3 present: CLAUDE.md:164 includes presentation spec + Voice Bible + COALITION_SPEC.
-- [ ] D1+D2 present: STATUS.md cold-start routing points to B-Hegemony.
-- [ ] CR2 verified: `grep -n "§12.5" docs/COMMITMENTS_PRESENTATION_SPEC.md` returns only line 807 (changelog).
-- [ ] U7: SAVE_FORMAT_REFERENCE documents v2.4.3 substrate + alias policy.
-- [ ] U8: Voice Bible header reads "v1.1 — v0.5.1 aligned".
-- [ ] Single atomic commit titled approximately: *"MP v2.4.3 Block 1: doc-only cleanup (50 items across 4 audit passes)"*.
+- [x] CR1 verified: `grep -n "^### 8\." docs/RELIABILITY_COMMITMENTS_SPEC.md` shows `8.7` in the output.
+- [x] A1 verified: `grep -n "immediately before the floor" docs/RELIABILITY_COMMITMENTS_SPEC.md` returns nothing.
+- [x] U1 verified: `grep -n spotlight docs/RELIABILITY_COMMITMENTS_SPEC.md docs/COMMITMENTS_PRESENTATION_SPEC.md` returns only historical/changelog/stub refs.
+- [x] U5 present: §8.1 routing join-table exists and is flagged as single source of truth.
+- [x] A8 present: §11 `balance_of_europe` payload schema block exists.
+- [x] U15 present: logger channel + ValueError + `_bloc_members_cache` named in RCS.
+- [x] A2 present: CLAUDE.md:26 Remaining list contains "B-B4" explicitly.
+- [x] A3 present: CLAUDE.md:164 includes presentation spec + Voice Bible + COALITION_SPEC.
+- [x] D1+D2 present: STATUS.md cold-start routing points to B-Hegemony.
+- [x] CR2 verified: `grep -n "§12.5" docs/COMMITMENTS_PRESENTATION_SPEC.md` returns only the changelog entry.
+- [x] U7: SAVE_FORMAT_REFERENCE documents v2.4.3 substrate + alias policy.
+- [x] U8: Voice Bible header reads "v1.1 — v0.5.1 aligned".
+- [x] Single atomic commit titled approximately: *"MP v2.4.3 Block 1: doc-only cleanup (50 items across 4 audit passes)"*.
 
 ## Out of scope
 

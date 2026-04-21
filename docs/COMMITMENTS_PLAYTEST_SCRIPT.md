@@ -22,7 +22,7 @@ This script is deliberately simple. It is not a usability study. It is a 20-minu
 
 ## Prerequisites
 
-- A running build of the game on the current branch (`master`, commit `cc7d83d` or later).
+- A running build of the game on the current branch (`master`, current HEAD or later).
 - A save file (or debug setup) where France is mid-war, has at least one active bargain, and can have additional commitments events triggered on demand.
 - Facilitator familiar with the cheat/debug commands in `backend/commands/meta_executor.py` required to force-trigger each event (see §14 of `COMMITMENTS_PRESENTATION_SPEC.md` event list).
 - A quiet room. A recording is ideal; a note-taker is acceptable.
@@ -115,15 +115,17 @@ Ask exactly these questions, in this order, without editorializing between them.
 **Q2. Which moment in the last ten minutes felt biggest? Why?**
 > *What to listen for:* Does the player name the betrayal or the paradox (the two "critical beats"), or do they name something else entirely? If something else, we missed where the weight was landing.
 
-**Q3. When France broke its word to Prussia — who told you that? Can you describe them?**
-> *What to listen for:* Does the player name Hardenberg or Prussia or "an envoy"? If the answer is "the game" or "a notification," the anonymous-envoy finding is confirmed. If the player cannot recall any speaker, it's worse than confirmed.
+**Q3. When France broke its word to Prussia — and when Europe warned you that the Balance of Europe was shifting — who told you that? Can you describe them?**
+> *What to listen for:* Does the player name Hardenberg / Prussia for the breach and a recognizable court voice or chancery for the hegemony beat? If the answer is just "the game" or "a notification," the named-diplomat / resolver finding is confirmed. If the player cannot recall any speaker, it's worse than confirmed.
 
 **Q4. Rate each of these on a 1-5 scale, where 1 = "a status change" and 5 = "a political moment you will remember":**
 > - The moment France kept its word to Austria: _ / 5
 > - The moment France broke its word to Prussia: _ / 5
 > - The moment you were told you must choose which promise to keep: _ / 5
+> - The moment Europe warned you a bloc was hardening against France: _ / 5
+> - The moment a foreign court acknowledged France's amends: _ / 5
 
-> *What to listen for:* Expect 2s and 3s on the first two, possibly a 4 on the paradox because blocking is inherently weighty. Any 5 is unexpected and worth probing. Any 1 is a severity confirmation.
+> *What to listen for:* Expect 2s and 3s on the baseline surfaces, possibly a 4 on the paradox because blocking is inherently weighty. The hegemony warning and amends acknowledgment are the new B-Hegemony / named-diplomat probes: if they also read as 1-2, the helper/routing work still is not carrying drama. Any 5 is unexpected and worth probing. Any 1 is a severity confirmation.
 
 **Q5. When Prussia was wronged, did you want to do anything in response? What?**
 > *What to listen for:* Whether the player articulated a specific verb ("send them money," "apologize," "propose a new treaty to patch it over," "retaliate against whoever caused this"). Then ask: *did the game let you do that?* If the answer is "no" or "I didn't look" — the reactive-affordance finding is confirmed.
@@ -152,7 +154,7 @@ Ask exactly these questions, in this order, without editorializing between them.
 ### Secondary signals
 
 - **Q1 vocabulary:** If zero political words appear in the three-sentence recap, the spec's "feels like a changelog" prediction is the strongest interpretation.
-- **Q3 speaker recall:** Inability to name any speaker confirms the named-diplomat routing priority.
+- **Q3 speaker recall:** Inability to name any speaker on either the breach or the Balance-of-Europe beat confirms the named-diplomat routing priority.
 - **Q5 action-desire:** Player who articulates a specific desired verb but finds no route validates the §12.6 widening.
 - **Q7 "talking vs informing":** The most important qualitative signal. A cold "informing" answer is a VISION.md failure.
 

@@ -641,7 +641,7 @@ Soft-stop diplomacy is still treated like a hard-stop crisis. Incoming AI propos
 
 - Hard-stop vs soft-stop taxonomy is enforced in both backend command paths.
 - For the current fix phase, the minimum taxonomy is:
-  - hard-stop: `force_declare_war_confirmation`, `alliance_paradox`
+  - hard-stop: `force_declare_war_confirmation`, `commitment_paradox` (legacy `alliance_paradox` alias still accepted on load)
   - soft-stop mailbox: `incoming_proposal`, `counter_offer`, `counter_offer_response`, `conflict_alert`
   - hybrid soft-stop with end-turn default: `sabotage_confrontation`, `vassal_rebellion_imminent`
   - local planning flow, not global blocker: `proposal_confirm`, `advisory`, `mission`, `terms_guidance`, `ultimatum_demand_wizard`

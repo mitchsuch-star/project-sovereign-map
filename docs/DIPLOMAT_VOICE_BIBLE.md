@@ -2,7 +2,7 @@
 
 > **Status:** v1.1 — v0.5.1 aligned — 2026-04-20
 > **v0.5.1 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with noticed / alarming / crisis variants, and (c) one `amends_offered` acknowledgment line per foreign court. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
-> **Purpose:** Single-page voice reference per diplomat so that every spotlight line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
+> **Purpose:** Single-page voice reference per diplomat so that every headline commitments line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
 > **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
 
@@ -227,6 +227,13 @@ The live minimum is now the four breach / hard-reject leads plus the hegemony-wa
 | Austria | Schemer | `amends_ack_metternich` | this document §Metternich register notes |
 | Saxony | Dove | `amends_ack_einsiedel` | this document §Einsiedel register notes |
 
+Additive minimum families that also need committed copy in this phase:
+
+- `paradox_after_choice_*` — one foreign-diplomat after-choice aside per foreign court when that court's alliance is spurned.
+- `reactive_summon_*` — one short reactive one-exchange summon/advisory line per foreign cast member.
+- `hard_reject_clear_*` — one chancery-voice reopening line per foreign court for `hard_reject_posture_cleared`.
+- `witness_strike_*` — one visible witness-reaction line per foreign court so later witness fallout does not collapse into generic system prose.
+
 ### Deferred to WB-D (bargain-era presentation extension)
 
 Five lines. Authored when bargains ship. Each candidate line must pass the "Never says" check before landing.
@@ -259,5 +266,5 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
-- **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families and `amends_offered` acknowledgments, and retired the stale v0.3-only scope note.
+- **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families, `amends_offered` acknowledgments, paradox aftermath / reactive summon / `hard_reject_clear` / `witness_strike` additive families, and retired the stale v0.3-only scope note.
 - **Apr 15, 2026** — v1 draft. Cast confirmed from `backend/models/diplomat.py`. Register derived from `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 plus historical research for period authenticity. Four exemplar paragraphs committed (Talleyrand private aside, Castlereagh breach accusation, Hardenberg breach accusation, Metternich breach accusation, Einsiedel breach lament). Five remaining templates (fulfillment callbacks, hard-reject, witness reaction, paradox envoy demand) marked "to author" against the register notes.

@@ -112,14 +112,14 @@ These refine existing systems and are still implementation-ready later, but they
 - **Summary:** Estimated completion turn for active missions.
 - **Files:** `diplomatic_ledger.py`
 
-### Memory and Pressure interaction notes (added April 16 creative audit)
+### Memory and Pressure interaction notes (updated for v2.4.3)
 
-These are not new items — they annotate existing items whose scope or interaction changes now that Memory and Pressure (v2.1) is the active spec.
+These are not new items — they annotate existing items whose scope or interaction changes now that Memory and Pressure v2.4.3 is the active spec.
 
-- **R162 (AI Ultimatums to Player):** Hard-reject posture (3+ bilateral strikes) from Memory and Pressure now informs AI ultimatum behavior. A nation at hard-reject posture toward France is both more likely to issue ultimatums (anger-driven) and less likely to accept French counter-offers. Wire this interaction when R162 ships.
-- **R123 / R124 (Economic Strategy & Diplomatic Isolation AI):** These collapse into queue item 5 (Nation Agendas + Motive Legibility). AI should now read `bilateral_betrayal_mod`, `rival_conflict_mod`, and `nation_rivalries` to drive subsidy offers, alliance-breaking proposals, and isolation strategy. The Memory and Pressure substrate provides the data; the agenda spec provides the decision logic.
-- **R17d (DP Breakdown Display):** Will need to display the new `political_commitment_mod` components (`direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod`) once Memory and Pressure ships. Consider showing these per-proposal in the breakdown, not just the composite.
-- **R155 / R157 (AI Proposal Voice / Talleyrand Voice Depth):** The C3-lite presentation pass (`COMMITMENTS_PRESENTATION_SPEC.md` v0.3) adds named-diplomat spotlight + split-voice for three live events with committed mock prose per `DIPLOMAT_VOICE_BIBLE.md`. This covers the commitments-surface subset of R155/R157. The broader scope (personality-driven proposal timing, AI-initiated proposal voice, deep Talleyrand commentary across all diplomacy) remains open and routes to queue items 5-6.
+- **R162 (AI Ultimatums to Player):** Hard-reject posture (3+ bilateral strikes) still informs ultimatum behavior, but the surrounding political pressure is now hegemony-driven rather than rivalry-seeded. A nation at hard-reject posture toward France is both more likely to issue ultimatums (anger-driven) and less likely to accept French counter-offers. Wire this interaction when R162 ships.
+- **R123 / R124 (Economic Strategy & Diplomatic Isolation AI):** These collapse into queue item 5 (Nation Agendas + Motive Legibility). AI should now read `hegemony_target_mod`, `bilateral_betrayal_mod`, and (when DG-4 lands) `grievance_modifier` plus bloc geometry to drive subsidy offers, alliance-breaking proposals, and isolation strategy. Static `nation_rivalries` / `rival_conflict_mod` are no longer the data source.
+- **R17d (DP Breakdown Display):** Show the live Memory and Pressure acceptance components individually rather than reviving the old composite term: `hegemony_target_mod`, `bilateral_betrayal_mod`, `reliability_modifier`, and later `grievance_modifier` / `composite_floor` when DG-4 is active.
+- **R155 / R157 (AI Proposal Voice / Talleyrand Voice Depth):** The C3-lite presentation pass (`COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1) now commits named-diplomat CRITICAL / NORMAL notices, the paradox popup, Balance-of-Europe threshold beats, and Make Amends acknowledgments per `DIPLOMAT_VOICE_BIBLE.md`. The broader scope (personality-driven proposal timing, AI-initiated proposal voice, deep Talleyrand commentary across all diplomacy) remains open and routes to queue items 5-6.
 
 ---
 
@@ -152,10 +152,10 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 
 ## Needs Design Gate
 
-### R160: Nation Rivalry System (EU4-Inspired) — **PARTIALLY COVERED**
+### R160: Nation Rivalry System (EU4-Inspired) — **SUPERSEDED BY Memory and Pressure v2.4.3**
 - **Category:** Diplomacy — Balance
-- **Status:** **Core system shipped** via Memory and Pressure v2.1. Static rivalry seed (4 authored pairs: France↔Britain, France↔Austria, Prussia↔Austria, Prussia↔Saxony), `direct_rivalry_mod` + `rival_conflict_mod` in acceptance formula, third-party anger on ratification, two authored Prussia↔Saxony escalation triggers. The original R160 design is superseded by `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 §7.
-- **Remaining (unshipped):** dynamic rivalry formation (AI declares rivalry when relation drops below threshold or when France allies their enemy). This was explicitly deferred in spec §7.2 to "later AI-agenda work." The jealous-AI-proposals and rival-decay designs from R160 are also not yet implemented but folded into the queue-5 `Nation Agendas + Motive Legibility` track.
+- **Status:** Static rivalry seed and the old rivalry-specific acceptance terms were dropped in the v2.4 hegemony refactor. The live political-pressure layer is now `hegemony_target_mod` + `bilateral_betrayal_mod`, with `grievance_modifier` joining later via DG-4. The original R160 design is therefore superseded by `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 rather than partially awaiting completion.
+- **Remaining (unshipped):** any future dynamic rivalry / agenda system must grow out of bloc geometry, betrayal memory, grievance persistence, and AI agendas rather than restoring `nation_rivalries` / `direct_rivalry_mod` / `rival_conflict_mod`. That work still belongs to queue item 5 (`Nation Agendas + Motive Legibility`).
 - **Files:** `diplomacy.py`, `ai_diplomacy.py`, `diplomatic_ledger.py`, `world_state.py`
 
 ### R151: Territorial Promise Clauses — **MOVED to WAR_BARGAIN_SPEC**

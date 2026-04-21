@@ -301,3 +301,15 @@ Implementation-reality reviewer confirmed these work with existing code:
 - Campaign log emission pattern hosts the eight new event types trivially.
 - Hard-stop machinery itself is sound — paradox only needs registration, not invention.
 - Counter-bargain `Accept` / `Reject` / `Back Out` routes cleanly through existing `proposal_confirm` blocking mode.
+
+### Appendix: v0.3 deferred prose (moved by v0.5.1 trim)
+
+These lines were removed from the live `COMMITMENTS_PRESENTATION_SPEC.md` contract when v0.5.1 cut the N+1 callback path, but they remain useful design intent for later WB-D / extended aftermath work.
+
+**Treaty broken — Next-morning callback (one new beat, not a restate):**
+
+> "Hardenberg has not forgotten the matter, Sire. He need not mention it each morning for it to sit at table."
+
+**Hard-reject posture triggered — Optional N+1 aside (Talleyrand):**
+
+> "Doors in Europe rarely slam, Sire. They close with a servant's politeness and a statesman's memory."

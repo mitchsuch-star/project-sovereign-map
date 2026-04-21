@@ -19,7 +19,7 @@ The rescope:
 2. **§9 Acceptance formula collapses.** `direct_concern_mod` / `concern_conflict_mod` / composite `political_commitment_mod` floor are deleted. Replaced by one `hegemony_target_mod` (negative on proposals from a nation in the hegemon bloc, scaling with bloc share). `bilateral_betrayal_mod` simplifies to `-6 per active strike` flat — the existing 3-strike hard-reject posture still does the door-shut work.
 3. **No data structure for rivalries.** Rivalries become *derived signals* read from bloc geometry + betrayal_history, not stored fields. The `nation_concerns` field is removed from the v0.1 ship list.
 4. **Slice B rewrites.** B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick) are cancelled. New B-Hegemony slice replaces them. B-B1 collapses to two simple modifiers. B-B3 (paradox rename) and B-B7 (Make Amends) keep their existing scope.
-5. **Slice C presentation trims.** Named-diplomat resolution + paradox popup keep. Elevated spotlight-tier card variant + split-voice render infrastructure cut — three events do not justify the infra.
+5. **Slice C presentation trims.** Named-diplomat resolution + paradox popup keep. Elevated rail-card variant + split-voice render infrastructure cut — three events do not justify the infra.
 6. **Substrate already shipped is unchanged.** No removal of `betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata. The hegemony engine layers on top of the existing `coalition.py` threat ladder.
 7. **§8.8 DG-4 call-to-arms work is unchanged.** Orthogonal to the balance-of-power refactor; rides on the same betrayal substrate.
 
@@ -27,7 +27,7 @@ The rescope:
 
 **What this preserves vs v2.3:** all shipped substrate, all design intent (Napoleonic friction, betrayal memory, repair gestures, named diplomats), DG-4 work, paradox rename, Make Amends concept.
 
-**What this drops:** static concern seed, three new acceptance modifiers + composite floor, redemption tick, third-party ratification anger loop, spotlight-tier infra. Each was load-bearing only for design pressure that the hegemony engine now expresses more directly.
+**What this drops:** static concern seed, three new acceptance modifiers + composite floor, redemption tick, third-party ratification anger loop, elevated-card rail infra. Each was load-bearing only for design pressure that the hegemony engine now expresses more directly.
 
 ---
 
@@ -45,7 +45,7 @@ The rescope:
 1. **War bargains move out** to `WAR_BARGAIN_SPEC.md`, scheduled in the Peace Deals phase after `Bilateral Peace Hardening` and `War Purpose + Score Semantics`.
 2. **Phase rename:** `Reliability + Commitments` → `Memory and Pressure`. The new name reflects the actual scope: betrayal memory + rivalry / formula pressure + the legacy paradox renamed.
 3. **Scope what remains to ship:** seed `nation_concerns`, fill the acceptance formula with the spec values for the modifiers we have data for, wire third-party anger on treaty deepening, rename `alliance_paradox` to `commitment_paradox`, and ship the narrow `C3-lite` presentation pass.
-4. **Presentation rescope:** `COMMITMENTS_PRESENTATION_SPEC.md` collapses `C3a` + `C3b` into one `C3-lite` slice that delivers the named-diplomat / spotlight-tier / split-voice flavor for the events that *do* fire today.
+4. **Presentation rescope:** `COMMITMENTS_PRESENTATION_SPEC.md` collapses `C3a` + `C3b` into one `C3-lite` slice that delivers the named-diplomat / elevated-rail / split-voice flavor for the events that *do* fire today.
 
 This spec covers the engine half of the rescope. Bargain content is preserved in `WAR_BARGAIN_SPEC.md` so nothing is lost; section numbers below intentionally skip slots that moved (e.g. former §9 is now in `WAR_BARGAIN_SPEC.md` §8).
 
@@ -633,6 +633,8 @@ Parser fuzzy-match defaults to the standard variant; the grievance-variant phras
 
 **Refusal conditions:** same four conditions as §8.6.1 (no target grievance → Talleyrand advisory "There is no abandoned alliance to repair, Sire — {nation} holds no living grievance of that kind against France"; cooldown / WAR state / insufficient resources via existing paths).
 
+### 8.7 Hard-reject posture
+
 Repeated betrayal must eventually change AI posture.
 
 Rule:
@@ -711,7 +713,7 @@ Extends §8.5 with a specific positive-episode trigger. First concrete faithful-
 - Fires when the honorer enters a defensive ally's war despite the impossibility predicate firing at call moment, OR enters a defensive call where the aggressor coalition's power-score ratio exceeded an authored "costly" threshold (lower than impossibility, e.g. 1.8×)
 - Positive payload routed through the same substrate seams as `_refused_defensive`, with opposite sign on reliability, relation, and witness effect
 - Victim (the rescued principal) gains a loyalty bond: `nation_relation` +10, persistent for 30 turns, stackable up to authored cap
-- Emits `call_to_arms_honored_costly` spotlight through C3-lite presentation (see §8.8.8)
+- Emits `call_to_arms_honored_costly` CRITICAL notice through C3-lite presentation (see §8.8.10)
 
 Design intent: the amendment cannot ship only the punishment side. If honoring an impossible call is free but refusing is costly, players/AI learn "always honor" — boring. If both cost and reward exist, the decision carries weight.
 
@@ -783,11 +785,13 @@ Per `COMMITMENTS_PRESENTATION_SPEC.md`, three new speaker="envoy" / speaker="for
 - `call_to_arms_refused_defensive`
 - `call_to_arms_honored_costly`
 
-Each needs authored spotlight and notice copy in `diplomatic_templates.py`, resolved through the Voice Bible named cast (anonymous voice is disallowed per Voice Bible). Default voices:
+Each needs authored CRITICAL notice copy in `diplomatic_templates.py` (no elevated fourth-tier rail card in C3-lite v0.5.1), resolved through the Voice Bible named cast (anonymous voice is disallowed per Voice Bible). Default voices:
 
-- Victim's diplomat leads the refusal spotlight when the victim has a named diplomat
+- Victim's diplomat voices the CRITICAL notice when the victim has a named diplomat
 - French Foreign Office (Talleyrand) leads when France is breaker or honorer
 - Third-party witness notices are one-liners rendered in the notification bar
+
+Scenario-configured `cascade_profile.*` keys that govern these event families are authored in `SCALE_READINESS_PLAN.md` §DG-4 Amendment. Update the schema note there and this presentation-surface contract together.
 
 #### 8.8.11 Audit trail (`war_entry_ledger`)
 
@@ -826,7 +830,7 @@ Adds work to `RELIABILITY_IMPLEMENTATION_PLAN.md`. New slice `B-B4: call-to-arms
 - Grievance flag on `betrayal_history` pair entries
 - `war_entry_ledger` campaign-log event
 - New acceptance formula term (`grievance_modifier`)
-- Target test count: ~25 new (parallel to paradox rename slice)
+- Target test count: ~25-29 new (parallel to paradox rename slice)
 
 Slice C (C3-lite) grows by three event families. Slice deferral is acceptable if scale work is urgent — substrate-only ship of 8.8.1–8.8.9 (no presentation, no C3-lite copy) is viable as an interim state, provided presentation lands within the same phase to avoid "mechanic fires silently" UX.
 
@@ -863,7 +867,7 @@ def hegemony_target_mod(asker: str, proposal_target: str, world) -> int:
         return 0  # intra-bloc proposals are unrestricted
     share = bloc_power(hegemon, world) / sum(power_score(n, world) for n in world.get_active_nations())
     # Linear scaling: 0 at 30% (integer truncation), -18 at 60% (exactly),
-    # clamped at -20 from 63.33%+ onward. The "-2 at 30%" description in
+    # clamped at -20 from ~63.34%+ onward. The "-2 at 30%" description in
     # earlier drafts was off by one integer bucket; integer truncation of
     # int((0.30 - 0.30) * 60) is 0, not -2.
     raw = int((share - 0.30) * 60)
@@ -875,7 +879,7 @@ Effect:
 - Returns 0 when no hegemon exists (bloc share < 30%).
 - Returns 0 when asker is outside the hegemon bloc — non-bloc nations don't carry the hegemony tax.
 - Returns 0 for intra-bloc proposals (France ↔ Bavaria when both are in French bloc).
-- Returns -2 to -20 negative on cross-bloc proposals from a hegemon-bloc nation, scaled by share.
+- Returns -1 to -20 negative on cross-bloc proposals from a hegemon-bloc nation once share rises above the 30% boundary, scaled by share.
 
 This single term replaces:
 - The 3-tier `direct_concern_mod` table (no per-pair lookup needed)
@@ -918,13 +922,13 @@ v2.4 removes the v2.3 `political_commitment_mod = max(-40, raw)` aggregation. Wi
 
 **With DG-4 (§8.8.9 `grievance_modifier` in code — B-B4 shipped):**
 
-A composite floor of `-60` applies when the grievance term is live. Rationale: §8.8.9 authors `grievance_modifier = -30 per active grievance` and grievances persist after their originating `+2` strikes decay (§8.8.4). Without a floor, three grievances alone reach `-90`; compounded with `hegemony_target_mod (-20)` and `bilateral_betrayal_mod (-18)` the raw score reaches `-128`. Hard-reject blocks most proposals before they hit this calculation, but the §8.7 survival-exception path lets a same-actor shared-enemy military-cooperation proposal through — with no floor, that path computes an unbounded negative score that makes the exception path decorative rather than playable.
+A composite floor of `-60` applies when the grievance term is live. Rationale: §8.8.9 authors `grievance_modifier = -30 per active grievance` and grievances persist after their originating `+2` strikes decay (§8.8.4). Without a floor, three grievances alone reach `-90`; compounded with `hegemony_target_mod (-20)` and `bilateral_betrayal_mod (-18)` the raw political subtotal reaches `-128`. With `reliability_modifier` also at its `-6` floor (§9.4), the full worst-case acceptance swing is `-134`. Hard-reject blocks most proposals before they hit this calculation, but the §8.7 survival-exception path lets a same-actor shared-enemy military-cooperation proposal through — with no floor, that path computes an unbounded negative score that makes the exception path decorative rather than playable.
 
-**Grievance stacking cap (per-pair):** `grievance_modifier` saturates at 3 active grievances per asker-target pair. Additional grievances beyond the third do not contribute further. Rationale: history never made a sixth betrayal score worse than the third — the political signal saturates well before the stack grows unbounded. With the cap, `grievance_modifier ∈ [-90, 0]` and the composite worst case is `-20 + -18 + -90 = -128` raw, clamped to `-60` by the floor. The grievance flag still surfaces in the ledger even above the stacking cap so the player sees "3+ grievances" distinctly.
+**Grievance stacking cap (per-pair):** `grievance_modifier` saturates at 3 active grievances per asker-target pair. Additional grievances beyond the third do not contribute further. Rationale: history never made a sixth betrayal score worse than the third — the political signal saturates well before the stack grows unbounded. With the cap, `grievance_modifier ∈ [-90, 0]` and the composite political worst case is `-20 + -18 + -90 = -128` raw, clamped to `-60` by the floor. The grievance flag still surfaces in the ledger even above the stacking cap so the player sees "3+ grievances" distinctly.
 
 **Floor exposure in debug / warnings:** when the composite floor clamps, the `components` dict retains the raw term values for legibility (so the player can see "hegemony -20, betrayal -18, grievance -90, composite floor applied at -60"); the floor appears as a synthetic `composite_floor` row rather than masking the originating terms.
 
-**Plan ordering (cross-slice constraint):** `RELIABILITY_IMPLEMENTATION_PLAN.md` must ship B-B4 (DG-4 grievance_modifier) together with or immediately before the floor is removed. Under no circumstance may B-B1-lite's no-floor collapse land in code while B-B4's `grievance_modifier` is already live — see plan Execution Order "Merge ordering" paragraph.
+**Plan ordering (cross-slice constraint):** `RELIABILITY_IMPLEMENTATION_PLAN.md` must ship B-B4 (DG-4 grievance_modifier) together with or immediately after B-B1-lite's no-floor collapse lands. Under no circumstance may B-B1-lite's no-floor collapse land in code while B-B4's `grievance_modifier` is already live — see plan Execution Order "Merge ordering" paragraph.
 
 ### 9.4 Reliability modifier (already shipped — narrowed in this phase)
 
@@ -1019,11 +1023,17 @@ No new hot-path per-region scans.
 
 Use:
 
-- per-turn cached `get_bloc_members(leader)` and `_calculate_hegemony_pressure(world)` — invalidate on treaty ratification, vassal change, war declaration, peace
+- per-turn cached `get_bloc_members(leader)` and `_calculate_hegemony_pressure(world)` — invalidate on treaty ratification, vassal change, war declaration, peace, and §8.8.7a same-turn alliance termination
 - direct pair-key reads on `betrayal_history`
 - targeted validation checks on key event hooks
 
 `_classify_witness_scope`'s shared-enemy loop is currently O(active_nations) per witness — fine at 5 nations, monitor at 19+.
+
+**Runtime contracts (must stay explicit):**
+
+- `WorldState._bloc_members_cache: Dict[str, Set[str]]` stores the per-turn cached leader → members mapping. `invalidate_bloc_members_cache()` is called from the same seams as `invalidate_active_nations_cache()`, plus the §8.8.7a same-turn alliance termination path.
+- Non-France hegemon telemetry uses `logging.getLogger("backend.game_logic.coalition")` at `INFO` level with the message format `[hegemony] non-France hegemon detected ({hegemon_nation} @ {share:.2f}); skipping add_threat (threat scalar France-targeted in v0.1)`. Rate-limit is once per turn per actor.
+- Named-diplomat render paths fail loud: `raise ValueError(f"loyalist register unsupported: {nation}/{personality}")` when a cast-nation `speaker="envoy"` path cannot resolve a supported register. Do not silently fall back to `system`.
 
 ---
 
@@ -1039,17 +1049,17 @@ Castlereagh has begun assembling subsidies. Berlin and Vienna are listening.
 Coalition pressure against France: Brewing (62/100) — qualifying: Britain, Austria, Prussia.
 ```
 
-Lines compose from current state — no authored copy table. The state machine has four compositional cases:
+Lines compose from current state — no authored copy table. The state machine has five compositional cases:
 
 - **Case 1 — No hegemon (max bloc share < 30%):** single standalone line.
   > *"Balance of Europe — no bloc commands decisive power. The continent remains in equilibrium."*
 
-  No coalition line follows (coalition brewing still possible from event-based threat; if active, its line appears below).
+  The equilibrium line is standalone. If coalition pressure is independently brewing from event-based threat, a BREWING line from Case 3 may still render below it; composable.
 
-- **Case 2 — Hegemon exists, no coalition:** two composed lines.
+- **Case 2 — Hegemon exists, no coalition:** one or two composed lines.
   > *"{Hegemon} leads with {share}% of Continental power."*
   >
-  > *"European courts have taken note, but no coordinated response has yet formed."* (present when `threat_level` ≥ 30 and < 40 — the Tension band per COALITION_SPEC §3a)
+  > *"European courts have taken note, but no coordinated response has yet formed."* (present when `30 <= threat_level < 60`; suppressed when `threat_level < 30`)
 
 - **Case 3 — Coalition BREWING (no leader yet per COALITION_SPEC §3-§4):** hegemon line + brewing line.
   > *"{Hegemon} leads with {share}% of Continental power."*
@@ -1064,6 +1074,11 @@ Lines compose from current state — no authored copy table. The state machine h
   > *"{Coalition leader's named diplomat} has begun assembling subsidies."*
   >
   > *"Coalition pressure against {hegemon}: {ladder_label} ({threat}/100) — {leader} leads."*
+
+- **Case 5 — Coalition COOLDOWN:** hegemon or equilibrium line + cooldown line.
+  > *"The last coalition has disbanded. Europe takes breath — no new coalition can form for {turns_remaining} turns."*
+
+  If `threat_level > 0`, append one residual-pressure flavor line below the cooldown line so lingering alarm stays visible without implying immediate reformation.
 
 **Composition rules:**
 
@@ -1152,7 +1167,7 @@ Campaign log metadata payload (shipped):
 
 Rendering rule: store the full metadata payload on the event record; render a compact one-line summary in the Campaign Log; deeper detail can be shown later through tooltip / expand affordances without changing the stored payload.
 
-The full felt-experience presentation (spotlight tier, split-voice, named diplomats, N+1 callbacks) lives in `COMMITMENTS_PRESENTATION_SPEC.md` (`C3-lite`).
+The full felt-experience presentation (named-diplomat CRITICAL/NORMAL notices, the dedicated paradox popup, and in-popup after-choice asides) lives in `COMMITMENTS_PRESENTATION_SPEC.md` (`C3-lite`).
 
 ---
 
@@ -1163,7 +1178,7 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
 - `diplomatic_reliability: Dict[str, int]` — nation-keyed shared global reputation scalar
 - `betrayal_history: Dict[str, Dict]` per §6.2
 - `next_episode_id: int` per §6.5
-- `alliance_paradox_popup: Optional[Dict]` (renamed `commitment_paradox_popup` in this phase; legacy field name kept for save-load back-compat)
+- `commitment_paradox_popup: Optional[Dict]` — canonical v2.4.3 field name for the renamed paradox popup; `alliance_paradox_popup` remains a load-side alias for save-load back-compat
 
 ### 12.2 To add this phase (v2.4)
 
@@ -1177,6 +1192,7 @@ The full felt-experience presentation (spotlight tier, split-voice, named diplom
 **v2.4 added (no new fields — pure helpers):**
 
 - `world.get_bloc_members(leader: str) -> List[str]` — per-turn cached, derived from existing vassal + treaty state
+- `WorldState._bloc_members_cache: Dict[str, Set[str]]` — leader → members cache backing `get_bloc_members`
 - `power_score(nation: str, world) -> int` — derived from existing region count + scenario `power_tier`
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — pure function over current state
 
@@ -1242,7 +1258,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1. Ships with this phase:
 
 **v2.4 cuts:**
 
-- ❌ Spotlight tier elevated card variant on notification rail — three events do not justify the infra; route through existing notification system with named-diplomat copy doing the dramatic lift
+- ❌ Elevated card variant on the notification rail — three events do not justify the infra; route through existing notification system with named-diplomat copy doing the dramatic lift
 - ❌ Split-voice render `attributed_lines[]` on popup scene — single-voice with named-diplomat attribution is enough at 5-nation scale
 - ❌ N+1 Talleyrand aside callback — defer to later presentation pass if playtest shows the gap
 
@@ -1391,7 +1407,7 @@ For Memory and Pressure v2.4:
 - **Add the Balance of Europe headline** (§11.1) — three dynamically composed lines at the top of the Diplomatic Ledger naming the hegemon, share, and coalition leader.
 - **Rename `alliance_paradox` → `commitment_paradox`** (B-B3, unchanged from v2.3).
 - **Ship Make Amends** (B-B7, unchanged from v2.1/v2.3) — France's deliberate repair gesture.
-- **Trim Slice C** to named-diplomat resolution + paradox popup + committed prose for three events. Cut spotlight-tier card variant + split-voice render infra.
+- **Trim Slice C** to named-diplomat resolution + paradox popup + committed prose for three events. Cut the elevated rail-card variant + split-voice render infra.
 - **Defer war bargains** to `WAR_BARGAIN_SPEC.md` (unchanged).
 - **Keep §8.8 DG-4 work as-is** (unchanged) — orthogonal to the balance refactor.
 
@@ -1413,7 +1429,7 @@ That is enough to make diplomacy feel like Napoleonic balance-of-power politics,
   - **§8.8.4 — grievance removal path.** Updated to reference §8.6.1a as the authoritative variant. Added grievance stacking cap (3 per pair for acceptance-formula input; underlying ledger surfaces "4+ grievances" distinctly). (Audit A4.)
   - **§8.8.7a — existing-alliance consequence of defensive refusal.** New sub-section. On `call_to_arms_refused_defensive`, the existing `ALLIANCE` / `DEFENSIVE_ALLIANCE` between refuser and victim **terminates** (downgrades to `PEACE`). Bloc membership recomputes same-turn; hegemony pressure recomputes next turn. `anti_renewal_cooldown` (§8.8.7) then gates re-ratification. Resolves the ambiguity about bloc-share semantics after refusal (historical precedent: Prussia 1795 / Russia pre-Tilsit 1807). (Audit A9 — MAJOR.)
   - **§8.8 — top-level graduation note.** Added structural-note that §8.8 (currently fifteen sub-sections) will graduate to its own top-level section when B-B4 ships, with a renumber of current §9+. Deferred to the B-B4 merge to avoid in-flight revision churn. (Audit C2.)
-  - **§9.1 — `hegemony_target_mod` comment.** Corrected misleading *"Linear scaling from -2 at 30% to -20 at 60%+"* to *"0 at 30%, -18 at 60% exactly, clamped at -20 from 63.33%+ onward"* — matches the integer truncation semantics the code implements. (Audit B4.)
+  - **§9.1 — `hegemony_target_mod` comment.** Corrected misleading *"Linear scaling from -2 at 30% to -20 at 60%+"* to *"0 at 30%, -18 at 60% exactly, clamped at -20 from ~63.34%+ onward"* — matches the integer truncation semantics the code implements. (Audit B4.)
   - **§9.2 — `bilateral_betrayal_mod` comment.** Corrected the misleading *"natural cap at -18 because 3 strikes triggers hard-reject"* — hard-reject blocks most proposals but does NOT cap strike accumulation. Survival-exception proposals (§8.7) with 4+ strikes compute -24+. Added explicit rules entry for above-3-strikes behavior. (Audit B5.)
   - **§9.3 — composite floor reintroduced conditionally.** The v2.4 "no composite floor needed" claim was broken by §8.8.9's stackable `grievance_modifier` (three grievances alone reach -90). §9.3 now has two clauses: *pre-DG-4* (no floor — only terms are hegemony -20 and betrayal -18), and *with DG-4* (composite floor -60 applies, grievance stacking caps at 3 per pair). Added plan-ordering callout to `RELIABILITY_IMPLEMENTATION_PLAN.md`. (Audit A2 — CRITICAL.)
   - **§11.1 — Balance of Europe state machine.** Specified four composition cases: no hegemon (equilibrium line), hegemon without coalition, coalition BREWING (no leader yet per COALITION_SPEC §3-§4), coalition DECLARED. Fixes the prior example's assumption that brewing has a named leader. (Audit A12, B6.)
@@ -1439,7 +1455,7 @@ That is enough to make diplomacy feel like Napoleonic balance-of-power politics,
   - **§10.2, §10.3, §10.5, §11.2, §11.4, §15 Gate 1 — concern prose sweep.** Cleaned up residual "high-concern nations" / "concern about" / "cached concern lookups" / "active concerns" / "View all concerns" / "concern escalation (Prussia-Saxony triggers)" phrasing and the composite `political_commitment_mod` resolution text.
   - **§14 — new risks.** Added R7 (no passive reliability recovery after B-B6 cancel) and R8 (one-turn delay on third-party reaction after B-B2a-fill cancel), each with mitigation options.
 - **April 19, 2026 — v2.4.1 Clarification pass.** Added §7.8 "Relationship to Coalition Formation" — explicit two-layer distinction, state comparison table, historical 1805 Third Coalition example, three-state classification of non-bloc nations (neutral observer / alarmed neutral / belligerent), key playtest implication that peaceful hegemons can still trigger coalition formation through passive pressure. Added §9.5 "Gameplay scaling — France's alliance-building capacity" — illustrative share table showing France can still ally 1-2 minor powers freely, face mild friction at 3, real friction at 4+, structural rarity at 5+; documents the two escape valves (bandwagoning TO France is free, intra-bloc proposals are free); playtest gates for the ladder values. No mechanical changes — pure documentation fills gaps identified in a design-review conversation that would otherwise leave auditors and implementers deriving the answers themselves.
-- **April 19, 2026 — v2.4 Hegemony refactor.** Replaced the static 4-pair `nation_concerns` seed with a per-turn `_calculate_hegemony_pressure(world)` engine that reads bloc shares dynamically (the §7.7 "target architecture" becomes v0.1, no transitional static layer). Renamed §7 from "Concern System" to "Hegemony Pressure System". §9 acceptance formula collapsed: `direct_concern_mod` + `concern_conflict_mod` + composite `political_commitment_mod` floor → single `hegemony_target_mod`. `bilateral_betrayal_mod` simplified to `-6 per active strike` flat (cap removed; hard-reject at 3 still gates the door). §6.3 deleted `nation_concerns` field. §10.1 AI `decision_reason`: `concern_pressure` → `hegemony_pressure` (legacy alias on read). §11.1 added Balance of Europe headline (dynamically composed three-line summary at top of Diplomatic Ledger). §11.2 warning category `concern` → `hegemony` (legacy alias on read). §12 data model: removed `nation_concerns` and `actor_honored_turns` from this-phase ship list. §13 Slice B rewritten: cancelled B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick); added B-Hegemony slice (~12 tests); B-B1 collapsed to B-B1-lite (~6 tests); B-B3 and B-B7 unchanged. §13 Slice C trimmed: cut spotlight-tier elevated card variant + split-voice render + N+1 aside; kept named-diplomat resolution + paradox popup + committed prose for three live events. §14 risks rewritten around hegemony engine. §16 recommendation rewritten. §8.8 DG-4 amendment unchanged (orthogonal). All shipped substrate (`betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata) unchanged. Test budget: ~35-42 tests, 1 session (down from v2.3 ~68-74 / 3 sessions). Companion docs: `RELIABILITY_IMPLEMENTATION_PLAN.md` rewritten in parallel; `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 will trim the cut Slice C items.
+- **April 19, 2026 — v2.4 Hegemony refactor.** Replaced the static 4-pair `nation_concerns` seed with a per-turn `_calculate_hegemony_pressure(world)` engine that reads bloc shares dynamically (the §7.7 "target architecture" becomes v0.1, no transitional static layer). Renamed §7 from "Concern System" to "Hegemony Pressure System". §9 acceptance formula collapsed: `direct_concern_mod` + `concern_conflict_mod` + composite `political_commitment_mod` floor → single `hegemony_target_mod`. `bilateral_betrayal_mod` simplified to `-6 per active strike` flat (cap removed; hard-reject at 3 still gates the door). §6.3 deleted `nation_concerns` field. §10.1 AI `decision_reason`: `concern_pressure` → `hegemony_pressure` (legacy alias on read). §11.1 added Balance of Europe headline (dynamically composed three-line summary at top of Diplomatic Ledger). §11.2 warning category `concern` → `hegemony` (legacy alias on read). §12 data model: removed `nation_concerns` and `actor_honored_turns` from this-phase ship list. §13 Slice B rewritten: cancelled B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick); added B-Hegemony slice (~12 tests); B-B1 collapsed to B-B1-lite (~6 tests); B-B3 and B-B7 unchanged. §13 Slice C trimmed: cut the elevated rail-card variant + split-voice render + N+1 aside; kept named-diplomat resolution + paradox popup + committed prose for three live events. §14 risks rewritten around hegemony engine. §16 recommendation rewritten. §8.8 DG-4 amendment unchanged (orthogonal). All shipped substrate (`betrayal_history`, `next_episode_id`, `commitment_event_metadata`, witness scoping, hard-reject posture, structured `warnings[]`, cascade metadata) unchanged. Test budget: ~35-42 tests, 1 session (down from v2.3 ~68-74 / 3 sessions). Companion docs: `RELIABILITY_IMPLEMENTATION_PLAN.md` rewritten in parallel; `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 will trim the cut Slice C items.
 - **April 17, 2026 — v2.3 DG-4 call-to-arms amendment absorbed.** Added §8.8 specifying three new episode types (`call_to_arms_refused_offensive`, `call_to_arms_refused_defensive`, `call_to_arms_honored_costly`) that implement the SCALE_READINESS_PLAN §DG-4 Amendment. Defensive refusal gets wider witness scope (`treaty_partner_of_breaker`), victim-grade permanent grievance flag (Make Amends-removable only), oathbreaker posture parallel to hard-reject, anti-renewal cooldown, and a new `grievance_modifier` acceptance-formula term. Positive episode `call_to_arms_honored_costly` is the first concrete §8.5 faithful-play trigger. New audit-trail artifact `war_entry_ledger` in campaign log. New scenario authoring scalar `honor_bias`. New implementation slice B-B4 flagged for `RELIABILITY_IMPLEMENTATION_PLAN.md` (~25 tests). Deferred: sequential inter-ally signaling, vassal refusal path, defender-tier severity weighting, Jealousy v3.1 integration.
 - **April 16, 2026 — v2.2 audit fixes + scale architecture.** Renamed "rivalry" → "concern" throughout (field: `nation_concerns`) to align with target balance-of-power architecture where bilateral friction is dynamic, not static labels (§7 terminology note). Fixed seeded-pair count from 3 → 4 (stale after v2.1 added France↔Austria). Tightened redemption tick (§8.6) to require `OPEN_BORDERS` or above — `PEACE` alone no longer qualifies as active commitment. Clarified "deep treaties" = `DEFENSIVE_ALLIANCE` + `ALLIANCE` + `VASSAL` (§7.3). Added auto-downgrade rule: concern intensity drops `active` → `cold` when the concern pair reaches `DEFENSIVE_ALLIANCE` or above (§7.1). Added §7.7 Scale Architecture Note documenting the target dynamic-concern system for full Europe and listing what breaks at 15+ nations. Acceptance formula modifiers renamed: `direct_rivalry_mod` → `direct_concern_mod`, `rival_conflict_mod` → `concern_conflict_mod`. AI decision_reason enum: `rival_pressure` → `concern_pressure`. Warning category: `rivalry` → `concern`.
 - **April 16, 2026 — v2.1 creative-audit folds.** §3 Goal 1 rewritten to own the "forced political tradeoff" framing (previously read as apologetic pressure-without-promise). §7.1 seeded France↔Austria as `secondary + active` to match the 1805 Third Coalition setting (previously absent on the claim Austria was a "swing partner"; creative audit flagged that framing as a period misread). §7.4.C flagged Britain-anti-continental-hegemon as the #1 historical-texture debt for D2 Coalition Generalization scope. §8.6.1 added **Make Amends** active-redemption verb — the v0.1 fun/agency lever that closes the passive-redemption gap (200g + 1 DP → remove 1 strike, 10-turn cooldown per pair, France-only actor in v0.1). §12.2 added `reparations_cooldown` field. §13 Slice B added B-B7 (Make Amends). Test budget bumped from ~60-66 to ~68-74 tests; session count unchanged at ~3.

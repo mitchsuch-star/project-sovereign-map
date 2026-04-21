@@ -9,15 +9,15 @@ A future save/load system should use this as the specification.
 
 ## Version
 
-- **Format version:** 1.0
-- **Last updated:** 2026-03-08
-- **Compatible with:** Phase 4 Commands/QoL/Popups + Diplomacy Button Session A
+- **Format version:** 1.1
+- **Last updated:** 2026-04-20
+- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`) + Diplomacy Button Session A
 
 ## Top-Level Structure (WorldState)
 
 ```json
 {
-  "format_version": "1.0",
+  "format_version": "1.1",
 
   "player_nation": "France",
   "current_turn": 1,
@@ -104,9 +104,13 @@ A future save/load system should use this as the specification.
 
   "casus_belli": {},
   "ultimatum_global_cooldown": 0,
-  "diplomatic_reliability": {},
+  "diplomatic_reliability": {"France": 0, "Britain": -10},
+  "betrayal_history": {},
+  "next_episode_id": 1,
   "diplomatic_history": [],
-  "alliance_paradox_popup": null,
+  "commitment_paradox_popup": null,
+  "reparations_cooldown": {},
+  // legacy alias: "alliance_paradox_popup" is accepted on load and migrated to "commitment_paradox_popup"
 
   "active_battles": {},
   "battle_history": [],
@@ -143,7 +147,7 @@ A future save/load system should use this as the specification.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `format_version` | string | "1.0" | Save format version for compatibility |
+| `format_version` | string | "1.1" | Save format version for compatibility |
 | `player_nation` | string | "France" | Nation controlled by player |
 | `current_turn` | int | 1 | Current turn number |
 | `max_turns` | int | 40 | Maximum turns before game ends |
@@ -187,7 +191,7 @@ A future save/load system should use this as the specification.
 | `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |
-| `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal. **Session 2 follow-up:** Mailbox items now carry `mailbox_id`, `mailbox_order`, `mailbox_priority` metadata. `next_mailbox_id` (int, default 1) tracks the monotonic ID sequence. Legacy items without `mailbox_id` are auto-stamped on load. |
+| `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: `commitment_paradox` > `vassal_rebellion` > `sabotage` > `ai_proposal` (legacy `alliance_paradox` loads as `commitment_paradox`). **Session 2 follow-up:** Mailbox items now carry `mailbox_id`, `mailbox_order`, `mailbox_priority` metadata. `next_mailbox_id` (int, default 1) tracks the monotonic ID sequence. Legacy items without `mailbox_id` are auto-stamped on load. |
 | `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. UNDERMINE_ALLIANCE adds `target_ally`. |
 | `intel_grants` | dict | {} | **BF4.** Temporary intel grants from GATHER_INTEL: {region_name: expiry_turn}. Prevents decay while active. |
 | `talleyrand_state` | str | "IDLE" | **Session 3.** "IDLE", "IN_TRANSIT", or "ON_MISSION". |
@@ -221,9 +225,12 @@ A future save/load system should use this as the specification.
 | `war_start_turns` | Dict[str, int] | {} | **R142.** diplo_key → turn war began (R142 war weariness tracking). Cleared by `cleanup_war_end()`. |
 | `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
 | `ultimatum_global_cooldown` | int | 0 | **PL-14 Session 12.** Global ultimatum cooldown (replaces per-target dict). Blocks all ultimatums while > 0. Starts at 5 on use, decremented in `advance_turn()`. Migration: if old `ultimatum_cooldowns` dict exists and new field absent, takes `max()` of old dict values. |
-| `diplomatic_reliability` | dict | {} | **Phase 4.** Diplomatic reliability score per nation-pair. Keys: diplo_key. Values: int. +5 per 10-turn honored treaty, -10 per treaty break. Affects acceptance formula (capped +/-10). |
+| `diplomatic_reliability` | dict | {} | **Memory and Pressure v2.4.3.** Diplomatic reliability score per nation. Keys: nation name. Values: int. Read as a light global reputation scalar (`// 10`, capped `-6..+6`) rather than a per-pair ledger. Legacy v1.0 saves may still carry diplo-keyed values; load-side migration normalizes them to the nation-keyed shape. |
+| `betrayal_history` | dict | {} | **Memory and Pressure.** Pair-keyed betrayal memory store tracking active strikes, grievance flags, witness scoping, and episode lineage. Keys: pair IDs. Values: structured per-pair history records. |
+| `next_episode_id` | int | 1 | **Memory and Pressure.** Monotonic allocator for commitment / betrayal episode lineage. Missing-field default is `1`. |
 | `diplomatic_history` | list | [] | **Phase 4.** Diplomatic event log (max 20 entries). Each entry: `{type, from_nation, to_nation, turn, details?}`. Types: "proposal", "war_declaration", "treaty_break", "ultimatum_accepted", "ultimatum_rejected". Displayed in Talleyrand tab. |
-| `alliance_paradox_popup` | dict\|null | null | **Phase 4.** Pending alliance paradox popup. Set when AI attack creates allied-with-both conflict. Keys: aggressor, defender, ally. Cleared after read. |
+| `commitment_paradox_popup` | dict\|null | null | **Memory and Pressure v2.4.3.** Pending paradox popup for the renamed `commitment_paradox` hard stop. Legacy `alliance_paradox_popup` remains accepted on load and is migrated to this canonical field. |
+| `reparations_cooldown` | dict | {} | **Planned (B-B7).** Pair-key -> turn number at which Make Amends becomes available again. Shared by standard and grievance-variant Make Amends once those slices land. |
 | `coalition_popup` | dict\|null | null | **Session 8A.** Pending coalition popup data for Godot frontend. Set by coalition formation, cleared after read in /command response. |
 | `diplomatic_sabotage_popup` | dict\|null | null | **Session 8A.** Pending Talleyrand sabotage popup data. Set by sabotage discovery, cleared after read in /command response. |
 | `vassal_rebellion_imminent_popup` | dict\|null | null | **Session 8A.** Current vassal rebellion warning popup (popped from list). Set by loyalty check, cleared after read in /command response. |
@@ -871,8 +878,8 @@ Suggested file structure for actual save/load:
 ```json
 {
   "metadata": {
-    "format_version": "1.0",
-    "game_version": "0.5.2",
+    "format_version": "1.1",
+    "game_version": "0.8.0-dev",
     "saved_at": "2026-01-28T12:34:56Z",
     "save_name": "Campaign Turn 15",
     "playtime_seconds": 3600

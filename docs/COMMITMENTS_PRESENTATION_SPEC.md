@@ -4,7 +4,7 @@
 > **Date:** April 20, 2026 (v0.5.1 — non-normative bulk trimmed); April 19, 2026 (v0.5 — v2.4 hegemony alignment); April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
 > **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
 > **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (hegemony engine + Balance of Europe headline + paradox rename + deep-audit fixes), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
-> **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain spotlights, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
+> **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain showpiece beats, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
 
 ---
 
@@ -17,21 +17,21 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Named-diplomat resolution helper** — `speaker="envoy"` resolves to the nation's named diplomat per Voice Bible; `speaker="foreign_office"` resolves to "The Chancery of {nation}". §10.3 is authoritative.
 - ✓ **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (`end_reason_family=french_breach`), `commitment_paradox_resolved`. §12 worked examples remain authoritative.
 - ✓ **Dedicated `commitment_paradox_popup.{tscn,gd}` surface** — replaces legacy `alliance_paradox_popup` for the renamed type. All three paradox beats (framing → blocking body → after-choice aside) render in the popup itself.
-- ✓ **Balance of Europe headline** — four composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader). Rendering lives in `diplomatic_ledger.gd`.
+- ✓ **Balance of Europe headline** — five composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN). Rendering lives in `diplomatic_ledger.gd`.
 - ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1.
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
 
-- ❌ **Spotlight tier** on notification rail (§7.2, §8.2, §8.3)
+- ❌ **Elevated rail tier** on notification rail (§7.2, §8.2, §8.3)
 - ❌ **Split-voice render** (`attributed_lines[]`, typographic contract, reveal cadence) at §9.1
 - ❌ **N+1 Talleyrand aside callback** keyed by `episode_id` on breach and hard-reject (§9.4)
 - ❌ **A1-fill, A2 fill, B2a-fill, B6** upstream dependencies (all cancelled in v2.4)
 
 **Reading order:** sections below are normative except for the dated historical notes and changelog entries. Prior v0.3/v0.4 content that was non-normative has been removed from the live contract rather than disclaimed in place. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
 
-**Estimated tests:** ~12-14 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the four state cases).
+**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the full state machine).
 
 ---
 
@@ -43,15 +43,15 @@ The rescope:
 
 1. **War bargain presentation moves to `WAR_BARGAIN_SPEC.md` slice WB-D**, where it lands when the bargain mechanic itself ships in the Peace Deals phase.
 2. **`C3a` + `C3b` collapse into one `C3-lite` slice** that ships alongside the rest of `Memory and Pressure`.
-3. **Three live events get the full spotlight + split-voice + named-diplomat treatment**: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (where `end_reason_family = french_breach`), and `commitment_paradox_resolved`.
-4. **Paradox §12.5 staging simplifies from 5 beats to 3 beats** — Talleyrand framing → blocking body → spurned-envoy + Talleyrand after-choice. The five-beat scene with envoys from both spurned nations speaking before Talleyrand requires bargains-driven multi-conflict ratification (which doesn't exist in v0.1) to feel justified.
+3. **Three live events get the full named-diplomat treatment on existing surfaces**: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (where `end_reason_family = french_breach`), and `commitment_paradox_resolved`.
+4. **Paradox §12.3 staging simplifies from 5 beats to 3 beats** — Talleyrand framing → blocking body → spurned-envoy + Talleyrand after-choice. The five-beat scene with envoys from both spurned nations speaking before Talleyrand requires bargains-driven multi-conflict ratification (which doesn't exist in v0.1) to feel justified.
 5. **Reactive affordances cut to advisory routes only**. Response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`) move to WB-D — they depend on bargain templates and on proposal_options seed defaults that don't exist yet.
 6. **N+5 fallback grievance slot cut** as edge-case polish.
-7. **Overflow spotlight digest cut** — multi-spotlight turns are rare on the 5-nation map; revisit if playtest shows the cap is starving climactic turns.
+7. **Overflow emphasis digest cut** — multi-climax turns are rare on the 5-nation map; revisit if playtest shows the cap is starving climactic turns.
 
 **Preserved from v0.2 (the flavor that matters):**
 
-- Spotlight tier on the notification rail (elevated card, 2-turn persist, action buttons)
+- Elevated fourth-tier rail card on the notification bar (2-turn persist, action buttons)
 - Split-voice render (`attributed_lines[]` with `lead` / `witness` / `aside` regions)
 - Typographic + cadence contract for split-voice (§9.1)
 - Named-diplomat resolution mandatory for `envoy` and `foreign_office` per Voice Bible (§10.3)
@@ -115,7 +115,7 @@ What this is **not**:
 
 ### P2. Existing surfaces are not commitments-aware
 
-Notification rail has three priority tiers rendered as identical 38×28 icons with color rings. There is no spotlight tier. Popup scenes have one text region. There is no split-voice render.
+Notification rail has three priority tiers rendered as identical 38×28 icons with color rings. There is no elevated fourth tier. Popup scenes have one text region. There is no split-voice render.
 
 ### P3. The named cast is benched at the critical beats
 
@@ -176,7 +176,7 @@ Golden rules:
 
 ## 7. Presentation Model
 
-This pass uses existing surfaces only: blocking popups, CRITICAL/NORMAL notices, and the durable ledger / campaign log reference layer. There is no new spotlight tier in v0.5.1.
+This pass uses existing surfaces only: blocking popups, CRITICAL/NORMAL notices, and the durable ledger / campaign log reference layer. There is no new elevated rail tier in v0.5.1.
 
 ### 7.1 Blocking hard-stop
 
@@ -209,19 +209,28 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 ## 8. Event Routing
 
-### 8.1 Core event table (v0.5.1 ship list)
+### 8.1 Routing join-table (v0.5.1 ship list)
 
-| Event | Primary surface | Supporting surfaces | Notes |
-|------|------------------|---------------------|-------|
-| `commitment_paradox` | blocking hard-stop | ledger, campaign log, required after-choice aside | Renamed in B3. Three-beat staged scene per §12.5; the after-choice aside renders inside the popup, not as a later callback. |
-| `balance_of_europe_shifted` | NORMAL notice | ledger headline, campaign log | Same-turn hegemony threshold beat at 33% / 50% / 60%. Must fire before coalition declaration can become the player's first clue, using a named diplomat when `speaker_nation` resolves or a chancery fallback otherwise. Include the `counterplay_hint` from `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3. |
-| `amends_offered` | persistent notice | ledger, campaign log | Standard and grievance-variant repair gestures both route here. The target court's named diplomat leads the acknowledgment so apology reads as politics, not bookkeeping. |
-| `hard_reject_posture_triggered` | CRITICAL notice | ledger, campaign log | Door-closing moment. Voice = `foreign_office` resolved to "The Chancery of {nation}" with register from that nation's named diplomat. |
-| `diplomatic_treaty_broken` (where `end_reason_family=french_breach`) | CRITICAL notice | ledger, campaign log | Sharpest negative payoff in the live engine. Single-voice notice led by the injured party's named diplomat. |
-| `commitment_paradox_resolved` | persistent notice (reinforced by after-choice aside in §7.1 surface) | ledger, campaign log | Reinforces closure of the paradox. The paradox popup itself is the dramatic peak; no later spotlight/callback follows. |
-| `hard_reject_posture_cleared` | persistent notice | ledger, campaign log | Reopening should feel like cool-down, not its own spotlight. |
-| `witness_strike_recorded` | persistent notice | ledger, campaign log | Default route for ordinary witness fallout. |
-| `diplomatic_treaty_broken` (other end_reason families) | persistent notice | ledger, campaign log | Cascade ruptures don't get CRITICAL treatment — France isn't at fault. |
+| Event family | Priority | Icon key | Player label | Template key | Speaker resolver | Review target |
+|------|------|------|------|------|------|------|
+| `commitment_paradox` | `HARD_STOP` (popup) | `icon_paradox` | Conflicting Oaths | `commitments_notice_paradox` | `talleyrand` | `ledger_commitments` |
+| `balance_of_europe_shifted` | `NORMAL` | `icon_balance_of_europe` | Balance of Europe Shifts | `commitments_notice_balance_of_europe_shifted` | `envoy` -> named diplomat for `speaker_nation`, else `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
+| `amends_offered` | `NORMAL` | `icon_amends_offered` | Amends Offered | `commitments_notice_amends_offered` | `envoy` -> target court's named diplomat | `Open Ledger` |
+| `hard_reject_posture_triggered` | `CRITICAL` | `icon_hard_reject` | The Chancery Shut | `commitments_notice_hard_reject_triggered` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
+| `hard_reject_posture_cleared` | `NORMAL` | `icon_chancery_reopened` | The Chancery Reopens | `commitments_notice_hard_reject_cleared` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
+| `diplomatic_treaty_broken` (`french_breach`) | `CRITICAL` | `icon_treaty_broken` | Word Broken | `commitments_notice_breach_french` | `envoy` -> injured party's named diplomat | `Review the broken treaty` |
+| `diplomatic_treaty_broken` (other families) | `NORMAL` | `icon_treaty_dragged` | Treaty Dragged Apart | `commitments_notice_breach_other` | `foreign_office` -> context nation | `Open Ledger` |
+| `commitment_paradox_resolved` | `NORMAL` | `icon_paradox_resolved` | The Wound Chosen | `commitments_notice_paradox_resolved` | `talleyrand` (notice) / `system` (campaign log) | — |
+| `witness_strike_recorded` | `NORMAL` | `icon_witness_strike` | Europe Is Aware | `commitments_notice_witness_strike` | `system` / `foreign_office` per scope | — |
+| `call_to_arms_refused_offensive` | `CRITICAL` | `icon_call_refused_offensive` | Pact Dishonoured | `commitments_notice_call_refused_offensive` | `envoy` -> victim's diplomat | `Open Ledger` |
+| `call_to_arms_refused_defensive` | `CRITICAL` | `icon_call_refused_defensive` | Ally Abandoned | `commitments_notice_call_refused_defensive` | `envoy` -> victim's diplomat | `Open Ledger` |
+| `call_to_arms_honored_costly` | `CRITICAL` | `icon_call_honored_costly` | Oath Kept | `commitments_notice_call_honored_costly` | `foreign_office` -> `The Chancery of France` | `Open Ledger` |
+
+Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
+
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue.
+
+Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
 **Bargain events routed to WB-D:**
 
@@ -280,21 +289,9 @@ Each commitments notice should show:
 
 Notice cards should be concise enough that three of them do not feel like a second dispatch.
 
-#### Icon and label contract (v0.3 — only live events)
+#### Icon and label contract
 
-`notification_bar.gd` `TYPE_ICONS` extended with commitments types. Icon keys are proposed names; actual art is commissioned later.
-
-Player-facing labels use period vocabulary. Internal `event_type` values remain unchanged.
-
-| Event type | Icon key | Player-facing label |
-|-----------|---------|---------------|
-| `diplomatic_treaty_broken` (french_breach) | `icon_treaty_broken` | Word Broken |
-| `diplomatic_treaty_broken` (other families) | `icon_treaty_dragged` | Treaty Dragged Apart / Articles Lapsed |
-| `hard_reject_posture_triggered` | `icon_hard_reject` | The Chancery Shut |
-| `hard_reject_posture_cleared` | `icon_chancery_reopened` | The Chancery Reopens |
-| `commitment_paradox` | `icon_paradox` | Conflicting Oaths |
-| `commitment_paradox_resolved` | `icon_paradox_resolved` | The Wound Chosen |
-| `witness_strike_recorded` | `icon_witness_strike` | Europe Is Aware |
+`notification_bar.gd` `TYPE_ICONS`, player-facing labels, and review-action captions derive from the §8.1 routing join-table. Reuse those strings directly rather than restating a second copy here.
 
 Bargain icons (`Word Kept`, `Articles Agreed`, `The Pledge Comes Due`, etc.) are deferred to WB-D.
 
@@ -304,13 +301,9 @@ Each commitments event maps to a `backend/notifications.py` priority tier. CRITI
 
 | Event type | Priority tier |
 |-----------|---------------|
-| `commitment_paradox` | CRITICAL |
-| `diplomatic_treaty_broken` (french_breach) | CRITICAL |
-| `hard_reject_posture_triggered` | CRITICAL |
-| `commitment_paradox_resolved` | NORMAL |
-| `diplomatic_treaty_broken` (other families) | NORMAL |
-| `hard_reject_posture_cleared` | NORMAL |
-| `witness_strike_recorded` | NORMAL |
+| all `CRITICAL` / `NORMAL` commitments events | derive from §8.1 join-table |
+
+Commitments events use `CRITICAL` or `NORMAL` only. `HIGH` tier (used elsewhere for events like `MARSHAL_DEFIED_ORDER`) is intentionally not used in this pass.
 
 ### 9.3 Ledger emphasis
 
@@ -324,7 +317,7 @@ Recommended emphasis rules:
 
 **Badge data source:** recent-breach badges derive from `backend/campaign_log.py` entries where `turn >= current_turn - 3` and `event_type == "diplomatic_treaty_broken"` with `end_reason_family == "french_breach"`. The closed-door marker reads from `has_hard_reject_posture(world, France, nation)` — not from log scanning.
 
-**Review target routing:** the `review_target: "ledger_commitments"` action routes to the existing **Treaties** tab of the Diplomatic Ledger with a memory-and-pressure section filter applied. A dedicated commitments sub-tab is **out of scope** for v0.3.
+**Review target routing:** the `review_target: "ledger_commitments"` action routes to the existing **Treaties** tab of the Diplomatic Ledger with a memory-and-pressure section filter applied. A dedicated commitments sub-tab is **out of scope** for v0.5.1.
 
 (Recent-success / fulfillment badges deferred to WB-D — they need bargain fulfillment events that don't fire yet.)
 
@@ -374,13 +367,13 @@ The five bargain types (`bargain_ratified`, `bargain_triggered`, `bargain_fulfil
 
 Mock mode must remain fully authoritative.
 
-Every commitments event that receives spotlight or notice treatment has:
+Every commitments event that receives blocking-popup or notice treatment has:
 
 - a deterministic headline template
 - a deterministic body template
 - slot values pulled from structured payloads
 
-For v0.3 (mandatory committed templates):
+For v0.5.1 (mandatory committed templates):
 
 - `commitment_paradox` framing, blocking body, after-choice aside
 - `hard_reject_posture_triggered` (with named-diplomat resolution)
@@ -413,19 +406,17 @@ Talleyrand is **not** the default speaker for every important commitments moment
 
 **Named-diplomat resolution (mandatory for envoy / foreign_office).** Abstract speaker roles are routing hints, not render values. At render time:
 
-- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh — the v0.1 cast from `diplomat.py`) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`. Hawk registers are blunt and prideful. Schemer registers are cold and calculating. Dove registers are wounded and bewildered.
-- `speaker="foreign_office"` MUST render as "The Chancery of {nation}" — never as the generic string "foreign_office". Register derives from that nation's dominant diplomat's personality.
-- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or spotlight surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word "system" must never reach the player.
-- **Loyalist fallback.** `backend/models/diplomat.py` permits a fourth personality value `loyalist` with no `DIPLOMAT_VOICE_BIBLE.md` entry. The v0.1 cast (Talleyrand / Castlereagh / Hardenberg / Metternich / Einsiedel) is schemer/hawk/dove only, so this is latent, not a current bug. If a future diplomat (new scenario, mod content) uses `loyalist`, the resolver MUST fail loudly (assert or explicit warning) rather than silently rendering unkeyed — pick a default register only after the Voice Bible adds a loyalist entry or a modding author supplies one.
+- `speaker="envoy"` MUST resolve to the named diplomat of the nation in context (Hardenberg, Metternich, Einsiedel, Castlereagh — the v0.1 cast from `diplomat.py`) and render with that diplomat's personality register per `DIPLOMAT_VOICE_BIBLE.md`.
+- If a cast-nation `speaker="envoy"` path cannot resolve a supported register, raise `ValueError(f"loyalist register unsupported: {nation}/{personality}")` rather than silently falling back to `system`.
+- `speaker="foreign_office"` MUST render as `The Chancery of {nation}` — never as the generic string `foreign_office`. Register derives from that nation's dominant diplomat's personality.
+- `speaker="system"` is reserved for campaign-log summaries ONLY. On any rail or notice surface, `system` is disallowed — route to `foreign_office` or a named observer instead. The word `system` must never reach the player.
+- v0.1 scope assumes the 5-nation roster (France, Britain, Austria, Prussia, Saxony). If a future event targets a non-cast nation, render falls back to `foreign_office` -> `The Chancery of {nation}` with no personality register until the cast expands. The fail-loud `ValueError` fires only for the cast-nation `speaker="envoy"` path; it does not fire on this non-cast fallback.
 
-For each breach lead-line template committed in §12.2, the mock template library should ship at least one register variant per nation that can be a victim of French breach. **v0.3 minimum cast coverage:**
+**Minimum live cast coverage.** `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage is authoritative for v0.5.1. The old v0.3 four-line minimum is retired. Live coverage now includes:
 
-- Prussia (Hardenberg, Hawk) — breach lead-line + hard-reject Chancery line
-- Austria (Metternich, Schemer) — breach lead-line
-- Saxony (Einsiedel, Dove) — breach lead-line
-- Britain (Castlereagh, Hawk) — hard-reject Chancery line (Britain rarely receives a French breach since France-Britain is a primary concern and rarely deepens)
-
-The previous v0.2 nine-line cast coverage requirement (3 nations × 3 personality registers) was sized for bargain breach scenarios. v0.3 minimum is **4 lines** (one per nation likely to be wronged in this phase).
+- breach / hard-reject lead lines for the named foreign cast
+- `balance_of_europe_shifted` warning families for Castlereagh, Hardenberg, Metternich, and Einsiedel (`noticed` / `alarming` / `crisis`)
+- `amends_offered` acknowledgment lines for the same four foreign courts
 
 ### 10.4 Witness scope as dramatic input
 
@@ -436,16 +427,16 @@ The previous v0.2 nine-line cast coverage requirement (3 nations × 3 personalit
 - `shared_enemy` witnesses sound calculating; they smell a strategic opening.
 - `region_observer` witnesses sound gossipy or reputational; the story is spreading. (Inactive in v0.3 — region_observer scope only fires when bargains exist.)
 
-**v0.3 application:** full scope-branched witness reaction copy with **named-diplomat registers** is deferred to WB-D (where bargain breaches justify that depth of cast work). But v0.3 ships **one skeletal canonical line per scope** so witness payloads do not all render identically on the rail:
+**Current application:** full scope-branched witness reaction copy with **named-diplomat registers** is deferred to WB-D (where bargain breaches justify that depth of cast work). For v0.5.1 this phase ships **one skeletal canonical line per scope** so witness payloads do not all render identically on the rail:
 
-| Scope | Skeletal canonical line (mock mode, v0.3 required) |
+| Scope | Skeletal canonical line (mock mode, v0.5.1 required) |
 |---|---|
 | `ally` | *"The court of {witness_nation} received the news in silence, and that silence is the register to note."* |
 | `rival` | *"{witness_nation} has noted the news with the practiced calm of a court that has long been expecting it."* |
 | `shared_enemy` | *"{witness_nation} has taken note; they understand France's hand was elsewhere this week, and they have drawn their own strategic reading."* |
-| `region_observer` | *(inactive in v0.3 — no line authored until WB-D reactivates the scope)* |
+| `region_observer` | *(inactive in v0.5.1 — no line authored until WB-D reactivates the scope)* |
 
-These lines are **deliberately unvoiced** — no named diplomat, no personality register. They are the minimum visible difference between scopes. WB-D replaces each row with the full per-nation Hawk/Schemer/Dove voiced variant sourced from the Voice Bible cast. The skeletal v0.3 lines prevent the flatness failure ("every witness strike reads the same on the rail") without committing the full register work that belongs with the bargain era.
+These lines are **deliberately unvoiced** — no named diplomat, no personality register. They are the minimum visible difference between scopes. WB-D replaces each row with the full per-nation Hawk/Schemer/Dove voiced variant sourced from the Voice Bible cast. The skeletal v0.5.1 lines prevent the flatness failure ("every witness strike reads the same on the rail") without committing the full register work that belongs with the bargain era.
 
 ### 10.5 Refusal and hard-block explanations
 
@@ -499,6 +490,21 @@ commitment_surface_event = {
 }
 ```
 
+Balance of Europe payload block (used by the Nations-tab headline in C-lite §14):
+
+```python
+balance_of_europe = {
+    "hegemon": Optional[str],
+    "share": float,  # 0.0-1.0
+    "threat_level": int,  # 0-100
+    "coalition_state": Literal["NONE", "BREWING", "DECLARED", "COOLDOWN"],
+    "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
+    "leader": Optional[str],  # coalition leader when DECLARED
+}
+```
+
+Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case.
+
 Required rules:
 
 - all fields primitive-only
@@ -507,7 +513,7 @@ Required rules:
 - `episode_id` is the episode-boundary key (see `RELIABILITY_COMMITMENTS_SPEC.md` §8.3); collapse and dedupe logic key off it
 - `witness_nations` entries carry `scope_reason in {"ally", "rival", "shared_enemy", "region_observer"}` — `region_observer` inactive until WB-D
 - `speaker_attribution` is optional shorthand for single-voice surfaces and must satisfy `speaker_attribution in {"talleyrand", "envoy", "foreign_office"}` (`system` reserved for campaign log only)
-- `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.3 (response routes deferred to WB-D)
+- `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.5.1 (response routes deferred to WB-D)
 - `relation_delta` / `reliability_delta` are sourced from breach metadata
 - `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter
 
@@ -527,13 +533,10 @@ Engine outcome:
 
 Player experience:
 
-- turn-N spotlight lands as a two-beat split-voice card:
-  1. injured-party named diplomat accusation
-  2. private Talleyrand aside
-- next-morning dispatch optionally carries a private callback keyed by `episode_id`
+- turn-N CRITICAL notice lands as a single-voice named-diplomat accusation
 - ledger and log preserve the exact fallout
 
-Canonical mock spotlight templates (per Voice Bible registers):
+Canonical mock CRITICAL-notice templates (per Voice Bible registers):
 
 - Headline: `Word Broken Before {injured_party}`
 
@@ -549,19 +552,11 @@ Canonical mock spotlight templates (per Voice Bible registers):
 
 > "Sire, His Majesty asked only that France's word be kept. We arranged Saxon affairs around it. We told our people that France had given assurance. It is not our place to accuse France, whose friendship Saxony values above all others. It is only that we had believed, and now we must explain to a small court that we were mistaken."
 
-**Talleyrand (private aside, all variants):**
-
-> "They are wounded, Sire. Worse, they are entitled to be. Force is often forgiven; ridicule is remembered."
-
-**Next-morning callback (one new beat, not a restate):**
-
-> "Hardenberg has not forgotten the matter, Sire. He need not mention it each morning for it to sit at table."
-
 Desired feeling:
 
 - "Europe noticed. The named court that I wronged has spoken in their own register."
 
-(Scope-branched witness lines from v0.2 — Vienna-disappointed vs London-satisfied vs Italian-courts-gossiping — defer to WB-D when bargain breach gives them more political weight.)
+(The deferred v0.3 private-aside and next-morning callback prose now live in `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` Appendix "v0.3 deferred prose". Scope-branched witness lines still defer to WB-D when bargain breach gives them more political weight.)
 
 ### 12.2 Hard-reject posture triggered
 
@@ -572,11 +567,11 @@ Engine outcome:
 
 Player experience:
 
-- one featured spotlight tells the player that this channel is effectively closing
+- one featured CRITICAL notice tells the player that this channel is effectively closing
 - the next relevant preview / refusal reinforces the state
 - the ledger makes it obvious the posture is active
 
-Canonical mock spotlight template:
+Canonical mock CRITICAL-notice template:
 
 - Headline: `The Chancery Shut` (or `The Court of St. James Closes Its Doors` for Britain)
 - Speaker: `foreign_office` resolved per §10.3
@@ -600,11 +595,6 @@ For Prussia (Hardenberg's voice):
 
 - Consequence line: `{primary_nation} will hard-refuse deep treaty asks until posture cools.`
 
-- Optional N+1 aside (Talleyrand):
-
-  "Doors in Europe rarely slam, Sire. They close with a servant's politeness
-  and a statesman's memory."
-
 Desired feeling:
 
 - "That nation is not just numerically colder. They are diplomatically shut."
@@ -622,7 +612,6 @@ Player experience:
 - the blocking body lays out the binary choice
 - the player chooses
 - the spurned nation's named envoy responds first; then Talleyrand's closing aside
-- next-turn dispatch carries one callback naming the spurned court
 
 Canonical staged template (3 beats: framing → blocking body → after-choice aside):
 
@@ -651,11 +640,6 @@ Canonical staged template (3 beats: framing → blocking body → after-choice a
   forgives necessity sooner than contradiction, but it will call this necessity
   ours."
 
-**Next-turn callback (Morning Dispatch):**
-
-  "{spurned_nation} has received the news with the composure of a court
-  counting knives."
-
 Desired feeling:
 
 - "I had to choose which to betray, and the spurned court spoke before Talleyrand named what I'd done."
@@ -664,15 +648,15 @@ Desired feeling:
 
 - `commitment_paradox` is registered as HARD_STOP (already done in `dialogue_manager.py`); B3 activates it on the push side
 - requires dedicated `commitment_paradox_popup.{tscn,gd}` surface (one of the four Slice C Godot prerequisites in §14)
-- existing `alliance_paradox_popup.gd` is single-label and **cannot host** the three-beat scene; it must be replaced
+- the legacy `alliance_paradox_popup.gd` scene is single-label and **cannot host** the three-beat scene; it must be replaced by `commitment_paradox_popup.{tscn,gd}`
 
 (The five-beat scene from v0.2 — envoys from BOTH spurned nations speaking before Talleyrand frames — is **deferred to WB-D** when rivalry-driven multi-conflict ratification fires the paradox from new triggers.)
 
-### 12.4 Reactive affordances (advisory routes only in v0.3)
+### 12.4 Reactive affordances (advisory routes only in v0.5.1)
 
-Commitments surfaces may not leave the player as a reader only. v0.3 ships **advisory routes** (no cost, inspect / discuss). Response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`) are **deferred to WB-D** because they depend on bargain-era proposal templates and `proposal_options` seed defaults that don't exist yet.
+Commitments surfaces may not leave the player as a reader only. v0.5.1 keeps **advisory routes** (no cost, inspect / discuss). Response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`) are **deferred to WB-D** because they depend on bargain-era proposal templates and `proposal_options` seed defaults that don't exist yet.
 
-**Advisory routes (v0.3 — no cost, inspect / discuss):**
+**Advisory routes (v0.5.1 — no cost, inspect / discuss):**
 
 | Action | Availability | Route | Mechanical effect |
 |-----------|---------|---------------|---------------|
@@ -685,7 +669,7 @@ Rules:
 - advisory routes remain no-cost, no state change, no notice on dismiss
 - every CRITICAL commitments notice family must expose at least one advisory route so the player can engage in-fiction within one click
 - on the breach notice, both `Speak to Talleyrand` and `Summon {named_envoy}` may appear together; the named-envoy summon takes primary visual emphasis
-- the paradox itself remains a strict binary — the player MUST choose. v0.3 has no `Offer redress to {spurned_nation}` next-turn affordance (that depended on bargain templates).
+- the paradox itself remains a strict binary — the player MUST choose. v0.5.1 has no `Offer redress to {spurned_nation}` next-turn affordance (that depended on bargain templates).
 
 ---
 
@@ -713,16 +697,17 @@ Rules:
 1. **Dedicated `commitment_paradox_popup.{tscn,gd}` surface.** Existing `alliance_paradox_popup` is single-label; cannot host three-beat staged scene. Build new popup on a CanvasLayer in the 101-118 range per CLAUDE.md "Adding a new popup/dialog" pattern. Re-uses HARD_STOP machinery, does NOT share scene with `alliance_paradox_popup`.
 2. **HARD_STOP type activation.** B3 (paradox rename) ships push-side alias; this slice ensures Godot dtype whitelist (~main.gd line 697) routes `commitment_paradox` to the new popup.
 3. ~~**Split-voice render capability.**~~ **CUT in v0.5.** Single-voice notices with named-diplomat attribution replace the `lead` / `witness` / `aside` three-region card layout. `backend/notifications.py` payload requires only `speaker_attribution`, not `attributed_lines[]`.
-4. ~~**Spotlight tier.**~~ **CUT in v0.5.** Events route through existing CRITICAL/NORMAL priority tiers per §9.2. No elevated 2-turn-persisting card variant, no per-notice review/follow-up action buttons beyond what existing notices carry.
+4. ~~**Elevated rail tier.**~~ **CUT in v0.5.** Events route through existing CRITICAL/NORMAL priority tiers per §9.2. No elevated 2-turn-persisting card variant, no per-notice review/follow-up action buttons beyond what existing notices carry.
 
 **Core tasks (v0.5.1 — trimmed to shipped scope):**
 
-- Define commitments event routing rules across blocking / notice / ledger per §8.1 (no spotlight tier)
-- Add commitments-specific notice templates under the `commitments_notice_*` template family in `diplomatic_templates.py` (no `commitments_spotlight_*` — spotlight tier cut)
+- Define commitments event routing rules across blocking / notice / ledger per §8.1 (no elevated rail tier)
+- Add commitments-specific notice templates under the `commitments_notice_*` template family in `diplomatic_templates.py` (no separate elevated-tier template family beyond `commitments_notice_*`)
+- Add DG-4 notice-template stubs explicitly: `commitments_notice_call_refused_offensive`, `commitments_notice_call_refused_defensive`, and `commitments_notice_call_honored_costly`
 - Commit canonical mock prose for `diplomatic_treaty_broken` (french_breach), `hard_reject_posture_triggered`, and `commitment_paradox` (framing, blocking body, after-choice aside)
 - Add player-facing period labels per §9.2
 - Resolve `speaker="envoy"` and `speaker="foreign_office"` to named diplomats per §10.3 — single helper in backend that reads `world.diplomats[nation]` and returns `{name, register}`
-- Commit minimum 4-line cast coverage per §10.3
+- Commit the Voice Bible minimum live coverage required by §10.3
 - Stage `commitment_paradox` as 3-beat scene per §12.3 (Talleyrand framing → blocking body → spurned-envoy + Talleyrand asides, all rendered in the popup — not split across surfaces)
 - Add ledger emphasis rules for recent breach and active hard-reject posture (§9.3)
 - Wire duplicate suppression so one event does not surface three times (§8.4)
@@ -732,7 +717,7 @@ Rules:
 
 **Suggested tests (~10-12, v0.5.1 trimmed):**
 
-- CRITICAL-priority ordering across multiple same-turn commitments events (paradox > hard_reject > breach via `notifications.py` priority tier, not a separate spotlight slot)
+- CRITICAL-priority ordering across multiple same-turn commitments events (paradox > hard_reject > breach via `notifications.py` priority tier, not a separate highlight-slot system)
 - No duplicate notice after blocking paradox resolution
 - Hard-reject posture gets one featured notice, not a repeated every-turn notice (first-cross emit contract)
 - Witness-strike collapse into one medium surface event per `episode_id`
@@ -740,18 +725,19 @@ Rules:
 - Named-diplomat resolution: `envoy` → Hardenberg/Metternich/Einsiedel/Castlereagh per nation context, with correct register
 - `foreign_office` → "The Chancery of {nation}"
 - `system` speaker disallowed on rail surfaces
+- `review_target` routing opens the intended ledger view and does not drift from the §8.1 join-table
 - Paradox 3-beat staging: framing renders before choice, after-choice aside renders in the popup post-choice (all beats in the popup — no cross-surface dispatch callback)
 - Advisory routes are no-cost: `Speak to Talleyrand` opens advisory dialogue with `context.origin_episode_id`; dismiss leaves no state change
-- Balance of Europe headline composition for the four state cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader)
+- Balance of Europe headline composition for the full state machine per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN)
 - Same-turn `balance_of_europe_shifted` notice copy for the 33% / 50% / 60% threshold crossings, including deterministic named-diplomat / chancery fallback and counterplay-hint wiring
 - `amends_offered` lightweight notice copy for both standard and grievance-variant repair gestures, led by the target court's named diplomat
 
 **Estimated budget (v0.5.1 trimmed):**
 
-- **one implementation session** (down from v0.3/v0.4 two sessions — spotlight tier and split-voice infra cut reduces Godot scope):
-  1. *Godot surfaces* — new `commitment_paradox_popup.{tscn,gd}` (3-beat staged scene per §12.3, on its own CanvasLayer in the 101-118 range, with the after-choice aside rendering in-popup post-choice), HARD_STOP dtype whitelist routing in `main.gd` for the renamed `commitment_paradox` type, named-diplomat attribution inline in existing notice cards (no new split-voice tier, no elevated spotlight card variant).
+- **one implementation session** (down from v0.3/v0.4 two sessions — elevated rail tier and split-voice infra cut reduces Godot scope):
+  1. *Godot surfaces* — new `commitment_paradox_popup.{tscn,gd}` (3-beat staged scene per §12.3, on its own CanvasLayer in the 101-118 range, with the after-choice aside rendering in-popup post-choice), HARD_STOP dtype whitelist routing in `main.gd` for the renamed `commitment_paradox` type, named-diplomat attribution inline in existing notice cards (no new split-voice tier, no separate elevated-card variant).
   2. *Backend + mock prose* — named-diplomat resolution helper (`speaker="envoy"` / `speaker="foreign_office"` per §10.3), committed prose for the three live events using Voice Bible registers, `balance_of_europe_shifted` threshold-beat prose for 33% / 50% / 60%, `amends_offered` acknowledgment prose, ledger emphasis rules (§9.3), advisory-route reactive affordances (§12.4), Balance of Europe headline render in `diplomatic_ledger.gd`.
-- approximately 12-14 tests total
+- approximately 10-12 tests total
 
 ---
 
@@ -760,9 +746,9 @@ Rules:
 This pass should hand off cleanly to later systems:
 
 - **`Bilateral Peace Hardening`**
-  - owns its own spotlight events for peace settlement theatrics; the commitments router is commitments-specific and does not extend to peace fallout. Bilateral Peace Hardening may copy patterns, but it does not reuse the commitments router.
+  - owns its own showpiece peace-settlement events; the commitments router is commitments-specific and does not extend to peace fallout. Bilateral Peace Hardening may copy patterns, but it does not reuse the commitments router.
 - **`WAR_BARGAIN_SPEC.md` slice WB-D (bargain presentation extension)**
-  - extends this pass with `bargain_fulfilled` / `bargain_breached` / `bargain_voided` / `bargain_ratified` / `bargain_triggered` / `declaration_backed_out` spotlights and notices
+  - extends this pass with `bargain_fulfilled` / `bargain_breached` / `bargain_voided` / `bargain_ratified` / `bargain_triggered` / `declaration_backed_out` headline events and notices
   - adds scope-branched witness reaction copy (uses `dominant_witness_scope` payload that this pass already passes through)
   - adds response routes (`Propose redress`, `Deepen the bond`, `Attempt to reopen the chancery`, `Denounce the refusal`)
   - adds N+5 fallback grievance slot
@@ -770,7 +756,7 @@ This pass should hand off cleanly to later systems:
 - **`Talleyrand Desk + Explanation Layer`**
   - can absorb the same commitments payloads into richer advisory surfaces later, but it does **not** own inventing the first breach/paradox aftermath beats from scratch. C3-lite already commits the minimum callback architecture.
 - **Generalized coalition work**
-  - may later reuse the same spotlight principles for bloc pressure and split events.
+  - may later reuse the same emphasis principles for bloc pressure and split events.
 
 This spec should **not** pre-own those future systems.
 

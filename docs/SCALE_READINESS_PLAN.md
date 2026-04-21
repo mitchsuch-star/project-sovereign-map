@@ -334,6 +334,8 @@ cascade_profile:
   anti_renewal_window_turns: 15
 ```
 
+Presentation / surface follow-through for these authored `cascade_profile.*` event-family keys lives in `RELIABILITY_COMMITMENTS_SPEC.md` §8.8.10. Keep the schema note here and the C3-lite routing contract there in sync.
+
 **Vassal exception (unchanged):**
 
 Vassals do *not* get the discretionary path. Vassal auto-entry still fires under existing autonomy / loyalty gates in `vassal.py`. A disloyal vassal that would "refuse" rebels through the existing rebellion path instead. Amendment does not add refusal UI or episodes to the vassal layer.

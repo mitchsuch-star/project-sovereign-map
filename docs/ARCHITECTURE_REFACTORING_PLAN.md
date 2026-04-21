@@ -1074,7 +1074,7 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
            "talleyrand_redemption_popup",
            "diplomatic_objection_popup",
            "incoming_proposal_popup",
-           "alliance_paradox_popup",
+           "commitment_paradox_popup",  // legacy `alliance_paradox_popup` accepted on load
        ]
 
        def __init__(self):
@@ -2089,7 +2089,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 
 3. **Migrate 3 simplest popups** as proof of concept:
    - `coalition_declaration_popup.gd` — simple "dismissed" signal, display-only
-   - `alliance_paradox_popup.gd` — two-choice with String result
+   - `commitment_paradox_popup.gd` — canonical renamed paradox popup; legacy `alliance_paradox_popup.gd` references are historical alias notes only
    - `interrupt_popup.gd` — simple display-only
 
    For each: change `extends CanvasLayer` to `extends PopupBase`, replace color constants with `Utils.COLOR_*`, replace signal with `popup_closed`.
@@ -2135,7 +2135,7 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
    103: talleyrand_redemption_popup
    104: talleyrand_objection_popup
    105: incoming_proposal_popup
-   106: alliance_paradox_popup
+   106: commitment_paradox_popup (legacy `alliance_paradox_popup` alias)
    107: objection_dialog
    108: redemption_dialog
    109: glorious_charge_dialog

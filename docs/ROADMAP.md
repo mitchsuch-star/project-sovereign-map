@@ -25,7 +25,7 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (formerly `Reliability + Commitments`; rescoped April 16 — see `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 which folded in creative-audit additions: Make Amends verb, France-Austria rivalry, rewritten goal 1), `Bilateral Peace Hardening` second, `War Purpose + Score Semantics` third, then `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`. Period precision items (1805-accurate diplomat roster, Britain reactive bloc pressure, ledger scale UX) tracked separately in `DESIGN_REFINEMENT.md` §Historical Precision (P1 / P2 / P3) for EA scope.
+**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (see `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, and `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1). The audit-block pass gates the work in this order: Block 1 doc cleanup (complete), Block 2 substrate fixes, Block 3 bloc naming gate, then the remaining implementation slices. After that come `Bilateral Peace Hardening`, `War Purpose + Score Semantics`, `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`. Period precision items (1805-accurate diplomat roster, Britain reactive bloc pressure, ledger scale UX) tracked separately in `DESIGN_REFINEMENT.md` §Historical Precision (P1 / P2 / P3) for EA scope.
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
@@ -412,8 +412,8 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 Phase 8 implementation is complete, but the diplomacy refinement queue after it is now explicitly sequenced:
 
-1. `Memory and Pressure` (renamed April 16, 2026 from `Reliability + Commitments`)
-   First diplomacy follow-up implementation target. Keep this bilateral and legible. See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.0.
+1. `Memory and Pressure`
+   First diplomacy follow-up implementation target. Keep this bilateral and legible. Current canonical docs are `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, and `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1. Current audit-block sequence: Block 1 doc cleanup (complete), Block 2 substrate fixes, Block 3 bloc naming gate, then the remaining implementation slices.
 2. `Bilateral Peace Hardening`
    Tighten separate peace, bilateral peace preview, term ownership, and promise-breach warnings before any multilateral settlement work.
 3. `War Purpose + Score Semantics`

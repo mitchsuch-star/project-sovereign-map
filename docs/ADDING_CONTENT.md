@@ -918,6 +918,7 @@ Complete guide for adding a nation to the game. Nations require military infrast
 - [ ] **Starting relation with France:** -100 to +100
 - [ ] **Capital region:** Name (or None for off-map like Britain)
 - [ ] **Controlled regions at game start:** List of region names
+- [ ] **Power tier:** `major` / `secondary` / `minor` in scenario data (`scenario_schema_version: 1`). Missing this field silently falls back to `secondary`, which hides content errors.
 - [ ] **AP per turn:** Reflects administrative capacity (France=4, major=3-4, minor=2)
 - [ ] **Starting gold:** Economy baseline
 - [ ] **Manpower pools:** {infantry, cavalry, artillery}

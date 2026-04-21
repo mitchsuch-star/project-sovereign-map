@@ -3533,19 +3533,21 @@ If `casus_belli[diplo_key]` is True (set by rejected ultimatum), war declaration
 
 ## 21. Diplomatic Reliability
 
-**Phase 4 (R34).** Long-term reputation tracking for treaty honoring.
+**Memory and Pressure v2.4.3.** Long-term reputation tracking for treaty honoring, narrowed to the live nation-keyed shape.
 
 ### Scoring
 
-- +5 per treaty honored for 10+ turns (checked in `_process_diplomatic_reliability()` at turn end)
+- +5 per treaty honored for 10+ turns (legacy Phase 4 behavior; current v2.4.3 implementation narrows the gameplay impact rather than re-expanding the score surface)
 - -10 per treaty break (applied in `break_treaty()`)
-- Stored in `world.diplomatic_reliability` (keyed by diplo_key)
+- Stored in `world.diplomatic_reliability` keyed by nation name
 
 ### Acceptance Formula Impact
 
-- Component: `reliability_modifier` capped at +/-10
-- Formula: `min(10, max(-10, reliability_score))`
+- Component: `reliability_modifier` capped at `-6..+6`
+- Formula: `max(-6, min(6, diplomatic_reliability[asker] // 10))`
 - Added to `calculate_acceptance()` result
+
+Legacy note: older docs and saves may still reference diplo-keyed reliability and the `±10` Phase 4 shape. Treat those as pre-v2.4.3 history, not the live contract.
 
 ---
 
@@ -3561,7 +3563,7 @@ If `casus_belli[diplo_key]` is True (set by rejected ultimatum), war declaration
 4. `talleyrand_redemption_popup`
 5. `diplomatic_objection_popup`
 6. `incoming_proposal_popup`
-7. `alliance_paradox_popup`
+7. `commitment_paradox_popup` (legacy `alliance_paradox_popup` accepted on load)
 
 ### Implementation
 
