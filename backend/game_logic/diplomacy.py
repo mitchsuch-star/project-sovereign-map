@@ -747,6 +747,11 @@ def _record_treaty_breach(
     treaty_type_display = breach_preview["treaty_type_display"]
     reason_phrase = breach_preview["reason_phrase"]
     episode_id = breach_preview.get("episode_id") or _allocate_episode_id(world)
+    speaker_attribution = (
+        "envoy"
+        if breach_preview.get("end_reason_family") == END_REASON_FAMILY_FRENCH_BREACH
+        else "foreign_office"
+    )
     breach_preview["episode_id"] = episode_id
 
     world.log_event({
@@ -754,6 +759,7 @@ def _record_treaty_breach(
         "breaker": breaker_nation,
         "other": injured_party,
         "injured_party": injured_party,
+        "victim_nation": injured_party,
         "fault_nation": breach_preview["fault_nation"],
         "episode_id": episode_id,
         "treaty_type": breach_preview["treaty_type"],
@@ -780,7 +786,7 @@ def _record_treaty_breach(
         "active_betrayal_strikes_after": int(breach_preview.get("active_betrayal_strikes_after", 0)),
         "would_trigger_hard_reject": bool(breach_preview.get("would_trigger_hard_reject")),
         "trigger_context": trigger_context or {},
-        "speaker_attribution": "foreign_office",
+        "speaker_attribution": speaker_attribution,
     })
 
     if not suppress_notification:
@@ -796,6 +802,7 @@ def _record_treaty_breach(
         queue_dispatch_event(world, "diplomatic_treaty_broken", {
             "nation": breaker_nation,
             "target": injured_party,
+            "victim_nation": injured_party,
             "treaty_type": treaty_type_display,
             "reason_phrase": reason_phrase,
             "episode_id": episode_id,
@@ -806,6 +813,7 @@ def _record_treaty_breach(
             "reliability_before": breach_preview["reliability_before"],
             "reliability_after": breach_preview["reliability_after"],
             "applied_reliability_delta": breach_preview["applied_reliability_delta"],
+            "speaker_attribution": speaker_attribution,
         }, "partial_on_nation")
 
     # One witness_strike_recorded dispatch per witness (§C3 B2a cross-cutting

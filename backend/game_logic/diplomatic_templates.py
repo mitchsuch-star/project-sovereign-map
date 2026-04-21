@@ -13,6 +13,13 @@ from typing import Dict, Optional
 
 from backend.nation_config import get_player_nation
 
+
+def resolve_named_diplomat(speaker: str, nation: str) -> str:
+    """Placeholder for the C-lite named-diplomat resolver."""
+    raise NotImplementedError(
+        "Wired in C-lite §13; see COMMITMENTS_PRESENTATION_SPEC.md §10.3"
+    )
+
 # ═══════ TEMPLATE LIBRARY ═══════
 # Key: (intent_type, diplo_state, bucket_group)
 # bucket_group: specific bucket name OR "any" for wildcard

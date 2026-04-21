@@ -110,6 +110,8 @@ class TestR97DeclareWarCleansTreaties:
         assert latest.get("end_reason_action") == "war_declaration"
         assert latest.get("reason_phrase") == "by declaring war"
         assert latest.get("fault_nation") == "France"
+        assert latest.get("victim_nation") == "Austria"
+        assert latest.get("speaker_attribution") == "envoy"
         assert latest.get("episode_id"), "root-cause episode_id must be threaded through"
 
 
@@ -161,6 +163,8 @@ class TestCommitmentsSubstrateHardening:
         assert latest.get("end_reason_family") == "obsolescence_or_external"
         assert latest.get("end_reason_action") == "cascade_forced"
         assert latest.get("fault_nation") == "France"
+        assert latest.get("victim_nation") == "France"
+        assert latest.get("speaker_attribution") == "foreign_office"
         assert latest.get("applied_reliability_delta") == 0
 
     def test_episode_id_threaded_through_breach_and_cascade(self):
@@ -278,6 +282,57 @@ class TestCommitmentsSubstrateHardening:
                             if s["template_vars"].get("witness_nation") == "Prussia"]
         assert prussian_strikes, "Prussia (ally of Austria) should get a scope-ally strike"
         assert prussian_strikes[0]["template_vars"].get("scope_reason") == "ally"
+
+    def test_treaty_broken_dispatch_uses_family_specific_speaker_attribution(self):
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Austria")
+        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
+        world.active_treaties[diplo_key] = {
+            "nations": ["France", "Austria"],
+            "type": "alliance",
+            "clauses": [],
+            "turn_signed": 2,
+        }
+        world.diplomatic_points = 5
+
+        break_treaty(diplo_key, "France", world)
+
+        treaty_dispatches = [
+            e for e in world.pending_dispatch_events
+            if e.get("type") == "diplomatic_treaty_broken"
+        ]
+        assert treaty_dispatches
+
+        french_breach = treaty_dispatches[-1]
+        assert french_breach["template_vars"].get("end_reason_family") == "french_breach"
+        assert french_breach["template_vars"].get("speaker_attribution") == "envoy"
+        assert french_breach["template_vars"].get("victim_nation") == "Austria"
+
+        world.pending_dispatch_events = []
+        _set_diplo_state(world, "Prussia", "Austria", "DEFENSIVE_ALLIANCE")
+        _set_diplo_state(world, "France", "Prussia", "NON_AGGRESSION")
+        world.active_treaties[world._make_diplo_key("France", "Prussia")] = {
+            "nations": ["France", "Prussia"],
+            "type": "non_aggression",
+            "clauses": [],
+            "turn_signed": 3,
+        }
+
+        declare_war(world, "France", "Austria")
+
+        treaty_dispatches = [
+            e for e in world.pending_dispatch_events
+            if e.get("type") == "diplomatic_treaty_broken"
+        ]
+        assert treaty_dispatches
+
+        cascade_breach = next(
+            e for e in treaty_dispatches
+            if e["template_vars"].get("end_reason_family") == "obsolescence_or_external"
+        )
+
+        assert cascade_breach["template_vars"].get("speaker_attribution") == "foreign_office"
+        assert cascade_breach["template_vars"].get("victim_nation") == "France"
 
     def test_manual_break_retains_french_breach_family(self):
         """Manual break_treaty must be classified french_breach (voluntary)."""
