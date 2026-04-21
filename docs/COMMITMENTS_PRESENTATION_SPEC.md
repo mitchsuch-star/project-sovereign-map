@@ -255,7 +255,7 @@ Proper bloc names do not appear at the first visibility threshold. The player fe
 | `50 - 59%` | `alarming` band | authored proper bloc name unlocks across eligible surfaces |
 | `60%+` | `crisis` band | same proper name persists; crisis copy intensifies (no renaming) |
 
-`_hegemony_signal_band` in `coalition.py` is the authoritative source for this band; `describe_hegemon_bloc` reads it.
+`_hegemony_signal_band` in `coalition.py` is the authoritative **current-share** source for this band; `describe_hegemon_bloc` reads it. Beat/advisory dedupe does **not** read from this helper blindly — that logic is owned by the stored public-memory field in `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony.
 
 #### 8.1a.3 Naming taxonomy (deterministic, authored)
 
@@ -282,7 +282,7 @@ Bloc naming rides existing surfaces only. No new UI family in this phase.
 
 - **Balance of Europe headline** (Nations tab of Diplomatic Ledger): first-class owner of the bloc label.
 - **`balance_of_europe_shifted` threshold beats** at `33 / 50 / 60`: `33%` beat uses descriptive language only; `50%` beat is the proper-noun reveal; `60%` beat reuses the proper name and makes camps feel hardened.
-- **Downward `60 -> 59` / `50 -> 49` acknowledgments** are advisory-only in Talleyrand's voice, not a second rail family. The label regression must still be named, but quietly.
+- **Downward `60 -> 59` / `50 -> 49` acknowledgments** are advisory-only in Talleyrand's voice, not a second rail family. The label regression must still be named, but quietly. These advisories fire only on the first downward crossing out of a surfaced band in the current equilibrium epoch; they do not repeat on every edge oscillation. They use the current-share label after the drop, so `50 -> 49` speaks of the descriptive alignment, while `60 -> 59` keeps the proper noun and relaxes only the frame.
 - **Proposal-preview `hegemony` warnings** (Political Context preview): once unlocked at `50%+`, warnings reference the proper bloc name so treaty friction reads politically.
 - **Coalition declaration contrast copy**: if the formal coalition forms, the declaration copy contrasts the coalition against the named hegemon bloc (e.g. *"Britain's coalition marches against the French System"*).
 
