@@ -91,6 +91,7 @@ The first sentence says B-B4 lands **before** B-B1-lite. The second sentence pro
 | Event family | Priority | Icon key | Player label | Template key | Speaker resolver | Review target |
 |--------------|----------|----------|--------------|--------------|------------------|---------------|
 | `commitment_paradox` | HARD_STOP (popup) | `icon_paradox` | "Conflicting Oaths" | `commitments_notice_paradox` | `talleyrand` | `ledger_commitments` |
+| `balance_of_europe_shifted` | NORMAL | `icon_balance_of_europe` | "Balance of Europe Shifts" | `commitments_notice_balance_of_europe_shifted` | `envoy` → resolved `speaker_nation`, else `foreign_office` → "The Chancery of {nation}" | Open Ledger |
 | `hard_reject_posture_triggered` | CRITICAL | `icon_hard_reject` | "The Chancery Shut" | `commitments_notice_hard_reject_triggered` | `foreign_office` → "The Chancery of {nation}" | Open Ledger |
 | `hard_reject_posture_cleared` | NORMAL | `icon_chancery_reopened` | "The Chancery Reopens" | `commitments_notice_hard_reject_cleared` | `foreign_office` → "The Chancery of {nation}" | Open Ledger |
 | `diplomatic_treaty_broken` (`french_breach`) | CRITICAL | `icon_treaty_broken` | "Word Broken" | `commitments_notice_breach_french` | `envoy` → victim's diplomat | "Review the broken treaty" |
@@ -102,6 +103,8 @@ The first sentence says B-B4 lands **before** B-B1-lite. The second sentence pro
 | `call_to_arms_honored_costly` | CRITICAL | `icon_call_honored_costly` | "Oath Kept" | `commitments_notice_call_honored_costly` | `foreign_office` → "The Chancery of France" | Open Ledger |
 
 Flag as: *"Single source of truth. Notifications, dispatch formatter, campaign log, popups, and ledger MUST derive priority/icon/label/template/voice/review-target from this row — do not hardcode elsewhere."*
+
+Add note under the row: *"`balance_of_europe_shifted` is the same-turn 33% / 50% / 67% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue."*
 
 ### 5. U7 — `SAVE_FORMAT_REFERENCE.md` refresh
 

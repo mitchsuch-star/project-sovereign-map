@@ -69,8 +69,8 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
    - **Tooltip dispatch has a dedicated unwired branch.** `_draw()` evaluates `elif hovered_region != "" and not _is_region_wired(hovered_region):` BEFORE the existing `region_full_data.has(hovered_region)` branch, because §4.1's `update_all_regions()` deliberately excludes unwired regions from `region_full_data`. `_draw_unwired_region_tooltip()` renders the province name + `UNWIRED_TOOLTIP_SUFFIX` against a distinct dim panel so authors never mistake an unwired province for a fogged one.
    - **Test coverage (16 tests).** `tests/test_map_renderer_cutover.py` gains 10: constants pinned, `_is_region_wired` contract, `_apply_unwired_grey_overlay` body shape, `_unwired_lookup_keys` construction, overlay-before-texture ordering in both paths, click-gate precedence (guard before `emit`), `_draw()` branch order (unwired before `region_full_data.has`), the unwired tooltip helper renders both lines, and a negative assertion that `_lookup_region_from_color_map()` never gates on `wired`. New `tests/test_map_unwired_overlay.py` adds 6 behavioral fixture tests: constants mirror, all-wired no-op, selective blend, pure-tint target, sentinel ignored, and a source-level guarantee that `_unwired_lookup_keys()` cannot emit the sentinel by construction (it only iterates `province_color_lookup`, which `_build_province_shapes()` never seeds with the sentinel).
    - **Verification.** Focused map suite: **94 passed** (`tests/test_map_renderer_cutover.py tests/test_map_placeholder_assets.py tests/test_map_bitmap_contract.py tests/test_map_unwired_overlay.py tests/test_map_consistency.py tests/test_map_topology_endpoint.py tests/test_province_map_validator.py`). Full Python suite: **8503 passed, 2 skipped** (was `8487`). Ruff clean on the modified + new files.
-   - **Suggested next cold-start sequencing:** Map readiness is now art-blocked only. The last remaining map-readiness work is commissioned art + final renderer smoke validation. A fresh session working on diplomacy should pick up Memory and Pressure Slice A.
-7. **Memory and Pressure — Slice A (rivalry seed).** This remains the next diplomacy feature track, but it is not part of the map-readiness gate. See `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+   - **Suggested next cold-start sequencing:** Map readiness is now art-blocked only. The last remaining map-readiness work is commissioned art + final renderer smoke validation. A fresh session working on diplomacy should pick up the Memory and Pressure v2.4.3 audit-block pass.
+7. **Memory and Pressure v2.4.3 — audit block fixes next.** The next diplomacy feature track is the audit-block closure pass in `docs/audits/MP_V243_BLOCK1_DOC_CLEANUP.md` and `docs/audits/MP_V243_BLOCK2_SUBSTRATE.md`, followed by the remaining B-Hegemony / B-B1-lite / B-B3 / B-B7 / C-lite implementation in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`. This is not part of the map-readiness gate.
 
 ## Real Map Readiness Gate
 
@@ -124,7 +124,7 @@ Sessions 1-5 + follow-up + offer lifetime refactor are COMPLETE. No OPEN PL item
 
 **Audit context:** `docs/SCALE_READYNESS.md` is the historical snapshot of the original 17-finding Europe-scale audit (audit date April 16, 2026). Current non-art map-readiness closure state is tracked in the "Actionable now" block above (§§3.1-3.4 + §§4.1-4.4 are all DONE). Treat the `SCALE_READYNESS.md` "NOT DONE" entries for §§3.1, 4.1-4.4 as frozen audit context, not current routing — the `SCALE_READINESS_PLAN.md` per-item contract + `STATUS.md` closure entries are the source of truth.
 
-**Next bug-owned implementation slice:** None. All non-art map-readiness items are closed. The remaining map-readiness work (commissioned art-backed renderer cutover + final Godot smoke validation) is art-blocked and sits in the Blocked list above. For a fresh session on diplomacy, the next slice is Memory and Pressure — Slice A (rivalry seed).
+**Next bug-owned implementation slice:** None. All non-art map-readiness items are closed. The remaining map-readiness work (commissioned art-backed renderer cutover + final Godot smoke validation) is art-blocked and sits in the Blocked list above. For a fresh session on diplomacy, the next work is Memory and Pressure v2.4.3 audit-block closure: `docs/audits/MP_V243_BLOCK1_DOC_CLEANUP.md` first, then `docs/audits/MP_V243_BLOCK2_SUBSTRATE.md`.
 
 **Current Session 7 progress:** COMPLETE. `backend/nation_config.py` now centralizes scenario/runtime nation defaults, non-France campaigns preserve their player nation through world init + `/new_game` reset paths, diplomacy/advisory/template/defiance flows now derive state and proposal ownership from `world.player_nation`, enemy AI scale-sensitive contact scans route through cached fog-aware helper seams, and modding/scenario validation now fails unsupported nation rosters before load.
 
@@ -193,7 +193,7 @@ These are existing audit items broken into implementation order. They stay after
 
 | Order | Spec Track | Bundles / Source Items | Note |
 |-------|------------|------------------------|------|
-| 1 | Memory and Pressure (renamed Apr 16; was `Reliability + Commitments`) | `R160`, `R119` | First diplomacy follow-up implementation target. Substrate is shipped; remaining work: rivalry seed, acceptance-formula modifiers, third-party anger, redemption tick, paradox rename, C3-lite presentation. See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.1 + `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.1 + `COMMITMENTS_PRESENTATION_SPEC.md` v0.3. ~68-74 tests, ~3 sessions (Slice C split into two sessions; v2.1 adds Make Amends verb + France-Austria rivalry). |
+| 1 | Memory and Pressure v2.4.3 | `R160`, `R119` | First diplomacy follow-up implementation target. Substrate is shipped; the next pass is the audit-block closure set in `docs/audits/MP_V243_BLOCK1_DOC_CLEANUP.md` and `docs/audits/MP_V243_BLOCK2_SUBSTRATE.md`, then the remaining B-Hegemony / B-B1-lite / B-B3 / B-B7 / C-lite work in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3 and `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1. |
 | 2 | Bilateral Peace Hardening | separate peace UX, bilateral peace term ownership, promise-breach warnings, peace-preview clarity | Must land before any ally-aware settlement flow OR before war bargains. **Needs dedicated spec.** |
 | 3 | War Purpose + Score Semantics | War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation | Define why wars start, what score means, and what settlements can legitimately do. Do **not** bundle this directly with common peace. **Needs dedicated spec.** |
 | 3.5 | War Bargains | `R151`, full `war_bargain` mechanic split out of `Reliability + Commitments` v1.0 in April 16 rescope | The bilateral named-enemy promise mechanic. `docs/WAR_BARGAIN_SPEC.md` v1.0. Slices WB-A (data + creation), WB-B (lifecycle), WB-C (war-entry contract), WB-D (presentation extension). **Depends on items 1-3.** ~80-90 tests. |
@@ -229,14 +229,12 @@ These are existing audit items broken into implementation order. They stay after
 
 Deferred (April 16 rescope finalized scope; remaining items are now part of either `Memory and Pressure` final implementation slice or `WAR_BARGAIN_SPEC.md`):
 
-**Remaining for `Memory and Pressure` phase to ship (covered by `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.0):**
+**Current `Memory and Pressure` next-work routing (v2.4.3):**
 
-- Rivalry seed (`nation_rivalries` dict + 3 authored pairs France-Britain primary active, Prussia-Austria primary active, Prussia-Saxony secondary cold) — Slice A1-fill.
-- Acceptance-formula additions: `direct_rivalry_mod`, `rival_conflict_mod`, graduated `bilateral_betrayal_mod = -8 * active_strikes cap -24`, composite `political_commitment_mod = max(-40, raw)` — Slice B1.
-- Third-party anger applied at treaty ratification (relation-hit half of B2a; metadata side already shipped) — Slice B2a-fill.
-- Redemption tick: `actor_honored_turns` global clock + `+3` reliability per 5 honored turns — Slice B6.
-- Rename push-side `alliance_paradox` dialogue type to `commitment_paradox` (legacy alias on read) — Slice B3.
-- C3-lite presentation pass: spotlight tier, split-voice render (`attributed_lines[]`), named-diplomat resolution per `DIPLOMAT_VOICE_BIBLE.md`, dedicated `commitment_paradox_popup.{tscn,gd}` Godot surface, three live spotlight events (`hard_reject_posture_triggered`, `diplomatic_treaty_broken` french_breach, `commitment_paradox`), one N+1 Talleyrand aside per `episode_id`, advisory-route reactive affordances. See `COMMITMENTS_PRESENTATION_SPEC.md` v0.3.
+- Block 1 doc cleanup is first: `docs/audits/MP_V243_BLOCK1_DOC_CLEANUP.md` owns the canonical-spec cleanup pass, including the commitments routing join-table, hegemony / Balance of Europe naming, and cross-doc drift closures from the combined audits.
+- Block 2 substrate fixes are second: `docs/audits/MP_V243_BLOCK2_SUBSTRATE.md` owns the remaining code / serialization / test hardening before the broader feature slice continues.
+- After the audit blocks land, the live implementation order is the v2.4.3 plan surface: B-Hegemony, B-B1-lite, B-B3, B-B7, C-lite (trimmed), with B-B4 parallel where called out in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`.
+- Canonical references for this phase are `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, and `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 
 **Moved to `WAR_BARGAIN_SPEC.md` (Peace Deals phase):**
 

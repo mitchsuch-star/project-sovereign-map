@@ -18,6 +18,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (`end_reason_family=french_breach`), `commitment_paradox_resolved`. §12 worked examples remain authoritative.
 - ✓ **Dedicated `commitment_paradox_popup.{tscn,gd}` surface** — replaces legacy `alliance_paradox_popup` for the renamed type. All three paradox beats (framing → blocking body → after-choice aside) render in the popup itself.
 - ✓ **Balance of Europe headline** — four composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader). Rendering lives in `diplomatic_ledger.gd`.
+- ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 67% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
@@ -29,7 +30,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 
 **Reading order:** sections below are normative except for the dated historical notes and changelog entries. Prior v0.3/v0.4 content that was non-normative has been removed from the live contract rather than disclaimed in place. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
 
-**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three event copy paths, paradox popup field wiring, Balance of Europe headline composition across the four state cases).
+**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, paradox popup field wiring, Balance of Europe headline composition across the four state cases).
 
 ---
 
@@ -212,6 +213,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 | Event | Primary surface | Supporting surfaces | Notes |
 |------|------------------|---------------------|-------|
 | `commitment_paradox` | blocking hard-stop | ledger, campaign log, required after-choice aside | Renamed in B3. Three-beat staged scene per §12.5; the after-choice aside renders inside the popup, not as a later callback. |
+| `balance_of_europe_shifted` | NORMAL notice | ledger headline, campaign log | Same-turn hegemony threshold beat at 33% / 50% / 67%. Must fire before coalition declaration can become the player's first clue, using a named diplomat when `speaker_nation` resolves or a chancery fallback otherwise. Include the `counterplay_hint` from `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3. |
 | `hard_reject_posture_triggered` | CRITICAL notice | ledger, campaign log | Door-closing moment. Voice = `foreign_office` resolved to "The Chancery of {nation}" with register from that nation's named diplomat. |
 | `diplomatic_treaty_broken` (where `end_reason_family=french_breach`) | CRITICAL notice | ledger, campaign log | Sharpest negative payoff in the live engine. Single-voice notice led by the injured party's named diplomat. |
 | `commitment_paradox_resolved` | persistent notice (reinforced by after-choice aside in §7.1 surface) | ledger, campaign log | Reinforces closure of the paradox. The paradox popup itself is the dramatic peak; no later spotlight/callback follows. |
@@ -739,12 +741,13 @@ Rules:
 - Paradox 3-beat staging: framing renders before choice, after-choice aside renders in the popup post-choice (all beats in the popup — no cross-surface dispatch callback)
 - Advisory routes are no-cost: `Speak to Talleyrand` opens advisory dialogue with `context.origin_episode_id`; dismiss leaves no state change
 - Balance of Europe headline composition for the four state cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader)
+- Same-turn `balance_of_europe_shifted` notice copy for the 33% / 50% / 67% threshold crossings, including deterministic named-diplomat / chancery fallback and counterplay-hint wiring
 
 **Estimated budget (v0.5.1 trimmed):**
 
 - **one implementation session** (down from v0.3/v0.4 two sessions — spotlight tier and split-voice infra cut reduces Godot scope):
   1. *Godot surfaces* — new `commitment_paradox_popup.{tscn,gd}` (3-beat staged scene per §12.3, on its own CanvasLayer in the 101-118 range, with the after-choice aside rendering in-popup post-choice), HARD_STOP dtype whitelist routing in `main.gd` for the renamed `commitment_paradox` type, named-diplomat attribution inline in existing notice cards (no new split-voice tier, no elevated spotlight card variant).
-  2. *Backend + mock prose* — named-diplomat resolution helper (`speaker="envoy"` / `speaker="foreign_office"` per §10.3), committed prose for the three live events using Voice Bible registers, ledger emphasis rules (§9.3), advisory-route reactive affordances (§12.4), Balance of Europe headline render in `diplomatic_ledger.gd`.
+  2. *Backend + mock prose* — named-diplomat resolution helper (`speaker="envoy"` / `speaker="foreign_office"` per §10.3), committed prose for the three live events using Voice Bible registers, `balance_of_europe_shifted` threshold-beat prose for 33% / 50% / 67%, ledger emphasis rules (§9.3), advisory-route reactive affordances (§12.4), Balance of Europe headline render in `diplomatic_ledger.gd`.
 - approximately 10-12 tests total
 
 ---
