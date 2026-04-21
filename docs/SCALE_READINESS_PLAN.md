@@ -125,7 +125,7 @@ The underlying diplomacy model stays bilateral. Do not add regional blocs or tra
 1. Any nation currently at war with France
 2. Any nation with an active proposal or objection involving France
 3. Any nation with an active Talleyrand mission
-4. Any nation with active concern / betrayal-memory / `commitment_paradox` pressure involving France
+4. Any nation with active hegemony / Balance-of-Europe pressure, betrayal-memory, or `commitment_paradox` pressure involving France
 5. Any nation with frontier contact against the French sphere
 
 If more than 5 nations satisfy force-expand on the same turn, trim within that force-expand set by the same shared salience helper and the same locked tiebreak rules below. No screen may invent a second cutoff rule.
@@ -279,7 +279,7 @@ Payload fields (shared shape):
 
 **Victim-grade grievance (not a witness strike):**
 
-The calling principal is not a witness — it is the victim. For defensive refusals, the victim takes a victim-grade strike (per §8.3 of `RELIABILITY_COMMITMENTS_SPEC.md`) and seeds a rivalry entry when rivalries expand. This is permanent until actively repaired via Make Amends; it is not a decaying relation modifier.
+The calling principal is not a witness — it is the victim. For defensive refusals, the victim takes a victim-grade strike (per §8.3 of `RELIABILITY_COMMITMENTS_SPEC.md`) plus the durable grievance flag authored in §8.8.4. No future rivalry seed exists in v2.4.3. This is permanent until actively repaired via Make Amends; it is not a decaying relation modifier.
 
 **Habitual-refusal compounding:**
 

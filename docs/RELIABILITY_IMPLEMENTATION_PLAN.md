@@ -109,13 +109,14 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
-- `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-66%`, `3` for `67%+`. Used only for same-turn signal beats and dedupe.
+- `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-59%`, `3` for `60%+`. Used only for same-turn signal beats and dedupe.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
-- Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 67` band, emit one `balance_of_europe_shifted` event on existing notice / dispatch surfaces with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `30%` resets `world.last_hegemony_signal_band` to `0`. This is the preferred low-complexity answer to the N+1 scalar lag.
+- Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` event on existing notice / dispatch surfaces with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `30%` resets `world.last_hegemony_signal_band` to `0`. This is the preferred low-complexity answer to the N+1 scalar lag.
 
 **AI escape-valve work (belongs here, not as later polish):**
 
 - Add an explicit bandwagon P-series rule in `ai_diplomacy.py`: non-bloc minors and exposed secondaries may propose TO the hegemon once bloc share reaches the alarming band (`~45%+` representative target), relations are not hostile, and the nation is not already locked into a rival deep bloc. This is the canonical escape valve that keeps hegemony from reading as a hard ban on growth.
+- `counterplay_hint` generation is capability-aware: before B-B7 ships, surface only currently legal hegemony levers (release a vassal, avoid a new major ally, let an alliance lapse, shrink the bloc). `Make Amends` may appear only once the verb is live and legal against the cited court.
 
 **Coalition leader update:**
 
@@ -147,9 +148,10 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 
 **Playtest / tuning gates (design contract, not polish):**
 
-- same-turn named-court beats fire at `33 / 50 / 67` before coalition declaration
+- same-turn named-court beats fire at `33 / 50 / 60` before coalition declaration
 - peaceful France at `50-55%` share reaches `BREWING` in roughly `12-16` turns if ignored
 - `60%+` sustained share feels like an acute crisis, with declaration pressure mounting in roughly another `4-8` turns unless the bloc shrinks
+- a cold-start, zero-threat run that still drifts into the mid-20s turns before `BREWING` is a failed tune gate: retune the ladder or coalition decay before closing B-Hegemony
 
 ### B-B1-lite. Acceptance formula collapse (THIS PHASE)
 
@@ -161,8 +163,9 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - Tighten `reliability_modifier` to `clamp(diplomatic_reliability[asker] // 10, -6, +6)` (current code is `// 5` capped ±10 — legacy R34).
 - Wire debug breakdown output (`components` dict) and feedback strings (`FEEDBACK_STRINGS`) for the new modifiers.
 - Add `hegemony` warning category to the preview pipeline in `build_proposal_commitment_warnings`; warning text must name why Europe is hardening and, when available, one immediate counter-play lever. Legacy `concern` reads as `hegemony` for save-load back-compat.
+- Betrayal-derived preview warnings must cite one remembered referent when `commitment_event_metadata` gives one (named nation, broken treaty, abandoned alliance, or witness context), so refusal pressure reads as memory instead of hidden arithmetic.
 
-**Tests (~7-8):**
+**Tests (~8-9):**
 
 - `hegemony_target_mod` returns 0 outside hegemon bloc
 - `hegemony_target_mod` returns 0 for intra-bloc proposals
@@ -171,6 +174,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - Reliability narrowing: `// 10` capped ±6, regression check vs prior representative scores
 - Composite acceptance score: when both hegemony pressure and betrayal apply, both surface independently in `components` dict
 - `hegemony` warning is emitted through the preview pipeline with deterministic category / severity ordering
+- Betrayal warning text includes a remembered referent when episode metadata exists
 - Warning-category alias round-trip: legacy `concern` warnings on a saved pre-v2.4 save load back as `hegemony` without data loss
 - AI `decision_reason` alias round-trip: legacy `concern_pressure` reads as `hegemony_pressure` per spec §10.1
 
@@ -195,7 +199,7 @@ Per spec §8.6.1. Ships the v0.1 standard strike-clearing verb so repaired relat
 - Add `make_amends` to `VALID_ACTIONS` in `validation.py`
 - Add `_execute_make_amends(world, command)` in `diplomatic_executor.py`:
   - pre-validate: target has ≥ 1 active victim-side strike from France, non-`WAR` treaty state, cooldown ≤ current turn, gold ≥ 200, DP ≥ 1
-  - on success: spend 200g + 1 DP, remove 1 strike (oldest matured first, else lowest-severity active), `diplomatic_reliability["France"]` += 2, `nation_relation` France → target += 5, set `reparations_cooldown[diplo_key] = current_turn + 10`, emit `amends_offered` campaign log event, and include one line of named-diplomat acknowledgment in the result text
+  - on success: spend 200g + 1 DP, remove 1 strike (oldest matured first, else lowest-severity active), `diplomatic_reliability["France"]` += 2, `nation_relation` France → target += 5, set `reparations_cooldown[diplo_key] = current_turn + 10`, emit `amends_offered` on the campaign log plus lightweight notice / ledger surfaces, and include one line of named-diplomat acknowledgment in the result text
   - on refusal: return Talleyrand-voiced advisory per spec §8.6.1 refusal conditions
 - Parser keywords: `make amends`, `amends`, `offer amends`, `repair relations`, `make amends with {nation}`
 - Mock parser keyword mapping in `llm_client.py`
@@ -203,7 +207,7 @@ Per spec §8.6.1. Ships the v0.1 standard strike-clearing verb so repaired relat
 - Add `reparations_cooldown: Dict[str, int]` field to WorldState, with `to_dict` / `from_dict` round-trip
 - Enemy AI does NOT use this action in v0.1
 
-**Tests (~9):** success path, named-diplomat acknowledgment on success, 4 refusal conditions, serialization round-trip, cooldown enforcement across save/load, strike-selection rule.
+**Tests (~10):** success path, named-diplomat acknowledgment on success, `amends_offered` lightweight surface emit, 4 refusal conditions, serialization round-trip, cooldown enforcement across save/load, strike-selection rule.
 
 ---
 
@@ -213,7 +217,7 @@ Per spec §8.6.1. Ships the v0.1 standard strike-clearing verb so repaired relat
 
 Tracked in the DG-4 amendment slice, but v2.4.3 adds three implementation-defining follow-through items that implementers must see in the plan:
 
-- **Make Amends (grievance variant).** Add the distinct grievance-clearing path from spec §8.6.1a: parser-disambiguated verb (`make amends with {nation} for the abandoned alliance`), `400g + 2 DP` cost, oldest-grievance removal, `+3` reliability / `+8` relation, shared `reparations_cooldown`, and `amends_offered` log metadata flagging `grievance_variant: True`.
+- **Make Amends (grievance variant).** Add the distinct grievance-clearing path from spec §8.6.1a: parser-disambiguated verb (`make amends with {nation} for the abandoned alliance`), `400g + 2 DP` cost, oldest-grievance removal, `+3` reliability / `+8` relation, shared `reparations_cooldown`, and `amends_offered` metadata flagging `grievance_variant: True` on the same lightweight notice / ledger route as the standard variant.
 - **Alliance termination on defensive refusal.** On `call_to_arms_refused_defensive`, terminate the existing `ALLIANCE` / `DEFENSIVE_ALLIANCE` to `PEACE` in the same turn, emit `diplomatic_treaty_broken` with `end_reason_family = "defensive_refusal_termination"`, invalidate bloc caches on that treaty-state change, and let `anti_renewal_cooldown` gate re-ratification.
 - **Acceptance-formula interaction.** B-B4 owns the `grievance_modifier` term, the per-pair 3-grievance stacking cap, and the debug / warning exposure expected by spec §9.3 when the floor clamps. Merge ordering against B-B1-lite stays mandatory per the section below.
 
@@ -244,7 +248,8 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 - **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` where `end_reason_family=french_breach`, `commitment_paradox_resolved`
 - **Dedicated `commitment_paradox_popup.{tscn,gd}`** — replaces legacy `alliance_paradox_popup` for the renamed type
 - **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — state-composed headline at top of Nations tab per spec §11.1 (no hegemon, hegemon only, BREWING without leader, DECLARED with leader)
-- **Balance of Europe threshold beats** on existing notice / dispatch surfaces at `33 / 50 / 67`, each using a named diplomat or chancery line plus one counter-play hint
+- **Balance of Europe threshold beats** on existing notice / dispatch surfaces at `33 / 50 / 60`, each using a named diplomat or chancery line plus one counter-play hint
+- **`amends_offered` lightweight notice family** for both standard and grievance-variant repair gestures, with target-court acknowledgment and ledger trace
 
 **v2.4 cuts:**
 
@@ -252,7 +257,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 - ❌ Split-voice render `attributed_lines[]` blocks on popup scenes — single-voice with named-diplomat attribution suffices at 5-nation scale
 - ❌ N+1 Talleyrand aside callback keyed by `episode_id` — defer to later presentation pass
 
-**Tests (~12-14):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, Balance of Europe headline composition for various states (no hegemon, France hegemon at various shares, coalition formed, coalition dissolved), threshold-beat copy / attribution at `33 / 50 / 67`.
+**Tests (~13-15):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, Balance of Europe headline composition for various states (no hegemon, France hegemon at various shares, coalition formed, coalition dissolved), threshold-beat copy / attribution at `33 / 50 / 60`, `amends_offered` copy / attribution.
 
 ---
 
@@ -308,11 +313,11 @@ B-B1-lite's acceptance-formula collapse (spec §9.3 pre-DG-4 clause: "no composi
 
 Recommended playtest gates:
 
-- **After B-Hegemony:** verify France-bloc share calculation tracks treaty/vassal changes correctly; same-turn named-court beats fire at `33 / 50 / 67`; passive threat accrues at 35%+ share; coalition leader emerges as Britain (highest bloc-share-against) when France hits 40%+; pressure stops when France releases a vassal; peaceful `50-55%` France reaches `BREWING` in roughly `12-16` turns if ignored.
-- **After B-B1-lite:** verify proposal acceptance reflects hegemony pressure (Britain refuses deep treaties from Bavaria when France is hegemon; Bavaria-Russia still possible); bilateral betrayal modifier scales correctly; representative regression scores within tolerance band.
+- **After B-Hegemony:** verify France-bloc share calculation tracks treaty/vassal changes correctly; same-turn named-court beats fire at `33 / 50 / 60`; passive threat accrues at 35%+ share; coalition leader emerges as Britain (highest bloc-share-against) when France hits 40%+; pressure stops when France releases a vassal; peaceful `50-55%` France reaches `BREWING` in roughly `12-16` turns if ignored; a cold-start run that drifts into the mid-20s before `BREWING` forces retune before close.
+- **After B-B1-lite:** verify proposal acceptance reflects hegemony pressure (Britain refuses deep treaties from Bavaria when France is hegemon; Bavaria-Russia still possible); bilateral betrayal modifier scales correctly; representative regression scores within tolerance band; betrayal-driven warnings cite remembered referents when metadata exists.
 - **After B-B4:** verify grievance-variant Make Amends clears only grievance flags at `400g + 2 DP`, defensive refusal terminates the existing alliance with `defensive_refusal_termination`, and the R9/R10/R11 playtest checks are explicitly reviewed before slice close.
-- **After B-B3 + Slice C-lite:** verify the renamed paradox surfaces through the new dedicated popup; named-diplomat copy lands for three live events; Balance of Europe headline reads naturally.
-- **After B-B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify the target court's named acknowledgment appears on success; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
+- **After B-B3 + Slice C-lite:** verify the renamed paradox surfaces through the new dedicated popup; named-diplomat copy lands for three live events; Balance of Europe headline reads naturally; threshold beats at `33 / 50 / 60` and `amends_offered` notices both resolve the correct court voice.
+- **After B-B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify the target court's named acknowledgment appears on success; verify `amends_offered` lands on the lightweight notice / ledger route; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
 
 Slice D stays deferred unless playtest proves the v0.1 pressure layer still lacks political texture or non-French hegemon scenarios become possible sooner than expected.
 

@@ -92,6 +92,7 @@ The first sentence says B-B4 lands **before** B-B1-lite. The second sentence pro
 |--------------|----------|----------|--------------|--------------|------------------|---------------|
 | `commitment_paradox` | HARD_STOP (popup) | `icon_paradox` | "Conflicting Oaths" | `commitments_notice_paradox` | `talleyrand` | `ledger_commitments` |
 | `balance_of_europe_shifted` | NORMAL | `icon_balance_of_europe` | "Balance of Europe Shifts" | `commitments_notice_balance_of_europe_shifted` | `envoy` → resolved `speaker_nation`, else `foreign_office` → "The Chancery of {nation}" | Open Ledger |
+| `amends_offered` | NORMAL | `icon_amends_offered` | "Amends Offered" | `commitments_notice_amends_offered` | `envoy` → target court's named diplomat | Open Ledger |
 | `hard_reject_posture_triggered` | CRITICAL | `icon_hard_reject` | "The Chancery Shut" | `commitments_notice_hard_reject_triggered` | `foreign_office` → "The Chancery of {nation}" | Open Ledger |
 | `hard_reject_posture_cleared` | NORMAL | `icon_chancery_reopened` | "The Chancery Reopens" | `commitments_notice_hard_reject_cleared` | `foreign_office` → "The Chancery of {nation}" | Open Ledger |
 | `diplomatic_treaty_broken` (`french_breach`) | CRITICAL | `icon_treaty_broken` | "Word Broken" | `commitments_notice_breach_french` | `envoy` → victim's diplomat | "Review the broken treaty" |
@@ -104,7 +105,9 @@ The first sentence says B-B4 lands **before** B-B1-lite. The second sentence pro
 
 Flag as: *"Single source of truth. Notifications, dispatch formatter, campaign log, popups, and ledger MUST derive priority/icon/label/template/voice/review-target from this row — do not hardcode elsewhere."*
 
-Add note under the row: *"`balance_of_europe_shifted` is the same-turn 33% / 50% / 67% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue."*
+Add note under the row: *"`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue."*
+
+Add note under `amends_offered`: *"Both standard and grievance-variant Make Amends use this row. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase."*
 
 ### 5. U7 — `SAVE_FORMAT_REFERENCE.md` refresh
 
@@ -146,7 +149,8 @@ Note: *"Populated by `build_diplomatic_ledger()` from B-Hegemony engine output; 
 - Line 6: `COMMITMENTS_PRESENTATION_SPEC.md v0.3 §10.3` → `v0.5.1 §10.3`.
 - Status line 3: `v1 draft — Apr 15, 2026` → `v1.1 — v0.5.1 aligned — 2026-04-20`.
 - Line 203 heading: `(v0.3 — must land...)` → `(v0.5.1 — must land...)`.
-- Add changelog: *"v1.1 (2026-04-20): labels realigned to presentation v0.5.1; 4-line minimum unchanged."*
+- Minimum cast coverage: add the four `balance_of_europe_shifted` warning families (`Castlereagh`, `Hardenberg`, `Metternich`, `Einsiedel`, each with noticed / alarming / crisis variants) and four `amends_offered` acknowledgment lines.
+- Add changelog: *"v1.1 (2026-04-20): labels realigned to presentation v0.5.1; minimum live coverage expanded to hegemony beats + Make Amends acknowledgments."*
 
 ### 9. U10 — B-Hegemony test bullet (3 vs 4 Balance-of-Europe cases)
 

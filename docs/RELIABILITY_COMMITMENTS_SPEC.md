@@ -322,13 +322,14 @@ Rules:
 
 **Threshold-crossing signal contract (required for feel, not optional polish):**
 
-- The first time the player's bloc crosses **33%**, **50%**, or **67%** of Continental power, fire a same-turn **Balance of Europe** beat on an existing notice / dispatch surface.
+- The first time the player's bloc crosses **33%**, **50%**, or **60%** of Continental power, fire a same-turn **Balance of Europe** beat on an existing notice / dispatch surface.
 - `33%` = **noticed**. A named diplomat or chancery line tells the player that courts are beginning to count obligations and patrons.
 - `50%` = **alarming**. A named diplomat explicitly frames Europe as starting to align against the hegemon; this is the "subsidies / consultations begin" beat.
-- `67%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally.
+- `60%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally.
 - Beats do **not** add a second pressure mechanic. They are pure surface visibility over the existing bloc-share calculation.
 - Beats fire only on upward crossings. Falling below `30%` resets the memory; otherwise the player should not be spammed every turn while holding the same band.
 - Speaker selection is deterministic: use the highest-weight non-bloc major court first; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line as the final fallback.
+- If a beat includes a counter-play hint, the hint must be capability-aware: only suggest actions that are actually legal in the current shipped slice. `Make Amends` may be named only once B-B7 is live; before that, hints are limited to bloc-shrinking / treaty-lapse actions.
 
 ### 7.4 Coalition target and leader selection
 
@@ -432,7 +433,7 @@ The hegemony engine provides the passive pressure that pushes neutrals from stat
 
 #### 7.8.4 Key playtest implication
 
-If France plays peacefully but builds a `50%+` bloc, the v2.4 engine should still trigger coalition formation through accumulated passive threat alone — **no French aggression needed**. This is the intended design. For it to feel fair, the player must see the continent reacting before the declaration: named-court beats at `33 / 50 / 67`, then proposal-preview warning pressure, then coalition brewing.
+If France plays peacefully but builds a `50%+` bloc, the v2.4 engine should still trigger coalition formation through accumulated passive threat alone — **no French aggression needed**. This is the intended design. For it to feel fair, the player must see the continent reacting before the declaration: named-court beats at `33 / 50 / 60`, then proposal-preview warning pressure, then coalition brewing.
 
 **Pacing target (design contract, not optional flavor):**
 
@@ -440,7 +441,7 @@ If France plays peacefully but builds a `50%+` bloc, the v2.4 engine should stil
 - `50-55%` peaceful France should reach `BREWING` in roughly **12-16 turns if ignored**.
 - `60%+` sustained share should feel like an **acute crisis**, with declaration pressure mounting in roughly **another 4-8 turns** unless France shrinks the bloc or repairs relations.
 
-If playtest misses those targets, tune the ladder or the interaction with decay rather than leaving the pacing implicit.
+If playtest misses those targets, tune the ladder or the interaction with decay rather than leaving the pacing implicit. A cold-start, zero-threat run that still takes materially longer than this contract (for example, drifting into the mid-20s turns before `BREWING`) is a tuning miss, not acceptable documentation debt.
 
 ---
 
@@ -576,7 +577,7 @@ Passive decay is the floor. v0.1 also ships one explicit player verb so repaired
 - `diplomatic_reliability["France"]` += 2 (France demonstrates willingness to repair)
 - `nation_relation` France → target += 5 (acknowledgment / goodwill)
 - `reparations_cooldown[diplo_key]` = `current_turn + 10` (one Make Amends per pair per 10 turns)
-- Emit `amends_offered` campaign log event with `episode_id`, the cleared strike's original episode lineage, deterministic deltas, and the named diplomat of the target nation
+- Emit `amends_offered` campaign-log / notice / ledger event with `episode_id`, the cleared strike's original episode lineage, deterministic deltas, and the named diplomat of the target nation
 - Success result always includes one line of named-diplomat acknowledgment in the target court's register. Mechanical success is not gated on branching, but the apology may not land as numbers-only text.
 
 **Refusal conditions (non-actionable, Talleyrand-voiced advisory):**
@@ -628,7 +629,7 @@ Parser fuzzy-match defaults to the standard variant; the grievance-variant phras
 - `diplomatic_reliability["France"]` += 3 (grievance repair is a larger political gesture than a single strike)
 - `nation_relation` France → target += 8 (acknowledgment weighted to grievance severity)
 - `reparations_cooldown[diplo_key]` = `current_turn + 10`
-- Emit `amends_offered` campaign log event with `grievance_variant: True` flag and the cleared grievance's `origin_episode_id`
+- Emit `amends_offered` campaign-log / notice / ledger event with `grievance_variant: True` flag and the cleared grievance's `origin_episode_id`
 
 **Refusal conditions:** same four conditions as §8.6.1 (no target grievance → Talleyrand advisory "There is no abandoned alliance to repair, Sire — {nation} holds no living grievance of that kind against France"; cooldown / WAR state / insufficient resources via existing paths).
 
@@ -968,7 +969,7 @@ What the engine makes hard is **broad new recruitment** — France-as-hegemon tr
 - France SHOULD be able to maintain 2 minor allies (Bavaria + Saxony) without triggering coalition formation
 - France SHOULD be able to add 1 major ally (Austria) with real diplomatic effort but without immediate coalition formation
 - France SHOULD NOT be able to hold 3+ major allies simultaneously without the continent hardening visibly into blocs over the following turns
-- The player SHOULD hear named-court alarm beats at `33 / 50 / 67` before coalition declaration ever arrives
+- The player SHOULD hear named-court alarm beats at `33 / 50 / 60` before coalition declaration ever arrives
 
 ---
 
@@ -1072,9 +1073,9 @@ Lines compose from current state — no authored copy table. The state machine h
 
 **Threshold-crossing beats (same-turn signal contract):**
 
-- The Balance of Europe headline is not allowed to be the player's **first** clue that pressure rose. On the first upward crossing of `33%`, `50%`, or `67%`, an existing notice / dispatch surface must carry one named-diplomat line.
+- The Balance of Europe headline is not allowed to be the player's **first** clue that pressure rose. On the first upward crossing of `33%`, `50%`, or `60%`, an existing notice / dispatch surface must carry one named-diplomat line.
 - Every beat names: (a) the current hegemon, (b) the new share band, (c) what the courts are doing now, and (d) one counter-play hint when one is legible.
-- Good counter-play hints in v0.1 are limited to already-existing moves: release a vassal, avoid adding another major ally, let a deep treaty lapse, or repair a wronged court before seeking another alignment.
+- Good counter-play hints in v0.1 are limited to already-existing moves: release a vassal, avoid adding another major ally, let a deep treaty lapse, or repair a wronged court before seeking another alignment once `Make Amends` is live.
 
 Per-nation rows on the Nations tab (already present) gain:
 
@@ -1093,14 +1094,15 @@ Dedicated **Political context** panel on proposal preview / ratification surface
 Surfaces:
 
 - current hegemony pressure relevant to the target (category `hegemony` — driven by bloc share per §9.1)
-- any bilateral betrayal memory affecting the offer
+- any bilateral betrayal memory affecting the offer, including one remembered referent when episode metadata exists
 - main nation likely to be angered if France proceeds
-- one immediate counter-play lever when one is legible from current state (release a vassal, avoid a new major ally, let an alliance lapse, or Make Amends with a wronged court)
+- one immediate counter-play lever when one is legible from current state (release a vassal, avoid a new major ally, let an alliance lapse, or Make Amends with a wronged court once B-B7 is live)
 
 Canonical preview contract (shipped):
 
 - expose a structured `warnings[]` list
 - each warning contains `severity`, `category`, `text`
+- `betrayal` warnings cite one remembered referent when episode metadata exists (named nation, broken treaty, abandoned alliance, or witnessed slight) so later refusals read as memory rather than hidden math
 
 Warning categories used in this phase:
 

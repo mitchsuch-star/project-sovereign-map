@@ -1,16 +1,16 @@
 # Diplomat Voice Bible
 
-> **Status:** v1 draft — Apr 15, 2026
-> **v0.3 scope note (Apr 16, 2026):** Cast coverage requirement reduced for the `Memory and Pressure` C3-lite ship. `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 §10.3 requires only **4 lead-line templates** (one per nation likely to be wronged in this phase: Hardenberg, Metternich, Einsiedel, Castlereagh's hard-reject Chancery line) instead of the v0.2 9-line cast coverage (3 nations × 3 personality registers). The 9-line target was sized for bargain breach scenarios across multiple registers per nation; with bargains deferred to `docs/WAR_BARGAIN_SPEC.md`, the larger cast coverage moves with them to slice WB-D. The four committed exemplars in this bible already satisfy the v0.3 minimum. The remaining "to author" lines in §Minimum cast coverage stay open for WB-D ship.
+> **Status:** v1.1 — v0.5.1 aligned — 2026-04-20
+> **v0.5.1 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with noticed / alarming / crisis variants, and (c) one `amends_offered` acknowledgment line per foreign court. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
 > **Purpose:** Single-page voice reference per diplomat so that every spotlight line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
-> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats each need minimum 4-line coverage per `COMMITMENTS_PRESENTATION_SPEC.md` v0.3 §10.3 (was 9-line in v0.2; reduced in v0.3 rescope).
+> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
 
 ---
 
 ## Why this document exists
 
-`CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 establishes Hawk / Schemer / Dove response patterns. That is the *taxonomy*. This document is the *bible* — the register, the characteristic phrasings, the anti-patterns, the committed exemplar paragraph that downstream templates can imitate. Without this, the nine breach-line templates the spec demands will drift into a shared voice no matter which speaker slot they fill.
+`CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 establishes Hawk / Schemer / Dove response patterns. That is the *taxonomy*. This document is the *bible* — the register, the characteristic phrasings, the anti-patterns, the committed exemplar paragraph that downstream templates can imitate. Without this, the live breach, hegemony-warning, and repair-acknowledgment templates the spec demands will drift into a shared voice no matter which speaker slot they fill.
 
 Two rules:
 
@@ -78,6 +78,8 @@ Two rules:
 - *Rejecting terms:* brief, final. "The proposal is not of a character to merit reply."
 - *Hard-reject posture triggered:* he IS the foreign-office voice. "The Court of St. James is not in receipt of further French dispatches on matters of alliance."
 - *Witness to another nation's breach:* mathematical. "London reads the breach as weakness in the anti-British front."
+- *Balance of Europe beat:* institutional counting tone. At `noticed`, London observes; at `alarming`, London consults; at `crisis`, London speaks of subsidies and alignments, never panic.
+- *Acknowledging amends:* receipt, not forgiveness. "The gesture is noted. Its execution will be observed."
 
 ---
 
@@ -109,6 +111,8 @@ Two rules:
 - *Rejecting terms:* contemptuous. "Prussia tears this proposal in half. Tell your Emperor that we remember."
 - *Witness to another nation's breach:* satisfaction if France is the betrayer of a Prussian rival; righteous fury if France betrays Prussia directly.
 - *Counter-offering (rare):* terse, almost military. "Prussia accepts — with these amendments. No others."
+- *Balance of Europe beat:* camps-and-honor register. At `noticed`, Berlin warns; at `alarming`, Prussia speaks of Europe choosing sides; at `crisis`, it speaks as if the alignment is already becoming a test of resolve.
+- *Acknowledging amends:* grudging and conditional. "Prussia records the gesture. France will now prove that it meant it."
 
 ---
 
@@ -140,6 +144,8 @@ Two rules:
 - *Rejecting terms:* polite non-commitment, never final. "Austria regrets that the current proposal does not align with our interests. Perhaps in time the circumstances will change."
 - *Witness to another nation's breach:* quietly satisfied, reads advantage. "Vienna concludes that French signatures, whatever else they may be, are not the instruments one builds a policy upon."
 - *Counter-offering:* "small modifications, really," that are always larger than they appear.
+- *Balance of Europe beat:* arrangement-and-calibration register. At `noticed`, Vienna remarks on the weather changing; at `alarming`, it speaks of consultations; at `crisis`, it implies Europe is already redrafting its arrangements.
+- *Acknowledging amends:* polished acceptance that preserves leverage. "Austria acknowledges the courtesy. One adjusts one's estimates accordingly."
 
 ---
 
@@ -171,6 +177,8 @@ Two rules:
 - *Rejecting terms (rare — only when existentially threatened):* formal, fearful, apologetic. "Saxony cannot accept terms that would render the kingdom insolvent. We beg France's understanding."
 - *Witness to another nation's breach:* reputational concern, uncertainty. "The Saxon court repeats the story as all Europe does, with a sharper distrust of French assurances — and a private worry that such assurances are the ones we rely upon."
 - *Counter-offering:* always apologetic. "His Majesty asks most respectfully if perhaps the tribute could be reduced?"
+- *Balance of Europe beat:* anxious-between-camps register. At `noticed`, Saxony grows uneasy; at `alarming`, it worries aloud about small courts being pressed to choose; at `crisis`, it sounds wounded by the narrowing room for caution.
+- *Acknowledging amends:* sincere relief with residual caution. "Saxony is grateful for the gesture, and would be glad to believe such wounds may in fact be repaired."
 
 ---
 
@@ -198,11 +206,11 @@ This matters. A single Dove in the cast means his register has no peer — autho
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)
 
-Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the full nine-line cast coverage below was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope, the work splits as follows. All nine lines remain documented so the deferred work does not need re-authoring later.
+Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the older nine-line cast coverage was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope and the April 20, 2026 hegemony / repair fold, the live work splits as follows. The deferred WB-D rows remain documented so the bargain-era work does not need re-authoring later.
 
-### Required for C3-lite (v0.3 — must land in this phase)
+### Required for C3-lite (v0.5.1 — must land in this phase)
 
-Four lines. All four already have committed exemplars in this bible:
+The live minimum is now the four breach / hard-reject leads plus the hegemony-warning and repair-acknowledgment families below:
 
 | Nation | Personality | Scene | Template source |
 |---|---|---|---|
@@ -210,6 +218,14 @@ Four lines. All four already have committed exemplars in this bible:
 | Austria | Schemer | `breach_lead_metternich` | this document §Metternich exemplar |
 | Saxony | Dove | `breach_lead_einsiedel` | this document §Einsiedel exemplar |
 | Britain | Hawk | `hard_reject_castlereagh` | this document §Castlereagh hard-reject note |
+| Britain | Hawk | `hegemony_beat_castlereagh_*` (`noticed` / `alarming` / `crisis`) | this document §Castlereagh register notes |
+| Prussia | Hawk | `hegemony_beat_hardenberg_*` (`noticed` / `alarming` / `crisis`) | this document §Hardenberg register notes |
+| Austria | Schemer | `hegemony_beat_metternich_*` (`noticed` / `alarming` / `crisis`) | this document §Metternich register notes |
+| Saxony | Dove | `hegemony_beat_einsiedel_*` (`noticed` / `alarming` / `crisis`) | this document §Einsiedel register notes |
+| Britain | Hawk | `amends_ack_castlereagh` | this document §Castlereagh register notes |
+| Prussia | Hawk | `amends_ack_hardenberg` | this document §Hardenberg register notes |
+| Austria | Schemer | `amends_ack_metternich` | this document §Metternich register notes |
+| Saxony | Dove | `amends_ack_einsiedel` | this document §Einsiedel register notes |
 
 ### Deferred to WB-D (bargain-era presentation extension)
 
@@ -243,4 +259,5 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families and `amends_offered` acknowledgments, and retired the stale v0.3-only scope note.
 - **Apr 15, 2026** — v1 draft. Cast confirmed from `backend/models/diplomat.py`. Register derived from `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 plus historical research for period authenticity. Four exemplar paragraphs committed (Talleyrand private aside, Castlereagh breach accusation, Hardenberg breach accusation, Metternich breach accusation, Einsiedel breach lament). Five remaining templates (fulfillment callbacks, hard-reject, witness reaction, paradox envoy demand) marked "to author" against the register notes.
