@@ -1105,7 +1105,7 @@ Use:
 ```
 Balance of Europe — The French System commands 53% of Continental power.
 Castlereagh has begun assembling subsidies.
-Coalition pressure against the French System: Mobilizing (78/100) — Britain leads.
+Britain leads the coalition against the French System.
 ```
 
 The subsidy line is the single-clause form specified by the composition rule below. Earlier drafts included a second "Berlin and Vienna are listening" clause in the example; that clause is **not** part of the composition contract and was dropped to keep the worked example aligned with the rule. See the "Qualifying courts flourish" rule in §11.1 "Composition rules" if you want to author a second clause under a lawful extension.
@@ -1146,14 +1146,16 @@ Lines compose from current state — no authored copy table. The state machine h
   >
   > *"{Coalition leader's named diplomat} has begun assembling subsidies."*
   >
-  > *"Coalition pressure against the {bloc_label or descriptive_label or hegemon}: {ladder_label} ({threat}/100) — {leader} leads."*
+  > *"{leader} leads the coalition against the {bloc_label or descriptive_label or hegemon}."*
+
+  The Case 4 status line deliberately drops the brewing-era `({threat}/100)` scalar and any tier label once declaration has fired. Both are BREWING-era signals — the scalar measures distance to the declaration threshold, the tier label names that distance — and neither has a causal meaning after declaration. Keeping them post-declaration (e.g. *"Mobilizing (78/100)"*) reuses the same visual grammar as Case 3 while the underlying state has changed, which reads to the player as brewing still in progress. The declared-state line instead names who leads and which bloc they march against; the drama is who vs whom, not a number ticking up against a ceiling that no longer gates anything.
 
   On the declaration turn only, the coalition-declaration popup / dispatch carries the §8.1a contrast copy (for example, *"Britain's coalition marches against the French System"*). The headline keeps the composed three-line form above. Playtest gate: if declaration turns read as crowded, suppress the subsidy flavor line on the declaration turn itself and restore it on later declared turns.
 
 - **Case 5 — Coalition COOLDOWN:** hegemon or equilibrium line + cooldown line.
   > *"The last coalition has disbanded. Europe takes breath, but no new coalition can form for {turns_remaining} turns."*
 
-  If the cooldown turn still receives positive threat this turn **and** `threat_level >= THREAT_TENSION_MIN`, append one residual-pressure flavor line below the cooldown line: *"The balance has not righted itself; the courts continue to count obligations."* Otherwise the base cooldown line stands alone. `THREAT_TENSION_MIN` is the `Tension` threshold from `COALITION_SPEC.md` §3a (currently `30`) and should move with that tier if the ladder is retuned. Lingering alarm during cooldown is real under the v0.1 scalar, but the line must not loop every quiet turn once Europe has stopped actively counting.
+  If the cooldown turn still receives positive threat this turn **and** `threat_level >= THREAT_TENSION_MIN`, append one residual-pressure flavor line below the cooldown line: *"The balance has not righted itself; the courts continue to count obligations."* Otherwise the base cooldown line stands alone. `THREAT_TENSION_MIN` is the `Tension` threshold from `COALITION_SPEC.md` §3a (currently `30`) and should move with that tier if the ladder is retuned. Lingering alarm during cooldown is real under the v0.1 scalar, but the line must not loop every quiet turn once Europe has stopped actively counting. Both conditions are load-bearing: `threat_level >= THREAT_TENSION_MIN` alone is not enough, because decaying legacy threat can sit above `30` for several quiet cooldown turns, and looping the residual line on each of them is exactly the failure mode above. The payload contract in `COMMITMENTS_PRESENTATION_SPEC.md` §11 mirrors this two-condition rule on `residual_pressure_active` so the renderer branches on a single flag; `build_diplomatic_ledger()` owns the AND.
 
 **Composition rules:**
 
@@ -1169,7 +1171,7 @@ Lines compose from current state — no authored copy table. The state machine h
 - The Balance of Europe headline is not allowed to be the player's **first** clue that pressure rose. On the first upward crossing of `33%`, `50%`, or `60%`, a `balance_of_europe_shifted` named-diplomat notification fires *before* the headline refreshes for the turn. Per §7.3 the beat surface MUST NOT be the headline itself or the Morning Dispatch Balance line — both display state, not events.
 - If `coalition_cooldown > 0`, the threshold beat uses the cooldown-aware wording from §7.3 so the player hears both truths at once: Europe is hardening, but the courts cannot yet form a new league.
 - Every beat names: (a) the current hegemon, (b) the new share band, (c) what the courts are doing now, and (d) either one counter-play hint (when the player is the hegemon) or a deliberate no-hint descriptive variant (when another nation is the hegemon in the v0.1 forward-compat edge case).
-- Good counter-play hints in v0.1 are limited to already-existing moves: release a vassal, avoid adding another major ally, let a deep treaty lapse, or repair a wronged court before seeking another alignment once `Make Amends` is live.
+- Good counter-play hints in v0.1 are limited to already-existing **bloc-shrinking levers**: release a vassal, avoid adding another major ally, or let a deep treaty lapse. `Make Amends` is explicitly NOT a hegemony counter-play hint — it clears bilateral strikes, not bloc share, so surfacing it on a hegemony beat misdirects the player toward pair-level repair when the relief lever is bloc shrinkage. Whenever Make Amends is live, it may be mentioned alongside a cited wronged court only as a *prerequisite* for a future bilateral proposal (so Europe does not read the next request as another broken promise), never as a pressure-reducer. §7.3 L375's hint contract and this list must name the same three bloc-shrinking levers plus the restraint floor; they do not disagree.
 
 Per-nation rows on the Nations tab (already present) gain:
 
