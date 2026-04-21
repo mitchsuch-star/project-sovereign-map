@@ -1,12 +1,12 @@
 # MP v2.4.3 - Block 3: Bloc Naming and Alignment Legibility Gate
 
-> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is a future-facing fun/legibility gate for whether hegemony reads as political drama rather than a hidden debuff.
+> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next design-legibility gate in sequence before the remaining v2.4.3 implementation continues.
 >
-> **Ships as:** spec/design gate now; implementation later only if B-Hegemony + C-lite baseline lands cleanly and playtest still wants more bloc legibility.
+> **Ships as:** spec/design gate now; implementation later in the same phase if adopted.
 >
-> **Pre-merge gate for:** v2.4.3 fun sign-off after Block 1, Block 2, B-Hegemony, and C-lite. This is **not** a prerequisite for starting Blocks 1/2.
+> **Pre-merge gate for:** the post-Block-2 v2.4.3 implementation pass. Sequence is Block 1 -> Block 2 -> Block 3 -> B-Hegemony / B-B1-lite / B-B3 / B-B7 / C-lite. This is **not** a prerequisite for starting Blocks 1/2; it is the next gate after they land.
 >
-> **Depends on:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony + C-lite, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, `docs/DIPLOMAT_VOICE_BIBLE.md`.
+> **Depends on:** Block 1 and Block 2 routing being current in `STATUS.md`, plus `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony + C-lite, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, `docs/DIPLOMAT_VOICE_BIBLE.md`.
 >
 > **Total effort if adopted:** ~1 focused spec pass, ~1 implementation session, ~8-12 tests.
 
@@ -202,4 +202,4 @@ This naming pass should still hold at larger rosters:
 
 ## Recommendation
 
-Treat this as a **post-baseline fun gate**, not as a prerequisite for Blocks 1/2. If B-Hegemony ships and the mechanic is legible but still feels too numeric, Block 3 is a clean way to add political drama without reopening the core math. If playtest already shows that the named-court beats and Balance of Europe headline are enough, this block can remain parked without harming the core v2.4.3 contract.
+Treat this as the **third audit/design gate in the v2.4.3 queue**, immediately after Block 2 and before the remaining implementation slices. If adopted, it gives us a clean chance to lock bloc-legibility language before B-Hegemony / C-lite prose hardens in code. If the team later decides the baseline beats/headline are already enough, this block can still be closed quickly with a deliberate "no additional bloc naming needed" call rather than being forgotten.
