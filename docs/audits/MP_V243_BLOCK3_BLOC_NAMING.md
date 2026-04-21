@@ -27,9 +27,71 @@ The carry-forward checklist below does **not** mean every deferred item becomes 
 
 ---
 
+## Execution mode
+
+Treat Block 3 as a **decision-and-spec gate**, not as an open-ended brainstorm. A fresh session should leave this block in one of two explicit states:
+
+1. **Adopt bloc naming for v2.4.3.**
+   Record the naming contract in the live docs, keep the implementation cheap/derived, and hand the actual code work to the next post-Block-3 implementation session.
+2. **Decline additional bloc naming for v2.4.3.**
+   Record that the existing Balance-of-Europe beats/headline are sufficient, close this block deliberately, and continue the remaining implementation slices without extra naming work.
+
+Block 3 is **not done** if it only generates discussion. One of the two outcomes above should be written into the docs and reflected in `STATUS.md`.
+
+### Expected outputs
+
+If Block 3 is **adopted**, the pass should leave behind:
+
+- a presentation-spec update in `docs/COMMITMENTS_PRESENTATION_SPEC.md` that owns the `33%` / `50%` / `60%` bloc-label contract and surface routing
+- an implementation-plan update in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` that places the derived-helper/test work in the correct follow-on slice
+- a voice-bible update in `docs/DIPLOMAT_VOICE_BIBLE.md` that covers the named-bloc reveal beat and its crisis restatement
+- a `STATUS.md` note confirming Block 3 was adopted and where the actual implementation is expected to land
+
+If Block 3 is **declined**, the pass should leave behind:
+
+- a `STATUS.md` note that no additional bloc-naming layer is required for v2.4.3
+- a short close-out note in this document explaining why the baseline hegemony/beats/headline surface was judged sufficient
+- the carry-forward checklist preserved, since those items still belong to their owner slices regardless of the naming decision
+
+### Definition of done
+
+Block 3 can be considered closed only when all of the following are true:
+
+- the docs explicitly say whether bloc naming was adopted or declined for v2.4.3
+- `bloc` versus `coalition` terminology is protected across the affected docs
+- the `33%` / `50%` / `60%` activation behavior is either canonized or deliberately rejected
+- implementation ownership is clear: this block may authorize later code work, but it must not quietly create a new mechanic or save surface
+- the carry-forward items remain visible as tracked follow-through owned by `C-lite`, `B-B4`, `B-B7`, or `B-B1-lite`, rather than silently absorbed into Block 3
+
+### Closure states
+
+Close Block 3 as **ADOPTED** only when:
+
+- `docs/COMMITMENTS_PRESENTATION_SPEC.md` owns the bloc-label threshold/surface contract
+- `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` names the follow-on implementation owner and test expectations
+- `docs/DIPLOMAT_VOICE_BIBLE.md` covers the reveal/crisis voice beats
+- `STATUS.md` says Block 3 was adopted and points the next session at the correct owner slice for actual implementation
+
+Close Block 3 as **DECLINED** only when:
+
+- `STATUS.md` explicitly says no additional bloc-naming layer is required for v2.4.3
+- this document carries a short written reason for declining the feature expansion
+- the carry-forward checklist remains intact and still points at the owning slices instead of being treated as cancelled by implication
+
+### Verification bundle
+
+Before closing Block 3, perform a short doc-level audit:
+
+- grep for player-facing `coalition` usage in the affected diplomacy docs and confirm it is reserved for the formal anti-hegemon war structure
+- confirm the same threshold story appears everywhere relevant: `33%` noticed, `50%` named reveal, `60%` hardened camps
+- confirm `STATUS.md` and this document agree on whether Block 3 is still open, adopted, or deliberately declined
+- confirm the carry-forward items still point at their owning slices rather than sounding like Block 3 implementation requirements
+
+---
+
 ## Carry-Forward From Block 2
 
-These items were explicitly deferred by Block 2. They are listed here so a fresh session sees them immediately, even though the actual implementation ownership remains with the named slice.
+These items were explicitly deferred by Block 2. They are listed here so a fresh session sees them immediately, but Block 3 tracks them only as carry-forward visibility. The actual implementation ownership remains with the named slice.
 
 ### CF1 - `C-lite` presentation follow-through
 
