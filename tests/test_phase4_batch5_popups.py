@@ -42,7 +42,7 @@ def _all_response_keys():
         "vassal_rebellion_imminent",
         "diplomatic_objection",
         "incoming_proposal",
-        "alliance_paradox_popup",
+        "commitment_paradox_popup",
     ]
 
 
@@ -133,16 +133,16 @@ class TestR76PriorityQueue:
         assert response["incoming_proposal"] is None
         assert world.incoming_proposal_popup is not None
 
-    def test_priority_order_proposal_over_alliance_paradox(self, world):
-        """Incoming proposal beats alliance paradox in priority."""
+    def test_priority_order_proposal_over_commitment_paradox(self, world):
+        """Incoming proposal beats commitment paradox in priority."""
         fn = _get_popup_passthrough_fn()
         world.incoming_proposal_popup = {"type": "proposal"}
-        world.alliance_paradox_popup = {"type": "paradox"}
+        world.commitment_paradox_popup = {"type": "paradox"}
         response = {}
         fn(response, world)
         assert response["incoming_proposal"] is not None
-        assert response["alliance_paradox_popup"] is None
-        assert world.alliance_paradox_popup is not None
+        assert response["commitment_paradox_popup"] is None
+        assert world.commitment_paradox_popup is not None
 
     def test_no_popups_all_none(self, world):
         """When no popups are set, all response keys are None."""
@@ -161,16 +161,16 @@ class TestR76PriorityQueue:
         for key in _all_response_keys():
             assert key in response, f"Missing key: {key}"
 
-    def test_alliance_paradox_guarded_with_getattr(self, world):
-        """alliance_paradox_popup is guarded with getattr (R6: now a property, always exists)."""
+    def test_commitment_paradox_popup_present_when_unset(self, world):
+        """commitment_paradox_popup is a property-backed slot that returns None when unset."""
         fn = _get_popup_passthrough_fn()
-        # R6: alliance_paradox_popup is now a property backed by PopupQueue,
+        # R6: commitment_paradox_popup is now a property backed by PopupQueue,
         # so it always exists. Verify it returns None when unset.
-        assert world.alliance_paradox_popup is None
+        assert world.commitment_paradox_popup is None
         response = {}
         fn(response, world)
         # Should not crash, and key should be None
-        assert response["alliance_paradox_popup"] is None
+        assert response["commitment_paradox_popup"] is None
 
     def test_three_popups_delivers_one_per_call(self, world):
         """With three popups set, each call delivers exactly one."""

@@ -1150,7 +1150,7 @@ class TestBugfix_PopupPassthrough:
             "vassal_rebellion_imminent",
             "diplomatic_objection",
             "incoming_proposal",
-            "alliance_paradox_popup",
+            "commitment_paradox_popup",
         ]
         for key in expected_keys:
             assert key in response, (

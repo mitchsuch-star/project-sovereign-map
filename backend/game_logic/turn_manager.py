@@ -245,7 +245,7 @@ class TurnManager:
 
         # ════════════════════════════════════════════════════════════
         # V2-89 → R12C: Promote from queue if current slot is empty
-        # Priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal
+        # Priority: commitment_paradox > vassal_rebellion > sabotage > ai_proposal
         # ════════════════════════════════════════════════════════════
         self.world.dialogue_manager.promote_if_empty()
 
@@ -355,7 +355,7 @@ class TurnManager:
         self.world.vassal_rebellion_imminent_popup = None
         self.world.vassal_rebellion_imminent_popups = []
         self.world.coalition_popup = None
-        self.world.alliance_paradox_popup = None
+        self.world.commitment_paradox_popup = None
         self.world.pending_capture_choice = None
 
     def _process_ai_diplomatic_phase(self) -> Optional[Dict]:

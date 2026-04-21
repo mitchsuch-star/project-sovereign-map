@@ -447,7 +447,7 @@ class CommandExecutor:
 
         # ============================================================
         # DIPLOMATIC DIALOGUE CHECK (Phase 8 Session 3, PL-27 Session 2)
-        # PL-27: Only HARD-STOP dialogues (alliance_paradox,
+        # PL-27: Only HARD-STOP dialogues (commitment_paradox, alias: alliance_paradox,
         # force_declare_war_confirmation) block ALL commands.
         # Soft-stop dialogues (incoming_proposal, counter_offer, etc.)
         # allow ordinary commands through. Dialogue responses are

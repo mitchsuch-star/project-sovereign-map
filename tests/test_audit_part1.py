@@ -48,7 +48,7 @@ class TestSection1PopupFlow:
         """Only hard-stop dialogues block end-turn with dialogue data."""
         world = _make_world()
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "blocking": True,
             "turn_created": int(world.current_turn),
@@ -137,7 +137,7 @@ class TestSection1PopupFlow:
         """PL-27: Hard-stop dialogue guard blocks regular commands."""
         world = _make_world()
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "blocking": True,
             "turn_created": int(world.current_turn),

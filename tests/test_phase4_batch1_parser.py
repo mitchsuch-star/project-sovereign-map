@@ -465,8 +465,8 @@ class TestPhase4Serialization:
         restored = WorldState.from_dict(data)
         assert restored.diplomatic_reliability["Austria"] == 15
 
-    def test_alliance_paradox_popup_serializes(self, world):
-        world.alliance_paradox_popup = {"type": "test"}
+    def test_commitment_paradox_popup_serializes(self, world):
+        world.commitment_paradox_popup = {"type": "test"}
         data = world.to_dict()
         restored = WorldState.from_dict(data)
-        assert restored.alliance_paradox_popup == {"type": "test"}
+        assert restored.commitment_paradox_popup == {"type": "test"}

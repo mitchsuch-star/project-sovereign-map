@@ -2128,22 +2128,42 @@ def declare_war(
                 )
             if preview_lines:
                 paradox_msg += "\n\n" + "\n".join(preview_lines)
-            world.alliance_paradox_popup = {
+            ally_preview = {
+                "honor_defender": attacker_breach_preview,
+                "break_defender_alliance": defender_breach_preview,
+            }
+            world.commitment_paradox_popup = {
+                "episode_id": paradox_episode_id,
+                "primary_nation": aggressor,
+                "secondary_nation": target,
                 "attacker": aggressor,
                 "defender": target,
+                "ally": player,
                 "attacker_alliance": aggressor_state,
                 "defender_alliance": target_state,
                 "message": paradox_msg,
-                "origin_episode_id": paradox_episode_id,
+                "origin_episode_id": paradox_episode_id,  # legacy alias
+                "attacker_preview": attacker_breach_preview,
+                "defender_preview": defender_breach_preview,
+                "ally_preview": ally_preview,
                 "honor_defender_preview": attacker_breach_preview,
                 "break_defender_preview": defender_breach_preview,
             }
             # V2-89 → R12C: push() auto-queues if another dialogue is active
             world.dialogue_manager.push({
-                "type": "alliance_paradox",
+                "type": "commitment_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,
+                "episode_id": paradox_episode_id,
                 "origin_episode_id": paradox_episode_id,
+                "primary_nation": aggressor,
+                "secondary_nation": target,
+                "attacker": aggressor,
+                "defender": target,
+                "ally": player,
+                "attacker_preview": attacker_breach_preview,
+                "defender_preview": defender_breach_preview,
+                "ally_preview": ally_preview,
                 "breach_preview": defender_breach_preview,  # legacy alias: "side with aggressor"
                 "warnings": defender_paradox_warnings,  # legacy alias for current UI consumers
                 "honor_defender_preview": attacker_breach_preview,

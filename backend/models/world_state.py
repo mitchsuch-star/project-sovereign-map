@@ -494,7 +494,7 @@ class WorldState:
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.betrayal_history: Dict[str, Dict] = {}      # actor|victim -> remembered bilateral strikes
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
-        self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
+        self.commitment_paradox_popup: Optional[Dict] = None  # R12 commitment paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
         # Used to group diplomatic consequences (breach + cascade + witness
         # strikes) emitted from one explicit trigger under a single key so
@@ -665,12 +665,21 @@ class WorldState:
         self._popup_queue.set("proposal_result_popup", value)
 
     @property
+    def commitment_paradox_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("commitment_paradox_popup")
+
+    @commitment_paradox_popup.setter
+    def commitment_paradox_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("commitment_paradox_popup", value)
+
+    @property
     def alliance_paradox_popup(self) -> Optional[Dict]:
-        return self._popup_queue.get("alliance_paradox_popup")
+        """Legacy alias for v1.x saves and tests. Canonical key is commitment_paradox_popup."""
+        return self.commitment_paradox_popup
 
     @alliance_paradox_popup.setter
     def alliance_paradox_popup(self, value: Optional[Dict]):
-        self._popup_queue.set("alliance_paradox_popup", value)
+        self.commitment_paradox_popup = value
 
     # ========================================
     # DIPLOMACY HELPERS (Phase 8 data layer)
@@ -3268,7 +3277,7 @@ class WorldState:
                 for key, record in self.betrayal_history.items()
             },
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
-            "alliance_paradox_popup": self.alliance_paradox_popup,
+            "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
 
             # Dispatch event queue (Session 8D)
@@ -3575,7 +3584,10 @@ class WorldState:
             for key, record in data.get("betrayal_history", {}).items()
         }
         world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
-        world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
+        commitment_paradox_popup = data.get("commitment_paradox_popup", None)
+        if commitment_paradox_popup is None and "alliance_paradox_popup" in data:
+            commitment_paradox_popup = data.get("alliance_paradox_popup", None)
+        world.commitment_paradox_popup = commitment_paradox_popup
         world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
 
         # Dispatch event queue (Session 8D)

@@ -159,8 +159,8 @@ class TestR17cTreatyGoldCosts:
 
 # ═══════ R12: ALLIANCE PARADOX ═══════
 
-class TestR12AllianceParadox:
-    """R12: Alliance paradox detected when AI allies of France go to war."""
+class TestR12CommitmentParadox:
+    """R12: Commitment paradox detected when AI allies of France go to war."""
 
     def test_paradox_detected(self, world):
         """When both attacker and defender are allied with player, popup is set."""
@@ -174,9 +174,9 @@ class TestR12AllianceParadox:
         result = declare_war(world, "Prussia", "Austria")
         assert result["success"]
         # Alliance paradox popup should be set
-        assert world.alliance_paradox_popup is not None
-        assert world.alliance_paradox_popup["attacker"] == "Prussia"
-        assert world.alliance_paradox_popup["defender"] == "Austria"
+        assert world.commitment_paradox_popup is not None
+        assert world.commitment_paradox_popup["attacker"] == "Prussia"
+        assert world.commitment_paradox_popup["defender"] == "Austria"
 
     def test_paradox_not_triggered_if_not_allied(self, world):
         """No paradox if player is not allied with both nations."""
@@ -187,7 +187,7 @@ class TestR12AllianceParadox:
         world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
         result = declare_war(world, "Prussia", "Austria")
         assert result["success"]
-        assert world.alliance_paradox_popup is None
+        assert world.commitment_paradox_popup is None
 
     def test_paradox_creates_dialogue(self, world):
         """Alliance paradox also creates a pending_diplomatic_dialogue with two options."""
@@ -202,7 +202,10 @@ class TestR12AllianceParadox:
             world.dialogue_manager.promote_if_empty()
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
-        assert dialogue["type"] == "alliance_paradox"
+        assert dialogue["type"] == "commitment_paradox"
+        assert dialogue["episode_id"] == dialogue["origin_episode_id"]
+        assert dialogue["primary_nation"] == "Prussia"
+        assert dialogue["secondary_nation"] == "Austria"
         assert len(dialogue["options"]) == 2
         assert dialogue["options"][0]["action"] == "honor_defender"
         assert dialogue["options"][1]["action"] == "break_defender_alliance"
@@ -246,7 +249,7 @@ class TestR12AllianceParadox:
         assert world.is_at_war(player, "Prussia")
         # Dialogue and popup should be cleared
         assert world.pending_diplomatic_dialogue is None
-        assert world.alliance_paradox_popup is None
+        assert world.commitment_paradox_popup is None
 
     def test_honor_defender_logs_commitment_paradox_resolution(self, world, executor, game_state):
         from backend.game_logic.diplomacy import declare_war
@@ -295,7 +298,7 @@ class TestR12AllianceParadox:
         assert state == "PEACE", f"Expected PEACE, got {state}"
         # Dialogue and popup should be cleared
         assert world.pending_diplomatic_dialogue is None
-        assert world.alliance_paradox_popup is None
+        assert world.commitment_paradox_popup is None
 
     def test_break_defender_logs_commitment_paradox_resolution(self, world, executor, game_state):
         from backend.game_logic.diplomacy import declare_war

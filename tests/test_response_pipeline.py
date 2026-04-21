@@ -64,7 +64,7 @@ POPUP_KEYS = {
     "coalition_popup", "diplomatic_sabotage",
     "vassal_rebellion_imminent",
     "diplomatic_objection", "incoming_proposal",
-    "alliance_paradox_popup",
+    "commitment_paradox_popup",
 }
 
 ALL_STANDARD_KEYS = BASE_REQUIRED_KEYS | DIPLOMATIC_TOPBAR_KEYS | POPUP_KEYS | {"active_wars"}

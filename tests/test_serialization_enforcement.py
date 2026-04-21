@@ -432,6 +432,60 @@ class TestWorldStateSerializationEnforcement:
         assert restored.gold_spent_this_turn == world.gold_spent_this_turn, "gold_spent_this_turn not preserved"
         assert restored.current_turn == world.current_turn, "current_turn not preserved"
 
+    def test_world_state_roundtrip_preserves_betrayal_history_and_episode_counter(self):
+        """v2.4.3 diplomatic memory substrate must survive save/load unchanged."""
+        world = WorldState(player_nation="France")
+        world.betrayal_history = {
+            "France|Austria": {
+                "strikes": [
+                    {
+                        "severity": "major",
+                        "turn": 7,
+                        "episode_id": "ep-7",
+                        "decays_on_turn": 18,
+                    }
+                ],
+                "categories": ["french_breach"],
+                "last_turn": 7,
+            }
+        }
+        world.next_episode_id = 12
+
+        restored = WorldState.from_dict(world.to_dict())
+
+        assert restored.betrayal_history == world.betrayal_history
+        assert restored.next_episode_id == 12
+
+    def test_world_state_loads_legacy_and_canonical_commitment_paradox_popup_keys(self):
+        """Canonical save key wins, but legacy alliance_paradox_popup still loads."""
+        world = WorldState(player_nation="France")
+        base = world.to_dict()
+
+        canonical_data = dict(base)
+        canonical_data["commitment_paradox_popup"] = {"attacker": "Prussia", "defender": "Austria"}
+        canonical_restored = WorldState.from_dict(canonical_data)
+        assert canonical_restored.commitment_paradox_popup == {"attacker": "Prussia", "defender": "Austria"}
+
+        legacy_data = dict(base)
+        legacy_data["alliance_paradox_popup"] = {"attacker": "Russia", "defender": "Prussia"}
+        legacy_restored = WorldState.from_dict(legacy_data)
+        assert legacy_restored.commitment_paradox_popup == {"attacker": "Russia", "defender": "Prussia"}
+        assert legacy_restored.alliance_paradox_popup == {"attacker": "Russia", "defender": "Prussia"}
+
+    def test_world_state_missing_new_diplomatic_memory_keys_falls_back_to_defaults(self):
+        """Pre-v2.4 saves without new substrate keys should still load cleanly."""
+        world = WorldState(player_nation="France")
+        data = world.to_dict()
+        data.pop("betrayal_history", None)
+        data.pop("next_episode_id", None)
+        data.pop("commitment_paradox_popup", None)
+
+        restored = WorldState.from_dict(data)
+
+        assert restored.betrayal_history == {}
+        assert restored.next_episode_id == 1
+        assert restored.commitment_paradox_popup is None
+
 
 # ============================================================================
 # REGION ENFORCEMENT

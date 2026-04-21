@@ -41,7 +41,7 @@ class TestPopupRoutingRegistry:
         expected_route_order = [
             '"id": "objection"',
             '"id": "glorious_charge"',
-            '"id": "alliance_paradox"',
+            '"id": "commitment_paradox"',
             '"id": "capture_choice"',
             '"id": "diplomatic_objection"',
             '"id": "incoming_proposal"',
@@ -68,7 +68,7 @@ class TestPopupRoutingRegistry:
         assert 'if _route_response_ui(response, _post_hud_response_routes):' in body
 
         legacy_inline_show_calls = [
-            "alliance_paradox_popup.show_paradox(",
+            "commitment_paradox_popup.show_paradox(",
             "talleyrand_objection_popup.show_objection(",
             "incoming_proposal_popup.show_proposal(",
             "proposal_confirm_popup.show_dialogue(",

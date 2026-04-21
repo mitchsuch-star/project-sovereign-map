@@ -307,7 +307,7 @@ class TestDialogueBlocking:
     def test_hard_stop_dialogue_blocks_commands(self, executor, world, game_state):
         """PL-27: Only hard-stop dialogues block commands."""
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [{"label": "Honor", "action": "honor"}, {"label": "Break", "action": "side"}],
@@ -362,9 +362,9 @@ class TestDialogueBlocking:
         assert world.pending_diplomatic_dialogue is None
 
     def test_hard_stop_dialogue_prevents_end_turn(self, executor, world, game_state):
-        """Only hard-stop dialogues (alliance_paradox, force_declare_war) block end-turn."""
+        """Only hard-stop dialogues (commitment_paradox, force_declare_war) block end-turn."""
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [],

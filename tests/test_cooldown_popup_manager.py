@@ -192,15 +192,21 @@ class TestPopupQueueUnit:
         assert q.get("coalition_popup") == {"v": 2}
 
     def test_priority_order_all_types(self):
-        """All popup types pop in correct priority order."""
+        """All popup types pop in canonical priority order, collapsing legacy aliases."""
         q = PopupQueue()
         # Push in reverse priority order
         for ptype in reversed(PopupQueue.PRIORITY_ORDER):
             q.push(ptype, {"type": ptype})
         # Pop should yield in priority order
-        for expected_type in PopupQueue.PRIORITY_ORDER:
+        expected_types = []
+        for ptype in PopupQueue.PRIORITY_ORDER:
+            canonical_type = PopupQueue._canonicalize_popup_type(ptype)
+            if canonical_type not in expected_types:
+                expected_types.append(canonical_type)
+        for expected_type in expected_types:
             ptype, _, data = q.pop_highest()
             assert ptype == expected_type
+        assert q.pop_highest() == (None, None, None)
 
     def test_response_keys_mapping(self):
         """RESPONSE_KEYS maps world attrs to Godot-facing keys."""
@@ -271,7 +277,7 @@ class TestBackwardCompatProperties:
         assert world.coalition_popup is None
 
     def test_all_popup_properties(self):
-        """All 6 popup fields have working properties."""
+        """All popup fields have working properties, including the paradox alias."""
         world = WorldFactory.basic()
         popups = {
             "coalition_popup": {"a": 1},
@@ -279,12 +285,13 @@ class TestBackwardCompatProperties:
             "vassal_rebellion_imminent_popup": {"c": 3},
             "diplomatic_objection_popup": {"e": 5},
             "incoming_proposal_popup": {"f": 6},
-            "alliance_paradox_popup": {"g": 7},
+            "commitment_paradox_popup": {"g": 7},
         }
         for attr, data in popups.items():
             setattr(world, attr, data)
         for attr, data in popups.items():
             assert getattr(world, attr) == data
+        assert world.alliance_paradox_popup == {"g": 7}
 
     def test_cooldown_save_load_via_properties(self):
         """Save/load uses properties transparently — same save format."""
@@ -310,6 +317,7 @@ class TestBackwardCompatProperties:
         data = world.to_dict()
         assert data["coalition_popup"] == {"name": "test"}
         assert data["incoming_proposal_popup"] == {"from": "Austria"}
+        assert data["commitment_paradox_popup"] is None
 
         loaded = WorldFactory.basic().from_dict(data)
         assert loaded.coalition_popup == {"name": "test"}
@@ -399,7 +407,7 @@ class TestPopupQueueIntegration:
         expected = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
-            "alliance_paradox_popup"
+            "commitment_paradox_popup"
         ]
         for key in expected:
             assert key in response
@@ -435,9 +443,11 @@ class TestCooldownPopupEnforcement:
         assert mgr._registered_scalars == {"talleyrand_defiance", "ultimatum_global"}
 
     def test_popup_priority_order_length(self):
-        """PopupQueue has exactly 7 popup types."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 7
-        assert len(PopupQueue.RESPONSE_KEYS) == 7
+        """PopupQueue tracks 8 keys: 7 canonical slots plus one legacy alias."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 8
+        assert len(PopupQueue.RESPONSE_KEYS) == 8
+        assert PopupQueue.RESPONSE_KEYS["commitment_paradox_popup"] == "commitment_paradox_popup"
+        assert PopupQueue.RESPONSE_KEYS["alliance_paradox_popup"] == "commitment_paradox_popup"
 
     def test_popup_priority_order_matches_response_keys(self):
         """Every PRIORITY_ORDER entry has a RESPONSE_KEYS mapping."""
@@ -470,7 +480,17 @@ class TestCooldownPopupEnforcement:
             'coalition_popup', 'diplomatic_sabotage_popup',
             'vassal_rebellion_imminent_popup',
             'diplomatic_objection_popup', 'incoming_proposal_popup',
+            'commitment_paradox_popup',
             'alliance_paradox_popup',
         ]:
             assert isinstance(getattr(WorldState, prop_name), property), \
                 f"{prop_name} should be a property"
+
+    def test_legacy_popup_alias_resolves_to_canonical_slot(self):
+        queue = PopupQueue()
+        queue.set("alliance_paradox_popup", {"attacker": "France"})
+        assert queue.get("commitment_paradox_popup") == {"attacker": "France"}
+        popup_type, response_key, data = queue.pop_highest()
+        assert popup_type == "commitment_paradox_popup"
+        assert response_key == "commitment_paradox_popup"
+        assert data == {"attacker": "France"}

@@ -96,8 +96,8 @@ var sabotage_discovery_popup = null
 var vassal_rebellion_popup = null
 var proposal_confirm_popup = null
 
-# Alliance Paradox Popup (Deep Audit Session 8)
-var alliance_paradox_popup = null
+# Commitment Paradox Popup (Deep Audit Session 8)
+var commitment_paradox_popup = null
 
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
@@ -223,9 +223,9 @@ func _ready():
 	if vassal_rebellion_popup:
 		vassal_rebellion_popup.choice_made.connect(_on_vassal_rebellion_choice)
 
-	alliance_paradox_popup = dialog_manager.register("alliance_paradox", "res://scenes/alliance_paradox_popup.tscn")
-	if alliance_paradox_popup:
-		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
+	commitment_paradox_popup = dialog_manager.register("commitment_paradox", "res://scenes/commitment_paradox_popup.tscn")
+	if commitment_paradox_popup:
+		commitment_paradox_popup.choice_made.connect(_on_commitment_paradox_choice)
 
 	_configure_response_routes()
 
@@ -723,7 +723,7 @@ func _configure_response_routes():
 		{"id": "glorious_charge", "matches": "_response_has_glorious_charge_route", "show": "_route_glorious_charge_response"},
 	]
 	_post_hud_response_routes = [
-		{"id": "alliance_paradox", "matches": "_response_has_alliance_paradox_route", "show": "_route_alliance_paradox_response"},
+		{"id": "commitment_paradox", "matches": "_response_has_commitment_paradox_route", "show": "_route_commitment_paradox_response"},
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
@@ -771,15 +771,15 @@ func _route_glorious_charge_response(response: Dictionary):
 		print("GLORIOUS CHARGE CONDITION MET")
 	_show_glorious_charge_dialog(response)
 
-func _response_has_alliance_paradox_route(response: Dictionary) -> bool:
+func _response_has_commitment_paradox_route(response: Dictionary) -> bool:
 	return (
-		response.has("alliance_paradox_popup")
-		and response.alliance_paradox_popup != null
-		and alliance_paradox_popup != null
+		response.has("commitment_paradox_popup")
+		and response.commitment_paradox_popup != null
+		and commitment_paradox_popup != null
 	)
 
-func _route_alliance_paradox_response(response: Dictionary):
-	alliance_paradox_popup.show_paradox(response.alliance_paradox_popup)
+func _route_commitment_paradox_response(response: Dictionary):
+	commitment_paradox_popup.show_paradox(response.commitment_paradox_popup)
 
 func _response_has_capture_choice_route(response: Dictionary) -> bool:
 	return response.has("pending_capture_choice") and response.pending_capture_choice
@@ -2994,8 +2994,8 @@ func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
 	set_input_enabled(false)
 	api_client.send_dialogue_response(action, _on_command_result)
 
-func _on_alliance_paradox_choice(choice: String, data: Dictionary):
-	"""Handle player response to alliance paradox popup (Fix 15).
+func _on_commitment_paradox_choice(choice: String, data: Dictionary):
+	"""Handle player response to commitment paradox popup (Fix 15).
 	Routes through dialogue response system (option index), not regular commands.
 	Backend pending_diplomatic_dialogue has options[0]=honor_defender, options[1]=break."""
 	var defender = str(data.get("defender", "unknown"))

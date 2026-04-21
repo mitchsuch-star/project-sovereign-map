@@ -36,13 +36,9 @@ class DialogueManager:
     # ── PL-27: Dialogue type taxonomy (Session 2) ────────────────────
     # Hard-stop: blocks ALL commands until resolved.
     #
-    # `commitment_paradox` is registered here as a backend-side placeholder
-    # for the §7.5 ratification-time opposition-graph hard-stop. The full
-    # Godot surface split (dedicated `commitment_paradox_popup.{tscn,gd}`,
-    # split-voice render, main.gd dtype whitelist) is spec'd in
-    # COMMITMENTS_PRESENTATION_SPEC.md §14 C3a-pre and ships with C3a-pre.
-    # Registering the type name now keeps the taxonomy stable so the Godot
-    # surface split can land without a second backend pass.
+    # `alliance_paradox` is kept as a legacy alias for save replay.
+    # Production emitters now use `commitment_paradox`, which owns the
+    # dedicated `commitment_paradox_popup.{tscn,gd}` Godot surface.
     HARD_STOP_TYPES = frozenset({
         "force_declare_war_confirmation",
         "force_break_treaty_confirmation",
@@ -85,6 +81,7 @@ class DialogueManager:
     # Unlisted types (counter_offer_response, advisory, etc.) default to 99.
     DIALOGUE_PRIORITY: Dict[str, int] = {
         "alliance_paradox": 0,
+        "commitment_paradox": 0,
         "vassal_rebellion_imminent": 1,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,

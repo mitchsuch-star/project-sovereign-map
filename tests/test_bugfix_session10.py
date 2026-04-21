@@ -429,7 +429,7 @@ class TestPL11DialogueGuardMessage:
         world = _make_world()
         executor = CommandExecutor()
         world.dialogue_manager.push({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Austria",
             "options": [
                 {"label": "Honor alliance", "action": "honor"},

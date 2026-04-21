@@ -122,7 +122,7 @@ class TestPopupPassthroughCharacterization:
         assert response["vassal_rebellion_imminent"] is None
         assert response["diplomatic_objection"] is None
         assert response["incoming_proposal"] is None
-        assert response["alliance_paradox_popup"] is None
+        assert response["commitment_paradox_popup"] is None
 
     def test_single_popup_included_and_cleared(self):
         """Setting one popup → included in response, cleared from world."""
@@ -174,7 +174,7 @@ class TestPopupPassthroughCharacterization:
         expected_keys = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
-            "alliance_paradox_popup"
+            "commitment_paradox_popup"
         ]
         for key in expected_keys:
             assert key in response
@@ -185,12 +185,12 @@ class TestPopupPassthroughCharacterization:
         world.dialogue_manager.pop()
         world.dialogue_manager._queue = [
             {"type": "incoming_proposal", "data": "p1"},
-            {"type": "alliance_paradox", "data": "p2"},
+            {"type": "commitment_paradox", "data": "p2"},
         ]
         self._call_passthroughs(world)
-        # alliance_paradox has higher priority (0) than incoming_proposal (4)
+        # commitment_paradox has higher priority (0) than incoming_proposal (4)
         assert world.pending_diplomatic_dialogue is not None
-        assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
+        assert world.pending_diplomatic_dialogue["type"] == "commitment_paradox"
         assert len(world.dialogue_manager._queue) == 1
 
     def test_active_wars_included(self):
@@ -234,7 +234,7 @@ class TestCooldownSerializationCharacterization:
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
         world.diplomatic_objection_popup = {"severity": "STRONG"}
         world.incoming_proposal_popup = {"from_nation": "Austria"}
-        world.alliance_paradox_popup = {"attacker": "France"}
+        world.commitment_paradox_popup = {"attacker": "France"}
 
         data = world.to_dict()
         loaded = WorldFactory.basic().from_dict(data)
@@ -244,4 +244,4 @@ class TestCooldownSerializationCharacterization:
         assert loaded.vassal_rebellion_imminent_popup == {"nation": "Saxony"}
         assert loaded.diplomatic_objection_popup == {"severity": "STRONG"}
         assert loaded.incoming_proposal_popup == {"from_nation": "Austria"}
-        assert loaded.alliance_paradox_popup == {"attacker": "France"}
+        assert loaded.commitment_paradox_popup == {"attacker": "France"}

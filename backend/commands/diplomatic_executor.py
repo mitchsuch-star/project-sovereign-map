@@ -2792,7 +2792,7 @@ class DiplomaticExecutor:
                     "applied_reliability_delta": honor_preview.get("applied_reliability_delta", 0),
                 })
             world.dialogue_manager.pop()
-            world.alliance_paradox_popup = None
+            world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
             world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
@@ -2880,7 +2880,7 @@ class DiplomaticExecutor:
                 "applied_reliability_delta": (breach_preview or {}).get("applied_reliability_delta", 0),
             })
             world.dialogue_manager.pop()
-            world.alliance_paradox_popup = None
+            world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
             world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)

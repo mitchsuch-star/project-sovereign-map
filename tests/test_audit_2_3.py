@@ -1345,7 +1345,7 @@ class TestDialogueBlockingEnforcement:
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Alliance conflict!",
             "options": [
@@ -1391,7 +1391,7 @@ class TestDialogueBlockingEnforcement:
         world = make_world()
         executor = make_executor()
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Prussia",
             "talleyrand_text": "Test",
             "options": [],

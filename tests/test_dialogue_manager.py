@@ -73,10 +73,10 @@ class TestDialogueCharacterization:
     def test_auto_pop_skips_if_current_set(self):
         """dialogue_manager.promote_if_empty() does nothing if current is already set."""
         world = WorldFactory.basic()
-        world.dialogue_manager.replace(self._make_dialogue("alliance_paradox"))
+        world.dialogue_manager.replace(self._make_dialogue("commitment_paradox"))
         world.dialogue_manager._queue = [self._make_dialogue("incoming_proposal")]
         world.dialogue_manager.promote_if_empty()
-        assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
+        assert world.pending_diplomatic_dialogue["type"] == "commitment_paradox"
         assert len(world.dialogue_manager._queue) == 1
 
     # ── Blocking ──
@@ -87,7 +87,7 @@ class TestDialogueCharacterization:
 
         world = WorldFactory.basic()
         world.dialogue_manager.replace(self._make_dialogue(
-            "alliance_paradox", blocking=True, turn=1
+            "commitment_paradox", blocking=True, turn=1
         ))
         executor = CommandExecutor()
         game_state = {"world": world}
@@ -295,10 +295,10 @@ class TestDialogueManagerPop:
         dm = DialogueManager()
         dm.push(self._d("incoming_proposal"))  # current
         dm.push(self._d("vassal_rebellion_imminent"))  # queue
-        dm.push(self._d("alliance_paradox"))  # queue
+        dm.push(self._d("commitment_paradox"))  # queue
         dm.pop()
-        # alliance_paradox (0) has highest priority
-        assert dm.peek()["type"] == "alliance_paradox"
+        # commitment_paradox (0) has highest priority
+        assert dm.peek()["type"] == "commitment_paradox"
         assert dm.queue_size == 1
 
     def test_pop_from_empty_returns_none(self):
@@ -312,10 +312,10 @@ class TestDialogueManagerPop:
         dm.push(self._d("incoming_proposal"))
         dm.push(self._d("sabotage_confrontation"))
         dm.push(self._d("vassal_rebellion_imminent"))
-        dm.push(self._d("alliance_paradox"))
+        dm.push(self._d("commitment_paradox"))
 
         dm.pop()  # remove placeholder
-        assert dm.peek()["type"] == "alliance_paradox"
+        assert dm.peek()["type"] == "commitment_paradox"
         dm.pop()
         assert dm.peek()["type"] == "vassal_rebellion_imminent"
         dm.pop()
@@ -439,11 +439,11 @@ class TestDialogueManagerPromoteIfEmpty:
 
     def test_noop_when_current_exists(self):
         dm = DialogueManager()
-        dm.push(self._d("alliance_paradox"))
+        dm.push(self._d("commitment_paradox"))
         dm._queue = [self._d("incoming_proposal")]
         result = dm.promote_if_empty()
         assert result is False
-        assert dm.peek()["type"] == "alliance_paradox"
+        assert dm.peek()["type"] == "commitment_paradox"
 
     def test_noop_when_queue_empty(self):
         dm = DialogueManager()
@@ -515,11 +515,17 @@ class TestDialogueManagerSerialization:
         dm = DialogueManager()
         dm.push({"type": "incoming_proposal", "turn_created": 1})
         dm.push({"type": "vassal_rebellion_imminent", "turn_created": 2})
-        dm.push({"type": "alliance_paradox", "turn_created": 3})
+        dm.push({"type": "commitment_paradox", "turn_created": 3})
         data = dm.to_dict()
         loaded = DialogueManager.from_dict(data)
         assert loaded.peek()["type"] == "incoming_proposal"
         assert loaded.queue_size == 2
+
+    def test_legacy_alliance_paradox_alias_still_hard_stops(self):
+        dm = DialogueManager()
+        dm.push({"type": "alliance_paradox", "turn_created": 1, "blocking": True})
+        assert dm.is_hard_stop() is True
+        assert DialogueManager.DIALOGUE_PRIORITY["commitment_paradox"] == 0
 
     def test_deepcopy_isolation(self):
         """Serialized data must not share references with live state."""

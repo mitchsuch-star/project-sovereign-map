@@ -72,7 +72,7 @@ def _make_counter_response(nation="Russia", turn=5):
 
 def _make_hard_stop(turn=5):
     return {
-        "type": "alliance_paradox",
+        "type": "commitment_paradox",
         "talleyrand_text": "Alliance conflict",
         "options": [],
         "context": {},
@@ -219,7 +219,7 @@ class TestLapsePendingOffers:
         lapsed = dm.lapse_pending_offers()
         assert len(lapsed) == 0
         assert dm.peek() is not None
-        assert dm.peek()["type"] == "alliance_paradox"
+        assert dm.peek()["type"] == "commitment_paradox"
 
     def test_lapse_does_not_touch_hybrids(self):
         dm = DialogueManager()
@@ -244,7 +244,7 @@ class TestLapsePendingOffers:
         assert lapsed[0]["nation"] == "Prussia"
         # Hard stop should be promoted to current
         assert dm.peek() is not None
-        assert dm.peek()["type"] == "alliance_paradox"
+        assert dm.peek()["type"] == "commitment_paradox"
 
     def test_lapse_mixed_queue_keeps_non_offers(self):
         dm = DialogueManager()
@@ -255,7 +255,7 @@ class TestLapsePendingOffers:
         lapsed = dm.lapse_pending_offers()
         # Should lapse the two offers, keep hard stop + hybrid
         assert len(lapsed) == 2
-        assert dm.peek()["type"] == "alliance_paradox"  # still current
+        assert dm.peek()["type"] == "commitment_paradox"  # still current
 
     def test_lapse_empty_returns_empty(self):
         dm = DialogueManager()
@@ -579,7 +579,7 @@ class TestSaveLoadMigration:
         loaded = WorldState.from_dict(data)
         dm = loaded.dialogue_manager
         # Hard stop should be current
-        assert dm.peek()["type"] == "alliance_paradox"
+        assert dm.peek()["type"] == "commitment_paradox"
         # Queued offer should be normalized
         assert len(dm._queue) >= 1
         offer_items = [q for q in dm._queue if q["type"] == "incoming_proposal"]

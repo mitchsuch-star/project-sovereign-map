@@ -686,8 +686,8 @@ class TestNotificationDismissGaps:
         diplo_notifs = [n for n in pending if n["type"] == DIPLOMATIC_PROPOSAL]
         assert len(diplo_notifs) == 0, "DIPLOMATIC_PROPOSAL notification should be dismissed"
 
-    def _setup_alliance_paradox_dialogue(self, world):
-        """Set up world with an alliance paradox dialogue."""
+    def _setup_commitment_paradox_dialogue(self, world):
+        """Set up world with a commitment paradox dialogue."""
         from backend.notifications import (
             create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
         )
@@ -705,12 +705,12 @@ class TestNotificationDismissGaps:
         key_saxony = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[key_saxony] = "PEACE"
 
-        world.alliance_paradox_popup = {
+        world.commitment_paradox_popup = {
             "attacker": "Saxony",
             "defender": "Austria",
         }
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Austria",
             "talleyrand_text": "Alliance conflict!",
             "options": [
@@ -728,7 +728,7 @@ class TestNotificationDismissGaps:
         """Honoring alliance dismisses ALLIANCE_CASCADE_WAR notification."""
         from backend.notifications import ALLIANCE_CASCADE_WAR
         world = _make_world()
-        self._setup_alliance_paradox_dialogue(world)
+        self._setup_commitment_paradox_dialogue(world)
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}
@@ -742,7 +742,7 @@ class TestNotificationDismissGaps:
         """Breaking alliance dismisses ALLIANCE_CASCADE_WAR notification."""
         from backend.notifications import ALLIANCE_CASCADE_WAR
         world = _make_world()
-        self._setup_alliance_paradox_dialogue(world)
+        self._setup_commitment_paradox_dialogue(world)
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}

@@ -176,7 +176,7 @@ class TestCheatBypassDialogue:
     def test_non_cheat_blocked_by_hard_stop_dialogue(self, executor, game_state, world):
         """Regular commands should still be blocked by hard-stop dialogue (PL-27)."""
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Saxony",
             "talleyrand_text": "Test hard-stop",
             "options": [

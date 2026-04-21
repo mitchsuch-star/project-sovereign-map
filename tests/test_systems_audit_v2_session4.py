@@ -355,14 +355,14 @@ class TestV2_89_DialogueQueue:
         world = _make_world()
         world.dialogue_manager._queue = [
             {"type": "incoming_proposal", "target_nation": "Britain"},
-            {"type": "alliance_paradox", "target_nation": ""},
+            {"type": "commitment_paradox", "target_nation": ""},
             {"type": "vassal_rebellion_imminent", "target_nation": "Saxony"},
         ]
 
         world.dialogue_manager.promote_if_empty()
 
         # Alliance paradox should have been promoted (highest priority)
-        assert world.pending_diplomatic_dialogue["type"] == "alliance_paradox"
+        assert world.pending_diplomatic_dialogue["type"] == "commitment_paradox"
         # 2 remaining in queue
         assert len(world.dialogue_manager._queue) == 2
 

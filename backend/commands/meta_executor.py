@@ -112,7 +112,7 @@ class MetaExecutor:
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
-        # Only hard-stop dialogues (alliance_paradox, force_declare_war) block end-turn.
+        # Only hard-stop dialogues (commitment_paradox, alias: alliance_paradox, force_declare_war) block end-turn.
         # Current-turn offers use a client-side confirmation gate instead.
         if world.dialogue_manager.is_hard_stop():
             dialogue = world.pending_diplomatic_dialogue

@@ -27,7 +27,7 @@ def _make_game_state(world):
 
 def _make_hard_stop_dialogue(turn=1):
     return {
-        "type": "alliance_paradox",
+        "type": "commitment_paradox",
         "target_nation": "Austria",
         "talleyrand_text": "Alliance conflict with Austria!",
         "options": [
@@ -85,7 +85,7 @@ class TestDialogueTypeTaxonomy:
 
     def test_hard_stop_types(self):
         dm = DialogueManager()
-        for dtype in ["force_declare_war_confirmation", "alliance_paradox"]:
+        for dtype in ["force_declare_war_confirmation", "commitment_paradox", "alliance_paradox"]:
             dm.replace({"type": dtype, "blocking": True, "turn_created": 1,
                         "options": [], "target_nation": "X"})
             assert dm.is_hard_stop(), f"{dtype} should be hard-stop"

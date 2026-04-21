@@ -132,7 +132,7 @@ class TestTurnManagerIntegration:
 
         # Pre-set a hard-stop dialogue to occupy the active slot
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "blocking": True,
             "options": [],
         })

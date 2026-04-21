@@ -501,7 +501,7 @@ class TestPopupPassthroughs:
         expected_keys = [
             "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
-            "alliance_paradox_popup",
+            "commitment_paradox_popup",
         ]
         for key in expected_keys:
             assert key in response, f"Response must always contain key '{key}'"
@@ -596,7 +596,7 @@ class TestBlockingDialogue:
         game_state = _make_game_state(world)
 
         world.dialogue_manager.replace({
-            "type": "alliance_paradox",
+            "type": "commitment_paradox",
             "target_nation": "Saxony",
             "blocking": True,
             "options": [

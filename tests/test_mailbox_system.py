@@ -48,7 +48,7 @@ def _make_hybrid_dialogue(dtype="sabotage_confrontation", turn=5):
 
 def _make_hard_stop_dialogue(turn=5):
     return {
-        "type": "alliance_paradox",
+        "type": "commitment_paradox",
         "talleyrand_text": "Alliance conflict",
         "options": [],
         "context": {},

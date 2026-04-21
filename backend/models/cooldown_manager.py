@@ -133,6 +133,10 @@ class PopupQueue:
     Lower-priority popups remain queued for subsequent cycles.
     """
 
+    LEGACY_ALIASES = {
+        "alliance_paradox_popup": "commitment_paradox_popup",
+    }
+
     # Priority order: lower index = higher priority
     PRIORITY_ORDER = [
         "coalition_popup",
@@ -141,6 +145,7 @@ class PopupQueue:
         "diplomatic_objection_popup",
         "incoming_proposal_popup",
         "proposal_result_popup",
+        "commitment_paradox_popup",
         "alliance_paradox_popup",
     ]
 
@@ -152,19 +157,24 @@ class PopupQueue:
         "diplomatic_objection_popup": "diplomatic_objection",
         "incoming_proposal_popup": "incoming_proposal",
         "proposal_result_popup": "proposal_result",
-        "alliance_paradox_popup": "alliance_paradox_popup",
+        "commitment_paradox_popup": "commitment_paradox_popup",
+        "alliance_paradox_popup": "commitment_paradox_popup",
     }
 
     def __init__(self):
         self._queue: Dict[str, Optional[dict]] = {}
 
+    @classmethod
+    def _canonicalize_popup_type(cls, popup_type: str) -> str:
+        return cls.LEGACY_ALIASES.get(popup_type, popup_type)
+
     def push(self, popup_type: str, data: dict):
         """Add or overwrite a popup in the queue."""
-        self._queue[popup_type] = data
+        self._queue[self._canonicalize_popup_type(popup_type)] = data
 
     def get(self, popup_type: str) -> Optional[dict]:
         """Get popup data without removing it."""
-        return self._queue.get(popup_type)
+        return self._queue.get(self._canonicalize_popup_type(popup_type))
 
     def pop_highest(self) -> Tuple[Optional[str], Optional[str], Optional[dict]]:
         """Pop the highest-priority popup.
@@ -172,10 +182,15 @@ class PopupQueue:
         Returns:
             (popup_type, response_key, data) or (None, None, None)
         """
+        seen = set()
         for ptype in self.PRIORITY_ORDER:
-            if ptype in self._queue and self._queue[ptype] is not None:
-                data = self._queue.pop(ptype)
-                return ptype, self.RESPONSE_KEYS[ptype], data
+            canonical_type = self._canonicalize_popup_type(ptype)
+            if canonical_type in seen:
+                continue
+            seen.add(canonical_type)
+            if canonical_type in self._queue and self._queue[canonical_type] is not None:
+                data = self._queue.pop(canonical_type)
+                return canonical_type, self.RESPONSE_KEYS[ptype], data
         return None, None, None
 
     def has_pending(self) -> bool:
@@ -184,24 +199,37 @@ class PopupQueue:
 
     def clear_type(self, popup_type: str):
         """Remove a popup type from the queue."""
-        self._queue.pop(popup_type, None)
+        self._queue.pop(self._canonicalize_popup_type(popup_type), None)
 
     def set(self, popup_type: str, value: Optional[dict]):
         """Set a popup value (or None to clear it)."""
+        canonical_type = self._canonicalize_popup_type(popup_type)
         if value is None:
-            self._queue.pop(popup_type, None)
+            self._queue.pop(canonical_type, None)
         else:
-            self._queue[popup_type] = value
+            self._queue[canonical_type] = value
 
     # ── Serialization ──
 
     def to_dict(self) -> dict:
         """Serialize popup queue state."""
-        return {k: v for k, v in self._queue.items()}
+        serialized = {}
+        for popup_type, value in self._queue.items():
+            if value is None:
+                continue
+            canonical_type = self._canonicalize_popup_type(popup_type)
+            if canonical_type not in serialized or popup_type == canonical_type:
+                serialized[canonical_type] = value
+        return serialized
 
     @classmethod
     def from_dict(cls, data: dict) -> 'PopupQueue':
         """Deserialize from save data."""
         q = cls()
-        q._queue = {k: v for k, v in data.items() if v is not None}
+        for popup_type, value in data.items():
+            if value is None:
+                continue
+            canonical_type = cls._canonicalize_popup_type(popup_type)
+            if canonical_type not in q._queue or popup_type == canonical_type:
+                q._queue[canonical_type] = value
         return q
