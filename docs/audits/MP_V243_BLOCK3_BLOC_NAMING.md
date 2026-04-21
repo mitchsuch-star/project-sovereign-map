@@ -1,10 +1,10 @@
-# MP v2.4.3 - Block 3: Bloc Naming and Alignment Legibility Gate
+# MP v2.4.3 - Block 3: Bloc Naming and Post-Block-2 Closure Gate
 
-> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next design-legibility gate in sequence before the remaining v2.4.3 implementation continues. It also acts as the carry-forward handoff for deferred post-Block-2 items so a fresh session cannot lose them between slices.
+> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next closure pass in sequence before the remaining v2.4.3 implementation continues. It owns the bloc-legibility decision and also absorbs the specific post-Block-2 follow-through items that were deferred but still need to land.
 >
-> **Ships as:** spec/design gate now; implementation later in the same phase if adopted.
+> **Ships as:** scoped spec + implementation closure block now.
 >
-> **Pre-merge gate for:** the post-Block-2 v2.4.3 implementation pass. Sequence is Block 1 -> Block 2 -> Block 3 -> B-Hegemony / B-B1-lite / B-B3 / B-B7 / C-lite. This is **not** a prerequisite for starting Blocks 1/2; it is the next gate after they land.
+> **Pre-merge gate for:** the post-Block-2 v2.4.3 implementation pass. Sequence is Block 1 -> Block 2 -> Block 3 -> remaining B-Hegemony / B-B1-lite / B-B3 / B-B4 / B-B7 / C-lite work. This is **not** a prerequisite for starting Blocks 1/2; it is the next gate after they land.
 >
 > **Depends on:** Block 1 and Block 2 routing being current in `STATUS.md`, plus `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony + C-lite, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, `docs/DIPLOMAT_VOICE_BIBLE.md`.
 >
@@ -21,22 +21,22 @@
 | MAJOR | 4 | Voice contract, implementation constraints, tests, playtest gates |
 | MINOR | 2 | Copy examples, scale fallback hygiene |
 
-This block is intentionally narrow: **name and surface the existing hegemon-side diplomatic camp more clearly**. It does **not** add a new mechanic, a new diplomacy store, or a new war-state.
+This block still centers the bloc-legibility pass, but it is no longer purely narrow. It now also owns the specifically deferred post-Block-2 closures that were never actually completed elsewhere.
 
-The carry-forward checklist below does **not** mean every deferred item becomes "bloc naming" work. It means Block 3 is now the explicit handoff container for the remaining v2.4.3 follow-through items that Block 2 intentionally did not own.
+That does **not** mean Block 3 owns the entirety of `C-lite`, `B-B4`, or `B-B7`. It owns the enumerated deferred pieces below so they are no longer living in handoff limbo.
 
 ---
 
 ## Execution mode
 
-Treat Block 3 as a **decision-and-spec gate**, not as an open-ended brainstorm. A fresh session should leave this block in one of two explicit states:
+Treat Block 3 as a **scoped closure block**, not as an open-ended brainstorm. A fresh session should leave this block with two things resolved:
 
-1. **Adopt bloc naming for v2.4.3.**
-   Record the naming contract in the live docs, keep the implementation cheap/derived, and hand the actual code work to the next post-Block-3 implementation session.
-2. **Decline additional bloc naming for v2.4.3.**
-   Record that the existing Balance-of-Europe beats/headline are sufficient, close this block deliberately, and continue the remaining implementation slices without extra naming work.
+1. **Bloc naming decision for v2.4.3.**
+   Either adopt the naming layer and record it in the live docs, or explicitly decline it and close that part of the block on purpose.
+2. **Deferred post-Block-2 follow-through.**
+   The enumerated `C-lite` / `B-B4` / `B-B7` / composite-floor leftovers below are now owned by Block 3 and should be implemented or explicitly descoped here rather than left implied for a later session.
 
-Block 3 is **not done** if it only generates discussion. One of the two outcomes above should be written into the docs and reflected in `STATUS.md`.
+Block 3 is **not done** if it only generates discussion or merely re-lists deferred work. Its output should leave the docs and queue in a materially cleaner state.
 
 ### Expected outputs
 
@@ -45,13 +45,18 @@ If Block 3 is **adopted**, the pass should leave behind:
 - a presentation-spec update in `docs/COMMITMENTS_PRESENTATION_SPEC.md` that owns the `33%` / `50%` / `60%` bloc-label contract and surface routing
 - an implementation-plan update in `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` that places the derived-helper/test work in the correct follow-on slice
 - a voice-bible update in `docs/DIPLOMAT_VOICE_BIBLE.md` that covers the named-bloc reveal beat and its crisis restatement
-- a `STATUS.md` note confirming Block 3 was adopted and where the actual implementation is expected to land
+- a `STATUS.md` note confirming Block 3 was adopted and naming any remaining post-Block-3 implementation that is still open
 
 If Block 3 is **declined**, the pass should leave behind:
 
 - a `STATUS.md` note that no additional bloc-naming layer is required for v2.4.3
 - a short close-out note in this document explaining why the baseline hegemony/beats/headline surface was judged sufficient
-- the carry-forward checklist preserved, since those items still belong to their owner slices regardless of the naming decision
+- the remaining owned follow-through items still resolved or explicitly descoped here, since they no longer belong to some vague future owner by default
+
+Regardless of the naming decision, the pass should also leave behind:
+
+- implemented or deliberately descoped closure of the owned deferred items listed below
+- updated routing in `STATUS.md` so the next session does not have to guess what Block 3 already consumed versus what remains after it
 
 ### Definition of done
 
@@ -61,7 +66,7 @@ Block 3 can be considered closed only when all of the following are true:
 - `bloc` versus `coalition` terminology is protected across the affected docs
 - the `33%` / `50%` / `60%` activation behavior is either canonized or deliberately rejected
 - implementation ownership is clear: this block may authorize later code work, but it must not quietly create a new mechanic or save surface
-- the carry-forward items remain visible as tracked follow-through owned by `C-lite`, `B-B4`, `B-B7`, or `B-B1-lite`, rather than silently absorbed into Block 3
+- the deferred items listed below are either closed in Block 3 or explicitly descoped in writing with a reason
 
 ### Closure states
 
@@ -70,13 +75,13 @@ Close Block 3 as **ADOPTED** only when:
 - `docs/COMMITMENTS_PRESENTATION_SPEC.md` owns the bloc-label threshold/surface contract
 - `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` names the follow-on implementation owner and test expectations
 - `docs/DIPLOMAT_VOICE_BIBLE.md` covers the reveal/crisis voice beats
-- `STATUS.md` says Block 3 was adopted and points the next session at the correct owner slice for actual implementation
+- `STATUS.md` says Block 3 was adopted and points the next session only at the work still remaining after the owned deferred items were consumed here
 
 Close Block 3 as **DECLINED** only when:
 
 - `STATUS.md` explicitly says no additional bloc-naming layer is required for v2.4.3
 - this document carries a short written reason for declining the feature expansion
-- the carry-forward checklist remains intact and still points at the owning slices instead of being treated as cancelled by implication
+- the owned deferred items are still closed or deliberately descoped, rather than vanishing behind the bloc-naming decision
 
 ### Verification bundle
 
@@ -85,15 +90,15 @@ Before closing Block 3, perform a short doc-level audit:
 - grep for player-facing `coalition` usage in the affected diplomacy docs and confirm it is reserved for the formal anti-hegemon war structure
 - confirm the same threshold story appears everywhere relevant: `33%` noticed, `50%` named reveal, `60%` hardened camps
 - confirm `STATUS.md` and this document agree on whether Block 3 is still open, adopted, or deliberately declined
-- confirm the carry-forward items still point at their owning slices rather than sounding like Block 3 implementation requirements
+- confirm the owned deferred items are either explicitly completed here or explicitly descoped here
 
 ---
 
-## Carry-Forward From Block 2
+## Owned Post-Block-2 Scope
 
-These items were explicitly deferred by Block 2. They are listed here so a fresh session sees them immediately, but Block 3 tracks them only as carry-forward visibility. The actual implementation ownership remains with the named slice.
+These items were explicitly deferred by Block 2 and were never actually finished elsewhere. Block 3 now owns them. The labels below show where they originated, but the responsibility to close them sits here unless this document explicitly descopes them again with a reason.
 
-### CF1 - `C-lite` presentation follow-through
+### CF1 - Former `C-lite` presentation follow-through
 
 Still required before calling the wider v2.4.3 diplomacy pass presentation-complete:
 
@@ -102,21 +107,21 @@ Still required before calling the wider v2.4.3 diplomacy pass presentation-compl
 - `notification_bar.gd` icon map extension
 - `resolve_named_diplomat(...)` full wire-up beyond the current stub
 
-### CF2 - `B-B7` apology-loop follow-through
+### CF2 - Former `B-B7` apology-loop follow-through
 
 Still required before the Make Amends lane is functionally complete:
 
 - Make Amends emitters
 - `reparations_cooldown`
 
-### CF3 - `B-B4` defensive-refusal follow-through
+### CF3 - Former `B-B4` defensive-refusal follow-through
 
 Still required before the direct bilateral DG-4 call-to-arms lane is fully surfaced:
 
 - DG-4 call-to-arms emitters
 - `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION`
 
-### CF4 - `B-B1-lite` + `B-B4` composite-floor regression net
+### CF4 - Former `B-B1-lite` + `B-B4` composite-floor regression net
 
 Still required before acceptance-floor logic can be considered safely covered:
 
@@ -128,11 +133,11 @@ These are **not** new Block 3 implementation items, but they stay listed here so
 
 - Non-diplomacy-adjacent tests such as `test_enemy_ai.py` / broader `test_turn_manager.py` remain outside the active blast radius unless later slices touch them; pass-4 marked them clean.
 
-### Carry-forward close condition
+### Owned-scope close condition
 
-Before v2.4.3 is called ready beyond Block 3, each carry-forward item above should be either:
+Before v2.4.3 is called ready beyond Block 3, each owned item above should be either:
 
-- closed in its owning slice, or
+- closed in Block 3, or
 - deliberately descoped in `STATUS.md` with a written reason.
 
 ---
