@@ -12,6 +12,8 @@
 
 The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-of-power doctrine. Static concern pairs disappear. A single per-turn hegemony calculation (~60 LOC) drives all the political pressure that the four cancelled v2.3 modifiers were trying to model. See spec v2.4 rescope note for the design rationale.
 
+**Current repo reality check (do not misread the docs as already live):** B-Hegemony/C-lite are still replacing legacy seams, not polishing an existing hegemony surface. `backend/game_logic/diplomatic_ledger.py` still returns the old `threat_coalition` payload and the Godot Nations tab still renders `NATION OVERVIEW`; `backend/game_logic/coalition.py` still emits anonymous `European Courts Concerned` / `Diplomatic Tension` notices; `backend/game_logic/diplomacy.py` and `backend/display_names.py` still expose a generic `hegemony_pressure` fallback path. Implement these slices as the substrate swap that removes those seams, not as additive copy layered on top of them.
+
 **Already shipped (in current `master`) — unchanged from v2.3:**
 
 - Slice A1 (data model + serialization): `betrayal_history`, `next_episode_id`, `commitment_event_metadata`, `to_dict` / `from_dict`, save-format reference. ✓
@@ -259,7 +261,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
 **v2.4 keeps:**
 
-- **Named-diplomat resolution helper** (single backend helper that reads `world.diplomats[nation]` and resolves `speaker="envoy"` to the named diplomat with their personality register, and `speaker="foreign_office"` to "The Chancery of {nation}" per `DIPLOMAT_VOICE_BIBLE.md`)
+- **Named-diplomat resolution helper** (single backend helper that reads authored `world.diplomats[nation]` / scenario cast data and resolves `speaker="envoy"` to the named diplomat with their personality register, and `speaker="foreign_office"` to "The Chancery of {nation}" per `DIPLOMAT_VOICE_BIBLE.md`). Do **not** hardcode a British personal-name fallback here: if Britain lacks an authored envoy for the active start-date / scenario, render office / chancery / mission language rather than defaulting to `Castlereagh` by string.
 - **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` where `end_reason_family=french_breach`, `commitment_paradox_resolved`
 - **Dedicated `commitment_paradox_popup.{tscn,gd}`** — replaces legacy `alliance_paradox_popup` for the renamed type
 - **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — state-composed headline at top of Nations tab per spec §11.1 (no hegemon, hegemon only, BREWING without leader, DECLARED with leader, COOLDOWN). Bloc label uses `describe_hegemon_bloc` output per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (descriptive below 50%, authored proper name at 50%+). In the v0.1 non-France-hegemon edge case, the renderer MUST suppress the coalition-pressure sub-line entirely per §11.1 — do not retarget it to France as a workaround. The scalar is anti-`world.player_nation` in v0.1; rendering it against a foreign hegemon's bloc label is a visible lie. Suppression is the only safe render until D2 Coalition Generalization makes the scalar per-target.
@@ -274,7 +276,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 - ❌ Split-voice render `attributed_lines[]` blocks on popup scenes — single-voice with named-diplomat attribution suffices at 5-nation scale
 - ❌ N+1 Talleyrand aside callback keyed by `episode_id` — defer to later presentation pass
 
-**Tests (~10-12):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, `review_target` routing, Balance of Europe headline composition for the full state machine (including COOLDOWN with the new `cooldown_turns_remaining` / `residual_pressure_active` payload fields and the v0.1 non-France-hegemon flat suppression rule), speaker fallback chain (named envoy -> Talleyrand advisory -> chancery in strict order), threshold-beat copy / attribution at `33 / 50 / 60`, `amends_offered` copy / attribution, and DG-4 notice-template smoke coverage through the shared join-table.
+**Tests (~10-12):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, `review_target` routing, Balance of Europe headline composition for the full state machine (including COOLDOWN with the new `cooldown_turns_remaining` / `residual_pressure_active` payload fields and the v0.1 non-France-hegemon flat suppression rule), speaker fallback chain (named envoy -> Talleyrand advisory -> chancery in strict order), British voice cleanup (no hardcoded `Castlereagh` fallback when the active scenario does not author a British envoy), threshold-beat copy / attribution at `33 / 50 / 60`, `amends_offered` copy / attribution, and DG-4 notice-template smoke coverage through the shared join-table.
 
 ---
 
