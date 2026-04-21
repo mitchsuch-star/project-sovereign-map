@@ -670,26 +670,6 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation") or event.get("vassal", "Unknown")
         return f"Vassal rebellion: {nation} has broken free!"
 
-    if event_type == "diplomatic_treaty_broken":
-        nation = event.get("breaker") or event.get("nation", "Unknown")
-        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
-        target = event.get("other") or event.get("target", "")
-        reason_phrase = event.get("reason_phrase", "")
-        family = event.get("end_reason_family", "")
-        if family == "obsolescence_or_external" and target:
-            return f"Treaty dragged apart: {nation} — {treaty_type} with {target} (cascade)"
-        if family == "counterparty_reversal" and target:
-            return f"Treaty broken by counterparty: {target} — {treaty_type} with {nation}"
-        if target and reason_phrase:
-            return f"Treaty broken: {nation} — {treaty_type} with {target} {reason_phrase}"
-        if target:
-            return f"Treaty broken: {nation} — {treaty_type} with {target}"
-        return f"Treaty broken: {nation} — {treaty_type}"
-
-    if event_type == "commitment_paradox_resolved":
-        chosen = event.get("chosen_nation", "Unknown")
-        spurned = event.get("spurned_nation", "Unknown")
-        return f"Commitment paradox resolved: {chosen} chosen over {spurned}"
 
     if event_type == "diplomatic_alliance_cascade":
         nation = event.get("defender") or event.get("nation", "Unknown")
