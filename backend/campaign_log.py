@@ -501,10 +501,10 @@ def format_event_oneliner(event: dict) -> str:
         target = event.get("target", "Unknown")
         return f"War declared: {aggressor} -> {target} (shattering {event.get('breached_treaty')})"
 
-    if event_type == "diplomatic_treaty_broken" and (event.get("other") or event.get("target")):
+    if event_type == "diplomatic_treaty_broken":
         nation = event.get("breaker") or event.get("nation", "Unknown")
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
-        target = event.get("other") or event.get("target", "")
+        target = event.get("other") or event.get("target") or "Unknown"
         reason_phrase = event.get("reason_phrase", "")
         family = event.get("end_reason_family", "")
         # Distinguish forced / counterparty-led ruptures from voluntary breach
