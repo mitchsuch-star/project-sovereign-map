@@ -21,8 +21,8 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1.
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
-- ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for v2.4.3; supersedes `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
-- ✓ **Slice E-Cards — per-row bloc badges (FINAL work item of the Memory and Pressure track).** Ships after all other slices (B-Hegemony → B-B1-lite → B-B3 → B-B7 → C-lite → B-B4) have merged and the headline contract is playtest-validated. Per-row stamps layer onto the Nations tab without mutating the headline contract. Scope, priority ordering, and failure modes live in §8.1a.4. Implementation plan lives in `RELIABILITY_IMPLEMENTATION_PLAN.md` Slice E-Cards.
+- ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for the adopted naming language in v2.4.3; the high-value surface scope remains bounded by `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
+- ✓ **Member badges / per-row bloc stamps remain deferred for v2.4.3.** The live naming layer is limited to the Balance of Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview warnings, and coalition-declaration contrast copy. Any later Nations-tab stamp pass must be re-opened explicitly after playtest validates the headline contract.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
 
@@ -295,8 +295,8 @@ v0.1 forward-compat note: these surfaces may still name a non-player hegemon des
 
 Per-row / badge scope within v2.4.3:
 
-- **Nation badges / ledger-row bloc stamps** ship as Slice E-Cards (`RELIABILITY_IMPLEMENTATION_PLAN.md` Slice E-Cards), the final Memory and Pressure slice. Slice order is headline first, stamps last — the headline validates in playtest before per-row stamping layers on top. This is a schedule constraint, not a deferral; closing the Memory and Pressure track requires closing Slice E-Cards.
-- Per-row badges follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp at all below `33%` (no hegemon = no label layer). Stamps render to the right of the nation name on the Nations tab, one stamp per nation, sorted priority `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. A nation that is BOTH a coalition member AND in the hegemon's bloc shows `[Coalition Member]` only — coalition membership dominates.
+- **Nation badges / ledger-row bloc stamps are deferred.** They are not required to close Block 3 or the v2.4.3 Memory and Pressure pass. The current contract keeps bloc naming on the headline, threshold beats, proposal-preview warnings, and coalition-declaration contrast copy only.
+- If a later playtest pass explicitly re-opens per-row stamps, they must follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp below `33%`, and `[Coalition Member]` must dominate bloc labeling so hegemon blocs do not blur into the formal anti-hegemon coalition.
 - Retroactive renaming of old campaign-log rows remains out of scope. This contract is about live legibility, not archive polish.
 
 #### 8.1a.5 Worked-copy examples (tone reference, not committed prose)
@@ -335,7 +335,7 @@ Bloc naming lands only if it clears all four:
 - Players do **not** confuse the named bloc with a declared war coalition.
 - The naming layer increases drama without making the map feel over-labeled or gamey.
 
-**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Slice E-Cards per-row stamps remain scheduled in `RELIABILITY_IMPLEMENTATION_PLAN.md` and ship on the same contract; a bloc-vs-coalition confusion issue retunes the headline wording, it does not change the slice schedule.
+**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Per-row stamps stay deferred unless a later playtest pass explicitly re-opens them; a bloc-vs-coalition confusion issue is a reason to narrow surfaces further, not to expand them.
 
 **Bargain events routed to WB-D:**
 
