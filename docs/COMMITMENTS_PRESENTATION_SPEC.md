@@ -230,7 +230,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
 
-`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`. **Speaker fallback chain on this family is strictly three-step and identical across all consumers** (notification rail, dispatch, campaign-log render, and any preview warning that repeats the voice): (1) `envoy` -> named diplomat for `speaker_nation`; (2) else Talleyrand advisory in his bloc-naming register; (3) else `foreign_office` -> `The Chancery of {nation}`. Talleyrand is ALWAYS preferred over a generic non-cast chancery so the beat stays voiced rather than bureaucratic; the chancery is the last resort. This rule is also the authoritative source for `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 speaker selection and `DIPLOMAT_VOICE_BIBLE.md` Bloc-naming voice contract — the three docs do not disagree.
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`. **Speaker fallback chain on this family is strictly three-step and identical across all consumers** (notification rail, dispatch, campaign-log render, and any preview warning that repeats the voice): (1) `envoy` -> named diplomat for `speaker_nation`; (2) else Talleyrand advisory in his bloc-naming register; (3) else `foreign_office` -> `The Chancery of {nation}`. Talleyrand is ALWAYS preferred over a generic non-cast chancery so the beat stays voiced rather than bureaucratic; the chancery is the last resort. This rule is also the authoritative source for `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 speaker selection and `DIPLOMAT_VOICE_BIBLE.md` Bloc-naming voice contract — the three docs do not disagree. In v2.4.3 this family keeps its locked review target only: rail notice + dispatch/log presence + `Open Ledger`. It is explicitly exempt from the generic CRITICAL advisory-route rule in §12.4 so Block 3 scope does not silently widen.
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
@@ -256,7 +256,7 @@ Proper bloc names do not appear at the first visibility threshold. The player fe
 | `50 - 59%` | `alarming` band | authored proper bloc name unlocks across eligible surfaces |
 | `60%+` | `crisis` band | same proper name persists; crisis copy intensifies (no renaming) |
 
-`_hegemony_signal_band` in `coalition.py` is the authoritative **current-share** source for this band; `describe_hegemon_bloc` reads it. Beat/advisory dedupe does **not** read from this helper blindly — that logic is owned by the stored public-memory field in `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony.
+`_hegemony_signal_band` in `coalition.py` is the authoritative **current-share** source for this band; `describe_hegemon_bloc` reads it. Beat/advisory dedupe does **not** read from this helper blindly — that logic is owned by the stored public-memory pair in `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. Band gates always read the raw share float; player-facing share display on bloc-naming surfaces floors to the whole percent so rendered numerals never outrun the label contract.
 
 #### 8.1a.3 Naming taxonomy (deterministic, authored)
 
@@ -772,14 +772,14 @@ Commitments surfaces may not leave the player as a reader only. v0.5.1 keeps **a
 
 | Action | Availability | Route | Mechanical effect |
 |-----------|---------|---------------|---------------|
-| `Speak to Talleyrand about this` | all CRITICAL commitments notices + paradox aftermath | opens scoped `advisory` dialogue with `context.origin_episode_id = episode_id` | none |
+| `Speak to Talleyrand about this` | all CRITICAL commitments notices except `balance_of_europe_shifted` + paradox aftermath | opens scoped `advisory` dialogue with `context.origin_episode_id = episode_id` | none |
 | `Summon {named_envoy}` | french-breach CRITICAL notice only | reuses advisory shell; opener is one-exchange foreign-court response in the named envoy's register, seeded by `episode_id`, then hands back to Talleyrand | none |
 | `Review the broken treaty` | french-breach notice + paradox resolution | routes to filtered Treaties tab | none |
 
 Rules:
 
 - advisory routes remain no-cost, no state change, no notice on dismiss
-- every CRITICAL commitments notice family must expose at least one advisory route so the player can engage in-fiction within one click
+- every CRITICAL commitments notice family must expose at least one advisory route so the player can engage in-fiction within one click, **except** `balance_of_europe_shifted`, which is intentionally `Open Ledger` only in v2.4.3
 - on the breach notice, both `Speak to Talleyrand` and `Summon {named_envoy}` may appear together; the named-envoy summon takes primary visual emphasis
 - the paradox itself remains a strict binary — the player MUST choose. v0.5.1 has no `Offer redress to {spurned_nation}` next-turn affordance (that depended on bargain templates).
 
@@ -886,7 +886,7 @@ C3-lite is successful if:
 - when Britain closes its chancery, the player hears Castlereagh's institutional finality, not Talleyrand's wit
 - the paradox lands as a staged scene with grave Talleyrand framing, committed blocking body, and a spurned-court reaction after the choice
 - `episode_id` dedupes repeated commitments fallout from one root event across blocking / notice / ledger surfaces
-- at least one no-cost conversational follow-up exists on every CRITICAL commitments notice family
+- at least one no-cost conversational follow-up exists on every CRITICAL commitments notice family except `balance_of_europe_shifted`, which intentionally routes `Open Ledger` only in v2.4.3
 - all of the above work identically in mock mode without LLM dependency
 - no commitments presentation surface changes any underlying outcome
 
