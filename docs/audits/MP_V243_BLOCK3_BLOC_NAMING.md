@@ -1,14 +1,23 @@
 # MP v2.4.3 - Block 3: Adopted Bloc Naming and Post-Block-2 Closure Gate
 
-> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next closure pass in sequence before the remaining v2.4.3 implementation continues. The bloc-legibility decision is now locked: v2.4.3 adopts deterministic bloc naming on existing surfaces, and Block 3 owns the implementation/closure work that follows from that call.
+> **Status:** SUPERSEDED — April 20, 2026. This work order's design contract has been folded back into the owning specs; the audit doc is retained for historical context only, not as a live gate.
 >
-> **Ships as:** scoped spec + implementation closure block now.
+> **Where the canonical content lives now:**
+> - **Bloc-naming contract (D1-D4, D9, D10):** `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners, worked-copy examples, implementation constraint, playtest feel gates).
+> - **Voice register per band (D5):** `DIPLOMAT_VOICE_BIBLE.md` "Bloc-naming voice contract" subsection + existing `Balance of Europe beat` notes in each diplomat's register section. Minimum live coverage table already lists `hegemony_beat_*_{noticed,alarming,crisis}` per foreign court.
+> - **Implementation helper (D6):** `RELIABILITY_IMPLEMENTATION_PLAN.md` Slice B-Hegemony (`describe_hegemon_bloc(world, hegemon, share)` — derived, no new save surface).
+> - **Test gate (D7):** folded into B-Hegemony test list (threshold-band beats, label taxonomy, fallback, crisis persistence) and C-lite test list (headline render, threshold-beat copy, warning-family routing).
+> - **Spec-level Balance-of-Europe hooks:** `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 threshold-crossing contract + §11.1 headline composition — both now cite §8.1a for the label layer.
 >
-> **Pre-merge gate for:** the post-Block-2 v2.4.3 implementation pass. Sequence is Block 1 -> Block 2 -> Block 3 -> remaining B-Hegemony / B-B1-lite / B-B3 / B-B4 / B-B7 / C-lite work. This is **not** a prerequisite for starting Blocks 1/2; it is the next gate after they land.
+> **Former post-Block-2 closure items (CF1-CF4) are folded back into their parent slices:**
+> - CF1 (C-lite): Balance-of-Europe payload in `build_diplomatic_ledger`, `commitments_notice_*` template family, `notification_bar.gd` icon map, full `resolve_named_diplomat(...)` wire-up — owned by Slice C-lite in `RELIABILITY_IMPLEMENTATION_PLAN.md`.
+> - CF2 (B-B7): Make Amends emitters + `reparations_cooldown` — owned by Slice B-B7.
+> - CF3 (B-B4): DG-4 call-to-arms emitters + `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION` — owned by Slice B-B4.
+> - CF4 (B-B1-lite + B-B4): Composite-floor regression tests — owned by Slice B-B4 per the B-B1-lite merge-ordering gate.
 >
-> **Depends on:** Block 1 and Block 2 routing being current in `STATUS.md`, plus `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony + C-lite, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, `docs/DIPLOMAT_VOICE_BIBLE.md`.
+> **Routing:** no Block 3 consumption pass is required before the remaining implementation slices. Each slice above carries its own CF items; the B-B1-lite ↔ B-B4 merge-ordering gate remains in force.
 >
-> **Total effort:** ~1 focused spec pass, ~1 implementation session, ~8-12 tests.
+> The content below is the original work-order text, preserved for historical context. It is not a live gate.
 
 ---
 

@@ -2,8 +2,8 @@
 
 > **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (April 20, 2026 deep-audit fixes on top of v2.4.2 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 20, 2026 (v2.4.3 Block 1 alignment: hegemony signal routing canonized, helper/cache/runtime contracts made explicit, B-B4 merge-ordering clarified, and C-lite file/work ownership tightened)
-> **Sessions remaining:** ~2 sessions on the implementation critical path once the audit blocks clear (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 still fold together cleanly; trimmed Slice C-lite remains a short follow-up)
+> **Last Updated:** April 20, 2026 (Block 3 fold: bloc-naming contract + CF1-CF4 closure items folded back into parent slices; audit orphanage retired. Block 1 alignment preserved.)
+> **Sessions remaining:** ~2 sessions on the implementation critical path (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 still fold together cleanly; trimmed Slice C-lite remains a short follow-up)
 > **Est. tests remaining:** ~46-53 on the critical path (~71-82 including parallel B-B4 coverage)
 
 ---
@@ -34,9 +34,11 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 - Slice B-B1-lite: collapsed acceptance formula — `hegemony_target_mod` + simplified `bilateral_betrayal_mod = -6 * strikes` + reliability narrowing
 - Slice B-B3: rename `alliance_paradox` push type to `commitment_paradox` (legacy alias on read) — unchanged from v2.3
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
-- Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance of Europe headline render
+- Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance-of-Europe headline render + `build_diplomatic_ledger` Balance payload block + `commitments_notice_*` template family (incl. DG-4 stubs and `balance_of_europe_shifted` / `amends_offered`) + `notification_bar.gd` `TYPE_ICONS` expansion
 
-**Block 3 decision lock (April 20, 2026):** v2.4.3 adopts deterministic bloc naming. Implementation should target the constrained surface set only: Balance-of-Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview hegemony warnings, and coalition-declaration contrast copy. Member badges / ledger-row bloc stamps are explicitly deferred. Block 3 also owns the specific post-Block-2 closure items formerly hanging off `C-lite`, `B-B4`, `B-B7`, and the composite-floor regression net.
+**Bloc naming (adopted for v2.4.3).** Deterministic bloc naming is the presentation contract for the hegemony layer. The authoritative contract lives in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners: Balance-of-Europe headline + `balance_of_europe_shifted` threshold beats + proposal-preview hegemony warnings + coalition-declaration contrast copy). Member badges / ledger-row bloc stamps are explicitly deferred. Voice register beats per band live in `DIPLOMAT_VOICE_BIBLE.md` Minimum cast coverage (`hegemony_beat_*_{noticed,alarming,crisis}`). Implementation helper is `describe_hegemon_bloc(world, hegemon, share)` in this plan's B-Hegemony slice — no new serialized save surface.
+
+**Former Block 3 CF1-CF4 closure items are folded back into their parent slices.** The items previously routed through `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md` now sit in the slices that own them: CF1 (Balance-of-Europe payload in `build_diplomatic_ledger`, `commitments_notice_*` template family, `notification_bar.gd` icon map, full `resolve_named_diplomat(...)` wire-up) in Slice C-lite; CF2 (Make Amends emitters + `reparations_cooldown`) in B-B7; CF3 (DG-4 call-to-arms emitters + `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION`) in B-B4; CF4 (composite-floor regression tests) in B-B4 per the B-B1-lite merge-ordering gate. The audit doc is superseded and kept only as historical context.
 
 **§8.8 DG-4 call-to-arms (B-B4) — parallel slice, tightened by v2.4.3.** Tracked in its own slice per the DG-4 amendment in spec §8.8 + `SCALE_READINESS_PLAN.md`. v2.4.3 adds explicit follow-through work for the grievance-variant Make Amends path, same-turn alliance termination on defensive refusal, and the R9/R10/R11 playtest gates. ~25-29 tests, parallel to this slice.
 
@@ -113,7 +115,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 30%. ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
 - `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-59%`, `3` for `60%+`. Used only for same-turn signal beats and dedupe.
-- `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `adjective`, `is_proper_bloc_name`). This helper feeds the Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, and coalition-declaration contrast copy. It does **not** create a new save surface and does **not** drive member badges in this phase.
+- `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `descriptive_label`, `adjective`, `is_proper_bloc_name`). Label taxonomy + activation thresholds (`33 / 50 / 60`) + hegemon→label table + fallback rule are authored in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a; this helper is the single backend implementation of that contract. It feeds the Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, and coalition-declaration contrast copy. It does **not** create a new save surface and does **not** drive member badges in this phase.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
 - Same-turn signal beat: when the player's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` event on existing notice / dispatch surfaces with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. Falling below `30%` resets `world.last_hegemony_signal_band` to `0`. This is the preferred low-complexity answer to the N+1 scalar lag.
 
@@ -166,7 +168,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - Add `bilateral_betrayal_mod(asker, target, world) = -6 * _get_active_betrayal_strike_count(world, asker, target)` (module function already in `diplomacy.py`; arg order is `(actor, victim)` so asker=actor, target=victim). Flat, no cap (hard-reject at 3 strikes is the door-shut, already shipped).
 - Tighten `reliability_modifier` to `clamp(diplomatic_reliability[asker] // 10, -6, +6)` (current code is `// 5` capped ±10 — legacy R34).
 - Wire debug breakdown output (`components` dict) and feedback strings (`FEEDBACK_STRINGS`) for the new modifiers.
-- Add `hegemony` warning category to the preview pipeline in `build_proposal_commitment_warnings`; warning text must name why Europe is hardening and, when available, one immediate counter-play lever. Legacy `concern` reads as `hegemony` for save-load back-compat.
+- Add `hegemony` warning category to the preview pipeline in `build_proposal_commitment_warnings`; warning text must name why Europe is hardening and, when available, one immediate counter-play lever. Once the hegemon's bloc share crosses the `50%` reveal band, the warning text uses the proper bloc label from `describe_hegemon_bloc` (e.g. *"the French System"*) per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a; below the band it stays descriptive. Legacy `concern` reads as `hegemony` for save-load back-compat.
 - Betrayal-derived preview warnings must cite one remembered referent when `commitment_event_metadata` gives one (named nation, broken treaty, abandoned alliance, or witness context), so refusal pressure reads as memory instead of hidden arithmetic.
 
 **Tests (~7-8):**
@@ -254,8 +256,8 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 - **Named-diplomat resolution helper** (single backend helper that reads `world.diplomats[nation]` and resolves `speaker="envoy"` to the named diplomat with their personality register, and `speaker="foreign_office"` to "The Chancery of {nation}" per `DIPLOMAT_VOICE_BIBLE.md`)
 - **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` where `end_reason_family=french_breach`, `commitment_paradox_resolved`
 - **Dedicated `commitment_paradox_popup.{tscn,gd}`** — replaces legacy `alliance_paradox_popup` for the renamed type
-- **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — state-composed headline at top of Nations tab per spec §11.1 (no hegemon, hegemon only, BREWING without leader, DECLARED with leader, COOLDOWN)
-- **Balance of Europe threshold beats** on existing notice / dispatch surfaces at `33 / 50 / 60`, each using a named diplomat or chancery line plus one counter-play hint
+- **Balance of Europe headline render** (NEW for v2.4) in `diplomatic_ledger.gd` — state-composed headline at top of Nations tab per spec §11.1 (no hegemon, hegemon only, BREWING without leader, DECLARED with leader, COOLDOWN). Bloc label uses `describe_hegemon_bloc` output per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (descriptive below 50%, authored proper name at 50%+).
+- **Balance of Europe threshold beats** on existing notice / dispatch surfaces at `33 / 50 / 60`, each using a named diplomat or chancery line plus one counter-play hint. Voice register per foreign court per `DIPLOMAT_VOICE_BIBLE.md` `hegemony_beat_*_{noticed,alarming,crisis}` minimum coverage.
 - **`amends_offered` lightweight notice family** for both standard and grievance-variant repair gestures, with target-court acknowledgment and ledger trace
 - **Routing / UI ownership derived from the §8.1 join-table.** This slice owns the `commitments_notice_*` template family, `backend/notifications.py` commitments priority mapping, `notification_bar.gd` `TYPE_ICONS` expansion, `review_target` routing, campaign-log dedupe by `episode_id`, Balance of Europe payload additions in `build_diplomatic_ledger()`, and the `incoming_proposal_popup.gd` duplicate `decision_reason` render fix.
 - **Speaker resolver ownership.** `resolve_named_diplomat(speaker, nation)` lives in `backend/game_logic/diplomatic_templates.py` unless a dedicated `speaker_resolver.py` helper is spun out during implementation.
@@ -308,7 +310,13 @@ B-Hegemony (helpers + engine + coalition wire-up)
 B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below)
 ```
 
-**Block 3 execution note:** before the broader plan resumes, Block 3 consumes the formerly deferred narrow follow-through items: the adopted bloc-naming surface contract, the former `C-lite` Balance payload/template/icon-map/named-diplomat follow-through, the former `B-B7` Make Amends emitters + `reparations_cooldown`, the former `B-B4` defensive-refusal surfacing, and the composite-floor regression tests. Remaining slice work after Block 3 should exclude only those consumed items, not the entirety of `C-lite`, `B-B4`, or `B-B7`.
+**Slice ownership note (Block 3 fold):** bloc-naming adoption and the former CF1-CF4 items no longer gate the plan through a separate audit block. Each item now ships with the parent slice that owns it:
+
+- **Slice C-lite** ships the Balance-of-Europe payload in `build_diplomatic_ledger`, the `commitments_notice_*` template family (including DG-4 stubs), `notification_bar.gd` `TYPE_ICONS` expansion, and the full `resolve_named_diplomat(...)` helper wire-up — these are non-deferrable closure items for the slice.
+- **B-B7** ships the `amends_offered` emitter on both campaign log and lightweight notice / ledger surfaces, and the `reparations_cooldown` serialization field.
+- **B-B4** ships the DG-4 call-to-arms emitters (including `call_to_arms_refused_offensive`, `call_to_arms_refused_defensive`, `call_to_arms_honored_costly`), the `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION` constant + display plumbing, the `grievance_modifier` acceptance term, the composite-floor reintroduction with debug exposure, and the composite-floor regression tests (the B-B1-lite merge-ordering gate is the reason these tests live here rather than in B-B1-lite).
+
+No "Block 3 consumption pass" is required; the slices above may be opened in any order permitted by the dependency table, with the B-B1-lite ↔ B-B4 merge-ordering gate below still in force.
 
 ### Merge ordering — B-B1-lite and B-B4 (DG-4) composite-floor interaction
 

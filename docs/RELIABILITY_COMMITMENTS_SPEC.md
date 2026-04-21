@@ -323,12 +323,12 @@ Rules:
 **Threshold-crossing signal contract (required for feel, not optional polish):**
 
 - The first time the player's bloc crosses **33%**, **50%**, or **60%** of Continental power, fire a same-turn **Balance of Europe** beat on an existing notice / dispatch surface.
-- `33%` = **noticed**. A named diplomat or chancery line tells the player that courts are beginning to count obligations and patrons.
-- `50%` = **alarming**. A named diplomat explicitly frames Europe as starting to align against the hegemon; this is the "subsidies / consultations begin" beat.
-- `60%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally.
+- `33%` = **noticed**. A named diplomat or chancery line tells the player that courts are beginning to count obligations and patrons. Copy uses the *descriptive* label only (e.g. *"a French-led alignment"*) — the authored proper name has not yet earned its entrance per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.
+- `50%` = **alarming**. A named diplomat explicitly frames Europe as starting to align against the hegemon; this is the "subsidies / consultations begin" beat, and the scene in which Europe names the system out loud for the first time (e.g. *"the French System"*). The authored proper bloc name unlocks at this band per §8.1a.
+- `60%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally. The same proper name persists — the intensification lives in the framing, not in a renamed bloc per §8.1a.
 - Beats do **not** add a second pressure mechanic. They are pure surface visibility over the existing bloc-share calculation.
 - Beats fire only on upward crossings. Falling below `30%` resets the memory; otherwise the player should not be spammed every turn while holding the same band.
-- Speaker selection is deterministic: use the highest-weight non-bloc major court first; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line as the final fallback.
+- Speaker selection is deterministic: use the highest-weight non-bloc major court first; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line as the final fallback. Per-court register at each band lives in `DIPLOMAT_VOICE_BIBLE.md` (`hegemony_beat_*_{noticed,alarming,crisis}` minimum coverage).
 - If a beat includes a counter-play hint, the hint must be capability-aware: only suggest actions that are actually legal in the current shipped slice. `Make Amends` may be named only once B-B7 is live; before that, hints are limited to bloc-shrinking / treaty-lapse actions.
 
 ### 7.4 Coalition target and leader selection
@@ -1044,10 +1044,12 @@ Use:
 **v2.4 headline:** add a "Balance of Europe" line at the top of the Nations tab — one dynamically generated sentence (possibly several composed lines) that names the current hegemon, their bloc share, and the coalition state:
 
 ```
-Balance of Europe — France leads with 47% of Continental power.
+Balance of Europe — France leads a widening French-led alignment (47%).
 Castlereagh has begun assembling subsidies. Berlin and Vienna are listening.
 Coalition pressure against France: Brewing (62/100) — qualifying: Britain, Austria, Prussia.
 ```
+
+**Bloc-label contract:** The hegemon phrasing is not a bare nation name. It uses the `describe_hegemon_bloc(world, hegemon, share)` helper (B-Hegemony) per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a. Below `50%` share the label is descriptive (*"French-led alignment"*); at `50%+` the authored proper noun unlocks (*"French System"*); at `60%+` the same proper noun persists while crisis framing intensifies. `coalition` remains reserved for the formal anti-hegemon war structure and must never appear as the hegemon-side label.
 
 Lines compose from current state — no authored copy table. The state machine has five compositional cases:
 
@@ -1056,24 +1058,21 @@ Lines compose from current state — no authored copy table. The state machine h
 
   The equilibrium line is standalone. If coalition pressure is independently brewing from event-based threat, a BREWING line from Case 3 may still render below it; composable.
 
-- **Case 2 — Hegemon exists, no coalition:** one or two composed lines.
-  > *"{Hegemon} leads with {share}% of Continental power."*
+- **Case 2 — Hegemon exists, no coalition:** one or two composed lines. Hegemon phrasing resolves through `describe_hegemon_bloc` per §8.1a (below 50% = *"{Hegemon} leads a widening {descriptive_label} ({share}%)"*; at 50%+ = *"The {bloc_label} commands {share}% of Continental power"*).
   >
   > *"European courts have taken note, but no coordinated response has yet formed."* (present when `30 <= threat_level < 60`; suppressed when `threat_level < 30`)
 
-- **Case 3 — Coalition BREWING (no leader yet per COALITION_SPEC §3-§4):** hegemon line + brewing line.
-  > *"{Hegemon} leads with {share}% of Continental power."*
+- **Case 3 — Coalition BREWING (no leader yet per COALITION_SPEC §3-§4):** hegemon line + brewing line. Hegemon phrasing follows the §8.1a contract above.
   >
-  > *"Coalition pressure against {hegemon}: Brewing ({threat}/100). Qualifying: {nation_list}."*
+  > *"Coalition pressure against the {bloc_label or hegemon}: Brewing ({threat}/100). Qualifying: {nation_list}."*
 
   Per `COALITION_SPEC.md` §3c / §4a, a coalition leader is selected only at **declaration**; during `BREWING` there is no designated leader, and the headline enumerates qualifying nations rather than naming a leader. The `Castlereagh has begun assembling subsidies` flavor line is NOT rendered at brewing (it refers to declared-coalition behavior).
 
-- **Case 4 — Coalition DECLARED (leader selected):** hegemon line + leader line + formal coalition line.
-  > *"{Hegemon} leads with {share}% of Continental power."*
+- **Case 4 — Coalition DECLARED (leader selected):** hegemon line + leader line + formal coalition line. Coalition declaration copy contrasts the formal coalition against the named bloc (e.g. *"Britain's coalition marches against the French System"*) per §8.1a surface contract.
   >
   > *"{Coalition leader's named diplomat} has begun assembling subsidies."*
   >
-  > *"Coalition pressure against {hegemon}: {ladder_label} ({threat}/100) — {leader} leads."*
+  > *"Coalition pressure against the {bloc_label or hegemon}: {ladder_label} ({threat}/100) — {leader} leads."*
 
 - **Case 5 — Coalition COOLDOWN:** hegemon or equilibrium line + cooldown line.
   > *"The last coalition has disbanded. Europe takes breath — no new coalition can form for {turns_remaining} turns."*
@@ -1094,11 +1093,12 @@ Lines compose from current state — no authored copy table. The state machine h
 
 Per-nation rows on the Nations tab (already present) gain:
 
-- bloc membership badge: `[French Bloc]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`
 - France's global reliability descriptor (already present)
 - bilateral betrayal warning when that nation distrusts France specifically (already present)
 - §8.8 grievance flags from defensive-call refusals (already specced in DG-4 amendment)
 - bargain section deferred to `WAR_BARGAIN_SPEC.md`
+
+Per-nation **bloc membership badges** (`[French System]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`) are deferred out of v2.4.3 per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4. The Balance-of-Europe headline is the authoritative owner of the bloc label layer in this phase; per-row stamping waits until a later playtest pass explicitly asks for it.
 
 Presentation rule: render as one compact commitment block per nation, not as multiple new dense subsections repeated across tabs. The Balance of Europe headline is the ledger's new entry point — players see the geopolitical situation in three lines before scanning per-nation detail.
 
@@ -1419,6 +1419,7 @@ That is enough to make diplomacy feel like Napoleonic balance-of-power politics,
 
 ## 17. Changelog
 
+- **April 20, 2026 — v2.4.3 Block 3 fold.** The Block 3 bloc-naming contract and CF1-CF4 closure items have been folded back into their owning specs rather than gating the plan through a separate audit block. §7.3's threshold-crossing beats now name `noticed`/`alarming`/`crisis` semantics per-band and reference `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a for the descriptive-vs-proper-noun contract. §11.1's Balance-of-Europe headline example updated to the adopted descriptive label at 47% and adds an explicit bloc-label contract paragraph; Case 2/3/4 composition lines now route through `describe_hegemon_bloc`. §11.1 per-nation bloc-membership-badge line moved out of the Nations-tab row list into an explicit deferral paragraph pointing at §8.1a.4. No new mechanical rules; this is a routing + label-layer clarification.
 - **April 20, 2026 — v2.4.3 Deep-audit fixes.** Pre-implementation deep audit (`MEMORY_AND_PRESSURE_V2_4_2_DEEP_AUDIT.md`) raised 14 findings — 2 CRITICAL, 7 MAJOR, 5 MINOR — against v2.4.2. v2.4.3 applies the full action list. No new mechanical features; several contracts tightened, one new sub-section (§8.6.1a), one new sub-section (§8.8.7a), three new risks (R9/R10/R11). Edits by section:
   - **§5 — design principles.** Renamed layer 1 from *"Rivalry pressure"* to *"Hegemony pressure"* with explicit bloc-share framing. (Audit B1/C1.)
   - **§7.1 — vassal-chain recursion.** Replaced the single-hop `lord == leader` match with a `_top_overlord` walker that traverses the vassal chain to its terminus. Sub-vassals (Confederation-of-the-Rhine-style nesting) now surface on the top overlord's bloc list — unblocking the §7.7 "same engine at 13-20 nations" claim. Cycle-safe against data errors. Removed the "two-lord collision" rule (impossible under scalar `lord`); documented post-v0.1 multi-overlord tie-break as `power_score` then alphabetical. (Audit A1 — CRITICAL.)

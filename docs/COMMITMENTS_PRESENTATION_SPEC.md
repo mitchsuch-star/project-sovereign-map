@@ -1,7 +1,7 @@
 # Commitments Presentation Pass — C3-lite Spec
 
-> **Status:** v0.5.1 (Non-normative bulk trim — v2.4.2 deep-audit C7)
-> **Date:** April 20, 2026 (v0.5.1 — non-normative bulk trimmed); April 19, 2026 (v0.5 — v2.4 hegemony alignment); April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
+> **Status:** v0.5.2 (Block 3 bloc-naming contract folded in; audit doc superseded)
+> **Date:** April 20, 2026 (v0.5.2 — bloc-naming contract folded from Block 3 audit; v0.5.1 — non-normative bulk trimmed); April 19, 2026 (v0.5 — v2.4 hegemony alignment); April 16, 2026 (v0.4 audit); v0.3 rescope; v0.1 April 15, 2026
 > **Phase placement:** Final slice of `Memory and Pressure` track (formerly `Reliability + Commitments`).
 > **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (hegemony engine + Balance of Europe headline + paradox rename + deep-audit fixes), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
 > **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain showpiece beats, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
@@ -21,6 +21,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1.
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
+- ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for v2.4.3; supersedes `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
 
@@ -232,24 +233,88 @@ Single source of truth: notifications, dispatch formatting, campaign log labels,
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
-### 8.1a Bloc-naming decision (locked for v2.4.3)
+### 8.1a Bloc-naming contract (normative for v2.4.3)
 
-Block 3 locks the bloc-naming call as **adopted** for v2.4.3. The adopted surface contract is:
+v2.4.3 adopts deterministic bloc naming. This section is the single normative owner of the bloc-label contract; earlier drafts lived in `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md` and have been folded here.
 
-- `33-49%` share: descriptive bloc label only, no proper name
-- `50-59%` share: proper bloc name unlocks
-- `60%+` share: same proper name persists in crisis copy
+#### 8.1a.1 Terminology guard (BLOCKER)
 
-Required player-facing owners in this phase:
+- Reserve the word `coalition` for the **formal anti-hegemon war structure** in `backend/game_logic/coalition.py`.
+- Hegemon-side peace-time camps use `bloc`, `alignment`, `system`, `circle`, or `interest` depending on surface.
+- Never show "French Coalition," "British Coalition," etc. for a hegemon-side camp — a "coalition" label reads as war already declared.
+- Any future grep of player-facing strings must show `coalition` only on the anti-hegemon side, never on hegemon-bloc labels.
 
-- Balance of Europe headline
-- `balance_of_europe_shifted` notice family
-- proposal-preview hegemony warnings
-- coalition declaration contrast copy when formal war breaks out against the named bloc
+#### 8.1a.2 Activation gate — `33 / 50 / 60`
 
-Explicit defer for this phase:
+Proper bloc names do not appear at the first visibility threshold. The player feels the *gravitation* first, then hears the *name*.
 
-- member badges / ledger-row bloc stamps are **not** required in Block 3; the headline remains the authoritative owner of the label layer
+| Bloc share | State | Label behavior |
+|---|---|---|
+| `< 33%` | not surfaced | no bloc-naming layer at all |
+| `33 - 49%` | `noticed` band | descriptive phrase only; no sticky proper noun |
+| `50 - 59%` | `alarming` band | authored proper bloc name unlocks across eligible surfaces |
+| `60%+` | `crisis` band | same proper name persists; crisis copy intensifies (no renaming) |
+
+`_hegemony_signal_band` in `coalition.py` is the authoritative source for this band; `describe_hegemon_bloc` reads it.
+
+#### 8.1a.3 Naming taxonomy (deterministic, authored)
+
+LLM prose may not invent bloc names. Name selection is deterministic from the hegemon, not from a variable member list.
+
+| Hegemon | Proper bloc name (`50%+`) | Descriptive phrase (`33-49%`) | Adjective stem |
+|---|---|---|---|
+| France | `French System` | `French-led alignment` | `French` |
+| Britain | `British Interest` | `British-led alignment` | `British` |
+| Austria | `Vienna System` | `Austrian-led alignment` | `Austrian` |
+| Prussia | `Berlin Alignment` | `Prussian-led alignment` | `Prussian` |
+| Saxony | `Saxon Circle` | `Saxon-led alignment` | `Saxon` |
+| Fallback / future nation | `{Nation} Alignment` | `{Nation}-led alignment` | best available adjective, else nation name |
+
+Rules:
+
+- One hegemon → one authored proper label. No ideology names, congress names, or continent-spanning "orders" yet.
+- Labels are derived from the hegemon, not from a variable member list. No member-list-generated names like *"Franco-Bavarian League"* in v0.1.
+- The fallback row holds at 5 nations, 13 nations, and 20-nation scenarios alike; member-list compound names do not land until a later Europe-scale pass proves they are needed.
+
+#### 8.1a.4 Surface contract (required owners in v2.4.3)
+
+Bloc naming rides existing surfaces only. No new UI family in this phase.
+
+- **Balance of Europe headline** (Nations tab of Diplomatic Ledger): first-class owner of the bloc label.
+- **`balance_of_europe_shifted` threshold beats** at `33 / 50 / 60`: `33%` beat uses descriptive language only; `50%` beat is the proper-noun reveal; `60%` beat reuses the proper name and makes camps feel hardened.
+- **Proposal-preview `hegemony` warnings** (Political Context preview): once unlocked at `50%+`, warnings reference the proper bloc name so treaty friction reads politically.
+- **Coalition declaration contrast copy**: if the formal coalition forms, the declaration copy contrasts the coalition against the named hegemon bloc (e.g. *"Britain's coalition marches against the French System"*).
+
+Explicitly deferred out of this phase:
+
+- **Nation badges / ledger rows** do not get bloc stamps in v2.4.3. The headline remains the authoritative owner of the label layer. Revisit only if playtest explicitly asks for it.
+- **Retroactive renaming of old campaign-log rows** is out of scope. This contract is about live legibility, not archive polish.
+
+#### 8.1a.5 Worked-copy examples (tone reference, not committed prose)
+
+- `33-49%` (noticed): *"France leads a widening French-led alignment (37%)."*
+- `50-59%` (alarming, reveal): *"The French System commands 52% of Continental power."*
+- `60%+` (crisis, brewing war): *"The French System commands 61%; hostile courts are hardening into camp against it."*
+- `DECLARED` (coalition contrast): *"Britain's coalition marches against the French System."*
+
+Final committed prose lives in `commitments_notice_balance_of_europe_shifted` templates plus the Balance-of-Europe headline composition in `diplomatic_ledger.gd`. Register per foreign court is defined in `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage (the `hegemony_beat_*_{noticed,alarming,crisis}` family).
+
+#### 8.1a.6 Implementation constraint
+
+- One derived helper in `backend/game_logic/coalition.py`: `describe_hegemon_bloc(world, hegemon, share) -> {bloc_label, descriptive_label, adjective, is_proper_bloc_name}`.
+- No serialized `bloc_names`, `bloc_identity`, or `alignment_store` field.
+- No new membership mechanic; membership still derives from existing bloc helpers / treaty state per `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony.
+
+#### 8.1a.7 Playtest feel gates
+
+Bloc naming lands only if it clears all four:
+
+- The player can answer at a glance **what camp is forming** and **who it is forming around**.
+- The `50%` beat feels like a reveal, not a redundant restatement of what the player already inferred.
+- Players do **not** confuse the named bloc with a declared war coalition.
+- The naming layer increases drama without making the map feel over-labeled or gamey.
+
+**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Member badges remain deferred regardless.
 
 **Bargain events routed to WB-D:**
 
@@ -806,6 +871,7 @@ Bargain-era acceptance criteria (`bargain_breached` 3-beat sequence, scope-branc
 
 ## 17. Changelog
 
+- **April 20, 2026 — v0.5.2 Block 3 bloc-naming fold.** §8.1a expanded from a 12-line decision stub to the full normative bloc-naming contract (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners, worked-copy examples, implementation constraint, playtest feel gates). Ship list in §v0.5.1 Scope Note now cites §8.1a as authoritative. `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md` is superseded by this fold plus the matching fold in `RELIABILITY_IMPLEMENTATION_PLAN.md` / `DIPLOMAT_VOICE_BIBLE.md`; the CF1-CF4 leftovers from that audit now sit in their parent slices (B-B4 / B-B7 / C-lite) rather than in an audit orphanage.
 - **April 20, 2026 — v0.5.1 Non-normative bulk trim (v2.4.2 deep-audit C7).** v0.5 top-note disclaimed roughly half the file as non-normative but left the disclaimed sections intact. v0.5.1 trims the disclaimed content in place rather than requiring readers to mentally ignore it. Edits by section:
   - **§7.2 Dispatch spotlight** — collapsed to a short `CUT in v0.5` stub explaining that spotlight tier infrastructure (elevated card, 2-turn persist, `Spotlight Carryover` Morning Dispatch section) is not built; live events route through existing CRITICAL-priority notices.
   - **§8.2 Spotlight threshold rules** — collapsed to a short stub; priority ordering preserved via `notifications.py` priority tiers, not a spotlight-slot counter.

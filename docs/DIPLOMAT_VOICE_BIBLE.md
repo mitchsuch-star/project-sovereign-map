@@ -1,7 +1,7 @@
 # Diplomat Voice Bible
 
-> **Status:** v1.1 — v0.5.1 aligned — 2026-04-20
-> **v0.5.1 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with noticed / alarming / crisis variants, and (c) one `amends_offered` acknowledgment line per foreign court. Block 3 locks bloc naming as adopted for v2.4.3, but keeps the voiced scope on the headline / threshold-beat / warning family surfaces; member-badge microcopy still defers. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
+> **Status:** v1.2 — v0.5.2 aligned — 2026-04-20
+> **v0.5.2 scope note (2026-04-20):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.2 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with `noticed` / `alarming` / `crisis` variants aligned to the `33 / 50 / 60` activation gate in presentation spec §8.1a, and (c) one `amends_offered` acknowledgment line per foreign court. Bloc naming is adopted for v2.4.3; the voiced scope stays on the headline / threshold-beat / warning-family surfaces — member-badge microcopy still defers. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
 > **Purpose:** Single-page voice reference per diplomat so that every headline commitments line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
 > **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
@@ -202,6 +202,25 @@ Castlereagh and Hardenberg are both Hawks, but their registers diverge sharply:
 
 This matters. A single Dove in the cast means his register has no peer — authors will be tempted to drift him into Hardenberg-with-politeness, or into Talleyrand-with-fear. Both are wrong. The Dove's register is *sincerity without leverage*, and it is the hardest voice to write. If in doubt, make him more formal, more apologetic, and less strategic than you think you should.
 
+### Bloc-naming voice contract (aligned to presentation §8.1a)
+
+The `balance_of_europe_shifted` family is voiced per band. The bands mirror presentation spec §8.1a's activation gate and carry implications for the line itself, not just its placement:
+
+- **`noticed` band (`33-49%`).** Descriptive only — do NOT use the authored proper noun. Copy names the *gravitation*, not the *system*. Register stays institutional / careful / uneasy per court. A line at this band that already says "the French System" is wrong; the name has not been earned yet.
+- **`alarming` band (`50-59%`).** The proper noun reveal moment. Exactly one named diplomat (or one chancery line) introduces the authored label for the first time in-fiction. Treat this like the scene in which Europe finally names what it has been watching.
+- **`crisis` band (`60%+`).** Same proper noun persists. Register intensifies, but the name does NOT change. Do not invent a new label at the crisis band — the intensification is in the framing ("nearly complete," "hostile courts hardening into camp"), not in a renamed bloc.
+
+**No-modern-jargon list (applies to every bloc-naming line, every band, every court):** forbidden terms include `meta`, `sphere control`, `stack`, `synergy`, `faction lock`, `alignment graph`, `coalition math`, and any naked percentage-speak as the main frame of the line. Percentages may appear, but as a detail inside a period-appropriate frame, not as the frame itself.
+
+**Desired feel by court at each band** (condenses the `Balance of Europe beat` notes already written into each diplomat's register section):
+
+- **Castlereagh (Britain, Hawk):** institutional counting. Noticed → London observes. Alarming → London consults and names the system. Crisis → London speaks of subsidies and alignments; never panic.
+- **Hardenberg (Prussia, Hawk):** camps and honor. Noticed → Berlin warns. Alarming → Prussia speaks of Europe choosing sides, and names it. Crisis → the alignment is already a test of resolve.
+- **Metternich (Austria, Schemer):** arrangements and calibration. Noticed → Vienna remarks on the weather changing. Alarming → Vienna speaks of consultations and introduces the system's name almost in passing. Crisis → Europe is already redrafting its arrangements around it.
+- **Einsiedel (Saxony, Dove):** anxious between camps. Noticed → Saxony grows uneasy. Alarming → Saxony worries aloud about small courts being pressed to choose, and puts a name to what presses them. Crisis → Saxony sounds wounded by the narrowing room for caution.
+
+**Talleyrand on bloc naming (France's own voice).** Talleyrand may reflect on France's bloc in his usual register but must not narrate it as a boast. He names it the way he names any instrument of policy: with dry acknowledgment, never with pride.
+
 ---
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)
@@ -212,7 +231,7 @@ Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the older nine-line cast coverage
 
 The live minimum is now the four breach / hard-reject leads plus the hegemony-warning and repair-acknowledgment families below:
 
-The Block 3 decision lock means authors do **not** need to prepare separate member-badge or ledger-stamp microcopy for named blocs in this phase. The required voiced surfaces remain the headline-adjacent threshold beats, warnings, breach/paradox lines, and amends acknowledgments.
+The adopted bloc-naming contract (`COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4) means authors do **not** need to prepare separate member-badge or ledger-stamp microcopy for named blocs in this phase. The required voiced surfaces remain the headline-adjacent threshold beats, warnings, breach/paradox lines, and amends acknowledgments.
 
 | Nation | Personality | Scene | Template source |
 |---|---|---|---|
@@ -268,5 +287,6 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **Apr 20, 2026** — v1.2. Added "Bloc-naming voice contract" subsection aligned to `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a — formalizes the per-band voice contract (descriptive at `noticed`, proper-noun reveal at `alarming`, intensification without renaming at `crisis`), the no-modern-jargon list, the per-court desired feel at each band, and the Talleyrand-on-France guardrail. Top scope note realigned to v0.5.2 / §8.1a. Block 3 audit doc is now superseded by this plus the presentation-spec fold.
 - **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families, `amends_offered` acknowledgments, paradox aftermath / reactive summon / `hard_reject_clear` / `witness_strike` additive families, and retired the stale v0.3-only scope note.
 - **Apr 15, 2026** — v1 draft. Cast confirmed from `backend/models/diplomat.py`. Register derived from `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §6 plus historical research for period authenticity. Four exemplar paragraphs committed (Talleyrand private aside, Castlereagh breach accusation, Hardenberg breach accusation, Metternich breach accusation, Einsiedel breach lament). Five remaining templates (fulfillment callbacks, hard-reject, witness reaction, paradox envoy demand) marked "to author" against the register notes.
