@@ -22,6 +22,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
 - ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for v2.4.3; supersedes `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
+- ✓ **Slice E-Cards — per-row bloc badges (FINAL work item of the Memory and Pressure track).** Ships after all other slices (B-Hegemony → B-B1-lite → B-B3 → B-B7 → C-lite → B-B4) have merged and the headline contract is playtest-validated. Per-row stamps layer onto the Nations tab without mutating the headline contract. Scope, priority ordering, and failure modes live in §8.1a.4. Implementation plan lives in `RELIABILITY_IMPLEMENTATION_PLAN.md` Slice E-Cards.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
 
@@ -292,10 +293,11 @@ Bloc naming rides existing surfaces only. No new UI family in this phase.
 
 v0.1 forward-compat note: these surfaces may still name a non-player hegemon descriptively if the bloc geometry produces one, even though passive scalar accrual remains player-targeted until D2 Coalition Generalization.
 
-Explicitly deferred out of this phase:
+Per-row / badge scope within v2.4.3:
 
-- **Nation badges / ledger rows** do not get bloc stamps in v2.4.3. The headline remains the authoritative owner of the label layer. Revisit only if playtest explicitly asks for it.
-- **Retroactive renaming of old campaign-log rows** is out of scope. This contract is about live legibility, not archive polish.
+- **Nation badges / ledger-row bloc stamps** are in-scope for v2.4.3 as the **final slice** (Slice E-Cards per `RELIABILITY_IMPLEMENTATION_PLAN.md`). They do not ship in the B-Hegemony / C-lite block — the headline must validate in playtest first so the per-row stamp layers on top of a stable label contract, not alongside it.
+- When Slice E lands, per-row badges follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp at all below `33%` (no hegemon = no label layer). Stamps render to the right of the nation name on the Nations tab, one stamp per nation, sorted priority `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. A nation that is BOTH a coalition member AND in the hegemon's bloc shows `[Coalition Member]` only — coalition membership dominates.
+- Retroactive renaming of old campaign-log rows remains out of scope. This contract is about live legibility, not archive polish.
 
 #### 8.1a.5 Worked-copy examples (tone reference, not committed prose)
 
@@ -319,6 +321,8 @@ No separate `balance_of_europe_relaxed` rail family is introduced in this phase;
 
 - One derived helper in `backend/game_logic/coalition.py`: `describe_hegemon_bloc(world, hegemon, share) -> {bloc_label, descriptive_label, adjective, is_proper_bloc_name}`.
 - Callers must gate on `share >= 0.33`. Below that threshold the helper return is unspecified; surfaces should not call it.
+- **`bloc_label` presence contract (normative).** `bloc_label` is non-empty (a `str` from the authored taxonomy) only when `is_proper_bloc_name == True`, which requires `share >= 0.50`. At `0.33 <= share < 0.50` the helper MUST return `bloc_label = None` and `is_proper_bloc_name = False`; `descriptive_label` is always populated whenever the helper is called. Consumers rendering headline or warning copy at the noticed band must fall through `bloc_label` (None) to `descriptive_label` — bare hegemon name is a last-resort fallback for unauthored / unknown hegemons only. This pins the `{bloc_label or descriptive_label or hegemon}` fallback chain used by `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 Case 3 / Case 4 and the proposal-preview warning copy in §11.2.
+- `adjective` follows the same `33%` gate as `descriptive_label` — populated whenever the helper is called, stable across band transitions (France stays `French` at both `41%` and `55%`). `is_proper_bloc_name` is the sole flag callers should branch on.
 - No serialized `bloc_names`, `bloc_identity`, or `alignment_store` field.
 - No new membership mechanic; membership still derives from existing bloc helpers / treaty state per `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony.
 
@@ -597,8 +601,10 @@ Balance of Europe payload block (used by the Nations-tab headline in C-lite §14
 balance_of_europe = {
     "hegemon": Optional[str],
     "share": float,  # 0.0-1.0
-    "bloc_label": Optional[str],  # descriptive at 33-49%, proper name at 50%+
-    "is_proper_bloc_name": bool,
+    "bloc_label": Optional[str],  # None at 33-49%; authored proper name at 50%+; see §8.1a.6 presence contract
+    "descriptive_label": Optional[str],  # "{Adjective}-led alignment" when share >= 0.33; None otherwise
+    "adjective": Optional[str],  # stable across bands once the helper is called (e.g. "French")
+    "is_proper_bloc_name": bool,  # True iff share >= 0.50; sole branch flag for consumers
     "threat_level": int,  # 0-100; v0.1 anti-world.player_nation coalition scalar
     "coalition_state": Literal["NONE", "BREWING", "DECLARED", "COOLDOWN"],
     "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
@@ -619,7 +625,7 @@ Required rules:
 - `follow_up_actions` entries are UI routing hints only; they may reference only existing **no-cost** advisory or inspection surfaces in v0.5.1 (response routes deferred to WB-D)
 - `relation_delta` / `reliability_delta` are sourced from breach metadata
 - `review_target: "ledger_commitments"` routes to the Treaties tab of the Diplomatic Ledger with a commitments section filter
-- `bloc_label` / `is_proper_bloc_name` are transient display helpers derived from hegemon + share, never serialized state
+- `bloc_label` / `descriptive_label` / `adjective` / `is_proper_bloc_name` are transient display helpers derived from hegemon + share, never serialized state. `bloc_label` is `None` when `is_proper_bloc_name == False` (i.e. share < 50%) per §8.1a.6 presence contract; renderers must fall through to `descriptive_label` at the noticed band
 
 If a field is not known deterministically, omit it rather than improvising it in presentation.
 
