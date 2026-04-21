@@ -107,7 +107,7 @@ The first sentence says B-B4 lands **before** B-B1-lite. The second sentence pro
 
 Flag as: *"Single source of truth. Notifications, dispatch formatter, campaign log, popups, and ledger MUST derive priority/icon/label/template/voice/review-target from this row — do not hardcode elsewhere."*
 
-Add note under the row: *"`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue."*
+Add note under the row: *"`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue."*
 
 Add note under `amends_offered`: *"Both standard and grievance-variant Make Amends use this row. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase."*
 

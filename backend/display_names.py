@@ -320,14 +320,6 @@ STANCE_DISPLAY = {
     "aggressive": "Aggressive",
 }
 
-CONCERN_LEVEL_DISPLAY = {
-    "NONE": "None",
-    "MILD": "Mild",
-    "MODERATE": "Moderate",
-    "STRONG": "Strong",
-    "EXTREME": "Extreme",
-}
-
 TRUST_TIER_DISPLAY = {
     "HOSTILE": "Hostile",
     "WARY": "Wary",
@@ -366,7 +358,6 @@ _CATEGORY_MAPS = {
     "defiance_outcome": DEFIANCE_OUTCOME_DISPLAY,
     "personality": PERSONALITY_DISPLAY,
     "stance": STANCE_DISPLAY,
-    "concern": CONCERN_LEVEL_DISPLAY,
     "trust_tier": TRUST_TIER_DISPLAY,
 }
 

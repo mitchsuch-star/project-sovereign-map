@@ -209,6 +209,7 @@ The `balance_of_europe_shifted` family is voiced per band. The bands mirror pres
 - **`noticed` band (`33-49%`).** Descriptive only — do NOT use the authored proper noun. Copy names the *gravitation*, not the *system*. Register stays institutional / careful / uneasy per court. A line at this band that already says "the French System" is wrong; the name has not been earned yet.
 - **`alarming` band (`50-59%`).** The proper noun reveal moment. Exactly one named diplomat (or one chancery line) introduces the authored label for the first time in-fiction. Treat this like the scene in which Europe finally names what it has been watching.
 - **`crisis` band (`60%+`).** Same proper noun persists. Register intensifies, but the name does NOT change. Do not invent a new label at the crisis band — the intensification is in the framing ("nearly complete," "hostile courts hardening into camp"), not in a renamed bloc.
+- **Cooldown-aware crisis clause.** If `coalition_cooldown > 0` when the beat fires, append one restraint clause in the same court's register: Europe is hardening, but the courts remain bound from formal union for the remaining turns. The clause tempers timing, not urgency.
 
 **No-modern-jargon list (applies to every bloc-naming line, every band, every court):** forbidden terms include `meta`, `sphere control`, `stack`, `synergy`, `faction lock`, `alignment graph`, `coalition math`, and any naked percentage-speak as the main frame of the line. Percentages may appear, but as a detail inside a period-appropriate frame, not as the frame itself.
 
@@ -219,7 +220,7 @@ The `balance_of_europe_shifted` family is voiced per band. The bands mirror pres
 - **Metternich (Austria, Schemer):** arrangements and calibration. Noticed → Vienna remarks on the weather changing. Alarming → Vienna speaks of consultations and introduces the system's name almost in passing. Crisis → Europe is already redrafting its arrangements around it.
 - **Einsiedel (Saxony, Dove):** anxious between camps. Noticed → Saxony grows uneasy. Alarming → Saxony worries aloud about small courts being pressed to choose, and puts a name to what presses them. Crisis → Saxony sounds wounded by the narrowing room for caution.
 
-**Talleyrand on bloc naming (France's own voice).** Talleyrand may reflect on France's bloc in his usual register but must not narrate it as a boast. He names it the way he names any instrument of policy: with dry acknowledgment, never with pride.
+**Talleyrand on bloc naming (France's own voice).** Talleyrand may reflect on France's bloc in his usual register but must not narrate it as a boast. He names it the way he names any instrument of policy: with dry acknowledgment, never with pride. This same register owns the rare fallback / relaxation aside in §7.3 — no separate `hegemony_beat_talleyrand_*` family is required, but the line must never degrade into anonymous system copy.
 
 ---
 
@@ -232,6 +233,7 @@ Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the older nine-line cast coverage
 The live minimum is now the four breach / hard-reject leads plus the hegemony-warning and repair-acknowledgment families below:
 
 The adopted bloc-naming contract (`COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4) means authors do **not** need to prepare separate member-badge or ledger-stamp microcopy for named blocs in this phase. The required voiced surfaces remain the headline-adjacent threshold beats, warnings, breach/paradox lines, and amends acknowledgments.
+Rare Talleyrand fallback / relaxation asides reuse the bloc-naming register above rather than adding a second minimum-coverage table row.
 
 | Nation | Personality | Scene | Template source |
 |---|---|---|---|

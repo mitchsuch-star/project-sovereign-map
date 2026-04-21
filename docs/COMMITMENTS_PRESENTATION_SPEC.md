@@ -229,7 +229,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
 
-`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §4.1 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue.
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue.
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
@@ -282,6 +282,7 @@ Bloc naming rides existing surfaces only. No new UI family in this phase.
 
 - **Balance of Europe headline** (Nations tab of Diplomatic Ledger): first-class owner of the bloc label.
 - **`balance_of_europe_shifted` threshold beats** at `33 / 50 / 60`: `33%` beat uses descriptive language only; `50%` beat is the proper-noun reveal; `60%` beat reuses the proper name and makes camps feel hardened.
+- **Downward `60 -> 59` / `50 -> 49` acknowledgments** are advisory-only in Talleyrand's voice, not a second rail family. The label regression must still be named, but quietly.
 - **Proposal-preview `hegemony` warnings** (Political Context preview): once unlocked at `50%+`, warnings reference the proper bloc name so treaty friction reads politically.
 - **Coalition declaration contrast copy**: if the formal coalition forms, the declaration copy contrasts the coalition against the named hegemon bloc (e.g. *"Britain's coalition marches against the French System"*).
 
@@ -298,6 +299,7 @@ Explicitly deferred out of this phase:
 - `DECLARED` (coalition contrast): *"Britain's coalition marches against the French System."*
 
 Final committed prose lives in `commitments_notice_balance_of_europe_shifted` templates plus the Balance-of-Europe headline composition in `diplomatic_ledger.gd`. Register per foreign court is defined in `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage (the `hegemony_beat_*_{noticed,alarming,crisis}` family).
+No separate `balance_of_europe_relaxed` rail family is introduced in this phase; downward relaxations reuse Talleyrand's existing bloc-naming register as a quiet advisory aside.
 
 **Voice constraints (load-bearing — see Voice Bible before authoring):**
 

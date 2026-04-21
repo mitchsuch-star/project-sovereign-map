@@ -239,8 +239,10 @@ WARNING_CATEGORY_ORDER = {
     "hard_reject": 1,
     "bargain": 2,
     "betrayal": 3,
-    "rivalry": 4,
+    "hegemony": 4,
+    "concern": 4,  # legacy alias for pre-v2.4 hegemony warnings
     "peace_conflict": 5,
+    "rivalry": 5,  # legacy alias for old war-joiner preview warnings
 }
 
 _BETRAYAL_DECAY_BY_SEVERITY = {
@@ -673,7 +675,8 @@ def _build_breach_warnings(breach_preview: Dict, war_preview: Dict = None) -> Li
     """Emit a structured `warnings[]` list per RELIABILITY_COMMITMENTS_SPEC §12.2.
 
     Presentation consumes these sorted by severity (critical>high>medium>low)
-    with the stable category tie-break order: paradox>hard_reject>bargain>betrayal>rivalry>peace_conflict.
+    with the stable category tie-break order:
+    paradox>hard_reject>bargain>betrayal>hegemony>peace_conflict.
     """
     warnings: List[Dict] = []
     if not breach_preview:
@@ -705,14 +708,14 @@ def _build_breach_warnings(breach_preview: Dict, war_preview: Dict = None) -> Li
         if defensive_joiners:
             warnings.append({
                 "severity": "medium",
-                "category": "rivalry",
+                "category": "peace_conflict",
                 "text": f"Likely defenders: {', '.join(defensive_joiners)}.",
             })
         offensive_joiners = war_preview.get("offensive_joiners", [])
         if offensive_joiners:
             warnings.append({
                 "severity": "medium",
-                "category": "rivalry",
+                "category": "peace_conflict",
                 "text": f"Likely co-belligerents: {', '.join(offensive_joiners)}.",
             })
 
