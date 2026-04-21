@@ -216,7 +216,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 | Event family | Priority | Icon key | Player label | Template key | Speaker resolver | Review target |
 |------|------|------|------|------|------|------|
 | `commitment_paradox` | `HARD_STOP` (popup) | `icon_paradox` | Conflicting Oaths | `commitments_notice_paradox` | `talleyrand` | `ledger_commitments` |
-| `balance_of_europe_shifted` | `NORMAL` at `33%`; `CRITICAL` at `50%` / `60%` | `icon_balance_of_europe` | Balance of Europe Shifts | `commitments_notice_balance_of_europe_shifted` | `envoy` -> named diplomat for `speaker_nation`, else `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
+| `balance_of_europe_shifted` | `NORMAL` at `33%`; `CRITICAL` at `50%` / `60%` | `icon_balance_of_europe` | Balance of Europe Shifts | `commitments_notice_balance_of_europe_shifted` | **Fallback chain (authoritative):** `envoy` -> named diplomat for `speaker_nation`; else Talleyrand advisory (his bloc-naming register per `DIPLOMAT_VOICE_BIBLE.md`); else `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
 | `amends_offered` | `NORMAL` | `icon_amends_offered` | Amends Offered | `commitments_notice_amends_offered` | `envoy` -> target court's named diplomat | `Open Ledger` |
 | `hard_reject_posture_triggered` | `CRITICAL` | `icon_hard_reject` | The Chancery Shut | `commitments_notice_hard_reject_triggered` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
 | `hard_reject_posture_cleared` | `NORMAL` | `icon_chancery_reopened` | The Chancery Reopens | `commitments_notice_hard_reject_cleared` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
@@ -230,7 +230,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
 
-`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`. On this family, if the chosen `speaker_nation` has no authored envoy register, prefer a Talleyrand advisory line over a generic non-cast chancery fallback so the beat stays voiced rather than bureaucratic.
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`. **Speaker fallback chain on this family is strictly three-step and identical across all consumers** (notification rail, dispatch, campaign-log render, and any preview warning that repeats the voice): (1) `envoy` -> named diplomat for `speaker_nation`; (2) else Talleyrand advisory in his bloc-naming register; (3) else `foreign_office` -> `The Chancery of {nation}`. Talleyrand is ALWAYS preferred over a generic non-cast chancery so the beat stays voiced rather than bureaucratic; the chancery is the last resort. This rule is also the authoritative source for `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 speaker selection and `DIPLOMAT_VOICE_BIBLE.md` Bloc-naming voice contract — the three docs do not disagree.
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
@@ -295,8 +295,8 @@ v0.1 forward-compat note: these surfaces may still name a non-player hegemon des
 
 Per-row / badge scope within v2.4.3:
 
-- **Nation badges / ledger-row bloc stamps** are in-scope for v2.4.3 as the **final slice** (Slice E-Cards per `RELIABILITY_IMPLEMENTATION_PLAN.md`). They do not ship in the B-Hegemony / C-lite block — the headline must validate in playtest first so the per-row stamp layers on top of a stable label contract, not alongside it.
-- When Slice E lands, per-row badges follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp at all below `33%` (no hegemon = no label layer). Stamps render to the right of the nation name on the Nations tab, one stamp per nation, sorted priority `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. A nation that is BOTH a coalition member AND in the hegemon's bloc shows `[Coalition Member]` only — coalition membership dominates.
+- **Nation badges / ledger-row bloc stamps** ship as Slice E-Cards (`RELIABILITY_IMPLEMENTATION_PLAN.md` Slice E-Cards), the final Memory and Pressure slice. Slice order is headline first, stamps last — the headline validates in playtest before per-row stamping layers on top. This is a schedule constraint, not a deferral; closing the Memory and Pressure track requires closing Slice E-Cards.
+- Per-row badges follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp at all below `33%` (no hegemon = no label layer). Stamps render to the right of the nation name on the Nations tab, one stamp per nation, sorted priority `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. A nation that is BOTH a coalition member AND in the hegemon's bloc shows `[Coalition Member]` only — coalition membership dominates.
 - Retroactive renaming of old campaign-log rows remains out of scope. This contract is about live legibility, not archive polish.
 
 #### 8.1a.5 Worked-copy examples (tone reference, not committed prose)
@@ -335,7 +335,7 @@ Bloc naming lands only if it clears all four:
 - Players do **not** confuse the named bloc with a declared war coalition.
 - The naming layer increases drama without making the map feel over-labeled or gamey.
 
-**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Member badges remain deferred regardless.
+**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Slice E-Cards per-row stamps remain scheduled in `RELIABILITY_IMPLEMENTATION_PLAN.md` and ship on the same contract; a bloc-vs-coalition confusion issue retunes the headline wording, it does not change the slice schedule.
 
 **Bargain events routed to WB-D:**
 
@@ -609,10 +609,12 @@ balance_of_europe = {
     "coalition_state": Literal["NONE", "BREWING", "DECLARED", "COOLDOWN"],
     "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
     "leader": Optional[str],  # coalition leader when DECLARED
+    "cooldown_turns_remaining": Optional[int],  # populated iff coalition_state == "COOLDOWN"; turns left in the dissolution cooldown; None otherwise
+    "residual_pressure_active": bool,  # True iff coalition_state == "COOLDOWN" AND threat_level >= THREAT_TENSION_MIN (COALITION_SPEC §3a, currently 30); drives the Case 5 "balance has not righted itself" residual-flavor line
 }
 ```
 
-Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. When `hegemon != world.player_nation` in v0.1, renderer ownership of the coalition sub-line follows §11.1's suppression / retarget rule rather than attaching this anti-player scalar to the foreign hegemon's bloc text.
+Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. `cooldown_turns_remaining` and `residual_pressure_active` are the two fields that drive Case 5 rendering — the cooldown line reads `cooldown_turns_remaining`, and the residual-flavor line conditions on `residual_pressure_active`. When `hegemon != world.player_nation` in v0.1, the renderer MUST suppress the coalition-pressure sub-line entirely per §11.1 — do not retarget it to France. The `threat_level` scalar still populates for the player-nation case; the foreign-hegemon case simply renders no pressure sub-line until D2 Coalition Generalization makes the scalar per-target.
 
 Required rules:
 
