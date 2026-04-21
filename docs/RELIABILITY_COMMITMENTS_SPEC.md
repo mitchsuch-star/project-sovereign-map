@@ -310,16 +310,18 @@ def _calculate_hegemony_pressure(world) -> Dict[str, int]:
 def _hegemony_pressure_for_share(share: float) -> int:
     """Threat increment per turn based on bloc share. Authored ladder.
 
-    Gates align to the 33 / 50 / 60 beat thresholds so every per-turn pressure
-    increase coincides with a same-turn `balance_of_europe_shifted` beat — no
-    silent accrual band, no unbeated jumps. The 70%+ step is intentional crisis
-    intensification (1812 territory) without a new naming tier per §8.1a.
+    Gates align to the 33 / 50 / 60 naming beats so every new public band
+    crossing has a same-turn `balance_of_europe_shifted` scene. The 33-49%
+    band is warning/tutorial territory: on a calm board its +1 may only slow
+    or arrest decay rather than produce immediate hardening from zero. The
+    70%+ step is a scalar-only crisis intensifier (1812 territory), not a new
+    naming tier or separate reveal moment.
     """
     if share < 0.33: return 0   # safe (no beat, no pressure)
-    if share < 0.50: return 1   # noticed   — paired with 33% beat
+    if share < 0.50: return 1   # noticed   — warning / anti-decay band
     if share < 0.60: return 3   # alarming  — paired with 50% beat
     if share < 0.70: return 5   # crisis    — paired with 60% beat
-    return 8                     # naked hegemony (≥70%, 1812 / 1813) — no new beat, framing intensifies per §8.1a
+    return 8                     # near-complete hegemony (≥70%) — no new beat; crisis framing intensifies
 ```
 
 Output: `{hegemon_nation: threat_increment}`. The increment is added to `coalition.py`'s existing `threat_level` scalar via the existing `add_threat()` API.
@@ -329,7 +331,7 @@ Rules:
 - Hegemon-agnostic by construction — the engine identifies whichever bloc is largest. France today by starting position; any bloc later.
 - Below 33% share, no passive pressure accrues and no `balance_of_europe_shifted` beat fires. Coalitions can still form from event-based threat (battles, captures, vassalizations) per the existing `coalition.py` ladder.
 - Bloc share is recomputed each turn from current treaty / vassal state. Pressure decays naturally when the hegemon's bloc shrinks (allies defect, vassals released, territories lost).
-- The pressure ladder values (1/3/5/8) and gates (33/50/60/70) are authored constants in `coalition.py`. Tunable in playtest. Gate values must remain aligned with the §8.1a beat thresholds — moving one without the other re-creates the silent-tax failure mode.
+- The pressure ladder values (1/3/5/8) and gates (33/50/60/70) are authored constants in `coalition.py`. Tunable in playtest. Gate values must remain aligned with the §8.1a beat thresholds — moving one without the other re-creates the silent-tax failure mode. The `33-49%` band is intentionally warning-first: it teaches and slows decay pressure, but the first band that must feel materially self-propelling on a calm board is `50-59%`.
 - v0.1 the threat scalar in `coalition.py` remains France-targeted by current implementation; the engine returns the hegemon for forward-compat surface (so display copy can name the actual hegemon nation rather than hardcoding "France"). Generalizing the threat scalar to per-target `Dict[str, int]` is a one-helper refactor when a non-French hegemon becomes possible — explicitly out of v0.1 scope.
 - **Non-France-hegemon guard (call-site contract).** The `add_threat` wire-up in `process_coalition_turn` must gate on `hegemon == world.player_nation` before adding the passive increment. Rationale: `_calculate_hegemony_pressure` is hegemon-agnostic and may return `{Russia: +5}` in a losing campaign, but the threat_level scalar still accumulates against France in v0.1. Unguarded, this would add Russia's dominance threat *to France's own scalar*, which is the wrong-target bug R5 flags. The guard clause is: *if the hegemon is not the player_nation, emit a debug log for telemetry and skip the `add_threat` call this turn*. Balance of Europe headline copy still names the real hegemon (so the player sees "Russia leads with 47%"), but the coalition pressure accrual path waits for D2 Coalition Generalization.
 
@@ -340,12 +342,14 @@ Rules:
 - `33%` = **noticed**. A named diplomat or chancery line tells the player that courts are beginning to count obligations and patrons. Copy uses the *descriptive* label only (e.g. *"a French-led alignment"*) — the authored proper name has not yet earned its entrance per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.
 - `50%` = **alarming**. A named diplomat explicitly frames Europe as starting to align against the hegemon; this is the "subsidies / consultations begin" beat, and the scene in which Europe names the system out loud for the first time (e.g. *"the French System"*). The authored proper bloc name unlocks at this band per §8.1a.
 - `60%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally. The same proper name persists — the intensification lives in the framing, not in a renamed bloc per §8.1a.
+- Priority contract: the `33%` noticed beat is `NORMAL`; the `50%` proper-name reveal and `60%` crisis beat are `CRITICAL`. The reveal moment is not allowed to land as a footnote.
 - If `world.coalition_cooldown > 0` when an upward beat fires, the line must acknowledge both facts at once: Europe is hardening, but the last coalition's dissolution still binds the courts for `{turns_remaining}` turns. This cooldown clause is required only at the `60%` crisis band; `33%` and `50%` beats stay spare.
 - Beats do **not** add a second pressure mechanic. They are pure surface visibility over the existing bloc-share calculation.
-- Upward beats fire only on first crossings into a higher band. Downward crossings from `60% -> 59%` or `50% -> 49%` are not allowed to be totally silent: emit one same-turn Talleyrand advisory aside in his existing bloc-naming register (not a rail notice, not a dispatch headline, no counter-play hint) so expensive compliance is visibly rewarded. The advisory fires only on the first downward crossing out of a surfaced band in the current equilibrium epoch; repeated `52 / 48 / 52 / 48` oscillation must not spam identical relaxations every dip. The line uses the **current-share label after the drop**: `50% -> 49%` names the descriptive alignment because the proper noun has receded; `60% -> 59%` keeps the proper noun and softens only the frame. Falling below `33%` resets `world.hegemony_signal_high_water` to `0`.
+- At `33-49%`, the beat is intentionally warning / tutorial first. On a cold board it may only arrest decay rather than create visible continental hardening from zero; the first band expected to produce net self-propelling pressure is `50-59%`.
+- Upward beats fire only on first crossings into a higher band. Downward crossings from `60% -> 59%` or `50% -> 49%` are not allowed to be totally silent: emit one same-turn Talleyrand advisory aside in his existing bloc-naming register as a **turn-end dispatch aside** (not a rail notice, not a dispatch headline, not a popup, no counter-play hint) so expensive compliance is visibly rewarded. The line uses the **current-share label after the drop**: `50% -> 49%` names the descriptive alignment because the proper noun has receded; `60% -> 59%` keeps the proper noun and softens only the frame. Dedupe is owned by `world.hegemony_relaxation_bands_fired: Set[int]`, which records the surfaced bands (`2` for alarming, `3` for crisis) whose relaxation has already been voiced in the current equilibrium epoch. Add the band to the set when the aside fires; do not replay while it remains there; clear the set only when share falls below `33%`.
 - The below-`33%` reset is intentional rather than "reset on every lower band": Europe should not theatrically rename the same camp every time share oscillates between `45%` and `55%`; only a real return to equilibrium wipes public memory and re-arms the full upward-beat sequence.
-- Speaker selection is deterministic: use the highest-weight non-bloc major court first; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line in his existing bloc-naming register as the final fallback. No anonymous `system` speaker is allowed on this surface. Per-court register at each band lives in `DIPLOMAT_VOICE_BIBLE.md` (`hegemony_beat_*_{noticed,alarming,crisis}` minimum coverage) and is parameterized by `{hegemon_label}` rather than hard-wired to France-only copy.
-- Every upward beat about the **player's own hegemonic rise** carries one counter-play hint. The hint must be (a) capability-aware: only suggest actions that are actually legal in the current shipped slice (`Make Amends` may be named only once B-B7 is live; before that, hints are limited to bloc-shrinking / treaty-lapse actions), AND (b) **causally specific**: name *which* members of the hegemon's bloc account for the largest share-contribution slice, not generic levers. *"Saxony accounts for the decisive non-French slice of your bloc share — releasing it shrinks the share immediately; Europe's passive pressure eases the following turn"* is legible in the v0.1 roster; *"consider releasing a vassal"* reads as random advice. When no stronger legal lever is available, the floor hint is the always-legible restraint line: *"Hold the bloc where it stands; another major ally would harden Europe further."* If the current hegemon is **not** the player in the v0.1 forward-compat edge case, the beat uses a deliberate no-hint descriptive variant rather than inventing a fake French lever over another court's bloc geometry. Multi-minor Confederation-of-the-Rhine examples are 13-nation forward-compat illustrations, not v0.1 assumptions. Compute the contributor breakdown by sorting `bloc_members` by their individual `power_score` contribution to the bloc total.
+- Speaker selection is deterministic: use the highest-weight non-bloc major court first, where **weight = `power_score(court, world)` among non-bloc majors**; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line in his existing bloc-naming register as the final fallback. No anonymous `system` speaker is allowed on this surface. Per-court register at each band lives in `DIPLOMAT_VOICE_BIBLE.md` (`hegemony_beat_*_{noticed,alarming,crisis}` minimum coverage) and is parameterized by `{hegemon_label}` rather than hard-wired to France-only copy.
+- Every upward beat about the **player's own hegemonic rise** carries one counter-play hint. The hint must be (a) capability-aware: only suggest actions that are actually legal in the current shipped slice (`Make Amends` may be named only once B-B7 is live; before that, hints are limited to bloc-shrinking / treaty-lapse actions), AND (b) **causally specific**: name *which* members of the hegemon's bloc account for the largest share-contribution slice, not generic levers. *"Saxony accounts for the decisive non-French slice of your bloc share — releasing it shrinks the share immediately; Europe's passive pressure eases the following turn"* is legible in the v0.1 roster; *"consider releasing a vassal"* reads as random advice. When no stronger legal lever is available, the floor hint is the always-legible restraint line: *"Hold the bloc where it stands; another major ally would harden Europe further."* At the `33%` noticed beat, the alternative tutorial floor line is explicitly allowed: *"Another major alliance would lift Europe past fifty percent and harden the courts into camp."* If the current hegemon is **not** the player in the v0.1 forward-compat edge case, the beat uses a deliberate no-hint descriptive variant rather than inventing a fake French lever over another court's bloc geometry. Multi-minor Confederation-of-the-Rhine examples are 13-nation forward-compat illustrations, not v0.1 assumptions. Compute the contributor breakdown by sorting `bloc_members` by their individual `power_score` contribution to the bloc total.
 - `_hegemony_signal_band(share)` and `world.hegemony_signal_high_water` are deliberately different things. The helper is a pure current-share reader used for labels and band comparisons; the stored field is public-memory / dedupe state seeded from scenario start and cleared only by a real return below `33%`. Wiring them together would either refire beats on every oscillation or make labels lag behind the actual share.
 
 ### 7.4 Coalition target and leader selection
@@ -386,7 +390,7 @@ What this phase **does not** ship:
 
 Pressure decays naturally — no separate decay clock. Each turn the engine recomputes bloc shares from current state. If France allies with Bavaria, share jumps and pressure increment grows next turn. If Bavaria defects, share drops and pressure stops accruing. The existing `coalition.py` `_calculate_threat_decay` continues to drain the threat scalar between aggressive events.
 
-This means players can *see and act on* the pressure source: vassalize fewer minor states, release a vassal as a goodwill gesture, accept a separate peace that breaks an alliance. Each of these immediately reduces bloc share next turn, which immediately reduces passive threat accrual. The same-turn threshold beat above is the designed answer to the one-turn scalar lag: Europe should **notice** the shift immediately even if the passive `threat_level` tick lands on turn N+1.
+This means players can *see and act on* the pressure source: vassalize fewer minor states, release a vassal as a goodwill gesture, accept a separate peace that breaks an alliance. Each of these immediately reduces bloc share next turn, which immediately reduces passive threat accrual. At the `33-49%` noticed band that accrual may only slow or arrest decay on a calm board; this is intentional warning/tutorial territory, not a promise that brewing will advance from zero by itself. The same-turn threshold beat above is the designed answer to the one-turn scalar lag: Europe should **notice** the shift immediately even if the passive `threat_level` tick lands on turn N+1.
 
 The auto-downgrade rule from earlier drafts (deep alliance reduces "concern intensity") is no longer needed — deep alliances raise bloc share, not lower friction. Friction is the share, not a label on a pair.
 
@@ -462,11 +466,11 @@ Baseline assumptions (must hold for the targets below to be testable):
 
 Targets:
 
-- `33-49%` share should feel **noticed but manageable** — first beat fires, no coalition mobilization yet.
-- `50-59%` peaceful France should reach `BREWING` (`threat_level >= 60`) in roughly **12-16 turns if ignored**.
-- `60%+` sustained share should feel like an **acute crisis**, with declaration pressure (`threat_level >= 80`) mounting in roughly **another 4-8 turns** unless France shrinks the bloc or repairs relations.
+- `33-49%` share should feel **noticed but manageable** — first beat fires, the player understands why Europe is counting, and no coalition mobilization follows immediately. This band is warning/tutorial territory and may only arrest decay on a cold board.
+- `50-59%` is the first band that must feel **materially hardening**, not cosmetic. B-Hegemony must either (a) tune the shipped decay/ladder interaction so a calm board now sees net upward scalar movement here, or (b) explicitly mark the band as still partly theatrical and move the first guaranteed net-positive hardening to the next rung. Do not close the slice while this remains ambiguous.
+- `60%+` sustained share should feel like an **acute crisis**, with declaration pressure mounting quickly once the tuned `50-59%` baseline is known.
 
-If playtest misses those targets, tune the ladder values (1/3/5/8) and / or the decay rate rather than retuning the gates — gates must remain at 33/50/60/70 for beat alignment. A cold-start, zero-threat run that still takes materially longer than this contract (for example, drifting into the mid-20s turns before `BREWING`) is a tuning miss, not acceptable documentation debt. **B-Hegemony acceptance check:** instrument a deterministic test that runs a peaceful 50%-share scenario for 16 turns and asserts `threat_level >= 60` by turn 16; if it fails, retune values before merging.
+If playtest misses those targets, tune the ladder values (1/3/5/8) and / or the decay rate rather than retuning the gates — gates must remain at 33/50/60/70 for beat alignment. The implementation acceptance check must first pin whether `50-59%` is net-positive on a calm board under the shipped decay math; only then may it lock any exact turns-to-`BREWING` or turns-to-declaration target.
 
 ---
 
@@ -1066,7 +1070,7 @@ Use:
 
 ### 11.1 Diplomatic Ledger
 
-**v2.4 headline:** add a "Balance of Europe" line at the top of the Nations tab — one dynamically generated sentence (possibly several composed lines) that names the current hegemon, their bloc share, and the coalition state. Worked example below shows a Case 4 (coalition DECLARED) configuration so all three lines are simultaneously legal under the composition rules; for Case 3 (BREWING), the Castlereagh subsidy line is suppressed per the rule below.
+**v2.4 headline:** add a "Balance of Europe" line at the top of the Nations tab — one dynamically generated sentence (possibly several composed lines) that names the current hegemon, their bloc share, and the coalition state. Worked example below is **Case 4 only** (coalition DECLARED), so all three lines are simultaneously legal under the composition rules; for Case 3 (BREWING), the Castlereagh subsidy line is suppressed per the rule below.
 
 ```
 Balance of Europe — The French System commands 53% of Continental power.
@@ -1076,7 +1080,7 @@ Coalition pressure against the French System: Mobilizing (78/100) — Britain le
 
 *Bloc label appears identically across all three lines — the headline is the surface where `describe_hegemon_bloc` is most visible to the player, so any inconsistency between lines reads as a name change. Authors must route every hegemon mention through the helper, even where bare nation name would parse.*
 
-**Bloc-label contract:** The hegemon phrasing is not a bare nation name. It uses the `describe_hegemon_bloc(world, hegemon, share)` helper (B-Hegemony) per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a. Below `50%` share the label is descriptive (*"French-led alignment"*); at `50%+` the authored proper noun unlocks (*"French System"*); at `60%+` the same proper noun persists while crisis framing intensifies. `coalition` remains reserved for the formal anti-hegemon war structure and must never appear as the hegemon-side label.
+**Bloc-label contract:** The hegemon phrasing is not a bare nation name. It uses the `describe_hegemon_bloc(world, hegemon, share)` helper (B-Hegemony); helper ownership is normative in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.6. Below `50%` share the label is descriptive (*"French-led alignment"*); at `50%+` the authored proper noun unlocks (*"French System"*); at `60%+` the same proper noun persists while crisis framing intensifies, and at `70%+` that existing crisis frame may intensify further (*near-complete*, *continental*, etc.) without introducing a new beat or new label. `coalition` remains reserved for the formal anti-hegemon war structure and must never appear as the hegemon-side label.
 
 Lines compose from current state — no authored copy table. The state machine has five compositional cases:
 
@@ -1084,6 +1088,11 @@ Lines compose from current state — no authored copy table. The state machine h
   > *"Balance of Europe — no bloc commands decisive power. The continent remains in equilibrium."*
 
   The equilibrium line is standalone. If coalition pressure is independently brewing from event-based threat, a BREWING line from Case 3 may still render below it; composable.
+  Worked example (equilibrium + brewing from event threat):
+  >
+  > *"Balance of Europe — no bloc commands decisive power. The continent remains in equilibrium."*
+  >
+  > *"Coalition pressure against France: Brewing (64/100). Qualifying: Austria, Britain, Prussia."*
 
 - **Case 2 — Hegemon exists, no coalition:** one or two composed lines. Hegemon phrasing resolves through `describe_hegemon_bloc` per §8.1a (below 50% = *"{Hegemon} leads a widening {descriptive_label} ({share}%)"*; at 50%+ = *"The {bloc_label} commands {share}% of Continental power"*). In v0.1 the headline may still name a non-French hegemon for descriptive forward-compat, even though passive coalition-pressure accrual remains gated on `hegemon == world.player_nation` per §7.3 / R5; that asymmetry is intentional until D2 Coalition Generalization.
   >
@@ -1112,7 +1121,7 @@ Lines compose from current state — no authored copy table. The state machine h
 - **Case 5 — Coalition COOLDOWN:** hegemon or equilibrium line + cooldown line.
   > *"The last coalition has disbanded. Europe takes breath, but no new coalition can form for {turns_remaining} turns."*
 
-  If `threat_level > 0`, append one residual-pressure flavor line below the cooldown line: *"The balance has not righted itself; the courts continue to count obligations."* Lingering alarm during cooldown is real under the v0.1 scalar, so the copy must acknowledge restraint without implying Europe has forgotten.
+  If the cooldown turn still receives positive threat this turn **and** `threat_level >= THREAT_TENSION_MIN`, append one residual-pressure flavor line below the cooldown line: *"The balance has not righted itself; the courts continue to count obligations."* Otherwise the base cooldown line stands alone. Lingering alarm during cooldown is real under the v0.1 scalar, but the line must not loop every quiet turn once Europe has stopped actively counting.
 
 **Composition rules:**
 
@@ -1203,6 +1212,8 @@ Campaign log metadata payload (shipped):
 
 Rendering rule: store the full metadata payload on the event record; render a compact one-line summary in the Campaign Log; deeper detail can be shown later through tooltip / expand affordances without changing the stored payload.
 
+Priority rule for `balance_of_europe_shifted`: `33%` noticed = `NORMAL`; `50%` proper-name reveal = `CRITICAL`; `60%` crisis = `CRITICAL`. The reveal and crisis beats are the dramatic payoff of the mechanic and must not sink into a routine stack.
+
 The full felt-experience presentation (named-diplomat CRITICAL/NORMAL notices, the dedicated paradox popup, and in-popup after-choice asides) lives in `COMMITMENTS_PRESENTATION_SPEC.md` (`C3-lite`).
 
 ---
@@ -1219,6 +1230,8 @@ The full felt-experience presentation (named-diplomat CRITICAL/NORMAL notices, t
 ### 12.2 To add this phase (v2.4)
 
 - `reparations_cooldown: Dict[str, int]` — pair-key → turn number at which Make Amends (§8.6.1) becomes available again for that pair; `0` or absent = immediately available
+- `hegemony_signal_high_water: int` — stored public-memory field for upward `33 / 50 / 60` beat dedupe; seeded from opening share on new game, default `0` on load, reset below `33%`
+- `hegemony_relaxation_bands_fired: Set[int]` — surfaced bands whose downward relaxation aside has already fired in the current equilibrium epoch (`2` = alarming, `3` = crisis); cleared below `33%`
 
 **v2.4 removed from this phase:**
 

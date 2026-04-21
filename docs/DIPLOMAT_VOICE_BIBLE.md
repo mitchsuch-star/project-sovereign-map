@@ -222,6 +222,11 @@ The `balance_of_europe_shifted` family is voiced per band. The bands mirror pres
 
 **Talleyrand on bloc naming (France's own voice).** Talleyrand may reflect on France's bloc in his usual register but must not narrate it as a boast. He names it the way he names any instrument of policy: with dry acknowledgment, never with pride. This same register owns the rare fallback / relaxation aside in §7.3 — no separate `hegemony_beat_talleyrand_*` family is required, but the line must never degrade into anonymous system copy. The register is hegemon-agnostic: any court may voice any hegemon's bloc via parameterized `{hegemon_label}` copy, with Talleyrand advisory as the final fallback. On downward relaxation, Talleyrand uses the current-share label after the drop: below `50%`, the proper noun recedes to the descriptive alignment; at `60 -> 59`, the proper noun remains and only the pressure softens.
 
+Worked relaxation examples (tone reference):
+
+- `50 -> 49`: *"The name recedes with the numbers, Sire; Europe may still speak of a French-led alignment without yet calling it a system."*
+- `60 -> 59`: *"The French System remains the phrase on every tongue, but the courts no longer speak as if tomorrow must decide the continent."*
+
 ---
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)

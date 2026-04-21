@@ -215,7 +215,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 | Event family | Priority | Icon key | Player label | Template key | Speaker resolver | Review target |
 |------|------|------|------|------|------|------|
 | `commitment_paradox` | `HARD_STOP` (popup) | `icon_paradox` | Conflicting Oaths | `commitments_notice_paradox` | `talleyrand` | `ledger_commitments` |
-| `balance_of_europe_shifted` | `NORMAL` | `icon_balance_of_europe` | Balance of Europe Shifts | `commitments_notice_balance_of_europe_shifted` | `envoy` -> named diplomat for `speaker_nation`, else `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
+| `balance_of_europe_shifted` | `NORMAL` at `33%`; `CRITICAL` at `50%` / `60%` | `icon_balance_of_europe` | Balance of Europe Shifts | `commitments_notice_balance_of_europe_shifted` | `envoy` -> named diplomat for `speaker_nation`, else `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
 | `amends_offered` | `NORMAL` | `icon_amends_offered` | Amends Offered | `commitments_notice_amends_offered` | `envoy` -> target court's named diplomat | `Open Ledger` |
 | `hard_reject_posture_triggered` | `CRITICAL` | `icon_hard_reject` | The Chancery Shut | `commitments_notice_hard_reject_triggered` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
 | `hard_reject_posture_cleared` | `NORMAL` | `icon_chancery_reopened` | The Chancery Reopens | `commitments_notice_hard_reject_cleared` | `foreign_office` -> `The Chancery of {nation}` | `Open Ledger` |
@@ -229,7 +229,7 @@ Every commitments event still appears in the durable reference layer. Ledger and
 
 Single source of truth: notifications, dispatch formatting, campaign log labels, popup routing, and ledger review actions MUST derive priority / icon / label / template / voice / review-target from this table. Do not hardcode a second copy elsewhere.
 
-`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue.
+`balance_of_europe_shifted` is the same-turn 33% / 50% / 60% hegemony preview beat from `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / §11.1 and `RELIABILITY_IMPLEMENTATION_PLAN.md` B-Hegemony. It exists so coalition declaration is never the player's first clue. The `50%` proper-name reveal and `60%` crisis beat are intentionally `CRITICAL`; the `33%` notice may remain `NORMAL`.
 
 Both standard and grievance-variant Make Amends route through `amends_offered`. The target court's named acknowledgment is mandatory so apology reads as public politics rather than a quiet stat purchase.
 
@@ -268,7 +268,11 @@ LLM prose may not invent bloc names. Name selection is deterministic from the he
 | Austria | `Vienna System` | `Austrian-led alignment` | `Austrian` |
 | Prussia | `Berlin Alignment` | `Prussian-led alignment` | `Prussian` |
 | Saxony | `Saxon Circle` | `Saxon-led alignment` | `Saxon` |
-| Fallback / future nation | `{Nation} Alignment` | `{Nation}-led alignment` | best available adjective, else nation name |
+| Russia | `Russian Alignment` | `Russian-led alignment` | `Russian` |
+| Spain | `Spanish Alignment` | `Spanish-led alignment` | `Spanish` |
+| Ottoman Empire | `Ottoman Alignment` | `Ottoman-led alignment` | `Ottoman` |
+| Sweden | `Swedish Alignment` | `Swedish-led alignment` | `Swedish` |
+| Fallback / future nation | `{Adjective} Alignment` if adjective is authored, else `{Nation} Alignment` | `{Nation}-led alignment` | explicit authored adjective if available, else nation name |
 
 Rules:
 
@@ -282,9 +286,11 @@ Bloc naming rides existing surfaces only. No new UI family in this phase.
 
 - **Balance of Europe headline** (Nations tab of Diplomatic Ledger): first-class owner of the bloc label.
 - **`balance_of_europe_shifted` threshold beats** at `33 / 50 / 60`: `33%` beat uses descriptive language only; `50%` beat is the proper-noun reveal; `60%` beat reuses the proper name and makes camps feel hardened.
-- **Downward `60 -> 59` / `50 -> 49` acknowledgments** are advisory-only in Talleyrand's voice, not a second rail family. The label regression must still be named, but quietly. These advisories fire only on the first downward crossing out of a surfaced band in the current equilibrium epoch; they do not repeat on every edge oscillation. They use the current-share label after the drop, so `50 -> 49` speaks of the descriptive alignment, while `60 -> 59` keeps the proper noun and relaxes only the frame.
+- **Downward `60 -> 59` / `50 -> 49` acknowledgments** are advisory-only in Talleyrand's voice, not a second rail family. The label regression must still be named, but quietly. These advisories fire only on the first downward crossing out of a surfaced band in the current equilibrium epoch; they do not repeat on every edge oscillation. They land as a one-line same-turn dispatch aside, not as a rail notice, popup, or headline. They use the current-share label after the drop, so `50 -> 49` speaks of the descriptive alignment, while `60 -> 59` keeps the proper noun and relaxes only the frame.
 - **Proposal-preview `hegemony` warnings** (Political Context preview): once unlocked at `50%+`, warnings reference the proper bloc name so treaty friction reads politically.
 - **Coalition declaration contrast copy**: if the formal coalition forms, the declaration copy contrasts the coalition against the named hegemon bloc (e.g. *"Britain's coalition marches against the French System"*).
+
+v0.1 forward-compat note: these surfaces may still name a non-player hegemon descriptively if the bloc geometry produces one, even though passive scalar accrual remains player-targeted until D2 Coalition Generalization.
 
 Explicitly deferred out of this phase:
 
@@ -296,6 +302,7 @@ Explicitly deferred out of this phase:
 - `33-49%` (noticed): *"France leads a widening French-led alignment (37%)."*
 - `50-59%` (alarming, reveal): *"The French System commands 52% of Continental power."*
 - `60%+` (crisis, brewing war): *"The French System commands 61%; hostile courts are hardening into camp against it."*
+- `70%+` (crisis intensified, no new beat): *"The French System now approaches a continental completeness; hostile courts speak as if the map is already being redrafted around it."*
 - `DECLARED` (coalition contrast): *"Britain's coalition marches against the French System."*
 
 Final committed prose lives in `commitments_notice_balance_of_europe_shifted` templates plus the Balance-of-Europe headline composition in `diplomatic_ledger.gd`. Register per foreign court is defined in `DIPLOMAT_VOICE_BIBLE.md` §Minimum cast coverage (the `hegemony_beat_*_{noticed,alarming,crisis}` family).
