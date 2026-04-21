@@ -174,6 +174,8 @@ The hegemony engine is described in §7.
 
 > **v2.4 terminology:** v2.0-v2.3 called this the "Concern System" with a static `nation_concerns` data structure. v2.4 collapses that into a per-turn **Hegemony Pressure** calculation. The concept is the Napoleonic balance-of-power doctrine — Castlereagh's pentarchy, Pitt's continental subsidies, Metternich's Vienna framework — expressible as one principle: *whoever's bloc is largest, the others converge against it.* No authored rivalry pairs; rivalry emerges from bloc geometry.
 
+**Design north star:** the mechanic's job is to make the great powers sort naturally into blocs when one court becomes too dominant. The player should experience it as **signal -> response -> consequence**, not as a hidden anti-France debuff. Great powers do the visible balancing; minors mostly bandwagon, hedge, or seek shelter under a patron. v0.1 keeps this cheap by reusing the same bloc-share math — no second "legitimacy" meter, no per-pair concern table revival.
+
 ### 7.1 Bloc definition
 
 A nation's **bloc** at any given turn is the set of nations whose military and diplomatic interest is bound to it:
@@ -318,6 +320,16 @@ Rules:
 - v0.1 the threat scalar in `coalition.py` remains France-targeted by current implementation; the engine returns the hegemon for forward-compat surface (so display copy can name the actual hegemon nation rather than hardcoding "France"). Generalizing the threat scalar to per-target `Dict[str, int]` is a one-helper refactor when a non-French hegemon becomes possible — explicitly out of v0.1 scope.
 - **Non-France-hegemon guard (call-site contract).** The `add_threat` wire-up in `process_coalition_turn` must gate on `hegemon == world.player_nation` before adding the passive increment. Rationale: `_calculate_hegemony_pressure` is hegemon-agnostic and may return `{Russia: +5}` in a losing campaign, but the threat_level scalar still accumulates against France in v0.1. Unguarded, this would add Russia's dominance threat *to France's own scalar*, which is the wrong-target bug R5 flags. The guard clause is: *if the hegemon is not the player_nation, emit a debug log for telemetry and skip the `add_threat` call this turn*. Balance of Europe headline copy still names the real hegemon (so the player sees "Russia leads with 47%"), but the coalition pressure accrual path waits for D2 Coalition Generalization.
 
+**Threshold-crossing signal contract (required for feel, not optional polish):**
+
+- The first time the player's bloc crosses **33%**, **50%**, or **67%** of Continental power, fire a same-turn **Balance of Europe** beat on an existing notice / dispatch surface.
+- `33%` = **noticed**. A named diplomat or chancery line tells the player that courts are beginning to count obligations and patrons.
+- `50%` = **alarming**. A named diplomat explicitly frames Europe as starting to align against the hegemon; this is the "subsidies / consultations begin" beat.
+- `67%` = **crisis**. The line must make clear that the continent is hardening into camps and that the next deep treaty will be read politically, not bilaterally.
+- Beats do **not** add a second pressure mechanic. They are pure surface visibility over the existing bloc-share calculation.
+- Beats fire only on upward crossings. Falling below `30%` resets the memory; otherwise the player should not be spammed every turn while holding the same band.
+- Speaker selection is deterministic: use the highest-weight non-bloc major court first; if no such named diplomat exists, fall back to the chancery of that court, then to a Talleyrand advisory line as the final fallback.
+
 ### 7.4 Coalition target and leader selection
 
 The existing `coalition.py` flow handles formation, qualification, leader selection, and dissolution. Hegemony pressure adds two semantic refinements:
@@ -356,7 +368,7 @@ What this phase **does not** ship:
 
 Pressure decays naturally — no separate decay clock. Each turn the engine recomputes bloc shares from current state. If France allies with Bavaria, share jumps and pressure increment grows next turn. If Bavaria defects, share drops and pressure stops accruing. The existing `coalition.py` `_calculate_threat_decay` continues to drain the threat scalar between aggressive events.
 
-This means players can *see and act on* the pressure source: vassalize fewer minor states, release a vassal as a goodwill gesture, accept a separate peace that breaks an alliance. Each of these immediately reduces bloc share next turn, which immediately reduces passive threat accrual.
+This means players can *see and act on* the pressure source: vassalize fewer minor states, release a vassal as a goodwill gesture, accept a separate peace that breaks an alliance. Each of these immediately reduces bloc share next turn, which immediately reduces passive threat accrual. The same-turn threshold beat above is the designed answer to the one-turn scalar lag: Europe should **notice** the shift immediately even if the passive `threat_level` tick lands on turn N+1.
 
 The auto-downgrade rule from earlier drafts (deep alliance reduces "concern intensity") is no longer needed — deep alliances raise bloc share, not lower friction. Friction is the share, not a label on a pair.
 
@@ -420,7 +432,15 @@ The hegemony engine provides the passive pressure that pushes neutrals from stat
 
 #### 7.8.4 Key playtest implication
 
-If France plays peacefully but builds a 50%+ bloc, the v2.4 engine will eventually trigger coalition formation through accumulated passive threat alone — **no French aggression needed**. This is the intended design. If playtest reveals this feels wrong (peaceful hegemons shouldn't get coalitioned), the threshold or ladder in §7.3 needs tuning. If it feels right, it matches the historical Napoleonic pattern.
+If France plays peacefully but builds a `50%+` bloc, the v2.4 engine should still trigger coalition formation through accumulated passive threat alone — **no French aggression needed**. This is the intended design. For it to feel fair, the player must see the continent reacting before the declaration: named-court beats at `33 / 50 / 67`, then proposal-preview warning pressure, then coalition brewing.
+
+**Pacing target (design contract, not optional flavor):**
+
+- `33-35%` share should feel **noticed but manageable**.
+- `50-55%` peaceful France should reach `BREWING` in roughly **12-16 turns if ignored**.
+- `60%+` sustained share should feel like an **acute crisis**, with declaration pressure mounting in roughly **another 4-8 turns** unless France shrinks the bloc or repairs relations.
+
+If playtest misses those targets, tune the ladder or the interaction with decay rather than leaving the pacing implicit.
 
 ---
 
@@ -557,7 +577,7 @@ Passive decay is the floor. v0.1 also ships one explicit player verb so repaired
 - `nation_relation` France → target += 5 (acknowledgment / goodwill)
 - `reparations_cooldown[diplo_key]` = `current_turn + 10` (one Make Amends per pair per 10 turns)
 - Emit `amends_offered` campaign log event with `episode_id`, the cleared strike's original episode lineage, deterministic deltas, and the named diplomat of the target nation
-- Target's named diplomat may acknowledge per scope-branched register (§10.4 of `COMMITMENTS_PRESENTATION_SPEC.md`) — not required for mechanical success
+- Success result always includes one line of named-diplomat acknowledgment in the target court's register. Mechanical success is not gated on branching, but the apology may not land as numbers-only text.
 
 **Refusal conditions (non-actionable, Talleyrand-voiced advisory):**
 
@@ -570,7 +590,8 @@ Passive decay is the floor. v0.1 also ships one explicit player verb so repaired
 
 - **Costly enough** that France cannot cheap-clear a whole stack of strikes
 - **Cadence-limited** so each gesture is a real political moment, not a per-turn click
-- **Feels like a deliberate act** — Talleyrand delivers the preview line in his register; the target's named diplomat may respond per Voice Bible
+- **Feels like a deliberate act** — Talleyrand delivers the preview line in his register; the target's named diplomat answers in the result text
+- **Reads as an apology loop** — gesture → named acknowledgment → durable record, not a resource purchase
 - **Complements, not replaces, passive decay** — at full use, Make Amends clears 1 strike per 10 turns per pair; passive decay still clears its own stream
 
 **Non-goals for v0.1:**
@@ -928,8 +949,8 @@ Illustrative scaling at v0.1 scale (5 nations, 19 regions, `power_tier` weights 
 | France + 2 minors | ~33-35% | `-1 to -3` | Mild friction; new alliances want a sweetener |
 | France + 1 major (Austria) | ~40% | `-6` | Harder; real diplomatic investment needed |
 | France + 1 major + 1 minor | ~45% | `-9` | Hard but possible with surplus DP / gold |
-| France + 2 majors | ~55% | `-15` | Structurally rare; passive coalition threat at `BREWING` |
-| France + 3+ majors | ~65%+ | `-20` | Coalition formation inevitable within 2-3 turns |
+| France + 2 majors | ~55% | `-15` | Structurally rare; passive coalition threat becomes a medium-term crisis if ignored |
+| France + 3+ majors | ~65%+ | `-20` | Acute continental alarm; holding the bloc together should provoke coordinated response within several turns, not invisibly or instantly |
 
 Values in the "mod" column derive from `hegemony_target_mod = max(-20, -int((share - 0.30) * 60))`; the 33-35% band crosses the -1 / -2 / -3 integer boundary depending on exact region allocation.
 
@@ -938,13 +959,16 @@ Values in the "mod" column derive from `hegemony_target_mod = max(-20, -int((sha
 1. **Bandwagoning still works.** A non-bloc nation proposing TO France gets `hegemony_target_mod = 0` — the penalty fires only when the *asker* is part of the hegemon bloc. Saxony asking to join France's bloc is unrestricted regardless of France's share. This matches Napoleonic history (Bavaria, Württemberg, Saxony all bandwagoned to Napoleon pre-1812).
 2. **Intra-bloc proposals are free.** France proposing to Bavaria (already in bloc) gets `0` penalty regardless of overall share. Deepening existing alliances is unrestricted.
 
+For the first escape valve to be real, AI must actually generate bandwagon proposals. This is a canonical behavior requirement in §10.1, not a speculative polish item.
+
 What the engine makes hard is **broad new recruitment** — France-as-hegemon trying to flip Austria, Prussia, or Britain into its bloc outright. Historically those same flips required marriage alliances (Marie Louise 1810), post-war coercion (Tilsit 1807), or marshal-tier diplomacy. The engine surfaces the same structural difficulty numerically.
 
 **Playtest gates** (tune the `1/3/5/8` ladder in §7.3 or the `30%` threshold if these fail):
 
 - France SHOULD be able to maintain 2 minor allies (Bavaria + Saxony) without triggering coalition formation
 - France SHOULD be able to add 1 major ally (Austria) with real diplomatic effort but without immediate coalition formation
-- France SHOULD NOT be able to hold 3+ major allies simultaneously — that's when the historical coalition dynamic fires
+- France SHOULD NOT be able to hold 3+ major allies simultaneously without the continent hardening visibly into blocs over the following turns
+- The player SHOULD hear named-court alarm beats at `33 / 50 / 67` before coalition declaration ever arrives
 
 ---
 
@@ -956,6 +980,7 @@ AI uses hegemony pressure + bilateral memory to shape branches:
 
 - non-hegemon-bloc nations refuse deep treaties from hegemon-bloc askers (per §9.1)
 - nations with active strikes resist treaties from the breach-actor (per §9.2 + §8.7 hard-reject posture)
+- non-bloc **minor and exposed secondary powers may bandwagon TO the hegemon** once bloc share reaches the "alarming" band (`~45%+` in representative play), provided relations are not hostile and the nation is not already bound into a rival deep bloc
 - (bargain offers move to `WAR_BARGAIN_SPEC.md`)
 
 Minimal AI decision-reason contract (already shipped in subset; this phase tightens):
@@ -1045,6 +1070,12 @@ Lines compose from current state — no authored copy table. The state machine h
 - The subsidy-flavor line uses the coalition leader's named diplomat (Castlereagh for Britain, Metternich for Austria, etc.). If the leader has no named diplomat in `diplomat.py`, fall back to *"The courts of {leader} have begun assembling subsidies"*.
 - The qualifying-nation list (Case 3) uses period names, sorted alphabetically, comma-separated. More than 4 qualifying nations collapse to *"Qualifying: {n} courts"*.
 
+**Threshold-crossing beats (same-turn signal contract):**
+
+- The Balance of Europe headline is not allowed to be the player's **first** clue that pressure rose. On the first upward crossing of `33%`, `50%`, or `67%`, an existing notice / dispatch surface must carry one named-diplomat line.
+- Every beat names: (a) the current hegemon, (b) the new share band, (c) what the courts are doing now, and (d) one counter-play hint when one is legible.
+- Good counter-play hints in v0.1 are limited to already-existing moves: release a vassal, avoid adding another major ally, let a deep treaty lapse, or repair a wronged court before seeking another alignment.
+
 Per-nation rows on the Nations tab (already present) gain:
 
 - bloc membership badge: `[French Bloc]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`
@@ -1064,6 +1095,7 @@ Surfaces:
 - current hegemony pressure relevant to the target (category `hegemony` — driven by bloc share per §9.1)
 - any bilateral betrayal memory affecting the offer
 - main nation likely to be angered if France proceeds
+- one immediate counter-play lever when one is legible from current state (release a vassal, avoid a new major ally, let an alliance lapse, or Make Amends with a wronged court)
 
 Canonical preview contract (shipped):
 
@@ -1092,6 +1124,7 @@ Preview legibility rules (shipped):
 - show at most 2 warnings inline
 - sort by severity first, then immediate player relevance
 - collapse overflow behind `View all warnings`
+- on a turn that crosses a new hegemony band, reserve one inline slot for the new `hegemony` warning if the current proposal would intensify that pressure
 
 ### 11.3 Treaty display
 
@@ -1280,7 +1313,7 @@ v2.4 cancelled the third-party ratification anger loop on the grounds that hegem
 
 **Coalition `threat_level` scalar (`coalition.py`) — ONE-TURN lag exists.** The passive hegemony threat contribution is added via `add_threat()` during `process_coalition_turn` (end-of-turn), not at ratification moment. When France ratifies an alliance, the coalition threat scalar jumps on turn N+1, not turn N. This means Balance of Europe headline bucket crossings and `BREWING` transitions visibly trail the player's ratification by one turn.
 
-**Mitigation (applies to `threat_level` only — formula side already correct):** three options in preference order. (a) Accept the delay as a documented design call — the Morning Dispatch on turn N+1 names the share shift explicitly ("France's bloc now holds 47% of Continental power"). (b) Trigger an inline `add_threat` call at deep-treaty ratification / vassal-creation moment with the same increment the next-turn engine would contribute; next turn's engine must then either recognize the already-applied signal (source_key dedupe) or subtract the inline contribution from its own output to prevent double-counting. (c) Emit a deterministic "ratification noticed" dispatch event at ratification time that narrates the political reaction without moving the scalar, letting the N+1 tick do the math. Pick during B-Hegemony integration based on playtest feel — (a) is the simplest and most likely correct; (b) is the invasive correction if playtest shows the lag reads as a bug.
+**Mitigation (applies to `threat_level` only — formula side already correct):** three options in preference order. (a) Emit a deterministic same-turn "Balance of Europe shifts" beat at ratification / threshold-crossing time that narrates the political reaction without moving the scalar, then let the N+1 tick do the math. (b) Accept the delay as a documented design call only if the same-turn beat above already landed, so the player feels Europe notice the shift immediately. (c) Trigger an inline `add_threat` call at deep-treaty ratification / vassal-creation moment with the same increment the next-turn engine would contribute; next turn's engine must then either recognize the already-applied signal (source_key dedupe) or subtract the inline contribution from its own output to prevent double-counting. Pick during B-Hegemony integration based on playtest feel — (a) is the preferred low-complexity answer; (c) is the invasive correction if playtest still reads as a bug.
 
 ### R9. Make Amends flood per turn (v2.4.2 audit A13)
 
@@ -1292,7 +1325,7 @@ v2.4 cancelled the third-party ratification anger loop on the grounds that hegem
 
 §9.5 names bandwagoning as one of two escape valves: non-bloc nations proposing TO the hegemon get `hegemony_target_mod = 0`. This works only if AI nations actually generate minor→hegemon alliance proposals. Spec assumes `ai_diplomacy.py` fires them; audit could not verify.
 
-**Mitigation:** audit `ai_diplomacy.py` P-series triggers during B-Hegemony implementation — confirm minor-to-major alliance proposals fire under appropriate conditions (minor is non-bloc, hegemon's share is high, minor is at war with none of the hegemon's enemies). If not, add an explicit bandwagon trigger (P-series rule) for non-bloc minors with bloc-share-against > 45% and no conflicting prior commitments. Playtest gate: if Bavaria / Saxony never propose to France when France is dominant, the escape valve is decorative — ship the AI trigger before this phase closes.
+**Mitigation:** B-Hegemony now treats this as required behavior, not just an audit question. Add an explicit bandwagon trigger (P-series rule) for non-bloc minors and exposed secondaries when hegemon share reaches the alarming band, relations are not hostile, and the nation is not already locked into a rival deep bloc. Playtest gate: if Bavaria / Saxony never propose to France when France is dominant, the escape valve is decorative — ship the AI trigger before this phase closes.
 
 ### R11. Exact-share boundary at 30% (v2.4.2 audit A11)
 
