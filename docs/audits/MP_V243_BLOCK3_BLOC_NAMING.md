@@ -1,6 +1,6 @@
 # MP v2.4.3 - Block 3: Bloc Naming and Alignment Legibility Gate
 
-> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next design-legibility gate in sequence before the remaining v2.4.3 implementation continues.
+> **Source:** post-audit design follow-up after the comprehensive Memory and Pressure review. Blocks 1/2 close contract and substrate gaps; Block 3 is the next design-legibility gate in sequence before the remaining v2.4.3 implementation continues. It also acts as the carry-forward handoff for deferred post-Block-2 items so a fresh session cannot lose them between slices.
 >
 > **Ships as:** spec/design gate now; implementation later in the same phase if adopted.
 >
@@ -22,6 +22,56 @@
 | MINOR | 2 | Copy examples, scale fallback hygiene |
 
 This block is intentionally narrow: **name and surface the existing hegemon-side diplomatic camp more clearly**. It does **not** add a new mechanic, a new diplomacy store, or a new war-state.
+
+The carry-forward checklist below does **not** mean every deferred item becomes "bloc naming" work. It means Block 3 is now the explicit handoff container for the remaining v2.4.3 follow-through items that Block 2 intentionally did not own.
+
+---
+
+## Carry-Forward From Block 2
+
+These items were explicitly deferred by Block 2. They are listed here so a fresh session sees them immediately, even though the actual implementation ownership remains with the named slice.
+
+### CF1 - `C-lite` presentation follow-through
+
+Still required before calling the wider v2.4.3 diplomacy pass presentation-complete:
+
+- Balance of Europe payload block in `build_diplomatic_ledger`
+- `commitments_notice_*` template family
+- `notification_bar.gd` icon map extension
+- `resolve_named_diplomat(...)` full wire-up beyond the current stub
+
+### CF2 - `B-B7` apology-loop follow-through
+
+Still required before the Make Amends lane is functionally complete:
+
+- Make Amends emitters
+- `reparations_cooldown`
+
+### CF3 - `B-B4` defensive-refusal follow-through
+
+Still required before the direct bilateral DG-4 call-to-arms lane is fully surfaced:
+
+- DG-4 call-to-arms emitters
+- `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION`
+
+### CF4 - `B-B1-lite` + `B-B4` composite-floor regression net
+
+Still required before acceptance-floor logic can be considered safely covered:
+
+- Composite-floor tests handed off by Block 2 / T8
+
+### CF5 - Audit monitoring only
+
+These are **not** new Block 3 implementation items, but they stay listed here so they are not mistaken for forgotten work:
+
+- Non-diplomacy-adjacent tests such as `test_enemy_ai.py` / broader `test_turn_manager.py` remain outside the active blast radius unless later slices touch them; pass-4 marked them clean.
+
+### Carry-forward close condition
+
+Before v2.4.3 is called ready beyond Block 3, each carry-forward item above should be either:
+
+- closed in its owning slice, or
+- deliberately descoped in `STATUS.md` with a written reason.
 
 ---
 
