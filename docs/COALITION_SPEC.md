@@ -59,7 +59,7 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 | Control >60% of regions (12+) | +1/turn | During `advance_turn` | Continental dominance |
 | Control >70% of regions (14+) | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
 | Control >80% of regions (16+) | +3/turn | During `advance_turn` (replaces +2) | Empire at its zenith |
-| Hegemony pressure (bloc share ≥ 33%) | +1 (33% ≤ share < 50%) / +3 (50% ≤ share < 60%) / +5 (60% ≤ share < 70%) / +8 (share ≥ 70%) | During `advance_turn` via `_calculate_hegemony_pressure` (Memory and Pressure §7.3 ladder; gates aligned to the 33 / 50 / 60 beat thresholds) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
+| Hegemony pressure (bloc share ≥ 33%) | +1 (33% ≤ share < 50%) / +3 (50% ≤ share < 60%) / +5 (60% ≤ share < 70%) / +8 (share ≥ 70%) | Scalar applies during `advance_turn` via `_calculate_hegemony_pressure`; same-turn `33 / 50 / 60` threshold beats fire on the seam that causes the new upward crossing (Memory and Pressure §7.3) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
 
 **Notes:**
 - "Win any battle" and "Win decisive battle" stack: a decisive victory = +3 + +5 = **+8 total**.

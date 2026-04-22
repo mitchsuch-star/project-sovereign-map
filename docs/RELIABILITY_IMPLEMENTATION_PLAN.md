@@ -32,7 +32,7 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 
 **This phase ships (v2.4):**
 
-- Slice B-Hegemony (NEW): bloc geometry helpers + hegemony pressure engine + coalition leader selection update + Balance of Europe ledger headline
+- Slice B-Hegemony (NEW): bloc geometry helpers + hegemony pressure engine + coalition leader selection update
 - Slice B-B1-lite: collapsed acceptance formula — `hegemony_target_mod` + simplified `bilateral_betrayal_mod = -6 * strikes` + reliability narrowing
 - Slice B-B3: rename `alliance_paradox` push type to `commitment_paradox` (legacy alias on read) — unchanged from v2.3
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
@@ -279,7 +279,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 - ❌ Split-voice render `attributed_lines[]` blocks on popup scenes — single-voice with named-diplomat attribution suffices at 5-nation scale
 - ❌ N+1 Talleyrand aside callback keyed by `episode_id` — defer to later presentation pass
 
-**Tests (~10-12):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, `review_target` routing, Balance of Europe headline composition for the full state machine (including COOLDOWN with the new `cooldown_turns_remaining` / `residual_pressure_active` payload fields and the v0.1 non-France-hegemon flat suppression rule), speaker fallback chain (named envoy -> Talleyrand advisory -> chancery in strict order), British voice cleanup (no hardcoded `Castlereagh` fallback when the active scenario does not author a British envoy), threshold-beat copy / attribution at `33 / 50 / 60`, `amends_offered` copy / attribution, and DG-4 notice-template smoke coverage through the shared join-table.
+**Tests (~10-12):** named-diplomat resolution helper for each of 5 nations, three event copy paths render correct named diplomat, paradox popup field wiring, `review_target` routing, Balance of Europe headline composition for the full state machine (the five base cases plus the legal `NO_HEGEMON + BREWING` composite, including COOLDOWN with the new `cooldown_turns_remaining` / `residual_pressure_active` payload fields and the v0.1 non-France-hegemon flat suppression rule), speaker fallback chain (named envoy -> Talleyrand advisory -> chancery in strict order), British voice cleanup (no hardcoded `Castlereagh` fallback when the active scenario does not author a British envoy), threshold-beat copy / attribution at `33 / 50 / 60`, `amends_offered` copy / attribution, and DG-4 notice-template smoke coverage through the shared join-table.
 
 ---
 

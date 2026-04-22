@@ -17,7 +17,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Named-diplomat resolution helper** — `speaker="envoy"` resolves to the nation's named diplomat per Voice Bible; `speaker="foreign_office"` resolves to "The Chancery of {nation}". §10.3 is authoritative.
 - ✓ **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (`end_reason_family=french_breach`), `commitment_paradox_resolved`. §12 worked examples remain authoritative.
 - ✓ **Dedicated `commitment_paradox_popup.{tscn,gd}` surface** — replaces legacy `alliance_paradox_popup` for the renamed type. All three paradox beats (framing → blocking body → after-choice aside) render in the popup itself.
-- ✓ **Balance of Europe headline** — five composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN). Rendering lives in `diplomatic_ledger.gd`.
+- ✓ **Balance of Europe headline** — five base composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN), plus the legal `NO_HEGEMON + BREWING` composite. Rendering lives in `diplomatic_ledger.gd`.
 - ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1. Turn 1 does **not** emit a beat for inherited opening share: `world.hegemony_signal_high_water` and `world.hegemony_signal_hegemon` bootstrap from scenario-start bloc geometry, so the first beat fires on the first **new** band crossing after play begins. Scenarios that open above `33%` therefore do not stage the noticed beat unless share first drops below `33%` and later rises back through it (see `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 for the bootstrap rule).
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
@@ -33,7 +33,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 
 **Reading order:** sections below are normative except for the dated historical notes and changelog entries. Prior v0.3/v0.4 content that was non-normative has been removed from the live contract rather than disclaimed in place. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
 
-**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the full state machine).
+**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the five base cases plus the legal `NO_HEGEMON + BREWING` composite).
 
 ---
 
@@ -623,12 +623,12 @@ balance_of_europe_shifted = {
     "band": Literal[1, 2, 3],  # 1 = noticed (33%), 2 = alarming reveal (50%), 3 = crisis (60%)
     "hegemon": str,
     "share": float,  # post-change share, 0.0-1.0
-    "speaker_nation": str,  # selected foreign court whose named diplomat would speak if authored; consumed by the strict fallback chain
+    "speaker_nation": Optional[str],  # selected foreign court whose named diplomat would speak if authored; None only on the Talleyrand-only fallback when no non-bloc major exists
     "bloc_label": Optional[str],  # None when band == 1; authored proper name at 50%+
     "descriptive_label": str,  # always populated once the helper is called
     "adjective": Optional[str],
     "is_proper_bloc_name": bool,
-    "counterplay_hint": Optional[str],  # present only on upward beats when hegemon == world.player_nation and a legal hint exists
+    "counterplay_hint": Optional[str],  # REQUIRED on upward beats when hegemon == world.player_nation; omitted only on non-player-hegemon descriptive variants
     "cooldown_turns_remaining": Optional[int],  # present only for the 60% crisis beat during coalition cooldown. NOTE: this is the beat-transient field. The ledger-state `balance_of_europe` payload above (L612) carries a separate, identically named field that populates whenever `coalition_state == "COOLDOWN"` regardless of whether a beat fires. The two fields are deliberately distinct: the ledger-state version drives Case 5 headline rendering every turn; the beat-transient version drives only the 60% crisis beat copy. Do not conflate.
 }
 ```
@@ -859,7 +859,7 @@ Rules:
 - `review_target` routing opens the intended ledger view and does not drift from the §8.1 join-table
 - Paradox 3-beat staging: framing renders before choice, after-choice aside renders in the popup post-choice (all beats in the popup — no cross-surface dispatch callback)
 - Advisory routes are no-cost: `Speak to Talleyrand` opens advisory dialogue with `context.origin_episode_id`; dismiss leaves no state change
-- Balance of Europe headline composition for the full state machine per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN)
+- Balance of Europe headline composition for the full state machine per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (the five base cases plus the legal `NO_HEGEMON + BREWING` composite)
 - Same-turn `balance_of_europe_shifted` notice copy for the 33% / 50% / 60% threshold crossings, including deterministic named-diplomat / chancery fallback and counterplay-hint wiring
 - `amends_offered` lightweight notice copy for both standard and grievance-variant repair gestures, led by the target court's named diplomat
 
@@ -905,7 +905,7 @@ C3-lite is successful if:
 - when Britain closes its chancery, the player hears Castlereagh's institutional finality, not Talleyrand's wit
 - the paradox lands as a staged scene with grave Talleyrand framing, committed blocking body, and a spurned-court reaction after the choice
 - `episode_id` dedupes repeated commitments fallout from one root event across blocking / notice / ledger surfaces
-- `balance_of_europe_shifted` always fires before the Balance-of-Europe headline can become the player's first clue, and multi-band same-turn jumps emit only the highest newly reached beat
+- `balance_of_europe_shifted` fires before the Balance-of-Europe headline can become the player's first clue on every new upward band crossing after play begins; inherited opening share uses the §7.3 bootstrap exception, and multi-band same-turn jumps emit only the highest newly reached beat
 - the `33 / 50 / 60` naming contract holds across the headline, threshold beats, and proposal-preview warnings: descriptive label below `50%`, proper noun at `50%+`, same proper noun carried into `60%+` crisis framing
 - `balance_of_europe_shifted` and the related Balance-of-Europe surfaces obey the strict fallback chain `named envoy -> Talleyrand advisory -> chancery`, with no anonymous `system` speaker on the notice family
 - when a non-player hegemon appears in the v0.1 forward-compat edge case, bloc-label owner surfaces may still name them, but coalition-pressure sub-lines remain suppressed rather than retargeted away from the player

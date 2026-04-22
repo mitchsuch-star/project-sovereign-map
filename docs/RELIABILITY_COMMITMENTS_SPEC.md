@@ -494,7 +494,7 @@ Targets:
 - `60%+` sustained share is the **first band guaranteed to harden on a calm board**. `+5` exceeds the shipped decay rate under the pacing baseline assumptions above, so declaration pressure mounts continuously from here once the band is reached.
 - `70%+` is crisis intensified (headline tonal lift). No new beat, no new label, no additional scalar guarantee beyond `60%+`; the framing shifts, the mechanics do not.
 
-If playtest misses those targets, tune the ladder values (1/3/5/8) and / or the decay rate rather than retuning the gates — gates must remain at 33/50/60/70 for beat alignment. B-Hegemony's acceptance check must pin whether the `+3` at `50-59%` is net-positive / net-neutral / net-negative on a cold board and author the reveal-beat copy to match that reality, but the slice closes on `60%+` behaving correctly. The `50%` band is the reveal, not the hardening gate.
+If playtest misses those targets, tune the ladder values (1/3/5/8) and / or the decay rate rather than retuning the gates — gates must remain at 33/50/60/70 for beat alignment. B-Hegemony's acceptance check must pin whether the `+3` at `50-59%` is net-positive / net-neutral / net-negative on a cold board and author the reveal-beat copy to match that reality, but the slice closes only when `60%+` behaves correctly **and** the beat-without-bite watchdog confirms that a cold-board `33%` notice does not read as empty theater. The `50%` band is the reveal, not the hardening gate.
 
 ---
 
