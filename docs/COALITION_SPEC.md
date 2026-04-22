@@ -229,9 +229,9 @@ When a coalition declares (either countdown expiry or instant):
 5. **Assign coalition ID:** `coalition_[turn_number]` (e.g., `coalition_12`). Used for tracking.
 
 6. **UI events:**
-   - **Dramatic popup:** "THE COALITION OF [LEADER]" — lists all members, their military strength, and the coalition's strategic posture.
+   - **Dramatic popup:** "THE COALITION OF [LEADER]" — lists all members, their military strength, and the coalition's strategic posture. **Must carry the bloc-vs-coalition contrast copy** as a named-diplomat subline (e.g. *"Britain's coalition marches against the French System"*) per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4 and `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 Case 4. This contrast line is the peak dramatic moment of the bloc-naming contract — a bare leader-only popup without the counterbeat loses the reveal payoff at exactly the moment the mechanic is cashing in. v0.1 non-France-hegemon guard applies (see §3f below): when `coalition.target == world.player_nation` but `hegemon != world.player_nation`, the contrast targets the bare player nation, not the named hegemon bloc.
    - **Morning Dispatch (next turn):** Full briefing on coalition composition and threat assessment.
-   - **Notification:** Persistent: "Coalition active: [members]. Leader: [nation]."
+   - **Notification:** Persistent: "Coalition active: [members]. Leader: [nation]." The matching `balance_of_europe_shifted` rail notice (if one fired the same turn) owns the named-diplomat voice; this persistent notification is the quiet book-keeping sibling.
 
 7. **Talleyrand reaction** (varies by prior interaction):
    - If warned and ignored: "I counseled moderation, Sire. Now we face the consequences."
@@ -247,6 +247,10 @@ If Britain is leader: "The British Coalition." If Austria: "The Austrian Coaliti
 For the second+ coalition in a game, append a numeral: "The Second Austrian Coalition."
 
 Track `coalition_count` on WorldState for numbering.
+
+**Bloc-vs-coalition contrast contract (v2.4.3).** Whenever the coalition name surfaces alongside the current hegemon bloc's label (declaration popup, declaration-turn Morning Dispatch, declaration-turn campaign log entry, Balance of Europe Case 4 headline echo), the presentation must keep the two distinct — *"The British Coalition marches against the French System"* — rather than letting either side absorb the other. The word `coalition` stays reserved for the formal anti-hegemon war structure per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.1. Hegemon-side camps use the authored proper noun (`French System`, `Vienna System`, `Berlin Alignment`, `Saxon Circle`, `British Interest`, etc.) from §8.1a.3, not a `{Hegemon} Coalition` label. "The British Coalition" in this spec means Britain leads a coalition against a hegemon; it does not mean Britain is a hegemon-side bloc. If Britain later becomes a hegemon at 50%+ bloc share, the hegemon-side camp is `[British Interest]` and the coalition against it is named by its leader (e.g. "The French Coalition," legal because France is not hegemon in that scenario).
+
+**v0.1 non-France-hegemon guard.** When `coalition.target == world.player_nation` (per `RELIABILITY_COMMITMENTS_SPEC.md` §7.4 "Coalition target and leader selection") but `hegemon != world.player_nation` in the rare forward-compat edge case, the declaration popup and contrast copy target the coalition target — bare `world.player_nation`, no bloc contrast — not the named hegemon bloc. Rendering *"Britain's coalition marches against the Russian Alignment"* while the threat scalar and coalition target are actually anti-France would publish the same visible lie the `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 ledger sub-line suppression rule prevents. Bloc-contrast form returns when D2 Coalition Generalization makes the scalar per-target.
 
 ---
 
@@ -510,9 +514,9 @@ Talleyrand provides escalating warnings based on threat tier:
 
 | Threat Tier | Talleyrand Behavior |
 |-------------|---------------------|
-| 30–39 (Tension) | Passive observation in advisory: "The courts are... uneasy, Sire." |
-| 40–59 (Murmurs) | Proactive advisory conversation: "Your Majesty, I must speak frankly about the diplomatic climate." Offers concrete suggestions (improve relations, offer concessions). |
-| 60+ (Brewing) | STRONG concern: "A coalition is forming. We have [X] turns to prevent it." Suggests specific diplomatic actions targeting the weakest qualifying nation. |
+| 30–39 (Tension) | **Pre-brewing clue ownership yields to `balance_of_europe_shifted` + Balance-of-Europe headline per `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 + §11.1 and `COMMITMENTS_PRESENTATION_SPEC.md` §8.1.** Talleyrand advisory does not fire a separate anonymous "the courts are... uneasy" line at Tension in v2.4.3; that phrasing was part of the pre-v2.4.3 anonymous clue chain (`coalition.py:1098-1132`) and is retired when B-Hegemony lands. Any Talleyrand Tension line that survives must speak in his bloc-naming register referencing the hegemon explicitly, not as generic system flavor. |
+| 40–59 (Murmurs) | **Same yield as Tension.** The `balance_of_europe_shifted` 33% / 50% beat family (same-turn named-diplomat notice) owns the Murmurs-tier player-facing clue. Talleyrand's proactive advisory *conversation* — "Your Majesty, I must speak frankly about the diplomatic climate" — remains valid as an advisory-channel opening when the player asks for counsel, but it is not a rail notification and does not duplicate the Balance beat on the notice surface. |
+| 60+ (Brewing) | STRONG concern: "A coalition is forming. We have [X] turns to prevent it." Suggests specific diplomatic actions targeting the weakest qualifying nation. The brewing notification MUST anchor to `{target_nation}` (= `world.player_nation` per `RELIABILITY_COMMITMENTS_SPEC.md` §7.4), not to a bloc label, and must not name a leader (per §3c / §4a, leader selection happens only at declaration). |
 
 ### §8b. During Coalition
 
@@ -535,15 +539,15 @@ After a coalition dissolves (via French victory):
 
 New template categories for `diplomatic_templates.py`:
 
-| Category | Slot | Example |
-|----------|------|---------|
-| `coalition_murmur` | `{threat_level}`, `{hostile_nations}` | "At threat {threat_level}, the courts of {hostile_nations} grow restless." |
-| `coalition_brewing` | `{qualifying_nations}`, `{turns_remaining}` | "{qualifying_nations} are forming a coalition. {turns_remaining} turns remain." |
-| `coalition_declared` | `{coalition_name}`, `{member_list}`, `{leader}` | "The {coalition_name} has declared against us. {leader} leads {member_list}." |
-| `coalition_member_weak` | `{nation}`, `{war_exhaustion}` | "{nation}'s resolve is faltering. War exhaustion: {war_exhaustion}." |
-| `coalition_advice_split` | `{target_nation}` | "I recommend approaching {target_nation} with terms. They are the weak link." |
-| `coalition_dissolved` | `{coalition_name}` | "The {coalition_name} has collapsed. A moment of respite." |
-| `coalition_harsh_warning` | `{threat_increase}` | "These terms will add {threat_increase} to our threat. Another coalition may follow." |
+| Category | Slot | Example | v2.4.3 status |
+|----------|------|---------|----------------|
+| `coalition_murmur` | `{threat_level}`, `{hostile_nations}` | "At threat {threat_level}, the courts of {hostile_nations} grow restless." | **LEGACY — retire with B-Hegemony.** Pre-brewing Tension / Murmurs clue ownership yields to `balance_of_europe_shifted` + Balance-of-Europe headline. Anonymous template kept only for save-load compatibility with older log rows. |
+| `coalition_brewing` | `{target_nation}`, `{qualifying_nations}`, `{turns_remaining}` | "The courts of {qualifying_nations} move toward a coalition against {target_nation}. {turns_remaining} turns remain." | Live. `{target_nation}` anchors to `world.player_nation` per RCS §7.4; BREWING has no leader per §3c. |
+| `coalition_declared` | `{coalition_name}`, `{member_list}`, `{leader}`, `{bloc_label}` | "The {coalition_name} marches against the {bloc_label}. {leader} leads {member_list}." | Live. `{bloc_label}` comes from `describe_hegemon_bloc` per CPS §8.1a. v0.1 non-France-hegemon guard: when `coalition.target == world.player_nation` but `hegemon != world.player_nation`, render against the bare player nation (no bloc_label) per §3f. |
+| `coalition_member_weak` | `{nation}`, `{war_exhaustion}` | "{nation}'s resolve is faltering. War exhaustion: {war_exhaustion}." | Live. |
+| `coalition_advice_split` | `{target_nation}` | "I recommend approaching {target_nation} with terms. They are the weak link." | Live. |
+| `coalition_dissolved` | `{coalition_name}` | "The {coalition_name} has collapsed. A moment of respite." | Live. |
+| `coalition_harsh_warning` | `{threat_increase}` | "These terms will add {threat_increase} to our threat. Another coalition may follow." | Live. |
 
 ---
 
@@ -569,9 +573,9 @@ New template categories for `diplomatic_templates.py`:
 
 | Event | Type | Persistence |
 |-------|------|-------------|
-| Threat reaches 30 | Info | Dismissible |
-| Threat reaches 40 (Murmurs) | — | No standalone generic rail warning in v2.4.3; atmospheric clueing before brewing is owned by `balance_of_europe_shifted` / Balance-of-Europe surfaces |
-| Coalition Brewing starts | Alert | Persistent with countdown, updates each turn |
+| Threat reaches 30 (Tension) | — | No standalone generic rail warning in v2.4.3. Atmospheric clueing before brewing is owned by `balance_of_europe_shifted` (at the hegemony share bands `33 / 50 / 60`) + Balance-of-Europe headline. The legacy `COALITION_THREAT_TENSION` "Diplomatic Tension" notification in `coalition.py:1116-1127` is retired on the B-Hegemony seam. |
+| Threat reaches 40 (Murmurs) | — | No standalone generic rail warning in v2.4.3; same yield as Tension. The legacy `COALITION_MURMURS` "European Courts Concerned" notification in `coalition.py:1102-1115` is retired on the B-Hegemony seam. |
+| Coalition Brewing starts | Alert | Persistent with countdown, updates each turn. Target anchors to `{target_nation}` (= `world.player_nation` per RCS §7.4). No leader field in BREWING copy — leader selection is declaration-only per §3c / §4a. |
 | Coalition Declared | Critical | Persistent until dismissed, triggers popup |
 | Coalition member peaced out | Info | Dismissible |
 | Coalition dissolved | Info | Dismissible |
@@ -614,21 +618,24 @@ may separate them from the coalition."
 Full-screen dramatic popup (same pattern as defiance confrontation popups):
 
 ```
-╔══════════════════════════════════════════╗
-║                                          ║
-║      THE COALITION OF BRITAIN            ║
-║                                          ║
-║   Britain  ·  Prussia  ·  Austria        ║
-║                                          ║
-║   "All of Europe stands against you."    ║
-║                                          ║
-║   Combined strength: 188,000             ║
-║   Strategic posture: Aggressive Advance  ║
-║                                          ║
-║          [ Continue ]                    ║
-║                                          ║
-╚══════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║              THE COALITION OF BRITAIN                    ║
+║                                                          ║
+║      Britain  ·  Prussia  ·  Austria                     ║
+║                                                          ║
+║  "Britain's coalition marches against the French System."║
+║              — Castlereagh, at court                     ║
+║                                                          ║
+║      Combined strength: 188,000                          ║
+║      Strategic posture: Aggressive Advance               ║
+║                                                          ║
+║              [ Continue ]                                ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
 ```
+
+The bloc-vs-coalition contrast subline is **required**, not decorative (per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4 "Coalition declaration contrast copy" and `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 Case 4 declaration turn). It carries the named diplomat of the coalition leader (Castlereagh for Britain, Metternich for Austria, Hardenberg for Prussia, Einsiedel for Saxony) in their authored `hegemony_beat_*` / declaration register; generic chancery / system wording is **not** allowed on this surface — see the `COMMITMENTS_PRESENTATION_SPEC.md` §8.1 routing table. v0.1 non-France-hegemon guard: when `coalition.target == world.player_nation` but `hegemon != world.player_nation`, the subline contrasts against the bare player nation, not the named hegemon bloc (see §3f).
 
 ---
 
