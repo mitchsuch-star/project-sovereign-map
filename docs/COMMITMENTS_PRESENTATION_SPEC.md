@@ -616,6 +616,25 @@ balance_of_europe = {
 
 Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. `cooldown_turns_remaining` and `residual_pressure_active` are the two fields that drive Case 5 rendering — the cooldown line reads `cooldown_turns_remaining`, and the residual-flavor line conditions on `residual_pressure_active`. `residual_pressure_active` bakes in BOTH the `threat_level >= THREAT_TENSION_MIN` threshold AND the `world.positive_threat_delta_this_turn` anti-spam gate from §11.1 Case 5 so the renderer branches on a single flag and quiet cooldown turns with legacy decaying threat do not loop the residual line. When `hegemon != world.player_nation` in v0.1, the renderer MUST suppress the coalition-pressure sub-line entirely per §11.1 — do not retarget it to France. The `threat_level` scalar still populates for the player-nation case; the foreign-hegemon case simply renders no pressure sub-line until D2 Coalition Generalization makes the scalar per-target.
 
+`nations[*].bloc_stamp` transient ledger payload extension (Nations-tab row-stamp owner; rendered by Slice E-Cards, never serialized):
+
+```python
+bloc_stamp = {
+    "label": Optional[str],  # rendered text; None when no stamp applies
+    "kind": Literal["coalition_member", "hegemon_bloc_proper",
+                    "hegemon_bloc_descriptive", "vassal", "neutral", None],
+    "priority": int,  # deterministic tie-break; mirrors §8.1a.4 priority order
+}
+```
+
+Required rules:
+
+- attached to each entry in the `nations` array only; no parallel top-level stamp payload
+- deterministic single-owner priority follows §8.1a.4 exactly: `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`
+- no stamp at all when hegemon share is below `33%`
+- the literal string `Coalition` is legal only when `kind == "coalition_member"`
+- transient display helper only — never saved, never treated as gameplay state
+
 `balance_of_europe_shifted` transient event payload (single owner across rail notice, dispatch/log echo, and any preview reuse of the same beat):
 
 ```python
@@ -860,6 +879,7 @@ Rules:
 - Paradox 3-beat staging: framing renders before choice, after-choice aside renders in the popup post-choice (all beats in the popup — no cross-surface dispatch callback)
 - Advisory routes are no-cost: `Speak to Talleyrand` opens advisory dialogue with `context.origin_episode_id`; dismiss leaves no state change
 - Balance of Europe headline composition for the full state machine per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (the five base cases plus the legal `NO_HEGEMON + BREWING` composite)
+- Nations-tab `nations[*].bloc_stamp` payload / render obeys the §8.1a.4 deterministic one-stamp priority and the `33 / 50 / 60` naming contract, with `[Coalition Member]` dominating hegemon-bloc labels
 - Same-turn `balance_of_europe_shifted` notice copy for the 33% / 50% / 60% threshold crossings, including deterministic named-diplomat / chancery fallback and counterplay-hint wiring
 - `amends_offered` lightweight notice copy for both standard and grievance-variant repair gestures, led by the target court's named diplomat
 

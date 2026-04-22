@@ -9,6 +9,8 @@
 > - **Test gate (D7):** folded into B-Hegemony test list (threshold-band beats, label taxonomy, fallback, crisis persistence) and C-lite test list (headline render, threshold-beat copy, warning-family routing).
 > - **Spec-level Balance-of-Europe hooks:** `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 threshold-crossing contract + §11.1 headline composition — both now cite §8.1a for the label layer.
 >
+> **April 21 supersession note:** the original decision list below still says member badges / row stamps are deferred. That is historical text only. The live April 21 owner docs (`COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4, `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, `RELIABILITY_IMPLEMENTATION_PLAN.md` Slice E-Cards, and `STATUS.md`) put Nations-tab row stamps in shipped v2.4.3 scope.
+>
 > **Former post-Block-2 closure items (CF1-CF4) are folded back into their parent slices:**
 > - CF1 (C-lite): Balance-of-Europe payload in `build_diplomatic_ledger`, `commitments_notice_*` template family, `notification_bar.gd` icon map, full `resolve_named_diplomat(...)` wire-up — owned by Slice C-lite in `RELIABILITY_IMPLEMENTATION_PLAN.md`.
 > - CF2 (B-B7): Make Amends emitters + `reparations_cooldown` — owned by Slice B-B7.

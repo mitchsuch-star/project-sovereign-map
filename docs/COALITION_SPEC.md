@@ -67,6 +67,7 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 - Region control % uses `len(france_controlled) / len(all_regions)`. France starts with 8/19 = 42%.
 - All values are `int()`. No fractional threat.
 - **Alliance ratification does NOT directly generate threat on the signing turn.** However, when a nation's bloc (leader + vassals + deep-treaty partners) crosses 33% of continental power, the Memory and Pressure hegemony engine (`RELIABILITY_COMMITMENTS_SPEC.md` §7) contributes a passive per-turn threat increment against the hegemon. This is the Napoleonic balance-of-power doctrine: sustained bloc dominance invites coordinated response even without fresh aggressive action. The `hegemony_passive` row above is the mechanical surface for this signal; direct aggressive actions (war, conquest, vassalization, battles, annexation) continue to be the primary threat generators. The separate `30%` threshold belongs to `hegemony_target_mod` on the acceptance-formula side, not to passive coalition pressure.
+- **70%+ is scalar-only intensification.** The `+8` tier does **not** create a fourth public naming beat or a new bloc-label family; the public naming contract remains `33 / 50 / 60` per `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 / `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.
 - **Region-control ticks vs hegemony pressure:** the two are distinct signals. Region-control ticks (60/70/80% of raw regions) are a territorial threshold; hegemony pressure reads bloc shares including vassals and allies (weighted by `power_tier`). A France at 55% regions but with only one minor ally may trigger region-control +1/turn without triggering hegemony pressure; a France at 45% regions but with Prussia + Austria both in bloc may trigger hegemony +5/turn without region-control firing. Both contribute to the same `threat_level` scalar via `add_threat()`.
 
 ### §2b. Threat Reduction Table
@@ -172,7 +173,7 @@ When threat first reaches 60:
 
 1. **Snapshot qualifying nations.** Record which nations meet the check (§3b) at this moment.
 2. **Start 3-turn countdown.** Track `coalition_brewing_turns_remaining` on WorldState.
-3. **Notify player:** Persistent EU4-style notification: "A coalition is brewing against {target_nation}. [Nation list]. 3 turns remain." In v0.1 this is ordinarily France; if the Balance-of-Europe headline currently names a non-player hegemon in the rare forward-compat edge case, the headline's coalition-pressure sub-line stays suppressed per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 rather than retargeting this brewing copy away from the player.
+3. **Notify player:** Persistent EU4-style notification: "A coalition is brewing against {target_nation}. [Nation list]. 3 turns remain." In v0.1 this is ordinarily France; if the Balance-of-Europe headline currently names a non-player hegemon in the rare forward-compat edge case, keep `{target_nation}` anchored to `world.player_nation` and suppress the headline's coalition-pressure sub-line per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 rather than retargeting either surface to the foreign hegemon.
 4. **Morning Dispatch:** "Your Majesty, diplomatic dispatches confirm that [nations] are consulting on joint action against {target_nation}."
 5. **Talleyrand advisory:** Proactive conversation offering to defuse ("Shall I approach [weakest member] with terms?").
 
