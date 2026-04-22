@@ -49,6 +49,42 @@ DEFAULT_NATION_AUTHORITY = {
     "Saxony": 60,
 }
 
+# ════════════════════════════════════════════════════════════════
+# POWER TIER (B-Hegemony prerequisite)
+# ════════════════════════════════════════════════════════════════
+#
+# Authored scenario data: the full-Europe 1805 roster assignment
+# per docs/SCALE_READINESS_PLAN.md §"Phase 0 Cross-Cutting Taxonomy".
+# This is the surrogate for a real scenario-record power_tier field
+# in v0.1 — authored and never mutated at runtime. `world.get_power_tier`
+# reads directly from this map. NO runtime `world.nation_power_tiers`
+# map is created; tests verify its absence.
+#
+# Tier weights (major=3, secondary=2, minor=1) live in coalition.py.
+NATION_POWER_TIERS: Dict[str, str] = {
+    # Major courts — 5-major safe-list per SCALE_READINESS_PLAN.md §Phase 0
+    "France": "major",
+    "Britain": "major",
+    "Russia": "major",
+    "Austria": "major",
+    "Prussia": "major",
+    # Secondary courts
+    "Spain": "secondary",
+    "Ottoman": "secondary",
+    "Sweden": "secondary",
+    "Naples": "secondary",
+    # Minor courts
+    "Bavaria": "minor",
+    "Saxony": "minor",
+    "Portugal": "minor",
+    "Denmark-Norway": "minor",
+}
+
+# Fallback when `NATION_POWER_TIERS` lacks an explicit authored entry —
+# unknown nations default to `secondary`. Consumers read via
+# `(world.get_power_tier(n) or _POWER_TIER_DEFAULT)`.
+_POWER_TIER_DEFAULT = "secondary"
+
 RUNTIME_NATIONS = tuple(
     dict.fromkeys(
         (

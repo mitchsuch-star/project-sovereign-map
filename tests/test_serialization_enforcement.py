@@ -397,7 +397,13 @@ class TestWorldStateSerializationEnforcement:
         serialized_keys = get_serialized_keys(world)
 
         # WorldState may have some internal state that shouldn't serialize
-        KNOWN_EXCLUSIONS: Set[str] = set()
+        KNOWN_EXCLUSIONS: Set[str] = {
+            # B-Hegemony: transient per-turn flag backing the
+            # `residual_pressure_active` anti-spam gate. Deliberately NOT
+            # serialized per RELIABILITY_IMPLEMENTATION_PLAN.md
+            # B-Hegemony "transient per-turn flag (NOT serialized)".
+            "positive_threat_delta_this_turn",
+        }
         # Add any computed properties here as needed
 
         attrs_to_check = instance_attrs - KNOWN_EXCLUSIONS

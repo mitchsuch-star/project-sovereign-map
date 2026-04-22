@@ -44,6 +44,15 @@ COALITION_DECLARED = "coalition_declared"                  # CRITICAL: coalition
 COALITION_MEMBER_PEACED = "coalition_member_peaced"        # NORMAL: member signed peace
 COALITION_DISSOLVED = "coalition_dissolved"                # NORMAL: coalition dissolved
 COALITION_COOLDOWN_ENDED = "coalition_cooldown_ended"      # NORMAL: new coalition can form
+# B-Hegemony (v2.4.3 §7.3): balance-of-power band-crossing beat.
+# Fires at 33 / 50 / 60 upward crossings AND same-band hegemon swaps.
+# Priority is band-sensitive: 33% = NORMAL, 50% / 60% = CRITICAL.
+# TODO(Slice C-lite): wire into `commitments_notice_*` template family +
+#   add TYPE_ICONS entry in godot-client `notification_bar.gd` +
+#   build formatted body copy per `DIPLOMAT_VOICE_BIBLE.md` hegemony_beat_*
+#   family. For B-Hegemony this constant carries minimal copy so the event
+#   reaches the rail; Slice C-lite will polish voice + typography.
+BALANCE_OF_EUROPE_SHIFTED = "balance_of_europe_shifted"    # NORMAL/CRITICAL
 # Diplomatic notifications (Phase 8 Session 8C)
 DIPLOMATIC_PROPOSAL = "diplomatic_proposal"                    # HIGH: AI envoy arrived
 TREATY_SIGNED = "treaty_signed"                                # MEDIUM: treaty ratified

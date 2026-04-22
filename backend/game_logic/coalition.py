@@ -19,7 +19,7 @@ from backend.notifications import (
     create_notification, NotificationPriority,
     COALITION_THREAT_TENSION, COALITION_MURMURS, COALITION_BREWING,
     COALITION_DECLARED, COALITION_MEMBER_PEACED, COALITION_DISSOLVED,
-    COALITION_COOLDOWN_ENDED,
+    COALITION_COOLDOWN_ENDED, BALANCE_OF_EUROPE_SHIFTED,
 )
 
 # ════════════════════════════════════════════════════════════════
@@ -89,6 +89,498 @@ def _get_diplo_state(world, a: str, b: str) -> str:
 
 
 # ════════════════════════════════════════════════════════════════
+# B-HEGEMONY: Balance-of-power engine (v2.4.3 §7.2-§7.3)
+# ════════════════════════════════════════════════════════════════
+#
+# RELIABILITY_COMMITMENTS_SPEC §7.1-§7.3 + COMMITMENTS_PRESENTATION_SPEC
+# §8.1a bloc-naming contract. Reads bloc geometry + authored power_tier
+# scenario data; adds passive threat against the current hegemon via
+# the existing `add_threat()` API; emits `balance_of_europe_shifted`
+# beats at `33 / 50 / 60` band crossings.
+
+# Tier weights live here (not in nation_config) because they are the
+# engine's tunable authoring knob. Tier assignments themselves are
+# authored per-nation in `nation_config.NATION_POWER_TIERS`.
+_POWER_TIER_WEIGHT = {"major": 3, "secondary": 2, "minor": 1}
+
+# Canonical 5-major safe-list for the defensive fallback when no
+# authored `major` nations exist in the active roster (per §7.3
+# defensive-fallback bullet). Keeps v0.1 calc correct under minimal
+# scenario data.
+_CANONICAL_MAJORS = ("France", "Britain", "Russia", "Austria", "Prussia")
+
+# Proper-noun bloc-name taxonomy per
+# COMMITMENTS_PRESENTATION_SPEC §8.1a.3. Unlocks at 50%+ share; below
+# 50% consumers fall through to the `descriptive_label` field.
+_BLOC_PROPER_NAMES = {
+    "France": "French System",
+    "Britain": "British Interest",
+    "Russia": "Russian Sphere",
+    "Austria": "Vienna System",
+    "Prussia": "Berlin Alignment",
+}
+
+# Adjective stems paired to the proper-noun taxonomy (used to compose
+# `descriptive_label` as "{adjective}-led alignment"). Fallback for
+# unknown hegemons is `{hegemon}-led` by string, handled in helper.
+_BLOC_ADJECTIVES = {
+    "France": "French",
+    "Britain": "British",
+    "Russia": "Russian",
+    "Austria": "Austrian",
+    "Prussia": "Prussian",
+    "Spain": "Spanish",
+    "Ottoman": "Ottoman",
+    "Sweden": "Swedish",
+    "Naples": "Neapolitan",
+    "Bavaria": "Bavarian",
+    "Saxony": "Saxon",
+    "Portugal": "Portuguese",
+    "Denmark-Norway": "Danish",
+}
+
+
+def power_score(nation: str, world) -> int:
+    """Return authored power score for a nation.
+
+    Formula: `region_count * tier_weight` where tier_weight is
+    `{major: 3, secondary: 2, minor: 1}` looked up from authored
+    `power_tier` (with `_POWER_TIER_DEFAULT = "secondary"` fallback).
+
+    Reads `world.get_nation_regions(nation)` — per-turn cached via
+    `invalidate_active_nations_cache()` seam (CLAUDE.md golden rule 8 —
+    NO per-region scans in hot paths).
+    """
+    from backend.nation_config import _POWER_TIER_DEFAULT
+    region_count = len(world.get_nation_regions(nation))
+    tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
+    tier_weight = _POWER_TIER_WEIGHT.get(
+        tier, _POWER_TIER_WEIGHT[_POWER_TIER_DEFAULT]
+    )
+    return int(region_count * tier_weight)
+
+
+def bloc_power(leader: str, world) -> int:
+    """Sum of `power_score` across `get_bloc_members(leader)`."""
+    return int(sum(power_score(n, world) for n in world.get_bloc_members(leader)))
+
+
+def _hegemony_signal_band(share: float) -> int:
+    """Pure current-share reader. Returns 0/1/2/3 per §7.3 thresholds.
+
+    NOTE: distinct from `_hegemony_pressure_for_share` — the signal band
+    surfaces three player-facing bands (1 noticed, 2 alarming, 3 crisis)
+    but the pressure ladder has four values (1/3/5/8). Do not conflate.
+
+    Used for label selection and band comparisons; do NOT conflate with
+    `world.hegemony_signal_high_water` which is stored public-memory /
+    dedupe state.
+    """
+    if share < 0.33:
+        return 0
+    if share < 0.50:
+        return 1
+    if share < 0.60:
+        return 2
+    return 3
+
+
+def _hegemony_pressure_for_share(share: float) -> int:
+    """Threat increment per turn based on bloc share. Authored ladder.
+
+    Gates align to the 33 / 50 / 60 naming beats so every new public
+    band crossing has a same-turn `balance_of_europe_shifted` scene.
+    The 33-49% band is warning/tutorial territory. The 70%+ step is a
+    scalar-only crisis intensifier — no new naming tier.
+    """
+    if share < 0.33:
+        return 0       # safe (no beat, no pressure)
+    if share < 0.50:
+        return 1       # noticed — warning / anti-decay band
+    if share < 0.60:
+        return 3       # alarming — paired with 50% beat
+    if share < 0.70:
+        return 5       # crisis — paired with 60% beat
+    return 8           # near-complete hegemony (>=70%) — no new beat
+
+
+def _identify_max_bloc_share(world):
+    """Shared hegemon-identity helper. Returns `(leader, share)` of the
+    largest bloc regardless of threshold. Returns `(None, 0.0)` when no
+    active nations or when `european_power == 0`.
+
+    Both `_calculate_hegemony_pressure` (which gates passive threat
+    accrual at 33%+) and `hegemony_target_mod` in `diplomacy.py` (which
+    applies a per-pair acceptance penalty starting at the 30% boundary)
+    read from this helper. Decoupling "who is the prospective hegemon"
+    from "is threat accruing yet" lets the 30% / 33% split be real
+    rather than decorative.
+
+    Tie-break: highest share, then highest absolute bloc_power, then
+    alphabetical nation name. Deterministic under 13+ nations where
+    two blocs may tie exactly.
+    """
+    active = world.get_active_nations()
+    if not active:
+        return (None, 0.0)
+    european_power = sum(power_score(n, world) for n in active)
+    if european_power == 0:
+        return (None, 0.0)
+    majors = [n for n in active if world.get_power_tier(n) == "major"]
+    if not majors:
+        # Defensive fallback — per §7.3. Use canonical 5-major safe-list
+        # intersected with actives, not the full actives pool.
+        majors = [n for n in _CANONICAL_MAJORS if n in active]
+        if not majors:
+            majors = list(active)  # last-resort safety for unknown rosters
+    bloc_shares = {
+        leader: bloc_power(leader, world) / european_power
+        for leader in majors
+    }
+    # Deterministic ordering: highest share, then highest bloc_power, then alpha
+    ordered = sorted(
+        bloc_shares.items(),
+        key=lambda kv: (-kv[1], -bloc_power(kv[0], world), kv[0]),
+    )
+    return (ordered[0][0], float(ordered[0][1]))
+
+
+def _calculate_hegemony_pressure(world) -> Dict[str, int]:
+    """Per-turn passive threat from bloc-share dominance.
+
+    Gates at 33%+ share. Below 33%, returns `{}` — no passive threat,
+    no beat fires. The 30-33% per-pair friction zone is owned by
+    `hegemony_target_mod` in `diplomacy.py`.
+
+    Returns `{hegemon_nation: threat_increment}` or `{}`.
+    """
+    hegemon, share = _identify_max_bloc_share(world)
+    if hegemon is None or share < 0.33:
+        return {}
+    return {hegemon: _hegemony_pressure_for_share(share)}
+
+
+def _pick_counterplay_hint(world, hegemon: str, share: float, band: int) -> str:
+    """Capability-aware counter-play hint per §7.3.
+
+    Only returns a named-contributor hint when the player is the hegemon
+    AND a non-hegemon bloc member exists that is plausibly actionable
+    through a current legal lever (vassal release, alliance lapse).
+    Otherwise returns the always-valid restraint floor.
+
+    When player is NOT hegemon, returns empty string (no-hint descriptive
+    variant) per §7.3 forward-compat rule.
+    """
+    player = getattr(world, "player_nation", "France")
+    if hegemon != player:
+        return ""
+    # Tutorial floor at 33% noticed band
+    members = world.get_bloc_members(hegemon)
+    non_hegemon = [m for m in members if m != hegemon]
+    if not non_hegemon:
+        if band == 1:
+            return ("Another major alliance would push Europe past fifty percent "
+                    "and harden the courts into camp.")
+        return ("Hold the bloc where it stands; another major ally would harden "
+                "Europe further.")
+    # Causally specific contributor: pick the highest power_score contributor
+    # among non-hegemon members. This is the "decisive slice" of the bloc.
+    sorted_contrib = sorted(
+        non_hegemon,
+        key=lambda n: (-power_score(n, world), n),
+    )
+    top = sorted_contrib[0]
+    # Is the contributor actionable through a shipped legal lever?
+    # v0.1: vassal release is the core lever; alliance lapse is adjacent.
+    is_vassal = top in getattr(world, "vassals", {}) and (
+        world.vassals[top].get("lord") == hegemon
+    )
+    is_ally = world.get_diplomatic_state(hegemon, top) in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+    if is_vassal:
+        return (f"{top} is the decisive non-{hegemon.lower()} slice of the bloc; "
+                f"releasing it shrinks the share immediately.")
+    if is_ally:
+        return (f"{top} is the decisive non-{hegemon.lower()} slice of the bloc; "
+                f"letting the alliance lapse would ease Europe's pressure.")
+    # Fallback to restraint floor (no shipped lever)
+    if band == 1:
+        return ("Another major alliance would push Europe past fifty percent "
+                "and harden the courts into camp.")
+    return ("Hold the bloc where it stands; another major ally would harden "
+            "Europe further.")
+
+
+def _pick_speaker_nation(world, hegemon: str) -> str:
+    """Deterministic speaker-nation pick per §7.3.
+
+    Highest-weight non-bloc major court. If no non-bloc majors exist,
+    fall back to France (Talleyrand advisory register) per the
+    "fallback to Talleyrand, not generic chancery" rule. Full voice
+    routing + named envoy resolution is Slice C-lite scope; this
+    function hands the C-lite layer a `speaker_nation` value that is
+    never None.
+    """
+    from backend.nation_config import _POWER_TIER_DEFAULT
+    france_default = getattr(world, "player_nation", "France") or "France"
+    bloc = set(world.get_bloc_members(hegemon))
+    active = world.get_active_nations()
+    # Non-bloc majors only
+    candidates = []
+    for n in active:
+        if n in bloc:
+            continue
+        tier = world.get_power_tier(n) or _POWER_TIER_DEFAULT
+        if tier == "major":
+            candidates.append(n)
+    if not candidates:
+        # No non-bloc majors — fall straight to Talleyrand / France
+        return france_default
+    # Highest power_score, then alphabetical
+    sorted_cand = sorted(
+        candidates,
+        key=lambda n: (-power_score(n, world), n),
+    )
+    return sorted_cand[0]
+
+
+def _check_hegemony_band_crossing(world, caller: str) -> bool:
+    """Same-turn band-crossing detector + beat emitter (§7.3).
+
+    Fires a `BALANCE_OF_EUROPE_SHIFTED` notification when the current
+    hegemon's bloc crosses a new band (upward from stored high-water),
+    OR when the hegemon identity changes within an already-surfaced band.
+
+    Called from multiple ratification seams:
+    - `set_diplomatic_state` (covers treaty ratification, war declaration,
+      peace ratification, vassal creation/release, cascade, armistice)
+    - End of `process_coalition_turn` (catches end-of-turn share changes
+      that didn't pass through a ratification seam)
+
+    On a same-turn multi-band jump (28% → 51%), emits ONLY the highest
+    newly reached band and writes high_water to that highest value.
+
+    Returns True if a beat was emitted, False otherwise.
+    """
+    try:
+        hegemon, share = _identify_max_bloc_share(world)
+    except Exception:
+        return False
+    if hegemon is None:
+        return False
+
+    current_band = _hegemony_signal_band(share)
+    stored_band = int(getattr(world, "hegemony_signal_high_water", 0) or 0)
+    stored_hegemon = getattr(world, "hegemony_signal_hegemon", None)
+
+    # Hegemon change within already-surfaced band (>=1) is a fresh beat.
+    hegemon_swap_in_band = (
+        current_band >= 1
+        and stored_band >= 1
+        and hegemon != stored_hegemon
+        and current_band == stored_band
+    )
+
+    # Upward crossing (new higher band reached)
+    upward_crossing = current_band > stored_band
+
+    if not (upward_crossing or hegemon_swap_in_band):
+        return False
+
+    # Cooldown-aware wording only at band 3 (crisis)
+    cooldown_active = bool(int(getattr(world, "coalition_cooldown", 0) or 0) > 0)
+    bloc_info = describe_hegemon_bloc(world, hegemon, share)
+    counterplay_hint = _pick_counterplay_hint(world, hegemon, share, current_band)
+    speaker_nation = _pick_speaker_nation(world, hegemon)
+
+    # Priority: band 1 = NORMAL; bands 2+3 = CRITICAL
+    if current_band >= 2:
+        priority = NotificationPriority.CRITICAL
+    else:
+        priority = NotificationPriority.NORMAL
+
+    # Minimal title/message; Slice C-lite will polish via commitments_notice_*.
+    # TODO(Slice C-lite): route through commitments_notice_balance_of_europe_shifted
+    #   template family + DIPLOMAT_VOICE_BIBLE hegemony_beat_* registers. For
+    #   B-Hegemony we keep copy functional (hegemon + share + label) so the
+    #   event is visible in the rail; voice polish is the next slice.
+    label_for_title = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
+    share_pct = int(share * 100)
+    if current_band == 3:
+        title = "Balance of Europe — Crisis"
+        if cooldown_active:
+            message = (
+                f"{label_for_title} commands {share_pct}% of Continental power; "
+                f"hostile courts harden into camp, though the last coalition's "
+                f"cooldown still binds them for {int(world.coalition_cooldown)} turn(s)."
+            )
+        else:
+            message = (
+                f"{label_for_title} commands {share_pct}% of Continental power; "
+                f"hostile courts are hardening into camp against it."
+            )
+    elif current_band == 2:
+        title = "Balance of Europe — Alarming"
+        message = f"{label_for_title} commands {share_pct}% of Continental power."
+    else:  # band 1
+        title = "Balance of Europe — Noticed"
+        message = f"Europe takes note of a widening {label_for_title} ({share_pct}%)."
+
+    details = {
+        "band": int(current_band),
+        "hegemon": hegemon,
+        "share": round(float(share), 2),
+        "bloc_label": bloc_info.get("bloc_label"),
+        "descriptive_label": bloc_info.get("descriptive_label"),
+        "counterplay_hint": counterplay_hint,
+        "speaker_nation": speaker_nation,
+        "caller_seam": caller,
+    }
+
+    try:
+        world.notifications.add(create_notification(
+            BALANCE_OF_EUROPE_SHIFTED,
+            priority,
+            title,
+            message,
+            int(getattr(world, "current_turn", 1)),
+            details=details,
+        ))
+        # B-Hegemony: retire the legacy anonymous clue family for any
+        # share-driven crossing. `COALITION_THREAT_TENSION` /
+        # `COALITION_MURMURS` emit sites in `_check_threat_notifications()`
+        # remain wired for pure event-threat accrual (battles, captures),
+        # but the named `balance_of_europe_shifted` beat MUST NOT co-exist
+        # with the anonymous tier line on the same turn per §7.3 bullet
+        # "Legacy anonymous hegemony clue retirement".
+        world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
+        world.notifications.dismiss_by_type(COALITION_MURMURS)
+    except Exception:
+        # Defensive: never block the ratification seam on a notify failure.
+        return False
+
+    # Update stored memory AFTER emission
+    world.hegemony_signal_high_water = int(current_band)
+    # Clear relaxation-aside dedupe on hegemon change
+    if stored_hegemon != hegemon:
+        world.hegemony_relaxation_bands_fired = set()
+    world.hegemony_signal_hegemon = hegemon
+    return True
+
+
+def _emit_relaxation_aside(world) -> bool:
+    """Downward-crossing relaxation-aside evaluator (§7.3 relaxation contract).
+
+    Fires at most ONE quiet dispatch aside per turn when end-of-turn share
+    is in a strictly lower band than stored high_water for the same
+    hegemon, that lower band has not yet been recorded in
+    `hegemony_relaxation_bands_fired`, and share is still >= 33%.
+
+    On multi-band downward collapse (65% → 48%), emits the aside for
+    the current (post-drop) label and records ALL crossed-out surfaced
+    bands in the dedupe set so oscillation cannot re-fire.
+
+    Returns True if an aside was emitted, False otherwise.
+
+    Called ONCE per turn at end of `process_coalition_turn`, NOT on
+    mid-turn crossings. Mid-turn oscillation (52 → 49 → 51 within the
+    same turn) that ends in the starting band MUST NOT fire the aside
+    or poison the dedupe set.
+
+    TODO(Slice C-lite): build the formatted Talleyrand dispatch-aside
+    copy in the dispatch pipeline; B-Hegemony just queues a dispatch
+    event here so the footer text slot is reserved.
+    """
+    try:
+        hegemon, share = _identify_max_bloc_share(world)
+    except Exception:
+        return False
+    if hegemon is None or share < 0.33:
+        return False
+    stored_band = int(getattr(world, "hegemony_signal_high_water", 0) or 0)
+    stored_hegemon = getattr(world, "hegemony_signal_hegemon", None)
+    if stored_hegemon != hegemon:
+        return False
+    current_band = _hegemony_signal_band(share)
+    if current_band >= stored_band:
+        return False
+    fired = set(getattr(world, "hegemony_relaxation_bands_fired", set()) or set())
+    if current_band in fired:
+        return False
+    # Record ALL crossed-out surfaced bands (current_band + 1 ... stored_band)
+    # for the multi-band downward rule per §7.3.
+    for b in range(current_band, stored_band):
+        fired.add(int(b))
+    world.hegemony_relaxation_bands_fired = fired
+
+    bloc_info = describe_hegemon_bloc(world, hegemon, share)
+    label = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
+
+    # Queue a dispatch event (footer aside, not rail notice, not popup).
+    # TODO(Slice C-lite): add hegemony_beat_relaxation_* template family
+    #   + owned dispatch-aside render path. For now we queue a typed
+    #   event the dispatch builder can inspect.
+    try:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(
+            world,
+            "hegemony_relaxation_aside",
+            {
+                "hegemon": hegemon,
+                "share": round(float(share), 2),
+                "band": int(current_band),
+                "label": label,
+            },
+            "always",
+        )
+    except Exception:
+        pass
+    return True
+
+
+def describe_hegemon_bloc(world, hegemon: Optional[str], share: float) -> Dict:
+    """Derived presentation helper. Returns `{bloc_label, descriptive_label,
+    adjective, is_proper_bloc_name}` per COMMITMENTS_PRESENTATION_SPEC
+    §8.1a.6.
+
+    Presence contract:
+    - `bloc_label` is non-empty (str from authored taxonomy) ONLY when
+      `is_proper_bloc_name is True`, which requires `share >= 0.50`.
+    - At `0.33 <= share < 0.50`, returns `bloc_label = None`,
+      `is_proper_bloc_name = False`; `descriptive_label` is populated.
+    - Below 33% the helper return is unspecified per §8.1a.6; surfaces
+      should not call it.
+
+    Consumers rendering headline or warning copy at the noticed band
+    must fall through `bloc_label` (None) to `descriptive_label`; bare
+    hegemon name is a last-resort fallback for unauthored hegemons only.
+    """
+    if hegemon is None:
+        # Defensive: undefined per §8.1a.6 but keep structure consistent.
+        return {
+            "bloc_label": None,
+            "descriptive_label": None,
+            "adjective": None,
+            "is_proper_bloc_name": False,
+        }
+    adjective = _BLOC_ADJECTIVES.get(hegemon, f"{hegemon}-led")
+    descriptive_label = f"{adjective}-led alignment"
+    if share >= 0.50:
+        bloc_label = _BLOC_PROPER_NAMES.get(hegemon, f"{hegemon} Bloc")
+        return {
+            "bloc_label": bloc_label,
+            "descriptive_label": descriptive_label,
+            "adjective": adjective,
+            "is_proper_bloc_name": True,
+        }
+    return {
+        "bloc_label": None,
+        "descriptive_label": descriptive_label,
+        "adjective": adjective,
+        "is_proper_bloc_name": False,
+    }
+
+
+# ════════════════════════════════════════════════════════════════
 # §2a. THREAT ACCUMULATION
 # ════════════════════════════════════════════════════════════════
 
@@ -98,7 +590,8 @@ def add_threat(world, amount: int, source_key: str) -> int:
     Args:
         world: WorldState
         amount: Positive int to add
-        source_key: e.g. "battle_win", "capital_capture", "war_declaration"
+        source_key: e.g. "battle_win", "capital_capture", "war_declaration",
+                    "hegemony_passive"
 
     Returns:
         New threat_level (clamped 0-100)
@@ -110,6 +603,10 @@ def add_threat(world, amount: int, source_key: str) -> int:
         "source": source_key,
         "amount": int(amount),
     })
+    # B-Hegemony: transient per-turn flag backing the
+    # `residual_pressure_active` anti-spam gate. Set True on any positive
+    # threat increment; cleared at end-of-turn / ledger evaluation.
+    setattr(world, "positive_threat_delta_this_turn", True)
     return int(world.threat_level)
 
 
@@ -204,17 +701,39 @@ def get_nations_at_war_with_france(world) -> List[str]:
 # §4a. LEADER SELECTION
 # ════════════════════════════════════════════════════════════════
 
-def coalition_leadership_score(nation: str, world) -> int:
-    """Calculate leadership score for a nation (§4a).
+def coalition_leadership_score(nation: str, world, european_power: Optional[int] = None) -> int:
+    """Calculate leadership score for a nation (§4a + §7.4).
 
-    Score = military//1000 + hostility + authority
+    Base: `military//1000 + hostility + authority`. B-Hegemony adds a
+    `bloc_share_against` term — the fraction of Continental power this
+    nation's bloc commands, weighted ×50. Naturally surfaces the largest
+    non-hegemon power as coalition leader.
+
+    Note the `france` hostility anchor stays France-coupled in v0.1 per
+    §7.4 caveat; D2 Coalition Generalization will generalize.
+
+    Args:
+        nation: the candidate nation
+        world: WorldState
+        european_power: optional precomputed total power. Computed once per
+            scoring pass at the caller level (see `select_coalition_leader`)
+            to avoid re-computing per candidate.
     """
     france = world.player_nation
     military = sum(m.strength for m in world.marshals.values()
                    if m.nation == nation and m.strength > 0) // 1000
     hostility = abs(_get_relation(world, france, nation))
     authority = getattr(world, 'nation_authority', {}).get(nation, 60)
-    return int(military + hostility + authority)
+    score = int(military + hostility + authority)
+
+    # B-Hegemony §7.4: bloc_share_against additive term
+    if european_power is None:
+        european_power = sum(power_score(n, world) for n in world.get_active_nations())
+    if european_power > 0:
+        bloc_share = bloc_power(nation, world) / european_power
+        score += int(bloc_share * 50)
+
+    return int(score)
 
 
 def select_coalition_leader(members: List[str], world) -> str:
@@ -225,8 +744,11 @@ def select_coalition_leader(members: List[str], world) -> str:
     if not members:
         return ""
 
+    # Compute european_power ONCE per scoring pass (§7.4 caller-level helper)
+    european_power = sum(power_score(n, world) for n in world.get_active_nations())
+
     def _sort_key(nation):
-        score = coalition_leadership_score(nation, world)
+        score = coalition_leadership_score(nation, world, european_power=european_power)
         marshal_count = sum(1 for m in world.marshals.values()
                            if m.nation == nation and m.strength > 0)
         # Negative for descending sort, nation for ascending alpha tiebreak
@@ -900,6 +1422,10 @@ def process_coalition_turn(world) -> List[Dict]:
     events = []
     france = world.player_nation
 
+    # B-Hegemony (§7.3): reset the per-turn positive-threat-delta flag at
+    # the START of the coalition turn. Sources that follow may set it True.
+    world.positive_threat_delta_this_turn = False
+
     # ────────── 1. Passive threat from region control (§2a) ──────────
     france_regions = sum(1 for r in world.regions.values()
                         if r.controller == france)
@@ -913,6 +1439,26 @@ def process_coalition_turn(world) -> List[Dict]:
             add_threat(world, 2, "region_control_70")
         elif control_pct > 0.60:
             add_threat(world, 1, "region_control_60")
+
+    # ────────── 1b. B-Hegemony passive pressure (§7.3) ──────────
+    # Per-turn passive contribution from bloc-share dominance. Gates at
+    # 33%+; returns `{hegemon: increment}` or `{}`. In v0.1 the
+    # threat_level scalar remains France-targeted, so if the hegemon is
+    # anyone other than `world.player_nation`, we emit a debug log for
+    # telemetry and skip the `add_threat` call. D2 Coalition Generalization
+    # will generalize the scalar to per-target later.
+    hegemony_pressure = _calculate_hegemony_pressure(world)
+    if hegemony_pressure:
+        hegemon, increment = next(iter(hegemony_pressure.items()))
+        if hegemon == france:
+            add_threat(world, int(increment), "hegemony_passive")
+        else:
+            from backend.utils.debug import debug_print
+            debug_print(
+                f"[HEGEMONY] non-France hegemon {hegemon} at share "
+                f"{bloc_power(hegemon, world) / max(1, sum(power_score(n, world) for n in world.get_active_nations())):.2f}; "
+                f"skipping add_threat (v0.1 France-targeted scalar, D2 will generalize)"
+            )
 
     # ────────── 2. Threat decay (§2b) ──────────
     decay = _calculate_threat_decay(world)
@@ -1092,20 +1638,63 @@ def process_coalition_turn(world) -> List[Dict]:
         if reason:
             events.extend(dissolve_coalition(world, reason))
 
+    # ────────── 10. B-Hegemony end-of-turn hooks (§7.3) ──────────
+    # Run ONCE per turn, AFTER all state mutations, to catch end-of-turn
+    # share changes that didn't pass through a ratification seam.
+    try:
+        _check_hegemony_band_crossing(world, caller="process_coalition_turn:end")
+    except Exception:
+        pass
+    # Relaxation aside — evaluates ONCE per turn per §7.3 contract.
+    try:
+        _emit_relaxation_aside(world)
+    except Exception:
+        pass
+    # Reset memory on drop below 33%.
+    try:
+        hegemon, share = _identify_max_bloc_share(world)
+        if hegemon is None or share < 0.33:
+            world.hegemony_signal_high_water = 0
+            world.hegemony_signal_hegemon = None
+            world.hegemony_relaxation_bands_fired = set()
+    except Exception:
+        pass
+
     return events
 
 
 def _check_threat_notifications(world) -> None:
-    """Emit threat tier notifications when thresholds are crossed."""
+    """Emit threat tier notifications when thresholds are crossed.
+
+    B-Hegemony: the legacy anonymous `"Diplomatic Tension"` /
+    `"European Courts Concerned"` clues are retired for hegemony-driven
+    share changes per §7.3 "Legacy anonymous hegemony clue retirement".
+    We keep the tier emit sites for PURE event-threat accrual (battles,
+    captures, vassalizations without hegemony crossings), but suppress
+    the tier line on the same turn a `balance_of_europe_shifted` beat
+    fired — those anonymous clues would be duplicate clues for the
+    named-diplomat beat.
+    """
     threat = world.threat_level
+
+    # B-Hegemony: suppress the legacy tier line on the same turn a
+    # named `balance_of_europe_shifted` beat fired. This is the cleanest
+    # cut: the two notification families are still allowed to exist, but
+    # one turn's share-crossing cannot produce both.
+    current_turn = int(getattr(world, "current_turn", 0))
+    balance_fired_this_turn = any(
+        n.get("type") == BALANCE_OF_EUROPE_SHIFTED
+        and int(n.get("turn_created", 0) or 0) == current_turn
+        for n in world.notifications.get_pending()
+    )
 
     if threat >= THREAT_MURMURS_MIN:
         # Dismiss tension, add murmurs (persistent until < 30)
         world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
-        # Only add if not already present
+        # Only add if not already present AND no balance beat this turn
         existing = [n for n in world.notifications.get_pending()
                     if n.get("type") == COALITION_MURMURS]
-        if not existing:
+        if not existing and not balance_fired_this_turn:
             world.notifications.add(create_notification(
                 COALITION_MURMURS,
                 NotificationPriority.HIGH,
@@ -1118,7 +1707,7 @@ def _check_threat_notifications(world) -> None:
         world.notifications.dismiss_by_type(COALITION_MURMURS)
         existing = [n for n in world.notifications.get_pending()
                     if n.get("type") == COALITION_THREAT_TENSION]
-        if not existing:
+        if not existing and not balance_fired_this_turn:
             world.notifications.add(create_notification(
                 COALITION_THREAT_TENSION,
                 NotificationPriority.HIGH,

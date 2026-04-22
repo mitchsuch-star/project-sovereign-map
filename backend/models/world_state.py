@@ -487,6 +487,36 @@ class WorldState:
         self.war_start_turns: Dict[str, int] = {}       # diplo_key -> turn war began (R142)
 
         # ============================================================
+        # B-HEGEMONY: balance-of-power engine public-memory fields
+        # (RELIABILITY_COMMITMENTS_SPEC v2.4.3 §7.3)
+        # ============================================================
+        # Stored highest-reached `_hegemony_signal_band` value (0/1/2/3).
+        # Seeded on new-game bootstrap from opening share. Resets to 0 when
+        # bloc share drops below 33%; survives same-band hegemon swaps with
+        # a fresh beat emitted for the new arrangement.
+        self.hegemony_signal_high_water: int = 0
+        # Hegemon identity paired with the stored high-water band. Seeded
+        # on bootstrap; reset to None when share drops below 33%. A same-band
+        # hegemon swap emits a fresh beat for the new arrangement and updates
+        # this field.
+        self.hegemony_signal_hegemon: Optional[str] = None
+        # Per-epoch dedupe for downward `60 -> 59` / `50 -> 49` relaxation
+        # asides. Serialized as a list, loaded back into a set. Cleared when
+        # hegemon changes or share drops below 33%.
+        self.hegemony_relaxation_bands_fired: Set[int] = set()
+        # Transient per-turn flag — NOT serialized. Set True whenever
+        # `add_threat()` applies a positive increment during the current
+        # turn; cleared at end-of-turn / ledger evaluation. Single source
+        # of truth for the `residual_pressure_active` anti-spam gate.
+        self.positive_threat_delta_this_turn: bool = False
+        # Per-turn cache backing `world.get_bloc_members(leader)`. Explicit
+        # field, not a module global. Reset in
+        # `invalidate_bloc_members_cache()` at every seam that mutates
+        # vassalage or alliance state.
+        self._bloc_members_cache: Dict[str, list] = {}
+        self._bloc_members_cache_turn: int = -1
+
+        # ============================================================
         # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
         # ============================================================
         self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
@@ -525,6 +555,44 @@ class WorldState:
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
         self.calculate_visibility()
+
+        # B-Hegemony bootstrap: seed hegemony_signal_high_water +
+        # hegemony_signal_hegemon from the opening bloc layout so turn 1
+        # does not stage inherited 1805 conditions as a fresh beat. Must
+        # run AFTER _setup_initial_control() (already run above).
+        self._bootstrap_hegemony_signal_state()
+
+    def _bootstrap_hegemony_signal_state(self) -> None:
+        """Seed `hegemony_signal_high_water` + `hegemony_signal_hegemon` from
+        the current bloc layout. Called from `__init__` (new game) and
+        `from_dict` after load (reseed to reflect loaded-state reality
+        instead of staging a stale fresh beat on resume).
+
+        Safe to call any time — reads only bloc geometry, does not emit
+        notifications or modify threat_level.
+        """
+        try:
+            from backend.game_logic.coalition import (
+                _identify_max_bloc_share, _hegemony_signal_band,
+            )
+            hegemon, share = _identify_max_bloc_share(self)
+            if hegemon is None or share < 0.33:
+                self.hegemony_signal_high_water = 0
+                self.hegemony_signal_hegemon = None
+            else:
+                self.hegemony_signal_high_water = _hegemony_signal_band(share)
+                self.hegemony_signal_hegemon = hegemon
+        except Exception:
+            # Defensive: bootstrap never blocks construction. A later
+            # `process_coalition_turn` will pick up the right band.
+            self.hegemony_signal_high_water = 0
+            self.hegemony_signal_hegemon = None
+        # Invalidate caches that bootstrap populated as a side effect —
+        # legacy tests write directly to `region.controller` after
+        # construction and expect `get_player_regions()` to reflect the
+        # change without calling `invalidate_active_nations_cache()`.
+        # Keeping caches empty at end-of-init preserves that contract.
+        self.invalidate_active_nations_cache()
 
     # ========================================
     # GOLD CONVENIENCE PROPERTY
@@ -760,6 +828,101 @@ class WorldState:
         """Clear nation/region caches. Call after region controller changes."""
         self._active_nations_cache = None
         self._nation_regions_cache = None
+        # B-Hegemony: bloc membership depends on vassalage + active nations,
+        # so any seam that invalidates the active-nations cache also
+        # invalidates the bloc-members cache.
+        self.invalidate_bloc_members_cache()
+
+    # ========================================
+    # B-Hegemony: power tier + bloc membership cache
+    # ========================================
+
+    def get_power_tier(self, nation: str) -> Optional[str]:
+        """Return the authored `power_tier` for `nation`, or `None` if unauthored.
+
+        Reads directly from the scenario-data surrogate
+        `backend.nation_config.NATION_POWER_TIERS`. Downstream callers apply the
+        `_POWER_TIER_DEFAULT = "secondary"` fallback via
+        `(world.get_power_tier(n) or _POWER_TIER_DEFAULT)`.
+
+        There is NO writable `world.nation_power_tiers` map — authored
+        scenario data is the single source of truth per
+        `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy".
+        """
+        from backend.nation_config import NATION_POWER_TIERS
+        return NATION_POWER_TIERS.get(nation)
+
+    def invalidate_bloc_members_cache(self):
+        """Clear bloc-members cache. Call at every seam that mutates
+        vassalage or alliance state (treaty ratification, vassal add/remove,
+        war declaration, peace ratification, §8.8.7a same-turn alliance
+        termination on defensive refusal).
+        """
+        self._bloc_members_cache = {}
+        self._bloc_members_cache_turn = -1
+
+    def _top_overlord(self, nation: str) -> str:
+        """Walk the vassal `lord` chain until it terminates. Return top overlord.
+
+        Cycle-safe: a self-cycle or mutual-lord data error terminates at the
+        first revisited nation rather than looping. Used by
+        `get_bloc_members` so vassal-of-vassal and 3-deep chains surface on
+        the chain's terminus (Confederation-of-the-Rhine-style nesting).
+        """
+        visited = {nation}
+        current = nation
+        while True:
+            record = getattr(self, 'vassals', {}).get(current)
+            if not record:
+                return current
+            lord = record.get("lord")
+            if not lord or lord in visited:
+                return current
+            visited.add(lord)
+            current = lord
+
+    def get_bloc_members(self, leader: str) -> list:
+        """Per-turn cached helper. Returns leader + dependents + close allies.
+
+        Bloc membership rules per RELIABILITY_COMMITMENTS_SPEC §7.1:
+        - leader itself
+        - nations whose `_top_overlord(nation)` resolves to `leader` (covers
+          vassal-of-vassal + 3-deep chains via the cycle-safe lord walk)
+        - nations with `ALLIANCE` or `DEFENSIVE_ALLIANCE` to `leader`
+          (NON_AGGRESSION and OPEN_BORDERS do NOT count — they are
+          non-commitment treaty levels)
+
+        Per-turn cached; reset via `invalidate_bloc_members_cache()` on
+        treaty ratification, vassal add/remove, war declaration, peace
+        ratification, §8.8.7a same-turn alliance termination.
+
+        Returns a sorted list for deterministic iteration / test stability.
+        """
+        # Reset cache at turn boundary
+        cache_turn = getattr(self, '_bloc_members_cache_turn', -1)
+        if cache_turn != self.current_turn:
+            self._bloc_members_cache = {}
+            self._bloc_members_cache_turn = self.current_turn
+
+        cached = self._bloc_members_cache.get(leader)
+        if cached is not None:
+            return list(cached)
+
+        members = {leader}
+        # Vassal chain walk — any nation whose top overlord resolves to leader
+        for vassal_name in getattr(self, 'vassals', {}):
+            if self._top_overlord(vassal_name) == leader:
+                members.add(vassal_name)
+        # Deep-bloc treaty-state allies
+        for other in self.get_active_nations():
+            if other == leader:
+                continue
+            if self.get_diplomatic_state(leader, other) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                members.add(other)
+
+        result = sorted(members)
+        self._bloc_members_cache[leader] = result
+        return list(result)
 
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
@@ -3256,6 +3419,16 @@ class WorldState:
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
             "we_dispatched_thresholds": {k: int(v) for k, v in self.we_dispatched_thresholds.items()},
             "war_start_turns": {k: int(v) for k, v in self.war_start_turns.items()},
+
+            # ═══════ B-HEGEMONY (v2.4.3 §7.3 public-memory) ═══════
+            # Stored band high-water + hegemon identity + per-epoch
+            # relaxation-aside dedupe set. positive_threat_delta_this_turn
+            # is intentionally NOT serialized (transient per-turn flag).
+            "hegemony_signal_high_water": int(self.hegemony_signal_high_water),
+            "hegemony_signal_hegemon": self.hegemony_signal_hegemon,
+            "hegemony_relaxation_bands_fired": sorted(
+                int(b) for b in self.hegemony_relaxation_bands_fired
+            ),
             # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
             "casus_belli": self.casus_belli.copy(),
             "ultimatum_global_cooldown": int(self.ultimatum_global_cooldown),
@@ -3556,6 +3729,29 @@ class WorldState:
         world.we_dispatched_thresholds = {k: int(v) for k, v in data.get("we_dispatched_thresholds", {}).items()}
         world.war_start_turns = {k: int(v) for k, v in data.get("war_start_turns", {}).items()}
 
+        # ═══════ B-HEGEMONY (v2.4.3 §7.3 public-memory) ═══════
+        # On missing-field save-load, default to 0 / None / empty set. The
+        # first post-load `process_coalition_turn` call MUST reseed from
+        # loaded current state — we do that below via
+        # `_bootstrap_hegemony_signal_state()` so we don't stage a stale
+        # fresh-beat on resume.
+        if "hegemony_signal_high_water" in data:
+            world.hegemony_signal_high_water = int(data.get("hegemony_signal_high_water", 0) or 0)
+        else:
+            world.hegemony_signal_high_water = 0
+        if "hegemony_signal_hegemon" in data:
+            world.hegemony_signal_hegemon = data.get("hegemony_signal_hegemon")
+        else:
+            world.hegemony_signal_hegemon = None
+        world.hegemony_relaxation_bands_fired = set(
+            int(b) for b in (data.get("hegemony_relaxation_bands_fired") or [])
+        )
+        # Transient per-turn flag — always initialize False on load.
+        world.positive_threat_delta_this_turn = False
+        # Bloc-members cache — always reset on load; populated per-turn.
+        world._bloc_members_cache = {}
+        world._bloc_members_cache_turn = -1
+
         # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
         world.casus_belli = data.get("casus_belli", {}).copy()
         # PL-14: Global scalar cooldown (migration from per-target dict)
@@ -3619,6 +3815,15 @@ class WorldState:
 
         # R9: Rebuild transient marshal-by-region index from loaded data
         world._build_marshal_index()
+
+        # B-Hegemony: reseed hegemony_signal_high_water / hegemony_signal_hegemon
+        # from the LOADED world state ONLY when the save predates B-Hegemony
+        # (missing fields). Saves that carry the fields must preserve stored
+        # memory as-is so a genuine above-threshold resume does not stage a
+        # stale fresh-beat on turn N+1. See §7.3 save-load contract.
+        if ("hegemony_signal_high_water" not in data
+                and "hegemony_signal_hegemon" not in data):
+            world._bootstrap_hegemony_signal_state()
 
         return world
 

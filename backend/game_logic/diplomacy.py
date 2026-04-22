@@ -946,6 +946,18 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
                 f"{' (' + reason + ')' if reason else ''}")
 
+    # B-Hegemony: centralized seam for ratification / war declaration /
+    # peace / vassalage / cascade / armistice / treaty break. Bloc geometry
+    # may have changed; invalidate cache + check for band crossing. If the
+    # state didn't actually change, skip (avoid spurious cache churn + beats).
+    if old_state != new_state:
+        try:
+            world.invalidate_bloc_members_cache()
+            from backend.game_logic.coalition import _check_hegemony_band_crossing
+            _check_hegemony_band_crossing(world, caller=f"set_diplomatic_state:{reason or 'unknown'}")
+        except Exception:
+            pass
+
     return old_state
 
 

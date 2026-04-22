@@ -698,6 +698,60 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, ptype, 8, terms, world)
 
+    # ── P-Bandwagon: non-bloc minor / exposed secondary seeks shelter ──
+    # B-Hegemony §7.3 + RELIABILITY_IMPLEMENTATION_PLAN AI escape-valve.
+    # Triggers when (a) current hegemon's bloc share >= 50% (the
+    # proper-noun reveal threshold, aligned with the player's first visible
+    # name-of-the-thing moment — bandwagoning before the player can see
+    # "the French System" by name would read as AI cheating), (b) the
+    # proposer is not already locked into a rival deep bloc, (c) relations
+    # are not hostile. This is the canonical escape valve that keeps
+    # hegemony from reading as a hard ban on growth.
+    if proposal is None and not is_at_war:
+        try:
+            from backend.game_logic.coalition import (
+                _identify_max_bloc_share, _hegemony_signal_band,
+            )
+            hegemon, share = _identify_max_bloc_share(world)
+            # In v0.1, AI proposals flow to the player. Bandwagon only fires
+            # when the PLAYER is the hegemon AND share >= 50% AND this
+            # nation is a non-bloc minor/secondary AND not hostile AND not
+            # already allied with a non-hegemon major.
+            from backend.nation_config import _POWER_TIER_DEFAULT
+            self_tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
+            is_minor_or_secondary = self_tier in ("minor", "secondary")
+            bloc_members = world.get_bloc_members(hegemon) if hegemon else []
+            already_in_hegemon_bloc = nation in bloc_members
+            # Already in rival deep bloc? Any non-hegemon major we have
+            # ALLIANCE/DEFENSIVE_ALLIANCE with counts as a "rival deep bloc".
+            locked_in_rival_bloc = False
+            if hegemon:
+                for other in world.get_active_nations():
+                    if other == nation or other == hegemon:
+                        continue
+                    other_tier = world.get_power_tier(other) or _POWER_TIER_DEFAULT
+                    if other_tier != "major":
+                        continue
+                    if world.get_diplomatic_state(nation, other) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                        locked_in_rival_bloc = True
+                        break
+            if (
+                hegemon == player
+                and _hegemony_signal_band(share) >= 2
+                and is_minor_or_secondary
+                and not already_in_hegemon_bloc
+                and relation >= 0  # not hostile
+                and not locked_in_rival_bloc
+            ):
+                # Proposer bandwagons: offer alliance / defensive alliance to hegemon
+                ptype = _determine_upgrade_type(nation, world)
+                if ptype and not _is_on_cooldown(nation, ptype, world, war_score):
+                    terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
+                    proposal = _make_proposal(nation, ptype, 9, terms, world)
+        except Exception:
+            # Defensive: bandwagon path never blocks existing P-rules.
+            pass
+
     if proposal is None:
         return None
 
