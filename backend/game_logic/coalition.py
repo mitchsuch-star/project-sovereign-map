@@ -363,7 +363,11 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
     """
     try:
         hegemon, share = _identify_max_bloc_share(world)
-    except Exception:
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] band-crossing identify failed ({caller}): {exc}"
+        )
         return False
     if hegemon is None:
         return False
@@ -454,7 +458,12 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
         # "Legacy anonymous hegemony clue retirement".
         world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
         world.notifications.dismiss_by_type(COALITION_MURMURS)
-    except Exception:
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] failed to emit balance_of_europe_shifted "
+            f"({caller}) for {hegemon} at {round(float(share), 2)}: {exc}"
+        )
         # Defensive: never block the ratification seam on a notify failure.
         return False
 
@@ -492,7 +501,12 @@ def _emit_relaxation_aside(world) -> bool:
     """
     try:
         hegemon, share = _identify_max_bloc_share(world)
-    except Exception:
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] relaxation identify failed on turn "
+            f"{int(getattr(world, 'current_turn', 1) or 1)}: {exc}"
+        )
         return False
     if hegemon is None or share < 0.33:
         return False
@@ -506,11 +520,11 @@ def _emit_relaxation_aside(world) -> bool:
     fired = set(getattr(world, "hegemony_relaxation_bands_fired", set()) or set())
     if current_band in fired:
         return False
+    updated_fired = set(fired)
     # Record ALL crossed-out surfaced bands (current_band + 1 ... stored_band)
     # for the multi-band downward rule per §7.3.
     for b in range(current_band, stored_band):
-        fired.add(int(b))
-    world.hegemony_relaxation_bands_fired = fired
+        updated_fired.add(int(b))
 
     bloc_info = describe_hegemon_bloc(world, hegemon, share)
     label = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
@@ -532,8 +546,14 @@ def _emit_relaxation_aside(world) -> bool:
             },
             "always",
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] failed to queue relaxation aside for "
+            f"{hegemon} at {round(float(share), 2)}: {exc}"
+        )
+        return False
+    world.hegemony_relaxation_bands_fired = updated_fired
     return True
 
 
@@ -1643,13 +1663,21 @@ def process_coalition_turn(world) -> List[Dict]:
     # share changes that didn't pass through a ratification seam.
     try:
         _check_hegemony_band_crossing(world, caller="process_coalition_turn:end")
-    except Exception:
-        pass
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] end-of-turn band-crossing check failed on "
+            f"turn {int(getattr(world, 'current_turn', 1) or 1)}: {exc}"
+        )
     # Relaxation aside — evaluates ONCE per turn per §7.3 contract.
     try:
         _emit_relaxation_aside(world)
-    except Exception:
-        pass
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] end-of-turn relaxation check failed on "
+            f"turn {int(getattr(world, 'current_turn', 1) or 1)}: {exc}"
+        )
     # Reset memory on drop below 33%.
     try:
         hegemon, share = _identify_max_bloc_share(world)
@@ -1657,8 +1685,12 @@ def process_coalition_turn(world) -> List[Dict]:
             world.hegemony_signal_high_water = 0
             world.hegemony_signal_hegemon = None
             world.hegemony_relaxation_bands_fired = set()
-    except Exception:
-        pass
+    except Exception as exc:
+        from backend.utils.debug import debug_print
+        debug_print(
+            f"[HEGEMONY] end-of-turn reset-below-33 check failed on "
+            f"turn {int(getattr(world, 'current_turn', 1) or 1)}: {exc}"
+        )
 
     return events
 

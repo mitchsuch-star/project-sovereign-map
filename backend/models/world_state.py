@@ -582,7 +582,12 @@ class WorldState:
             else:
                 self.hegemony_signal_high_water = _hegemony_signal_band(share)
                 self.hegemony_signal_hegemon = hegemon
-        except Exception:
+        except Exception as exc:
+            from backend.utils.debug import debug_print
+            debug_print(
+                f"[HEGEMONY] bootstrap seed failed on turn "
+                f"{int(getattr(self, 'current_turn', 1) or 1)}: {exc}"
+            )
             # Defensive: bootstrap never blocks construction. A later
             # `process_coalition_turn` will pick up the right band.
             self.hegemony_signal_high_water = 0
@@ -1910,18 +1915,21 @@ class WorldState:
             if nation in self.active_treaties[key].get("nations", []):
                 del self.active_treaties[key]
 
+        # Clean up vassal relationships
+        self.vassals.pop(nation, None)
+        for vname in list(self.vassals.keys()):
+            if self.vassals[vname].get("lord") == nation:
+                del self.vassals[vname]
+        # Do this before the diplomatic-state tear-down so any same-turn
+        # hegemony check sees the post-elimination bloc geometry.
+        self.invalidate_active_nations_cache()
+
         # Set all diplomatic states to PEACE (R2: centralized setter)
         from backend.game_logic.diplomacy import set_diplomatic_state
         for key in list(self.diplomatic_states.keys()):
             parts = key.split("|")
             if nation in parts and len(parts) == 2:
                 set_diplomatic_state(self, parts[0], parts[1], "PEACE", "nation_eliminated")
-
-        # Clean up vassal relationships
-        self.vassals.pop(nation, None)
-        for vname in list(self.vassals.keys()):
-            if self.vassals[vname].get("lord") == nation:
-                del self.vassals[vname]
 
         # Remove from coalition if member
         from backend.game_logic.coalition import remove_coalition_member

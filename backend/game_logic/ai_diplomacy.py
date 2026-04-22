@@ -748,7 +748,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 if ptype and not _is_on_cooldown(nation, ptype, world, war_score):
                     terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
                     proposal = _make_proposal(nation, ptype, 9, terms, world)
-        except Exception:
+        except Exception as exc:
+            from backend.utils.debug import debug_print
+            debug_print(
+                f"[HEGEMONY] bandwagon evaluation failed for {nation} on "
+                f"turn {int(getattr(world, 'current_turn', 1) or 1)}: {exc}"
+            )
             # Defensive: bandwagon path never blocks existing P-rules.
             pass
 

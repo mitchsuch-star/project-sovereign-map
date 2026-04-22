@@ -330,6 +330,32 @@ class TestGetBlocMembers:
         # After ratification, cache must reflect new ally
         assert "Austria" in w.get_bloc_members("France")
 
+    def test_cache_invalidation_on_vassal_rebellion_armistice(self):
+        from backend.game_logic.vassal import check_vassal_rebellion
+
+        w = _clean_diplo_world()
+        _set_vassal(w, "France", "Saxony")
+        assert "Saxony" in w.get_bloc_members("France")
+
+        key = w._make_diplo_key("France", "Saxony")
+        w.diplomatic_states[key] = "ARMISTICE"
+        w.vassals["Saxony"]["loyalty"] = 0
+        events = check_vassal_rebellion(w)
+
+        assert w.vassals == {}
+        assert any(e.get("type") == "vassal_rebellion_armistice" for e in events)
+        assert "Saxony" not in w.get_bloc_members("France")
+
+    def test_cache_invalidation_on_nation_elimination(self):
+        w = _clean_diplo_world()
+        _set_vassal(w, "France", "Saxony")
+        assert "Saxony" in w.get_bloc_members("France")
+
+        w._eliminate_nation("Saxony")
+
+        assert "Saxony" not in w.vassals
+        assert "Saxony" not in w.get_bloc_members("France")
+
 
 # ════════════════════════════════════════════════════════════════
 # 4. power_score + bloc_power
@@ -612,25 +638,72 @@ class TestRelaxationAside:
         assert fired_again is False
 
     def test_mid_turn_oscillation_does_not_fire(self):
-        """52 → 49 → 51 within a turn ends at band 2 → no relaxation aside."""
+        """Band-2 → band-1 → band-2 in one turn must not fire or poison dedupe."""
+        from backend.game_logic.diplomacy import set_diplomatic_state
+
         w = _clean_diplo_world()
         _strip_all_regions_to_sink(w)
-        # Seed stored high_water at band 2
+        # France: 7x3 = 21. Britain + Austria: 9 + 9. Portugal + Saxony: 2 + 3.
+        # Start with France allied to Portugal: 23 / 44 ~= 52% (band 2).
+        # Drop Portugal: 21 / 44 ~= 48% (band 1).
+        # Add Saxony: 24 / 44 ~= 55% (band 2).
+        _set_nation_regions(w, "France", 7)
+        _set_nation_regions(w, "Britain", 3)
+        _set_nation_regions(w, "Austria", 3)
+        _set_nation_regions(w, "Portugal", 2)
+        _set_nation_regions(w, "Saxony", 3)
+        _set_ally(w, "France", "Portugal", "ALLIANCE")
+
+        hegemon, share = _identify_max_bloc_share(w)
+        assert hegemon == "France"
+        assert _hegemony_signal_band(share) == 2
+
         w.hegemony_signal_high_water = 2
         w.hegemony_signal_hegemon = "France"
         w.hegemony_relaxation_bands_fired = set()
-        # End-of-turn share is ~53% (still band 2)
-        _set_nation_regions(w, "France", 8)
+
+        w.notifications._pending = []
+        set_diplomatic_state(w, "France", "Portugal", "PEACE", "test_oscillation_drop")
+        mid_hegemon, mid_share = _identify_max_bloc_share(w)
+        assert mid_hegemon == "France"
+        assert _hegemony_signal_band(mid_share) == 1
+
+        set_diplomatic_state(w, "France", "Saxony", "ALLIANCE", "test_oscillation_recover")
+        end_hegemon, end_share = _identify_max_bloc_share(w)
+        assert end_hegemon == "France"
+        assert _hegemony_signal_band(end_share) == 2
+        assert [
+            n for n in w.notifications.get_pending()
+            if n.get("type") == BALANCE_OF_EUROPE_SHIFTED
+        ] == []
+
+        fired = _emit_relaxation_aside(w)
+        assert fired is False
+        assert w.hegemony_relaxation_bands_fired == set(), (
+            "Dedupe set must NOT be poisoned by mid-turn oscillation"
+        )
+
+    def test_queue_failure_does_not_poison_relaxation_epoch(self, monkeypatch):
+        import backend.game_logic.dispatch as dispatch
+
+        w = _clean_diplo_world()
+        _strip_all_regions_to_sink(w)
+        w.hegemony_signal_high_water = 2
+        w.hegemony_signal_hegemon = "France"
+        w.hegemony_relaxation_bands_fired = set()
+        _set_nation_regions(w, "France", 5)
         _set_nation_regions(w, "Britain", 3)
         _set_nation_regions(w, "Austria", 3)
         _set_nation_regions(w, "Saxony", 3)
-        w.invalidate_active_nations_cache()
-        # Relaxation aside evaluates end-of-turn: current band 2 == stored 2
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("dispatch unavailable")
+
+        monkeypatch.setattr(dispatch, "queue_dispatch_event", _boom)
+
         fired = _emit_relaxation_aside(w)
         assert fired is False
-        assert 2 not in w.hegemony_relaxation_bands_fired, (
-            "Dedupe set must NOT be poisoned by mid-turn oscillation"
-        )
+        assert w.hegemony_relaxation_bands_fired == set()
 
 
 # ════════════════════════════════════════════════════════════════
@@ -808,53 +881,55 @@ class TestPacingDiagnostic:
 class TestAIBandwagon:
     def test_bandwagon_fires_when_hegemon_at_50pct(self):
         """Non-bloc minor proposes ally to hegemon (France) at 50%+ share."""
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+
         w = _clean_diplo_world()
-        # Set France as hegemon at 50%+
+        _strip_all_regions_to_sink(w)
         _set_nation_regions(w, "France", 10)
         _set_nation_regions(w, "Britain", 3)
         _set_nation_regions(w, "Austria", 3)
-        _set_nation_regions(w, "Saxony", 4)
-        w.invalidate_active_nations_cache()
-        # France: 30, others: 9+9+4 = 22, total 52, France share = 30/52 = 58% → band 2
-        # Give Saxony neutral relations to France so bandwagon passes `relation >= 0`
-        w.modify_nation_relation("France", "Saxony", 30)
-        # Ensure no existing alliance with a rival major
-        # Clear diplomatic_states again to purge any defaults
+        _set_nation_regions(w, "Saxony", 3)
         w.diplomatic_states = {}
+        w.vassals = {}
+        w.threat_level = 0
+        w.coalition_cooldown = 0
+        w.war_scores = {}
+        w.war_exhaustion = {}
+        w.ai_proposal_cooldowns = {}
+        w.player_proposal_cooldowns = {}
+        w.ai_proposal_metadata = {}
+        w.nation_relations = {}
+        w.modify_nation_relation("France", "Saxony", 30)
         w.invalidate_bloc_members_cache()
         w.invalidate_active_nations_cache()
 
-        # Import and invoke the bandwagon path
-        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
-        # Saxony is minor, not in France bloc → should bandwagon
-        # Stub cooldowns so nothing blocks the proposal
-        w.ai_proposal_cooldowns = {}
-        w.player_proposal_cooldowns = {}
-        w.ai_proposal_metadata = {}
         result = process_diplomatic_phase("Saxony", w)
-        # Bandwagon should produce an upgrade-type proposal toward France
-        # (could be non_aggression, defensive_alliance, etc.). Can be None if
-        # other P-rules / cooldowns block — we just assert the path is exercised
-        # without error.
-        assert result is None or isinstance(result, dict)
+        assert result is not None
+        assert result["source"] == "Saxony"
+        assert result["priority"] == 9
+        assert result["terms"]["target_nation"] == "France"
 
     def test_bandwagon_blocked_when_already_in_rival_bloc(self):
         """Minor already ALLIANCE with a non-hegemon major should NOT bandwagon."""
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+
         w = _clean_diplo_world()
+        _strip_all_regions_to_sink(w)
         _set_nation_regions(w, "France", 10)
         _set_nation_regions(w, "Britain", 3)
         _set_nation_regions(w, "Austria", 3)
-        _set_nation_regions(w, "Saxony", 4)
-        w.invalidate_active_nations_cache()
-        # Saxony in rival bloc with Britain
-        _set_ally(w, "Britain", "Saxony", "ALLIANCE")
-        w.modify_nation_relation("France", "Saxony", 30)
+        _set_nation_regions(w, "Saxony", 3)
+        w.diplomatic_states = {}
+        w.vassals = {}
+        w.threat_level = 0
+        w.coalition_cooldown = 0
+        w.war_scores = {}
+        w.war_exhaustion = {}
         w.ai_proposal_cooldowns = {}
         w.player_proposal_cooldowns = {}
         w.ai_proposal_metadata = {}
-        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+        w.nation_relations = {}
+        _set_ally(w, "Britain", "Saxony", "ALLIANCE")
+        w.modify_nation_relation("France", "Saxony", 30)
         result = process_diplomatic_phase("Saxony", w)
-        # Bandwagon blocked by rival-bloc lock; result may still be a proposal
-        # from a higher-priority P-rule. We just assert no crash and the
-        # bandwagon doesn't leak a weird state.
-        assert result is None or isinstance(result, dict)
+        assert result is None

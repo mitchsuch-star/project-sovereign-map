@@ -95,6 +95,9 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
         "carved_from": None,
         "regions": None,
     }
+    # Vassalage changes both bloc geometry and the active-nation roster
+    # (vassals remain active even at 0 regions).
+    world.invalidate_active_nations_cache()
 
     # Set diplomatic state to VASSAL (R2: centralized setter)
     from backend.game_logic.diplomacy import set_diplomatic_state
@@ -163,6 +166,9 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
         "carved_from": None,
         "regions": None,
     }
+    # Vassalage changes both bloc geometry and the active-nation roster
+    # (vassals remain active even at 0 regions).
+    world.invalidate_active_nations_cache()
 
     # Set diplomatic state to VASSAL (R2: centralized setter)
     from backend.game_logic.diplomacy import set_diplomatic_state
@@ -449,6 +455,7 @@ def check_vassal_rebellion(world) -> List[dict]:
 
         # Remove vassal state
         del world.vassals[vassal_name]
+        world.invalidate_active_nations_cache()
 
         # Set diplomatic state to WAR (FINAL-2: respect armistice — skip if in ceasefire)
         diplo_key = world._make_diplo_key(lord, vassal_name)
@@ -871,6 +878,7 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
 
     # Remove vassal state
     del world.vassals[vassal_name]
+    world.invalidate_active_nations_cache()
 
     # Clear stale popup/dialogue referencing this vassal
     if getattr(world, 'vassal_rebellion_imminent_popup', None):
