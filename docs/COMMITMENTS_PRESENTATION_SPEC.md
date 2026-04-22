@@ -18,7 +18,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Committed mock prose** for the three live events using Voice Bible registers: `hard_reject_posture_triggered`, `diplomatic_treaty_broken` (`end_reason_family=french_breach`), `commitment_paradox_resolved`. §12 worked examples remain authoritative.
 - ✓ **Dedicated `commitment_paradox_popup.{tscn,gd}` surface** — replaces legacy `alliance_paradox_popup` for the renamed type. All three paradox beats (framing → blocking body → after-choice aside) render in the popup itself.
 - ✓ **Balance of Europe headline** — five composition cases per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 (no hegemon, hegemon without coalition, coalition BREWING without leader, coalition DECLARED with leader, coalition COOLDOWN). Rendering lives in `diplomatic_ledger.gd`.
-- ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1.
+- ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1. Turn 1 does **not** emit a beat for inherited opening share: `world.hegemony_signal_high_water` and `world.hegemony_signal_hegemon` bootstrap from scenario-start bloc geometry, so the first beat fires on the first **new** band crossing after play begins. Scenarios that open above `33%` therefore do not stage the noticed beat unless share first drops below `33%` and later rises back through it (see `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 for the bootstrap rule).
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
 - ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for the adopted naming language in v2.4.3; the high-value surface scope remains bounded by `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
@@ -629,7 +629,7 @@ balance_of_europe_shifted = {
     "adjective": Optional[str],
     "is_proper_bloc_name": bool,
     "counterplay_hint": Optional[str],  # present only on upward beats when hegemon == world.player_nation and a legal hint exists
-    "cooldown_turns_remaining": Optional[int],  # present only for the 60% crisis beat during coalition cooldown
+    "cooldown_turns_remaining": Optional[int],  # present only for the 60% crisis beat during coalition cooldown. NOTE: this is the beat-transient field. The ledger-state `balance_of_europe` payload above (L612) carries a separate, identically named field that populates whenever `coalition_state == "COOLDOWN"` regardless of whether a beat fires. The two fields are deliberately distinct: the ledger-state version drives Case 5 headline rendering every turn; the beat-transient version drives only the 60% crisis beat copy. Do not conflate.
 }
 ```
 
