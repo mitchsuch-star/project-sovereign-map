@@ -172,8 +172,8 @@ When threat first reaches 60:
 
 1. **Snapshot qualifying nations.** Record which nations meet the check (§3b) at this moment.
 2. **Start 3-turn countdown.** Track `coalition_brewing_turns_remaining` on WorldState.
-3. **Notify player:** Persistent EU4-style notification: "A coalition is brewing against France. [Nation list]. 3 turns remain."
-4. **Morning Dispatch:** "Your Majesty, diplomatic dispatches confirm that [nations] are consulting on joint action against France."
+3. **Notify player:** Persistent EU4-style notification: "A coalition is brewing against {target_nation}. [Nation list]. 3 turns remain." In v0.1 this is ordinarily France; if the Balance-of-Europe headline currently names a non-player hegemon in the rare forward-compat edge case, the headline's coalition-pressure sub-line stays suppressed per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 rather than retargeting this brewing copy away from the player.
+4. **Morning Dispatch:** "Your Majesty, diplomatic dispatches confirm that [nations] are consulting on joint action against {target_nation}."
 5. **Talleyrand advisory:** Proactive conversation offering to defuse ("Shall I approach [weakest member] with terms?").
 
 **Each subsequent turn during brewing:**
@@ -261,19 +261,22 @@ def coalition_leadership_score(nation, target_nation, world):
                    if m.nation == nation and m.strength > 0) // 1000  # In thousands!
     hostility = abs(world.get_nation_relation(target_nation, nation))
     authority = world.nation_authority.get(nation, 60)
-    return int(military + hostility + authority)
+    european_power = max(1, sum(power_score(n, world) for n in world.get_active_nations()))
+    bloc_share_against = bloc_power(nation, world) / european_power
+    return int(military + hostility + authority + (bloc_share_against * 50))
 ```
 
 **Components (all normalized to similar scale, ~0-100 each):**
 - **Military strength:** Total troop count in thousands (`// 1000`). Range: 0-100+.
 - **Hostility:** Absolute value of relation to the coalition target (more hostile = more motivated to lead). Range: 0-100.
 - **Authority:** Nation's internal authority score (DIPLOMACY_SPEC §13). Range: 0-100.
+- **Bloc share against:** The nation's share of active European power arrayed against the hegemon bloc. This v2.4.3 additive term biases leadership toward the largest non-hegemon counterweight without creating a second leadership mechanic.
 
 **Tiebreaker:** If scores are equal, the nation with more marshals leads. If still tied, alphabetical.
 
 **At game start (if coalition formed turn 1, hypothetically):**
-- Britain: 76 + 80 + 60 = **216**. Prussia: 72 + 60 + 60 = **192**. Austria: 60 + 30 + 60 = **150**.
-- Britain leads. Historically correct — Britain financed and organized most coalitions.
+- Base score ordering is still Britain > Prussia > Austria.
+- The v2.4.3 `bloc_share_against` term only widens Britain's lead once France's bloc hardens, which is the intended historical feel — Britain finances and organizes the broadest counter-bloc first.
 
 ### §4b. Leader Transition
 
@@ -553,7 +556,8 @@ New template categories for `diplomatic_templates.py`:
 - Threat 60+: Red indicator: `THREAT: 72 [!]`.
 - During brewing: Red pulsing: `COALITION BREWING: 2 turns`.
 
-**Diplomatic Ledger Tab 3** (Threat & Coalition):
+**Diplomatic Ledger Tab 3** (Threat & Coalition; legacy substrate/debug owner until the v2.4.3 Balance-of-Europe headline migration):
+- Player-facing clue ownership for the pre-brewing state now lives on the Nations-tab Balance-of-Europe headline plus `balance_of_europe_shifted` beats per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1 and `COMMITMENTS_PRESENTATION_SPEC.md` §8.1. Do not ship this tab as a second competing clue chain.
 - Threat meter: 0–100 bar with color zones (green/amber/red).
 - Threat breakdown: table showing each source and its contribution this turn.
 - Qualifying nations list: which nations would join a coalition right now.
@@ -565,7 +569,7 @@ New template categories for `diplomatic_templates.py`:
 | Event | Type | Persistence |
 |-------|------|-------------|
 | Threat reaches 30 | Info | Dismissible |
-| Threat reaches 40 (Murmurs) | Warning | Persistent until threat < 30 |
+| Threat reaches 40 (Murmurs) | — | No standalone generic rail warning in v2.4.3; atmospheric clueing before brewing is owned by `balance_of_europe_shifted` / Balance-of-Europe surfaces |
 | Coalition Brewing starts | Alert | Persistent with countdown, updates each turn |
 | Coalition Declared | Critical | Persistent until dismissed, triggers popup |
 | Coalition member peaced out | Info | Dismissible |
@@ -575,6 +579,8 @@ New template categories for `diplomatic_templates.py`:
 ### §9c. Morning Dispatch Integration
 
 Morning Dispatch coalition section (added to `dispatch.py`):
+
+The generic scalar-debug murmurs block below is legacy substrate scaffolding. In v2.4.3, player-facing pre-brewing clueing belongs to the Balance-of-Europe notice/headline chain rather than a second anonymous Murmurs dispatch surface.
 
 ```
 === DIPLOMATIC SITUATION ===

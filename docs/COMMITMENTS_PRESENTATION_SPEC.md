@@ -291,7 +291,7 @@ Bloc naming rides existing surfaces only. No new UI family in this phase.
 - **Proposal-preview `hegemony` warnings** (Political Context preview): once unlocked at `50%+`, warnings reference the proper bloc name so treaty friction reads politically.
 - **Coalition declaration contrast copy**: if the formal coalition forms, the declaration copy contrasts the coalition against the named hegemon bloc (e.g. *"Britain's coalition marches against the French System"*).
 
-v0.1 forward-compat note: these surfaces may still name a non-player hegemon descriptively if the bloc geometry produces one, even though passive scalar accrual remains player-targeted until D2 Coalition Generalization.
+v0.1 forward-compat note: the bloc-label owner surfaces above may still name a non-player hegemon descriptively if the bloc geometry produces one, even though passive scalar accrual remains player-targeted until D2 Coalition Generalization. This does **not** authorize Balance-of-Europe coalition-pressure sub-lines to retarget away from `world.player_nation`; those stay suppressed when `hegemon != world.player_nation` per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1.
 
 Per-row / badge scope within v2.4.3:
 
@@ -610,11 +610,30 @@ balance_of_europe = {
     "qualifying_nations": List[str],  # nations currently meeting the coalition threshold
     "leader": Optional[str],  # coalition leader when DECLARED
     "cooldown_turns_remaining": Optional[int],  # populated iff coalition_state == "COOLDOWN"; turns left in the dissolution cooldown; None otherwise
-    "residual_pressure_active": bool,  # True iff coalition_state == "COOLDOWN" AND threat_level >= THREAT_TENSION_MIN (COALITION_SPEC §3a, currently 30) AND the cooldown turn received positive threat this turn. Both conditions required — threat_level alone would fire the line on every quiet cooldown turn that happens to sit above Tension while decaying, which RELIABILITY_COMMITMENTS_SPEC §11.1 Case 5 explicitly forbids ("the line must not loop every quiet turn once Europe has stopped actively counting"). `build_diplomatic_ledger()` computes the "positive threat this turn" predicate from per-turn threat-delta state and ANDs it into this flag; the delta is not exposed as a separate payload field, so renderers branch on the single boolean only.
+    "residual_pressure_active": bool,  # True iff coalition_state == "COOLDOWN" AND threat_level >= THREAT_TENSION_MIN (COALITION_SPEC §3a, currently 30) AND the cooldown turn received positive threat this turn. Both conditions required — threat_level alone would fire the line on every quiet cooldown turn that happens to sit above Tension while decaying, which RELIABILITY_COMMITMENTS_SPEC §11.1 Case 5 explicitly forbids ("the line must not loop every quiet turn once Europe has stopped actively counting"). `build_diplomatic_ledger()` computes the "positive threat this turn" predicate from `world.positive_threat_delta_this_turn` and ANDs it into this flag; the delta is not exposed as a separate payload field, so renderers branch on the single boolean only.
 }
 ```
 
-Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. `cooldown_turns_remaining` and `residual_pressure_active` are the two fields that drive Case 5 rendering — the cooldown line reads `cooldown_turns_remaining`, and the residual-flavor line conditions on `residual_pressure_active`. `residual_pressure_active` bakes in BOTH the `threat_level >= THREAT_TENSION_MIN` threshold AND the "positive threat this turn" anti-spam gate from §11.1 Case 5 so the renderer branches on a single flag and quiet cooldown turns with legacy decaying threat do not loop the residual line. When `hegemon != world.player_nation` in v0.1, the renderer MUST suppress the coalition-pressure sub-line entirely per §11.1 — do not retarget it to France. The `threat_level` scalar still populates for the player-nation case; the foreign-hegemon case simply renders no pressure sub-line until D2 Coalition Generalization makes the scalar per-target.
+Populated by `build_diplomatic_ledger()` from B-Hegemony engine output and rendered by the Nations-tab headline per `RELIABILITY_COMMITMENTS_SPEC.md` §11.1, including the COOLDOWN state case. `cooldown_turns_remaining` and `residual_pressure_active` are the two fields that drive Case 5 rendering — the cooldown line reads `cooldown_turns_remaining`, and the residual-flavor line conditions on `residual_pressure_active`. `residual_pressure_active` bakes in BOTH the `threat_level >= THREAT_TENSION_MIN` threshold AND the `world.positive_threat_delta_this_turn` anti-spam gate from §11.1 Case 5 so the renderer branches on a single flag and quiet cooldown turns with legacy decaying threat do not loop the residual line. When `hegemon != world.player_nation` in v0.1, the renderer MUST suppress the coalition-pressure sub-line entirely per §11.1 — do not retarget it to France. The `threat_level` scalar still populates for the player-nation case; the foreign-hegemon case simply renders no pressure sub-line until D2 Coalition Generalization makes the scalar per-target.
+
+`balance_of_europe_shifted` transient event payload (single owner across rail notice, dispatch/log echo, and any preview reuse of the same beat):
+
+```python
+balance_of_europe_shifted = {
+    "band": Literal[1, 2, 3],  # 1 = noticed (33%), 2 = alarming reveal (50%), 3 = crisis (60%)
+    "hegemon": str,
+    "share": float,  # post-change share, 0.0-1.0
+    "speaker_nation": str,  # selected foreign court whose named diplomat would speak if authored; consumed by the strict fallback chain
+    "bloc_label": Optional[str],  # None when band == 1; authored proper name at 50%+
+    "descriptive_label": str,  # always populated once the helper is called
+    "adjective": Optional[str],
+    "is_proper_bloc_name": bool,
+    "counterplay_hint": Optional[str],  # present only on upward beats when hegemon == world.player_nation and a legal hint exists
+    "cooldown_turns_remaining": Optional[int],  # present only for the 60% crisis beat during coalition cooldown
+}
+```
+
+Multi-band same-turn jumps still populate this payload from the **highest** newly reached band only; do not emit stacked `33%` + `50%` copies on one seam. Consumers reuse this schema as-is rather than inventing an ad-hoc second payload for one surface.
 
 Required rules:
 
@@ -886,6 +905,10 @@ C3-lite is successful if:
 - when Britain closes its chancery, the player hears Castlereagh's institutional finality, not Talleyrand's wit
 - the paradox lands as a staged scene with grave Talleyrand framing, committed blocking body, and a spurned-court reaction after the choice
 - `episode_id` dedupes repeated commitments fallout from one root event across blocking / notice / ledger surfaces
+- `balance_of_europe_shifted` always fires before the Balance-of-Europe headline can become the player's first clue, and multi-band same-turn jumps emit only the highest newly reached beat
+- the `33 / 50 / 60` naming contract holds across the headline, threshold beats, and proposal-preview warnings: descriptive label below `50%`, proper noun at `50%+`, same proper noun carried into `60%+` crisis framing
+- `balance_of_europe_shifted` and the related Balance-of-Europe surfaces obey the strict fallback chain `named envoy -> Talleyrand advisory -> chancery`, with no anonymous `system` speaker on the notice family
+- when a non-player hegemon appears in the v0.1 forward-compat edge case, bloc-label owner surfaces may still name them, but coalition-pressure sub-lines remain suppressed rather than retargeted away from the player
 - at least one no-cost conversational follow-up exists on every CRITICAL commitments notice family except `balance_of_europe_shifted`, which intentionally routes `Open Ledger` only in v2.4.3
 - all of the above work identically in mock mode without LLM dependency
 - no commitments presentation surface changes any underlying outcome
