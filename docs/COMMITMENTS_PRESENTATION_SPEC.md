@@ -21,8 +21,8 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 - ✓ **Same-turn `balance_of_europe_shifted` notice family** — the 33% / 50% / 60% hegemony threshold beat fires before coalition declaration can become the player's first clue, using named-diplomat or chancery voice per the routing table in §8.1. Turn 1 does **not** emit a beat for inherited opening share: `world.hegemony_signal_high_water` and `world.hegemony_signal_hegemon` bootstrap from scenario-start bloc geometry, so the first beat fires on the first **new** band crossing after play begins. Scenarios that open above `33%` therefore do not stage the noticed beat unless share first drops below `33%` and later rises back through it (see `RELIABILITY_COMMITMENTS_SPEC.md` §7.3 for the bootstrap rule).
 - ✓ **`amends_offered` lightweight notice family** — successful repair gestures must surface as public political theater, not only as result text or campaign-log bookkeeping.
 - ✓ **Period-vocabulary icons / labels** and **priority tiers** per §9.2.
-- ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for the adopted naming language in v2.4.3; the high-value surface scope remains bounded by `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md`.
-- ✓ **Member badges / per-row bloc stamps remain deferred for v2.4.3.** The live naming layer is limited to the Balance of Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview warnings, and coalition-declaration contrast copy. Any later Nations-tab stamp pass must be re-opened explicitly after playtest validates the headline contract.
+- ✓ **Bloc-naming contract** — `33 / 50 / 60` activation gate, authored hegemon→label taxonomy, surface routing, and terminology guard per §8.1a. Authoritative for the adopted naming language in v2.4.3; the live naming layer now includes the Nations-tab per-row stamp surface in addition to the headline / beat / warning / declaration owners.
+- ✓ **Member badges / per-row bloc stamps are in scope for v2.4.3.** The live naming layer covers the Balance of Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview warnings, coalition-declaration contrast copy, and Nations-tab per-row stamps. Stamps reuse deterministic labels from `describe_hegemon_bloc`; they do not require a new voiced surface.
 
 **Cut from v0.3/v0.4 (now collapsed to stubs in place):**
 
@@ -33,7 +33,7 @@ v0.5.1 trims the sections the v0.5 top-note disclaimed (v2.4.2 deep-audit C7 act
 
 **Reading order:** sections below are normative except for the dated historical notes and changelog entries. Prior v0.3/v0.4 content that was non-normative has been removed from the live contract rather than disclaimed in place. For design history on the cut infrastructure (why it was specced, how it rendered), see `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md`.
 
-**Estimated tests:** ~10-12 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the five base cases plus the legal `NO_HEGEMON + BREWING` composite).
+**Estimated tests:** ~18-22 (named-diplomat resolution for each of 5 nations, three live-event copy paths plus `balance_of_europe_shifted`, `amends_offered` attribution, paradox popup field wiring, Balance of Europe headline composition across the five base cases plus the legal `NO_HEGEMON + BREWING` composite, and the Nations-tab per-row stamp cases in §8.1a.4).
 
 ---
 
@@ -295,8 +295,8 @@ v0.1 forward-compat note: the bloc-label owner surfaces above may still name a n
 
 Per-row / badge scope within v2.4.3:
 
-- **Nation badges / ledger-row bloc stamps are deferred.** They are not required to close Block 3 or the v2.4.3 Memory and Pressure pass. The current contract keeps bloc naming on the headline, threshold beats, proposal-preview warnings, and coalition-declaration contrast copy only.
-- If a later playtest pass explicitly re-opens per-row stamps, they must follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp below `33%`, and `[Coalition Member]` must dominate bloc labeling so hegemon blocs do not blur into the formal anti-hegemon coalition.
+- **Nation badges / ledger-row bloc stamps are required.** They render on the Nations tab beside the nation name and follow the same naming contract as the headline: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp below `33%`, and `[Coalition Member]` must dominate bloc labeling so hegemon blocs do not blur into the formal anti-hegemon coalition.
+- Stamp priority is deterministic and single-owner: `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. The stamp layer is subordinate to the headline, not a second headline.
 - Retroactive renaming of old campaign-log rows remains out of scope. This contract is about live legibility, not archive polish.
 
 #### 8.1a.5 Worked-copy examples (tone reference, not committed prose)
@@ -335,7 +335,7 @@ Bloc naming lands only if it clears all four:
 - Players do **not** confuse the named bloc with a declared war coalition.
 - The naming layer increases drama without making the map feel over-labeled or gamey.
 
-**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, keep the proper name on the Balance headline + threshold beats only and re-open proposal-warning wording before ship. Per-row stamps stay deferred unless a later playtest pass explicitly re-opens them; a bloc-vs-coalition confusion issue is a reason to narrow surfaces further, not to expand them.
+**Fail condition:** if playtest still shows repeated "bloc vs. coalition" confusion, simplify the row-stamp taxonomy before ship (for example, keep `[Coalition Member]` plus hegemon-bloc labels and cut lower-signal `[Neutral]` / secondary stamps) and re-open proposal-warning wording. A confusion issue is a reason to simplify the stamp layer, not to silently descope it.
 
 **Bargain events routed to WB-D:**
 

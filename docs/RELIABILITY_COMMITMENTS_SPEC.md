@@ -1180,7 +1180,7 @@ Per-nation rows on the Nations tab (already present) gain:
 - §8.8 grievance flags from defensive-call refusals (already specced in DG-4 amendment)
 - bargain section deferred to `WAR_BARGAIN_SPEC.md`
 
-Per-nation **bloc membership badges** (`[French System]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`) remain deferred. During v2.4.3 the headline is the sole owner of the bloc label surface inside the ledger, supported by the threshold beats, proposal-preview warnings, and coalition-declaration contrast copy. If a later pass explicitly re-opens per-row badges, it must preserve the same naming contract without mutating the headline contract. See `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4 for the deferred per-row surface notes.
+Per-nation **bloc membership badges** (`[French System]`, `[Coalition Member]`, `[Neutral]`, `[Vassal of Saxony]`) are part of the live v2.4.3 Nations-tab contract. The headline remains the primary owner of bloc drama; the row stamp is a subordinate tag for at-a-glance camp legibility. Stamps must preserve the same naming contract without mutating the headline contract: proper noun at `50%+`, descriptive phrase at `33-49%`, no stamp below `33%`, and deterministic single-stamp priority with `[Coalition Member]` dominating hegemon-bloc labels during declared-coalition turns. See `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.4 for the row-stamp surface rules.
 
 Presentation rule: render as one compact commitment block per nation, not as multiple new dense subsections repeated across tabs. The Balance of Europe headline is the ledger's new entry point — players see the geopolitical situation in three lines before scanning per-nation detail.
 
@@ -1388,7 +1388,7 @@ Without bargains, the player has more friction and less new agency. Risk: "diplo
 
 If players see the pressure but can't predict which actions raise/lower bloc share, the engine feels arbitrary.
 
-**Mitigation:** the Balance of Europe headline names the hegemon and bloc share explicitly. Threshold beats (`balance_of_europe_shifted` notifications at 33% / 50% / 60%) name the contributing levers per §7.3. Proposal preview `warnings[]` includes a `hegemony` category warning explaining the share-driven penalty per §11.2. Debug breakdown output shows `hegemony_target_mod` and `bilateral_betrayal_mod` independently for tuning. Member badges / per-row bloc stamps remain deferred so the clue chain stays focused on the headline, threshold beats, warnings, and coalition-declaration contrast copy.
+**Mitigation:** the Balance of Europe headline names the hegemon and bloc share explicitly. Threshold beats (`balance_of_europe_shifted` notifications at 33% / 50% / 60%) name the contributing levers per §7.3. Proposal preview `warnings[]` includes a `hegemony` category warning explaining the share-driven penalty per §11.2. Nations-tab row stamps make bloc membership legible once the player opens the ledger without replacing the headline as the main dramatic owner. Debug breakdown output shows `hegemony_target_mod` and `bilateral_betrayal_mod` independently for tuning.
 
 ### R4. Warning overload
 

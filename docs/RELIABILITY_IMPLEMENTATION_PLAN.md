@@ -2,9 +2,9 @@
 
 > **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (April 20, 2026 deep-audit fixes on top of v2.4.2 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 20, 2026 (Block 3 fold: bloc-naming contract + CF1-CF4 closure items folded back into parent slices; audit orphanage retired. Block 1 alignment preserved.)
-> **Sessions remaining:** ~2 sessions on the implementation critical path (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 still fold together cleanly; trimmed Slice C-lite remains a short follow-up). Slice E-Cards (per-row bloc badges) remains documented below as a deferred follow-up only if a later playtest pass explicitly re-opens it.
-> **Est. tests remaining:** ~54-63 on the critical path (~79-92 including parallel B-B4 coverage)
+> **Last Updated:** April 21, 2026 (Per-row bloc stamps promoted into live v2.4.3 scope; deferred-item closeout rule added so the final implementation session must explicitly review what still remains deferred before the phase is closed.)
+> **Sessions remaining:** ~2-3 sessions on the implementation critical path (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 still fold together cleanly; Slice C-lite + E-Cards are the ledger/notification follow-up once bloc data is live).
+> **Est. tests remaining:** ~62-73 on the critical path (~87-102 including parallel B-B4 coverage)
 
 ---
 
@@ -37,9 +37,9 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 - Slice B-B3: rename `alliance_paradox` push type to `commitment_paradox` (legacy alias on read) — unchanged from v2.3
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
 - Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance-of-Europe headline render + `build_diplomatic_ledger` Balance payload block + `commitments_notice_*` template family (incl. DG-4 stubs and `balance_of_europe_shifted` / `amends_offered`) + `notification_bar.gd` `TYPE_ICONS` expansion
-- Slice E-Cards (deferred follow-up — per-row bloc stamps only if a later playtest pass explicitly re-opens them)
+- Slice E-Cards: per-row bloc stamps on the Nations tab using the same naming contract as the Balance of Europe headline
 
-**Bloc naming (adopted for v2.4.3).** Deterministic bloc naming is the presentation contract for the hegemony layer. The authoritative contract lives in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners: Balance-of-Europe headline + `balance_of_europe_shifted` threshold beats + proposal-preview hegemony warnings + coalition-declaration contrast copy). **Per-row bloc stamps (member badges) are deferred** unless a later playtest pass explicitly re-opens Slice E-Cards. Voice register beats per band live in `DIPLOMAT_VOICE_BIBLE.md` Minimum cast coverage (`hegemony_beat_*_{noticed,alarming,crisis}`). Implementation helper is `describe_hegemon_bloc(world, hegemon, share)` in this plan's B-Hegemony slice — no new serialized save surface.
+**Bloc naming (adopted for v2.4.3).** Deterministic bloc naming is the presentation contract for the hegemony layer. The authoritative contract lives in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners: Balance-of-Europe headline + `balance_of_europe_shifted` threshold beats + proposal-preview hegemony warnings + coalition-declaration contrast copy + Nations-tab per-row stamps). Voice register beats per band live in `DIPLOMAT_VOICE_BIBLE.md` Minimum cast coverage (`hegemony_beat_*_{noticed,alarming,crisis}`). Implementation helper is `describe_hegemon_bloc(world, hegemon, share)` in this plan's B-Hegemony slice — no new serialized save surface.
 
 **Former Block 3 CF1-CF4 closure items are folded back into their parent slices.** The items previously routed through `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md` now sit in the slices that own them: CF1 (Balance-of-Europe payload in `build_diplomatic_ledger`, `commitments_notice_*` template family, `notification_bar.gd` icon map, full `resolve_named_diplomat(...)` wire-up) in Slice C-lite; CF2 (Make Amends emitters + `reparations_cooldown`) in B-B7; CF3 (DG-4 call-to-arms emitters + `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION`) in B-B4; CF4 (composite-floor regression tests) in B-B4 per the B-B1-lite merge-ordering gate. The audit doc is superseded and kept only as historical context.
 
@@ -55,6 +55,18 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 
 - Slice D1 (advisory-first strategic focus + deeper AI integration)
 - Slice D2 (coalition buildout + non-French hegemon generalization)
+
+**Deferred-item closeout rule (non-optional).** The agent who lands the **last implementation session for this spec** must explicitly review every item that still remains deferred before closing the phase, record whether it stays deferred or re-opens, and update `docs/STATUS.md` with the note **"evaluate deferred items after we code the spec"** plus the keep / re-open decisions. No deferred item may remain implicit at phase close.
+
+**Deferred-item closeout ledger (must be called out by the final session agent):**
+
+- Slice D1: advisory-first strategic focus + deeper AI integration
+- Slice D2: coalition buildout + non-France-hegemon / per-target threat-scalar generalization
+- WB-* bargain-era work moved to `WAR_BARGAIN_SPEC.md`, including bargain response routes, callbacks, and witness-depth presentation work that still depends on Peace Deals phase
+- N+1 Talleyrand aftermath callback / richer callback architecture if later playtest proves the single-turn surfaces still land too flat
+- Archive / expansion polish that remains intentionally out of v2.4.3 scope even with stamps live: retroactive campaign-log renaming, member-list compound bloc names, and richer hover / right-click stamp detail
+
+Cancelled v2.4 items are **not** part of this deferred ledger unless a future session explicitly re-opens them in writing.
 
 ---
 
@@ -283,13 +295,13 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
 ---
 
-### Slice E-Cards. Per-row bloc stamps (deferred follow-up)
+### Slice E-Cards. Per-row bloc stamps (live v2.4.3 scope)
 
 **Files:** `backend/game_logic/diplomatic_ledger.py`, `backend/display_names.py`, `godot-client/.../diplomatic_ledger.gd`, `godot-client/.../utils.gd` (optional: a small badge-palette helper if not already present).
 
-**Phase placement:** Slice E-Cards is documented here as a possible follow-up after B-Hegemony, B-B1-lite, B-B3, B-B7, Slice C-lite, and B-B4 have merged. The ordering remains headline first, stamps last, but the current v2.4.3 baseline keeps the headline contract (§11.1 top block) and the bloc-naming taxonomy (`COMMITMENTS_PRESENTATION_SPEC.md` §8.1a) on the high-value surfaces only. Slice E-Cards is therefore deferred unless a later playtest pass explicitly re-opens it.
+**Phase placement:** Slice E-Cards lands in v2.4.3 after B-Hegemony and Slice C-lite establish the shared bloc helper and Balance-of-Europe ledger payload. The ordering remains headline first, stamps second, but B-B3, B-B7, and B-B4 are **not** blockers for the row-stamp surface; they may merge in parallel.
 
-**What this slice would ship if re-opened later:**
+**What this slice ships in v2.4.3:**
 
 - Per-nation **bloc membership stamps** rendered to the right of the nation name on the Diplomatic Ledger Nations tab.
 - **Naming contract** follows the headline: proper noun (`[French System]`, `[British Interest]`, `[Vienna System]`, `[Berlin Alignment]`, `[Saxon Circle]`, etc.) at `50%+` hegemon share; descriptive phrase (`[French-led alignment]`, etc.) at `33-49%`; no stamp at all when `share < 33%` (no hegemon = no label layer). Any stamp rendering must route through the same `describe_hegemon_bloc(world, hegemon, share)` helper that the headline uses — no parallel name taxonomy.
@@ -335,7 +347,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
 **Cuts allowed if playtest fails:**
 
-- If stamps pull focus from the headline, keep only `[Coalition Member]` stamps and drop the hegemon-bloc / descriptive / vassal / neutral stamps (the `Coalition Member` pill is the highest-signal row marker on a declared-coalition turn; others are decorative).
+- If stamps pull focus from the headline, keep the hegemon-bloc + `[Coalition Member]` stamps and cut lower-signal `[Neutral]` / secondary stamps first. Do **not** silently descope row stamps entirely; simplify the taxonomy instead.
 
 **Legacy test migration note before B-Hegemony / C-lite are called green:**
 
@@ -378,9 +390,9 @@ B-Hegemony (helpers + engine + coalition wire-up)
        -> B-B3 (paradox rename)
        -> B-B7 (Make Amends)
        -> Slice C-lite (named-diplomat helper + paradox popup + prose + Balance headline)
-       -> Slice E-Cards (per-row bloc stamps — deferred follow-up only if re-opened later)
+       -> Slice E-Cards (per-row bloc stamps on Nations tab)
 
-B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below); merges into main before any later Slice E-Cards reopen so card playtest would reflect the post-DG-4 acceptance formula.
+B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below); may merge before or after Slice E-Cards because the row-stamp contract no longer depends on DG-4-specific surface work.
 ```
 
 **Slice ownership note (Block 3 fold):** bloc-naming adoption and the former CF1-CF4 items no longer gate the plan through a separate audit block. Each item now ships with the parent slice that owns it:
@@ -410,7 +422,7 @@ Recommended playtest gates:
 - **After B-B4:** verify grievance-variant Make Amends clears only grievance flags at `400g + 2 DP`, defensive refusal terminates the existing alliance with `defensive_refusal_termination`, and the R9/R10/R11 playtest checks are explicitly reviewed before slice close.
 - **After B-B3 + Slice C-lite:** verify the renamed paradox surfaces through the new dedicated popup; named-diplomat copy lands for three live events; Balance of Europe headline reads naturally; threshold beats at `33 / 50 / 60` and `amends_offered` notices both resolve the correct court voice.
 - **After B-B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify the target court's named acknowledgment appears on success; verify `amends_offered` lands on the lightweight notice / ledger route; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
-- **If Slice E-Cards is re-opened later:** verify per-row stamps render with the right label at each share band (descriptive at `33-49%`, proper noun at `50%+`, none at `< 33%`); verify `[Coalition Member]` priority dominates `[French System]` during a declared coalition; verify the Nations tab with headline + stamps stays one screen of readable real estate on the 5-nation scenario; verify unauthored-hegemon forward-compat fallback labels render without crashing; verify stamp terminology guard (no `[French Coalition]`-style labels anywhere).
+- **After Slice E-Cards:** verify per-row stamps render with the right label at each share band (descriptive at `33-49%`, proper noun at `50%+`, none at `< 33%`); verify `[Coalition Member]` priority dominates `[French System]` during a declared coalition; verify the Nations tab with headline + stamps stays one screen of readable real estate on the 5-nation scenario; verify unauthored-hegemon forward-compat fallback labels render without crashing; verify stamp terminology guard (no `[French Coalition]`-style labels anywhere).
 
 Slice D stays deferred unless playtest proves the v0.1 pressure layer still lacks political texture or non-French hegemon scenarios become possible sooner than expected.
 
@@ -445,9 +457,9 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 | C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | moved | moved | → `WAR_BARGAIN_SPEC.md` |
 | Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | 10-12 (trimmed) | 10-12 | + Balance-of-Europe threshold-beat copy / attribution |
 | §8.8 DG-4 (B-B4) | — | 25 | 25 | **25-29** | Parallel slice; v2.4.3 adds grievance-variant Make Amends, defensive-refusal termination, and R9/R10/R11 gate coverage |
-| **Slice E-Cards (deferred follow-up)** | — | — | — | **8-10** | Per-row bloc stamps only if a later playtest pass explicitly re-opens them |
+| **Slice E-Cards** | — | — | — | **8-10** | Per-row bloc stamps on Nations tab; headline remains primary owner |
 | Slice D | deferred | deferred | deferred | deferred | Same |
-| **Total this phase** | **~200** | **~68-74** | **~35-42** | **~54-63** | (+25-29 DG-4 if shipped together = ~79-92) |
+| **Total this phase** | **~200** | **~68-74** | **~35-42** | **~62-73** | (+25-29 DG-4 if shipped together = ~87-102) |
 
 ---
 
@@ -461,6 +473,6 @@ Slice D stays deferred unless playtest proves the v0.1 pressure layer still lack
 | B-B7 (Make Amends) | A1 (✓), B-B1-lite (formula reads `reparations_cooldown`) | Standalone verb |
 | Slice C-lite | B-B3, B-Hegemony | Needs renamed paradox + bloc data for Balance headline |
 | B-B4 (DG-4) | A1, A2, B2a, B2b (all ✓), merge ordering with B-B1-lite | Parallel slice, but no longer independent once `grievance_modifier` and the composite-floor interaction are live |
-| **Slice E-Cards** | B-Hegemony, B-B1-lite, B-B3, B-B7, Slice C-lite, B-B4 (all merged) | Deferred follow-up only if a later playtest pass explicitly re-opens per-row stamps |
+| **Slice E-Cards** | B-Hegemony, Slice C-lite | Reuses the shared bloc helper + Balance-of-Europe ledger payload; B-B3/B-B7/B-B4 may merge in parallel |
 | Slice D1 / D2 | This phase complete | Deferred follow-up |
 | Slice WB-* | This phase complete + Bilateral Peace Hardening + War Purpose | See `WAR_BARGAIN_SPEC.md` |
