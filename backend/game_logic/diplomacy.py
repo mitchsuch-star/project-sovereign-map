@@ -14,6 +14,12 @@ Single source of truth for diplomatic mechanics:
 import random  # noqa: F401 — used in _process_mission_effects
 from typing import Dict, List
 
+from backend.display_names import (
+    FEEDBACK_STRINGS,
+    STATE_DISPLAY as _STATE_DISPLAY_NAMES,
+    proposal_display_name as _proposal_display_name,
+)
+
 # ═══════ DIPLOMATIC STATE HIERARCHY ═══════
 # Upgrade path (adjacency enforced):
 # WAR → ARMISTICE → PEACE → OPEN_BORDERS → NON_AGGRESSION → DEFENSIVE_ALLIANCE → ALLIANCE
@@ -135,12 +141,6 @@ SPECIAL_BONUSES = {
     "Britain": {"continental_system_lifted": 15},
     "Saxony": {"protection_promised": 10},
 }
-
-# Feedback strings — single source in display_names.py (R7)
-from backend.display_names import (
-    FEEDBACK_STRINGS,
-    proposal_display_name as _proposal_display_name,
-)
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
 SWEETENER_VALUES = {
@@ -3555,7 +3555,6 @@ def _process_relation_decay(world) -> None:
     Skip pairs that are: vassals, at WAR, in ARMISTICE, or targeted by COURT_NATION mission.
     Above +10: -1/turn. Below -10: +1/turn.
     """
-    player = getattr(world, 'player_nation', 'France')
     all_nations = world.get_active_nations()  # DLF-11
 
     # Check for active COURT_NATION mission target (player-side only)
@@ -3803,10 +3802,6 @@ def get_assessment_text(world, target_nation: str) -> str:
     if key and key in _ASSESSMENT_TEMPLATES:
         return _ASSESSMENT_TEMPLATES[key].format(nation=target_nation)
     return _ASSESSMENT_FALLBACK.format(nation=target_nation)
-
-
-# State display names — single source in display_names.py (R7)
-from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY_NAMES
 
 
 def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:

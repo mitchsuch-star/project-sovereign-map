@@ -12,6 +12,10 @@ Entry points:
 
 from typing import Dict, Optional
 
+from backend.display_names import (
+    format_terms_for_display as _shared_format_terms_for_display,
+    proposal_display_name,
+)
 from backend.nation_config import (
     DEFAULT_PLAYER_NATION,
     build_enemy_nations,
@@ -85,13 +89,6 @@ PROPOSAL_TYPE_KEYWORDS = {
     "vassalage": ["vassal", "vassalage", "subjugate", "submit", "submission", "puppet",
                   "tributary", "client state", "protectorate", "subject"],
 }
-
-# Proposal type display — single source in display_names.py (R7)
-from backend.display_names import (
-    format_terms_for_display as _shared_format_terms_for_display,
-    proposal_display_name,
-)
-
 
 def _display_proposal_type(proposal_type: str) -> str:
     """Convert internal proposal_type to player-facing display name."""

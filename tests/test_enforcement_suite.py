@@ -120,13 +120,6 @@ def _find_proposal_types_in_source():
         os.path.join(backend_dir, 'game_logic', 'diplomacy.py'),
     ]
 
-    # Pattern: "type": "peace" or proposal_type == "peace" or proposal_type in ("peace", ...)
-    type_patterns = [
-        re.compile(r'["\']type["\']\s*:\s*["\'](\w+)["\']'),
-        re.compile(r'proposal_type\s*(?:==|in\s*\()\s*["\'](\w+)["\']'),
-        re.compile(r'proposal_type\s*in\s*\([^)]*["\'](\w+)["\'][^)]*\)'),
-    ]
-
     # Known non-proposal "type" values to exclude
     non_proposal_types = {
         "territory", "gold_lump", "gold_per_turn", "open_borders",

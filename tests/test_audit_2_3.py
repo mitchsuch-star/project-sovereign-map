@@ -7,17 +7,33 @@ diplomacy non-stacking, war score component caps, and war score decay.
 These reproduce spec worked examples and verify edge-case behavior.
 """
 
-from backend.models.world_state import WorldState
+from backend.commands.executor import CommandExecutor
+from backend.game_logic.diplomatic_dialogue import (
+    MISSION_DP_COSTS,
+    MISSION_EFFECTS,
+    classify_diplomatic_intent,
+    generate_feasibility_dialogue,
+    generate_mission_dialogue,
+)
 from backend.game_logic.diplomacy import (
-    calculate_acceptance,
-    calculate_war_score,
-    apply_war_score_decay,
-    record_battle,
-    SWEETENER_CAP,
     BASE_DISPOSITION,
     PERSONALITY_MODIFIERS,
+    STATE_RELATION_THRESHOLDS,
+    SWEETENER_CAP,
     SWEETENER_VALUES,
+    TRADE_INCOME,
+    TRANSITION_RULES,
+    apply_war_score_decay,
+    calculate_acceptance,
+    calculate_war_score,
+    check_auto_downgrade,
+    check_relation_requirement,
+    declare_war,
+    process_trade_income,
+    record_battle,
+    validate_transition,
 )
+from backend.models.world_state import WorldState
 
 
 def make_world():
@@ -496,17 +512,6 @@ class TestWarScoreDecay:
 # ======================================================
 # 3A. Transition Adjacency - Exhaustive Test
 # ======================================================
-
-from backend.game_logic.diplomacy import (
-    validate_transition,
-    check_relation_requirement,
-    declare_war,
-    check_auto_downgrade,
-    process_trade_income,
-    TRANSITION_RULES,
-    TRADE_INCOME,
-    STATE_RELATION_THRESHOLDS,
-)
 
 
 class TestTransitionAdjacencyExhaustive:
@@ -1161,15 +1166,6 @@ class TestDowngradeAutoDecay:
 # ======================================================
 # 4A. Parser Routing Matrix
 # ======================================================
-
-from backend.game_logic.diplomatic_dialogue import (
-    classify_diplomatic_intent,
-    generate_feasibility_dialogue,
-    generate_mission_dialogue,
-    MISSION_DP_COSTS,
-    MISSION_EFFECTS,
-)
-from backend.commands.executor import CommandExecutor
 
 
 def make_executor():
