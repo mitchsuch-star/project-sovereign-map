@@ -2791,6 +2791,18 @@ class DiplomaticExecutor:
                     "reliability_after": honor_preview.get("reliability_after"),
                     "applied_reliability_delta": honor_preview.get("applied_reliability_delta", 0),
                 })
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(
+                    world,
+                    "commitment_paradox_resolved",
+                    {
+                        "player_nation": world.player_nation,
+                        "chosen_nation": defender_nation,
+                        "spurned_nation": attacker_nation,
+                        "episode_id": paradox_episode,
+                    },
+                    "always",
+                )
             world.dialogue_manager.pop()
             world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
@@ -2879,6 +2891,18 @@ class DiplomaticExecutor:
                 "reliability_after": (breach_preview or {}).get("reliability_after"),
                 "applied_reliability_delta": (breach_preview or {}).get("applied_reliability_delta", 0),
             })
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(
+                world,
+                "commitment_paradox_resolved",
+                {
+                    "player_nation": world.player_nation,
+                    "chosen_nation": attacker_nation,
+                    "spurned_nation": defender_nation,
+                    "episode_id": paradox_episode,
+                },
+                "always",
+            )
             world.dialogue_manager.pop()
             world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification

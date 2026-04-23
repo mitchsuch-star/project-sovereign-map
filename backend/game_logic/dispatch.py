@@ -1070,6 +1070,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
     "hard_reject_posture_triggered": "{victim_nation} has closed the chancery to {perpetrator_nation}.",
     "hard_reject_posture_cleared": "{victim_nation} has reopened deeper diplomacy with {perpetrator_nation}.",
+    "commitment_paradox_resolved": (
+        "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
+    ),
     "nation_eliminated": "{nation} has been eliminated from the war.",
 }
 
@@ -1110,6 +1113,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_armistice_expired_war": "HIGH",
     "hard_reject_posture_triggered": "HIGH",
     "hard_reject_posture_cleared": "MEDIUM",
+    "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
 }
 

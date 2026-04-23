@@ -280,6 +280,25 @@ class TestDispatchDiplomaticEvents:
         assert "reopened deeper diplomacy" in events[0]["text"]
         assert events[0]["priority"] == "MEDIUM"
 
+    def test_commitment_paradox_resolved_dispatch_text(self):
+        world = _make_world()
+        queue_dispatch_event(
+            world,
+            "commitment_paradox_resolved",
+            {
+                "player_nation": "France",
+                "chosen_nation": "Austria",
+                "spurned_nation": "Prussia",
+            },
+            "always",
+        )
+        dispatch = build_morning_dispatch(world)
+        events = dispatch["diplomatic_events"]
+        assert len(events) == 1
+        assert "Austria" in events[0]["text"]
+        assert "Prussia" in events[0]["text"]
+        assert events[0]["priority"] == "MEDIUM"
+
     def test_vassal_unrest_appears_in_dispatch(self):
         world = _make_world()
         _make_vassal(world, "Saxony", lord="France", loyalty=35)
@@ -619,9 +638,8 @@ class TestAIAIDiplomacy:
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
         _ratify_via_world("Britain", "Prussia", proposal, world)
-        dispatch = build_morning_dispatch(world)
+        build_morning_dispatch(world)
         # Should be visible because at least some enemy marshals are in visible regions
-        events = dispatch["diplomatic_events"]
         # May or may not be visible depending on fog; test the queuing
         assert len(world.pending_dispatch_events) >= 1
 
