@@ -68,6 +68,14 @@ DIPLO_AUTO_DOWNGRADE = "diplo_auto_downgrade"                  # NORMAL: relatio
 TURN_LIMIT_WARNING = "turn_limit_warning"                      # HIGH: campaign nearing end
 DEFEAT_IMMINENT_WARNING = "defeat_imminent_warning"            # HIGH/CRITICAL: one marshal/region from defeat
 DIPLOMATIC_PROPOSAL_RESULT = "diplomatic_proposal_result"     # NORMAL: player proposal resolved
+# Memory and Pressure v2.4.3 — B-B7 Make Amends repair gesture surface.
+# Spec §8.6.1 + COMMITMENTS_PRESENTATION_SPEC §10.3 emit row.
+# Priority is NORMAL per the §10.3 join-table; the lightweight notice is the
+# public-political signal that the gesture happened. The committed
+# `commitments_notice_amends_offered` template family + target-court named
+# acknowledgment + `notification_bar.gd` `TYPE_ICONS` entry are owned by
+# Slice C-lite; B-B7 ships the constant + emit so the data reaches the rail.
+AMENDS_OFFERED = "amends_offered"
 
 
 def create_notification(

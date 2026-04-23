@@ -35,6 +35,7 @@ ACTION_DISPLAY = {
     "cancel": "cancels order",     # R18: cancel strategic order
     "economy": "reviews finances", # R18: economy info command
     "diplomatic_ultimatum": "delivers ultimatum to",  # PL-14
+    "make_amends": "offers amends to",                # B-B7 (spec §8.6.1)
 }
 
 # ============================================================================
@@ -66,6 +67,7 @@ OBJECTION_DISPLAY = {
     "cancel": "cancelling order",   # R18
     "economy": "reviewing finances",# R18
     "diplomatic_ultimatum": "issuing ultimatum",  # PL-14
+    "make_amends": "offering amends",              # B-B7 (no marshal objections in v0.1)
 }
 
 # ============================================================================
@@ -97,6 +99,7 @@ DEFIANCE_DISPLAY = {
     "cancel": "cancelled order",     # R18
     "economy": "reviewed finances",  # R18
     "diplomatic_ultimatum": "issued ultimatum",  # PL-14
+    "make_amends": "offered amends",             # B-B7 (no marshal defiance in v0.1)
 }
 
 # ============================================================================
@@ -299,6 +302,37 @@ FEEDBACK_STRINGS = {
         "negative": "their remembered betrayals of France",
         "positive": "the chancery remains open to deeper commitments",
     },
+}
+
+# ============================================================================
+# AMENDS REFUSAL DISPLAY — Talleyrand-voiced advisory lines per refusal cause
+# Source: RELIABILITY_COMMITMENTS_SPEC §8.6.1 (B-B7 Make Amends standard variant)
+# Refusal codes are stable strings the executor returns; templates expose
+# `{nation}` (target court), `{turns_remaining}` (cooldown countdown), and
+# `{required}` / `{available}` (resource shortfall) where relevant.
+# ============================================================================
+
+AMENDS_REFUSAL_DISPLAY = {
+    "no_active_strikes": (
+        "There is nothing to repair with {nation}, Sire. "
+        "They hold no living grievance against France."
+    ),
+    "cooldown_active": (
+        "We offered amends to {nation} only {turns_since} turns ago. "
+        "Too soon would read as petition, not as state."
+    ),
+    "war_or_armistice": (
+        "Amends before peace read as ransom, Sire. "
+        "Restore the treaty with {nation} first."
+    ),
+    "insufficient_gold": (
+        "Insufficient treasury, Sire. Reparations to {nation} require "
+        "{required} gold, but we have only {available}."
+    ),
+    "insufficient_dp": (
+        "Insufficient Diplomatic Points, Sire. Reparations to {nation} require "
+        "{required} DP, but we have only {available}."
+    ),
 }
 
 # ============================================================================

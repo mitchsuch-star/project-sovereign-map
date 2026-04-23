@@ -1070,6 +1070,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
     "hard_reject_posture_triggered": "{victim_nation} has closed the chancery to {perpetrator_nation}.",
     "hard_reject_posture_cleared": "{victim_nation} has reopened deeper diplomacy with {perpetrator_nation}.",
+    # Memory and Pressure v2.4.3 — B-B7 Make Amends. Slice C-lite owns the
+    # final committed prose via `commitments_notice_amends_offered`; this
+    # template is the substrate fallback so the event reaches the dispatch.
+    "amends_offered": "{actor_nation} has offered amends to {target_nation}.",
     "commitment_paradox_resolved": (
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
@@ -1113,6 +1117,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_armistice_expired_war": "HIGH",
     "hard_reject_posture_triggered": "HIGH",
     "hard_reject_posture_cleared": "MEDIUM",
+    # B-B7: Make Amends — NORMAL/MEDIUM per COMMITMENTS_PRESENTATION_SPEC §10.3.
+    "amends_offered": "MEDIUM",
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
 }
@@ -1161,10 +1167,13 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
         return True
 
     if fog_rule == "partial_on_nation":
-        # Check PARTIAL+ on any nation mentioned in template_vars
+        # Check PARTIAL+ on any nation mentioned in template_vars.
+        # `actor_nation` / `target_nation` keys added for B-B7 `amends_offered`
+        # and any future events that prefer the explicit semantic names.
         nations_to_check = []
         for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy",
-                   "vassal_capital", "witness_nation", "perpetrator_nation", "victim_nation"):
+                   "vassal_capital", "witness_nation", "perpetrator_nation", "victim_nation",
+                   "actor_nation", "target_nation"):
             val = template_vars.get(key)
             if val:
                 nations_to_check.append(val)

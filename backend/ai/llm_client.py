@@ -521,6 +521,15 @@ class LLMClient:
         if any(kw in command_lower for kw in _ultimatum_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
+        # Memory and Pressure v2.4.3 — B-B7 Make Amends keywords route to
+        # diplomacy without requiring "Talleyrand" (spec §8.6.1).
+        _amends_keywords = [
+            "make amends", "offer amends", "amends with", "amends to",
+            "repair relations", "offer reparations", "send reparations",
+        ]
+        if any(kw in command_lower for kw in _amends_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Alliance keywords route to diplomacy (R137)
         _ally_keywords = [
             "ally with", "ally against", "become allies", "form alliance",
@@ -958,6 +967,9 @@ class LLMClient:
             "spy on", "investigate", "sow discord",
             "pact with", "truce", "ceasefire",
             "envoy", "ambassador", "minister",
+            # B-B7 Make Amends — spec §8.6.1
+            "make amends", "offer amends", "amends with", "amends to",
+            "repair relations", "offer reparations", "send reparations",
         ]
         has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
 
@@ -992,7 +1004,10 @@ class LLMClient:
                                      "insist", "require", "ultimatum", "peace", "alliance",
                                      "treaty", "armistice", "vassalage", "open borders",
                                      "non-aggression", "declare war", "invade", "launch war",
-                                     "break treaty", "cancel treaty", "downgrade"}
+                                     "break treaty", "cancel treaty", "downgrade",
+                                     # B-B7: Make Amends — spec §8.6.1 requires explicit target
+                                     "make amends", "offer amends", "repair relations",
+                                     "offer reparations"}
         if not target_nation and not mission_type and not is_question:
             has_target_required = any(kw in command_lower for kw in _target_required_actions)
             if has_target_required:
@@ -1024,6 +1039,14 @@ class LLMClient:
             action = "diplomatic_feasibility"
         elif is_question:
             action = "diplomatic_advisory"
+        # B-B7 Make Amends — check BEFORE the generic "offer"/"demand"/"propose"
+        # branches below, since "offer amends" / "amends" overlap with the
+        # proposal-fallback verbs. Spec §8.6.1.
+        elif any(kw in command_lower for kw in [
+            "make amends", "offer amends", "amends with", "amends to",
+            "repair relations", "offer reparations", "send reparations",
+        ]):
+            action = "make_amends"
         # Break treaty (must come before general proposal fallback)
         elif any(kw in command_lower for kw in [
             "cancel treaty", "break treaty", "renounce treaty", "end treaty",

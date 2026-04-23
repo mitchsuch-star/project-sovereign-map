@@ -111,6 +111,8 @@ CAMPAIGN_LOG_TYPES = {
     "offer_lapsed",
     "hard_reject_posture_triggered",
     "hard_reject_posture_cleared",
+    # Memory and Pressure v2.4.3 — B-B7 Make Amends (spec §8.6.1)
+    "amends_offered",
 }
 
 # ============================================================================
@@ -180,6 +182,8 @@ CATEGORY_MAP = {
     "offer_lapsed": "diplomacy",
     "hard_reject_posture_triggered": "diplomacy",
     "hard_reject_posture_cleared": "diplomacy",
+    # Memory and Pressure v2.4.3 — B-B7 Make Amends
+    "amends_offered": "diplomacy",
 }
 
 
@@ -791,6 +795,22 @@ def format_event_oneliner(event: dict) -> str:
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
         return f"An envoy from {source} has arrived with a {proposal_type} proposal{_decision_reason_suffix(event)}"
+
+    if event_type == "amends_offered":
+        # B-B7 (spec §8.6.1) — France's repair gesture toward target_nation.
+        # `actor_nation` is always France in v0.1, kept on the event for
+        # forward-compat with §8.6.1 design intent that allows other actors
+        # in later phases.
+        actor = event.get("actor_nation", "France")
+        target = event.get("target_nation") or event.get("nation", "Unknown")
+        gold_spent = int(event.get("gold_spent", 0) or 0)
+        dp_spent = int(event.get("dp_spent", 0) or 0)
+        # Spec §8.6.1 requires deterministic deltas in the payload; reflect
+        # them on the one-liner so the public log carries the political price.
+        return (
+            f"{actor} offered amends to {target} "
+            f"({gold_spent}g, {dp_spent} DP)"
+        )
 
     if event_type == "hard_reject_posture_triggered":
         victim = event.get("victim_nation", "Unknown")

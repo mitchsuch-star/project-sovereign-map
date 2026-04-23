@@ -67,6 +67,9 @@ VALID_ACTIONS: Set[str] = {
     "diplomatic_feasibility",  # Request feasibility check
     "diplomatic_advisory",     # Request advisory conversation
     "diplomatic_error",        # Diplomatic error fallback
+    # Memory and Pressure v2.4.3 — B-B7 Make Amends active-redemption verb
+    # (standard variant only; grievance variant ships with B-B4 per spec §8.6.1a)
+    "make_amends",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -97,6 +100,8 @@ META_ACTIONS: Set[str] = {
     "diplomatic_feasibility",
     "diplomatic_advisory",
     "diplomatic_error",
+    # Memory and Pressure v2.4.3 — B-B7 (no marshal needed, paid in DP/gold)
+    "make_amends",
 }
 
 # Valid stances for stance_change action

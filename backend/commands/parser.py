@@ -115,6 +115,8 @@ class CommandParser:
             # Diplomatic actions — Phase 4 (war declaration, ultimatum)
             "diplomatic_declare_war",  # Declare war on a nation
             "diplomatic_ultimatum",    # Issue ultimatum to a nation
+            # Memory and Pressure v2.4.3 — B-B7 Make Amends (spec §8.6.1)
+            "make_amends",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

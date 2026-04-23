@@ -57,6 +57,8 @@ def _get_free_actions():
         "diplomatic_break", "diplomatic_downgrade",
         "diplomatic_declare_war", "diplomatic_ultimatum",
         "invest_vassal", "change_autonomy", "make_vassal", "release_vassal",
+        # B-B7: Make Amends — paid in DP/gold, no AP cost (spec §8.6.1)
+        "make_amends",
     }
 
 

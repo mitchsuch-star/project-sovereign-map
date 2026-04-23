@@ -82,6 +82,8 @@ class DiplomaticExecutor:
             return self._execute_diplomatic_declare_war(diplomatic_data, world)
         elif action == "diplomatic_ultimatum":
             return self._execute_diplomatic_ultimatum(diplomatic_data, world)
+        elif action == "make_amends":
+            return self._execute_make_amends(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
 
@@ -586,6 +588,389 @@ class DiplomaticExecutor:
             # Deduct DP (execute_downgrade returns dp_cost but doesn't deduct)
             world.diplomatic_points -= dp_cost
         return result
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # MAKE AMENDS (Memory and Pressure v2.4.3 — B-B7, spec §8.6.1)
+    # Standard strike-clearing variant only. Grievance variant (§8.6.1a) ships
+    # with B-B4 and will share `reparations_cooldown` / `amends_offered` routing.
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    # Cost contract is authored in spec §8.6.1; duplicated here so callers
+    # and tests read the same constants the executor enforces.
+    _MAKE_AMENDS_GOLD_COST = 200
+    _MAKE_AMENDS_DP_COST = 1
+    _MAKE_AMENDS_COOLDOWN_TURNS = 10
+    _MAKE_AMENDS_RELIABILITY_REWARD = 2
+    _MAKE_AMENDS_RELATION_REWARD = 5
+    # Severity ordering for the "lowest-severity active strike" fallback when
+    # no matured strike is available. Lower ordinal = shorter decay interval =
+    # the gentlest strike to consume first. Matches spec §8.6 decay buckets
+    # (`low=6`, `medium=8`, `high=10` turns).
+    _STRIKE_SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
+    # Spec §8.6.1 design intent: "the target's named diplomat answers in the
+    # result text". Voice Bible §Minimum cast coverage commits one
+    # acknowledgment line per foreign court. Keys are the diplomat's name so
+    # the lookup is stable even if scenario data later renames a diplomat.
+    _AMENDS_ACKNOWLEDGMENT_LINES = {
+        "Castlereagh": "The gesture is noted. Its execution will be observed.",
+        "Hardenberg": "Prussia records the gesture. France will now prove that it meant it.",
+        "Metternich": "Austria acknowledges the courtesy. One adjusts one's estimates accordingly.",
+        "Einsiedel": (
+            "Saxony is grateful for the gesture, and would be glad to believe "
+            "such wounds may in fact be repaired."
+        ),
+    }
+
+    def _execute_make_amends(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle Make Amends command (B-B7, spec §8.6.1).
+
+        Standard strike-clearing variant. France spends 200g + 1 DP to remove
+        one active victim-side strike against `target_nation`; reliability
+        +2, relation +5, shared 10-turn per-pair cooldown. Refusals are
+        Talleyrand-voiced advisories per the four §8.6.1 refusal conditions.
+
+        Enemy AI does NOT invoke this action in v0.1 (France-only actor).
+        """
+        from backend.display_names import AMENDS_REFUSAL_DISPLAY
+        from backend.game_logic.diplomacy import (
+            _allocate_episode_id,
+            _betrayal_key,
+            _NON_WAR_TREATY_STATES,
+        )
+        from backend.game_logic.dispatch import queue_dispatch_event
+        from backend.notifications import (
+            AMENDS_OFFERED,
+            NotificationPriority,
+            create_notification,
+        )
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": (
+                    "Sire, with which nation shall I arrange reparations? "
+                    "Specify: Britain, Prussia, Austria, or Saxony."
+                ),
+            }
+
+        player = world.player_nation
+        if target_nation == player:
+            # Spec §8.6.1 non-goal: "no self-directed use".
+            return {
+                "success": False,
+                "message": (
+                    "Sire, France cannot offer amends to herself — "
+                    "a nation repairs what it owes, not what it holds."
+                ),
+            }
+
+        current_turn = int(getattr(world, "current_turn", 0))
+
+        # ── Refusal: WAR or ARMISTICE ──
+        current_state = world.get_diplomatic_state(player, target_nation)
+        if current_state not in _NON_WAR_TREATY_STATES:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["war_or_armistice"].format(
+                    nation=target_nation,
+                ),
+            }
+
+        # ── Refusal: cooldown active ──
+        diplo_key = world._make_diplo_key(player, target_nation)
+        cooldown_expiry = int(
+            getattr(world, "reparations_cooldown", {}).get(diplo_key, 0) or 0
+        )
+        if cooldown_expiry > current_turn:
+            turns_since = max(
+                0,
+                self._MAKE_AMENDS_COOLDOWN_TURNS - (cooldown_expiry - current_turn),
+            )
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["cooldown_active"].format(
+                    nation=target_nation,
+                    turns_since=turns_since,
+                ),
+            }
+
+        # ── Refusal: insufficient resources ──
+        # DP first so the shortfall message matches the existing downgrade /
+        # ultimatum register. Then gold.
+        available_dp = int(getattr(world, "diplomatic_points", 0) or 0)
+        if available_dp < self._MAKE_AMENDS_DP_COST:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["insufficient_dp"].format(
+                    nation=target_nation,
+                    required=self._MAKE_AMENDS_DP_COST,
+                    available=available_dp,
+                ),
+            }
+        available_gold = int(world.nation_gold.get(player, 0) or 0)
+        if available_gold < self._MAKE_AMENDS_GOLD_COST:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["insufficient_gold"].format(
+                    nation=target_nation,
+                    required=self._MAKE_AMENDS_GOLD_COST,
+                    available=available_gold,
+                ),
+            }
+
+        # ── Refusal: no active strikes ──
+        # Spec §8.6.1 "active strike" = any strike still recorded on the pair
+        # (matured but not yet passively decayed counts — passive decay runs
+        # end-of-turn, and the §8.6.1 selection rule explicitly prefers
+        # matured strikes when available). A record exists only while
+        # `record["strikes"]` is non-empty; `_record_betrayal_strike` /
+        # `_process_betrayal_decay` both prune empty records.
+        history = getattr(world, "betrayal_history", {}) or {}
+        key = _betrayal_key(player, target_nation)
+        record = history.get(key) or {}
+        candidate_strikes = list(record.get("strikes", []) or [])
+        if not candidate_strikes:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["no_active_strikes"].format(
+                    nation=target_nation,
+                ),
+            }
+
+        # ── Success: select strike per §8.6.1 rule ──
+        # Oldest matured first (decay clock has run out); else the lowest-
+        # severity strike in the record, ties broken by oldest creation turn.
+        selected_strike = self._select_strike_for_amends(
+            candidate_strikes, current_turn,
+        )
+
+        # ── Mutate state (strike removal) ──
+        # We already resolved `history` / `key` / `record` above when
+        # building the candidate list; mutate the same record in place.
+        remaining_strikes = [
+            strike for strike in candidate_strikes
+            if not self._strikes_match(strike, selected_strike)
+        ]
+        if remaining_strikes:
+            record["strikes"] = remaining_strikes
+            history[key] = record
+        else:
+            # No strikes remain — prune the record entirely so the pair
+            # reads as a clean slate (matches passive-decay cleanup).
+            history.pop(key, None)
+        world.betrayal_history = history
+
+        # ── Deduct resources ──
+        world.nation_gold[player] = available_gold - self._MAKE_AMENDS_GOLD_COST
+        world.diplomatic_points = available_dp - self._MAKE_AMENDS_DP_COST
+
+        # ── Apply reliability + relation rewards ──
+        reliability = getattr(world, "diplomatic_reliability", {}) or {}
+        reliability_before = int(reliability.get(player, 0) or 0)
+        reliability_after = max(
+            -100,
+            min(100, reliability_before + self._MAKE_AMENDS_RELIABILITY_REWARD),
+        )
+        reliability[player] = reliability_after
+        world.diplomatic_reliability = reliability
+        world.modify_nation_relation(
+            player, target_nation, self._MAKE_AMENDS_RELATION_REWARD,
+        )
+
+        # ── Set cooldown ──
+        cooldown = dict(getattr(world, "reparations_cooldown", {}) or {})
+        cooldown[diplo_key] = current_turn + self._MAKE_AMENDS_COOLDOWN_TURNS
+        world.reparations_cooldown = cooldown
+
+        # ── Emit `amends_offered` on all three surfaces (spec §8.6.1) ──
+        event_episode_id = _allocate_episode_id(world)
+        cleared_strike_episode = str(selected_strike.get("episode_id", "") or "")
+        cleared_strike_severity = str(selected_strike.get("severity", "") or "")
+        cleared_strike_turn = int(selected_strike.get("turn", 0) or 0)
+        reliability_delta = int(reliability_after - reliability_before)
+        relation_delta = int(self._MAKE_AMENDS_RELATION_REWARD)
+        cooldown_turns = int(self._MAKE_AMENDS_COOLDOWN_TURNS)
+        cooldown_expires_on_turn = int(
+            current_turn + self._MAKE_AMENDS_COOLDOWN_TURNS,
+        )
+        target_diplomat = world.diplomats.get(target_nation) if getattr(
+            world, "diplomats", None
+        ) else None
+        target_diplomat_name = (
+            str(target_diplomat.name) if target_diplomat is not None else ""
+        )
+
+        event_payload = {
+            "type": "amends_offered",
+            "episode_id": event_episode_id,
+            "actor_nation": player,
+            "target_nation": target_nation,
+            "target_diplomat": target_diplomat_name,
+            "gold_spent": int(self._MAKE_AMENDS_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "reliability_delta": reliability_delta,
+            "relation_delta": relation_delta,
+            "cleared_strike_episode_id": cleared_strike_episode,
+            "cleared_strike_severity": cleared_strike_severity,
+            "cleared_strike_turn": cleared_strike_turn,
+            "cooldown_turns": cooldown_turns,
+            "cooldown_expires_on_turn": cooldown_expires_on_turn,
+            "turn": current_turn,
+            # Slice C-lite resolves `speaker="envoy"` to the target court's
+            # named diplomat per COMMITMENTS_PRESENTATION_SPEC §10.3.
+            "speaker_attribution": "envoy",
+        }
+        world.log_event(event_payload)
+
+        queue_dispatch_event(
+            world,
+            "amends_offered",
+            {
+                "episode_id": event_episode_id,
+                "actor_nation": player,
+                "target_nation": target_nation,
+                "target_diplomat": target_diplomat_name,
+                "gold_spent": int(self._MAKE_AMENDS_GOLD_COST),
+                "dp_spent": int(self._MAKE_AMENDS_DP_COST),
+                "reliability_before": int(reliability_before),
+                "reliability_after": int(reliability_after),
+                "reliability_delta": reliability_delta,
+                "relation_delta": relation_delta,
+                "cleared_strike_episode_id": cleared_strike_episode,
+                "cleared_strike_severity": cleared_strike_severity,
+                "cleared_strike_turn": cleared_strike_turn,
+                "cooldown_turns": cooldown_turns,
+                "cooldown_expires_on_turn": cooldown_expires_on_turn,
+                "speaker_attribution": "envoy",
+                "turn": current_turn,
+            },
+            "partial_on_nation",
+        )
+
+        title = f"Amends offered to {target_nation}"
+        body = (
+            f"France offered reparations to {target_nation} "
+            f"({self._MAKE_AMENDS_GOLD_COST}g, {self._MAKE_AMENDS_DP_COST} DP)."
+        )
+        world.notifications.add(create_notification(
+            AMENDS_OFFERED,
+            NotificationPriority.NORMAL,
+            title,
+            body,
+            current_turn,
+            details={
+                "episode_id": event_episode_id,
+                "actor_nation": player,
+                "target_nation": target_nation,
+                "target_diplomat": target_diplomat_name,
+                "reliability_before": int(reliability_before),
+                "reliability_after": int(reliability_after),
+                "reliability_delta": reliability_delta,
+                "relation_delta": relation_delta,
+                "cleared_strike_episode_id": cleared_strike_episode,
+                "cleared_strike_severity": cleared_strike_severity,
+                "cleared_strike_turn": cleared_strike_turn,
+                "cooldown_turns": cooldown_turns,
+                "cooldown_expires_on_turn": cooldown_expires_on_turn,
+            },
+        ))
+
+        # ── Build result text: Talleyrand frame + target-court named ack ──
+        talleyrand_line = (
+            f"Talleyrand: \"The reparations have been delivered to "
+            f"{target_nation}, Sire.\""
+        )
+        ack_line = self._format_amends_acknowledgment(
+            target_diplomat_name, target_nation,
+        )
+        message = f"{talleyrand_line}\n{ack_line}"
+
+        return {
+            "success": True,
+            "message": message,
+            "action": "make_amends",
+            "target_nation": target_nation,
+            "gold_spent": int(self._MAKE_AMENDS_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "target_diplomat": target_diplomat_name,
+            "episode_id": event_episode_id,
+            "cleared_strike_episode_id": cleared_strike_episode,
+            "cleared_strike_severity": cleared_strike_severity,
+            "cleared_strike_turn": cleared_strike_turn,
+            "cooldown_turns": cooldown_turns,
+        }
+
+    def _select_strike_for_amends(
+        self, active_strikes: list, current_turn: int,
+    ) -> Dict:
+        """Select one strike per spec §8.6.1 / §8.6 passive-decay rule.
+
+        - Matured strikes (`decays_on_turn <= current_turn`) are preferred;
+          oldest `decays_on_turn` wins.
+        - Otherwise the lowest-severity active strike, ties broken by oldest
+          creation turn (`turn` field).
+        """
+        matured = [
+            strike for strike in active_strikes
+            if int(strike.get("decays_on_turn", current_turn + 1) or 0)
+            <= current_turn
+        ]
+        if matured:
+            return min(
+                matured,
+                key=lambda s: int(s.get("decays_on_turn", current_turn)),
+            )
+        return min(
+            active_strikes,
+            key=lambda s: (
+                self._STRIKE_SEVERITY_ORDER.get(
+                    str(s.get("severity", "medium")).lower(), 99,
+                ),
+                int(s.get("turn", 0) or 0),
+            ),
+        )
+
+    @staticmethod
+    def _strikes_match(candidate: Dict, selected: Dict) -> bool:
+        """Identify the strike to remove by its deterministic fingerprint.
+
+        Strikes carry `episode_id`, `turn`, `severity`, and `decays_on_turn`.
+        Two records match only when all four agree — this prevents accidental
+        removal of a same-episode second strike when the player has taken two
+        hits from one breach.
+        """
+        return (
+            str(candidate.get("episode_id", "")) == str(selected.get("episode_id", ""))
+            and int(candidate.get("turn", 0) or 0) == int(selected.get("turn", 0) or 0)
+            and str(candidate.get("severity", "")) == str(selected.get("severity", ""))
+            and int(candidate.get("decays_on_turn", 0) or 0)
+            == int(selected.get("decays_on_turn", 0) or 0)
+        )
+
+    def _format_amends_acknowledgment(
+        self, diplomat_name: str, target_nation: str,
+    ) -> str:
+        """Render the target court's named-diplomat acknowledgment line.
+
+        Voice Bible authors a committed line per cast diplomat. Non-cast
+        nations fall back to a chancery-voice formulation per
+        COMMITMENTS_PRESENTATION_SPEC §10.3 (no personality register when
+        the cast cannot resolve a register).
+        """
+        line = self._AMENDS_ACKNOWLEDGMENT_LINES.get(diplomat_name)
+        if line and diplomat_name:
+            return f"{diplomat_name}: \"{line}\""
+        # Non-cast fallback: "The Chancery of {nation}" voice with neutral
+        # acknowledgment copy. Never emit the bare `foreign_office` string.
+        return (
+            f"The Chancery of {target_nation}: "
+            f"\"The gesture from France is acknowledged.\""
+        )
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC DECLARE WAR

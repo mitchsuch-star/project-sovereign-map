@@ -523,6 +523,12 @@ class WorldState:
         # ultimatum_global_cooldown now managed by _cooldown_manager (R6, PL-14 migrated dict→scalar)
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.betrayal_history: Dict[str, Dict] = {}      # actor|victim -> remembered bilateral strikes
+        # RELIABILITY_COMMITMENTS_SPEC §8.6.1 / §12.2 — Make Amends per-pair cooldown.
+        # Key = diplo_key (sorted "A|B"); value = turn number at which Make Amends
+        # is next available. Absent / 0 = immediately available. Writers (§8.6.1
+        # standard + §8.6.1a grievance variant) share this cap — one Make Amends
+        # of any variant per pair per 10 turns.
+        self.reparations_cooldown: Dict[str, int] = {}
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.commitment_paradox_popup: Optional[Dict] = None  # R12 commitment paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
@@ -3460,6 +3466,7 @@ class WorldState:
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
+            "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
 
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
@@ -3793,6 +3800,9 @@ class WorldState:
             commitment_paradox_popup = data.get("alliance_paradox_popup", None)
         world.commitment_paradox_popup = commitment_paradox_popup
         world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
+        world.reparations_cooldown = {
+            str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
+        }
 
         # Dispatch event queue (Session 8D)
         world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]
