@@ -439,7 +439,12 @@ class TestWorldStateSerializationEnforcement:
         assert restored.current_turn == world.current_turn, "current_turn not preserved"
 
     def test_world_state_roundtrip_preserves_betrayal_history_and_episode_counter(self):
-        """v2.4.3 diplomatic memory substrate must survive save/load unchanged."""
+        """v2.4.3 diplomatic memory substrate must survive save/load unchanged.
+
+        B-B4 added `grievance_flags: []` to the canonical betrayal_history
+        record shape. The round-trip normalizes toward that shape, so the
+        fixture declares the key explicitly to match.
+        """
         world = WorldState(player_nation="France")
         world.betrayal_history = {
             "France|Austria": {
@@ -451,6 +456,9 @@ class TestWorldStateSerializationEnforcement:
                         "decays_on_turn": 18,
                     }
                 ],
+                # B-B4 §8.8.4 — the canonical record shape now carries a
+                # grievance_flags key even when the pair has none.
+                "grievance_flags": [],
                 "categories": ["french_breach"],
                 "last_turn": 7,
             }

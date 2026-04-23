@@ -3458,6 +3458,20 @@ class WorldState:
                         }
                         for strike in (record.get("strikes", []) or [])
                     ],
+                    # B-B4 §8.8.4 — durable victim-grade grievance flags.
+                    # Do NOT decay under §8.6 passive rules; cleared only
+                    # via Make Amends (grievance variant, §8.6.1a).
+                    "grievance_flags": [
+                        {
+                            "grievance_type": str(flag.get("grievance_type", "")),
+                            "episode_id": str(flag.get("episode_id", "")),
+                            "turn": int(flag.get("turn", 0)),
+                            "source_episode_type": str(
+                                flag.get("source_episode_type", "")
+                            ),
+                        }
+                        for flag in (record.get("grievance_flags", []) or [])
+                    ],
                     "categories": [str(cat) for cat in (record.get("categories", []) or [])],
                     "last_turn": int(record.get("last_turn", 0)),
                 }
@@ -3788,6 +3802,20 @@ class WorldState:
                         "decays_on_turn": int(strike.get("decays_on_turn", 0)),
                     }
                     for strike in (record.get("strikes", []) or [])
+                ],
+                # B-B4 §8.8.4 — durable grievance flags. Optional in saves
+                # from pre-B-B4 builds; defaults to [] so the round-trip
+                # keeps working for pre-DG-4 fixtures.
+                "grievance_flags": [
+                    {
+                        "grievance_type": str(flag.get("grievance_type", "")),
+                        "episode_id": str(flag.get("episode_id", "")),
+                        "turn": int(flag.get("turn", 0)),
+                        "source_episode_type": str(
+                            flag.get("source_episode_type", "")
+                        ),
+                    }
+                    for flag in (record.get("grievance_flags", []) or [])
                 ],
                 "categories": [str(cat) for cat in (record.get("categories", []) or [])],
                 "last_turn": int(record.get("last_turn", 0)),

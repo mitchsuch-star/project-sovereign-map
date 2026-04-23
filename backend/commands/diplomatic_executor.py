@@ -590,18 +590,25 @@ class DiplomaticExecutor:
         return result
 
     # ════════════════════════════════════════════════════════════════════════════════
-    # MAKE AMENDS (Memory and Pressure v2.4.3 — B-B7, spec §8.6.1)
-    # Standard strike-clearing variant only. Grievance variant (§8.6.1a) ships
-    # with B-B4 and will share `reparations_cooldown` / `amends_offered` routing.
+    # MAKE AMENDS (Memory and Pressure v2.4.3 — B-B7 standard + B-B4 grievance)
+    # Standard variant: spec §8.6.1 (strike-clearing, 200g + 1 DP).
+    # Grievance variant: spec §8.6.1a (grievance-flag-clearing, 400g + 2 DP).
+    # Both variants share `reparations_cooldown` (one Make Amends per pair
+    # per 10 turns regardless of variant) and the same three emit surfaces.
     # ════════════════════════════════════════════════════════════════════════════════
 
-    # Cost contract is authored in spec §8.6.1; duplicated here so callers
-    # and tests read the same constants the executor enforces.
+    # Cost contract is authored in spec §8.6.1 / §8.6.1a; duplicated here so
+    # callers and tests read the same constants the executor enforces.
     _MAKE_AMENDS_GOLD_COST = 200
     _MAKE_AMENDS_DP_COST = 1
     _MAKE_AMENDS_COOLDOWN_TURNS = 10
     _MAKE_AMENDS_RELIABILITY_REWARD = 2
     _MAKE_AMENDS_RELATION_REWARD = 5
+    # B-B4 grievance-variant costs and rewards (§8.6.1a).
+    _MAKE_AMENDS_GRIEVANCE_GOLD_COST = 400
+    _MAKE_AMENDS_GRIEVANCE_DP_COST = 2
+    _MAKE_AMENDS_GRIEVANCE_RELIABILITY_REWARD = 3
+    _MAKE_AMENDS_GRIEVANCE_RELATION_REWARD = 8
     # Severity ordering for the "lowest-severity active strike" fallback when
     # no matured strike is available. Lower ordinal = shorter decay interval =
     # the gentlest strike to consume first. Matches spec §8.6 decay buckets
@@ -622,15 +629,33 @@ class DiplomaticExecutor:
     }
 
     def _execute_make_amends(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle Make Amends command (B-B7, spec §8.6.1).
+        """Handle Make Amends command (B-B7 standard §8.6.1 / B-B4 grievance §8.6.1a).
 
-        Standard strike-clearing variant. France spends 200g + 1 DP to remove
-        one active victim-side strike against `target_nation`; reliability
-        +2, relation +5, shared 10-turn per-pair cooldown. Refusals are
-        Talleyrand-voiced advisories per the four §8.6.1 refusal conditions.
+        Standard variant spends 200g + 1 DP to remove one active victim-side
+        strike against `target_nation` (reliability +2, relation +5).
 
-        Enemy AI does NOT invoke this action in v0.1 (France-only actor).
+        Grievance variant (parser phrase `for the abandoned alliance`)
+        spends 400g + 2 DP to remove one active victim-side grievance flag
+        (reliability +3, relation +8). The two variants are DISTINCT
+        invocations — removing a grievance flag does NOT clear standalone
+        strikes, and clearing a standalone strike does NOT clear a
+        grievance flag (spec §8.6.1a "Standalone strikes coexisting with
+        grievance flag" clause).
+
+        Both variants share the 10-turn per-pair `reparations_cooldown`.
+
+        Refusals are Talleyrand-voiced advisories per the four §8.6.1 /
+        §8.6.1a conditions. Enemy AI does NOT invoke this action in v0.1
+        (France-only actor).
         """
+        amends_variant = str(
+            diplomatic_data.get("amends_variant") or "standard"
+        ).lower()
+        if amends_variant == "grievance":
+            return self._execute_make_amends_grievance_variant(
+                diplomatic_data, world,
+            )
+
         from backend.display_names import AMENDS_REFUSAL_DISPLAY
         from backend.game_logic.diplomacy import (
             _allocate_episode_id,
@@ -819,6 +844,11 @@ class DiplomaticExecutor:
             "cooldown_turns": cooldown_turns,
             "cooldown_expires_on_turn": cooldown_expires_on_turn,
             "turn": current_turn,
+            # B-B4: stable variant flag for Slice C-lite template routing.
+            # `"standard"` for this §8.6.1 strike-clearing variant;
+            # `"grievance"` on the §8.6.1a grievance-clearing path.
+            "amends_variant": "standard",
+            "grievance_variant": False,
             # Slice C-lite resolves `speaker="envoy"` to the target court's
             # named diplomat per COMMITMENTS_PRESENTATION_SPEC §10.3.
             "speaker_attribution": "envoy",
@@ -844,6 +874,8 @@ class DiplomaticExecutor:
                 "cleared_strike_turn": cleared_strike_turn,
                 "cooldown_turns": cooldown_turns,
                 "cooldown_expires_on_turn": cooldown_expires_on_turn,
+                "amends_variant": "standard",
+                "grievance_variant": False,
                 "speaker_attribution": "envoy",
                 "turn": current_turn,
             },
@@ -875,6 +907,8 @@ class DiplomaticExecutor:
                 "cleared_strike_turn": cleared_strike_turn,
                 "cooldown_turns": cooldown_turns,
                 "cooldown_expires_on_turn": cooldown_expires_on_turn,
+                "amends_variant": "standard",
+                "grievance_variant": False,
             },
         ))
 
@@ -903,6 +937,8 @@ class DiplomaticExecutor:
             "cleared_strike_severity": cleared_strike_severity,
             "cleared_strike_turn": cleared_strike_turn,
             "cooldown_turns": cooldown_turns,
+            "amends_variant": "standard",
+            "grievance_variant": False,
         }
 
     def _select_strike_for_amends(
@@ -971,6 +1007,327 @@ class DiplomaticExecutor:
             f"The Chancery of {target_nation}: "
             f"\"The gesture from France is acknowledged.\""
         )
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # MAKE AMENDS — GRIEVANCE VARIANT (B-B4, spec §8.6.1a)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _execute_make_amends_grievance_variant(
+        self, diplomatic_data: Dict, world,
+    ) -> Dict:
+        """Handle the grievance-clearing Make Amends variant (spec §8.6.1a).
+
+        France spends 400g + 2 DP to remove one active durable grievance
+        flag from `target_nation`'s record against France. Reliability
+        +3, relation +8, shared 10-turn per-pair cooldown with the
+        standard variant. Refusals are Talleyrand-voiced advisories.
+
+        Strike-variant and grievance-variant are distinct invocations —
+        removing a grievance flag does NOT clear standalone strikes, and
+        clearing a standalone strike does NOT clear a grievance flag
+        (spec §8.6.1a "Standalone strikes coexisting with grievance
+        flag" clause). Each requires its own call and its own use of
+        the shared cooldown.
+        """
+        from backend.display_names import AMENDS_REFUSAL_DISPLAY
+        from backend.game_logic.diplomacy import (
+            _allocate_episode_id,
+            _NON_WAR_TREATY_STATES,
+            _get_grievance_flags,
+            _remove_oldest_grievance_flag,
+        )
+        from backend.game_logic.dispatch import queue_dispatch_event
+        from backend.notifications import (
+            AMENDS_OFFERED,
+            NotificationPriority,
+            create_notification,
+        )
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": (
+                    "Sire, with which nation shall I arrange reparations? "
+                    "Specify: Britain, Prussia, Austria, or Saxony."
+                ),
+            }
+
+        player = world.player_nation
+        if target_nation == player:
+            # Spec §8.6.1 non-goal: "no self-directed use" — same rule
+            # applies to the grievance variant.
+            return {
+                "success": False,
+                "message": (
+                    "Sire, France cannot offer amends to herself — "
+                    "a nation repairs what it owes, not what it holds."
+                ),
+            }
+
+        current_turn = int(getattr(world, "current_turn", 0))
+
+        # ── Refusal: WAR or ARMISTICE ──
+        current_state = world.get_diplomatic_state(player, target_nation)
+        if current_state not in _NON_WAR_TREATY_STATES:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["war_or_armistice"].format(
+                    nation=target_nation,
+                ),
+            }
+
+        # ── Refusal: cooldown active (shared with standard variant) ──
+        diplo_key = world._make_diplo_key(player, target_nation)
+        cooldown_expiry = int(
+            getattr(world, "reparations_cooldown", {}).get(diplo_key, 0) or 0
+        )
+        if cooldown_expiry > current_turn:
+            turns_since = max(
+                0,
+                self._MAKE_AMENDS_COOLDOWN_TURNS - (cooldown_expiry - current_turn),
+            )
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["cooldown_active"].format(
+                    nation=target_nation,
+                    turns_since=turns_since,
+                ),
+            }
+
+        # ── Refusal: insufficient resources (400g + 2 DP) ──
+        available_dp = int(getattr(world, "diplomatic_points", 0) or 0)
+        if available_dp < self._MAKE_AMENDS_GRIEVANCE_DP_COST:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["insufficient_dp"].format(
+                    nation=target_nation,
+                    required=self._MAKE_AMENDS_GRIEVANCE_DP_COST,
+                    available=available_dp,
+                ),
+            }
+        available_gold = int(world.nation_gold.get(player, 0) or 0)
+        if available_gold < self._MAKE_AMENDS_GRIEVANCE_GOLD_COST:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["insufficient_gold"].format(
+                    nation=target_nation,
+                    required=self._MAKE_AMENDS_GRIEVANCE_GOLD_COST,
+                    available=available_gold,
+                ),
+            }
+
+        # ── Refusal: no active grievance (distinct from "no strikes") ──
+        # §8.6.1a explicit: the grievance variant fails when the pair has
+        # no active grievance flag, even if standalone strikes exist.
+        grievance_flags = _get_grievance_flags(world, player, target_nation)
+        if not grievance_flags:
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["no_active_grievance"].format(
+                    nation=target_nation,
+                ),
+            }
+
+        # ── Success: remove oldest grievance flag (FIFO by turn) ──
+        removed_flag = _remove_oldest_grievance_flag(
+            world, player, target_nation,
+        )
+        # `_remove_oldest_grievance_flag` cannot return None here because
+        # `grievance_flags` was non-empty — the defensive guard keeps
+        # type-checkers happy and surfaces the invariant if a future
+        # refactor breaks it.
+        if removed_flag is None:  # pragma: no cover - invariant
+            return {
+                "success": False,
+                "message": AMENDS_REFUSAL_DISPLAY["no_active_grievance"].format(
+                    nation=target_nation,
+                ),
+            }
+
+        # ── Deduct resources ──
+        world.nation_gold[player] = (
+            available_gold - self._MAKE_AMENDS_GRIEVANCE_GOLD_COST
+        )
+        world.diplomatic_points = (
+            available_dp - self._MAKE_AMENDS_GRIEVANCE_DP_COST
+        )
+
+        # ── Apply reliability + relation rewards ──
+        reliability = getattr(world, "diplomatic_reliability", {}) or {}
+        reliability_before = int(reliability.get(player, 0) or 0)
+        reliability_after = max(
+            -100,
+            min(
+                100,
+                reliability_before
+                + self._MAKE_AMENDS_GRIEVANCE_RELIABILITY_REWARD,
+            ),
+        )
+        reliability[player] = reliability_after
+        world.diplomatic_reliability = reliability
+        world.modify_nation_relation(
+            player,
+            target_nation,
+            self._MAKE_AMENDS_GRIEVANCE_RELATION_REWARD,
+        )
+
+        # ── Set cooldown (shared field with standard variant) ──
+        cooldown = dict(getattr(world, "reparations_cooldown", {}) or {})
+        cooldown[diplo_key] = current_turn + self._MAKE_AMENDS_COOLDOWN_TURNS
+        world.reparations_cooldown = cooldown
+
+        # ── Emit `amends_offered` on all three surfaces ──
+        event_episode_id = _allocate_episode_id(world)
+        cleared_grievance_episode = str(removed_flag.get("episode_id", "") or "")
+        cleared_grievance_turn = int(removed_flag.get("turn", 0) or 0)
+        cleared_grievance_type = str(
+            removed_flag.get("grievance_type", "") or ""
+        )
+        cleared_source_episode_type = str(
+            removed_flag.get("source_episode_type", "") or ""
+        )
+        reliability_delta = int(reliability_after - reliability_before)
+        relation_delta = int(self._MAKE_AMENDS_GRIEVANCE_RELATION_REWARD)
+        cooldown_turns = int(self._MAKE_AMENDS_COOLDOWN_TURNS)
+        cooldown_expires_on_turn = int(
+            current_turn + self._MAKE_AMENDS_COOLDOWN_TURNS,
+        )
+        target_diplomat = world.diplomats.get(target_nation) if getattr(
+            world, "diplomats", None,
+        ) else None
+        target_diplomat_name = (
+            str(target_diplomat.name) if target_diplomat is not None else ""
+        )
+
+        event_payload = {
+            "type": "amends_offered",
+            "episode_id": event_episode_id,
+            "actor_nation": player,
+            "target_nation": target_nation,
+            "target_diplomat": target_diplomat_name,
+            "gold_spent": int(self._MAKE_AMENDS_GRIEVANCE_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_GRIEVANCE_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "reliability_delta": reliability_delta,
+            "relation_delta": relation_delta,
+            # The grievance variant carries grievance-specific lineage.
+            # Strike fields are intentionally empty so consumers can tell
+            # the two variants apart by presence as well as by variant
+            # flag (distinct from the standard path which fills
+            # `cleared_strike_*` and leaves grievance fields empty).
+            "cleared_strike_episode_id": "",
+            "cleared_strike_severity": "",
+            "cleared_strike_turn": 0,
+            "cleared_grievance_episode_id": cleared_grievance_episode,
+            "cleared_grievance_type": cleared_grievance_type,
+            "cleared_grievance_turn": cleared_grievance_turn,
+            "cleared_grievance_source_episode_type": cleared_source_episode_type,
+            "cooldown_turns": cooldown_turns,
+            "cooldown_expires_on_turn": cooldown_expires_on_turn,
+            "turn": current_turn,
+            "amends_variant": "grievance",
+            "grievance_variant": True,
+            "speaker_attribution": "envoy",
+        }
+        world.log_event(event_payload)
+
+        queue_dispatch_event(
+            world,
+            "amends_offered",
+            {
+                "episode_id": event_episode_id,
+                "actor_nation": player,
+                "target_nation": target_nation,
+                "target_diplomat": target_diplomat_name,
+                "gold_spent": int(self._MAKE_AMENDS_GRIEVANCE_GOLD_COST),
+                "dp_spent": int(self._MAKE_AMENDS_GRIEVANCE_DP_COST),
+                "reliability_before": int(reliability_before),
+                "reliability_after": int(reliability_after),
+                "reliability_delta": reliability_delta,
+                "relation_delta": relation_delta,
+                "cleared_grievance_episode_id": cleared_grievance_episode,
+                "cleared_grievance_type": cleared_grievance_type,
+                "cleared_grievance_turn": cleared_grievance_turn,
+                "cleared_grievance_source_episode_type": cleared_source_episode_type,
+                "cooldown_turns": cooldown_turns,
+                "cooldown_expires_on_turn": cooldown_expires_on_turn,
+                "amends_variant": "grievance",
+                "grievance_variant": True,
+                "speaker_attribution": "envoy",
+                "turn": current_turn,
+            },
+            "partial_on_nation",
+        )
+
+        title = f"Amends offered to {target_nation}"
+        body = (
+            f"France offered reparations to {target_nation} for the "
+            f"abandoned alliance "
+            f"({self._MAKE_AMENDS_GRIEVANCE_GOLD_COST}g, "
+            f"{self._MAKE_AMENDS_GRIEVANCE_DP_COST} DP)."
+        )
+        world.notifications.add(create_notification(
+            AMENDS_OFFERED,
+            NotificationPriority.NORMAL,
+            title,
+            body,
+            current_turn,
+            details={
+                "episode_id": event_episode_id,
+                "actor_nation": player,
+                "target_nation": target_nation,
+                "target_diplomat": target_diplomat_name,
+                "reliability_before": int(reliability_before),
+                "reliability_after": int(reliability_after),
+                "reliability_delta": reliability_delta,
+                "relation_delta": relation_delta,
+                "cleared_grievance_episode_id": cleared_grievance_episode,
+                "cleared_grievance_type": cleared_grievance_type,
+                "cleared_grievance_turn": cleared_grievance_turn,
+                "cleared_grievance_source_episode_type": cleared_source_episode_type,
+                "cooldown_turns": cooldown_turns,
+                "cooldown_expires_on_turn": cooldown_expires_on_turn,
+                "amends_variant": "grievance",
+                "grievance_variant": True,
+            },
+        ))
+
+        # Result text: Talleyrand frame explicitly names the grievance
+        # variant so the player sees the 400g / 2 DP spend did NOT clear
+        # an ordinary strike. Target court acknowledgment reuses the
+        # Voice Bible line (cast diplomats share one line per court for
+        # both variants in v0.1 per spec §8.6.1a "same four refusal
+        # conditions" clause — register is per-court, not per-variant).
+        talleyrand_line = (
+            f"Talleyrand: \"The reparations for the abandoned alliance "
+            f"have been delivered to {target_nation}, Sire.\""
+        )
+        ack_line = self._format_amends_acknowledgment(
+            target_diplomat_name, target_nation,
+        )
+        message = f"{talleyrand_line}\n{ack_line}"
+
+        return {
+            "success": True,
+            "message": message,
+            "action": "make_amends",
+            "target_nation": target_nation,
+            "gold_spent": int(self._MAKE_AMENDS_GRIEVANCE_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_GRIEVANCE_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "target_diplomat": target_diplomat_name,
+            "episode_id": event_episode_id,
+            "cleared_grievance_episode_id": cleared_grievance_episode,
+            "cleared_grievance_type": cleared_grievance_type,
+            "cleared_grievance_turn": cleared_grievance_turn,
+            "cleared_grievance_source_episode_type": cleared_source_episode_type,
+            "cooldown_turns": cooldown_turns,
+            "amends_variant": "grievance",
+            "grievance_variant": True,
+        }
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC DECLARE WAR

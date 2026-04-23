@@ -113,6 +113,8 @@ CAMPAIGN_LOG_TYPES = {
     "hard_reject_posture_cleared",
     # Memory and Pressure v2.4.3 — B-B7 Make Amends (spec §8.6.1)
     "amends_offered",
+    # Memory and Pressure v2.4.3 — B-B4 call-to-arms refusal (spec §8.8)
+    "call_to_arms_refused_defensive",
 }
 
 # ============================================================================
@@ -184,6 +186,8 @@ CATEGORY_MAP = {
     "hard_reject_posture_cleared": "diplomacy",
     # Memory and Pressure v2.4.3 — B-B7 Make Amends
     "amends_offered": "diplomacy",
+    # Memory and Pressure v2.4.3 — B-B4 call-to-arms refusal (§8.8)
+    "call_to_arms_refused_defensive": "diplomacy",
 }
 
 
@@ -797,20 +801,43 @@ def format_event_oneliner(event: dict) -> str:
         return f"An envoy from {source} has arrived with a {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "amends_offered":
-        # B-B7 (spec §8.6.1) — France's repair gesture toward target_nation.
-        # `actor_nation` is always France in v0.1, kept on the event for
-        # forward-compat with §8.6.1 design intent that allows other actors
-        # in later phases.
+        # B-B7 (spec §8.6.1) + B-B4 (spec §8.6.1a grievance variant) —
+        # France's repair gesture toward target_nation. `actor_nation` is
+        # always France in v0.1, kept on the event for forward-compat with
+        # §8.6.1 design intent that allows other actors in later phases.
         actor = event.get("actor_nation", "France")
         target = event.get("target_nation") or event.get("nation", "Unknown")
         gold_spent = int(event.get("gold_spent", 0) or 0)
         dp_spent = int(event.get("dp_spent", 0) or 0)
-        # Spec §8.6.1 requires deterministic deltas in the payload; reflect
-        # them on the one-liner so the public log carries the political price.
+        variant = str(event.get("amends_variant") or "standard").lower()
+        # Spec §8.6.1 / §8.6.1a require deterministic deltas in the payload;
+        # reflect them on the one-liner so the public log carries the
+        # political price. The grievance variant adds the "for the
+        # abandoned alliance" qualifier so the ledger disambiguates at a
+        # glance.
+        if variant == "grievance":
+            return (
+                f"{actor} offered amends to {target} for the abandoned alliance "
+                f"({gold_spent}g, {dp_spent} DP)"
+            )
         return (
             f"{actor} offered amends to {target} "
             f"({gold_spent}g, {dp_spent} DP)"
         )
+
+    if event_type == "call_to_arms_refused_defensive":
+        # B-B4 / spec §8.8 — substrate one-liner. Slice C-lite owns the
+        # Voice-Bible CRITICAL notice copy; this rail is the public-log
+        # fallback that captures who refused whom and whether the refusal
+        # also ended an existing alliance (§8.8.7a).
+        breaker = event.get("breaker", "Unknown")
+        victim = event.get("victim", "Unknown")
+        if event.get("alliance_terminated"):
+            return (
+                f"{breaker} refused the defensive call from {victim}, "
+                "ending the alliance"
+            )
+        return f"{breaker} refused the defensive call from {victim}"
 
     if event_type == "hard_reject_posture_triggered":
         victim = event.get("victim_nation", "Unknown")

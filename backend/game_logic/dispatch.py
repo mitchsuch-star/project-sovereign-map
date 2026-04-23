@@ -1074,6 +1074,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # final committed prose via `commitments_notice_amends_offered`; this
     # template is the substrate fallback so the event reaches the dispatch.
     "amends_offered": "{actor_nation} has offered amends to {target_nation}.",
+    # B-B4 §8.8 — defender-side refusal of a legal, non-impossible call.
+    # Slice C-lite owns the final Voice-Bible prose per spec §8.8.10; this
+    # template is the substrate fallback.
+    "call_to_arms_refused_defensive": (
+        "{breaker} has refused the defensive call from {victim}."
+    ),
     "commitment_paradox_resolved": (
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
@@ -1119,6 +1125,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "hard_reject_posture_cleared": "MEDIUM",
     # B-B7: Make Amends — NORMAL/MEDIUM per COMMITMENTS_PRESENTATION_SPEC §10.3.
     "amends_offered": "MEDIUM",
+    # B-B4: defender-side refusal CRITICAL per spec §8.8.10; MEDIUM here
+    # keeps substrate-level dispatch parity with other betrayal-family
+    # events. Slice C-lite's CRITICAL notice copy lives on the lightweight
+    # notice rail, not the dispatch queue.
+    "call_to_arms_refused_defensive": "MEDIUM",
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
 }
@@ -1170,10 +1181,12 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
         # Check PARTIAL+ on any nation mentioned in template_vars.
         # `actor_nation` / `target_nation` keys added for B-B7 `amends_offered`
         # and any future events that prefer the explicit semantic names.
+        # `breaker` / `victim` keys added for B-B4
+        # `call_to_arms_refused_defensive`.
         nations_to_check = []
         for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy",
                    "vassal_capital", "witness_nation", "perpetrator_nation", "victim_nation",
-                   "actor_nation", "target_nation"):
+                   "actor_nation", "target_nation", "breaker", "victim"):
             val = template_vars.get(key)
             if val:
                 nations_to_check.append(val)

@@ -1041,7 +1041,7 @@ class LLMClient:
             action = "diplomatic_advisory"
         # B-B7 Make Amends — check BEFORE the generic "offer"/"demand"/"propose"
         # branches below, since "offer amends" / "amends" overlap with the
-        # proposal-fallback verbs. Spec §8.6.1.
+        # proposal-fallback verbs. Spec §8.6.1 (standard) + §8.6.1a (grievance).
         elif any(kw in command_lower for kw in [
             "make amends", "offer amends", "amends with", "amends to",
             "repair relations", "offer reparations", "send reparations",
@@ -1081,6 +1081,23 @@ class LLMClient:
             action = "diplomatic_proposal"
             tone = "propose"
 
+        # B-B4 §8.6.1a — grievance-variant disambiguation. When both a
+        # standalone strike AND one or more grievance flags exist against
+        # the same target, the parser must surface the two verbs as
+        # distinct actions. The explicit phrase `for the abandoned
+        # alliance` (and close idiomatic variants) routes to the
+        # grievance variant; default is the standard variant.
+        amends_variant = "standard"
+        if action == "make_amends" and any(kw in command_lower for kw in [
+            "for the abandoned alliance",
+            "for abandoning the alliance",
+            "for the abandoned call",
+            "for refusing the defensive call",
+            "grievance variant",
+            "abandoned alliance",
+        ]):
+            amends_variant = "grievance"
+
         # Build diplomatic data
         diplomatic_data = {
             "action": action,
@@ -1093,6 +1110,10 @@ class LLMClient:
             "has_diplomatic_keywords": has_diplomatic,
             "tone": tone if action == "diplomatic_proposal" else "propose",
             "raw_text": command_text,
+            # B-B4: stable pass-through for Make Amends variant. Default is
+            # `"standard"` for every non-make_amends path so downstream
+            # tests can rely on the key being present.
+            "amends_variant": amends_variant if action == "make_amends" else "standard",
         }
 
         return ParseResult(

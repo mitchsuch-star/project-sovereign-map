@@ -258,6 +258,35 @@ FEEDBACK_STRINGS = {
         "negative": "their memory of our broken commitments",
         "positive": "a clean bilateral slate with them",
     },
+    "grievance_modifier": {
+        # B-B4 §8.8.9 + §9.3. Grievance flags land on defensive-call
+        # refusals and persist until repaired via Make Amends (grievance
+        # variant). "Abandoned alliance" is the player-facing phrase used
+        # consistently across spec + parser disambiguation + ledger row.
+        "negative": "their grievance over abandoned alliances",
+        "positive": "no grievance over abandoned alliances",
+    },
+    # B-B4 §9.3 composite-floor debug metadata. These entries exist so the
+    # component-key completeness test stays green; `_generate_feedback`
+    # does NOT list them in `trackable`, so they never drive player-facing
+    # hint text. Copy is neutral because the fields describe the floor's
+    # state, not a political pressure the diplomat would voice.
+    "grievance_flag_count_raw": {
+        "negative": "raw count of outstanding grievances",
+        "positive": "no outstanding grievances",
+    },
+    "composite_floor": {
+        "negative": "the political-pressure floor held at -60",
+        "positive": "no composite floor was reached",
+    },
+    "composite_floor_applied": {
+        "negative": "the composite floor clamped the political subtotal",
+        "positive": "the composite floor was not engaged",
+    },
+    "composite_floor_adjustment": {
+        "negative": "the floor absorbed additional pressure",
+        "positive": "no floor adjustment was required",
+    },
     "harshness_penalty": {
         "negative": "the harshness of current demands",
         "positive": "our reasonable terms",
@@ -333,6 +362,33 @@ AMENDS_REFUSAL_DISPLAY = {
         "Insufficient Diplomatic Points, Sire. Reparations to {nation} require "
         "{required} DP, but we have only {available}."
     ),
+    # B-B4 §8.6.1a — grievance-variant refusal for the "no abandoned
+    # alliance to repair" case. Talleyrand voice per spec excerpt: "There
+    # is no abandoned alliance to repair, Sire — {nation} holds no living
+    # grievance of that kind against France."
+    "no_active_grievance": (
+        "There is no abandoned alliance to repair, Sire — "
+        "{nation} holds no living grievance of that kind against France."
+    ),
+}
+
+# ============================================================================
+# END_REASON_FAMILY_DISPLAY — ledger / dispatch labels per §9.9 fault family.
+# Source: RELIABILITY_COMMITMENTS_SPEC §9.9 + §8.8.7a (defensive refusal
+# termination). Keys match the `END_REASON_FAMILY_*` constants in
+# `backend.game_logic.diplomacy` so presentation never emits raw enum
+# strings per the R7 display-map contract.
+# ============================================================================
+
+END_REASON_FAMILY_DISPLAY = {
+    "french_breach": "Broken by France",
+    "counterparty_reversal": "Broken by the counterparty",
+    "obsolescence_or_external": "Forced by cascade or external event",
+    # B-B4 §8.8.7a — refusal-as-repudiation. Kept distinct from
+    # `french_breach` so the ledger can tell "France broke the alliance"
+    # from "France refused the defensive call and thereby ended the
+    # alliance."
+    "defensive_refusal_termination": "Ended by refusal of the defensive call",
 }
 
 # ============================================================================

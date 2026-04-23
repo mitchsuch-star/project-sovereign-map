@@ -12,7 +12,7 @@ Single source of truth for diplomatic mechanics:
 """
 
 import random  # noqa: F401 — used in _process_mission_effects
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from backend.display_names import (
     FEEDBACK_STRINGS,
@@ -195,9 +195,16 @@ _BREACH_SEVERITY_BY_TREATY = {
 # `french_breach`: actor voluntarily ruptured a commitment (perpetrator at fault).
 # `counterparty_reversal`: the counterparty reversed first (no perpetrator penalty).
 # `obsolescence_or_external`: basis disappeared / external cascade (no perpetrator penalty).
+# `defensive_refusal_termination`: §8.8.7a — a `call_to_arms_refused_defensive`
+#     episode that also auto-terminates an existing ALLIANCE / DEFENSIVE_ALLIANCE
+#     between breaker and victim. Parallel to `french_breach` but distinct: the
+#     refusal episode itself carries the reliability/strike/grievance fault,
+#     so this termination event adds no strike of its own (§8.8.7a "cascade
+#     interaction" clause).
 END_REASON_FAMILY_FRENCH_BREACH = "french_breach"
 END_REASON_FAMILY_COUNTERPARTY_REVERSAL = "counterparty_reversal"
 END_REASON_FAMILY_OBSOLESCENCE_OR_EXTERNAL = "obsolescence_or_external"
+END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION = "defensive_refusal_termination"
 
 # `end_reason_action` = what the actor did (the old substrate enum).
 # Split from `end_reason_family` (who is at fault) so presentation can stage
@@ -207,6 +214,12 @@ _REASON_ACTION_PHRASES = {
     "war_declaration": "by declaring war",
     "paradox_choice": "to resolve a diplomatic paradox",
     "cascade_forced": "when dragged into war by an ally",
+    # B-B4 §8.8.7a: the refusal-event-as-repudiation phrasing. Used on
+    # `diplomatic_treaty_broken` events emitted by
+    # `emit_call_to_arms_refused_defensive` so the campaign log / dispatch
+    # reads "Russia has broken the alliance with Austria by refusing the
+    # defensive call" rather than the generic `manual_break` wording.
+    "defensive_refusal": "by refusing the defensive call",
 }
 
 # Per-witness scope reason (RELIABILITY_COMMITMENTS_SPEC §8.4 precedence).
@@ -298,6 +311,344 @@ def _get_active_betrayal_strikes(world, actor: str, victim: str) -> List[Dict]:
 
 def _get_active_betrayal_strike_count(world, actor: str, victim: str) -> int:
     return int(len(_get_active_betrayal_strikes(world, actor, victim)))
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# B-B4 / §8.8.4 — victim-grade grievance flags on betrayal_history pair entries
+# ────────────────────────────────────────────────────────────────────────────
+# The grievance flag is the durable half of a defensive-refusal episode. The
+# underlying `+2` victim strike decays under §8.6 rules; the flag does NOT.
+# The flag is removable only through Make Amends (grievance variant, §8.6.1a).
+#
+# Storage: each flag is a dict on `record["grievance_flags"]` with keys:
+#   - `grievance_type`  : e.g. "defensive_call_refused"  (extensible)
+#   - `episode_id`      : root-cause episode id
+#   - `turn`            : creation turn (FIFO order for Make Amends removal)
+#   - `source_episode_type` : e.g. "call_to_arms_refused_defensive"
+#
+# Stacking cap: all flags are retained in storage so the ledger can surface
+# "4+ grievances" distinctly. `grievance_modifier` (§8.8.9 / §9.3) caps its
+# penalty input at 3 flags per pair. Ordering is by creation turn; ties are
+# broken by episode_id lexicographic order so FIFO removal is deterministic
+# even if two grievances land on the same turn.
+
+_GRIEVANCE_STACKING_CAP_FOR_MODIFIER = 3
+
+
+def _get_grievance_flags(world, breaker: str, victim: str) -> List[Dict]:
+    """Return the persistent grievance-flag list for breaker -> victim.
+
+    Flags do not decay under §8.6 passive rules; the list is exactly what is
+    stored on the pair record. Callers must not mutate the returned list.
+    """
+    history = getattr(world, "betrayal_history", {}) or {}
+    record = history.get(_betrayal_key(breaker, victim), {}) or {}
+    return list(record.get("grievance_flags", []) or [])
+
+
+def _get_active_grievance_flag_count(world, breaker: str, victim: str) -> int:
+    """Active grievance count for the pair (no decay; 0 when pair is clean)."""
+    return int(len(_get_grievance_flags(world, breaker, victim)))
+
+
+def _get_capped_grievance_flag_count(world, breaker: str, victim: str) -> int:
+    """Grievance count capped at the acceptance-formula stacking cap (§8.8.4).
+
+    Cap is exposed as a helper so `grievance_modifier` and debug surfaces
+    agree on saturation: the capped value drives the penalty, the raw value
+    drives the ledger row.
+    """
+    return min(
+        _GRIEVANCE_STACKING_CAP_FOR_MODIFIER,
+        _get_active_grievance_flag_count(world, breaker, victim),
+    )
+
+
+def _add_grievance_flag(
+    world,
+    *,
+    breaker: str,
+    victim: str,
+    grievance_type: str,
+    episode_id: str,
+    source_episode_type: str,
+) -> Dict:
+    """Append a durable grievance flag to the breaker -> victim pair.
+
+    Returns the freshly recorded flag dict. Updates `last_turn` on the
+    record to match the new strike-alignment bookkeeping; creates an
+    empty strike list if the pair is otherwise fresh (grievance-only
+    state is legal after the originating +2 strike has decayed).
+    """
+    current_turn = int(getattr(world, "current_turn", 0))
+    history = getattr(world, "betrayal_history", {}) or {}
+    key = _betrayal_key(breaker, victim)
+    record = history.get(key) or {
+        "strikes": [],
+        "categories": [],
+        "last_turn": 0,
+        "grievance_flags": [],
+    }
+    flags = list(record.get("grievance_flags", []) or [])
+    flag = {
+        "grievance_type": str(grievance_type),
+        "episode_id": str(episode_id),
+        "turn": current_turn,
+        "source_episode_type": str(source_episode_type),
+    }
+    flags.append(flag)
+    record["grievance_flags"] = flags
+    categories = set(record.get("categories", []) or [])
+    categories.add("grievance")
+    record["categories"] = sorted(categories)
+    record["last_turn"] = current_turn
+    history[key] = record
+    world.betrayal_history = history
+    return flag
+
+
+def _remove_oldest_grievance_flag(
+    world, breaker: str, victim: str,
+) -> Optional[Dict]:
+    """FIFO remove the oldest grievance flag for breaker -> victim.
+
+    Ordering: (`turn`, `episode_id`) ascending — matches §8.6.1a "oldest
+    grievance by grievance-creation turn" with a deterministic episode_id
+    tie-break.
+
+    Returns the removed flag dict, or None if the pair has no flags.
+    Prunes the pair record entirely if no strikes + no grievance flags
+    remain (matches §8.6.1 strike-removal cleanup so the pair reads as a
+    clean slate once repaired).
+    """
+    history = getattr(world, "betrayal_history", {}) or {}
+    key = _betrayal_key(breaker, victim)
+    record = history.get(key)
+    if not record:
+        return None
+    flags = list(record.get("grievance_flags", []) or [])
+    if not flags:
+        return None
+    oldest = min(
+        flags,
+        key=lambda f: (int(f.get("turn", 0) or 0), str(f.get("episode_id", ""))),
+    )
+    flags.remove(oldest)
+    if flags:
+        record["grievance_flags"] = flags
+        history[key] = record
+    else:
+        record["grievance_flags"] = []
+        if not record.get("strikes"):
+            history.pop(key, None)
+        else:
+            history[key] = record
+    world.betrayal_history = history
+    return oldest
+
+
+def grievance_modifier(asker: str, target: str, world) -> int:
+    """Acceptance-formula penalty from victim-side durable grievances (§8.8.9).
+
+    Target holds one or more grievance flags against asker (asker is the
+    breaker, target is the abandoned victim). Penalty is `-30` per active
+    flag, saturating at the `_GRIEVANCE_STACKING_CAP_FOR_MODIFIER` limit
+    (`-90` maximum per pair). Rationale: §8.8.4 cap — "history never made
+    a sixth betrayal score worse than the third."
+
+    Returns 0 whenever:
+    - asker == target or either is falsy
+    - target holds no grievance flag against asker
+
+    The raw active flag count (uncapped) surfaces separately in debug /
+    ledger output so the player can distinguish "3 flags" from "4+ flags"
+    visually; only the capped count drives the formula.
+    """
+    if not asker or not target or asker == target:
+        return 0
+    active = _get_capped_grievance_flag_count(world, asker, target)
+    return -30 * active
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# B-B4 / §8.8.7a — call-to-arms refused (defensive) episode emitter
+# ────────────────────────────────────────────────────────────────────────────
+
+
+def emit_call_to_arms_refused_defensive(
+    world,
+    *,
+    breaker: str,
+    victim: str,
+    severity: str = "high",
+    call_context: Optional[Dict] = None,
+    episode_id: Optional[str] = None,
+) -> Dict:
+    """Emit a `call_to_arms_refused_defensive` episode + fold-through effects.
+
+    Per spec §§8.8.1–8.8.7a. This is the substrate-level programmatic seam
+    the DG-4 decision path will route through once the three-path resolver
+    lands. Ships in B-B4 with an internal entry point so acceptance-formula
+    and Make Amends regressions can be pinned before the UI seams exist.
+
+    Effects (in order):
+    1. Record a `+2` victim-side betrayal strike under `severity` (default
+       "high" for §8.3 decay bucket alignment; matures in 10 turns).
+    2. Record a durable victim-grade grievance flag
+       (`grievance_type="defensive_call_refused"`).
+    3. Apply `-10` to breaker's reliability (clamped to [-100, 100]).
+    4. If breaker/victim currently share ALLIANCE or DEFENSIVE_ALLIANCE,
+       terminate it to PEACE in the same call (§8.8.7a) and emit
+       `diplomatic_treaty_broken` with
+       `end_reason_family = "defensive_refusal_termination"`. Bloc cache
+       is invalidated by `set_diplomatic_state`, so later same-turn
+       `get_bloc_members` reads the post-termination geometry.
+    5. Log + queue the `call_to_arms_refused_defensive` event.
+
+    No-op-return fields make the emitter safe to call whether or not a
+    binding alliance currently exists between the pair.
+
+    Args:
+        world: WorldState.
+        breaker: the nation refusing the call.
+        victim: the calling principal (the abandoned ally).
+        severity: strike severity for §8.3 decay tables (default "high").
+        call_context: optional snapshot of the refused call (defensive /
+            offensive flag, principal power-ratio at call moment, etc.).
+        episode_id: optional pre-allocated id so multi-victim refusals in
+            the same turn can share bookkeeping.
+
+    Returns:
+        Dict with episode_id, grievance flag payload, alliance termination
+        flag, strike record, and reliability delta for callers that want to
+        pin the result in tests or dispatch UI.
+    """
+    if not breaker or not victim or breaker == victim:
+        raise ValueError(
+            "emit_call_to_arms_refused_defensive requires distinct "
+            "breaker and victim nations"
+        )
+    episode_id = episode_id or _allocate_episode_id(world, prefix="call")
+    current_turn = int(getattr(world, "current_turn", 0))
+
+    # ── 1. Betrayal strike (+2 victim-grade, severity "high" by default) ──
+    strike_record = _record_betrayal_strike(
+        world,
+        actor=breaker,
+        victim=victim,
+        severity=severity,
+        episode_id=episode_id,
+    )
+
+    # ── 2. Durable grievance flag (§8.8.4 — does not decay) ──
+    grievance = _add_grievance_flag(
+        world,
+        breaker=breaker,
+        victim=victim,
+        grievance_type="defensive_call_refused",
+        episode_id=episode_id,
+        source_episode_type="call_to_arms_refused_defensive",
+    )
+
+    # ── 3. Reliability penalty on breaker (-10 per §8.8.2 severity table) ──
+    reliability = getattr(world, "diplomatic_reliability", {}) or {}
+    reliability_before = int(reliability.get(breaker, 0) or 0)
+    reliability_after = max(-100, min(100, reliability_before - 10))
+    reliability[breaker] = reliability_after
+    world.diplomatic_reliability = reliability
+
+    # ── 4. Alliance termination §8.8.7a (same-turn, only if binding exists) ──
+    alliance_terminated = False
+    previous_alliance_state = world.get_diplomatic_state(breaker, victim)
+    if previous_alliance_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        pair_key = world._make_diplo_key(breaker, victim)
+        existing_treaty = getattr(world, "active_treaties", {}).get(pair_key)
+        breach_preview = get_treaty_breach_preview(
+            world,
+            breaker,
+            victim,
+            treaty=existing_treaty,
+            end_reason_action="defensive_refusal",
+            fault_nation=breaker,
+            episode_id=episode_id,
+        )
+        # Force the state transition first; `set_diplomatic_state` handles
+        # bloc-cache invalidation + hegemony band-crossing notification.
+        set_diplomatic_state(
+            world, breaker, victim, "PEACE", "defensive_refusal_termination",
+        )
+        # Then record the breach event on the normal channel. The refusal
+        # episode carries the strike + grievance + reliability penalty
+        # already, so the breach event itself adds no new strike
+        # (`_record_treaty_breach` gates strike recording on FRENCH_BREACH,
+        # and defensive_refusal_termination is a distinct family).
+        _record_treaty_breach(
+            world,
+            breach_preview,
+            new_state="PEACE",
+            trigger_context={
+                "refusal_episode_id": episode_id,
+                "refusal_episode_type": "call_to_arms_refused_defensive",
+                "breaker": breaker,
+                "victim": victim,
+            },
+        )
+        alliance_terminated = True
+
+    # ── 5. Emit the refusal episode on campaign log + dispatch ──
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    refusal_payload = {
+        "type": "call_to_arms_refused_defensive",
+        "episode_id": episode_id,
+        "breaker": breaker,
+        "victim": victim,
+        "severity": str(severity),
+        "strike_recorded": bool(strike_record.get("recorded")),
+        "grievance_flag": grievance,
+        "alliance_terminated": alliance_terminated,
+        "previous_alliance_state": previous_alliance_state
+        if alliance_terminated
+        else "",
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "call_context": dict(call_context or {}),
+        "turn": current_turn,
+        # Slice C-lite resolves `speaker="foreign_office"` to "The Chancery of
+        # {victim}" when the victim has no named envoy.
+        "speaker_attribution": "foreign_office",
+    }
+    world.log_event(refusal_payload)
+    queue_dispatch_event(
+        world,
+        "call_to_arms_refused_defensive",
+        {
+            "episode_id": episode_id,
+            "breaker": breaker,
+            "victim": victim,
+            "severity": str(severity),
+            "alliance_terminated": alliance_terminated,
+            "reliability_before": reliability_before,
+            "reliability_after": reliability_after,
+            "reliability_delta": reliability_after - reliability_before,
+            "turn": current_turn,
+            "speaker_attribution": "foreign_office",
+        },
+        "partial_on_nation",
+    )
+
+    return {
+        "episode_id": episode_id,
+        "strike_record": strike_record,
+        "grievance_flag": grievance,
+        "alliance_terminated": alliance_terminated,
+        "previous_alliance_state": previous_alliance_state
+        if alliance_terminated
+        else "",
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+    }
 
 
 def _shared_enemy_exists(world, nation_a: str, nation_b: str) -> bool:
@@ -584,6 +935,14 @@ def _resolve_end_reason(end_reason_action: str, fault_nation: str, breaker_natio
     if end_reason_action == "cascade_forced":
         # Cascade is external to the cascaded nation's choice -> no penalty.
         return END_REASON_FAMILY_OBSOLESCENCE_OR_EXTERNAL
+    if end_reason_action == "defensive_refusal":
+        # §8.8.7a: the refusal episode carries the fault attribution (strike +
+        # grievance + reliability penalty land on the episode itself). The
+        # parallel `diplomatic_treaty_broken` event emitted for UI / cascade
+        # plumbing rides its own dedicated family so presentation can tell
+        # "refused and thereby ended the alliance" apart from a generic
+        # voluntary breach.
+        return END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION
     return END_REASON_FAMILY_FRENCH_BREACH
 
 
@@ -1578,6 +1937,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # ── Bilateral Betrayal Modifier (v2.4.3 §9.2) ──
     bilateral_betrayal = bilateral_betrayal_mod(proposer, target, world)
 
+    # ── Grievance Modifier (B-B4 §8.8.9 + §9.3) ──
+    # -30 per active durable grievance flag held by the target against
+    # the asker, saturating at 3 flags per pair (max -90). The raw
+    # uncapped count surfaces as `grievance_flag_count_raw` on
+    # `components` so the ledger can distinguish "3 grievances" from
+    # "4+ grievances" distinctly without re-deriving it.
+    grievance = grievance_modifier(proposer, target, world)
+    grievance_flag_count_raw = int(
+        _get_active_grievance_flag_count(world, proposer, target)
+    )
+
     # ── Deal Balance ──
     from backend.models.region import NATION_CAPITALS
     _all_capitals = set(NATION_CAPITALS.values())
@@ -1742,19 +2112,27 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                             break
         ultimatum_bonus += adjacency_bonus + territory_bonus
 
+    # ── Composite floor (B-B4 §9.3 with-DG-4 clause) ──
+    # With `grievance_modifier` live in the formula, the three political-
+    # pressure terms combined can reach -128 raw (-20 hegemony + -18
+    # betrayal + -90 grievance). §9.3 clamps that political subtotal at
+    # -60 so the §8.7 survival-exception path stays playable. The floor
+    # is a synthetic debug row; raw term values are preserved in
+    # `components` for legibility.
+    political_subtotal_raw = int(hegemony_target) + int(bilateral_betrayal) + int(grievance)
+    political_subtotal_clamped = max(-60, political_subtotal_raw)
+    composite_floor_applied = political_subtotal_clamped > political_subtotal_raw
+    composite_floor_adjustment = political_subtotal_clamped - political_subtotal_raw
+    composite_floor_value = -60 if composite_floor_applied else 0
+
     # ── Sum ──
-    # Composite floor owned by B-B4 per RELIABILITY_IMPLEMENTATION_PLAN.md
-    # §9.3 with-DG-4 clause. Do NOT reintroduce a composite floor here while
-    # grievance_modifier is absent; B-B4 reintroduces the -60 floor together
-    # with the grievance term.
     raw_score = (
         base
         + war_score_mod
         + relation_mod
         + war_weariness_mod
         + stalemate_duration_mod
-        + hegemony_target
-        + bilateral_betrayal
+        + political_subtotal_clamped
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -1783,7 +2161,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     else:
         outcome = "REJECT"
 
-    # Build components dict for debugging/display
+    # Build components dict for debugging/display.
+    # Raw term values are preserved so the ledger can render
+    # "hegemony -20, betrayal -18, grievance -90, composite floor applied
+    # at -60" per spec §9.3 "Floor exposure" clause.
     components = {
         "base_disposition": base,
         "war_score_modifier": round(war_score_mod, 1),
@@ -1792,6 +2173,11 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "stalemate_duration": int(stalemate_duration_mod),
         "hegemony_target_mod": int(hegemony_target),
         "bilateral_betrayal_mod": int(bilateral_betrayal),
+        "grievance_modifier": int(grievance),
+        "grievance_flag_count_raw": grievance_flag_count_raw,
+        "composite_floor": int(composite_floor_value),
+        "composite_floor_applied": bool(composite_floor_applied),
+        "composite_floor_adjustment": int(composite_floor_adjustment),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -1827,6 +2213,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
+        "grievance_modifier",
         "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",
         "ultimatum_bonus",
