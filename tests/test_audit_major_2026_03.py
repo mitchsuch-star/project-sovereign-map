@@ -464,18 +464,14 @@ class TestM9DiplomaticDialogueExceptionPopups:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# M10: alliance_paradox_popup HAS NO GODOT HANDLER (TODO comment check)
+# M10: alliance_paradox_popup HAS NO GODOT HANDLER — SUPERSEDED BY B-B3 RENAME
 # ═══════════════════════════════════════════════════════════════════════════
-
-class TestM10AllianceParadoxTodo:
-    """alliance_paradox_popup TODO has been superseded by the commitment_paradox
-    flow in RELIABILITY_COMMITMENTS_SPEC §7.5. This audit check is obsolete."""
-
-    import pytest
-
-    @pytest.mark.skip(reason="M10 TODO superseded by commitment_paradox sibling flow")
-    def test_todo_comment_exists_in_main(self):
-        pass
+#
+# The audit-era TODO check is obsolete: the push-side type and popup field
+# are renamed to commitment_paradox (load-side alias kept for save replay).
+# The dedicated commitment_paradox_popup.{tscn,gd} Godot handler ships this
+# slice; the legacy alliance_paradox_popup scene has been retired.
+# See tests/test_commitment_paradox_rename.py for the live regressions.
 
 
 # ═══════════════════════════════════════════════════════════════════════════

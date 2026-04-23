@@ -18,7 +18,7 @@ class_name DialogManager
 #   108: objection_dialog
 #   109: proposal_confirm_popup
 #   110: diplomacy_wizard
-#   111: alliance_paradox_popup
+#   111: commitment_paradox_popup
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
 #   114: (removed)
