@@ -30,6 +30,19 @@ def make_world():
     return world
 
 
+def _clear_opening_bloc(world):
+    """v2.4.3 migration: strip opening alliance triangle so
+    `hegemony_target_mod` (B-B1-lite) doesn't tax cross-bloc proposals in
+    tests that pre-date the acceptance-formula collapse. AI trigger tests
+    (P1/P2/P3 etc.) do not need the opening Prussia-Austria-Britain bloc
+    active to validate their assertions, and the bloc pushes expected
+    acceptance below the `score < 20` AI filter in `process_diplomatic_phase`."""
+    for k in list(world.diplomatic_states.keys()):
+        if world.diplomatic_states[k] in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            world.diplomatic_states[k] = "PEACE"
+    world.invalidate_bloc_members_cache()
+
+
 def set_war(world, nation_a, nation_b):
     """Put two nations at war."""
     key = world._make_diplo_key(nation_a, nation_b)
@@ -227,6 +240,7 @@ class TestA3P1ThresholdWE:
     def test_hawk_with_we_fires(self):
         """Hawk (delta -20) + WE=60: war_score=-58 < -57, fires."""
         world = make_world()
+        _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "hawk")
         set_relation(world, "France", "Prussia", 20)
@@ -356,6 +370,7 @@ class TestA2CoalitionGuard:
     def test_non_member_passes(self):
         """Non-coalition member can still sue for peace via P1."""
         world = make_world()
+        _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
         set_relation(world, "France", "Prussia", 20)
@@ -377,6 +392,7 @@ class TestA2CoalitionGuard:
     def test_member_ws_below_minus50(self):
         """Coalition member with war_score < -50 can break loyalty."""
         world = make_world()
+        _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
         set_relation(world, "France", "Prussia", 20)
@@ -1063,6 +1079,7 @@ class TestIntegration:
     def test_hawk_p1_threshold_with_we(self):
         """Hawk + WE combination: threshold = -40 + (-20) + we//20."""
         world = make_world()
+        _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "hawk")
         set_relation(world, "France", "Prussia", 20)

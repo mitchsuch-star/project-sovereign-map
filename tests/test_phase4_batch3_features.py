@@ -321,7 +321,11 @@ class TestR34DiplomaticReliability:
         assert world.diplomatic_reliability["France"] == 100
 
     def test_reliability_affects_acceptance_positive(self, world):
-        """Positive reliability gives positive modifier in acceptance formula."""
+        """Positive reliability gives positive modifier in acceptance formula.
+
+        v2.4.3 §9.2: narrowed from `// 5` capped +/-10 to `// 10` capped +/-6
+        so bilateral betrayal memory dominates cross-pair reliability averages.
+        """
         from backend.game_logic.diplomacy import calculate_acceptance
 
         world.diplomatic_reliability["France"] = 50
@@ -335,11 +339,11 @@ class TestR34DiplomaticReliability:
             "clauses": [],
         }
         result = calculate_acceptance(proposal, world)
-        # 50 reliability // 5 = 10, capped at 10
-        assert result["components"]["reliability_modifier"] == 10
+        # 50 reliability // 10 = 5, capped at +6
+        assert result["components"]["reliability_modifier"] == 5
 
     def test_reliability_affects_acceptance_negative(self, world):
-        """Negative reliability gives negative modifier in acceptance formula."""
+        """Negative reliability gives negative modifier. v2.4.3 §9.2 contract."""
         from backend.game_logic.diplomacy import calculate_acceptance
 
         world.diplomatic_reliability["France"] = -50
@@ -353,11 +357,11 @@ class TestR34DiplomaticReliability:
             "clauses": [],
         }
         result = calculate_acceptance(proposal, world)
-        # -50 reliability // 5 = -10, capped at -10
-        assert result["components"]["reliability_modifier"] == -10
+        # -50 reliability // 10 = -5, capped at -6
+        assert result["components"]["reliability_modifier"] == -5
 
-    def test_reliability_modifier_capped_at_plus_minus_10(self, world):
-        """Reliability modifier capped at +/-10 even with extreme values."""
+    def test_reliability_modifier_capped_at_plus_minus_6(self, world):
+        """Reliability modifier capped at +/-6 (v2.4.3 §9.2 narrowing)."""
         from backend.game_logic.diplomacy import calculate_acceptance
 
         world.diplomatic_reliability["France"] = 100
@@ -371,11 +375,11 @@ class TestR34DiplomaticReliability:
             "clauses": [],
         }
         result = calculate_acceptance(proposal, world)
-        assert result["components"]["reliability_modifier"] == 10
+        assert result["components"]["reliability_modifier"] == 6
 
         world.diplomatic_reliability["France"] = -100
         result2 = calculate_acceptance(proposal, world)
-        assert result2["components"]["reliability_modifier"] == -10
+        assert result2["components"]["reliability_modifier"] == -6
 
 
 # ═══════════════════════════════════════════════════════

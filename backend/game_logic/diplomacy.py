@@ -315,6 +315,59 @@ def has_hard_reject_posture(world, actor: str, victim: str) -> bool:
     return _get_active_betrayal_strike_count(world, actor, victim) >= 3
 
 
+def hegemony_target_mod(asker: str, target: str, world) -> int:
+    """Per-pair acceptance friction from the hegemon bloc pressing outward.
+
+    Per RELIABILITY_COMMITMENTS_SPEC v2.4.3 §9.1. Reads the shared
+    `_identify_max_bloc_share` helper so the 30-33% pre-noticed zone
+    produces real cross-bloc friction while `_calculate_hegemony_pressure`
+    keeps passive threat accrual gated at 33%+.
+
+    Formula: `max(-20, -int((share - 0.30) * 60))`:
+    - 0 at exactly 30% (formula floor, integer truncation)
+    - -1 at 33%, -12 at 50%, -18 at 60%, -20 clamp at ~63.34%+
+
+    Returns 0 when any gate fails:
+    - asker == target or either is falsy
+    - no hegemon (no active nations / zero european_power)
+    - share < 0.30
+    - asker NOT in hegemon's bloc (non-bloc askers don't carry the tax)
+    - target IN hegemon's bloc (intra-bloc proposals are frictionless)
+    """
+    if not asker or not target or asker == target:
+        return 0
+    from backend.game_logic.coalition import _identify_max_bloc_share
+    hegemon, share = _identify_max_bloc_share(world)
+    if hegemon is None or share < 0.30:
+        return 0
+    try:
+        members = set(world.get_bloc_members(hegemon))
+    except AttributeError:
+        return 0
+    if asker not in members:
+        return 0
+    if target in members:
+        return 0
+    return max(-20, -int((share - 0.30) * 60))
+
+
+def bilateral_betrayal_mod(asker: str, target: str, world) -> int:
+    """Per-pair acceptance penalty from remembered betrayals.
+
+    Per RELIABILITY_COMMITMENTS_SPEC v2.4.3 §9.2. Flat `-6` per active
+    victim-side strike. No stacking cap — the 3-strike hard-reject posture
+    is the door-shut mechanic and composes on top of this for deep-treaty
+    proposals via `has_hard_reject_posture` + the `-100` score clamp in
+    `calculate_acceptance`.
+
+    `_get_active_betrayal_strike_count` arg order is `(world, actor, victim)`
+    so asker=actor, target=victim.
+    """
+    if not asker or not target or asker == target:
+        return 0
+    return -6 * _get_active_betrayal_strike_count(world, asker, target)
+
+
 def _record_betrayal_strike(
     world,
     *,
@@ -1526,6 +1579,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     from backend.game_logic.coalition import get_coalition_loyalty_penalty
     coalition_penalty = get_coalition_loyalty_penalty(target, world)
 
+    # ── Hegemony Target Modifier (v2.4.3 §9.1) ──
+    # Per-pair cross-bloc friction starting at 30% share, independent of
+    # the 33%+ passive threat accrual owned by _calculate_hegemony_pressure.
+    hegemony_target = hegemony_target_mod(proposer, target, world)
+
+    # ── Bilateral Betrayal Modifier (v2.4.3 §9.2) ──
+    bilateral_betrayal = bilateral_betrayal_mod(proposer, target, world)
+
     # ── Deal Balance ──
     from backend.models.region import NATION_CAPITALS
     _all_capitals = set(NATION_CAPITALS.values())
@@ -1658,11 +1719,12 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             harshness_bonus = -5  # PL-12-D: was +5 (harsh history breeds resentment)
             break
 
-    # ── Diplomatic Reliability (R34) ──
+    # ── Diplomatic Reliability (v2.4.3 §9.2 — narrowed from R34) ──
+    # Narrowed to // 10 capped +/-6 so bilateral betrayal memory dominates
+    # cross-pair reliability averages per spec §9.2.
     reliability = getattr(world, 'diplomatic_reliability', {})
     proposer_reliability = reliability.get(proposer, 0)
-    # Cap contribution at +/-10
-    reliability_modifier = max(-10, min(10, proposer_reliability // 5))
+    reliability_modifier = max(-6, min(6, proposer_reliability // 10))
 
     # ── Ultimatum Military Threat Bonus (PL-14 §5) ──
     ultimatum_bonus = 0
@@ -1690,6 +1752,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         ultimatum_bonus += adjacency_bonus + territory_bonus
 
     # ── Sum ──
+    # Composite floor owned by B-B4 per RELIABILITY_IMPLEMENTATION_PLAN.md
+    # §9.3 with-DG-4 clause. Do NOT reintroduce a composite floor here while
+    # grievance_modifier is absent; B-B4 reintroduces the -60 floor together
+    # with the grievance term.
     raw_score = (
         base
         + war_score_mod
@@ -1698,6 +1764,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + stalemate_duration_mod
         + threat_mod
         + coalition_penalty
+        + hegemony_target
+        + bilateral_betrayal
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -1735,6 +1803,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "stalemate_duration": int(stalemate_duration_mod),
         "threat_modifier": round(threat_mod, 1),
         "coalition_penalty": int(coalition_penalty),
+        "hegemony_target_mod": int(hegemony_target),
+        "bilateral_betrayal_mod": int(bilateral_betrayal),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -1769,7 +1839,8 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "war_weariness", "stalemate_duration",
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
-        "coalition_penalty", "harshness_penalty", "harshness_bonus", "reliability_modifier",
+        "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
+        "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",
         "ultimatum_bonus",
     }
@@ -1810,7 +1881,14 @@ def build_proposal_commitment_warnings(
     target_nation: str,
     proposal_type: str,
 ) -> List[Dict]:
-    """Build structured commitments warnings for proposal preview surfaces."""
+    """Build structured commitments warnings for proposal preview surfaces.
+
+    Warning categories in scope here (sorted via WARNING_CATEGORY_ORDER):
+    - `hard_reject`: deep-treaty proposal into a 3-strike victim (critical)
+    - `betrayal`: 1-2 active bilateral strikes against the target (v2.4.3 §9.2)
+    - `hegemony`: per-pair cross-bloc friction from the hegemon bloc pressing
+      outward (v2.4.3 §9.1; gates identical to `hegemony_target_mod`)
+    """
     warnings: List[Dict] = []
     betrayal_strikes = _get_active_betrayal_strike_count(world, proposer_nation, target_nation)
     if betrayal_strikes >= 3 and proposal_type in _DEEP_TREATY_TYPES:
@@ -1823,6 +1901,10 @@ def build_proposal_commitment_warnings(
             ),
         })
     elif betrayal_strikes > 0:
+        # TODO(post-B-B1-lite): cite one remembered referent from
+        # commitment_event_metadata when episode-metadata plumbing lands.
+        # Strike records currently carry only severity/turn/episode_id —
+        # no named-nation / broken-treaty / witness-context surface yet.
         severity = "high" if betrayal_strikes >= 2 else "medium"
         warnings.append({
             "severity": severity,
@@ -1833,7 +1915,95 @@ def build_proposal_commitment_warnings(
             ),
         })
 
+    hegemony_warning = _build_hegemony_preview_warning(world, proposer_nation, target_nation)
+    if hegemony_warning is not None:
+        warnings.append(hegemony_warning)
+
     return _sort_structured_warnings(warnings)
+
+
+def _build_hegemony_preview_warning(
+    world,
+    proposer_nation: str,
+    target_nation: str,
+) -> Dict:
+    """Cross-bloc `hegemony` category warning per spec §9.1 + §11.2.
+
+    Gates identical to `hegemony_target_mod` — modifier-and-warning
+    symmetry prevents warning-without-modifier feedback-loop confusion.
+
+    Band-aware text via `_hegemony_signal_band(share)`; always reads live
+    share via `_identify_max_bloc_share`, NOT the sticky
+    `hegemony_signal_high_water` field (which is asymmetric for the
+    passive-threat ratchet and would lag previews after de-escalation).
+
+    Returns None when gates fail. Otherwise returns a structured warning:
+    - 30-33% (pre-noticed): label-free, no proper noun, severity=low
+    - 33-49% (band 1 noticed): descriptive_label, severity=medium
+    - 50-59% (band 2 alarming): bloc_label (proper noun), severity=high
+    - 60%+ (band 3 crisis): bloc_label, severity=critical
+    """
+    if not proposer_nation or not target_nation or proposer_nation == target_nation:
+        return None
+    from backend.game_logic.coalition import (
+        _hegemony_signal_band,
+        _identify_max_bloc_share,
+        _pick_counterplay_hint,
+        describe_hegemon_bloc,
+    )
+    hegemon, share = _identify_max_bloc_share(world)
+    if hegemon is None or share < 0.30:
+        return None
+    try:
+        members = set(world.get_bloc_members(hegemon))
+    except AttributeError:
+        return None
+    if proposer_nation not in members or target_nation in members:
+        return None
+
+    band = _hegemony_signal_band(share)
+    if band == 0:
+        # 30-33% pre-noticed: label-free, private.
+        text = (
+            "European courts are quietly tallying allies; cross-bloc proposals "
+            "will meet unspoken resistance."
+        )
+        severity = "low"
+    else:
+        bloc = describe_hegemon_bloc(world, hegemon, share)
+        label = bloc.get("bloc_label") or bloc.get("descriptive_label") or hegemon
+        if band == 1:
+            severity = "medium"
+            text = (
+                f"{target_nation}'s court sees the {label} consolidating across "
+                f"Europe and will resist a cross-bloc agreement."
+            )
+        elif band == 2:
+            severity = "high"
+            text = (
+                f"{target_nation} hardens against {label} — every cross-bloc "
+                f"proposal now costs more."
+            )
+        else:  # band == 3
+            severity = "critical"
+            text = (
+                f"{target_nation} treats {label} as a continental emergency; "
+                f"cross-bloc agreements have grown nearly unreachable."
+            )
+        # Counter-play hint — only when the asker is the hegemon and a
+        # legible lever exists. `_pick_counterplay_hint` returns "" for
+        # non-hegemon askers, so restrict to asker == hegemon to avoid
+        # routing France-specific advice through non-hegemon bloc members.
+        if proposer_nation == hegemon:
+            hint = _pick_counterplay_hint(world, hegemon, share, band)
+            if hint:
+                text = f"{text} {hint}"
+
+    return {
+        "severity": severity,
+        "category": "hegemony",
+        "text": text,
+    }
 
 
 def determine_ai_offer_decision_reason(

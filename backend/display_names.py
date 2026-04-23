@@ -247,6 +247,14 @@ FEEDBACK_STRINGS = {
         "negative": "coalition loyalty binds them against us",
         "positive": "coalition obligations have weakened",
     },
+    "hegemony_target_mod": {
+        "negative": "the weight of the bloc pressing against them",
+        "positive": "balance of power across Europe",
+    },
+    "bilateral_betrayal_mod": {
+        "negative": "their memory of our broken commitments",
+        "positive": "a clean bilateral slate with them",
+    },
     "harshness_penalty": {
         "negative": "the harshness of current demands",
         "positive": "our reasonable terms",

@@ -50,6 +50,18 @@ def make_war_world(nation="Prussia"):
     return world
 
 
+def _clear_opening_bloc(world):
+    """v2.4.3 migration: strip opening alliance triangle so
+    `hegemony_target_mod` (B-B1-lite) doesn't tax cross-bloc proposals in
+    tests that pre-date the acceptance-formula collapse. Keeps AI-trigger
+    tests focused on war_score / exhaustion / relation mechanics instead
+    of tripping on the Prussia-Austria-Britain opening bloc's 50%+ share."""
+    for k in list(world.diplomatic_states.keys()):
+        if world.diplomatic_states[k] in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            world.diplomatic_states[k] = "PEACE"
+    world.invalidate_bloc_members_cache()
+
+
 def _set_war_score(world, nation, score):
     """Set war score from alphabetically-first nation's perspective.
 
@@ -94,6 +106,7 @@ class TestAIDiplomacyTriggers:
         We set war_score to -65 to trigger P1 for hawk personality.
         """
         world = make_war_world("Prussia")
+        _clear_opening_bloc(world)
         # We need Prussia LOSING (< -60 for hawk threshold).
         # France|Prussia stored = 65 => France at +65, Prussia at -65.
         _set_war_score(world, "Prussia", 65)
@@ -221,6 +234,7 @@ class TestAIDiplomacyDelivery:
     def test_queue_proposal_when_blocking_dialogue(self):
         """Proposal queued via dialogue_manager.push() when dialogue already active."""
         world = make_war_world("Prussia")
+        _clear_opening_bloc(world)
         # R115: Hawk P1 threshold is -60, need war_score < -60
         _set_war_score(world, "Prussia", 65)
         # Improve relations so acceptance score passes >= 20 filter
@@ -690,6 +704,7 @@ class TestExecutorDiplomaticWiring:
         """counter_ai_proposal costs 1 DP."""
         executor = CommandExecutor()
         world = make_world()
+        _clear_opening_bloc(world)
         game_state = {"world": world}
         key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key] = "WAR"
