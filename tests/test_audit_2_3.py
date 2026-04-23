@@ -71,9 +71,8 @@ class TestAcceptanceWorkedExample:
         assert c["war_score_modifier"] == 6.0
         # R141: At WAR, relation dampened: -60/4 = -15, clamped to -10
         assert c["relation_modifier"] == -10
-        # DEVIATION: Threat is stubbed to 0 (wired in Coalition Session 7).
-        # Spec expects -12 (40 * -0.3).
-        assert c["threat_modifier"] == 0
+        assert c["hegemony_target_mod"] == 0
+        assert c["bilateral_betrayal_mod"] == 0
         assert c["diplomat_skill_bonus"] == 8
         assert c["personality_modifier"] == -5
         assert c["military_supremacy"] == 0

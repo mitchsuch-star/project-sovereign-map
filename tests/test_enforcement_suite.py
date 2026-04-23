@@ -365,12 +365,13 @@ class TestProposalTypesHaveDisplay:
         """All acceptance formula factors should have feedback strings."""
         # Known factors from the acceptance formula in diplomacy.py
         known_factors = {
-            "relation_modifier", "threat_modifier", "war_score_modifier",
+            "relation_modifier", "war_score_modifier",
             "deal_balance", "personality_modifier", "diplomat_skill_bonus",
-            "base_disposition", "special_desire_bonus", "coalition_penalty",
-            "harshness_bonus", "reliability_modifier",
+            "base_disposition", "special_desire_bonus",
+            "hegemony_target_mod", "bilateral_betrayal_mod",
+            "harshness_penalty", "harshness_bonus", "reliability_modifier",
             "war_weariness", "stalemate_duration", "military_supremacy",
-            "battlefield_diplomacy", "military_pressure",
+            "battlefield_diplomacy", "military_pressure", "ultimatum_bonus",
         }
 
         missing = known_factors - set(FEEDBACK_STRINGS.keys())

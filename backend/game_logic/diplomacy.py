@@ -348,7 +348,11 @@ def hegemony_target_mod(asker: str, target: str, world) -> int:
         return 0
     if target in members:
         return 0
-    return max(-20, -int((share - 0.30) * 60))
+    # Stabilize exact-threshold buckets against binary float drift.
+    # This preserves the spec's truncation contract (0.33 -> -1, 1/3 -> -2,
+    # 0.6333... -> -20) without switching to rounding.
+    raw = int(((share - 0.30) * 60) + 1e-9)
+    return max(-20, -raw)
 
 
 def bilateral_betrayal_mod(asker: str, target: str, world) -> int:
@@ -1566,19 +1570,6 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         target_stalemate = stalemate_counters.get(target, 0)
         stalemate_duration_mod = min(15, target_stalemate)
 
-    # ── Threat Modifier (COALITION_SPEC §6a) ──
-    threat = int(getattr(world, 'threat_level', 0))
-    threat_mod = 0
-    player = getattr(world, 'player_nation', 'France')
-    if proposer == player:
-        threat_mod = threat * -0.3
-    elif target != player:
-        threat_mod = threat * 0.2
-
-    # ── Coalition Loyalty Penalty (COALITION_SPEC §6a/§6c) ──
-    from backend.game_logic.coalition import get_coalition_loyalty_penalty
-    coalition_penalty = get_coalition_loyalty_penalty(target, world)
-
     # ── Hegemony Target Modifier (v2.4.3 §9.1) ──
     # Per-pair cross-bloc friction starting at 30% share, independent of
     # the 33%+ passive threat accrual owned by _calculate_hegemony_pressure.
@@ -1762,8 +1753,6 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + relation_mod
         + war_weariness_mod
         + stalemate_duration_mod
-        + threat_mod
-        + coalition_penalty
         + hegemony_target
         + bilateral_betrayal
         + deal_balance
@@ -1801,8 +1790,6 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "relation_modifier": round(relation_mod, 1),
         "war_weariness": int(war_weariness_mod),
         "stalemate_duration": int(stalemate_duration_mod),
-        "threat_modifier": round(threat_mod, 1),
-        "coalition_penalty": int(coalition_penalty),
         "hegemony_target_mod": int(hegemony_target),
         "bilateral_betrayal_mod": int(bilateral_betrayal),
         "deal_balance": round(deal_balance, 1),
@@ -2044,8 +2031,8 @@ def determine_counterparty_decision_reason(
         return "distrust_promiser"
 
     components = (acceptance_result or {}).get("components", {}) or {}
-    if int(components.get("coalition_penalty", 0) or 0) < 0:
-        return "coalition_conflict"
+    if int(components.get("hegemony_target_mod", 0) or 0) < 0:
+        return "hegemony_pressure"
     if int(components.get("war_weariness", 0) or 0) <= -10:
         return "war_overload"
     if int(components.get("hard_reject_posture", 0) or 0) < 0:
@@ -4305,6 +4292,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "stalemate_duration": "Stalemate weariness",
                 "threat_modifier": "Fear of French expansion",
                 "coalition_penalty": "Coalition loyalty binds them",
+                "hegemony_target_mod": "Hegemon bloc pressure",
+                "bilateral_betrayal_mod": "Remembered betrayals",
                 "deal_balance": "Deal terms",
                 "diplomat_skill_bonus": "Diplomatic skill advantage",
                 "personality_modifier": "Diplomat personality",

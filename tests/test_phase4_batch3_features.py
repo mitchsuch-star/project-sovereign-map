@@ -423,8 +423,9 @@ class TestR31AcceptancePreview:
         components = result["acceptance_breakdown"]["components"]
         expected_keys = [
             "base_disposition", "war_score_modifier", "relation_modifier",
-            "threat_modifier", "deal_balance", "diplomat_skill_bonus",
-            "personality_modifier", "reliability_modifier",
+            "hegemony_target_mod", "bilateral_betrayal_mod",
+            "deal_balance", "diplomat_skill_bonus", "personality_modifier",
+            "reliability_modifier",
         ]
         for key in expected_keys:
             assert key in components, f"Missing component: {key}"

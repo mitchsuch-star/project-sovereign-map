@@ -33,6 +33,7 @@ from backend.game_logic.diplomacy import (
     bilateral_betrayal_mod,
     build_proposal_commitment_warnings,
     calculate_acceptance,
+    determine_counterparty_decision_reason,
     hegemony_target_mod,
 )
 from backend.models.world_state import WorldState
@@ -186,6 +187,11 @@ class TestHegemonyTargetModCurve:
         _stub_hegemon(monkeypatch, "France", 0.29)
         assert hegemony_target_mod("France", "Austria", world) == 0
 
+    def test_one_third_share_truncates_to_minus_two(self, monkeypatch):
+        world = _clean_world()
+        _stub_hegemon(monkeypatch, "France", 1 / 3)
+        assert hegemony_target_mod("France", "Austria", world) == -2
+
 
 # ════════════════════════════════════════════════════════════════
 # 3. bilateral_betrayal_mod — strike ladder + composition
@@ -285,14 +291,23 @@ class TestComponentsSurface:
         assert result["components"]["hegemony_target_mod"] == -15
         assert result["components"]["bilateral_betrayal_mod"] == 0
 
+    def test_legacy_pressure_slots_do_not_surface_in_components(self, monkeypatch):
+        world = _clean_world()
+        _stub_hegemon(monkeypatch, "France", 0.55)
+        proposal = _minimal_proposal("France", "Austria", ptype="peace")
+        result = calculate_acceptance(proposal, world)
+        components = result["components"]
+        assert "threat_modifier" not in components
+        assert "coalition_penalty" not in components
+
     def test_feedback_strings_registered_for_new_keys(self):
-        """Display-layer dict must carry negative voicing for both terms
-        so `_generate_feedback` can surface them as largest-negative
-        factors."""
+        """Display-layer dict must carry both polarities for both terms."""
         assert "hegemony_target_mod" in FEEDBACK_STRINGS
         assert FEEDBACK_STRINGS["hegemony_target_mod"]["negative"]
+        assert FEEDBACK_STRINGS["hegemony_target_mod"]["positive"]
         assert "bilateral_betrayal_mod" in FEEDBACK_STRINGS
         assert FEEDBACK_STRINGS["bilateral_betrayal_mod"]["negative"]
+        assert FEEDBACK_STRINGS["bilateral_betrayal_mod"]["positive"]
 
 
 # ════════════════════════════════════════════════════════════════
@@ -458,7 +473,7 @@ class TestHegemonyCacheInvalidation:
             f"got {heg_after[0]['severity']}"
         )
         # Proper noun reveal at 50%+.
-        assert "System" in heg_after[0]["text"] or "Coalition" in heg_after[0]["text"]
+        assert "System" in heg_after[0]["text"]
 
 
 # ════════════════════════════════════════════════════════════════
@@ -466,6 +481,21 @@ class TestHegemonyCacheInvalidation:
 # ════════════════════════════════════════════════════════════════
 
 class TestDecisionReasonAliasRoundtrip:
+    def test_counterparty_reason_uses_hegemony_term_without_legacy_coalition_slot(self):
+        world = _clean_world()
+        proposal = _minimal_proposal("France", "Austria", ptype="alliance")
+        acceptance_result = {
+            "components": {
+                "hegemony_target_mod": -12,
+                "bilateral_betrayal_mod": 0,
+            }
+        }
+        assert determine_counterparty_decision_reason(
+            proposal,
+            world,
+            acceptance_result=acceptance_result,
+        ) == "hegemony_pressure"
+
     def test_concern_pressure_renders_as_hegemony_pressure(self):
         """Legacy `concern_pressure` enum must render as 'hegemony pressure'
         so v2.4.3-named saves and old saves both display the same phrase."""
