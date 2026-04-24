@@ -55,15 +55,24 @@ from backend.display_names import (
     END_REASON_FAMILY_DISPLAY,
 )
 from backend.game_logic.diplomacy import (
+    ANTI_RENEWAL_COOLDOWN_TURNS,
+    DG4_WITNESS_SCOPE_PRECEDENCE,
     END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION,
+    WITNESS_SCOPE_ALLY,
+    WITNESS_SCOPE_RIVAL,
+    WITNESS_SCOPE_SHARED_ENEMY,
+    WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER,
     _add_grievance_flag,
     _get_active_grievance_flag_count,
     _get_capped_grievance_flag_count,
+    _get_dg4_refused_defensive_witness_scope,
     _get_grievance_flags,
     _remove_oldest_grievance_flag,
     calculate_acceptance,
     emit_call_to_arms_refused_defensive,
+    get_anti_renewal_turns_remaining,
     grievance_modifier,
+    is_anti_renewal_active,
     set_diplomatic_state,
 )
 from backend.models.world_state import WorldState
@@ -547,9 +556,14 @@ class TestMakeAmendsGrievanceVariant:
 
         result = _run_grievance_amends(world)
         assert result["success"] is False
-        assert "ransom" in result["message"], (
-            "expected `war_or_armistice` Talleyrand advisory verbiage"
-        )
+        # Stable assertion: the refusal is the `war_or_armistice` template
+        # which names the target nation. Keying on copy idioms like
+        # "ransom" couples this test to Voice Bible edits in other slices.
+        assert "Austria" in result["message"]
+        # Resources must be untouched on refusal.
+        assert int(world.nation_gold["France"]) == 800
+        assert int(world.diplomatic_points) == 4
+        assert _get_active_grievance_flag_count(world, "France", "Austria") == 1
 
     def test_refusal_on_insufficient_gold_uses_grievance_cost(self):
         world = _world(player_gold=300)  # less than 400
@@ -704,3 +718,441 @@ class TestDisplayLabels:
         grievance_line = format_event_oneliner(grievance_event)
         assert "abandoned alliance" in grievance_line
         assert "(400g, 2 DP)" in grievance_line
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 8. PARSER FALSE-POSITIVE REGRESSION (B-B4 review follow-up)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class TestParserFalsePositives:
+    """The bare `abandoned alliance` substring was removed from the grievance
+    disambiguator so stray prose cannot route standard-intent commands to
+    the grievance path. Only the explicit `for …` prefixes and the literal
+    opt-in `grievance variant` should trigger the grievance verb."""
+
+    def _parse(self, command: str) -> dict:
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient(use_real_api=False)
+        result = client.parse_command_structured(command)
+        return result.to_dict().get("diplomatic_data", {}) or {}
+
+    def test_bare_abandoned_alliance_in_prose_stays_standard(self):
+        data = self._parse(
+            "make amends, Russia abandoned alliance obligations first with Austria",
+        )
+        assert data.get("amends_variant") == "standard", (
+            "bare 'abandoned alliance' substring must not false-positive "
+            "into the grievance variant"
+        )
+
+    def test_abandoned_the_alliance_in_prose_stays_standard(self):
+        data = self._parse(
+            "Talleyrand, make amends with Britain — they abandoned the alliance last year",
+        )
+        assert data.get("amends_variant") == "standard"
+
+    def test_explicit_for_phrase_still_routes_to_grievance(self):
+        data = self._parse(
+            "Talleyrand, make amends with Austria for abandoning the alliance",
+        )
+        assert data.get("amends_variant") == "grievance"
+
+    def test_literal_grievance_variant_opt_in_routes_to_grievance(self):
+        data = self._parse(
+            "Talleyrand, make amends with Austria, grievance variant",
+        )
+        assert data.get("amends_variant") == "grievance"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 9. DG-4 WITNESS SCOPE (§8.8.3 wider scope)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def _isolated_world() -> "WorldState":
+    """Build a fresh world with every default pair reset to PEACE so witness
+    tests can drive each pair's diplomatic state explicitly without default
+    edges (e.g. France-Austria NON_AGGRESSION) contaminating precedence."""
+    world = WorldState(player_nation="France")
+    nations = list(world.get_active_nations())
+    for i, nation_a in enumerate(nations):
+        for nation_b in nations[i + 1:]:
+            set_diplomatic_state(
+                world, nation_a, nation_b, "PEACE", "test_reset",
+            )
+    return world
+
+
+class TestDG4WitnessScope:
+
+    def test_precedence_order_matches_spec(self):
+        """§8.8.3 insertion: ally > rival > treaty_partner_of_breaker >
+        shared_enemy > region_observer."""
+        assert DG4_WITNESS_SCOPE_PRECEDENCE == (
+            WITNESS_SCOPE_ALLY,
+            WITNESS_SCOPE_RIVAL,
+            WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER,
+            WITNESS_SCOPE_SHARED_ENEMY,
+            "region_observer",
+        )
+
+    def test_excludes_breaker_and_victim_themselves(self):
+        world = _isolated_world()
+        # Give Russia and Austria a live alliance so their own pair would
+        # otherwise resolve as "treaty_partner" if the emitter forgot to
+        # exclude them.
+        set_diplomatic_state(world, "Russia", "Austria", "ALLIANCE", "setup")
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        nations = {w["nation"] for w in scope["witnesses"]}
+        assert "Russia" not in nations
+        assert "Austria" not in nations
+
+    def test_ally_scope_wins_over_treaty_partner(self):
+        """Witness allied with victim AND in a treaty with breaker still
+        resolves as `ally` (highest precedence)."""
+        world = _isolated_world()
+        # Austria is victim. Prussia allies with Austria AND holds
+        # NON_AGGRESSION with Russia (the breaker).
+        set_diplomatic_state(world, "Prussia", "Austria", "ALLIANCE", "setup")
+        set_diplomatic_state(world, "Prussia", "Russia", "NON_AGGRESSION", "setup")
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        prussia = next(
+            (w for w in scope["witnesses"] if w["nation"] == "Prussia"),
+            None,
+        )
+        assert prussia is not None
+        assert prussia["scope_reason"] == WITNESS_SCOPE_ALLY
+
+    def test_rival_scope_wins_over_treaty_partner(self):
+        world = _isolated_world()
+        # Britain is at war with breaker Russia AND holds NON_AGGRESSION
+        # with the breaker (impossible in reality; we force the state to
+        # assert precedence): the at-war check runs first and returns `rival`.
+        set_diplomatic_state(world, "Britain", "Russia", "WAR", "setup")
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        britain = next(
+            (w for w in scope["witnesses"] if w["nation"] == "Britain"),
+            None,
+        )
+        assert britain is not None
+        assert britain["scope_reason"] == WITNESS_SCOPE_RIVAL
+
+    def test_treaty_partner_of_breaker_scope_is_new_dg4_role(self):
+        """Witness holding any non-WAR, non-PEACE treaty with breaker but
+        no ally / rival relationship resolves as `treaty_partner_of_breaker`."""
+        world = _isolated_world()
+        # Saxony holds NON_AGGRESSION with Russia (breaker). Not allied
+        # with Austria (victim). Not at war with anyone.
+        set_diplomatic_state(world, "Saxony", "Russia", "NON_AGGRESSION", "setup")
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        saxony = next(
+            (w for w in scope["witnesses"] if w["nation"] == "Saxony"),
+            None,
+        )
+        assert saxony is not None
+        assert saxony["scope_reason"] == WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER
+
+    def test_nation_with_no_qualifying_role_is_not_a_witness(self):
+        world = _isolated_world()
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        # On an isolated all-PEACE world, no nation holds an ally / rival /
+        # treaty-partner / shared-enemy role — the witness list is empty.
+        assert scope["count"] == 0
+        assert scope["witnesses"] == []
+
+    def test_war_alone_between_witness_and_breaker_does_not_count_as_treaty_partner(self):
+        """§8.8.3 — WAR is not a treaty. Witness at war with breaker
+        resolves via the `rival` branch, never via `treaty_partner_of_breaker`."""
+        world = _isolated_world()
+        set_diplomatic_state(world, "Britain", "Russia", "WAR", "setup")
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        britain = next(
+            (w for w in scope["witnesses"] if w["nation"] == "Britain"),
+            None,
+        )
+        assert britain is not None
+        assert britain["scope_reason"] != WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER
+
+    def test_peace_alone_between_witness_and_breaker_does_not_qualify(self):
+        """§8.8.3 — PEACE is the default absent state, not an active
+        treaty. Witness at PEACE with breaker does not qualify as
+        `treaty_partner_of_breaker`."""
+        world = _isolated_world()
+        # Saxony at PEACE with breaker Russia; no other qualifying edges.
+        scope = _get_dg4_refused_defensive_witness_scope(
+            world, "Russia", "Austria",
+        )
+        saxony = next(
+            (w for w in scope["witnesses"] if w["nation"] == "Saxony"),
+            None,
+        )
+        assert saxony is None, (
+            "PEACE alone must not promote a nation to treaty_partner_of_breaker"
+        )
+
+    def test_emit_produces_witness_strike_recorded_per_witness(self):
+        world = _isolated_world()
+        # Wire a mix of scopes so the emit enumerates more than one.
+        set_diplomatic_state(world, "Prussia", "Austria", "ALLIANCE", "setup")  # ally
+        set_diplomatic_state(world, "Saxony", "Russia", "NON_AGGRESSION", "setup")  # treaty_partner
+        set_diplomatic_state(world, "Russia", "Austria", "ALLIANCE", "call")
+
+        result = emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+
+        assert result["witness_count"] == 2
+        witness_nations = {w["nation"] for w in result["witnesses"]}
+        assert witness_nations == {"Prussia", "Saxony"}
+
+        # Confirm dispatch emits one witness_strike_recorded per witness.
+        witness_events = [
+            e for e in world.pending_dispatch_events
+            if e.get("type") == "witness_strike_recorded"
+            and e.get("template_vars", {}).get("episode_id") == result["episode_id"]
+        ]
+        assert len(witness_events) == 2
+        for event in witness_events:
+            vars_ = event["template_vars"]
+            assert vars_["perpetrator_nation"] == "Russia"
+            assert vars_["victim_nation"] == "Austria"
+            assert vars_["source_episode_type"] == "call_to_arms_refused_defensive"
+            # Numeric witness effect is substrate-reserved; dispatch
+            # carries 0 deltas to match the existing treaty-breach pattern.
+            assert vars_["reliability_delta"] == 0
+            assert vars_["relation_delta"] == 0
+            assert vars_["scope_reason"] in DG4_WITNESS_SCOPE_PRECEDENCE
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 10. ANTI-RENEWAL COOLDOWN (§8.8.7)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class TestAntiRenewalCooldown:
+
+    def test_emit_sets_cooldown_to_fifteen_turns(self):
+        world = _world()
+        assert ANTI_RENEWAL_COOLDOWN_TURNS == 15, (
+            "§8.8.7 candidate window is 15 turns"
+        )
+        result = emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        expected_expiry = int(world.current_turn) + 15
+        assert result["anti_renewal_expires_on_turn"] == expected_expiry
+        assert result["anti_renewal_cooldown_turns"] == 15
+        assert is_anti_renewal_active(world, "Russia", "Austria") is True
+
+    def test_cooldown_applies_even_without_prior_alliance(self):
+        """§8.8.7: the cooldown is set on refusal regardless of whether a
+        prior alliance existed to terminate — anti-renewal prevents a
+        fresh ALLIANCE ratification for the same pair during the window."""
+        world = _world()
+        set_diplomatic_state(world, "Russia", "Austria", "NON_AGGRESSION", "setup")
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        assert is_anti_renewal_active(world, "Russia", "Austria") is True
+
+    def test_cooldown_expires_after_window(self):
+        world = _world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        # Advance past the 15-turn window.
+        world.current_turn = int(world.current_turn) + 16
+        assert is_anti_renewal_active(world, "Russia", "Austria") is False
+        assert get_anti_renewal_turns_remaining(
+            world, "Russia", "Austria",
+        ) == 0
+
+    def test_self_pair_is_never_active(self):
+        world = _world()
+        assert is_anti_renewal_active(world, "France", "France") is False
+        assert is_anti_renewal_active(world, "", "Austria") is False
+        assert is_anti_renewal_active(world, "France", "") is False
+
+    def test_other_pairs_are_unaffected(self):
+        world = _world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        assert is_anti_renewal_active(world, "Russia", "Austria") is True
+        assert is_anti_renewal_active(world, "Russia", "Prussia") is False
+        assert is_anti_renewal_active(world, "France", "Austria") is False
+
+    def test_alliance_proposal_blocked_during_cooldown(self):
+        """Mechanical gate: ALLIANCE proposal between refuser-victim gets
+        `anti_renewal_block = -100` and outcome REJECT while cooldown is
+        active, regardless of other formula components."""
+        world = _world()
+        # Fresh PEACE state after the refusal so ALLIANCE is a legal proposal.
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        proposal = {
+            "type": "alliance",
+            "proposer_nation": "Russia",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        assert result["components"]["anti_renewal_active"] is True
+        assert result["components"]["anti_renewal_block"] == -100
+        assert result["components"]["anti_renewal_turns_remaining"] == 15
+        assert result["outcome"] == "REJECT"
+
+    def test_defensive_alliance_proposal_blocked_during_cooldown(self):
+        world = _world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        proposal = {
+            "type": "defensive_alliance",
+            "proposer_nation": "Russia",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        assert result["components"]["anti_renewal_block"] == -100
+        assert result["outcome"] == "REJECT"
+
+    def test_non_aggression_proposal_not_blocked_during_cooldown(self):
+        """§8.8.7: "Peace and non-aggression remain available during the
+        window; only deep defensive ties are blocked." """
+        world = _world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        proposal = {
+            "type": "non_aggression",
+            "proposer_nation": "Russia",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        assert result["components"]["anti_renewal_block"] == 0
+        assert result["components"]["anti_renewal_active"] is False
+
+    def test_cooldown_survives_save_load_roundtrip(self):
+        world = _world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        expected_expiry = int(world.current_turn) + 15
+
+        restored = WorldState.from_dict(world.to_dict())
+        assert is_anti_renewal_active(restored, "Russia", "Austria") is True
+        pair_key = restored._make_diplo_key("Russia", "Austria")
+        assert int(restored.anti_renewal_cooldown[pair_key]) == expected_expiry
+
+    def test_pre_bb4_save_without_cooldown_field_loads_cleanly(self):
+        """Missing-field tolerance: pre-B-B4 saves load with `{}`."""
+        world = _world()
+        data = world.to_dict()
+        data.pop("anti_renewal_cooldown", None)
+        restored = WorldState.from_dict(data)
+        assert restored.anti_renewal_cooldown == {}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 11. CATEGORIES CLEANUP ON GRIEVANCE REMOVAL (B-B4 review follow-up)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class TestCategoriesCleanup:
+
+    def test_removing_last_grievance_clears_grievance_category_when_strikes_remain(self):
+        """Pair with remaining strikes keeps the record but drops
+        `grievance` from categories once all flags clear."""
+        world = _world()
+        _seed_grievance(world, episode_id="ep_gc", turn=0)
+        key = "France|Austria"
+        record = world.betrayal_history[key]
+        record["strikes"].append({
+            "severity": "medium", "turn": 0,
+            "episode_id": "ep_strike_keep", "decays_on_turn": 10,
+        })
+        world.betrayal_history[key] = record
+
+        # Pre-condition: categories contains `grievance`.
+        assert "grievance" in world.betrayal_history[key]["categories"]
+
+        _remove_oldest_grievance_flag(world, "France", "Austria")
+
+        # Strikes remain, so the pair record survives.
+        assert key in world.betrayal_history
+        # But the grievance category is gone because no flags remain.
+        assert "grievance" not in world.betrayal_history[key]["categories"]
+
+    def test_categories_untouched_when_other_flags_remain(self):
+        """Removing one flag from a multi-flag pair keeps `grievance` in
+        categories (non-zero flags still live)."""
+        world = _world()
+        _seed_grievance(world, episode_id="ep_1", turn=0)
+        _seed_grievance(world, episode_id="ep_2", turn=1)
+        key = "France|Austria"
+        assert "grievance" in world.betrayal_history[key]["categories"]
+
+        _remove_oldest_grievance_flag(world, "France", "Austria")
+        assert "grievance" in world.betrayal_history[key]["categories"]
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 12. END-TO-END GRIEVANCE VARIANT THROUGH PARSER + EXECUTOR (P2-1)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class TestEndToEndGrievanceVariant:
+    """Walks the full natural-language → parser → CommandExecutor path
+    to prove the parser's `amends_variant="grievance"` output routes to
+    `_execute_make_amends_grievance_variant` end-to-end."""
+
+    def test_natural_language_command_executes_grievance_variant(self):
+        from backend.ai.llm_client import LLMClient
+
+        world = _world()
+        _seed_grievance(world, episode_id="ep_e2e", turn=0)
+
+        client = LLMClient(use_real_api=False)
+        parsed = client.parse_command_structured(
+            "Talleyrand, make amends with Austria for the abandoned alliance",
+        )
+        parsed_dict = parsed.to_dict()
+        # The LLM-mock parser emits an "action" at the top level and the
+        # variant flag on `diplomatic_data`. The CommandExecutor consumes
+        # a `{"command": parsed_dict}` envelope.
+        assert parsed_dict["diplomatic_data"]["amends_variant"] == "grievance"
+
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": parsed_dict},
+            {"world": world},
+        )
+
+        assert result["success"] is True
+        assert result.get("amends_variant") == "grievance"
+        assert result.get("grievance_variant") is True
+        assert result["gold_spent"] == 400
+        assert result["dp_spent"] == 2
+        assert _get_active_grievance_flag_count(world, "France", "Austria") == 0

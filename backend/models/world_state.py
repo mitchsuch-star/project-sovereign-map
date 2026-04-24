@@ -529,6 +529,13 @@ class WorldState:
         # standard + §8.6.1a grievance variant) share this cap — one Make Amends
         # of any variant per pair per 10 turns.
         self.reparations_cooldown: Dict[str, int] = {}
+        # RELIABILITY_COMMITMENTS_SPEC §8.8.7 / B-B4 — anti-renewal cooldown
+        # after a `call_to_arms_refused_defensive` episode. Key = diplo_key;
+        # value = turn on which new ALLIANCE / DEFENSIVE_ALLIANCE
+        # ratification is available again. Absent / 0 = no block. Gated
+        # by `diplomacy.is_anti_renewal_active` in `calculate_acceptance`;
+        # NON_AGGRESSION / OPEN_BORDERS / PEACE are unaffected.
+        self.anti_renewal_cooldown: Dict[str, int] = {}
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.commitment_paradox_popup: Optional[Dict] = None  # R12 commitment paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
@@ -3481,6 +3488,7 @@ class WorldState:
             "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
+            "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
 
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
@@ -3830,6 +3838,12 @@ class WorldState:
         world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
+        }
+        # B-B4 §8.8.7 — anti_renewal_cooldown defaults to {} for pre-B-B4
+        # saves so the round-trip stays compatible with fixtures that
+        # predate the field.
+        world.anti_renewal_cooldown = {
+            str(k): int(v) for k, v in data.get("anti_renewal_cooldown", {}).items()
         }
 
         # Dispatch event queue (Session 8D)

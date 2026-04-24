@@ -232,6 +232,11 @@ WITNESS_SCOPE_ALLY = "ally"
 WITNESS_SCOPE_RIVAL = "rival"
 WITNESS_SCOPE_SHARED_ENEMY = "shared_enemy"
 WITNESS_SCOPE_REGION_OBSERVER = "region_observer"
+# B-B4 §8.8.3 — DG-4 defensive-refusal wider witness scope. Any nation
+# holding an active treaty with the breaker qualifies as a witness when
+# the ally / rival roles don't already apply. Only used by the DG-4
+# episodes (`call_to_arms_refused_defensive`, `call_to_arms_honored_costly`).
+WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER = "treaty_partner_of_breaker"
 
 WITNESS_SCOPE_PRECEDENCE = (
     WITNESS_SCOPE_ALLY,
@@ -239,6 +244,31 @@ WITNESS_SCOPE_PRECEDENCE = (
     WITNESS_SCOPE_SHARED_ENEMY,
     WITNESS_SCOPE_REGION_OBSERVER,
 )
+
+# B-B4 §8.8.3 — DG-4 defensive-refusal precedence inserts
+# `treaty_partner_of_breaker` between `rival` and `shared_enemy`. Used
+# only when resolving witnesses for DG-4 episodes; legacy treaty-breach
+# resolution keeps the narrower `WITNESS_SCOPE_PRECEDENCE`.
+DG4_WITNESS_SCOPE_PRECEDENCE = (
+    WITNESS_SCOPE_ALLY,
+    WITNESS_SCOPE_RIVAL,
+    WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER,
+    WITNESS_SCOPE_SHARED_ENEMY,
+    WITNESS_SCOPE_REGION_OBSERVER,
+)
+
+# B-B4 §8.8.3 — "active treaty" for the wider DG-4 witness scope.
+# Excludes WAR (not a treaty) and PEACE (the default absent state).
+# ARMISTICE is belligerent-adjacent and deliberately excluded; it is
+# treated like WAR for this check to avoid counting a ceasefire signatory
+# as a witness-scope treaty partner.
+_ACTIVE_TREATY_STATES_FOR_DG4_WITNESS = frozenset({
+    "OPEN_BORDERS",
+    "NON_AGGRESSION",
+    "DEFENSIVE_ALLIANCE",
+    "ALLIANCE",
+    "VASSAL",
+})
 
 WARNING_SEVERITY_ORDINAL = {
     "critical": 3,
@@ -442,6 +472,15 @@ def _remove_oldest_grievance_flag(
         if not record.get("strikes"):
             history.pop(key, None)
         else:
+            # B-B4 — when the final grievance flag clears but strikes
+            # remain, drop the `grievance` category so downstream
+            # routing (ledger rows, C3 notice filtering) reflects the
+            # live-flag state rather than the pair's historical record.
+            # Strike-only pairs after a repair should not surface under
+            # grievance queries.
+            categories = set(record.get("categories", []) or [])
+            categories.discard("grievance")
+            record["categories"] = sorted(categories)
             history[key] = record
     world.betrayal_history = history
     return oldest
@@ -595,7 +634,25 @@ def emit_call_to_arms_refused_defensive(
         )
         alliance_terminated = True
 
-    # ── 5. Emit the refusal episode on campaign log + dispatch ──
+    # ── 5. Witness scope (§8.8.3) + witness_strike_recorded dispatch per witness ──
+    # The wider DG-4 scope is computed AFTER the same-turn alliance
+    # termination so `treaty_partner_of_breaker` reflects post-termination
+    # geometry (the abandoned victim is already the `victim`, not a
+    # witness; `set_diplomatic_state` above has already downgraded any
+    # existing ALLIANCE to PEACE so the former ally won't accidentally
+    # qualify as its own witness through a stale ALLIANCE edge).
+    witness_scope = _get_dg4_refused_defensive_witness_scope(
+        world, breaker, victim,
+    )
+
+    # ── 6. Anti-renewal cooldown (§8.8.7) — applies regardless of whether
+    # an existing alliance was terminated. A refusal alone earns the pair a
+    # cooldown before new ALLIANCE / DEFENSIVE_ALLIANCE ratification.
+    anti_renewal_expires_on_turn = _set_anti_renewal_cooldown(
+        world, breaker, victim,
+    )
+
+    # ── 7. Emit the refusal episode on campaign log + dispatch ──
     from backend.game_logic.dispatch import queue_dispatch_event
 
     refusal_payload = {
@@ -613,6 +670,12 @@ def emit_call_to_arms_refused_defensive(
         "reliability_before": reliability_before,
         "reliability_after": reliability_after,
         "reliability_delta": reliability_after - reliability_before,
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_dominant_scope": witness_scope["dominant_scope"],
+        "witness_scope_label": witness_scope["label"],
+        "witness_count": witness_scope["count"],
+        "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
+        "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
         "call_context": dict(call_context or {}),
         "turn": current_turn,
         # Slice C-lite resolves `speaker="foreign_office"` to "The Chancery of
@@ -632,11 +695,39 @@ def emit_call_to_arms_refused_defensive(
             "reliability_before": reliability_before,
             "reliability_after": reliability_after,
             "reliability_delta": reliability_after - reliability_before,
+            "witness_count": witness_scope["count"],
+            "witness_dominant_scope": witness_scope["dominant_scope"],
+            "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
             "turn": current_turn,
             "speaker_attribution": "foreign_office",
         },
         "partial_on_nation",
     )
+
+    # ── 8. Per-witness dispatch events so C3 presentation can render
+    # witness-scoped reactions. Numeric witness effect (§8.8.2 "-3 to
+    # each scoped witness") mirrors the existing `_record_treaty_breach`
+    # pattern: the dispatch carries deltas of 0 at the substrate level
+    # and the C3-lite presentation pass owns the reliability/relation
+    # interpretation. Doing this uniformly keeps witness memory one
+    # substrate-wide upgrade rather than a DG-4-only bespoke slice.
+    for witness in witness_scope["witnesses"]:
+        queue_dispatch_event(
+            world,
+            "witness_strike_recorded",
+            {
+                "episode_id": episode_id,
+                "victim_nation": victim,
+                "perpetrator_nation": breaker,
+                "witness_nation": witness["nation"],
+                "scope_reason": witness["scope_reason"],
+                "relation_delta": 0,
+                "reliability_delta": 0,
+                "source_episode_type": "call_to_arms_refused_defensive",
+                "turn": current_turn,
+            },
+            "partial_on_nation",
+        )
 
     return {
         "episode_id": episode_id,
@@ -648,6 +739,11 @@ def emit_call_to_arms_refused_defensive(
         else "",
         "reliability_before": reliability_before,
         "reliability_after": reliability_after,
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_count": witness_scope["count"],
+        "witness_dominant_scope": witness_scope["dominant_scope"],
+        "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
+        "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
     }
 
 
@@ -913,6 +1009,163 @@ def _get_breach_witness_scope(world, breaker_nation: str, injured_party: str) ->
         "count": int(len(witnesses)),
         "sample": [w["nation"] for w in witnesses[:4]],
     }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# B-B4 / §8.8.3 — DG-4 defensive-refusal witness scope (wider than §8.4)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+def _classify_dg4_refused_defensive_witness_scope(
+    world, witness: str, breaker: str, victim: str,
+) -> str:
+    """Resolve a single witness's scope_reason for a DG-4 defensive refusal.
+
+    Precedence per §8.8.3: `ally > rival > treaty_partner_of_breaker >
+    shared_enemy > region_observer`. The `ally` / `rival` / `shared_enemy`
+    predicates are reused from the base `_classify_witness_scope`; only
+    the new `treaty_partner_of_breaker` predicate is introduced here.
+
+    Returns a WITNESS_SCOPE_* constant, or empty string when the witness
+    has no qualifying role. Single-reason rule: the first matching role
+    in precedence order wins — no witness appears twice in the scope list.
+    """
+    # ally: military alliance with the injured party (highest precedence)
+    if world.get_diplomatic_state(witness, victim) in (
+        "DEFENSIVE_ALLIANCE", "ALLIANCE",
+    ):
+        return WITNESS_SCOPE_ALLY
+
+    # rival: active rivalry or war state with the breaker
+    rivalries = getattr(world, 'nation_rivalries', {}) or {}
+    if rivalries:
+        pair_key = world._make_diplo_key(witness, breaker)
+        record = rivalries.get(pair_key)
+        if record and record.get("intensity") == "active":
+            return WITNESS_SCOPE_RIVAL
+    if world.is_at_war(witness, breaker):
+        return WITNESS_SCOPE_RIVAL
+
+    # treaty_partner_of_breaker: any active treaty with the breaker
+    # (§8.8.3 "wider scope" insertion).
+    breaker_state = world.get_diplomatic_state(witness, breaker)
+    if breaker_state in _ACTIVE_TREATY_STATES_FOR_DG4_WITNESS:
+        return WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER
+
+    # shared_enemy: witness + victim share an active enemy
+    for other in world.get_active_nations():
+        if other in (witness, breaker, victim):
+            continue
+        if world.is_at_war(witness, other) and world.is_at_war(victim, other):
+            return WITNESS_SCOPE_SHARED_ENEMY
+
+    # region_observer: bargain-region observation (deferred — bargain
+    # store does not yet exist in this substrate).
+    return ""
+
+
+def _get_dg4_refused_defensive_witness_scope(
+    world, breaker: str, victim: str,
+) -> Dict:
+    """Resolve the witness set for a `call_to_arms_refused_defensive` episode.
+
+    Parallel to `_get_breach_witness_scope` but uses the DG-4 precedence
+    from §8.8.3 (see `DG4_WITNESS_SCOPE_PRECEDENCE`). The shape matches
+    `_get_breach_witness_scope` so downstream consumers (dispatch emit,
+    C3 presentation) can treat the two as interchangeable payloads.
+
+    Witness count growth (§7.7 / §8.8.3 scale note): at 13 nations the
+    wider scope lifts typical witness lists from ~2-4 to ~6-9. Callers
+    that loop over witnesses must stay O(active_nations).
+    """
+    witnesses = []
+    for nation in world.get_active_nations():
+        if nation in (breaker, victim):
+            continue
+        scope_reason = _classify_dg4_refused_defensive_witness_scope(
+            world, nation, breaker, victim,
+        )
+        if scope_reason:
+            witnesses.append({"nation": nation, "scope_reason": scope_reason})
+
+    dominant_scope = ""
+    for role in DG4_WITNESS_SCOPE_PRECEDENCE:
+        if any(w["scope_reason"] == role for w in witnesses):
+            dominant_scope = role
+            break
+
+    player_nation = getattr(world, 'player_nation', 'France')
+    if breaker == player_nation or victim == player_nation or len(witnesses) >= 3:
+        label = "continental"
+    elif witnesses:
+        label = "aligned courts"
+    else:
+        label = "private court"
+
+    return {
+        "witnesses": witnesses,
+        "dominant_scope": dominant_scope,
+        "label": label,
+        "count": int(len(witnesses)),
+        "sample": [w["nation"] for w in witnesses[:4]],
+    }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# B-B4 / §8.8.7 — anti-renewal cooldown after a defensive refusal
+# ────────────────────────────────────────────────────────────────────────────
+# A defensive refusal blocks new ALLIANCE / DEFENSIVE_ALLIANCE ratification
+# between the refuser-victim pair for an authored window. The gate is
+# mechanical (not advisory) — the acceptance-formula score is clamped to
+# reject so the proposal is blocked outright. NON_AGGRESSION / OPEN_BORDERS
+# / PEACE remain available during the window per §8.8.7.
+
+ANTI_RENEWAL_COOLDOWN_TURNS = 15  # §8.8.7 candidate authored window
+
+
+def _set_anti_renewal_cooldown(world, nation_a: str, nation_b: str) -> int:
+    """Arm the anti-renewal cooldown for the (nation_a, nation_b) pair.
+
+    Sets `anti_renewal_cooldown[pair_key] = current_turn + ANTI_RENEWAL_COOLDOWN_TURNS`.
+    Returns the expiry turn for caller bookkeeping.
+    """
+    pair_key = world._make_diplo_key(nation_a, nation_b)
+    expiry = int(getattr(world, "current_turn", 0)) + ANTI_RENEWAL_COOLDOWN_TURNS
+    cooldown = dict(getattr(world, "anti_renewal_cooldown", {}) or {})
+    cooldown[pair_key] = expiry
+    world.anti_renewal_cooldown = cooldown
+    return expiry
+
+
+def is_anti_renewal_active(world, nation_a: str, nation_b: str) -> bool:
+    """True when the (nation_a, nation_b) pair is within an anti-renewal window.
+
+    Used by `calculate_acceptance` to gate deep-treaty proposals between
+    the refuser and the abandoned victim. Self-pair always returns False.
+    """
+    if not nation_a or not nation_b or nation_a == nation_b:
+        return False
+    pair_key = world._make_diplo_key(nation_a, nation_b)
+    expiry = int(
+        (getattr(world, "anti_renewal_cooldown", {}) or {}).get(pair_key, 0) or 0
+    )
+    return expiry > int(getattr(world, "current_turn", 0))
+
+
+def get_anti_renewal_turns_remaining(world, nation_a: str, nation_b: str) -> int:
+    """Return turns remaining on an anti-renewal window (0 when inactive).
+
+    Exposed for UI copy so the proposal flow can surface the remaining
+    turns per §8.8.7 "the UI surfaces the remaining turns."
+    """
+    if not nation_a or not nation_b or nation_a == nation_b:
+        return 0
+    pair_key = world._make_diplo_key(nation_a, nation_b)
+    expiry = int(
+        (getattr(world, "anti_renewal_cooldown", {}) or {}).get(pair_key, 0) or 0
+    )
+    remaining = expiry - int(getattr(world, "current_turn", 0))
+    return max(0, remaining)
 
 
 def _allocate_episode_id(world, prefix: str = "ep") -> str:
@@ -1238,17 +1491,33 @@ def _record_treaty_breach(
     # One witness_strike_recorded dispatch per witness (§C3 B2a cross-cutting
     # addition). Pre-strike-store: no relation_delta applied yet; payload is
     # emitted so C3 presentation can render witness-scoped reactions.
-    for witness in breach_preview["witnesses"]:
-        queue_dispatch_event(world, "witness_strike_recorded", {
-            "episode_id": episode_id,
-            "victim_nation": injured_party,
-            "perpetrator_nation": breaker_nation,
-            "witness_nation": witness["nation"],
-            "scope_reason": witness["scope_reason"],
-            "relation_delta": 0,
-            "reliability_delta": 0,
-            "turn": int(world.current_turn),
-        }, "partial_on_nation")
+    #
+    # B-B4 §8.8.7a cascade gate: when this breach is the termination cascade
+    # driven by a `call_to_arms_refused_defensive` episode, the refusal emit
+    # already produced per-witness events under its wider DG-4 scope
+    # (§8.8.3). Emitting again here would duplicate witnesses on the same
+    # `episode_id`. The refusal is the authoritative owner — skip cascade-
+    # side emission. `_record_treaty_breach` for any *other* breach family
+    # continues to emit per the existing §C3 contract.
+    refusal_cascade = bool(
+        trigger_context
+        and trigger_context.get("refusal_episode_type") == "call_to_arms_refused_defensive"
+    ) or (
+        breach_preview.get("end_reason_family")
+        == END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION
+    )
+    if not refusal_cascade:
+        for witness in breach_preview["witnesses"]:
+            queue_dispatch_event(world, "witness_strike_recorded", {
+                "episode_id": episode_id,
+                "victim_nation": injured_party,
+                "perpetrator_nation": breaker_nation,
+                "witness_nation": witness["nation"],
+                "scope_reason": witness["scope_reason"],
+                "relation_delta": 0,
+                "reliability_delta": 0,
+                "turn": int(world.current_turn),
+            }, "partial_on_nation")
 
     # Apply reliability penalty only when actor is at fault.
     # `applied_reliability_delta` is authoritative; for cascade / counterparty-
@@ -2154,6 +2423,27 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             hard_reject_posture = -100
             score = min(score, 0)
 
+    # ── Anti-renewal cooldown gate (B-B4 §8.8.7) ──
+    # A recent `call_to_arms_refused_defensive` episode blocks new
+    # ALLIANCE / DEFENSIVE_ALLIANCE ratification between the refuser
+    # and the abandoned victim for `ANTI_RENEWAL_COOLDOWN_TURNS` turns.
+    # Mirrors the `hard_reject_posture` score-clamp pattern so the gate
+    # fires uniformly on player, AI-player, and AI-AI proposal paths
+    # that all route through `calculate_acceptance`. No survival-
+    # exception branch per §8.8.7 "Blocking is mechanical, not advisory".
+    anti_renewal_block = 0
+    anti_renewal_turns_remaining = 0
+    anti_renewal_active = False
+    if proposal_type in _DEEP_TREATY_TYPES and is_anti_renewal_active(
+        world, proposer, target,
+    ):
+        anti_renewal_active = True
+        anti_renewal_turns_remaining = get_anti_renewal_turns_remaining(
+            world, proposer, target,
+        )
+        anti_renewal_block = -100
+        score = min(score, 0)
+
     if score >= 50:
         outcome = "ACCEPT"
     elif score >= 30:
@@ -2191,6 +2481,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "ultimatum_bonus": ultimatum_bonus,
         "territory_escalation": int(territory_penalty),
         "hard_reject_posture": int(hard_reject_posture),
+        # B-B4 §8.8.7 — anti-renewal cooldown gate. `anti_renewal_block`
+        # mirrors the `hard_reject_posture` convention (negative score
+        # clamp; neither is in `_generate_feedback` trackable). The
+        # `_active` / `_turns_remaining` keys surface the state for
+        # ledger / UI without re-reading the cooldown map.
+        "anti_renewal_block": int(anti_renewal_block),
+        "anti_renewal_active": bool(anti_renewal_active),
+        "anti_renewal_turns_remaining": int(anti_renewal_turns_remaining),
     }
 
     # ── Feedback (§6f) ──

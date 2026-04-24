@@ -1084,9 +1084,11 @@ class LLMClient:
         # B-B4 §8.6.1a — grievance-variant disambiguation. When both a
         # standalone strike AND one or more grievance flags exist against
         # the same target, the parser must surface the two verbs as
-        # distinct actions. The explicit phrase `for the abandoned
-        # alliance` (and close idiomatic variants) routes to the
-        # grievance variant; default is the standard variant.
+        # distinct actions. All keys are explicit `for …` prefixes (or
+        # the literal opt-in `grievance variant`) so stray prose like
+        # "make amends, Russia abandoned alliance obligations first"
+        # cannot false-positive into the grievance path. Default remains
+        # the standard variant.
         amends_variant = "standard"
         if action == "make_amends" and any(kw in command_lower for kw in [
             "for the abandoned alliance",
@@ -1094,7 +1096,6 @@ class LLMClient:
             "for the abandoned call",
             "for refusing the defensive call",
             "grievance variant",
-            "abandoned alliance",
         ]):
             amends_variant = "grievance"
 

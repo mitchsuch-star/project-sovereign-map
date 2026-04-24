@@ -284,8 +284,31 @@ FEEDBACK_STRINGS = {
         "positive": "the composite floor was not engaged",
     },
     "composite_floor_adjustment": {
-        "negative": "the floor absorbed additional pressure",
+        # `composite_floor_adjustment` is the non-negative amount the
+        # floor *added* to lift the raw subtotal back to -60; it is
+        # never negative by construction. The `negative` key is the
+        # "floor engaged" copy (adjustment > 0) and `positive` is the
+        # "floor dormant" copy (adjustment == 0).
+        "negative": "the composite floor lifted the political subtotal back to -60",
         "positive": "no floor adjustment was required",
+    },
+    # B-B4 §8.8.7 — anti-renewal cooldown gate copy. The block is a
+    # mechanical score clamp (parallel to `hard_reject_posture`); none
+    # of these rows are in `_generate_feedback` trackable so they never
+    # drive player-facing hint text. They exist so the component-key
+    # completeness test stays green and the ledger can render "deep
+    # treaties blocked: N turns remaining" distinctly.
+    "anti_renewal_block": {
+        "negative": "the anti-renewal cooldown blocked the deep-treaty proposal",
+        "positive": "no anti-renewal cooldown is active",
+    },
+    "anti_renewal_active": {
+        "negative": "an anti-renewal cooldown is active on this pair",
+        "positive": "no anti-renewal cooldown is active on this pair",
+    },
+    "anti_renewal_turns_remaining": {
+        "negative": "turns remaining on the anti-renewal cooldown",
+        "positive": "no anti-renewal cooldown is pending",
     },
     "harshness_penalty": {
         "negative": "the harshness of current demands",
