@@ -9,16 +9,52 @@ Architecture:
   Each template has text (with {slots}), options, and recommendation index.
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from backend.nation_config import get_player_nation
 
 
-def resolve_named_diplomat(speaker: str, nation: str) -> str:
-    """Placeholder for the C-lite named-diplomat resolver."""
-    raise NotImplementedError(
-        "Wired in C-lite §13; see COMMITMENTS_PRESENTATION_SPEC.md §10.3"
-    )
+def _diplomat_name_from_record(record: Any) -> str:
+    if record is None:
+        return ""
+    if isinstance(record, dict):
+        return str(record.get("name", "") or "")
+    return str(getattr(record, "name", "") or "")
+
+
+def resolve_named_diplomat(
+    speaker: str,
+    nation: str,
+    world: Any = None,
+) -> str:
+    """Resolve a presentation speaker to a named envoy or chancery fallback."""
+    speaker_key = str(speaker or "").strip().lower()
+    nation_name = str(nation or "").strip()
+
+    if speaker_key == "system":
+        return ""
+    if speaker_key == "foreign_office":
+        return f"The Chancery of {nation_name}" if nation_name else "The Chancery"
+    if speaker_key == "talleyrand":
+        return "Talleyrand"
+
+    if speaker_key in {"envoy", "named_diplomat", "diplomat"}:
+        diplomats = getattr(world, "diplomats", None) if world is not None else None
+        if isinstance(diplomats, dict):
+            resolved = _diplomat_name_from_record(diplomats.get(nation_name))
+            if resolved:
+                return resolved
+            return f"The Chancery of {nation_name}" if nation_name else "The Chancery"
+
+        from backend.models.diplomat import STARTING_DIPLOMATS
+        resolved = _diplomat_name_from_record(STARTING_DIPLOMATS.get(nation_name))
+        if resolved:
+            return resolved
+        return f"The Chancery of {nation_name}" if nation_name else "The Chancery"
+
+    if speaker:
+        return str(speaker)
+    return f"The Chancery of {nation_name}" if nation_name else "The Chancery"
 
 # ═══════ TEMPLATE LIBRARY ═══════
 # Key: (intent_type, diplo_state, bucket_group)
@@ -1267,13 +1303,13 @@ TALLEYRAND_COMMENTARY = {
     ("Austria", "friendly_deal"): "Metternich sees advantage in cooperation. Let us reward his pragmatism.",
     ("Austria", "hostile_deal"): "Metternich is hostile but calculating. A sufficiently attractive offer may still tempt him.",
     # --- Britain ---
-    ("Britain", "gold_useless"): "Britain's coffers overflow — offering gold insults Castlereagh. Territory speaks louder.",
-    ("Britain", "coveted_territory_offered"): "The Netherlands secures Britain's continental foothold. Castlereagh values it above gold.",
-    ("Britain", "dominant_terms"): "Britain's continental army is small. Castlereagh knows his position — he'll accept reasonable terms.",
-    ("Britain", "desperate_terms"): "Castlereagh drives a hard bargain. I've included everything short of Paris itself.",
+    ("Britain", "gold_useless"): "Britain's coffers overflow — offering gold insults the British cabinet. Territory speaks louder.",
+    ("Britain", "coveted_territory_offered"): "The Netherlands secures Britain's continental foothold. The British chancery values it above gold.",
+    ("Britain", "dominant_terms"): "Britain's continental army is small. Their cabinet knows its position — it will accept reasonable terms.",
+    ("Britain", "desperate_terms"): "The British chancery drives a hard bargain. I've included everything short of Paris itself.",
     ("Britain", "neutral_deal"): "An island nation with continental ambitions. This arrangement serves both parties' interests.",
-    ("Britain", "friendly_deal"): "Castlereagh is amenable, for once. Best to lock in terms before his mood shifts.",
-    ("Britain", "hostile_deal"): "Castlereagh despises us openly. Only overwhelming terms have any chance.",
+    ("Britain", "friendly_deal"): "The British chancery is amenable, for once. Best to lock in terms before the mood shifts.",
+    ("Britain", "hostile_deal"): "The British cabinet despises us openly. Only overwhelming terms have any chance.",
     # --- Saxony ---
     ("Saxony", "gold_for_poor"): "Saxony's treasury is nearly empty. Even modest gold buys Einsiedel's eternal gratitude.",
     ("Saxony", "protection_offered"): "Saxony lives in fear of Prussian annexation. A French guarantee is worth more than gold to them.",
@@ -1285,7 +1321,7 @@ TALLEYRAND_COMMENTARY = {
     # --- Coveted unavailable (France doesn't control what they want) ---
     ("Prussia", "coveted_unavailable"): "Hardenberg dreams of Saxony, but it is not yet ours to offer. Conquer it first, Sire, and he will come to the table eagerly.",
     ("Austria", "coveted_unavailable"): "Metternich yearns for Bavaria, but we do not hold it. Secure it first, and these negotiations transform entirely.",
-    ("Britain", "coveted_unavailable"): "Castlereagh values his continental footholds, but they are beyond our gift at present. We must work with what we have.",
+    ("Britain", "coveted_unavailable"): "Britain values its continental footholds, but they are beyond our gift at present. We must work with what we have.",
     ("Saxony", "coveted_unavailable"): "Einsiedel's homeland is not ours to return. Until we hold it, we cannot offer what matters most to him.",
     ("_default", "coveted_unavailable"): "They desire territory we do not yet control. Conquer it first, Sire, and our bargaining position transforms.",
     # --- Defaults ---
@@ -1307,8 +1343,8 @@ TALLEYRAND_COMMENTARY = {
     ("Prussia", "modified_generous"): "Generosity toward Prussia costs us little. Hardenberg will remember this kindness.",
     ("Austria", "modified_harsh"): "Metternich will protest, but his options narrow with each demand. Hold firm.",
     ("Austria", "modified_generous"): "Metternich appreciates magnanimity — it allows him to save face at court.",
-    ("Britain", "modified_harsh"): "Castlereagh's island gives him options we cannot eliminate. Harsh terms risk outright rejection.",
-    ("Britain", "modified_generous"): "Even Castlereagh may warm to terms this favorable. Britain values pragmatism.",
+    ("Britain", "modified_harsh"): "Britain's island position gives its cabinet options we cannot eliminate. Harsh terms risk outright rejection.",
+    ("Britain", "modified_generous"): "Even the British chancery may warm to terms this favorable. Britain values pragmatism.",
     ("Saxony", "modified_harsh"): "Poor Einsiedel has little left to give. These demands may break Saxony entirely.",
     ("Saxony", "modified_generous"): "Einsiedel will weep with gratitude. Such generosity buys a loyal vassal, Sire.",
     ("_default", "modified_harsh"): "I have drafted more demanding terms, Sire. They will not accept lightly.",

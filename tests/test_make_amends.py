@@ -298,8 +298,13 @@ class TestAmendsOfferedEmits:
         notif = amends_notifs[0]
         # Priority = NORMAL (COMMITMENTS_PRESENTATION_SPEC §10.3)
         assert int(notif["priority"]) == 0
-        assert "Austria" in notif["title"]
+        assert notif["title"] == "Amends Offered"
         details = notif["details"]
+        assert details["template_key"] == "commitments_notice_amends_offered"
+        assert details["icon"] == "icon_amends_offered"
+        assert details["label"] == "Amends Offered"
+        assert details["speaker"] == "envoy_to_target_diplomat"
+        assert details["review_target"] == "ledger_commitments"
         assert details["episode_id"]
         assert details["actor_nation"] == "France"
         assert details["target_nation"] == "Austria"

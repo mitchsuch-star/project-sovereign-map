@@ -77,7 +77,7 @@ The Memory and Pressure substrate now creates real political moments:
 
 - betrayal memory (graded acceptance impact + hard-reject posture)
 - hegemony pressure (bloc-share friction + Balance of Europe headline)
-- commitment paradox hard stops (renamed alliance-cross-war; `commitment_paradox_resolved` log + dispatch event)
+- commitment paradox hard stops (renamed alliance-cross-war; `commitment_paradox_resolved` log only, with no cross-surface dispatch callback)
 
 What it does **not** yet do is make those moments feel important in play. They land as one-liner notification rows.
 

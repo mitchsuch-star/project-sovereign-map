@@ -32,6 +32,31 @@ from backend.models.intel import (
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
 
+DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
+    "mode": "direct_only",
+    "qualifying_treaty_states": {
+        "defender_side": ["ALLIANCE", "DEFENSIVE_ALLIANCE"],
+        "attacker_side": ["ALLIANCE"],
+    },
+    "include_vassals": True,
+    "refusal_event_type_offensive": "call_to_arms_refused_offensive",
+    "refusal_event_type_defensive": "call_to_arms_refused_defensive",
+    "honored_costly_event_type": "call_to_arms_honored_costly",
+    "defender_refusal_allowed": True,
+    "impossibility_threshold": {
+        "power_ratio": 2.5,
+        "capital_threat_auto_impossible": True,
+        "losing_war_score_floor": -40,
+    },
+    "defensive_refusal_severity_multiplier": 1.75,
+    "oathbreaker_posture": {
+        "refusals_required": 2,
+        "window_turns": 15,
+        "auto_reject_ally_proposals_turns": 10,
+    },
+    "anti_renewal_window_turns": 15,
+}
+
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
 FORTIFY_DECAY_CONFIG = {
@@ -544,6 +569,7 @@ class WorldState:
         # a temporary loyalty bond between honorer and rescued principal.
         # Key = diplo_key; value = list of bond records.
         self.call_to_arms_loyalty_bonds: Dict[str, List[Dict]] = {}
+        self.cascade_profile: Dict[str, Any] = copy.deepcopy(DEFAULT_CASCADE_PROFILE)
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.commitment_paradox_popup: Optional[Dict] = None  # R12 commitment paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
@@ -3535,6 +3561,9 @@ class WorldState:
                 ]
                 for key, bonds in self.call_to_arms_loyalty_bonds.items()
             },
+            "cascade_profile": copy.deepcopy(
+                getattr(self, "cascade_profile", DEFAULT_CASCADE_PROFILE) or {}
+            ),
 
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
@@ -3917,6 +3946,22 @@ class WorldState:
             ]
             for key, bonds in data.get("call_to_arms_loyalty_bonds", {}).items()
         }
+        loaded_cascade_profile = data.get("cascade_profile", None)
+        if isinstance(loaded_cascade_profile, dict):
+            profile = copy.deepcopy(DEFAULT_CASCADE_PROFILE)
+            for key, value in loaded_cascade_profile.items():
+                if (
+                    isinstance(value, dict)
+                    and isinstance(profile.get(key), dict)
+                ):
+                    nested = dict(profile[key])
+                    nested.update(value)
+                    profile[key] = nested
+                else:
+                    profile[key] = value
+            world.cascade_profile = profile
+        else:
+            world.cascade_profile = copy.deepcopy(DEFAULT_CASCADE_PROFILE)
 
         # Dispatch event queue (Session 8D)
         world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]

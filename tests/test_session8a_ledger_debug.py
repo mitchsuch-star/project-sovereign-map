@@ -331,6 +331,16 @@ class TestDiplomaticLedgerThreatCoalition:
     def test_correct_keys(self):
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
+        assert "balance_of_europe" in ledger
+        boe = ledger["balance_of_europe"]
+        assert {
+            "headline_case",
+            "hegemon",
+            "hegemon_share",
+            "coalition_state",
+            "threat_level",
+            "threat_tier",
+        }.issubset(set(boe.keys()))
         tc = ledger["threat_coalition"]
         required_keys = {
             "threat_level", "threat_tier", "threat_sources_this_turn",

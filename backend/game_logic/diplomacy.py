@@ -318,6 +318,33 @@ DG4_OATHBREAKER_AUTO_REJECT_TURNS = 10
 DG4_LOYALTY_BOND_TURNS = 30
 DG4_LOYALTY_BOND_RELATION_DELTA = 10
 
+DEFAULT_CASCADE_PROFILE = {
+    "mode": "direct_only",
+    "qualifying_treaty_states": {
+        "defender_side": ["ALLIANCE", "DEFENSIVE_ALLIANCE"],
+        "attacker_side": ["ALLIANCE"],
+    },
+    "include_vassals": True,
+    "refusal_event_type_offensive": DG4_EVENT_REFUSED_OFFENSIVE,
+    "refusal_event_type_defensive": DG4_EVENT_REFUSED_DEFENSIVE,
+    "honored_costly_event_type": DG4_EVENT_HONORED_COSTLY,
+    "defender_refusal_allowed": True,
+    "impossibility_threshold": {
+        "power_ratio": DG4_IMPOSSIBLE_POWER_RATIO,
+        "capital_threat_auto_impossible": True,
+        "losing_war_score_floor": -40,
+    },
+    "defensive_refusal_severity_multiplier": (
+        DG4_DEFENSIVE_REFUSAL_SEVERITY_MULTIPLIER
+    ),
+    "oathbreaker_posture": {
+        "refusals_required": DG4_OATHBREAKER_REFUSALS_REQUIRED,
+        "window_turns": DG4_OATHBREAKER_WINDOW_TURNS,
+        "auto_reject_ally_proposals_turns": DG4_OATHBREAKER_AUTO_REJECT_TURNS,
+    },
+    "anti_renewal_window_turns": 15,
+}
+
 DG4_EPISODE_EFFECTS = {
     DG4_EVENT_REFUSED_OFFENSIVE: {
         "reliability_delta": -6,
@@ -615,6 +642,9 @@ def emit_call_to_arms_refused_defensive(
         call_context=call_context,
     )
     severity_factors = _dg4_scale_components(world, breaker, call_context)
+    severity_factors["defensive_refusal_severity_multiplier"] = float(
+        _defensive_refusal_severity_multiplier(world)
+    )
 
     # ── 1. Betrayal strike (+2 victim-grade, severity "high" by default) ──
     strike_record = _record_betrayal_strikes(
@@ -700,8 +730,9 @@ def emit_call_to_arms_refused_defensive(
     anti_renewal_expires_on_turn = _set_anti_renewal_cooldown(
         world, breaker, victim,
     )
+    anti_renewal_cooldown_turns = _anti_renewal_window_turns(world)
 
-    # ── 7. Emit the refusal episode on campaign log + dispatch ──
+    # ── 7. Emit the refusal episode on campaign log, notification, and dispatch ──
     from backend.game_logic.dispatch import queue_dispatch_event
     coalition_threat_expires_on_turn = current_turn + max(
         1,
@@ -734,7 +765,7 @@ def emit_call_to_arms_refused_defensive(
         "witness_scope_label": witness_scope["label"],
         "witness_count": witness_scope["count"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
-        "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
+        "anti_renewal_cooldown_turns": int(anti_renewal_cooldown_turns),
         "coalition_threat_expires_on_turn": int(coalition_threat_expires_on_turn),
         "call_context": dict(call_context),
         "turn": current_turn,
@@ -764,7 +795,7 @@ def emit_call_to_arms_refused_defensive(
             "severity_factors": severity_factors,
             "witness_count": witness_scope["count"],
             "witness_dominant_scope": witness_scope["dominant_scope"],
-            "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
+            "anti_renewal_cooldown_turns": int(anti_renewal_cooldown_turns),
             "turn": current_turn,
             "speaker_attribution": "envoy",
             "speaker_target_nation": victim,
@@ -772,13 +803,8 @@ def emit_call_to_arms_refused_defensive(
         "partial_on_nation",
     )
 
-    # ── 8. Per-witness dispatch events so C3 presentation can render
-    # witness-scoped reactions. Numeric witness effect (§8.8.2 "-3 to
-    # each scoped witness") mirrors the existing `_record_treaty_breach`
-    # pattern: the dispatch carries deltas of 0 at the substrate level
-    # and the C3-lite presentation pass owns the reliability/relation
-    # interpretation. Doing this uniformly keeps witness memory one
-    # substrate-wide upgrade rather than a DG-4-only bespoke slice.
+    # ── 8. Per-witness relation effects and dispatch events so the
+    # presentation layer can collapse same-episode witness reactions.
     _queue_dg4_witness_events(
         world,
         episode_id=episode_id,
@@ -814,7 +840,7 @@ def emit_call_to_arms_refused_defensive(
         "witness_count": witness_scope["count"],
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
-        "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
+        "anti_renewal_cooldown_turns": int(anti_renewal_cooldown_turns),
         "coalition_threat_expires_on_turn": int(coalition_threat_expires_on_turn),
     }
 
@@ -1013,7 +1039,7 @@ def emit_call_to_arms_honored_costly(
         "call_context": dict(call_context),
         "turn": current_turn,
         "speaker_attribution": "foreign_office",
-        "speaker_target_nation": victim,
+        "speaker_target_nation": getattr(world, "player_nation", "France"),
     }
     world.log_event(payload)
     _emit_commitments_notification(
@@ -1036,7 +1062,7 @@ def emit_call_to_arms_honored_costly(
             "witness_count": witness_scope["count"],
             "turn": current_turn,
             "speaker_attribution": "foreign_office",
-            "speaker_target_nation": victim,
+            "speaker_target_nation": getattr(world, "player_nation", "France"),
         },
         "partial_on_nation",
     )
@@ -1258,6 +1284,9 @@ def _emit_hard_reject_posture_triggered(
     event = dict(payload)
     event["type"] = "hard_reject_posture_triggered"
     world.log_event(event)
+    _emit_commitments_notification(
+        world, "hard_reject_posture_triggered", payload,
+    )
 
 
 def _process_betrayal_decay(world) -> None:
@@ -1309,14 +1338,15 @@ def _process_betrayal_decay(world) -> None:
             episode_id = ""
             if strikes:
                 episode_id = str(strikes[-1].get("episode_id", ""))
-            world.log_event({
+            payload = {
                 "type": "hard_reject_posture_cleared",
                 "perpetrator_nation": actor,
                 "victim_nation": victim,
                 "episode_id": episode_id,
                 "turn": current_turn,
                 "speaker_attribution": "foreign_office",
-            })
+            }
+            world.log_event(payload)
             queue_dispatch_event(world, "hard_reject_posture_cleared", {
                 "perpetrator_nation": actor,
                 "victim_nation": victim,
@@ -1324,6 +1354,9 @@ def _process_betrayal_decay(world) -> None:
                 "turn": current_turn,
                 "speaker_attribution": "foreign_office",
             }, "partial_on_nation")
+            _emit_commitments_notification(
+                world, "hard_reject_posture_cleared", payload,
+            )
     world.betrayal_history = updated
 
 
@@ -1639,6 +1672,119 @@ def _get_honor_bias(world, nation: str) -> float:
     return 1.0
 
 
+def _cascade_profile(world) -> Dict:
+    profile = getattr(world, "cascade_profile", None)
+    return dict(profile or {})
+
+
+def _cascade_float(world, key: str, default: float) -> float:
+    try:
+        return float(_cascade_profile(world).get(key, default))
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _cascade_int(world, key: str, default: int) -> int:
+    try:
+        return int(_cascade_profile(world).get(key, default))
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _cascade_nested_float(
+    world,
+    section: str,
+    key: str,
+    default: float,
+) -> float:
+    try:
+        data = _cascade_profile(world).get(section, {}) or {}
+        return float(data.get(key, default))
+    except (AttributeError, TypeError, ValueError):
+        return float(default)
+
+
+def _cascade_nested_int(
+    world,
+    section: str,
+    key: str,
+    default: int,
+) -> int:
+    try:
+        data = _cascade_profile(world).get(section, {}) or {}
+        return int(data.get(key, default))
+    except (AttributeError, TypeError, ValueError):
+        return int(default)
+
+
+def _defensive_refusal_severity_multiplier(world) -> float:
+    return _cascade_float(
+        world,
+        "defensive_refusal_severity_multiplier",
+        DG4_DEFENSIVE_REFUSAL_SEVERITY_MULTIPLIER,
+    )
+
+
+def _anti_renewal_window_turns(world) -> int:
+    return max(
+        1,
+        _cascade_int(world, "anti_renewal_window_turns", ANTI_RENEWAL_COOLDOWN_TURNS),
+    )
+
+
+def _oathbreaker_window_turns(world) -> int:
+    return max(
+        1,
+        _cascade_nested_int(
+            world, "oathbreaker_posture", "window_turns",
+            DG4_OATHBREAKER_WINDOW_TURNS,
+        ),
+    )
+
+
+def _oathbreaker_refusals_required(world) -> int:
+    return max(
+        1,
+        _cascade_nested_int(
+            world, "oathbreaker_posture", "refusals_required",
+            DG4_OATHBREAKER_REFUSALS_REQUIRED,
+        ),
+    )
+
+
+def _oathbreaker_auto_reject_turns(world) -> int:
+    return max(
+        1,
+        _cascade_nested_int(
+            world, "oathbreaker_posture", "auto_reject_ally_proposals_turns",
+            DG4_OATHBREAKER_AUTO_REJECT_TURNS,
+        ),
+    )
+
+
+def _impossibility_power_ratio(world) -> float:
+    return _cascade_nested_float(
+        world,
+        "impossibility_threshold",
+        "power_ratio",
+        DG4_IMPOSSIBLE_POWER_RATIO,
+    )
+
+
+def _impossibility_losing_war_floor(world) -> int:
+    return _cascade_nested_int(
+        world,
+        "impossibility_threshold",
+        "losing_war_score_floor",
+        -40,
+    )
+
+
+def _impossibility_capital_threat_enabled(world) -> bool:
+    data = _cascade_profile(world).get("impossibility_threshold", {}) or {}
+    return bool(data.get("capital_threat_auto_impossible", True))
+
+
 def _dg4_scale_components(
     world,
     nation: str,
@@ -1696,6 +1842,8 @@ def _scaled_dg4_delta(
     effects = DG4_EPISODE_EFFECTS.get(event_type, {})
     base = int(effects.get(effect_key, 0) or 0)
     multiplier = float(effects.get("severity_multiplier", 1.0) or 1.0)
+    if event_type == DG4_EVENT_REFUSED_DEFENSIVE:
+        multiplier = _defensive_refusal_severity_multiplier(world)
     scale = _dg4_scale_components(world, nation, call_context)
     return int(round(base * multiplier * scale["total_multiplier"]))
 
@@ -1742,7 +1890,7 @@ def _emit_commitments_notification(world, event_type: str, payload: Dict) -> Non
         world.notifications.add(create_notification(
             event_type,
             priority,
-            commitments_label(event_type),
+            commitments_label(event_type, payload),
             format_commitments_notice(event_type, payload),
             int(getattr(world, "current_turn", 0)),
             details=commitments_notice_details(event_type, payload),
@@ -1810,11 +1958,11 @@ ANTI_RENEWAL_COOLDOWN_TURNS = 15  # §8.8.7 candidate authored window
 def _set_anti_renewal_cooldown(world, nation_a: str, nation_b: str) -> int:
     """Arm the anti-renewal cooldown for the (nation_a, nation_b) pair.
 
-    Sets `anti_renewal_cooldown[pair_key] = current_turn + ANTI_RENEWAL_COOLDOWN_TURNS`.
+    Sets the pair expiry from the authored cascade profile window.
     Returns the expiry turn for caller bookkeeping.
     """
     pair_key = world._make_diplo_key(nation_a, nation_b)
-    expiry = int(getattr(world, "current_turn", 0)) + ANTI_RENEWAL_COOLDOWN_TURNS
+    expiry = int(getattr(world, "current_turn", 0)) + _anti_renewal_window_turns(world)
     cooldown = dict(getattr(world, "anti_renewal_cooldown", {}) or {})
     cooldown[pair_key] = expiry
     world.anti_renewal_cooldown = cooldown
@@ -1906,7 +2054,7 @@ def _emit_oathbreaker_event(
 
 def _recent_defensive_refusal_episode_ids(world, nation: str) -> List[str]:
     current_turn = int(getattr(world, "current_turn", 0))
-    earliest = current_turn - DG4_OATHBREAKER_WINDOW_TURNS
+    earliest = current_turn - _oathbreaker_window_turns(world)
     ids = []
     for event in getattr(world, "event_log", []) or []:
         if event.get("type") != DG4_EVENT_REFUSED_DEFENSIVE:
@@ -1924,7 +2072,8 @@ def _record_oathbreaker_refusal(world, breaker: str, episode_id: str) -> None:
     recent_ids = _recent_defensive_refusal_episode_ids(world, breaker)
     if episode_id not in recent_ids:
         recent_ids.append(episode_id)
-    if len(recent_ids) < DG4_OATHBREAKER_REFUSALS_REQUIRED:
+    refusals_required = _oathbreaker_refusals_required(world)
+    if len(recent_ids) < refusals_required:
         return
 
     current_turn = int(getattr(world, "current_turn", 0))
@@ -1934,10 +2083,10 @@ def _record_oathbreaker_refusal(world, breaker: str, episode_id: str) -> None:
         "triggered_turn": int(
             (posture.get(breaker) or {}).get("triggered_turn", current_turn)
         ),
-        "expires_on_turn": current_turn + DG4_OATHBREAKER_WINDOW_TURNS,
-        "auto_reject_until_turn": current_turn + DG4_OATHBREAKER_AUTO_REJECT_TURNS,
+        "expires_on_turn": current_turn + _oathbreaker_window_turns(world),
+        "auto_reject_until_turn": current_turn + _oathbreaker_auto_reject_turns(world),
         "last_refusal_turn": current_turn,
-        "refusal_episode_ids": recent_ids[-DG4_OATHBREAKER_REFUSALS_REQUIRED:],
+        "refusal_episode_ids": recent_ids[-refusals_required:],
     }
     posture[breaker] = record
     world.oathbreaker_posture = posture
@@ -2232,6 +2381,12 @@ def _record_treaty_breach(
             `breached_treaty` in the same episode.
     """
     from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.game_logic.commitments_routing import (
+        commitments_label,
+        commitments_notice_details,
+        commitments_priority,
+        format_commitments_notice,
+    )
     from backend.notifications import (
         create_notification, NotificationPriority, TREATY_BROKEN,
     )
@@ -2284,12 +2439,37 @@ def _record_treaty_breach(
     })
 
     if not suppress_notification:
+        notice_payload = {
+            "breaker": breaker_nation,
+            "nation": breaker_nation,
+            "other": injured_party,
+            "injured_party": injured_party,
+            "victim_nation": injured_party,
+            "target": injured_party,
+            "fault_nation": breach_preview["fault_nation"],
+            "episode_id": episode_id,
+            "treaty_type": breach_preview["treaty_type"],
+            "treaty_type_display": treaty_type_display,
+            "previous_state": breach_preview["previous_state"],
+            "new_state": new_state,
+            "reason_phrase": reason_phrase,
+            "end_reason_family": breach_preview["end_reason_family"],
+            "end_reason_action": breach_preview["end_reason_action"],
+            "speaker_attribution": speaker_attribution,
+            "speaker_target_nation": injured_party,
+        }
+        priority_name = commitments_priority(
+            "diplomatic_treaty_broken", notice_payload,
+        )
         world.notifications.add(create_notification(
             TREATY_BROKEN,
-            NotificationPriority.HIGH,
-            f"Treaty Broken: {treaty_type_display}",
-            f"{breaker_nation} has broken the {treaty_type_display} with {injured_party} {reason_phrase}.",
+            getattr(NotificationPriority, priority_name, NotificationPriority.NORMAL),
+            commitments_label("diplomatic_treaty_broken", notice_payload),
+            format_commitments_notice("diplomatic_treaty_broken", notice_payload),
             int(world.current_turn),
+            details=commitments_notice_details(
+                "diplomatic_treaty_broken", notice_payload,
+            ),
         ))
 
     if not suppress_dispatch_event:
@@ -2359,23 +2539,12 @@ def _record_treaty_breach(
             episode_id=episode_id,
         )
         if betrayal_record.get("triggered_hard_reject"):
-            queue_dispatch_event(world, "hard_reject_posture_triggered", {
-                "perpetrator_nation": breaker_nation,
-                "victim_nation": injured_party,
-                "trigger_strike_episode_id": episode_id,
-                "episode_id": episode_id,
-                "turn": int(world.current_turn),
-                "speaker_attribution": "foreign_office",
-            }, "partial_on_nation")
-            world.log_event({
-                "type": "hard_reject_posture_triggered",
-                "perpetrator_nation": breaker_nation,
-                "victim_nation": injured_party,
-                "trigger_strike_episode_id": episode_id,
-                "episode_id": episode_id,
-                "turn": int(world.current_turn),
-                "speaker_attribution": "foreign_office",
-            })
+            _emit_hard_reject_posture_triggered(
+                world,
+                perpetrator=breaker_nation,
+                victim=injured_party,
+                episode_id=episode_id,
+            )
 
     diplomatic_history = getattr(world, 'diplomatic_history', [])
     diplomatic_history.append({
@@ -3719,13 +3888,17 @@ def _defensive_call_context(world, *, aggressor: str, victim: str, callee: str) 
     for other in world.get_active_nations():
         if other in (callee, aggressor):
             continue
-        if world.is_at_war(callee, other) and get_war_score_for(world, callee, other) <= -40:
+        if (
+            world.is_at_war(callee, other)
+            and get_war_score_for(world, callee, other)
+            <= _impossibility_losing_war_floor(world)
+        ):
             losing_other_war = True
             break
 
     impossible = (
-        power_ratio >= DG4_IMPOSSIBLE_POWER_RATIO
-        or capital_threat
+        power_ratio >= _impossibility_power_ratio(world)
+        or (capital_threat and _impossibility_capital_threat_enabled(world))
         or losing_other_war
     )
     costly = impossible or power_ratio >= DG4_COSTLY_HONOR_POWER_RATIO
@@ -4023,12 +4196,17 @@ def declare_war(
                 "honor_defender": attacker_breach_preview,
                 "break_defender_alliance": defender_breach_preview,
             }
+            diplomats = getattr(world, "diplomats", {}) or {}
+            attacker_diplomat = getattr(diplomats.get(aggressor), "name", "")
+            defender_diplomat = getattr(diplomats.get(target), "name", "")
             world.commitment_paradox_popup = {
                 "episode_id": paradox_episode_id,
                 "primary_nation": aggressor,
                 "secondary_nation": target,
                 "attacker": aggressor,
                 "defender": target,
+                "attacker_diplomat": attacker_diplomat,
+                "defender_diplomat": defender_diplomat,
                 "ally": player,
                 "attacker_alliance": aggressor_state,
                 "defender_alliance": target_state,
@@ -4051,6 +4229,8 @@ def declare_war(
                 "secondary_nation": target,
                 "attacker": aggressor,
                 "defender": target,
+                "attacker_diplomat": attacker_diplomat,
+                "defender_diplomat": defender_diplomat,
                 "ally": player,
                 "attacker_preview": attacker_breach_preview,
                 "defender_preview": defender_breach_preview,

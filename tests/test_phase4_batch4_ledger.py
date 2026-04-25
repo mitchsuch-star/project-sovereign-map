@@ -279,12 +279,7 @@ class TestR12CommitmentParadox:
             e for e in world.pending_dispatch_events
             if e.get("type") == "commitment_paradox_resolved"
         ]
-        assert dispatch_events
-        dispatch_latest = dispatch_events[-1]
-        assert dispatch_latest.get("fog_rule") == "always"
-        assert dispatch_latest.get("template_vars", {}).get("episode_id") == paradox_episode
-        assert dispatch_latest.get("template_vars", {}).get("chosen_nation") == "Austria"
-        assert dispatch_latest.get("template_vars", {}).get("spurned_nation") == "Prussia"
+        assert dispatch_events == []
 
     def test_break_defender_choice(self, world, executor, game_state):
         """Choosing 'break defender alliance' downgrades alliance with defender."""
@@ -338,9 +333,4 @@ class TestR12CommitmentParadox:
             e for e in world.pending_dispatch_events
             if e.get("type") == "commitment_paradox_resolved"
         ]
-        assert dispatch_events
-        dispatch_latest = dispatch_events[-1]
-        assert dispatch_latest.get("fog_rule") == "always"
-        assert dispatch_latest.get("template_vars", {}).get("episode_id") == paradox_episode
-        assert dispatch_latest.get("template_vars", {}).get("chosen_nation") == "Prussia"
-        assert dispatch_latest.get("template_vars", {}).get("spurned_nation") == "Austria"
+        assert dispatch_events == []

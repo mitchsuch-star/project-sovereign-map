@@ -41,9 +41,9 @@ func show_proposal(data: Dictionary):
 	var assessment = data.get("talleyrand_assessment", "")
 	var accept_hint = data.get("acceptance_hint", "")
 	var reject_hint = data.get("rejection_hint", "")
-	var decision_reason = str(data.get("decision_reason_display", data.get("decision_reason", "")))
+	var decision_reason = str(data.get("decision_reason", ""))
 	var is_counter = data.get("is_counter_offer", false)
-	var decision_reason_display = data.get("decision_reason_display", "")
+	var decision_reason_display = str(data.get("decision_reason_display", ""))
 
 	var type_display = str(proposal_type_display)
 	var bbcode = ""
@@ -71,12 +71,12 @@ func show_proposal(data: Dictionary):
 		bbcode += "  - %s\n" % str(clause)
 
 	if decision_reason_display:
-		bbcode += "\n[color=#a0a0a8]Court rationale: %s.[/color]\n" % str(decision_reason_display)
+		bbcode += "\n[color=#a0a0a8]Court rationale: %s.[/color]\n" % decision_reason_display
 
 	if assessment:
 		bbcode += "\n[color=gray]%s[/color]\n" % assessment
 
-	if decision_reason != "":
+	if decision_reason != "" and decision_reason_display == "":
 		bbcode += "\n[color=#9cb2c5]Court motive: %s[/color]\n" % decision_reason
 
 	if accept_hint:

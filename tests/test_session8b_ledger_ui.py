@@ -176,6 +176,9 @@ class TestTab3ThreatRendering:
         world = _make_world()
         world.threat_level = 45
         ledger = build_diplomatic_ledger(world)
+        assert "balance_of_europe" in ledger
+        assert ledger["balance_of_europe"]["threat_level"] == 45
+        assert isinstance(ledger["balance_of_europe"]["threat_level"], int)
         tc = ledger["threat_coalition"]
         assert tc["threat_level"] == 45
         assert isinstance(tc["threat_level"], int)

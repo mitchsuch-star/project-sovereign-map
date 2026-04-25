@@ -407,11 +407,8 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
     else:
         priority = NotificationPriority.NORMAL
 
-    # Minimal title/message; Slice C-lite will polish via commitments_notice_*.
-    # TODO(Slice C-lite): route through commitments_notice_balance_of_europe_shifted
-    #   template family + DIPLOMAT_VOICE_BIBLE hegemony_beat_* registers. For
-    #   B-Hegemony we keep copy functional (hegemon + share + label) so the
-    #   event is visible in the rail; voice polish is the next slice.
+    # Functional fallback copy is still built here for traceability; the final
+    # rail payload below is routed through the shared commitments table.
     label_for_title = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
     share_pct = int(share * 100)
     if current_band == 3:
@@ -526,9 +523,9 @@ def _emit_relaxation_aside(world) -> bool:
     same turn) that ends in the starting band MUST NOT fire the aside
     or poison the dedupe set.
 
-    TODO(Slice C-lite): build the formatted Talleyrand dispatch-aside
-    copy in the dispatch pipeline; B-Hegemony just queues a dispatch
-    event here so the footer text slot is reserved.
+    Future presentation pass: build a formatted Talleyrand dispatch-aside
+    copy path. The substrate queues a typed dispatch event here so the footer
+    text slot is reserved.
     """
     try:
         hegemon, share = _identify_max_bloc_share(world)
@@ -561,9 +558,8 @@ def _emit_relaxation_aside(world) -> bool:
     label = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
 
     # Queue a dispatch event (footer aside, not rail notice, not popup).
-    # TODO(Slice C-lite): add hegemony_beat_relaxation_* template family
-    #   + owned dispatch-aside render path. For now we queue a typed
-    #   event the dispatch builder can inspect.
+    # A later presentation pass can add a hegemony_beat_relaxation_* template
+    # family; for now the dispatch builder receives a typed event.
     try:
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(

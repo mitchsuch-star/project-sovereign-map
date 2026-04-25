@@ -79,7 +79,7 @@ Even after the substrate ships, the live formula treats betrayal as a 0-or-100 g
 
 ### P4. Big political moments still land as log lines
 
-`hard_reject_posture_triggered`, `commitment_paradox_resolved`, and `diplomatic_treaty_broken` (french_breach) all emit rich payloads and render as one-liner notifications. The `C3-lite` pass closes that gap.
+`hard_reject_posture_triggered`, `commitment_paradox_resolved`, and `diplomatic_treaty_broken` (french_breach) all emit rich payloads and route through the C-lite commitments presentation layer.
 
 ---
 
@@ -404,7 +404,7 @@ What this phase keeps from the original §7.5:
 
 - one-conflict resolution (the legacy flow is one conflict per push by definition)
 - deterministic downgrade fallout preview before the choice (already shipped)
-- durable `commitment_paradox_resolved` log + dispatch event (already shipped)
+- durable `commitment_paradox_resolved` campaign-log record plus the in-popup after-choice aside; no cross-surface dispatch callback
 
 What this phase **does not** ship:
 

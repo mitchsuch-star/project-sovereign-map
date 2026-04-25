@@ -12,6 +12,7 @@ signal notification_dismissed(notification_id: String)
 signal notification_review_requested(review_target: String)
 
 const MAX_VISIBLE_ICONS := 6
+const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
 const DETAIL_PANEL_MIN_WIDTH := 280.0
 const DETAIL_PANEL_MAX_WIDTH := 340.0
 const DETAIL_PANEL_GAP := 6.0
@@ -31,6 +32,13 @@ const PRIORITY_BORDER_COLORS = {
 const TYPE_ICONS = {
 	"coalition_declared": "WAR",
 	"balance_of_europe_shifted": "BOE",
+	"amends_offered": "AMD",
+	"hard_reject_posture_triggered": "HRT",
+	"hard_reject_posture_cleared": "HRC",
+	"diplomatic_treaty_broken": "BRK",
+	"commitment_paradox": "OAT",
+	"commitment_paradox_resolved": "WND",
+	"witness_strike_recorded": "EYE",
 	"call_to_arms_refused_offensive": "PCT",
 	"call_to_arms_refused_defensive": "ALY",
 	"call_to_arms_honored_costly": "OAT",
@@ -44,6 +52,35 @@ const TYPE_ICONS = {
 	"dp_insufficient": "DP",
 	"turn_limit_warning": "TMR",
 	"defeat_imminent_warning": "DNG",
+}
+
+const ROUTE_ICON_TEXT = {
+	"icon_balance_of_europe": "BOE",
+	"icon_amends_offered": "AMD",
+	"icon_hard_reject": "HRT",
+	"icon_chancery_reopened": "HRC",
+	"icon_treaty_broken": "BRK",
+	"icon_treaty_dragged": "TRT",
+	"icon_paradox": "OAT",
+	"icon_paradox_resolved": "WND",
+	"icon_witness_strike": "EYE",
+	"icon_call_refused_offensive": "PCT",
+	"icon_call_refused_defensive": "ALY",
+	"icon_call_honored_costly": "OAT",
+}
+
+const COMMITMENTS_EVENT_TYPES = {
+	"balance_of_europe_shifted": true,
+	"amends_offered": true,
+	"hard_reject_posture_triggered": true,
+	"hard_reject_posture_cleared": true,
+	"diplomatic_treaty_broken": true,
+	"commitment_paradox": true,
+	"commitment_paradox_resolved": true,
+	"witness_strike_recorded": true,
+	"call_to_arms_refused_offensive": true,
+	"call_to_arms_refused_defensive": true,
+	"call_to_arms_honored_costly": true,
 }
 
 @onready var rail_panel: PanelContainer = $RailPanel
@@ -85,9 +122,10 @@ func update_notifications(notifications: Array):
 
 	_close_expanded_panel()
 
-	var visible_count = min(current_notifications.size(), MAX_VISIBLE_ICONS)
+	var rail_notifications = _visible_notifications_for_rail(current_notifications)
+	var visible_count = min(rail_notifications.size(), MAX_VISIBLE_ICONS)
 	for i in range(visible_count):
-		icon_container.add_child(_create_notification_icon(current_notifications[i]))
+		icon_container.add_child(_create_notification_icon(rail_notifications[i]))
 
 	var hidden_count = max(current_notifications.size() - visible_count, 0)
 	overflow_label.visible = hidden_count > 0
@@ -154,12 +192,44 @@ func _icon_text_for(notif: Dictionary) -> String:
 	var notif_type = str(notif.get("type", ""))
 	if TYPE_ICONS.has(notif_type):
 		return TYPE_ICONS[notif_type]
+	var details = notif.get("details", {})
+	if details is Dictionary:
+		var icon_key = str(details.get("icon", ""))
+		if ROUTE_ICON_TEXT.has(icon_key):
+			return ROUTE_ICON_TEXT[icon_key]
 	var priority = int(notif.get("priority", 0))
 	if priority >= 2:
 		return "ALT"
 	if priority == 1:
 		return "NEW"
 	return "INF"
+
+
+func _visible_notifications_for_rail(notifications: Array) -> Array:
+	var visible: Array = []
+	var commitments_by_turn := {}
+	for notif in notifications:
+		if _is_commitments_notice(notif):
+			var turn_key = str(int(notif.get("turn_created", 0)))
+			var count = int(commitments_by_turn.get(turn_key, 0))
+			if count >= MAX_VISIBLE_COMMITMENTS_PER_TURN:
+				continue
+			commitments_by_turn[turn_key] = count + 1
+		visible.append(notif)
+		if visible.size() >= MAX_VISIBLE_ICONS:
+			break
+	return visible
+
+
+func _is_commitments_notice(notif: Dictionary) -> bool:
+	var notif_type = str(notif.get("type", ""))
+	if COMMITMENTS_EVENT_TYPES.has(notif_type):
+		return true
+	var details = notif.get("details", {})
+	if details is Dictionary:
+		var event_type = str(details.get("event_type", ""))
+		return COMMITMENTS_EVENT_TYPES.has(event_type)
+	return false
 
 
 func _on_icon_pressed(btn: Button):

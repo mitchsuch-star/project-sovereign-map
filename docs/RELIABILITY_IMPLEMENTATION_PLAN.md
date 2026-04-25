@@ -2,9 +2,9 @@
 
 > **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (April 20, 2026 deep-audit fixes on top of v2.4.2 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 22, 2026 (Per-row bloc stamps **re-deferred** out of v2.4.3 back to Slice D3 so the v2.4.3 naming layer stays concentrated on the four in-scope surfaces; deferred-item closeout rule retained so the final implementation session must explicitly review what still remains deferred before the phase is closed.)
-> **Sessions remaining:** ~2-3 sessions on the implementation critical path (B-Hegemony expanded with scenario-data authoring + prerequisite helpers; B-B1-lite + B-B3 + B-B7 still fold together cleanly; Slice C-lite is the ledger/notification follow-up once bloc data is live; per-row stamps are deferred to Slice D3).
-> **Est. tests remaining:** ~54-63 on the critical path (~79-92 including parallel B-B4 coverage)
+> **Last Updated:** April 25, 2026 (B-Hegemony, B-B1-lite, B-B3, B-B7, DG-4/B-B4, and C-lite closeout are implemented. Deferred-item closeout was recorded in `docs/STATUS.md`; D1, D2, D3, WB-* bargain-era work, and richer callback architecture remain deferred.)
+> **Sessions remaining:** 0 on the v2.4.3 implementation critical path; next work is next-spec planning.
+> **Est. tests remaining:** 0 for v2.4.3 closure; add new tests only for reopened deferred work.
 
 ---
 
@@ -12,7 +12,7 @@
 
 The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-of-power doctrine. Static concern pairs disappear. A single per-turn hegemony calculation (~60 LOC) drives all the political pressure that the four cancelled v2.3 modifiers were trying to model. See spec v2.4 rescope note for the design rationale.
 
-**Current repo reality check (do not misread the docs as already live):** B-Hegemony/C-lite are still replacing legacy seams, not polishing an existing hegemony surface. `backend/game_logic/diplomatic_ledger.py` still returns the old `threat_coalition` payload and the Godot Nations tab still renders `NATION OVERVIEW`; `backend/game_logic/coalition.py` still emits anonymous `European Courts Concerned` / `Diplomatic Tension` notices; `backend/game_logic/diplomacy.py` and `backend/display_names.py` still expose a generic `hegemony_pressure` fallback path. Implement these slices as the substrate swap that removes those seams, not as additive copy layered on top of them.
+**Current repo reality check (April 25, 2026):** B-Hegemony, DG-4, and C-lite are now live. `backend/game_logic/diplomatic_ledger.py` returns `balance_of_europe` as the normative payload while retaining `threat_coalition` for compatibility; Godot renders the Balance headline; commitment notices route through `commitments_routing.py`; and the generic anonymous coalition clue chain has yielded to `balance_of_europe_shifted` where a same-turn Balance beat fires.
 
 **Already shipped (in current `master`) — unchanged from v2.3:**
 
@@ -225,7 +225,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `docs/SAVE_FORMAT_REFERENCE.md` documents the alias-on-load policy explicitly so save-migration behavior is not tribal knowledge.
 - HARD_STOP_TYPES already lists `commitment_paradox` as a placeholder — this rename activates that registration.
 - The dedicated `commitment_paradox_popup.{tscn,gd}` Godot surface ships in Slice C-lite.
-- Preserve all existing fallout-preview behavior (`origin_episode_id` continuity, `commitment_paradox_resolved` log + dispatch event with `chosen_nation` / `spurned_nation`).
+- Preserve all existing fallout-preview behavior (`origin_episode_id` continuity, `commitment_paradox_resolved` campaign-log record with `chosen_nation` / `spurned_nation`; no cross-surface dispatch callback).
 
 **Tests (~3):** rename smoke test, alias load test, no double-emit on rename.
 
@@ -281,6 +281,11 @@ Tracked in the DG-4 amendment slice, but v2.4.3 adds implementation-defining fol
 
 See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
+**Closeout (April 25, 2026):** implemented. The named-diplomat resolver,
+British fallback cleanup, shared commitments routing, Balance payload,
+notification review target, rail anti-spam cap, and DG-4 notice smoke coverage
+are now landed; deferred items are recorded in `docs/STATUS.md`.
+
 **v2.4 keeps:**
 
 - **Named-diplomat resolution helper** (single backend helper that reads authored `world.diplomats[nation]` / scenario cast data and resolves `speaker="envoy"` to the named diplomat with their personality register, and `speaker="foreign_office"` to "The Chancery of {nation}" per `DIPLOMAT_VOICE_BIBLE.md`). Do **not** hardcode a British personal-name fallback here: if Britain lacks an authored envoy for the active start-date / scenario, render office / chancery / mission language rather than defaulting to `Castlereagh` by string.
@@ -305,7 +310,7 @@ See `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1 (trimmed to the shipped scope).
 
 ### Legacy test migration note (applies to B-Hegemony + Slice C-lite)
 
-Before B-Hegemony / Slice C-lite can be called green, retire or rewrite pre-v2.4.3 tests that still lock `threat_coalition`, the old `COALITION THREAT` ledger block, generic `concern` / `hegemony_pressure` copy, or the pre-bloc-naming warning contract. Those tests are useful substrate history, but they are not allowed to become the reason the new Balance-of-Europe owner model ships half-migrated. Expect conflicts in `tests/test_session8a_ledger_debug.py` and `tests/test_session8b_ledger_ui.py` (they assert the legacy `threat_coalition` / `COALITION THREAT` payload and UI shapes); those assertions must be rewritten to the new Balance of Europe payload before the swap lands.
+Closeout: `tests/test_session8a_ledger_debug.py` and `tests/test_session8b_ledger_ui.py` now assert the new `balance_of_europe` payload alongside the legacy `threat_coalition` compatibility payload. The compatibility key remains intentionally populated for old consumers, but the Balance of Europe payload is the normative owner for new assertions.
 
 ---
 

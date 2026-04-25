@@ -16,6 +16,7 @@ signal choice_made(choice: String, data: Dictionary)
 @onready var break_button = $PanelContainer/VBoxContainer/ButtonContainer/BreakButton
 
 var _data: Dictionary = {}
+var _choice_locked: bool = false
 
 
 func _ready():
@@ -27,6 +28,11 @@ func _ready():
 func show_paradox(data: Dictionary):
 	"""Display commitment paradox popup."""
 	_data = data
+	_choice_locked = false
+	honor_button.visible = true
+	break_button.visible = true
+	honor_button.disabled = false
+	break_button.disabled = false
 	var attacker = str(data.get("attacker", "?"))
 	var defender = str(data.get("defender", "?"))
 	var defender_alliance = str(data.get("defender_alliance", "?"))
@@ -52,10 +58,39 @@ func show_paradox(data: Dictionary):
 
 
 func _on_honor_pressed():
-	close_popup()
+	if _choice_locked:
+		close_popup()
+		return
+	_show_after_choice_aside("honor_defender")
 	choice_made.emit("honor_defender", _data)
 
 
 func _on_break_pressed():
-	close_popup()
+	if _choice_locked:
+		close_popup()
+		return
+	_show_after_choice_aside("break_defender_alliance")
 	choice_made.emit("break_defender_alliance", _data)
+
+
+func _show_after_choice_aside(choice: String):
+	_choice_locked = true
+	var attacker = str(_data.get("attacker", "?"))
+	var defender = str(_data.get("defender", "?"))
+	var spurned = attacker if choice == "honor_defender" else defender
+	var diplomat_key = "attacker_diplomat" if choice == "honor_defender" else "defender_diplomat"
+	var diplomat = str(_data.get(diplomat_key, ""))
+	if diplomat == "":
+		diplomat = "The Chancery of " + spurned
+
+	var aside = "\n\n" + Utils.bbcode_color(
+		diplomat + ": \"The wound is recorded. Europe will remember which oath France chose.\"",
+		Utils.COLOR_ERROR
+	)
+	aside += "\n" + Utils.bbcode_color(
+		"Talleyrand: \"Then let the record show a choice, not confusion.\"",
+		Utils.COLOR_INFO
+	)
+	content_label.append_text(aside)
+	honor_button.text = "Continue"
+	break_button.visible = false

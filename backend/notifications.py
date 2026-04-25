@@ -46,12 +46,8 @@ COALITION_DISSOLVED = "coalition_dissolved"                # NORMAL: coalition d
 COALITION_COOLDOWN_ENDED = "coalition_cooldown_ended"      # NORMAL: new coalition can form
 # B-Hegemony (v2.4.3 §7.3): balance-of-power band-crossing beat.
 # Fires at 33 / 50 / 60 upward crossings AND same-band hegemon swaps.
-# Priority is band-sensitive: 33% = NORMAL, 50% / 60% = CRITICAL.
-# TODO(Slice C-lite): wire into `commitments_notice_*` template family +
-#   add TYPE_ICONS entry in godot-client `notification_bar.gd` +
-#   build formatted body copy per `DIPLOMAT_VOICE_BIBLE.md` hegemony_beat_*
-#   family. For B-Hegemony this constant carries minimal copy so the event
-#   reaches the rail; Slice C-lite will polish voice + typography.
+# Priority is band-sensitive and presentation metadata is supplied by the
+# shared commitments routing table.
 BALANCE_OF_EUROPE_SHIFTED = "balance_of_europe_shifted"    # NORMAL/CRITICAL
 CALL_TO_ARMS_REFUSED_OFFENSIVE = "call_to_arms_refused_offensive"  # CRITICAL
 CALL_TO_ARMS_REFUSED_DEFENSIVE = "call_to_arms_refused_defensive"  # CRITICAL
@@ -71,13 +67,9 @@ DIPLO_AUTO_DOWNGRADE = "diplo_auto_downgrade"                  # NORMAL: relatio
 TURN_LIMIT_WARNING = "turn_limit_warning"                      # HIGH: campaign nearing end
 DEFEAT_IMMINENT_WARNING = "defeat_imminent_warning"            # HIGH/CRITICAL: one marshal/region from defeat
 DIPLOMATIC_PROPOSAL_RESULT = "diplomatic_proposal_result"     # NORMAL: player proposal resolved
-# Memory and Pressure v2.4.3 — B-B7 Make Amends repair gesture surface.
-# Spec §8.6.1 + COMMITMENTS_PRESENTATION_SPEC §10.3 emit row.
-# Priority is NORMAL per the §10.3 join-table; the lightweight notice is the
-# public-political signal that the gesture happened. The committed
-# `commitments_notice_amends_offered` template family + target-court named
-# acknowledgment + `notification_bar.gd` `TYPE_ICONS` entry are owned by
-# Slice C-lite; B-B7 ships the constant + emit so the data reaches the rail.
+# Memory and Pressure v2.4.3 — Make Amends repair gesture surface.
+# Priority, icon, review routing, and committed copy are supplied by the
+# shared commitments routing table.
 AMENDS_OFFERED = "amends_offered"
 
 

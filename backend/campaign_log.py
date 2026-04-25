@@ -856,10 +856,9 @@ def format_event_oneliner(event: dict) -> str:
         )
 
     if event_type == "call_to_arms_refused_defensive":
-        # B-B4 / spec §8.8 — substrate one-liner. Slice C-lite owns the
-        # Voice-Bible CRITICAL notice copy; this rail is the public-log
-        # fallback that captures who refused whom and whether the refusal
-        # also ended an existing alliance (§8.8.7a).
+        # Spec §8.8 substrate one-liner. Rich notice copy now routes through
+        # commitments metadata; this public-log fallback records who refused
+        # whom and whether the refusal ended an alliance (§8.8.7a).
         breaker = event.get("breaker", "Unknown")
         victim = event.get("victim", "Unknown")
         if event.get("alliance_terminated"):

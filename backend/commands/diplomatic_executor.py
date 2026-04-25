@@ -895,34 +895,38 @@ class DiplomaticExecutor:
             "partial_on_nation",
         )
 
-        title = f"Amends offered to {target_nation}"
-        body = (
-            f"France offered reparations to {target_nation} "
-            f"({self._MAKE_AMENDS_GOLD_COST}g, {self._MAKE_AMENDS_DP_COST} DP)."
+        from backend.game_logic.commitments_routing import (
+            commitments_label,
+            commitments_notice_details,
+            format_commitments_notice,
         )
+
+        notice_payload = {
+            "episode_id": event_episode_id,
+            "actor_nation": player,
+            "target_nation": target_nation,
+            "target_diplomat": target_diplomat_name,
+            "gold_spent": int(self._MAKE_AMENDS_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "reliability_delta": reliability_delta,
+            "relation_delta": relation_delta,
+            "cleared_strike_episode_id": cleared_strike_episode,
+            "cleared_strike_severity": cleared_strike_severity,
+            "cleared_strike_turn": cleared_strike_turn,
+            "cooldown_turns": cooldown_turns,
+            "cooldown_expires_on_turn": cooldown_expires_on_turn,
+            "amends_variant": "standard",
+            "grievance_variant": False,
+        }
         world.notifications.add(create_notification(
             AMENDS_OFFERED,
             NotificationPriority.NORMAL,
-            title,
-            body,
+            commitments_label("amends_offered", notice_payload),
+            format_commitments_notice("amends_offered", notice_payload),
             current_turn,
-            details={
-                "episode_id": event_episode_id,
-                "actor_nation": player,
-                "target_nation": target_nation,
-                "target_diplomat": target_diplomat_name,
-                "reliability_before": int(reliability_before),
-                "reliability_after": int(reliability_after),
-                "reliability_delta": reliability_delta,
-                "relation_delta": relation_delta,
-                "cleared_strike_episode_id": cleared_strike_episode,
-                "cleared_strike_severity": cleared_strike_severity,
-                "cleared_strike_turn": cleared_strike_turn,
-                "cooldown_turns": cooldown_turns,
-                "cooldown_expires_on_turn": cooldown_expires_on_turn,
-                "amends_variant": "standard",
-                "grievance_variant": False,
-            },
+            details=commitments_notice_details("amends_offered", notice_payload),
         ))
 
         # ── Build result text: Talleyrand frame + target-court named ack ──
@@ -1274,37 +1278,39 @@ class DiplomaticExecutor:
             "partial_on_nation",
         )
 
-        title = f"Amends offered to {target_nation}"
-        body = (
-            f"France offered reparations to {target_nation} for the "
-            f"abandoned alliance "
-            f"({self._MAKE_AMENDS_GRIEVANCE_GOLD_COST}g, "
-            f"{self._MAKE_AMENDS_GRIEVANCE_DP_COST} DP)."
+        from backend.game_logic.commitments_routing import (
+            commitments_label,
+            commitments_notice_details,
+            format_commitments_notice,
         )
+
+        notice_payload = {
+            "episode_id": event_episode_id,
+            "actor_nation": player,
+            "target_nation": target_nation,
+            "target_diplomat": target_diplomat_name,
+            "gold_spent": int(self._MAKE_AMENDS_GRIEVANCE_GOLD_COST),
+            "dp_spent": int(self._MAKE_AMENDS_GRIEVANCE_DP_COST),
+            "reliability_before": int(reliability_before),
+            "reliability_after": int(reliability_after),
+            "reliability_delta": reliability_delta,
+            "relation_delta": relation_delta,
+            "cleared_grievance_episode_id": cleared_grievance_episode,
+            "cleared_grievance_type": cleared_grievance_type,
+            "cleared_grievance_turn": cleared_grievance_turn,
+            "cleared_grievance_source_episode_type": cleared_source_episode_type,
+            "cooldown_turns": cooldown_turns,
+            "cooldown_expires_on_turn": cooldown_expires_on_turn,
+            "amends_variant": "grievance",
+            "grievance_variant": True,
+        }
         world.notifications.add(create_notification(
             AMENDS_OFFERED,
             NotificationPriority.NORMAL,
-            title,
-            body,
+            commitments_label("amends_offered", notice_payload),
+            format_commitments_notice("amends_offered", notice_payload),
             current_turn,
-            details={
-                "episode_id": event_episode_id,
-                "actor_nation": player,
-                "target_nation": target_nation,
-                "target_diplomat": target_diplomat_name,
-                "reliability_before": int(reliability_before),
-                "reliability_after": int(reliability_after),
-                "reliability_delta": reliability_delta,
-                "relation_delta": relation_delta,
-                "cleared_grievance_episode_id": cleared_grievance_episode,
-                "cleared_grievance_type": cleared_grievance_type,
-                "cleared_grievance_turn": cleared_grievance_turn,
-                "cleared_grievance_source_episode_type": cleared_source_episode_type,
-                "cooldown_turns": cooldown_turns,
-                "cooldown_expires_on_turn": cooldown_expires_on_turn,
-                "amends_variant": "grievance",
-                "grievance_variant": True,
-            },
+            details=commitments_notice_details("amends_offered", notice_payload),
         ))
 
         # Result text: Talleyrand frame explicitly names the grievance
@@ -3551,18 +3557,6 @@ class DiplomaticExecutor:
                     "reliability_after": honor_preview.get("reliability_after"),
                     "applied_reliability_delta": honor_preview.get("applied_reliability_delta", 0),
                 })
-                from backend.game_logic.dispatch import queue_dispatch_event
-                queue_dispatch_event(
-                    world,
-                    "commitment_paradox_resolved",
-                    {
-                        "player_nation": world.player_nation,
-                        "chosen_nation": defender_nation,
-                        "spurned_nation": attacker_nation,
-                        "episode_id": paradox_episode,
-                    },
-                    "always",
-                )
             world.dialogue_manager.pop()
             world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
@@ -3651,18 +3645,6 @@ class DiplomaticExecutor:
                 "reliability_after": (breach_preview or {}).get("reliability_after"),
                 "applied_reliability_delta": (breach_preview or {}).get("applied_reliability_delta", 0),
             })
-            from backend.game_logic.dispatch import queue_dispatch_event
-            queue_dispatch_event(
-                world,
-                "commitment_paradox_resolved",
-                {
-                    "player_nation": world.player_nation,
-                    "chosen_nation": attacker_nation,
-                    "spurned_nation": defender_nation,
-                    "episode_id": paradox_episode,
-                },
-                "always",
-            )
             world.dialogue_manager.pop()
             world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification

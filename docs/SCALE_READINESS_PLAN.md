@@ -207,7 +207,15 @@ War-entry obligation travels one treaty edge only. When France declares war on A
 
 Any other bilateral state (guarantee, trade agreement, non-aggression, neutrality, etc.) does **not** produce a call-to-arms on its own. New treaty types added in future specs must explicitly declare whether they create call-to-arms obligation; the default is "no."
 
-**Refusal event contract (concrete):** When a direct ally explicitly declines a surfaced attacker-side call-to-arms, emit a `commitment_paradox` episode in the Memory and Pressure substrate. Contract:
+> **DG-4 amendment supersession (April 25, 2026):** The historical generic
+> `commitment_paradox` / `episode_type = "call_to_arms_refused"` contract
+> below is retained only as design history. Implemented code uses the three
+> DG-4 families from the amendment table:
+> `call_to_arms_refused_offensive`,
+> `call_to_arms_refused_defensive`, and
+> `call_to_arms_honored_costly`.
+
+**Historical refusal event contract (superseded):** When a direct ally explicitly declines a surfaced attacker-side call-to-arms, emit a `commitment_paradox` episode in the Memory and Pressure substrate. Contract:
 
 - `episode_type = "call_to_arms_refused"`
 - `breaker` = the refusing ally
@@ -437,7 +445,9 @@ cascade_profile:
     defender_side: [<state>]                # ALLIANCE, DEFENSIVE_ALLIANCE
     attacker_side: [<state>]                # ALLIANCE
   include_vassals: <bool>
-  refusal_event_type: "call_to_arms_refused"
+  refusal_event_type_offensive: "call_to_arms_refused_offensive"
+  refusal_event_type_defensive: "call_to_arms_refused_defensive"
+  honored_costly_event_type: "call_to_arms_honored_costly"
 free_basic_actions:
   - <action_id>
 ```
@@ -462,7 +472,7 @@ free_basic_actions:
   - `by_nation`: France 5, Britain 4, Prussia 4, Austria 3, Russia 3
   - `by_tier_default`: `major: 3`, `secondary: 2`, `minor: 2`
 - `objectives_profile`: omitted for the base France-led 1805 sandbox campaign (no mandatory hard victory)
-- `cascade_profile`: `mode = "direct_only"`, `qualifying_treaty_states = {defender_side: [ALLIANCE, DEFENSIVE_ALLIANCE], attacker_side: [ALLIANCE]}`, `include_vassals = true`, `refusal_event_type = "call_to_arms_refused"`
+- `cascade_profile`: `mode = "direct_only"`, `qualifying_treaty_states = {defender_side: [ALLIANCE, DEFENSIVE_ALLIANCE], attacker_side: [ALLIANCE]}`, `include_vassals = true`, `refusal_event_type_offensive = "call_to_arms_refused_offensive"`, `refusal_event_type_defensive = "call_to_arms_refused_defensive"`, `honored_costly_event_type = "call_to_arms_honored_costly"`
 - `free_basic_actions`: authored from the canonical command action-ID set during Phase 5.5 implementation
 
 The current 19-region scenario keeps its own authored pacing values and migrates to `scenario_schema_version: 1` when the loader lands. Future scenarios such as 1806 or 1809 extend the same schema rather than adding bespoke knobs in unrelated files.
@@ -1073,6 +1083,12 @@ func _load_map_images() -> bool:
 
 ### 5.1 Direct-Only War Entry + Refusal Event
 
+> **Implementation closeout (April 25, 2026):** This section's old single
+> `call_to_arms_refused` wording is superseded by the DG-4 amendment families.
+> The shipped direct-only cascade records `war_entry_ledger` and emits
+> `call_to_arms_refused_offensive`, `call_to_arms_refused_defensive`, or
+> `call_to_arms_honored_costly` as appropriate.
+
 **Implements:** DG-4 decision (locked to `direct_only`, no transitive cascade).
 
 **File:** `diplomacy.py` (~line 2242, `_process_war_cascade`)
@@ -1082,14 +1098,14 @@ func _load_map_images() -> bool:
 - `qualifying_treaty_states` per DG-4: defender-side `[ALLIANCE, DEFENSIVE_ALLIANCE]`, attacker-side `[ALLIANCE]`. Vassal auto-entry is modeled separately via `include_vassals = true`, not as a treaty state.
 - Defender-side eligible treaty partners auto-enter if legal; defender-side hard illegality blocks do not create a soft-refusal branch.
 - Attacker-side eligible `ALLIANCE` partners resolve through one explicit attacker-side decision helper that can later surface `join_opportunity`; accepted entries do NOT trigger a further pass on their own allies.
-- Only explicit attacker-side declines emit `call_to_arms_refused`; defender-side legality failures do not.
+- Only explicit attacker-side declines emit `call_to_arms_refused_offensive`; defender-side legality failures do not.
 - Batch cascade dispatch events into one grouped line per side: "Austrian allies enter the war: Russia, Prussia." Do not emit one line per ally.
 
 **File:** `vassal.py` — Vassal auto-entry obeys the same direct-only depth rule, but only nations with `political_status = vassal` use this path. No recursive pull through a vassal's own subjects.
 
-**File:** Memory and Pressure substrate (`diplomacy.py` / `world_state.py` commitment_paradox emission) — Emit `commitment_paradox` episode on explicit attacker-side refusal with `episode_type = "call_to_arms_refused"`, `breaker` = refusing ally, `victim` = calling principal, `witnesses` = all `ALLIANCE` / `DEFENSIVE_ALLIANCE` counterparts of either side at refusal moment, severity scaled by the principal's war exposure and aggressor `power_tier`.
+**File:** Memory and Pressure substrate (`diplomacy.py` / `world_state.py`) — Emit the DG-4 event families listed above with `episode_id`, caller/callee, witness scope, severity factors, and §8.1 commitments routing metadata.
 
-**Test:** Synthetic 10-nation alliance chain verifying exactly depth-1 entry and zero transitive propagation. Refusal event emits a `call_to_arms_refused` episode with the expected witnesses list.
+**Test:** Synthetic 10-nation alliance chain verifying exactly depth-1 entry and zero transitive propagation. Refusal paths emit `call_to_arms_refused_offensive` / `call_to_arms_refused_defensive` with the expected witnesses list.
 
 ---
 

@@ -166,6 +166,27 @@ func toggle_screen(screen_name: String):
 		_open_screen(screen_name)
 
 
+func open_diplomatic_ledger_review(review_target: String):
+	"""Open the diplomatic ledger to a named review target."""
+	var screen_name = "diplomatic_ledger"
+	if not screens.has(screen_name):
+		return
+	if active_screen != "" and active_screen != screen_name:
+		_close_screen(active_screen)
+	var node = screens[screen_name]
+	if node == null:
+		return
+	active_screen = screen_name
+	if review_target == "ledger_commitments" and node.has_method("open_to_commitments"):
+		node.open_to_commitments(api_client)
+	elif node.has_method("open"):
+		node.open(api_client)
+	else:
+		node.show()
+	_update_button_highlights()
+	screen_changed.emit(active_screen)
+
+
 func close_all_screens():
 	"""Close whatever screen is open. Called on turn transitions."""
 	if active_screen != "":

@@ -30,6 +30,7 @@ const COLOR_RED = "cd5c5c"
 var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
+var _open_review_target: String = ""
 
 # Active tab style
 var _active_tab_style: StyleBoxFlat = null
@@ -99,9 +100,20 @@ var _api_client_ref = null
 
 func open(api_client):
 	"""Fetch diplomatic ledger from backend and display it."""
+	_open_with_tab(api_client, 0, "")
+
+
+func open_to_commitments(api_client):
+	"""Fetch diplomatic ledger and open the commitments review surface."""
+	_open_with_tab(api_client, 1, "ledger_commitments")
+
+
+func _open_with_tab(api_client, tab_index: int, review_target: String):
+	"""Fetch diplomatic ledger from backend and display a chosen tab."""
 	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading diplomatic ledger...[/color]"
-	current_tab = 0
+	current_tab = tab_index
+	_open_review_target = review_target
 	show()
 	_update_tab_highlights()
 	api_client.get_diplomatic_ledger(_on_ledger_received)
@@ -111,6 +123,7 @@ func close_view():
 	"""Hide the overlay and emit closed signal."""
 	hide()
 	cached_data = {}
+	_open_review_target = ""
 	_stop_critical_pulse()
 	closed.emit()
 
@@ -330,7 +343,10 @@ func _render_treaties():
 	var treaties = cached_data.get("treaties", [])
 	var current_turn = int(cached_data.get("current_turn", 0))
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ACTIVE TREATIES ═══[/color]\n\n"
+	var header = "ACTIVE TREATIES"
+	if _open_review_target == "ledger_commitments":
+		header = "COMMITMENTS REVIEW"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ " + header + " ═══[/color]\n\n"
 
 	if treaties.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_GREY + "]No active treaties.[/color]\n"

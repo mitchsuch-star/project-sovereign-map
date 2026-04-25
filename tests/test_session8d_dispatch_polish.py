@@ -264,7 +264,7 @@ class TestDispatchDiplomaticEvents:
         events = dispatch["diplomatic_events"]
         assert len(events) == 1
         assert "shut the chancery" in events[0]["text"]
-        assert events[0]["priority"] == "HIGH"
+        assert events[0]["priority"] == "CRITICAL"
 
     def test_hard_reject_cleared_dispatch_text(self):
         world = _make_world()
@@ -278,7 +278,7 @@ class TestDispatchDiplomaticEvents:
         events = dispatch["diplomatic_events"]
         assert len(events) == 1
         assert "reopened deeper diplomacy" in events[0]["text"]
-        assert events[0]["priority"] == "MEDIUM"
+        assert events[0]["priority"] == "NORMAL"
 
     def test_commitment_paradox_resolved_dispatch_text(self):
         world = _make_world()
@@ -297,7 +297,7 @@ class TestDispatchDiplomaticEvents:
         assert len(events) == 1
         assert "Austria" in events[0]["text"]
         assert "Prussia" in events[0]["text"]
-        assert events[0]["priority"] == "MEDIUM"
+        assert events[0]["priority"] == "NORMAL"
 
     def test_vassal_unrest_appears_in_dispatch(self):
         world = _make_world()
