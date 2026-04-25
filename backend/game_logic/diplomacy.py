@@ -237,6 +237,7 @@ WITNESS_SCOPE_REGION_OBSERVER = "region_observer"
 # the ally / rival roles don't already apply. Only used by the DG-4
 # episodes (`call_to_arms_refused_defensive`, `call_to_arms_honored_costly`).
 WITNESS_SCOPE_TREATY_PARTNER_OF_BREAKER = "treaty_partner_of_breaker"
+WITNESS_SCOPE_TREATY_PARTNER_OF_HONORER = "treaty_partner_of_honorer"
 
 WITNESS_SCOPE_PRECEDENCE = (
     WITNESS_SCOPE_ALLY,
@@ -302,6 +303,40 @@ _NON_WAR_TREATY_STATES = {
     "DEFENSIVE_ALLIANCE",
     "ALLIANCE",
     "VASSAL",
+}
+
+DG4_EVENT_REFUSED_OFFENSIVE = "call_to_arms_refused_offensive"
+DG4_EVENT_REFUSED_DEFENSIVE = "call_to_arms_refused_defensive"
+DG4_EVENT_HONORED_COSTLY = "call_to_arms_honored_costly"
+
+DG4_DEFENSIVE_REFUSAL_SEVERITY_MULTIPLIER = 1.75
+DG4_COSTLY_HONOR_POWER_RATIO = 1.8
+DG4_IMPOSSIBLE_POWER_RATIO = 2.5
+DG4_OATHBREAKER_REFUSALS_REQUIRED = 2
+DG4_OATHBREAKER_WINDOW_TURNS = 15
+DG4_OATHBREAKER_AUTO_REJECT_TURNS = 10
+DG4_LOYALTY_BOND_TURNS = 30
+DG4_LOYALTY_BOND_RELATION_DELTA = 10
+
+DG4_EPISODE_EFFECTS = {
+    DG4_EVENT_REFUSED_OFFENSIVE: {
+        "reliability_delta": -6,
+        "victim_strikes": 1,
+        "witness_relation_delta": -2,
+        "severity_multiplier": 1.0,
+    },
+    DG4_EVENT_REFUSED_DEFENSIVE: {
+        "reliability_delta": -10,
+        "victim_strikes": 2,
+        "witness_relation_delta": -3,
+        "severity_multiplier": DG4_DEFENSIVE_REFUSAL_SEVERITY_MULTIPLIER,
+    },
+    DG4_EVENT_HONORED_COSTLY: {
+        "reliability_delta": 5,
+        "victim_strikes": 0,
+        "witness_relation_delta": 2,
+        "severity_multiplier": 1.0,
+    },
 }
 
 
@@ -569,14 +604,23 @@ def emit_call_to_arms_refused_defensive(
         )
     episode_id = episode_id or _allocate_episode_id(world, prefix="call")
     current_turn = int(getattr(world, "current_turn", 0))
+    honor_bias = _get_honor_bias(world, breaker)
+    reliability_delta = _scaled_dg4_delta(
+        world, breaker, DG4_EVENT_REFUSED_DEFENSIVE, "reliability_delta",
+    )
+    witness_relation_delta = _scaled_dg4_delta(
+        world, breaker, DG4_EVENT_REFUSED_DEFENSIVE, "witness_relation_delta",
+    )
 
     # ── 1. Betrayal strike (+2 victim-grade, severity "high" by default) ──
-    strike_record = _record_betrayal_strike(
+    strike_record = _record_betrayal_strikes(
         world,
         actor=breaker,
         victim=victim,
         severity=severity,
         episode_id=episode_id,
+        count=int(DG4_EPISODE_EFFECTS[DG4_EVENT_REFUSED_DEFENSIVE]["victim_strikes"]),
+        decay_multiplier=honor_bias,
     )
 
     # ── 2. Durable grievance flag (§8.8.4 — does not decay) ──
@@ -590,11 +634,9 @@ def emit_call_to_arms_refused_defensive(
     )
 
     # ── 3. Reliability penalty on breaker (-10 per §8.8.2 severity table) ──
-    reliability = getattr(world, "diplomatic_reliability", {}) or {}
-    reliability_before = int(reliability.get(breaker, 0) or 0)
-    reliability_after = max(-100, min(100, reliability_before - 10))
-    reliability[breaker] = reliability_after
-    world.diplomatic_reliability = reliability
+    reliability_before, reliability_after = _apply_reliability_delta(
+        world, breaker, reliability_delta,
+    )
 
     # ── 4. Alliance termination §8.8.7a (same-turn, only if binding exists) ──
     alliance_terminated = False
@@ -654,6 +696,10 @@ def emit_call_to_arms_refused_defensive(
 
     # ── 7. Emit the refusal episode on campaign log + dispatch ──
     from backend.game_logic.dispatch import queue_dispatch_event
+    coalition_threat_expires_on_turn = current_turn + max(
+        1,
+        int(round(_BETRAYAL_DECAY_BY_SEVERITY.get(severity, 8) * honor_bias)),
+    )
 
     refusal_payload = {
         "type": "call_to_arms_refused_defensive",
@@ -670,12 +716,17 @@ def emit_call_to_arms_refused_defensive(
         "reliability_before": reliability_before,
         "reliability_after": reliability_after,
         "reliability_delta": reliability_after - reliability_before,
+        "resolved_reliability_delta": int(reliability_delta),
+        "honor_bias": float(honor_bias),
+        "witness_relation_delta": int(witness_relation_delta),
+        "victim_strikes": int(strike_record.get("strikes_added", 0) or 0),
         "witnesses": list(witness_scope["witnesses"]),
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "witness_scope_label": witness_scope["label"],
         "witness_count": witness_scope["count"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
         "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
+        "coalition_threat_expires_on_turn": int(coalition_threat_expires_on_turn),
         "call_context": dict(call_context or {}),
         "turn": current_turn,
         # Slice C-lite resolves `speaker="foreign_office"` to "The Chancery of
@@ -695,6 +746,8 @@ def emit_call_to_arms_refused_defensive(
             "reliability_before": reliability_before,
             "reliability_after": reliability_after,
             "reliability_delta": reliability_after - reliability_before,
+            "resolved_reliability_delta": int(reliability_delta),
+            "witness_relation_delta": int(witness_relation_delta),
             "witness_count": witness_scope["count"],
             "witness_dominant_scope": witness_scope["dominant_scope"],
             "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
@@ -711,23 +764,20 @@ def emit_call_to_arms_refused_defensive(
     # and the C3-lite presentation pass owns the reliability/relation
     # interpretation. Doing this uniformly keeps witness memory one
     # substrate-wide upgrade rather than a DG-4-only bespoke slice.
-    for witness in witness_scope["witnesses"]:
-        queue_dispatch_event(
-            world,
-            "witness_strike_recorded",
-            {
-                "episode_id": episode_id,
-                "victim_nation": victim,
-                "perpetrator_nation": breaker,
-                "witness_nation": witness["nation"],
-                "scope_reason": witness["scope_reason"],
-                "relation_delta": 0,
-                "reliability_delta": 0,
-                "source_episode_type": "call_to_arms_refused_defensive",
-                "turn": current_turn,
-            },
-            "partial_on_nation",
+    _queue_dg4_witness_events(
+        world,
+        episode_id=episode_id,
+        event_type=DG4_EVENT_REFUSED_DEFENSIVE,
+        actor=breaker,
+        victim=victim,
+        witnesses=witness_scope["witnesses"],
+        relation_delta=witness_relation_delta,
+    )
+    if strike_record.get("triggered_hard_reject"):
+        _emit_hard_reject_posture_triggered(
+            world, perpetrator=breaker, victim=victim, episode_id=episode_id,
         )
+    _record_oathbreaker_refusal(world, breaker, episode_id)
 
     return {
         "episode_id": episode_id,
@@ -739,11 +789,232 @@ def emit_call_to_arms_refused_defensive(
         else "",
         "reliability_before": reliability_before,
         "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "resolved_reliability_delta": int(reliability_delta),
+        "witness_relation_delta": int(witness_relation_delta),
+        "victim_strikes": int(strike_record.get("strikes_added", 0) or 0),
         "witnesses": list(witness_scope["witnesses"]),
         "witness_count": witness_scope["count"],
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
         "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
+        "coalition_threat_expires_on_turn": int(coalition_threat_expires_on_turn),
+    }
+
+
+def emit_call_to_arms_refused_offensive(
+    world,
+    *,
+    breaker: str,
+    victim: str,
+    severity: str = "medium",
+    call_context: Optional[Dict] = None,
+    episode_id: Optional[str] = None,
+) -> Dict:
+    """Emit attacker-side offensive call refusal memory."""
+    if not breaker or not victim or breaker == victim:
+        raise ValueError(
+            "emit_call_to_arms_refused_offensive requires distinct "
+            "breaker and victim nations"
+        )
+    episode_id = episode_id or _allocate_episode_id(world, prefix="call")
+    current_turn = int(getattr(world, "current_turn", 0))
+    honor_bias = _get_honor_bias(world, breaker)
+    reliability_delta = _scaled_dg4_delta(
+        world, breaker, DG4_EVENT_REFUSED_OFFENSIVE, "reliability_delta",
+    )
+    witness_relation_delta = _scaled_dg4_delta(
+        world, breaker, DG4_EVENT_REFUSED_OFFENSIVE, "witness_relation_delta",
+    )
+    strike_record = _record_betrayal_strikes(
+        world,
+        actor=breaker,
+        victim=victim,
+        severity=severity,
+        episode_id=episode_id,
+        count=int(DG4_EPISODE_EFFECTS[DG4_EVENT_REFUSED_OFFENSIVE]["victim_strikes"]),
+        decay_multiplier=honor_bias,
+    )
+    reliability_before, reliability_after = _apply_reliability_delta(
+        world, breaker, reliability_delta,
+    )
+    witness_scope = _get_dg4_refused_offensive_witness_scope(world, breaker, victim)
+
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    payload = {
+        "type": DG4_EVENT_REFUSED_OFFENSIVE,
+        "episode_id": episode_id,
+        "breaker": breaker,
+        "victim": victim,
+        "severity": str(severity),
+        "strike_recorded": bool(strike_record.get("recorded")),
+        "victim_strikes": int(strike_record.get("strikes_added", 0) or 0),
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "resolved_reliability_delta": int(reliability_delta),
+        "honor_bias": float(honor_bias),
+        "witness_relation_delta": int(witness_relation_delta),
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_dominant_scope": witness_scope["dominant_scope"],
+        "witness_scope_label": witness_scope["label"],
+        "witness_count": witness_scope["count"],
+        "call_context": dict(call_context or {}),
+        "turn": current_turn,
+        "speaker_attribution": "envoy",
+    }
+    world.log_event(payload)
+    queue_dispatch_event(
+        world,
+        DG4_EVENT_REFUSED_OFFENSIVE,
+        {
+            "episode_id": episode_id,
+            "breaker": breaker,
+            "victim": victim,
+            "severity": str(severity),
+            "reliability_delta": reliability_after - reliability_before,
+            "witness_relation_delta": int(witness_relation_delta),
+            "witness_count": witness_scope["count"],
+            "turn": current_turn,
+            "speaker_attribution": "envoy",
+        },
+        "partial_on_nation",
+    )
+    _queue_dg4_witness_events(
+        world,
+        episode_id=episode_id,
+        event_type=DG4_EVENT_REFUSED_OFFENSIVE,
+        actor=breaker,
+        victim=victim,
+        witnesses=witness_scope["witnesses"],
+        relation_delta=witness_relation_delta,
+    )
+    if strike_record.get("triggered_hard_reject"):
+        _emit_hard_reject_posture_triggered(
+            world, perpetrator=breaker, victim=victim, episode_id=episode_id,
+        )
+    return {
+        "episode_id": episode_id,
+        "strike_record": strike_record,
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_count": witness_scope["count"],
+        "witness_relation_delta": int(witness_relation_delta),
+    }
+
+
+def emit_call_to_arms_honored_costly(
+    world,
+    *,
+    honorer: str,
+    victim: str,
+    severity: str = "high",
+    call_context: Optional[Dict] = None,
+    episode_id: Optional[str] = None,
+) -> Dict:
+    """Emit the positive DG-4 costly-honor episode."""
+    if not honorer or not victim or honorer == victim:
+        raise ValueError(
+            "emit_call_to_arms_honored_costly requires distinct "
+            "honorer and victim nations"
+        )
+    episode_id = episode_id or _allocate_episode_id(world, prefix="call")
+    current_turn = int(getattr(world, "current_turn", 0))
+    honor_bias = _get_honor_bias(world, honorer)
+    reliability_delta = _scaled_dg4_delta(
+        world, honorer, DG4_EVENT_HONORED_COSTLY, "reliability_delta",
+    )
+    witness_relation_delta = _scaled_dg4_delta(
+        world, honorer, DG4_EVENT_HONORED_COSTLY, "witness_relation_delta",
+    )
+    reliability_before, reliability_after = _apply_reliability_delta(
+        world, honorer, reliability_delta,
+    )
+    relation_after = world.modify_nation_relation(
+        honorer, victim, DG4_LOYALTY_BOND_RELATION_DELTA,
+    )
+    pair_key = world._make_diplo_key(honorer, victim)
+    bond = {
+        "episode_id": episode_id,
+        "honorer": honorer,
+        "victim": victim,
+        "turn": current_turn,
+        "expires_on_turn": current_turn + DG4_LOYALTY_BOND_TURNS,
+        "relation_delta": DG4_LOYALTY_BOND_RELATION_DELTA,
+    }
+    bonds = dict(getattr(world, "call_to_arms_loyalty_bonds", {}) or {})
+    bonds.setdefault(pair_key, []).append(bond)
+    world.call_to_arms_loyalty_bonds = bonds
+    witness_scope = _get_dg4_honored_costly_witness_scope(world, honorer, victim)
+    cleared_oathbreaker = _clear_oathbreaker_posture(
+        world, honorer, episode_id=episode_id, reason=DG4_EVENT_HONORED_COSTLY,
+    )
+
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    payload = {
+        "type": DG4_EVENT_HONORED_COSTLY,
+        "episode_id": episode_id,
+        "honorer": honorer,
+        "victim": victim,
+        "severity": str(severity),
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "resolved_reliability_delta": int(reliability_delta),
+        "honor_bias": float(honor_bias),
+        "victim_relation_after": int(relation_after),
+        "loyalty_bond": bond,
+        "witness_relation_delta": int(witness_relation_delta),
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_dominant_scope": witness_scope["dominant_scope"],
+        "witness_scope_label": witness_scope["label"],
+        "witness_count": witness_scope["count"],
+        "cleared_oathbreaker": bool(cleared_oathbreaker),
+        "call_context": dict(call_context or {}),
+        "turn": current_turn,
+        "speaker_attribution": "foreign_office",
+    }
+    world.log_event(payload)
+    queue_dispatch_event(
+        world,
+        DG4_EVENT_HONORED_COSTLY,
+        {
+            "episode_id": episode_id,
+            "honorer": honorer,
+            "victim": victim,
+            "severity": str(severity),
+            "reliability_delta": reliability_after - reliability_before,
+            "loyalty_bond_turns": DG4_LOYALTY_BOND_TURNS,
+            "witness_relation_delta": int(witness_relation_delta),
+            "witness_count": witness_scope["count"],
+            "turn": current_turn,
+            "speaker_attribution": "foreign_office",
+        },
+        "partial_on_nation",
+    )
+    _queue_dg4_witness_events(
+        world,
+        episode_id=episode_id,
+        event_type=DG4_EVENT_HONORED_COSTLY,
+        actor=honorer,
+        victim=victim,
+        witnesses=witness_scope["witnesses"],
+        relation_delta=witness_relation_delta,
+    )
+    return {
+        "episode_id": episode_id,
+        "reliability_before": reliability_before,
+        "reliability_after": reliability_after,
+        "reliability_delta": reliability_after - reliability_before,
+        "loyalty_bond": bond,
+        "witnesses": list(witness_scope["witnesses"]),
+        "witness_count": witness_scope["count"],
+        "witness_relation_delta": int(witness_relation_delta),
+        "cleared_oathbreaker": bool(cleared_oathbreaker),
     }
 
 
@@ -826,6 +1097,7 @@ def _record_betrayal_strike(
     victim: str,
     severity: str,
     episode_id: str,
+    decay_multiplier: float = 1.0,
 ) -> Dict:
     """Persist one remembered bilateral betrayal strike."""
     current_turn = int(getattr(world, "current_turn", 0))
@@ -848,6 +1120,10 @@ def _record_betrayal_strike(
         }
 
     decay_turns = _BETRAYAL_DECAY_BY_SEVERITY.get(severity, 8)
+    try:
+        decay_turns = max(1, int(round(decay_turns * float(decay_multiplier or 1.0))))
+    except (TypeError, ValueError):
+        decay_turns = _BETRAYAL_DECAY_BY_SEVERITY.get(severity, 8)
     record.setdefault("strikes", []).append({
         "severity": severity,
         "turn": current_turn,
@@ -868,6 +1144,75 @@ def _record_betrayal_strike(
         "active_after": active_after,
         "triggered_hard_reject": active_before < 3 <= active_after,
     }
+
+
+def _record_betrayal_strikes(
+    world,
+    *,
+    actor: str,
+    victim: str,
+    severity: str,
+    episode_id: str,
+    count: int,
+    decay_multiplier: float = 1.0,
+) -> Dict:
+    """Persist a DG-4 victim-strike bundle without changing the public shape."""
+    active_before = _get_active_betrayal_strike_count(world, actor, victim)
+    added = 0
+    triggered = False
+    last_record = {
+        "recorded": False,
+        "active_before": active_before,
+        "active_after": active_before,
+        "triggered_hard_reject": False,
+    }
+    for _ in range(max(0, int(count))):
+        last_record = _record_betrayal_strike(
+            world,
+            actor=actor,
+            victim=victim,
+            severity=severity,
+            episode_id=episode_id,
+            decay_multiplier=decay_multiplier,
+        )
+        if last_record.get("recorded"):
+            added += 1
+        triggered = triggered or bool(last_record.get("triggered_hard_reject"))
+    active_after = _get_active_betrayal_strike_count(world, actor, victim)
+    return {
+        "recorded": added > 0,
+        "strikes_added": int(added),
+        "active_before": int(active_before),
+        "active_after": int(active_after),
+        "triggered_hard_reject": bool(triggered),
+        "last_record": last_record,
+    }
+
+
+def _emit_hard_reject_posture_triggered(
+    world,
+    *,
+    perpetrator: str,
+    victim: str,
+    episode_id: str,
+) -> None:
+    """Emit the hard-reject transition once a strike bundle crosses 3."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    payload = {
+        "perpetrator_nation": perpetrator,
+        "victim_nation": victim,
+        "trigger_strike_episode_id": episode_id,
+        "episode_id": episode_id,
+        "turn": int(world.current_turn),
+        "speaker_attribution": "foreign_office",
+    }
+    queue_dispatch_event(
+        world, "hard_reject_posture_triggered", payload, "partial_on_nation",
+    )
+    event = dict(payload)
+    event["type"] = "hard_reject_posture_triggered"
+    world.log_event(event)
 
 
 def _process_betrayal_decay(world) -> None:
@@ -1124,6 +1469,183 @@ def _get_dg4_refused_defensive_witness_scope(
     }
 
 
+def _get_dg4_refused_offensive_witness_scope(
+    world, breaker: str, victim: str,
+) -> Dict:
+    """Resolve offensive-refusal witnesses from treaty partners of either side."""
+    witnesses = []
+    for nation in world.get_active_nations():
+        if nation in (breaker, victim):
+            continue
+        scope_reason = ""
+        if (
+            world.get_diplomatic_state(nation, victim) in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+            or world.get_diplomatic_state(nation, breaker) in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+        ):
+            scope_reason = WITNESS_SCOPE_ALLY
+        else:
+            scope_reason = _classify_witness_scope(world, nation, breaker, victim)
+        if scope_reason:
+            witnesses.append({"nation": nation, "scope_reason": scope_reason})
+
+    dominant_scope = ""
+    for role in WITNESS_SCOPE_PRECEDENCE:
+        if any(w["scope_reason"] == role for w in witnesses):
+            dominant_scope = role
+            break
+
+    player_nation = getattr(world, 'player_nation', 'France')
+    if breaker == player_nation or victim == player_nation or len(witnesses) >= 3:
+        label = "continental"
+    elif witnesses:
+        label = "aligned courts"
+    else:
+        label = "private court"
+    return {
+        "witnesses": witnesses,
+        "dominant_scope": dominant_scope,
+        "label": label,
+        "count": int(len(witnesses)),
+        "sample": [w["nation"] for w in witnesses[:4]],
+    }
+
+
+def _classify_dg4_honored_costly_witness_scope(
+    world, witness: str, honorer: str, victim: str,
+) -> str:
+    """Resolve one witness for a positive costly-honor episode."""
+    if world.get_diplomatic_state(witness, victim) in (
+        "DEFENSIVE_ALLIANCE", "ALLIANCE",
+    ):
+        return WITNESS_SCOPE_ALLY
+
+    rivalries = getattr(world, 'nation_rivalries', {}) or {}
+    if rivalries:
+        pair_key = world._make_diplo_key(witness, honorer)
+        record = rivalries.get(pair_key)
+        if record and record.get("intensity") == "active":
+            return WITNESS_SCOPE_RIVAL
+    if world.is_at_war(witness, honorer):
+        return WITNESS_SCOPE_RIVAL
+
+    honorer_state = world.get_diplomatic_state(witness, honorer)
+    if honorer_state in _ACTIVE_TREATY_STATES_FOR_DG4_WITNESS:
+        return WITNESS_SCOPE_TREATY_PARTNER_OF_HONORER
+
+    for other in world.get_active_nations():
+        if other in (witness, honorer, victim):
+            continue
+        if world.is_at_war(witness, other) and world.is_at_war(victim, other):
+            return WITNESS_SCOPE_SHARED_ENEMY
+    return ""
+
+
+def _get_dg4_honored_costly_witness_scope(
+    world, honorer: str, victim: str,
+) -> Dict:
+    """Resolve the wider witness set for `call_to_arms_honored_costly`."""
+    witnesses = []
+    for nation in world.get_active_nations():
+        if nation in (honorer, victim):
+            continue
+        scope_reason = _classify_dg4_honored_costly_witness_scope(
+            world, nation, honorer, victim,
+        )
+        if scope_reason:
+            witnesses.append({"nation": nation, "scope_reason": scope_reason})
+
+    precedence = (
+        WITNESS_SCOPE_ALLY,
+        WITNESS_SCOPE_RIVAL,
+        WITNESS_SCOPE_TREATY_PARTNER_OF_HONORER,
+        WITNESS_SCOPE_SHARED_ENEMY,
+        WITNESS_SCOPE_REGION_OBSERVER,
+    )
+    dominant_scope = ""
+    for role in precedence:
+        if any(w["scope_reason"] == role for w in witnesses):
+            dominant_scope = role
+            break
+
+    player_nation = getattr(world, 'player_nation', 'France')
+    if honorer == player_nation or victim == player_nation or len(witnesses) >= 3:
+        label = "continental"
+    elif witnesses:
+        label = "aligned courts"
+    else:
+        label = "private court"
+
+    return {
+        "witnesses": witnesses,
+        "dominant_scope": dominant_scope,
+        "label": label,
+        "count": int(len(witnesses)),
+        "sample": [w["nation"] for w in witnesses[:4]],
+    }
+
+
+def _get_honor_bias(world, nation: str) -> float:
+    getter = getattr(world, "get_honor_bias", None)
+    if callable(getter):
+        try:
+            return float(getter(nation) or 1.0)
+        except (TypeError, ValueError):
+            return 1.0
+    return 1.0
+
+
+def _scaled_dg4_delta(world, nation: str, event_type: str, effect_key: str) -> int:
+    effects = DG4_EPISODE_EFFECTS.get(event_type, {})
+    base = int(effects.get(effect_key, 0) or 0)
+    multiplier = float(effects.get("severity_multiplier", 1.0) or 1.0)
+    honor_bias = _get_honor_bias(world, nation)
+    return int(round(base * multiplier * honor_bias))
+
+
+def _apply_reliability_delta(world, nation: str, delta: int) -> tuple[int, int]:
+    reliability = getattr(world, "diplomatic_reliability", {}) or {}
+    before = int(reliability.get(nation, 0) or 0)
+    after = max(-100, min(100, before + int(delta)))
+    reliability[nation] = after
+    world.diplomatic_reliability = reliability
+    return before, after
+
+
+def _queue_dg4_witness_events(
+    world,
+    *,
+    episode_id: str,
+    event_type: str,
+    actor: str,
+    victim: str,
+    witnesses: List[Dict],
+    relation_delta: int,
+) -> None:
+    """Apply and dispatch per-witness DG-4 relation effects."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    for witness in witnesses:
+        witness_nation = witness["nation"]
+        if relation_delta:
+            world.modify_nation_relation(witness_nation, actor, relation_delta)
+        queue_dispatch_event(
+            world,
+            "witness_strike_recorded",
+            {
+                "episode_id": episode_id,
+                "victim_nation": victim,
+                "perpetrator_nation": actor,
+                "witness_nation": witness_nation,
+                "scope_reason": witness["scope_reason"],
+                "relation_delta": int(relation_delta),
+                "reliability_delta": 0,
+                "source_episode_type": event_type,
+                "turn": int(world.current_turn),
+            },
+            "partial_on_nation",
+        )
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # B-B4 / §8.8.7 — anti-renewal cooldown after a defensive refusal
 # ────────────────────────────────────────────────────────────────────────────
@@ -1179,6 +1701,144 @@ def get_anti_renewal_turns_remaining(world, nation_a: str, nation_b: str) -> int
     )
     remaining = expiry - int(getattr(world, "current_turn", 0))
     return max(0, remaining)
+
+
+def has_oathbreaker_posture(world, nation: str) -> bool:
+    """True while a nation is in DG-4 habitual-refusal posture."""
+    record = (getattr(world, "oathbreaker_posture", {}) or {}).get(nation, {})
+    expires = int(record.get("expires_on_turn", 0) or 0)
+    return expires > int(getattr(world, "current_turn", 0))
+
+
+def is_oathbreaker_auto_reject_active(world, nation: str) -> bool:
+    """True while oathbreaker posture mechanically blocks deep-treaty proposals."""
+    record = (getattr(world, "oathbreaker_posture", {}) or {}).get(nation, {})
+    until = int(record.get("auto_reject_until_turn", 0) or 0)
+    return until > int(getattr(world, "current_turn", 0))
+
+
+def get_oathbreaker_turns_remaining(world, nation: str) -> int:
+    record = (getattr(world, "oathbreaker_posture", {}) or {}).get(nation, {})
+    until = int(record.get("auto_reject_until_turn", 0) or 0)
+    return max(0, until - int(getattr(world, "current_turn", 0)))
+
+
+def _emit_oathbreaker_event(
+    world,
+    event_type: str,
+    *,
+    nation: str,
+    episode_id: str,
+    reason: str = "",
+    record: Dict = None,
+) -> None:
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    payload = {
+        "nation": nation,
+        "episode_id": episode_id,
+        "reason": reason,
+        "turn": int(world.current_turn),
+        "speaker_attribution": "foreign_office",
+    }
+    if record:
+        payload.update({
+            "expires_on_turn": int(record.get("expires_on_turn", 0) or 0),
+            "auto_reject_until_turn": int(
+                record.get("auto_reject_until_turn", 0) or 0
+            ),
+            "refusal_episode_ids": list(record.get("refusal_episode_ids", []) or []),
+        })
+    event = dict(payload)
+    event["type"] = event_type
+    world.log_event(event)
+    queue_dispatch_event(world, event_type, payload, "partial_on_nation")
+
+
+def _recent_defensive_refusal_episode_ids(world, nation: str) -> List[str]:
+    current_turn = int(getattr(world, "current_turn", 0))
+    earliest = current_turn - DG4_OATHBREAKER_WINDOW_TURNS
+    ids = []
+    for event in getattr(world, "event_log", []) or []:
+        if event.get("type") != DG4_EVENT_REFUSED_DEFENSIVE:
+            continue
+        if event.get("breaker") != nation:
+            continue
+        turn = int(event.get("turn", 0) or 0)
+        if turn >= earliest:
+            ids.append(str(event.get("episode_id", "") or ""))
+    return [eid for eid in ids if eid]
+
+
+def _record_oathbreaker_refusal(world, breaker: str, episode_id: str) -> None:
+    """Trigger or extend oathbreaker posture after habitual defensive refusals."""
+    recent_ids = _recent_defensive_refusal_episode_ids(world, breaker)
+    if episode_id not in recent_ids:
+        recent_ids.append(episode_id)
+    if len(recent_ids) < DG4_OATHBREAKER_REFUSALS_REQUIRED:
+        return
+
+    current_turn = int(getattr(world, "current_turn", 0))
+    posture = dict(getattr(world, "oathbreaker_posture", {}) or {})
+    was_active = has_oathbreaker_posture(world, breaker)
+    record = {
+        "triggered_turn": int(
+            (posture.get(breaker) or {}).get("triggered_turn", current_turn)
+        ),
+        "expires_on_turn": current_turn + DG4_OATHBREAKER_WINDOW_TURNS,
+        "auto_reject_until_turn": current_turn + DG4_OATHBREAKER_AUTO_REJECT_TURNS,
+        "last_refusal_turn": current_turn,
+        "refusal_episode_ids": recent_ids[-DG4_OATHBREAKER_REFUSALS_REQUIRED:],
+    }
+    posture[breaker] = record
+    world.oathbreaker_posture = posture
+    if not was_active:
+        _emit_oathbreaker_event(
+            world,
+            "oathbreaker_posture_triggered",
+            nation=breaker,
+            episode_id=episode_id,
+            reason="habitual_defensive_refusal",
+            record=record,
+        )
+
+
+def _clear_oathbreaker_posture(
+    world,
+    nation: str,
+    *,
+    episode_id: str,
+    reason: str,
+) -> bool:
+    posture = dict(getattr(world, "oathbreaker_posture", {}) or {})
+    if nation not in posture:
+        return False
+    posture.pop(nation, None)
+    world.oathbreaker_posture = posture
+    _emit_oathbreaker_event(
+        world,
+        "oathbreaker_posture_cleared",
+        nation=nation,
+        episode_id=episode_id,
+        reason=reason,
+    )
+    return True
+
+
+def _process_oathbreaker_decay(world) -> None:
+    posture = dict(getattr(world, "oathbreaker_posture", {}) or {})
+    if not posture:
+        return
+    current_turn = int(getattr(world, "current_turn", 0))
+    for nation, record in list(posture.items()):
+        expires = int(record.get("expires_on_turn", 0) or 0)
+        if expires <= current_turn:
+            _clear_oathbreaker_posture(
+                world,
+                nation,
+                episode_id=str((record.get("refusal_episode_ids") or [""])[-1]),
+                reason="window_elapsed",
+            )
 
 
 def _allocate_episode_id(world, prefix: str = "ep") -> str:
@@ -2444,6 +3104,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # fires uniformly on player, AI-player, and AI-AI proposal paths
     # that all route through `calculate_acceptance`. No survival-
     # exception branch per §8.8.7 "Blocking is mechanical, not advisory".
+    oathbreaker_posture = 0
+    oathbreaker_turns_remaining = 0
+    oathbreaker_active = False
+    if proposal_type in _DEEP_TREATY_TYPES and is_oathbreaker_auto_reject_active(
+        world, target,
+    ):
+        oathbreaker_active = True
+        oathbreaker_turns_remaining = get_oathbreaker_turns_remaining(world, target)
+        oathbreaker_posture = -100
+        score = min(score, 0)
+
     anti_renewal_block = 0
     anti_renewal_turns_remaining = 0
     anti_renewal_active = False
@@ -2499,6 +3170,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         # clamp; neither is in `_generate_feedback` trackable). The
         # `_active` / `_turns_remaining` keys surface the state for
         # ledger / UI without re-reading the cooldown map.
+        "oathbreaker_posture": int(oathbreaker_posture),
+        "oathbreaker_active": bool(oathbreaker_active),
+        "oathbreaker_turns_remaining": int(oathbreaker_turns_remaining),
         "anti_renewal_block": int(anti_renewal_block),
         "anti_renewal_active": bool(anti_renewal_active),
         "anti_renewal_turns_remaining": int(anti_renewal_turns_remaining),
@@ -2575,6 +3249,32 @@ def build_proposal_commitment_warnings(
       outward (v2.4.3 §9.1; gates identical to `hegemony_target_mod`)
     """
     warnings: List[Dict] = []
+    if proposal_type in _DEEP_TREATY_TYPES and is_anti_renewal_active(
+        world, proposer_nation, target_nation,
+    ):
+        turns = get_anti_renewal_turns_remaining(
+            world, proposer_nation, target_nation,
+        )
+        warnings.append({
+            "severity": "critical",
+            "category": "hard_reject",
+            "text": (
+                f"Anti-renewal cooldown blocks a {_proposal_display_name(proposal_type)} "
+                f"for {turns} more turn{'' if turns == 1 else 's'}."
+            ),
+        })
+    if proposal_type in _DEEP_TREATY_TYPES and is_oathbreaker_auto_reject_active(
+        world, target_nation,
+    ):
+        turns = get_oathbreaker_turns_remaining(world, target_nation)
+        warnings.append({
+            "severity": "critical",
+            "category": "hard_reject",
+            "text": (
+                f"{target_nation}'s oathbreaker posture blocks new deep treaties "
+                f"for {turns} more turn{'' if turns == 1 else 's'}."
+            ),
+        })
     betrayal_strikes = _get_active_betrayal_strike_count(world, proposer_nation, target_nation)
     if betrayal_strikes >= 3 and proposal_type in _DEEP_TREATY_TYPES:
         warnings.append({
@@ -2725,10 +3425,14 @@ def determine_counterparty_decision_reason(
 
     if stale:
         return "route_blocked"
+    components = (acceptance_result or {}).get("components", {}) or {}
+    if bool(components.get("anti_renewal_active")):
+        return "anti_renewal_active"
+    if int(components.get("oathbreaker_posture", 0) or 0) < 0:
+        return "distrust_promiser"
     if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
         return "distrust_promiser"
 
-    components = (acceptance_result or {}).get("components", {}) or {}
     if int(components.get("hegemony_target_mod", 0) or 0) < 0:
         return "hegemony_pressure"
     if int(components.get("war_weariness", 0) or 0) <= -10:
@@ -2806,6 +3510,170 @@ def modify_nation_authority(world, nation: str, delta: int) -> int:
     new_val = max(0, min(100, current + delta))
     auth[nation] = new_val
     return new_val
+
+
+def _get_call_to_arms_override(
+    world,
+    *,
+    side: str,
+    caller: str,
+    callee: str,
+    enemy: str,
+) -> str:
+    """Read an explicit test/UI call-to-arms decision override if present."""
+    overrides = getattr(world, "call_to_arms_decisions", {}) or {}
+    keys = (
+        (side, caller, callee, enemy),
+        f"{side}|{caller}|{callee}|{enemy}",
+        f"{side}|{caller}|{callee}",
+        callee,
+    )
+    for key in keys:
+        if key in overrides:
+            return str(overrides[key] or "").lower()
+    return ""
+
+
+def _call_side_power(world, principal: str, side: str) -> int:
+    """Approximate call-moment side power from direct-only treaty geometry."""
+    from backend.game_logic.coalition import power_score
+
+    members = {principal}
+    for nation in world.get_active_nations():
+        if nation == principal:
+            continue
+        state = world.get_diplomatic_state(nation, principal)
+        if side == "defender" and state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            members.add(nation)
+        elif side == "attacker" and state == "ALLIANCE":
+            members.add(nation)
+    return int(sum(power_score(n, world) for n in members))
+
+
+def _defensive_call_context(world, *, aggressor: str, victim: str, callee: str) -> Dict:
+    """Snapshot DG-4 defensive-call impossibility/costliness inputs."""
+    aggressor_power = max(1, _call_side_power(world, aggressor, "attacker"))
+    defender_power = max(1, _call_side_power(world, victim, "defender"))
+    power_ratio = aggressor_power / defender_power
+
+    capital_threat = False
+    try:
+        from backend.models.region import NATION_CAPITALS
+        capital = NATION_CAPITALS.get(callee)
+        region = getattr(world, "regions", {}).get(capital) if capital else None
+        if region and getattr(region, "controller", callee) not in (callee, ""):
+            capital_threat = True
+    except Exception:
+        capital_threat = False
+
+    losing_other_war = False
+    for other in world.get_active_nations():
+        if other in (callee, aggressor):
+            continue
+        if world.is_at_war(callee, other) and get_war_score_for(world, callee, other) <= -40:
+            losing_other_war = True
+            break
+
+    impossible = (
+        power_ratio >= DG4_IMPOSSIBLE_POWER_RATIO
+        or capital_threat
+        or losing_other_war
+    )
+    costly = impossible or power_ratio >= DG4_COSTLY_HONOR_POWER_RATIO
+    return {
+        "side": "defender",
+        "caller": victim,
+        "callee": callee,
+        "enemy": aggressor,
+        "aggressor_power": int(aggressor_power),
+        "defender_power": int(defender_power),
+        "aggressor_power_ratio": round(power_ratio, 2),
+        "capital_threat": bool(capital_threat),
+        "losing_other_war": bool(losing_other_war),
+        "impossible": bool(impossible),
+        "costly": bool(costly),
+    }
+
+
+def _resolve_defensive_call_path(
+    world,
+    *,
+    aggressor: str,
+    victim: str,
+    callee: str,
+) -> Dict:
+    context = _defensive_call_context(
+        world, aggressor=aggressor, victim=victim, callee=callee,
+    )
+    override = _get_call_to_arms_override(
+        world, side="defender", caller=victim, callee=callee, enemy=aggressor,
+    )
+    if world.is_at_war(callee, victim):
+        return {**context, "path": "hard_illegal", "reason": f"already at war with {victim}"}
+    if override in ("refuse", "refused", "decline"):
+        return {**context, "path": "refused_discretionary", "reason": f"refused {context['side']} call"}
+    if override in ("honor", "honour", "honored", "honour_costly", "honor_costly"):
+        path = "honored_costly" if context["costly"] else "honored"
+        return {**context, "path": path, "reason": f"honored {context['side']} call"}
+    if context["impossible"]:
+        return {
+            **context,
+            "path": "impossible_auto_declined",
+            "reason": f"aggressor_power_ratio={context['aggressor_power_ratio']}",
+        }
+    path = "honored_costly" if context["costly"] else "honored"
+    return {**context, "path": path, "reason": f"honored {context['side']} call"}
+
+
+def _resolve_offensive_call_path(
+    world,
+    *,
+    aggressor: str,
+    target: str,
+    callee: str,
+) -> Dict:
+    override = _get_call_to_arms_override(
+        world, side="attacker", caller=aggressor, callee=callee, enemy=target,
+    )
+    context = {
+        "side": "attacker",
+        "caller": aggressor,
+        "callee": callee,
+        "enemy": target,
+    }
+    if world.is_at_war(callee, aggressor):
+        return {**context, "path": "hard_illegal", "reason": f"already at war with {aggressor}"}
+    if override in ("refuse", "refused", "decline"):
+        return {**context, "path": "refused_discretionary", "reason": "refused attacker call"}
+    return {**context, "path": "honored", "reason": "ALLIANCE with attacker"}
+
+
+def _append_war_entry(
+    entries: Optional[List[Dict]],
+    *,
+    nation: str,
+    path: str,
+    side: str,
+    reason: str,
+    treaty_state: str = "",
+    refusal_episode_id: str = "",
+    honor_episode_id: str = "",
+) -> None:
+    if entries is None:
+        return
+    entry = {
+        "nation": nation,
+        "path": path,
+        "side": side,
+        "reason": reason,
+    }
+    if treaty_state:
+        entry["treaty_state"] = treaty_state
+    if refusal_episode_id:
+        entry["refusal_episode_id"] = refusal_episode_id
+    if honor_episode_id:
+        entry["honor_episode_id"] = honor_episode_id
+    entries.append(entry)
 
 
 # ═══════════════════════════════════════════════════════
@@ -3066,8 +3934,25 @@ def declare_war(
     # ── DEFENSIVE_ALLIANCE CASCADE ──
     # If paradox detected, exclude the player from cascade (player must choose)
     cascade_skip = {aggressor, target, player} if has_paradox else None
-    cascade = _process_war_cascade(world, aggressor, target, processed=cascade_skip,
-                                    root_episode_id=episode_id, root_aggressor=aggressor)
+    war_entry_entries: List[Dict] = []
+    cascade = _process_war_cascade(
+        world,
+        aggressor,
+        target,
+        processed=cascade_skip,
+        root_episode_id=episode_id,
+        root_aggressor=aggressor,
+        war_entry_entries=war_entry_entries,
+    )
+    world.log_event({
+        "type": "war_entry_ledger",
+        "episode_id": episode_id,
+        "war_id": f"war_{episode_id}",
+        "aggressor": aggressor,
+        "target": target,
+        "entries": war_entry_entries,
+        "turn": int(world.current_turn),
+    })
 
     # Notification: war declared (Session 8C)
     from backend.notifications import (
@@ -3136,13 +4021,21 @@ def declare_war(
         "success": True,
         "message": " ".join(messages),
         "cascade": cascade,
+        "war_entry_ledger": war_entry_entries,
         "dp_cost": dp_cost,
         "relation_changes": relation_changes,
     }
 
 
-def _process_war_cascade(world, aggressor: str, target: str, processed: set = None,
-                         root_episode_id: str = None, root_aggressor: str = None) -> List[Dict]:
+def _process_war_cascade(
+    world,
+    aggressor: str,
+    target: str,
+    processed: set = None,
+    root_episode_id: str = None,
+    root_aggressor: str = None,
+    war_entry_entries: Optional[List[Dict]] = None,
+) -> List[Dict]:
     """Process defensive and offensive alliance cascade when war is declared.
 
     Defensive: Nations with DA/ALLIANCE with the TARGET join against the aggressor.
@@ -3174,6 +4067,64 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         if state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
             # Check if already at war with aggressor
             if not world.is_at_war(nation, aggressor):
+                decision = _resolve_defensive_call_path(
+                    world, aggressor=aggressor, victim=target, callee=nation,
+                )
+                if decision["path"] == "hard_illegal":
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="hard_illegal",
+                        side="defender",
+                        reason=decision["reason"],
+                        treaty_state=state,
+                    )
+                    continue
+                if decision["path"] == "impossible_auto_declined":
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="impossible_auto_declined",
+                        side="defender",
+                        reason=decision["reason"],
+                        treaty_state=state,
+                    )
+                    continue
+                if decision["path"] == "refused_discretionary":
+                    refusal = emit_call_to_arms_refused_defensive(
+                        world,
+                        breaker=nation,
+                        victim=target,
+                        call_context=decision,
+                    )
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="refused_discretionary",
+                        side="defender",
+                        reason=decision["reason"],
+                        treaty_state=state,
+                        refusal_episode_id=refusal["episode_id"],
+                    )
+                    continue
+                honor_episode_id = ""
+                if decision["path"] == "honored_costly":
+                    honor = emit_call_to_arms_honored_costly(
+                        world,
+                        honorer=nation,
+                        victim=target,
+                        call_context=decision,
+                    )
+                    honor_episode_id = honor["episode_id"]
+                _append_war_entry(
+                    war_entry_entries,
+                    nation=nation,
+                    path=decision["path"],
+                    side="defender",
+                    reason=decision["reason"],
+                    treaty_state=state,
+                    honor_episode_id=honor_episode_id,
+                )
                 existing_treaty = getattr(world, 'active_treaties', {}).get(
                     world._make_diplo_key(nation, aggressor)
                 )
@@ -3240,9 +4191,15 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                                     "partial_on_nation")
 
                 # Recursive cascade: nation's allies may also join
-                sub_cascade = _process_war_cascade(world, aggressor, nation, processed,
-                                                   root_episode_id=root_episode_id,
-                                                   root_aggressor=fault_aggressor)
+                sub_cascade = _process_war_cascade(
+                    world,
+                    aggressor,
+                    nation,
+                    processed,
+                    root_episode_id=root_episode_id,
+                    root_aggressor=fault_aggressor,
+                    war_entry_entries=war_entry_entries,
+                )
                 cascade.extend(sub_cascade)
 
     # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
@@ -3255,6 +4212,44 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
             if not world.is_at_war(nation, target):
+                decision = _resolve_offensive_call_path(
+                    world, aggressor=aggressor, target=target, callee=nation,
+                )
+                if decision["path"] == "hard_illegal":
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="hard_illegal",
+                        side="attacker",
+                        reason=decision["reason"],
+                        treaty_state=state_with_aggressor,
+                    )
+                    continue
+                if decision["path"] == "refused_discretionary":
+                    refusal = emit_call_to_arms_refused_offensive(
+                        world,
+                        breaker=nation,
+                        victim=aggressor,
+                        call_context=decision,
+                    )
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="refused_discretionary",
+                        side="attacker",
+                        reason=decision["reason"],
+                        treaty_state=state_with_aggressor,
+                        refusal_episode_id=refusal["episode_id"],
+                    )
+                    continue
+                _append_war_entry(
+                    war_entry_entries,
+                    nation=nation,
+                    path="honored",
+                    side="attacker",
+                    reason=decision["reason"],
+                    treaty_state=state_with_aggressor,
+                )
                 existing_treaty = getattr(world, 'active_treaties', {}).get(
                     world._make_diplo_key(nation, target)
                 )
@@ -3316,9 +4311,15 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                                     {"nation": nation, "aggressor": aggressor, "target": target},
                                     "partial_on_nation")
 
-                sub_cascade = _process_war_cascade(world, nation, target, processed,
-                                                   root_episode_id=root_episode_id,
-                                                   root_aggressor=fault_aggressor)
+                sub_cascade = _process_war_cascade(
+                    world,
+                    nation,
+                    target,
+                    processed,
+                    root_episode_id=root_episode_id,
+                    root_aggressor=fault_aggressor,
+                    war_entry_entries=war_entry_entries,
+                )
                 cascade.extend(sub_cascade)
 
     # ── VASSAL AUTO-JOIN: Vassals follow their lord into war (Fix 12) ──
@@ -3332,6 +4333,14 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
             if not world.is_at_war(vassal_nation, target):
                 set_diplomatic_state(world, vassal_nation, target, "WAR", "vassal_auto_join")
                 processed.add(vassal_nation)
+                _append_war_entry(
+                    war_entry_entries,
+                    nation=vassal_nation,
+                    path="honored",
+                    side="vassal",
+                    reason=f"vassal of {lord}",
+                    treaty_state="VASSAL",
+                )
 
                 cascade.append({
                     "vassal": vassal_nation,
@@ -4385,6 +5394,7 @@ def _process_diplomatic_reliability(world) -> None:
 
     world.diplomatic_reliability = reliability
     _process_betrayal_decay(world)
+    _process_oathbreaker_decay(world)
 
 
 # ═══════════════════════════════════════════════════════
@@ -4635,6 +5645,16 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             available = False
             reason = "Relations too low"
 
+        if target_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            if is_anti_renewal_active(world, player, target_nation):
+                available = False
+                turns = get_anti_renewal_turns_remaining(world, player, target_nation)
+                reason = f"Anti-renewal: {turns} turns remaining"
+            elif is_oathbreaker_auto_reject_active(world, target_nation):
+                available = False
+                turns = get_oathbreaker_turns_remaining(world, target_nation)
+                reason = f"Oathbreaker posture: {turns} turns remaining"
+
         # DP check
         if available and dp < cost:
             available = False
@@ -4643,7 +5663,12 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         # Calculate likelihood
         likelihood_score = 0
         likelihood = ""
-        if available or reason in ("Insufficient DP", "Relations too low"):
+        if (
+            available
+            or reason in ("Insufficient DP", "Relations too low")
+            or reason.startswith("Anti-renewal")
+            or reason.startswith("Oathbreaker")
+        ):
             try:
                 _type_map = {
                     "ARMISTICE": "armistice_winning",

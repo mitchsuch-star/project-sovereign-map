@@ -310,6 +310,18 @@ FEEDBACK_STRINGS = {
         "negative": "turns remaining on the anti-renewal cooldown",
         "positive": "no anti-renewal cooldown is pending",
     },
+    "oathbreaker_posture": {
+        "negative": "the court's oathbreaker posture blocks new deep treaties",
+        "positive": "no oathbreaker posture blocks the proposal",
+    },
+    "oathbreaker_active": {
+        "negative": "oathbreaker posture is active",
+        "positive": "no oathbreaker posture is active",
+    },
+    "oathbreaker_turns_remaining": {
+        "negative": "turns remaining on the oathbreaker auto-reject window",
+        "positive": "no oathbreaker auto-reject window remains",
+    },
     "harshness_penalty": {
         "negative": "the harshness of current demands",
         "positive": "our reasonable terms",
@@ -451,6 +463,7 @@ TRUST_TIER_DISPLAY = {
 DECISION_REASON_DISPLAY = {
     "claim_obsolete": "claim obsolete",
     "claim_trade": "claim trade",
+    "anti_renewal_active": "anti-renewal cooldown",
     "coalition_conflict": "coalition conflict",
     "concern_pressure": "hegemony pressure",
     "counterparty_reversal": "counterparty reversal",

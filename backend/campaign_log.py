@@ -115,6 +115,11 @@ CAMPAIGN_LOG_TYPES = {
     "amends_offered",
     # Memory and Pressure v2.4.3 — B-B4 call-to-arms refusal (spec §8.8)
     "call_to_arms_refused_defensive",
+    "call_to_arms_refused_offensive",
+    "call_to_arms_honored_costly",
+    "oathbreaker_posture_triggered",
+    "oathbreaker_posture_cleared",
+    "war_entry_ledger",
 }
 
 # ============================================================================
@@ -188,6 +193,11 @@ CATEGORY_MAP = {
     "amends_offered": "diplomacy",
     # Memory and Pressure v2.4.3 — B-B4 call-to-arms refusal (§8.8)
     "call_to_arms_refused_defensive": "diplomacy",
+    "call_to_arms_refused_offensive": "diplomacy",
+    "call_to_arms_honored_costly": "diplomacy",
+    "oathbreaker_posture_triggered": "diplomacy",
+    "oathbreaker_posture_cleared": "diplomacy",
+    "war_entry_ledger": "diplomacy",
 }
 
 
@@ -334,11 +344,17 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # Diplomacy events (Session 8D): PARTIAL+ on any relevant nation
         if event_type in ("diplomatic_treaty_signed", "diplomatic_war_declared",
                           "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
-                          "diplomatic_ai_ai_treaty"):
+                          "diplomatic_ai_ai_treaty",
+                          "call_to_arms_refused_defensive",
+                          "call_to_arms_refused_offensive",
+                          "call_to_arms_honored_costly"):
             # Check PARTIAL+ on any nation mentioned
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             nations_to_check = []
-            for key in ("nation", "nation_a", "nation_b", "target", "aggressor"):
+            for key in (
+                "nation", "nation_a", "nation_b", "target", "aggressor",
+                "breaker", "victim", "honorer",
+            ):
                 val = event.get(key)
                 if val:
                     nations_to_check.append(val)
@@ -356,7 +372,10 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             continue
 
         # War/cascade events: player-involved or PARTIAL+ on any nation
-        if event_type in ("war_declaration", "defensive_cascade", "offensive_cascade"):
+        if event_type in (
+            "war_declaration", "defensive_cascade", "offensive_cascade",
+            "war_entry_ledger",
+        ):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             nations_to_check = []
             for key in ("aggressor", "target", "defender", "ally", "against", "attacker_ally"):
@@ -428,7 +447,9 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # PL-27/PL-34: Proposal queue events + lapse — always show (player-facing)
         if event_type in ("proposal_arrived", "proposal_expired_unseen",
                           "proposal_dropped_overflow", "offer_lapsed",
-                          "hard_reject_posture_triggered", "hard_reject_posture_cleared"):
+                          "hard_reject_posture_triggered", "hard_reject_posture_cleared",
+                          "oathbreaker_posture_triggered",
+                          "oathbreaker_posture_cleared"):
             filtered.append(event)
             continue
 
@@ -838,6 +859,33 @@ def format_event_oneliner(event: dict) -> str:
                 "ending the alliance"
             )
         return f"{breaker} refused the defensive call from {victim}"
+
+    if event_type == "call_to_arms_refused_offensive":
+        breaker = event.get("breaker", "Unknown")
+        victim = event.get("victim", "Unknown")
+        return f"{breaker} refused the offensive call from {victim}"
+
+    if event_type == "call_to_arms_honored_costly":
+        honorer = event.get("honorer", "Unknown")
+        victim = event.get("victim", "Unknown")
+        return f"{honorer} honored a costly defensive call from {victim}"
+
+    if event_type == "oathbreaker_posture_triggered":
+        nation = event.get("nation", "Unknown")
+        return f"{nation} is marked as an oathbreaker after repeated refusals"
+
+    if event_type == "oathbreaker_posture_cleared":
+        nation = event.get("nation", "Unknown")
+        return f"{nation}'s oathbreaker posture has cleared"
+
+    if event_type == "war_entry_ledger":
+        aggressor = event.get("aggressor", "Unknown")
+        target = event.get("target", "Unknown")
+        entries = event.get("entries", []) or []
+        return (
+            f"War-entry ledger recorded for {aggressor} against {target} "
+            f"({len(entries)} call path{'' if len(entries) == 1 else 's'})"
+        )
 
     if event_type == "hard_reject_posture_triggered":
         victim = event.get("victim_nation", "Unknown")

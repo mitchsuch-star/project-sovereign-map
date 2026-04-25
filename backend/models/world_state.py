@@ -536,6 +536,14 @@ class WorldState:
         # by `diplomacy.is_anti_renewal_active` in `calculate_acceptance`;
         # NON_AGGRESSION / OPEN_BORDERS / PEACE are unaffected.
         self.anti_renewal_cooldown: Dict[str, int] = {}
+        # RELIABILITY_COMMITMENTS_SPEC §8.8.6 — nation-level habitual
+        # defensive-refusal posture. Key = nation; value carries trigger and
+        # expiry metadata for proposal gating and dispatch copy.
+        self.oathbreaker_posture: Dict[str, Dict] = {}
+        # RELIABILITY_COMMITMENTS_SPEC §8.8.5 — costly defensive honors create
+        # a temporary loyalty bond between honorer and rescued principal.
+        # Key = diplo_key; value = list of bond records.
+        self.call_to_arms_loyalty_bonds: Dict[str, List[Dict]] = {}
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.commitment_paradox_popup: Optional[Dict] = None  # R12 commitment paradox
         # RELIABILITY_COMMITMENTS_SPEC §6.5 root-cause episode_id counter.
@@ -869,6 +877,18 @@ class WorldState:
         """
         from backend.nation_config import NATION_POWER_TIERS
         return NATION_POWER_TIERS.get(nation)
+
+    def get_honor_bias(self, nation: str) -> float:
+        """Return authored DG-4 honor-bias for `nation`, defaulting to 1.0.
+
+        Like `power_tier`, this is authored scenario data and has no mutable
+        runtime shadow map on WorldState.
+        """
+        from backend.nation_config import NATION_HONOR_BIAS
+        try:
+            return float(NATION_HONOR_BIAS.get(nation, 1.0) or 1.0)
+        except (TypeError, ValueError):
+            return 1.0
 
     def invalidate_bloc_members_cache(self):
         """Clear bloc-members cache. Call at every seam that mutates
@@ -3489,6 +3509,32 @@ class WorldState:
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
+            "oathbreaker_posture": {
+                str(nation): {
+                    "triggered_turn": int(record.get("triggered_turn", 0)),
+                    "expires_on_turn": int(record.get("expires_on_turn", 0)),
+                    "auto_reject_until_turn": int(record.get("auto_reject_until_turn", 0)),
+                    "last_refusal_turn": int(record.get("last_refusal_turn", 0)),
+                    "refusal_episode_ids": [
+                        str(eid) for eid in (record.get("refusal_episode_ids", []) or [])
+                    ],
+                }
+                for nation, record in self.oathbreaker_posture.items()
+            },
+            "call_to_arms_loyalty_bonds": {
+                str(key): [
+                    {
+                        "episode_id": str(bond.get("episode_id", "")),
+                        "honorer": str(bond.get("honorer", "")),
+                        "victim": str(bond.get("victim", "")),
+                        "turn": int(bond.get("turn", 0)),
+                        "expires_on_turn": int(bond.get("expires_on_turn", 0)),
+                        "relation_delta": int(bond.get("relation_delta", 0)),
+                    }
+                    for bond in (bonds or [])
+                ]
+                for key, bonds in self.call_to_arms_loyalty_bonds.items()
+            },
 
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
@@ -3844,6 +3890,32 @@ class WorldState:
         # predate the field.
         world.anti_renewal_cooldown = {
             str(k): int(v) for k, v in data.get("anti_renewal_cooldown", {}).items()
+        }
+        world.oathbreaker_posture = {
+            str(nation): {
+                "triggered_turn": int(record.get("triggered_turn", 0)),
+                "expires_on_turn": int(record.get("expires_on_turn", 0)),
+                "auto_reject_until_turn": int(record.get("auto_reject_until_turn", 0)),
+                "last_refusal_turn": int(record.get("last_refusal_turn", 0)),
+                "refusal_episode_ids": [
+                    str(eid) for eid in (record.get("refusal_episode_ids", []) or [])
+                ],
+            }
+            for nation, record in data.get("oathbreaker_posture", {}).items()
+        }
+        world.call_to_arms_loyalty_bonds = {
+            str(key): [
+                {
+                    "episode_id": str(bond.get("episode_id", "")),
+                    "honorer": str(bond.get("honorer", "")),
+                    "victim": str(bond.get("victim", "")),
+                    "turn": int(bond.get("turn", 0)),
+                    "expires_on_turn": int(bond.get("expires_on_turn", 0)),
+                    "relation_delta": int(bond.get("relation_delta", 0)),
+                }
+                for bond in (bonds or [])
+            ]
+            for key, bonds in data.get("call_to_arms_loyalty_bonds", {}).items()
         }
 
         # Dispatch event queue (Session 8D)

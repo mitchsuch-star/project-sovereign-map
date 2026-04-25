@@ -648,6 +648,42 @@ def reduce_threat(world, amount: int, source_key: str) -> int:
     return int(world.threat_level)
 
 
+def _calculate_defensive_refusal_memory_threat(world) -> int:
+    """Standing DG-4 threat from active defensive-refusal episodes.
+
+    The current coalition scalar is France-targeted, so only refusals by the
+    player nation feed it here. D2 can generalize this to per-target threat.
+    """
+    france = world.player_nation
+    current_turn = int(getattr(world, "current_turn", 0))
+    amount = 0
+    for event in getattr(world, "event_log", []) or []:
+        if event.get("type") != "call_to_arms_refused_defensive":
+            continue
+        if event.get("breaker") != france:
+            continue
+        expires = int(event.get("coalition_threat_expires_on_turn", 0) or 0)
+        if expires and expires <= current_turn:
+            continue
+        victim = event.get("victim", "")
+        if not victim:
+            continue
+        treaty_partners = [
+            nation for nation in _get_all_nations(world)
+            if nation not in (france, victim)
+            and _get_diplo_state(world, nation, victim) in (
+                "OPEN_BORDERS",
+                "NON_AGGRESSION",
+                "DEFENSIVE_ALLIANCE",
+                "ALLIANCE",
+                "VASSAL",
+            )
+        ]
+        if treaty_partners:
+            amount += 1
+    return int(min(3, amount))
+
+
 # ════════════════════════════════════════════════════════════════
 # §2b. THREAT DECAY
 # ════════════════════════════════════════════════════════════════
@@ -1481,6 +1517,10 @@ def process_coalition_turn(world) -> List[Dict]:
             )
 
     # ────────── 2. Threat decay (§2b) ──────────
+    refusal_memory_threat = _calculate_defensive_refusal_memory_threat(world)
+    if refusal_memory_threat > 0:
+        add_threat(world, refusal_memory_threat, "defensive_refusal_memory")
+
     decay = _calculate_threat_decay(world)
     if decay > 0:
         old_threat = world.threat_level

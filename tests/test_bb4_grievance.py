@@ -70,12 +70,21 @@ from backend.game_logic.diplomacy import (
     _process_betrayal_decay,
     _remove_oldest_grievance_flag,
     calculate_acceptance,
+    declare_war,
     emit_call_to_arms_refused_defensive,
+    emit_call_to_arms_refused_offensive,
+    emit_call_to_arms_honored_costly,
     get_anti_renewal_turns_remaining,
+    get_oathbreaker_turns_remaining,
     grievance_modifier,
+    has_oathbreaker_posture,
     is_anti_renewal_active,
+    is_oathbreaker_auto_reject_active,
+    build_proposal_commitment_warnings,
+    determine_counterparty_decision_reason,
     set_diplomatic_state,
 )
+from backend.game_logic.coalition import process_coalition_turn
 from backend.models.world_state import WorldState
 from backend.notifications import AMENDS_OFFERED
 
@@ -385,8 +394,9 @@ class TestCallToArmsRefusedDefensive:
 
         assert result["strike_record"]["recorded"] is True
         assert result["grievance_flag"]["grievance_type"] == "defensive_call_refused"
-        assert result["reliability_after"] == 10, "10 = 20 - 10 per §8.8.2"
-        assert int(world.diplomatic_reliability["Russia"]) == 10
+        assert result["reliability_after"] == 2
+        assert result["victim_strikes"] == 2
+        assert int(world.diplomatic_reliability["Russia"]) == 2
 
         flags = _get_grievance_flags(world, "Russia", "Austria")
         assert len(flags) == 1
@@ -949,10 +959,8 @@ class TestDG4WitnessScope:
             assert vars_["perpetrator_nation"] == "Russia"
             assert vars_["victim_nation"] == "Austria"
             assert vars_["source_episode_type"] == "call_to_arms_refused_defensive"
-            # Numeric witness effect is substrate-reserved; dispatch
-            # carries 0 deltas to match the existing treaty-breach pattern.
             assert vars_["reliability_delta"] == 0
-            assert vars_["relation_delta"] == 0
+            assert vars_["relation_delta"] == -5
             assert vars_["scope_reason"] in DG4_WITNESS_SCOPE_PRECEDENCE
 
 
@@ -1099,6 +1107,156 @@ class TestAntiRenewalCooldown:
 # ════════════════════════════════════════════════════════════════════════════
 
 
+class TestDG4Completion:
+
+    def test_offensive_refusal_records_event_family_and_witness_effect(self):
+        world = _isolated_world()
+        set_diplomatic_state(world, "Russia", "France", "ALLIANCE", "setup")
+        set_diplomatic_state(world, "Prussia", "France", "DEFENSIVE_ALLIANCE", "setup")
+        world.diplomatic_reliability["Russia"] = 0
+
+        result = emit_call_to_arms_refused_offensive(
+            world, breaker="Russia", victim="France",
+        )
+
+        assert result["reliability_delta"] == -6
+        assert result["strike_record"]["strikes_added"] == 1
+        assert any(
+            e.get("type") == "call_to_arms_refused_offensive"
+            for e in world.event_log
+        )
+        witness_events = [
+            e for e in world.pending_dispatch_events
+            if e.get("type") == "witness_strike_recorded"
+            and e.get("template_vars", {}).get("source_episode_type")
+            == "call_to_arms_refused_offensive"
+        ]
+        assert witness_events
+        assert witness_events[0]["template_vars"]["relation_delta"] == -2
+
+    def test_honored_costly_rewards_reliability_relation_and_clears_oathbreaker(self):
+        world = _isolated_world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Prussia",
+        )
+        assert has_oathbreaker_posture(world, "Russia") is True
+
+        result = emit_call_to_arms_honored_costly(
+            world, honorer="Russia", victim="Austria",
+        )
+
+        assert result["reliability_delta"] == 5
+        assert result["loyalty_bond"]["relation_delta"] == 10
+        assert result["cleared_oathbreaker"] is True
+        assert has_oathbreaker_posture(world, "Russia") is False
+        key = world._make_diplo_key("Russia", "Austria")
+        assert world.call_to_arms_loyalty_bonds[key]
+
+    def test_oathbreaker_blocks_deep_treaty_acceptance_and_preview(self):
+        world = _isolated_world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Prussia",
+        )
+
+        assert is_oathbreaker_auto_reject_active(world, "Russia") is True
+        assert get_oathbreaker_turns_remaining(world, "Russia") == 10
+        proposal = {
+            "type": "alliance",
+            "proposer_nation": "France",
+            "target_nation": "Russia",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        assert result["components"]["oathbreaker_posture"] == -100
+        assert result["outcome"] == "REJECT"
+        assert determine_counterparty_decision_reason(
+            proposal, world, result,
+        ) == "distrust_promiser"
+
+        warnings = build_proposal_commitment_warnings(
+            world, "France", "Russia", "alliance",
+        )
+        assert any(w["category"] == "hard_reject" for w in warnings)
+
+    def test_anti_renewal_has_dedicated_counterparty_reason(self):
+        world = _isolated_world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        proposal = {
+            "type": "defensive_alliance",
+            "proposer_nation": "Russia",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        assert determine_counterparty_decision_reason(
+            proposal, world, result,
+        ) == "anti_renewal_active"
+
+    def test_declare_war_ledger_records_defensive_refusal_path(self):
+        world = _isolated_world()
+        set_diplomatic_state(world, "Prussia", "Austria", "DEFENSIVE_ALLIANCE", "setup")
+        world.call_to_arms_decisions = {
+            "defender|Austria|Prussia|France": "refuse",
+        }
+
+        result = declare_war(world, "France", "Austria")
+
+        assert result["success"] is True
+        assert world.get_diplomatic_state("Prussia", "France") != "WAR"
+        entry = next(
+            e for e in result["war_entry_ledger"]
+            if e["nation"] == "Prussia"
+        )
+        assert entry["path"] == "refused_discretionary"
+        assert entry["refusal_episode_id"]
+        assert any(e.get("type") == "war_entry_ledger" for e in world.event_log)
+
+    def test_defensive_refusal_memory_feeds_coalition_threat_sources(self):
+        world = _isolated_world()
+        set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+        set_diplomatic_state(world, "Prussia", "Austria", "NON_AGGRESSION", "setup")
+
+        emit_call_to_arms_refused_defensive(
+            world, breaker="France", victim="Austria",
+        )
+        process_coalition_turn(world)
+
+        assert any(
+            s.get("source") == "defensive_refusal_memory"
+            for s in world.threat_sources_this_turn
+        )
+
+    def test_oathbreaker_and_loyalty_bonds_survive_save_load(self):
+        world = _isolated_world()
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Austria",
+        )
+        emit_call_to_arms_refused_defensive(
+            world, breaker="Russia", victim="Prussia",
+        )
+        emit_call_to_arms_honored_costly(
+            world, honorer="Austria", victim="Prussia",
+        )
+
+        restored = WorldState.from_dict(world.to_dict())
+
+        assert has_oathbreaker_posture(restored, "Russia") is True
+        key = restored._make_diplo_key("Austria", "Prussia")
+        assert restored.call_to_arms_loyalty_bonds[key][0]["relation_delta"] == 10
+
+
 class TestCategoriesCleanup:
 
     def test_removing_last_grievance_clears_grievance_category_when_strikes_remain(self):
@@ -1184,6 +1342,7 @@ class TestGrievanceDurability:
         )
 
         world.current_turn = 10
+        _process_betrayal_decay(world)
         _process_betrayal_decay(world)
 
         key = "France|Austria"

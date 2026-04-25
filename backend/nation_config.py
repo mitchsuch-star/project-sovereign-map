@@ -85,6 +85,14 @@ NATION_POWER_TIERS: Dict[str, str] = {
 # `(world.get_power_tier(n) or _POWER_TIER_DEFAULT)`.
 _POWER_TIER_DEFAULT = "secondary"
 
+# DG-4 honor-bias authoring surrogate. Real scenario files will colocate this
+# with `power_tier`; until then, code reads this authored map and falls back to
+# 1.0 without creating any mutable runtime shadow state.
+NATION_HONOR_BIAS: Dict[str, float] = {
+    "Prussia": 1.15,
+    "Spain": 0.85,
+}
+
 RUNTIME_NATIONS = tuple(
     dict.fromkeys(
         (

@@ -107,10 +107,10 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     if lapsed_offers:
         dispatch["lapsed_offers"] = [
             {
-                "nation": l["nation"],
-                "proposal_type": (l.get("proposal_type") or "proposal").replace("_", " "),
+                "nation": offer["nation"],
+                "proposal_type": (offer.get("proposal_type") or "proposal").replace("_", " "),
             }
-            for l in lapsed_offers
+            for offer in lapsed_offers
         ]
 
     pending_envoys = [
@@ -1080,6 +1080,18 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "call_to_arms_refused_defensive": (
         "{breaker} has refused the defensive call from {victim}."
     ),
+    "call_to_arms_refused_offensive": (
+        "{breaker} has refused the offensive call from {victim}."
+    ),
+    "call_to_arms_honored_costly": (
+        "{honorer} has honored a costly defensive call from {victim}."
+    ),
+    "oathbreaker_posture_triggered": (
+        "{nation} is marked as an oathbreaker after repeated refusals."
+    ),
+    "oathbreaker_posture_cleared": (
+        "{nation}'s oathbreaker posture has cleared."
+    ),
     "commitment_paradox_resolved": (
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
@@ -1129,7 +1141,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # keeps substrate-level dispatch parity with other betrayal-family
     # events. Slice C-lite's CRITICAL notice copy lives on the lightweight
     # notice rail, not the dispatch queue.
-    "call_to_arms_refused_defensive": "MEDIUM",
+    "call_to_arms_refused_defensive": "CRITICAL",
+    "call_to_arms_refused_offensive": "CRITICAL",
+    "call_to_arms_honored_costly": "CRITICAL",
+    "oathbreaker_posture_triggered": "HIGH",
+    "oathbreaker_posture_cleared": "MEDIUM",
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
 }
@@ -1186,7 +1202,7 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
         nations_to_check = []
         for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy",
                    "vassal_capital", "witness_nation", "perpetrator_nation", "victim_nation",
-                   "actor_nation", "target_nation", "breaker", "victim"):
+                   "actor_nation", "target_nation", "breaker", "victim", "honorer"):
             val = template_vars.get(key)
             if val:
                 nations_to_check.append(val)
@@ -1262,6 +1278,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         scope_phrase = {
             "ally": f"as an ally of {victim}",
             "rival": f"as a rival of {perpetrator}",
+            "treaty_partner_of_breaker": f"as a treaty partner of {perpetrator}",
+            "treaty_partner_of_honorer": f"as a treaty partner of {perpetrator}",
             "shared_enemy": "as a fellow belligerent",
             "region_observer": "from the sidelines",
         }.get(scope_reason, "")
