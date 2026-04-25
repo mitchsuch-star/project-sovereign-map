@@ -2,7 +2,7 @@
 
 > **Spec:** `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (April 20, 2026 deep-audit fixes on top of v2.4.2 Hegemony refactor + audit cleanup — static concern seed replaced by power-based balance-of-power engine)
 > **Created:** April 13, 2026
-> **Last Updated:** April 25, 2026 (B-Hegemony, B-B1-lite, B-B3, B-B7, DG-4/B-B4, and C-lite closeout are implemented. Deferred-item closeout was recorded in `docs/STATUS.md`; D1, D2, D3, WB-* bargain-era work, and richer callback architecture remain deferred.)
+> **Last Updated:** April 25, 2026 (B-Hegemony, B-B1-lite, B-B3, B-B7, DG-4/B-B4, C-lite closeout, and D3 per-row bloc stamps are implemented. Deferred-item closeout was recorded in `docs/STATUS.md`; D1, D2, WB-* bargain-era work, and richer callback architecture remain deferred.)
 > **Sessions remaining:** 0 on the v2.4.3 implementation critical path; next work is next-spec planning.
 > **Est. tests remaining:** 0 for v2.4.3 closure; add new tests only for reopened deferred work.
 
@@ -12,7 +12,7 @@
 
 The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-of-power doctrine. Static concern pairs disappear. A single per-turn hegemony calculation (~60 LOC) drives all the political pressure that the four cancelled v2.3 modifiers were trying to model. See spec v2.4 rescope note for the design rationale.
 
-**Current repo reality check (April 25, 2026):** B-Hegemony, DG-4, and C-lite are now live. `backend/game_logic/diplomatic_ledger.py` returns `balance_of_europe` as the normative payload while retaining `threat_coalition` for compatibility; Godot renders the Balance headline; commitment notices route through `commitments_routing.py`; and the generic anonymous coalition clue chain has yielded to `balance_of_europe_shifted` where a same-turn Balance beat fires.
+**Current repo reality check (April 25, 2026):** B-Hegemony, DG-4, C-lite, and D3 per-row bloc stamps are now live. `backend/game_logic/diplomatic_ledger.py` returns `balance_of_europe` as the normative payload while retaining `threat_coalition` for compatibility; Nations rows carry transient `bloc_stamp` tags; Godot renders the Balance headline and row stamps; commitment notices route through `commitments_routing.py`; and the generic anonymous coalition clue chain has yielded to `balance_of_europe_shifted` where a same-turn Balance beat fires.
 
 **Already shipped (in current `master`) — unchanged from v2.3:**
 
@@ -38,11 +38,11 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 - Slice B-B7: Make Amends active-redemption verb — unchanged from v2.1/v2.3
 - Slice C-lite: named-diplomat resolution helper + dedicated `commitment_paradox_popup.{tscn,gd}` + committed prose for three live events + Balance-of-Europe headline render + `build_diplomatic_ledger` Balance payload block + `commitments_notice_*` template family (incl. DG-4 stubs and `balance_of_europe_shifted` / `amends_offered`) + `notification_bar.gd` `TYPE_ICONS` expansion
 
-**Deferred out of v2.4.3 (moved to Slice D3 below):**
+**D3 follow-up opened after v2.4.3 closeout (landed Apr 25):**
 
-- Slice E-Cards (per-row bloc stamps on the Nations tab) — re-deferred April 22, 2026. Concentrating the naming layer on the four in-scope surfaces (headline, beats, warnings, declaration contrast) keeps the headline as the single dramatic owner and reduces the "bloc vs coalition" blur risk. The stamp design is preserved as forward-compat reference in Slice D3 for a later playtest pass to open.
+- Slice E-Cards / D3 (per-row bloc stamps on the Nations tab) now ships as the bounded pre-Peace polish pass. The live payload is transient `nations[*].bloc_stamp` (`{label, kind, priority}`), never serialized, rendered next to each court name in `diplomatic_ledger.gd`, and keyed through `describe_hegemon_bloc(...)` rather than a parallel taxonomy.
 
-**Bloc naming (adopted for v2.4.3).** Deterministic bloc naming is the presentation contract for the hegemony layer. The authoritative contract lives in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners: Balance-of-Europe headline + `balance_of_europe_shifted` threshold beats + proposal-preview hegemony warnings + coalition-declaration contrast copy). Voice register beats per band live in `DIPLOMAT_VOICE_BIBLE.md` Minimum cast coverage (`hegemony_beat_*_{noticed,alarming,crisis}`). Implementation helper is `describe_hegemon_bloc(world, hegemon, share)` in this plan's B-Hegemony slice — no new serialized save surface. **Per-row stamps are NOT in the v2.4.3 naming-layer surface list** — see Slice D3 for the deferred work.
+**Bloc naming (adopted for v2.4.3; extended by D3).** Deterministic bloc naming is the presentation contract for the hegemony layer. The authoritative contract lives in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a (terminology guard, `33 / 50 / 60` activation gate, hegemon→label taxonomy with fallback, required surface owners: Balance-of-Europe headline + `balance_of_europe_shifted` threshold beats + proposal-preview hegemony warnings + coalition-declaration contrast copy). Voice register beats per band live in `DIPLOMAT_VOICE_BIBLE.md` Minimum cast coverage (`hegemony_beat_*_{noticed,alarming,crisis}`). Implementation helper is `describe_hegemon_bloc(world, hegemon, share)` in this plan's B-Hegemony slice — no new serialized save surface. D3 per-row stamps reuse that helper directly and remain subordinate to the headline.
 
 **Former Block 3 CF1-CF4 closure items are folded back into their parent slices.** The items previously routed through `docs/audits/MP_V243_BLOCK3_BLOC_NAMING.md` now sit in the slices that own them: CF1 (Balance-of-Europe payload in `build_diplomatic_ledger`, `commitments_notice_*` template family, `notification_bar.gd` icon map, full `resolve_named_diplomat(...)` wire-up) in Slice C-lite; CF2 (Make Amends emitters + `reparations_cooldown`) in B-B7; CF3 (DG-4 call-to-arms emitters + `END_REASON_FAMILY_DEFENSIVE_REFUSAL_TERMINATION`) in B-B4; CF4 (composite-floor regression tests) in B-B4 per the B-B1-lite merge-ordering gate. The audit doc is superseded and kept only as historical context.
 
@@ -65,7 +65,7 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 
 - Slice D1: advisory-first strategic focus + deeper AI integration
 - Slice D2: coalition buildout + non-France-hegemon / per-target threat-scalar generalization
-- **Slice D3: per-row bloc stamps on the Nations tab** (re-deferred April 22, 2026 — headline, beats, warnings, and declaration contrast carry the v2.4.3 naming layer without row stamps; the stamp contract below is preserved as forward-compat design reference only)
+- **Slice D3: per-row bloc stamps on the Nations tab** (opened and landed April 25, 2026)
 - WB-* bargain-era work moved to `WAR_BARGAIN_SPEC.md`, including bargain response routes, callbacks, and witness-depth presentation work that still depends on Peace Deals phase
 - N+1 Talleyrand aftermath callback / richer callback architecture if later playtest proves the single-turn surfaces still land too flat
 - Archive / expansion polish: retroactive campaign-log renaming, member-list compound bloc names, and richer hover / right-click stamp detail (dependent on Slice D3 landing first)
@@ -137,7 +137,7 @@ v2.4.3's design-fun refinement keeps the implementation disciplined: **no second
 - `_calculate_hegemony_pressure(world) -> Dict[str, int]` — per spec §7.3. Derives majors inline; returns `{hegemon_nation: threat_increment}` or `{}` if share < 33% (post-realignment ladder floor). ~22 LOC.
 - `_hegemony_pressure_for_share(share: float) -> int` — 1/3/5/8 ladder. ~5 LOC.
 - `_hegemony_signal_band(share: float) -> int` — returns `0` below `33%`, `1` for `33-49%`, `2` for `50-59%`, `3` for `60%+`. Pure current-share helper for label selection and band comparisons; do not conflate it with `world.hegemony_signal_high_water` / `world.hegemony_signal_hegemon`, which together hold the stored public-memory / dedupe state.
-- `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `descriptive_label`, `adjective`, `is_proper_bloc_name`). Label taxonomy + activation thresholds (`33 / 50 / 60`) + hegemon→label table + fallback rule are authored in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a; this helper is the single backend implementation of that contract. It feeds the v2.4.3 in-scope surfaces — Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, coalition-declaration contrast copy. It does **not** create a new save surface. When Slice D3 (per-row stamps) later lands, it must reuse this helper directly; no parallel name taxonomy is permitted. `bloc_label` presence contract per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.6: `None` below 50% share, authored proper noun at 50%+; `descriptive_label` is always populated once the helper is called.
+- `describe_hegemon_bloc(world, hegemon, share) -> Dict[str, Any]` — derived presentation helper returning the adopted label family only (`bloc_label`, `descriptive_label`, `adjective`, `is_proper_bloc_name`). Label taxonomy + activation thresholds (`33 / 50 / 60`) + hegemon→label table + fallback rule are authored in `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a; this helper is the single backend implementation of that contract. It feeds the v2.4.3 in-scope surfaces — Balance headline, `balance_of_europe_shifted`, proposal-preview warnings, coalition-declaration contrast copy — and the D3 Nations-tab row stamps. It does **not** create a new save surface. `bloc_label` presence contract per `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a.6: `None` below 50% share, authored proper noun at 50%+; `descriptive_label` is always populated once the helper is called.
 - Wire into `process_coalition_turn`: if `_calculate_hegemony_pressure` returns non-empty **and** `hegemon == world.player_nation`, call `add_threat(world, increment, source_key="hegemony_passive")`. If the hegemon is any other nation (losing-campaign edge case), emit a debug log for telemetry and skip the call — the threat_level scalar remains France-targeted in v0.1; generalizing it is D2 Coalition Generalization scope. ~8 LOC including the guard clause.
 - Same-turn signal beat: when the current hegemon's bloc crosses a new `33 / 50 / 60` band, emit one `balance_of_europe_shifted` named-diplomat notification (NOT the ledger headline or Morning Dispatch Balance line — both display state, not events; see §7.3 + §11.1 surface contract) with `band`, `hegemon`, `share`, `speaker_nation`, and `counterplay_hint`. A hegemon change inside an already surfaced band also emits one beat for the new arrangement and updates the stored hegemon identity; the headline must never become the first clue just because the band number stayed the same. On a same-turn multi-band jump (for example `28% -> 51%`), emit the **highest** newly reached beat only and write the stored high-water band to that highest value; do not stack a noticed + reveal double beat on one seam. **Emission point matters:** fire this at the bloc-share cache invalidation / ratification seam (treaty ratification, vassal creation, vassal release, peace-driven alliance removal, same-turn defensive-refusal termination), not only inside `process_coalition_turn`, so the beat lands before the refreshed headline and before the N+1 scalar tick. `process_coalition_turn` only needs to catch end-of-turn share changes that did not already pass through one of those seams. Priority is band-sensitive: `33%` = `NORMAL`; `50%` and `60%` = `CRITICAL`. If `world.coalition_cooldown > 0`, the line uses the cooldown-aware wording from the Voice Bible only at the `60%` crisis band so it announces hardening without falsely implying immediate coalition formation. Downward `60 -> 59` and `50 -> 49` transitions emit one quiet Talleyrand advisory aside as a same-turn dispatch footer / aside (no rail notice, no popup, no counterplay hint) so label regressions are acknowledged without creating a second beat family; dedupe these relaxations via `world.hegemony_relaxation_bands_fired` so edge oscillation does not spam. The advisory uses the current-share label after the drop. **Downward-aside trigger contract:** evaluate ONCE per turn inside `process_coalition_turn`, keyed off end-of-turn share vs `hegemony_signal_high_water` for the stored hegemon, NOT on mid-turn crossing events. Mid-turn oscillation (`52 → 49 → 51` via two ratification actions) that ends in the same band MUST NOT fire the aside and MUST NOT touch `hegemony_relaxation_bands_fired`; otherwise the dedupe set gets poisoned and a later genuine downward drop is suppressed. Upward beats continue to fire same-turn at the ratification seam as above. Falling below `33%` resets `world.hegemony_signal_high_water`, `world.hegemony_signal_hegemon`, and `world.hegemony_relaxation_bands_fired`; a hegemon change above `33%` updates `world.hegemony_signal_hegemon` and clears the relaxation set for the new arrangement. This is the canonical answer to the N+1 scalar lag — option (a) of §14 R8 and ships with B-Hegemony, not deferred.
 - Legacy anonymous hegemony clue retirement is part of this slice, not cleanup-later. When `balance_of_europe_shifted` lands, retire the old `"Diplomatic Tension"` / `"European Courts Concerned"` emit sites for hegemony-driven share changes so one crossing cannot produce both the legacy anonymous clue family and the new named-diplomat beat.
@@ -329,28 +329,28 @@ Closeout: `tests/test_session8a_ledger_debug.py` and `tests/test_session8b_ledge
 - Wire formation/dissolution/leader against any hegemon, not just France
 - Lift any remaining anti-France hardcoded paths in `diplomacy.py` (~14 sites flagged in spec §R5)
 
-### D3. Per-row bloc stamps (re-deferred April 22, 2026)
+### D3. Per-row bloc stamps (opened and landed April 25, 2026)
 
-**Files (when later opened):** `backend/game_logic/diplomatic_ledger.py`, `backend/display_names.py`, `godot-client/.../diplomatic_ledger.gd`, `godot-client/.../utils.gd` (optional: a small badge-palette helper if not already present).
+**Files:** `backend/game_logic/diplomatic_ledger.py`, `godot-client/.../diplomatic_ledger.gd`, `tests/test_session8a_ledger_debug.py`, `tests/test_session8b_ledger_ui.py`.
 
-**Why deferred:** the v2.4.3 naming layer is concentrated on four surfaces (Balance-of-Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview hegemony warnings, coalition-declaration contrast copy). Spreading the naming layer across the whole Nations tab in v2.4.3 risks (a) weakening the headline as the single dramatic owner, (b) making "hegemon bloc" vs "formal coalition" easier to blur when both labels sit on the same screen, and (c) pushing the Nations tab past one screen on 13+ nation scenarios without the stamps having earned their airtime yet. Open this slice only when a later playtest pass explicitly asks for per-row stamps.
+**Landed scope:** per-row stamps now appear beside the nation name on the Diplomatic Ledger Nations tab. The backend adds a transient `bloc_stamp` dict to each `nations` row and Godot renders it as a subdued BBCode tag. The payload is display-only and never serialized.
 
-**Forward-compat design reference (preserved, not live):**
+**Live contract:**
 
 - Per-nation bloc membership stamps rendered to the right of the nation name on the Diplomatic Ledger Nations tab.
 - Naming contract follows the headline: proper noun (`[French System]`, `[British Interest]`, `[Vienna System]`, `[Berlin Alignment]`, `[Saxon Circle]`, etc.) at `50%+` hegemon share; descriptive phrase (`[French-led alignment]`, etc.) at `33-49%`; no stamp at all when `share < 33%`. Any stamp rendering would route through the same `describe_hegemon_bloc(world, hegemon, share)` helper the headline uses — no parallel name taxonomy.
 - Priority sort (one stamp per nation, deterministic): `[Coalition Member] > [{Proper Bloc Name}] > [{Descriptive} bloc] > [Vassal of {Overlord}] > [Neutral]`. A nation that is both a coalition member AND in the hegemon's bloc shows `[Coalition Member]` — coalition membership dominates.
 - Terminology guard — the word `coalition` appears only as `[Coalition Member]` (formal anti-hegemon structure). Never `[French Coalition]`, `[British Coalition]`, etc.
-- Payload extension (not shipped in v2.4.3): each entry in `nations` would gain a transient `bloc_stamp` dict `{label, kind, priority}`; never serialized.
+- Payload extension: each entry in `nations` gains a transient `bloc_stamp` dict `{label, kind, priority}`; never serialized.
 - Godot render: subdued pill / tag visual next to the nation name, subordinate to the headline.
 
-**Scope limits (still stand when the slice opens later):**
+**Scope limits (still stand after landing):**
 
 - ❌ Retroactive renaming of campaign-log rows — archival polish, not live legibility.
 - ❌ Member-list compound names (`[Franco-Bavarian League]`) — v0.1 / v0.2 taxonomy is hegemon-keyed only.
 - ❌ Separate tooltips / richer on-hover detail — v0.1 ships static stamps.
 
-**Re-open criteria (any one triggers a write-up, not automatic ship):**
+**Follow-up criteria (any one triggers a write-up, not automatic ship):**
 
 - Playtest consistently shows players cannot answer at-a-glance which nations are in the hegemon bloc without the stamp layer.
 - 13+ nation Europe scale lands and the Nations tab needs at-a-glance camp legibility the headline alone cannot carry.
@@ -378,7 +378,7 @@ B-Hegemony (helpers + engine + coalition wire-up)
 
 B-B4 (DG-4 call-to-arms episodes) — parallel slice with ordering constraint against B-B1-lite (see "Merge ordering" below).
 
-Slice D3 (per-row bloc stamps) is DEFERRED — not part of the v2.4.3 ship sequence.
+Slice D3 (per-row bloc stamps) opened after v2.4.3 closeout and is now landed.
 ```
 
 **Slice ownership note (Block 3 fold):** bloc-naming adoption and the former CF1-CF4 items no longer gate the plan through a separate audit block. Each item now ships with the parent slice that owns it:
@@ -409,7 +409,7 @@ Recommended playtest gates:
 - **After B-B3 + Slice C-lite:** verify the renamed paradox surfaces through the new dedicated popup; named-diplomat copy lands for three live events; Balance of Europe headline reads naturally; threshold beats at `33 / 50 / 60` and `amends_offered` notices both resolve the correct court voice; the declaration-turn coalition popup carries the bloc-contrast line (loudest surface); the legacy anonymous `Diplomatic Tension` / `European Courts Concerned` notifications are retired on the same seam.
 - **After B-B7:** verify Make Amends succeeds at 200g + 1 DP and removes 1 strike; verify the target court's named acknowledgment appears on success; verify `amends_offered` lands on the lightweight notice / ledger route; verify all four refusal paths deliver Talleyrand-voiced advisory; verify 10-turn cooldown persists through save/load.
 
-Slice D1/D2/D3 stay deferred unless playtest proves the v0.1 pressure layer still lacks political texture, non-French hegemon scenarios become possible sooner than expected, or per-row stamps are explicitly requested.
+Slice D1/D2 stay deferred unless playtest proves the v0.1 pressure layer still lacks political texture or non-French hegemon scenarios become possible sooner than expected. D3 was explicitly requested and is now landed.
 
 ---
 
@@ -442,8 +442,8 @@ Slice D1/D2/D3 stay deferred unless playtest proves the v0.1 pressure layer stil
 | C1a / C1b / C2 | 22 + 32 + 44 = 98 | moved | moved | moved | → `WAR_BARGAIN_SPEC.md` |
 | Slice C (C3-lite) | (covered by C3a + C3b ~30) | 16-22 | 10-12 (trimmed) | 10-12 | + Balance-of-Europe threshold-beat copy / attribution |
 | §8.8 DG-4 (B-B4) | — | 25 | 25 | **25-29** | Parallel slice; v2.4.3 adds grievance-variant Make Amends, defensive-refusal termination, and R9/R10/R11 gate coverage |
-| ~~**Slice E-Cards**~~ | — | — | — | **deferred** | Per-row bloc stamps re-deferred April 22, 2026 → Slice D3 |
-| Slice D (D1/D2/D3) | deferred | deferred | deferred | deferred | D3 added for deferred bloc stamps |
+| ~~**Slice E-Cards**~~ | — | — | — | **landed Apr 25** | Per-row bloc stamps opened as D3 follow-up |
+| Slice D (D1/D2/D3) | deferred | deferred | D3 landed | deferred | D1/D2 stay deferred; D3 landed Apr 25 |
 | **Total this phase** | **~200** | **~68-74** | **~35-42** | **~54-63** | (+25-29 DG-4 if shipped together = ~79-92) |
 
 ---
@@ -458,5 +458,5 @@ Slice D1/D2/D3 stay deferred unless playtest proves the v0.1 pressure layer stil
 | B-B7 (Make Amends) | A1 (✓), B-B1-lite (formula reads `reparations_cooldown`) | Standalone verb |
 | Slice C-lite | B-B3, B-Hegemony | Needs renamed paradox + bloc data for Balance headline |
 | B-B4 (DG-4) | A1, A2, B2a, B2b (all ✓), merge ordering with B-B1-lite | Parallel slice, but no longer independent once `grievance_modifier` and the composite-floor interaction are live |
-| Slice D1 / D2 / D3 | This phase complete | Deferred follow-up (D3 = per-row bloc stamps, re-deferred April 22, 2026) |
+| Slice D1 / D2 / D3 | This phase complete | D1/D2 deferred; D3 per-row bloc stamps landed Apr 25, 2026 |
 | Slice WB-* | This phase complete + Bilateral Peace Hardening + War Purpose | See `WAR_BARGAIN_SPEC.md` |

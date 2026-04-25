@@ -132,6 +132,70 @@ def _format_army_strength(total_strength: int, visibility: str) -> str:
     return f"{int(total_strength):,} men"
 
 
+def _build_bloc_stamp_context(world) -> Dict[str, Any]:
+    """Precompute the shared D3 stamp context for all Nation rows."""
+    coalition = getattr(world, 'active_coalition', None)
+    coalition_members = set(coalition.get("members", []) or []) if coalition else set()
+    context = {
+        "band": 0,
+        "hegemon": None,
+        "share": 0.0,
+        "bloc_info": {},
+        "bloc_members": set(),
+        "coalition_members": coalition_members,
+    }
+
+    try:
+        from backend.game_logic.coalition import (
+            _hegemony_signal_band,
+            _identify_max_bloc_share,
+            describe_hegemon_bloc,
+        )
+        hegemon, share = _identify_max_bloc_share(world)
+        band = _hegemony_signal_band(float(share)) if hegemon else 0
+        if not hegemon or band <= 0:
+            return context
+        context["band"] = int(band)
+        context["hegemon"] = hegemon
+        context["share"] = float(share)
+        context["bloc_info"] = describe_hegemon_bloc(world, hegemon, float(share))
+        context["bloc_members"] = set(world.get_bloc_members(hegemon))
+    except Exception:
+        return context
+    return context
+
+
+def _build_bloc_stamp(nation: str, world, context: Dict[str, Any]):
+    """Return the transient D3 Nations-tab bloc stamp for a nation.
+
+    The payload is display-only and never serialized. Priority follows the
+    D3 contract: formal coalition membership dominates bloc labels, then
+    vassal/neutral fallback tags only appear once Balance naming is active.
+    """
+    if nation in context.get("coalition_members", set()):
+        return {"label": "Coalition Member", "kind": "coalition", "priority": 100}
+
+    if int(context.get("band", 0) or 0) <= 0:
+        return None
+
+    if nation in context.get("bloc_members", set()):
+        bloc_info = context.get("bloc_info", {}) or {}
+        label = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label")
+        if not label:
+            label = f"{context.get('hegemon', 'Hegemon')}-led alignment"
+        if bool(bloc_info.get("is_proper_bloc_name")):
+            return {"label": str(label), "kind": "proper_bloc", "priority": 80}
+        return {"label": str(label), "kind": "descriptive_bloc", "priority": 70}
+
+    vassal_record = getattr(world, 'vassals', {}).get(nation)
+    if vassal_record:
+        lord = str(vassal_record.get("lord", "") or "")
+        if lord:
+            return {"label": f"Vassal of {lord}", "kind": "vassal", "priority": 40}
+
+    return {"label": "Neutral", "kind": "neutral", "priority": 10}
+
+
 # ============================================================================
 # TAB 1: NATIONS
 # ============================================================================
@@ -142,6 +206,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
     active = set(world.get_active_nations())  # DLF-11
     all_nations = [n for n in getattr(world, 'enemy_nations', []) if n in active]
     nations = []
+    bloc_stamp_context = _build_bloc_stamp_context(world)
 
     for nation in all_nations:
         diplo_key = world._make_diplo_key(player, nation)
@@ -296,6 +361,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "war_score_breakdown": war_score_breakdown,
             "proposal_cooldowns": proposal_cooldowns if proposal_cooldowns else None,
             "trade_income": trade_income,
+            "bloc_stamp": _build_bloc_stamp(nation, world, bloc_stamp_context),
         })
 
     return nations

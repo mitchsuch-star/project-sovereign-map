@@ -187,6 +187,28 @@ func _render_current_tab():
 			_render_talleyrand()
 
 
+func _format_bloc_stamp(stamp) -> String:
+	if stamp == null or not stamp is Dictionary:
+		return ""
+	var label = str(stamp.get("label", "")).strip_edges()
+	if label == "":
+		return ""
+	var kind = str(stamp.get("kind", "neutral"))
+	var stamp_color = Utils.COLOR_GREY
+	match kind:
+		"coalition":
+			stamp_color = COLOR_RED
+		"proper_bloc":
+			stamp_color = Utils.COLOR_COMMAND
+		"descriptive_bloc":
+			stamp_color = Utils.COLOR_INFO
+		"vassal":
+			stamp_color = Utils.COLOR_GOLD
+		"neutral":
+			stamp_color = Utils.COLOR_GREY
+	return " [color=#" + stamp_color + "][" + label + "][/color]"
+
+
 # =============================================================================
 # TAB 1: NATION OVERVIEW
 # =============================================================================
@@ -245,6 +267,7 @@ func _render_nations():
 		rel_text += trend_arrow
 
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + name + "[/b][/color]"
+		bbcode += _format_bloc_stamp(n.get("bloc_stamp"))
 		bbcode += " — [color=#" + state_color + "]" + diplo_state + "[/color]"
 		bbcode += "  Relation: [color=#" + rel_color + "]" + rel_text + "[/color]"
 

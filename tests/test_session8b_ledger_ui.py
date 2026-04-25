@@ -17,6 +17,7 @@ that feeds the Godot UI. Visual rendering is manual-only.
 """
 
 import os
+from pathlib import Path
 
 # Ensure mock mode for tests
 os.environ["LLM_MODE"] = "mock"
@@ -350,6 +351,23 @@ class TestTopBarFields:
 # ════════════════════════════════════════════════════════════════
 # HOTKEY MAP — Verify No Conflicts
 # ════════════════════════════════════════════════════════════════
+
+class TestGodotNationStampRendering:
+    """Source-level guards for Nations-tab stamp rendering."""
+
+    def test_godot_renderer_reads_bloc_stamp_payload(self):
+        source = Path(
+            "godot-client/project-sovereign/scripts/diplomatic_ledger.gd"
+        ).read_text(encoding="utf-8")
+
+        assert "func _format_bloc_stamp(stamp)" in source
+        assert 'n.get("bloc_stamp")' in source
+        assert '"proper_bloc"' in source
+        assert '"descriptive_bloc"' in source
+        assert '"coalition"' in source
+        assert '"vassal"' in source
+        assert '"neutral"' in source
+
 
 class TestHotkeyMap:
     """Verify the hotkey map has no duplicate assignments."""

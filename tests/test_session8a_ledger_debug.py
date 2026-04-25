@@ -79,7 +79,7 @@ class TestDiplomaticLedgerNations:
         required_keys = {
             "name", "diplomatic_state", "relation", "diplomat",
             "army_strength", "regions_controlled", "active_treaties",
-            "vassal_eligible",
+            "vassal_eligible", "bloc_stamp",
         }
         assert required_keys.issubset(set(nation.keys()))
 
@@ -152,6 +152,76 @@ class TestDiplomaticLedgerNations:
 # ════════════════════════════════════════════════════════════════
 # FOG DESIGN: ARMY STRENGTH VISIBILITY
 # ════════════════════════════════════════════════════════════════
+
+    def test_nations_bloc_stamp_uses_proper_bloc_name_at_fifty_percent(self):
+        """Opening Balance geometry stamps Prussia's bloc with its proper name."""
+        world = _make_world()
+        ledger = build_diplomatic_ledger(world)
+        prussia = next(n for n in ledger["nations"] if n["name"] == "Prussia")
+        austria = next(n for n in ledger["nations"] if n["name"] == "Austria")
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+
+        assert prussia["bloc_stamp"] == {
+            "label": "Berlin Alignment",
+            "kind": "proper_bloc",
+            "priority": 80,
+        }
+        assert austria["bloc_stamp"]["label"] == "Berlin Alignment"
+        assert saxony["bloc_stamp"] == {
+            "label": "Neutral",
+            "kind": "neutral",
+            "priority": 10,
+        }
+
+    def test_nations_bloc_stamp_uses_descriptive_label_at_noticed_band(self):
+        """33-49% bands use the helper's descriptive label, not a proper noun."""
+        world = _make_world()
+        world.diplomatic_states = {}
+        world.vassals = {}
+        _set_diplo_state(world, "France", "Saxony", "ALLIANCE")
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+
+        ledger = build_diplomatic_ledger(world)
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+        assert saxony["bloc_stamp"] == {
+            "label": "French-led alignment",
+            "kind": "descriptive_bloc",
+            "priority": 70,
+        }
+
+    def test_nations_coalition_member_stamp_dominates_bloc_label(self):
+        """Formal coalition membership wins over hegemon-bloc labels."""
+        world = _make_world()
+        world.active_coalition = {
+            "name": "First Coalition",
+            "leader": "Prussia",
+            "members": ["Prussia", "Saxony"],
+        }
+        ledger = build_diplomatic_ledger(world)
+        prussia = next(n for n in ledger["nations"] if n["name"] == "Prussia")
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+
+        assert prussia["bloc_stamp"] == {
+            "label": "Coalition Member",
+            "kind": "coalition",
+            "priority": 100,
+        }
+        assert saxony["bloc_stamp"]["label"] == "Coalition Member"
+
+    def test_nations_vassal_stamp_for_non_bloc_vassal(self):
+        """Vassal tags appear when Balance naming is active and no higher stamp wins."""
+        world = _make_world()
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 60, "autonomy": 1}
+        ledger = build_diplomatic_ledger(world)
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+
+        assert saxony["bloc_stamp"] == {
+            "label": "Vassal of France",
+            "kind": "vassal",
+            "priority": 40,
+        }
+
 
 class TestArmyStrengthFog:
     """Tests for fog-filtered army strength display."""
