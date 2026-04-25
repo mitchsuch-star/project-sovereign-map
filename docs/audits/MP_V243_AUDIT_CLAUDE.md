@@ -1,5 +1,7 @@
 # Memory and Pressure v2.4.3 Audit — claude-opus-4-7, 2026-04-20
 
+> **Historical/superseded as of April 25, 2026.** DG-4 event-routing claims in this audit predate the shared commitments routing table, CRITICAL call-to-arms notices, direct-only call-to-arms implementation, Balance of Europe ledger payload, and witness anti-spam fixes. Retained for historical context only; do not treat "DG-4 missing" rows below as live gaps.
+
 ## Executive summary
 
 **Overall verdict: REQUEST-CHANGES (2 BLOCKERs, 6 MAJORs, 7 MINORs).**

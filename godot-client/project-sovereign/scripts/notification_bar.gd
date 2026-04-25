@@ -9,6 +9,7 @@ extends Control
 # =============================================================================
 
 signal notification_dismissed(notification_id: String)
+signal notification_review_requested(review_target: String)
 
 const MAX_VISIBLE_ICONS := 6
 const DETAIL_PANEL_MIN_WIDTH := 280.0
@@ -29,6 +30,10 @@ const PRIORITY_BORDER_COLORS = {
 
 const TYPE_ICONS = {
 	"coalition_declared": "WAR",
+	"balance_of_europe_shifted": "BOE",
+	"call_to_arms_refused_offensive": "PCT",
+	"call_to_arms_refused_defensive": "ALY",
+	"call_to_arms_honored_costly": "OAT",
 	"diplomatic_proposal": "ENV",
 	"diplomatic_proposal_result": "RPT",
 	"treaty_signed": "TRT",
@@ -232,6 +237,18 @@ func _show_expanded_panel(notif: Dictionary):
 	button_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(button_row)
 
+	var details = notif.get("details", {})
+	if details is Dictionary:
+		var review_target = str(details.get("review_target", ""))
+		var review_label = str(details.get("review_label", "Open Ledger"))
+		if review_target != "":
+			var review_btn = Button.new()
+			review_btn.text = review_label
+			review_btn.custom_minimum_size = Vector2(92, 28)
+			review_btn.add_theme_font_size_override("font_size", 10)
+			review_btn.pressed.connect(_on_review_pressed.bind(review_target))
+			button_row.add_child(review_btn)
+
 	var keep_btn = Button.new()
 	keep_btn.text = "Keep"
 	keep_btn.custom_minimum_size = Vector2(64, 28)
@@ -332,6 +349,11 @@ func _on_dismiss_pressed(notification_id: String):
 	if api_client:
 		api_client.dismiss_notification(notification_id, func(_response): pass)
 	notification_dismissed.emit(notification_id)
+
+
+func _on_review_pressed(review_target: String):
+	_close_expanded_panel()
+	notification_review_requested.emit(review_target)
 
 
 func dismiss_all():

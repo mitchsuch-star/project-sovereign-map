@@ -498,42 +498,33 @@ class TestFix11ProposalMetadata:
 # ═══════════════════════════════════════════════════════════
 
 class TestFix12VassalAutoJoin:
-    """Vassals should follow their lord into offensive wars via cascade."""
+    """Direct vassals should follow root principals into DG-4 wars."""
 
     def test_vassal_joins_lords_offensive_war(self):
-        """When lord joins offensive cascade, vassal should auto-join."""
+        """When the root aggressor is the lord, its vassal should auto-join."""
         world = _make_world()
         player = "France"
 
         # Set up: France declares war on Austria
-        # Prussia is allied with France (joins offensive cascade)
-        # Saxony is vassal of Prussia (should auto-join)
+        # Saxony is vassal of France (should auto-join as direct attacker vassal)
         diplo_key_fa = world._make_diplo_key("France", "Austria")
         world.diplomatic_states[diplo_key_fa] = "WAR"
 
-        diplo_key_fp = world._make_diplo_key("France", "Prussia")
-        world.diplomatic_states[diplo_key_fp] = "ALLIANCE"
-
-        # Saxony is vassal of Prussia
+        # Saxony is vassal of France
         world.vassals = {
-            "Saxony": {"lord": "Prussia", "loyalty": 60, "autonomy": "low"},
+            "Saxony": {"lord": "France", "loyalty": 60, "autonomy": "low"},
         }
 
         from backend.game_logic.diplomacy import _process_war_cascade
         cascade = _process_war_cascade(world, "France", "Austria")
 
-        # Prussia should join (offensive cascade via ALLIANCE)
-        prussia_joined = any(
-            e.get("attacker_ally") == "Prussia" or e.get("vassal") == "Prussia"
-            for e in cascade
-        )
-
-        # Saxony should auto-join as vassal of Prussia
+        # Saxony should auto-join as direct vassal of France.
         saxony_joined = any(
-            e.get("vassal") == "Saxony" and e.get("cascade_type") == "vassal_auto_join"
+            e.get("vassal") == "Saxony"
+            and e.get("cascade_type") == "vassal_offensive_auto_join"
             for e in cascade
         )
-        assert saxony_joined, f"Saxony should auto-join lord Prussia's war. Cascade: {cascade}"
+        assert saxony_joined, f"Saxony should auto-join lord France's war. Cascade: {cascade}"
 
         # Verify diplomatic state
         diplo_key_sa = world._make_diplo_key("Saxony", "Austria")

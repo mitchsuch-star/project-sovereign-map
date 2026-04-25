@@ -118,6 +118,7 @@ class TestOffensiveCascade:
         world = make_world()
         # Prussia has DA with Austria (target) -> defensive cascade
         set_state(world, "Prussia", "Austria", "DEFENSIVE_ALLIANCE")
+        set_state(world, "France", "Prussia", "PEACE")
         # Saxony has ALLIANCE with France (aggressor) -> offensive cascade
         set_state(world, "France", "Saxony", "ALLIANCE")
         set_state(world, "Saxony", "Austria", "PEACE")
@@ -161,13 +162,13 @@ class TestOffensiveCascade:
         offensive = [c for c in cascade if c.get("cascade_type") == "offensive"]
         assert not any(c.get("attacker_ally") == "Saxony" for c in offensive)
 
-    def test_recursive_offensive_cascade(self):
-        """Recursive offensive cascade: ally's ally pulled in."""
+    def test_direct_only_offensive_cascade(self):
+        """DG-4 direct-only offensive calls do not pull in ally's ally."""
         # Use clean world to avoid default alliances interfering
         world = make_clean_world()
         # France -> Saxony ALLIANCE (offensive cascade: Saxony joins vs Austria)
         set_state(world, "France", "Saxony", "ALLIANCE")
-        # Saxony -> Britain ALLIANCE (recursive: Britain joins vs Austria)
+        # Saxony -> Britain ALLIANCE (not a direct root-aggressor ally)
         set_state(world, "Saxony", "Britain", "ALLIANCE")
         # Everyone else at PEACE with Austria
         set_state(world, "Saxony", "Austria", "PEACE")
@@ -179,9 +180,8 @@ class TestOffensiveCascade:
         offensive_saxony = [c for c in cascade if c.get("attacker_ally") == "Saxony"]
         assert len(offensive_saxony) == 1
 
-        # Britain should be pulled in recursively (ALLIANCE with Saxony)
         assert world.is_at_war("Saxony", "Austria")
-        assert world.is_at_war("Britain", "Austria")
+        assert not world.is_at_war("Britain", "Austria")
 
     def test_notification_created(self):
         """Offensive cascade creates notification with correct title."""

@@ -1,5 +1,7 @@
 # Memory and Pressure v2.4.3 Audit — GPT-5 Codex, 2026-04-20
 
+> **Historical/superseded as of April 25, 2026.** Live DG-4 and C-lite closure now includes the shared commitments routing table, CRITICAL call-to-arms rail notices, direct-only call-to-arms implementation, Balance of Europe ledger payload, and witness anti-spam fixes. Retained for historical context only; do not treat "not yet implemented" rows below as live gaps.
+
 ## Executive summary
 REQUEST-CHANGES. The phase row is current, but the spec ensemble is not yet implementation-ready because the v0.5.1 presentation trim is still contradicted by live normative examples and handoff prose, the `commitment_paradox` rename is not canonicalized across save/UI/backend surfaces, and the promised commitments notice pipeline (priority tier, icon, label, template, named-diplomat resolution) does not line up with current rails. The highest-risk failure mode is that two implementers can both "follow the spec" and still ship incompatible UIs: one reintroducing cut spotlight/callback infrastructure, the other following the trimmed single-voice notice contract.
 

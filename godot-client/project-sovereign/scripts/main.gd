@@ -302,6 +302,8 @@ func _ready():
 		else:
 			add_child(notification_bar)
 		notification_bar.set_api_client(api_client)
+		if notification_bar.has_signal("notification_review_requested"):
+			notification_bar.notification_review_requested.connect(_on_notification_review_requested)
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -3053,6 +3055,11 @@ func _on_wizard_open_envoys_requested():
 
 func _on_dispatch_open_envoys_requested():
 	_on_envoy_clicked()
+
+
+func _on_notification_review_requested(review_target: String):
+	if review_target == "ledger_commitments" and top_bar:
+		top_bar.toggle_screen("diplomatic_ledger")
 
 
 func _on_envoy_clicked():

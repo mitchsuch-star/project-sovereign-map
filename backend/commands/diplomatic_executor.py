@@ -1403,7 +1403,10 @@ class DiplomaticExecutor:
             )
             breach_preview = war_preview.get("breach_preview", {})
             from backend.display_names import PROPOSAL_TYPE_DISPLAY
-            _display_proposal_type = lambda pt: PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
+
+            def _display_proposal_type(pt):
+                return PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
+
             treaty_display = _display_proposal_type(treaty_type)
 
             # Structured warnings[] per RELIABILITY_COMMITMENTS_SPEC §12.2.
@@ -1878,7 +1881,9 @@ class DiplomaticExecutor:
 
         if not selected:
             labels = [opt.get("label", "?") for opt in options]
-            numbered = ", ".join(f"{i+1}={l}" for i, l in enumerate(labels))
+            numbered = ", ".join(
+                f"{i+1}={label}" for i, label in enumerate(labels)
+            )
             return {"success": False, "message": f"I don't understand that choice, Sire. Options: {numbered}"}
 
         # Process the selected action

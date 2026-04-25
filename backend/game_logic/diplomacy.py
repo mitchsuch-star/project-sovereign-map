@@ -605,12 +605,16 @@ def emit_call_to_arms_refused_defensive(
     episode_id = episode_id or _allocate_episode_id(world, prefix="call")
     current_turn = int(getattr(world, "current_turn", 0))
     honor_bias = _get_honor_bias(world, breaker)
+    call_context = dict(call_context or {})
     reliability_delta = _scaled_dg4_delta(
         world, breaker, DG4_EVENT_REFUSED_DEFENSIVE, "reliability_delta",
+        call_context=call_context,
     )
     witness_relation_delta = _scaled_dg4_delta(
         world, breaker, DG4_EVENT_REFUSED_DEFENSIVE, "witness_relation_delta",
+        call_context=call_context,
     )
+    severity_factors = _dg4_scale_components(world, breaker, call_context)
 
     # ── 1. Betrayal strike (+2 victim-grade, severity "high" by default) ──
     strike_record = _record_betrayal_strikes(
@@ -686,6 +690,9 @@ def emit_call_to_arms_refused_defensive(
     witness_scope = _get_dg4_refused_defensive_witness_scope(
         world, breaker, victim,
     )
+    coalition_snapshot = _snapshot_defensive_refusal_coalition_partners(
+        world, breaker, victim,
+    )
 
     # ── 6. Anti-renewal cooldown (§8.8.7) — applies regardless of whether
     # an existing alliance was terminated. A refusal alone earns the pair a
@@ -719,21 +726,27 @@ def emit_call_to_arms_refused_defensive(
         "resolved_reliability_delta": int(reliability_delta),
         "honor_bias": float(honor_bias),
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
         "victim_strikes": int(strike_record.get("strikes_added", 0) or 0),
         "witnesses": list(witness_scope["witnesses"]),
+        "coalition_threat_partners_at_refusal": list(coalition_snapshot),
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "witness_scope_label": witness_scope["label"],
         "witness_count": witness_scope["count"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
         "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
         "coalition_threat_expires_on_turn": int(coalition_threat_expires_on_turn),
-        "call_context": dict(call_context or {}),
+        "call_context": dict(call_context),
         "turn": current_turn,
-        # Slice C-lite resolves `speaker="foreign_office"` to "The Chancery of
-        # {victim}" when the victim has no named envoy.
-        "speaker_attribution": "foreign_office",
+        "speaker_attribution": "envoy",
+        "speaker_target_nation": victim,
     }
     world.log_event(refusal_payload)
+    _emit_commitments_notification(
+        world,
+        DG4_EVENT_REFUSED_DEFENSIVE,
+        refusal_payload,
+    )
     queue_dispatch_event(
         world,
         "call_to_arms_refused_defensive",
@@ -748,11 +761,13 @@ def emit_call_to_arms_refused_defensive(
             "reliability_delta": reliability_after - reliability_before,
             "resolved_reliability_delta": int(reliability_delta),
             "witness_relation_delta": int(witness_relation_delta),
+            "severity_factors": severity_factors,
             "witness_count": witness_scope["count"],
             "witness_dominant_scope": witness_scope["dominant_scope"],
             "anti_renewal_cooldown_turns": int(ANTI_RENEWAL_COOLDOWN_TURNS),
             "turn": current_turn,
-            "speaker_attribution": "foreign_office",
+            "speaker_attribution": "envoy",
+            "speaker_target_nation": victim,
         },
         "partial_on_nation",
     )
@@ -792,8 +807,10 @@ def emit_call_to_arms_refused_defensive(
         "reliability_delta": reliability_after - reliability_before,
         "resolved_reliability_delta": int(reliability_delta),
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
         "victim_strikes": int(strike_record.get("strikes_added", 0) or 0),
         "witnesses": list(witness_scope["witnesses"]),
+        "coalition_threat_partners_at_refusal": list(coalition_snapshot),
         "witness_count": witness_scope["count"],
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "anti_renewal_expires_on_turn": int(anti_renewal_expires_on_turn),
@@ -820,12 +837,16 @@ def emit_call_to_arms_refused_offensive(
     episode_id = episode_id or _allocate_episode_id(world, prefix="call")
     current_turn = int(getattr(world, "current_turn", 0))
     honor_bias = _get_honor_bias(world, breaker)
+    call_context = dict(call_context or {})
     reliability_delta = _scaled_dg4_delta(
         world, breaker, DG4_EVENT_REFUSED_OFFENSIVE, "reliability_delta",
+        call_context=call_context,
     )
     witness_relation_delta = _scaled_dg4_delta(
         world, breaker, DG4_EVENT_REFUSED_OFFENSIVE, "witness_relation_delta",
+        call_context=call_context,
     )
+    severity_factors = _dg4_scale_components(world, breaker, call_context)
     strike_record = _record_betrayal_strikes(
         world,
         actor=breaker,
@@ -856,15 +877,22 @@ def emit_call_to_arms_refused_offensive(
         "resolved_reliability_delta": int(reliability_delta),
         "honor_bias": float(honor_bias),
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
         "witnesses": list(witness_scope["witnesses"]),
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "witness_scope_label": witness_scope["label"],
         "witness_count": witness_scope["count"],
-        "call_context": dict(call_context or {}),
+        "call_context": dict(call_context),
         "turn": current_turn,
         "speaker_attribution": "envoy",
+        "speaker_target_nation": victim,
     }
     world.log_event(payload)
+    _emit_commitments_notification(
+        world,
+        DG4_EVENT_REFUSED_OFFENSIVE,
+        payload,
+    )
     queue_dispatch_event(
         world,
         DG4_EVENT_REFUSED_OFFENSIVE,
@@ -875,9 +903,11 @@ def emit_call_to_arms_refused_offensive(
             "severity": str(severity),
             "reliability_delta": reliability_after - reliability_before,
             "witness_relation_delta": int(witness_relation_delta),
+            "severity_factors": severity_factors,
             "witness_count": witness_scope["count"],
             "turn": current_turn,
             "speaker_attribution": "envoy",
+            "speaker_target_nation": victim,
         },
         "partial_on_nation",
     )
@@ -903,6 +933,7 @@ def emit_call_to_arms_refused_offensive(
         "witnesses": list(witness_scope["witnesses"]),
         "witness_count": witness_scope["count"],
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
     }
 
 
@@ -924,12 +955,16 @@ def emit_call_to_arms_honored_costly(
     episode_id = episode_id or _allocate_episode_id(world, prefix="call")
     current_turn = int(getattr(world, "current_turn", 0))
     honor_bias = _get_honor_bias(world, honorer)
+    call_context = dict(call_context or {})
     reliability_delta = _scaled_dg4_delta(
         world, honorer, DG4_EVENT_HONORED_COSTLY, "reliability_delta",
+        call_context=call_context,
     )
     witness_relation_delta = _scaled_dg4_delta(
         world, honorer, DG4_EVENT_HONORED_COSTLY, "witness_relation_delta",
+        call_context=call_context,
     )
+    severity_factors = _dg4_scale_components(world, honorer, call_context)
     reliability_before, reliability_after = _apply_reliability_delta(
         world, honorer, reliability_delta,
     )
@@ -969,16 +1004,23 @@ def emit_call_to_arms_honored_costly(
         "victim_relation_after": int(relation_after),
         "loyalty_bond": bond,
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
         "witnesses": list(witness_scope["witnesses"]),
         "witness_dominant_scope": witness_scope["dominant_scope"],
         "witness_scope_label": witness_scope["label"],
         "witness_count": witness_scope["count"],
         "cleared_oathbreaker": bool(cleared_oathbreaker),
-        "call_context": dict(call_context or {}),
+        "call_context": dict(call_context),
         "turn": current_turn,
         "speaker_attribution": "foreign_office",
+        "speaker_target_nation": victim,
     }
     world.log_event(payload)
+    _emit_commitments_notification(
+        world,
+        DG4_EVENT_HONORED_COSTLY,
+        payload,
+    )
     queue_dispatch_event(
         world,
         DG4_EVENT_HONORED_COSTLY,
@@ -990,9 +1032,11 @@ def emit_call_to_arms_honored_costly(
             "reliability_delta": reliability_after - reliability_before,
             "loyalty_bond_turns": DG4_LOYALTY_BOND_TURNS,
             "witness_relation_delta": int(witness_relation_delta),
+            "severity_factors": severity_factors,
             "witness_count": witness_scope["count"],
             "turn": current_turn,
             "speaker_attribution": "foreign_office",
+            "speaker_target_nation": victim,
         },
         "partial_on_nation",
     )
@@ -1014,6 +1058,7 @@ def emit_call_to_arms_honored_costly(
         "witnesses": list(witness_scope["witnesses"]),
         "witness_count": witness_scope["count"],
         "witness_relation_delta": int(witness_relation_delta),
+        "severity_factors": severity_factors,
         "cleared_oathbreaker": bool(cleared_oathbreaker),
     }
 
@@ -1594,12 +1639,116 @@ def _get_honor_bias(world, nation: str) -> float:
     return 1.0
 
 
-def _scaled_dg4_delta(world, nation: str, event_type: str, effect_key: str) -> int:
+def _dg4_scale_components(
+    world,
+    nation: str,
+    call_context: Optional[Dict] = None,
+) -> Dict[str, float]:
+    """Resolve DG-4 severity scale factors from authored and call-context data."""
+    call_context = dict(call_context or {})
+    honor_bias = _get_honor_bias(world, nation)
+
+    tier_nation = (
+        call_context.get("enemy")
+        or call_context.get("aggressor")
+        or call_context.get("caller")
+        or ""
+    )
+    tier_getter = getattr(world, "get_power_tier", None)
+    tier = "secondary"
+    if callable(tier_getter) and tier_nation:
+        tier = tier_getter(str(tier_nation)) or "secondary"
+    power_tier_multiplier = {
+        "major": 1.15,
+        "secondary": 1.0,
+        "minor": 0.9,
+    }.get(str(tier), 1.0)
+
+    exposure_multiplier = 1.0
+    ratio = float(call_context.get("aggressor_power_ratio", 0) or 0)
+    if ratio >= 2.0:
+        exposure_multiplier += 0.15
+    elif ratio >= 1.25:
+        exposure_multiplier += 0.08
+    if call_context.get("capital_threat"):
+        exposure_multiplier += 0.15
+    if call_context.get("losing_other_war"):
+        exposure_multiplier += 0.10
+    exposure_multiplier = min(1.35, exposure_multiplier)
+
+    return {
+        "honor_bias": float(honor_bias),
+        "power_tier_multiplier": float(power_tier_multiplier),
+        "war_exposure_multiplier": float(exposure_multiplier),
+        "total_multiplier": float(
+            honor_bias * power_tier_multiplier * exposure_multiplier
+        ),
+    }
+
+
+def _scaled_dg4_delta(
+    world,
+    nation: str,
+    event_type: str,
+    effect_key: str,
+    call_context: Optional[Dict] = None,
+) -> int:
     effects = DG4_EPISODE_EFFECTS.get(event_type, {})
     base = int(effects.get(effect_key, 0) or 0)
     multiplier = float(effects.get("severity_multiplier", 1.0) or 1.0)
-    honor_bias = _get_honor_bias(world, nation)
-    return int(round(base * multiplier * honor_bias))
+    scale = _dg4_scale_components(world, nation, call_context)
+    return int(round(base * multiplier * scale["total_multiplier"]))
+
+
+def _snapshot_defensive_refusal_coalition_partners(
+    world,
+    breaker: str,
+    victim: str,
+) -> List[str]:
+    """Snapshot victim treaty partners at the moment of a defensive refusal."""
+    partners: List[str] = []
+    qualifying_states = {
+        "OPEN_BORDERS",
+        "NON_AGGRESSION",
+        "DEFENSIVE_ALLIANCE",
+        "ALLIANCE",
+        "VASSAL",
+    }
+    active_treaties = getattr(world, "active_treaties", {}) or {}
+    for nation in world.get_active_nations():
+        if nation in (breaker, victim):
+            continue
+        pair_key = world._make_diplo_key(nation, victim)
+        has_treaty = pair_key in active_treaties
+        state = world.get_diplomatic_state(nation, victim)
+        if has_treaty or state in qualifying_states:
+            partners.append(nation)
+    return sorted(partners)
+
+
+def _emit_commitments_notification(world, event_type: str, payload: Dict) -> None:
+    """Emit the commitments notice rail event from the shared routing table."""
+    try:
+        from backend.game_logic.commitments_routing import (
+            commitments_label,
+            commitments_notice_details,
+            commitments_priority,
+            format_commitments_notice,
+        )
+        from backend.notifications import create_notification, NotificationPriority
+
+        priority_name = commitments_priority(event_type, payload)
+        priority = getattr(NotificationPriority, priority_name, NotificationPriority.NORMAL)
+        world.notifications.add(create_notification(
+            event_type,
+            priority,
+            commitments_label(event_type),
+            format_commitments_notice(event_type, payload),
+            int(getattr(world, "current_turn", 0)),
+            details=commitments_notice_details(event_type, payload),
+        ))
+    except Exception:
+        return
 
 
 def _apply_reliability_delta(world, nation: str, delta: int) -> tuple[int, int]:
@@ -4006,10 +4155,20 @@ def declare_war(
     else:
         messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
-        if c.get("cascade_type") == "offensive":
+        cascade_type = c.get("cascade_type")
+        if cascade_type == "offensive":
             messages.append(
                 f"{c['attacker_ally']} enters the war against {c['target']}, "
                 f"honoring alliance with {c['aggressor']}!"
+            )
+        elif cascade_type in (
+            "vassal_defensive_auto_join",
+            "vassal_offensive_auto_join",
+            "vassal_auto_join",
+        ):
+            messages.append(
+                f"{c['vassal']} follows {c['lord']} into the war against "
+                f"{c['target']}!"
             )
         else:
             messages.append(
@@ -4036,17 +4195,19 @@ def _process_war_cascade(
     root_aggressor: str = None,
     war_entry_entries: Optional[List[Dict]] = None,
 ) -> List[Dict]:
-    """Process defensive and offensive alliance cascade when war is declared.
+    """Process DG-4 direct-only call-to-arms when war is declared.
 
     Defensive: Nations with DA/ALLIANCE with the TARGET join against the aggressor.
     Offensive: Nations with ALLIANCE (not DA) with the AGGRESSOR join against the target.
+    Direct vassals of either principal auto-join their lord's side.
 
     Cascade-forced ruptures are classified `obsolescence_or_external` (§9.9.B):
     the cascaded nation did not voluntarily break its treaty, so fault is
     attributed to the root aggressor and no reliability penalty is applied
     to the cascaded party.
 
-    Loop protection: max cascade depth = number of nations.
+    DG-4 forbids transitive propagation: allies of joiners and vassals of
+    joiners are not called by this root war.
     """
     if processed is None:
         processed = {aggressor, target}
@@ -4190,18 +4351,6 @@ def _process_war_cascade(
                                     {"nation": nation, "ally": target},
                                     "partial_on_nation")
 
-                # Recursive cascade: nation's allies may also join
-                sub_cascade = _process_war_cascade(
-                    world,
-                    aggressor,
-                    nation,
-                    processed,
-                    root_episode_id=root_episode_id,
-                    root_aggressor=fault_aggressor,
-                    war_entry_entries=war_entry_entries,
-                )
-                cascade.extend(sub_cascade)
-
     # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
     for nation in all_nations:
         if nation in processed:
@@ -4311,25 +4460,42 @@ def _process_war_cascade(
                                     {"nation": nation, "aggressor": aggressor, "target": target},
                                     "partial_on_nation")
 
-                sub_cascade = _process_war_cascade(
-                    world,
-                    nation,
-                    target,
-                    processed,
-                    root_episode_id=root_episode_id,
-                    root_aggressor=fault_aggressor,
-                    war_entry_entries=war_entry_entries,
-                )
-                cascade.extend(sub_cascade)
-
-    # ── VASSAL AUTO-JOIN: Vassals follow their lord into war (Fix 12) ──
+    # VASSAL AUTO-JOIN: DG-4 only calls direct vassals of root principals.
     vassals = getattr(world, 'vassals', {})
     for vassal_nation, vassal_data in vassals.items():
         if vassal_nation in processed:
             continue
         lord = vassal_data.get("lord", "")
-        if lord in processed and lord != target:
-            # Lord joined as aggressor/ally — vassal follows
+        if lord == target and not world.is_at_war(vassal_nation, aggressor):
+            set_diplomatic_state(
+                world, vassal_nation, aggressor, "WAR", "vassal_auto_join",
+            )
+            processed.add(vassal_nation)
+            _append_war_entry(
+                war_entry_entries,
+                nation=vassal_nation,
+                path="honored",
+                side="defender_vassal",
+                reason=f"vassal of {lord}",
+                treaty_state="VASSAL",
+            )
+
+            cascade.append({
+                "vassal": vassal_nation,
+                "lord": lord,
+                "target": aggressor,
+                "cascade_type": "vassal_defensive_auto_join",
+            })
+
+            world.log_event({
+                "type": "vassal_auto_join_war",
+                "vassal": vassal_nation,
+                "lord": lord,
+                "against": aggressor,
+            })
+            continue
+        if lord == aggressor:
+            # Direct attacker vassal follows the root aggressor.
             if not world.is_at_war(vassal_nation, target):
                 set_diplomatic_state(world, vassal_nation, target, "WAR", "vassal_auto_join")
                 processed.add(vassal_nation)
@@ -4337,7 +4503,7 @@ def _process_war_cascade(
                     war_entry_entries,
                     nation=vassal_nation,
                     path="honored",
-                    side="vassal",
+                    side="attacker_vassal",
                     reason=f"vassal of {lord}",
                     treaty_state="VASSAL",
                 )
@@ -4346,7 +4512,7 @@ def _process_war_cascade(
                     "vassal": vassal_nation,
                     "lord": lord,
                     "target": target,
-                    "cascade_type": "vassal_auto_join",
+                    "cascade_type": "vassal_offensive_auto_join",
                 })
 
                 world.log_event({

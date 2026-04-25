@@ -17,6 +17,10 @@ from backend.models.intel import FULL, PARTIAL
 from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
 from backend.display_names import diplomatic_decision_reason_display
+from backend.game_logic.commitments_routing import (
+    COMMITMENTS_ROUTES,
+    format_commitments_notice,
+)
 
 
 def _display_action(action: str) -> str:
@@ -78,6 +82,7 @@ CAMPAIGN_LOG_TYPES = {
     "offensive_cascade",
     "coalition_declared",
     "coalition_dissolved",
+    "balance_of_europe_shifted",
     # V3 Session 8: missing event types
     "nation_eliminated",
     "vassal_auto_join_war",
@@ -156,6 +161,7 @@ CATEGORY_MAP = {
     "offensive_cascade": "diplomacy",
     "coalition_declared": "diplomacy",
     "coalition_dissolved": "diplomacy",
+    "balance_of_europe_shifted": "diplomacy",
     # V3 Session 8: missing event types
     "nation_eliminated": "diplomacy",
     "vassal_auto_join_war": "diplomacy",
@@ -345,6 +351,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         if event_type in ("diplomatic_treaty_signed", "diplomatic_war_declared",
                           "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
                           "diplomatic_ai_ai_treaty",
+                          "balance_of_europe_shifted",
                           "call_to_arms_refused_defensive",
                           "call_to_arms_refused_offensive",
                           "call_to_arms_honored_costly"):
@@ -353,7 +360,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             nations_to_check = []
             for key in (
                 "nation", "nation_a", "nation_b", "target", "aggressor",
-                "breaker", "victim", "honorer",
+                "breaker", "victim", "honorer", "hegemon", "speaker_nation",
             ):
                 val = event.get(key)
                 if val:
@@ -524,6 +531,8 @@ def format_event_oneliner(event: dict) -> str:
         Human-readable one-liner string
     """
     event_type = event.get("type", "")
+    if event_type in COMMITMENTS_ROUTES and event_type != "witness_strike_recorded":
+        return format_commitments_notice(event_type, event)
 
     if event_type in ("diplomatic_war_declared", "war_declaration") and event.get("breached_treaty"):
         aggressor = event.get("aggressor") or event.get("nation", "Unknown")

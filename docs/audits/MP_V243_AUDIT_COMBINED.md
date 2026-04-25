@@ -8,6 +8,8 @@
 
 ---
 
+> **Historical/superseded as of April 25, 2026.** Live DG-4 and C-lite closure now includes the shared commitments routing table, CRITICAL call-to-arms rail notices, direct-only call-to-arms implementation, Balance of Europe ledger payload, and witness anti-spam fixes. Retained for historical context only; do not treat "DG-4 missing" rows below as live gaps.
+
 ## Executive summary
 
 **Combined verdict: REQUEST-CHANGES (3 BLOCKERs, 7 MAJORs, 7 MINORs) across 17 unified findings.**

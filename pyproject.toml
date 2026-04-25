@@ -1,3 +1,9 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 cache_dir = "pytest_cache_local"
+
+[tool.ruff.lint]
+# Legacy baseline for the existing backend/tests tree. Keep undefined names
+# and other correctness checks active; suppress the style/unused backlog that
+# predates the DG-4 closure pass so `ruff check backend tests` is actionable.
+ignore = ["E402", "E712", "E721", "E741", "F401", "F541", "F811", "F841"]

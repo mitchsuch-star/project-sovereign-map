@@ -53,6 +53,9 @@ COALITION_COOLDOWN_ENDED = "coalition_cooldown_ended"      # NORMAL: new coaliti
 #   family. For B-Hegemony this constant carries minimal copy so the event
 #   reaches the rail; Slice C-lite will polish voice + typography.
 BALANCE_OF_EUROPE_SHIFTED = "balance_of_europe_shifted"    # NORMAL/CRITICAL
+CALL_TO_ARMS_REFUSED_OFFENSIVE = "call_to_arms_refused_offensive"  # CRITICAL
+CALL_TO_ARMS_REFUSED_DEFENSIVE = "call_to_arms_refused_defensive"  # CRITICAL
+CALL_TO_ARMS_HONORED_COSTLY = "call_to_arms_honored_costly"        # CRITICAL
 # Diplomatic notifications (Phase 8 Session 8C)
 DIPLOMATIC_PROPOSAL = "diplomatic_proposal"                    # HIGH: AI envoy arrived
 TREATY_SIGNED = "treaty_signed"                                # MEDIUM: treaty ratified

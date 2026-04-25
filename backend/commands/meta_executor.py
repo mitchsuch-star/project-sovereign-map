@@ -145,11 +145,13 @@ class MetaExecutor:
         # C3: If turn was already ended by auto-advance, turn_ended == next_turn.
         # Show the current turn info instead of a confusing "Turn N ended. Turn N begins!"
         if turn_result["turn_ended"] == turn_result["next_turn"]:
-            return build_action_summary(world, {
+            return {
                 "success": True,
                 "message": f"Turn {world.current_turn} is already underway!",
                 "events": [],
-            })
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
+            }
 
         # Build message — enemy phase text and turn events removed from terminal
         # (enemy phase shown in popup dialog, turn events absorbed into Morning Dispatch)

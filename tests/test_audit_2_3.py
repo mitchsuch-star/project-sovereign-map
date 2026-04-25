@@ -842,9 +842,8 @@ class TestDefensiveAllianceCascade:
         cascade_nations = [c["defender"] for c in result["cascade"]]
         assert "Prussia" in cascade_nations
 
-    def test_recursive_cascade(self):
-        """If Prussia has ALLIANCE with Britain, and Austria has DEFENSIVE_ALLIANCE
-        with Prussia, France declaring war on Austria should cascade to both."""
+    def test_direct_only_cascade(self):
+        """DG-4 direct-only calls target allies but not allies of joiners."""
         world = make_world()
 
         # Austria-Prussia DEFENSIVE_ALLIANCE (default)
@@ -863,8 +862,8 @@ class TestDefensiveAllianceCascade:
         assert world.get_diplomatic_state("France", "Austria") == "WAR"
         # Prussia cascaded from Austria DEFENSIVE_ALLIANCE
         assert world.get_diplomatic_state("France", "Prussia") == "WAR"
-        # Britain cascaded from Prussia ALLIANCE (recursive)
-        assert world.get_diplomatic_state("Britain", "France") == "WAR"
+        # Britain is Prussia's ally, not Austria's direct ally, so it is not called.
+        assert world.get_diplomatic_state("Britain", "France") == "PEACE"
 
     def test_declare_war_on_already_at_war_fails(self):
         """Declaring war when already at war returns failure."""

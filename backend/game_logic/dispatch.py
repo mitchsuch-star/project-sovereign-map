@@ -14,6 +14,11 @@ from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
     get_strength_band,
 )
+from backend.game_logic.commitments_routing import (
+    COMMITMENTS_ROUTES,
+    commitments_priority,
+    format_commitments_notice,
+)
 
 
 # ============================================================================
@@ -1063,6 +1068,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
+    "balance_of_europe_shifted": "The balance of Europe shifts around {label}.",
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
@@ -1128,6 +1134,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_coalition_formed": "HIGH",
     "diplomatic_coalition_dissolved": "MEDIUM",
     "diplomatic_coalition_brewing": "MEDIUM",
+    "balance_of_europe_shifted": "NORMAL",
     "diplomatic_dp_regen": "LOW",
     "diplomatic_we_threshold": "MEDIUM",
     "diplomatic_relation_shift": "MEDIUM",
@@ -1237,6 +1244,9 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
 
 def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     """Format event text from template + variables."""
+    if event_type in COMMITMENTS_ROUTES and event_type != "witness_strike_recorded":
+        return format_commitments_notice(event_type, template_vars)
+
     if event_type == "diplomatic_treaty_broken":
         nation = template_vars.get("nation", "Unknown")
         target = template_vars.get("target", "")
@@ -1337,14 +1347,35 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
         return []
 
     result = []
+    witness_group_indexes = {}
     for event in events:
         if not _is_dispatch_event_visible(event, world, player_nation):
             continue
 
         event_type = event.get("type", "")
         template_vars = event.get("template_vars", {})
+        if event_type == "witness_strike_recorded":
+            episode_id = str(template_vars.get("episode_id", "") or "")
+            key = episode_id or f"unkeyed_{len(result)}"
+            witness = template_vars.get("witness_nation", "Unknown")
+            if key not in witness_group_indexes:
+                witness_group_indexes[key] = {
+                    "index": len(result),
+                    "vars": dict(template_vars),
+                    "witnesses": [],
+                }
+                result.append({})
+            group = witness_group_indexes[key]
+            if witness not in group["witnesses"]:
+                group["witnesses"].append(witness)
+            result[group["index"]] = _format_witness_grouped_dispatch_event(group)
+            continue
+
         text = _format_dispatch_event_text(event_type, template_vars)
-        priority = _DIPLOMATIC_EVENT_PRIORITY.get(event_type, "MEDIUM")
+        if event_type in COMMITMENTS_ROUTES:
+            priority = commitments_priority(event_type, template_vars)
+        else:
+            priority = _DIPLOMATIC_EVENT_PRIORITY.get(event_type, "MEDIUM")
 
         result.append({
             "type": event_type,
@@ -1353,3 +1384,30 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
         })
 
     return result
+
+
+def _format_witness_grouped_dispatch_event(group: dict) -> dict:
+    vars_ = group.get("vars", {})
+    witnesses = list(group.get("witnesses", []) or [])
+    count = len(witnesses)
+    perpetrator = vars_.get("perpetrator_nation", "Unknown")
+    victim = vars_.get("victim_nation", "Unknown")
+    if count <= 1:
+        text = _format_dispatch_event_text("witness_strike_recorded", vars_)
+    else:
+        sample = ", ".join(str(w) for w in witnesses[:3])
+        extra = count - 3
+        if extra > 0:
+            sample = f"{sample}, and {extra} more"
+        text = (
+            f"{count} courts have taken note of {perpetrator}'s conduct "
+            f"toward {victim}: {sample}."
+        )
+    return {
+        "type": "witness_strike_recorded",
+        "text": text,
+        "priority": commitments_priority("witness_strike_recorded", vars_),
+        "episode_id": vars_.get("episode_id", ""),
+        "witness_count": int(count),
+        "witness_nations": witnesses,
+    }

@@ -21,6 +21,11 @@ from backend.notifications import (
     COALITION_DECLARED, COALITION_MEMBER_PEACED, COALITION_DISSOLVED,
     COALITION_COOLDOWN_ENDED, BALANCE_OF_EUROPE_SHIFTED,
 )
+from backend.game_logic.commitments_routing import (
+    commitments_label,
+    commitments_notice_details,
+    format_commitments_notice,
+)
 
 # ════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -433,12 +438,18 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
         "band": int(current_band),
         "hegemon": hegemon,
         "share": round(float(share), 2),
+        "share_pct": share_pct,
+        "label": label_for_title,
         "bloc_label": bloc_info.get("bloc_label"),
         "descriptive_label": bloc_info.get("descriptive_label"),
         "counterplay_hint": counterplay_hint,
         "speaker_nation": speaker_nation,
         "caller_seam": caller,
+        "cooldown_turns_remaining": int(world.coalition_cooldown)
+        if cooldown_active and current_band == 3 else None,
     }
+    title = commitments_label(BALANCE_OF_EUROPE_SHIFTED)
+    message = format_commitments_notice(BALANCE_OF_EUROPE_SHIFTED, details)
 
     try:
         world.notifications.add(create_notification(
@@ -447,8 +458,28 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
             title,
             message,
             int(getattr(world, "current_turn", 1)),
-            details=details,
+            details=commitments_notice_details(
+                BALANCE_OF_EUROPE_SHIFTED,
+                details,
+            ),
         ))
+        event_payload = dict(details)
+        event_payload["type"] = BALANCE_OF_EUROPE_SHIFTED
+        event_payload["priority"] = int(priority)
+        event_payload["turn"] = int(getattr(world, "current_turn", 1))
+        event_payload["speaker_attribution"] = "envoy"
+        world.log_event(event_payload)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(
+            world,
+            BALANCE_OF_EUROPE_SHIFTED,
+            {
+                **details,
+                "priority": int(priority),
+                "speaker_attribution": "envoy",
+            },
+            "always",
+        )
         # B-Hegemony: retire the legacy anonymous clue family for any
         # share-driven crossing. `COALITION_THREAT_TENSION` /
         # `COALITION_MURMURS` emit sites in `_check_threat_notifications()`
@@ -665,20 +696,9 @@ def _calculate_defensive_refusal_memory_threat(world) -> int:
         expires = int(event.get("coalition_threat_expires_on_turn", 0) or 0)
         if expires and expires <= current_turn:
             continue
-        victim = event.get("victim", "")
-        if not victim:
-            continue
-        treaty_partners = [
-            nation for nation in _get_all_nations(world)
-            if nation not in (france, victim)
-            and _get_diplo_state(world, nation, victim) in (
-                "OPEN_BORDERS",
-                "NON_AGGRESSION",
-                "DEFENSIVE_ALLIANCE",
-                "ALLIANCE",
-                "VASSAL",
-            )
-        ]
+        treaty_partners = list(
+            event.get("coalition_threat_partners_at_refusal", []) or []
+        )
         if treaty_partners:
             amount += 1
     return int(min(3, amount))

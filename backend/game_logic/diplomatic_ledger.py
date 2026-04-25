@@ -48,13 +48,15 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         world: WorldState instance
 
     Returns:
-        Dict with nations, treaties, threat_coalition, talleyrand sections.
+        Dict with nations, treaties, balance_of_europe, threat_coalition,
+        talleyrand sections.
         All numeric values int()-wrapped.
     """
     return {
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
+        "balance_of_europe": _build_balance_of_europe(world),
         "threat_coalition": _build_threat_coalition(world),
         "talleyrand": _build_talleyrand(world),
     }
@@ -377,8 +379,83 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
 
 
 # ============================================================================
-# TAB 3: THREAT & COALITION
+# TAB 3: BALANCE OF EUROPE / THREAT & COALITION
 # ============================================================================
+
+def _build_balance_of_europe(world) -> Dict[str, Any]:
+    """Build the v2.4.3 Balance of Europe ledger payload."""
+    from backend.game_logic.coalition import (
+        _hegemony_signal_band,
+        _identify_max_bloc_share,
+        describe_hegemon_bloc,
+        get_qualifying_nations,
+    )
+
+    threat_level = int(getattr(world, 'threat_level', 0) or 0)
+    if threat_level >= 80:
+        threat_tier = "CRITICAL"
+    elif threat_level >= 60:
+        threat_tier = "HIGH"
+    elif threat_level >= 30:
+        threat_tier = "MODERATE"
+    else:
+        threat_tier = "LOW"
+
+    try:
+        hegemon, share = _identify_max_bloc_share(world)
+    except Exception:
+        hegemon, share = None, 0.0
+    band = _hegemony_signal_band(float(share)) if hegemon else 0
+    bloc_info = describe_hegemon_bloc(world, hegemon, float(share)) if hegemon else {
+        "bloc_label": None,
+        "descriptive_label": None,
+        "adjective": None,
+        "is_proper_bloc_name": False,
+    }
+
+    coalition = getattr(world, 'active_coalition', None)
+    brewing = getattr(world, 'coalition_brewing', None)
+    cooldown = int(getattr(world, 'coalition_cooldown', 0) or 0)
+    if coalition:
+        coalition_state = "DECLARED"
+        headline_case = "ACTIVE_COALITION"
+    elif brewing:
+        coalition_state = "BREWING"
+        headline_case = "BREWING"
+    elif cooldown > 0:
+        coalition_state = "COOLDOWN"
+        headline_case = "COOLDOWN"
+    elif hegemon and band > 0:
+        coalition_state = "NO_COALITION"
+        headline_case = "HEGEMON_NO_COALITION"
+    else:
+        coalition_state = "NO_HEGEMON"
+        headline_case = "NO_HEGEMON"
+
+    members = []
+    leader = ""
+    if coalition:
+        members = list(coalition.get("members", []) or [])
+        leader = str(coalition.get("leader", "") or "")
+
+    return {
+        "headline_case": headline_case,
+        "hegemon": hegemon,
+        "hegemon_share": round(float(share), 2),
+        "hegemony_band": int(band),
+        "bloc_label": bloc_info.get("bloc_label"),
+        "descriptive_label": bloc_info.get("descriptive_label"),
+        "is_proper_bloc_name": bool(bloc_info.get("is_proper_bloc_name")),
+        "coalition_state": coalition_state,
+        "coalition_leader": leader,
+        "coalition_members": members,
+        "brewing_turns_remaining": int(brewing.get("turns_remaining", 0) or 0)
+        if brewing else None,
+        "cooldown_turns_remaining": cooldown if cooldown > 0 else None,
+        "threat_level": threat_level,
+        "threat_tier": threat_tier,
+        "qualifying_nations": get_qualifying_nations(world),
+    }
 
 def _build_threat_coalition(world) -> Dict[str, Any]:
     """Build threat & coalition tab."""

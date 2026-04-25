@@ -1,5 +1,7 @@
 # MP v2.4.3 — Block 2: Substrate Alignment
 
+> **Historical/superseded as of April 25, 2026.** Block 2/B-B4/C-lite pre-merge claims below predate the DG-4 spec-closure pass. Live code now includes direct-only call-to-arms, the shared commitments routing table, CRITICAL call-to-arms notices, Balance of Europe ledger payload, and witness anti-spam fixes.
+
 > **Source:** 4 audit passes landed across [`MP_V243_AUDIT_COMBINED.md`](docs/audits/MP_V243_AUDIT_COMBINED.md) + [`MP_V243_AUDIT_PASS4.md`](docs/audits/MP_V243_AUDIT_PASS4.md) + two follow-up passes (commits c88b013, 5fcc93c). This work order integrates all code/test findings as first-class items — no addendum sectioning.
 >
 > **Ships as:** 3-4 focused commits organized by severity boundary. Order: BLOCKER/HIGH (P1, P3, P2, T4) → MAJOR substrate (U4, U3, U2+extensions, P6) → MINOR cleanup (B4, P5) → test sweep (T1, T10).
