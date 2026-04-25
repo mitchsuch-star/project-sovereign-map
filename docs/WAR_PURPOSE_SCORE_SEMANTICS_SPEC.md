@@ -273,6 +273,8 @@ def calculate_national_power(nation: str, world) -> int:
     return power
 ```
 
+**Implementation note:** This helper is evaluated at vassalage proposal / conquest-vassalage check time, not as a per-turn hot path. If one proposal evaluation needs multiple national-power reads, cache the result for that evaluation or per `world.current_turn` so the `world.regions.values()` scan does not violate CLAUDE.md Golden Rule 8 at scale.
+
 ### 8.2 Power cap rule
 
 A nation can be vassalized (treaty or conquest) only if:

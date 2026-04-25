@@ -66,9 +66,9 @@ This affects:
 - WPS §7.6 ticking pause during armistice (pauses for the full 5 turns)
 - WB §8.9.B zombie clock (counts turns at ARMISTICE; 5-turn minimum means zombie clock cannot fire before armistice expires unless both sides reach ARMISTICE simultaneously through separate paths)
 
-### 4.2 Acceptance modifier reconciliation (WB spec stale)
+### 4.2 Acceptance modifier reconciliation (canonical)
 
-WAR_BARGAIN_SPEC §7.2 references `direct_rivalry_mod`, `rival_conflict_mod`, and `bilateral_betrayal_mod` as "designed but not yet in code" and describes a `political_commitment_mod` composite. **This section is stale.**
+Earlier WAR_BARGAIN_SPEC drafts referenced the superseded rivalry-based modifier model. WAR_BARGAIN_SPEC §7.2 and §9 now align with this canonical model; this umbrella section remains the source of truth if future wording drifts.
 
 The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based modifier model. The live acceptance layer in `calculate_acceptance()` (`diplomacy.py:3215-3409`) is:
 
@@ -79,15 +79,15 @@ The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based mo
 | `grievance_modifier` | B-B4 | per-pair | -30 per active durable grievance flag, cap -90 |
 | composite floor | B-B4 | synthetic | `max(-60, hegemony + betrayal + grievance)` |
 
-There is no `direct_rivalry_mod`, no `rival_conflict_mod`, and no `political_commitment_mod` composite in the codebase. Those terms belong to an older spec revision that was superseded.
+There is no legacy rivalry composite in the codebase. The older modifier names belong to a superseded spec revision.
 
-**Required reconciliation for WB-A:**
+**WB-A integration:**
 
-WAR_BARGAIN_SPEC §9.1 (`bargain_value_mod`) and §9.2 (`rival_conflict_mod` extension) must be rewritten to extend the live model:
+WAR_BARGAIN_SPEC §9.1 (`bargain_value_mod`) and §9.2 (`bargain_conflict_penalty`) extend the live model:
 
 - `bargain_value_mod` (+10/+15/+25) integrates as a fourth political-pressure term alongside the existing three. It is positive (sweetener), so it naturally counteracts the negative political pressure from hegemony/betrayal/grievance.
-- The "rival_conflict_mod extension" (§9.2, `-8` for live bargain against target) should be reframed as a `bargain_conflict_penalty` added to the political subtotal before the composite floor clamp. The floor of `-60` still applies.
-- §9.3 composite re-cap must reference the live `-60` floor, not the old `-40` floor.
+- `bargain_conflict_penalty` (§9.2, `-8` for a live bargain against target) feeds into the political subtotal before the composite floor clamp. The floor of `-60` still applies.
+- §9.3 composite re-cap references the live `-60` floor.
 
 Updated political subtotal:
 
@@ -409,6 +409,12 @@ If BPH and WPS are implemented in the same session, they may touch overlapping f
 
 **Mitigation:** Interleave at the slice level, not within a slice. Complete BPH-A, then WPS-A, then BPH-B, etc. Never have two incomplete slices in flight.
 
+File-level partition guidance:
+
+- BPH owns peace-preview enrichment helpers such as `_enrich_peace_proposal()`, `_build_peace_preview()`, `_build_fallout_warnings()`, and term annotation / ratification-summary plumbing.
+- WPS owns war-objective and settlement-legibility helpers such as `_validate_war_objective()`, ticking-score accumulation, power-cap validation, and `_execute_forced_alliance_clause()`.
+- Shared files (`diplomatic_executor.py`, `diplomacy.py`, `world_state.py`) should be touched by only one active slice at a time; if BPH and WPS are worked by separate agents, they should split by the helper ownership above and merge one completed slice before starting the next.
+
 ### R4. Acceptance modifier reconciliation may reveal formula balance issues
 
 Adding `bargain_value_mod` (+10/+15/+25) and `bargain_conflict_penalty` (-8) to the political subtotal changes the acceptance landscape. The +25 war-entry sweetener is particularly powerful.
@@ -425,13 +431,13 @@ Three objectives (plus greyed Subjugation) at declaration time may slow the game
 
 ## 9. Sub-Spec Errata
 
-Items in the sub-specs that this umbrella supersedes or corrects:
+Items in the sub-specs that this umbrella supersedes, corrects, or has reconciled:
 
 ### WAR_BARGAIN_SPEC.md
 
-- **§7.2 "Implementation note"** — stale. References `direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod` as "designed but not yet in code." The live system is `hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier` + composite floor at -60. See §4.2 above for reconciliation.
-- **§9.2** — `rival_conflict_mod` extension is reframed as `bargain_conflict_penalty` feeding into the live political subtotal.
-- **§9.3** — composite floor is -60, not -40. The `political_commitment_mod` composite name does not exist in code; the political subtotal is computed inline in `calculate_acceptance()`.
+- **§7.2 "Implementation note"** — reconciled to the live `hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier` model with composite floor at -60. See §4.2 above.
+- **§9.2** — reconciled as `bargain_conflict_penalty` feeding into the live political subtotal.
+- **§9.3** — reconciled to the live `-60` composite floor and inline political subtotal used by `calculate_acceptance()`.
 - **§7.2 "commitment_paradox rename"** — already shipped (B-B3). No longer a prerequisite.
 
 ### WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md
@@ -448,7 +454,7 @@ Items in the sub-specs that this umbrella supersedes or corrects:
 
 - **BPH ∥ WPS parallel execution:** Yes. No hard dependency between them. Interleave at slice level.
 - **WB gated on both BPH and WPS:** Yes. WB R4 + WB §2 are hard dependencies.
-- **Acceptance modifier reconciliation approach:** Extend the live model (hegemony + betrayal + grievance + floor). Do not resurrect `direct_rivalry_mod` / `rival_conflict_mod`.
+- **Acceptance modifier reconciliation approach:** Extend the live model (hegemony + betrayal + grievance + floor). Do not resurrect the legacy rivalry-composite model.
 - **Armistice duration:** 5 turns. Fix docs, do not change code.
 - **`threat_coalition` retirement timing:** After Gate 1, before first WB ledger expansion. Not during BPH or WPS.
 - **Godot strategy:** Backend-first per slice, curl-verify, then Godot per slice.

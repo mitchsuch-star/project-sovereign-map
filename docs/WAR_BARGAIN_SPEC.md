@@ -113,13 +113,13 @@ That means:
 
 ### 7.2 Reused substrate (Memory and Pressure)
 
-**Implementation note:** the substrate fields below (`episode_id`, `betrayal_history`, `scope_reason`, `warnings[]`, `hard_reject_posture`) are shipped. The three acceptance modifiers (`direct_rivalry_mod`, `rival_conflict_mod`, `bilateral_betrayal_mod`) and their `political_commitment_mod` composite are **designed but not yet in code** — they are remaining Memory and Pressure v2.1 work. This spec's acceptance formula additions (§9) depend on those modifiers being wired first. Either Memory and Pressure v2.1 ships them before this spec begins, or Slice WB-A absorbs their implementation as a prerequisite.
+**Implementation note:** the substrate fields below (`episode_id`, `betrayal_history`, `scope_reason`, `warnings[]`, `hard_reject_posture`) are shipped. The live acceptance layer is `hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier`, clamped by the `-60` composite floor. This spec adds `bargain_value_mod` and `bargain_conflict_penalty` to that live political subtotal; see §9 and `PEACE_DEALS_UMBRELLA_SPEC.md` §4.2.
 
 - `episode_id` allocator for root-cause grouping
 - `betrayal_history` strike memory with severity-scaled decay and per-episode strike cap of 2
 - per-witness `scope_reason` resolution (ally / rival / shared_enemy / region_observer); region_observer scope is **only valid once the bargain store exists**, so it lights up here for the first time
 - structured `warnings[]` payload contract in proposal previews
-- `commitment_paradox` HARD_STOP machinery (paradox surface evolves under this spec to read from rivalry data + bargain conflict, not just the legacy alliance-cross-war trigger). **Note:** as of April 16, 2026, codebase still uses `alliance_paradox_popup` as the WorldState field name. The rename to `commitment_paradox` is part of remaining Memory and Pressure work and must land before this spec's implementation begins. If the rename has not shipped, implementation should map to whichever name is current.
+- `commitment_paradox` HARD_STOP machinery (paradox surface evolves under this spec to read from commitment conflict + bargain conflict, not just the legacy alliance-cross-war trigger). The canonical WorldState field is `commitment_paradox_popup`; legacy `alliance_paradox_popup` is load-side compatibility only.
 - `hard_reject_posture` blocking deep-treaty acceptance after 3 active strikes
 
 ### 7.3 Coalition / opposition seams (v0.1 minimal)
@@ -449,7 +449,7 @@ Void effects:
 
 ## 9. Acceptance formula additions
 
-Memory and Pressure shipped three of the four acceptance modifiers from its §9 (graduated `bilateral_betrayal_mod`, `direct_rivalry_mod`, `rival_conflict_mod` base treaty term). This spec adds the fourth (`bargain_value_mod`) and extends `rival_conflict_mod` with a live-bargain add-on:
+**Canonical source:** `PEACE_DEALS_UMBRELLA_SPEC.md` §4.2. War Bargains extends the live `calculate_acceptance()` political subtotal; it does not resurrect the superseded rivalry-composite model.
 
 ### 9.1 `bargain_value_mod`
 
@@ -463,31 +463,34 @@ Integration:
 - when no tracked bargain clause is present, the old static bonus may remain
 - never double-count static sweetener + tracked bargain for the same idea
 
-### 9.2 `rival_conflict_mod` extension (live-bargain term)
+### 9.2 `bargain_conflict_penalty` (live-bargain term)
 
-Memory and Pressure ships `rival_conflict_mod` for treaty alignment. Add the bargain-conflict term here:
+When France holds a live bargain against a target, or a live bargain over territory currently held by that target, add `bargain_conflict_penalty = -8` to the live political subtotal before the composite floor clamp.
 
-- France holds a live bargain against the target or for territory held by the target: `-8`
-- do not double-count the same rival; use strongest treaty alignment + at most one bargain-conflict add-on
-- cap `rival_conflict_mod` at `-20` before composite floor
+Rules:
+
+- Apply at most one bargain-conflict penalty per proposal target.
+- Do not double-count multiple bargains that create the same target conflict.
+- The `-60` composite floor in §9.3 remains authoritative after adding this term.
 
 ### 9.3 Composite re-cap
 
-The composite group `political_commitment_mod = max(-40, raw)` already established in Memory and Pressure stays. With bargains live, the full composite is:
+The live political subtotal in `calculate_acceptance()` becomes:
 
 ```python
-raw_political_commitment_mod = (
-    direct_rivalry_mod          # shipped
-    + rival_conflict_mod        # extended above
-    + bilateral_betrayal_mod    # shipped
-    + bargain_value_mod         # added here
+political_subtotal_raw = (
+    hegemony_target_mod
+    + bilateral_betrayal_mod
+    + grievance_modifier
+    + bargain_conflict_penalty
+    + bargain_value_mod
 )
-political_commitment_mod = max(-40, raw_political_commitment_mod)
+political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
-Note: the per-modifier caps (`bilateral_betrayal_mod` at `-24`, `rival_conflict_mod` at `-20`, etc.) are **superseded** by the composite floor when `raw < -40`. Spec readers should treat the floor as authoritative.
+`bargain_value_mod` is positive and can counteract hegemony / betrayal / grievance pressure. `bargain_conflict_penalty` is negative and makes normalizing with a bargain target harder. Both surface as independent component rows for preview / debug legibility.
 
-**Relationship to existing `reliability_modifier`:** the existing `calculate_acceptance()` in `diplomacy.py` includes a `reliability_modifier` (`max(-10, min(10, reliability // 5))`). `political_commitment_mod` is a **separate, parallel** group that captures bilateral and rivalry-specific political pressure. It does **not** replace `reliability_modifier`, which stays as the global reputation input. Both contribute independently to the final acceptance score.
+**Relationship to existing `reliability_modifier`:** the existing `calculate_acceptance()` in `diplomacy.py` includes `reliability_modifier = max(-6, min(6, reliability // 10))`. The political subtotal above is a separate, parallel group that captures pair-specific political pressure. It does not replace `reliability_modifier`, which stays as the global reputation input. Both contribute independently to the final acceptance score.
 
 ### 9.4 Dedicated `war_entry_score`
 
@@ -506,7 +509,7 @@ Inputs:
 - matching live bargain: `+25`
 - other-war load: `-8` for one other active war, `-18` for 2+ or war exhaustion `>= 60`
 
-Global reliability is a light input only; bilateral betrayal and treaty depth dominate. **Note:** the `// 10` divisor and `±6` clamp here are intentionally different from the acceptance formula's `// 5` and `±10` — war entry should weight reliability less than treaty proposals. Do not "fix" this to match the acceptance formula.
+Global reliability is a light input only; bilateral betrayal and treaty depth dominate. The `// 10` divisor and `±6` clamp match the live acceptance formula; if acceptance-formula reliability scaling changes later, revisit `war_entry_score` deliberately rather than copying changes by accident.
 
 Thresholds:
 
@@ -585,6 +588,19 @@ Campaign-log metadata payload:
 - for paradox events: chosen nation and spurned nation
 
 Compact one-line campaign-log rendering. Full metadata stays on the event record for tooltip / expand affordances.
+
+Per-event one-liner and fog contract:
+
+| Event | One-liner template | Fog rule |
+|-------|--------------------|----------|
+| `bargain_ratified` | "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}." | Public to all known courts. |
+| `bargain_triggered` | "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active." | Public to all known courts. |
+| `bargain_fulfilled` | "{promiser} honored the bargain: {claim_region} secured under France's claim." | Public to all known courts. |
+| `bargain_breached` | "{fault_nation} broke the bargain with {beneficiary} over {claim_region}." | Public to all known courts; scoped witness payloads drive relation fallout. |
+| `bargain_voided` | "Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})." | Public to France and directly involved nations; scoped witnesses see it only when listed in `witnesses`. |
+| `hard_block_surfaced` | "{beneficiary} cannot join against {target_enemy}: {hard_block_reason}." | Player only unless a downstream state change occurs. |
+| `ally_refused_free_join` | "{beneficiary} declined to join against {target_enemy} without terms." | Public to France and the refusing ally; scoped witnesses only if refusal creates a commitment event. |
+| `declaration_backed_out` | "{promiser} withdrew the declaration against {target_enemy}." | Player only; no diplomatic fallout by itself. |
 
 ### 10.5 Presentation pass (deferred from this spec)
 
@@ -745,6 +761,12 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - AI anti-spam (§11.2)
 - AI counter-bargain timing and refusal (§11.3-§11.4)
 - ~52 tests (increased from 44 to account for reroll determinism, counter-bargain suppression, and multi-bargain witness scoping)
+
+**Sub-division guidance if the session ceiling is reached:**
+
+- **WB-C1: War-entry integration + declaration preview + hard blocks** (~20 tests)
+- **WB-C2: Bargain Review + counter-bargain flow + reroll determinism** (~16 tests)
+- **WB-C3: AI rules + anti-spam + ledger + repudiate surface** (~16 tests)
 
 ### Slice WB-D. Bargain-era presentation extension
 

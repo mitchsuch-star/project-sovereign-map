@@ -873,7 +873,7 @@ acceptance_score = base_disposition
                  + personality_modifier
 
 deal_balance = deal_sweetener + deal_demands
-  (Sweetener: sum of positive modifiers from offered clauses, capped at +30.
+  (Sweetener: sum of positive modifiers from offered clauses, capped at +60.
    Demands: sum of negative modifiers from demanded clauses, uncapped.
    These are a SINGLE component in the formula — listed separately in §6b
    for clarity, but summed into one value before adding to acceptance_score.)
@@ -960,7 +960,7 @@ Protection:               +5 (guarantee of defense — reduced to +3 when guaran
                                already at war with all of target's enemies, per E8)
 ```
 
-**DEAL SWEETENER CAP: +40 maximum** (R146: was +30) from all sweetener clauses combined. Prevents gold-dumping exploits where a wealthy France overwhelms the formula with raw concessions. The cap forces the player to address the actual diplomatic obstacles (relations, threat, war score) rather than just throwing gold at the problem. Per-turn commitments count toward the cap at the listed values.
+**DEAL SWEETENER CAP: +60 maximum** (R146: was +30) from all sweetener clauses combined. Prevents gold-dumping exploits where a wealthy France overwhelms the formula with raw concessions. The cap forces the player to address the actual diplomatic obstacles (relations, threat, war score) rather than just throwing gold at the problem. Per-turn commitments count toward the cap at the listed values.
 
 **Per-turn commitments are more valuable:** Per-turn clauses (gold/turn, manpower/turn, AP/turn) represent ongoing commitments — reliable income streams for the recipient, ongoing drains for the giver. This makes them inherently more interesting tradeoffs than lump sums. Per-turn clauses can be broken (treaty-break mechanic applies — see §7d).
 
