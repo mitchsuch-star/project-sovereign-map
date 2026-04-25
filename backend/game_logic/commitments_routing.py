@@ -130,7 +130,8 @@ COMMITMENTS_NOTICE_TEMPLATES: Dict[str, str] = {
         "France is bound to both {attacker} and {defender}; one oath must give way."
     ),
     "balance_of_europe_shifted": (
-        "{label} commands {share_pct}% of Continental power. {counterplay_hint}"
+        "{label} leads the current largest alignment at {share_pct}% of "
+        "active European bloc power. {counterplay_hint}"
     ),
     "witness_strike_recorded": (
         "{witness_nation} has taken note of {perpetrator_nation}'s conduct "

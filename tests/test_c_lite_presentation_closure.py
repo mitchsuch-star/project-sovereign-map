@@ -216,5 +216,6 @@ def test_godot_sources_wire_review_target_and_commitments_antispam():
     assert "open_diplomatic_ledger_review" in top_bar
     assert 'decision_reason != "" and decision_reason_display == ""' in incoming_popup
     assert "_show_after_choice_aside" in paradox_popup
+    assert 'break_button.text = "Side with " + attacker' in paradox_popup
     assert "attacker_diplomat" in paradox_popup
     assert "defender_diplomat" in paradox_popup

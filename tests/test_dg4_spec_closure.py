@@ -189,6 +189,10 @@ def test_balance_of_europe_payload_and_campaign_log_route_are_live():
     assert "balance_of_europe" in ledger
     assert "threat_coalition" in ledger
     balance = ledger["balance_of_europe"]
+    assert isinstance(balance.get("bloc_members"), list)
+    assert isinstance(balance.get("hegemon_power"), int)
+    assert isinstance(balance.get("total_power"), int)
+    assert "all active European courts" in balance.get("power_basis", "")
     assert balance["headline_case"] in {
         "NO_HEGEMON",
         "HEGEMON_NO_COALITION",
@@ -221,3 +225,6 @@ def test_godot_notification_and_ledger_sources_expose_commitments_hooks():
     assert "notification_review_requested" in notification_bar
     assert 'cached_data.get("balance_of_europe", {})' in diplomatic_ledger
     assert "BALANCE OF EUROPE" in diplomatic_ledger
+    assert "active European bloc power" in diplomatic_ledger
+    assert "Alliance networks can overlap" in diplomatic_ledger
+    assert "Warning bands: 33% noticed, 50% alarming, 60% crisis" in diplomatic_ledger

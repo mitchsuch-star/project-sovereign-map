@@ -111,13 +111,35 @@ class TestDiplomaticLedgerNations:
         britain = next(n for n in ledger["nations"] if n["name"] == "Britain")
         assert britain["diplomatic_state"] == "WAR"
 
-    def test_nations_vassal_eligible_at_war(self):
-        """Nations at war with France should be vassal eligible (not already vassal)."""
+    def test_nations_major_power_not_vassal_eligible_at_war(self):
+        """Major powers at war should not show the vassalizable ledger stamp."""
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
         britain = next(n for n in ledger["nations"] if n["name"] == "Britain")
-        # Britain is at war with France, so vassal_eligible should be True
-        assert britain["vassal_eligible"] is True
+        assert britain["power_tier"] == "major"
+        assert britain["vassal_eligible"] is False
+        assert britain["vassal_block_reason"] == "major_power"
+
+    def test_nations_minor_power_vassal_eligible_at_war(self):
+        """Minor powers can still show the vassalizable ledger stamp."""
+        world = _make_world()
+        _set_diplo_state(world, "France", "Saxony", "WAR")
+        _set_relation(world, "France", "Saxony", -20)
+        ledger = build_diplomatic_ledger(world)
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+        assert saxony["power_tier"] == "minor"
+        assert saxony["vassal_eligible"] is True
+        assert saxony["vassal_block_reason"] is None
+
+    def test_nations_minor_power_vassal_eligible_from_open_borders(self):
+        """Saxony's starting Open Borders treaty path is vassal-eligible."""
+        world = _make_world()
+        ledger = build_diplomatic_ledger(world)
+        saxony = next(n for n in ledger["nations"] if n["name"] == "Saxony")
+        assert saxony["diplomatic_state"] == "OPEN_BORDERS"
+        assert saxony["power_tier"] == "minor"
+        assert saxony["vassal_eligible"] is True
+        assert saxony["vassal_block_reason"] is None
 
     def test_nations_vassal_not_eligible_when_vassal(self):
         world = _make_world()
@@ -479,6 +501,24 @@ class TestCheatCommands:
         _set_diplo_state(world, "France", "Saxony", "PEACE")
         result = self._run_cheat(world, "trigger_coalition")
         assert result.get("success") is True or "Insufficient" in result.get("message", "")
+
+    def test_trigger_commitment_paradox(self):
+        world = _make_world()
+
+        result = self._run_cheat(
+            world,
+            "trigger_commitment_paradox",
+            ["Prussia", "Austria"],
+        )
+
+        assert result["success"] is True
+        assert world.commitment_paradox_popup is not None
+        assert world.commitment_paradox_popup["attacker"] == "Prussia"
+        assert world.commitment_paradox_popup["defender"] == "Austria"
+        assert world.pending_diplomatic_dialogue["type"] == "commitment_paradox"
+        assert world.get_diplomatic_state("France", "Prussia") == "ALLIANCE"
+        assert world.get_diplomatic_state("France", "Austria") == "ALLIANCE"
+        assert world.get_diplomatic_state("Prussia", "Austria") == "WAR"
 
     def test_set_war_exhaustion(self):
         world = _make_world()

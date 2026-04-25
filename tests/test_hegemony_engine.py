@@ -584,6 +584,31 @@ class TestBandCrossings:
         assert len(beats) >= 1
         assert any(b["details"]["hegemon"] == "Russia" for b in beats)
 
+    def test_declare_war_cascade_emits_only_final_balance_beat(self):
+        """Compound war/cascade state changes should not surface transient blocs."""
+        from backend.game_logic.diplomacy import declare_war
+
+        w = WorldState()
+        w.diplomatic_states[w._make_diplo_key("France", "Britain")] = "ALLIANCE"
+        w.diplomatic_states[w._make_diplo_key("France", "Prussia")] = "ALLIANCE"
+        w.invalidate_bloc_members_cache()
+        w.hegemony_signal_high_water = 2
+        w.hegemony_signal_hegemon = "Prussia"
+        w.notifications._pending = []
+        w.event_log = []
+
+        result = declare_war(w, "France", "Austria")
+
+        assert result["success"] is True
+        events = [
+            e for e in w.event_log
+            if e.get("type") == BALANCE_OF_EUROPE_SHIFTED
+        ]
+        assert len(events) == 1
+        assert events[0]["hegemon"] == "Britain"
+        assert events[0]["caller_seam"] == "declare_war"
+        assert "Berlin Alignment" not in {e.get("label") for e in events}
+
     def test_reset_below_33pct_clears_memory(self):
         """Drop below 33% clears high_water, hegemon, relaxation set."""
         w = _clean_diplo_world()

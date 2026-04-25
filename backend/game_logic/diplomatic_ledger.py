@@ -188,18 +188,30 @@ def _build_nations(world) -> List[Dict[str, Any]]:
                 if treaty_type not in active_treaties:
                     active_treaties.append(treaty_type)
 
-        # Vassal eligibility: not already vassal, relation < -10 or at war, not France
-        # DLF-1: Must also be in a qualifying diplomatic state
+        # Vassal eligibility mirrors the shipped `make_vassal` command:
+        # treaty path from OPEN_BORDERS+ or conquest path from WAR. The ledger
+        # only surfaces that affordance for minor courts so major powers do not
+        # look like client-state targets.
+        from backend.nation_config import _POWER_TIER_DEFAULT  # noqa: E402
         from backend.game_logic.diplomacy import VASSAL_MIN_STATES  # noqa: E402
+        power_tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
         vassals = getattr(world, 'vassals', {})
         is_vassal = nation in vassals
-        at_war = diplomatic_state == "WAR"
-        vassal_eligible = (
+        release_cooldown = int(
+            getattr(world, 'vassal_release_cooldowns', {}).get(nation, 0) or 0
+        )
+        vassal_preconditions = (
             not is_vassal
-            and (relation < -10 or at_war)
             and nation != player
             and diplomatic_state in VASSAL_MIN_STATES
+            and release_cooldown <= 0
         )
+        vassal_eligible = vassal_preconditions and power_tier == "minor"
+        vassal_block_reason = None
+        if vassal_preconditions and not vassal_eligible:
+            vassal_block_reason = (
+                "major_power" if power_tier == "major" else "non_minor_power"
+            )
 
         # AI-AI relations: show diplomatic states with other AI nations
         # DPF-1: No fog gate — diplomatic relations are public knowledge
@@ -278,6 +290,8 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "regions_controlled": int(regions_controlled),
             "active_treaties": active_treaties,
             "vassal_eligible": vassal_eligible,
+            "vassal_block_reason": vassal_block_reason,
+            "power_tier": power_tier,
             "ai_relations": ai_relations,
             "war_score_breakdown": war_score_breakdown,
             "proposal_cooldowns": proposal_cooldowns if proposal_cooldowns else None,
@@ -385,10 +399,12 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
 def _build_balance_of_europe(world) -> Dict[str, Any]:
     """Build the v2.4.3 Balance of Europe ledger payload."""
     from backend.game_logic.coalition import (
+        bloc_power,
         _hegemony_signal_band,
         _identify_max_bloc_share,
         describe_hegemon_bloc,
         get_qualifying_nations,
+        power_score,
     )
 
     threat_level = int(getattr(world, 'threat_level', 0) or 0)
@@ -401,8 +417,13 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     else:
         threat_tier = "LOW"
 
+    total_power = 0
+    hegemon_power = 0
     try:
         hegemon, share = _identify_max_bloc_share(world)
+        active_nations = world.get_active_nations()
+        total_power = int(sum(power_score(n, world) for n in active_nations))
+        hegemon_power = int(bloc_power(hegemon, world)) if hegemon else 0
     except Exception:
         hegemon, share = None, 0.0
     band = _hegemony_signal_band(float(share)) if hegemon else 0
@@ -412,6 +433,12 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "adjective": None,
         "is_proper_bloc_name": False,
     }
+    bloc_members = []
+    if hegemon:
+        try:
+            bloc_members = list(world.get_bloc_members(hegemon))
+        except Exception:
+            bloc_members = [hegemon]
 
     coalition = getattr(world, 'active_coalition', None)
     brewing = getattr(world, 'coalition_brewing', None)
@@ -442,10 +469,18 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "headline_case": headline_case,
         "hegemon": hegemon,
         "hegemon_share": round(float(share), 2),
+        "hegemon_power": hegemon_power,
+        "total_power": total_power,
         "hegemony_band": int(band),
         "bloc_label": bloc_info.get("bloc_label"),
         "descriptive_label": bloc_info.get("descriptive_label"),
         "is_proper_bloc_name": bool(bloc_info.get("is_proper_bloc_name")),
+        "bloc_members": bloc_members,
+        "power_basis": (
+            "Bloc share is a weighted score: the leader plus direct allies "
+            "and vassal-bloc members, divided by all active European courts. "
+            "It is not a partition; alliance networks can overlap."
+        ),
         "coalition_state": coalition_state,
         "coalition_leader": leader,
         "coalition_members": members,

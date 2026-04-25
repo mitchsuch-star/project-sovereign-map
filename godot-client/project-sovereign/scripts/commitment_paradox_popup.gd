@@ -50,7 +50,7 @@ func show_paradox(data: Dictionary):
 	)
 
 	honor_button.text = "Honor " + defender
-	break_button.text = "Break " + defender + " Alliance"
+	break_button.text = "Side with " + attacker
 
 	content_label.text = ""
 	content_label.append_text(bbcode)

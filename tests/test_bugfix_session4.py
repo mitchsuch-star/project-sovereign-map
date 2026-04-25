@@ -77,8 +77,8 @@ class TestDLF1VassalizableIcon:
         assert prussia is not None
         assert prussia["vassal_eligible"] is False
 
-    def test_vassal_icon_included_for_war_state(self):
-        """Vassal icon should show when at WAR with low relation."""
+    def test_vassal_icon_excluded_for_major_power_at_war(self):
+        """Vassal icon should not show for major powers."""
         world = make_world()
         set_state(world, "France", "Prussia", "WAR")
         set_relation(world, "France", "Prussia", -20)
@@ -90,7 +90,43 @@ class TestDLF1VassalizableIcon:
         nations = ledger.get("nations", [])
         prussia = next((n for n in nations if n["name"] == "Prussia"), None)
         assert prussia is not None
-        assert prussia["vassal_eligible"] is True
+        assert prussia["power_tier"] == "major"
+        assert prussia["vassal_eligible"] is False
+        assert prussia["vassal_block_reason"] == "major_power"
+
+    def test_vassal_icon_included_for_minor_power_at_war(self):
+        """Vassal icon should show for minor powers at WAR with low relation."""
+        world = make_world()
+        set_state(world, "France", "Saxony", "WAR")
+        set_relation(world, "France", "Saxony", -20)
+        add_marshal(world, "Einsiedel", "Saxony", "Dresden", strength=5000)
+
+        from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
+        ledger = build_diplomatic_ledger(world)
+
+        nations = ledger.get("nations", [])
+        saxony = next((n for n in nations if n["name"] == "Saxony"), None)
+        assert saxony is not None
+        assert saxony["power_tier"] == "minor"
+        assert saxony["vassal_eligible"] is True
+        assert saxony["vassal_block_reason"] is None
+
+    def test_vassal_icon_included_for_minor_power_from_open_borders(self):
+        """Vassal icon should mirror treaty vassalization from OPEN_BORDERS+."""
+        world = make_world()
+        set_state(world, "France", "Saxony", "OPEN_BORDERS")
+        set_relation(world, "France", "Saxony", 40)
+        add_marshal(world, "Einsiedel", "Saxony", "Dresden", strength=5000)
+
+        from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
+        ledger = build_diplomatic_ledger(world)
+
+        nations = ledger.get("nations", [])
+        saxony = next((n for n in nations if n["name"] == "Saxony"), None)
+        assert saxony is not None
+        assert saxony["power_tier"] == "minor"
+        assert saxony["vassal_eligible"] is True
+        assert saxony["vassal_block_reason"] is None
 
 
 # ═══════════════════════════════════════════════════════

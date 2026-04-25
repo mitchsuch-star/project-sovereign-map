@@ -2628,17 +2628,40 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     # state didn't actually change, skip (avoid spurious cache churn + beats).
     if old_state != new_state:
         world.invalidate_bloc_members_cache()
-        try:
-            from backend.game_logic.coalition import _check_hegemony_band_crossing
-            _check_hegemony_band_crossing(world, caller=f"set_diplomatic_state:{reason or 'unknown'}")
-        except Exception as exc:
-            debug_print(
-                f"[HEGEMONY] band-crossing check failed after "
-                f"{nation_a}-{nation_b} {old_state}->{new_state} "
-                f"({reason or 'unknown'}): {exc}"
-            )
+        if int(getattr(world, "_defer_hegemony_signal_checks", 0) or 0) > 0:
+            world._hegemony_signal_dirty = True
+        else:
+            try:
+                from backend.game_logic.coalition import _check_hegemony_band_crossing
+                _check_hegemony_band_crossing(world, caller=f"set_diplomatic_state:{reason or 'unknown'}")
+            except Exception as exc:
+                debug_print(
+                    f"[HEGEMONY] band-crossing check failed after "
+                    f"{nation_a}-{nation_b} {old_state}->{new_state} "
+                    f"({reason or 'unknown'}): {exc}"
+                )
 
     return old_state
+
+
+def _begin_hegemony_signal_defer(world) -> None:
+    depth = int(getattr(world, "_defer_hegemony_signal_checks", 0) or 0)
+    world._defer_hegemony_signal_checks = depth + 1
+
+
+def _flush_hegemony_signal_defer(world, caller: str) -> None:
+    from backend.utils.debug import debug_print
+
+    depth = max(0, int(getattr(world, "_defer_hegemony_signal_checks", 0) or 0) - 1)
+    world._defer_hegemony_signal_checks = depth
+    if depth > 0 or not bool(getattr(world, "_hegemony_signal_dirty", False)):
+        return
+    world._hegemony_signal_dirty = False
+    try:
+        from backend.game_logic.coalition import _check_hegemony_band_crossing
+        _check_hegemony_band_crossing(world, caller=caller)
+    except Exception as exc:
+        debug_print(f"[HEGEMONY] deferred band-crossing check failed after {caller}: {exc}")
 
 
 # ═══════════════════════════════════════════════════════
@@ -4056,6 +4079,13 @@ def declare_war(
     if breach_preview is not None:
         breach_preview["episode_id"] = episode_id
 
+    # War declarations are compound state transitions: the root WAR edge,
+    # direct-only call-to-arms cascade, and direct vassal joins all describe
+    # one final diplomatic geometry. Defer Balance-of-Europe beats until the
+    # cascade settles so the rail does not narrate impossible intermediate
+    # bloc leaders.
+    _begin_hegemony_signal_defer(world)
+
     # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
     set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
 
@@ -4273,6 +4303,7 @@ def declare_war(
         root_aggressor=aggressor,
         war_entry_entries=war_entry_entries,
     )
+    _flush_hegemony_signal_defer(world, "declare_war")
     world.log_event({
         "type": "war_entry_ledger",
         "episode_id": episode_id,

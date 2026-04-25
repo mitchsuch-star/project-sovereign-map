@@ -1902,7 +1902,7 @@ RETREAT RECOVERY (3 turns):
         Supported: set_threat, set_relation, give_dp, trigger_coalition,
         set_war_exhaustion, set_diplo_state, create_vassal,
         set_vassal_loyalty, queue_ai_proposal, seed_hard_reject,
-        clear_dialogue
+        trigger_commitment_paradox, clear_dialogue
         """
         import os
         world: WorldState = game_state.get("world")
@@ -1958,6 +1958,53 @@ RETREAT RECOVERY (3 turns):
                 return {"success": False, "message": "No qualifying nations for coalition."}
             result = form_coalition(qualifying, world)
             return result
+
+        if cheat_type == "trigger_commitment_paradox":
+            if world.pending_diplomatic_dialogue is not None:
+                return {
+                    "success": False,
+                    "message": (
+                        "A diplomatic dialogue is already open. Resolve it or run "
+                        "`cheat clear_dialogue`, then retry."
+                    ),
+                }
+            attacker = cheat_args[0] if len(cheat_args) >= 1 else "Prussia"
+            defender = cheat_args[1] if len(cheat_args) >= 2 else "Austria"
+            player = world.player_nation
+            if attacker == defender or player in (attacker, defender):
+                return {
+                    "success": False,
+                    "message": (
+                        "Usage: cheat trigger_commitment_paradox "
+                        "[ai_attacker] [ai_defender]"
+                    ),
+                }
+
+            from backend.game_logic.diplomacy import declare_war, set_diplomatic_state
+            set_diplomatic_state(world, player, attacker, "ALLIANCE", "cheat_command")
+            set_diplomatic_state(world, player, defender, "ALLIANCE", "cheat_command")
+            set_diplomatic_state(world, attacker, defender, "PEACE", "cheat_command")
+            result = declare_war(world, attacker, defender)
+
+            if result.get("success") and world.commitment_paradox_popup is not None:
+                return {
+                    "success": True,
+                    "message": (
+                        f"Commitment paradox triggered: {attacker} declared war "
+                        f"on {defender} while both are allied with {player}."
+                    ),
+                    "commitment_paradox_popup": world.commitment_paradox_popup,
+                    "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                    "awaiting_diplomatic_response": True,
+                }
+
+            return {
+                "success": False,
+                "message": result.get(
+                    "message",
+                    "War fired, but no commitment paradox popup was produced.",
+                ),
+            }
 
         if cheat_type == "set_war_exhaustion":
             if len(cheat_args) < 2:

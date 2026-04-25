@@ -411,22 +411,31 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
     # rail payload below is routed through the shared commitments table.
     label_for_title = bloc_info.get("bloc_label") or bloc_info.get("descriptive_label") or hegemon
     share_pct = int(share * 100)
+    active_nations = world.get_active_nations()
+    total_power = int(sum(power_score(n, world) for n in active_nations))
+    hegemon_power = int(bloc_power(hegemon, world))
+    bloc_members = list(world.get_bloc_members(hegemon))
     if current_band == 3:
         title = "Balance of Europe — Crisis"
         if cooldown_active:
             message = (
-                f"{label_for_title} commands {share_pct}% of Continental power; "
+                f"{label_for_title} leads the largest alignment at {share_pct}% "
+                f"of active European bloc power; "
                 f"hostile courts harden into camp, though the last coalition's "
                 f"cooldown still binds them for {int(world.coalition_cooldown)} turn(s)."
             )
         else:
             message = (
-                f"{label_for_title} commands {share_pct}% of Continental power; "
+                f"{label_for_title} leads the largest alignment at {share_pct}% "
+                f"of active European bloc power; "
                 f"hostile courts are hardening into camp against it."
             )
     elif current_band == 2:
         title = "Balance of Europe — Alarming"
-        message = f"{label_for_title} commands {share_pct}% of Continental power."
+        message = (
+            f"{label_for_title} leads the largest alignment at {share_pct}% "
+            f"of active European bloc power."
+        )
     else:  # band 1
         title = "Balance of Europe — Noticed"
         message = f"Europe takes note of a widening {label_for_title} ({share_pct}%)."
@@ -436,6 +445,14 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
         "hegemon": hegemon,
         "share": round(float(share), 2),
         "share_pct": share_pct,
+        "hegemon_power": hegemon_power,
+        "total_power": total_power,
+        "bloc_members": bloc_members,
+        "power_basis": (
+            "Bloc share is a weighted score: the leader plus direct allies "
+            "and vassal-bloc members, divided by all active European courts. "
+            "It is not a partition; alliance networks can overlap."
+        ),
         "label": label_for_title,
         "bloc_label": bloc_info.get("bloc_label"),
         "descriptive_label": bloc_info.get("descriptive_label"),

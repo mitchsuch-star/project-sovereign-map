@@ -250,7 +250,8 @@ func _render_nations():
 
 		# N4: Vassal eligibility
 		var vassal_eligible = n.get("vassal_eligible", false)
-		if vassal_eligible:
+		var power_tier = str(n.get("power_tier", ""))
+		if vassal_eligible and power_tier == "minor":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color]"
 		bbcode += "\n"
 
@@ -432,6 +433,13 @@ func _render_threat_coalition():
 		var label = bloc_label if bloc_label != "" and bloc_label != "<null>" else descriptive_label
 		if label == "" or label == "<null>":
 			label = hegemon
+		var bloc_members = boe.get("bloc_members", [])
+		var member_line = ""
+		if bloc_members is Array and bloc_members.size() > 1:
+			var member_names = []
+			for member in bloc_members:
+				member_names.append(str(member))
+			member_line = "Bloc members: " + ", ".join(PackedStringArray(member_names)) + ".\n"
 		match headline_case:
 			"ACTIVE_COALITION":
 				var leader = str(boe.get("coalition_leader", ""))
@@ -448,7 +456,15 @@ func _render_threat_coalition():
 					bbcode += " Cooldown: " + str(cooldown) + " turns."
 				bbcode += "[/color]\n\n"
 			"HEGEMON_NO_COALITION":
-				bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of Continental power.[/color]\n\n"
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of active European bloc power.[/color]\n"
+				var hegemon_power = int(boe.get("hegemon_power", 0))
+				var total_power = int(boe.get("total_power", 0))
+				if hegemon_power > 0 and total_power > 0:
+					bbcode += "Power score: " + str(hegemon_power) + " / " + str(total_power) + ".\n"
+				bbcode += "This counts " + hegemon + "'s direct allies and vassal bloc against all active courts. Alliance networks can overlap; the headline shows the current largest alignment.\n"
+				if member_line != "":
+					bbcode += member_line
+				bbcode += "Warning bands: 33% noticed, 50% alarming, 60% crisis.\n\n"
 			_:
 				bbcode += "[color=#" + Utils.COLOR_GREY + "]No single court dominates the balance.[/color]\n\n"
 
