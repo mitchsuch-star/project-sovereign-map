@@ -67,6 +67,7 @@ from backend.game_logic.diplomacy import (
     _get_capped_grievance_flag_count,
     _get_dg4_refused_defensive_witness_scope,
     _get_grievance_flags,
+    _process_betrayal_decay,
     _remove_oldest_grievance_flag,
     calculate_acceptance,
     emit_call_to_arms_refused_defensive,
@@ -131,6 +132,24 @@ def _run_grievance_amends(world: WorldState, *, target: str = "Austria") -> dict
                 "diplomat": "Talleyrand",
                 "target_nation": target,
                 "amends_variant": "grievance",
+            },
+        },
+    }
+    return executor.execute(parsed_command, {"world": world})
+
+
+def _run_standard_amends(world: WorldState, *, target: str = "Austria") -> dict:
+    """Invoke the standard strike-clearing Make Amends path."""
+    executor = CommandExecutor()
+    parsed_command = {
+        "command": {
+            "action": "make_amends",
+            "type": "specific",
+            "diplomatic_data": {
+                "action": "make_amends",
+                "diplomat": "Talleyrand",
+                "target_nation": target,
+                "amends_variant": "standard",
             },
         },
     }
@@ -1121,6 +1140,62 @@ class TestCategoriesCleanup:
 # ════════════════════════════════════════════════════════════════════════════
 # 12. END-TO-END GRIEVANCE VARIANT THROUGH PARSER + EXECUTOR (P2-1)
 # ════════════════════════════════════════════════════════════════════════════
+
+
+class TestGrievanceDurability:
+
+    def test_standard_amends_clearing_final_strike_preserves_grievance(self):
+        """Standard Make Amends must not remove durable grievance flags."""
+        world = _world()
+        _seed_grievance(world, episode_id="ep_grief_keep", turn=0)
+        key = "France|Austria"
+        record = world.betrayal_history[key]
+        record["strikes"].append({
+            "severity": "medium", "turn": 0,
+            "episode_id": "ep_strike_clear", "decays_on_turn": 10,
+        })
+        world.betrayal_history[key] = record
+
+        result = _run_standard_amends(world)
+
+        assert result["success"] is True
+        assert result["amends_variant"] == "standard"
+        assert result["gold_spent"] == 200
+        assert result["dp_spent"] == 1
+
+        assert key in world.betrayal_history
+        remaining = world.betrayal_history[key]
+        assert remaining["strikes"] == []
+        assert [f["episode_id"] for f in remaining["grievance_flags"]] == [
+            "ep_grief_keep",
+        ]
+        assert "grievance" in remaining["categories"]
+        assert "treaty_breach" not in remaining["categories"]
+
+    def test_passive_decay_preserves_grievance_after_originating_strike_decays(self):
+        """Grievance flags do not passively decay with their originating strike."""
+        world = _world()
+        world.current_turn = 0
+        emit_call_to_arms_refused_defensive(
+            world,
+            breaker="France",
+            victim="Austria",
+            episode_id="call_decay_keep",
+        )
+
+        world.current_turn = 10
+        _process_betrayal_decay(world)
+
+        key = "France|Austria"
+        assert key in world.betrayal_history
+        record = world.betrayal_history[key]
+        assert record["strikes"] == []
+        assert [f["episode_id"] for f in record["grievance_flags"]] == [
+            "call_decay_keep",
+        ]
+        assert _get_active_grievance_flag_count(world, "France", "Austria") == 1
+        assert "grievance" in record["categories"]
+        assert "treaty_breach" not in record["categories"]
 
 
 class TestEndToEndGrievanceVariant:

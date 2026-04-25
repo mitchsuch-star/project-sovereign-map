@@ -781,9 +781,22 @@ class DiplomaticExecutor:
             record["strikes"] = remaining_strikes
             history[key] = record
         else:
-            # No strikes remain — prune the record entirely so the pair
-            # reads as a clean slate (matches passive-decay cleanup).
-            history.pop(key, None)
+            # No strikes remain. B-B4 grievance flags are durable and must
+            # survive standard Make Amends; prune only when both halves of
+            # the pair record are empty.
+            remaining_grievance_flags = list(
+                record.get("grievance_flags", []) or []
+            )
+            if remaining_grievance_flags:
+                record["strikes"] = []
+                record["grievance_flags"] = remaining_grievance_flags
+                categories = set(record.get("categories", []) or [])
+                categories.discard("treaty_breach")
+                categories.add("grievance")
+                record["categories"] = sorted(categories)
+                history[key] = record
+            else:
+                history.pop(key, None)
         world.betrayal_history = history
 
         # ── Deduct resources ──
