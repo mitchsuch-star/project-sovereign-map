@@ -3064,10 +3064,17 @@ def build_war_context_snapshot(
     # Annotated terms
     annotated = annotate_peace_terms(effective_terms, player_nation, target_nation)
 
+    proposed_state = "ARMISTICE" if "armistice" in proposal_type else "PEACE"
+    fallout_warnings = []
+    if proposed_state == "PEACE":
+        fallout_warnings = get_separate_peace_fallout_warnings(
+            world, player_nation, target_nation, harshness,
+        )
+
     snapshot = {
         "target_nation": target_nation,
         "current_state": current_state,
-        "proposed_state": "ARMISTICE" if "armistice" in proposal_type else "PEACE",
+        "proposed_state": proposed_state,
         "war_score": int(war_score),
         "war_score_components": {
             "territory": int(components["territory"]),
@@ -3092,9 +3099,7 @@ def build_war_context_snapshot(
         "harshness_label": get_harshness_label(harshness),
         "proposal_terms": effective_terms,
         "annotated_terms": annotated,
-        "fallout_warnings": get_separate_peace_fallout_warnings(
-            world, player_nation, target_nation, harshness,
-        ),
+        "fallout_warnings": fallout_warnings,
         "commitment_conflicts": get_peace_commitment_conflicts(
             world, player_nation, target_nation, effective_terms.get("clauses", []),
         ),
@@ -3238,7 +3243,7 @@ def get_peace_commitment_conflicts(
             continue
         conflicts.append({
             "conflict_type": "paradox",
-            "severity": "WARNING",
+            "severity": "HARD_STOP",
             "affected_entity": nation,
             "display": (
                 f"Making peace with {target} while allied with {nation} "
@@ -3276,16 +3281,20 @@ def get_peace_commitment_conflicts(
     return conflicts
 
 
-def _get_order_cancellation_preview(world, proposer: str, target: str) -> Optional[Dict]:
-    """BPH-C §9.4: List strategic orders that will be cancelled on peace ratification."""
+def _collect_peace_order_cancellations(world, actor: str, counterpart: str) -> List[Dict]:
+    """Return actor orders invalidated when actor and counterpart leave WAR."""
     cancelled = []
     target_marshals = {
-        m.name for m in world.marshals.values() if m.nation == target
+        m.name for m in world.marshals.values() if m.nation == counterpart
     }
-    target_regions = set(world.nation_starting_regions.get(target, []))
+    target_regions = {
+        name for name, region in getattr(world, "regions", {}).items()
+        if getattr(region, "controller", "") == counterpart
+    }
+    target_regions.update(world.nation_starting_regions.get(counterpart, []))
 
     for marshal in world.marshals.values():
-        if marshal.nation != proposer:
+        if marshal.nation != actor:
             continue
         order = getattr(marshal, 'strategic_order', None)
         if not order:
@@ -3311,6 +3320,12 @@ def _get_order_cancellation_preview(world, proposer: str, target: str) -> Option
                 "order_type": cmd_type,
                 "target": target_name,
             })
+    return cancelled
+
+
+def _get_order_cancellation_preview(world, proposer: str, target: str) -> Optional[Dict]:
+    """BPH-C §9.4: List strategic orders that will be cancelled on peace ratification."""
+    cancelled = _collect_peace_order_cancellations(world, proposer, target)
 
     if not cancelled:
         return None
@@ -3466,28 +3481,16 @@ def cleanup_war_end(world, diplo_key: str) -> None:
         nation_a, nation_b = parts
         _force_retreat_displaced_marshals(world, nation_a, nation_b)
 
-    # R47/R30: Cancel PURSUE/MOVE_TO orders targeting the now-peaceful nation's marshals
+    # R47/R30 + BPH-C §9.4: Cancel orders targeting the now-peaceful nation
     if len(parts) == 2:
         nation_a, nation_b = parts
-        # Collect marshal names for each nation
-        nation_a_marshals = {m.name for m in world.marshals.values() if m.nation == nation_a}
-        nation_b_marshals = {m.name for m in world.marshals.values() if m.nation == nation_b}
-
-        for marshal in world.marshals.values():
-            order = getattr(marshal, 'strategic_order', None)
-            if not order:
-                continue
-            cmd_type = getattr(order, 'command_type', '')
-            if cmd_type not in ("PURSUE", "MOVE_TO"):
-                continue
-            target_type = getattr(order, 'target_type', '')
-            if target_type != "marshal":
-                continue
-            target_name = getattr(order, 'target', '')
-            # Cancel if marshal belongs to nation_a and target to nation_b, or vice versa
-            if marshal.nation == nation_a and target_name in nation_b_marshals:
-                marshal.strategic_order = None
-            elif marshal.nation == nation_b and target_name in nation_a_marshals:
+        cancellations = (
+            _collect_peace_order_cancellations(world, nation_a, nation_b)
+            + _collect_peace_order_cancellations(world, nation_b, nation_a)
+        )
+        for cancellation in cancellations:
+            marshal = world.marshals.get(cancellation["marshal"])
+            if marshal is not None:
                 marshal.strategic_order = None
 
 

@@ -3,8 +3,12 @@
 Keeps the popup shape in one place so queued mailbox items can carry
 their own payload instead of relying on a single global popup cache.
 """
+import copy
 
 from typing import Dict, Optional, Tuple
+
+
+_PEACE_PROPOSAL_TYPES = {"peace", "armistice", "armistice_losing", "armistice_winning"}
 
 
 def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True) -> list[str]:
@@ -82,7 +86,7 @@ def build_pending_envoy_popup_from_terms(
         acceptance_hint = ""
         rejection_hint = ""
 
-    return {
+    payload = {
         "from_nation": nation,
         "diplomat_name": diplomat_name,
         "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
@@ -98,3 +102,38 @@ def build_pending_envoy_popup_from_terms(
         "decision_reason": decision_reason,
         "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
     }
+
+    proposal_type = terms.get("type", "unknown")
+    if proposal_type in _PEACE_PROPOSAL_TYPES:
+        player_nation = getattr(world, "player_nation", "France")
+        preview_terms = _orient_incoming_terms_for_player(terms, player_nation, nation)
+        try:
+            from backend.game_logic.diplomacy import build_war_context_snapshot
+            snapshot = build_war_context_snapshot(
+                world,
+                player_nation,
+                nation,
+                proposal_type,
+                terms=preview_terms,
+            )
+            payload["war_context_snapshot"] = snapshot
+            payload["annotated_terms"] = snapshot.get("annotated_terms", [])
+            payload["fallout_warnings"] = snapshot.get("fallout_warnings", [])
+            payload["commitment_conflicts"] = snapshot.get("commitment_conflicts", [])
+        except Exception:
+            payload["annotated_terms"] = []
+
+    return payload
+
+
+def _orient_incoming_terms_for_player(terms: Dict, player_nation: str, source_nation: str) -> Dict:
+    """Return incoming AI terms in France-to-source form for player previews."""
+    oriented = copy.deepcopy(terms)
+    proposer = terms.get("proposer_nation") or terms.get("proposer") or source_nation
+    target = terms.get("target_nation") or terms.get("target") or player_nation
+    if proposer != player_nation and target == player_nation:
+        oriented["sweeteners"] = copy.deepcopy(terms.get("demands", []))
+        oriented["demands"] = copy.deepcopy(terms.get("sweeteners", []))
+    oriented["proposer_nation"] = player_nation
+    oriented["target_nation"] = source_nation
+    return oriented

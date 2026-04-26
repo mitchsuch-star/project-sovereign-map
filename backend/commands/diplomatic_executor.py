@@ -1994,6 +1994,25 @@ class DiplomaticExecutor:
                 "clauses": terms.get("clauses", []),
             }
 
+            if proposal_type in ("peace", "armistice", "armistice_losing", "armistice_winning"):
+                from backend.game_logic.diplomacy import get_peace_commitment_conflicts
+                conflicts = get_peace_commitment_conflicts(
+                    world,
+                    get_player_nation(world),
+                    target_nation,
+                    terms.get("clauses", []),
+                )
+                hard_stops = [c for c in conflicts if c.get("severity") == "HARD_STOP"]
+                if hard_stops:
+                    return {
+                        "success": False,
+                        "message": hard_stops[0].get(
+                            "display",
+                            "This peace would create a commitment paradox.",
+                        ),
+                        "diplomatic_dialogue": dialogue,
+                    }
+
             # Deduct DP (with jump cost for multi-step transitions)
             talleyrand = get_player_diplomat(world)
             skill = talleyrand.skill if talleyrand else 5

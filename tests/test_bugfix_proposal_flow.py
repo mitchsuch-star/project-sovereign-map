@@ -1023,7 +1023,8 @@ class TestBugfix_ModifyIterationCap:
         })
         gs = _make_game_state(world)
         # Choice "2" selects "Even harsher"
-        result = executor.handle_diplomatic_dialogue_response(2, gs)
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(2, gs)
         new_dialogue = result.get("diplomatic_dialogue", {})
         actions = [opt.get("action") for opt in new_dialogue.get("options", [])]
         assert "modify_harsh" not in actions, (
@@ -1058,7 +1059,8 @@ class TestBugfix_ModifyIterationCap:
             "turn_created": 5,
         })
         gs = _make_game_state(world)
-        result = executor.handle_diplomatic_dialogue_response(2, gs)
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(2, gs)
         new_dialogue = result.get("diplomatic_dialogue", {})
         actions = [opt.get("action") for opt in new_dialogue.get("options", [])]
         assert "modify_generous" not in actions, (

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import pytest
 
+from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.diplomacy import (
     _compute_separate_peace_penalty,
     _get_order_cancellation_preview,
@@ -33,6 +34,8 @@ from backend.game_logic.diplomacy import (
     get_separate_peace_fallout_warnings,
     set_diplomatic_state,
 )
+from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
+from backend.models.marshal import StrategicOrder
 from backend.models.world_state import WorldState
 
 
@@ -243,7 +246,31 @@ class TestCommitmentConflicts:
         paradox = [c for c in conflicts if c["conflict_type"] == "paradox"]
         assert len(paradox) == 1
         assert paradox[0]["affected_entity"] == "Austria"
-        assert paradox[0]["severity"] == "WARNING"
+        assert paradox[0]["severity"] == "HARD_STOP"
+
+    def test_paradox_blocks_player_send_before_dp_spend(self):
+        """HARD_STOP paradox conflicts block proposal send instead of only warning."""
+        world = _war_world()
+        _add_ally_at_war(world, "France", "Austria", "Prussia")
+        world.diplomatic_points = 10
+        terms = {"type": "peace", "sweeteners": [], "demands": [], "clauses": []}
+        world.dialogue_manager.replace({
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [{"label": "Send", "action": "execute_proposal", "terms": terms}],
+            "context": {},
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        })
+
+        result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+            "send", {"world": world},
+        )
+
+        assert result["success"] is False
+        assert "diplomatic contradiction" in result["message"]
+        assert world.proposal_in_transit is None
+        assert world.diplomatic_points == 10
 
     def test_no_paradox_when_ally_not_at_war(self):
         """Allied with Austria, Austria NOT at war with Prussia → no paradox."""
@@ -316,6 +343,30 @@ class TestOrderCancellationPreview:
         assert result is not None
         assert "Davout's march on Brandenburg" in result["display"]
 
+    def test_move_to_region_preview_matches_cleanup(self):
+        """Region MOVE_TO orders shown in preview are actually cancelled on peace."""
+        world = _war_world()
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        target_region = world.get_nation_regions("Prussia")[0]
+        marshal.strategic_order = StrategicOrder(
+            command_type="MOVE_TO",
+            target=target_region,
+            target_type="region",
+            started_turn=int(world.current_turn),
+            original_command="march on target",
+        )
+
+        result = _get_order_cancellation_preview(world, "France", "Prussia")
+        assert result is not None
+        assert result["orders"][0]["target"] == target_region
+
+        world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+        })
+        assert marshal.strategic_order is None
+
     def test_no_cancellation_no_matching_orders(self):
         world = _war_world()
         result = _get_order_cancellation_preview(world, "France", "Prussia")
@@ -350,6 +401,13 @@ class TestSnapshotIntegration:
         assert snapshot["fallout_warnings"] == []
         assert snapshot["commitment_conflicts"] == []
 
+    def test_armistice_snapshot_has_no_relation_fallout(self):
+        world = _war_world()
+        _add_ally_at_war(world, "France", "Austria", "Prussia")
+        snapshot = build_war_context_snapshot(world, "France", "Prussia", "armistice")
+        fallout_types = {w.get("warning_type") for w in snapshot["fallout_warnings"]}
+        assert "separate_peace_ally" not in fallout_types
+
     def test_order_cancellation_appears_in_fallout(self):
         world = _war_world()
         _make_marshal_with_order(world, "Ney", "France", "Berlin",
@@ -364,3 +422,75 @@ class TestSnapshotIntegration:
         order_warnings = [w for w in snapshot["fallout_warnings"]
                           if w.get("warning_type") == "order_cancellation"]
         assert len(order_warnings) == 1
+
+
+class TestRatificationEdgeCases:
+    def test_war_to_armistice_does_not_apply_separate_peace_penalty(self):
+        world = _war_world()
+        _add_ally_at_war(world, "France", "Austria", "Prussia")
+        ally_key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[ally_key] = 50
+
+        world._ratify_treaty({
+            "type": "armistice",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+        })
+
+        assert world.get_diplomatic_state("France", "Prussia") == "ARMISTICE"
+        assert world.nation_relations[ally_key] == 50
+
+    def test_accepting_incoming_ai_peace_penalizes_france_allies(self):
+        world = _war_world()
+        _add_ally_at_war(world, "France", "Austria", "Prussia")
+        ally_key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[ally_key] = 50
+        dialogue = {
+            "type": "incoming_proposal",
+            "context": {
+                "source_nation": "Prussia",
+                "proposal": {
+                    "type": "peace",
+                    "proposer_nation": "Prussia",
+                    "target_nation": "France",
+                },
+            },
+        }
+        world.dialogue_manager.replace(dialogue)
+
+        result = DiplomaticExecutor(None)._handle_accept_ai_proposal(dialogue, world)
+
+        assert result["success"] is True
+        assert world.get_diplomatic_state("France", "Prussia") == "PEACE"
+        assert world.nation_relations[ally_key] == 30
+
+    def test_incoming_ai_peace_preview_uses_france_fallout_orientation(self):
+        world = _war_world()
+        _add_ally_at_war(world, "France", "Austria", "Prussia")
+        popup = build_pending_envoy_popup_from_terms(
+            world,
+            nation="Prussia",
+            terms={
+                "type": "peace",
+                "proposer_nation": "Prussia",
+                "target_nation": "France",
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            },
+        )
+
+        fallout = popup["war_context_snapshot"]["fallout_warnings"]
+        assert any(w.get("ally") == "Austria" for w in fallout)
+
+
+class TestGodotWarningPriority:
+    def test_peace_preview_sorts_consequences_before_overflow_cap(self):
+        from pathlib import Path
+
+        source = Path(
+            "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd",
+        ).read_text()
+
+        assert "consequence_items.sort_custom" in source
+        assert 'sev == "HARD_STOP"' in source

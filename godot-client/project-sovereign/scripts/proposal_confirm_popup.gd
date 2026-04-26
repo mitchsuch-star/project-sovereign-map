@@ -253,32 +253,40 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var conflicts = snapshot.get("commitment_conflicts", [])
 	if not warnings.is_empty() or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
 		bbcode += "\n[b]Political Consequences[/b]\n"
-		var shown = 0
-		var overflow = 0
+		var consequence_items = []
 		for warning in warnings:
-			if shown < 3:
-				bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning.get("text", warning))
-				shown += 1
-			else:
-				overflow += 1
+			var txt = warning.get("text", str(warning)) if warning is Dictionary else str(warning)
+			var sev = str(warning.get("severity", "medium")).to_upper() if warning is Dictionary else "MEDIUM"
+			var category = str(warning.get("category", "")) if warning is Dictionary else ""
+			var priority = 1
+			if sev == "CRITICAL" or category == "hard_reject":
+				priority = 0
+			elif sev == "LOW":
+				priority = 4
+			consequence_items.append({"priority": priority, "color": "#e04040" if priority == 0 else "#e0c070", "text": txt})
 		for warning in fallout:
-			if shown < 3:
-				var txt = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
-				var sev = warning.get("severity", "INFO") if warning is Dictionary else "INFO"
-				var color = "#e04040" if sev == "SEVERE" else "#e0c070"
-				bbcode += "  [color=%s]*[/color] %s\n" % [color, txt]
-				shown += 1
-			else:
-				overflow += 1
+			var txt = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
+			var sev = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
+			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
+			var priority = 2 if warning_type == "separate_peace_ally" else 3
+			var color = "#e04040" if sev == "SEVERE" else "#e0c070"
+			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		for conflict in conflicts:
-			if shown < 3:
-				var txt = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
-				var sev = conflict.get("severity", "INFO") if conflict is Dictionary else "INFO"
-				var color = "#e04040" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
-				bbcode += "  [color=%s]*[/color] %s\n" % [color, txt]
-				shown += 1
-			else:
-				overflow += 1
+			var txt = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
+			var sev = str(conflict.get("severity", "INFO")).to_upper() if conflict is Dictionary else "INFO"
+			var priority = 0 if sev == "HARD_STOP" else 4
+			if sev == "WARNING":
+				priority = 1
+			var color = "#e04040" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
+			consequence_items.append({"priority": priority, "color": color, "text": txt})
+		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
+		var shown = 0
+		for item in consequence_items:
+			if shown >= 3:
+				break
+			bbcode += "  [color=%s]*[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
+			shown += 1
+		var overflow = consequence_items.size() - shown
 		if overflow > 0:
 			bbcode += "  [color=#808080](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
