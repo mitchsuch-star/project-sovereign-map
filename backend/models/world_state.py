@@ -581,6 +581,9 @@ class WorldState:
         # the C3 presentation layer can collapse them and stage aftermath.
         self.next_episode_id: int = 1
 
+        # BPH-D: Last 5 peace ratification summaries for dispatch/ledger.
+        self.peace_ratification_log: List[Dict] = []
+
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
@@ -3540,6 +3543,7 @@ class WorldState:
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
+            "peace_ratification_log": [e.copy() for e in self.peace_ratification_log],
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3923,6 +3927,9 @@ class WorldState:
             commitment_paradox_popup = data.get("alliance_paradox_popup", None)
         world.commitment_paradox_popup = commitment_paradox_popup
         world.next_episode_id = int(data.get("next_episode_id", 1) or 1)
+        world.peace_ratification_log = [
+            e.copy() for e in data.get("peace_ratification_log", [])
+        ]
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }
@@ -5415,6 +5422,21 @@ class WorldState:
             if not self.get_nation_regions(nation):
                 self._eliminate_nation(nation)
 
+        # BPH-D: Capture war data BEFORE cleanup_war_end clears records
+        _is_war_ending = current_state in ("WAR", "ARMISTICE") and target_state not in ("WAR",)
+        _pre_cleanup_data: Dict = {}
+        _pre_cleanup_cancelled_orders: List[Dict] = []
+        if _is_war_ending and is_player_treaty:
+            from backend.game_logic.diplomacy import (
+                _capture_pre_cleanup_war_data,
+                _collect_peace_order_cancellations,
+            )
+            _pre_cleanup_data = _capture_pre_cleanup_war_data(self, proposer, target_nation)
+            _pre_cleanup_cancelled_orders = (
+                _collect_peace_order_cancellations(self, proposer, target_nation)
+                + _collect_peace_order_cancellations(self, target_nation, proposer)
+            )
+
         # War-end cleanup (shared — for both player and AI-AI)
         if current_state == "WAR" and target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
@@ -5447,10 +5469,40 @@ class WorldState:
                                  "treaty_type": proposal_display_name(proposal_type)},
                                 "partial_on_nation")
 
-            # BPH-A: Emit peace_ratified when transitioning from WAR/ARMISTICE
-            if current_state in ("WAR", "ARMISTICE") and target_state not in ("WAR",):
+            # BPH-A + BPH-D: Emit peace_ratified with war outcome data
+            if _is_war_ending:
                 from backend.game_logic.diplomatic_templates import annotate_peace_terms
                 annotated = annotate_peace_terms(proposal, proposer, target_nation)
+
+                # BPH-D: Classify war outcome for log one-liner
+                _ws = int(_pre_cleanup_data.get("war_score", 0))
+                _terr_gained = [
+                    c.get("regions", []) for c in treaty_clauses
+                    if c.get("type") == "territory_cede" and c.get("to") == self.player_nation
+                ]
+                _terr_gained_flat = [r for rs in _terr_gained for r in rs]
+                _terr_lost = [
+                    c.get("regions", []) for c in treaty_clauses
+                    if c.get("type") == "territory_cede" and c.get("from") == self.player_nation
+                ]
+                _terr_lost_flat = [r for rs in _terr_lost for r in rs]
+                _gold_in = sum(
+                    abs(int(c.get("amount", 0))) for c in treaty_clauses
+                    if c.get("type") == "gold_lump" and c.get("to") == self.player_nation
+                )
+                _gold_out = sum(
+                    abs(int(c.get("amount", 0))) for c in treaty_clauses
+                    if c.get("type") == "gold_lump" and c.get("from") == self.player_nation
+                )
+                if _ws >= 30:
+                    _war_outcome = "french_victory"
+                elif _ws <= -30:
+                    _war_outcome = "enemy_victory"
+                elif _terr_gained_flat or _terr_lost_flat or _gold_in or _gold_out:
+                    _war_outcome = "stalemate"
+                else:
+                    _war_outcome = "white_peace"
+
                 peace_event = {
                     "type": "peace_ratified",
                     "proposer_nation": proposer,
@@ -5459,22 +5511,28 @@ class WorldState:
                     "annotated_terms": annotated,
                     "turn": int(self.current_turn),
                     "harshness": treaty.get("harshness", 0),
+                    "war_outcome": _war_outcome,
+                    "territory_gained": _terr_gained_flat,
+                    "territory_lost": _terr_lost_flat,
+                    "final_war_score": int(_ws),
+                    "war_duration_turns": int(_pre_cleanup_data.get("war_duration", 0)),
+                    "gold_received": int(_gold_in),
+                    "gold_paid": int(_gold_out),
                 }
                 self.log_event(peace_event)
                 queue_dispatch_event(self, "peace_ratified",
                                     {"proposer_nation": proposer, "target_nation": target_nation},
                                     "always")
 
-            # BPH-C §9.3: Apply separate-peace relation penalties to France's allies
-            # on formal peace. Incoming AI peace offers must still be evaluated
-            # from the player's political position.
+            # BPH-C §9.3: Apply separate-peace relation penalties
+            applied_penalties: List[Dict] = []
             if current_state in ("WAR", "ARMISTICE") and target_state == "PEACE":
                 from backend.game_logic.diplomacy import apply_separate_peace_penalties
                 from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
                 harshness = calculate_treaty_harshness(treaty)
                 penalty_actor = self.player_nation
                 penalty_target = target_nation if proposer == self.player_nation else proposer
-                apply_separate_peace_penalties(self, penalty_actor, penalty_target, harshness)
+                applied_penalties = apply_separate_peace_penalties(self, penalty_actor, penalty_target, harshness)
 
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
             if current_state == "WAR" and target_state != "WAR":
@@ -5498,12 +5556,30 @@ class WorldState:
                 if is_coalition_member(target_nation, self):
                     remove_coalition_member(target_nation, self)
 
-            return {
+            # BPH-D §11: Build ratification summary and store in log
+            peace_ratification_summary = None
+            if _is_war_ending:
+                from backend.game_logic.diplomacy import build_peace_ratification_summary
+                from backend.game_logic.diplomatic_templates import annotate_peace_terms as _ann
+                _annotated_for_summary = _ann(proposal, proposer, target_nation)
+                peace_ratification_summary = build_peace_ratification_summary(
+                    self, proposer, target_nation, treaty,
+                    _annotated_for_summary, applied_penalties,
+                    _pre_cleanup_cancelled_orders, _pre_cleanup_data,
+                )
+                self.peace_ratification_log.append(peace_ratification_summary)
+                if len(self.peace_ratification_log) > 5:
+                    self.peace_ratification_log = self.peace_ratification_log[-5:]
+
+            result = {
                 "type": "diplomatic_treaty_signed",
                 "target": target_nation,
                 "treaty_type": proposal_type,
                 "message": f"Treaty signed: {current_state} → {target_state} with {target_nation}.",
             }
+            if peace_ratification_summary:
+                result["peace_ratification_summary"] = peace_ratification_summary
+            return result
 
         # ═══ AI-AI-specific events ═══
         # Improve relations

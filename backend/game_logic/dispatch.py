@@ -98,6 +98,11 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # Coalition status (Session 7)
     dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
 
+    # BPH-D §11.3: Peace settlement section from previous turn's ratifications
+    peace_settlements = _build_peace_settlement_section(world)
+    if peace_settlements:
+        dispatch["peace_settlements"] = peace_settlements
+
     # Diplomatic events (Session 8D)
     diplomatic_events = _build_diplomatic_events_section(world, player_nation)
 
@@ -967,6 +972,43 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
     # ── 3. Redemption Event — REMOVED (PL-23: trust system deleted) ──
 
 
+def _build_peace_settlement_section(world) -> List[Dict]:
+    """BPH-D §11.3: Build peace settlement summaries for the Morning Dispatch.
+
+    Returns entries from the ratification log that were signed the previous turn.
+    """
+    from backend.models.region import NATION_CAPITALS
+
+    previous_turn = int(world.current_turn) - 1
+    settlements = []
+    for entry in getattr(world, 'peace_ratification_log', []):
+        if int(entry.get("turn", 0)) != previous_turn:
+            continue
+        dur = entry.get("war_duration_turns", 0)
+        target = entry.get("target_nation", "Unknown")
+        target_capital = entry.get("target_capital") or NATION_CAPITALS.get(target, target)
+        outcome = entry.get("war_outcome", "")
+        gained = entry.get("territory_gained", [])
+        score = entry.get("final_war_score", 0)
+
+        headline = f"The Treaty of {target_capital}"
+        detail_parts = [
+            f"{world.player_nation} and {target} have concluded peace"
+            f" after {dur} turn{'s' if dur != 1 else ''} of war",
+        ]
+        if gained:
+            detail_parts.append(f"{world.player_nation} gained {', '.join(gained)}")
+        detail_parts.append(f"Final war score: {'+' if score > 0 else ''}{score}")
+
+        settlements.append({
+            "headline": headline,
+            "detail": ". ".join(detail_parts) + ".",
+            "war_outcome": outcome,
+            "target_nation": target,
+        })
+    return settlements
+
+
 def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
     """Build coalition status section for Morning Dispatch (COALITION_SPEC §9c).
 
@@ -1101,7 +1143,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
     "nation_eliminated": "{nation} has been eliminated from the war.",
-    # Peace Deals BPH-A
+    # Peace Deals BPH-A + BPH-D
     "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
 }
 

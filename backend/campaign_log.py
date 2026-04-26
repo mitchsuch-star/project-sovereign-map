@@ -977,15 +977,38 @@ def format_event_oneliner(event: dict) -> str:
         target = event.get("target", "Unknown")
         return f"{target} rejected our ultimatum — casus belli granted"
 
-    # Peace Deals BPH-A
+    # Peace Deals BPH-A + BPH-D
     if event_type == "peace_ratified":
         proposer = event.get("proposer_nation", "Unknown")
         target = event.get("target_nation", "Unknown")
         transition = event.get("state_transition", "")
-        term_count = len(event.get("annotated_terms", []))
-        suffix = f" ({term_count} term{'s' if term_count != 1 else ''})" if term_count else ""
         if transition.endswith("_TO_ARMISTICE"):
+            term_count = len(event.get("annotated_terms", []))
+            suffix = f" ({term_count} term{'s' if term_count != 1 else ''})" if term_count else ""
             return f"Armistice ratified: {proposer} and {target}{suffix}"
-        return f"Peace ratified: {proposer} and {target}{suffix}"
+        outcome = event.get("war_outcome", "")
+        outcome_labels = {
+            "french_victory": "French victory",
+            "enemy_victory": "enemy victory",
+            "stalemate": "stalemate",
+            "white_peace": "white peace",
+        }
+        outcome_label = outcome_labels.get(outcome, "")
+        parts = []
+        gained = event.get("territory_gained", [])
+        if gained:
+            parts.append(f"gained {', '.join(gained)}")
+        lost = event.get("territory_lost", [])
+        if lost:
+            parts.append(f"lost {', '.join(lost)}")
+        gold_in = event.get("gold_received", 0)
+        if gold_in:
+            parts.append(f"+{gold_in} gold")
+        gold_out = event.get("gold_paid", 0)
+        if gold_out:
+            parts.append(f"-{gold_out} gold")
+        detail = " — " + ", ".join(parts) if parts else ""
+        label = f" ({outcome_label})" if outcome_label else ""
+        return f"Peace with {target}{label}{detail}"
 
     return f"Event: {event_type}"

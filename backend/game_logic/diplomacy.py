@@ -3218,6 +3218,134 @@ def apply_separate_peace_penalties(
     return applied
 
 
+def _capture_pre_cleanup_war_data(world, proposer: str, target_nation: str) -> Dict:
+    """Snapshot war data that cleanup_war_end will clear.
+
+    Must be called BEFORE cleanup_war_end so the ratification summary
+    can reference casualties, war score, and war duration.
+    """
+    player = world.player_nation
+    diplo_key = world._make_diplo_key(proposer, target_nation)
+
+    war_start = world.war_start_turns.get(diplo_key, world.current_turn)
+    war_duration = int(max(0, world.current_turn - war_start))
+
+    raw_score = int(getattr(world, 'war_scores', {}).get(diplo_key, 0))
+    parts = diplo_key.split("|")
+    war_score = -raw_score if len(parts) == 2 and parts[0] != player else raw_score
+
+    records = list(getattr(world, 'battle_records', {}).get(diplo_key, []))
+    french_casualties = 0
+    enemy_casualties = 0
+    for r in records:
+        if r.get("attacker") == player:
+            french_casualties += int(r.get("attacker_casualties", 0))
+            enemy_casualties += int(r.get("defender_casualties", 0))
+        else:
+            french_casualties += int(r.get("defender_casualties", 0))
+            enemy_casualties += int(r.get("attacker_casualties", 0))
+
+    return {
+        "war_duration": war_duration,
+        "war_score": war_score,
+        "french_casualties": french_casualties,
+        "enemy_casualties": enemy_casualties,
+    }
+
+
+def build_peace_ratification_summary(
+    world, proposer: str, target_nation: str,
+    treaty: Dict, annotated_terms: List[Dict],
+    applied_penalties: List[Dict],
+    cancelled_orders: List[Dict],
+    pre_cleanup_data: Dict,
+) -> Dict:
+    """BPH-D §11.1: Build the peace ratification summary returned on successful peace.
+
+    ``pre_cleanup_data`` comes from ``_capture_pre_cleanup_war_data`` called
+    before ``cleanup_war_end`` clears battle records and war scores.
+    """
+    from backend.models.region import NATION_CAPITALS
+
+    player = world.player_nation
+    war_duration = int(pre_cleanup_data.get("war_duration", 0))
+    war_score = int(pre_cleanup_data.get("war_score", 0))
+    french_casualties = int(pre_cleanup_data.get("french_casualties", 0))
+    enemy_casualties = int(pre_cleanup_data.get("enemy_casualties", 0))
+
+    # Territory and gold from treaty clauses
+    territory_gained = []
+    territory_lost = []
+    gold_received = 0
+    gold_paid = 0
+    for clause in treaty.get("clauses", []):
+        ctype = clause.get("type", "")
+        if ctype == "territory_cede":
+            regions = clause.get("regions", [])
+            if clause.get("to") == player:
+                territory_gained.extend(regions)
+            elif clause.get("from") == player:
+                territory_lost.extend(regions)
+        elif ctype == "gold_lump":
+            amount = abs(int(clause.get("amount", 0)))
+            if clause.get("to") == player:
+                gold_received += amount
+            elif clause.get("from") == player:
+                gold_paid += amount
+
+    # §11.2 War outcome classification
+    any_territory_changed = bool(territory_gained or territory_lost)
+    any_gold_exchanged = bool(gold_received > 0 or gold_paid > 0)
+    if war_score >= 30:
+        war_outcome = "french_victory"
+    elif war_score <= -30:
+        war_outcome = "enemy_victory"
+    elif any_territory_changed or any_gold_exchanged:
+        war_outcome = "stalemate"
+    else:
+        war_outcome = "white_peace"
+
+    # Ratified term display labels
+    terms_ratified = [t.get("display", "") for t in annotated_terms if t.get("display")]
+
+    # Political aftermath
+    political_aftermath = []
+    for p in applied_penalties:
+        political_aftermath.append(p.get("display", ""))
+    for c in cancelled_orders:
+        name = c.get("marshal", "")
+        target = c.get("target", "")
+        if c.get("order_type") == "PURSUE":
+            political_aftermath.append(f"{name}'s pursuit of {target} has been cancelled")
+        else:
+            political_aftermath.append(f"{name}'s march on {target} has been cancelled")
+
+    target_state = treaty.get("state_transition", "").split("_TO_")[-1] if treaty.get("state_transition") else "PEACE"
+    previous_state = treaty.get("state_transition", "").split("_TO_")[0] if treaty.get("state_transition") else "WAR"
+
+    # Capital name for dispatch treaty name
+    target_capital = NATION_CAPITALS.get(target_nation, target_nation)
+
+    return {
+        "target_nation": target_nation,
+        "previous_state": previous_state,
+        "new_state": target_state,
+        "turn": int(world.current_turn),
+        "war_duration_turns": int(war_duration),
+        "war_outcome": war_outcome,
+        "territory_gained": territory_gained,
+        "territory_lost": territory_lost,
+        "gold_received": int(gold_received),
+        "gold_paid": int(gold_paid),
+        "casualties_france": int(french_casualties),
+        "casualties_enemy": int(enemy_casualties),
+        "final_war_score": int(war_score),
+        "terms_ratified": terms_ratified,
+        "political_aftermath": [a for a in political_aftermath if a],
+        "target_capital": target_capital,
+    }
+
+
 def get_peace_commitment_conflicts(
     world, proposer: str, target: str, clauses: List[Dict],
 ) -> List[Dict]:

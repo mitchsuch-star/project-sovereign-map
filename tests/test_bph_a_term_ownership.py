@@ -270,12 +270,15 @@ class TestPeaceRatifiedCampaignLog:
             "target_nation": "Prussia",
             "state_transition": "WAR_TO_PEACE",
             "annotated_terms": [{"display_label": "x"}, {"display_label": "y"}],
+            "war_outcome": "french_victory",
+            "territory_gained": ["Rhineland"],
+            "gold_received": 500,
         }
         result = format_event_oneliner(event)
-        assert "Peace ratified" in result
-        assert "France" in result
-        assert "Prussia" in result
-        assert "2 terms" in result
+        assert "Peace with Prussia" in result
+        assert "French victory" in result
+        assert "Rhineland" in result
+        assert "+500 gold" in result
 
     def test_format_armistice_oneliner(self):
         event = {
@@ -297,9 +300,11 @@ class TestPeaceRatifiedCampaignLog:
             "target_nation": "Prussia",
             "state_transition": "ARMISTICE_TO_PEACE",
             "annotated_terms": [],
+            "war_outcome": "white_peace",
         }
         result = format_event_oneliner(event)
-        assert result == "Peace ratified: France and Prussia"
+        assert "Peace with Prussia" in result
+        assert "white peace" in result
 
 
 # ════════════════════════════════════════════════════════════════════════════

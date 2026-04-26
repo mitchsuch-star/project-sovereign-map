@@ -109,6 +109,7 @@ A future save/load system should use this as the specification.
   "next_episode_id": 1,
   "diplomatic_history": [],
   "commitment_paradox_popup": null,
+  "peace_ratification_log": [],
   "reparations_cooldown": {},
   "anti_renewal_cooldown": {},
   "oathbreaker_posture": {},
@@ -234,6 +235,7 @@ A future save/load system should use this as the specification.
 | `next_episode_id` | int | 1 | **Memory and Pressure.** Monotonic allocator for commitment / betrayal episode lineage. Missing-field default is `1`. |
 | `diplomatic_history` | list | [] | **Phase 4.** Diplomatic event log (max 20 entries). Each entry: `{type, from_nation, to_nation, turn, details?}`. Types: "proposal", "war_declaration", "treaty_break", "ultimatum_accepted", "ultimatum_rejected". Displayed in Talleyrand tab. |
 | `commitment_paradox_popup` | dict\|null | null | **Memory and Pressure v2.4.3.** Pending paradox popup for the renamed `commitment_paradox` hard stop. Legacy `alliance_paradox_popup` remains accepted on load and is migrated to this canonical field. |
+| `peace_ratification_log` | list | [] | **Peace Deals BPH-D (landed).** Last 5 peace ratification summaries. Each entry: `{target_nation, previous_state, new_state, turn, war_duration_turns, war_outcome, territory_gained, territory_lost, gold_received, gold_paid, casualties_france, casualties_enemy, final_war_score, terms_ratified, political_aftermath, target_capital}`. Capped at 5 entries. Pre-BPH-D saves load with `[]` defaulted. |
 | `reparations_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B7 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which Make Amends (spec §8.6.1) is next available for that pair. Absent / `0` = immediately available. Shared cooldown across the standard variant (live) and the grievance variant that ships with B-B4. |
 | `anti_renewal_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B4 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which new ALLIANCE / DEFENSIVE_ALLIANCE ratification is available again for that pair after a `call_to_arms_refused_defensive` episode per spec §8.8.7. Absent / `0` = no block. Default authored window is 15 turns. Gated by `diplomacy.is_anti_renewal_active` in `calculate_acceptance`; NON_AGGRESSION / OPEN_BORDERS / PEACE proposals are unaffected. Pre-B-B4 saves load with `{}` defaulted. |
 | `oathbreaker_posture` | dict | {} | **Memory and Pressure v2.4.3 (DG-4 completion audit - landed).** Nation-keyed posture store for repeated defensive-call refusals. Each record tracks posture start/expiry, refusal count, and source episode lineage. Active records mechanically block incoming ALLIANCE / DEFENSIVE_ALLIANCE acceptance through `diplomacy.is_oathbreaker_auto_reject_active`; missing or expired records behave as `{}`. Pre-DG-4-completion saves load with `{}` defaulted. |
