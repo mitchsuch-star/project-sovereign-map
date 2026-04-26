@@ -67,8 +67,11 @@ func show_proposal(data: Dictionary):
 		# Restore default gold border
 		panel_style.border_color = _default_border_color
 
-	for clause in clauses:
-		bbcode += "  - %s\n" % str(clause)
+	if data.has("war_context_snapshot"):
+		bbcode += _build_peace_preview_section(data, clauses)
+	else:
+		for clause in clauses:
+			bbcode += "  - %s\n" % str(clause)
 
 	if decision_reason_display:
 		bbcode += "\n[color=#a0a0a8]Court rationale: %s.[/color]\n" % decision_reason_display
@@ -130,3 +133,124 @@ func _disable_buttons():
 	counter_btn.disabled = true
 	reject_btn.disabled = true
 	dismiss_btn.disabled = true
+
+func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
+	var snapshot = data.get("war_context_snapshot", {})
+	var bbcode = "\n[b]War Summary[/b]\n"
+	var war_score = int(snapshot.get("war_score", 0))
+	var score_color = "#80c080"
+	if war_score < 0:
+		score_color = "#e04040"
+	elif war_score == 0:
+		score_color = "#80a0d0"
+	var trend = str(snapshot.get("war_score_trend", "stagnant"))
+	var trend_arrow = "->"
+	if trend == "rising":
+		trend_arrow = "^"
+	elif trend == "falling":
+		trend_arrow = "v"
+	bbcode += "War score: [color=%s]%d %s[/color]\n" % [score_color, war_score, trend_arrow]
+
+	var duration = int(snapshot.get("war_duration_turns", 0))
+	var won = int(snapshot.get("battles_won", 0))
+	var lost = int(snapshot.get("battles_lost", 0))
+	bbcode += "Duration: %d turns   Battles: %dW / %dL\n" % [duration, won, lost]
+
+	var french_casualties = int(snapshot.get("french_casualties_total", 0))
+	var enemy_casualties = int(snapshot.get("enemy_casualties_total", 0))
+	if french_casualties > 0 or enemy_casualties > 0:
+		bbcode += "Casualties: ours %s / theirs %s\n" % [str(french_casualties), str(enemy_casualties)]
+
+	var held_by_us = snapshot.get("regions_held_by_france", [])
+	if held_by_us is Array and not held_by_us.is_empty():
+		bbcode += "[color=#80c080]We hold: %s[/color]\n" % ", ".join(held_by_us)
+	var held_by_them = snapshot.get("regions_held_by_enemy", [])
+	if held_by_them is Array and not held_by_them.is_empty():
+		bbcode += "[color=#e04040]They hold: %s[/color]\n" % ", ".join(held_by_them)
+	if snapshot.has("armistice_remaining_turns"):
+		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
+
+	bbcode += "\n[b]Proposed Terms[/b]\n"
+	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
+	if annotated is Array and not annotated.is_empty():
+		bbcode += _build_annotated_terms_section(annotated)
+	else:
+		for clause in clauses:
+			bbcode += "  - %s\n" % str(clause)
+
+	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
+	if harshness_label:
+		var harshness_color = "#80a0d0"
+		if harshness_label == "generous":
+			harshness_color = "#80c080"
+		elif harshness_label == "harsh":
+			harshness_color = "#e09040"
+		elif harshness_label == "punitive":
+			harshness_color = "#e04040"
+		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
+
+	var fallout = data.get("fallout_warnings", snapshot.get("fallout_warnings", []))
+	var conflicts = data.get("commitment_conflicts", snapshot.get("commitment_conflicts", []))
+	if (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
+		bbcode += "\n[b]Political Consequences[/b]\n"
+		var consequence_items = []
+		for warning in fallout:
+			var warning_text = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
+			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
+			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
+			var priority = 2 if warning_type == "separate_peace_ally" else 3
+			var color = "#e04040" if severity == "SEVERE" else "#e0c070"
+			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
+		for conflict in conflicts:
+			var conflict_text = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
+			var conflict_severity = str(conflict.get("severity", "INFO")).to_upper() if conflict is Dictionary else "INFO"
+			var conflict_priority = 0 if conflict_severity == "HARD_STOP" else 4
+			if conflict_severity == "WARNING":
+				conflict_priority = 1
+			var conflict_color = "#e04040" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
+			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
+		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
+		var shown = 0
+		for item in consequence_items:
+			if shown >= 3:
+				break
+			bbcode += "  [color=%s]-[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
+			shown += 1
+		var overflow = consequence_items.size() - shown
+		if overflow > 0:
+			bbcode += "  [color=#808080](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
+
+	return bbcode
+
+func _build_annotated_terms_section(annotated: Array) -> String:
+	var demands = []
+	var concessions = []
+	var mutual = []
+	for term in annotated:
+		var direction = str(term.get("term_direction", "mutual"))
+		if direction == "demand":
+			demands.append(term)
+		elif direction == "concession":
+			concessions.append(term)
+		else:
+			mutual.append(term)
+
+	var bbcode = ""
+	if not demands.is_empty():
+		bbcode += "[b]France demands:[/b]\n"
+		for term in demands:
+			bbcode += "  [color=#e09040]-[/color] %s\n" % _term_label(term)
+	if not concessions.is_empty():
+		bbcode += "[b]France concedes:[/b]\n"
+		for term in concessions:
+			bbcode += "  [color=#80c0a0]-[/color] %s\n" % _term_label(term)
+	if not mutual.is_empty():
+		bbcode += "[b]Mutual:[/b]\n"
+		for term in mutual:
+			bbcode += "  [color=#e0c070]-[/color] %s\n" % _term_label(term)
+	if bbcode:
+		bbcode += "\n"
+	return bbcode
+
+func _term_label(term: Dictionary) -> String:
+	return str(term.get("display_label", term.get("display", "?")))

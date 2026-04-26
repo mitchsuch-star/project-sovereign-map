@@ -5063,7 +5063,7 @@ class WorldState:
                 if treaty_event:
                     events.append(treaty_event)
                 # PL-5A: Popup for acceptance
-                self.proposal_result_popup = {
+                proposal_result_popup = {
                     "target_nation": target,
                     "proposal_type": ptype_display,
                     "outcome": "ACCEPT",
@@ -5071,6 +5071,11 @@ class WorldState:
                     "feedback": feedback,
                     "decision_reason": decision_reason,
                 }
+                if treaty_event and treaty_event.get("peace_ratification_summary"):
+                    proposal_result_popup["peace_ratification_summary"] = treaty_event[
+                        "peace_ratification_summary"
+                    ]
+                self.proposal_result_popup = proposal_result_popup
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         elif outcome == "COUNTER_OFFER":

@@ -19,9 +19,11 @@ Covers (~12 tests):
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
+from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.campaign_log import format_event_oneliner
 from backend.game_logic.diplomacy import (
     _capture_pre_cleanup_war_data,
@@ -341,6 +343,99 @@ class TestRatificationLog:
         assert result["peace_ratification_summary"]["territory_gained"] == []
 
 
+class TestCommandResponses:
+
+    def test_accept_ai_proposal_response_includes_peace_summary(self):
+        world = _war_world()
+        dialogue = {
+            "type": "incoming_proposal",
+            "target_nation": "Prussia",
+            "context": {
+                "source_nation": "Prussia",
+                "proposal": {
+                    "type": "peace",
+                    "proposer_nation": "Prussia",
+                    "target_nation": "France",
+                    "sweeteners": [{"type": "gold_lump", "value": 100}],
+                    "demands": [],
+                    "clauses": [],
+                },
+            },
+        }
+        world.dialogue_manager.replace(dialogue)
+
+        result = DiplomaticExecutor(None)._handle_accept_ai_proposal(dialogue, world)
+
+        assert result["success"] is True
+        assert "peace_ratification_summary" in result
+        assert result["peace_ratification_summary"]["target_nation"] == "Prussia"
+
+    def test_accept_counter_offer_response_includes_peace_summary(self):
+        world = _war_world()
+        dialogue = {
+            "type": "counter_offer",
+            "target_nation": "Prussia",
+            "context": {
+                "source_nation": "Prussia",
+                "counter_terms": {
+                    "type": "peace",
+                    "proposer_nation": "Prussia",
+                    "target_nation": "France",
+                    "sweeteners": [{"type": "gold_lump", "value": 100}],
+                    "demands": [],
+                    "clauses": [],
+                },
+            },
+        }
+        world.dialogue_manager.replace(dialogue)
+
+        result = DiplomaticExecutor(None)._process_dialogue_choice(
+            "accept_counter_offer", {}, dialogue, world,
+        )
+
+        assert result["success"] is True
+        assert "peace_ratification_summary" in result
+        assert result["peace_ratification_summary"]["target_nation"] == "Prussia"
+
+    def test_accepted_in_transit_peace_popup_carries_summary(self):
+        world = _war_world()
+        world.proposal_in_transit = {
+            "turn_sent": int(world.current_turn) - 1,
+            "target": "Prussia",
+            "proposal": {
+                "type": "peace",
+                "proposer_nation": "France",
+                "target_nation": "Prussia",
+                "demands": [],
+                "sweeteners": [],
+                "clauses": [],
+            },
+        }
+
+        world._process_proposal_in_transit()
+
+        popup = world.proposal_result_popup
+        assert popup is not None
+        assert "peace_ratification_summary" in popup
+        assert popup["peace_ratification_summary"]["target_nation"] == "Prussia"
+
+    def test_response_builders_pass_through_peace_summary(self):
+        source = Path("backend/main.py").read_text(encoding="utf-8")
+
+        assert "def _include_peace_ratification_summary" in source
+        assert 'response["peace_ratification_summary"] = summary' in source
+        assert 'proposal_result["peace_ratification_summary"] = summary' in source
+
+    def test_godot_terminal_renders_peace_summary_response(self):
+        source = Path(
+            "godot-client/project-sovereign/scripts/main.gd",
+        ).read_text(encoding="utf-8")
+
+        assert 'response.has("peace_ratification_summary")' in source
+        assert "func _display_peace_ratification_summary" in source
+        assert "PEACE SETTLEMENT: Treaty of " in source
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # 9. SERIALIZATION ROUND-TRIP
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -464,6 +559,17 @@ class TestDispatchSettlement:
         ]
         settlements = _build_peace_settlement_section(world)
         assert settlements == []
+
+    def test_godot_dispatch_surfaces_render_peace_settlements(self):
+        root = Path("godot-client/project-sovereign/scripts")
+        main_source = (root / "main.gd").read_text(encoding="utf-8")
+        dispatch_source = (root / "dispatch_view.gd").read_text(encoding="utf-8")
+
+        for source in (main_source, dispatch_source):
+            assert 'data.get("peace_settlements", [])' in source
+            assert "PEACE SETTLEMENTS" in source
+            assert 'settlement.get("headline"' in source
+            assert 'settlement.get("detail"' in source
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

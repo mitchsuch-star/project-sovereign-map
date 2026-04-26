@@ -1038,7 +1038,11 @@ func _display_result(response):
 	if response.has("bombardment_result"):
 		_display_bombardment_report(response.bombardment_result)
 
-	# Berthier's Bombardment Advisory — shown when artillery crumbles enemy forts
+	# Peace Deals BPH-D: immediate ratification outcome summary
+	if response.has("peace_ratification_summary") and response.peace_ratification_summary is Dictionary:
+		_display_peace_ratification_summary(response.peace_ratification_summary)
+
+	# Berthier's Bombardment Advisory - shown when artillery crumbles enemy forts
 	var bombardment_advisory = response.get("bombardment_advisory", "")
 	if bombardment_advisory != "" and bombardment_advisory != null:
 		add_output("[color=#" + Utils.COLOR_DISPATCH + "]  Berthier: \"" + str(bombardment_advisory) + "\"[/color]")
@@ -1050,6 +1054,68 @@ func _display_result(response):
 	# Display AI feedback if present (LLM mode only)
 	if response.has("feedback"):
 		_display_feedback(response.feedback)
+
+func _display_peace_ratification_summary(summary: Dictionary):
+	var target = str(summary.get("target_nation", "Unknown"))
+	var capital = str(summary.get("target_capital", target))
+	var outcome = _peace_outcome_label(str(summary.get("war_outcome", "")))
+	var duration = int(summary.get("war_duration_turns", 0))
+	var score = int(summary.get("final_war_score", 0))
+	var score_sign = "+" if score > 0 else ""
+
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]PEACE SETTLEMENT: Treaty of " + capital + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  Outcome: " + outcome + " after " + str(duration) + " turns. Final war score: " + score_sign + str(score) + "[/color]")
+
+	var gained = _stringify_list(summary.get("territory_gained", []))
+	var lost = _stringify_list(summary.get("territory_lost", []))
+	if gained.size() > 0:
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]  Gained: " + ", ".join(gained) + "[/color]")
+	if lost.size() > 0:
+		add_output("[color=#" + Utils.COLOR_ERROR + "]  Lost: " + ", ".join(lost) + "[/color]")
+
+	var gold_received = int(summary.get("gold_received", 0))
+	var gold_paid = int(summary.get("gold_paid", 0))
+	if gold_received > 0 or gold_paid > 0:
+		var gold_parts = PackedStringArray()
+		if gold_received > 0:
+			gold_parts.append("+" + str(gold_received) + " gold")
+		if gold_paid > 0:
+			gold_parts.append("-" + str(gold_paid) + " gold")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  Treasury: " + ", ".join(gold_parts) + "[/color]")
+
+	var casualties_france = int(summary.get("casualties_france", 0))
+	var casualties_enemy = int(summary.get("casualties_enemy", 0))
+	if casualties_france > 0 or casualties_enemy > 0:
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Casualties: France " + _format_number(casualties_france) + " / " + target + " " + _format_number(casualties_enemy) + "[/color]")
+
+	var terms = _stringify_list(summary.get("terms_ratified", []))
+	if terms.size() > 0:
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Terms: " + "; ".join(terms) + "[/color]")
+
+	var aftermath = _stringify_list(summary.get("political_aftermath", []))
+	if aftermath.size() > 0:
+		add_output("[color=#" + Utils.COLOR_BATTLE + "]  Aftermath: " + "; ".join(aftermath) + "[/color]")
+
+func _peace_outcome_label(outcome: String) -> String:
+	match outcome:
+		"french_victory":
+			return "French victory"
+		"enemy_victory":
+			return "Enemy victory"
+		"stalemate":
+			return "Stalemate"
+		"white_peace":
+			return "White peace"
+		_:
+			return outcome.replace("_", " ").capitalize()
+
+func _stringify_list(values) -> PackedStringArray:
+	var result = PackedStringArray()
+	if values is Array:
+		for value in values:
+			result.append(str(value))
+	return result
 
 func _display_battle_result(message: String, event: Dictionary, action_info: Dictionary):
 	"""Display battle results with dramatic formatting."""
@@ -1381,6 +1447,7 @@ func _display_morning_dispatch(data: Dictionary):
 	var situation = data.get("situation", {})
 	var marshals_list = data.get("marshals", [])
 	var intel_list = data.get("intelligence", [])
+	var peace_settlements = data.get("peace_settlements", [])
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# ═══ DISPATCH HEADER ═══
@@ -1545,7 +1612,18 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
-	# ═══ LAPSED ENVOYS ═══
+	# Peace Deals BPH-D: previous-turn ratification summaries
+	if peace_settlements.size() > 0:
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]PEACE SETTLEMENTS[/color]")
+		for settlement in peace_settlements:
+			var headline = str(settlement.get("headline", "Peace Settlement"))
+			var detail = str(settlement.get("detail", ""))
+			add_output("[color=#" + Utils.COLOR_GOLD + "]  " + headline + "[/color]")
+			if detail != "":
+				add_output("[color=#" + Utils.COLOR_INFO + "]    " + detail + "[/color]")
+		add_output("")
+
+	# LAPSED ENVOYS
 	var lapsed_offers = data.get("lapsed_offers", [])
 	if lapsed_offers.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]LAPSED ENVOYS[/color]")

@@ -164,6 +164,40 @@ class TestTab2TreatyRendering:
         ledger = build_diplomatic_ledger(world)
         assert ledger["treaties"][0]["cancel_cost"] == 1
 
+    def test_recent_peace_ratifications_added_to_treaties_tab_payload(self):
+        """Treaties tab receives recent peace settlement summaries."""
+        world = _make_world()
+        world.peace_ratification_log = [
+            {
+                "target_nation": "Prussia",
+                "target_capital": "Berlin",
+                "turn": 8,
+                "new_state": "PEACE",
+                "war_outcome": "french_victory",
+                "territory_gained": ["Rhineland"],
+                "territory_lost": [],
+                "gold_received": 500,
+                "gold_paid": 0,
+                "final_war_score": 40,
+                "war_duration_turns": 6,
+                "casualties_france": 1000,
+                "casualties_enemy": 2500,
+                "terms_ratified": ["Prussia cedes Rhineland to France"],
+                "political_aftermath": ["Austria is displeased"],
+            }
+        ]
+
+        ledger = build_diplomatic_ledger(world)
+        recent = ledger["recent_peace_ratifications"]
+
+        assert len(recent) == 1
+        assert recent[0]["headline"] == "Treaty of Berlin (Turn 8)"
+        assert "French victory" in recent[0]["summary"]
+        assert "gained Rhineland" in recent[0]["summary"]
+        assert "+500 gold" in recent[0]["summary"]
+        assert recent[0]["final_war_score"] == 40
+        assert isinstance(recent[0]["turn"], int)
+
 
 # ════════════════════════════════════════════════════════════════
 # TAB 3: THREAT & COALITION — Data Validation
@@ -367,6 +401,20 @@ class TestGodotNationStampRendering:
         assert '"coalition"' in source
         assert '"vassal"' in source
         assert '"neutral"' in source
+
+
+class TestGodotTreatiesTabRendering:
+    """Source-level guards for Treaties-tab recent peace rendering."""
+
+    def test_godot_renderer_reads_recent_peace_ratifications(self):
+        source = Path(
+            "godot-client/project-sovereign/scripts/diplomatic_ledger.gd"
+        ).read_text(encoding="utf-8")
+
+        assert 'cached_data.get("recent_peace_ratifications", [])' in source
+        assert "RECENT PEACE RATIFICATIONS" in source
+        assert "peace_ratification:" in source
+        assert "meta_clicked" in source
 
 
 class TestHotkeyMap:

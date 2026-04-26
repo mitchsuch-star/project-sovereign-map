@@ -57,6 +57,7 @@ func _on_dispatch_received(response):
 	var situation = data.get("situation", {})
 	var marshals_list = data.get("marshals", [])
 	var intel_list = data.get("intelligence", [])
+	var peace_settlements = data.get("peace_settlements", [])
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# ═══ DISPATCH HEADER ═══
@@ -246,7 +247,18 @@ func _on_dispatch_received(response):
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]\n"
 		bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"[/color]\n\n"
 
-	# ═══ DIPLOMATIC EVENTS (Session 8D) ═══
+	# Peace Deals BPH-D: previous-turn ratification summaries
+	if peace_settlements.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]PEACE SETTLEMENTS[/color]\n"
+		for settlement in peace_settlements:
+			var headline = str(settlement.get("headline", "Peace Settlement"))
+			var detail = str(settlement.get("detail", ""))
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]  " + headline + "[/color]\n"
+			if detail != "":
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]    " + detail + "[/color]\n"
+		bbcode += "\n"
+
+	# DIPLOMATIC EVENTS
 	var diplo_events = data.get("diplomatic_events", [])
 	if diplo_events.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC EVENTS[/color]\n"

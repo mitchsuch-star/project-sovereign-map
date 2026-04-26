@@ -3428,10 +3428,15 @@ class DiplomaticExecutor:
                 "proposal_type": counter_terms.get("type", "unknown"),
                 "decision_reason": context.get("decision_reason", ""),
             })
-            return {
+            result = {
                 "success": True,
                 "message": f"You have accepted {source_nation}'s counter-proposal. {treaty_msg}",
             }
+            if treaty_event and treaty_event.get("peace_ratification_summary"):
+                result["peace_ratification_summary"] = treaty_event[
+                    "peace_ratification_summary"
+                ]
+            return result
 
         elif action == "reject_counter_offer":
             context = dialogue.get("context", {})
@@ -4242,12 +4247,17 @@ class DiplomaticExecutor:
             "decision_reason": context.get("decision_reason", ""),
         })
 
-        return {
+        result = {
             "success": True,
             "message": (
                 f"You have accepted {source_nation}'s proposal. {treaty_msg}"
             ),
         }
+        if treaty_event and treaty_event.get("peace_ratification_summary"):
+            result["peace_ratification_summary"] = treaty_event[
+                "peace_ratification_summary"
+            ]
+        return result
 
     def _handle_reject_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Reject an incoming AI proposal. Applies cooldowns."""

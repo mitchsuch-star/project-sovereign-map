@@ -31,6 +31,7 @@ var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
+var _expanded_peace_ratifications: Dictionary = {}
 
 # Active tab style
 var _active_tab_style: StyleBoxFlat = null
@@ -44,6 +45,7 @@ var _pulse_state: bool = false
 func _ready():
 	close_button.pressed.connect(close_view)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	content_area.meta_clicked.connect(_on_content_meta_clicked)
 
 	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab]
 	for i in range(tab_buttons.size()):
@@ -124,6 +126,7 @@ func close_view():
 	hide()
 	cached_data = {}
 	_open_review_target = ""
+	_expanded_peace_ratifications = {}
 	_stop_critical_pulse()
 	closed.emit()
 
@@ -138,6 +141,7 @@ func _on_ledger_received(response):
 		return
 
 	cached_data = response.get("ledger", {})
+	_expanded_peace_ratifications = {}
 	if cached_data.is_empty():
 		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No diplomatic data available.[/color]"
 		return
@@ -365,6 +369,7 @@ func _render_nations():
 
 func _render_treaties():
 	var treaties = cached_data.get("treaties", [])
+	var recent_peace = cached_data.get("recent_peace_ratifications", [])
 	var current_turn = int(cached_data.get("current_turn", 0))
 	var bbcode = ""
 	var header = "ACTIVE TREATIES"
@@ -372,10 +377,12 @@ func _render_treaties():
 		header = "COMMITMENTS REVIEW"
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ " + header + " ═══[/color]\n\n"
 
-	if treaties.size() == 0:
+	if treaties.size() == 0 and recent_peace.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_GREY + "]No active treaties.[/color]\n"
 		content_area.text = bbcode
 		return
+	elif treaties.size() == 0:
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]No active treaties.[/color]\n\n"
 
 	for t in treaties:
 		var nation_a = str(t.get("nation_a", "?"))
@@ -431,6 +438,37 @@ func _render_treaties():
 				var gpt_amount = int(gpt.get("amount", 0))
 				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + gpt_from + " → " + gpt_to + ": " + str(gpt_amount) + "g/turn[/color]\n"
 
+		bbcode += "\n"
+
+	if recent_peace.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]--- RECENT PEACE RATIFICATIONS ---[/color]\n"
+		bbcode += "\n"
+		var peace_idx = 0
+		for peace in recent_peace:
+			var meta_key = "peace_ratification:" + str(peace_idx)
+			var headline = str(peace.get("headline", "Peace Ratification"))
+			var summary = str(peace.get("summary", ""))
+			var detail = str(peace.get("detail", ""))
+			var expanded = bool(_expanded_peace_ratifications.get(meta_key, false))
+			var marker = "v" if expanded else ">"
+			bbcode += "  [url=" + meta_key + "][color=#" + Utils.COLOR_GOLD + "]" + marker + " " + headline + "[/color][/url]"
+			if summary != "":
+				bbcode += " - [color=#" + Utils.COLOR_INFO + "]" + summary + "[/color]"
+			bbcode += "\n"
+			if expanded:
+				if detail != "":
+					bbcode += "    [color=#" + Utils.COLOR_INFO + "]" + detail + "[/color]\n"
+				var terms = peace.get("terms_ratified", [])
+				if terms is Array and terms.size() > 0:
+					bbcode += "    Terms:\n"
+					for term in terms:
+						bbcode += "      - " + str(term) + "\n"
+				var aftermath = peace.get("political_aftermath", [])
+				if aftermath is Array and aftermath.size() > 0:
+					bbcode += "    Aftermath:\n"
+					for item in aftermath:
+						bbcode += "      - " + str(item) + "\n"
+			peace_idx += 1
 		bbcode += "\n"
 
 	content_area.text = bbcode
@@ -860,3 +898,12 @@ func _on_overlay_input(event):
 	"""Click on dark overlay to close."""
 	if event is InputEventMouseButton and event.pressed:
 		close_view()
+
+
+func _on_content_meta_clicked(meta):
+	var meta_key = str(meta)
+	if meta_key.begins_with("peace_ratification:"):
+		var expanded = bool(_expanded_peace_ratifications.get(meta_key, false))
+		_expanded_peace_ratifications[meta_key] = not expanded
+		if current_tab == 1:
+			_render_treaties()

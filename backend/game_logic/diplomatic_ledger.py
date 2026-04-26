@@ -56,6 +56,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
+        "recent_peace_ratifications": _build_recent_peace_ratifications(world),
         "balance_of_europe": _build_balance_of_europe(world),
         "threat_coalition": _build_threat_coalition(world),
         "talleyrand": _build_talleyrand(world),
@@ -456,6 +457,91 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
         })
 
     return treaties
+
+
+def _build_recent_peace_ratifications(world) -> List[Dict[str, Any]]:
+    """BPH-D 15.3: recent peace ratification summaries for Treaties tab."""
+    recent = []
+    entries = list(getattr(world, "peace_ratification_log", []) or [])[-5:]
+    for entry in reversed(entries):
+        if entry.get("new_state", "PEACE") != "PEACE":
+            continue
+
+        target = str(entry.get("target_nation", "Unknown"))
+        turn = int(entry.get("turn", 0) or 0)
+        target_capital = str(entry.get("target_capital") or target)
+        outcome = str(entry.get("war_outcome", "white_peace"))
+        outcome_label = _format_peace_outcome_label(outcome)
+        gained = _as_str_list(entry.get("territory_gained", []))
+        lost = _as_str_list(entry.get("territory_lost", []))
+        terms = _as_str_list(entry.get("terms_ratified", []))
+        aftermath = _as_str_list(entry.get("political_aftermath", []))
+        gold_received = int(entry.get("gold_received", 0) or 0)
+        gold_paid = int(entry.get("gold_paid", 0) or 0)
+        final_war_score = int(entry.get("final_war_score", 0) or 0)
+        duration = int(entry.get("war_duration_turns", 0) or 0)
+        casualties_france = int(entry.get("casualties_france", 0) or 0)
+        casualties_enemy = int(entry.get("casualties_enemy", 0) or 0)
+
+        summary_parts = [outcome_label]
+        if gained:
+            summary_parts.append(f"gained {', '.join(gained)}")
+        if lost:
+            summary_parts.append(f"lost {', '.join(lost)}")
+        if gold_received:
+            summary_parts.append(f"+{gold_received} gold")
+        if gold_paid:
+            summary_parts.append(f"-{gold_paid} gold")
+
+        detail_lines = [
+            f"War duration: {duration} turn{'s' if duration != 1 else ''}",
+            f"Final war score: {final_war_score:+d}",
+        ]
+        if casualties_france or casualties_enemy:
+            detail_lines.append(
+                "Casualties: France "
+                f"{casualties_france:,}; {target} {casualties_enemy:,}"
+            )
+        if terms:
+            detail_lines.append(f"Terms: {'; '.join(terms)}")
+        if aftermath:
+            detail_lines.append(f"Political aftermath: {'; '.join(aftermath)}")
+
+        recent.append({
+            "headline": f"Treaty of {target_capital} (Turn {turn})",
+            "summary": ", ".join(summary_parts),
+            "detail": ". ".join(detail_lines) + ".",
+            "target_nation": target,
+            "turn": turn,
+            "war_outcome": outcome,
+            "territory_gained": gained,
+            "territory_lost": lost,
+            "gold_received": gold_received,
+            "gold_paid": gold_paid,
+            "final_war_score": final_war_score,
+            "war_duration_turns": duration,
+            "casualties_france": casualties_france,
+            "casualties_enemy": casualties_enemy,
+            "terms_ratified": terms,
+            "political_aftermath": aftermath,
+        })
+    return recent
+
+
+def _format_peace_outcome_label(outcome: str) -> str:
+    labels = {
+        "french_victory": "French victory",
+        "enemy_victory": "Enemy victory",
+        "stalemate": "Stalemate",
+        "white_peace": "White peace",
+    }
+    return labels.get(outcome, outcome.replace("_", " ").capitalize())
+
+
+def _as_str_list(value) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
 
 
 # ============================================================================

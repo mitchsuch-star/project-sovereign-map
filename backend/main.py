@@ -274,6 +274,20 @@ def _copy_truthy_result_fields(
             response[field_name] = value
 
 
+def _include_peace_ratification_summary(response: dict, result: dict) -> None:
+    """Pass BPH-D ratification summaries through command response builders."""
+    summary = result.get("peace_ratification_summary")
+    proposal_result = response.get("proposal_result")
+    if not summary and isinstance(proposal_result, dict):
+        summary = proposal_result.get("peace_ratification_summary")
+    if not summary:
+        return
+
+    response["peace_ratification_summary"] = summary
+    if isinstance(proposal_result, dict):
+        proposal_result["peace_ratification_summary"] = summary
+
+
 def _include_command_bombardment_result(response: dict, result: dict) -> None:
     """Pass through bombardment payloads and keep the explicit action marker."""
     bombardment_result = result.get("bombardment_result")
@@ -445,6 +459,7 @@ def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     _include_command_tactical_events(response, result, world)
     _include_command_independent_report(response, result)
     _apply_command_popup_contract(response, result, world)
+    _include_peace_ratification_summary(response, result)
     _finalize_command_notifications(response, world)
 
 
@@ -1351,7 +1366,7 @@ async def respond_to_diplomatic_dialogue(request: dict):
             # the result message so it shows as a Godot popup, not terminal text.
             msg = result.get("message", "")
             if msg and not result.get("awaiting_diplomatic_response"):
-                world.proposal_result_popup = {
+                proposal_result = {
                     "target_nation": result.get(
                         "target_nation", dialogue_before.get("target_nation", "")
                     ),
@@ -1361,6 +1376,11 @@ async def respond_to_diplomatic_dialogue(request: dict):
                     "feedback": "",
                     "decision_reason": result.get("decision_reason", ""),
                 }
+                if result.get("peace_ratification_summary"):
+                    proposal_result["peace_ratification_summary"] = result[
+                        "peace_ratification_summary"
+                    ]
+                world.proposal_result_popup = proposal_result
                 # Rebuild response to pick up the newly-set popup
                 response = build_base_response(
                     world,
@@ -1368,6 +1388,7 @@ async def respond_to_diplomatic_dialogue(request: dict):
                     message=result.get("message", "Response processed"),
                 )
 
+        _include_peace_ratification_summary(response, result)
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")

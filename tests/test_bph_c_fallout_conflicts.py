@@ -494,3 +494,16 @@ class TestGodotWarningPriority:
 
         assert "consequence_items.sort_custom" in source
         assert 'sev == "HARD_STOP"' in source
+
+    def test_incoming_ai_peace_popup_renders_preview_payload(self):
+        from pathlib import Path
+
+        source = Path(
+            "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd",
+        ).read_text(encoding="utf-8")
+
+        assert 'data.has("war_context_snapshot")' in source
+        assert "_build_peace_preview_section" in source
+        assert 'data.get("annotated_terms"' in source
+        assert 'data.get("fallout_warnings"' in source
+        assert 'data.get("commitment_conflicts"' in source
