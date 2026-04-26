@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.1
 - **Last updated:** 2026-04-26
-- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`)
+- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`)
 
 ## Top-Level Structure (WorldState)
 
@@ -111,6 +111,7 @@ A future save/load system should use this as the specification.
   "commitment_paradox_popup": null,
   "peace_ratification_log": [],
   "war_objectives": {},
+  "alliance_origins": {},
   "reparations_cooldown": {},
   "anti_renewal_cooldown": {},
   "oathbreaker_posture": {},
@@ -238,6 +239,7 @@ A future save/load system should use this as the specification.
 | `commitment_paradox_popup` | dict\|null | null | **Memory and Pressure v2.4.3.** Pending paradox popup for the renamed `commitment_paradox` hard stop. Legacy `alliance_paradox_popup` remains accepted on load and is migrated to this canonical field. |
 | `peace_ratification_log` | list | [] | **Peace Deals BPH-D (landed).** Last 5 peace ratification summaries. Each entry: `{target_nation, previous_state, new_state, turn, war_duration_turns, war_outcome, territory_gained, territory_lost, gold_received, gold_paid, casualties_france, casualties_enemy, final_war_score, terms_ratified, political_aftermath, target_capital}`. Capped at 5 entries. Pre-BPH-D saves load with `[]` defaulted. |
 | `war_objectives` | dict | {} | **Peace Deals WPS-A (landed).** Diplo-key → nation → objective record. Each record: `{type, declaring_nation, target_nation, target_regions, accumulated_ticking, created_turn, ticking_active, objective_met_turn, concluded_turn?}`. Types: conquest/subjugation/forced_alliance/defense/liberation. Liberation adds `vassal_nations`. Ticking caps at 25. Pre-WPS-A saves load with `{}` defaulted. |
+| `alliance_origins` | dict | {} | **Peace Deals WPS-C (landed).** Diplo-key → `"forced"` or `"voluntary"`. Set on treaty ratification containing a `forced_alliance` clause; cleared when the diplomatic state drops below ALLIANCE, enters WAR, or becomes VASSAL. Drives the -10/turn forced-alliance relation drift in `process_diplomacy_turn` step 12a. Pre-WPS-C saves load with `{}` defaulted. |
 | `reparations_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B7 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which Make Amends (spec §8.6.1) is next available for that pair. Absent / `0` = immediately available. Shared cooldown across the standard variant (live) and the grievance variant that ships with B-B4. |
 | `anti_renewal_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B4 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which new ALLIANCE / DEFENSIVE_ALLIANCE ratification is available again for that pair after a `call_to_arms_refused_defensive` episode per spec §8.8.7. Absent / `0` = no block. Default authored window is 15 turns. Gated by `diplomacy.is_anti_renewal_active` in `calculate_acceptance`; NON_AGGRESSION / OPEN_BORDERS / PEACE proposals are unaffected. Pre-B-B4 saves load with `{}` defaulted. |
 | `oathbreaker_posture` | dict | {} | **Memory and Pressure v2.4.3 (DG-4 completion audit - landed).** Nation-keyed posture store for repeated defensive-call refusals. Each record tracks posture start/expiry, refusal count, and source episode lineage. Active records mechanically block incoming ALLIANCE / DEFENSIVE_ALLIANCE acceptance through `diplomacy.is_oathbreaker_auto_reject_active`; missing or expired records behave as `{}`. Pre-DG-4-completion saves load with `{}` defaulted. |

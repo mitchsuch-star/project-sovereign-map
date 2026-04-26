@@ -2026,6 +2026,10 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.08 * (amt / 100)
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery", "manpower"):
             harshness += 0.15
+        elif dtype == "forced_alliance":
+            harshness += 0.4
+        elif dtype == "liberation":
+            harshness += 0.3
     return min(1.0, harshness)
 
 
@@ -2046,6 +2050,8 @@ _TERM_DISPLAY_LABELS = {
     "protection": "{from_nation} guarantees {to_nation}'s sovereignty",
     "protection_promised": "{from_nation} guarantees {to_nation}'s sovereignty",
     "continental_system_lifted": "{from_nation} closes ports to Britain",
+    "forced_alliance": "{from_nation} enters ALLIANCE with {to_nation} and joins the Continental System",
+    "liberation": "{from_nation} is liberated from vassalage",
 }
 
 

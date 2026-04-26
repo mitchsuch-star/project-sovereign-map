@@ -589,6 +589,10 @@ class WorldState:
         # war_objectives[diplo_key][declaring_nation] = objective record dict
         self.war_objectives: Dict[str, Dict[str, Dict]] = {}
 
+        # WPS-C §9.5: Forced alliance origin tracking.
+        # alliance_origins[diplo_key] -> "forced" | "voluntary"
+        self.alliance_origins: Dict[str, str] = {}
+
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
@@ -3553,6 +3557,7 @@ class WorldState:
                 k: {nation: obj.copy() for nation, obj in v.items()}
                 for k, v in self.war_objectives.items()
             },
+            "alliance_origins": {str(k): str(v) for k, v in self.alliance_origins.items()},
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3942,6 +3947,9 @@ class WorldState:
         world.war_objectives = {
             k: {nation: obj.copy() for nation, obj in v.items()}
             for k, v in data.get("war_objectives", {}).items()
+        }
+        world.alliance_origins = {
+            str(k): str(v) for k, v in data.get("alliance_origins", {}).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
@@ -5334,6 +5342,10 @@ class WorldState:
             }
             if d.get("type") == "territory_cede" and "regions" in d:
                 clause_entry["regions"] = d["regions"]
+            # WPS-C: Carry over extra fields for forced_alliance/liberation
+            for extra_key in ("vassal_nation", "lord_nation", "liberator"):
+                if extra_key in d:
+                    clause_entry[extra_key] = d[extra_key]
             treaty_clauses.append(clause_entry)
 
         # BPH-D: capture war data before set_diplomatic_state() or cleanup_war_end()
@@ -5481,6 +5493,43 @@ class WorldState:
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(self, 5 * transferred_count, "territory_return")
 
+        # ═══ WPS-C: Forced alliance + liberation clause handling ═══
+        _has_forced_alliance = False
+        _has_liberation = False
+        for clause in treaty_clauses:
+            ctype = clause.get("type", "")
+
+            if ctype == "forced_alliance":
+                fa_from = clause.get("from", "")  # defeated nation being forced
+                fa_to = clause.get("to", "")       # victor imposing alliance
+                if fa_from and fa_to:
+                    _has_forced_alliance = True
+                    applied_treaty_clauses.append(clause.copy())
+
+            elif ctype == "liberation":
+                lib_vassal = clause.get("vassal_nation", "") or clause.get("from", "")
+                lib_from = clause.get("lord_nation", "") or clause.get("to", "") or proposer
+                lib_liberator = clause.get("liberator", "") or (
+                    target_nation if proposer == lib_from else proposer
+                )
+                if lib_vassal and lib_vassal in self.vassals:
+                    _has_liberation = True
+                    from backend.game_logic.vassal import release_vassal
+                    release_vassal(self, lib_vassal)
+
+                    from backend.game_logic.diplomacy import set_diplomatic_state as _sds
+                    _sds(self, lib_liberator, lib_vassal, "DEFENSIVE_ALLIANCE", "liberation")
+                    self.modify_nation_relation(lib_vassal, lib_from, -20)
+                    self.modify_nation_relation(lib_vassal, lib_liberator, 30)
+
+                    from backend.game_logic.coalition import reduce_threat as _rt
+                    _rt(self, 8, "liberation")
+
+                    applied_clause = clause.copy()
+                    applied_clause["vassal_nation"] = lib_vassal
+                    applied_clause["liberator"] = lib_liberator
+                    applied_treaty_clauses.append(applied_clause)
+
         # R81: Check for elimination after territory cessions
         ceded_from = set()
         for clause in treaty_clauses:
@@ -5501,6 +5550,30 @@ class WorldState:
                 diplo_key,
                 conclude_objectives=(target_state != "ARMISTICE"),
             )
+
+        # WPS-C §9.2: Forced alliance post-cleanup state transition.
+        # After cleanup_war_end clears war data, set state to ALLIANCE,
+        # reset relation to 0, add to Continental System, set origin tag,
+        # and generate coalition threat.
+        if _has_forced_alliance:
+            from backend.game_logic.diplomacy import set_diplomatic_state as _set_ds
+            _set_ds(self, proposer, target_nation, "ALLIANCE", "forced_alliance")
+            self.nation_relations[diplo_key] = 0
+            cs_members = getattr(self, 'continental_system_members', [])
+            fa_target = target_nation if proposer == self.player_nation else proposer
+            if fa_target not in cs_members:
+                cs_members.append(fa_target)
+                self.continental_system_members = cs_members
+            self.alliance_origins[diplo_key] = "forced"
+            if self.player_nation in (proposer, target_nation):
+                from backend.game_logic.coalition import add_threat as _at
+                _at(self, 15, "forced_alliance")
+            self.log_event({
+                "type": "forced_alliance_imposed",
+                "imposer": proposer,
+                "target": target_nation,
+                "turn": int(self.current_turn),
+            })
 
         # ═══ Player-specific events ═══
         if is_player_treaty:

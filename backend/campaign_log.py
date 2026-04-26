@@ -130,6 +130,9 @@ CAMPAIGN_LOG_TYPES = {
     # WPS-A — war objectives
     "war_objective_declared",
     "war_objective_ticking_started",
+    # WPS-C — forced alliance + liberation
+    "forced_alliance_imposed",
+    "vassal_liberated",
 }
 
 # ============================================================================
@@ -214,6 +217,9 @@ CATEGORY_MAP = {
     # WPS-A — war objectives
     "war_objective_declared": "diplomacy",
     "war_objective_ticking_started": "diplomacy",
+    # WPS-C — forced alliance + liberation
+    "forced_alliance_imposed": "diplomacy",
+    "vassal_liberated": "diplomacy",
 }
 
 
@@ -345,6 +351,20 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                     if nation and _get_nation_visibility(nation, world_state) in (FULL, PARTIAL):
                         visible = True
                         break
+            if visible:
+                filtered.append(event)
+            continue
+
+        # WPS-C: Forced alliance and liberation are diplomatic events visible
+        # when either involved nation has PARTIAL+ visibility.
+        if event_type in ("forced_alliance_imposed", "vassal_liberated"):
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            visible = False
+            for nation_field in ("imposer", "target", "vassal_nation", "liberator"):
+                n = event.get(nation_field, "")
+                if n and _get_nation_visibility(n, world_state) in (FULL, PARTIAL):
+                    visible = True
+                    break
             if visible:
                 filtered.append(event)
             continue
@@ -777,6 +797,16 @@ def format_event_oneliner(event: dict) -> str:
         region = event.get("target_region", "unknown")
         rate = event.get("rate", 0)
         return f"{declaring} holds {region} — ticking war score (+{rate}/turn)"
+
+    if event_type == "forced_alliance_imposed":
+        imposer = event.get("imposer", "Unknown")
+        target = event.get("target", "Unknown")
+        return f"Forced alliance: {target} enters alliance with {imposer} under duress"
+
+    if event_type == "vassal_liberated":
+        vassal = event.get("vassal_nation", "Unknown")
+        liberator = event.get("liberator", "Unknown")
+        return f"Liberation: {vassal} freed from vassalage by {liberator}"
 
     if event_type == "diplomatic_vassal_rebellion":
         nation = event.get("nation") or event.get("vassal", "Unknown")

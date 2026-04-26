@@ -172,6 +172,8 @@ DEMAND_VALUES = {
     "territory_cede": -5,           # alias for ratification path
     "ap_per_turn": -25,             # -25 per AP demanded (extreme)
     "unit_swap": -2,                # -2 per unfavorable trade
+    "forced_alliance": -20,         # WPS-C §9.1: significant demand
+    "liberation": -15,              # WPS-C §10.5: per vassal liberated
 }
 
 # Commitment-bearing states. Breaking out of one of these should produce a
@@ -2602,6 +2604,16 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         active_treaties = getattr(world, 'active_treaties', {})
         active_treaties.pop(key, None)
 
+    # WPS-C §9.5: Clear forced alliance origin when state leaves ALLIANCE,
+    # enters WAR, or becomes VASSAL.
+    _ALLIANCE_ORIGIN_CLEAR_STATES = {"WAR", "VASSAL", "PEACE", "ARMISTICE",
+                                      "NON_AGGRESSION", "OPEN_BORDERS",
+                                      "DEFENSIVE_ALLIANCE"}
+    if new_state in _ALLIANCE_ORIGIN_CLEAR_STATES and old_state == "ALLIANCE":
+        alliance_origins = getattr(world, 'alliance_origins', {})
+        alliance_origins.pop(key, None)
+        world.alliance_origins = alliance_origins
+
     debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
                 f"{' (' + reason + ')' if reason else ''}")
 
@@ -4211,6 +4223,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
 
     # ── Base Disposition ──
     base = BASE_DISPOSITION.get(proposal_type, 30)
+
+    # WPS-C §9.3: Forced alliance clause overrides base disposition to -15.
+    _has_forced_alliance_clause = any(
+        (isinstance(d, dict) and d.get("type") == "forced_alliance")
+        for d in proposal.get("demands", [])
+    )
+    if _has_forced_alliance_clause:
+        base = -15
 
     # ── War Score Modifier ──
     diplo_key = world._make_diplo_key(proposer, target)
@@ -5883,6 +5903,27 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
     }
 
 
+def _process_forced_alliance_drift(world) -> List[Dict]:
+    """WPS-C §9.5: Apply -10/turn relation drift for forced alliances.
+
+    Runs before auto-downgrade check so the downgrade reads post-drift relation.
+    """
+    events = []
+    alliance_origins = getattr(world, 'alliance_origins', {})
+    for diplo_key, origin in list(alliance_origins.items()):
+        if origin != "forced":
+            continue
+        current_state = world.diplomatic_states.get(diplo_key, "PEACE")
+        if current_state != "ALLIANCE":
+            alliance_origins.pop(diplo_key, None)
+            continue
+        parts = diplo_key.split("|")
+        if len(parts) == 2:
+            world.modify_nation_relation(parts[0], parts[1], -10)
+    world.alliance_origins = alliance_origins
+    return events
+
+
 def check_auto_downgrade(world) -> List[Dict]:
     """Check for automatic downgrades when relations stay 30+ below threshold for 5 turns.
 
@@ -6131,6 +6172,10 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # 10. Trade income — handled in process_trade_income() called from advance_turn income phase
 
     # 11-12: Treaty obligations + Continental System — implemented in diplomacy.py (process_treaty_obligations, apply_continental_system), wired in advance_turn()
+
+    # ── 12a. Forced-alliance relation drift (WPS-C §9.5) ──
+    forced_drift_events = _process_forced_alliance_drift(world)
+    events.extend(forced_drift_events)
 
     # ── 13. Automatic downgrade check ──
     downgrade_events = check_auto_downgrade(world)
