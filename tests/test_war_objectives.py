@@ -33,8 +33,10 @@ from __future__ import annotations
 import pytest
 
 from backend.campaign_log import (
-    CAMPAIGN_LOG_TYPES, CATEGORY_MAP, format_event_oneliner,
+    CAMPAIGN_LOG_TYPES, CATEGORY_MAP, format_event_oneliner, filter_campaign_log,
 )
+from backend.ai.llm_client import LLMClient
+from backend.game_logic.coalition import form_coalition
 from backend.game_logic.diplomacy import (
     OBJECTIVE_TYPES, TICKING_RATES, TICKING_CAP,
     SETTLEMENT_TIERS, SETTLEMENT_TIER_DISPLAY, OBJECTIVE_TYPE_DISPLAY,
@@ -46,6 +48,7 @@ from backend.game_logic.diplomacy import (
     _conclude_war_objectives,
     _cleanup_old_war_objectives,
     calculate_war_score,
+    process_diplomacy_turn,
     declare_war,
     set_diplomatic_state,
 )
@@ -115,6 +118,14 @@ class TestDefenseAutoAssignment:
         assert defender_obj["declaring_nation"] == "Prussia"
         assert defender_obj["target_nation"] == "France"
 
+    def test_ai_ai_war_defaults_to_conquest_objective(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "Prussia", "Austria", "PEACE", "test")
+        result = declare_war(world, "Prussia", "Austria")
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "Prussia", "Austria")
+        assert world.war_objectives[dk]["Prussia"]["type"] == "conquest"
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 5. LIBERATION OBJECTIVE SHAPE
@@ -129,6 +140,19 @@ class TestLiberationObjective:
         )
         assert obj["type"] == "liberation"
         assert obj["vassal_nations"] == ["Saxony"]
+
+    def test_coalition_member_gets_liberation_objective(self):
+        world = WorldState(player_nation="France")
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 50}
+        from backend.models.region import NATION_CAPITALS
+        saxony_cap = NATION_CAPITALS.get("Saxony")
+        if saxony_cap and saxony_cap in world.regions:
+            world.regions[saxony_cap].controller = "France"
+        result = form_coalition(["Austria"], world)
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "France", "Austria")
+        assert world.war_objectives[dk]["Austria"]["type"] == "liberation"
+        assert world.war_objectives[dk]["Austria"]["vassal_nations"] == ["Saxony"]
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -203,6 +227,40 @@ class TestTickingAccumulation:
         assert obj["accumulated_ticking"] >= 1
         assert obj["ticking_active"] is True
 
+    def test_subjugation_ticking_rate_is_three(self):
+        world = _war_world(target="Austria")
+        dk = _diplo_key(world, "France", "Austria")
+        from backend.models.region import NATION_CAPITALS
+        target_cap = NATION_CAPITALS.get("Austria")
+        if target_cap and target_cap in world.regions:
+            world.regions[target_cap].controller = "France"
+        world.war_objectives[dk] = {
+            "France": create_war_objective(
+                "subjugation", "France", "Austria",
+                [target_cap] if target_cap else [], 1,
+            ),
+        }
+        accumulate_war_objective_ticking(world)
+        assert world.war_objectives[dk]["France"]["accumulated_ticking"] == 3
+
+    def test_liberation_ticking_when_france_holds_vassal_capital(self):
+        world = _war_world(aggressor="Austria", target="France")
+        dk = _diplo_key(world, "Austria", "France")
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 50}
+        from backend.models.region import NATION_CAPITALS
+        saxony_cap = NATION_CAPITALS.get("Saxony")
+        if saxony_cap and saxony_cap in world.regions:
+            world.regions[saxony_cap].controller = "France"
+        world.war_objectives[dk] = {
+            "Austria": create_war_objective(
+                "liberation", "Austria", "France",
+                [saxony_cap] if saxony_cap else [],
+                current_turn=1, vassal_nations=["Saxony"],
+            ),
+        }
+        accumulate_war_objective_ticking(world)
+        assert world.war_objectives[dk]["Austria"]["accumulated_ticking"] == 1
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 9. TICKING CAP AT 25
@@ -223,6 +281,24 @@ class TestTickingCap:
         world.war_objectives[dk] = {"France": obj}
         accumulate_war_objective_ticking(world)
         assert world.war_objectives[dk]["France"]["accumulated_ticking"] <= TICKING_CAP
+
+    def test_objective_met_turn_set_when_cap_reached(self):
+        world = _war_world()
+        world.current_turn = 7
+        dk = _diplo_key(world, "France", "Prussia")
+        from backend.models.region import NATION_CAPITALS
+        target_cap = NATION_CAPITALS.get("Prussia")
+        if target_cap and target_cap in world.regions:
+            world.regions[target_cap].controller = "France"
+        obj = create_war_objective(
+            "conquest", "France", "Prussia",
+            [target_cap] if target_cap else [], 1,
+        )
+        obj["accumulated_ticking"] = 24
+        world.war_objectives[dk] = {"France": obj}
+        accumulate_war_objective_ticking(world)
+        assert world.war_objectives[dk]["France"]["accumulated_ticking"] == TICKING_CAP
+        assert world.war_objectives[dk]["France"]["objective_met_turn"] == 7
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -318,6 +394,20 @@ class TestWarScoreIntegration:
         components = calculate_war_score("France", "Prussia", world, return_components=True)
         assert -100 <= components["total"] <= 100
 
+    def test_process_turn_stores_post_ticking_war_score(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+        result = declare_war(world, "France", "Austria", war_objective="conquest")
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "France", "Austria")
+        from backend.models.region import NATION_CAPITALS
+        target_cap = NATION_CAPITALS.get("Austria")
+        if target_cap and target_cap in world.regions:
+            world.regions[target_cap].controller = "France"
+        process_diplomacy_turn(world)
+        assert world.war_objectives[dk]["France"]["accumulated_ticking"] == 2
+        assert world.war_scores[dk] == calculate_war_score("Austria", "France", world)
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 15. TICKING SURVIVES BATTLE SCORE DECAY
@@ -354,6 +444,48 @@ class TestObjectiveCleanup:
         _conclude_war_objectives(world, dk)
         assert world.war_objectives[dk]["France"]["concluded_turn"] == 10
         assert world.war_objectives[dk]["Prussia"]["concluded_turn"] == 10
+
+    def test_armistice_pauses_without_concluding_objective(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+        result = declare_war(world, "France", "Austria", war_objective="conquest")
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "France", "Austria")
+        world._ratify_treaty({
+            "type": "armistice",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "clauses": [],
+            "sweeteners": [],
+            "demands": [],
+        })
+        assert world.get_diplomatic_state("France", "Austria") == "ARMISTICE"
+        assert world.war_objectives[dk]["France"].get("concluded_turn") is None
+
+    def test_armistice_to_peace_concludes_objective(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+        result = declare_war(world, "France", "Austria", war_objective="conquest")
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "France", "Austria")
+        world._ratify_treaty({
+            "type": "armistice",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "clauses": [],
+            "sweeteners": [],
+            "demands": [],
+        })
+        world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "clauses": [],
+            "sweeteners": [],
+            "demands": [],
+        })
+        assert world.get_diplomatic_state("France", "Austria") == "PEACE"
+        assert world.war_objectives[dk]["France"]["concluded_turn"] == world.current_turn
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -459,6 +591,50 @@ class TestWarPurposePopup:
         state = world.get_diplomatic_state("France", "Prussia")
         assert state != "WAR"
 
+    def test_confirm_set_war_purpose_dialogue_handler(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+        result = declare_war(world, "Austria", "France")
+        assert result["success"], result.get("message")
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+        exec_ = DiplomaticExecutor.__new__(DiplomaticExecutor)
+        prompt = exec_._set_war_purpose_inner("Austria", None, world)
+        assert prompt.get("awaiting_diplomatic_response") is True
+        dialogue = world.pending_diplomatic_dialogue
+        selected = {
+            "action": "confirm_set_war_purpose",
+            "target_nation": "Austria",
+            "objective_type": "conquest",
+        }
+        result = exec_._process_dialogue_choice(
+            "confirm_set_war_purpose", selected, dialogue, world,
+        )
+        assert result["success"], result.get("message")
+        dk = _diplo_key(world, "France", "Austria")
+        assert world.war_objectives[dk]["France"]["type"] == "conquest"
+
+    def test_player_attack_into_peace_war_stages_war_purpose(self):
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+        ney = world.get_marshal("Ney")
+        schwarzenberg = world.get_marshal("Schwarzenberg")
+        assert ney is not None
+        assert schwarzenberg is not None
+        schwarzenberg.location = ney.location
+        dp_before = world.diplomatic_points
+
+        from backend.commands.executor import CommandExecutor
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "attack", "marshal": "Ney", "target": "Schwarzenberg"}},
+            {"world": world},
+        )
+
+        assert result.get("awaiting_diplomatic_response") is True
+        assert result.get("war_purpose_popup") is not None
+        assert world.get_diplomatic_state("France", "Austria") == "PEACE"
+        assert world.diplomatic_points == dp_before
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 22-23. SET WAR PURPOSE (DEFENSIVE WARS)
@@ -490,6 +666,16 @@ class TestSetWarPurpose:
         result = exec_._set_war_purpose_inner("Prussia", "subjugation", world)
         assert result["success"] is False
         assert "already set" in result["message"]
+
+    def test_parser_extracts_set_war_purpose(self):
+        client = LLMClient(use_real_api=False)
+        parsed = client.parse_command_structured(
+            "Talleyrand, set war purpose conquest against Austria"
+        )
+        command = parsed.diplomatic_data
+        assert parsed.action == "set_war_purpose"
+        assert command["target_nation"] == "Austria"
+        assert command["objective_type"] == "conquest"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -532,6 +718,32 @@ class TestCampaignLogEvents:
         line = format_event_oneliner(event)
         assert line is not None
         assert "France" in line
+
+    def test_war_objective_events_survive_campaign_log_filter(self):
+        world = WorldState(player_nation="France")
+        events = [
+            {
+                "type": "war_objective_declared",
+                "declaring_nation": "France",
+                "target_nation": "Austria",
+                "objective_type": "conquest",
+                "turn": 2,
+            },
+            {
+                "type": "war_objective_ticking_started",
+                "declaring_nation": "Austria",
+                "target_nation": "France",
+                "objective_type": "defense",
+                "target_region": "Paris",
+                "rate": 1,
+                "turn": 3,
+            },
+        ]
+        filtered = filter_campaign_log(events, world)
+        assert [event["type"] for event in filtered] == [
+            "war_objective_declared",
+            "war_objective_ticking_started",
+        ]
 
 
 # ════════════════════════════════════════════════════════════════════════════

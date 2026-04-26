@@ -1886,6 +1886,44 @@ class CombatExecutor:
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
 
+        def _stage_war_purpose_for_attack(target_nation: str) -> Dict:
+            """Stage WPS-A purpose selection instead of auto-declaring by attack."""
+            from backend.game_logic.diplomacy import get_available_war_objectives
+
+            objectives = get_available_war_objectives(world, marshal.nation, target_nation)
+            options = []
+            for obj in objectives:
+                if obj.get("available"):
+                    options.append({
+                        "label": obj.get("label", obj.get("type", "Objective")),
+                        "action": "select_war_objective",
+                        "objective_type": obj.get("type"),
+                        "target_nation": target_nation,
+                    })
+            options.append({"label": "Back Out", "action": "reconsider"})
+            world.dialogue_manager.replace({
+                "type": "war_purpose_selection",
+                "target_nation": target_nation,
+                "message": f"Choose your war purpose against {target_nation}.",
+                "objectives": objectives,
+                "options": options,
+                "blocking": True,
+                "turn_created": int(world.current_turn),
+            })
+            return {
+                "success": True,
+                "message": (
+                    f"Choose your war purpose against {target_nation}. "
+                    "Issue the attack again after the declaration is settled."
+                ),
+                "war_purpose_popup": {
+                    "target_nation": target_nation,
+                    "objectives": objectives,
+                },
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "awaiting_diplomatic_response": True,
+            }
+
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH CHECK (Phase 2.8): Davout's free attack after defending
         # If Davout has counter_punch_available, this attack costs 0 actions
@@ -2366,6 +2404,8 @@ class CombatExecutor:
 
         # Check if target is an enemy marshal name (use original target for enemy names)
         enemy_marshal = world.get_enemy_by_name_for_nation(target, marshal.nation)
+        if not enemy_marshal and enemy_by_name and enemy_by_name.nation != marshal.nation:
+            enemy_marshal = enemy_by_name
 
         if not enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
@@ -2377,6 +2417,8 @@ class CombatExecutor:
         # before proceeding. Costs 1 DP, applies relation penalties.
         # ════════════════════════════════════════════════════════════
         if enemy_marshal and not world.is_at_war(marshal.nation, enemy_marshal.nation):
+            if marshal.nation == world.player_nation:
+                return _stage_war_purpose_for_attack(enemy_marshal.nation)
             from backend.game_logic.diplomacy import declare_war
             war_result = declare_war(world, marshal.nation, enemy_marshal.nation)
             if war_result.get("success"):
@@ -2422,6 +2464,8 @@ class CombatExecutor:
                 if target_region.controller and not world.is_at_war(marshal.nation, target_region.controller):
                     from backend.game_logic.diplomacy import declare_war, can_enter_territory
                     if not can_enter_territory(world, marshal.nation, target_region.controller):
+                        if marshal.nation == world.player_nation:
+                            return _stage_war_purpose_for_attack(target_region.controller)
                         war_result = declare_war(world, marshal.nation, target_region.controller)
                         if war_result.get("success") and marshal.nation == world.player_nation:
                             dp = getattr(world, 'diplomatic_points', 0)

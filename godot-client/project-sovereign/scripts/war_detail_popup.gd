@@ -267,7 +267,30 @@ func _render_war_detail(w: Dictionary):
 		bbcode += "  Territory:  " + _signed(int(breakdown.get("territory", 0))) + "\n"
 		bbcode += "  Battles:    " + _signed(int(breakdown.get("battles", 0))) + "\n"
 		bbcode += "  Decisive:   " + _signed(int(breakdown.get("decisive", 0))) + "\n"
-		bbcode += "  Capital:    " + _signed(int(breakdown.get("capital", 0))) + "\n\n"
+		bbcode += "  Capital:    " + _signed(int(breakdown.get("capital", 0))) + "\n"
+		bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
+
+	var tier_display = str(w.get("settlement_tier_display", ""))
+	if tier_display:
+		bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+
+	var objective = w.get("objective", null)
+	if objective != null and objective is Dictionary:
+		var obj_type = str(objective.get("type_display", "Objective"))
+		var targets = objective.get("target_regions", [])
+		var target_text = ", ".join(targets) if targets is Array and not targets.is_empty() else "target pending"
+		var accumulated = int(float(objective.get("accumulated_ticking", 0)))
+		var rate = int(float(objective.get("ticking_rate", 0)))
+		var active = "active" if bool(objective.get("ticking_active", false)) else "not ticking"
+		bbcode += "Objective: [color=" + COLOR_GOLD + "]" + obj_type + "[/color] - " + target_text
+		bbcode += " (" + active + ", +" + str(accumulated)
+		if rate > 0:
+			bbcode += ", +" + str(rate) + "/turn"
+		bbcode += ")\n"
+
+	var enemy_objective = w.get("enemy_objective", null)
+	if enemy_objective != null and enemy_objective is Dictionary:
+		bbcode += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"
 
 	# Duration
 	bbcode += "Duration: " + str(duration) + " turns (since Turn " + str(started) + ")\n"

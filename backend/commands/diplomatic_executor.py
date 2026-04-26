@@ -1634,6 +1634,17 @@ class DiplomaticExecutor:
         if objective_type not in OBJECTIVE_TYPES or objective_type in ("defense", "liberation"):
             return {"success": False, "message": f"Invalid war purpose: {objective_type}."}
 
+        availability = {
+            obj["type"]: obj
+            for obj in get_available_war_objectives(world, player, target_nation)
+        }.get(objective_type, {})
+        if availability and not availability.get("available", False):
+            return {
+                "success": False,
+                "message": availability.get("reason")
+                or f"{objective_type.replace('_', ' ').title()} is not available.",
+            }
+
         target_capital = NATION_CAPITALS.get(target_nation)
         target_regions = [target_capital] if target_capital else []
 

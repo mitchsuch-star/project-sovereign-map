@@ -1202,6 +1202,11 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "posture_last_updated": int(world.current_turn),
     }
 
+    # WPS-A: Coalition members get a collective purpose once coalition context exists.
+    from backend.game_logic.diplomacy import assign_coalition_war_objective
+    for member in all_members:
+        assign_coalition_war_objective(world, member, france)
+
     # Clear brewing state
     world.coalition_brewing = None
 

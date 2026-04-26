@@ -226,6 +226,10 @@ def _is_player_event(event: dict, player_nation: str) -> bool:
         return True
     if event.get("defender_nation") == player_nation:
         return True
+    if event.get("declaring_nation") == player_nation:
+        return True
+    if event.get("target_nation") == player_nation:
+        return True
     # captured_by for region_captured
     if event.get("captured_by") == player_nation:
         return True
@@ -236,7 +240,7 @@ def _get_event_region(event: dict) -> str:
     """Extract region name from an event dict (various field names used)."""
     return (event.get("location") or event.get("region")
             or event.get("from") or event.get("defender_location")
-            or event.get("attacker_location") or "")
+            or event.get("attacker_location") or event.get("target_region") or "")
 
 
 def _player_marshal_involved(event: dict, world_state) -> bool:
@@ -317,6 +321,30 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 if vis in (FULL, PARTIAL):
                     visible = True
                     break
+            if visible:
+                filtered.append(event)
+            continue
+
+        # WPS-A: objective declarations are public to known courts; ticking
+        # starts are visible to involved belligerents and their close treaty allies.
+        if event_type in ("war_objective_declared", "war_objective_ticking_started"):
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            declaring = event.get("declaring_nation", "")
+            target = event.get("target_nation", "")
+            visible = False
+            if declaring and world_state.get_diplomatic_state(player_nation, declaring) in (
+                "WAR", "ALLIANCE", "DEFENSIVE_ALLIANCE"
+            ):
+                visible = True
+            if target and world_state.get_diplomatic_state(player_nation, target) in (
+                "WAR", "ALLIANCE", "DEFENSIVE_ALLIANCE"
+            ):
+                visible = True
+            if event_type == "war_objective_declared":
+                for nation in (declaring, target):
+                    if nation and _get_nation_visibility(nation, world_state) in (FULL, PARTIAL):
+                        visible = True
+                        break
             if visible:
                 filtered.append(event)
             continue

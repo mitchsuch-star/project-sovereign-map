@@ -481,6 +481,15 @@ class LLMClient:
         # BEFORE marshal parsing. Diplomatic commands route to
         # _parse_diplomatic_command() and return early.
         # ════════════════════════════════════════════════════════════
+        # WPS-A: Set war purpose keywords. Check before the generic diplomat
+        # route so "Talleyrand, set war purpose..." keeps the objective fields.
+        _war_purpose_keywords = [
+            "set war purpose", "war purpose", "set objective",
+            "declare purpose", "set war goal",
+        ]
+        if any(kw in command_lower for kw in _war_purpose_keywords):
+            return self._parse_set_war_purpose(command_text, command_lower)
+
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
                            "foreign minister", "ambassador"]
@@ -520,14 +529,6 @@ class LLMClient:
         ]
         if any(kw in command_lower for kw in _ultimatum_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
-
-        # WPS-A: Set war purpose keywords
-        _war_purpose_keywords = [
-            "set war purpose", "war purpose", "set objective",
-            "declare purpose", "set war goal",
-        ]
-        if any(kw in command_lower for kw in _war_purpose_keywords):
-            return self._parse_set_war_purpose(command_text, command_lower)
 
         # Memory and Pressure v2.4.3 — B-B7 Make Amends keywords route to
         # diplomacy without requiring "Talleyrand" (spec §8.6.1).
@@ -949,14 +950,26 @@ class LLMClient:
                 objective_type = obj
                 break
 
-        return {
+        diplomatic_data = {
             "action": "set_war_purpose",
-            "command": {
-                "action": "set_war_purpose",
-                "target_nation": nation,
-                "objective_type": objective_type,
-            },
+            "target_nation": nation,
+            "objective_type": objective_type,
         }
+        return ParseResult(
+            matched=True,
+            command_type="diplomatic",
+            marshals=[],
+            action="set_war_purpose",
+            target=nation,
+            ambiguity=5 if nation else 20,
+            strategic_score=0,
+            interpretation=f"Set war purpose {objective_type or 'unspecified'} against {nation or 'unspecified nation'}",
+            confidence=0.95 if nation and objective_type else 0.75,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+            diplomatic_data=diplomatic_data,
+        )
 
     def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:
         """Parse a diplomatic command addressed to Talleyrand.

@@ -71,8 +71,8 @@ War score is a number. +45 means "France is winning." But does +45 entitle Franc
 - No common peace or allied settlement allocation. Those belong to `Ally Participation + Common Peace` (queue item 4).
 - No dynamic power tiers with per-turn recalculation. Power scoring for the vassalage cap is evaluated at vassalage-proposal time, not tracked as a per-turn state.
 - No multi-objective wars (one objective per war per nation in v0.1).
-- No AI-declared war objectives for AI-initiated wars in v0.1. AI wars use auto-assigned objectives based on context.
-- No objective-specific ticking for coalition wars in v0.1. Coalition wars use a simplified "Defense" objective for the target nation and contributed ticking for coalition members.
+- No AI-selected Subjugation or Forced Alliance in v0.1. AI-vs-player wars rely on the defender's auto-Defense objective; AI-AI opportunistic wars default to Conquest so the war has a readable purpose.
+- Coalition settlement mechanics are deferred to WPS-C, but WPS-A records coalition-side Liberation/Defense objectives and ticking when coalition wars form.
 - No war-exhaustion rework. The existing coalition war-exhaustion system (COALITION_SPEC §10a) remains independent.
 
 ---
@@ -101,7 +101,7 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
 
 | Objective | Chooser | Ticking Target | Ticking Rate | Score Cap | Description |
 |-----------|---------|----------------|--------------|-----------|-------------|
-| **Conquest** | Player (offensive) | Enemy capital | +2/turn | +25 | Seize and hold the enemy capital to dictate terms |
+| **Conquest** | Player (offensive); AI-AI default | Enemy capital | +2/turn | +25 | Seize and hold the enemy capital to dictate terms |
 | **Subjugation** | Player (offensive) | Enemy capital | +3/turn | +25 | Total defeat — vassalize the enemy (requires power cap clearance) |
 | **Forced Alliance** | Player (offensive) | Enemy capital | +2/turn | +25 | Force enemy into ALLIANCE + Continental System |
 | **Defense** | Auto (defender) | Any enemy-held friendly region | +1/turn per region | +25 | Reclaim lost territory |
@@ -111,7 +111,7 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
 
 - **Defense** is assigned automatically to the nation that was attacked (the target of `declare_war()`). The defender does not choose — defense is always the reactive objective.
 - **Liberation** is assigned automatically to coalition members when France holds vassal capitals. The coalition does not choose — liberation is always a coalition-driven objective.
-- France receives **no auto-assigned objective** when attacked. France is the player — France always sets its own purpose even in defensive wars. If France is attacked and did not declare war, France may choose Conquest, Forced Alliance, or (if applicable) Subjugation as a counterattack objective, or may choose to accept a defensive posture (no player objective, no ticking — war score comes only from the first four components).
+- France receives the same automatic **Defense** objective when attacked. Because France is the player, France may upgrade that auto-defense objective once via `set_war_purpose` to Conquest, Forced Alliance, or (if applicable) Subjugation. Keeping Defense is valid and continues to tick under the Defense rules.
 
 ### 6.2 Objective selection flow
 
@@ -131,9 +131,9 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
 **When France is attacked:**
 
 1. Enemy AI declares war on France (or cascade pulls France into war)
-2. No automatic War Purpose popup — France begins with no declared objective
-3. Player may set an objective at any time during the war via "set war purpose [Conquest/Subjugation/Forced Alliance] against [nation]" command
-4. Setting an objective costs 0 AP (it is a political declaration, not an action). Can only be set once per war — changing mid-war is not allowed in v0.1.
+2. No automatic War Purpose popup — France begins with an auto-assigned Defense objective
+3. Player may upgrade Defense once during the war via "set war purpose [Conquest/Subjugation/Forced Alliance] against [nation]" command
+4. Setting or upgrading an objective costs 0 AP (it is a political declaration, not an action). A non-Defense objective can only be set once per war — changing mid-war is not allowed in v0.1.
 
 **Action-wiring trace:** `set_war_purpose` follows CLAUDE.md "Adding a New Action": add to `VALID_ACTIONS`, parser valid-actions, `_action_costs` in `world_state.py` (0 AP), mock parser keywords (`set war purpose`, `war purpose`), `ACTION_DISPLAY`, and campaign-log type `war_objective_declared`.
 
@@ -779,7 +779,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 
 ## 15. Implementation Sequence
 
-### Slice WPS-A: War objectives + ticking score (~22 tests)
+### Slice WPS-A: War objectives + ticking score (implemented with 50 tests after audit follow-up)
 
 - Add `war_objectives` to WorldState with serialization
 - Implement objective types (conquest, subjugation, forced_alliance, defense, liberation)
@@ -880,10 +880,12 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 - **Forced alliance includes Continental System:** Yes. Napoleon's forced alliances always included economic alignment. Makes the clause politically meaningful beyond military cooperation.
 - **Liberation creates DEFENSIVE_ALLIANCE, not ALLIANCE:** Liberation is gratitude, not forced alignment. The liberator earns a defensive partner, not a military puppet. This mirrors historical patterns — liberated nations allied with liberators but maintained independence.
 - **Naval income in power calculation:** Yes. Excluding it makes Britain appear weaker than Saxony, which is ahistorical and would make British vassalage trivially achievable.
-- **AI does not choose offensive objectives:** Correct. Conquest, Subjugation, and Forced Alliance are the player's political-military toolkit. AI gets Defense and Liberation. This asymmetry is intentional — the player IS Napoleon, with Napoleon's unique strategic agency.
+- **AI offensive objective limits:** AI does not choose Subjugation or Forced Alliance in v0.1. AI-vs-player wars rely on the defender's auto-Defense objective; AI-AI opportunistic wars default to Conquest so status surfaces have a readable purpose.
 
 ---
 
 ## 18. Changelog
+
+- **April 26, 2026** - WPS-A audit follow-up clarified France-on-defense semantics: attacked France receives auto-Defense and may upgrade it once with `set_war_purpose`; keeping Defense remains valid and ticking.
 
 - **April 16, 2026** — v1.0 drafted. Covers war objectives (5 types), ticking war score (5th component), vassalage power cap (50% national power), forced alliance (new clause type), liberation (coalition war goal), war score legibility (settlement tiers). ~75 tests across 4 slices. Starting power values validated against DIPLOMACY_SPEC §1b region table. References WAR_BARGAIN_SPEC §2 (war-objective settlement hook), BILATERAL_PEACE_HARDENING_SPEC (peace preview extensibility), COALITION_SPEC (threat from forced alliance).

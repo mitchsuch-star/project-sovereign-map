@@ -2754,11 +2754,12 @@ def _decay_battle_score(raw_score: int, records: List[Dict], current_turn: int) 
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
     """Calculate war score between two nations. Positive = nation_a winning.
 
-    Components: territory (±40), battles (±30), decisive (±20), capital (±30).
-    Total capped at ±100.
+    Components: territory (±40), battles (±30), decisive (±20),
+    capital (±30), ticking objective score. Total capped at ±100.
 
     If return_components=True, returns {"total": int, "territory": int,
-    "battles": int, "decisive": int, "capital": int} instead of int.
+    "battles": int, "decisive": int, "capital": int, "ticking": int}
+    instead of int.
     """
     from backend.models.region import NATION_CAPITALS
 
@@ -2838,7 +2839,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     return total
 
 
-def apply_war_score_decay(world) -> None:
+def apply_war_score_decay(world, *, recalculate: bool = True) -> None:
     """Apply battle-score decay and prune stale battle records.
 
     Decisive bonuses, territory, capital control, and future ticking score do
@@ -2856,7 +2857,8 @@ def apply_war_score_decay(world) -> None:
             if world.current_turn - r.get("turn", 0) <= 10
         ]
 
-    recalculate_war_scores(world)
+    if recalculate:
+        recalculate_war_scores(world)
 
 
 def recalculate_war_scores(world) -> None:
@@ -2894,6 +2896,7 @@ def get_war_score_for(world, nation: str, opponent: str) -> int:
 # ═══════════════════════════════════════════════════════
 
 OBJECTIVE_TYPES = {"conquest", "subjugation", "forced_alliance", "defense", "liberation"}
+OFFENSIVE_OBJECTIVE_TYPES = {"conquest", "subjugation", "forced_alliance"}
 TICKING_RATES = {
     "conquest": 2,
     "subjugation": 3,
@@ -3013,6 +3016,15 @@ def get_available_war_objectives(world, aggressor: str, target: str) -> list:
     return objectives
 
 
+def _get_objective_availability(world, aggressor: str, target: str,
+                                objective_type: str) -> Dict:
+    """Return the availability record for an offensive objective."""
+    for obj in get_available_war_objectives(world, aggressor, target):
+        if obj.get("type") == objective_type:
+            return obj
+    return {}
+
+
 def get_settlement_tier(war_score: int) -> str:
     """Map a war score to a settlement tier name."""
     abs_score = abs(war_score)
@@ -3024,13 +3036,9 @@ def get_settlement_tier(war_score: int) -> str:
 
 def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_key: str) -> None:
     """Auto-assign a defense objective to the attacked nation."""
-    target_regions = [
-        rname for rname, rdata in world.nation_starting_regions.items()
-        if defender in (rdata if isinstance(rdata, list) else [])
-    ] if hasattr(world, 'nation_starting_regions') else []
-
-    if not target_regions:
-        target_regions = list(world.nation_starting_regions.get(defender, []))
+    target_regions = list(
+        getattr(world, 'nation_starting_regions', {}).get(defender, [])
+    )
 
     if diplo_key not in world.war_objectives:
         world.war_objectives[diplo_key] = {}
@@ -3042,6 +3050,70 @@ def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_k
         target_regions=target_regions,
         current_turn=world.current_turn,
     )
+
+
+def _get_liberation_targets(world, occupying_nation: str) -> tuple:
+    """Return French-held vassal capitals that a coalition can liberate."""
+    from backend.models.region import NATION_CAPITALS
+
+    target_regions = []
+    vassal_nations = []
+    for vassal_nation, vassal_data in getattr(world, 'vassals', {}).items():
+        if vassal_data.get("lord") != occupying_nation:
+            continue
+        capital = NATION_CAPITALS.get(vassal_nation)
+        if not capital or capital not in world.regions:
+            continue
+        if world.regions[capital].controller == occupying_nation:
+            target_regions.append(capital)
+            vassal_nations.append(vassal_nation)
+    return target_regions, vassal_nations
+
+
+def assign_coalition_war_objective(world, coalition_member: str,
+                                   target_nation: str) -> bool:
+    """Assign the coalition member's automatic WPS-A objective.
+
+    Coalition wars use liberation if the target controls vassal capitals;
+    otherwise they use the defensive homeland objective.
+    """
+    diplo_key = world._make_diplo_key(coalition_member, target_nation)
+    if world.diplomatic_states.get(diplo_key) != "WAR":
+        return False
+
+    if diplo_key not in world.war_objectives:
+        world.war_objectives[diplo_key] = {}
+
+    existing = world.war_objectives[diplo_key].get(coalition_member)
+    target_regions, vassal_nations = _get_liberation_targets(world, target_nation)
+    objective_type = "liberation" if target_regions else "defense"
+    if objective_type == "defense":
+        target_regions = list(
+            getattr(world, 'nation_starting_regions', {}).get(coalition_member, [])
+        )
+        vassal_nations = []
+
+    if existing and existing.get("concluded_turn") is None:
+        if existing.get("type") != "defense" or objective_type == "defense":
+            return False
+
+    world.war_objectives[diplo_key][coalition_member] = create_war_objective(
+        objective_type=objective_type,
+        declaring_nation=coalition_member,
+        target_nation=target_nation,
+        target_regions=target_regions,
+        current_turn=world.current_turn,
+        vassal_nations=vassal_nations,
+    )
+    world.log_event({
+        "type": "war_objective_declared",
+        "declaring_nation": coalition_member,
+        "target_nation": target_nation,
+        "objective_type": objective_type,
+        "target_regions": target_regions,
+        "turn": int(world.current_turn),
+    })
+    return True
 
 
 def accumulate_war_objective_ticking(world) -> List[Dict]:
@@ -3810,7 +3882,8 @@ def _find_friendly_retreat(world, marshal) -> str:
     return ""
 
 
-def cleanup_war_end(world, diplo_key: str) -> None:
+def cleanup_war_end(world, diplo_key: str, *,
+                    conclude_objectives: bool = True) -> None:
     """Clean up war-related data when a war ends (R1b, R49, R47/R30).
 
     Called on WAR→ARMISTICE/PEACE transitions.
@@ -3830,8 +3903,10 @@ def cleanup_war_end(world, diplo_key: str) -> None:
     war_score_history.pop(diplo_key, None)
     world.war_score_history = war_score_history
 
-    # WPS-A: Conclude war objectives (keep for 10-turn history)
-    _conclude_war_objectives(world, diplo_key)
+    # WPS-A: Conclude objectives only when the war is actually over.
+    # ARMISTICE pauses ticking but must allow objectives to resume if war resumes.
+    if conclude_objectives:
+        _conclude_war_objectives(world, diplo_key)
 
     # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")
@@ -4884,6 +4959,26 @@ def declare_war(
     if current_state == "WAR":
         return {"success": False, "message": f"{aggressor} is already at war with {target}."}
 
+    if war_objective:
+        if war_objective not in OFFENSIVE_OBJECTIVE_TYPES:
+            return {
+                "success": False,
+                "message": f"Invalid offensive war objective: {war_objective}.",
+            }
+        availability = _get_objective_availability(
+            world, aggressor, target, war_objective
+        )
+        if availability and not availability.get("available", False):
+            return {
+                "success": False,
+                "message": availability.get("reason")
+                or f"{war_objective.replace('_', ' ').title()} is not available.",
+            }
+    elif (aggressor != getattr(world, 'player_nation', None)
+          and target != getattr(world, 'player_nation', None)):
+        # WPS-A: future AI-AI/opportunistic wars default to conquest.
+        war_objective = "conquest"
+
     # R99: Block war declaration during armistice cooldown
     armistice_cooldown = getattr(world, 'armistice_cooldowns', {}).get(diplo_key, 0)
     if armistice_cooldown > 0:
@@ -4971,7 +5066,7 @@ def declare_war(
 
     # WPS-A: Create war objectives
     diplo_key_obj = world._make_diplo_key(aggressor, target)
-    if war_objective and war_objective in OBJECTIVE_TYPES:
+    if war_objective and war_objective in OFFENSIVE_OBJECTIVE_TYPES:
         from backend.models.region import NATION_CAPITALS as _NATION_CAPITALS
         target_capital = _NATION_CAPITALS.get(target)
         target_regions = [target_capital] if target_capital else []
@@ -5875,14 +5970,17 @@ def process_diplomacy_turn(world) -> List[Dict]:
     effect_events = _process_mission_effects(world)
     events.extend(effect_events)
 
-    # ── 4. War score recalculation + battle-score decay ──
-    apply_war_score_decay(world)
+    # ── 4. War score battle-record pruning / battle-only decay prep ──
+    apply_war_score_decay(world, recalculate=False)
 
     # ── 4a. War objective ticking (WPS-A) ──
     ticking_events = accumulate_war_objective_ticking(world)
     for te in ticking_events:
         world.log_event(te)
     events.extend(ticking_events)
+
+    # Recalculate once after ticking so stored war_scores include the 5th component.
+    recalculate_war_scores(world)
 
     # ── 4b. Cleanup old concluded war objectives ──
     _cleanup_old_war_objectives(world)

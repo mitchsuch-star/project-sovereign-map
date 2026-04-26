@@ -5472,10 +5472,15 @@ class WorldState:
             if not self.get_nation_regions(nation):
                 self._eliminate_nation(nation)
 
-        # War-end cleanup (shared — for both player and AI-AI)
-        if current_state == "WAR" and target_state != "WAR":
+        # War-end cleanup (shared — for both player and AI-AI).
+        # WPS-A: ARMISTICE pauses objectives; PEACE concludes them.
+        if current_state in ("WAR", "ARMISTICE") and target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
-            cleanup_war_end(self, diplo_key)
+            cleanup_war_end(
+                self,
+                diplo_key,
+                conclude_objectives=(target_state != "ARMISTICE"),
+            )
 
         # ═══ Player-specific events ═══
         if is_player_treaty:

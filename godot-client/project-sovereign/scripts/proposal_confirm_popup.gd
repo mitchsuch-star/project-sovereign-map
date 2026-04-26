@@ -16,6 +16,10 @@ signal choice_made(action: String, data: Dictionary)
 
 var current_data: Dictionary = {}
 
+const COLOR_GOLD = "#d9c08c"
+const COLOR_DIMMED = "#808080"
+const COLOR_RED = "#e04040"
+
 func _ready():
 	hide()
 
@@ -40,6 +44,8 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_feasibility_content(data)
 		"advisory", "advisory_threat", "advisory_recommendation":
 			bbcode = _build_advisory_content(data)
+		"war_purpose_selection":
+			bbcode = _build_war_purpose_content(data)
 		"force_declare_war_confirmation":
 			bbcode = _build_war_confirm_content(data)
 		"conflict_alert":
@@ -156,6 +162,31 @@ func _build_content(data: Dictionary) -> String:
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+
+	return bbcode
+
+func _build_war_purpose_content(data: Dictionary) -> String:
+	var target = data.get("target_nation", "Unknown")
+	var bbcode = "[b]WAR PURPOSE - %s[/b]\n\n" % target
+	var message = str(data.get("message", "Choose your war purpose."))
+	bbcode += message + "\n\n"
+
+	var objectives = data.get("objectives", [])
+	for obj in objectives:
+		var available = bool(obj.get("available", true))
+		var label = str(obj.get("label", obj.get("type", "Objective")))
+		var label_color = COLOR_GOLD if available else COLOR_DIMMED
+		bbcode += "[color=" + label_color + "][b]" + label + "[/b][/color]\n"
+		var description = str(obj.get("description", ""))
+		if description:
+			bbcode += "  " + description + "\n"
+		var rate = int(float(obj.get("ticking_rate", 0)))
+		if rate > 0:
+			bbcode += "  Ticking score: +" + str(rate) + "/turn\n"
+		if not available:
+			var reason = str(obj.get("reason", "Not available"))
+			bbcode += "  [color=" + COLOR_RED + "]" + reason + "[/color]\n"
+		bbcode += "\n"
 
 	return bbcode
 

@@ -172,6 +172,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	row_btn.custom_minimum_size = Vector2(0, 18)
 	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war"))
 	row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row_btn.tooltip_text = _build_war_tooltip(war_data)
 
 	# Inner HBox for layout — passes mouse through to the button
 	var row = HBoxContainer.new()
@@ -206,6 +207,23 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	row_btn.add_child(row)
 	vbox.add_child(row_btn)
+
+
+func _build_war_tooltip(war_data: Dictionary) -> String:
+	var lines = []
+	var tier = str(war_data.get("settlement_tier_display", ""))
+	if tier:
+		lines.append("Settlement: " + tier)
+	var objective = war_data.get("objective", null)
+	if objective != null and objective is Dictionary:
+		var targets = objective.get("target_regions", [])
+		var target_text = ", ".join(targets) if targets is Array and not targets.is_empty() else "target pending"
+		lines.append("Objective: " + str(objective.get("type_display", "Objective")) + " - " + target_text)
+		lines.append("Ticking: +" + str(int(float(objective.get("accumulated_ticking", 0)))))
+	var enemy_objective = war_data.get("enemy_objective", null)
+	if enemy_objective != null and enemy_objective is Dictionary:
+		lines.append("Enemy: " + str(enemy_objective.get("type_display", "Objective")))
+	return "\n".join(lines)
 
 
 func _add_armistice_card(war_data: Dictionary):

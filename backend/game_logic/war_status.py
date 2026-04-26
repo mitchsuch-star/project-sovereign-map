@@ -62,6 +62,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             "battles": int(components["battles"]),
             "decisive": int(components["decisive"]),
             "capital": int(components["capital"]),
+            "ticking": int(components.get("ticking", 0)),
         }
 
         # Duration
