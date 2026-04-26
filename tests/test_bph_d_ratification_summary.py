@@ -275,6 +275,71 @@ class TestRatificationLog:
         assert "war_outcome" in entry
         assert "peace_ratification_summary" in result
 
+    def test_ratify_treaty_preserves_duration_and_terms_after_state_change(self):
+        world = _war_world()
+        result = world._ratify_treaty(_peace_proposal())
+        summary = result["peace_ratification_summary"]
+        assert summary["war_duration_turns"] == 8
+        assert summary["terms_ratified"]
+        assert any("Prussia pays 500 gold" in t for t in summary["terms_ratified"])
+
+    def test_incoming_ai_peace_summary_targets_player_counterpart(self):
+        world = _war_world()
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "Prussia",
+            "target_nation": "France",
+            "sweeteners": [{"type": "gold_lump", "value": 100}],
+            "demands": [],
+            "clauses": [],
+        }
+        result = world._ratify_treaty(proposal)
+        summary = result["peace_ratification_summary"]
+        assert summary["target_nation"] == "Prussia"
+        assert summary["target_capital"] == "Berlin"
+        assert summary["war_duration_turns"] == 8
+
+        world.current_turn = 11
+        settlements = _build_peace_settlement_section(world)
+        assert settlements[0]["target_nation"] == "Prussia"
+        assert "France and Prussia" in settlements[0]["detail"]
+        assert "France and France" not in settlements[0]["detail"]
+
+    def test_war_to_armistice_does_not_store_peace_summary(self):
+        world = _war_world()
+        proposal = {
+            "type": "armistice",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        result = world._ratify_treaty(proposal)
+        assert "peace_ratification_summary" not in result
+        assert world.peace_ratification_log == []
+        assert any(e.get("type") == "peace_ratified" for e in world.event_log)
+
+    def test_summary_uses_actual_gold_transferred(self):
+        world = _war_world()
+        world.nation_gold["Prussia"] = 100
+        proposal = _peace_proposal()
+        result = world._ratify_treaty(proposal)
+        assert result["peace_ratification_summary"]["gold_received"] == 100
+
+    def test_summary_omits_unapplied_territory_clause(self):
+        world = _war_world()
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [{"type": "territory_cede", "regions": ["Saxony"], "value": 0}],
+            "clauses": [],
+        }
+        result = world._ratify_treaty(proposal)
+        assert result["peace_ratification_summary"]["territory_gained"] == []
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 9. SERIALIZATION ROUND-TRIP

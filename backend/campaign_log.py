@@ -301,6 +301,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 val = event.get(key)
                 if val:
                     nations_to_check.append(val)
+            nations_to_check.extend(event.get("ratifying_nations", []) or [])
             visible = False
             for nation in nations_to_check:
                 if nation == player_nation:

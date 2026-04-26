@@ -3305,8 +3305,13 @@ def build_peace_ratification_summary(
     else:
         war_outcome = "white_peace"
 
-    # Ratified term display labels
-    terms_ratified = [t.get("display", "") for t in annotated_terms if t.get("display")]
+    # Ratified term display labels. BPH-A annotations use display_label;
+    # older preview/fallout helpers may still pass display.
+    terms_ratified = []
+    for term in annotated_terms:
+        label = term.get("display_label") or term.get("display") or ""
+        if label:
+            terms_ratified.append(label)
 
     # Political aftermath
     political_aftermath = []

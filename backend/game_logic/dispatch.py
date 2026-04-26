@@ -984,6 +984,8 @@ def _build_peace_settlement_section(world) -> List[Dict]:
     for entry in getattr(world, 'peace_ratification_log', []):
         if int(entry.get("turn", 0)) != previous_turn:
             continue
+        if entry.get("new_state", "PEACE") != "PEACE":
+            continue
         dur = entry.get("war_duration_turns", 0)
         target = entry.get("target_nation", "Unknown")
         target_capital = entry.get("target_capital") or NATION_CAPITALS.get(target, target)
@@ -992,10 +994,15 @@ def _build_peace_settlement_section(world) -> List[Dict]:
         score = entry.get("final_war_score", 0)
 
         headline = f"The Treaty of {target_capital}"
-        detail_parts = [
-            f"{world.player_nation} and {target} have concluded peace"
-            f" after {dur} turn{'s' if dur != 1 else ''} of war",
-        ]
+        if entry.get("previous_state") == "ARMISTICE":
+            detail_parts = [
+                f"{world.player_nation} and {target} have converted the armistice into peace",
+            ]
+        else:
+            detail_parts = [
+                f"{world.player_nation} and {target} have concluded peace"
+                f" after {dur} turn{'s' if dur != 1 else ''} of war",
+            ]
         if gained:
             detail_parts.append(f"{world.player_nation} gained {', '.join(gained)}")
         detail_parts.append(f"Final war score: {'+' if score > 0 else ''}{score}")
