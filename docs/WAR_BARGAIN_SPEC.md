@@ -47,7 +47,7 @@ Implementation should not begin until both Bilateral Peace Hardening and War Pur
 
 ### P1. The current diplomacy lacks a real promise verb
 
-After Memory and Pressure ships, France has rivalry pressure, betrayal memory, and reliability — but no way to make a **specific** political commitment to a specific ally about a specific objective. Diplomacy still runs on generic alliance ratification.
+After Memory and Pressure ships, France has hegemony / bloc pressure, betrayal memory, and reliability — but no way to make a **specific** political commitment to a specific ally about a specific objective. Diplomacy still runs on generic alliance ratification.
 
 ### P2. Offensive war entry is silent
 
@@ -124,7 +124,15 @@ That means:
 
 ### 7.3 Coalition / opposition seams (v0.1 minimal)
 
-Authored content in v0.1 still centers France as the only `war_bargain.promiser`. Code should keep `(ratifier, new_treaty)` and `(promiser, beneficiary, target_enemy, claim_region)` parameterized so the future `Coalition Generalization` follow-up can plug in non-France actors without rewriting the validators. **Do not** create a parallel `war_bloc` / `opposition_graph` store in v0.1 — let helpers accept a pair list whose only source today is authored rivalries plus live bargains. Generalization is a one-helper refactor when D2 lands.
+Authored content in v0.1 still centers France as the only `war_bargain.promiser`. Code should keep `(ratifier, new_treaty)` and `(promiser, beneficiary, target_enemy, claim_region)` parameterized so the future `Coalition Generalization` follow-up can plug in non-France actors without rewriting the validators. **Do not** create a parallel `war_bloc` / `opposition_graph` store in v0.1.
+
+Define one helper boundary for bargain eligibility:
+
+```python
+get_bargain_opposition_pairs(world, actor, beneficiary) -> set[tuple[str, str]]
+```
+
+In v0.1, this helper derives opposition only from current `WAR` states, `active_coalition.target_nation` / current coalition members, and live `war_bargain` records whose named enemy, beneficiary, or claim-holder creates an explicit conflict. It must not read or create `nation_rivalries`, `nation_concerns`, authored rivalry seed data, or any cached static rivalry table. Future coalition generalization can expand this helper without changing the bargain record shape.
 
 ---
 
@@ -167,7 +175,7 @@ Bargains may be:
 A war bargain is valid only if **all** are true:
 
 1. The source treaty is `DEFENSIVE_ALLIANCE` or `ALLIANCE`, or France is invoking the same-turn ally-entry decision for an existing military ally.
-2. The named enemy is one of: an active rival of France, an active rival of the target nation, or a current war enemy.
+2. The named enemy is a current war enemy of France or the beneficiary, or appears as an opposed nation for France or the beneficiary in `get_bargain_opposition_pairs()`.
 3. The claim region is currently controlled by the named enemy or that enemy's subject.
 4. The claim region is strategically plausible for France: in `covets_regions`, previously French, adjacent to French territory, or otherwise flagged as high-interest by existing desire data.
 5. The target nation has plausible participation access against the named enemy: direct border, allied-theater adjacency, or existing route heuristic.
@@ -397,7 +405,7 @@ A bargain is `breached` if France does any of the following while it is `active`
 
 - breaks source treaty voluntarily
 - voluntarily downgrades source treaty below `DEFENSIVE_ALLIANCE`
-- causes source treaty to auto-decay below `DEFENSIVE_ALLIANCE` through a constructive-breach action: (a) France ratifies `NON_AGGRESSION` or deeper with an active rival of the beneficiary, (b) France attacks an ally of the beneficiary, or (c) France ratifies a contradictory bargain whose named enemy is the beneficiary or the beneficiary's ally. Only these explicit French diplomatic choices count as constructive breach — passive relation drift from third-party events does not
+- causes source treaty to auto-decay below `DEFENSIVE_ALLIANCE` through a constructive-breach action: (a) France ratifies `NON_AGGRESSION` or deeper with a nation opposed to the beneficiary under `get_bargain_opposition_pairs()` (including current war enemies and coalition-target conflicts), (b) France attacks an ally of the beneficiary, or (c) France ratifies a contradictory bargain whose named enemy is the beneficiary or the beneficiary's ally. Only these explicit French diplomatic choices count as constructive breach — passive relation drift from third-party events does not
 - enters `NON_AGGRESSION` or deeper alignment with named enemy or current claim holder
 - ratifies a contradictory bargain
 - ratifies `PEACE`, `ARMISTICE`, or equivalent de-escalation with named enemy after a surfaced `peace_conflict` warning when normalization would terminate or cheapen the bargain before its political purpose is resolved
@@ -502,7 +510,7 @@ Inputs:
 - treaty depth: `DEFENSIVE_ALLIANCE +10`, `ALLIANCE +18`
 - defensive honor bonus when France is defender: `+18`
 - hostility toward named enemy: `clamp((-relation_to_enemy) // 5, -10, +10)`
-- if named enemy is an active rival of beneficiary: additional `+6`
+- if the named enemy is opposed to the beneficiary under `get_bargain_opposition_pairs()`: additional `+6`
 - France-beneficiary relation: `clamp(relation_to_france // 5, -12, +12)`
 - bilateral betrayal strikes: `-8` each, cap `-24`
 - promiser global reliability: `clamp(diplomatic_reliability[promiser] // 10, -6, +6)`
@@ -526,7 +534,7 @@ Thresholds:
 
 Every offer containing a `war_bargain` clause passes through a Bargain Review stage before send / accept.
 
-The review card is the core new v0.1 promise surface and inserts as the final stage inside the existing `proposal_confirm` flow.
+The review card is the core new v0.1 promise surface and inserts as the final stage inside the existing `proposal_confirm` flow. It inherits the existing `proposal_confirm` CanvasLayer and dialog-manager registration; it is not a separate popup family.
 
 Review must show:
 
@@ -627,7 +635,7 @@ AI may generate a bargain only if **all** are true:
 
 - valid bargain under pair + enemy and same-region constraints
 - no live same-region contradiction
-- named enemy is current rival or current war enemy
+- named enemy is a current war enemy or a current opposition-pair target under `get_bargain_opposition_pairs()`
 - claim region held by that enemy or its subject
 - target nation has plausible participation access
 - target nation has at least one active marshal AND either direct / front-access relevance to named enemy OR total active field strength >= 25% of France's
@@ -669,7 +677,7 @@ If a valid bargain exists against the named enemy:
 ### 11.5 Performance / architecture guard
 
 - no new hot-path per-region scans
-- cached rivalry lookups (already shipped)
+- scoped `get_bargain_opposition_pairs()` reads cached only for the current validation call; no static rivalry store or authored rivalry lookup is introduced
 - direct commitment-id and pair-key reads
 - targeted validation on bargain creation and key event hooks
 
@@ -715,6 +723,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - `to_dict` / `from_dict` with `.get()` defaults
 - Update `SAVE_FORMAT_REFERENCE.md`
 - Add `war_bargain` clause type to acceptance / display
+- Implement `get_bargain_opposition_pairs()` from current WAR states, `active_coalition` target / members, and live bargain conflicts only; do not read `nation_rivalries` or authored rivalry seed data
 - Validation: named enemy, claim region holder, French strategic interest, beneficiary participation feasibility, caps, cooldowns, contradiction guards
 - Hard-stop preview for bargain creation when France must first downgrade an existing deep treaty
 - Activate `region_observer` witness scope branch
@@ -757,6 +766,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - Extend paradox popup to surface attached bargain-breach / reliability fallout
 - Ledger: live bargains with named enemy, claim region, holder, status, cooldown
 - `repudiate_bargain` confirm surface routed into WB-B breach rules
+- Wire `repudiate_bargain` per CLAUDE.md "Adding a New Action": `VALID_ACTIONS` in `validation.py`, parser valid-actions, `_action_costs` in `world_state.py` (1 AP), mock parser keywords (`repudiate bargain`, `break bargain`, `renounce bargain`), `ACTION_DISPLAY` in `display_names.py`, campaign-log type `bargain_breached` in `campaign_log.py`, and defiance / objection display mappings for any surfaced fallout
 - AI bargain generation with feasibility gates and full v1.0 `decision_reason` enum (§11.1)
 - AI anti-spam (§11.2)
 - AI counter-bargain timing and refusal (§11.3-§11.4)

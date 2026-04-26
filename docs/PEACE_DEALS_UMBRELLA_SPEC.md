@@ -439,10 +439,13 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 - **§9.2** — reconciled as `bargain_conflict_penalty` feeding into the live political subtotal.
 - **§9.3** — reconciled to the live `-60` composite floor and inline political subtotal used by `calculate_acceptance()`.
 - **§7.2 "commitment_paradox rename"** — already shipped (B-B3). No longer a prerequisite.
+- **§7.3 / §8.4 / §9.4 / §11.1** — bargain opposition now derives from `get_bargain_opposition_pairs()` over current WAR states, `active_coalition` target / members, and live bargain conflicts. Do not restore authored rivalry seed data or static rivalry lookup tables.
 
 ### WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md
 
 - **§8.1 `calculate_national_power()`** — the implementation should avoid iterating `world.regions.values()` in a hot path per CLAUDE.md Golden Rule 8. Cache the result if called more than once per turn, or compute only at vassalage-proposal time as the spec already suggests.
+- **§8.4 post-cession power cap** — preview and ratification use a pure projection helper; do not mutate `WorldState` while checking whether same-package cessions make vassalage legal.
+- **§9.6 forced-alliance threat** — authoritative threat source is `COALITION_SPEC.md` §2a. It does not resurrect a standalone acceptance `threat_modifier`.
 
 ### BILATERAL_PEACE_HARDENING_SPEC.md
 

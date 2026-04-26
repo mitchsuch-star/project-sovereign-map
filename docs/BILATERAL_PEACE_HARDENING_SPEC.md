@@ -16,7 +16,7 @@ Today, making peace is a treaty package like any other: the player offers terms,
 
 - which specific terms in the package change territory, alignment, or obligation
 - what a separate peace costs politically with existing allies
-- whether making peace contradicts a live commitment (bargain, paradox, rivalry pressure)
+- whether making peace contradicts a live commitment (bargain, paradox, bloc-opposition pressure)
 - what the practical map-state outcome of the deal looks like before sending
 
 This spec does not add new diplomatic verbs. It makes the existing bilateral peace flow show the player what they are actually doing — and what it will cost.
@@ -580,7 +580,7 @@ The existing War Status Panel (`war_status_panel.gd`) and War Detail Popup (`war
 ### Slice BPH-C: Fallout preview + commitment conflicts (~20 tests)
 
 - Compute separate-peace ally fallout warnings (§9)
-- Implement `get_peace_commitment_conflicts()` interface with paradox + rivalry conflict types (§10)
+- Implement `get_peace_commitment_conflicts()` interface with paradox + `bloc_opposition` conflict types (§10)
 - Compute strategic order cancellation preview (§9.4)
 - Wire warnings into Peace Preview Panel Section 3
 - Apply separate-peace relation penalty on ratification (§9.3)
@@ -613,7 +613,7 @@ If the player can predict the exact relation hit, they might game it by timing s
 
 ### R3. Warning overload
 
-If too many warnings fire (ally fallout + order cancellations + rivalry + paradox), the preview becomes unreadable. **Mitigation:** max 3 inline warnings, priority-sorted (§10.3), overflow behind expander.
+If too many warnings fire (ally fallout + order cancellations + bloc-opposition + paradox), the preview becomes unreadable. **Mitigation:** max 3 inline warnings, priority-sorted (§10.3), overflow behind expander.
 
 ### R4. Term ownership ambiguity for mutual clauses
 

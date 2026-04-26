@@ -3536,7 +3536,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
         "war_weariness", "stalemate_duration",
-        "threat_modifier", "deal_balance", "diplomat_skill_bonus",
+        "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
         "grievance_modifier",
@@ -6385,7 +6385,6 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "relation_modifier": "Current relations",
                 "war_weariness": "Exhaustion from prolonged conflict",
                 "stalemate_duration": "Stalemate weariness",
-                "threat_modifier": "Fear of French expansion",
                 "coalition_penalty": "Coalition loyalty binds them",
                 "hegemony_target_mod": "Hegemon bloc pressure",
                 "bilateral_betrayal_mod": "Remembered betrayals",

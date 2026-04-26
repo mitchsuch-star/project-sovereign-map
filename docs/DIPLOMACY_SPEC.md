@@ -702,7 +702,7 @@ States between each nation pair, from most hostile to most friendly. **Hostility
 
 ### 5b. Transition Rules
 
-Transitions must follow adjacency — no jumping from WAR to ALLIANCE:
+The guided diplomacy UI presents adjacent upgrades, but the engine supports non-adjacent upward jumps with cumulative DP cost per R98. Downgrades still follow reverse adjacency one step at a time unless a domain-specific rule says otherwise. Direct `WAR` → `ALLIANCE` is valid only through explicit ratification effects that own their side effects, such as `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` `forced_alliance`.
 
 ```
 UPGRADE PATH (left to right):
@@ -2595,7 +2595,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - **Map:** 19 regions created, adjacency bidirectional, all nations assigned correct starting regions
 - **Marshals:** New marshals created, starting positions correct, stats reasonable
 - **Economy:** Income calculations correct for 5 nations, manpower pools initialized
-- **Diplomatic states:** Transition validation (can't jump WAR→ALLIANCE), adjacency enforced
+- **Diplomatic states:** Transition validation supports R98 upward jumps with cumulative DP; guided UI remains adjacency-first; downgrades enforce reverse adjacency
 - **Acceptance formula:** Component calculation, worked examples match, threshold behavior
 - **War score:** Territory + battles + casualties
 - **DP:** Generation, spending, floor at 1, authority bonus, capital loss penalty

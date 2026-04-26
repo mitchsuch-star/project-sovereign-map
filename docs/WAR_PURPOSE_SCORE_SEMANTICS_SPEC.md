@@ -134,6 +134,8 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
 3. Player may set an objective at any time during the war via "set war purpose [Conquest/Subjugation/Forced Alliance] against [nation]" command
 4. Setting an objective costs 0 AP (it is a political declaration, not an action). Can only be set once per war — changing mid-war is not allowed in v0.1.
 
+**Action-wiring trace:** `set_war_purpose` follows CLAUDE.md "Adding a New Action": add to `VALID_ACTIONS`, parser valid-actions, `_action_costs` in `world_state.py` (0 AP), mock parser keywords (`set war purpose`, `war purpose`), `ACTION_DISPLAY`, and campaign-log type `war_objective_declared`.
+
 ### 6.3 Objective validation
 
 **Conquest:**
@@ -181,7 +183,7 @@ world.war_objectives[diplo_key] = {
         "type": "defense",
         "declaring_nation": "Prussia",
         "target_nation": "France",
-        "target_regions": ["Berlin"],
+        "target_regions": ["Berlin", "Rhineland"],
         "accumulated_ticking": 0,
         "created_turn": 5,
         "ticking_active": False,
@@ -189,6 +191,8 @@ world.war_objectives[diplo_key] = {
     },
 }
 ```
+
+**Defense target_regions** includes all regions whose `starting_controller` matches the defending nation at war-declaration time — not just the capital.
 
 Each side of the war may have its own objective. France may have `conquest` while Prussia has `defense`. Both accumulate ticking independently toward the same war's score.
 
@@ -221,7 +225,7 @@ elif objective.type == "forced_alliance":
 elif objective.type == "defense":
     for region in target_regions:
         if world.regions[region].controller != declaring_nation:
-            # enemy holds our region — tick
+            # enemy or third party holds our region — tick
             objective["accumulated_ticking"] += 1
 elif objective.type == "liberation":
     for capital in vassal_capitals:
@@ -234,6 +238,8 @@ objective["ticking_active"] = (objective["accumulated_ticking"] > 0)
 ```
 
 **Direction convention:** Ticking always contributes positively to the declaring nation's war score. For Defense objectives where the enemy holds regions, the ticking represents the defender's mounting political pressure to reclaim territory — it adds to the *defender's* score (which subtracts from France's war_score since the formula is relative).
+
+**Defense controller convention:** In v0.1, defense ticking fires whenever a target region's controller is not the defending nation, regardless of which nation currently holds it. Third-party occupation is rare on the current map. A future generalization may restrict this to the specific war opponent if multi-party occupation becomes common.
 
 ### 7.3 Ticking contribution to war score
 
@@ -315,6 +321,20 @@ Territory cessions in a peace deal change the power calculation. If France deman
 
 Implementation: evaluate power cap after applying all territory-transfer clauses in the same package, before evaluating the vassalage clause.
 
+Use a pure projection helper for preview and ratification validation:
+
+```python
+project_power_after_terms(world, terms, proposer, target) -> dict[str, int]
+```
+
+Rules:
+
+1. Build a local `projected_controller_by_region` map from the current world state; do not mutate `WorldState`.
+2. Apply only valid same-package territory-transfer clauses in proposal order. Invalid region names, duplicate transfers, or transfers from a nation that no longer controls the region are ignored by the projection and handled by normal treaty validation.
+3. Compute projected national power from the projected controller map plus the existing naval-income and vassal-contribution rules in §8.1.
+4. Use the same helper for treaty preview and final ratification validation so a saved or delayed proposal cannot pass with stale pre-cession power.
+5. Vassalage-cap validation reads the projected values for France and the target after cession terms, before the vassalage clause itself changes subject status.
+
 ### 8.5 Starting power values (19-region map)
 
 | Nation | Controlled Regions | Base Income Sum | Power |
@@ -361,6 +381,8 @@ Add a new treaty clause type: `forced_alliance`
 }
 ```
 
+Validity: if the target is already at `ALLIANCE` with France, the `forced_alliance` clause is invalid and greyed out in the proposal wizard. The clause imposes alliance on an enemy; it does not reinforce or re-label an existing voluntary alliance.
+
 ### 9.2 Mechanical effect
 
 On treaty ratification containing `forced_alliance`:
@@ -398,12 +420,21 @@ If France declared a different objective (Conquest, Subjugation), forced allianc
 
 A forced alliance is mechanically identical to a voluntary alliance after ratification, with two differences:
 
-1. **Origin tag:** `world.alliance_origins[diplo_key] = "forced"` on ratification. Voluntary alliances either omit the key or store `"voluntary"`. This tag is informational and does not change mechanics in v0.1, but future systems (nation agendas, AI resentment) may read it.
+1. **Origin tag:** `world.alliance_origins[diplo_key] = "forced"` on ratification. Voluntary alliances either omit the key or store `"voluntary"`. In v0.1 the tag drives only the forced-alliance drift below; future systems (nation agendas, AI resentment) may read it.
 2. **Automatic downgrade pressure:** Forced alliances apply an extra -10/turn to the relation between the two nations (on top of any existing drift). This means forced alliances naturally decay toward the -30-below-threshold auto-downgrade within ~5-8 turns unless France actively maintains the relationship. Historically accurate — Napoleon's forced alliances (Tilsit, Pressburg) eroded rapidly once French military pressure waned.
+
+Lifecycle rules for `alliance_origins`:
+
+- Set `alliance_origins[diplo_key] = "forced"` only when a `forced_alliance` clause ratifies.
+- Set `"voluntary"` only when an ordinary alliance treaty ratifies without a forced-alliance clause.
+- Clear the key when the diplomatic state drops below `ALLIANCE`, the pair enters `WAR`, or a vassal relationship supersedes the alliance.
+- Apply the -10/turn forced-alliance drift only while the current state is `ALLIANCE` and `alliance_origins[diplo_key] == "forced"`.
 
 ### 9.6 Forced alliance and threat
 
 Forcing alliance generates threat: +15 (between treaty vassalage at +5 and conquest vassalage at +25 — courts view forced alignment as more alarming than a willing client state but less than outright conquest).
+
+Authoritative threat source: `COALITION_SPEC.md` §2a row `Force alliance in peace deal`. This is a coalition threat source only; it does not create a standalone acceptance `threat_modifier`.
 
 ### 9.7 Forced alliance and coalitions
 
@@ -584,7 +615,12 @@ Ticking accumulation runs after war score recalculation (step 4 in DIPLOMACY_SPE
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 ```
 
-Forced alliance auto-downgrade pressure (§9.5) runs during the automatic downgrade check (step 13).
+Forced alliance auto-downgrade pressure (§9.5) runs before the automatic downgrade threshold check. Insert it as step 12a:
+
+```
+12a. Forced-alliance relation drift — for each `diplo_key` where current state is ALLIANCE and alliance_origins[diplo_key] == "forced", apply -10 relation drift.
+13.  Automatic downgrade check — reads the post-drift relation and may downgrade if the pair has stayed 30+ below threshold for 5 turns.
+```
 
 ### 12.5 War objective cleanup
 
@@ -593,6 +629,11 @@ When a war ends (peace ratified or transition out of WAR):
 - The war objective record is preserved in `war_objectives` with a `"concluded_turn"` field added
 - Concluded objectives do not tick
 - Records are cleaned up after 10 turns (historical reference only, not mechanically active)
+
+When a forced alliance later breaks:
+
+- Clear `alliance_origins[diplo_key]` when the state drops below `ALLIANCE`, the pair enters `WAR`, or the relationship becomes `VASSAL`.
+- If the same pair later ratifies a voluntary alliance, write `"voluntary"` and do not apply forced-alliance drift.
 
 When an armistice begins:
 
@@ -740,6 +781,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Ticking pause during armistice
 - Objective cleanup on war end
 - Campaign log events for objective declaration and ticking start
+- Wire `set_war_purpose` per CLAUDE.md "Adding a New Action": `VALID_ACTIONS` in `validation.py`, parser valid-actions, `_action_costs` in `world_state.py` (0 AP), mock parser keywords (`set war purpose`, `war purpose`), `ACTION_DISPLAY`, and campaign-log type `war_objective_declared`
 - Tests: objective creation, validation, ticking accumulation, armistice pause, war score integration, serialization round-trip
 
 ### Slice WPS-B: Vassalage power cap (~15 tests)
@@ -749,6 +791,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Hard gate on conquest-vassalage in capture flow
 - Subjugation objective validation against power cap
 - Post-cession power evaluation for treaty packages containing territory + vassalage
+- Implement pure `project_power_after_terms(world, terms, proposer, target)` projection for preview and ratification validation; do not mutate `WorldState` during preview
 - Power cap display in wizard and War Purpose popup
 - Update starting power values documentation
 - Tests: power calculation, cap enforcement (treaty + conquest), post-cession evaluation, edge cases (vassal contribution, naval income)
@@ -760,12 +803,14 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Ratification: state jump to ALLIANCE + Continental System
 - Relation reset to 0 on forced alliance
 - Forced alliance origin tag (`alliance_origins`)
+- `alliance_origins` lifecycle cleanup when alliance breaks, war resumes, or voluntary alliance replaces the forced origin
 - Auto-downgrade pressure (-10/turn relation drift)
-- Threat generation (+15)
+- Threat generation (+15) through `COALITION_SPEC.md` §2a; no acceptance `threat_modifier`
 - Add `liberation` clause type
 - Liberation settlement mechanics (release_vassal + DEFENSIVE_ALLIANCE with liberator)
 - Liberation objective and ticking
 - Coalition liberation and separate peace interaction
+- Wire `forced_alliance` and `liberation` through the treaty pipeline: `_ratify_treaty()` handlers in `diplomacy.py`, harshness weights in `calculate_treaty_harshness()` / `diplomatic_templates.py`, `CLAUSE_DISPLAY` entries in `display_names.py`, `SWEETENER_VALUES` / `DEMAND_VALUES` entries in `diplomacy.py` (`forced_alliance: -20`, `liberation: -15`), and AI clause generation in `ai_diplomacy.py` (AI does not propose `forced_alliance` in v0.1; AI may propose `liberation` in coalition wars)
 - Tests: forced alliance ratification, acceptance formula, origin tracking, auto-downgrade, liberation release, coalition interaction, threat
 
 ### Slice WPS-D: War score legibility + AI + surface polish (~18 tests)
