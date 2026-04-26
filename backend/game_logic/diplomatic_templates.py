@@ -2006,6 +2006,10 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.3 * len(clause.get("regions", []))
         elif ctype == "manpower_per_turn":
             harshness += 0.15
+        elif ctype == "forced_alliance":
+            harshness += 0.4
+        elif ctype == "liberation":
+            harshness += 0.3
     # PL-12-B: Include demands in harshness calculation
     for demand in treaty.get("demands", []):
         if not isinstance(demand, dict):

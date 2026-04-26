@@ -876,7 +876,12 @@ def get_vassal_warnings(world) -> List[dict]:
 # RELEASE VASSAL
 # ═══════════════════════════════════════════════════════
 
-def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
+def release_vassal(
+    world,
+    vassal_name: str,
+    rebellion: bool = False,
+    reduce_threat_on_release: bool = True,
+) -> dict:
     """
     Release a vassal. Restores their marshals.
 
@@ -938,7 +943,7 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
     else:
         set_diplomatic_state(world, lord, vassal_name, "PEACE", "vassal_release")
         # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)
-        if lord == getattr(world, 'player_nation', 'France'):
+        if reduce_threat_on_release and lord == getattr(world, 'player_nation', 'France'):
             from backend.game_logic.coalition import reduce_threat
             reduce_threat(world, 8, "voluntary_vassal_release")
 

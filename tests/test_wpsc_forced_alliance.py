@@ -43,6 +43,41 @@ def _make_peace_proposal_with_forced_alliance(proposer, target, war_score_mod=0)
     }
 
 
+def _make_liberation_proposal():
+    return {
+        "type": "peace",
+        "proposer_nation": "Austria",
+        "target_nation": "France",
+        "sweeteners": [],
+        "demands": [
+            {"type": "liberation", "value": 1,
+             "vassal_nation": "Saxony", "lord_nation": "France",
+             "liberator": "Austria"},
+        ],
+        "clauses": [],
+    }
+
+
+def _make_liberation_world():
+    world = _make_world()
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    set_diplomatic_state(world, "France", "Saxony", "WAR", "test")
+    world.war_start_turns[world._make_diplo_key("France", "Saxony")] = 1
+    world.vassals["Saxony"] = {
+        "lord": "France",
+        "loyalty": 60,
+        "autonomy": "satellite",
+        "path": "treaty",
+        "created_turn": 1,
+        "tribute_rate": 0.3,
+        "carved_from": None,
+        "regions": None,
+    }
+    set_diplomatic_state(world, "France", "Saxony", "VASSAL", "test")
+    _put_at_war(world, "France", "Austria", war_score=-40)
+    return world
+
+
 # ═══════════════════════════════════════════════════════
 # ACCEPTANCE FORMULA
 # ═══════════════════════════════════════════════════════
@@ -243,6 +278,55 @@ class TestForcedAllianceRatification:
         assert fa_events[0]["imposer"] == "France"
         assert fa_events[0]["target"] == "Prussia"
 
+    def test_existing_continental_system_membership_not_duplicated(self):
+        """Forced alliance does not duplicate an existing Continental System member."""
+        world = _make_world()
+        _put_at_war(world, "France", "Prussia", war_score=80)
+        world.continental_system_members = ["Prussia"]
+
+        world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [{"type": "forced_alliance", "value": 1}],
+            "clauses": [],
+        })
+
+        assert world.continental_system_members.count("Prussia") == 1
+
+    def test_multiple_forced_alliance_clauses_process_independently(self):
+        """Multiple forced-alliance clauses in one treaty each apply to their own pair."""
+        world = _make_world()
+        _put_at_war(world, "France", "Prussia", war_score=80)
+        _put_at_war(world, "France", "Austria", war_score=80)
+        austria_key = world._make_diplo_key("France", "Austria")
+        before_threat = int(world.threat_level)
+
+        world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [
+                {"type": "forced_alliance", "value": 1},
+                {"type": "forced_alliance", "value": 1,
+                 "from_nation": "Austria", "to_nation": "France"},
+            ],
+            "clauses": [],
+        })
+
+        assert world.get_diplomatic_state("France", "Prussia") == "ALLIANCE"
+        assert world.get_diplomatic_state("France", "Austria") == "ALLIANCE"
+        assert world.alliance_origins[world._make_diplo_key("France", "Prussia")] == "forced"
+        assert world.alliance_origins[austria_key] == "forced"
+        assert "Prussia" in world.continental_system_members
+        assert "Austria" in world.continental_system_members
+        assert austria_key not in world.war_scores
+        assert world.threat_level == before_threat + 30
+        fa_events = [e for e in world.event_log if e.get("type") == "forced_alliance_imposed"]
+        assert len(fa_events) == 2
+
 
 # ═══════════════════════════════════════════════════════
 # FORCED ALLIANCE DRIFT
@@ -299,6 +383,22 @@ class TestForcedAllianceDrift:
 
         assert diplo_key not in world.alliance_origins
 
+    def test_multiple_forced_alliances_drift_simultaneously(self):
+        """Drift processes each forced alliance origin independently."""
+        from backend.game_logic.diplomacy import _process_forced_alliance_drift
+        world = _make_world()
+        prussia_key = world._make_diplo_key("France", "Prussia")
+        austria_key = world._make_diplo_key("France", "Austria")
+        for diplo_key in (prussia_key, austria_key):
+            world.diplomatic_states[diplo_key] = "ALLIANCE"
+            world.alliance_origins[diplo_key] = "forced"
+            world.nation_relations[diplo_key] = 0
+
+        _process_forced_alliance_drift(world)
+
+        assert world.nation_relations[prussia_key] == -10
+        assert world.nation_relations[austria_key] == -10
+
 
 # ═══════════════════════════════════════════════════════
 # LIBERATION
@@ -306,27 +406,7 @@ class TestForcedAllianceDrift:
 
 class TestLiberationRatification:
     def _make_vassal_world(self):
-        world = _make_world()
-        from backend.game_logic.vassal import create_vassal_treaty
-        # Put Saxony as vassal of France
-        from backend.game_logic.diplomacy import set_diplomatic_state
-        set_diplomatic_state(world, "France", "Saxony", "WAR", "test")
-        world.war_start_turns[world._make_diplo_key("France", "Saxony")] = 1
-        # Direct vassal creation
-        world.vassals["Saxony"] = {
-            "lord": "France",
-            "loyalty": 60,
-            "autonomy": "satellite",
-            "path": "treaty",
-            "created_turn": 1,
-            "tribute_rate": 0.3,
-            "carved_from": None,
-            "regions": None,
-        }
-        set_diplomatic_state(world, "France", "Saxony", "VASSAL", "test")
-        # Put Austria at war with France (coalition leader)
-        _put_at_war(world, "France", "Austria", war_score=-40)
-        return world
+        return _make_liberation_world()
 
     def test_liberation_releases_vassal(self):
         """Liberation clause releases the vassal."""
@@ -411,7 +491,19 @@ class TestLiberationRatification:
             "clauses": [],
         })
 
-        assert world.threat_level <= before - 8
+        assert world.threat_level == before - 8
+
+    def test_liberation_emits_campaign_log_event(self):
+        """Liberation ratification emits a vassal_liberated event."""
+        world = self._make_vassal_world()
+
+        world._ratify_treaty(_make_liberation_proposal())
+
+        events = [e for e in world.event_log if e.get("type") == "vassal_liberated"]
+        assert len(events) == 1
+        assert events[0]["vassal_nation"] == "Saxony"
+        assert events[0]["former_lord"] == "France"
+        assert events[0]["liberator_nation"] == "Austria"
 
 
 # ═══════════════════════════════════════════════════════
@@ -463,6 +555,17 @@ class TestCampaignLogAndHarshness:
         assert "France" in line
         assert "alliance" in line.lower()
 
+    def test_forced_alliance_oneliner_accepts_spec_fields(self):
+        from backend.campaign_log import format_event_oneliner
+        event = {
+            "type": "forced_alliance_imposed",
+            "imposing_nation": "France",
+            "forced_nation": "Prussia",
+        }
+        line = format_event_oneliner(event)
+        assert "Prussia" in line
+        assert "France" in line
+
     def test_liberation_oneliner(self):
         from backend.campaign_log import format_event_oneliner
         event = {"type": "vassal_liberated", "vassal_nation": "Saxony", "liberator": "Austria"}
@@ -470,15 +573,58 @@ class TestCampaignLogAndHarshness:
         assert "Saxony" in line
         assert "Austria" in line
 
+    def test_liberation_oneliner_accepts_spec_fields(self):
+        from backend.campaign_log import format_event_oneliner
+        event = {
+            "type": "vassal_liberated",
+            "vassal_nation": "Saxony",
+            "former_lord": "France",
+            "liberator_nation": "Austria",
+        }
+        line = format_event_oneliner(event)
+        assert "Saxony" in line
+        assert "France" in line
+        assert "Austria" in line
+
     def test_harshness_forced_alliance(self):
         from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
         h = calculate_treaty_harshness({"demands": [{"type": "forced_alliance", "value": 1}]})
+        assert h >= 0.4
+
+    def test_harshness_forced_alliance_clause(self):
+        from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+        h = calculate_treaty_harshness({"clauses": [{"type": "forced_alliance", "amount": 1}]})
         assert h >= 0.4
 
     def test_harshness_liberation(self):
         from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
         h = calculate_treaty_harshness({"demands": [{"type": "liberation", "value": 1}]})
         assert h >= 0.3
+
+    def test_harshness_liberation_clause(self):
+        from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+        h = calculate_treaty_harshness({"clauses": [{"type": "liberation", "amount": 1}]})
+        assert h >= 0.3
+
+    def test_ratified_forced_alliance_stores_harshness(self):
+        world = _make_world()
+        _put_at_war(world, "France", "Prussia", war_score=80)
+        world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [{"type": "forced_alliance", "value": 1}],
+            "clauses": [],
+        })
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        assert world.active_treaties[diplo_key]["harshness"] >= 0.4
+
+    def test_ratified_liberation_stores_harshness(self):
+        world = _make_liberation_world()
+        world._ratify_treaty(_make_liberation_proposal())
+        diplo_key = world._make_diplo_key("Austria", "France")
+        assert world.active_treaties[diplo_key]["harshness"] >= 0.3
 
     def test_demand_values_registered(self):
         """forced_alliance and liberation are in DEMAND_VALUES."""

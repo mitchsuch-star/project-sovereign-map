@@ -360,8 +360,14 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         if event_type in ("forced_alliance_imposed", "vassal_liberated"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             visible = False
-            for nation_field in ("imposer", "target", "vassal_nation", "liberator"):
+            for nation_field in (
+                "imposer", "target", "imposing_nation", "forced_nation",
+                "vassal_nation", "former_lord", "liberator", "liberator_nation",
+            ):
                 n = event.get(nation_field, "")
+                if n == player_nation:
+                    visible = True
+                    break
                 if n and _get_nation_visibility(n, world_state) in (FULL, PARTIAL):
                     visible = True
                     break
@@ -799,13 +805,16 @@ def format_event_oneliner(event: dict) -> str:
         return f"{declaring} holds {region} — ticking war score (+{rate}/turn)"
 
     if event_type == "forced_alliance_imposed":
-        imposer = event.get("imposer", "Unknown")
-        target = event.get("target", "Unknown")
+        imposer = event.get("imposing_nation") or event.get("imposer", "Unknown")
+        target = event.get("forced_nation") or event.get("target", "Unknown")
         return f"Forced alliance: {target} enters alliance with {imposer} under duress"
 
     if event_type == "vassal_liberated":
         vassal = event.get("vassal_nation", "Unknown")
-        liberator = event.get("liberator", "Unknown")
+        former_lord = event.get("former_lord", "")
+        liberator = event.get("liberator_nation") or event.get("liberator", "Unknown")
+        if former_lord:
+            return f"Liberation: {vassal} freed from {former_lord} by {liberator}"
         return f"Liberation: {vassal} freed from vassalage by {liberator}"
 
     if event_type == "diplomatic_vassal_rebellion":
