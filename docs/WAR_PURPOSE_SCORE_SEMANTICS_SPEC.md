@@ -163,18 +163,30 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
 
 ### 6.4 Objective persistence
 
-Objectives are stored on the war, not on the nation:
+Objectives are stored under the war's canonical `diplo_key`, then under the declaring nation. This keeps one war record while allowing both sides to maintain separate objectives:
 
 ```python
 world.war_objectives[diplo_key] = {
-    "type": "conquest",              # conquest | subjugation | forced_alliance | defense | liberation
-    "declaring_nation": "France",
-    "target_nation": "Prussia",
-    "target_regions": ["Berlin"],     # ticking target(s)
-    "accumulated_ticking": 0,
-    "created_turn": 5,
-    "ticking_active": False,          # True once target region is held
-    "objective_met_turn": None,       # turn when ticking cap reached (informational)
+    "France": {
+        "type": "conquest",              # conquest | subjugation | forced_alliance | defense | liberation
+        "declaring_nation": "France",
+        "target_nation": "Prussia",
+        "target_regions": ["Berlin"],     # ticking target(s)
+        "accumulated_ticking": 0,
+        "created_turn": 5,
+        "ticking_active": False,          # True once target region is held
+        "objective_met_turn": None,       # turn when ticking cap reached (informational)
+    },
+    "Prussia": {
+        "type": "defense",
+        "declaring_nation": "Prussia",
+        "target_nation": "France",
+        "target_regions": ["Berlin"],
+        "accumulated_ticking": 0,
+        "created_turn": 5,
+        "ticking_active": False,
+        "objective_met_turn": None,
+    },
 }
 ```
 
@@ -228,8 +240,9 @@ objective["ticking_active"] = (objective["accumulated_ticking"] > 0)
 The ticking component is the declaring nation's accumulated ticking minus the opposing nation's accumulated ticking:
 
 ```python
-ticking_a = war_objectives.get(diplo_key_a, {}).get("accumulated_ticking", 0)
-ticking_b = war_objectives.get(diplo_key_b, {}).get("accumulated_ticking", 0)
+war_obj = war_objectives.get(diplo_key, {})
+ticking_a = war_obj.get(nation_a, {}).get("accumulated_ticking", 0)
+ticking_b = war_obj.get(nation_b, {}).get("accumulated_ticking", 0)
 ticking_score = ticking_a - ticking_b  # clamped by total war_score ±100 cap
 ```
 
@@ -385,7 +398,7 @@ If France declared a different objective (Conquest, Subjugation), forced allianc
 
 A forced alliance is mechanically identical to a voluntary alliance after ratification, with two differences:
 
-1. **Origin tag:** `alliance_origin: "forced"` on the diplomatic state. This tag is informational and does not change mechanics in v0.1, but future systems (nation agendas, AI resentment) may read it.
+1. **Origin tag:** `world.alliance_origins[diplo_key] = "forced"` on ratification. Voluntary alliances either omit the key or store `"voluntary"`. This tag is informational and does not change mechanics in v0.1, but future systems (nation agendas, AI resentment) may read it.
 2. **Automatic downgrade pressure:** Forced alliances apply an extra -10/turn to the relation between the two nations (on top of any existing drift). This means forced alliances naturally decay toward the -30-below-threshold auto-downgrade within ~5-8 turns unless France actively maintains the relationship. Historically accurate — Napoleon's forced alliances (Tilsit, Pressburg) eroded rapidly once French military pressure waned.
 
 ### 9.6 Forced alliance and threat
@@ -528,12 +541,13 @@ This warning integrates with the existing structured warnings system and the BIL
 ### 12.1 New WorldState fields
 
 ```python
-# War objectives — keyed by diplo_key (same key as war_scores)
-self.war_objectives: Dict[str, Dict] = {}
+# War objectives — keyed by diplo_key, then by declaring_nation.
+# war_objectives[diplo_key][declaring_nation] = objective record
+self.war_objectives: Dict[str, Dict[str, Dict]] = {}
 
 # Forced alliance origin tracking
-# Stored as metadata on diplomatic_states, not a separate dict
-# alliance_origins: Dict[str, str] = {}  # diplo_key -> "forced" | "voluntary"
+# Separate WorldState field keyed by diplo_key.
+# alliance_origins[diplo_key] -> "forced" | "voluntary"
 self.alliance_origins: Dict[str, str] = {}
 ```
 
@@ -691,10 +705,12 @@ Extends BILATERAL_PEACE_HARDENING_SPEC §8.1 `war_context_snapshot` with:
 
 New campaign log event types:
 
-- `war_objective_declared` — "France declares Conquest objective against Prussia (target: Berlin)"
-- `war_objective_ticking_started` — "France holds Berlin — ticking war score accumulating"
-- `forced_alliance_imposed` — "Treaty of Berlin forces Prussia into alliance with France"
-- `vassal_liberated` — "Saxony liberated from French vassalage by Austrian-led coalition"
+| Event | Payload shape | One-liner template | Fog rule |
+|-------|---------------|--------------------|----------|
+| `war_objective_declared` | `{type, declaring_nation, target_nation, target_regions, turn}` | "{declaring_nation} declares {type} against {target_nation} (target: {target_regions})" | Public to all known courts. |
+| `war_objective_ticking_started` | `{type, declaring_nation, target_region, accumulated_ticking, rate, turn}` | "{declaring_nation} holds {target_region} — ticking war score accumulating (+{rate}/turn)" | Visible to nations at war with `declaring_nation` and their allies. |
+| `forced_alliance_imposed` | `{forced_nation, imposing_nation, treaty_location, includes_continental_system, turn}` | "Treaty of {treaty_location} forces {forced_nation} into alliance with {imposing_nation}" | Public to all known courts. |
+| `vassal_liberated` | `{vassal_nation, former_lord, liberator_nation, turn}` | "{vassal_nation} liberated from {former_lord} by {liberator_nation}-led coalition" | Public to all known courts. |
 
 Added to `CAMPAIGN_LOG_TYPES` in `campaign_log.py`.
 
@@ -706,6 +722,8 @@ Morning Dispatch includes:
 - "Settlement outlook: Dictated Terms (+52). Forced alliance achievable at +60."
 - On forced alliance ratification: "The Treaty of [location] — Prussia enters forced alliance with France."
 - On liberation: "Saxony has been liberated. Austria assumes defensive alliance with the former vassal."
+
+Dispatch items use the same payload sources and fog rules as the campaign-log events in §14.4. If a court cannot see the underlying event, it does not receive the dispatch line.
 
 ---
 

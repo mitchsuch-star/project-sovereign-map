@@ -1003,7 +1003,7 @@ Tighten the existing `reliability_modifier` to the `RELIABILITY_COMMITMENTS_SPEC
 
 This is unchanged from v2.3 §B1 spec.
 
-When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` joins as a positive contribution; no composite floor will be needed because the additive terms remain bounded.
+When `WAR_BARGAIN_SPEC` ships, `bargain_value_mod` and `bargain_conflict_penalty` join the political subtotal before the existing `-60` composite floor. The floor remains required while `grievance_modifier` is live; WB extends the subtotal, it does not remove the clamp.
 
 ### 9.5 Gameplay scaling — France's alliance-building capacity
 
@@ -1506,7 +1506,7 @@ For Memory and Pressure v2.4:
 
 - **Keep all shipped substrate** — global reliability, bilateral betrayal memory, episode_id threading, witness scoping, hard-reject posture, structured warnings, cascade metadata. Nothing comes out.
 - **Add the hegemony engine** (§7) — `_calculate_hegemony_pressure(world)`, `get_bloc_members`, `power_score`. Three pure helpers, ~60 LOC. Wires into existing `coalition.py` threat ladder via `add_threat()`.
-- **Collapse the acceptance formula** (§9) — `hegemony_target_mod` (single negative term reading bloc geometry) + simplified `bilateral_betrayal_mod = -6 * strikes`. No composite floor needed.
+- **Collapse the acceptance formula** (§9) — `hegemony_target_mod` (single negative term reading bloc geometry) + simplified `bilateral_betrayal_mod = -6 * strikes`; once DG-4's `grievance_modifier` is live, apply the `-60` composite floor described in §9.3.
 - **Add the Balance of Europe headline** (§11.1) — three dynamically composed lines at the top of the Diplomatic Ledger naming the hegemon, share, and coalition leader.
 - **Rename `alliance_paradox` → `commitment_paradox`** (B-B3, unchanged from v2.3).
 - **Ship Make Amends** (B-B7, unchanged from v2.1/v2.3) — France's deliberate repair gesture.

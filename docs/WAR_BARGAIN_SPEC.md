@@ -803,9 +803,9 @@ Bilateral peace hardening must land first so peace with the named enemy can prev
 
 If bargain validation hard-codes coalition overlap as "anti-France only," later coalition generalization becomes much harder. **Mitigation:** keep helpers parameterized; do not create parallel `war_bloc` / `opposition_graph` stores until the generalization spec asks for them.
 
-### R6. DIPLOMACY_SPEC armistice duration contradiction
+### R6. Armistice duration dependency resolved
 
-`DIPLOMACY_SPEC.md` is internally inconsistent on armistice minimum duration: §5a/§5b.2/§7d say 5 turns, but the turn-order processing (line ~1321), EC-Z, and the design decisions table say 3 turns. The zombie-bargain void clock depends on knowing when ARMISTICE represents a genuine ceasefire. **Mitigation:** resolve the DIPLOMACY_SPEC contradiction before this spec's implementation begins. This spec's zombie clock is agnostic to armistice minimum duration — it counts any turn at ARMISTICE or higher regardless.
+`DIPLOMACY_SPEC.md` previously had stale 3-turn armistice references. `PEACE_DEALS_UMBRELLA_SPEC.md` §4.1 canonizes **5 turns**, matching live code, and the active DIPLOMACY_SPEC references have been corrected. The zombie-bargain void clock is agnostic to the minimum duration — it counts any turn at ARMISTICE or higher — but implementation should assume the canonical 5-turn armistice window.
 
 ### R7. Dual acceptance formula maintenance
 

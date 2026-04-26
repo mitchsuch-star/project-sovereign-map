@@ -62,7 +62,7 @@ The ARMISTICE → PEACE upgrade is a standard state transition, but it represent
 
 - No common peace, allied settlement, or conference-style spoils. Those belong to `Ally Participation + Common Peace` (queue item 4).
 - No war objectives or ticking war score. Those belong to `War Purpose + Score Semantics` (queue item 3).
-- No new acceptance formula components. The existing formula plus Memory and Pressure's `political_commitment_mod` is sufficient for bilateral peace.
+- No new acceptance formula components. The existing formula, including the v2.4.3 political subtotal (`hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier`, clamped by the `-60` composite floor), is sufficient for bilateral peace.
 - No ally beneficiaries on peace terms. Territory transfers in bilateral peace go to/from the two negotiating nations only.
 - No new diplomatic actions or verbs. This spec makes the existing peace flow legible, not broader.
 - No war-bargain lifecycle rules — this spec creates the warning surface; WAR_BARGAIN_SPEC owns the bargain state machine.
@@ -116,7 +116,7 @@ This spec builds on shipped infrastructure:
 - `structured warnings[]` payload contract from Memory and Pressure — peace warnings use the same shape
 - `commitment_paradox` machinery — peace proposals that create paradox conditions trigger the existing hard-stop
 - `betrayal_history` / `bilateral_betrayal_mod` — visible in peace preview as context for why terms are harsh
-- `nation_rivalries` — visible in peace preview as context for third-party political cost
+- hegemony pressure / bloc geometry (`RELIABILITY_COMMITMENTS_SPEC.md` §7) — derived opposition signals visible in peace preview as context for third-party political cost
 - `calculate_acceptance()` — unchanged; peace preview shows the formula breakdown per DIPLOMACY_SPEC §6f
 - `build_base_response()` — peace ratification summary rides the existing popup/passthrough architecture
 
@@ -216,6 +216,8 @@ When the player opens a peace proposal (WAR/ARMISTICE → less hostile state), t
 ```
 
 The snapshot is frozen at proposal-construction time and does not update if game state changes before the player sends. This prevents the player from gaming the preview by modifying state mid-composition.
+
+**WPS extension:** When `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` lands, this snapshot gains optional `war_objective`, `settlement_tier`, and ticking-score fields per WPS §14.3. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
 
 ### 8.2 Peace preview content
 
@@ -335,8 +337,8 @@ This section defines the interface that WAR_BARGAIN_SPEC §10.2 and future commi
 
 v0.1 of this spec ships the plumbing with **two live conflict types** that exist today:
 
-1. **Paradox conflict** — if making peace with Nation X while allied with a rival of Nation X would create a `commitment_paradox` condition
-2. **Rivalry conflict** — if making peace with Nation X is an active rival of France, surface the political context (not a hard block, but a salient warning)
+1. **Paradox conflict** — if making peace with Nation X while allied with a nation that has an active military or commitment conflict against Nation X would create a `commitment_paradox` condition
+2. **Bloc-opposition conflict** — if making peace with Nation X while France and X sit on opposing sides of the hegemony/bloc geometry defined in `RELIABILITY_COMMITMENTS_SPEC.md` §7, and the bloc-share divergence exceeds the 30% threshold that activates `hegemony_target_mod`, surface the political context. This is derived from `_identify_max_bloc_share(world)` and bloc-membership checks, not from a stored rivalry table. It is an INFO warning, not a hard block.
 
 ### 10.2 Future conflict types (reserved interface)
 
@@ -357,7 +359,7 @@ def get_peace_commitment_conflicts(
 
     Each warning:
     {
-        "conflict_type": str,      # "paradox" | "rivalry" | "bargain_breach" | ...
+        "conflict_type": str,      # "paradox" | "bloc_opposition" | "bargain_breach" | ...
         "severity": str,           # "INFO" | "WARNING" | "HARD_STOP"
         "affected_entity": str,    # nation, bargain id, etc.
         "display": str,            # human-readable warning
@@ -378,7 +380,7 @@ Warning priority order (highest first):
 2. Bargain breach (WARNING, reserved for WAR_BARGAIN_SPEC)
 3. Separate-peace ally fallout (WARNING)
 4. Strategic order cancellation (INFO)
-5. Rivalry context (INFO)
+5. Bloc-opposition context (INFO)
 
 Max 3 inline warnings in the preview; overflow behind "View all concerns" expander.
 
@@ -458,6 +460,8 @@ New campaign log event type: `peace_ratified`
 
 Added to `CAMPAIGN_LOG_TYPES` in `campaign_log.py`. One-liner format: "Peace with Prussia (French victory) — gained Rhineland, +500 gold."
 
+Fog rule: public to both nations in the peace and any allied witness of either party.
+
 ---
 
 ## 12. Armistice Hardening
@@ -474,11 +478,11 @@ An armistice is not peace — it is a ceasefire with an expiration. The current 
 
 **Armistice expiration warning** — 1 turn before armistice minimum expires, Morning Dispatch warns: "The armistice with [nation] expires next turn. Prepare for resumed hostilities or pursue peace."
 
-### 12.2 DIPLOMACY_SPEC armistice duration contradiction
+### 12.2 DIPLOMACY_SPEC armistice duration resolution
 
-DIPLOMACY_SPEC is internally inconsistent on armistice minimum duration: §5a/§5b.2/§7d say 5 turns, but the turn-order processing (line ~1321), EC-Z, and design decisions table say 3 turns. This spec does not resolve that contradiction — it must be resolved in DIPLOMACY_SPEC itself before implementation. This spec's armistice preview reads whatever `ARMISTICE_MIN_TURNS` constant the code uses.
+DIPLOMACY_SPEC was internally inconsistent on armistice minimum duration: §5a/§5b.2/§7d said 5 turns, while the turn-order processing, EC-Z, and design decisions table still said 3 turns. `PEACE_DEALS_UMBRELLA_SPEC.md` §4.1 resolves this: **5 turns is canonical** and matches live code in `_process_armistice_expiration()`. This spec's armistice preview reads the canonical 5-turn value.
 
-**Note:** WAR_BARGAIN_SPEC §R6 also flags this contradiction for its zombie-clock dependency. Both specs are agnostic to the resolution.
+**Note:** WAR_BARGAIN_SPEC §R6 now uses the same resolved 5-turn value for its zombie-clock dependency. Both specs read the canonical armistice duration from the shared diplomacy model.
 
 ---
 
@@ -509,9 +513,9 @@ No new AI decision logic. AI peace timing, war exhaustion thresholds, and accept
 
 ### 14.1 New fields
 
-No new WorldState fields. All peace preview data is computed on-the-fly from existing state and attached to proposal payloads as transient enrichment.
+This slice adds one persistent WorldState field. All other peace preview data is computed on-the-fly from existing state and attached to proposal payloads as transient enrichment.
 
-The one persistent addition:
+Persistent addition:
 
 - `peace_ratification_log: List[Dict]` — stores the last 5 peace ratification summaries for dispatch/ledger reference. Capped to prevent unbounded growth. Each entry is the `peace_ratification_summary` shape from §11.1.
 
@@ -633,4 +637,4 @@ If `War Purpose + Score Semantics` ships first, peace proposals should reference
 
 ## 19. Changelog
 
-- **April 16, 2026** — v1.0 drafted. Covers term ownership, peace preview panel, separate-peace fallout, commitment conflict plumbing, ratification summary, armistice hardening. ~65 tests across 4 slices. References WAR_BARGAIN_SPEC §2/§8.9.A/§10.2/R4 dependency. Notes DIPLOMACY_SPEC armistice duration contradiction (shared with WAR_BARGAIN_SPEC R6).
+- **April 16, 2026** — v1.0 drafted. Covers term ownership, peace preview panel, separate-peace fallout, commitment conflict plumbing, ratification summary, armistice hardening. ~65 tests across 4 slices. References WAR_BARGAIN_SPEC §2/§8.9.A/§10.2/R4 dependency. Originally noted the DIPLOMACY_SPEC armistice duration mismatch; this is now resolved to 5 turns by PEACE_DEALS_UMBRELLA_SPEC §4.1.

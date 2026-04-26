@@ -581,9 +581,9 @@ Promise breach:
 - France could have honored an explicit settlement-guarantee and chose not to
 - effect: route through the stronger reliability / betrayal pipeline from `RELIABILITY_COMMITMENTS_SPEC.md`
 
-### 14.3 Great power vs minor reaction
+### 14.3 Major power vs minor reaction
 
-Great powers:
+Major powers:
 
 - bigger anger when excluded
 - more likely to downgrade alignment or shift against France politically
@@ -835,6 +835,6 @@ For the first implementation pass **after commitments v0.1 is stable**:
 - keep separate peace in the existing bilateral diplomacy wizard
 - add common peace only when ally beneficiaries or promises matter, and route it through a dedicated wartime settlement flow rather than the normal nation proposal loop
 - add settlement grievance for shut-out allies
-- use great / secondary / minor power weighting as consultation weight, not free score; hardcoded tiers are acceptable at first
+- use major / secondary / minor power weighting as consultation weight, not free score; hardcoded tiers are acceptable at first
 
 This is enough to make allies visibly present in the political outcome of a war without turning the game into a full conference simulator. It is intentionally a later release, not part of the current commitments cut line.

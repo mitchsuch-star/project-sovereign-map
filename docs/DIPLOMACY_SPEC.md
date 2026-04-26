@@ -464,8 +464,8 @@ if abs(relation_modifier) > abs(all_others):
     hint = "Relations are the key obstacle" if negative else "Goodwill is our strongest asset"
 elif abs(war_score_modifier) > abs(all_others):
     hint = "Military position drives this negotiation"
-elif abs(threat_modifier) > abs(all_others):
-    hint = "Fear of French expansion is the barrier"
+elif abs(hegemony_target_mod) > abs(all_others):
+    hint = "Bloc pressure is the barrier"
 # ... etc for each component
 ```
 
@@ -867,10 +867,23 @@ Deterministic formula that decides whether a diplomatic proposal succeeds. LLM e
 acceptance_score = base_disposition
                  + war_score_modifier
                  + relation_modifier
-                 + threat_modifier
+                 + war_weariness
+                 + stalemate_duration
+                 + political_subtotal_clamped
                  + deal_balance           # sweetener (positive) + demands (negative)
                  + diplomat_skill_bonus
                  + personality_modifier
+                 + situational_bonus       # max(military_supremacy, battlefield_diplomacy, military_pressure)
+                 + special_desire_bonus
+                 + harshness_penalty
+                 + harshness_bonus
+                 + reliability_modifier
+                 + ultimatum_bonus
+
+political_subtotal_clamped = max(
+    -60,
+    hegemony_target_mod + bilateral_betrayal_mod + grievance_modifier
+)
 
 deal_balance = deal_sweetener + deal_demands
   (Sweetener: sum of positive modifiers from offered clauses, capped at +60.
@@ -882,6 +895,10 @@ Final score: acceptance_score = int(round(raw_score))
   (Golden Rule #2: all numbers to Godot must be int(). Round before truncating
    to avoid systematic bias — e.g., 49.7 rounds to 50, not truncates to 49.
    All components are summed as floats. Round ONCE after summing all components.)
+
+# Hard posture gates (`hard_reject_posture`, `oathbreaker_posture`, and
+# `anti_renewal_block`) are applied after the normal score is calculated.
+# They clamp deep treaty proposals when Memory and Pressure hard-stop rules require it.
 
 Threshold: acceptance_score >= 50 → ACCEPT
            acceptance_score 30-49 → COUNTER_OFFER (AI proposes modified terms)
@@ -935,14 +952,18 @@ Example: Relation +40 → +20 acceptance
 
 **R146 Sweetener cap:** Raised from +30 to +60 maximum from all sweetener clauses combined.
 
-**Threat Modifier (anti-France proposals only):**
+**Political Pressure Subtotal (Memory and Pressure v2.4.3):**
 ```
-When France proposes TO a hostile/neutral nation:
-  threat_level * -0.3  (high threat makes nations MORE resistant to French diplomacy)
+political_subtotal_raw = hegemony_target_mod + bilateral_betrayal_mod + grievance_modifier
+political_subtotal_clamped = max(-60, political_subtotal_raw)
+```
 
-When non-France nations propose AGAINST France:
-  threat_level * 0.2   (high threat makes anti-French proposals MORE attractive)
-```
+- `hegemony_target_mod`: cross-bloc friction from the hegemony engine, capped at `-20`.
+- `bilateral_betrayal_mod`: `-6` per active victim-side betrayal strike.
+- `grievance_modifier`: `-30` per active durable grievance, capped at 3 contributing grievances per pair.
+- `composite_floor`: synthetic debug row shown when the raw political subtotal is clamped to `-60`.
+
+Threat pressure is not a standalone acceptance component in live code. Coalition threat and hegemony pressure affect diplomacy through their owning systems and through `hegemony_target_mod`.
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
@@ -968,10 +989,12 @@ Protection:               +5 (guarantee of defense — reduced to +3 when guaran
 ```
 Gold/turn demanded:       -2 per 100 gold/turn
 Manpower/turn demanded:   -3 per 2000 infantry/turn (ongoing drain)
-Territory demanded:       -5 per region
+Territory demanded:       escalating PL-20 penalty via analyze_territory_demands()
 AP/turn demanded:         -25 per AP/turn (WAR REPARATION — nearly impossible)
 Unit swap (demanded):     -2 per unit trade unfavorable to target
 ```
+
+Territory demands use the shared `analyze_territory_demands()` helper: base costs escalate by demanded-region order (`-5`, `-8`, `-11`, ...), multiply by region income weight, double for capital regions, and add elimination guards (`-60` for annexation, `-30` for rump-state reduction). Value-only legacy proposals use the same escalation sequence without region weights.
 
 **Diplomat Skill Bonus:**
 ```
@@ -998,34 +1021,48 @@ Historical basis: military pressure makes diplomacy more persuasive.
 Does NOT stack with Military Supremacy modifier (§6b.1) — use whichever is higher.
 ```
 
+**Military Pressure Bonus (R8):**
+```
+if war_score > 0:
+    military_pressure = int(min(15, war_score * 0.15))
+else:
+    military_pressure = 0
+
+situational_bonus = max(military_supremacy, battlefield_diplomacy, military_pressure)
+```
+
+Military Supremacy, Battlefield Diplomacy, and Military Pressure never stack; the acceptance formula uses only the largest of the three.
+
 ### 6c. Worked Example
 
-**France proposes peace with Prussia. War score +20 (France slightly ahead). Relation -60. Threat 40. Talleyrand (10) proposes. Hardenberg (6) receives. France offers: Prussia keeps Berlin, open borders, 200 gold/turn.**
+**France proposes peace with Prussia. War score +25 (France ahead). Relation -60. The war has lasted 4 turns. Memory and Pressure contributes `hegemony_target_mod = -8`, `bilateral_betrayal_mod = -6`, and `grievance_modifier = 0`. Talleyrand (10) proposes. Hardenberg (6) receives. France offers: Prussia keeps Berlin, open borders, 200 gold/turn.**
 
 ```
 Base disposition (peace):        30
-War score (+20 * 0.3):          +6
+War score (+25 * 0.3):          +7.5
 Relation (-60 / 4, cap ±10):   -10
-Threat (40 * -0.3):            -12
+War weariness (4 turns * 2):    +8
+Political subtotal:             -14
 Deal sweetener:
   Open borders:                 +3
   200 gold/turn:                +6
 Diplomat skill (10-6)*2:        +8
 Personality (Hawk, peace):      -5
+Situational bonus:              +10
 
-Total:                          26 → REJECT
+Total:                          43.5 → 44 → COUNTER_OFFER
 ```
 
-Prussia says no — not enough sweetener and too much threat. France needs to sweeten the deal (territory concession? more gold?) or reduce threat level first.
+Prussia does not accept the first offer outright. France needs better terms, a stronger military position, or more time for war weariness to push the court toward peace.
 
 **Same proposal but France also offers Saxony (territory):**
 ```
-Previous total:                  26
-+ Territory (Saxony):           +5
+Previous total:                  43.5
++ Territory (Saxony):           +8
 + Extra sweetener (Saxony is
   what Prussia wants):          +10 (special bonus — see §6d)
 
-Total:                          41 → ACCEPT (just over threshold)
+Total:                          61.5 → 62 → ACCEPT
 ```
 
 With the wartime relation dampening (relation/4, cap ±10), the relation penalty is much smaller. Adding territory Prussia desires tips the balance — diplomacy rewards understanding what the other side wants.
@@ -1081,7 +1118,9 @@ France proposes peace with Prussia:
   Hawk bonus does not apply (needs > 0.6 harshness). Close to the Hawk threshold.
 ```
 
-**Escalating treaty harshness (DD8-4):** If the target nation was previously defeated (had a treaty imposed on them in a prior war), acceptance of harsh terms is +5 easier. Previously broken nations accept subjugation more readily. This creates the historical pattern where each successive treaty against the same nation was harsher (Pressburg 1805 < Schönbrunn 1809). Tracked via `world.previous_treaties` — if target appears as treaty recipient with harshness > 0.3, the +5 bonus applies.
+**Current proposal harshness penalty (PL-12-A):** `harshness_penalty = -min(40, max(0, int((current_harshness - 0.2) * 150)))`. Light or balanced proposals avoid the penalty; harsh packages rapidly become harder to accept.
+
+**Escalating treaty harshness (DD8-4 / PL-12-D):** If the target nation was previously defeated and had a harsh treaty imposed on them, acceptance of another harsh package is `-5` harder. Harsh history breeds resentment rather than obedience in the live formula. Tracked via `world.previous_treaties` — if the target appears as treaty recipient with `harshness > 0.3`, the `harshness_bonus` component is `-5`.
 
 ### 6d. Special Acceptance Bonuses
 
@@ -1157,27 +1196,41 @@ When a proposal succeeds or fails, the player needs to know WHY. Every proposal 
 | Component | Negative Phrasing | Positive Phrasing |
 |---|---|---|
 | relation_modifier | "deep-seated hostility" | "goodwill between our nations" |
-| threat_modifier | "fear of French expansion" | "France's measured approach" |
 | war_score_modifier | "our military position is weak" | "our military dominance" |
-| deal_sweetener | "insufficient concessions" | "generous terms" |
+| war_weariness | "the war is still fresh" | "exhaustion from prolonged war" |
+| stalemate_duration | "the enemy still expects movement" | "stalemate fatigue" |
+| hegemony_target_mod | "balance-of-power resistance" | "limited bloc opposition" |
+| bilateral_betrayal_mod | "remembered betrayal" | "a clean bilateral record" |
+| grievance_modifier | "durable grievances" | "no active grievance" |
+| composite_floor | "stacked political resistance" | "political penalties are bounded" |
+| deal_balance | "insufficient concessions" | "generous terms" |
 | personality_modifier | "personal opposition from their diplomat" | "diplomatic rapport" |
 | diplomat_skill_bonus | "their diplomat outmaneuvered us" | "Talleyrand's superior skill" |
+| military_supremacy | "no decisive battlefield leverage" | "military supremacy" |
+| battlefield_diplomacy | "limited battlefield pressure" | "battlefield pressure" |
+| military_pressure | "weak coercive position" | "military pressure" |
+| special_desire_bonus | "terms ignore their core interests" | "terms answer their core interests" |
+| harshness_penalty | "terms are too harsh" | "terms avoid punitive excess" |
+| harshness_bonus | "resentment from prior harsh treaties" | "no prior harshness resentment" |
+| reliability_modifier | "our diplomatic reputation is poor" | "our diplomatic reputation helps" |
+| ultimatum_bonus | "the ultimatum lacks force" | "credible ultimatum pressure" |
 | base_disposition | "fundamental resistance to this type of agreement" | "natural willingness to negotiate" |
 
 **Implementation:**
 ```python
 def get_formula_feedback(components, outcome):
     """Return natural-language feedback for the largest contributor."""
+    trackable = {k: v for k, v in components.items() if k in NEGATIVE_PHRASING}
     if outcome == "REJECT":
         # Find largest negative component
-        worst = min(components.items(), key=lambda x: x[1])
+        worst = min(trackable.items(), key=lambda x: x[1])
         return NEGATIVE_PHRASING[worst[0]]
     elif outcome == "ACCEPT":
         # Find largest positive component
-        best = max(components.items(), key=lambda x: x[1])
+        best = max(trackable.items(), key=lambda x: x[1])
         return POSITIVE_PHRASING[best[0]]
     else:  # COUNTER_OFFER
-        sorted_neg = sorted(components.items(), key=lambda x: x[1])
+        sorted_neg = sorted(trackable.items(), key=lambda x: x[1])
         return NEGATIVE_PHRASING[sorted_neg[1][0]] if len(sorted_neg) > 1 else NEGATIVE_PHRASING[sorted_neg[0][0]]
 ```
 
@@ -1318,7 +1371,7 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 6.  Vassal loyalty processing — autonomy drift, garrison, passive modifiers (§8b)
 7.  Vassal rebellion check — loyalty = 0 → rebellion fires (§8d)
-8.  Armistice expiration — minimum 3 turns reached (§5b.2)
+8.  Armistice expiration — minimum 5 turns reached (§5b.2)
 9.  Cooldown decrements — ai_proposal_cooldowns, player_proposal_cooldowns,
     armistice_cooldowns, vassal investment cooldowns (all -1/turn)
 9a. War exhaustion update — +8/turn at war with France, -5/turn at peace (COALITION_SPEC §10a)
@@ -1908,7 +1961,7 @@ Intelligence accuracy scales with Talleyrand's skill:
 
 **EC-Y: Trade income when state downgrades mid-turn.** Trade income is calculated once per turn during income phase. If a diplomatic state changes mid-turn (e.g., AI breaks treaty during enemy phase), the income for that turn uses the state as of the START of turn. Next turn reflects the new state. No retroactive adjustment.
 
-**EC-Z: Armistice expires while proposal in transit.** If an armistice expires (minimum 3 turns reached) while Talleyrand is carrying a peace proposal, the proposal still delivers normally. The war resumes at the start of the turn, but Talleyrand's proposal can produce instant peace if accepted. Race condition resolved: proposal delivery → response popup → then war resumes if rejected.
+**EC-Z: Armistice expires while proposal in transit.** If an armistice expires (minimum 5 turns reached) while Talleyrand is carrying a peace proposal, the proposal still delivers normally. The war resumes at the start of the turn, but Talleyrand's proposal can produce instant peace if accepted. Race condition resolved: proposal delivery → response popup → then war resumes if rejected.
 
 **EC-AA: Decisive battle bonus on multi-nation war.** If France is at war with both Prussia and Austria, and a battle involves Austrian/Prussian coalition forces, the decisive battle bonus applies to each war score independently. A decisive victory over Archduke Charles at Vienna counts for France-Austria war score but NOT France-Prussia war score (unless Prussian forces participated — checked via battle participants).
 
@@ -2351,7 +2404,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - New file: `backend/models/diplomat.py`
 - DiplomaticRepresentative class (Talleyrand + 4 enemy diplomats per §2b)
 - State transition validation (upgrade adjacency + downgrade §5b.1 + armistice cooldown §5b.2)
-- Acceptance formula (all 9 components per §6)
+- Acceptance formula (all live components per §6)
 - War score calculation (§6e: territory ±40 + battles ±30 + decisive ±20 + capital ±30)
 - Military Supremacy modifier (§6b.1: war score ≥70 + hold capital → +25 acceptance)
 - Nation relation modification mechanics (relation change from battles, treaties, etc.)
@@ -2579,7 +2632,7 @@ All design questions resolved in v1.1 feedback pass:
 | 3 | British capital | **No London** | Britain's power is naval/economic. Can't march to London — that's the point. They're the enemy you negotiate with or outlast. |
 | 4 | Talleyrand trust | **55** | Lower than expected. Sabotage window is real from day one. Player must actively build trust — creates early tension between managing Talleyrand vs. accepting risk. |
 | 5 | DP accumulation | **Use-it-or-lose-it** | Forces per-turn priority decisions. Banking = one big diplomatic blitz, which doesn't feel like managing ongoing relationships. Same philosophy as AP. |
-| 6 | Armistice duration | **3 turns** | Enough to reposition, short enough to create urgency. Player must have peace proposal ready or war restarts. |
+| 6 | Armistice duration | **5 turns** | Matches live code and `PEACE_DEALS_UMBRELLA_SPEC.md` §4.1. Enough to reposition and negotiate without enabling armistice chaining. |
 | 7 | Trade income | **50/100/150/200 scaling** | Start low, tune via playtest. Deeper diplomatic states visibly more profitable than shallow ones = incentive to progress relationships. |
 | 8 | Vassal courting | **Include in v1** | Full diplomatic loop too important to defer. Simplified form: 2 DP per attempt, loyalty -15 if loyalty < 50. |
 | 9 | AP treaty cap | **1 AP/turn max, war-reparation tier** | -25 acceptance penalty. Requires war score > 80. Talleyrand always objects. Late-game dominance move, not routine. |
@@ -2811,7 +2864,7 @@ All 9 open design questions resolved. Key decisions:
 - No London (Britain abstracted, can't be conquered)
 - Talleyrand trust: 55 (Schemer felt from day one)
 - DP: use-it-or-lose-it (forces per-turn decisions)
-- Armistice: 3 turns (urgency)
+- Armistice: 5 turns (canonical; matches live code)
 - Trade income: 50/100/150/200 scaling (tune via playtest)
 - Vassal courting: included in v1 (simplified)
 - AP treaty: war-reparation tier (1 max, -25 acceptance, war score > 80 required)

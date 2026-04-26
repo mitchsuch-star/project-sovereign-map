@@ -57,9 +57,9 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 ### 4.1 Armistice duration: canonized at 5 turns
 
-DIPLOMACY_SPEC is internally inconsistent: §5a/§5b.2/§7d say 5 turns, but the turn-order processing, EC-Z, and design decisions table say 3 turns. Both BPH §12.2 and WB R6 flag this without resolving it.
+DIPLOMACY_SPEC was internally inconsistent: §5a/§5b.2/§7d said 5 turns, but the turn-order processing, EC-Z, and design decisions table still said 3 turns.
 
-**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` at `diplomacy.py:5188` checks `turns < 5`; `armistice_cooldowns` are set to 5). The conflicting "3 turn" doc references in DIPLOMACY_SPEC must be corrected as a cleanup task before or during BPH-A.
+**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` checks `turns < 5`; `armistice_cooldowns` are set to 5). The conflicting active DIPLOMACY_SPEC references have been corrected to 5 turns; future edits must not reintroduce the 3-turn value.
 
 This affects:
 - BPH §12.1 armistice preview (reads whatever `ARMISTICE_MIN_TURNS` the code uses — that's 5)
@@ -142,7 +142,7 @@ Cumulative new WorldState fields:
 | Field | Spec | Slice | Default |
 |-------|------|-------|---------|
 | `peace_ratification_log: List[Dict]` | BPH §14.1 | BPH-D | `[]` |
-| `war_objectives: Dict[str, Dict]` | WPS §12.1 | WPS-A | `{}` |
+| `war_objectives: Dict[str, Dict[str, Dict]]` | WPS §12.1 | WPS-A | `{}` |
 | `alliance_origins: Dict[str, str]` | WPS §12.1 | WPS-C | `{}` |
 | `diplomatic_commitments: Dict[str, Dict]` | WB §12.1 | WB-A | `{}` |
 | `next_commitment_id: int` | WB §12.1 | WB-A | `0` |
@@ -164,7 +164,7 @@ BPH and WPS slices can be interleaved. No ordering constraint between them.
 - Annotated clause model with `from_nation`, `to_nation`, `term_direction`, `display_label`
 - Display label generation for all clause types
 - `peace_ratified` campaign log event type
-- Prerequisite cleanup: fix DIPLOMACY_SPEC armistice duration references to 5 turns
+- Prerequisite cleanup complete: DIPLOMACY_SPEC armistice duration references now use the canonical 5 turns
 
 **BPH-B: Peace preview panel + war context (~18 tests)**
 - War context snapshot at proposal time
@@ -255,7 +255,7 @@ Evaluate after Gate 1. Decide: retire in focused cleanup, or carry through WB wi
 - Ledger: live bargains display
 - `repudiate_bargain` confirm surface
 
-**Phase B total: ~106 tests, ~3-4 sessions**
+**Phase B total: 106 tests, ~3-4 sessions**
 
 ### Gate 2: WB-A/B/C complete
 
@@ -447,6 +447,9 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 ### BILATERAL_PEACE_HARDENING_SPEC.md
 
 - **§12.2** — armistice duration contradiction resolved: 5 turns is canonical. See §4.1 above.
+- **§4 Non-Goals** — `political_commitment_mod` reference corrected to the live hegemony/betrayal/grievance political subtotal with `-60` composite floor.
+- **§6.3 Reused substrate** — `nation_rivalries` reference corrected to derived hegemony/bloc-geometry signals.
+- **§10.1 Warning plumbing** — "rivalry" conflict corrected to `bloc_opposition`, derived from bloc geometry rather than a removed stored rivalry table.
 
 ---
 
@@ -455,7 +458,7 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 - **BPH ∥ WPS parallel execution:** Yes. No hard dependency between them. Interleave at slice level.
 - **WB gated on both BPH and WPS:** Yes. WB R4 + WB §2 are hard dependencies.
 - **Acceptance modifier reconciliation approach:** Extend the live model (hegemony + betrayal + grievance + floor). Do not resurrect the legacy rivalry-composite model.
-- **Armistice duration:** 5 turns. Fix docs, do not change code.
+- **Armistice duration:** 5 turns. Docs and code now agree; do not change code.
 - **`threat_coalition` retirement timing:** After Gate 1, before first WB ledger expansion. Not during BPH or WPS.
 - **Godot strategy:** Backend-first per slice, curl-verify, then Godot per slice.
 - **Save migration:** All `.get(key, default)` pattern. No destructive changes.
