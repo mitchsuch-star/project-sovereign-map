@@ -1,0 +1,3 @@
+display_name: Sovereign Map Workflow
+short_description: Repo audits, fixes, tests, and smoke checks.
+default_prompt: Use this skill for Project Sovereign repo work: inspect status, follow local specs, patch narrowly, run focused/full tests, and report smoke-test steps.
