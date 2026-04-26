@@ -435,12 +435,13 @@ class TestPeaceClassRouting:
 
 class TestForwardCompatibility:
 
-    def test_get_tolerates_unknown_fields(self):
+    def test_wpsd_fields_present_in_snapshot(self):
         world = _war_world()
         snapshot = build_war_context_snapshot(
             world, "France", "Prussia", "peace")
         assert snapshot.get("war_objective") is None
-        assert snapshot.get("settlement_tier") is None
+        assert snapshot["settlement_tier"] == "white_peace"
+        assert snapshot["tier_mismatch_warnings"] == []
 
     def test_fallout_and_conflicts_empty_for_now(self):
         world = _war_world()

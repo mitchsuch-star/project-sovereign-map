@@ -3175,6 +3175,85 @@ def get_settlement_tier(war_score: int) -> str:
     return "white_peace"
 
 
+CLAUSE_MINIMUM_TIER = {
+    "forced_alliance": "harsh_peace",
+    "liberation": "dictated_terms",
+    "ap_per_turn": "harsh_peace",
+}
+
+TIER_ORDER = ["white_peace", "favorable_terms", "dictated_terms", "harsh_peace", "total_victory"]
+
+
+def _tier_rank(tier: str) -> int:
+    try:
+        return TIER_ORDER.index(tier)
+    except ValueError:
+        return 0
+
+
+def get_tier_mismatch_warnings(war_score: int, terms: Dict) -> List[Dict]:
+    """WPS-D §11.4: Detect when proposed terms exceed the current settlement tier."""
+    current_tier = get_settlement_tier(war_score)
+    current_rank = _tier_rank(current_tier)
+    warnings = []
+
+    all_clauses = []
+    for c in terms.get("clauses", []):
+        if isinstance(c, dict):
+            all_clauses.append(c.get("clause_type") or c.get("type", ""))
+        elif isinstance(c, str):
+            all_clauses.append(c)
+
+    for d in terms.get("demands", []):
+        dtype = d.get("type", "")
+        if dtype:
+            all_clauses.append(dtype)
+
+    territory_demand_count = sum(
+        1 for c in all_clauses if c in ("territory", "territory_cede")
+    )
+
+    if territory_demand_count >= 4:
+        needed = "harsh_peace"
+    elif territory_demand_count >= 2:
+        needed = "dictated_terms"
+    else:
+        needed = None
+
+    if needed and _tier_rank(needed) > current_rank:
+        warnings.append({
+            "warning_type": "tier_mismatch",
+            "current_tier": current_tier,
+            "demanded_tier": needed,
+            "severity": "WARNING",
+            "display": (
+                f"Your war score ({war_score:+d}) may not support demanding "
+                f"{territory_demand_count} regions. "
+                f"{SETTLEMENT_TIER_DISPLAY.get(needed, needed)} ({TIER_ORDER.index(needed) * 20:+d}) "
+                f"typically required."
+            ),
+        })
+
+    for clause_key in all_clauses:
+        min_tier = CLAUSE_MINIMUM_TIER.get(clause_key)
+        if min_tier and _tier_rank(min_tier) > current_rank:
+            clause_display = clause_key.replace("_", " ").title()
+            warnings.append({
+                "warning_type": "tier_mismatch",
+                "current_tier": current_tier,
+                "demanded_tier": min_tier,
+                "severity": "WARNING",
+                "display": (
+                    f"Your war score ({war_score:+d}) may not support these terms. "
+                    f"{clause_display} typically requires "
+                    f"{SETTLEMENT_TIER_DISPLAY.get(min_tier, min_tier)} "
+                    f"({TIER_ORDER.index(min_tier) * 20:+d})."
+                ),
+            })
+
+    return warnings
+
+
 def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_key: str) -> None:
     """Auto-assign a defense objective to the attacked nation."""
     target_regions = list(
@@ -3576,6 +3655,25 @@ def build_war_context_snapshot(
     order_cancellations = _get_order_cancellation_preview(world, player_nation, target_nation)
     if order_cancellations:
         snapshot["fallout_warnings"].append(order_cancellations)
+
+    # WPS-D §14.3: War objective + settlement tier + tier mismatch warnings
+    war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+    player_obj = war_obj_data.get(player_nation, {})
+    if player_obj and player_obj.get("concluded_turn") is None:
+        obj_type = player_obj.get("type", "")
+        snapshot["war_objective"] = {
+            "type": obj_type,
+            "target_regions": player_obj.get("target_regions", []),
+            "accumulated_ticking": int(player_obj.get("accumulated_ticking", 0)),
+            "ticking_active": bool(player_obj.get("ticking_active", False)),
+        }
+    else:
+        snapshot["war_objective"] = None
+
+    tier = get_settlement_tier(war_score)
+    snapshot["settlement_tier"] = tier
+    snapshot["settlement_tier_display"] = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
+    snapshot["tier_mismatch_warnings"] = get_tier_mismatch_warnings(war_score, effective_terms)
 
     # Armistice-specific fields
     if current_state == "ARMISTICE":

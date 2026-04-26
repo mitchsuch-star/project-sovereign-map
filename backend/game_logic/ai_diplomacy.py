@@ -344,6 +344,71 @@ def _get_war_score_for_nation(nation: str, opponent: str, world) -> int:
     return get_war_score_for(world, nation, opponent)
 
 
+def _calculate_ticking_pressure(nation: str, opponent: str,
+                                diplo_key: str, world) -> int:
+    """WPS-D §13.2: Ticking pressure modifier for AI peace timing.
+
+    Returns a value clamped to ±10 that shifts the AI's P1 peace threshold.
+    Positive = more willing to seek peace (opponent ticking high).
+    """
+    war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+    opponent_obj = war_obj_data.get(opponent, {})
+    own_obj = war_obj_data.get(nation, {})
+
+    opponent_ticking = 0
+    if opponent_obj and opponent_obj.get("concluded_turn") is None:
+        opponent_ticking = int(opponent_obj.get("accumulated_ticking", 0))
+
+    own_ticking = 0
+    if own_obj and own_obj.get("concluded_turn") is None:
+        own_ticking = int(own_obj.get("accumulated_ticking", 0))
+
+    return max(-10, min(10, (opponent_ticking - own_ticking) // 5))
+
+
+def ai_check_vassalage_power_cap(nation: str, target: str, world) -> bool:
+    """WPS-D §13.3: AI hard pre-check before proposing vassalage.
+
+    Returns True if vassalage is allowed (target under 50% of proposer's power).
+    """
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    result = check_vassalage_power_cap(world, nation, target)
+    return result.get("allowed", False)
+
+
+def ai_should_accept_liberation_peace(nation: str, opponent: str,
+                                      terms: Dict, world) -> bool:
+    """WPS-D §13.5: AI coalition members accept peace terms that include liberation.
+
+    Returns True if the terms include liberation of vassals this nation's
+    objective targets, False if terms leave vassals in place when the AI's
+    liberation objective is active and war score supports liberation.
+    """
+    diplo_key = world._make_diplo_key(nation, opponent)
+    war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+    obj = war_obj_data.get(nation, {})
+    if not obj or obj.get("type") != "liberation":
+        return True
+    if obj.get("concluded_turn") is not None:
+        return True
+
+    vassal_nations_targeted = set(obj.get("vassal_nations", []))
+    if not vassal_nations_targeted:
+        return True
+
+    clauses = terms.get("clauses", [])
+    liberated_nations = set()
+    for clause in clauses:
+        if isinstance(clause, dict) and clause.get("clause_type") == "liberation":
+            liberated_nations.add(clause.get("vassal_nation", ""))
+
+    war_score = abs(get_war_score_for(world, nation, opponent))
+    if war_score >= 40 and vassal_nations_targeted - liberated_nations:
+        return False
+
+    return True
+
+
 # ═══════════════════════════════════════════════════════════════
 # STALEMATE TRACKING
 # ═══════════════════════════════════════════════════════════════
@@ -614,6 +679,13 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     gold_mult = mods["gold_demand_mult"]
     we = world.war_exhaustion.get(nation, 0)
     effective_p1_threshold = -40 + mods["peace_threshold_delta"] + we // 20
+
+    # WPS-D §13.2: AI ticking pressure — opponent ticking makes AI more
+    # willing to seek peace (raises threshold); own ticking makes AI less willing.
+    if is_at_war:
+        ticking_pressure = _calculate_ticking_pressure(nation, player, diplo_key, world)
+        effective_p1_threshold += ticking_pressure
+
     effective_stalemate_turns = max(2, 5 + mods["patience_bonus"] - we // 30)
 
     # Update stalemate counter

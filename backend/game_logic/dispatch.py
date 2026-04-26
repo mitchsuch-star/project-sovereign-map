@@ -1062,6 +1062,15 @@ def _build_peace_settlement_section(world) -> List[Dict]:
             detail_parts.append(f"{world.player_nation} gained {', '.join(gained)}")
         detail_parts.append(f"Final war score: {'+' if score > 0 else ''}{score}")
 
+        # WPS-D §14.5: Surface forced alliance and liberation in dispatch
+        terms_ratified = entry.get("terms_ratified", [])
+        for term_label in terms_ratified:
+            term_lower = term_label.lower()
+            if "forced alliance" in term_lower or "enters alliance" in term_lower:
+                detail_parts.append(f"{target} enters forced alliance with {world.player_nation}")
+            elif "liberated" in term_lower:
+                detail_parts.append(term_label)
+
         settlements.append({
             "headline": headline,
             "detail": ". ".join(detail_parts) + ".",

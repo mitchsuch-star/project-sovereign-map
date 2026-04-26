@@ -1647,6 +1647,16 @@ class EnemyAI:
             return (homeland_action, 3)
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 3.8: LIBERATION PRIORITY (WPS-D §13.5)
+        # Coalition members with liberation objectives prioritize
+        # attacking vassal capitals held by the target nation.
+        # ════════════════════════════════════════════════════════════
+        liberation_action = self._find_liberation_target(marshal, nation, world)
+        if liberation_action:
+            ai_debug(f"  -> P3.8 Liberation Priority: {liberation_action}")
+            return (liberation_action, 3)
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 4: ATTACK OPPORTUNITY
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4: Checking attack opportunities...")
@@ -2734,6 +2744,83 @@ class EnemyAI:
                 print(f"  [HOMELAND DEFENSE] {marshal.name} moving toward lost {best_target} via {best_step} (dist {best_dist}->{best_dist-1})")
                 self._recapture_targets_claimed.add(best_target)
                 return {"marshal": marshal.name, "action": "move", "target": best_step}
+
+        return None
+
+    def _find_liberation_target(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """WPS-D §13.5: Coalition members with liberation objectives prioritize vassal capitals."""
+        if getattr(marshal, 'fortified', False):
+            return None
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+        if getattr(marshal, 'broken', False) or getattr(marshal, 'retreat_recovery', 0) > 0:
+            return None
+
+        war_objectives = getattr(world, 'war_objectives', {})
+        liberation_targets = []
+        for diplo_key, nation_objs in war_objectives.items():
+            obj = nation_objs.get(nation)
+            if not obj or obj.get("type") != "liberation":
+                continue
+            if obj.get("concluded_turn") is not None:
+                continue
+            for region_name in obj.get("target_regions", []):
+                target_nation = obj.get("target_nation", "")
+                if region_name in world.regions:
+                    ctrl = world.regions[region_name].controller
+                    if ctrl == target_nation or ctrl in [
+                        v_nation for v_nation, v_data in getattr(world, 'vassals', {}).items()
+                        if v_data.get("lord") == target_nation
+                    ]:
+                        liberation_targets.append(region_name)
+
+        if not liberation_targets:
+            return None
+
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        best_target = None
+        best_dist = 999
+        for target_name in liberation_targets:
+            dist = world.get_distance(marshal.location, target_name)
+            if dist < best_dist:
+                best_dist = dist
+                best_target = target_name
+
+        if not best_target or best_dist > 8:
+            return None
+
+        if best_dist == 1:
+            defenders = self._get_hostile_marshals_in_region(best_target, nation, world)
+            if not defenders:
+                target_region = world.get_region(best_target)
+                garrison = getattr(target_region, 'garrison_strength', 0) or 0
+                if garrison > 0 and marshal.strength < garrison * 1.5:
+                    return None
+                ai_debug(f"  [LIBERATION] {marshal.name} attacking vassal capital {best_target}")
+                return {"marshal": marshal.name, "action": "attack", "target": best_target}
+            total_enemy = sum(d.strength for d in defenders)
+            if marshal.strength >= total_enemy * 1.0:
+                ai_debug(f"  [LIBERATION] {marshal.name} attacking defended {best_target}")
+                return {"marshal": marshal.name, "action": "attack", "target": best_target}
+            return None
+
+        if best_dist >= 2:
+            for adj_name in marshal_region.adjacent_regions:
+                if not self._can_ai_move_to(world, nation, adj_name):
+                    continue
+                adj_dist = world.get_distance(adj_name, best_target)
+                if adj_dist < best_dist:
+                    enemies_there = [
+                        m for m in self._get_marshals_in_region(adj_name, world)
+                        if m.strength > 0 and m.nation != nation
+                    ]
+                    if enemies_there:
+                        continue
+                    ai_debug(f"  [LIBERATION] {marshal.name} moving toward {best_target} via {adj_name}")
+                    return {"marshal": marshal.name, "action": "move", "target": adj_name}
 
         return None
 
