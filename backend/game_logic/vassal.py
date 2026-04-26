@@ -81,6 +81,15 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
             "message": f"Cannot vassalize {vassal}: recently released ({cooldowns[vassal]} turns remaining)."
         }
 
+    # WPS-B: Power cap gate
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord, vassal)
+    if not cap["allowed"]:
+        return {
+            "success": False,
+            "message": f"Cannot vassalize {vassal}: {cap['reason']}.",
+        }
+
     # Calculate loyalty
     loyalty = min(LOYALTY_MAX, 60 + (generosity_bonus * 10))
 
@@ -152,6 +161,16 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
         return {
             "success": False,
             "message": f"Cannot conquer {vassal}: must be at WAR (current: {current_state})."
+        }
+
+    # WPS-B: Power cap gate
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord, vassal)
+    if not cap["allowed"]:
+        return {
+            "success": False,
+            "message": (f"{vassal} submits, but {lord} cannot impose vassalage on so large "
+                        f"a nation. Demand terms at the peace table instead."),
         }
 
     loyalty = min(LOYALTY_MAX, 20 + (garrison_size // 5000))

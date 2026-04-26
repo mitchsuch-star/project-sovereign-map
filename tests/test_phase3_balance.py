@@ -508,15 +508,19 @@ class TestR14VassalReleaseCooldown:
 
     def test_cooldown_decrements_to_zero_then_allows(self):
         """After cooldown expires, treaty vassalization works again."""
-        world = self._make_vassal_world()
-        release_vassal(world, "Austria")
-        # Tick down 5 turns
+        world = _make_world()
+        _set_diplo_state(world, "France", "Saxony", "ALLIANCE")
+        world.vassals = {"Saxony": {
+            "lord": "France", "loyalty": 60, "autonomy": "satellite",
+            "path": "treaty", "created_turn": 1, "tribute_rate": 0.1,
+            "carved_from": None, "regions": None,
+        }}
+        release_vassal(world, "Saxony")
         for _ in range(5):
             decrement_vassal_cooldowns(world)
-        assert world.vassal_release_cooldowns.get("Austria") is None
-        # Now treaty should work
-        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
-        result = create_vassal_treaty(world, "France", "Austria")
+        assert world.vassal_release_cooldowns.get("Saxony") is None
+        _set_diplo_state(world, "France", "Saxony", "ALLIANCE")
+        result = create_vassal_treaty(world, "France", "Saxony")
         assert result["success"] is True
 
     def test_serialization_round_trip(self):

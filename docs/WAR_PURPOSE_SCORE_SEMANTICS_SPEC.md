@@ -338,16 +338,18 @@ Rules:
 
 ### 8.5 Starting power values (19-region map)
 
-| Nation | Controlled Regions | Base Income Sum | Power |
-|--------|-------------------|----------------:|------:|
-| France | Paris(300) + Normandy(100) + Brittany(50) + Bordeaux(50) + Lyon(200) + Marseille(150) + Belgium(100) + Milan(150) | 1,100 | 1,100 |
-| Britain | Netherlands(50) + Waterloo(50) + Hanover(100) + naval(300) | 500 | 500 |
-| Prussia | Berlin(300) + Rhineland(100) | 400 | 400 |
-| Austria | Bavaria(100) + Vienna(300) + Bohemia(150) + Tyrol(100) | 650 | 650 |
-| Saxony | Saxony(150) + Dresden(100) | 250 | 250 |
+| Nation | Controlled Regions | Base Income Sum | Naval | Power |
+|--------|-------------------|----------------:|------:|------:|
+| France | Paris(300) + Normandy(100) + Brittany(50) + Bordeaux(50) + Lyon(200) + Marseille(150) + Belgium(100) + Milan(150) | 1,100 | 0 | 1,100 |
+| Britain | Netherlands(50) + Waterloo(50) + Hanover(100) | 200 | 200 | 400 |
+| Prussia | Berlin(300) + Rhineland(100) | 400 | 0 | 400 |
+| Austria | Bavaria(100) + Vienna(300) + Bohemia(150) + Tyrol(100) | 650 | 0 | 650 |
+| Saxony | Saxony(150) + Dresden(100) | 250 | 0 | 250 |
+
+**Naval income formula:** `min(300, 150 + 50 * coastal_count)`. Britain starts with 1 coastal region (Netherlands) → 200 naval income. Capturing more coastal regions (Normandy, Brittany, Bordeaux, Marseille) increases naval power up to the 300 cap.
 
 **Power cap check at game start:**
-- France (1,100) can vassalize: Saxony (250 = 23%), Prussia (400 = 36%), Britain (500 = 45%) — all under 50%
+- France (1,100) can vassalize: Saxony (250 = 23%), Prussia (400 = 36%), Britain (400 = 36%) — all under 50%
 - France (1,100) **cannot** vassalize: Austria (650 = 59%) — exceeds 50% cap
 
 This is historically accurate. Napoleon vassalized Saxony, the Rhineland states, and Italian principalities — never Austria or Prussia as great powers. After Tilsit, he forced alliance on Russia and Prussia, not vassalage.

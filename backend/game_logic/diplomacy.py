@@ -2931,25 +2931,110 @@ OBJECTIVE_TYPE_DISPLAY = {
 }
 
 
-def calculate_national_power(nation: str, world) -> int:
+BRITISH_NAVAL_INCOME_POWER = 300
+POWER_CAP_RATIO = 2
+
+COASTAL_REGIONS_FOR_POWER = frozenset({
+    "Netherlands", "Normandy", "Brittany", "Bordeaux", "Marseille",
+})
+
+
+def calculate_national_power(nation: str, world, *,
+                             controller_override: dict = None) -> int:
     """Calculate national power from controlled regions and vassal contribution.
 
     Evaluated at proposal/objective-validation time, not per-turn hot path.
+    ``controller_override`` lets callers project post-cession power without
+    mutating WorldState (see ``project_power_after_terms``).
     """
-    from backend.models.region import NATION_CAPITALS  # noqa: F811
-
     power = 0
-    for region in world.regions.values():
-        if region.controller == nation:
+    nation_regions = []
+
+    for rname, region in world.regions.items():
+        ctrl = (controller_override or {}).get(rname, region.controller)
+        if ctrl == nation:
             power += region.income_value
+            nation_regions.append(rname)
 
     for vassal_nation, vassal_data in getattr(world, 'vassals', {}).items():
         if vassal_data.get("lord") == nation:
-            for region in world.regions.values():
-                if region.controller == vassal_nation:
+            for rname, region in world.regions.items():
+                ctrl = (controller_override or {}).get(rname, region.controller)
+                if ctrl == vassal_nation:
                     power += region.income_value // 2
 
+    if nation == "Britain" and len(nation_regions) > 0:
+        coastal_count = sum(1 for r in nation_regions if r in COASTAL_REGIONS_FOR_POWER)
+        power += min(BRITISH_NAVAL_INCOME_POWER, 150 + 50 * coastal_count)
+
     return int(power)
+
+
+def project_power_after_terms(world, terms: list, proposer: str,
+                              target: str) -> dict:
+    """Project national power after applying territory-transfer terms.
+
+    Returns ``{proposer: int, target: int}`` without mutating WorldState.
+    Only ``territory_cession`` terms are applied; invalid or duplicate
+    transfers are silently skipped.
+    """
+    controller_map = {}
+    for rname, region in world.regions.items():
+        controller_map[rname] = region.controller
+
+    for term in (terms or []):
+        ttype = term.get("type", "")
+        if ttype != "territory_cession":
+            continue
+        region_name = term.get("region") or term.get("value", "")
+        from_nation = term.get("from") or term.get("from_nation", "")
+        to_nation = term.get("to") or term.get("to_nation", "")
+        if not region_name or region_name not in controller_map:
+            continue
+        if from_nation and controller_map[region_name] != from_nation:
+            continue
+        if to_nation:
+            controller_map[region_name] = to_nation
+
+    return {
+        proposer: calculate_national_power(proposer, world,
+                                           controller_override=controller_map),
+        target: calculate_national_power(target, world,
+                                         controller_override=controller_map),
+    }
+
+
+def check_vassalage_power_cap(world, lord: str, target: str, *,
+                              terms: list = None) -> dict:
+    """Check whether target is below the vassalage power cap.
+
+    If ``terms`` is provided, power is projected after territory transfers.
+    Returns ``{allowed: bool, lord_power: int, target_power: int, pct: int,
+               reason: str}``.
+    """
+    if terms:
+        projected = project_power_after_terms(world, terms, lord, target)
+        lord_power = projected[lord]
+        target_power = projected[target]
+    else:
+        lord_power = calculate_national_power(lord, world)
+        target_power = calculate_national_power(target, world)
+
+    pct = int((target_power * 100) // lord_power) if lord_power > 0 else 100
+    allowed = target_power <= lord_power // POWER_CAP_RATIO
+
+    reason = ""
+    if not allowed:
+        reason = (f"{target} is too powerful to vassalize "
+                  f"(power: {pct}% of {lord})")
+
+    return {
+        "allowed": allowed,
+        "lord_power": int(lord_power),
+        "target_power": int(target_power),
+        "pct": int(pct),
+        "reason": reason,
+    }
 
 
 def create_war_objective(
@@ -2999,10 +3084,8 @@ def get_available_war_objectives(world, aggressor: str, target: str) -> list:
         "ticking_rate": 2,
     })
 
-    aggressor_power = calculate_national_power(aggressor, world)
-    target_power = calculate_national_power(target, world)
-    power_pct = int((target_power * 100) // aggressor_power) if aggressor_power > 0 else 100
-    subjugation_available = target_power <= aggressor_power // 2
+    cap = check_vassalage_power_cap(world, aggressor, target)
+    subjugation_available = cap["allowed"]
 
     objectives.append({
         "type": "subjugation",
@@ -3010,7 +3093,8 @@ def get_available_war_objectives(world, aggressor: str, target: str) -> list:
         "description": f"Total defeat — vassalize {target}. +3/turn while {target_capital or 'capital'} held.",
         "available": subjugation_available,
         "ticking_rate": 3,
-        "reason": None if subjugation_available else f"{target} is too powerful to subjugate ({power_pct}% of {aggressor})",
+        "reason": None if subjugation_available else f"{target} is too powerful to subjugate ({cap['pct']}% of {aggressor})",
+        "power_pct": cap["pct"],
     })
 
     return objectives
@@ -6997,6 +7081,12 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 available = False
                 turns = get_oathbreaker_turns_remaining(world, target_nation)
                 reason = f"Oathbreaker posture: {turns} turns remaining"
+
+        if target_state == "VASSAL" and available:
+            cap = check_vassalage_power_cap(world, player, target_nation)
+            if not cap["allowed"]:
+                available = False
+                reason = cap["reason"]
 
         # DP check
         if available and dp < cost:
