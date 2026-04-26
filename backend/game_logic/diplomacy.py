@@ -11,6 +11,7 @@ Single source of truth for diplomatic mechanics:
   - Downgrade transitions
 """
 
+import copy
 import random  # noqa: F401 — used in _process_mission_effects
 from typing import Dict, List, Optional
 
@@ -2905,6 +2906,48 @@ def get_harshness_label(harshness: float) -> str:
     return "punitive"
 
 
+def _normalize_acceptance_preview_outcome(outcome: str) -> str:
+    """Map internal acceptance outcomes to the BPH-B preview contract."""
+    if outcome == "COUNTER_OFFER":
+        return "COUNTER"
+    if outcome in ("ACCEPT", "COUNTER", "REJECT"):
+        return outcome
+    return "REJECT"
+
+
+def _score_from_player_perspective(diplo_key: str, player_nation: str, score: int) -> int:
+    parts = diplo_key.split("|")
+    if len(parts) == 2 and parts[0] != player_nation:
+        return -int(score)
+    return int(score)
+
+
+def _get_war_score_trend(world, diplo_key: str, player_nation: str, war_score: int) -> str:
+    """Return rising/falling/stagnant using the last up-to-3 stored snapshots."""
+    history = getattr(world, 'war_score_history', {}).get(diplo_key, [])
+    comparison_score = None
+    if history:
+        comparison_score = _score_from_player_perspective(
+            diplo_key, player_nation, int(history[0]),
+        )
+    else:
+        previous_scores = getattr(world, 'previous_war_scores', {})
+        if diplo_key in previous_scores:
+            comparison_score = _score_from_player_perspective(
+                diplo_key, player_nation, int(previous_scores.get(diplo_key, 0)),
+            )
+
+    if comparison_score is None:
+        return "stagnant"
+
+    score_delta = int(war_score) - int(comparison_score)
+    if score_delta > 2:
+        return "rising"
+    if score_delta < -2:
+        return "falling"
+    return "stagnant"
+
+
 def build_war_context_snapshot(
     world, player_nation: str, target_nation: str, proposal_type: str,
     terms: Dict = None,
@@ -2966,27 +3009,16 @@ def build_war_context_snapshot(
         if r.name in player_starting and r.controller == target_nation
     ]
 
-    # War score trend (compare to previous turn snapshot)
-    previous_scores = getattr(world, 'previous_war_scores', {})
-    prev_score = previous_scores.get(diplo_key, 0)
-    parts = diplo_key.split("|")
-    if len(parts) == 2 and parts[0] != player_nation:
-        prev_score = -prev_score
-    score_delta = war_score - int(prev_score)
-    if score_delta > 2:
-        war_score_trend = "rising"
-    elif score_delta < -2:
-        war_score_trend = "falling"
-    else:
-        war_score_trend = "stagnant"
+    war_score_trend = _get_war_score_trend(world, diplo_key, player_nation, war_score)
 
     # Acceptance preview
     from backend.game_logic.diplomatic_templates import (
         annotate_peace_terms, calculate_treaty_harshness, generate_suggested_terms,
     )
-    effective_terms = terms
+    effective_terms = copy.deepcopy(terms) if terms else None
     if not effective_terms:
         effective_terms = generate_suggested_terms(target_nation, proposal_type, world)
+    effective_terms = copy.deepcopy(effective_terms)
     harshness_terms = dict(effective_terms)
     harshness_terms["clauses"] = [
         c if isinstance(c, dict) else {"type": c}
@@ -3005,7 +3037,9 @@ def build_war_context_snapshot(
     try:
         acceptance_result = calculate_acceptance(proposal_for_calc, world)
         acceptance_score = int(max(0, min(100, acceptance_result["score"])))
-        acceptance_outcome = acceptance_result.get("outcome", "REJECT")
+        acceptance_outcome = _normalize_acceptance_preview_outcome(
+            acceptance_result.get("outcome", "REJECT"),
+        )
         acc_components = acceptance_result.get("components", {})
         largest_pos_key, largest_pos_val = "", 0
         largest_neg_key, largest_neg_val = "", 0
@@ -3056,6 +3090,7 @@ def build_war_context_snapshot(
         "acceptance_preview": acceptance_preview,
         "harshness": round(harshness, 2),
         "harshness_label": get_harshness_label(harshness),
+        "proposal_terms": effective_terms,
         "annotated_terms": annotated,
         "fallout_warnings": [],
         "commitment_conflicts": [],
@@ -3159,10 +3194,13 @@ def cleanup_war_end(world, diplo_key: str) -> None:
     battle_records = getattr(world, 'battle_records', {})
     decisive_battles = getattr(world, 'decisive_battles', {})
     war_scores = getattr(world, 'war_scores', {})
+    war_score_history = getattr(world, 'war_score_history', {})
 
     battle_records.pop(diplo_key, None)
     decisive_battles.pop(diplo_key, None)
     war_scores.pop(diplo_key, None)
+    war_score_history.pop(diplo_key, None)
+    world.war_score_history = war_score_history
 
     # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")
@@ -6595,6 +6633,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     # BPH-B: Attach war context snapshots for peace-class actions
     if state in ("WAR", "ARMISTICE"):
         peace_snapshots = {}
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
         for a in actions:
             action_id = a.get("action", "")
             if action_id in PEACE_CLASS_ACTIONS and a.get("available"):
@@ -6604,8 +6643,9 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 }
                 ptype = ptype_map.get(action_id, "peace")
                 try:
+                    terms = generate_suggested_terms(target_nation, ptype, world)
                     snapshot = build_war_context_snapshot(
-                        world, player, target_nation, ptype,
+                        world, player, target_nation, ptype, terms=terms,
                     )
                     peace_snapshots[action_id] = snapshot
                 except Exception:

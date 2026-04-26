@@ -31,6 +31,7 @@ from backend.game_logic.diplomacy import (
     get_war_score_for,
     set_diplomatic_state,
 )
+from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
 from backend.models.world_state import WorldState
 
 
@@ -102,7 +103,7 @@ class TestSnapshotFields:
             "french_casualties_total", "enemy_casualties_total",
             "regions_held_by_france", "regions_held_by_enemy",
             "france_relation", "acceptance_preview",
-            "harshness", "harshness_label", "annotated_terms",
+            "harshness", "harshness_label", "proposal_terms", "annotated_terms",
             "fallout_warnings", "commitment_conflicts",
         ]
         for field in required:
@@ -255,6 +256,13 @@ class TestWarScoreTrend:
         snapshot = build_war_context_snapshot(world, "France", "Prussia", "peace")
         assert snapshot["war_score_trend"] == "stagnant"
 
+    def test_trend_uses_three_turn_history_when_available(self):
+        world = _war_world()
+        dk = world._make_diplo_key("France", "Prussia")
+        world.war_score_history[dk] = [12, 8, 4]
+        snapshot = build_war_context_snapshot(world, "France", "Prussia", "peace")
+        assert snapshot["war_score_trend"] == "falling"
+
 
 # ═══════════════════════════════════════════════════��════════════════════��═══
 # 14-15. ACCEPTANCE PREVIEW
@@ -278,6 +286,15 @@ class TestAcceptancePreview:
         snapshot = build_war_context_snapshot(
             world, "France", "Prussia", "peace", terms=_sample_terms())
         assert snapshot["acceptance_preview"]["outcome"] in ("ACCEPT", "COUNTER", "REJECT")
+
+    def test_counter_offer_outcome_is_normalized_for_preview(self):
+        world = _war_world(turn=5)
+        dk = world._make_diplo_key("France", "Prussia")
+        world.war_start_turns[dk] = 1
+        terms = {"type": "peace", "sweeteners": [], "demands": [], "clauses": []}
+        snapshot = build_war_context_snapshot(
+            world, "France", "Prussia", "peace", terms=terms)
+        assert snapshot["acceptance_preview"]["outcome"] == "COUNTER"
 
 
 # ════════��═════════════════════════════════════════════════════��═════════════
@@ -324,6 +341,25 @@ class TestAnnotatedTerms:
             assert "clause_type" in t
             assert "display_label" in t
             assert "term_direction" in t
+
+    def test_proposal_terms_are_carried_exactly_on_snapshot(self):
+        world = _war_world()
+        terms = _sample_terms()
+        snapshot = build_war_context_snapshot(
+            world, "France", "Prussia", "peace", terms=terms)
+        assert snapshot["proposal_terms"] == terms
+
+    def test_confirmation_dialogue_snapshot_uses_execute_option_terms(self):
+        world = _war_world()
+        terms = _sample_terms()
+        dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "options": [{"action": "execute_proposal", "terms": terms}],
+            "context": {"proposal_type": "peace"},
+        }
+        enriched = _enrich_proposal_summary(dialogue, "Prussia", "peace", world)
+        assert enriched["war_context_snapshot"]["proposal_terms"] == terms
 
 
 # ══════════════════════════════════════��═════════════════════════════════════
@@ -377,6 +413,8 @@ class TestPeaceClassRouting:
             assert isinstance(snapshots, dict)
             for key in snapshots:
                 assert key in PEACE_CLASS_ACTIONS
+                assert "proposal_terms" in snapshots[key]
+                assert "annotated_terms" in snapshots[key]
 
     def test_non_war_state_has_no_snapshots(self):
         world = WorldState(player_nation="France")
@@ -410,6 +448,13 @@ class TestForwardCompatibility:
             world, "France", "Prussia", "peace")
         assert snapshot["fallout_warnings"] == []
         assert snapshot["commitment_conflicts"] == []
+
+    def test_war_score_history_serializes_for_trend_preview(self):
+        world = _war_world()
+        dk = world._make_diplo_key("France", "Prussia")
+        world.war_score_history[dk] = [1, 4, 7]
+        restored = WorldState.from_dict(world.to_dict())
+        assert restored.war_score_history[dk] == [1, 4, 7]
 
 
 # ══���══════════════════════════��══════════════════════════════════════════════

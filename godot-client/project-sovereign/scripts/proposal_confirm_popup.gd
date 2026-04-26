@@ -47,7 +47,10 @@ func show_dialogue(data: Dictionary):
 		"ultimatum_confirm", "ultimatum_demand_wizard":
 			bbcode = _build_ultimatum_content(data)
 		_:
-			bbcode = _build_content(data)
+			if data.has("war_context_snapshot"):
+				bbcode = _build_peace_preview_content(data)
+			else:
+				bbcode = _build_content(data)
 	content_label.text = ""
 	content_label.append_text(bbcode)
 
@@ -154,6 +157,112 @@ func _build_content(data: Dictionary) -> String:
 	if ttext:
 		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 
+	return bbcode
+
+func _build_peace_preview_content(data: Dictionary) -> String:
+	var target = data.get("target_nation", "Unknown")
+	var snapshot = data.get("war_context_snapshot", {})
+	var bbcode = "[b]PEACE PREVIEW - %s[/b]\n\n" % target
+
+	bbcode += "[b]War Summary[/b]\n"
+	var war_score = int(snapshot.get("war_score", 0))
+	var score_color = "#80c080"
+	if war_score < 0:
+		score_color = "#e04040"
+	elif war_score == 0:
+		score_color = "#80a0d0"
+	var trend = str(snapshot.get("war_score_trend", "stagnant"))
+	var trend_arrow = "->"
+	if trend == "rising":
+		trend_arrow = "^"
+	elif trend == "falling":
+		trend_arrow = "v"
+	bbcode += "War score: [color=%s]%d %s[/color]" % [score_color, war_score, trend_arrow]
+
+	var components = snapshot.get("war_score_components", {})
+	if components is Dictionary:
+		var parts = []
+		for key in ["territory", "battle", "decisive_battle", "capital"]:
+			var val = int(components.get(key, 0))
+			if val != 0:
+				var label = str(key).replace("_", " ").capitalize()
+				parts.append("%s %s%d" % [label, "+" if val > 0 else "", val])
+		if not parts.is_empty():
+			bbcode += " (%s)" % ", ".join(parts)
+	bbcode += "\n"
+
+	var duration = int(snapshot.get("war_duration_turns", 0))
+	var won = int(snapshot.get("battles_won", 0))
+	var lost = int(snapshot.get("battles_lost", 0))
+	bbcode += "Duration: %d turns   Battles: %dW / %dL\n" % [duration, won, lost]
+
+	var fc = int(snapshot.get("french_casualties_total", 0))
+	var ec = int(snapshot.get("enemy_casualties_total", 0))
+	if fc > 0 or ec > 0:
+		bbcode += "Casualties: ours %s / theirs %s\n" % [Utils.format_number(fc), Utils.format_number(ec)]
+
+	var held_by_us = snapshot.get("regions_held_by_france", [])
+	if held_by_us is Array and not held_by_us.is_empty():
+		bbcode += "[color=#80c080]We hold: %s[/color]\n" % ", ".join(held_by_us)
+	var held_by_them = snapshot.get("regions_held_by_enemy", [])
+	if held_by_them is Array and not held_by_them.is_empty():
+		bbcode += "[color=#e04040]They hold: %s[/color]\n" % ", ".join(held_by_them)
+	if snapshot.has("armistice_remaining_turns"):
+		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
+
+	bbcode += "\n[b]Proposed Terms[/b]\n"
+	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
+	if annotated is Array and not annotated.is_empty():
+		bbcode += _build_annotated_terms_section(annotated)
+	else:
+		var terms = data.get("proposal_terms_summary", [])
+		for t in terms:
+			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(t)
+
+	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
+	if harshness_label:
+		var h_color = "#80a0d0"
+		if harshness_label == "generous":
+			h_color = "#80c080"
+		elif harshness_label == "harsh":
+			h_color = "#e09040"
+		elif harshness_label == "punitive":
+			h_color = "#e04040"
+		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
+
+	bbcode += "\n[b]Acceptance Estimate[/b]\n"
+	var acceptance = snapshot.get("acceptance_preview", {})
+	if acceptance is Dictionary:
+		var score = int(acceptance.get("score", data.get("acceptance_estimate", 0)))
+		var outcome = str(acceptance.get("outcome", data.get("acceptance_outcome", "REJECT")))
+		var a_color = "#e04040"
+		if outcome == "ACCEPT":
+			a_color = "#80c080"
+		elif outcome == "COUNTER" or outcome == "COUNTER_OFFER":
+			a_color = "#e0e060"
+		bbcode += "Score: [color=%s]%d - %s[/color]\n" % [a_color, score, outcome]
+		var lp = str(acceptance.get("largest_positive", ""))
+		var ln = str(acceptance.get("largest_negative", ""))
+		if lp:
+			bbcode += "[color=#80c080]Key advantage: %s[/color]\n" % lp
+		if ln:
+			bbcode += "[color=#e04040]Key obstacle: %s[/color]\n" % ln
+
+	var warnings = data.get("warnings", [])
+	var fallout = snapshot.get("fallout_warnings", [])
+	var conflicts = snapshot.get("commitment_conflicts", [])
+	if not warnings.is_empty() or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
+		bbcode += "\n[b]Political Consequences[/b]\n"
+		for warning in warnings:
+			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning.get("text", warning))
+		for warning in fallout:
+			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning)
+		for conflict in conflicts:
+			bbcode += "  [color=#e04040]*[/color] %s\n" % str(conflict)
+
+	var ttext = data.get("talleyrand_text", "")
+	if ttext:
+		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 	return bbcode
 
 func _build_ultimatum_content(data: Dictionary) -> String:

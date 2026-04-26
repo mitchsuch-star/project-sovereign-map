@@ -475,6 +475,9 @@ class WorldState:
         # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
         self.previous_war_scores: Dict[str, int] = {}
 
+        # Last three end-of-turn war score snapshots per pair for preview trend arrows
+        self.war_score_history: Dict[str, List[int]] = {}
+
         # Previous turn's nation relations snapshot for Trigger 4 threshold crossing detection
         self.previous_nation_relations: Dict[str, int] = {}
 
@@ -3458,6 +3461,10 @@ class WorldState:
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
+            "war_score_history": {
+                k: [int(score) for score in v[-3:]]
+                for k, v in self.war_score_history.items()
+            },
             "previous_nation_relations": {k: int(v) for k, v in self.previous_nation_relations.items()},
 
             # N7: Relation history for trend arrows
@@ -3808,6 +3815,11 @@ class WorldState:
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
+        world.war_score_history = {
+            k: [int(score) for score in list(v)[-3:]]
+            for k, v in data.get("war_score_history", {}).items()
+            if isinstance(v, list)
+        }
         world.previous_nation_relations = {k: int(v) for k, v in data.get("previous_nation_relations", {}).items()}
 
         # N7: Relation history for trend arrows
@@ -4874,6 +4886,15 @@ class WorldState:
         # Saved at end of turn so Talleyrand Trigger 2 can compute
         # per-turn delta instead of using absolute magnitude proxy.
         # ════════════════════════════════════════════════════════════
+        war_score_history = getattr(self, 'war_score_history', {})
+        for key, score in self.war_scores.items():
+            history = [int(v) for v in war_score_history.get(key, [])]
+            history.append(int(score))
+            war_score_history[key] = history[-3:]
+        for key in list(war_score_history.keys()):
+            if key not in self.war_scores:
+                war_score_history.pop(key, None)
+        self.war_score_history = war_score_history
         self.previous_war_scores = {k: int(v) for k, v in self.war_scores.items()}
         self.previous_nation_relations = {k: int(v) for k, v in self.nation_relations.items()}
 

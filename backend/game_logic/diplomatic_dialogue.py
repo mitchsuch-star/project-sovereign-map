@@ -534,6 +534,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     proposal alongside Talleyrand's thematic commentary.
     """
     from backend.game_logic.diplomacy import (
+        build_war_context_snapshot,
         build_proposal_commitment_warnings,
         calculate_acceptance,
         get_dp_cost,
@@ -566,6 +567,17 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # BPH-A: Attach annotated terms with ownership fields for Godot rendering
     from backend.game_logic.diplomatic_templates import annotate_peace_terms
     dialogue["annotated_terms"] = annotate_peace_terms(terms, player_nation, target_nation)
+
+    peace_proposal_types = {"peace", "armistice", "armistice_losing", "armistice_winning"}
+    if proposal_type in peace_proposal_types or terms.get("type") in peace_proposal_types:
+        snapshot_type = terms.get("type", proposal_type)
+        dialogue["war_context_snapshot"] = build_war_context_snapshot(
+            world,
+            player_nation,
+            target_nation,
+            snapshot_type,
+            terms=terms,
+        )
 
     # Harshness — normalize string clauses to dicts for calculate_treaty_harshness
     harshness_terms = dict(terms)
