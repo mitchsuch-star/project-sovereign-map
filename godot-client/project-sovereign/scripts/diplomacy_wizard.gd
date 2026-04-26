@@ -30,9 +30,14 @@ var _request_id: int = 0  # Monotonic ID to discard stale responses
 var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 
 # State
-var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions
+var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=peace_preview
 var _selected_nation: String = ""
 var _dp_available: int = 0
+var _pending_peace_command: String = ""  # BPH-B: command held during preview
+var _last_preview_data: Dictionary = {}  # BPH-B: cached Step 2 response for snapshot lookup
+
+# BPH-B: Peace-class actions that trigger the preview panel
+const PEACE_CLASS_ACTIONS = ["propose_armistice", "propose_peace"]
 
 # Color palette
 const COLOR_LIGHT_GREEN = "a0d0a0"
@@ -102,6 +107,7 @@ func open_for_nation(nation: String):
 func _close_wizard():
 	_current_step = 0
 	_selected_nation = ""
+	_pending_peace_command = ""
 	_request_in_flight = false
 	if _http:
 		_http.cancel_request()
@@ -109,7 +115,14 @@ func _close_wizard():
 
 
 func _go_back():
-	"""Return to Step 1 from Step 2."""
+	"""Return to previous step."""
+	if _current_step == 3:
+		# BPH-B: Step 3 (peace preview) → Step 2 (actions)
+		_current_step = 2
+		_pending_peace_command = ""
+		title_label.text = "DIPLOMACY — " + _selected_nation
+		_render_preview(_last_preview_data)
+		return
 	if _current_step == 2:
 		_current_step = 1
 		_selected_nation = ""
@@ -309,6 +322,7 @@ func _on_nation_selected(nation: String):
 func _render_preview(data: Dictionary):
 	_clear_content_list()
 	scroll_container.scroll_vertical = 0
+	_last_preview_data = data  # BPH-B: cache for snapshot lookup
 	_dp_available = int(data.get("dp_available", 0))
 	dp_label.text = "DP: " + str(_dp_available)
 	var pending_envoy_count = int(data.get("pending_envoy_count", 0))
@@ -459,13 +473,24 @@ func _add_action_button(action: Dictionary):
 
 
 func _on_action_selected(action_id: String):
-	"""Build command string and emit for main.gd to execute (§2 Step 3)."""
+	"""Build command string and emit for main.gd to execute (§2 Step 3).
+	BPH-B: Peace-class actions show a preview panel before emitting."""
 	var command = _build_command(action_id, _selected_nation)
-	if command:
-		_close_wizard()
-		command_selected.emit(command)
-	else:
+	if not command:
 		_show_error("Unknown diplomatic action: " + action_id)
+		return
+
+	# BPH-B: Intercept peace-class actions for preview panel
+	if action_id in PEACE_CLASS_ACTIONS:
+		var snapshots = _last_preview_data.get("war_context_snapshots", {})
+		var snapshot = snapshots.get(action_id, {}) if snapshots is Dictionary else {}
+		if snapshot is Dictionary and snapshot.size() > 0:
+			_pending_peace_command = command
+			_render_peace_preview(snapshot, action_id)
+			return
+
+	_close_wizard()
+	command_selected.emit(command)
 
 
 func _build_command(action_id: String, nation: String) -> String:
@@ -514,6 +539,228 @@ func _build_command(action_id: String, nation: String) -> String:
 		"cancel_mission":
 			return "Talleyrand, cancel mission with " + nation
 	return ""
+
+
+# =============================================================================
+# STEP 3: PEACE PREVIEW PANEL (BPH-B)
+# =============================================================================
+
+func _render_peace_preview(snapshot: Dictionary, action_id: String):
+	"""Render the peace preview panel — war summary, terms, acceptance (BPH-B §8.2)."""
+	_current_step = 3
+	back_button.visible = true
+	_clear_content_list()
+	scroll_container.scroll_vertical = 0
+
+	var proposed = str(snapshot.get("proposed_state", "PEACE"))
+	title_label.text = "PEACE PREVIEW — " + _selected_nation
+
+	# ── Section 1: War Summary ──
+	var bbcode = ""
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]WAR SUMMARY[/color]\n"
+
+	var war_score = int(snapshot.get("war_score", 0))
+	var score_color = Utils.COLOR_SUCCESS if war_score > 0 else (Utils.COLOR_ERROR if war_score < 0 else Utils.COLOR_INFO)
+	var trend = str(snapshot.get("war_score_trend", "stagnant"))
+	var trend_arrow = "→"
+	if trend == "rising":
+		trend_arrow = "↑"
+	elif trend == "falling":
+		trend_arrow = "↓"
+	bbcode += "War Score: [color=#" + score_color + "]" + str(war_score) + " " + trend_arrow + "[/color]"
+
+	var components = snapshot.get("war_score_components", {})
+	if components is Dictionary and components.size() > 0:
+		bbcode += "  ("
+		var parts = []
+		var terr = int(components.get("territory", 0))
+		if terr != 0:
+			parts.append("Territory " + ("+" if terr > 0 else "") + str(terr))
+		var bat = int(components.get("battle", 0))
+		if bat != 0:
+			parts.append("Battles " + ("+" if bat > 0 else "") + str(bat))
+		var dec = int(components.get("decisive_battle", 0))
+		if dec != 0:
+			parts.append("Decisive " + ("+" if dec > 0 else "") + str(dec))
+		var cap = int(components.get("capital", 0))
+		if cap != 0:
+			parts.append("Capital " + ("+" if cap > 0 else "") + str(cap))
+		bbcode += ", ".join(parts) + ")\n"
+	else:
+		bbcode += "\n"
+
+	var duration = int(snapshot.get("war_duration_turns", 0))
+	var won = int(snapshot.get("battles_won", 0))
+	var lost = int(snapshot.get("battles_lost", 0))
+	bbcode += "Duration: " + str(duration) + " turns   Battles: " + str(won) + "W / " + str(lost) + "L\n"
+
+	var dv = int(snapshot.get("decisive_victories", 0))
+	var dd = int(snapshot.get("decisive_defeats", 0))
+	if dv > 0 or dd > 0:
+		bbcode += "Decisive: " + str(dv) + " victories, " + str(dd) + " defeats\n"
+
+	var fc = int(snapshot.get("french_casualties_total", 0))
+	var ec = int(snapshot.get("enemy_casualties_total", 0))
+	if fc > 0 or ec > 0:
+		bbcode += "Casualties: Ours " + Utils.format_number(fc) + " / Theirs " + Utils.format_number(ec) + "\n"
+
+	var held_by_us = snapshot.get("regions_held_by_france", [])
+	var held_by_them = snapshot.get("regions_held_by_enemy", [])
+	if held_by_us is Array and held_by_us.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_SUCCESS + "]We hold: " + ", ".join(held_by_us) + "[/color]\n"
+	if held_by_them is Array and held_by_them.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_ERROR + "]They hold: " + ", ".join(held_by_them) + "[/color]\n"
+
+	# Armistice-specific fields
+	if snapshot.has("armistice_remaining_turns"):
+		var remaining = int(snapshot.get("armistice_remaining_turns", 0))
+		bbcode += "Armistice remaining: " + str(remaining) + " turns\n"
+
+	assessment_panel.text = bbcode
+
+	# ── Section 2: Terms Review ──
+	var annotated_terms = snapshot.get("annotated_terms", [])
+	if annotated_terms is Array and annotated_terms.size() > 0:
+		var terms_lbl = RichTextLabel.new()
+		terms_lbl.bbcode_enabled = true
+		terms_lbl.fit_content = true
+		terms_lbl.scroll_active = false
+
+		var terms_bbcode = "[color=#" + Utils.COLOR_HEADER + "]PROPOSED TERMS[/color]\n"
+
+		# Group by direction
+		var demands = []
+		var concessions = []
+		var mutual = []
+		for term in annotated_terms:
+			if not term is Dictionary:
+				continue
+			var direction = str(term.get("term_direction", ""))
+			match direction:
+				"demand":
+					demands.append(term)
+				"concession":
+					concessions.append(term)
+				_:
+					mutual.append(term)
+
+		if demands.size() > 0:
+			terms_bbcode += "[color=#" + Utils.COLOR_SUCCESS + "]France demands:[/color]\n"
+			for t in demands:
+				terms_bbcode += "  • " + str(t.get("display_label", "?")) + "\n"
+		if concessions.size() > 0:
+			terms_bbcode += "[color=#" + Utils.COLOR_ERROR + "]France concedes:[/color]\n"
+			for t in concessions:
+				terms_bbcode += "  • " + str(t.get("display_label", "?")) + "\n"
+		if mutual.size() > 0:
+			terms_bbcode += "[color=#" + Utils.COLOR_INFO + "]Mutual:[/color]\n"
+			for t in mutual:
+				terms_bbcode += "  • " + str(t.get("display_label", "?")) + "\n"
+
+		# Harshness assessment
+		var harshness_label = str(snapshot.get("harshness_label", ""))
+		if harshness_label:
+			var h_color = Utils.COLOR_INFO
+			match harshness_label:
+				"generous":
+					h_color = Utils.COLOR_SUCCESS
+				"balanced":
+					h_color = Utils.COLOR_BLUE
+				"harsh":
+					h_color = COLOR_ORANGE
+				"punitive":
+					h_color = Utils.COLOR_ERROR
+			terms_bbcode += "Assessment: [color=#" + h_color + "]" + harshness_label.to_upper() + "[/color]\n"
+
+		terms_lbl.text = terms_bbcode
+		content_list.add_child(terms_lbl)
+
+	# ── Section 2b: Acceptance Preview ──
+	var acceptance = snapshot.get("acceptance_preview", {})
+	if acceptance is Dictionary and acceptance.size() > 0:
+		var acc_lbl = RichTextLabel.new()
+		acc_lbl.bbcode_enabled = true
+		acc_lbl.fit_content = true
+		acc_lbl.scroll_active = false
+
+		var acc_score = int(acceptance.get("score", 0))
+		var acc_outcome = str(acceptance.get("outcome", "?"))
+		var outcome_color = Utils.COLOR_INFO
+		match acc_outcome:
+			"ACCEPT":
+				outcome_color = Utils.COLOR_SUCCESS
+			"COUNTER":
+				outcome_color = COLOR_YELLOW
+			"REJECT":
+				outcome_color = Utils.COLOR_ERROR
+
+		var acc_bbcode = "[color=#" + Utils.COLOR_HEADER + "]ACCEPTANCE ESTIMATE[/color]\n"
+		acc_bbcode += "Score: [color=#" + outcome_color + "]" + str(acc_score) + " — " + acc_outcome + "[/color]\n"
+
+		var lp = str(acceptance.get("largest_positive", ""))
+		var ln = str(acceptance.get("largest_negative", ""))
+		if lp:
+			acc_bbcode += "[color=#" + Utils.COLOR_SUCCESS + "]Key advantage: " + lp + "[/color]\n"
+		if ln:
+			acc_bbcode += "[color=#" + Utils.COLOR_ERROR + "]Key obstacle: " + ln + "[/color]\n"
+
+		acc_lbl.text = acc_bbcode
+		content_list.add_child(acc_lbl)
+
+	# ── Section 3: Political Consequences (placeholder for BPH-C) ──
+	var fallout = snapshot.get("fallout_warnings", [])
+	var conflicts = snapshot.get("commitment_conflicts", [])
+	if (fallout is Array and fallout.size() > 0) or (conflicts is Array and conflicts.size() > 0):
+		var pol_lbl = RichTextLabel.new()
+		pol_lbl.bbcode_enabled = true
+		pol_lbl.fit_content = true
+		pol_lbl.scroll_active = false
+		var pol_bbcode = "[color=#" + Utils.COLOR_HEADER + "]POLITICAL CONSEQUENCES[/color]\n"
+		for w in fallout:
+			pol_bbcode += "[color=#" + COLOR_ORANGE + "]⚠ " + str(w) + "[/color]\n"
+		for c in conflicts:
+			pol_bbcode += "[color=#" + Utils.COLOR_ERROR + "]⚠ " + str(c) + "[/color]\n"
+		pol_lbl.text = pol_bbcode
+		content_list.add_child(pol_lbl)
+
+	# ── Confirm / Back buttons ──
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 8)
+	content_list.add_child(spacer)
+
+	var btn_row = HBoxContainer.new()
+	btn_row.custom_minimum_size = Vector2(0, 44)
+
+	var confirm_btn = Button.new()
+	confirm_btn.text = "Send Proposal"
+	confirm_btn.custom_minimum_size = Vector2(200, 40)
+	confirm_btn.add_theme_font_size_override("font_size", 14)
+	confirm_btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_SUCCESS))
+	confirm_btn.pressed.connect(_on_peace_confirmed)
+	btn_row.add_child(confirm_btn)
+
+	var gap = Control.new()
+	gap.custom_minimum_size = Vector2(16, 0)
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_row.add_child(gap)
+
+	var back_btn = Button.new()
+	back_btn.text = "Reconsider"
+	back_btn.custom_minimum_size = Vector2(160, 40)
+	back_btn.add_theme_font_size_override("font_size", 14)
+	back_btn.pressed.connect(_go_back)
+	btn_row.add_child(back_btn)
+
+	content_list.add_child(btn_row)
+
+
+func _on_peace_confirmed():
+	"""BPH-B: Player confirmed the peace proposal after reviewing the preview."""
+	if _pending_peace_command:
+		var cmd = _pending_peace_command
+		_pending_peace_command = ""
+		_close_wizard()
+		command_selected.emit(cmd)
 
 
 # =============================================================================

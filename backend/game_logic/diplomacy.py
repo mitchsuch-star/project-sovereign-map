@@ -2880,6 +2880,197 @@ def get_war_score_for(world, nation: str, opponent: str) -> int:
     return int(raw_score)
 
 
+# ═══════════════════════════════════════════════════════
+# BPH-B: WAR CONTEXT SNAPSHOT
+# ═══════════════════════════════════════════════════════
+
+PEACE_CLASS_ACTIONS = frozenset({
+    "propose_armistice", "propose_peace",
+})
+
+ARMISTICE_DURATION = 5
+
+HARSHNESS_LABELS = [
+    (0.10, "generous"),
+    (0.25, "balanced"),
+    (0.50, "harsh"),
+    (1.01, "punitive"),
+]
+
+
+def get_harshness_label(harshness: float) -> str:
+    for threshold, label in HARSHNESS_LABELS:
+        if harshness < threshold:
+            return label
+    return "punitive"
+
+
+def build_war_context_snapshot(
+    world, player_nation: str, target_nation: str, proposal_type: str,
+    terms: Dict = None,
+) -> Dict:
+    """Build the frozen war-context snapshot for a peace-class preview (BPH-B §8.1).
+
+    Returns a dict with war score components, battle stats, casualties,
+    regions held, acceptance preview, and harshness assessment.
+    All values are int() for Godot safety.
+    """
+    diplo_key = world._make_diplo_key(player_nation, target_nation)
+    current_state = world.diplomatic_states.get(diplo_key, "PEACE")
+
+    # War score + components (from player's perspective)
+    components = calculate_war_score(player_nation, target_nation, world, return_components=True)
+    war_score = int(components["total"])
+
+    # War duration
+    war_start = world.war_start_turns.get(diplo_key, world.current_turn)
+    war_duration = int(max(0, world.current_turn - war_start))
+
+    # Battle stats from records
+    records = getattr(world, 'battle_records', {}).get(diplo_key, [])
+    decisive_records = getattr(world, 'decisive_battles', {}).get(diplo_key, [])
+
+    battles_won = 0
+    battles_lost = 0
+    french_casualties = 0
+    enemy_casualties = 0
+    for r in records:
+        winner = r.get("winner", "")
+        if winner == player_nation:
+            battles_won += 1
+        elif winner == target_nation:
+            battles_lost += 1
+        if r.get("attacker") == player_nation:
+            french_casualties += int(r.get("attacker_casualties", 0))
+            enemy_casualties += int(r.get("defender_casualties", 0))
+        else:
+            french_casualties += int(r.get("defender_casualties", 0))
+            enemy_casualties += int(r.get("attacker_casualties", 0))
+
+    decisive_victories = sum(
+        1 for d in decisive_records if d.get("winner") == player_nation
+    )
+    decisive_defeats = sum(
+        1 for d in decisive_records if d.get("winner") == target_nation
+    )
+
+    # Regions held by each side (enemy starting regions France holds, and vice versa)
+    player_starting = set(world.nation_starting_regions.get(player_nation, []))
+    enemy_starting = set(world.nation_starting_regions.get(target_nation, []))
+    regions_held_by_player = [
+        r.name for r in world.regions.values()
+        if r.name in enemy_starting and r.controller == player_nation
+    ]
+    regions_held_by_enemy = [
+        r.name for r in world.regions.values()
+        if r.name in player_starting and r.controller == target_nation
+    ]
+
+    # War score trend (compare to previous turn snapshot)
+    previous_scores = getattr(world, 'previous_war_scores', {})
+    prev_score = previous_scores.get(diplo_key, 0)
+    parts = diplo_key.split("|")
+    if len(parts) == 2 and parts[0] != player_nation:
+        prev_score = -prev_score
+    score_delta = war_score - int(prev_score)
+    if score_delta > 2:
+        war_score_trend = "rising"
+    elif score_delta < -2:
+        war_score_trend = "falling"
+    else:
+        war_score_trend = "stagnant"
+
+    # Acceptance preview
+    from backend.game_logic.diplomatic_templates import (
+        annotate_peace_terms, calculate_treaty_harshness, generate_suggested_terms,
+    )
+    effective_terms = terms
+    if not effective_terms:
+        effective_terms = generate_suggested_terms(target_nation, proposal_type, world)
+    harshness_terms = dict(effective_terms)
+    harshness_terms["clauses"] = [
+        c if isinstance(c, dict) else {"type": c}
+        for c in effective_terms.get("clauses", [])
+    ]
+    harshness = calculate_treaty_harshness(harshness_terms)
+
+    proposal_for_calc = {
+        "type": effective_terms.get("type", proposal_type),
+        "proposer_nation": player_nation,
+        "target_nation": target_nation,
+        "sweeteners": effective_terms.get("sweeteners", []),
+        "demands": effective_terms.get("demands", []),
+        "clauses": effective_terms.get("clauses", []),
+    }
+    try:
+        acceptance_result = calculate_acceptance(proposal_for_calc, world)
+        acceptance_score = int(max(0, min(100, acceptance_result["score"])))
+        acceptance_outcome = acceptance_result.get("outcome", "REJECT")
+        acc_components = acceptance_result.get("components", {})
+        largest_pos_key, largest_pos_val = "", 0
+        largest_neg_key, largest_neg_val = "", 0
+        for k, v in acc_components.items():
+            if v > largest_pos_val:
+                largest_pos_key, largest_pos_val = k, v
+            if v < largest_neg_val:
+                largest_neg_key, largest_neg_val = k, v
+    except Exception:
+        acceptance_score = 0
+        acceptance_outcome = "REJECT"
+        largest_pos_key = ""
+        largest_neg_key = ""
+
+    acceptance_preview = {
+        "score": int(acceptance_score),
+        "outcome": acceptance_outcome,
+        "largest_positive": largest_pos_key.replace("_", " ").title() if largest_pos_key else "",
+        "largest_negative": largest_neg_key.replace("_", " ").title() if largest_neg_key else "",
+    }
+
+    # Annotated terms
+    annotated = annotate_peace_terms(effective_terms, player_nation, target_nation)
+
+    snapshot = {
+        "target_nation": target_nation,
+        "current_state": current_state,
+        "proposed_state": "ARMISTICE" if "armistice" in proposal_type else "PEACE",
+        "war_score": int(war_score),
+        "war_score_components": {
+            "territory": int(components["territory"]),
+            "battle": int(components["battles"]),
+            "decisive_battle": int(components["decisive"]),
+            "capital": int(components["capital"]),
+        },
+        "war_score_trend": war_score_trend,
+        "war_duration_turns": int(war_duration),
+        "battles_fought": int(battles_won + battles_lost),
+        "battles_won": int(battles_won),
+        "battles_lost": int(battles_lost),
+        "decisive_victories": int(decisive_victories),
+        "decisive_defeats": int(decisive_defeats),
+        "french_casualties_total": int(french_casualties),
+        "enemy_casualties_total": int(enemy_casualties),
+        "regions_held_by_france": regions_held_by_player,
+        "regions_held_by_enemy": regions_held_by_enemy,
+        "france_relation": int(world.nation_relations.get(diplo_key, 0)),
+        "acceptance_preview": acceptance_preview,
+        "harshness": round(harshness, 2),
+        "harshness_label": get_harshness_label(harshness),
+        "annotated_terms": annotated,
+        "fallout_warnings": [],
+        "commitment_conflicts": [],
+    }
+
+    # Armistice-specific fields
+    if current_state == "ARMISTICE":
+        armistice_elapsed = int(world.armistice_turns.get(diplo_key, 0))
+        snapshot["armistice_remaining_turns"] = int(max(0, ARMISTICE_DURATION - armistice_elapsed))
+        cooldown = world.armistice_cooldowns.get(diplo_key, 0)
+        snapshot["armistice_cooldown_active"] = bool(cooldown > 0)
+
+    return snapshot
+
+
 def _force_retreat_displaced_marshals(world, nation_a: str, nation_b: str) -> None:
     """Force-retreat marshals stranded in hostile territory after war ends.
 
@@ -6400,6 +6591,27 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         except Exception:
             acceptance_preview = None
     response["acceptance_preview"] = acceptance_preview
+
+    # BPH-B: Attach war context snapshots for peace-class actions
+    if state in ("WAR", "ARMISTICE"):
+        peace_snapshots = {}
+        for a in actions:
+            action_id = a.get("action", "")
+            if action_id in PEACE_CLASS_ACTIONS and a.get("available"):
+                ptype_map = {
+                    "propose_armistice": "armistice_winning" if get_war_score_for(world, player, target_nation) > 0 else "armistice_losing",
+                    "propose_peace": "peace",
+                }
+                ptype = ptype_map.get(action_id, "peace")
+                try:
+                    snapshot = build_war_context_snapshot(
+                        world, player, target_nation, ptype,
+                    )
+                    peace_snapshots[action_id] = snapshot
+                except Exception:
+                    pass
+        if peace_snapshots:
+            response["war_context_snapshots"] = peace_snapshots
 
     return response
 
