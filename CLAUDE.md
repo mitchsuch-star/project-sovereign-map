@@ -356,6 +356,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 
 **If you changed behavior, update the doc that describes it.** Session ends → STATUS.md. Phase completed → ROADMAP.md + STATUS.md. System changed → SYSTEMS_REFERENCE.md. New fields → SAVE_FORMAT_REFERENCE.md.
 
+**Deferred work must have a HOME.** Any item marked deferred, later, v2, polish, or cut must name its owner spec / holding doc in the same table or bullet. If no owner spec exists yet, name the future spec that must be created before implementation. Never leave deferred work as vague "later polish."
+
 CLAUDE.md "Current Phase" must always list remaining items. Completed items get brief summaries. Never mark a phase complete when items remain in ROADMAP.md.
 
 ---

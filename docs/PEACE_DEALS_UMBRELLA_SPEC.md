@@ -280,6 +280,8 @@ Required before WB-D and before Ally Participation planning. See §7 for gate cr
 
 Every item deferred from Memory and Pressure v2.4.3 or identified during Peace Deals design that does not land in the implementation sequence above must be tracked here. No item may vanish as vague "later polish."
 
+**Deferred-item HOME rule:** every deferred / later / v2 / polish / cut item must name an owner spec or holding doc in the same row. If the owner spec does not exist yet, the row must name the future spec that must be created before implementation.
+
 ### Items with concrete slice assignments (will ship in Peace Deals)
 
 | Item | Assigned Slice | Notes |
@@ -297,36 +299,36 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 
 ### Items explicitly deferred to Ally Participation (later phase)
 
-| Item | Rationale |
-|------|-----------|
-| Ally-beneficiary land promises ("Prussia gets Saxony") | Requires common peace and contribution tracking (WAR_SETTLEMENT spec §13) |
-| Common peace / conference settlement flow | Requires war_instance grouping, contribution scores, settlement shares (WAR_SETTLEMENT spec §7–§12) |
-| Multi-party settlement allocation | Cannot work without ally seat/consult/beneficiary model (WAR_SETTLEMENT spec §11) |
-| Settlement grievance (`shut_out_in_settlement`) | Requires contribution tracking to evaluate "shut out" (WAR_SETTLEMENT spec §14) |
-| War contribution score (`war_contribution_score`) | New per-ally settlement number; bilateral phase does not need it (WAR_SETTLEMENT spec §9) |
-| `war_instance` grouping container | Groups bilateral wars into one political conflict; bilateral phase works pairwise (WAR_SETTLEMENT spec §7) |
-| Extended battle records with multi-participant attribution | Requires contribution tracking (WAR_SETTLEMENT spec §9.4) |
+| Item | HOME / Owner Spec | Rationale |
+|------|-------------------|-----------|
+| Ally-beneficiary land promises ("Prussia gets Saxony") | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §13 | Requires common peace and contribution tracking |
+| Common peace / conference settlement flow | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7–§12 | Requires `war_instance` grouping, contribution scores, settlement shares |
+| Multi-party settlement allocation | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §11 | Cannot work without ally seat / consult / beneficiary model |
+| Settlement grievance (`shut_out_in_settlement`) | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §14 | Requires contribution tracking to evaluate "shut out" |
+| War contribution score (`war_contribution_score`) | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §9 | New per-ally settlement number; bilateral phase does not need it |
+| `war_instance` grouping container | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7 | Groups bilateral wars into one political conflict; bilateral phase works pairwise |
+| Extended battle records with multi-participant attribution | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §9.4 | Requires contribution tracking |
 
 ### Items explicitly deferred to later phases (not Peace Deals, not Ally Participation)
 
-| Item | Target Phase | Rationale |
-|------|-------------|-----------|
-| D1 advisory-first strategy | Nation Agendas | Strategic advisory surface, not peace mechanics |
-| D2 non-France-hegemon generalization | Scale / Scenario | Requires multi-scenario testing with non-France player |
-| Dynamic power tiers (runtime recomputation) | Nation Agendas | `power_tier` stays authored scenario data per Phase 0 taxonomy |
-| Multi-objective wars | War System v2 | Complexity not justified in v0.1 (WPS §4) |
-| AI-chosen offensive war objectives | War System v2 | Conquest/Subjugation/Forced Alliance are the player's toolkit (WPS §13.1) |
-| Coalition generalization (non-France war_bloc actors) | Coalition v2 | WB §7.3 keeps helpers parameterized for this |
-| AI-to-AI bargains | War Bargains v2 | Excluded in v0.1 (WB §6) |
-| Bargain icons (Godot visual assets) | Peace Deals polish | No icon art exists; functional UI ships first |
-| War bargain deadline / suspension model | Cut | WB §15 Gate 4 resolved: no deadlines, no suspension |
+| Item | Target Phase | HOME / Owner Spec | Rationale |
+|------|--------------|-------------------|-----------|
+| D1 advisory-first strategy | Nation Agendas | `DESIGN_REFINEMENT.md` queue item 5; future Nation Agendas / Motive Legibility spec required before coding | Strategic advisory surface, not peace mechanics |
+| D2 non-France-hegemon generalization | Scale / Scenario | `RELIABILITY_IMPLEMENTATION_PLAN.md` Slice D2 + `COALITION_SPEC.md` §3f guard; future Coalition Generalization spec required before coding | Requires multi-scenario testing with non-France player |
+| Dynamic power tiers (runtime recomputation) | Nation Agendas | `SCALE_READINESS_PLAN.md` Phase 0 taxonomy + `DESIGN_REFINEMENT.md` superseded dynamic-tier note | `power_tier` stays authored scenario data; any runtime strength signal must be separate `power_score` |
+| Multi-objective wars | War System v2 | `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` §R7 / §R8; future War System v2 spec required before coding | Complexity not justified in v0.1 |
+| AI-chosen offensive war objectives | War System v2 | `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` §13.1 / §R9; future War System v2 AI-objective spec required before coding | Conquest/Subjugation/Forced Alliance are the player's toolkit |
+| Coalition generalization (non-France war_bloc actors) | Coalition v2 | `COALITION_SPEC.md` + `WAR_BARGAIN_SPEC.md` §7.3; future Coalition Generalization spec required before coding | WB helpers stay parameterized for this |
+| AI-to-AI bargains | War Bargains v2 | `WAR_BARGAIN_SPEC.md` §6; future War Bargains v2 spec required before coding | Excluded in v0.1 |
+| Bargain icons (Godot visual assets) | Peace Deals polish | `WAR_BARGAIN_SPEC.md` §10.5 + `COMMITMENTS_PRESENTATION_SPEC.md` bargain-icon note | No icon art exists; functional UI ships first |
+| War bargain deadline / suspension model | Cut | `WAR_BARGAIN_SPEC.md` §15 Gate 4 cut decision | Resolved: no deadlines, no suspension |
 
 ### Items requiring design decision before implementation
 
-| Item | Decision Point | Options |
-|------|---------------|---------|
-| `threat_coalition` retirement | After Gate 1 (BPH + WPS complete) | Retire in cleanup pass OR carry through WB with tests |
-| Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | Confirm Voice Bible coverage for bargain-specific lines |
+| Item | Decision Point | HOME / Owner Spec | Options |
+|------|---------------|-------------------|---------|
+| `threat_coalition` retirement | After Gate 1 (BPH + WPS complete) | `PEACE_DEALS_UMBRELLA_SPEC.md` §4.2 + `COALITION_SPEC.md` threat-source tables | Retire in cleanup pass OR carry through WB with tests |
+| Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | Confirm Voice Bible coverage for bargain-specific lines |
 
 ---
 
