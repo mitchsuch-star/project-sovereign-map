@@ -117,6 +117,8 @@ class CommandParser:
             "diplomatic_ultimatum",    # Issue ultimatum to a nation
             # Memory and Pressure v2.4.3 — B-B7 Make Amends (spec §8.6.1)
             "make_amends",
+            # WPS-A: Set war purpose for defensive wars
+            "set_war_purpose",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

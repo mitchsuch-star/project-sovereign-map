@@ -127,6 +127,9 @@ CAMPAIGN_LOG_TYPES = {
     "war_entry_ledger",
     # Peace Deals BPH-A — peace ratification event
     "peace_ratified",
+    # WPS-A — war objectives
+    "war_objective_declared",
+    "war_objective_ticking_started",
 }
 
 # ============================================================================
@@ -208,6 +211,9 @@ CATEGORY_MAP = {
     "war_entry_ledger": "diplomacy",
     # Peace Deals BPH-A
     "peace_ratified": "diplomacy",
+    # WPS-A — war objectives
+    "war_objective_declared": "diplomacy",
+    "war_objective_ticking_started": "diplomacy",
 }
 
 
@@ -729,6 +735,20 @@ def format_event_oneliner(event: dict) -> str:
         if breached_treaty:
             return f"War declared: {aggressor} → {target} (shattering {breached_treaty})"
         return f"War declared: {aggressor} → {target}"
+
+    if event_type == "war_objective_declared":
+        declaring = event.get("declaring_nation", "Unknown")
+        target = event.get("target_nation", "Unknown")
+        obj_type = (event.get("objective_type") or "unknown").replace("_", " ").title()
+        regions = event.get("target_regions", [])
+        region_str = f" (target: {', '.join(regions)})" if regions else ""
+        return f"{declaring} declares {obj_type} against {target}{region_str}"
+
+    if event_type == "war_objective_ticking_started":
+        declaring = event.get("declaring_nation", "Unknown")
+        region = event.get("target_region", "unknown")
+        rate = event.get("rate", 0)
+        return f"{declaring} holds {region} — ticking war score (+{rate}/turn)"
 
     if event_type == "diplomatic_vassal_rebellion":
         nation = event.get("nation") or event.get("vassal", "Unknown")

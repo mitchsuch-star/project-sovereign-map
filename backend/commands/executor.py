@@ -1329,6 +1329,9 @@ class CommandExecutor:
                         # B-B7 Make Amends — spec §8.6.1
                         "make_amends"):
             result = self._diplomatic._execute_diplomatic(command, game_state)
+        # WPS-A: Set war purpose (defensive war objective, 0 AP)
+        elif action == "set_war_purpose":
+            result = self._diplomatic._execute_set_war_purpose(command, game_state)
         # ════════════════════════════════════════════════════════════
         # VASSAL COMMANDS (Phase 8 Session 5)
         # ════════════════════════════════════════════════════════════

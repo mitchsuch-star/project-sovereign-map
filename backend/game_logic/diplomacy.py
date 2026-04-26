@@ -2816,7 +2816,14 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             capital_score -= 10  # Contested
     capital_score = max(-30, min(30, capital_score))
 
-    total = territory_score + battle_score + decisive_score + capital_score
+    # WPS-A: Ticking score (5th component)
+    ticking_score = 0
+    war_obj = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+    ticking_a = war_obj.get(nation_a, {}).get("accumulated_ticking", 0)
+    ticking_b = war_obj.get(nation_b, {}).get("accumulated_ticking", 0)
+    ticking_score = int(ticking_a - ticking_b)
+
+    total = territory_score + battle_score + decisive_score + capital_score + ticking_score
     total = int(max(-100, min(100, total)))
 
     if return_components:
@@ -2826,6 +2833,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             "battles": int(battle_score),
             "decisive": int(decisive_score),
             "capital": int(capital_score),
+            "ticking": int(ticking_score),
         }
     return total
 
@@ -2879,6 +2887,252 @@ def get_war_score_for(world, nation: str, opponent: str) -> int:
         raw_score = -raw_score
 
     return int(raw_score)
+
+
+# ═══════════════════════════════════════════════════════
+# WPS-A: WAR OBJECTIVES + TICKING SCORE
+# ═══════════════════════════════════════════════════════
+
+OBJECTIVE_TYPES = {"conquest", "subjugation", "forced_alliance", "defense", "liberation"}
+TICKING_RATES = {
+    "conquest": 2,
+    "subjugation": 3,
+    "forced_alliance": 2,
+    "defense": 1,
+    "liberation": 1,
+}
+TICKING_CAP = 25
+
+SETTLEMENT_TIERS = [
+    (80, "total_victory"),
+    (60, "harsh_peace"),
+    (40, "dictated_terms"),
+    (20, "favorable_terms"),
+    (0, "white_peace"),
+]
+
+SETTLEMENT_TIER_DISPLAY = {
+    "total_victory": "Total Victory",
+    "harsh_peace": "Harsh Peace",
+    "dictated_terms": "Dictated Terms",
+    "favorable_terms": "Favorable Terms",
+    "white_peace": "White Peace",
+}
+
+OBJECTIVE_TYPE_DISPLAY = {
+    "conquest": "Conquest",
+    "subjugation": "Subjugation",
+    "forced_alliance": "Forced Alliance",
+    "defense": "Defense",
+    "liberation": "Liberation",
+}
+
+
+def calculate_national_power(nation: str, world) -> int:
+    """Calculate national power from controlled regions and vassal contribution.
+
+    Evaluated at proposal/objective-validation time, not per-turn hot path.
+    """
+    from backend.models.region import NATION_CAPITALS  # noqa: F811
+
+    power = 0
+    for region in world.regions.values():
+        if region.controller == nation:
+            power += region.income_value
+
+    for vassal_nation, vassal_data in getattr(world, 'vassals', {}).items():
+        if vassal_data.get("lord") == nation:
+            for region in world.regions.values():
+                if region.controller == vassal_nation:
+                    power += region.income_value // 2
+
+    return int(power)
+
+
+def create_war_objective(
+    objective_type: str,
+    declaring_nation: str,
+    target_nation: str,
+    target_regions: list,
+    current_turn: int,
+    vassal_nations: list = None,
+) -> Dict:
+    """Build a war objective record per WPS spec §6.4."""
+    obj = {
+        "type": objective_type,
+        "declaring_nation": declaring_nation,
+        "target_nation": target_nation,
+        "target_regions": list(target_regions),
+        "accumulated_ticking": 0,
+        "created_turn": int(current_turn),
+        "ticking_active": False,
+        "objective_met_turn": None,
+    }
+    if objective_type == "liberation":
+        obj["vassal_nations"] = list(vassal_nations or [])
+    return obj
+
+
+def get_available_war_objectives(world, aggressor: str, target: str) -> list:
+    """Return available objectives for the War Purpose popup."""
+    from backend.models.region import NATION_CAPITALS
+
+    target_capital = NATION_CAPITALS.get(target)
+    objectives = []
+
+    objectives.append({
+        "type": "conquest",
+        "label": "Conquest",
+        "description": f"Seize {target_capital or 'the capital'}. +2/turn while held.",
+        "available": True,
+        "ticking_rate": 2,
+    })
+
+    objectives.append({
+        "type": "forced_alliance",
+        "label": "Forced Alliance",
+        "description": f"Force {target} into alliance. +2/turn while {target_capital or 'capital'} held.",
+        "available": True,
+        "ticking_rate": 2,
+    })
+
+    aggressor_power = calculate_national_power(aggressor, world)
+    target_power = calculate_national_power(target, world)
+    power_pct = int((target_power * 100) // aggressor_power) if aggressor_power > 0 else 100
+    subjugation_available = target_power <= aggressor_power // 2
+
+    objectives.append({
+        "type": "subjugation",
+        "label": "Subjugation",
+        "description": f"Total defeat — vassalize {target}. +3/turn while {target_capital or 'capital'} held.",
+        "available": subjugation_available,
+        "ticking_rate": 3,
+        "reason": None if subjugation_available else f"{target} is too powerful to subjugate ({power_pct}% of {aggressor})",
+    })
+
+    return objectives
+
+
+def get_settlement_tier(war_score: int) -> str:
+    """Map a war score to a settlement tier name."""
+    abs_score = abs(war_score)
+    for threshold, tier in SETTLEMENT_TIERS:
+        if abs_score >= threshold:
+            return tier
+    return "white_peace"
+
+
+def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_key: str) -> None:
+    """Auto-assign a defense objective to the attacked nation."""
+    target_regions = [
+        rname for rname, rdata in world.nation_starting_regions.items()
+        if defender in (rdata if isinstance(rdata, list) else [])
+    ] if hasattr(world, 'nation_starting_regions') else []
+
+    if not target_regions:
+        target_regions = list(world.nation_starting_regions.get(defender, []))
+
+    if diplo_key not in world.war_objectives:
+        world.war_objectives[diplo_key] = {}
+
+    world.war_objectives[diplo_key][defender] = create_war_objective(
+        objective_type="defense",
+        declaring_nation=defender,
+        target_nation=aggressor,
+        target_regions=target_regions,
+        current_turn=world.current_turn,
+    )
+
+
+def accumulate_war_objective_ticking(world) -> List[Dict]:
+    """Accumulate ticking for all active war objectives. Called in process_diplomacy_turn."""
+    events = []
+
+    for diplo_key, nation_objectives in list(world.war_objectives.items()):
+        diplo_state = world.diplomatic_states.get(diplo_key, "PEACE")
+
+        if diplo_state == "ARMISTICE":
+            continue
+
+        if diplo_state != "WAR":
+            continue
+
+        for nation, obj in nation_objectives.items():
+            if obj.get("concluded_turn") is not None:
+                continue
+
+            obj_type = obj.get("type", "")
+            prev_ticking = obj.get("accumulated_ticking", 0)
+
+            if prev_ticking >= TICKING_CAP:
+                continue
+
+            rate = TICKING_RATES.get(obj_type, 0)
+            gained = 0
+
+            if obj_type in ("conquest", "subjugation", "forced_alliance"):
+                for target_region in obj.get("target_regions", []):
+                    if target_region in world.regions:
+                        if world.regions[target_region].controller == nation:
+                            gained += rate
+            elif obj_type == "defense":
+                for target_region in obj.get("target_regions", []):
+                    if target_region in world.regions:
+                        if world.regions[target_region].controller != nation:
+                            gained += 1
+            elif obj_type == "liberation":
+                for target_region in obj.get("target_regions", []):
+                    if target_region in world.regions:
+                        target_nation = obj.get("target_nation", "")
+                        if world.regions[target_region].controller == target_nation:
+                            gained += 1
+
+            if gained > 0:
+                new_total = min(prev_ticking + gained, TICKING_CAP)
+                obj["accumulated_ticking"] = int(new_total)
+                obj["ticking_active"] = True
+
+                if prev_ticking == 0:
+                    events.append({
+                        "type": "war_objective_ticking_started",
+                        "declaring_nation": nation,
+                        "target_nation": obj.get("target_nation", ""),
+                        "objective_type": obj_type,
+                        "target_region": obj.get("target_regions", [""])[0],
+                        "accumulated_ticking": int(new_total),
+                        "rate": rate if obj_type not in ("defense", "liberation") else gained,
+                        "turn": int(world.current_turn),
+                    })
+
+                if new_total >= TICKING_CAP and obj.get("objective_met_turn") is None:
+                    obj["objective_met_turn"] = int(world.current_turn)
+
+    return events
+
+
+def _conclude_war_objectives(world, diplo_key: str) -> None:
+    """Mark objectives as concluded when a war ends."""
+    objectives = world.war_objectives.get(diplo_key)
+    if not objectives:
+        return
+    for nation, obj in objectives.items():
+        if obj.get("concluded_turn") is None:
+            obj["concluded_turn"] = int(world.current_turn)
+
+
+def _cleanup_old_war_objectives(world) -> None:
+    """Remove concluded war objectives older than 10 turns."""
+    for diplo_key in list(world.war_objectives.keys()):
+        nation_objs = world.war_objectives[diplo_key]
+        all_concluded = True
+        for nation, obj in list(nation_objs.items()):
+            concluded = obj.get("concluded_turn")
+            if concluded is None:
+                all_concluded = False
+            elif world.current_turn - concluded > 10:
+                del nation_objs[nation]
+        if all_concluded and not nation_objs:
+            del world.war_objectives[diplo_key]
 
 
 # ═══════════════════════════════════════════════════════
@@ -3575,6 +3829,9 @@ def cleanup_war_end(world, diplo_key: str) -> None:
     war_scores.pop(diplo_key, None)
     war_score_history.pop(diplo_key, None)
     world.war_score_history = war_score_history
+
+    # WPS-A: Conclude war objectives (keep for 10-turn history)
+    _conclude_war_objectives(world, diplo_key)
 
     # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")
@@ -4602,6 +4859,7 @@ def declare_war(
     target: str,
     casus_belli: bool = False,
     origin_episode_id: str = None,
+    war_objective: str = None,
 ) -> Dict:
     """Declare war: transition to WAR, apply penalties, handle cascade.
 
@@ -4610,6 +4868,7 @@ def declare_war(
         aggressor: Nation declaring war
         target: Nation being declared upon
         casus_belli: If True, halve relation penalties (R21 ultimatum rejection)
+        war_objective: Optional objective type (conquest/subjugation/forced_alliance)
 
     Returns:
         {"success": bool, "message": str, "cascade": list of cascade entries,
@@ -4710,6 +4969,35 @@ def declare_war(
             },
         )
 
+    # WPS-A: Create war objectives
+    diplo_key_obj = world._make_diplo_key(aggressor, target)
+    if war_objective and war_objective in OBJECTIVE_TYPES:
+        from backend.models.region import NATION_CAPITALS as _NATION_CAPITALS
+        target_capital = _NATION_CAPITALS.get(target)
+        target_regions = [target_capital] if target_capital else []
+
+        if diplo_key_obj not in world.war_objectives:
+            world.war_objectives[diplo_key_obj] = {}
+
+        world.war_objectives[diplo_key_obj][aggressor] = create_war_objective(
+            objective_type=war_objective,
+            declaring_nation=aggressor,
+            target_nation=target,
+            target_regions=target_regions,
+            current_turn=world.current_turn,
+        )
+
+        world.log_event({
+            "type": "war_objective_declared",
+            "declaring_nation": aggressor,
+            "target_nation": target,
+            "objective_type": war_objective,
+            "target_regions": target_regions,
+            "turn": int(world.current_turn),
+        })
+
+    _auto_assign_defense_objective(world, target, aggressor, diplo_key_obj)
+
     # DP cost: 1
     dp_cost = WAR_DP_COST
 
@@ -4720,6 +5008,7 @@ def declare_war(
         "target": target,
         "previous_state": current_state,
         "episode_id": episode_id,
+        "war_objective": war_objective or "",
         "breached_treaty": breach_preview["treaty_type_display"] if breach_preview else "",
         "breach_reason_family": breach_preview["end_reason_family"] if breach_preview else "",
         "breach_reason_action": breach_preview["end_reason_action"] if breach_preview else "",
@@ -5589,7 +5878,16 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 4. War score recalculation + battle-score decay ──
     apply_war_score_decay(world)
 
-    # ── 4a. Relation decay (R4a) ──
+    # ── 4a. War objective ticking (WPS-A) ──
+    ticking_events = accumulate_war_objective_ticking(world)
+    for te in ticking_events:
+        world.log_event(te)
+    events.extend(ticking_events)
+
+    # ── 4b. Cleanup old concluded war objectives ──
+    _cleanup_old_war_objectives(world)
+
+    # ── 4c. Relation decay (R4a) ──
     _process_relation_decay(world)
 
     # 5-7: Vassal processing (defection cascade, loyalty, rebellion) — implemented in vassal.py, wired in advance_turn()

@@ -212,7 +212,7 @@ class TestWarOnTreatyAlly:
         # Give enough DP
         world.diplomatic_points = 5
 
-        diplomatic_data = {"target_nation": target, "action": "diplomatic_declare_war"}
+        diplomatic_data = {"target_nation": target, "action": "diplomatic_declare_war", "war_objective": "conquest"}
         result = executor._execute_diplomatic_declare_war(diplomatic_data, world)
 
         # Should show a warning dialogue, not immediately declare war
@@ -239,7 +239,7 @@ class TestWarOnTreatyAlly:
         world.diplomatic_points = 5
 
         result = executor._execute_diplomatic_declare_war(
-            {"target_nation": target, "action": "diplomatic_declare_war"},
+            {"target_nation": target, "action": "diplomatic_declare_war", "war_objective": "conquest"},
             world,
         )
 
@@ -263,7 +263,7 @@ class TestWarOnTreatyAlly:
         world.diplomatic_points = 5
 
         result = executor._execute_diplomatic_declare_war(
-            {"target_nation": target, "action": "diplomatic_declare_war"}, world,
+            {"target_nation": target, "action": "diplomatic_declare_war", "war_objective": "conquest"}, world,
         )
         warnings = result.get("warnings") or []
         assert warnings, "declare-war dialogue must expose a structured warnings[] list"
@@ -428,7 +428,7 @@ class TestManualBreakCommitmentPreview:
         world.threat_level = 10
         world.diplomatic_points = 5
 
-        diplomatic_data = {"target_nation": target, "action": "diplomatic_declare_war"}
+        diplomatic_data = {"target_nation": target, "action": "diplomatic_declare_war", "war_objective": "conquest"}
         result = executor._execute_diplomatic_declare_war(diplomatic_data, world)
 
         # Should succeed directly (no treaty warning)
@@ -496,7 +496,7 @@ class TestManualBreakCommitmentPreview:
         world.diplomatic_points = 5
 
         preview = executor._execute_diplomatic_declare_war(
-            {"target_nation": target, "action": "diplomatic_declare_war"},
+            {"target_nation": target, "action": "diplomatic_declare_war", "war_objective": "conquest"},
             world,
         )
         dialogue = preview.get("diplomatic_dialogue") or {}

@@ -160,8 +160,10 @@ class DiplomaticExecutor:
         if popup_action == "diplomatic_declare_war":
             if not popup_target:
                 return {"success": False, "message": "No target nation specified."}
+            popup_war_obj = (world.diplomatic_objection_popup or {}).get("war_objective")
             return self._execute_diplomatic_declare_war(
-                {"target_nation": popup_target, "confirmed_objection": True},
+                {"target_nation": popup_target, "confirmed_objection": True,
+                 "war_objective": popup_war_obj},
                 world,
             )
 
@@ -1353,10 +1355,20 @@ class DiplomaticExecutor:
     # ════════════════════════════════════════════════════════════════════════════════
 
     def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle war declaration command (R10). Costs 1 DP."""
+        """Handle war declaration command (R10). Costs 1 DP.
+
+        WPS-A: War Purpose popup fires before treaty check. Flow:
+        1. Validation (target, not at war, no armistice)
+        2. War Purpose popup (if no war_objective yet)
+        3. Treaty warning (if treaty exists)
+        4. DP check
+        5. Talleyrand objection (if high threat)
+        6. Execute declare_war() with chosen objective
+        """
         from backend.game_logic.diplomacy import (
             declare_war,
             preview_war_declaration,
+            get_available_war_objectives,
             _allocate_episode_id,
         )
         confirmed_objection = bool(diplomatic_data.get("confirmed_objection"))
@@ -1391,6 +1403,41 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": f"The armistice with {target_nation} holds for {arm_cd} more turns. "
                            f"We cannot declare war until it expires.",
+            }
+
+        # WPS-A: War Purpose popup — must choose objective before proceeding
+        war_objective = diplomatic_data.get("war_objective")
+        if not war_objective:
+            objectives = get_available_war_objectives(world, player, target_nation)
+            options = []
+            for obj in objectives:
+                if obj["available"]:
+                    options.append({
+                        "label": obj["label"],
+                        "action": "select_war_objective",
+                        "objective_type": obj["type"],
+                        "target_nation": target_nation,
+                    })
+            options.append({"label": "Back Out", "action": "reconsider"})
+
+            world.dialogue_manager.replace({
+                "type": "war_purpose_selection",
+                "target_nation": target_nation,
+                "message": f"Choose your war purpose against {target_nation}.",
+                "objectives": objectives,
+                "options": options,
+                "blocking": True,
+                "turn_created": int(world.current_turn),
+            })
+            return {
+                "success": True,
+                "message": f"Choose your war purpose against {target_nation}.",
+                "war_purpose_popup": {
+                    "target_nation": target_nation,
+                    "objectives": objectives,
+                },
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "awaiting_diplomatic_response": True,
             }
 
         # Treaty warning — declaring war on an ally requires confirmation
@@ -1434,6 +1481,7 @@ class DiplomaticExecutor:
             world.dialogue_manager.replace({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
+                "war_objective": war_objective,
                 "message": warning_text,
                 "talleyrand_text": warning_text,
                 "origin_episode_id": preview_episode_id,
@@ -1482,6 +1530,7 @@ class DiplomaticExecutor:
                     "proposal_summary": f"Declare war on {target_nation}",
                     "action": "diplomatic_declare_war",
                     "target_nation": target_nation,
+                    "war_objective": war_objective,
                 }
                 return {
                     "success": True,
@@ -1496,6 +1545,7 @@ class DiplomaticExecutor:
             target_nation,
             casus_belli=world.casus_belli.get(world._make_diplo_key(player, target_nation), False),
             origin_episode_id=diplomatic_data.get("origin_episode_id"),
+            war_objective=war_objective,
         )
 
         if result.get("success"):
@@ -1504,6 +1554,115 @@ class DiplomaticExecutor:
             self._apply_diplomatic_trust_reactions(world, "war_declaration", target_nation)
 
         return result
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # SET WAR PURPOSE (WPS-A: defensive war objective)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _execute_set_war_purpose(self, command: Dict, game_state: Dict) -> Dict:
+        """Set war objective for a defensive war. Entry point from executor dispatch."""
+        world = game_state.get("world") if isinstance(game_state, dict) else game_state
+        cmd = command.get("command", command) if isinstance(command.get("command"), dict) else command
+        target_nation = (cmd.get("target_nation")
+                         or (cmd.get("diplomatic_data") or {}).get("target_nation"))
+        objective_type = (cmd.get("objective_type")
+                          or (cmd.get("diplomatic_data") or {}).get("objective_type"))
+        return self._set_war_purpose_inner(target_nation, objective_type, world)
+
+    def _set_war_purpose_inner(self, target_nation: str, objective_type: str, world) -> Dict:
+        """Core set_war_purpose logic. 0 AP."""
+        from backend.game_logic.diplomacy import (
+            create_war_objective,
+            get_available_war_objectives,
+            OBJECTIVE_TYPES,
+        )
+        from backend.models.region import NATION_CAPITALS
+
+        if not target_nation:
+            return {"success": False, "message": "Sire, against which nation shall we set our purpose?"}
+
+        player = world.player_nation
+        current_state = world.get_diplomatic_state(player, target_nation)
+        if current_state != "WAR":
+            return {"success": False, "message": f"We are not at war with {target_nation}, Sire."}
+
+        diplo_key = world._make_diplo_key(player, target_nation)
+        existing = world.war_objectives.get(diplo_key, {}).get(player)
+        if existing and existing.get("concluded_turn") is None:
+            if existing.get("type") != "defense":
+                return {
+                    "success": False,
+                    "message": f"Our war purpose against {target_nation} is already set to "
+                               f"{existing.get('type', 'unknown').replace('_', ' ')}. "
+                               f"It cannot be changed mid-war.",
+                }
+
+        if not objective_type:
+            objectives = get_available_war_objectives(world, player, target_nation)
+            options = []
+            for obj in objectives:
+                if obj["available"]:
+                    options.append({
+                        "label": obj["label"],
+                        "action": "confirm_set_war_purpose",
+                        "objective_type": obj["type"],
+                        "target_nation": target_nation,
+                    })
+            options.append({"label": "Cancel", "action": "reconsider"})
+
+            world.dialogue_manager.replace({
+                "type": "war_purpose_selection",
+                "target_nation": target_nation,
+                "message": f"Choose your war purpose against {target_nation}.",
+                "objectives": objectives,
+                "options": options,
+                "is_defensive_set": True,
+                "blocking": True,
+                "turn_created": int(world.current_turn),
+            })
+            return {
+                "success": True,
+                "message": f"Choose your war purpose against {target_nation}.",
+                "war_purpose_popup": {
+                    "target_nation": target_nation,
+                    "objectives": objectives,
+                },
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "awaiting_diplomatic_response": True,
+            }
+
+        if objective_type not in OBJECTIVE_TYPES or objective_type in ("defense", "liberation"):
+            return {"success": False, "message": f"Invalid war purpose: {objective_type}."}
+
+        target_capital = NATION_CAPITALS.get(target_nation)
+        target_regions = [target_capital] if target_capital else []
+
+        if diplo_key not in world.war_objectives:
+            world.war_objectives[diplo_key] = {}
+
+        world.war_objectives[diplo_key][player] = create_war_objective(
+            objective_type=objective_type,
+            declaring_nation=player,
+            target_nation=target_nation,
+            target_regions=target_regions,
+            current_turn=world.current_turn,
+        )
+
+        world.log_event({
+            "type": "war_objective_declared",
+            "declaring_nation": player,
+            "target_nation": target_nation,
+            "objective_type": objective_type,
+            "target_regions": target_regions,
+            "turn": int(world.current_turn),
+        })
+
+        from backend.game_logic.diplomacy import OBJECTIVE_TYPE_DISPLAY
+        display = OBJECTIVE_TYPE_DISPLAY.get(objective_type, objective_type)
+        return {
+            "success": True,
+            "message": f"War purpose declared: {display} against {target_nation}.",
+        }
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC ULTIMATUM
@@ -1934,6 +2093,25 @@ class DiplomaticExecutor:
                 "suppress_proposal_result_popup": True,
             }
 
+        elif action == "select_war_objective":
+            # WPS-A: Player selected objective from War Purpose popup
+            world.dialogue_manager.pop()
+            objective_type = selected.get("objective_type")
+            obj_target = selected.get("target_nation") or dialogue.get("target_nation")
+            if not obj_target:
+                return {"success": False, "message": "No target nation specified."}
+            if dialogue.get("is_defensive_set"):
+                return self._set_war_purpose_inner(obj_target, objective_type, world)
+            return self._execute_diplomatic_declare_war(
+                {"target_nation": obj_target, "war_objective": objective_type}, world)
+
+        elif action == "confirm_set_war_purpose":
+            # WPS-A: Player confirmed war purpose for defensive war
+            world.dialogue_manager.pop()
+            objective_type = selected.get("objective_type")
+            obj_target = selected.get("target_nation") or dialogue.get("target_nation")
+            return self._set_war_purpose_inner(obj_target, objective_type, world)
+
         elif action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty
             from backend.game_logic.diplomacy import declare_war
@@ -1941,6 +2119,7 @@ class DiplomaticExecutor:
             fw_target = selected.get("target_nation") or target_nation
             if not fw_target:
                 return {"success": False, "message": "No target nation specified."}
+            fw_objective = dialogue.get("war_objective")
             # DP check (1 DP)
             dp_cost = 1
             if world.diplomatic_points < dp_cost:
@@ -1954,7 +2133,8 @@ class DiplomaticExecutor:
                                  origin_episode_id=(
                                      dialogue.get("origin_episode_id")
                                      or (dialogue.get("breach_preview") or {}).get("episode_id")
-                                 ))
+                                 ),
+                                 war_objective=fw_objective)
             if result.get("success"):
                 world.diplomatic_points -= dp_cost
                 self._apply_diplomatic_trust_reactions(world, "war_declaration", fw_target)

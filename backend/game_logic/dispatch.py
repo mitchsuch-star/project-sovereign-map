@@ -98,6 +98,11 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # Coalition status (Session 7)
     dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
 
+    # WPS-A: Active war objectives
+    war_objective_lines = _build_war_objective_section(world, player_nation)
+    if war_objective_lines:
+        dispatch["war_objectives"] = war_objective_lines
+
     # BPH-D §11.3: Peace settlement section from previous turn's ratifications
     peace_settlements = _build_peace_settlement_section(world)
     if peace_settlements:
@@ -970,6 +975,56 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
         dispatch["talleyrand_override_note"] = override_note
 
     # ── 3. Redemption Event — REMOVED (PL-23: trust system deleted) ──
+
+
+def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
+    """WPS-A: Build war objective status lines for the Morning Dispatch."""
+    from backend.game_logic.diplomacy import (
+        OBJECTIVE_TYPE_DISPLAY, SETTLEMENT_TIER_DISPLAY,
+        TICKING_RATES, get_settlement_tier, get_war_score_for,
+    )
+
+    lines = []
+    war_objectives = getattr(world, 'war_objectives', {})
+
+    for diplo_key, nation_objs in war_objectives.items():
+        player_obj = nation_objs.get(player_nation)
+        if not player_obj or player_obj.get("concluded_turn") is not None:
+            continue
+
+        obj_type = player_obj.get("type", "")
+        target_nation = player_obj.get("target_nation", "Unknown")
+        target_regions = player_obj.get("target_regions", [])
+        accumulated = int(player_obj.get("accumulated_ticking", 0))
+        rate = int(TICKING_RATES.get(obj_type, 0))
+        type_display = OBJECTIVE_TYPE_DISPLAY.get(obj_type, obj_type)
+
+        held_regions = []
+        for rname in target_regions:
+            if rname in world.regions:
+                if world.regions[rname].controller == player_nation:
+                    held_regions.append(rname)
+
+        region_str = ", ".join(target_regions) if target_regions else "unknown"
+        held_str = "HELD" if held_regions else "not held"
+        tick_str = f"+{rate}/turn" if rate > 0 else ""
+
+        line_text = f"War Purpose: {type_display} vs {target_nation} — {region_str} [{held_str}]"
+        if accumulated > 0:
+            line_text += f" (ticking: +{accumulated}{', ' + tick_str if tick_str else ''})"
+
+        score = int(get_war_score_for(world, player_nation, target_nation))
+        tier = get_settlement_tier(score)
+        tier_display = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
+        line_text += f"  |  Settlement: {tier_display} ({score:+d})"
+
+        lines.append({
+            "text": line_text,
+            "target_nation": target_nation,
+            "objective_type": obj_type,
+        })
+
+    return lines
 
 
 def _build_peace_settlement_section(world) -> List[Dict]:

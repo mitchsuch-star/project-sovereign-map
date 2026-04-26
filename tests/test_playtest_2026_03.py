@@ -453,7 +453,7 @@ class TestM1DiplomaticDisplayNames:
         game_state = _make_game_state(world)
         result = executor.execute(
             {"command": {"action": "diplomatic_declare_war",
-                         "diplomatic_data": {"target_nation": "Prussia", "action": "diplomatic_declare_war"}}},
+                         "diplomatic_data": {"target_nation": "Prussia", "action": "diplomatic_declare_war", "war_objective": "conquest"}}},
             game_state
         )
         msg = result.get("message", "")

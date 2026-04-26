@@ -225,6 +225,7 @@ class WorldState:
             "garrison": 2,  # Session 31: Detach troops (2 AP — real commitment)
             "form_square": 1,  # Session 67: Form square formation (1 AP)
             "break_square": 0,  # Session 67: Break square (free action)
+            "set_war_purpose": 0,  # WPS-A: political declaration, not an action
         }
 
         # ============================================================
@@ -583,6 +584,10 @@ class WorldState:
 
         # BPH-D: Last 5 peace ratification summaries for dispatch/ledger.
         self.peace_ratification_log: List[Dict] = []
+
+        # WPS-A: War objectives per war, keyed by diplo_key then declaring_nation.
+        # war_objectives[diplo_key][declaring_nation] = objective record dict
+        self.war_objectives: Dict[str, Dict[str, Dict]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3544,6 +3549,10 @@ class WorldState:
             "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
             "peace_ratification_log": [e.copy() for e in self.peace_ratification_log],
+            "war_objectives": {
+                k: {nation: obj.copy() for nation, obj in v.items()}
+                for k, v in self.war_objectives.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3930,6 +3939,10 @@ class WorldState:
         world.peace_ratification_log = [
             e.copy() for e in data.get("peace_ratification_log", [])
         ]
+        world.war_objectives = {
+            k: {nation: obj.copy() for nation, obj in v.items()}
+            for k, v in data.get("war_objectives", {}).items()
+        }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }

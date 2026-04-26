@@ -580,7 +580,12 @@ class TestOtherEndpointDiplomaticFields:
         assert len(data["diplomatic_dialogue"]["options"]) == 3
 
     def test_diplomatic_objection_direct_proceed_bypasses_retrigger(self, client, fresh_world):
-        """Proceed on direct war objections should execute the confirmed action, not loop the popup."""
+        """Proceed on direct war objections should not loop the objection popup.
+
+        WPS-A: The proceed path re-enters _execute_diplomatic_declare_war without
+        a war_objective, so it now shows the War Purpose popup instead of declaring
+        war directly.  The key invariant is that the *objection* does not re-trigger.
+        """
         fresh_world.player_nation = "France"
         fresh_world.threat_level = 70
         fresh_world.diplomatic_points = 10
@@ -598,7 +603,8 @@ class TestOtherEndpointDiplomaticFields:
 
         assert data["success"] is True
         assert data["diplomatic_objection"] is None
-        assert fresh_world.get_diplomatic_state("France", "Austria") == "WAR"
+        # WPS-A: War Purpose popup fires instead of immediate war declaration
+        assert data.get("awaiting_diplomatic_response") is True
 
     def test_diplomatic_dialogue_safety_net_rejects_negative_result(self, client, fresh_world, main_module, monkeypatch):
         """Fallback proposal-result popup must not default rejected outcomes to ACCEPT."""

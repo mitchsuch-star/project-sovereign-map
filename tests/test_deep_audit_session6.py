@@ -64,7 +64,7 @@ class TestFix1WarDeclarationObjectionFields:
 
         executor = CommandExecutor()
         result = executor._execute_diplomatic_declare_war(
-            {"target_nation": "Prussia"}, world
+            {"target_nation": "Prussia", "war_objective": "conquest"}, world
         )
 
         assert result["success"] is True

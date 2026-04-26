@@ -521,6 +521,14 @@ class LLMClient:
         if any(kw in command_lower for kw in _ultimatum_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
+        # WPS-A: Set war purpose keywords
+        _war_purpose_keywords = [
+            "set war purpose", "war purpose", "set objective",
+            "declare purpose", "set war goal",
+        ]
+        if any(kw in command_lower for kw in _war_purpose_keywords):
+            return self._parse_set_war_purpose(command_text, command_lower)
+
         # Memory and Pressure v2.4.3 — B-B7 Make Amends keywords route to
         # diplomacy without requiring "Talleyrand" (spec §8.6.1).
         _amends_keywords = [
@@ -922,6 +930,33 @@ class LLMClient:
             requested_type=requested_type,
         )
 
+
+    def _parse_set_war_purpose(self, command_text: str, command_lower: str) -> ParseResult:
+        """Parse a set war purpose command (WPS-A)."""
+        from backend.game_logic.diplomatic_dialogue import extract_nation_from_command
+
+        nation = extract_nation_from_command(command_text)
+
+        objective_type = None
+        for kw, obj in [
+            ("conquest", "conquest"),
+            ("subjugation", "subjugation"),
+            ("subjugate", "subjugation"),
+            ("forced alliance", "forced_alliance"),
+            ("force alliance", "forced_alliance"),
+        ]:
+            if kw in command_lower:
+                objective_type = obj
+                break
+
+        return {
+            "action": "set_war_purpose",
+            "command": {
+                "action": "set_war_purpose",
+                "target_nation": nation,
+                "objective_type": objective_type,
+            },
+        }
 
     def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:
         """Parse a diplomatic command addressed to Talleyrand.

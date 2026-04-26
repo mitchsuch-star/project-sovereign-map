@@ -44,6 +44,7 @@ class DialogueManager:
         "force_break_treaty_confirmation",
         "alliance_paradox",
         "commitment_paradox",
+        "war_purpose_selection",
     })
     # Current-turn offer types: AI-initiated offers that lapse at end of turn.
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.

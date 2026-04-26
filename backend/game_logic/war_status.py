@@ -134,6 +134,37 @@ def build_active_wars(world) -> Dict[str, Any]:
             coalition and coalition.get("leader") == opponent
         )
 
+        # WPS-A: War objective + settlement tier
+        from backend.game_logic.diplomacy import (
+            TICKING_RATES, OBJECTIVE_TYPE_DISPLAY,
+            SETTLEMENT_TIER_DISPLAY, get_settlement_tier,
+        )
+        war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+        france_obj = war_obj_data.get(france, {})
+        enemy_obj = war_obj_data.get(opponent, {})
+
+        objective_info = None
+        if france_obj and france_obj.get("concluded_turn") is None:
+            obj_type = france_obj.get("type", "")
+            objective_info = {
+                "type": obj_type,
+                "type_display": OBJECTIVE_TYPE_DISPLAY.get(obj_type, obj_type),
+                "target_regions": france_obj.get("target_regions", []),
+                "accumulated_ticking": int(france_obj.get("accumulated_ticking", 0)),
+                "ticking_active": bool(france_obj.get("ticking_active", False)),
+                "ticking_rate": int(TICKING_RATES.get(obj_type, 0)),
+            }
+
+        enemy_objective_info = None
+        if enemy_obj and enemy_obj.get("concluded_turn") is None:
+            eo_type = enemy_obj.get("type", "")
+            enemy_objective_info = {
+                "type": eo_type,
+                "type_display": OBJECTIVE_TYPE_DISPLAY.get(eo_type, eo_type),
+            }
+
+        tier = get_settlement_tier(score)
+
         wars.append({
             "opponent": opponent,
             "war_score": score,
@@ -149,6 +180,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "status": "war",
             "in_coalition": in_coalition,
             "is_coalition_leader": is_coalition_leader,
+            "objective": objective_info,
+            "enemy_objective": enemy_objective_info,
+            "settlement_tier": tier,
+            "settlement_tier_display": SETTLEMENT_TIER_DISPLAY.get(tier, tier),
         })
 
     # Sort: coalition leader first, then coalition members, then bilateral

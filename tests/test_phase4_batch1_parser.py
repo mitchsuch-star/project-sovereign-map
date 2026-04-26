@@ -66,6 +66,7 @@ class TestWarDeclaration:
             "diplomatic_data": {
                 "action": "diplomatic_declare_war",
                 "target_nation": "Austria",
+                "war_objective": "conquest",
             },
         }
         result = executor._execute_diplomatic(command, game_state)
@@ -94,6 +95,7 @@ class TestWarDeclaration:
             "diplomatic_data": {
                 "action": "diplomatic_declare_war",
                 "target_nation": "Austria",
+                "war_objective": "conquest",
             },
         }
         result = executor._execute_diplomatic(command, game_state)
@@ -108,6 +110,7 @@ class TestWarDeclaration:
             "diplomatic_data": {
                 "action": "diplomatic_declare_war",
                 "target_nation": "Austria",
+                "war_objective": "conquest",
             },
         }
         result = executor._execute_diplomatic(command, game_state)
@@ -126,6 +129,7 @@ class TestWarDeclaration:
         diplomatic_data = {
             "action": "diplomatic_declare_war",
             "target_nation": "Austria",
+            "war_objective": "conquest",
         }
         executor._execute_diplomatic_declare_war(diplomatic_data, world)
         # Ney is aggressive -> +3

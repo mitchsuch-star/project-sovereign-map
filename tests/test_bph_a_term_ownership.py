@@ -261,7 +261,7 @@ class TestPeaceRatifiedCampaignLog:
         assert CATEGORY_MAP["peace_ratified"] == "diplomacy"
 
     def test_type_count(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 64
+        assert len(CAMPAIGN_LOG_TYPES) == 66
 
     def test_format_peace_oneliner(self):
         event = {

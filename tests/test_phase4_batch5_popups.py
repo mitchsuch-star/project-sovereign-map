@@ -288,7 +288,7 @@ class TestR89DPFailureDialogueState:
         # Austria is at PEACE with France by default (Prussia/Britain are WAR)
         world.diplomatic_points = 0
         result = executor._execute_diplomatic_declare_war(
-            {"target_nation": "Austria"}, world
+            {"target_nation": "Austria", "war_objective": "conquest"}, world
         )
         assert result["success"] is False
         assert "Insufficient" in result["message"]
