@@ -5426,6 +5426,24 @@ class WorldState:
                                  "treaty_type": proposal_display_name(proposal_type)},
                                 "partial_on_nation")
 
+            # BPH-A: Emit peace_ratified when transitioning from WAR/ARMISTICE
+            if current_state in ("WAR", "ARMISTICE") and target_state not in ("WAR",):
+                from backend.game_logic.diplomatic_templates import annotate_peace_terms
+                annotated = annotate_peace_terms(proposal, proposer, target_nation)
+                peace_event = {
+                    "type": "peace_ratified",
+                    "proposer_nation": proposer,
+                    "target_nation": target_nation,
+                    "state_transition": f"{current_state}_TO_{target_state}",
+                    "annotated_terms": annotated,
+                    "turn": int(self.current_turn),
+                    "harshness": treaty.get("harshness", 0),
+                }
+                self.log_event(peace_event)
+                queue_dispatch_event(self, "peace_ratified",
+                                    {"proposer_nation": proposer, "target_nation": target_nation},
+                                    "always")
+
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
             if current_state == "WAR" and target_state != "WAR":
                 from backend.game_logic.diplomacy import calculate_war_score

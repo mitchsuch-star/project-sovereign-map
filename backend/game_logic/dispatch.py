@@ -1101,6 +1101,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
     "nation_eliminated": "{nation} has been eliminated from the war.",
+    # Peace Deals BPH-A
+    "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -1151,6 +1153,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "oathbreaker_posture_cleared": "MEDIUM",
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
+    "peace_ratified": "HIGH",
 }
 
 

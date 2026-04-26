@@ -2027,3 +2027,151 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery", "manpower"):
             harshness += 0.15
     return min(1.0, harshness)
+
+
+# ═══════ BPH-A: TERM OWNERSHIP ANNOTATION ═══════
+
+_TERM_DISPLAY_LABELS = {
+    "territory_cede": "{from_nation} cedes {detail} to {to_nation}",
+    "territory": "{from_nation} cedes {detail} to {to_nation}",
+    "territory_return": "{from_nation} returns {detail} to {to_nation}",
+    "gold_lump": "{from_nation} pays {value} gold to {to_nation}",
+    "gold_per_turn": "{from_nation} pays {value} gold per turn to {to_nation}",
+    "manpower_infantry": "{from_nation} transfers {value} infantry to {to_nation}",
+    "manpower_cavalry": "{from_nation} transfers {value} cavalry to {to_nation}",
+    "manpower_artillery": "{from_nation} transfers {value} artillery to {to_nation}",
+    "ap_per_turn": "{from_nation} cedes {value} AP per turn to {to_nation}",
+    "open_borders": "Mutual open borders between {nation_a} and {nation_b}",
+    "protection_promised": "{to_nation} guarantees {from_nation}'s sovereignty",
+    "continental_system_lifted": "{from_nation} closes ports to Britain",
+}
+
+
+def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
+                         regions: list, value: int) -> str:
+    template = _TERM_DISPLAY_LABELS.get(clause_type)
+    if not template:
+        from backend.display_names import clause_display_name
+        return clause_display_name(clause_type)
+
+    detail = ", ".join(regions) if regions else "territory"
+    return template.format(
+        from_nation=from_nation, to_nation=to_nation,
+        detail=detail, value=int(value),
+        nation_a=from_nation, nation_b=to_nation,
+    )
+
+
+def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) -> list:
+    """Annotate every clause/sweetener/demand with ownership fields per BPH §7.1.
+
+    Returns a list of annotated term dicts, each with:
+      clause_type, from_nation, to_nation, regions, term_direction,
+      sweetener_value (if applicable), display_label
+    """
+    annotated = []
+
+    for sweetener in terms.get("sweeteners", []):
+        stype = sweetener.get("type", "")
+        regions = sweetener.get("regions", [])
+        value = int(sweetener.get("value", 0))
+        annotated.append({
+            "clause_type": stype,
+            "from_nation": proposer_nation,
+            "to_nation": target_nation,
+            "regions": regions,
+            "term_direction": "concession",
+            "sweetener_value": value,
+            "display_label": _build_display_label(stype, proposer_nation, target_nation, regions, value),
+        })
+
+    for demand in terms.get("demands", []):
+        dtype = demand.get("type", "")
+        regions = demand.get("regions", [])
+        value = int(demand.get("value", 0))
+        annotated.append({
+            "clause_type": dtype,
+            "from_nation": target_nation,
+            "to_nation": proposer_nation,
+            "regions": regions,
+            "term_direction": "demand",
+            "sweetener_value": -value if value else 0,
+            "display_label": _build_display_label(dtype, target_nation, proposer_nation, regions, value),
+        })
+
+    for clause in terms.get("clauses", []):
+        if isinstance(clause, str):
+            ctype = clause
+            regions = []
+            value = 0
+        else:
+            ctype = clause.get("type", "")
+            regions = clause.get("regions", [])
+            value = int(clause.get("value", 0))
+
+        if ctype in ("open_borders",):
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": proposer_nation,
+                "to_nation": target_nation,
+                "regions": [],
+                "term_direction": "mutual",
+                "sweetener_value": 0,
+                "display_label": _build_display_label(ctype, proposer_nation, target_nation, [], 0),
+            })
+        elif ctype == "protection_promised":
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": target_nation,
+                "to_nation": proposer_nation,
+                "regions": [],
+                "term_direction": "concession",
+                "sweetener_value": 0,
+                "display_label": _build_display_label(ctype, target_nation, proposer_nation, [], 0),
+            })
+        elif ctype == "continental_system_lifted":
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": target_nation,
+                "to_nation": target_nation,
+                "regions": [],
+                "term_direction": "demand",
+                "sweetener_value": 0,
+                "display_label": _build_display_label(ctype, target_nation, target_nation, [], 0),
+            })
+        elif ctype.startswith("territory_"):
+            region_name = ctype.split("_", 1)[1] if "_" in ctype else ""
+            if region_name and region_name not in ("cede", "return"):
+                annotated.append({
+                    "clause_type": "territory_cede",
+                    "from_nation": proposer_nation,
+                    "to_nation": target_nation,
+                    "regions": [region_name.title()],
+                    "term_direction": "concession",
+                    "sweetener_value": 0,
+                    "display_label": _build_display_label(
+                        "territory_cede", proposer_nation, target_nation,
+                        [region_name.title()], 0),
+                })
+            else:
+                annotated.append({
+                    "clause_type": ctype,
+                    "from_nation": proposer_nation,
+                    "to_nation": target_nation,
+                    "regions": regions,
+                    "term_direction": "concession",
+                    "sweetener_value": 0,
+                    "display_label": _build_display_label(ctype, proposer_nation, target_nation, regions, value),
+                })
+        else:
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": proposer_nation,
+                "to_nation": target_nation,
+                "regions": regions,
+                "term_direction": "mutual",
+                "sweetener_value": 0,
+                "display_label": _build_display_label(ctype, proposer_nation, target_nation, regions, value),
+            })
+
+    return annotated

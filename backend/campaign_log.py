@@ -125,6 +125,8 @@ CAMPAIGN_LOG_TYPES = {
     "oathbreaker_posture_triggered",
     "oathbreaker_posture_cleared",
     "war_entry_ledger",
+    # Peace Deals BPH-A — peace ratification event
+    "peace_ratified",
 }
 
 # ============================================================================
@@ -204,6 +206,8 @@ CATEGORY_MAP = {
     "oathbreaker_posture_triggered": "diplomacy",
     "oathbreaker_posture_cleared": "diplomacy",
     "war_entry_ledger": "diplomacy",
+    # Peace Deals BPH-A
+    "peace_ratified": "diplomacy",
 }
 
 
@@ -951,5 +955,16 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "ultimatum_rejected":
         target = event.get("target", "Unknown")
         return f"{target} rejected our ultimatum — casus belli granted"
+
+    # Peace Deals BPH-A
+    if event_type == "peace_ratified":
+        proposer = event.get("proposer_nation", "Unknown")
+        target = event.get("target_nation", "Unknown")
+        transition = event.get("state_transition", "")
+        term_count = len(event.get("annotated_terms", []))
+        suffix = f" ({term_count} term{'s' if term_count != 1 else ''})" if term_count else ""
+        if "ARMISTICE" in transition:
+            return f"Armistice ratified: {proposer} and {target}{suffix}"
+        return f"Peace ratified: {proposer} and {target}{suffix}"
 
     return f"Event: {event_type}"

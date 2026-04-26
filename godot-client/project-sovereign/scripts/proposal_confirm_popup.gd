@@ -84,13 +84,18 @@ func _build_content(data: Dictionary) -> String:
 	var bbcode = ""
 	bbcode += "[b]DIPLOMATIC PROPOSAL — %s[/b]\n\n" % target
 
-	# Terms summary
-	var terms = data.get("proposal_terms_summary", [])
-	if not terms.is_empty():
-		bbcode += "[b]Terms Talleyrand proposes:[/b]\n"
-		for t in terms:
-			bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t)
-		bbcode += "\n"
+	# BPH-A: Annotated terms grouped by direction
+	var annotated = data.get("annotated_terms", [])
+	if not annotated.is_empty():
+		bbcode += _build_annotated_terms_section(annotated)
+	else:
+		# Legacy fallback: flat terms summary
+		var terms = data.get("proposal_terms_summary", [])
+		if not terms.is_empty():
+			bbcode += "[b]Terms Talleyrand proposes:[/b]\n"
+			for t in terms:
+				bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t)
+			bbcode += "\n"
 
 	# Harshness
 	var harshness_label = data.get("harshness_label", "")
@@ -316,6 +321,37 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 				"" if (warnings.size() - shown) == 1 else "s",
 			]
 	return bbcode
+
+func _build_annotated_terms_section(annotated: Array) -> String:
+	var demands = []
+	var concessions = []
+	var mutual = []
+	for term in annotated:
+		var direction = str(term.get("term_direction", "mutual"))
+		if direction == "demand":
+			demands.append(term)
+		elif direction == "concession":
+			concessions.append(term)
+		else:
+			mutual.append(term)
+
+	var bbcode = ""
+	if not demands.is_empty():
+		bbcode += "[b]France demands:[/b]\n"
+		for t in demands:
+			bbcode += "  [color=#e09040]•[/color] %s\n" % str(t.get("display_label", "?"))
+	if not concessions.is_empty():
+		bbcode += "[b]France concedes:[/b]\n"
+		for t in concessions:
+			bbcode += "  [color=#80c0a0]•[/color] %s\n" % str(t.get("display_label", "?"))
+	if not mutual.is_empty():
+		bbcode += "[b]Mutual:[/b]\n"
+		for t in mutual:
+			bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t.get("display_label", "?"))
+	if bbcode:
+		bbcode += "\n"
+	return bbcode
+
 
 func _on_option_selected(action: String):
 	_clear_buttons()

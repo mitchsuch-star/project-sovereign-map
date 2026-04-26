@@ -563,6 +563,10 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # Build human-readable clause descriptions
     dialogue["proposal_terms_summary"] = _format_terms_for_display(terms, proposal_type, target_nation)
 
+    # BPH-A: Attach annotated terms with ownership fields for Godot rendering
+    from backend.game_logic.diplomatic_templates import annotate_peace_terms
+    dialogue["annotated_terms"] = annotate_peace_terms(terms, player_nation, target_nation)
+
     # Harshness — normalize string clauses to dicts for calculate_treaty_harshness
     harshness_terms = dict(terms)
     harshness_terms["clauses"] = [
