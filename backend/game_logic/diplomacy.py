@@ -2975,26 +2975,62 @@ def project_power_after_terms(world, terms: list, proposer: str,
     """Project national power after applying territory-transfer terms.
 
     Returns ``{proposer: int, target: int}`` without mutating WorldState.
-    Only ``territory_cession`` terms are applied; invalid or duplicate
+    Territory cessions may arrive as raw proposal terms, normalized treaty
+    clauses, or the spec's ``territory_cession`` shape. Invalid or duplicate
     transfers are silently skipped.
     """
     controller_map = {}
     for rname, region in world.regions.items():
         controller_map[rname] = region.controller
 
-    for term in (terms or []):
+    seen_regions = set()
+
+    def _terms_to_scan(raw_terms):
+        if isinstance(raw_terms, dict):
+            for term in raw_terms.get("sweeteners", []):
+                yield term, proposer, target
+            for term in raw_terms.get("demands", []):
+                yield term, target, proposer
+            for term in raw_terms.get("clauses", []):
+                if isinstance(term, dict):
+                    yield term, target, proposer
+            return
+
+        for term in (raw_terms or []):
+            if isinstance(term, dict):
+                yield term, target, proposer
+
+    def _term_regions(term: dict) -> list:
+        regions = term.get("regions")
+        if isinstance(regions, str):
+            return [regions]
+        if isinstance(regions, list):
+            return list(regions)
+        region = term.get("region")
+        if region:
+            return [region]
+        value = term.get("value")
+        if isinstance(value, str):
+            return [value]
+        return []
+
+    for term, default_from, default_to in _terms_to_scan(terms):
         ttype = term.get("type", "")
-        if ttype != "territory_cession":
+        if ttype not in ("territory_cession", "territory_cede", "territory"):
             continue
-        region_name = term.get("region") or term.get("value", "")
-        from_nation = term.get("from") or term.get("from_nation", "")
-        to_nation = term.get("to") or term.get("to_nation", "")
-        if not region_name or region_name not in controller_map:
+        from_nation = term.get("from") or term.get("from_nation") or default_from
+        to_nation = term.get("to") or term.get("to_nation") or default_to
+        if not to_nation:
             continue
-        if from_nation and controller_map[region_name] != from_nation:
-            continue
-        if to_nation:
+        for region_name in _term_regions(term):
+            if not region_name or region_name not in controller_map:
+                continue
+            if region_name in seen_regions:
+                continue
+            if from_nation and controller_map[region_name] != from_nation:
+                continue
             controller_map[region_name] = to_nation
+            seen_regions.add(region_name)
 
     return {
         proposer: calculate_national_power(proposer, world,
@@ -3024,7 +3060,16 @@ def check_vassalage_power_cap(world, lord: str, target: str, *,
     allowed = target_power <= lord_power // POWER_CAP_RATIO
 
     reason = ""
-    if not allowed:
+    if lord == target:
+        allowed = False
+        reason = f"{target} cannot be vassalized by itself"
+    elif lord_power <= 0:
+        allowed = False
+        reason = f"{lord} lacks the national power to vassalize {target}"
+    elif target_power <= 0:
+        allowed = False
+        reason = f"{target} has no national power to vassalize"
+    elif not allowed:
         reason = (f"{target} is too powerful to vassalize "
                   f"(power: {pct}% of {lord})")
 

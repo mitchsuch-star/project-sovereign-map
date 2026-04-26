@@ -3,7 +3,7 @@
 Spec: `docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` §8.
 Plan: `docs/PEACE_DEALS_UMBRELLA_SPEC.md` §5.
 
-Covers (~20 tests):
+Covers (35 tests):
   1.  calculate_national_power — region income sum
   2.  calculate_national_power — vassal contribution (50%)
   3.  calculate_national_power — British naval income included
@@ -27,11 +27,8 @@ Covers (~20 tests):
 """
 from __future__ import annotations
 
-import pytest
-
 from backend.game_logic.diplomacy import (
     BRITISH_NAVAL_INCOME_POWER,
-    POWER_CAP_RATIO,
     calculate_national_power,
     project_power_after_terms,
     check_vassalage_power_cap,
@@ -43,6 +40,7 @@ from backend.game_logic.vassal import (
     create_vassal_treaty,
     create_vassal_conquest,
 )
+from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.models.world_state import WorldState
 
 
@@ -183,6 +181,32 @@ class TestPowerCapCheck:
         cap = check_vassalage_power_cap(world, "France", "Austria")
         assert cap["allowed"] is False, "France should NOT be able to vassalize Austria"
 
+    def test_zero_power_lord_cannot_vassalize(self):
+        world = _fresh_world()
+        for region in world.regions.values():
+            if region.controller == "France":
+                region.controller = "Britain"
+        cap = check_vassalage_power_cap(world, "France", "Saxony")
+        assert cap["allowed"] is False
+        assert cap["lord_power"] == 0
+        assert "lacks the national power" in cap["reason"]
+
+    def test_eliminated_zero_power_target_cannot_be_vassalized(self):
+        world = _fresh_world()
+        for region in world.regions.values():
+            if region.controller == "Saxony":
+                region.controller = "France"
+        cap = check_vassalage_power_cap(world, "France", "Saxony")
+        assert cap["allowed"] is False
+        assert cap["target_power"] == 0
+        assert "no national power" in cap["reason"]
+
+    def test_self_vassalage_blocked(self):
+        world = _fresh_world()
+        cap = check_vassalage_power_cap(world, "France", "France")
+        assert cap["allowed"] is False
+        assert "itself" in cap["reason"]
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 9-12. PROJECT_POWER_AFTER_TERMS
@@ -193,6 +217,15 @@ class TestProjectPowerAfterTerms:
     def test_territory_cession_shifts_power(self):
         world = _fresh_world()
         terms = [{"type": "territory_cession", "region": "Berlin",
+                  "from": "Prussia", "to": "France"}]
+        proj = project_power_after_terms(world, terms, "France", "Prussia")
+        berlin_income = world.regions["Berlin"].income_value
+        assert proj["France"] == _power("France", world) + berlin_income
+        assert proj["Prussia"] == _power("Prussia", world) - berlin_income
+
+    def test_real_territory_cede_regions_shape_shifts_power(self):
+        world = _fresh_world()
+        terms = [{"type": "territory_cede", "regions": ["Berlin"],
                   "from": "Prussia", "to": "France"}]
         proj = project_power_after_terms(world, terms, "France", "Prussia")
         berlin_income = world.regions["Berlin"].income_value
@@ -215,32 +248,54 @@ class TestProjectPowerAfterTerms:
         assert proj["France"] == _power("France", world)
         assert proj["Prussia"] == _power("Prussia", world)
 
+    def test_non_territory_terms_skipped(self):
+        world = _fresh_world()
+        terms = [{"type": "gold_lump", "value": 500,
+                  "from": "Prussia", "to": "France"}]
+        proj = project_power_after_terms(world, terms, "France", "Prussia")
+        assert proj["France"] == _power("France", world)
+        assert proj["Prussia"] == _power("Prussia", world)
+
+    def test_duplicate_transfer_skipped(self):
+        world = _fresh_world()
+        terms = [
+            {"type": "territory_cede", "regions": ["Berlin"],
+             "from": "Prussia", "to": "France"},
+            {"type": "territory_cede", "regions": ["Berlin"],
+             "from": "Prussia", "to": "France"},
+        ]
+        proj = project_power_after_terms(world, terms, "France", "Prussia")
+        berlin_income = world.regions["Berlin"].income_value
+        assert proj["France"] == _power("France", world) + berlin_income
+        assert proj["Prussia"] == _power("Prussia", world) - berlin_income
+
+    def test_projection_does_not_mutate_world_state(self):
+        world = _fresh_world()
+        controllers_before = {
+            rname: region.controller for rname, region in world.regions.items()
+        }
+        terms = [{"type": "territory_cede", "regions": ["Berlin"],
+                  "from": "Prussia", "to": "France"}]
+        project_power_after_terms(world, terms, "France", "Prussia")
+        controllers_after = {
+            rname: region.controller for rname, region in world.regions.items()
+        }
+        assert controllers_after == controllers_before
+
     def test_post_cession_allows_vassalage(self):
         """After taking enough Austrian territory, power cap clears."""
         world = _fresh_world()
         cap_before = check_vassalage_power_cap(world, "France", "Austria")
         assert cap_before["allowed"] is False
 
-        austria_regions = [
-            rname for rname, r in world.regions.items()
-            if r.controller == "Austria"
-        ]
-        terms = [
-            {"type": "territory_cession", "region": rname,
-             "from": "Austria", "to": "France"}
-            for rname in austria_regions[:2]
-        ]
+        terms = [{"type": "territory_cede", "regions": ["Vienna"],
+                  "from": "Austria", "to": "France"}]
         cap_after = check_vassalage_power_cap(
             world, "France", "Austria", terms=terms,
         )
-        ceded_income = sum(
-            world.regions[rname].income_value
-            for rname in austria_regions[:2]
-        )
-        remaining_austria = cap_before["target_power"] - ceded_income
-        boosted_france = cap_before["lord_power"] + ceded_income
-        if remaining_austria <= boosted_france // POWER_CAP_RATIO:
-            assert cap_after["allowed"] is True
+        assert cap_after["allowed"] is True
+        assert cap_after["target_power"] == 350
+        assert cap_after["lord_power"] == 1400
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -277,6 +332,49 @@ class TestVassalCreationGates:
         assert result["success"] is True
 
 
+class TestTreatyRatificationPowerCap:
+
+    def test_ratification_blocks_over_cap_vassalage_without_state_corruption(self):
+        world = _fresh_world()
+        set_diplomatic_state(world, "France", "Austria", "OPEN_BORDERS", "test")
+        proposal = {
+            "type": "vassalage",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+
+        result = world._ratify_treaty(proposal)
+
+        assert result["type"] == "diplomatic_treaty_failed"
+        assert "too powerful" in result["message"]
+        assert world.get_diplomatic_state("France", "Austria") == "OPEN_BORDERS"
+        assert "Austria" not in world.vassals
+
+    def test_ratification_allows_post_cession_vassalage_package(self):
+        world = _fresh_world()
+        set_diplomatic_state(world, "France", "Austria", "WAR", "test")
+        proposal = {
+            "type": "vassalage",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "value": 1, "regions": ["Vienna"]},
+            ],
+            "clauses": [],
+        }
+
+        result = world._ratify_treaty(proposal)
+
+        assert result["type"] == "diplomatic_treaty_signed"
+        assert world.get_diplomatic_state("France", "Austria") == "VASSAL"
+        assert world.vassals["Austria"]["lord"] == "France"
+        assert world.regions["Vienna"].controller == "France"
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # 17-18. WIZARD PROPOSE_VASSAL AVAILABILITY
 # ════════════════════════════════════════════════════════════════════════════
@@ -290,9 +388,9 @@ class TestWizardVassalAvailability:
         vassal_action = next(
             (a for a in actions if a["action"] == "propose_vassal"), None,
         )
-        if vassal_action:
-            assert vassal_action["available"] is False
-            assert "too powerful" in vassal_action["disabled_reason"]
+        assert vassal_action is not None
+        assert vassal_action["available"] is False
+        assert "too powerful" in vassal_action["disabled_reason"]
 
     def test_propose_vassal_enabled_for_minor(self):
         world = _fresh_world()
@@ -302,8 +400,50 @@ class TestWizardVassalAvailability:
         vassal_action = next(
             (a for a in actions if a["action"] == "propose_vassal"), None,
         )
-        if vassal_action:
-            assert vassal_action["available"] is True
+        assert vassal_action is not None
+        assert vassal_action["available"] is True
+
+    def test_typed_vassalage_proposal_blocked_when_too_powerful(self):
+        world = _fresh_world()
+        world.diplomatic_points = 10
+        set_diplomatic_state(world, "France", "Austria", "OPEN_BORDERS", "test")
+        executor = DiplomaticExecutor(None)
+
+        result = executor._execute_diplomatic_proposal(
+            {"target_nation": "Austria", "proposal_type": "vassalage"},
+            world,
+        )
+
+        assert result["success"] is False
+        assert "too powerful" in result["message"]
+        assert world.proposal_in_transit is None
+
+    def test_send_vassalage_proposal_blocked_before_dp_loss(self):
+        world = _fresh_world()
+        world.diplomatic_points = 10
+        set_diplomatic_state(world, "France", "Austria", "OPEN_BORDERS", "test")
+        dialogue = {
+            "target_nation": "Austria",
+            "context": {"proposal_type": "vassalage"},
+        }
+        selected = {
+            "terms": {
+                "type": "vassalage",
+                "proposal_type": "vassalage",
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            },
+        }
+
+        result = DiplomaticExecutor(None)._process_dialogue_choice(
+            "execute_proposal", selected, dialogue, world,
+        )
+
+        assert result["success"] is False
+        assert "too powerful" in result["message"]
+        assert world.diplomatic_points == 10
+        assert world.proposal_in_transit is None
 
 
 # ════════════════════════════════════════════════════════════════════════════

@@ -230,7 +230,8 @@ class DiplomaticExecutor:
         from backend.game_logic.diplomacy import _UPGRADE_ORDER
         current_diplo_state = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
         _state_map_4a = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
-                         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+                         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
+                         "armistice": "ARMISTICE", "vassalage": "VASSAL"}
         proposal_type_raw = diplomatic_data.get("proposal_type")
         if proposal_type_raw:
             target_diplo_state = _state_map_4a.get(proposal_type_raw, "")
@@ -262,13 +263,25 @@ class DiplomaticExecutor:
                     "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {_proposal_display_name(proposal_type)} proposal only {remaining} turns ago.",
                 }
 
+        if proposal_type == "vassalage":
+            from backend.game_logic.diplomacy import check_vassalage_power_cap
+            cap = check_vassalage_power_cap(world, world.player_nation, target_nation)
+            if not cap["allowed"]:
+                return {
+                    "success": False,
+                    "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
+                    "diplomatic_dialogue": None,
+                    "awaiting_diplomatic_response": False,
+                }
+
         # Check DP (with jump cost for multi-step transitions)
         dp_action = f"propose_{proposal_type}" if proposal_type else "propose_peace"
         talleyrand = get_player_diplomat(world)
         skill = talleyrand.skill if talleyrand else 5
         # R98: Compute cumulative DP for jump transitions
         _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
-                      "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+                      "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
+                      "armistice": "ARMISTICE", "vassalage": "VASSAL"}
         current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
         target_diplo = _state_map.get(proposal_type, "PEACE") if proposal_type else "PEACE"
         jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
@@ -2185,6 +2198,18 @@ class DiplomaticExecutor:
                 "clauses": terms.get("clauses", []),
             }
 
+            if proposal_type == "vassalage":
+                from backend.game_logic.diplomacy import check_vassalage_power_cap
+                cap = check_vassalage_power_cap(
+                    world, get_player_nation(world), target_nation, terms=proposal
+                )
+                if not cap["allowed"]:
+                    return {
+                        "success": False,
+                        "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
+                        "diplomatic_dialogue": dialogue,
+                    }
+
             if proposal_type in ("peace", "armistice", "armistice_losing", "armistice_winning"):
                 from backend.game_logic.diplomacy import get_peace_commitment_conflicts
                 conflicts = get_peace_commitment_conflicts(
@@ -2210,7 +2235,8 @@ class DiplomaticExecutor:
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
-                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
+                          "armistice": "ARMISTICE", "vassalage": "VASSAL"}
             current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
@@ -3516,13 +3542,26 @@ class DiplomaticExecutor:
                 "clauses": terms.get("clauses", []),
             }
 
+            if proposal_type == "vassalage":
+                from backend.game_logic.diplomacy import check_vassalage_power_cap
+                cap = check_vassalage_power_cap(
+                    world, get_player_nation(world), target_nation, terms=proposal
+                )
+                if not cap["allowed"]:
+                    return {
+                        "success": False,
+                        "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
+                        "diplomatic_dialogue": dialogue,
+                    }
+
             # Deduct DP (with jump cost for multi-step transitions)
             talleyrand = get_player_diplomat(world)
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
-                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
+                          "armistice": "ARMISTICE", "vassalage": "VASSAL"}
             current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)

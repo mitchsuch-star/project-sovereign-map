@@ -354,7 +354,7 @@ Rules:
 
 This is historically accurate. Napoleon vassalized Saxony, the Rhineland states, and Italian principalities — never Austria or Prussia as great powers. After Tilsit, he forced alliance on Russia and Prussia, not vassalage.
 
-**Note on Britain:** British naval income (300) is included in power calculation. This is intentional — Britain's power projection is real even without continental territory. Excluding naval income would make Britain appear weaker than Saxony, which is ahistorical.
+**Note on Britain:** British naval income is included in power calculation. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional — Britain's power projection is real even without continental territory. Excluding naval income would make Britain appear weaker than Saxony, which is ahistorical.
 
 ### 8.6 Power cap and war objectives
 
@@ -878,7 +878,7 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 - **One objective per war per nation:** Yes. Multi-objective wars would require an objective-priority system and split ticking. Complexity not justified in v0.1.
 - **No mid-war objective changes:** Correct. Choosing an objective is a commitment — changing it mid-war would let the player game ticking by switching to whatever they're currently holding.
 - **Ticking cap at +25:** Set to be meaningful (comparable to decisive battle bonus range ±20) but not dominant. The first four components can reach ±100; ticking adds ±25 on top, capped by the overall ±100 war_score limit.
-- **Power cap at 50%:** Threshold that blocks Austria (59%) but allows Prussia (36%), Britain (45%), and Saxony (23%) at game start. Historically accurate dividing line.
+- **Power cap at 50%:** Threshold that blocks Austria (59%) but allows Prussia (36%), Britain (36%), and Saxony (23%) at game start. Historically accurate dividing line.
 - **Forced alliance includes Continental System:** Yes. Napoleon's forced alliances always included economic alignment. Makes the clause politically meaningful beyond military cooperation.
 - **Liberation creates DEFENSIVE_ALLIANCE, not ALLIANCE:** Liberation is gratitude, not forced alignment. The liberator earns a defensive partner, not a military puppet. This mirrors historical patterns — liberated nations allied with liberators but maintained independence.
 - **Naval income in power calculation:** Yes. Excluding it makes Britain appear weaker than Saxony, which is ahistorical and would make British vassalage trivially achievable.

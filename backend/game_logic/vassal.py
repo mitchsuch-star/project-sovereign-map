@@ -47,7 +47,10 @@ ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
 # VASSAL CREATION
 # ═══════════════════════════════════════════════════════
 
-def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 0) -> dict:
+def create_vassal_treaty(
+    world, lord: str, vassal: str, generosity_bonus: int = 0,
+    terms: list = None,
+) -> dict:
     """
     Create a vassal via treaty path.
 
@@ -83,7 +86,7 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
 
     # WPS-B: Power cap gate
     from backend.game_logic.diplomacy import check_vassalage_power_cap
-    cap = check_vassalage_power_cap(world, lord, vassal)
+    cap = check_vassalage_power_cap(world, lord, vassal, terms=terms)
     if not cap["allowed"]:
         return {
             "success": False,

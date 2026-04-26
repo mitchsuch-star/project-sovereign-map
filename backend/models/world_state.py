@@ -5310,6 +5310,32 @@ class WorldState:
                     if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
                         return None
 
+        # Build treaty clauses before vassalage validation so WPS-B can project
+        # same-package territory cessions before applying the VASSAL state.
+        treaty_clauses = []
+        sweetener_from = proposer
+        sweetener_to = target_nation
+        for s in proposal.get("sweeteners", []):
+            clause_entry = {
+                "type": s["type"],
+                "from": sweetener_from,
+                "to": sweetener_to,
+                "amount": int(s.get("value", 0)),
+            }
+            if s.get("type") == "territory_cede" and "regions" in s:
+                clause_entry["regions"] = s["regions"]
+            treaty_clauses.append(clause_entry)
+        for d in proposal.get("demands", []):
+            clause_entry = {
+                "type": d["type"],
+                "from": sweetener_to,
+                "to": sweetener_from,
+                "amount": int(d.get("value", 0)),
+            }
+            if d.get("type") == "territory_cede" and "regions" in d:
+                clause_entry["regions"] = d["regions"]
+            treaty_clauses.append(clause_entry)
+
         # BPH-D: capture war data before set_diplomatic_state() or cleanup_war_end()
         # clear war_start_turns, battle records, and war scores.
         _is_war_ending = current_state in ("WAR", "ARMISTICE") and target_state != "WAR"
@@ -5330,49 +5356,43 @@ class WorldState:
         # Vassal creation: when treaty ratifies VASSAL state, create vassal entry + assimilate
         # Must run BEFORE state transition so create_vassal_treaty sees the pre-VASSAL state
         if target_state == "VASSAL":
+            from backend.game_logic.diplomacy import check_vassalage_power_cap
+            cap = check_vassalage_power_cap(
+                self, proposer, target_nation, terms=treaty_clauses
+            )
+            if not cap["allowed"]:
+                if is_player_treaty:
+                    return {
+                        "type": "diplomatic_treaty_failed",
+                        "target": player_counterpart or target_nation,
+                        "message": f"Cannot vassalize {player_counterpart or target_nation}: {cap['reason']}.",
+                    }
+                return None
             from backend.game_logic.vassal import create_vassal_treaty, assimilate_vassal_marshals
-            create_vassal_treaty(self, proposer, target_nation)
+            vassal_result = create_vassal_treaty(
+                self, proposer, target_nation, terms=treaty_clauses
+            )
+            if not vassal_result.get("success"):
+                if is_player_treaty:
+                    return {
+                        "type": "diplomatic_treaty_failed",
+                        "target": player_counterpart or target_nation,
+                        "message": vassal_result.get(
+                            "message",
+                            f"Cannot vassalize {player_counterpart or target_nation}.",
+                        ),
+                    }
+                return None
             assimilate_vassal_marshals(self, target_nation)
 
         # Apply state transition (R2: centralized setter)
-        if current_state != target_state:
+        if self.get_diplomatic_state(proposer, target_nation) != target_state:
             from backend.game_logic.diplomacy import set_diplomatic_state
             set_diplomatic_state(self, proposer, target_nation, target_state, "treaty_ratification")
 
         # R5b: Set armistice cooldown when entering ARMISTICE
         if target_state == "ARMISTICE":
             self.armistice_cooldowns[diplo_key] = 5
-
-        # Build treaty record
-        treaty_clauses = []
-        # Process sweeteners as clauses
-        # For player treaties: sweetener is from player, to target
-        # For AI-AI: typically no sweeteners/demands
-        sweetener_from = proposer
-        sweetener_to = target_nation
-        for s in proposal.get("sweeteners", []):
-            clause_entry = {
-                "type": s["type"],
-                "from": sweetener_from,
-                "to": sweetener_to,
-                "amount": int(s.get("value", 0)),
-            }
-            # Preserve territory_cede regions list
-            if s.get("type") == "territory_cede" and "regions" in s:
-                clause_entry["regions"] = s["regions"]
-            treaty_clauses.append(clause_entry)
-        # Process demands as clauses
-        for d in proposal.get("demands", []):
-            clause_entry = {
-                "type": d["type"],
-                "from": sweetener_to,
-                "to": sweetener_from,
-                "amount": int(d.get("value", 0)),
-            }
-            # Preserve territory_cede regions list
-            if d.get("type") == "territory_cede" and "regions" in d:
-                clause_entry["regions"] = d["regions"]
-            treaty_clauses.append(clause_entry)
 
         # Handle open_borders clause (R2: centralized setter)
         if "open_borders" in proposal.get("clauses", []):
