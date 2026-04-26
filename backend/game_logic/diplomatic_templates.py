@@ -2042,19 +2042,67 @@ _TERM_DISPLAY_LABELS = {
     "manpower_artillery": "{from_nation} transfers {value} artillery to {to_nation}",
     "ap_per_turn": "{from_nation} cedes {value} AP per turn to {to_nation}",
     "open_borders": "Mutual open borders between {nation_a} and {nation_b}",
-    "protection_promised": "{to_nation} guarantees {from_nation}'s sovereignty",
+    "military_access": "{from_nation} grants military access to {to_nation}",
+    "protection": "{from_nation} guarantees {to_nation}'s sovereignty",
+    "protection_promised": "{from_nation} guarantees {to_nation}'s sovereignty",
     "continental_system_lifted": "{from_nation} closes ports to Britain",
 }
 
 
+_VASSAL_TERRITORY_ADJECTIVES = {
+    "Bavaria": "Bavarian",
+    "Saxony": "Saxon",
+}
+
+
+def _safe_int(value, default: int = 0) -> int:
+    try:
+        if value is None:
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_regions(raw_regions) -> list:
+    if not raw_regions:
+        return []
+    if isinstance(raw_regions, str):
+        return [raw_regions]
+    try:
+        return [str(region) for region in raw_regions if region]
+    except TypeError:
+        return []
+
+
+def _vassal_territory_label(vassal_nation: str) -> str:
+    adjective = _VASSAL_TERRITORY_ADJECTIVES.get(vassal_nation, vassal_nation)
+    return f"{adjective} territory"
+
+
+def _get_vassal_nation(term: Dict) -> str:
+    if not isinstance(term, dict):
+        return ""
+    return (
+        term.get("vassal_nation")
+        or term.get("vassal_name")
+        or term.get("territory_nation")
+        or term.get("sovereign_nation")
+        or term.get("original_owner")
+        or ""
+    )
+
+
 def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
-                         regions: list, value: int) -> str:
+                         regions: list, value: int, vassal_nation: str = "") -> str:
     template = _TERM_DISPLAY_LABELS.get(clause_type)
     if not template:
         from backend.display_names import clause_display_name
         return clause_display_name(clause_type)
 
     detail = ", ".join(regions) if regions else "territory"
+    if vassal_nation and clause_type in ("territory_cede", "territory", "territory_return"):
+        detail = f"{detail} ({_vassal_territory_label(vassal_nation)})"
     return template.format(
         from_nation=from_nation, to_nation=to_nation,
         detail=detail, value=int(value),
@@ -2070,11 +2118,24 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
       sweetener_value (if applicable), display_label
     """
     annotated = []
+    explicit_concession_regions = set()
+    for sweetener in terms.get("sweeteners", []):
+        if not isinstance(sweetener, dict):
+            continue
+        if sweetener.get("type") in ("territory_cede", "territory"):
+            explicit_concession_regions.update(
+                region.strip().lower()
+                for region in _coerce_regions(sweetener.get("regions", []))
+                if region
+            )
 
     for sweetener in terms.get("sweeteners", []):
+        if not isinstance(sweetener, dict):
+            continue
         stype = sweetener.get("type", "")
-        regions = sweetener.get("regions", [])
-        value = int(sweetener.get("value", 0))
+        regions = _coerce_regions(sweetener.get("regions", []))
+        value = _safe_int(sweetener.get("value", 0))
+        vassal_nation = _get_vassal_nation(sweetener)
         annotated.append({
             "clause_type": stype,
             "from_nation": proposer_nation,
@@ -2082,13 +2143,17 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             "regions": regions,
             "term_direction": "concession",
             "sweetener_value": value,
-            "display_label": _build_display_label(stype, proposer_nation, target_nation, regions, value),
+            "display_label": _build_display_label(
+                stype, proposer_nation, target_nation, regions, value, vassal_nation),
         })
 
     for demand in terms.get("demands", []):
+        if not isinstance(demand, dict):
+            continue
         dtype = demand.get("type", "")
-        regions = demand.get("regions", [])
-        value = int(demand.get("value", 0))
+        regions = _coerce_regions(demand.get("regions", []))
+        value = _safe_int(demand.get("value", 0))
+        vassal_nation = _get_vassal_nation(demand)
         annotated.append({
             "clause_type": dtype,
             "from_nation": target_nation,
@@ -2096,7 +2161,8 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             "regions": regions,
             "term_direction": "demand",
             "sweetener_value": -value if value else 0,
-            "display_label": _build_display_label(dtype, target_nation, proposer_nation, regions, value),
+            "display_label": _build_display_label(
+                dtype, target_nation, proposer_nation, regions, value, vassal_nation),
         })
 
     for clause in terms.get("clauses", []):
@@ -2104,10 +2170,14 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             ctype = clause
             regions = []
             value = 0
-        else:
+            vassal_nation = ""
+        elif isinstance(clause, dict):
             ctype = clause.get("type", "")
-            regions = clause.get("regions", [])
-            value = int(clause.get("value", 0))
+            regions = _coerce_regions(clause.get("regions", []))
+            value = _safe_int(clause.get("value", 0))
+            vassal_nation = _get_vassal_nation(clause)
+        else:
+            continue
 
         if ctype in ("open_borders",):
             annotated.append({
@@ -2122,26 +2192,58 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
         elif ctype == "protection_promised":
             annotated.append({
                 "clause_type": ctype,
-                "from_nation": target_nation,
-                "to_nation": proposer_nation,
+                "from_nation": proposer_nation,
+                "to_nation": target_nation,
                 "regions": [],
                 "term_direction": "concession",
                 "sweetener_value": 0,
-                "display_label": _build_display_label(ctype, target_nation, proposer_nation, [], 0),
+                "display_label": _build_display_label(ctype, proposer_nation, target_nation, [], 0),
             })
         elif ctype == "continental_system_lifted":
             annotated.append({
                 "clause_type": ctype,
                 "from_nation": target_nation,
-                "to_nation": target_nation,
+                "to_nation": proposer_nation,
                 "regions": [],
                 "term_direction": "demand",
                 "sweetener_value": 0,
-                "display_label": _build_display_label(ctype, target_nation, target_nation, [], 0),
+                "display_label": _build_display_label(ctype, target_nation, proposer_nation, [], 0),
+            })
+        elif ctype == "military_access":
+            granting = proposer_nation
+            receiving = target_nation
+            if isinstance(clause, dict):
+                granting = (
+                    clause.get("granting_nation")
+                    or clause.get("from_nation")
+                    or clause.get("from")
+                    or granting
+                )
+                receiving = (
+                    clause.get("receiving_nation")
+                    or clause.get("to_nation")
+                    or clause.get("to")
+                    or receiving
+                )
+            direction = "mutual"
+            if granting == proposer_nation and receiving == target_nation:
+                direction = "concession"
+            elif granting == target_nation and receiving == proposer_nation:
+                direction = "demand"
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": granting,
+                "to_nation": receiving,
+                "regions": [],
+                "term_direction": direction,
+                "sweetener_value": 0,
+                "display_label": _build_display_label(ctype, granting, receiving, [], 0),
             })
         elif ctype.startswith("territory_"):
             region_name = ctype.split("_", 1)[1] if "_" in ctype else ""
             if region_name and region_name not in ("cede", "return"):
+                if region_name.strip().lower() in explicit_concession_regions:
+                    continue
                 annotated.append({
                     "clause_type": "territory_cede",
                     "from_nation": proposer_nation,
@@ -2161,7 +2263,8 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                     "regions": regions,
                     "term_direction": "concession",
                     "sweetener_value": 0,
-                    "display_label": _build_display_label(ctype, proposer_nation, target_nation, regions, value),
+                    "display_label": _build_display_label(
+                        ctype, proposer_nation, target_nation, regions, value, vassal_nation),
                 })
         else:
             annotated.append({
@@ -2171,7 +2274,8 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                 "regions": regions,
                 "term_direction": "mutual",
                 "sweetener_value": 0,
-                "display_label": _build_display_label(ctype, proposer_nation, target_nation, regions, value),
+                "display_label": _build_display_label(
+                    ctype, proposer_nation, target_nation, regions, value, vassal_nation),
             })
 
     return annotated

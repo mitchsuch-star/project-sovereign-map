@@ -293,6 +293,27 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # Peace ratification: player-involved always; foreign settlements need PARTIAL+.
+        if event_type == "peace_ratified":
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            nations_to_check = []
+            for key in ("proposer_nation", "target_nation"):
+                val = event.get(key)
+                if val:
+                    nations_to_check.append(val)
+            visible = False
+            for nation in nations_to_check:
+                if nation == player_nation:
+                    visible = True
+                    break
+                vis = _get_nation_visibility(nation, world_state)
+                if vis in (FULL, PARTIAL):
+                    visible = True
+                    break
+            if visible:
+                filtered.append(event)
+            continue
+
         # From here: enemy events — need fog checks
         region = _get_event_region(event)
 
@@ -963,7 +984,7 @@ def format_event_oneliner(event: dict) -> str:
         transition = event.get("state_transition", "")
         term_count = len(event.get("annotated_terms", []))
         suffix = f" ({term_count} term{'s' if term_count != 1 else ''})" if term_count else ""
-        if "ARMISTICE" in transition:
+        if transition.endswith("_TO_ARMISTICE"):
             return f"Armistice ratified: {proposer} and {target}{suffix}"
         return f"Peace ratified: {proposer} and {target}{suffix}"
 

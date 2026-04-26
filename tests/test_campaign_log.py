@@ -105,6 +105,21 @@ class TestFogFiltering:
         result = filter_campaign_log(events, world)
         assert len(result) == 1
 
+    def test_player_peace_ratified_event_shown(self):
+        """Peace ratification uses proposer/target fields, not generic nation."""
+        world = _make_world_with_visibility()
+        events = [{
+            "type": "peace_ratified",
+            "turn": 1,
+            "proposer_nation": world.player_nation,
+            "target_nation": "Prussia",
+            "state_transition": "WAR_TO_PEACE",
+            "annotated_terms": [],
+        }]
+        result = filter_campaign_log(events, world)
+        assert len(result) == 1
+        assert result[0]["type"] == "peace_ratified"
+
     def test_enemy_battle_hidden_in_unknown(self):
         """Enemy battles in UNKNOWN regions should be hidden."""
         world = _make_world_with_visibility({"Vienna": UNKNOWN})
