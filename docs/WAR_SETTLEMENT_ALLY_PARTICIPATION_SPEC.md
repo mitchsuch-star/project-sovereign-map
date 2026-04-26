@@ -275,8 +275,6 @@ The settlement-rights structure in §11 ("Seat rules") carries over under the ne
 
 Power tier affects consultation rights, not free settlement score — this design intent is preserved.
 
-*(Original superseded text: "Use the tier model already drafted in `RELIABILITY_COMMITMENTS_SPEC.md`: `great_power`, `secondary_power`, `minor_power`. These tiers come from numbers, not authored nation labels. The map can create a new quadrangle if power shifts.")*
-
 ---
 
 ## 9. War Contribution Score

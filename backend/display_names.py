@@ -218,10 +218,6 @@ FEEDBACK_STRINGS = {
         "negative": "deep-seated hostility",
         "positive": "goodwill between our nations",
     },
-    "threat_modifier": {
-        "negative": "fear of French expansion",
-        "positive": "France's measured approach",
-    },
     "war_score_modifier": {
         "negative": "our military position is weak",
         "positive": "our military dominance",

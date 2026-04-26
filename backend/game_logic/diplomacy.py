@@ -1380,14 +1380,7 @@ def _classify_witness_scope(world, witness: str, breaker: str, injured_party: st
     if world.get_diplomatic_state(witness, injured_party) in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
         return WITNESS_SCOPE_ALLY
 
-    # rival: active rivalry against the breaker, or currently at war with the breaker
-    # (full rivalry store is deferred; war-state acts as the v0.1 proxy)
-    rivalries = getattr(world, 'nation_rivalries', {}) or {}
-    if rivalries:
-        pair_key = world._make_diplo_key(witness, breaker)
-        record = rivalries.get(pair_key)
-        if record and record.get("intensity") == "active":
-            return WITNESS_SCOPE_RIVAL
+    # rival: currently at war with the breaker (v0.1 proxy)
     if world.is_at_war(witness, breaker):
         return WITNESS_SCOPE_RIVAL
 
@@ -1472,13 +1465,7 @@ def _classify_dg4_refused_defensive_witness_scope(
     ):
         return WITNESS_SCOPE_ALLY
 
-    # rival: active rivalry or war state with the breaker
-    rivalries = getattr(world, 'nation_rivalries', {}) or {}
-    if rivalries:
-        pair_key = world._make_diplo_key(witness, breaker)
-        record = rivalries.get(pair_key)
-        if record and record.get("intensity") == "active":
-            return WITNESS_SCOPE_RIVAL
+    # rival: currently at war with the breaker (v0.1 proxy)
     if world.is_at_war(witness, breaker):
         return WITNESS_SCOPE_RIVAL
 
@@ -1597,12 +1584,7 @@ def _classify_dg4_honored_costly_witness_scope(
     ):
         return WITNESS_SCOPE_ALLY
 
-    rivalries = getattr(world, 'nation_rivalries', {}) or {}
-    if rivalries:
-        pair_key = world._make_diplo_key(witness, honorer)
-        record = rivalries.get(pair_key)
-        if record and record.get("intensity") == "active":
-            return WITNESS_SCOPE_RIVAL
+    # rival: currently at war with the honorer (v0.1 proxy)
     if world.is_at_war(witness, honorer):
         return WITNESS_SCOPE_RIVAL
 
@@ -2752,6 +2734,22 @@ def get_transition_dp_cost(current_state: str, target_state: str) -> int:
 # WAR SCORE CALCULATION (§6e)
 # ═══════════════════════════════════════════════════════
 
+def _decay_battle_score(raw_score: int, records: List[Dict], current_turn: int) -> int:
+    """Apply quiet-turn decay to the battle component only."""
+    if raw_score == 0 or not records:
+        return 0
+
+    last_battle_turn = max(int(record.get("turn", current_turn) or current_turn) for record in records)
+    quiet_turns = max(0, int(current_turn) - last_battle_turn)
+    if quiet_turns < 3:
+        return raw_score
+
+    decay_amount = (quiet_turns - 2) * 2
+    if raw_score > 0:
+        return max(0, raw_score - decay_amount)
+    return min(0, raw_score + decay_amount)
+
+
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
     """Calculate war score between two nations. Positive = nation_a winning.
 
@@ -2774,7 +2772,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             territory_score -= 5  # B holds A's starting region
     territory_score = max(-40, min(40, territory_score))
 
-    # Battle score (cap ±30)
+    # Battle score (cap ±30). Quiet-turn decay applies to this component only.
     battle_score = 0
     diplo_key = world._make_diplo_key(nation_a, nation_b)
     records = getattr(world, 'battle_records', {}).get(diplo_key, [])
@@ -2784,6 +2782,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
         elif record.get("winner") == nation_b:
             battle_score -= 3
     battle_score = max(-30, min(30, battle_score))
+    battle_score = _decay_battle_score(int(battle_score), records, world.current_turn)
 
     # Decisive battle bonus (cap ±20)
     decisive_score = 0
@@ -2831,13 +2830,13 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
 
 
 def apply_war_score_decay(world) -> None:
-    """Apply war score decay: -2/turn when no battles for 3+ turns.
+    """Apply battle-score decay and prune stale battle records.
 
-    Decisive bonuses do NOT decay. Only the battle_score portion decays
-    by clearing old battle records. Also prunes battle records older than
-    10 turns (R1a).
+    Decisive bonuses, territory, capital control, and future ticking score do
+    not decay. This function never subtracts from the stored total directly;
+    it prunes stale battle records and recomputes active war scores from their
+    components.
     """
-    war_scores = getattr(world, 'war_scores', {})
     battle_records = getattr(world, 'battle_records', {})
 
     # R1a: Prune battle records older than 10 turns
@@ -2848,26 +2847,7 @@ def apply_war_score_decay(world) -> None:
             if world.current_turn - r.get("turn", 0) <= 10
         ]
 
-    for diplo_key in list(war_scores.keys()):
-        records = battle_records.get(diplo_key, [])
-        if not records:
-            # No battles ever — decay toward 0
-            current = war_scores.get(diplo_key, 0)
-            if current > 0:
-                war_scores[diplo_key] = max(0, current - 2)
-            elif current < 0:
-                war_scores[diplo_key] = min(0, current + 2)
-            continue
-
-        # Check if last battle was 3+ turns ago
-        last_battle_turn = max(r.get("turn", 0) for r in records)
-        turns_since = world.current_turn - last_battle_turn
-        if turns_since >= 3:
-            current = war_scores.get(diplo_key, 0)
-            if current > 0:
-                war_scores[diplo_key] = max(0, current - 2)
-            elif current < 0:
-                war_scores[diplo_key] = min(0, current + 2)
+    recalculate_war_scores(world)
 
 
 def recalculate_war_scores(world) -> None:
@@ -5015,8 +4995,7 @@ def process_diplomacy_turn(world) -> List[Dict]:
     effect_events = _process_mission_effects(world)
     events.extend(effect_events)
 
-    # ── 4. War score recalculation ──
-    recalculate_war_scores(world)
+    # ── 4. War score recalculation + battle-score decay ──
     apply_war_score_decay(world)
 
     # ── 4a. Relation decay (R4a) ──

@@ -349,9 +349,9 @@ Invalid wartime asks: ally-beneficiary land in final peace; multi-ally conferenc
 
 - Alliances are bilateral and may be sweetened by `war_bargain`.
 - Coalitions are bloc commitments with separate loyalty / separate-peace logic; they are **not** bargainable through claim-recognition terms.
-- Coalition overlap should read from `war_bloc.target_nation` and the shared opposition-pair list.
-- An active `war_bloc` whose `target_nation` equals the ally-entry initiator is a hard block on accepting that initiator's request (in v0.1 the only instantiated `war_bloc.target_nation` is France; the rule is written target-aware so the future `Coalition Generalization` follow-up does not require a rewrite).
-- If the beneficiary joins a `war_bloc` whose `target_nation` equals the bargain's `promiser` first, any live bargain from that promiser to that beneficiary voids for contrary alignment.
+- Coalition overlap should read from `active_coalition.target_nation` and the shared opposition-pair list (the generic war-bloc contract, once generalized, must expose the same target field).
+- An active coalition whose `target_nation` equals the ally-entry initiator is a hard block on accepting that initiator's request (in v0.1 the only instantiated `active_coalition.target_nation` is France; the rule is written target-aware so the future `Coalition Generalization` follow-up does not require a rewrite).
+- If the beneficiary joins a coalition whose `target_nation` equals the bargain's `promiser` first, any live bargain from that promiser to that beneficiary voids for contrary alignment.
 
 ### 8.8 Fulfillment
 
@@ -723,6 +723,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - `to_dict` / `from_dict` with `.get()` defaults
 - Update `SAVE_FORMAT_REFERENCE.md`
 - Add `war_bargain` clause type to acceptance / display
+- Add `bargain_value_mod` and `bargain_conflict_penalty` to `FEEDBACK_STRINGS` in `display_names.py` and the `_generate_feedback` trackable set in `diplomacy.py`
 - Implement `get_bargain_opposition_pairs()` from current WAR states, `active_coalition` target / members, and live bargain conflicts only; do not read `nation_rivalries` or authored rivalry seed data
 - Validation: named enemy, claim region holder, French strategic interest, beneficiary participation feasibility, caps, cooldowns, contradiction guards
 - Hard-stop preview for bargain creation when France must first downgrade an existing deep treaty
@@ -732,7 +733,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 ### Slice WB-B. Lifecycle: fulfillment + breach + void
 
 - Status transitions `active` → `triggered` → `fulfilled` / `void` / `breached`
-- Zombie-bargain void clock (5 turns continuous peace, both sides) with serialized `zombie_clock_turns_elapsed`
+- Zombie-bargain void clock: serialized `zombie_clock_turns_elapsed` increments on each qualifying turn where France and the beneficiary are both ARMISTICE-or-higher with the named enemy; it voids at 5 and resets only if either side re-enters WAR with the named enemy
 - Fulfillment check in `advance_turn()` per §8.8 turn-order rule
 - `fulfillment_snapshot` write on fulfillment
 - Inconclusive war reactivation: `triggered` → `active` when source treaty + claim basis still valid

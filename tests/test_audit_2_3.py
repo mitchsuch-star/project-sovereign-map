@@ -397,28 +397,27 @@ class TestWarScoreEdgeCases:
 
 class TestWarScoreDecay:
 
-    def test_decay_after_no_battles_for_3_plus_turns(self):
+    def test_battle_component_decays_after_three_quiet_turns(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 30
         world.battle_records[diplo_key] = [
             {"turn": 1, "winner": "France", "attacker": "France",
              "defender": "Prussia", "attacker_casualties": 2000,
              "defender_casualties": 5000}
         ]
-        world.current_turn = 5
+        world.current_turn = 4
 
         apply_war_score_decay(world)
 
-        assert world.war_scores[diplo_key] == 28
+        assert world.war_scores[diplo_key] == 1
 
     def test_no_decay_when_recent_battle(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 30
         world.battle_records[diplo_key] = [
             {"turn": 3, "winner": "France", "attacker": "France",
              "defender": "Prussia", "attacker_casualties": 2000,
@@ -427,47 +426,57 @@ class TestWarScoreDecay:
         world.current_turn = 5
 
         apply_war_score_decay(world)
-        assert world.war_scores[diplo_key] == 30
+        assert world.war_scores[diplo_key] == 3
 
-    def test_decay_with_no_battle_records(self):
+    def test_no_battle_records_do_not_decay_positive_territory_score(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 20
+        world.regions["Rhineland"].controller = "France"
         world.battle_records[diplo_key] = []
         world.current_turn = 10
 
         apply_war_score_decay(world)
-        assert world.war_scores[diplo_key] == 18
+        assert world.war_scores[diplo_key] == 5
 
-    def test_decay_does_not_go_below_zero(self):
+    def test_no_battle_records_do_not_decay_negative_territory_score(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 1
+        region_name = next(
+            name for name in world.nation_starting_regions["France"]
+            if name != "Paris"
+        )
+        world.regions[region_name].controller = "Prussia"
         world.battle_records[diplo_key] = []
+        world.current_turn = 10
+
+        apply_war_score_decay(world)
+        assert world.war_scores[diplo_key] == -5
+
+    def test_battle_component_decay_does_not_cross_zero(self):
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
+
+        world.battle_records[diplo_key] = [
+            {"turn": 1, "winner": "Prussia", "attacker": "France",
+             "defender": "Prussia", "attacker_casualties": 5000,
+             "defender_casualties": 2000}
+        ]
         world.current_turn = 10
 
         apply_war_score_decay(world)
         assert world.war_scores[diplo_key] == 0
 
-    def test_negative_war_score_decays_toward_zero(self):
-        world = make_world()
-        diplo_key = world._make_diplo_key("France", "Prussia")
-
-        world.war_scores[diplo_key] = -15
-        world.battle_records[diplo_key] = []
-        world.current_turn = 10
-
-        apply_war_score_decay(world)
-        assert world.war_scores[diplo_key] == -13
-
     def test_decisive_battles_not_affected_by_decay(self):
         """Decisive battle records remain intact after decay."""
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 40
         world.battle_records[diplo_key] = [
             {"turn": 1, "winner": "France", "attacker": "France",
              "defender": "Prussia", "attacker_casualties": 3000,
@@ -480,21 +489,25 @@ class TestWarScoreDecay:
 
         apply_war_score_decay(world)
 
-        assert world.war_scores[diplo_key] == 38
+        assert world.war_scores[diplo_key] == 10
         assert len(world.decisive_battles[diplo_key]) == 1
         assert world.decisive_battles[diplo_key][0]["winner"] == "France"
 
     def test_multiple_decay_rounds(self):
-        """Multiple calls to decay should compound."""
+        """Battle component decay is derived from quiet turns, not total score."""
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
 
-        world.war_scores[diplo_key] = 10
-        world.battle_records[diplo_key] = [
+        world.battle_records[diplo_key] = 4 * [
             {"turn": 1, "winner": "France", "attacker": "France",
              "defender": "Prussia", "attacker_casualties": 2000,
              "defender_casualties": 5000}
         ]
+
+        world.current_turn = 4
+        apply_war_score_decay(world)
+        assert world.war_scores[diplo_key] == 10
 
         world.current_turn = 5
         apply_war_score_decay(world)
@@ -503,10 +516,6 @@ class TestWarScoreDecay:
         world.current_turn = 6
         apply_war_score_decay(world)
         assert world.war_scores[diplo_key] == 6
-
-        world.current_turn = 7
-        apply_war_score_decay(world)
-        assert world.war_scores[diplo_key] == 4
 
 
 # ======================================================

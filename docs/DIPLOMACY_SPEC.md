@@ -974,7 +974,7 @@ Infantry manpower:        +2 per 5000 troops offered (one-time)
 Cavalry manpower:         +4 per 2500 cavalry offered (precious)
 Artillery manpower:       +5 per 1500 artillery offered (rare)
 Unit swap (offered):      +3 per unit trade favorable to target
-AP per turn (offered):    +8 per AP/turn offered (most valuable sweetener)
+AP per turn (offered):    +18 per AP/turn offered (most valuable sweetener)
 Territory:                +8 per region ceded (R144: was 5)
 Open borders:             +3
 Protection:               +5 (guarantee of defense — reduced to +3 when guarantor
@@ -987,7 +987,7 @@ Protection:               +5 (guarantee of defense — reduced to +3 when guaran
 
 **Deal Demands (clauses demanded — NEGATIVE modifiers):**
 ```
-Gold/turn demanded:       -2 per 100 gold/turn
+Gold/turn demanded:       -5 per 100 gold/turn
 Manpower/turn demanded:   -3 per 2000 infantry/turn (ongoing drain)
 Territory demanded:       escalating PL-20 penalty via analyze_territory_demands()
 AP/turn demanded:         -25 per AP/turn (WAR REPARATION — nearly impossible)
@@ -1176,11 +1176,11 @@ Capital score (max ±30):
 Total capped at ±100.
 ```
 
-**War score updates automatically** at the end of each turn based on current territory control and cumulative battle record. Territory score recalculates from scratch each turn (current holdings vs starting holdings). Battle score and decisive battle bonus are cumulative.
+**War score updates automatically** at the end of each turn based on current territory control and cumulative battle record. Territory score recalculates from scratch each turn (current holdings vs starting holdings). Battle score is cumulative but subject to quiet-turn decay. Decisive battle bonus is cumulative and does not decay.
 
-**War score decays toward 0** at -2/turn when no battles have occurred for 3+ turns. Represents fading military momentum — a victory from 10 turns ago carries less diplomatic weight than a fresh one. Decisive battle bonuses do NOT decay (they represent historical turning points).
+**Battle score decays toward 0** at -2/turn when no battles have occurred for 3+ turns. Represents fading military momentum — a victory from 10 turns ago carries less diplomatic weight than a fresh one. Decay applies only to the battle component; territory score, capital score, decisive battle bonuses, and any future ticking score do not decay.
 
-**Implementation:** `_calculate_war_score(nation_a, nation_b, world)` in `diplomacy.py`. Called during `advance_turn()` for all active wars. Stored in `world.war_scores`.
+**Implementation:** `calculate_war_score(nation_a, nation_b, world)` in `diplomacy.py`. Called during `advance_turn()` for all active wars. Stored in `world.war_scores`. `apply_war_score_decay()` prunes battle records older than 10 turns and recomputes active war scores; it must not subtract decay from the stored total.
 
 ### 6f. Acceptance Formula Player Feedback (DD4)
 
@@ -1367,7 +1367,7 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 2.  Mission DP deduction — deduct active mission costs (§2e)
     (If DP insufficient after regeneration, mission pauses — EC-S)
 3.  Mission effects — apply relation changes, intel collection, etc.
-4.  War score recalculation — territory + battles + capital (§6e)
+4.  War score recalculation — territory + quiet-turn-decayed battles + decisive + capital (§6e)
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 6.  Vassal loyalty processing — autonomy drift, garrison, passive modifiers (§8b)
 7.  Vassal rebellion check — loyalty = 0 → rebellion fires (§8d)

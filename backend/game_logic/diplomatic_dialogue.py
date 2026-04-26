@@ -896,9 +896,9 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         obstacle_names = {
             "relation_modifier": "our poor relations",
             "war_score_modifier": "the military situation",
-            "threat_modifier": "their fear of us",
             "hegemony_target_mod": "the pressure of the hegemon's bloc",
             "bilateral_betrayal_mod": "their memory of our broken commitments",
+            "grievance_modifier": "their grievance over abandoned alliances",
             "deal_balance": "the balance of terms",
             "personality_modifier": "their diplomat's disposition",
             "base_disposition": "fundamental resistance to this type of agreement",

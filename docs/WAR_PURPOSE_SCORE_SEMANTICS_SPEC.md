@@ -258,7 +258,7 @@ Unlike battle score (which decays at -2/turn after 3 turns of no battles), ticki
 
 ### 7.5 Ticking and the existing war score decay
 
-The existing -2/turn battle score decay (DIPLOMACY_SPEC §6e) is unchanged. It still applies only to the battle component. Ticking provides the strategic counterweight: battles give immediate score that fades, objectives give slow score that sticks.
+The existing -2/turn battle score decay (DIPLOMACY_SPEC §6e) is unchanged. It still applies only to the battle component before ticking score is added. Implementations must not subtract decay from the final stored `war_scores` total, because that would decay ticking score too. Ticking provides the strategic counterweight: battles give immediate score that fades, objectives give slow score that sticks.
 
 ### 7.6 Ticking pauses during armistice
 
@@ -391,13 +391,14 @@ On treaty ratification containing `forced_alliance`:
 2. Target nation is added to `continental_system_members` if `includes_continental_system` is True
 3. Relation modifier: forced alliance starts with relation = 0 (reset from whatever war-negative it was). The alliance is imposed, not earned — relation reflects grudging compliance, not friendship.
 4. All active war states between the two nations end (WAR → ALLIANCE, including any armistice)
+5. Ratification fires `cleanup_war_end()` before setting state to `ALLIANCE`, clearing `war_scores`, `battle_records`, `decisive_battles`, and `war_start_turns`, and cancelling strategic orders per DIPLOMACY_SPEC §5b.4.
 
 ### 9.3 Acceptance formula for forced alliance
 
 Forced alliance uses the existing acceptance formula with modified base disposition:
 
 ```python
-base_disposition = -15  # worse than standard peace (0) — nations resist forced alignment
+base_disposition = -15  # 45 below standard peace base 30 — nations resist forced alignment
 ```
 
 Additional modifiers:
@@ -610,8 +611,8 @@ self.alliance_origins: Dict[str, str] = {}
 Ticking accumulation runs after war score recalculation (step 4 in DIPLOMACY_SPEC §7f):
 
 ```
-4.  War score recalculation — territory + battles + capital (§6e)
-4a. War objective ticking — accumulate per §7.2, add to war score (§7.3)
+4.  War score recalculation — territory + quiet-turn-decayed battles + decisive + capital (§6e)
+4a. War objective ticking — accumulate per §7.2, add to war score after battle-only decay (§7.3)
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 ```
 
