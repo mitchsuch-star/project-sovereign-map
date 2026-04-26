@@ -1194,6 +1194,7 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
     world.active_coalition = {
         "id": f"coalition_{world.current_turn}",
         "name": name,
+        "target_nation": france,
         "leader": leader,
         "members": sorted(all_members),
         "formed_turn": int(world.current_turn),

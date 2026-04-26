@@ -123,6 +123,7 @@ Five objective types, divided into player-chosen (offensive) and auto-assigned (
    - Lists available objectives for this target (Conquest always available; Subjugation if power cap allows; Forced Alliance always available)
    - Shows ticking rate and political consequence for each
    - Player selects one objective
+   - The popup returns the chosen objective as a `war_objective` field on the staged war-declaration command result; `_execute_declare_war()` reads it before mutating war state
    - War declaration fires with the chosen objective
 
 4. If player backs out of objective selection, war declaration is cancelled (no DP spent)
@@ -401,6 +402,8 @@ Forced alliance uses the existing acceptance formula with modified base disposit
 base_disposition = -15  # 45 below standard peace base 30 — nations resist forced alignment
 ```
 
+Implementation: detect `forced_alliance` in the treaty clause list and override `base_disposition` to -15 before summing acceptance modifiers. Do not add a standalone proposal type.
+
 Additional modifiers:
 
 - War score > 70 AND capital held: +25 (Military Supremacy, same as existing §6b.1)
@@ -428,6 +431,7 @@ Lifecycle rules for `alliance_origins`:
 
 - Set `alliance_origins[diplo_key] = "forced"` only when a `forced_alliance` clause ratifies.
 - Set `"voluntary"` only when an ordinary alliance treaty ratifies without a forced-alliance clause.
+- If the same pair later ratifies another `forced_alliance` clause, keep or reset the origin to `"forced"`; do not overwrite it with `"voluntary"` in the same ratification.
 - Clear the key when the diplomatic state drops below `ALLIANCE`, the pair enters `WAR`, or a vassal relationship supersedes the alliance.
 - Apply the -10/turn forced-alliance drift only while the current state is `ALLIANCE` and `alliance_origins[diplo_key] == "forced"`.
 
@@ -616,12 +620,16 @@ Ticking accumulation runs after war score recalculation (step 4 in DIPLOMACY_SPE
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 ```
 
+Implementation placement: in `process_diplomacy_turn(world)`, run ticking immediately after `apply_war_score_decay(world)` / battle-only score recomputation so future ticking is never consumed by battle decay.
+
 Forced alliance auto-downgrade pressure (§9.5) runs before the automatic downgrade threshold check. Insert it as step 12a:
 
 ```
 12a. Forced-alliance relation drift — for each `diplo_key` where current state is ALLIANCE and alliance_origins[diplo_key] == "forced", apply -10 relation drift.
 13.  Automatic downgrade check — reads the post-drift relation and may downgrade if the pair has stayed 30+ below threshold for 5 turns.
 ```
+
+Implementation placement: call forced-alliance drift immediately before `check_auto_downgrade(world)` so the downgrade check reads the post-drift relation.
 
 ### 12.5 War objective cleanup
 

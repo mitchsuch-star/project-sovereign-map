@@ -251,6 +251,11 @@ class TestCoalitionFormation:
         form_coalition(["Austria"], world)
         assert world.active_coalition["leader"] in ("Britain", "Prussia", "Austria")
 
+    def test_form_coalition_records_target_nation(self):
+        world = _make_world()
+        form_coalition(["Austria"], world)
+        assert world.active_coalition["target_nation"] == world.player_nation
+
     def test_form_coalition_sets_posture(self):
         world = _make_world()
         form_coalition(["Austria"], world)
@@ -721,13 +726,14 @@ class TestSerialization:
     """Tests for coalition field round-trip serialization."""
 
     def test_world_state_round_trip(self):
-        """All 7 coalition fields survive to_dict/from_dict."""
+        """Coalition fields survive to_dict/from_dict."""
         world = _make_world()
         world.threat_level = 42
         world.threat_sources_this_turn = [{"source": "battle_win", "amount": 3}]
         world.active_coalition = {
             "id": "coalition_5",
             "name": "The British Coalition",
+            "target_nation": "France",
             "leader": "Britain",
             "members": ["Britain", "Prussia", "Austria"],
             "formed_turn": 5,
@@ -746,6 +752,7 @@ class TestSerialization:
         assert len(restored.threat_sources_this_turn) == 1
         assert restored.threat_sources_this_turn[0]["source"] == "battle_win"
         assert restored.active_coalition is not None
+        assert restored.active_coalition["target_nation"] == "France"
         assert restored.active_coalition["leader"] == "Britain"
         assert restored.coalition_brewing is None
         assert restored.coalition_cooldown == 3

@@ -81,6 +81,8 @@ The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based mo
 
 There is no legacy rivalry composite in the codebase. The older modifier names belong to a superseded spec revision.
 
+Live coalition records now carry `active_coalition.target_nation` (France in v0.1) so WB-A overlap helpers can read the concrete field instead of assuming the target from `world.player_nation`.
+
 **WB-A integration:**
 
 WAR_BARGAIN_SPEC §9.1 (`bargain_value_mod`) and §9.2 (`bargain_conflict_penalty`) extend the live model:
@@ -464,6 +466,7 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 - **WB gated on both BPH and WPS:** Yes. WB R4 + WB §2 are hard dependencies.
 - **Acceptance modifier reconciliation approach:** Extend the live model (hegemony + betrayal + grievance + floor). Do not resurrect the legacy rivalry-composite model.
 - **Armistice duration:** 5 turns. Docs and code now agree; do not change code.
+- **Coalition target field:** Live `active_coalition` records include `target_nation`. WB-A overlap logic reads this field and keeps fallback handling only for pre-field saves.
 - **`threat_coalition` retirement timing:** After Gate 1, before first WB ledger expansion. Not during BPH or WPS.
 - **Godot strategy:** Backend-first per slice, curl-verify, then Godot per slice.
 - **Save migration:** All `.get(key, default)` pattern. No destructive changes.
