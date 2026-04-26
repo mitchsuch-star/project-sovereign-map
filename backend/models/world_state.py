@@ -5465,6 +5465,13 @@ class WorldState:
                                     {"proposer_nation": proposer, "target_nation": target_nation},
                                     "always")
 
+            # BPH-C §9.3: Apply separate-peace relation penalties to allies
+            if current_state in ("WAR", "ARMISTICE") and target_state not in ("WAR",):
+                from backend.game_logic.diplomacy import apply_separate_peace_penalties
+                from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+                harshness = calculate_treaty_harshness(treaty)
+                apply_separate_peace_penalties(self, proposer, target_nation, harshness)
+
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
             if current_state == "WAR" and target_state != "WAR":
                 from backend.game_logic.diplomacy import calculate_war_score

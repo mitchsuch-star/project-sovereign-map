@@ -253,12 +253,34 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var conflicts = snapshot.get("commitment_conflicts", [])
 	if not warnings.is_empty() or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
 		bbcode += "\n[b]Political Consequences[/b]\n"
+		var shown = 0
+		var overflow = 0
 		for warning in warnings:
-			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning.get("text", warning))
+			if shown < 3:
+				bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning.get("text", warning))
+				shown += 1
+			else:
+				overflow += 1
 		for warning in fallout:
-			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(warning)
+			if shown < 3:
+				var txt = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
+				var sev = warning.get("severity", "INFO") if warning is Dictionary else "INFO"
+				var color = "#e04040" if sev == "SEVERE" else "#e0c070"
+				bbcode += "  [color=%s]*[/color] %s\n" % [color, txt]
+				shown += 1
+			else:
+				overflow += 1
 		for conflict in conflicts:
-			bbcode += "  [color=#e04040]*[/color] %s\n" % str(conflict)
+			if shown < 3:
+				var txt = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
+				var sev = conflict.get("severity", "INFO") if conflict is Dictionary else "INFO"
+				var color = "#e04040" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
+				bbcode += "  [color=%s]*[/color] %s\n" % [color, txt]
+				shown += 1
+			else:
+				overflow += 1
+		if overflow > 0:
+			bbcode += "  [color=#808080](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:

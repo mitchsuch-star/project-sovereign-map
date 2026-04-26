@@ -3092,9 +3092,18 @@ def build_war_context_snapshot(
         "harshness_label": get_harshness_label(harshness),
         "proposal_terms": effective_terms,
         "annotated_terms": annotated,
-        "fallout_warnings": [],
-        "commitment_conflicts": [],
+        "fallout_warnings": get_separate_peace_fallout_warnings(
+            world, player_nation, target_nation, harshness,
+        ),
+        "commitment_conflicts": get_peace_commitment_conflicts(
+            world, player_nation, target_nation, effective_terms.get("clauses", []),
+        ),
     }
+
+    # Strategic order cancellation preview
+    order_cancellations = _get_order_cancellation_preview(world, player_nation, target_nation)
+    if order_cancellations:
+        snapshot["fallout_warnings"].append(order_cancellations)
 
     # Armistice-specific fields
     if current_state == "ARMISTICE":
@@ -3104,6 +3113,223 @@ def build_war_context_snapshot(
         snapshot["armistice_cooldown_active"] = bool(cooldown > 0)
 
     return snapshot
+
+
+def get_separate_peace_fallout_warnings(
+    world, proposer: str, target: str, harshness: float,
+) -> List[Dict]:
+    """BPH-C §9.2: Compute ally fallout warnings for a separate peace proposal.
+
+    Returns structured warnings for each ally that is still at war with the target.
+    """
+    warnings: List[Dict] = []
+    all_nations = world.get_active_nations()
+    for nation in all_nations:
+        if nation == proposer or nation == target:
+            continue
+        ally_key = world._make_diplo_key(proposer, nation)
+        ally_state = world.diplomatic_states.get(ally_key, "PEACE")
+        if ally_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            continue
+        target_key = world._make_diplo_key(nation, target)
+        target_state = world.diplomatic_states.get(target_key, "PEACE")
+        if target_state != "WAR":
+            continue
+
+        ally_war_score = get_war_score_for(world, nation, target)
+        ally_relation = int(world.nation_relations.get(ally_key, 0))
+        war_start = world.war_start_turns.get(target_key, world.current_turn)
+        ally_war_turns = int(max(0, world.current_turn - war_start))
+        records = getattr(world, 'battle_records', {}).get(target_key, [])
+        ally_casualties = 0
+        for r in records:
+            if r.get("attacker") == nation:
+                ally_casualties += int(r.get("attacker_casualties", 0))
+            elif r.get("defender") == nation:
+                ally_casualties += int(r.get("defender_casualties", 0))
+
+        penalty = _compute_separate_peace_penalty(
+            ally_war_score, ally_war_turns, ally_casualties, harshness,
+        )
+        if ally_war_score > 20:
+            severity = "MINOR"
+        elif ally_war_turns >= 5 and ally_casualties > 5000:
+            severity = "SEVERE"
+        else:
+            severity = "MAJOR"
+
+        score_str = f"+{ally_war_score}" if ally_war_score > 0 else str(int(ally_war_score))
+        display = (
+            f"{nation} is still at war with {target} (war score: {score_str}). "
+            f"Making separate peace will anger {nation} ({penalty} relation)."
+        )
+        warnings.append({
+            "warning_type": "separate_peace_ally",
+            "ally": nation,
+            "ally_state_vs_target": target_state,
+            "ally_war_score_vs_target": int(ally_war_score),
+            "ally_relation_with_proposer": int(ally_relation),
+            "predicted_relation_change": int(penalty),
+            "severity": severity,
+            "display": display,
+        })
+    return warnings
+
+
+def _compute_separate_peace_penalty(
+    ally_war_score: int, ally_war_turns: int,
+    ally_casualties: int, harshness: float,
+) -> int:
+    """BPH-C §9.3: Compute the one-time relation penalty for a separate peace."""
+    base_penalty = -5
+    if ally_war_score <= 20:
+        base_penalty = -10
+    if ally_war_turns >= 5 and ally_casualties > 5000:
+        base_penalty = -15
+    if harshness < 0.2:
+        base_penalty *= 2
+    return int(base_penalty)
+
+
+def apply_separate_peace_penalties(
+    world, proposer: str, target: str, harshness: float,
+) -> List[Dict]:
+    """BPH-C §9.3: Apply relation penalties on ratification of a separate peace.
+
+    Returns list of applied penalties for the ratification summary.
+    """
+    warnings = get_separate_peace_fallout_warnings(world, proposer, target, harshness)
+    applied = []
+    for w in warnings:
+        ally = w["ally"]
+        penalty = w["predicted_relation_change"]
+        world.modify_nation_relation(proposer, ally, penalty)
+        applied.append({
+            "ally": ally,
+            "relation_change": int(penalty),
+            "severity": w["severity"],
+            "display": f"{ally} views this separate peace unfavorably ({penalty} relation)",
+        })
+    return applied
+
+
+def get_peace_commitment_conflicts(
+    world, proposer: str, target: str, clauses: List[Dict],
+) -> List[Dict]:
+    """BPH-C §10.1: Check for commitment conflicts created by a peace proposal.
+
+    v0.1 conflict types:
+      - paradox: alliance with a nation still at war with the target
+      - bloc_opposition: proposer and target on opposing sides of hegemony geometry
+    """
+    conflicts: List[Dict] = []
+
+    # Paradox: proposer allied with nation X, and X is at war with target
+    all_nations = world.get_active_nations()
+    for nation in all_nations:
+        if nation == proposer or nation == target:
+            continue
+        ally_key = world._make_diplo_key(proposer, nation)
+        ally_state = world.diplomatic_states.get(ally_key, "PEACE")
+        if ally_state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            continue
+        target_key = world._make_diplo_key(nation, target)
+        if world.diplomatic_states.get(target_key, "PEACE") != "WAR":
+            continue
+        conflicts.append({
+            "conflict_type": "paradox",
+            "severity": "WARNING",
+            "affected_entity": nation,
+            "display": (
+                f"Making peace with {target} while allied with {nation} "
+                f"(who is still at war with {target}) creates a diplomatic contradiction."
+            ),
+            "detail": {
+                "ally": nation,
+                "ally_state_vs_target": "WAR",
+            },
+        })
+
+    # Bloc-opposition: hegemony geometry check
+    try:
+        from backend.game_logic.coalition import _identify_max_bloc_share
+        hegemon, share = _identify_max_bloc_share(world)
+        if hegemon and share >= 0.30:
+            proposer_members = set(world.get_bloc_members(hegemon))
+            if proposer in proposer_members and target not in proposer_members:
+                conflicts.append({
+                    "conflict_type": "bloc_opposition",
+                    "severity": "INFO",
+                    "affected_entity": target,
+                    "display": (
+                        f"{target} sits outside your bloc. Peace normalizes relations "
+                        f"with a nation resisting your European influence."
+                    ),
+                    "detail": {
+                        "hegemon": hegemon,
+                        "bloc_share": round(share, 2),
+                    },
+                })
+    except (ImportError, AttributeError):
+        pass
+
+    return conflicts
+
+
+def _get_order_cancellation_preview(world, proposer: str, target: str) -> Optional[Dict]:
+    """BPH-C §9.4: List strategic orders that will be cancelled on peace ratification."""
+    cancelled = []
+    target_marshals = {
+        m.name for m in world.marshals.values() if m.nation == target
+    }
+    target_regions = set(world.nation_starting_regions.get(target, []))
+
+    for marshal in world.marshals.values():
+        if marshal.nation != proposer:
+            continue
+        order = getattr(marshal, 'strategic_order', None)
+        if not order:
+            continue
+        cmd_type = getattr(order, 'command_type', '')
+        target_type = getattr(order, 'target_type', '')
+        target_name = getattr(order, 'target', '')
+        if cmd_type == "PURSUE" and target_type == "marshal" and target_name in target_marshals:
+            cancelled.append({
+                "marshal": marshal.name,
+                "order_type": cmd_type,
+                "target": target_name,
+            })
+        elif cmd_type == "MOVE_TO" and target_type == "marshal" and target_name in target_marshals:
+            cancelled.append({
+                "marshal": marshal.name,
+                "order_type": cmd_type,
+                "target": target_name,
+            })
+        elif cmd_type == "MOVE_TO" and target_type == "region" and target_name in target_regions:
+            cancelled.append({
+                "marshal": marshal.name,
+                "order_type": cmd_type,
+                "target": target_name,
+            })
+
+    if not cancelled:
+        return None
+
+    parts = []
+    for c in cancelled:
+        name = c["marshal"]
+        if c["order_type"] == "PURSUE":
+            parts.append(f"{name}'s pursuit of {c['target']}")
+        else:
+            parts.append(f"{name}'s march on {c['target']}")
+
+    display = f"Peace with {target} will cancel " + " and ".join(parts) + "."
+    return {
+        "warning_type": "order_cancellation",
+        "orders": cancelled,
+        "severity": "INFO",
+        "display": display,
+    }
 
 
 def _force_retreat_displaced_marshals(world, nation_a: str, nation_b: str) -> None:
