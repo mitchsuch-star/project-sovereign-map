@@ -3137,7 +3137,10 @@ func _on_dispatch_open_envoys_requested():
 
 
 func _on_notification_review_requested(review_target: String):
-	if review_target == "ledger_commitments" and top_bar:
+	if review_target == "diplomacy_wizard":
+		_open_diplomacy_wizard()
+		return
+	if review_target.begins_with("ledger_") and top_bar:
 		if top_bar.has_method("open_diplomatic_ledger_review"):
 			top_bar.open_diplomatic_ledger_review(review_target)
 		else:

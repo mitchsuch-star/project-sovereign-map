@@ -42,6 +42,11 @@ const TYPE_ICONS = {
 	"call_to_arms_refused_offensive": "PCT",
 	"call_to_arms_refused_defensive": "ALY",
 	"call_to_arms_honored_costly": "OAT",
+	"bargain_fulfilled": "HON",
+	"bargain_breached": "BRK",
+	"bargain_voided": "LAP",
+	"bargain_ratified": "BAG",
+	"bargain_triggered": "ACT",
 	"diplomatic_proposal": "ENV",
 	"diplomatic_proposal_result": "RPT",
 	"treaty_signed": "TRT",
@@ -67,6 +72,11 @@ const ROUTE_ICON_TEXT = {
 	"icon_call_refused_offensive": "PCT",
 	"icon_call_refused_defensive": "ALY",
 	"icon_call_honored_costly": "OAT",
+	"icon_bargain_honoured": "HON",
+	"icon_bargain_broken": "BRK",
+	"icon_bargain_lapsed": "LAP",
+	"icon_bargain_sealed": "BAG",
+	"icon_bargain_activated": "ACT",
 }
 
 const COMMITMENTS_EVENT_TYPES = {
@@ -81,6 +91,11 @@ const COMMITMENTS_EVENT_TYPES = {
 	"call_to_arms_refused_offensive": true,
 	"call_to_arms_refused_defensive": true,
 	"call_to_arms_honored_costly": true,
+	"bargain_fulfilled": true,
+	"bargain_breached": true,
+	"bargain_voided": true,
+	"bargain_ratified": true,
+	"bargain_triggered": true,
 }
 
 @onready var rail_panel: PanelContainer = $RailPanel

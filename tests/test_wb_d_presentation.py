@@ -4,6 +4,8 @@ Tests commitments routing, voiced templates, witness scope, notifications,
 dispatch integration, response routes, and ledger badge rendering.
 """
 
+from pathlib import Path
+
 import pytest
 from backend.game_logic.commitments_routing import (
     COMMITMENTS_ROUTES,
@@ -313,8 +315,48 @@ def test_counterparty_breach_priority_is_normal():
 
 
 # ═══════════════════════════════════════════════════════
-# LEDGER BADGES (3 tests)
+# GODOT NOTIFICATION ROUTING (2 tests)
 # ═══════════════════════════════════════════════════════
+
+def test_godot_main_forwards_bargain_review_targets():
+    root = Path(__file__).resolve().parents[1]
+    main = (
+        root / "godot-client" / "project-sovereign" / "scripts" / "main.gd"
+    ).read_text(encoding="utf-8")
+
+    assert 'review_target == "diplomacy_wizard"' in main
+    assert "_open_diplomacy_wizard()" in main
+    assert 'review_target.begins_with("ledger_")' in main
+    assert "top_bar.open_diplomatic_ledger_review(review_target)" in main
+
+
+def test_godot_notification_bar_recognizes_bargain_notices():
+    root = Path(__file__).resolve().parents[1]
+    notification_bar = (
+        root / "godot-client" / "project-sovereign" / "scripts"
+        / "notification_bar.gd"
+    ).read_text(encoding="utf-8")
+
+    for event_type in (
+        "bargain_fulfilled",
+        "bargain_breached",
+        "bargain_voided",
+        "bargain_ratified",
+        "bargain_triggered",
+    ):
+        assert f'"{event_type}": true' in notification_bar
+
+    for icon_key in (
+        "icon_bargain_honoured",
+        "icon_bargain_broken",
+        "icon_bargain_lapsed",
+        "icon_bargain_sealed",
+        "icon_bargain_activated",
+    ):
+        assert f'"{icon_key}"' in notification_bar
+
+
+# LEDGER BADGES (3 tests)
 
 def test_ledger_live_bargains_no_badge():
     world = _wb_world()
