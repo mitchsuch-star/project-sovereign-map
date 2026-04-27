@@ -688,14 +688,20 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         }
 
     # Threat projection
-    next_war_projection = min(100, threat_level + 20)
+    next_war_projection = int(min(100, threat_level + 20))
+    wars_until_brewing = (
+        int(max(0, (60 - threat_level + 19) // 20)) if threat_level < 60 else 0
+    )
+    wars_until_instant = (
+        int(max(0, (80 - threat_level + 19) // 20)) if threat_level < 80 else 0
+    )
     threat_projection = {
-        "current": threat_level,
-        "after_next_war": next_war_projection,
-        "brewing_threshold": 60,
-        "instant_threshold": 80,
-        "wars_until_brewing": max(0, (60 - threat_level + 19) // 20) if threat_level < 60 else 0,
-        "wars_until_instant": max(0, (80 - threat_level + 19) // 20) if threat_level < 80 else 0,
+        "current": int(threat_level),
+        "after_next_war": int(next_war_projection),
+        "brewing_threshold": int(60),
+        "instant_threshold": int(80),
+        "wars_until_brewing": int(wars_until_brewing),
+        "wars_until_instant": int(wars_until_instant),
     }
 
     return {
@@ -722,15 +728,15 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "active_coalition": active_coalition_data,
         "brewing_turns_remaining": int(brewing.get("turns_remaining", 0) or 0)
         if brewing else None,
-        "cooldown_turns_remaining": cooldown if cooldown > 0 else None,
-        "coalition_cooldown": cooldown,
-        "threat_level": threat_level,
+        "cooldown_turns_remaining": int(cooldown) if cooldown > 0 else None,
+        "coalition_cooldown": int(cooldown),
+        "threat_level": int(threat_level),
         "threat_tier": threat_tier,
         "threat_sources_this_turn": threat_sources,
         "qualifying_nations": get_qualifying_nations(world),
         "threat_projection": threat_projection,
-        "dissolution_threat_threshold": 20,
-        "dissolution_war_exhaustion_limit": 80,
+        "dissolution_threat_threshold": int(20),
+        "dissolution_war_exhaustion_limit": int(80),
     }
 
 # ============================================================================

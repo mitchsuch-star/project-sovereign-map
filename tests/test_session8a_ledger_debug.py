@@ -433,6 +433,39 @@ class TestDiplomaticLedgerThreatCoalition:
         }
         assert required_keys.issubset(set(boe.keys()))
 
+    def test_merged_numeric_fields_are_int_wrapped(self):
+        world = _make_world(threat_level=47)
+        world.coalition_cooldown = 4
+        ledger = build_diplomatic_ledger(world)
+        boe = ledger["balance_of_europe"]
+
+        assert isinstance(boe["coalition_cooldown"], int)
+        assert isinstance(boe["cooldown_turns_remaining"], int)
+        assert isinstance(boe["dissolution_threat_threshold"], int)
+        assert isinstance(boe["dissolution_war_exhaustion_limit"], int)
+
+        projection = boe["threat_projection"]
+        for key in (
+            "current",
+            "after_next_war",
+            "brewing_threshold",
+            "instant_threshold",
+            "wars_until_brewing",
+            "wars_until_instant",
+        ):
+            assert isinstance(projection[key], int)
+
+        coalition_world = _make_world()
+        coalition_world.active_coalition = {
+            "name": "The Austrian Coalition",
+            "leader": "Austria",
+            "members": ["Austria", "Britain"],
+            "strategic_posture": "defensive",
+        }
+        coalition_boe = build_diplomatic_ledger(coalition_world)["balance_of_europe"]
+        for member in coalition_boe["active_coalition"]["members"]:
+            assert isinstance(member["war_exhaustion"], int)
+
 
 # ════════════════════════════════════════════════════════════════
 # TAB 4: TALLEYRAND
