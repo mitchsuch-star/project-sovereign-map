@@ -106,16 +106,17 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 
 The `war_entry_score` (WB §9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
 
-### 4.3 `threat_coalition` compatibility layer
+### 4.3 `threat_coalition` compatibility layer — DECIDED: retire before WB-A
 
-`threat_coalition` remains in the diplomatic ledger payload as a compatibility layer beside the live `balance_of_europe` payload (per STATUS.md April 25, 2026).
+`threat_coalition` was kept in the diplomatic ledger payload as a compatibility layer beside the live `balance_of_europe` payload through BPH + WPS.
 
-**Decision:** Do not retire `threat_coalition` during BPH or WPS. Schedule a compatibility retirement decision after Gate 2 (BPH + WPS complete), before the first WB ledger expansion. At that point, either:
+**Decision (April 26, 2026, post-Gate 1):** Retire `threat_coalition` in a focused cleanup pass before WB-A begins. Rationale: `balance_of_europe` is live on all surfaces (ledger headline, threshold beats, preview warnings, declaration contrast copy, bloc stamps) since the C-lite closeout. Carrying a dead payload through WB would accumulate a third parallel ledger payload for no benefit.
 
-- Retire it in a focused cleanup pass (preferred if playtest confirms `balance_of_europe` carries the information)
-- Carry it through WB with explicit compatibility tests
-
-This prevents the Peace Deals phase from accumulating a third parallel ledger payload.
+**Cleanup scope:**
+- Remove `threat_coalition` from `build_diplomatic_ledger()` in `backend/game_logic/diplomatic_ledger.py`
+- Remove `threat_coalition` consumption in Godot `diplomatic_ledger.gd`
+- Update tests asserting on `threat_coalition` keys to assert on `balance_of_europe` only
+- Remove any `threat_modifier` / `coalition_penalty` legacy computation paths if no longer consumed
 
 ### 4.4 Godot surface strategy
 
@@ -222,9 +223,9 @@ BPH and WPS slices can be interleaved. No ordering constraint between them.
 
 Required before WB begins. See §7 for gate criteria.
 
-### Compatibility decision: `threat_coalition` retirement
+### Compatibility cleanup: `threat_coalition` retirement
 
-Evaluate after Gate 1. Decide: retire in focused cleanup, or carry through WB with tests.
+**DECIDED (April 26, 2026):** Retire in focused cleanup pass before WB-A. See §4.3.
 
 ### Phase B: War Bargains (WB, gated on Phase A)
 
@@ -329,28 +330,28 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 
 | Item | Decision Point | HOME / Owner Spec | Options |
 |------|---------------|-------------------|---------|
-| `threat_coalition` retirement | After Gate 1 (BPH + WPS complete) | `PEACE_DEALS_UMBRELLA_SPEC.md` §4.2 + `COALITION_SPEC.md` threat-source tables | Retire in cleanup pass OR carry through WB with tests |
+| ~~`threat_coalition` retirement~~ | ~~After Gate 1~~ | — | **DECIDED April 26, 2026:** Retire in focused cleanup before WB-A. See §4.3. |
 | Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | Confirm Voice Bible coverage for bargain-specific lines |
 
 ---
 
 ## 7. Milestone Gates
 
-### Gate 1: Bilateral peace is legible + wars have purpose (after BPH + WPS)
+### Gate 1: Bilateral peace is legible + wars have purpose (after BPH + WPS) — PASSED
 
-**Required before WB-A begins.**
+**PASSED April 26, 2026.** All 9 criteria verified via `tools/gate1_smoke_test.py` against live backend + full test suite (9062 passed, 1 skipped). WB-A is unblocked.
 
-Smoke criteria:
+Smoke criteria (all passing):
 
-1. **Term ownership:** `curl POST /command` with a peace proposal returns `annotated_terms` where every clause has `from_nation`, `to_nation`, `display_label`.
-2. **Peace preview:** `curl GET /diplomatic_preview` for a WAR→PEACE proposal returns `war_context_snapshot` with war score components, battle record, and regions held.
-3. **Fallout warnings:** Separate peace proposal against a nation whose ally is still fighting returns `fallout_warnings` with severity bands.
-4. **Ratification summary:** Peace ratification response includes `peace_ratification_summary` with `war_outcome` classification.
-5. **War Purpose popup:** War declaration flow opens objective selection; Subjugation is unavailable for Austria at game start (power 59% > 50% cap).
-6. **Ticking score:** After declaring Conquest against Prussia and holding Berlin for 3 turns, `war_score` includes a positive ticking component.
-7. **Settlement tiers:** War Status Panel shows named tier ("Dictated Terms") alongside numeric score.
-8. **Forced alliance:** `forced_alliance` clause ratification jumps state to ALLIANCE, resets relation to 0, and adds origin tag.
-9. **No regressions:** Full test suite green. Existing acceptance formula, coalition formation, and diplomatic ledger tests pass unchanged.
+1. **Term ownership:** `curl POST /command` with a peace proposal returns `annotated_terms` where every clause has `from_nation`, `to_nation`, `display_label`. **PASS**
+2. **Peace preview:** `curl GET /diplomatic_preview` for a WAR→PEACE proposal returns `war_context_snapshot` with war score components, battle record, and regions held. **PASS**
+3. **Fallout warnings:** Separate peace proposal against a nation whose ally is still fighting returns `fallout_warnings` with severity bands. **PASS**
+4. **Ratification summary:** Peace ratification response includes `peace_ratification_summary` with `war_outcome` classification. **PASS**
+5. **War Purpose popup:** War declaration flow opens objective selection; Subjugation is unavailable for Austria at game start (power 59% > 50% cap). **PASS**
+6. **Ticking score:** After declaring Conquest against Prussia and holding Berlin for 3 turns, `war_score` includes a positive ticking component. **PASS**
+7. **Settlement tiers:** War Status Panel shows named tier ("Dictated Terms") alongside numeric score. **PASS**
+8. **Forced alliance:** `forced_alliance` clause ratification jumps state to ALLIANCE, resets relation to 0, and adds origin tag. **PASS**
+9. **No regressions:** Full test suite green. Existing acceptance formula, coalition formation, and diplomatic ledger tests pass unchanged. **PASS**
 
 ### Gate 2: Bargains work mechanically (after WB-A/B/C)
 
@@ -467,7 +468,7 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 - **Acceptance modifier reconciliation approach:** Extend the live model (hegemony + betrayal + grievance + floor). Do not resurrect the legacy rivalry-composite model.
 - **Armistice duration:** 5 turns. Docs and code now agree; do not change code.
 - **Coalition target field:** Live `active_coalition` records include `target_nation`. WB-A overlap logic reads this field and keeps fallback handling only for pre-field saves.
-- **`threat_coalition` retirement timing:** After Gate 1, before first WB ledger expansion. Not during BPH or WPS.
+- **`threat_coalition` retirement:** DECIDED — retire in focused cleanup before WB-A (April 26, 2026). `balance_of_europe` covers all surfaces.
 - **Godot strategy:** Backend-first per slice, curl-verify, then Godot per slice.
 - **Save migration:** All `.get(key, default)` pattern. No destructive changes.
 - **Ally Participation timing:** After full Peace Deals phase gate. Not interleaved.
@@ -476,4 +477,5 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 
 ## 11. Changelog
 
+- **April 26, 2026** — Gate 1 PASSED. All 9 smoke criteria verified. `threat_coalition` retirement decided: retire in focused cleanup before WB-A. Smoke test committed at `tools/gate1_smoke_test.py`.
 - **April 25, 2026** — v1.0 drafted. Covers dependency graph, 3-phase implementation sequence (BPH+WPS parallel → WB-A/B/C → WB-D), cross-cutting decisions (armistice canonized at 5 turns, acceptance modifier reconciliation against live v2.4.3 model, threat_coalition retirement scheduling, Godot surface strategy, cumulative data model delta), deferred carry-forward checklist with concrete slice assignments, 3 milestone gates with smoke criteria, 5 risks, sub-spec errata for stale WAR_BARGAIN_SPEC references. Total budget: ~264 tests, ~11-12 sessions.
