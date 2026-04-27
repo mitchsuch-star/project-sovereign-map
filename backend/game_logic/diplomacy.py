@@ -2582,6 +2582,9 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     key = world._make_diplo_key(nation_a, nation_b)
     old_state = world.diplomatic_states.get(key, "PEACE")
 
+    if old_state == "WAR" and new_state != "WAR":
+        _record_bargain_cobelligerent_war_end(world, nation_a, nation_b)
+
     # Set new state
     world.diplomatic_states[key] = new_state
 
@@ -4006,7 +4009,52 @@ def get_peace_commitment_conflicts(
     except (ImportError, AttributeError):
         pass
 
+    # War bargain breach warning: proposer making peace/armistice with a named
+    # enemy can breach a live bargain unless the terms resolve the claim.
+    for bargain in _get_live_bargains(world):
+        if bargain.get("promiser") != proposer or bargain.get("target_enemy") != target:
+            continue
+        claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+        if _peace_terms_transfer_claim_to_promiser(clauses, bargain):
+            continue
+        conflicts.append({
+            "conflict_type": "bargain_breach",
+            "severity": "WARNING",
+            "affected_entity": bargain.get("beneficiary", ""),
+            "display": (
+                f"Peace with {target} would breach the bargain with "
+                f"{bargain.get('beneficiary', 'the beneficiary')} over {claim_region}."
+            ),
+            "detail": {
+                "bargain_id": bargain.get("id"),
+                "beneficiary": bargain.get("beneficiary", ""),
+                "target_enemy": target,
+                "claim_region": claim_region,
+            },
+        })
+
     return conflicts
+
+
+def _peace_terms_transfer_claim_to_promiser(clauses: List[Dict], bargain: Dict) -> bool:
+    promiser = bargain.get("promiser", "")
+    target_enemy = bargain.get("target_enemy", "")
+    claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+    if not claim_region:
+        return False
+    for clause in clauses or []:
+        if clause.get("type") != "territory_cede":
+            continue
+        if claim_region not in (clause.get("regions", []) or []):
+            continue
+        cede_to = clause.get("to", "") or clause.get("to_nation", "")
+        cede_from = clause.get("from", "") or clause.get("from_nation", "")
+        if cede_to and cede_to != promiser:
+            continue
+        if cede_from and cede_from != target_enemy:
+            continue
+        return True
+    return False
 
 
 def _collect_peace_order_cancellations(world, actor: str, counterpart: str) -> List[Dict]:
@@ -4635,6 +4683,39 @@ def _are_cobelligerents(world, nation_a: str, nation_b: str, against: str) -> bo
     )
 
 
+def _bargain_key(bargain: Dict) -> str:
+    return str(bargain.get("id", ""))
+
+
+def _record_bargain_cobelligerent_war_end(world, nation_a: str, nation_b: str) -> None:
+    """Remember triggered bargains whose named war ended after valid co-belligerence."""
+    ended_pair = {nation_a, nation_b}
+    snapshots = dict(getattr(world, "_bargain_cobelligerent_war_end_turns", {}) or {})
+
+    for bargain in _get_live_bargains(world):
+        if bargain.get("status") != "triggered":
+            continue
+        promiser = bargain.get("promiser", "")
+        beneficiary = bargain.get("beneficiary", "")
+        target_enemy = bargain.get("target_enemy", "")
+        if target_enemy not in ended_pair:
+            continue
+        if promiser not in ended_pair and beneficiary not in ended_pair:
+            continue
+        if _are_cobelligerents(world, promiser, beneficiary, target_enemy):
+            key = _bargain_key(bargain)
+            if key:
+                snapshots[key] = int(world.current_turn)
+
+    world._bargain_cobelligerent_war_end_turns = snapshots
+
+
+def _had_bargain_cobelligerent_war_end_this_turn(world, bargain: Dict) -> bool:
+    snapshots = getattr(world, "_bargain_cobelligerent_war_end_turns", {}) or {}
+    turn = snapshots.get(_bargain_key(bargain))
+    return turn is not None and int(turn) == int(world.current_turn)
+
+
 def process_bargain_lifecycle(world) -> List[Dict]:
     """Per-turn bargain lifecycle processing per §8.8 turn-order rule.
 
@@ -4699,6 +4780,7 @@ def process_bargain_lifecycle(world) -> List[Dict]:
             turns_active = int(world.current_turn) - int(base_turn)
             if turns_active >= 8:
                 bargain["dormant_notice_fired"] = True
+                _emit_bargain_dormant_notice(world, bargain, turns_active)
 
     return events
 
@@ -4725,8 +4807,11 @@ def _check_bargain_fulfillment(world, bargain: Dict) -> bool:
     if not _source_treaty_valid(world, bargain):
         return False
 
-    # 5. Co-belligerents or war just ended this turn with both having been co-belligerents
-    if not _are_cobelligerents(world, promiser, beneficiary, target_enemy):
+    # 5. Co-belligerents, or the named war just ended this turn after co-belligerence.
+    if not (
+        _are_cobelligerents(world, promiser, beneficiary, target_enemy)
+        or _had_bargain_cobelligerent_war_end_this_turn(world, bargain)
+    ):
         return False
 
     return True
@@ -4791,11 +4876,13 @@ def breach_bargain(world, bargain: Dict, end_reason: str, *, episode_id: str = N
     if not _is_bargain_live(bargain):
         return {}
 
+    episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
     bargain["status"] = "breached"
     bargain["ended_turn"] = int(world.current_turn)
     bargain["end_reason"] = end_reason
     bargain["end_reason_family"] = "french_breach"
     bargain["fault_nation"] = bargain.get("promiser", "France")
+    bargain["breach_episode_id"] = episode_id
 
     promiser = bargain.get("promiser", "")
     beneficiary = bargain.get("beneficiary", "")
@@ -4825,20 +4912,20 @@ def breach_bargain(world, bargain: Dict, end_reason: str, *, episode_id: str = N
 def _record_bargain_breach_strike(world, promiser: str, beneficiary: str, episode_id: str = None):
     """Record +1 betrayal strike for bargain breach, respecting 2-strike-per-episode cap."""
     betrayal_history = getattr(world, "betrayal_history", {})
-    diplo_key = world._make_diplo_key(promiser, beneficiary)
+    diplo_key = _betrayal_key(promiser, beneficiary)
     record = betrayal_history.get(diplo_key)
     if record is None:
-        record = {"strikes": [], "categories": set(), "grievance_flags": []}
+        record = {"strikes": [], "categories": [], "grievance_flags": [], "last_turn": 0}
         betrayal_history[diplo_key] = record
     if not hasattr(world, "betrayal_history"):
         world.betrayal_history = betrayal_history
 
     if episode_id:
-        episode_strikes = sum(
-            1 for s in record.get("strikes", [])
+        active_episode_strikes = sum(
+            1 for s in _get_active_betrayal_strikes(world, promiser, beneficiary)
             if s.get("episode_id") == episode_id
         )
-        if episode_strikes >= 2:
+        if active_episode_strikes >= 2:
             return
 
     record["strikes"].append({
@@ -4848,7 +4935,12 @@ def _record_bargain_breach_strike(world, promiser: str, beneficiary: str, episod
         "episode_id": episode_id or "",
         "decays_on_turn": int(world.current_turn) + 20,
     })
-    record["categories"].add("bargain_breach")
+    categories = set(record.get("categories", []) or [])
+    categories.add("bargain_breach")
+    record["categories"] = sorted(categories)
+    record["last_turn"] = int(world.current_turn)
+    betrayal_history[diplo_key] = record
+    world.betrayal_history = betrayal_history
 
 
 def _void_bargain(world, bargain: Dict, void_info: Dict) -> None:
@@ -4983,6 +5075,7 @@ def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
         "end_reason": bargain.get("end_reason"),
         "end_reason_family": bargain.get("end_reason_family"),
         "fault_nation": bargain.get("fault_nation"),
+        "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
     }
@@ -4998,11 +5091,24 @@ def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
         "claim_region": claim_region,
         "end_reason": bargain.get("end_reason", ""),
         "fault_nation": bargain.get("fault_nation", ""),
+        "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
     }, fog_rule)
 
     return event
+
+
+def _emit_bargain_dormant_notice(world, bargain: Dict, turns_active: int) -> None:
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    queue_dispatch_event(world, "bargain_dormant_notice", {
+        "promiser": bargain.get("promiser", ""),
+        "beneficiary": bargain.get("beneficiary", ""),
+        "target_enemy": bargain.get("target_enemy", ""),
+        "claim_region": bargain.get("claim_term", {}).get("claim_region", ""),
+        "turns_active": int(turns_active),
+    }, "always")
 
 
 def detect_bargain_breach_on_treaty_change(
@@ -5011,7 +5117,7 @@ def detect_bargain_breach_on_treaty_change(
 ) -> List[Dict]:
     """Check if a diplomatic state change breaches any live bargain.
 
-    Called from set_diplomatic_state and treaty ratification paths.
+    Called from explicit treaty break, downgrade, and ratification paths.
     Returns list of breach events.
     """
     events = []
@@ -5028,6 +5134,7 @@ def detect_bargain_breach_on_treaty_change(
         # Source treaty break/downgrade by promiser
         if breaker == promiser and other_nation == beneficiary:
             if new_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
                 ev = breach_bargain(world, bargain, "source_treaty_downgrade", episode_id=episode_id)
                 if ev:
                     events.append(ev)
@@ -5036,6 +5143,7 @@ def detect_bargain_breach_on_treaty_change(
         # Normalization with named enemy or claim holder
         if breaker == promiser and other_nation == target_enemy:
             if new_state in ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
                 ev = breach_bargain(world, bargain, "normalization_with_enemy", episode_id=episode_id)
                 if ev:
                     events.append(ev)
@@ -5048,6 +5156,7 @@ def detect_bargain_breach_on_treaty_change(
             holder = getattr(region_obj, "controller", "") if region_obj else ""
             if holder == other_nation and holder != target_enemy:
                 if new_state in ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                    episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
                     ev = breach_bargain(world, bargain, "normalization_with_holder", episode_id=episode_id)
                     if ev:
                         events.append(ev)
@@ -5071,12 +5180,16 @@ def detect_bargain_breach_on_peace(
 
         promiser = bargain.get("promiser", "")
         target_enemy = bargain.get("target_enemy", "")
+        if _check_bargain_fulfillment(world, bargain):
+            continue
 
         if promiser == nation_a and target_enemy == nation_b:
+            episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
             ev = breach_bargain(world, bargain, "peace_with_named_enemy", episode_id=episode_id)
             if ev:
                 events.append(ev)
         elif promiser == nation_b and target_enemy == nation_a:
+            episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
             ev = breach_bargain(world, bargain, "peace_with_named_enemy", episode_id=episode_id)
             if ev:
                 events.append(ev)
@@ -6796,6 +6909,9 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
 
     # Apply (R2: centralized setter; treaty removal handled separately for non-WAR downgrades)
     set_diplomatic_state(world, nation_a, nation_b, new_state, "diplomatic_downgrade")
+    bargain_breach_events = detect_bargain_breach_on_treaty_change(
+        world, nation_a, nation_b, new_state,
+    )
 
     # R45: Remove active treaty on downgrade (treaty was for the old state)
     active_treaties = getattr(world, 'active_treaties', {})
@@ -6828,6 +6944,7 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
         "message": f"Diplomatic relations between {nation_a} and {nation_b} downgraded: {_STATE_DISPLAY_NAMES.get(current_state, current_state)} → {_STATE_DISPLAY_NAMES.get(new_state, new_state)}.",
         "new_state": new_state,
         "dp_cost": penalties["dp_cost"],
+        "bargain_breach_events": bargain_breach_events,
     }
 
 
@@ -7675,6 +7792,13 @@ def break_treaty(
             "mode": "manual_break",
         },
     )
+    bargain_breach_events = detect_bargain_breach_on_treaty_change(
+        world,
+        breaker_nation,
+        other,
+        new_state,
+        episode_id=breach_preview.get("episode_id"),
+    )
 
     return {
         "success": True,
@@ -7685,6 +7809,7 @@ def break_treaty(
         "new_state": new_state,
         "relation_changes": relation_changes,
         "treaty_broken_event": treaty_type,  # R23: signal for trust reactions
+        "bargain_breach_events": bargain_breach_events,
     }
 
 

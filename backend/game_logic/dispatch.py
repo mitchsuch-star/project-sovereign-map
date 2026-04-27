@@ -1221,6 +1221,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "bargain_fulfilled": "{promiser} honored the bargain: {claim_region} secured.",
     "bargain_breached": "{fault_nation} broke the bargain with {beneficiary} over {claim_region}.",
     "bargain_voided": "Bargain with {beneficiary} over {claim_region} lapsed ({end_reason}).",
+    "bargain_dormant_notice": "Bargain with {beneficiary} over {claim_region} has been idle for {turns_active} turns.",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -1277,6 +1278,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "bargain_fulfilled": "HIGH",
     "bargain_breached": "HIGH",
     "bargain_voided": "MEDIUM",
+    "bargain_dormant_notice": "LOW",
 }
 
 

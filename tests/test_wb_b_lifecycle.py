@@ -18,6 +18,9 @@ from backend.game_logic.diplomacy import (
     detect_bargain_breach_on_peace,
     create_war_bargain_commitment,
     set_diplomatic_state,
+    execute_downgrade,
+    break_treaty,
+    get_peace_commitment_conflicts,
     BARGAIN_BREACH_COOLDOWN_TURNS,
     BARGAIN_VOID_COOLDOWN_TURNS,
     BARGAIN_ZOMBIE_VOID_THRESHOLD,
@@ -60,6 +63,17 @@ def _create_live_bargain(world, status="active", **overrides):
     for k, v in overrides.items():
         rec[k] = v
     return rec
+
+
+def _add_active_treaty(world, nation_a="France", nation_b="Prussia", treaty_type="alliance"):
+    pair_key = world._make_diplo_key(nation_a, nation_b)
+    world.active_treaties[pair_key] = {
+        "nations": [nation_a, nation_b],
+        "type": treaty_type,
+        "clauses": [],
+        "turn_signed": max(0, int(world.current_turn) - 2),
+    }
+    return pair_key
 
 
 # ═══════════════════════════════════════════════════════
@@ -262,6 +276,44 @@ class TestBreach:
         breach_bargain(world, rec, "test_reason", episode_id=ep_id)
         assert len(world.betrayal_history[diplo_key]["strikes"]) == 2  # No new strike
 
+    def test_breach_cap_counts_only_active_same_episode_strikes(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world)
+        ep_id = "ep_old"
+        diplo_key = "France|Prussia"
+        world.betrayal_history[diplo_key] = {
+            "strikes": [
+                {"severity": "medium", "turn": 1, "source": "treaty_breach", "episode_id": ep_id, "decays_on_turn": 2},
+                {"severity": "medium", "turn": 1, "source": "treaty_breach", "episode_id": ep_id, "decays_on_turn": 2},
+            ],
+            "categories": ["treaty_breach"],
+            "grievance_flags": [],
+            "last_turn": 1,
+        }
+        breach_bargain(world, rec, "test_reason", episode_id=ep_id)
+        assert len(world.betrayal_history[diplo_key]["strikes"]) == 3
+
+    def test_breach_records_actor_victim_key_and_list_categories(self):
+        world = _wb_world()
+        set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+        set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+        rec = create_war_bargain_commitment(
+            world, "France", "Austria", "Britain", "Hanover",
+            "treaty_clause", "Austria|France",
+            validate=False,
+        )
+        world.betrayal_history["France|Austria"] = {
+            "strikes": [],
+            "categories": ["treaty_breach"],
+            "grievance_flags": [],
+            "last_turn": 1,
+        }
+        breach_bargain(world, rec, "test_reason", episode_id="ep_key")
+        assert "France|Austria" in world.betrayal_history
+        assert "Austria|France" not in world.betrayal_history
+        assert isinstance(world.betrayal_history["France|Austria"]["categories"], list)
+        assert "bargain_breach" in world.betrayal_history["France|Austria"]["categories"]
+
     def test_breach_on_already_terminal_noop(self):
         world = _wb_world()
         rec = _create_live_bargain(world)
@@ -437,6 +489,93 @@ class TestBreachDetection:
         events = detect_bargain_breach_on_peace(world, "France", "Russia")
         assert len(events) == 0
 
+    def test_break_treaty_wires_source_bargain_breach(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world)
+        pair_key = _add_active_treaty(world)
+        result = break_treaty(pair_key, "France", world)
+        assert result["success"] is True
+        assert rec["status"] == "breached"
+        assert rec["end_reason"] == "source_treaty_downgrade"
+        assert result["bargain_breach_events"][0]["type"] == "bargain_breached"
+
+    def test_execute_downgrade_wires_source_bargain_breach(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world)
+        first = execute_downgrade(world, "France", "Prussia")
+        assert first["success"] is True
+        result = execute_downgrade(world, "France", "Prussia")
+        assert result["success"] is True
+        assert rec["status"] == "breached"
+        assert rec["end_reason"] == "source_treaty_downgrade"
+        assert result["bargain_breach_events"][0]["type"] == "bargain_breached"
+
+    def test_peace_ratification_wires_named_enemy_breach(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world, status="triggered")
+        world.nation_relations[world._make_diplo_key("France", "Britain")] = 0
+        result = world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Britain",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        })
+        assert result["type"] == "diplomatic_treaty_signed"
+        assert rec["status"] == "breached"
+        assert rec["end_reason"] == "peace_with_named_enemy"
+        assert result["bargain_breach_events"][0]["type"] == "bargain_breached"
+
+    def test_peace_ratification_can_fulfill_after_claim_transfer(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world, status="triggered")
+        world.nation_relations[world._make_diplo_key("France", "Britain")] = 0
+        result = world._ratify_treaty({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Britain",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "regions": ["Hanover"], "value": 0},
+            ],
+            "clauses": [],
+        })
+        assert result["type"] == "diplomatic_treaty_signed"
+        assert rec["status"] == "triggered"
+        events = process_bargain_lifecycle(world)
+        assert rec["status"] == "fulfilled"
+        assert any(e["type"] == "bargain_fulfilled" for e in events)
+
+    def test_peace_conflicts_include_unresolved_bargain_breach_warning(self):
+        world = _wb_world()
+        _create_live_bargain(world)
+        conflicts = get_peace_commitment_conflicts(world, "France", "Britain", [])
+        bargain_conflicts = [
+            c for c in conflicts if c["conflict_type"] == "bargain_breach"
+        ]
+        assert len(bargain_conflicts) == 1
+        assert bargain_conflicts[0]["severity"] == "WARNING"
+        assert bargain_conflicts[0]["affected_entity"] == "Prussia"
+
+    def test_peace_conflict_suppressed_when_terms_transfer_claim(self):
+        world = _wb_world()
+        _create_live_bargain(world)
+        conflicts = get_peace_commitment_conflicts(
+            world,
+            "France",
+            "Britain",
+            [
+                {
+                    "type": "territory_cede",
+                    "regions": ["Hanover"],
+                    "from": "Britain",
+                    "to": "France",
+                },
+            ],
+        )
+        assert not any(c["conflict_type"] == "bargain_breach" for c in conflicts)
+
 
 # ═══════════════════════════════════════════════════════
 # CAMPAIGN LOG + DISPATCH (3 tests)
@@ -480,6 +619,10 @@ class TestDormantNotice:
         rec["created_turn"] = 5
         process_bargain_lifecycle(world)
         assert rec["dormant_notice_fired"] is True
+        assert any(
+            e.get("type") == "bargain_dormant_notice"
+            for e in world.pending_dispatch_events
+        )
 
     def test_dormant_resets_on_reactivation(self):
         world = _wb_world()

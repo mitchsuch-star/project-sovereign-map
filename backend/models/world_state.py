@@ -5443,6 +5443,7 @@ class WorldState:
         _is_peace_ratification = current_state in ("WAR", "ARMISTICE") and target_state == "PEACE"
         _pre_cleanup_data: Dict = {}
         _pre_cleanup_cancelled_orders: List[Dict] = []
+        bargain_breach_events: List[Dict] = []
         if _is_war_ending and is_player_treaty:
             from backend.game_logic.diplomacy import (
                 _capture_pre_cleanup_war_data,
@@ -5664,6 +5665,24 @@ class WorldState:
 
         # War-end cleanup (shared — for both player and AI-AI).
         # WPS-A: ARMISTICE pauses objectives; PEACE concludes them.
+        # WB-B: Run explicit French-breach checks after treaty clauses apply so
+        # same-treaty claim transfers can fulfill instead of being breached.
+        final_state = self.get_diplomatic_state(proposer, target_nation)
+        if final_state in (
+            "NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE",
+        ):
+            from backend.game_logic.diplomacy import detect_bargain_breach_on_treaty_change
+            bargain_breach_events.extend(
+                detect_bargain_breach_on_treaty_change(
+                    self, proposer, target_nation, final_state,
+                )
+            )
+        if current_state in ("WAR", "ARMISTICE") and final_state in ("PEACE", "ARMISTICE"):
+            from backend.game_logic.diplomacy import detect_bargain_breach_on_peace
+            bargain_breach_events.extend(
+                detect_bargain_breach_on_peace(self, proposer, target_nation)
+            )
+
         if current_state in ("WAR", "ARMISTICE") and target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
             cleanup_war_end(
@@ -5864,6 +5883,8 @@ class WorldState:
             }
             if peace_ratification_summary:
                 result["peace_ratification_summary"] = peace_ratification_summary
+            if bargain_breach_events:
+                result["bargain_breach_events"] = bargain_breach_events
             return result
 
         # ═══ AI-AI-specific events ═══
@@ -5893,13 +5914,16 @@ class WorldState:
         cooldowns[f"ai_ai|{diplo_key}"] = 5
         _set_cooldowns(self, cooldowns)
 
-        return {
+        result = {
             "type": "ai_ai_treaty",
             "nation_a": proposer,
             "nation_b": target_nation,
             "treaty_type": treaty_type_display,
             "message": f"{proposer} and {target_nation} have signed a {treaty_type_display}.",
         }
+        if bargain_breach_events:
+            result["bargain_breach_events"] = bargain_breach_events
+        return result
 
     def _process_treaty_clauses(self) -> None:
         """Apply per-turn treaty clauses (gold/turn, manpower/turn)."""
