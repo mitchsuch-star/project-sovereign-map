@@ -91,6 +91,17 @@ def _filter_tactical_events_by_fog(events: list, world) -> list:
     return filtered
 
 
+def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
+    """Resolve a debug command name case-insensitively."""
+    raw_name = (raw_name or "").strip()
+    if not raw_name:
+        return None
+    for name in valid_names:
+        if raw_name.casefold() == str(name).casefold():
+            return str(name)
+    return None
+
+
 class MetaExecutor:
     """Handles meta-game actions: end_turn, status, help, debug, cheat, objection responses."""
 
@@ -1899,8 +1910,8 @@ RETREAT RECOVERY (3 turns):
 
         Gated behind mock/debug mode.
 
-        Supported: set_threat, set_relation, give_dp, trigger_coalition,
-        set_war_exhaustion, set_diplo_state, create_vassal,
+        Supported: set_threat, set_relation, give_dp, give_region,
+        trigger_coalition, set_war_exhaustion, set_diplo_state, create_vassal,
         set_vassal_loyalty, queue_ai_proposal, seed_hard_reject,
         trigger_commitment_paradox, clear_dialogue
         """
@@ -1950,6 +1961,41 @@ RETREAT RECOVERY (3 turns):
             old = getattr(world, 'diplomatic_points', 0)
             world.diplomatic_points = old + amount
             return {"success": True, "message": f"DP: {old} → {world.diplomatic_points}"}
+
+        if cheat_type == "give_region":
+            if len(cheat_args) < 2:
+                return {
+                    "success": False,
+                    "message": "Usage: cheat give_region <region> <nation>",
+                }
+            region_name = _resolve_cheat_name(cheat_args[0], world.regions.keys())
+            if not region_name:
+                return {
+                    "success": False,
+                    "message": f"Unknown region: {cheat_args[0]}",
+                }
+
+            known_nations = [
+                world.player_nation,
+                *list(getattr(world, "enemy_nations", [])),
+                *list(getattr(world, "vassals", {}).keys()),
+                *[r.controller for r in world.regions.values() if r.controller],
+            ]
+            nation = _resolve_cheat_name(cheat_args[1], known_nations)
+            if not nation:
+                return {
+                    "success": False,
+                    "message": f"Unknown nation: {cheat_args[1]}",
+                }
+
+            region = world.regions[region_name]
+            old_controller = region.controller or "None"
+            region.controller = nation
+            world.invalidate_active_nations_cache()
+            return {
+                "success": True,
+                "message": f"Region {region_name}: {old_controller} -> {nation}",
+            }
 
         if cheat_type == "trigger_coalition":
             from backend.game_logic.coalition import get_qualifying_nations, form_coalition

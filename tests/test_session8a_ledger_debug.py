@@ -562,6 +562,24 @@ class TestCheatCommands:
         self._run_cheat(world, "give_dp", ["100"])
         assert world.diplomatic_points > world.max_diplomatic_points
 
+    def test_give_region_assigns_controller_for_smoke_testing(self):
+        world = _make_world()
+        world.threat_level = 10
+        world.get_active_nations()  # populate cache so invalidation is observable
+
+        result = self._run_cheat(world, "give_region", ["berlin", "france"])
+
+        assert result["success"] is True
+        assert world.regions["Berlin"].controller == "France"
+        assert world.threat_level == 10
+        assert world._active_nations_cache is None
+
+    def test_give_region_rejects_unknown_region(self):
+        world = _make_world()
+        result = self._run_cheat(world, "give_region", ["Atlantis", "France"])
+        assert result["success"] is False
+        assert "Unknown region" in result["message"]
+
     def test_trigger_coalition(self):
         world = _make_world()
         # Ensure qualifying nations exist: need relation < -10 and not at war

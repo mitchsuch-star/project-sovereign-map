@@ -833,6 +833,7 @@ class TestSection15CheatBugFixes:
             ("set_threat", ["50"]),
             ("set_relation", ["Prussia", "20"]),
             ("give_dp", ["5"]),
+            ("give_region", ["Berlin", "France"]),
             ("set_war_exhaustion", ["Prussia", "50"]),
             ("set_diplo_state", ["Prussia", "WAR"]),
             ("set_vassal_loyalty", ["Saxony", "50"]),  # Will fail — Saxony not vassal
