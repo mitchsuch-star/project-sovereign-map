@@ -173,7 +173,8 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		var accumulated = int(objective.get("accumulated_ticking", 0))
 		var active = bool(objective.get("ticking_active", false))
 		var active_text = "active" if active else "inactive"
-		bbcode += "Objective: %s - %s (%s, +%d ticking)\n" % [objective_type, region_text, active_text, accumulated]
+		bbcode += "Objective: %s - %s (%s)\n" % [objective_type, region_text, active_text]
+		bbcode += "Ticking: +%d\n" % accumulated
 
 	var duration = int(snapshot.get("war_duration_turns", 0))
 	var won = int(snapshot.get("battles_won", 0))

@@ -175,6 +175,7 @@ class TestPeacePreviewExtension:
         assert snapshot["war_objective"] is not None
         assert snapshot["war_objective"]["type"] == "conquest"
         assert snapshot["war_objective"]["accumulated_ticking"] == 10
+        assert snapshot["war_score_components"]["ticking"] == 10
 
     def test_snapshot_includes_tier_mismatch_warnings(self):
         world = _war_world()
@@ -447,6 +448,7 @@ class TestPeacePreviewGodotSurface:
         assert 'snapshot.get("war_objective"' in source
         assert 'snapshot.get("tier_mismatch_warnings"' in source
         assert '"ticking"' in source
+        assert "Ticking: +" in source
 
     def test_incoming_proposal_popup_renders_wpsd_fields(self):
         from pathlib import Path
@@ -459,3 +461,4 @@ class TestPeacePreviewGodotSurface:
         assert 'snapshot.get("war_objective"' in source
         assert 'snapshot.get("tier_mismatch_warnings"' in source
         assert '"ticking"' in source
+        assert "Ticking: +" in source

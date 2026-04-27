@@ -3645,6 +3645,7 @@ def build_war_context_snapshot(
             "battle": int(components["battles"]),
             "decisive_battle": int(components["decisive"]),
             "capital": int(components["capital"]),
+            "ticking": int(components["ticking"]),
         },
         "war_score_trend": war_score_trend,
         "war_duration_turns": int(war_duration),
