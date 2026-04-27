@@ -3563,7 +3563,7 @@ class WorldState:
             },
             "alliance_origins": {str(k): str(v) for k, v in self.alliance_origins.items()},
             "diplomatic_commitments": {
-                str(k): v.copy() for k, v in self.diplomatic_commitments.items()
+                str(k): copy.deepcopy(v) for k, v in self.diplomatic_commitments.items()
             },
             "next_commitment_id": int(self.next_commitment_id),
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
@@ -3960,7 +3960,8 @@ class WorldState:
             str(k): str(v) for k, v in data.get("alliance_origins", {}).items()
         }
         world.diplomatic_commitments = {
-            str(k): v.copy() for k, v in data.get("diplomatic_commitments", {}).items()
+            str(k): copy.deepcopy(v)
+            for k, v in data.get("diplomatic_commitments", {}).items()
         }
         world.next_commitment_id = int(data.get("next_commitment_id", 1) or 1)
         world.reparations_cooldown = {
@@ -5350,17 +5351,20 @@ class WorldState:
                 "type": s["type"],
                 "from": sweetener_from,
                 "to": sweetener_to,
-                "amount": int(s.get("value", 0)),
+                "amount": int(s.get("value", 0) or 0),
             }
             if s.get("type") == "territory_cede" and "regions" in s:
                 clause_entry["regions"] = s["regions"]
+            for extra_key in ("named_enemy", "claim_region", "claim_holder"):
+                if extra_key in s:
+                    clause_entry[extra_key] = s[extra_key]
             treaty_clauses.append(clause_entry)
         for d in proposal.get("demands", []):
             clause_entry = {
                 "type": d["type"],
                 "from": sweetener_to,
                 "to": sweetener_from,
-                "amount": int(d.get("value", 0)),
+                "amount": int(d.get("value", 0) or 0),
             }
             if d.get("type") == "territory_cede" and "regions" in d:
                 clause_entry["regions"] = d["regions"]
@@ -5372,10 +5376,60 @@ class WorldState:
             for extra_key in (
                 "vassal_nation", "lord_nation", "liberator",
                 "includes_continental_system",
+                "named_enemy", "claim_region", "claim_holder",
             ):
                 if extra_key in d:
                     clause_entry[extra_key] = d[extra_key]
             treaty_clauses.append(clause_entry)
+
+        war_bargain_clauses = [
+            clause for clause in treaty_clauses
+            if clause.get("type") == "war_bargain"
+        ]
+        if len(war_bargain_clauses) > 1:
+            if is_player_treaty:
+                return {
+                    "type": "diplomatic_treaty_failed",
+                    "target": player_counterpart or target_nation,
+                    "message": "A treaty may contain only one war bargain.",
+                }
+            return None
+        if war_bargain_clauses:
+            ceded_regions = {
+                region_name
+                for clause in treaty_clauses
+                if clause.get("type") == "territory_cede"
+                for region_name in clause.get("regions", [])
+            }
+            from backend.game_logic.diplomacy import validate_war_bargain
+            for wb_clause in war_bargain_clauses:
+                wb_named = wb_clause.get("named_enemy", "")
+                wb_region = wb_clause.get("claim_region", "")
+                if not wb_named or not wb_region:
+                    reason = "War bargain requires named_enemy and claim_region"
+                    ok = False
+                elif wb_region in ceded_regions:
+                    reason = (
+                        f"Cannot bargain over {wb_region}; the same treaty cedes it."
+                    )
+                    ok = False
+                else:
+                    ok, reason = validate_war_bargain(
+                        self,
+                        proposer,
+                        target_nation,
+                        wb_named,
+                        wb_region,
+                        source_state=target_state,
+                    )
+                if not ok:
+                    if is_player_treaty:
+                        return {
+                            "type": "diplomatic_treaty_failed",
+                            "target": player_counterpart or target_nation,
+                            "message": f"Invalid war bargain: {reason}.",
+                        }
+                    return None
 
         # BPH-D: capture war data before set_diplomatic_state() or cleanup_war_end()
         # clear war_start_turns, battle records, and war scores.
@@ -5574,23 +5628,22 @@ class WorldState:
                     })
 
         # WB-A: War bargain clause → create commitment record
-        for clause in treaty_clauses:
-            if clause.get("type") == "war_bargain":
-                from backend.game_logic.diplomacy import create_war_bargain_commitment
-                wb_named = clause.get("named_enemy", "")
-                wb_region = clause.get("claim_region", "")
-                wb_holder = clause.get("claim_holder", "")
-                if wb_named and wb_region:
-                    create_war_bargain_commitment(
-                        self,
-                        promiser=proposer,
-                        beneficiary=target_nation,
-                        target_enemy=wb_named,
-                        claim_region=wb_region,
-                        origin_mode="treaty_clause",
-                        source_treaty_key=diplo_key,
-                    )
-                    applied_treaty_clauses.append(clause.copy())
+        for clause in war_bargain_clauses:
+            from backend.game_logic.diplomacy import create_war_bargain_commitment
+            wb_named = clause.get("named_enemy", "")
+            wb_region = clause.get("claim_region", "")
+            if wb_named and wb_region:
+                create_war_bargain_commitment(
+                    self,
+                    promiser=proposer,
+                    beneficiary=target_nation,
+                    target_enemy=wb_named,
+                    claim_region=wb_region,
+                    origin_mode="treaty_clause",
+                    source_treaty_key=diplo_key,
+                    validate=False,
+                )
+                applied_treaty_clauses.append(clause.copy())
 
         # R81: Check for elimination after territory cessions
         ceded_from = set()

@@ -1395,18 +1395,11 @@ def _classify_witness_scope(world, witness: str, breaker: str, injured_party: st
             return WITNESS_SCOPE_SHARED_ENEMY
 
     for b in _get_live_bargains(world):
-        cr = b.get("claim_term", {}).get("claim_region", "")
-        if cr:
-            breach_region = None
-            for r_name, r_obj in world.regions.items():
-                if getattr(r_obj, "controller", "") in (breaker, injured_party):
-                    if r_name == cr:
-                        breach_region = cr
-                        break
-            if breach_region and (
-                b.get("beneficiary") == witness or b.get("promiser") == witness
-            ):
-                return WITNESS_SCOPE_REGION_OBSERVER
+        if (
+            _live_bargain_matches_breach_context(world, b, breaker, injured_party)
+            and (b.get("beneficiary") == witness or b.get("promiser") == witness)
+        ):
+            return WITNESS_SCOPE_REGION_OBSERVER
 
     return ""
 
@@ -1499,18 +1492,11 @@ def _classify_dg4_refused_defensive_witness_scope(
             return WITNESS_SCOPE_SHARED_ENEMY
 
     for b in _get_live_bargains(world):
-        cr = b.get("claim_term", {}).get("claim_region", "")
-        if cr:
-            breach_region = None
-            for r_name, r_obj in world.regions.items():
-                if getattr(r_obj, "controller", "") in (breaker, victim):
-                    if r_name == cr:
-                        breach_region = cr
-                        break
-            if breach_region and (
-                b.get("beneficiary") == witness or b.get("promiser") == witness
-            ):
-                return WITNESS_SCOPE_REGION_OBSERVER
+        if (
+            _live_bargain_matches_breach_context(world, b, breaker, victim)
+            and (b.get("beneficiary") == witness or b.get("promiser") == witness)
+        ):
+            return WITNESS_SCOPE_REGION_OBSERVER
 
     return ""
 
@@ -4341,6 +4327,102 @@ def _get_live_bargains(world) -> list:
     ]
 
 
+def _get_bargain_subject_lords(world) -> dict:
+    """Return vassal -> lord mapping for bargain holder checks."""
+    return {
+        v.get("vassal_nation", ""): v.get("lord_nation", "")
+        for v in getattr(world, "vassals", {}).values()
+    } if hasattr(world, "vassals") else {}
+
+
+def _region_is_held_by_enemy_or_subject(world, region_name: str, enemy: str) -> bool:
+    region_obj = world.regions.get(region_name)
+    holder = getattr(region_obj, "controller", "") if region_obj else ""
+    return holder == enemy or _get_bargain_subject_lords(world).get(holder) == enemy
+
+
+def _has_bargain_strategic_interest(world, promiser: str, claim_region: str) -> bool:
+    """True when the claim has a minimal authored/positional basis."""
+    if claim_region in getattr(world, "nation_starting_regions", {}).get(promiser, []):
+        return True
+
+    region_obj = world.regions.get(claim_region)
+    if not region_obj:
+        return False
+
+    for adjacent_name in getattr(region_obj, "adjacent_regions", []):
+        adjacent = world.regions.get(adjacent_name)
+        if adjacent and getattr(adjacent, "controller", "") == promiser:
+            return True
+
+    try:
+        from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
+    except Exception:
+        NATION_DESIRE_PROFILES = {}
+    for profile in NATION_DESIRE_PROFILES.values():
+        if claim_region in profile.get("covets_regions", []):
+            return True
+
+    return False
+
+
+def _bargain_controller_can_be_route_step(world, controller: str, promiser: str, beneficiary: str) -> bool:
+    if not controller or controller in (promiser, beneficiary):
+        return True
+    return (
+        world.get_diplomatic_state(controller, promiser) in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+        or world.get_diplomatic_state(controller, beneficiary) in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+    )
+
+
+def _has_bargain_participation_access(
+    world, promiser: str, beneficiary: str, target_enemy: str,
+) -> bool:
+    """Minimal WB-A access heuristic: direct border or 2-hop friendly/neutral route."""
+    enemy_regions = {
+        r_name for r_name in world.regions
+        if _region_is_held_by_enemy_or_subject(world, r_name, target_enemy)
+    }
+    if not enemy_regions:
+        return False
+
+    starts = set(world.get_nation_regions(beneficiary))
+    if not starts:
+        return False
+
+    frontier = [(r_name, 0) for r_name in starts if r_name in world.regions]
+    visited = set(starts)
+    while frontier:
+        r_name, depth = frontier.pop(0)
+        region_obj = world.regions.get(r_name)
+        if not region_obj:
+            continue
+        for adjacent_name in getattr(region_obj, "adjacent_regions", []):
+            if adjacent_name in enemy_regions:
+                return True
+            if depth >= 2 or adjacent_name in visited:
+                continue
+            adjacent = world.regions.get(adjacent_name)
+            if not adjacent:
+                continue
+            controller = getattr(adjacent, "controller", "") or ""
+            if _bargain_controller_can_be_route_step(
+                world, controller, promiser, beneficiary,
+            ):
+                visited.add(adjacent_name)
+                frontier.append((adjacent_name, depth + 1))
+
+    return False
+
+
+def _live_bargain_matches_breach_context(world, bargain: Dict, breaker: str, injured_party: str) -> bool:
+    cr = bargain.get("claim_term", {}).get("claim_region", "")
+    if not cr:
+        return False
+    region_obj = world.regions.get(cr)
+    return bool(region_obj and getattr(region_obj, "controller", "") in (breaker, injured_party))
+
+
 def get_bargain_opposition_pairs(world, promiser: str, beneficiary: str = "") -> set:
     """Derive valid (target_enemy) set for war bargain proposals.
 
@@ -4353,12 +4435,19 @@ def get_bargain_opposition_pairs(world, promiser: str, beneficiary: str = "") ->
             continue
         if world.is_at_war(promiser, nation):
             opposition.add(nation)
+        if beneficiary and world.is_at_war(beneficiary, nation):
+            opposition.add(nation)
 
     coalition = getattr(world, "active_coalition", None)
-    if coalition and coalition.get("target_nation") == promiser:
+    if coalition and coalition.get("target_nation") in (promiser, beneficiary):
         for member in coalition.get("members", []):
             if member != promiser and member != beneficiary:
                 opposition.add(member)
+    if coalition and (promiser in coalition.get("members", [])
+                      or beneficiary in coalition.get("members", [])):
+        target_nation = coalition.get("target_nation", "")
+        if target_nation and target_nation not in (promiser, beneficiary):
+            opposition.add(target_nation)
 
     for b in _get_live_bargains(world):
         if b.get("target_enemy") == promiser:
@@ -4379,10 +4468,11 @@ def get_bargain_opposition_pairs(world, promiser: str, beneficiary: str = "") ->
 def validate_war_bargain(
     world, promiser: str, beneficiary: str,
     target_enemy: str, claim_region: str,
+    *,
+    source_state: str = "",
 ) -> tuple:
     """Validate a war bargain. Returns (ok: bool, reason: str)."""
-    diplo_key = world._make_diplo_key(promiser, beneficiary)
-    state = world.get_diplomatic_state(promiser, beneficiary)
+    state = source_state or world.get_diplomatic_state(promiser, beneficiary)
     if state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
         return (False, "Source treaty must be DEFENSIVE_ALLIANCE or ALLIANCE")
 
@@ -4399,16 +4489,19 @@ def validate_war_bargain(
     if holder and holder != target_enemy and ally_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
         return (False, f"Cannot bargain over ally-held region ({holder})")
 
-    vassal_lords = {
-        v.get("vassal_nation", ""): v.get("lord_nation", "")
-        for v in getattr(world, "vassals", {}).values()
-    } if hasattr(world, "vassals") else {}
+    vassal_lords = _get_bargain_subject_lords(world)
     is_enemy_or_subject = (
         holder == target_enemy
         or vassal_lords.get(holder) == target_enemy
     )
     if not is_enemy_or_subject:
         return (False, f"{claim_region} is not held by {target_enemy} or its subject")
+
+    if not _has_bargain_strategic_interest(world, promiser, claim_region):
+        return (False, f"{claim_region} has no plausible strategic interest for {promiser}")
+
+    if not _has_bargain_participation_access(world, promiser, beneficiary, target_enemy):
+        return (False, f"{beneficiary} has no plausible participation access against {target_enemy}")
 
     live = _get_live_bargains(world)
 
@@ -4440,8 +4533,19 @@ def create_war_bargain_commitment(
     world, promiser: str, beneficiary: str,
     target_enemy: str, claim_region: str,
     origin_mode: str, source_treaty_key: str,
+    *,
+    validate: bool = True,
+    source_state: str = "",
 ) -> Dict:
     """Create and store a war bargain commitment record."""
+    if validate:
+        ok, reason = validate_war_bargain(
+            world, promiser, beneficiary, target_enemy, claim_region,
+            source_state=source_state,
+        )
+        if not ok:
+            raise ValueError(reason)
+
     region_obj = world.regions.get(claim_region)
     claim_holder = getattr(region_obj, "controller", target_enemy) if region_obj else target_enemy
 

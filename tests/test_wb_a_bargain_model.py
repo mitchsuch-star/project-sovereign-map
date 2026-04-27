@@ -54,6 +54,8 @@ def test_factory_creates_valid_record():
 def test_factory_auto_increments_id():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "France", "Austria", "WAR", "setup")
     r1 = create_war_bargain_commitment(
         world, "France", "Prussia", "Britain", "Hanover",
         "treaty_clause", "France|Prussia",
@@ -69,6 +71,8 @@ def test_factory_auto_increments_id():
 
 def test_source_pair_is_promiser_first():
     world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
     rec = create_war_bargain_commitment(
         world, "France", "Prussia", "Britain", "Hanover",
         "treaty_clause", "France|Prussia",
@@ -115,7 +119,7 @@ def test_opposition_includes_conflict_pairs():
     assert "Russia" in pairs
 
 
-# ── Validation (10 tests) ──
+# ── Validation ──
 
 def test_validation_happy_path():
     world = _wb_world()
@@ -177,6 +181,7 @@ def test_validation_rejects_duplicate_claim_region():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
     set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "Austria", "Saxony", "ALLIANCE", "setup")
     set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
     create_war_bargain_commitment(
         world, "France", "Prussia", "Britain", "Hanover",
@@ -195,7 +200,7 @@ def test_validation_rejects_contradictory():
     # Make Prussia a valid opposition target via WAR
     set_diplomatic_state(world, "France", "Prussia", "WAR", "setup")
     create_war_bargain_commitment(
-        world, "France", "Austria", "Prussia", "Berlin",
+        world, "France", "Austria", "Prussia", "Rhineland",
         "treaty_clause", "France|Austria",
     )
     # Restore alliance for the second bargain attempt
@@ -238,7 +243,45 @@ def test_validation_rejects_cooldown():
     assert "Cooldown" in reason
 
 
-# ── Acceptance formula (3 tests) ──
+def test_validation_accepts_beneficiary_war_enemy():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "Austria", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "Austria", "Saxony", "ALLIANCE", "setup")
+
+    ok, reason = validate_war_bargain(world, "France", "Austria", "Britain", "Hanover")
+
+    assert ok is True
+    assert reason == ""
+
+
+def test_validation_rejects_no_strategic_interest():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Prussia", "WAR", "setup")
+
+    ok, reason = validate_war_bargain(world, "France", "Austria", "Prussia", "Berlin")
+
+    assert ok is False
+    assert "strategic interest" in reason
+
+
+def test_validation_rejects_no_participation_access():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    for region in world.regions.values():
+        if region.controller == "Prussia":
+            region.controller = "Saxony"
+    world.invalidate_active_nations_cache()
+
+    ok, reason = validate_war_bargain(world, "France", "Prussia", "Britain", "Hanover")
+
+    assert ok is False
+    assert "participation access" in reason
+
+
+# ── Acceptance formula ──
 
 def test_bargain_value_mod_defensive_alliance():
     world = _wb_world()
@@ -273,9 +316,9 @@ def test_bargain_value_mod_alliance():
 def test_bargain_conflict_penalty():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
-    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "France", "Prussia", "WAR", "setup")
     create_war_bargain_commitment(
-        world, "France", "Austria", "Prussia", "Silesia",
+        world, "France", "Austria", "Prussia", "Rhineland",
         "treaty_clause", "France|Austria",
     )
     set_diplomatic_state(world, "France", "Prussia", "PEACE", "setup")
@@ -291,11 +334,142 @@ def test_bargain_conflict_penalty():
     assert result["components"]["bargain_conflict_penalty"] == -8
 
 
-# ── Serialization (2 tests) ��─
+def test_bargain_conflict_penalty_from_claim_region_holder():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "Austria", "Saxony", "ALLIANCE", "setup")
+    create_war_bargain_commitment(
+        world, "France", "Austria", "Britain", "Hanover",
+        "treaty_clause", "France|Austria",
+    )
+    world.regions["Hanover"].controller = "Prussia"
+    proposal = {
+        "type": "peace",
+        "proposer_nation": "France",
+        "target_nation": "Prussia",
+        "sweeteners": [],
+        "demands": [],
+    }
+
+    result = calculate_acceptance(proposal, world)
+
+    assert result["components"]["bargain_conflict_penalty"] == -8
+
+
+# ── Treaty ratification wiring ──
+
+def test_ratify_treaty_creates_valid_war_bargain():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "PEACE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+    proposal = {
+        "type": "alliance",
+        "proposer_nation": "France",
+        "target_nation": "Prussia",
+        "sweeteners": [{
+            "type": "war_bargain",
+            "named_enemy": "Britain",
+            "claim_region": "Hanover",
+        }],
+        "demands": [],
+        "clauses": [],
+    }
+
+    event = world._ratify_treaty(proposal)
+
+    assert event["type"] == "diplomatic_treaty_signed"
+    assert world.get_diplomatic_state("France", "Prussia") == "ALLIANCE"
+    assert len(world.diplomatic_commitments) == 1
+    rec = world.diplomatic_commitments["1"]
+    assert rec["target_enemy"] == "Britain"
+    assert rec["claim_term"]["claim_region"] == "Hanover"
+    assert world.active_treaties[world._make_diplo_key("France", "Prussia")]["clauses"][0]["named_enemy"] == "Britain"
+
+
+def test_ratify_treaty_rejects_invalid_war_bargain_without_state_change():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "PEACE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+    proposal = {
+        "type": "non_aggression",
+        "proposer_nation": "France",
+        "target_nation": "Prussia",
+        "sweeteners": [{
+            "type": "war_bargain",
+            "named_enemy": "Britain",
+            "claim_region": "Hanover",
+        }],
+        "demands": [],
+        "clauses": [],
+    }
+
+    event = world._ratify_treaty(proposal)
+
+    assert event["type"] == "diplomatic_treaty_failed"
+    assert "Invalid war bargain" in event["message"]
+    assert world.get_diplomatic_state("France", "Prussia") == "PEACE"
+    assert world.diplomatic_commitments == {}
+
+
+def test_ratify_treaty_rejects_multiple_war_bargains():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "PEACE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "France", "Austria", "WAR", "setup")
+    world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+    proposal = {
+        "type": "alliance",
+        "proposer_nation": "France",
+        "target_nation": "Prussia",
+        "sweeteners": [
+            {"type": "war_bargain", "named_enemy": "Britain", "claim_region": "Hanover"},
+            {"type": "war_bargain", "named_enemy": "Austria", "claim_region": "Bohemia"},
+        ],
+        "demands": [],
+        "clauses": [],
+    }
+
+    event = world._ratify_treaty(proposal)
+
+    assert event["type"] == "diplomatic_treaty_failed"
+    assert "only one war bargain" in event["message"]
+    assert world.diplomatic_commitments == {}
+
+
+def test_ratify_treaty_rejects_claim_region_ceded_in_same_treaty():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "PEACE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+    proposal = {
+        "type": "alliance",
+        "proposer_nation": "France",
+        "target_nation": "Prussia",
+        "sweeteners": [{
+            "type": "war_bargain",
+            "named_enemy": "Britain",
+            "claim_region": "Hanover",
+        }],
+        "demands": [{"type": "territory_cede", "value": 1, "regions": ["Hanover"]}],
+        "clauses": [],
+    }
+
+    event = world._ratify_treaty(proposal)
+
+    assert event["type"] == "diplomatic_treaty_failed"
+    assert "same treaty cedes it" in event["message"]
+    assert world.diplomatic_commitments == {}
+
+
+# ── Serialization ──
 
 def test_roundtrip_with_commitments():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
     create_war_bargain_commitment(
         world, "France", "Prussia", "Britain", "Hanover",
         "treaty_clause", "France|Prussia",
@@ -311,6 +485,24 @@ def test_roundtrip_with_commitments():
     rec = world2.diplomatic_commitments["1"]
     assert rec["promiser"] == "France"
     assert rec["claim_term"]["claim_region"] == "Hanover"
+
+
+def test_commitment_roundtrip_does_not_share_nested_dicts():
+    world = _wb_world()
+    set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")
+    set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    create_war_bargain_commitment(
+        world, "France", "Prussia", "Britain", "Hanover",
+        "treaty_clause", "France|Prussia",
+    )
+
+    data = world.to_dict()
+    data["diplomatic_commitments"]["1"]["claim_term"]["claim_region"] = "Waterloo"
+    assert world.diplomatic_commitments["1"]["claim_term"]["claim_region"] == "Hanover"
+
+    world2 = WorldState.from_dict(data)
+    data["diplomatic_commitments"]["1"]["claim_term"]["claim_region"] = "Netherlands"
+    assert world2.diplomatic_commitments["1"]["claim_term"]["claim_region"] == "Waterloo"
 
 
 def test_roundtrip_empty_defaults():
@@ -346,6 +538,7 @@ def test_region_observer_fires_when_bargain_matches():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Austria", "ALLIANCE", "setup")
     set_diplomatic_state(world, "France", "Britain", "WAR", "setup")
+    set_diplomatic_state(world, "Austria", "Saxony", "ALLIANCE", "setup")
     create_war_bargain_commitment(
         world, "France", "Austria", "Britain", "Hanover",
         "treaty_clause", "France|Austria",
