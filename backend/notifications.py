@@ -71,6 +71,11 @@ DIPLOMATIC_PROPOSAL_RESULT = "diplomatic_proposal_result"     # NORMAL: player p
 # Priority, icon, review routing, and committed copy are supplied by the
 # shared commitments routing table.
 AMENDS_OFFERED = "amends_offered"
+# WB-D: War Bargain presentation extension.
+# Priority, icon, review routing supplied by commitments routing table.
+BARGAIN_FULFILLED = "bargain_fulfilled"          # HIGH: bargain honoured
+BARGAIN_BREACHED = "bargain_breached"            # CRITICAL: bargain broken
+BARGAIN_VOIDED = "bargain_voided"                # NORMAL: bargain lapsed
 
 
 def create_notification(

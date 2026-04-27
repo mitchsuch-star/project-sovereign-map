@@ -904,10 +904,10 @@ def _build_talleyrand(world) -> Dict[str, Any]:
 
 
 # ============================================================================
-# WAR BARGAINS TAB (WB-C)
+# WAR BARGAINS TAB (WB-C + WB-D)
 # ============================================================================
 
 def _build_war_bargains(world) -> List[Dict[str, Any]]:
-    """Build war bargains section for the ledger."""
-    from backend.game_logic.diplomacy import get_live_bargains_for_ledger
-    return get_live_bargains_for_ledger(world)
+    """Build war bargains section for the ledger, including completed bargains."""
+    from backend.game_logic.diplomacy import get_all_bargains_for_ledger
+    return get_all_bargains_for_ledger(world)

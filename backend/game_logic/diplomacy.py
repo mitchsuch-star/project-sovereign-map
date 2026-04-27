@@ -5047,24 +5047,41 @@ def _process_zombie_clock(world, bargain: Dict) -> None:
         })
 
 
-def _get_bargain_witnesses(world, bargain: Dict) -> List[str]:
-    """Get witness nations for a bargain event."""
+def _get_bargain_witnesses(world, bargain: Dict) -> List[Dict[str, str]]:
+    """Get scope-classified witness nations for a bargain event.
+
+    Returns list of {"nation": str, "scope_reason": str} dicts, reusing the
+    existing witness scope classification from the commitments substrate.
+    """
     promiser = bargain.get("promiser", "")
     beneficiary = bargain.get("beneficiary", "")
-    witnesses = []
+    witnesses: List[Dict[str, str]] = []
     for nation in world.get_active_nations():
         if nation in (promiser, beneficiary):
             continue
-        witnesses.append(nation)
+        scope_reason = _classify_witness_scope(world, nation, promiser, beneficiary)
+        if scope_reason:
+            witnesses.append({"nation": nation, "scope_reason": scope_reason})
     return witnesses
 
 
+def _get_bargain_dominant_witness_scope(witnesses: List[Dict[str, str]]) -> str:
+    """Return the dominant witness scope from a classified witness list."""
+    for role in WITNESS_SCOPE_PRECEDENCE:
+        if any(w.get("scope_reason") == role for w in witnesses):
+            return role
+    return ""
+
+
 def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
-    """Emit campaign log + dispatch event for a bargain state change."""
+    """Emit campaign log + dispatch + notification for a bargain state change."""
     promiser = bargain.get("promiser", "")
     beneficiary = bargain.get("beneficiary", "")
     target_enemy = bargain.get("target_enemy", "")
     claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+
+    witnesses = _get_bargain_witnesses(world, bargain)
+    dominant_scope = _get_bargain_dominant_witness_scope(witnesses)
 
     event = {
         "type": event_type,
@@ -5082,26 +5099,81 @@ def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
         "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
+        "dominant_witness_scope": dominant_scope,
+        "witnesses": witnesses,
     }
 
     world.log_event(event)
 
     from backend.game_logic.dispatch import queue_dispatch_event
     fog_rule = "always" if event_type != "bargain_voided" else "partial_on_nation"
-    queue_dispatch_event(world, event_type, {
+
+    from backend.game_logic.diplomatic_templates import resolve_named_diplomat
+    injured_diplomat = resolve_named_diplomat("envoy", beneficiary, world)
+
+    dispatch_vars = {
         "promiser": promiser,
         "beneficiary": beneficiary,
         "target_enemy": target_enemy,
         "claim_region": claim_region,
         "end_reason": bargain.get("end_reason", ""),
+        "end_reason_family": bargain.get("end_reason_family", ""),
         "fault_nation": bargain.get("fault_nation", ""),
         "decision_reason": bargain.get("decision_reason", ""),
         "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
-    }, fog_rule)
+        "dominant_witness_scope": dominant_scope,
+        "injured_diplomat": injured_diplomat,
+        "review_nation": beneficiary,
+    }
+    queue_dispatch_event(world, event_type, dispatch_vars, fog_rule)
+
+    _emit_bargain_notification(world, event_type, dispatch_vars)
 
     return event
+
+
+def _emit_bargain_notification(world, event_type: str, template_vars: Dict) -> None:
+    """Emit persistent notification for terminal bargain states."""
+    from backend.notifications import (
+        create_notification, NotificationPriority,
+        BARGAIN_FULFILLED, BARGAIN_BREACHED, BARGAIN_VOIDED,
+    )
+    from backend.game_logic.commitments_routing import (
+        commitments_label, format_commitments_notice, commitments_notice_details,
+        commitments_priority,
+    )
+
+    notification_map = {
+        "bargain_fulfilled": (BARGAIN_FULFILLED, NotificationPriority.HIGH),
+        "bargain_breached": (BARGAIN_BREACHED, NotificationPriority.CRITICAL),
+        "bargain_voided": (BARGAIN_VOIDED, NotificationPriority.NORMAL),
+    }
+
+    entry = notification_map.get(event_type)
+    if not entry:
+        return
+
+    notif_type, priority = entry
+    routed_priority = commitments_priority(event_type, template_vars)
+    if routed_priority == "NORMAL":
+        priority = NotificationPriority.NORMAL
+    elif routed_priority == "CRITICAL":
+        priority = NotificationPriority.CRITICAL
+
+    title = commitments_label(event_type, template_vars)
+    message = format_commitments_notice(event_type, template_vars)
+    details = commitments_notice_details(event_type, template_vars)
+
+    world.notifications.add(create_notification(
+        notif_type,
+        priority,
+        title,
+        message,
+        int(getattr(world, "current_turn", 1)),
+        details=details,
+    ))
 
 
 def _emit_bargain_dormant_notice(world, bargain: Dict, turns_active: int) -> None:
@@ -5828,6 +5900,43 @@ def get_live_bargains_for_ledger(world) -> List[Dict]:
             "status": b.get("status", ""),
             "source_treaty": b.get("source_treaty", ""),
             "created_turn": b.get("created_turn", 0),
+            "cooldown_remaining": cooldown_remaining,
+        })
+    return result
+
+
+_BARGAIN_BADGE_MAP = {
+    "fulfilled": "honoured",
+    "breached": "broken",
+    "void": "lapsed",
+}
+
+
+def get_all_bargains_for_ledger(world) -> List[Dict]:
+    """Return all bargains (live + completed) for the diplomatic ledger.
+
+    WB-D: completed bargains include a badge field for emphasis.
+    """
+    result = get_live_bargains_for_ledger(world)
+    commitments = getattr(world, "diplomatic_commitments", {})
+    for b in commitments.values():
+        status = b.get("status", "")
+        if status in ("active", "triggered"):
+            continue
+        badge = _BARGAIN_BADGE_MAP.get(status, "")
+        cooldown_remaining = max(0, int(b.get("cooldown_until_turn", 0)) - int(world.current_turn))
+        result.append({
+            "bargain_id": b.get("id"),
+            "promiser": b.get("promiser", ""),
+            "beneficiary": b.get("beneficiary", ""),
+            "named_enemy": b.get("target_enemy", ""),
+            "claim_region": b.get("claim_term", {}).get("claim_region", ""),
+            "status": status,
+            "source_treaty": b.get("source_treaty", ""),
+            "created_turn": b.get("created_turn", 0),
+            "ended_turn": int(b.get("ended_turn", 0) or 0),
+            "badge": badge,
+            "end_reason": b.get("end_reason", ""),
             "cooldown_remaining": cooldown_remaining,
         })
     return result
