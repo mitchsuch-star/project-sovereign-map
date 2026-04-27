@@ -3,9 +3,9 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Diplomatic Ledger Screen (Session 8B)
 # =============================================================================
-# 4-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND
-# Number keys 1-4 switch sub-tabs (guarded by visible check).
+# 5-section sub-tabbed screen. CanvasLayer 50.
+# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS
+# Number keys 1-5 switch sub-tabs (guarded by visible check).
 # Pattern follows strategic_ledger.gd.
 # =============================================================================
 
@@ -21,13 +21,14 @@ signal closed
 @onready var treaties_tab = $PanelContainer/VBoxContainer/SubTabRow/TreatiesTab
 @onready var threat_tab = $PanelContainer/VBoxContainer/SubTabRow/ThreatTab
 @onready var talleyrand_tab = $PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab
+@onready var bargains_tab = $PanelContainer/VBoxContainer/SubTabRow/BargainsTab
 
 # File-specific colors (not in Utils)
 const COLOR_AMBER = "d9a520"
 const COLOR_RED = "cd5c5c"
 
 # State
-var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand
+var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
@@ -47,7 +48,7 @@ func _ready():
 	background_overlay.gui_input.connect(_on_overlay_input)
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
 
-	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab]
+	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
@@ -92,6 +93,8 @@ func _input(event):
 				_switch_tab(2)
 			KEY_4:
 				_switch_tab(3)
+			KEY_5:
+				_switch_tab(4)
 			_:
 				switched = false
 		if switched:
@@ -108,6 +111,11 @@ func open(api_client):
 func open_to_commitments(api_client):
 	"""Fetch diplomatic ledger and open the commitments review surface."""
 	_open_with_tab(api_client, 1, "ledger_commitments")
+
+
+func open_to_war_bargains(api_client):
+	"""Fetch diplomatic ledger and open the war bargains tab."""
+	_open_with_tab(api_client, 4, "ledger_war_bargains")
 
 
 func _open_with_tab(api_client, tab_index: int, review_target: String):
@@ -189,6 +197,8 @@ func _render_current_tab():
 			_render_balance_of_europe()
 		3:
 			_render_talleyrand()
+		4:
+			_render_war_bargains()
 
 
 func _format_bloc_stamp(stamp) -> String:
@@ -846,6 +856,98 @@ func _render_talleyrand():
 				bbcode += "  " + str(entry) + "\n"
 
 	content_area.text = bbcode
+
+
+# =============================================================================
+# TAB 5: WAR BARGAINS
+# =============================================================================
+
+func _render_war_bargains():
+	var bargains = cached_data.get("war_bargains", [])
+	var bbcode = ""
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ WAR BARGAINS ═══[/color]\n\n"
+
+	if bargains.size() == 0:
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]No war bargains recorded.[/color]\n"
+		content_area.text = bbcode
+		return
+
+	var live = []
+	var completed = []
+	for b in bargains:
+		var status = str(b.get("status", ""))
+		if status == "active" or status == "triggered":
+			live.append(b)
+		else:
+			completed.append(b)
+
+	if live.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]ACTIVE BARGAINS[/color]\n"
+		for b in live:
+			bbcode += _format_bargain_entry(b)
+		bbcode += "\n"
+
+	if completed.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]COMPLETED BARGAINS[/color]\n"
+		for b in completed:
+			bbcode += _format_bargain_entry(b)
+
+	content_area.text = bbcode
+
+
+func _format_bargain_entry(b: Dictionary) -> String:
+	var promiser = str(b.get("promiser", "?"))
+	var beneficiary = str(b.get("beneficiary", "?"))
+	var named_enemy = str(b.get("named_enemy", "?"))
+	var claim_region = str(b.get("claim_region", "?"))
+	var status = str(b.get("status", "?"))
+	var created_turn = int(b.get("created_turn", 0))
+
+	var status_color = Utils.COLOR_INFO
+	match status:
+		"active":
+			status_color = Utils.COLOR_BLUE
+		"triggered":
+			status_color = COLOR_AMBER
+		"fulfilled":
+			status_color = Utils.COLOR_SUCCESS
+		"breached":
+			status_color = Utils.COLOR_ERROR
+		"void":
+			status_color = Utils.COLOR_GREY
+
+	var entry = ""
+	entry += "  [color=#" + Utils.COLOR_GOLD + "][b]" + promiser + " → " + beneficiary + "[/b][/color]"
+	entry += "  [color=#" + status_color + "][" + status.to_upper() + "][/color]\n"
+	entry += "    Enemy: " + named_enemy + "   Claim: " + claim_region + "\n"
+	entry += "    Sealed: Turn " + str(created_turn)
+
+	var badge = str(b.get("badge", ""))
+	if badge != "":
+		var badge_color = Utils.COLOR_GREY
+		match badge:
+			"honoured":
+				badge_color = Utils.COLOR_SUCCESS
+			"broken":
+				badge_color = Utils.COLOR_ERROR
+			"lapsed":
+				badge_color = Utils.COLOR_GREY
+		entry += "   [color=#" + badge_color + "]" + badge.to_upper() + "[/color]"
+
+	var ended_turn = b.get("ended_turn")
+	if ended_turn != null:
+		entry += "   Ended: Turn " + str(int(ended_turn))
+
+	var end_reason = str(b.get("end_reason", ""))
+	if end_reason != "":
+		entry += "   (" + end_reason.replace("_", " ") + ")"
+
+	var cooldown = int(b.get("cooldown_remaining", 0))
+	if cooldown > 0:
+		entry += "\n    [color=#" + COLOR_AMBER + "]Cooldown: " + str(cooldown) + " turns[/color]"
+
+	entry += "\n\n"
+	return entry
 
 
 # =============================================================================

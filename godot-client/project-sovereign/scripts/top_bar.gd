@@ -179,6 +179,8 @@ func open_diplomatic_ledger_review(review_target: String):
 	active_screen = screen_name
 	if review_target == "ledger_commitments" and node.has_method("open_to_commitments"):
 		node.open_to_commitments(api_client)
+	elif review_target == "ledger_war_bargains" and node.has_method("open_to_war_bargains"):
+		node.open_to_war_bargains(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:
