@@ -265,6 +265,14 @@ FEEDBACK_STRINGS = {
         "negative": "their grievance over abandoned alliances",
         "positive": "no grievance over abandoned alliances",
     },
+    "bargain_value_mod": {
+        "negative": "no war bargain offered",
+        "positive": "a war bargain sweetens the deal",
+    },
+    "bargain_conflict_penalty": {
+        "negative": "existing bargain conflicts with this nation",
+        "positive": "no bargain conflicts",
+    },
     # B-B4 §9.3 composite-floor debug metadata. These entries exist so the
     # component-key completeness test stays green; `_generate_feedback`
     # does NOT list them in `trackable`, so they never drive player-facing

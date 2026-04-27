@@ -1394,7 +1394,20 @@ def _classify_witness_scope(world, witness: str, breaker: str, injured_party: st
         if world.is_at_war(witness, other) and world.is_at_war(injured_party, other):
             return WITNESS_SCOPE_SHARED_ENEMY
 
-    # region_observer: bargain-region observation (requires bargain store; deferred)
+    for b in _get_live_bargains(world):
+        cr = b.get("claim_term", {}).get("claim_region", "")
+        if cr:
+            breach_region = None
+            for r_name, r_obj in world.regions.items():
+                if getattr(r_obj, "controller", "") in (breaker, injured_party):
+                    if r_name == cr:
+                        breach_region = cr
+                        break
+            if breach_region and (
+                b.get("beneficiary") == witness or b.get("promiser") == witness
+            ):
+                return WITNESS_SCOPE_REGION_OBSERVER
+
     return ""
 
 
@@ -1485,8 +1498,20 @@ def _classify_dg4_refused_defensive_witness_scope(
         if world.is_at_war(witness, other) and world.is_at_war(victim, other):
             return WITNESS_SCOPE_SHARED_ENEMY
 
-    # region_observer: bargain-region observation (deferred — bargain
-    # store does not yet exist in this substrate).
+    for b in _get_live_bargains(world):
+        cr = b.get("claim_term", {}).get("claim_region", "")
+        if cr:
+            breach_region = None
+            for r_name, r_obj in world.regions.items():
+                if getattr(r_obj, "controller", "") in (breaker, victim):
+                    if r_name == cr:
+                        breach_region = cr
+                        break
+            if breach_region and (
+                b.get("beneficiary") == witness or b.get("promiser") == witness
+            ):
+                return WITNESS_SCOPE_REGION_OBSERVER
+
     return ""
 
 
@@ -4304,6 +4329,162 @@ def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
 
 
 # ═══════════════════════════════════════════════════════
+# WAR BARGAINS — WB-A (data model + creation + validation)
+# ═══════════════════════════════════════════════════════
+
+
+def _get_live_bargains(world) -> list:
+    """Return all bargains with status 'active' or 'triggered'."""
+    return [
+        b for b in getattr(world, "diplomatic_commitments", {}).values()
+        if b.get("status") in ("active", "triggered")
+    ]
+
+
+def get_bargain_opposition_pairs(world, promiser: str, beneficiary: str = "") -> set:
+    """Derive valid (target_enemy) set for war bargain proposals.
+
+    Sources: WAR states, active coalition members, live bargain conflicts.
+    Does NOT read nation_rivalries or authored rivalry seed data.
+    """
+    opposition = set()
+    for nation in world.get_active_nations():
+        if nation == promiser or nation == beneficiary:
+            continue
+        if world.is_at_war(promiser, nation):
+            opposition.add(nation)
+
+    coalition = getattr(world, "active_coalition", None)
+    if coalition and coalition.get("target_nation") == promiser:
+        for member in coalition.get("members", []):
+            if member != promiser and member != beneficiary:
+                opposition.add(member)
+
+    for b in _get_live_bargains(world):
+        if b.get("target_enemy") == promiser:
+            ben = b.get("beneficiary", "")
+            if ben and ben != promiser and ben != beneficiary:
+                opposition.add(ben)
+        if b.get("promiser") == promiser and b.get("beneficiary", "") != beneficiary:
+            te = b.get("target_enemy", "")
+            if te:
+                opposition.add(te)
+
+    opposition.discard(promiser)
+    if beneficiary:
+        opposition.discard(beneficiary)
+    return opposition
+
+
+def validate_war_bargain(
+    world, promiser: str, beneficiary: str,
+    target_enemy: str, claim_region: str,
+) -> tuple:
+    """Validate a war bargain. Returns (ok: bool, reason: str)."""
+    diplo_key = world._make_diplo_key(promiser, beneficiary)
+    state = world.get_diplomatic_state(promiser, beneficiary)
+    if state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        return (False, "Source treaty must be DEFENSIVE_ALLIANCE or ALLIANCE")
+
+    opposition = get_bargain_opposition_pairs(world, promiser, beneficiary)
+    if target_enemy not in opposition:
+        return (False, f"{target_enemy} is not a valid opposition target")
+
+    region_obj = world.regions.get(claim_region)
+    if region_obj is None:
+        return (False, f"Region {claim_region} does not exist")
+    holder = getattr(region_obj, "controller", "")
+
+    ally_state = world.get_diplomatic_state(promiser, holder)
+    if holder and holder != target_enemy and ally_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        return (False, f"Cannot bargain over ally-held region ({holder})")
+
+    vassal_lords = {
+        v.get("vassal_nation", ""): v.get("lord_nation", "")
+        for v in getattr(world, "vassals", {}).values()
+    } if hasattr(world, "vassals") else {}
+    is_enemy_or_subject = (
+        holder == target_enemy
+        or vassal_lords.get(holder) == target_enemy
+    )
+    if not is_enemy_or_subject:
+        return (False, f"{claim_region} is not held by {target_enemy} or its subject")
+
+    live = _get_live_bargains(world)
+
+    for b in live:
+        if b.get("beneficiary") == beneficiary and b.get("target_enemy") == target_enemy:
+            return (False, f"Already have a live bargain with {beneficiary} against {target_enemy}")
+
+    for b in live:
+        if b.get("claim_term", {}).get("claim_region") == claim_region:
+            return (False, f"Already have a live bargain claiming {claim_region}")
+
+    for b in live:
+        if (b.get("promiser") == promiser
+                and b.get("beneficiary") == target_enemy
+                and b.get("target_enemy") == beneficiary):
+            return (False, f"Contradictory bargain: already promised {target_enemy} against {beneficiary}")
+
+    cooldown_key = f"{promiser}|{beneficiary}::{target_enemy}"
+    for b in getattr(world, "diplomatic_commitments", {}).values():
+        if b.get("cooldown_key") == cooldown_key:
+            cu = b.get("cooldown_until_turn", 0)
+            if cu and int(cu) > int(world.current_turn):
+                return (False, f"Cooldown active until turn {cu}")
+
+    return (True, "")
+
+
+def create_war_bargain_commitment(
+    world, promiser: str, beneficiary: str,
+    target_enemy: str, claim_region: str,
+    origin_mode: str, source_treaty_key: str,
+) -> Dict:
+    """Create and store a war bargain commitment record."""
+    region_obj = world.regions.get(claim_region)
+    claim_holder = getattr(region_obj, "controller", target_enemy) if region_obj else target_enemy
+
+    cid = int(getattr(world, "next_commitment_id", 1) or 1)
+    world.next_commitment_id = cid + 1
+
+    record = {
+        "id": cid,
+        "type": "war_bargain",
+        "promiser": promiser,
+        "beneficiary": beneficiary,
+        "origin_mode": origin_mode,
+        "target_enemy": target_enemy,
+        "entry_term": {"named_enemy": target_enemy},
+        "claim_term": {
+            "claimant": promiser,
+            "claim_region": claim_region,
+            "claim_holder": claim_holder,
+        },
+        "created_turn": int(world.current_turn),
+        "triggered_turn": None,
+        "ended_turn": None,
+        "status": "active",
+        "source_treaty": source_treaty_key,
+        "source_pair": f"{promiser}|{beneficiary}",
+        "cooldown_key": f"{promiser}|{beneficiary}::{target_enemy}",
+        "cooldown_until_turn": 0,
+        "end_reason": None,
+        "end_reason_family": None,
+        "fault_nation": None,
+        "trigger_context": None,
+        "fulfillment_snapshot": None,
+        "zombie_clock_turns_elapsed": 0,
+        "dormant_notice_fired": False,
+    }
+
+    if not hasattr(world, "diplomatic_commitments"):
+        world.diplomatic_commitments = {}
+    world.diplomatic_commitments[str(cid)] = record
+    return record
+
+
+# ═══════════════════════════════════════════════════════
 # ACCEPTANCE FORMULA (§6)
 # ═══════════════════════════════════════════════════════
 
@@ -4399,6 +4580,30 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     grievance_flag_count_raw = int(
         _get_active_grievance_flag_count(world, proposer, target)
     )
+
+    # ── War Bargain Modifiers (WB-A §9.1 / §9.2) ──
+    bargain_value_mod = 0
+    bargain_conflict_penalty = 0
+    for clause in proposal.get("sweeteners", []) + proposal.get("demands", []):
+        if clause.get("type") == "war_bargain":
+            if proposal_type == "defensive_alliance":
+                bargain_value_mod = 10
+            elif proposal_type == "alliance":
+                bargain_value_mod = 15
+            break
+    live_bargains = _get_live_bargains(world)
+    for b in live_bargains:
+        if b.get("promiser") == proposer and b.get("target_enemy") == target:
+            bargain_conflict_penalty = -8
+            break
+    if bargain_conflict_penalty == 0:
+        for b in live_bargains:
+            cr = b.get("claim_term", {}).get("claim_region", "")
+            if cr and b.get("promiser") == proposer:
+                region_obj = world.regions.get(cr)
+                if region_obj and getattr(region_obj, "controller", "") == target:
+                    bargain_conflict_penalty = -8
+                    break
 
     # ── Deal Balance ──
     from backend.models.region import NATION_CAPITALS
@@ -4571,7 +4776,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # -60 so the §8.7 survival-exception path stays playable. The floor
     # is a synthetic debug row; raw term values are preserved in
     # `components` for legibility.
-    political_subtotal_raw = int(hegemony_target) + int(bilateral_betrayal) + int(grievance)
+    political_subtotal_raw = (
+        int(hegemony_target) + int(bilateral_betrayal) + int(grievance)
+        + int(bargain_value_mod) + int(bargain_conflict_penalty)
+    )
     political_subtotal_clamped = max(-60, political_subtotal_raw)
     composite_floor_applied = political_subtotal_clamped > political_subtotal_raw
     composite_floor_adjustment = political_subtotal_clamped - political_subtotal_raw
@@ -4658,6 +4866,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "hegemony_target_mod": int(hegemony_target),
         "bilateral_betrayal_mod": int(bilateral_betrayal),
         "grievance_modifier": int(grievance),
+        "bargain_value_mod": int(bargain_value_mod),
+        "bargain_conflict_penalty": int(bargain_conflict_penalty),
         "grievance_flag_count_raw": grievance_flag_count_raw,
         "composite_floor": int(composite_floor_value),
         "composite_floor_applied": bool(composite_floor_applied),
@@ -4709,6 +4919,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
         "grievance_modifier",
+        "bargain_value_mod", "bargain_conflict_penalty",
         "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",
         "ultimatum_bonus",

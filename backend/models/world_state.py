@@ -593,6 +593,10 @@ class WorldState:
         # alliance_origins[diplo_key] -> "forced" | "voluntary"
         self.alliance_origins: Dict[str, str] = {}
 
+        # WB-A: War bargain commitments, keyed by stringified commitment id.
+        self.diplomatic_commitments: Dict[str, Dict] = {}
+        self.next_commitment_id: int = 1
+
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
@@ -3558,6 +3562,10 @@ class WorldState:
                 for k, v in self.war_objectives.items()
             },
             "alliance_origins": {str(k): str(v) for k, v in self.alliance_origins.items()},
+            "diplomatic_commitments": {
+                str(k): v.copy() for k, v in self.diplomatic_commitments.items()
+            },
+            "next_commitment_id": int(self.next_commitment_id),
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3951,6 +3959,10 @@ class WorldState:
         world.alliance_origins = {
             str(k): str(v) for k, v in data.get("alliance_origins", {}).items()
         }
+        world.diplomatic_commitments = {
+            str(k): v.copy() for k, v in data.get("diplomatic_commitments", {}).items()
+        }
+        world.next_commitment_id = int(data.get("next_commitment_id", 1) or 1)
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }
@@ -5560,6 +5572,25 @@ class WorldState:
                         "liberator_nation": lib_liberator,
                         "turn": int(self.current_turn),
                     })
+
+        # WB-A: War bargain clause → create commitment record
+        for clause in treaty_clauses:
+            if clause.get("type") == "war_bargain":
+                from backend.game_logic.diplomacy import create_war_bargain_commitment
+                wb_named = clause.get("named_enemy", "")
+                wb_region = clause.get("claim_region", "")
+                wb_holder = clause.get("claim_holder", "")
+                if wb_named and wb_region:
+                    create_war_bargain_commitment(
+                        self,
+                        promiser=proposer,
+                        beneficiary=target_nation,
+                        target_enemy=wb_named,
+                        claim_region=wb_region,
+                        origin_mode="treaty_clause",
+                        source_treaty_key=diplo_key,
+                    )
+                    applied_treaty_clauses.append(clause.copy())
 
         # R81: Check for elimination after territory cessions
         ceded_from = set()
