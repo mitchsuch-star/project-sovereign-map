@@ -3191,6 +3191,18 @@ def _tier_rank(tier: str) -> int:
         return 0
 
 
+def _territory_term_count(term: Dict) -> int:
+    regions = term.get("regions", [])
+    if isinstance(regions, list) and regions:
+        return len(regions)
+    value = term.get("value", term.get("amount", 0))
+    try:
+        count = int(value or 0)
+    except (TypeError, ValueError):
+        count = 0
+    return max(1, count)
+
+
 def get_tier_mismatch_warnings(war_score: int, terms: Dict) -> List[Dict]:
     """WPS-D §11.4: Detect when proposed terms exceed the current settlement tier."""
     current_tier = get_settlement_tier(war_score)
@@ -3210,7 +3222,9 @@ def get_tier_mismatch_warnings(war_score: int, terms: Dict) -> List[Dict]:
             all_clauses.append(dtype)
 
     territory_demand_count = sum(
-        1 for c in all_clauses if c in ("territory", "territory_cede")
+        _territory_term_count(d)
+        for d in terms.get("demands", [])
+        if isinstance(d, dict) and d.get("type", "") in ("territory", "territory_cede")
     )
 
     if territory_demand_count >= 4:
@@ -3221,34 +3235,38 @@ def get_tier_mismatch_warnings(war_score: int, terms: Dict) -> List[Dict]:
         needed = None
 
     if needed and _tier_rank(needed) > current_rank:
+        display = (
+            f"Your war score ({war_score:+d}) may not support demanding "
+            f"{territory_demand_count} regions. "
+            f"{SETTLEMENT_TIER_DISPLAY.get(needed, needed)} ({TIER_ORDER.index(needed) * 20:+d}) "
+            f"typically required."
+        )
         warnings.append({
             "warning_type": "tier_mismatch",
             "current_tier": current_tier,
             "demanded_tier": needed,
             "severity": "WARNING",
-            "display": (
-                f"Your war score ({war_score:+d}) may not support demanding "
-                f"{territory_demand_count} regions. "
-                f"{SETTLEMENT_TIER_DISPLAY.get(needed, needed)} ({TIER_ORDER.index(needed) * 20:+d}) "
-                f"typically required."
-            ),
+            "text": display,
+            "display": display,
         })
 
     for clause_key in all_clauses:
         min_tier = CLAUSE_MINIMUM_TIER.get(clause_key)
         if min_tier and _tier_rank(min_tier) > current_rank:
             clause_display = clause_key.replace("_", " ").title()
+            display = (
+                f"Your war score ({war_score:+d}) may not support these terms. "
+                f"{clause_display} typically requires "
+                f"{SETTLEMENT_TIER_DISPLAY.get(min_tier, min_tier)} "
+                f"({TIER_ORDER.index(min_tier) * 20:+d})."
+            )
             warnings.append({
                 "warning_type": "tier_mismatch",
                 "current_tier": current_tier,
                 "demanded_tier": min_tier,
                 "severity": "WARNING",
-                "display": (
-                    f"Your war score ({war_score:+d}) may not support these terms. "
-                    f"{clause_display} typically requires "
-                    f"{SETTLEMENT_TIER_DISPLAY.get(min_tier, min_tier)} "
-                    f"({TIER_ORDER.index(min_tier) * 20:+d})."
-                ),
+                "text": display,
+                "display": display,
             })
 
     return warnings

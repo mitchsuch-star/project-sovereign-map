@@ -16,6 +16,8 @@ Covers (~18 tests):
 """
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from backend.game_logic.diplomacy import (
     get_settlement_tier,
     get_tier_mismatch_warnings,
@@ -27,6 +29,7 @@ from backend.game_logic.diplomacy import (
 )
 from backend.game_logic.ai_diplomacy import (
     _calculate_ticking_pressure,
+    _build_proposal_terms,
     ai_check_vassalage_power_cap,
     ai_should_accept_liberation_peace,
 )
@@ -123,6 +126,20 @@ class TestTierMismatchWarnings:
                 {"type": "territory", "value": 1},
                 {"type": "territory", "value": 1},
                 {"type": "territory", "value": 1},
+            ],
+        }
+        warnings = get_tier_mismatch_warnings(25, terms)
+        assert any(w["demanded_tier"] == "harsh_peace" for w in warnings)
+
+    def test_region_list_territory_demand_counts_each_region(self):
+        terms = {
+            "clauses": [],
+            "demands": [
+                {
+                    "type": "territory_cede",
+                    "value": 4,
+                    "regions": ["Vienna", "Bohemia", "Bavaria", "Tyrol"],
+                },
             ],
         }
         warnings = get_tier_mismatch_warnings(25, terms)
@@ -260,6 +277,25 @@ class TestAILiberationPeace:
         }
         assert ai_should_accept_liberation_peace("Austria", "France", terms, world) is True
 
+    def test_ai_accepts_production_liberation_demand_shape(self):
+        world = _war_world("Austria")
+        dk = world._make_diplo_key("Austria", "France")
+        world.war_scores[dk] = 50
+        world.war_objectives[dk] = {}
+        world.war_objectives[dk]["Austria"] = create_war_objective(
+            objective_type="liberation",
+            declaring_nation="Austria",
+            target_nation="France",
+            target_regions=["Dresden"],
+            current_turn=1,
+            vassal_nations=["Saxony"],
+        )
+        terms = {
+            "demands": [{"type": "liberation", "vassal_nation": "Saxony"}],
+            "clauses": [],
+        }
+        assert ai_should_accept_liberation_peace("Austria", "France", terms, world) is True
+
     def test_ai_refuses_peace_without_liberation_when_score_high(self):
         world = _war_world("Austria")
         dk = world._make_diplo_key("Austria", "France")
@@ -273,9 +309,85 @@ class TestAILiberationPeace:
             vassal_nations=["Saxony"],
         )
         # Give Austria a high war score (from Austria's perspective)
-        world.war_scores[dk] = -50
+        world.war_scores[dk] = 50
         terms = {"clauses": []}
         assert ai_should_accept_liberation_peace("Austria", "France", terms, world) is False
+
+    def test_ai_does_not_require_liberation_when_losing(self):
+        world = _war_world("Austria")
+        dk = world._make_diplo_key("Austria", "France")
+        world.war_scores[dk] = -50
+        world.war_objectives[dk] = {}
+        world.war_objectives[dk]["Austria"] = create_war_objective(
+            objective_type="liberation",
+            declaring_nation="Austria",
+            target_nation="France",
+            target_regions=["Dresden"],
+            current_turn=1,
+            vassal_nations=["Saxony"],
+        )
+        assert ai_should_accept_liberation_peace(
+            "Austria", "France", {"clauses": []}, world,
+        ) is True
+
+    def test_returning_player_peace_is_rejected_without_supported_liberation(self):
+        world = _war_world("Austria")
+        world.current_turn = 3
+        dk = world._make_diplo_key("Austria", "France")
+        world.war_scores[dk] = 50
+        world.war_objectives[dk] = {
+            "Austria": create_war_objective(
+                objective_type="liberation",
+                declaring_nation="Austria",
+                target_nation="France",
+                target_regions=["Dresden"],
+                current_turn=1,
+                vassal_nations=["Saxony"],
+            ),
+        }
+        world.proposal_in_transit = {
+            "target": "Austria",
+            "proposal": {
+                "type": "peace",
+                "proposer_nation": "France",
+                "target_nation": "Austria",
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            },
+            "turn_sent": 1,
+            "acceptance_snapshot": 80,
+            "diplomatic_state_at_send": "WAR",
+        }
+        with patch(
+            "backend.game_logic.diplomacy.calculate_acceptance",
+            return_value={"score": 80, "outcome": "ACCEPT", "feedback": "", "components": {}},
+        ):
+            events = world._process_proposal_in_transit()
+        returned = next(e for e in events if e["type"] == "diplomatic_proposal_returned")
+        assert returned["outcome"] == "REJECT"
+        assert world.proposal_result_popup["outcome"] == "REJECT"
+        assert "liberation objective" in world.proposal_result_popup["feedback"]
+
+    def test_ai_harsh_peace_with_liberation_objective_demands_liberation(self):
+        world = _war_world("Austria")
+        dk = world._make_diplo_key("Austria", "France")
+        world.war_objectives[dk] = {
+            "Austria": create_war_objective(
+                objective_type="liberation",
+                declaring_nation="Austria",
+                target_nation="France",
+                target_regions=["Dresden"],
+                current_turn=1,
+                vassal_nations=["Saxony"],
+            ),
+        }
+        terms = _build_proposal_terms("Austria", "harsh_peace", 60, world)
+        liberation_demands = [
+            d for d in terms["demands"] if d.get("type") == "liberation"
+        ]
+        assert liberation_demands
+        assert liberation_demands[0]["vassal_nation"] == "Saxony"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -320,3 +432,30 @@ class TestDispatchForcedAllianceHighlighting:
         settlements = _build_peace_settlement_section(world)
         assert len(settlements) == 1
         assert "forced alliance" in settlements[0]["detail"].lower()
+
+
+class TestPeacePreviewGodotSurface:
+
+    def test_proposal_confirm_popup_renders_wpsd_fields(self):
+        from pathlib import Path
+
+        source = Path(
+            "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd",
+        ).read_text(encoding="utf-8")
+
+        assert 'snapshot.get("settlement_tier_display"' in source
+        assert 'snapshot.get("war_objective"' in source
+        assert 'snapshot.get("tier_mismatch_warnings"' in source
+        assert '"ticking"' in source
+
+    def test_incoming_proposal_popup_renders_wpsd_fields(self):
+        from pathlib import Path
+
+        source = Path(
+            "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd",
+        ).read_text(encoding="utf-8")
+
+        assert 'snapshot.get("settlement_tier_display"' in source
+        assert 'snapshot.get("war_objective"' in source
+        assert 'snapshot.get("tier_mismatch_warnings"' in source
+        assert '"ticking"' in source

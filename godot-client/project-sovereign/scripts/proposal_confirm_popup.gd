@@ -213,7 +213,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var components = snapshot.get("war_score_components", {})
 	if components is Dictionary:
 		var parts = []
-		for key in ["territory", "battle", "decisive_battle", "capital"]:
+		for key in ["territory", "battle", "decisive_battle", "capital", "ticking"]:
 			var val = int(components.get(key, 0))
 			if val != 0:
 				var label = str(key).replace("_", " ").capitalize()
@@ -221,6 +221,19 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		if not parts.is_empty():
 			bbcode += " (%s)" % ", ".join(parts)
 	bbcode += "\n"
+
+	var tier_display = str(snapshot.get("settlement_tier_display", ""))
+	if tier_display:
+		bbcode += "Settlement: [color=#e0c070]%s[/color]\n" % tier_display
+	var objective = snapshot.get("war_objective", {})
+	if objective is Dictionary and not objective.is_empty():
+		var objective_type = str(objective.get("type", "")).replace("_", " ").capitalize()
+		var target_regions = objective.get("target_regions", [])
+		var region_text = ", ".join(target_regions) if target_regions is Array and not target_regions.is_empty() else "objective target"
+		var accumulated = int(objective.get("accumulated_ticking", 0))
+		var active = bool(objective.get("ticking_active", false))
+		var active_text = "active" if active else "inactive"
+		bbcode += "Objective: %s - %s (%s, +%d ticking)\n" % [objective_type, region_text, active_text, accumulated]
 
 	var duration = int(snapshot.get("war_duration_turns", 0))
 	var won = int(snapshot.get("battles_won", 0))
@@ -280,9 +293,10 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			bbcode += "[color=#e04040]Key obstacle: %s[/color]\n" % ln
 
 	var warnings = data.get("warnings", [])
+	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])
 	var fallout = snapshot.get("fallout_warnings", [])
 	var conflicts = snapshot.get("commitment_conflicts", [])
-	if not warnings.is_empty() or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
+	if not warnings.is_empty() or (tier_warnings is Array and not tier_warnings.is_empty()) or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
 		bbcode += "\n[b]Political Consequences[/b]\n"
 		var consequence_items = []
 		for warning in warnings:
@@ -295,6 +309,9 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			elif sev == "LOW":
 				priority = 4
 			consequence_items.append({"priority": priority, "color": "#e04040" if priority == 0 else "#e0c070", "text": txt})
+		for warning in tier_warnings:
+			var txt = warning.get("display", warning.get("text", str(warning))) if warning is Dictionary else str(warning)
+			consequence_items.append({"priority": 1, "color": "#e0c070", "text": txt})
 		for warning in fallout:
 			var txt = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
 			var sev = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"

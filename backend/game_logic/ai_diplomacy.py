@@ -396,13 +396,16 @@ def ai_should_accept_liberation_peace(nation: str, opponent: str,
     if not vassal_nations_targeted:
         return True
 
-    clauses = terms.get("clauses", [])
+    clauses = list(terms.get("clauses", [])) + list(terms.get("demands", []))
     liberated_nations = set()
     for clause in clauses:
-        if isinstance(clause, dict) and clause.get("clause_type") == "liberation":
+        if (
+            isinstance(clause, dict)
+            and (clause.get("clause_type") or clause.get("type")) == "liberation"
+        ):
             liberated_nations.add(clause.get("vassal_nation", ""))
 
-    war_score = abs(get_war_score_for(world, nation, opponent))
+    war_score = get_war_score_for(world, nation, opponent)
     if war_score >= 40 and vassal_nations_targeted - liberated_nations:
         return False
 
@@ -527,6 +530,17 @@ def _build_proposal_terms(
         terms["type"] = "peace"  # Map to peace for acceptance formula
         gold_demand = max(200, int(war_score * 5 * gold_mult))
         terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
+        diplo_key = world._make_diplo_key(nation, player)
+        obj = getattr(world, 'war_objectives', {}).get(diplo_key, {}).get(nation, {})
+        if obj and obj.get("type") == "liberation" and obj.get("concluded_turn") is None:
+            for vassal_nation in obj.get("vassal_nations", []):
+                terms["demands"].append({
+                    "type": "liberation",
+                    "value": 1,
+                    "vassal_nation": vassal_nation,
+                    "lord_nation": player,
+                    "liberator": nation,
+                })
 
     return terms
 

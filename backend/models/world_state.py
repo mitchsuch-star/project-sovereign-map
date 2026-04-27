@@ -5038,6 +5038,16 @@ class WorldState:
         elif snapshot_score >= 30 and recalc_score < 30 and recalc_score >= snapshot_score - 15:
             # Snapshot was COUNTER_OFFER range, recalc dropped to REJECT but within tolerance
             result["outcome"] = "COUNTER_OFFER"
+
+        if proposal.get("type") == "peace":
+            from backend.game_logic.ai_diplomacy import ai_should_accept_liberation_peace
+            if not ai_should_accept_liberation_peace(target, proposer, proposal, self):
+                result["outcome"] = "REJECT"
+                result["feedback"] = (
+                    "The coalition will not leave French vassals in place while "
+                    "its liberation objective is within reach."
+                )
+
         outcome = result.get("outcome", "REJECT")
         feedback = result.get("feedback", "")
         decision_reason = determine_counterparty_decision_reason(proposal, self, result)
