@@ -4589,6 +4589,502 @@ def create_war_bargain_commitment(
 
 
 # ═══════════════════════════════════════════════════════
+# WB-B: WAR BARGAIN LIFECYCLE (§8.8 / §8.9)
+# ═══════════════════════════════════════════════════════
+
+BARGAIN_BREACH_COOLDOWN_TURNS = 6
+BARGAIN_VOID_COOLDOWN_TURNS = 4
+BARGAIN_ZOMBIE_VOID_THRESHOLD = 5
+BARGAIN_FULFILLMENT_RELIABILITY_DELTA = 4
+BARGAIN_FULFILLMENT_RELATION_DELTA = 6
+BARGAIN_BREACH_RELIABILITY_DELTA = -6
+BARGAIN_BREACH_RELATION_DELTA = -10
+BARGAIN_FULFILLMENT_PAIR_COOLDOWN_TURNS = 10
+
+
+def _is_bargain_live(bargain: Dict) -> bool:
+    return bargain.get("status") in ("active", "triggered")
+
+
+def _get_source_treaty_state(world, bargain: Dict) -> str:
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    if not promiser or not beneficiary:
+        return "PEACE"
+    return world.get_diplomatic_state(promiser, beneficiary)
+
+
+def _source_treaty_valid(world, bargain: Dict) -> bool:
+    return _get_source_treaty_state(world, bargain) in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+
+
+def _claim_basis_valid(world, bargain: Dict) -> bool:
+    """Claim region still held by named enemy or its subject."""
+    cr = bargain.get("claim_term", {}).get("claim_region", "")
+    enemy = bargain.get("target_enemy", "")
+    if not cr or not enemy:
+        return False
+    return _region_is_held_by_enemy_or_subject(world, cr, enemy)
+
+
+def _are_cobelligerents(world, nation_a: str, nation_b: str, against: str) -> bool:
+    """Both nations at WAR with the target enemy."""
+    return (
+        world.is_at_war(nation_a, against)
+        and world.is_at_war(nation_b, against)
+    )
+
+
+def process_bargain_lifecycle(world) -> List[Dict]:
+    """Per-turn bargain lifecycle processing per §8.8 turn-order rule.
+
+    Called from process_diplomacy_turn AFTER war-state/region mutations.
+    Returns events for dispatch/campaign log.
+    """
+    events = []
+    commitments = getattr(world, "diplomatic_commitments", {})
+    if not commitments:
+        return events
+
+    for cid, bargain in list(commitments.items()):
+        if not _is_bargain_live(bargain):
+            continue
+
+        promiser = bargain.get("promiser", "")
+        beneficiary = bargain.get("beneficiary", "")
+        target_enemy = bargain.get("target_enemy", "")
+
+        # §8.8 Triggering: active → triggered when co-belligerents
+        if bargain["status"] == "active":
+            if _are_cobelligerents(world, promiser, beneficiary, target_enemy):
+                bargain["status"] = "triggered"
+                bargain["triggered_turn"] = int(world.current_turn)
+                ev = _emit_bargain_event(world, bargain, "bargain_triggered")
+                events.append(ev)
+
+        # §8.8 Fulfillment check (only on triggered)
+        if bargain["status"] == "triggered":
+            if _check_bargain_fulfillment(world, bargain):
+                _fulfill_bargain(world, bargain)
+                ev = _emit_bargain_event(world, bargain, "bargain_fulfilled")
+                events.append(ev)
+                continue
+
+        # §8.8 Inconclusive war reactivation: triggered → active
+        if bargain["status"] == "triggered":
+            if not _are_cobelligerents(world, promiser, beneficiary, target_enemy):
+                if _source_treaty_valid(world, bargain) and _claim_basis_valid(world, bargain):
+                    bargain["status"] = "active"
+                    bargain["dormant_notice_fired"] = False
+                    bargain["_reactivated_turn"] = int(world.current_turn)
+
+        # §8.9.B Void detection
+        void_reason = _detect_void(world, bargain)
+        if void_reason:
+            _void_bargain(world, bargain, void_reason)
+            ev = _emit_bargain_event(world, bargain, "bargain_voided")
+            events.append(ev)
+            continue
+
+        # Zombie clock processing (§8.9.B)
+        _process_zombie_clock(world, bargain)
+        if bargain.get("status") == "void":
+            ev = _emit_bargain_event(world, bargain, "bargain_voided")
+            events.append(ev)
+            continue
+
+        # Dormant notice (§10.2): 8+ turns active without triggering
+        if bargain["status"] == "active" and not bargain.get("dormant_notice_fired"):
+            base_turn = bargain.get("_reactivated_turn") or bargain.get("created_turn", 0)
+            turns_active = int(world.current_turn) - int(base_turn)
+            if turns_active >= 8:
+                bargain["dormant_notice_fired"] = True
+
+    return events
+
+
+def _check_bargain_fulfillment(world, bargain: Dict) -> bool:
+    """§8.8: All five conditions must hold at end of turn."""
+    if bargain.get("status") != "triggered":
+        return False
+
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    target_enemy = bargain.get("target_enemy", "")
+    claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+
+    if not claim_region:
+        return False
+
+    # 2. France controls the claimed region
+    region_obj = world.regions.get(claim_region)
+    if not region_obj or getattr(region_obj, "controller", "") != promiser:
+        return False
+
+    # 4. Source treaty still valid
+    if not _source_treaty_valid(world, bargain):
+        return False
+
+    # 5. Co-belligerents or war just ended this turn with both having been co-belligerents
+    if not _are_cobelligerents(world, promiser, beneficiary, target_enemy):
+        return False
+
+    return True
+
+
+def _fulfill_bargain(world, bargain: Dict) -> None:
+    """Mark bargain fulfilled and apply rewards."""
+    bargain["status"] = "fulfilled"
+    bargain["ended_turn"] = int(world.current_turn)
+
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+
+    # §8.8 Reward: +4 reliability, capped per (promiser, beneficiary) per 10 turns
+    reliability_delta = BARGAIN_FULFILLMENT_RELIABILITY_DELTA
+    intended_delta = reliability_delta
+    reward_reduced = "none"
+
+    fulfillment_log = getattr(world, "_bargain_fulfillment_log", {})
+    pair_key = f"{promiser}|{beneficiary}"
+    last_fulfilled_turn = fulfillment_log.get(pair_key, 0)
+    if last_fulfilled_turn and (int(world.current_turn) - int(last_fulfilled_turn)) < BARGAIN_FULFILLMENT_PAIR_COOLDOWN_TURNS:
+        reliability_delta = 0
+        reward_reduced = "full"
+
+    if not hasattr(world, "_bargain_fulfillment_log"):
+        world._bargain_fulfillment_log = {}
+    world._bargain_fulfillment_log[pair_key] = int(world.current_turn)
+
+    # Apply reliability
+    reliability = getattr(world, "diplomatic_reliability", {})
+    old_rel = reliability.get(promiser, 0)
+    new_rel = max(-100, min(100, old_rel + reliability_delta))
+    reliability[promiser] = new_rel
+    if not hasattr(world, "diplomatic_reliability"):
+        world.diplomatic_reliability = reliability
+
+    # +6 relation with beneficiary
+    relation_delta = BARGAIN_FULFILLMENT_RELATION_DELTA
+    world.modify_nation_relation(promiser, beneficiary, relation_delta)
+
+    bargain["fulfillment_snapshot"] = {
+        "claim_region": bargain.get("claim_term", {}).get("claim_region", ""),
+        "beneficiary": beneficiary,
+        "target_enemy": bargain.get("target_enemy", ""),
+        "fulfilled_turn": int(world.current_turn),
+        "reliability_delta": reliability_delta,
+        "relation_delta": relation_delta,
+        "reward_reduced": reward_reduced,
+        "intended_reliability_delta": intended_delta,
+        "witness_nations_at_fulfillment": _get_bargain_witnesses(world, bargain),
+        "trigger_context": bargain.get("trigger_context"),
+    }
+
+
+def breach_bargain(world, bargain: Dict, end_reason: str, *, episode_id: str = None) -> Dict:
+    """Mark a live bargain as breached and apply penalties.
+
+    Called from explicit breach actions (repudiate_bargain, source treaty break,
+    normalization with named enemy, etc.). Returns event metadata.
+    """
+    if not _is_bargain_live(bargain):
+        return {}
+
+    bargain["status"] = "breached"
+    bargain["ended_turn"] = int(world.current_turn)
+    bargain["end_reason"] = end_reason
+    bargain["end_reason_family"] = "french_breach"
+    bargain["fault_nation"] = bargain.get("promiser", "France")
+
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    target_enemy = bargain.get("target_enemy", "")
+
+    # Cooldown: 6 turns
+    bargain["cooldown_until_turn"] = int(world.current_turn) + BARGAIN_BREACH_COOLDOWN_TURNS
+
+    # Reliability loss: -6
+    reliability = getattr(world, "diplomatic_reliability", {})
+    old_rel = reliability.get(promiser, 0)
+    new_rel = max(-100, min(100, old_rel + BARGAIN_BREACH_RELIABILITY_DELTA))
+    reliability[promiser] = new_rel
+    if not hasattr(world, "diplomatic_reliability"):
+        world.diplomatic_reliability = reliability
+
+    # Relation penalty: -10
+    world.modify_nation_relation(promiser, beneficiary, BARGAIN_BREACH_RELATION_DELTA)
+
+    # Betrayal strike: +1 unless same episode already spent 2-strike cap
+    _record_bargain_breach_strike(world, promiser, beneficiary, episode_id)
+
+    ev = _emit_bargain_event(world, bargain, "bargain_breached")
+    return ev
+
+
+def _record_bargain_breach_strike(world, promiser: str, beneficiary: str, episode_id: str = None):
+    """Record +1 betrayal strike for bargain breach, respecting 2-strike-per-episode cap."""
+    betrayal_history = getattr(world, "betrayal_history", {})
+    diplo_key = world._make_diplo_key(promiser, beneficiary)
+    record = betrayal_history.get(diplo_key)
+    if record is None:
+        record = {"strikes": [], "categories": set(), "grievance_flags": []}
+        betrayal_history[diplo_key] = record
+    if not hasattr(world, "betrayal_history"):
+        world.betrayal_history = betrayal_history
+
+    if episode_id:
+        episode_strikes = sum(
+            1 for s in record.get("strikes", [])
+            if s.get("episode_id") == episode_id
+        )
+        if episode_strikes >= 2:
+            return
+
+    record["strikes"].append({
+        "severity": "medium",
+        "turn": int(world.current_turn),
+        "source": "bargain_breach",
+        "episode_id": episode_id or "",
+        "decays_on_turn": int(world.current_turn) + 20,
+    })
+    record["categories"].add("bargain_breach")
+
+
+def _void_bargain(world, bargain: Dict, void_info: Dict) -> None:
+    """Mark bargain as void without French penalty."""
+    bargain["status"] = "void"
+    bargain["ended_turn"] = int(world.current_turn)
+    bargain["end_reason"] = void_info.get("reason", "external")
+    bargain["end_reason_family"] = void_info.get("family", "obsolescence_or_external")
+    bargain["fault_nation"] = void_info.get("fault_nation")
+
+    # Cooldown: 4 turns
+    bargain["cooldown_until_turn"] = int(world.current_turn) + BARGAIN_VOID_COOLDOWN_TURNS
+
+
+def _detect_void(world, bargain: Dict) -> Optional[Dict]:
+    """Detect void conditions per §8.9.B. Returns void info dict or None."""
+    if not _is_bargain_live(bargain):
+        return None
+
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    target_enemy = bargain.get("target_enemy", "")
+
+    # Counterparty reversal: beneficiary breaks source treaty
+    source_state = _get_source_treaty_state(world, bargain)
+    if source_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        return {
+            "reason": "source_treaty_lost",
+            "family": "counterparty_reversal",
+            "fault_nation": beneficiary,
+        }
+
+    # Counterparty reversal: beneficiary aligned with named enemy
+    ben_enemy_state = world.get_diplomatic_state(beneficiary, target_enemy)
+    if ben_enemy_state in ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        return {
+            "reason": "beneficiary_aligned_with_enemy",
+            "family": "counterparty_reversal",
+            "fault_nation": beneficiary,
+        }
+
+    # Counterparty reversal: beneficiary joins anti-promiser coalition
+    coalition = getattr(world, "active_coalition", None)
+    if coalition and coalition.get("target_nation") == promiser:
+        if beneficiary in coalition.get("members", []):
+            return {
+                "reason": "beneficiary_joined_anti_promiser_coalition",
+                "family": "counterparty_reversal",
+                "fault_nation": beneficiary,
+            }
+
+    # Obsolescence: claim basis gone (enemy no longer holds region)
+    if not _claim_basis_valid(world, bargain):
+        return {
+            "reason": "claim_basis_lost",
+            "family": "obsolescence_or_external",
+            "fault_nation": None,
+        }
+
+    # Obsolescence: promiser and beneficiary now direct enemies through external cause
+    if world.is_at_war(promiser, beneficiary):
+        return {
+            "reason": "parties_at_war",
+            "family": "obsolescence_or_external",
+            "fault_nation": None,
+        }
+
+    return None
+
+
+def _process_zombie_clock(world, bargain: Dict) -> None:
+    """§8.9.B: Zombie clock increments when both sides at ARMISTICE+ with enemy."""
+    if not _is_bargain_live(bargain):
+        return
+
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    target_enemy = bargain.get("target_enemy", "")
+
+    promiser_state = world.get_diplomatic_state(promiser, target_enemy)
+    beneficiary_state = world.get_diplomatic_state(beneficiary, target_enemy)
+
+    armistice_or_higher = ("ARMISTICE", "PEACE", "NON_AGGRESSION", "OPEN_BORDERS",
+                           "DEFENSIVE_ALLIANCE", "ALLIANCE")
+
+    # Reset if either side is at WAR
+    if promiser_state == "WAR" or beneficiary_state == "WAR":
+        bargain["zombie_clock_turns_elapsed"] = 0
+        return
+
+    # Increment if both sides at ARMISTICE or higher
+    if promiser_state in armistice_or_higher and beneficiary_state in armistice_or_higher:
+        bargain["zombie_clock_turns_elapsed"] = int(bargain.get("zombie_clock_turns_elapsed", 0)) + 1
+
+    # Void at threshold
+    if int(bargain.get("zombie_clock_turns_elapsed", 0)) >= BARGAIN_ZOMBIE_VOID_THRESHOLD:
+        _void_bargain(world, bargain, {
+            "reason": "zombie_lapse",
+            "family": "obsolescence_or_external",
+            "fault_nation": None,
+        })
+
+
+def _get_bargain_witnesses(world, bargain: Dict) -> List[str]:
+    """Get witness nations for a bargain event."""
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    witnesses = []
+    for nation in world.get_active_nations():
+        if nation in (promiser, beneficiary):
+            continue
+        witnesses.append(nation)
+    return witnesses
+
+
+def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
+    """Emit campaign log + dispatch event for a bargain state change."""
+    promiser = bargain.get("promiser", "")
+    beneficiary = bargain.get("beneficiary", "")
+    target_enemy = bargain.get("target_enemy", "")
+    claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+
+    event = {
+        "type": event_type,
+        "turn": int(world.current_turn),
+        "bargain_id": bargain.get("id"),
+        "promiser": promiser,
+        "beneficiary": beneficiary,
+        "target_enemy": target_enemy,
+        "claim_region": claim_region,
+        "status": bargain.get("status"),
+        "end_reason": bargain.get("end_reason"),
+        "end_reason_family": bargain.get("end_reason_family"),
+        "fault_nation": bargain.get("fault_nation"),
+        "actor_nation": promiser,
+        "target_nation": beneficiary,
+    }
+
+    world.log_event(event)
+
+    from backend.game_logic.dispatch import queue_dispatch_event
+    fog_rule = "always" if event_type != "bargain_voided" else "partial_on_nation"
+    queue_dispatch_event(world, event_type, {
+        "promiser": promiser,
+        "beneficiary": beneficiary,
+        "target_enemy": target_enemy,
+        "claim_region": claim_region,
+        "end_reason": bargain.get("end_reason", ""),
+        "fault_nation": bargain.get("fault_nation", ""),
+        "actor_nation": promiser,
+        "target_nation": beneficiary,
+    }, fog_rule)
+
+    return event
+
+
+def detect_bargain_breach_on_treaty_change(
+    world, breaker: str, other_nation: str, new_state: str, *,
+    episode_id: str = None,
+) -> List[Dict]:
+    """Check if a diplomatic state change breaches any live bargain.
+
+    Called from set_diplomatic_state and treaty ratification paths.
+    Returns list of breach events.
+    """
+    events = []
+    commitments = getattr(world, "diplomatic_commitments", {})
+
+    for cid, bargain in list(commitments.items()):
+        if not _is_bargain_live(bargain):
+            continue
+
+        promiser = bargain.get("promiser", "")
+        beneficiary = bargain.get("beneficiary", "")
+        target_enemy = bargain.get("target_enemy", "")
+
+        # Source treaty break/downgrade by promiser
+        if breaker == promiser and other_nation == beneficiary:
+            if new_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                ev = breach_bargain(world, bargain, "source_treaty_downgrade", episode_id=episode_id)
+                if ev:
+                    events.append(ev)
+                continue
+
+        # Normalization with named enemy or claim holder
+        if breaker == promiser and other_nation == target_enemy:
+            if new_state in ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                ev = breach_bargain(world, bargain, "normalization_with_enemy", episode_id=episode_id)
+                if ev:
+                    events.append(ev)
+                continue
+
+        # Check claim holder normalization
+        claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+        if claim_region and breaker == promiser:
+            region_obj = world.regions.get(claim_region)
+            holder = getattr(region_obj, "controller", "") if region_obj else ""
+            if holder == other_nation and holder != target_enemy:
+                if new_state in ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                    ev = breach_bargain(world, bargain, "normalization_with_holder", episode_id=episode_id)
+                    if ev:
+                        events.append(ev)
+
+    return events
+
+
+def detect_bargain_breach_on_peace(
+    world, nation_a: str, nation_b: str, *, episode_id: str = None,
+) -> List[Dict]:
+    """Check if peace/armistice with named enemy breaches a live bargain.
+
+    Called from peace ratification paths.
+    """
+    events = []
+    commitments = getattr(world, "diplomatic_commitments", {})
+
+    for cid, bargain in list(commitments.items()):
+        if not _is_bargain_live(bargain):
+            continue
+
+        promiser = bargain.get("promiser", "")
+        target_enemy = bargain.get("target_enemy", "")
+
+        if promiser == nation_a and target_enemy == nation_b:
+            ev = breach_bargain(world, bargain, "peace_with_named_enemy", episode_id=episode_id)
+            if ev:
+                events.append(ev)
+        elif promiser == nation_b and target_enemy == nation_a:
+            ev = breach_bargain(world, bargain, "peace_with_named_enemy", episode_id=episode_id)
+            if ev:
+                events.append(ev)
+
+    return events
+
+
+# ═══════════════════════════════════════════════════════
 # ACCEPTANCE FORMULA (§6)
 # ═══════════════════════════════════════════════════════
 
@@ -6612,6 +7108,10 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 13. Automatic downgrade check ──
     downgrade_events = check_auto_downgrade(world)
     events.extend(downgrade_events)
+
+    # ── 13a. War bargain lifecycle (WB-B §8.8/§8.9) ──
+    bargain_events = process_bargain_lifecycle(world)
+    events.extend(bargain_events)
 
     # ── 14. Diplomatic reliability (R34) ──
     _process_diplomatic_reliability(world)

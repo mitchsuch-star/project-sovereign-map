@@ -596,6 +596,8 @@ class WorldState:
         # WB-A: War bargain commitments, keyed by stringified commitment id.
         self.diplomatic_commitments: Dict[str, Dict] = {}
         self.next_commitment_id: int = 1
+        # WB-B: Fulfillment reward 10-turn pair cap. Keyed "promiser|beneficiary" -> last fulfilled turn.
+        self._bargain_fulfillment_log: Dict[str, int] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3566,6 +3568,7 @@ class WorldState:
                 str(k): copy.deepcopy(v) for k, v in self.diplomatic_commitments.items()
             },
             "next_commitment_id": int(self.next_commitment_id),
+            "bargain_fulfillment_log": {k: int(v) for k, v in self._bargain_fulfillment_log.items()},
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3964,6 +3967,9 @@ class WorldState:
             for k, v in data.get("diplomatic_commitments", {}).items()
         }
         world.next_commitment_id = int(data.get("next_commitment_id", 1) or 1)
+        world._bargain_fulfillment_log = {
+            str(k): int(v) for k, v in data.get("bargain_fulfillment_log", {}).items()
+        }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }

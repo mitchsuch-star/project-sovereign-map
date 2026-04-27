@@ -133,6 +133,11 @@ CAMPAIGN_LOG_TYPES = {
     # WPS-C — forced alliance + liberation
     "forced_alliance_imposed",
     "vassal_liberated",
+    # WB-B — war bargain lifecycle
+    "bargain_triggered",
+    "bargain_fulfilled",
+    "bargain_breached",
+    "bargain_voided",
 }
 
 # ============================================================================
@@ -220,6 +225,11 @@ CATEGORY_MAP = {
     # WPS-C — forced alliance + liberation
     "forced_alliance_imposed": "diplomacy",
     "vassal_liberated": "diplomacy",
+    # WB-B — war bargain lifecycle
+    "bargain_triggered": "diplomacy",
+    "bargain_fulfilled": "diplomacy",
+    "bargain_breached": "diplomacy",
+    "bargain_voided": "diplomacy",
 }
 
 
@@ -816,6 +826,29 @@ def format_event_oneliner(event: dict) -> str:
         if former_lord:
             return f"Liberation: {vassal} freed from {former_lord} by {liberator}"
         return f"Liberation: {vassal} freed from vassalage by {liberator}"
+
+    if event_type == "bargain_triggered":
+        beneficiary = event.get("beneficiary", "Unknown")
+        target_enemy = event.get("target_enemy", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        return f"{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active."
+
+    if event_type == "bargain_fulfilled":
+        promiser = event.get("promiser", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        return f"{promiser} honored the bargain: {claim_region} secured under France's claim."
+
+    if event_type == "bargain_breached":
+        fault_nation = event.get("fault_nation", "Unknown")
+        beneficiary = event.get("beneficiary", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        return f"{fault_nation} broke the bargain with {beneficiary} over {claim_region}."
+
+    if event_type == "bargain_voided":
+        beneficiary = event.get("beneficiary", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        end_reason = (event.get("end_reason") or "external").replace("_", " ")
+        return f"Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})."
 
     if event_type == "diplomatic_vassal_rebellion":
         nation = event.get("nation") or event.get("vassal", "Unknown")

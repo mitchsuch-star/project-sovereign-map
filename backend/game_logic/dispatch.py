@@ -1216,6 +1216,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "nation_eliminated": "{nation} has been eliminated from the war.",
     # Peace Deals BPH-A + BPH-D
     "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
+    # WB-B — war bargain lifecycle
+    "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
+    "bargain_fulfilled": "{promiser} honored the bargain: {claim_region} secured.",
+    "bargain_breached": "{fault_nation} broke the bargain with {beneficiary} over {claim_region}.",
+    "bargain_voided": "Bargain with {beneficiary} over {claim_region} lapsed ({end_reason}).",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -1267,6 +1272,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
     "peace_ratified": "HIGH",
+    # WB-B — war bargain lifecycle
+    "bargain_triggered": "HIGH",
+    "bargain_fulfilled": "HIGH",
+    "bargain_breached": "HIGH",
+    "bargain_voided": "MEDIUM",
 }
 
 
