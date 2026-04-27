@@ -72,6 +72,8 @@ VALID_ACTIONS: Set[str] = {
     "make_amends",
     # WPS-A: Set war purpose (0 AP political declaration)
     "set_war_purpose",
+    # WB-C: Repudiate a live war bargain
+    "repudiate_bargain",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -106,6 +108,8 @@ META_ACTIONS: Set[str] = {
     "make_amends",
     # WPS-A: Set war purpose — no marshal needed
     "set_war_purpose",
+    # WB-C: Repudiate war bargain — no marshal needed
+    "repudiate_bargain",
 }
 
 # Valid stances for stance_change action

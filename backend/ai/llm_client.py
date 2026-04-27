@@ -490,6 +490,14 @@ class LLMClient:
         if any(kw in command_lower for kw in _war_purpose_keywords):
             return self._parse_set_war_purpose(command_text, command_lower)
 
+        # WB-C: Repudiate bargain keywords
+        _repudiate_keywords = [
+            "repudiate bargain", "break bargain", "renounce bargain",
+            "cancel bargain", "void bargain", "repudiate the bargain",
+        ]
+        if any(kw in command_lower for kw in _repudiate_keywords):
+            return self._parse_repudiate_bargain(command_text, command_lower)
+
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
                            "foreign minister", "ambassador"]
@@ -971,6 +979,30 @@ class LLMClient:
             diplomatic_data=diplomatic_data,
         )
 
+    def _parse_repudiate_bargain(self, command_text: str, command_lower: str) -> ParseResult:
+        """Parse a repudiate bargain command (WB-C)."""
+        from backend.game_logic.diplomatic_dialogue import extract_nation_from_command
+        nation = extract_nation_from_command(command_text)
+        diplomatic_data = {
+            "action": "repudiate_bargain",
+            "target_nation": nation,
+        }
+        return ParseResult(
+            matched=True,
+            command_type="diplomatic",
+            marshals=[],
+            action="repudiate_bargain",
+            target=nation,
+            ambiguity=5 if nation else 15,
+            strategic_score=0,
+            interpretation=f"Repudiate bargain with {nation or 'unspecified nation'}",
+            confidence=0.9 if nation else 0.8,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+            diplomatic_data=diplomatic_data,
+        )
+
     def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:
         """Parse a diplomatic command addressed to Talleyrand.
 
@@ -1018,6 +1050,8 @@ class LLMClient:
             # B-B7 Make Amends — spec §8.6.1
             "make amends", "offer amends", "amends with", "amends to",
             "repair relations", "offer reparations", "send reparations",
+            # WB-C: Repudiate bargain
+            "repudiate bargain", "break bargain", "renounce bargain",
         ]
         has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
 

@@ -5198,6 +5198,763 @@ def detect_bargain_breach_on_peace(
 
 
 # ═══════════════════════════════════════════════════════
+# WAR BARGAINS — WB-C (war-entry integration + ally entry)
+# ═══════════════════════════════════════════════════════
+
+WAR_ENTRY_BASE = 20
+WAR_ENTRY_TREATY_BONUS = {"DEFENSIVE_ALLIANCE": 10, "ALLIANCE": 18}
+WAR_ENTRY_DEFENSIVE_HONOR_BONUS = 18
+WAR_ENTRY_OPPOSITION_PAIR_BONUS = 6
+WAR_ENTRY_BARGAIN_BONUS = 25
+WAR_ENTRY_BETRAYAL_PENALTY_PER_STRIKE = -8
+WAR_ENTRY_BETRAYAL_CAP = -24
+WAR_ENTRY_WAR_LOAD_ONE = -8
+WAR_ENTRY_WAR_LOAD_MULTI = -18
+WAR_ENTRY_WAR_EXHAUSTION_THRESHOLD = 60
+WAR_ENTRY_JOIN_THRESHOLD = 50
+WAR_ENTRY_COUNTER_BARGAIN_THRESHOLD = 25
+
+
+def _count_betrayal_strikes_against(world, victim: str, breaker: str) -> int:
+    """Count active strikes where breaker hurt victim. Delegates to the
+    canonical _get_active_betrayal_strike_count (actor=breaker, victim=victim)."""
+    return _get_active_betrayal_strike_count(world, breaker, victim)
+
+
+def _count_active_wars(world, nation: str) -> int:
+    """Count how many nations this nation is at WAR with."""
+    count = 0
+    for other in world.get_active_nations():
+        if other != nation and world.is_at_war(nation, other):
+            count += 1
+    return count
+
+
+def _get_war_exhaustion(world, nation: str) -> int:
+    """Get war exhaustion for a nation."""
+    return int(getattr(world, "war_exhaustion", {}).get(nation, 0))
+
+
+def compute_war_entry_score(
+    world,
+    promiser: str,
+    beneficiary: str,
+    named_enemy: str,
+    *,
+    is_defensive: bool = False,
+) -> Dict:
+    """Dedicated war-entry score per §9.4.
+
+    Returns {"score": int, "band": str, "components": dict}
+    where band is "join" / "counter_bargain" / "refuse".
+    """
+    components = {}
+
+    # Base
+    score = WAR_ENTRY_BASE
+    components["base"] = WAR_ENTRY_BASE
+
+    # Treaty depth
+    treaty_state = world.get_diplomatic_state(promiser, beneficiary)
+    treaty_bonus = WAR_ENTRY_TREATY_BONUS.get(treaty_state, 0)
+    score += treaty_bonus
+    components["treaty_depth"] = treaty_bonus
+
+    # Defensive honor bonus
+    defense_bonus = WAR_ENTRY_DEFENSIVE_HONOR_BONUS if is_defensive else 0
+    score += defense_bonus
+    components["defensive_honor"] = defense_bonus
+
+    # Hostility toward named enemy
+    enemy_relation = world.nation_relations.get(
+        world._make_diplo_key(beneficiary, named_enemy), 0
+    )
+    hostility = max(-10, min(10, (-enemy_relation) // 5))
+    score += hostility
+    components["hostility_to_enemy"] = hostility
+
+    # Opposition pair bonus
+    opposition_pairs = get_bargain_opposition_pairs(world, promiser, beneficiary)
+    opp_bonus = WAR_ENTRY_OPPOSITION_PAIR_BONUS if named_enemy in opposition_pairs else 0
+    score += opp_bonus
+    components["opposition_pair"] = opp_bonus
+
+    # France-beneficiary relation
+    france_relation = world.nation_relations.get(
+        world._make_diplo_key(promiser, beneficiary), 0
+    )
+    relation_mod = max(-12, min(12, france_relation // 5))
+    score += relation_mod
+    components["france_relation"] = relation_mod
+
+    # Bilateral betrayal strikes
+    strike_count = _count_betrayal_strikes_against(world, beneficiary, promiser)
+    betrayal_mod = max(WAR_ENTRY_BETRAYAL_CAP, strike_count * WAR_ENTRY_BETRAYAL_PENALTY_PER_STRIKE)
+    score += betrayal_mod
+    components["betrayal_strikes"] = betrayal_mod
+
+    # Promiser global reliability
+    reliability = int(getattr(world, "diplomatic_reliability", {}).get(promiser, 50))
+    reliability_mod = max(-6, min(6, reliability // 10))
+    score += reliability_mod
+    components["reliability"] = reliability_mod
+
+    # Matching live bargain
+    has_bargain = False
+    for b in _get_live_bargains(world):
+        if (b.get("beneficiary") == beneficiary
+                and b.get("target_enemy") == named_enemy
+                and b.get("promiser") == promiser):
+            has_bargain = True
+            break
+    bargain_bonus = WAR_ENTRY_BARGAIN_BONUS if has_bargain else 0
+    score += bargain_bonus
+    components["matching_bargain"] = bargain_bonus
+
+    # Other-war load
+    war_count = _count_active_wars(world, beneficiary)
+    we = _get_war_exhaustion(world, beneficiary)
+    if war_count >= 2 or we >= WAR_ENTRY_WAR_EXHAUSTION_THRESHOLD:
+        war_load = WAR_ENTRY_WAR_LOAD_MULTI
+    elif war_count == 1:
+        war_load = WAR_ENTRY_WAR_LOAD_ONE
+    else:
+        war_load = 0
+    score += war_load
+    components["war_load"] = war_load
+
+    # Determine band
+    if score >= WAR_ENTRY_JOIN_THRESHOLD:
+        band = "join"
+    elif score >= WAR_ENTRY_COUNTER_BARGAIN_THRESHOLD:
+        band = "counter_bargain"
+    else:
+        band = "refuse"
+
+    return {"score": int(score), "band": band, "components": components}
+
+
+def get_ally_entry_hard_blocks(
+    world,
+    promiser: str,
+    beneficiary: str,
+    named_enemy: str,
+    *,
+    is_offensive: bool = True,
+) -> List[str]:
+    """Return list of hard-block reasons preventing ally entry. Empty = no blocks."""
+    blocks = []
+
+    # Armistice/cooldown with named enemy
+    diplo_key = world._make_diplo_key(beneficiary, named_enemy)
+    arm_cd = getattr(world, "armistice_cooldowns", {}).get(diplo_key, 0)
+    if arm_cd > 0:
+        blocks.append(f"armistice_cooldown_with_{named_enemy}")
+
+    # Already on enemy side of that war
+    if world.is_at_war(beneficiary, promiser):
+        blocks.append(f"at_war_with_{promiser}")
+
+    # Direct enemy of promiser
+    if beneficiary != promiser and world.get_diplomatic_state(beneficiary, promiser) == "WAR":
+        blocks.append(f"direct_enemy_of_{promiser}")
+
+    # Active anti-promiser coalition membership
+    coalition = getattr(world, "active_coalition", None)
+    if coalition and coalition.get("target_nation") == promiser:
+        if beneficiary in coalition.get("members", []):
+            blocks.append("anti_promiser_coalition_member")
+
+    # hard_reject_posture (offensive only)
+    if is_offensive:
+        history = getattr(world, "betrayal_history", {})
+        pair_key = world._make_diplo_key(beneficiary, promiser)
+        record = history.get(pair_key, {})
+        strikes = record.get("strikes", [])
+        if len(strikes) >= 3:
+            blocks.append("hard_reject_posture")
+
+    # No plausible participation path
+    if not _has_bargain_participation_access(world, promiser, beneficiary, named_enemy):
+        blocks.append("no_participation_path")
+
+    return blocks
+
+
+def build_join_opportunity(
+    world,
+    beneficiary: str,
+    named_enemy: str,
+    request_type: str,
+    *,
+    promiser: str = "",
+    origin_episode_id: str = "",
+) -> Dict:
+    """Create a join_opportunity record per §8.7."""
+    promiser = promiser or getattr(world, "player_nation", "France")
+    turn = int(world.current_turn)
+    opp_id = int(getattr(world, "_next_join_opportunity_id", 1))
+    world._next_join_opportunity_id = opp_id + 1
+
+    is_defensive = request_type == "defensive_honor_call"
+    hard_blocks = get_ally_entry_hard_blocks(
+        world, promiser, beneficiary, named_enemy,
+        is_offensive=(not is_defensive),
+    )
+
+    reroll_key = f"{beneficiary}|{named_enemy}|{request_type}|{turn}"
+
+    entry_score = compute_war_entry_score(
+        world, promiser, beneficiary, named_enemy,
+        is_defensive=is_defensive,
+    )
+
+    return {
+        "id": opp_id,
+        "beneficiary": beneficiary,
+        "named_enemy": named_enemy,
+        "request_type": request_type,
+        "surfaced_turn": turn,
+        "hard_blocks": hard_blocks,
+        "origin_episode_id": origin_episode_id,
+        "reroll_key": reroll_key,
+        "war_entry_score": entry_score,
+        "promiser": promiser,
+        "resolved": False,
+        "resolution": None,
+    }
+
+
+def resolve_join_opportunity(
+    world,
+    opportunity: Dict,
+    resolution: str,
+) -> Dict:
+    """Resolve a join opportunity. resolution: 'accept' / 'reject' / 'back_out'."""
+    opportunity["resolved"] = True
+    opportunity["resolution"] = resolution
+
+    beneficiary = opportunity.get("beneficiary", "")
+    named_enemy = opportunity.get("named_enemy", "")
+    promiser = opportunity.get("promiser", "") or getattr(world, "player_nation", "France")
+    request_type = opportunity.get("request_type", "")
+
+    result = {
+        "success": True,
+        "beneficiary": beneficiary,
+        "resolution": resolution,
+        "joined": False,
+    }
+
+    if resolution == "accept":
+        hard_blocks = opportunity.get("hard_blocks", [])
+        if hard_blocks:
+            result["success"] = False
+            result["message"] = f"{beneficiary} cannot join: {hard_blocks[0]}"
+            return result
+
+        if not world.is_at_war(beneficiary, named_enemy):
+            set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "ally_entry")
+            world.modify_nation_relation(beneficiary, named_enemy, -20)
+
+        result["joined"] = True
+        result["message"] = f"{beneficiary} enters the war against {named_enemy}."
+
+        _append_war_entry(
+            getattr(world, "_current_war_entry_entries", None),
+            nation=beneficiary,
+            path="honored" if request_type != "defensive_honor_call" else "honored",
+            side="attacker" if request_type == "offensive_ally_request" else "defender",
+            reason=f"accepted {request_type}",
+            treaty_state=world.get_diplomatic_state(promiser, beneficiary),
+        )
+
+    elif resolution == "reject":
+        result["message"] = f"{beneficiary} refuses to join the war against {named_enemy}."
+        if request_type == "offensive_ally_request":
+            emit_call_to_arms_refused_offensive(
+                world,
+                breaker=beneficiary,
+                victim=promiser,
+                call_context={
+                    "side": "attacker",
+                    "caller": promiser,
+                    "callee": beneficiary,
+                    "enemy": named_enemy,
+                },
+            )
+
+    elif resolution == "back_out":
+        result["message"] = "Declaration cancelled."
+        result["backed_out"] = True
+        world.log_event({
+            "type": "declaration_backed_out",
+            "turn": int(world.current_turn),
+            "promiser": promiser,
+            "beneficiary": beneficiary,
+            "named_enemy": named_enemy,
+        })
+
+    return result
+
+
+def build_declaration_preview(
+    world,
+    aggressor: str,
+    target: str,
+    *,
+    episode_id: str = "",
+) -> Dict:
+    """Build an enriched declaration preview with bargain + ally-entry info.
+
+    Returns the standard preview_war_declaration data PLUS:
+    - ally_entry_opportunities: list of join_opportunity dicts
+    - bargain_warnings: list of active bargains affected
+    """
+    base_preview = preview_war_declaration(
+        world, aggressor, target, episode_id=episode_id,
+    )
+
+    opportunities = []
+    bargain_warnings = []
+
+    # Offensive ally requests — nations with ALLIANCE with aggressor
+    for nation in world.get_active_nations():
+        if nation in (aggressor, target):
+            continue
+        state = world.get_diplomatic_state(nation, aggressor)
+        if state == "ALLIANCE":
+            if not world.is_at_war(nation, target):
+                opp = build_join_opportunity(
+                    world, nation, target, "offensive_ally_request",
+                    promiser=aggressor, origin_episode_id=episode_id,
+                )
+                opportunities.append(opp)
+        elif state == "DEFENSIVE_ALLIANCE":
+            for b in _get_live_bargains(world):
+                if (b.get("beneficiary") == nation
+                        and b.get("target_enemy") == target
+                        and b.get("promiser") == aggressor):
+                    if not world.is_at_war(nation, target):
+                        opp = build_join_opportunity(
+                            world, nation, target, "offensive_ally_request",
+                            promiser=aggressor, origin_episode_id=episode_id,
+                        )
+                        opportunities.append(opp)
+                    break
+
+    # Pre-war bargain warnings
+    for b in _get_live_bargains(world):
+        if b.get("promiser") == aggressor and b.get("target_enemy") == target:
+            bargain_warnings.append({
+                "bargain_id": b.get("id"),
+                "beneficiary": b.get("beneficiary", ""),
+                "claim_region": b.get("claim_term", {}).get("claim_region", ""),
+                "warning": f"Active bargain with {b.get('beneficiary', '')} targets {target}",
+            })
+
+    base_preview["ally_entry_opportunities"] = opportunities
+    base_preview["bargain_warnings"] = bargain_warnings
+    return base_preview
+
+
+def build_peace_bargain_warnings(
+    world,
+    nation_a: str,
+    nation_b: str,
+) -> List[Dict]:
+    """Check if normalizing with nation_b would affect live bargains."""
+    warnings = []
+    for b in _get_live_bargains(world):
+        if b.get("promiser") == nation_a and b.get("target_enemy") == nation_b:
+            warnings.append({
+                "bargain_id": b.get("id"),
+                "beneficiary": b.get("beneficiary", ""),
+                "claim_region": b.get("claim_term", {}).get("claim_region", ""),
+                "warning": f"Peace with {nation_b} will breach bargain with {b.get('beneficiary', '')} "
+                           f"(claim on {b.get('claim_term', {}).get('claim_region', '')})",
+                "severity": "critical",
+            })
+    return warnings
+
+
+def build_bargain_review(world, bargain_clause: Dict, proposal: Dict) -> Dict:
+    """Build a Bargain Review payload for proposal_confirm per §10.1."""
+    beneficiary = bargain_clause.get("beneficiary", "") or proposal.get("target_nation", "")
+    named_enemy = bargain_clause.get("named_enemy", "")
+    claim_region = bargain_clause.get("claim_region", "")
+    promiser = proposal.get("proposer_nation", "") or getattr(world, "player_nation", "France")
+
+    region_obj = world.regions.get(claim_region)
+    current_holder = getattr(region_obj, "controller", "") if region_obj else ""
+
+    source_treaty = world.get_diplomatic_state(promiser, beneficiary)
+
+    entry_score = compute_war_entry_score(
+        world, promiser, beneficiary, named_enemy,
+    )
+    band = entry_score.get("band", "refuse")
+    band_display = {
+        "join": "Join (will enter war without additional terms)",
+        "counter_bargain": "Counter-bargain likely (may demand terms before joining)",
+        "refuse": "Refuse (unlikely to join even with terms)",
+    }.get(band, band)
+
+    existing_bargains = [
+        b for b in _get_live_bargains(world)
+        if b.get("beneficiary") == beneficiary and b.get("promiser") == promiser
+    ]
+    is_decisive = band == "counter_bargain" and entry_score.get("score", 0) + WAR_ENTRY_BARGAIN_BONUS >= WAR_ENTRY_JOIN_THRESHOLD
+
+    contradiction_warnings = []
+    for existing in existing_bargains:
+        if existing.get("target_enemy") != named_enemy:
+            contradiction_warnings.append(
+                f"Existing bargain targets {existing.get('target_enemy', '')}, new targets {named_enemy}"
+            )
+
+    history = getattr(world, "betrayal_history", {})
+    pair_key = world._make_diplo_key(beneficiary, promiser)
+    record = history.get(pair_key, {})
+    strike_count = len(record.get("strikes", []))
+    would_trigger_hard_reject = strike_count >= 2
+
+    return {
+        "beneficiary": beneficiary,
+        "named_enemy": named_enemy,
+        "claim_region": claim_region,
+        "current_holder": current_holder,
+        "source_treaty": source_treaty,
+        "war_entry_forecast_band": band,
+        "war_entry_forecast_display": band_display,
+        "war_entry_score": entry_score.get("score", 0),
+        "is_decisive": is_decisive,
+        "would_trigger_hard_reject": would_trigger_hard_reject,
+        "contradiction_warnings": contradiction_warnings,
+    }
+
+
+def generate_counter_bargain(
+    world,
+    promiser: str,
+    beneficiary: str,
+    named_enemy: str,
+    *,
+    reroll_key: str = "",
+) -> Optional[Dict]:
+    """Generate a counter-bargain demand from an ally in the 25-49 band.
+
+    Returns None if no valid counter-bargain or ally outside range.
+    Returns a counter_bargain_context dict otherwise.
+    """
+    # Check reroll memory
+    reroll_memory = getattr(world, "_war_entry_reroll_memory", {})
+    if reroll_key and reroll_key in reroll_memory:
+        cached = reroll_memory[reroll_key]
+        if cached.get("score_inputs_hash") == _hash_war_entry_inputs(world, promiser, beneficiary, named_enemy):
+            return cached.get("counter_bargain")
+
+    entry_score = compute_war_entry_score(
+        world, promiser, beneficiary, named_enemy,
+    )
+    score = entry_score.get("score", 0)
+    if score >= WAR_ENTRY_JOIN_THRESHOLD or score < WAR_ENTRY_COUNTER_BARGAIN_THRESHOLD:
+        return None
+
+    # Find a valid claim region for the counter-bargain
+    enemy_regions = [
+        r_name for r_name in world.regions
+        if _region_is_held_by_enemy_or_subject(world, r_name, named_enemy)
+    ]
+    if not enemy_regions:
+        return None
+
+    # Pick region with strategic interest for beneficiary, or closest
+    best_region = None
+    for r_name in enemy_regions:
+        if _has_bargain_strategic_interest(world, beneficiary, r_name):
+            valid, _ = validate_war_bargain(
+                world, promiser, beneficiary, named_enemy, r_name,
+                source_state=world.get_diplomatic_state(promiser, beneficiary),
+            )
+            if valid:
+                best_region = r_name
+                break
+
+    if not best_region:
+        for r_name in enemy_regions:
+            valid, _ = validate_war_bargain(
+                world, promiser, beneficiary, named_enemy, r_name,
+                source_state=world.get_diplomatic_state(promiser, beneficiary),
+            )
+            if valid:
+                best_region = r_name
+                break
+
+    if not best_region:
+        return None
+
+    counter = {
+        "type": "war_entry_counter_bargain",
+        "beneficiary": beneficiary,
+        "named_enemy": named_enemy,
+        "demanded_region": best_region,
+        "promiser": promiser,
+        "war_entry_score": entry_score,
+        "reroll_key": reroll_key,
+    }
+
+    # Cache for reroll determinism
+    if reroll_key:
+        if not hasattr(world, "_war_entry_reroll_memory"):
+            world._war_entry_reroll_memory = {}
+        world._war_entry_reroll_memory[reroll_key] = {
+            "counter_bargain": counter,
+            "score_inputs_hash": _hash_war_entry_inputs(world, promiser, beneficiary, named_enemy),
+        }
+
+    return counter
+
+
+def _hash_war_entry_inputs(world, promiser: str, beneficiary: str, named_enemy: str) -> str:
+    """Snapshot key inputs for reroll determinism comparison."""
+    treaty_state = world.get_diplomatic_state(promiser, beneficiary)
+    relation = world.nation_relations.get(world._make_diplo_key(promiser, beneficiary), 0)
+    war_count = _count_active_wars(world, beneficiary)
+    strikes = _count_betrayal_strikes_against(world, beneficiary, promiser)
+    reliability = int(getattr(world, "diplomatic_reliability", {}).get(promiser, 50))
+    coalition = getattr(world, "active_coalition", None)
+    coalition_key = ""
+    if coalition:
+        coalition_key = f"{coalition.get('target_nation', '')}|{','.join(sorted(coalition.get('members', [])))}"
+    return f"{treaty_state}|{relation}|{war_count}|{strikes}|{reliability}|{coalition_key}"
+
+
+def accept_counter_bargain(
+    world,
+    counter: Dict,
+) -> Dict:
+    """Accept a counter-bargain — creates a triggered war_bargain and ally joins."""
+    promiser = counter.get("promiser", "")
+    beneficiary = counter.get("beneficiary", "")
+    named_enemy = counter.get("named_enemy", "")
+    claim_region = counter.get("demanded_region", "")
+    source_treaty_key = world._make_diplo_key(promiser, beneficiary)
+
+    bargain = create_war_bargain_commitment(
+        world, promiser, beneficiary, named_enemy, claim_region,
+        "counter_bargain", source_treaty_key,
+    )
+    bargain["status"] = "triggered"
+    bargain["triggered_turn"] = int(world.current_turn)
+
+    return {
+        "success": True,
+        "bargain": bargain,
+        "message": f"{beneficiary} demands recognition of their claim to {claim_region}. Bargain accepted — {beneficiary} joins the war.",
+    }
+
+
+def repudiate_bargain(world, bargain_id: str, *, episode_id: str = None) -> Dict:
+    """Explicitly repudiate a live bargain per §8.9.C.
+
+    Routes into WB-B breach_bargain with French-fault penalties.
+    """
+    commitments = getattr(world, "diplomatic_commitments", {})
+    bargain = commitments.get(str(bargain_id))
+    if not bargain:
+        return {"success": False, "message": "No such bargain exists."}
+    if not _is_bargain_live(bargain):
+        return {"success": False, "message": "That bargain is no longer active."}
+
+    episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
+    ev = breach_bargain(world, bargain, "explicit_repudiation", episode_id=episode_id)
+
+    return {
+        "success": True,
+        "message": f"The bargain with {bargain.get('beneficiary', '')} regarding {bargain.get('claim_term', {}).get('claim_region', '')} has been repudiated.",
+        "breach_event": ev,
+    }
+
+
+def get_live_bargains_for_ledger(world) -> List[Dict]:
+    """Return formatted live bargains for the diplomatic ledger."""
+    result = []
+    for b in _get_live_bargains(world):
+        cooldown_remaining = max(0, int(b.get("cooldown_until_turn", 0)) - int(world.current_turn))
+        result.append({
+            "bargain_id": b.get("id"),
+            "promiser": b.get("promiser", ""),
+            "beneficiary": b.get("beneficiary", ""),
+            "named_enemy": b.get("target_enemy", ""),
+            "claim_region": b.get("claim_term", {}).get("claim_region", ""),
+            "status": b.get("status", ""),
+            "source_treaty": b.get("source_treaty", ""),
+            "created_turn": b.get("created_turn", 0),
+            "cooldown_remaining": cooldown_remaining,
+        })
+    return result
+
+
+# ═══════════════════════════════════════════════════════
+# AI WAR BARGAIN RULES — WB-C (§11)
+# ═══════════════════════════════════════════════════════
+
+BARGAIN_AI_COOLDOWN_TURNS = 5
+BARGAIN_AI_DECISION_REASONS = {
+    "claim_trade", "counterparty_reversal", "claim_obsolete",
+    "strategic_interest", "no_valid_region", "participation_blocked",
+    "anti_spam", "cooldown_active", "no_feasible_target",
+    "strength_insufficient", "contradiction",
+}
+
+
+def ai_should_propose_bargain(
+    world,
+    proposer: str,
+    target_nation: str,
+    named_enemy: str,
+) -> Dict:
+    """Check if AI should propose a war bargain per §11.1 feasibility gates.
+
+    Returns {"feasible": bool, "decision_reason": str, "claim_region": str|None}
+    """
+    # Anti-spam: no bargain if already live with this nation
+    for b in _get_live_bargains(world):
+        if b.get("promiser") == proposer and b.get("beneficiary") == target_nation:
+            return {"feasible": False, "decision_reason": "anti_spam", "claim_region": None}
+
+    # Cooldown check
+    cooldown_key = f"{proposer}|{target_nation}::{named_enemy}"
+    for b in getattr(world, "diplomatic_commitments", {}).values():
+        if b.get("cooldown_key") == cooldown_key:
+            if int(b.get("cooldown_until_turn", 0)) > int(world.current_turn):
+                return {"feasible": False, "decision_reason": "cooldown_active", "claim_region": None}
+
+    # Named enemy must be opposition
+    opposition = get_bargain_opposition_pairs(world, proposer, target_nation)
+    if named_enemy not in opposition:
+        return {"feasible": False, "decision_reason": "no_feasible_target", "claim_region": None}
+
+    # Participation access
+    if not _has_bargain_participation_access(world, proposer, target_nation, named_enemy):
+        return {"feasible": False, "decision_reason": "participation_blocked", "claim_region": None}
+
+    # Target must have at least one marshal and sufficient strength
+    target_marshals = [
+        m for m in getattr(world, "marshals", {}).values()
+        if getattr(m, "nation", "") == target_nation and getattr(m, "alive", True)
+    ]
+    if not target_marshals:
+        return {"feasible": False, "decision_reason": "strength_insufficient", "claim_region": None}
+
+    target_strength = sum(getattr(m, "troops", 0) for m in target_marshals)
+    proposer_marshals = [
+        m for m in getattr(world, "marshals", {}).values()
+        if getattr(m, "nation", "") == proposer and getattr(m, "alive", True)
+    ]
+    proposer_strength = sum(getattr(m, "troops", 0) for m in proposer_marshals)
+    if proposer_strength > 0 and target_strength < proposer_strength * 0.25:
+        if not _has_bargain_participation_access(world, proposer, target_nation, named_enemy):
+            return {"feasible": False, "decision_reason": "strength_insufficient", "claim_region": None}
+
+    # Betrayal memory refusal
+    history = getattr(world, "betrayal_history", {})
+    pair_key = world._make_diplo_key(target_nation, proposer)
+    record = history.get(pair_key, {})
+    if len(record.get("strikes", [])) >= 3:
+        return {"feasible": False, "decision_reason": "counterparty_reversal", "claim_region": None}
+
+    # Find valid claim region
+    enemy_regions = [
+        r_name for r_name in world.regions
+        if _region_is_held_by_enemy_or_subject(world, r_name, named_enemy)
+    ]
+    best_region = None
+    for r_name in enemy_regions:
+        valid, _ = validate_war_bargain(
+            world, proposer, target_nation, named_enemy, r_name,
+            source_state=world.get_diplomatic_state(proposer, target_nation),
+        )
+        if valid:
+            if _has_bargain_strategic_interest(world, proposer, r_name):
+                best_region = r_name
+                break
+            if not best_region:
+                best_region = r_name
+
+    if not best_region:
+        return {"feasible": False, "decision_reason": "no_valid_region", "claim_region": None}
+
+    return {
+        "feasible": True,
+        "decision_reason": "claim_trade",
+        "claim_region": best_region,
+    }
+
+
+def ai_evaluate_war_entry(
+    world,
+    promiser: str,
+    beneficiary: str,
+    named_enemy: str,
+) -> Dict:
+    """AI evaluates whether to join a war per §11.4.
+
+    Returns {"join": bool, "counter_bargain": bool, "decision_reason": str, "score": dict}
+    """
+    hard_blocks = get_ally_entry_hard_blocks(
+        world, promiser, beneficiary, named_enemy,
+        is_offensive=True,
+    )
+    if hard_blocks:
+        return {
+            "join": False,
+            "counter_bargain": False,
+            "decision_reason": "hard_blocked",
+            "hard_blocks": hard_blocks,
+            "score": {},
+        }
+
+    entry_score = compute_war_entry_score(
+        world, promiser, beneficiary, named_enemy,
+    )
+    band = entry_score.get("band", "refuse")
+
+    if band == "join":
+        return {
+            "join": True,
+            "counter_bargain": False,
+            "decision_reason": "claim_trade" if entry_score["components"].get("matching_bargain", 0) > 0 else "strategic_interest",
+            "score": entry_score,
+        }
+    elif band == "counter_bargain":
+        return {
+            "join": False,
+            "counter_bargain": True,
+            "decision_reason": "claim_trade",
+            "score": entry_score,
+        }
+    else:
+        # Check if refusal should void a bargain
+        for b in _get_live_bargains(world):
+            if (b.get("beneficiary") == beneficiary
+                    and b.get("target_enemy") == named_enemy
+                    and b.get("promiser") == promiser):
+                _void_bargain(world, b, {
+                    "reason": "ai_refusal",
+                    "family": "counterparty_reversal",
+                    "fault_nation": beneficiary,
+                })
+        return {
+            "join": False,
+            "counter_bargain": False,
+            "decision_reason": "counterparty_reversal" if entry_score["components"].get("betrayal_strikes", 0) < -16 else "claim_obsolete",
+            "score": entry_score,
+        }
+
+
+# ═══════════════════════════════════════════════════════
 # ACCEPTANCE FORMULA (§6)
 # ═══════════════════════════════════════════════════════
 

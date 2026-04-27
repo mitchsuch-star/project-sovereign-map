@@ -119,6 +119,8 @@ class CommandParser:
             "make_amends",
             # WPS-A: Set war purpose for defensive wars
             "set_war_purpose",
+            # WB-C: Repudiate a live war bargain
+            "repudiate_bargain",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

@@ -84,6 +84,8 @@ class DiplomaticExecutor:
             return self._execute_diplomatic_ultimatum(diplomatic_data, world)
         elif action == "make_amends":
             return self._execute_make_amends(diplomatic_data, world)
+        elif action == "repudiate_bargain":
+            return self._execute_repudiate_bargain(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
 
@@ -1551,6 +1553,38 @@ class DiplomaticExecutor:
                     "diplomatic_objection_popup": world.diplomatic_objection_popup,
                 }
 
+        # WB-C: Ally-entry preview with bargain warnings
+        from backend.game_logic.diplomacy import (
+            build_declaration_preview,
+            build_peace_bargain_warnings,
+            _allocate_episode_id as _alloc_ep,
+        )
+        if not diplomatic_data.get("_ally_entry_resolved"):
+            preview_ep = diplomatic_data.get("origin_episode_id") or _alloc_ep(world)
+            decl_preview = build_declaration_preview(
+                world, player, target_nation, episode_id=preview_ep,
+            )
+            opportunities = decl_preview.get("ally_entry_opportunities", [])
+            bargain_warnings = decl_preview.get("bargain_warnings", [])
+            has_actionable = any(
+                not o.get("hard_blocks") and o.get("war_entry_score", {}).get("band") in ("counter_bargain",)
+                for o in opportunities
+            )
+            if has_actionable or bargain_warnings:
+                world.pending_ally_entry_opportunities = opportunities
+                return {
+                    "success": True,
+                    "message": "Review ally entry opportunities before proceeding.",
+                    "ally_entry_preview": {
+                        "target_nation": target_nation,
+                        "war_objective": war_objective,
+                        "opportunities": opportunities,
+                        "bargain_warnings": bargain_warnings,
+                        "origin_episode_id": preview_ep,
+                    },
+                    "awaiting_diplomatic_response": True,
+                }
+
         # Execute war declaration
         result = declare_war(
             world,
@@ -1687,6 +1721,73 @@ class DiplomaticExecutor:
             "success": True,
             "message": f"War purpose declared: {display} against {target_nation}.",
         }
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # REPUDIATE BARGAIN (WB-C §8.9.C)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _execute_repudiate_bargain(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle explicit bargain repudiation. Routes into WB-B breach rules."""
+        from backend.game_logic.diplomacy import (
+            repudiate_bargain as _repudiate,
+            _get_live_bargains,
+        )
+
+        bargain_id = diplomatic_data.get("bargain_id")
+        target_nation = diplomatic_data.get("target_nation")
+
+        if not bargain_id and target_nation:
+            for b in _get_live_bargains(world):
+                if b.get("beneficiary") == target_nation:
+                    bargain_id = str(b.get("id"))
+                    break
+
+        if not bargain_id:
+            live = _get_live_bargains(world)
+            if not live:
+                return {"success": False, "message": "There are no active bargains to repudiate, Sire."}
+            if len(live) == 1:
+                bargain_id = str(live[0].get("id"))
+            else:
+                summaries = []
+                for b in live:
+                    summaries.append(
+                        f"  #{b.get('id')}: {b.get('beneficiary')} — claim on {b.get('claim_term', {}).get('claim_region', '?')}"
+                    )
+                return {
+                    "success": False,
+                    "message": "Which bargain shall we repudiate?\n" + "\n".join(summaries),
+                }
+
+        if not diplomatic_data.get("confirmed_repudiation"):
+            commitments = getattr(world, "diplomatic_commitments", {})
+            bargain = commitments.get(str(bargain_id), {})
+            beneficiary = bargain.get("beneficiary", "Unknown")
+            claim_region = bargain.get("claim_term", {}).get("claim_region", "Unknown")
+            return {
+                "success": True,
+                "message": (
+                    f"Sire, repudiating our bargain with {beneficiary} over {claim_region} "
+                    f"will mark us as oath-breakers. Shall I proceed?"
+                ),
+                "repudiate_bargain_confirm": {
+                    "bargain_id": bargain_id,
+                    "beneficiary": beneficiary,
+                    "claim_region": claim_region,
+                },
+                "awaiting_diplomatic_response": True,
+            }
+
+        result = _repudiate(world, bargain_id)
+        if result.get("success"):
+            world.log_event({
+                "type": "bargain_repudiated",
+                "turn": int(world.current_turn),
+                "bargain_id": bargain_id,
+                "beneficiary": result.get("breach_event", {}).get("beneficiary", ""),
+                "claim_region": result.get("breach_event", {}).get("claim_region", ""),
+            })
+        return result
 
     # ════════════════════════════════════════════════════════════════════════════════
     # DIPLOMATIC ULTIMATUM

@@ -138,6 +138,13 @@ CAMPAIGN_LOG_TYPES = {
     "bargain_fulfilled",
     "bargain_breached",
     "bargain_voided",
+    # WB-C — war-entry integration
+    "declaration_backed_out",
+    "bargain_repudiated",
+    "ally_entry_accepted",
+    "ally_entry_refused",
+    "counter_bargain_accepted",
+    "counter_bargain_rejected",
 }
 
 # ============================================================================
@@ -230,6 +237,13 @@ CATEGORY_MAP = {
     "bargain_fulfilled": "diplomacy",
     "bargain_breached": "diplomacy",
     "bargain_voided": "diplomacy",
+    # WB-C — war-entry integration
+    "declaration_backed_out": "diplomacy",
+    "bargain_repudiated": "diplomacy",
+    "ally_entry_accepted": "diplomacy",
+    "ally_entry_refused": "diplomacy",
+    "counter_bargain_accepted": "diplomacy",
+    "counter_bargain_rejected": "diplomacy",
 }
 
 
@@ -849,6 +863,34 @@ def format_event_oneliner(event: dict) -> str:
         claim_region = event.get("claim_region", "Unknown")
         end_reason = (event.get("end_reason") or "external").replace("_", " ")
         return f"Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})."
+
+    if event_type == "declaration_backed_out":
+        named_enemy = event.get("named_enemy", "Unknown")
+        return f"War declaration against {named_enemy} cancelled."
+
+    if event_type == "bargain_repudiated":
+        beneficiary = event.get("beneficiary", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        return f"France repudiated the bargain with {beneficiary} over {claim_region}."
+
+    if event_type == "ally_entry_accepted":
+        beneficiary = event.get("beneficiary", "Unknown")
+        named_enemy = event.get("named_enemy", "Unknown")
+        return f"{beneficiary} joins the war against {named_enemy}."
+
+    if event_type == "ally_entry_refused":
+        beneficiary = event.get("beneficiary", "Unknown")
+        named_enemy = event.get("named_enemy", "Unknown")
+        return f"{beneficiary} refuses to join against {named_enemy}."
+
+    if event_type == "counter_bargain_accepted":
+        beneficiary = event.get("beneficiary", "Unknown")
+        claim_region = event.get("demanded_region") or event.get("claim_region", "Unknown")
+        return f"Counter-bargain accepted: {beneficiary} claims {claim_region}."
+
+    if event_type == "counter_bargain_rejected":
+        beneficiary = event.get("beneficiary", "Unknown")
+        return f"Counter-bargain from {beneficiary} rejected."
 
     if event_type == "diplomatic_vassal_rebellion":
         nation = event.get("nation") or event.get("vassal", "Unknown")

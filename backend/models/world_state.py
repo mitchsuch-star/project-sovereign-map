@@ -226,6 +226,7 @@ class WorldState:
             "form_square": 1,  # Session 67: Form square formation (1 AP)
             "break_square": 0,  # Session 67: Break square (free action)
             "set_war_purpose": 0,  # WPS-A: political declaration, not an action
+            "repudiate_bargain": 0,  # WB-C: diplomatic, costs DP not AP
         }
 
         # ============================================================
@@ -598,6 +599,10 @@ class WorldState:
         self.next_commitment_id: int = 1
         # WB-B: Fulfillment reward 10-turn pair cap. Keyed "promiser|beneficiary" -> last fulfilled turn.
         self._bargain_fulfillment_log: Dict[str, int] = {}
+        # WB-C: Join opportunity tracking + reroll memory + pending declaration
+        self._next_join_opportunity_id: int = 1
+        self._war_entry_reroll_memory: Dict[str, Dict] = {}
+        self.pending_ally_entry_opportunities: List[Dict] = []
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3569,6 +3574,9 @@ class WorldState:
             },
             "next_commitment_id": int(self.next_commitment_id),
             "bargain_fulfillment_log": {k: int(v) for k, v in self._bargain_fulfillment_log.items()},
+            "next_join_opportunity_id": int(self._next_join_opportunity_id),
+            "war_entry_reroll_memory": {k: copy.deepcopy(v) for k, v in self._war_entry_reroll_memory.items()},
+            "pending_ally_entry_opportunities": [copy.deepcopy(o) for o in self.pending_ally_entry_opportunities],
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -3970,6 +3978,13 @@ class WorldState:
         world._bargain_fulfillment_log = {
             str(k): int(v) for k, v in data.get("bargain_fulfillment_log", {}).items()
         }
+        world._next_join_opportunity_id = int(data.get("next_join_opportunity_id", 1) or 1)
+        world._war_entry_reroll_memory = {
+            str(k): copy.deepcopy(v) for k, v in data.get("war_entry_reroll_memory", {}).items()
+        }
+        world.pending_ally_entry_opportunities = [
+            copy.deepcopy(o) for o in data.get("pending_ally_entry_opportunities", [])
+        ]
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }

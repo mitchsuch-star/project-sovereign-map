@@ -37,6 +37,7 @@ ACTION_DISPLAY = {
     "diplomatic_ultimatum": "delivers ultimatum to",  # PL-14
     "make_amends": "offers amends to",                # B-B7 (spec §8.6.1)
     "set_war_purpose": "sets war purpose against",    # WPS-A
+    "repudiate_bargain": "repudiates bargain with",  # WB-C
 }
 
 # ============================================================================
@@ -70,6 +71,7 @@ OBJECTION_DISPLAY = {
     "diplomatic_ultimatum": "issuing ultimatum",  # PL-14
     "make_amends": "offering amends",              # B-B7 (no marshal objections in v0.1)
     "set_war_purpose": "setting war purpose",      # WPS-A
+    "repudiate_bargain": "repudiating bargain",   # WB-C
 }
 
 # ============================================================================
@@ -103,6 +105,7 @@ DEFIANCE_DISPLAY = {
     "diplomatic_ultimatum": "issued ultimatum",  # PL-14
     "make_amends": "offered amends",             # B-B7 (no marshal defiance in v0.1)
     "set_war_purpose": "set war purpose",         # WPS-A
+    "repudiate_bargain": "repudiated bargain",   # WB-C
 }
 
 # ============================================================================

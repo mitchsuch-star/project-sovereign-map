@@ -79,8 +79,8 @@ class TestTypeWhitelist:
         assert result[1]["type"] == "recruitment"
 
     def test_fortyfive_types_in_constant(self):
-        """Verify the type set has exactly 72 entries after WB-B bargain lifecycle types."""
-        assert len(CAMPAIGN_LOG_TYPES) == 72
+        """Verify the type set has exactly 78 entries after WB-C war-entry types."""
+        assert len(CAMPAIGN_LOG_TYPES) == 78
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

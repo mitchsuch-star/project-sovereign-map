@@ -59,6 +59,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "recent_peace_ratifications": _build_recent_peace_ratifications(world),
         "balance_of_europe": _build_balance_of_europe(world),
         "talleyrand": _build_talleyrand(world),
+        "war_bargains": _build_war_bargains(world),
     }
 
 
@@ -900,3 +901,13 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         "diplomatic_history": diplomatic_history,
         "diplomatic_reliability": player_reliability,
     }
+
+
+# ============================================================================
+# WAR BARGAINS TAB (WB-C)
+# ============================================================================
+
+def _build_war_bargains(world) -> List[Dict[str, Any]]:
+    """Build war bargains section for the ledger."""
+    from backend.game_logic.diplomacy import get_live_bargains_for_ledger
+    return get_live_bargains_for_ledger(world)
