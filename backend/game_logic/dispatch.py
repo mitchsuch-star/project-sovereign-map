@@ -1217,6 +1217,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # Peace Deals BPH-A + BPH-D
     "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
     # WB-B — war bargain lifecycle
+    "bargain_ratified": "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}.",
     "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
     "bargain_fulfilled": "{promiser} honored the bargain: {claim_region} secured.",
     "bargain_breached": "{fault_nation} broke the bargain with {beneficiary} over {claim_region}.",
@@ -1274,6 +1275,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "nation_eliminated": "HIGH",
     "peace_ratified": "HIGH",
     # WB-B — war bargain lifecycle
+    "bargain_ratified": "MEDIUM",
     "bargain_triggered": "HIGH",
     "bargain_fulfilled": "HIGH",
     "bargain_breached": "HIGH",

@@ -1369,6 +1369,238 @@ class DiplomaticExecutor:
     # DIPLOMATIC DECLARE WAR
     # ════════════════════════════════════════════════════════════════════════════════
 
+    def _build_ally_entry_review_dialogue(
+        self,
+        world,
+        target_nation: str,
+        war_objective: str,
+        origin_episode_id: str,
+        opportunities: list,
+        bargain_warnings: list,
+    ) -> Dict:
+        """Build the WB-C blocking ally-entry review in the proposal_confirm shell."""
+        from backend.game_logic.diplomacy import generate_counter_bargain
+
+        summary = []
+        warnings = []
+        has_accept_path = False
+
+        for opp in opportunities:
+            beneficiary = opp.get("beneficiary", "")
+            named_enemy = opp.get("named_enemy", target_nation)
+            hard_blocks = opp.get("hard_blocks", []) or []
+            score = opp.get("war_entry_score", {}) or {}
+            band = score.get("band", "refuse")
+
+            if hard_blocks:
+                reason = str(hard_blocks[0])
+                summary.append(f"{beneficiary} cannot join against {named_enemy}: {reason}.")
+                warnings.append({
+                    "severity": "high",
+                    "text": f"{beneficiary} cannot join against {named_enemy}: {reason}.",
+                    "hard_block_reason": reason,
+                })
+                world.log_event({
+                    "type": "hard_block_surfaced",
+                    "turn": int(world.current_turn),
+                    "beneficiary": beneficiary,
+                    "target_enemy": named_enemy,
+                    "named_enemy": named_enemy,
+                    "hard_block_reason": reason,
+                    "origin_episode_id": origin_episode_id,
+                })
+                continue
+
+            if band == "join":
+                has_accept_path = True
+                summary.append(f"{beneficiary} will join against {named_enemy} without additional terms.")
+                continue
+
+            if band == "counter_bargain":
+                counter = generate_counter_bargain(
+                    world,
+                    opp.get("promiser", world.player_nation),
+                    beneficiary,
+                    named_enemy,
+                    reroll_key=opp.get("reroll_key", ""),
+                )
+                opp["counter_bargain"] = counter
+                if counter:
+                    has_accept_path = True
+                    demanded = counter.get("demanded_region", "a claim region")
+                    summary.append(f"{beneficiary} will join if France recognizes a claim on {demanded}.")
+                else:
+                    summary.append(f"{beneficiary} is open to terms, but no valid counter-bargain is available.")
+                continue
+
+            summary.append(f"{beneficiary} declines to join against {named_enemy} without terms.")
+
+        for warning in bargain_warnings:
+            beneficiary = warning.get("beneficiary", "")
+            text = warning.get("warning") or f"Active bargain with {beneficiary} targets {target_nation}."
+            warnings.append({"severity": "medium", "text": text})
+
+        if not summary:
+            summary.append(f"France is about to declare war on {target_nation}.")
+
+        options = []
+        if has_accept_path:
+            options.append({
+                "label": "Accept Ally Entry",
+                "description": "Resolve willing joins and counter-bargains, then declare war.",
+                "action": "ally_entry_accept_all",
+            })
+        options.append({
+            "label": "Proceed Without Allies",
+            "description": "Declare war without accepting any ally-entry terms.",
+            "action": "ally_entry_proceed_without",
+        })
+        options.append({
+            "label": "Back Out",
+            "description": "Cancel the declaration.",
+            "action": "ally_entry_back_out",
+        })
+
+        declaration_transaction_id = f"decl_{origin_episode_id or int(world.current_turn)}"
+        return {
+            "type": "proposal_confirm",
+            "target_nation": target_nation,
+            "proposal_type_display": "Ally Entry Review",
+            "proposal_terms_summary": summary,
+            "warnings": warnings,
+            "talleyrand_text": "Review allied entry before we commit the declaration.",
+            "options": options,
+            "context": {
+                "kind": "ally_entry_review",
+                "origin_episode_id": origin_episode_id,
+                "declaration_transaction_id": declaration_transaction_id,
+                "join_opportunities": opportunities,
+                "pending_declaration": {
+                    "declaration_transaction_id": declaration_transaction_id,
+                    "aggressor_nation": world.player_nation,
+                    "target_nation": target_nation,
+                    "pending_ally_invites": [o.get("id") for o in opportunities],
+                    "staged_war_state_snapshot": world.get_diplomatic_state(world.player_nation, target_nation),
+                    "turn_created": int(world.current_turn),
+                    "war_objective": war_objective,
+                },
+            },
+            "blocking": True,
+            "turn_created": int(world.current_turn),
+        }
+
+    def _resolve_ally_entry_review_choice(self, action: str, dialogue: Dict, world) -> Dict:
+        """Resolve WB-C ally-entry review, then resume the pending declaration."""
+        from backend.game_logic.diplomacy import accept_counter_bargain
+
+        context = dialogue.get("context", {}) or {}
+        pending = context.get("pending_declaration", {}) or {}
+        target_nation = pending.get("target_nation") or dialogue.get("target_nation", "")
+        war_objective = pending.get("war_objective") or dialogue.get("war_objective")
+        origin_episode_id = context.get("origin_episode_id", "")
+        opportunities = context.get("join_opportunities", []) or []
+
+        if action == "ally_entry_back_out":
+            world.pending_ally_entry_opportunities = []
+            world.dialogue_manager.pop()
+            world.log_event({
+                "type": "declaration_backed_out",
+                "turn": int(world.current_turn),
+                "promiser": world.player_nation,
+                "target_enemy": target_nation,
+                "named_enemy": target_nation,
+            })
+            return {
+                "success": True,
+                "message": f"Declaration against {target_nation} cancelled.",
+                "suppress_proposal_result_popup": True,
+            }
+
+        decisions = {}
+        accept_terms = action == "ally_entry_accept_all"
+        for opp in opportunities:
+            beneficiary = opp.get("beneficiary", "")
+            if not beneficiary:
+                continue
+            named_enemy = opp.get("named_enemy", target_nation)
+            hard_blocks = opp.get("hard_blocks", []) or []
+            score = opp.get("war_entry_score", {}) or {}
+            band = score.get("band", "refuse")
+
+            if hard_blocks:
+                decisions[beneficiary] = {
+                    "resolution": "blocked",
+                    "reason": str(hard_blocks[0]),
+                }
+                continue
+
+            if accept_terms and band == "join":
+                components = score.get("components", {}) or {}
+                bargain_bonus = int(components.get("matching_bargain", 0) or 0)
+                score_value = int(score.get("score", 0) or 0)
+                decisions[beneficiary] = {
+                    "resolution": "accept",
+                    "reason": "accepted offensive ally-entry request",
+                    "resolution_path": "offensive_bargain_helped" if bargain_bonus > 0 else "offensive_free_join",
+                    "was_bargain_decisive": bargain_bonus > 0 and (score_value - bargain_bonus) < 50,
+                }
+                continue
+
+            if accept_terms and band == "counter_bargain" and opp.get("counter_bargain"):
+                counter_result = accept_counter_bargain(
+                    world,
+                    opp["counter_bargain"],
+                    join_war=False,
+                )
+                bargain = counter_result.get("bargain", {})
+                world.log_event({
+                    "type": "counter_bargain_accepted",
+                    "turn": int(world.current_turn),
+                    "beneficiary": beneficiary,
+                    "named_enemy": named_enemy,
+                    "target_enemy": named_enemy,
+                    "claim_region": bargain.get("claim_term", {}).get("claim_region", ""),
+                    "demanded_region": opp["counter_bargain"].get("demanded_region", ""),
+                    "bargain_id": bargain.get("id"),
+                })
+                decisions[beneficiary] = {
+                    "resolution": "accept",
+                    "reason": "accepted war-entry counter-bargain",
+                    "resolution_path": "offensive_counter_bargain_accept",
+                    "was_bargain_decisive": True,
+                }
+                continue
+
+            decisions[beneficiary] = {
+                "resolution": "reject",
+                "reason": "ally declined or was not invited after review",
+            }
+            if band == "refuse":
+                world.log_event({
+                    "type": "ally_refused_free_join",
+                    "turn": int(world.current_turn),
+                    "beneficiary": beneficiary,
+                    "named_enemy": named_enemy,
+                    "target_enemy": named_enemy,
+                    "war_entry_score": score.get("score", 0),
+                    "decision_reason": "claim_obsolete",
+                })
+
+        world.pending_ally_entry_opportunities = []
+        world.dialogue_manager.pop()
+        return self._execute_diplomatic_declare_war(
+            {
+                "target_nation": target_nation,
+                "war_objective": war_objective,
+                "origin_episode_id": origin_episode_id,
+                "_treaty_warning_resolved": True,
+                "_ally_entry_resolved": True,
+                "confirmed_objection": True,
+                "ally_entry_decisions": decisions,
+            },
+            world,
+        )
+
     def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
         """Handle war declaration command (R10). Costs 1 DP.
 
@@ -1458,7 +1690,9 @@ class DiplomaticExecutor:
         # Treaty warning — declaring war on an ally requires confirmation
         diplo_key_treaty = world._make_diplo_key(player, target_nation)
         existing_treaty = world.active_treaties.get(diplo_key_treaty)
-        if existing_treaty and not world.diplomatic_objection_popup:
+        if (existing_treaty
+                and not diplomatic_data.get("_treaty_warning_resolved")
+                and not world.diplomatic_objection_popup):
             from backend.game_logic.diplomacy import _build_breach_warnings
             treaty_type = existing_treaty.get("type", "treaty")
             preview_episode_id = _allocate_episode_id(world)
@@ -1556,7 +1790,6 @@ class DiplomaticExecutor:
         # WB-C: Ally-entry preview with bargain warnings
         from backend.game_logic.diplomacy import (
             build_declaration_preview,
-            build_peace_bargain_warnings,
             _allocate_episode_id as _alloc_ep,
         )
         if not diplomatic_data.get("_ally_entry_resolved"):
@@ -1566,15 +1799,21 @@ class DiplomaticExecutor:
             )
             opportunities = decl_preview.get("ally_entry_opportunities", [])
             bargain_warnings = decl_preview.get("bargain_warnings", [])
-            has_actionable = any(
-                not o.get("hard_blocks") and o.get("war_entry_score", {}).get("band") in ("counter_bargain",)
-                for o in opportunities
-            )
-            if has_actionable or bargain_warnings:
+            if opportunities or bargain_warnings:
                 world.pending_ally_entry_opportunities = opportunities
+                dialogue = self._build_ally_entry_review_dialogue(
+                    world,
+                    target_nation,
+                    war_objective,
+                    preview_ep,
+                    opportunities,
+                    bargain_warnings,
+                )
+                world.dialogue_manager.replace(dialogue)
                 return {
                     "success": True,
                     "message": "Review ally entry opportunities before proceeding.",
+                    "diplomatic_dialogue": world.pending_diplomatic_dialogue,
                     "ally_entry_preview": {
                         "target_nation": target_nation,
                         "war_objective": war_objective,
@@ -1593,6 +1832,8 @@ class DiplomaticExecutor:
             casus_belli=world.casus_belli.get(world._make_diplo_key(player, target_nation), False),
             origin_episode_id=diplomatic_data.get("origin_episode_id"),
             war_objective=war_objective,
+            ally_entry_decisions=diplomatic_data.get("ally_entry_decisions", {}),
+            suppress_unresolved_offensive_cascade=True,
         )
 
         if result.get("success"):
@@ -1726,6 +1967,28 @@ class DiplomaticExecutor:
     # REPUDIATE BARGAIN (WB-C §8.9.C)
     # ════════════════════════════════════════════════════════════════════════════════
 
+    def _confirm_repudiate_bargain_from_dialogue(self, selected: Dict, dialogue: Dict, world) -> Dict:
+        """Spend the AP and resolve a blocking repudiate confirmation."""
+        from backend.game_logic.diplomacy import repudiate_bargain as _repudiate
+
+        bargain_id = selected.get("bargain_id") or dialogue.get("context", {}).get("bargain_id")
+        if not bargain_id:
+            world.dialogue_manager.pop()
+            return {"success": False, "message": "No bargain was selected for repudiation."}
+        action_cost = int(world.get_action_cost("repudiate_bargain"))
+        if world.actions_remaining < action_cost:
+            return {
+                "success": False,
+                "message": f"Not enough actions! Need {action_cost}, have {world.actions_remaining}.",
+            }
+
+        world.dialogue_manager.pop()
+        result = _repudiate(world, str(bargain_id))
+        if result.get("success"):
+            for _ in range(action_cost):
+                world.use_action("repudiate_bargain")
+        return result
+
     def _execute_repudiate_bargain(self, diplomatic_data: Dict, world) -> Dict:
         """Handle explicit bargain repudiation. Routes into WB-B breach rules."""
         from backend.game_logic.diplomacy import (
@@ -1764,29 +2027,45 @@ class DiplomaticExecutor:
             bargain = commitments.get(str(bargain_id), {})
             beneficiary = bargain.get("beneficiary", "Unknown")
             claim_region = bargain.get("claim_term", {}).get("claim_region", "Unknown")
-            return {
-                "success": True,
-                "message": (
+            dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": beneficiary,
+                "proposal_type_display": "Repudiate Bargain",
+                "proposal_terms_summary": [
+                    f"Break the bargain with {beneficiary} over {claim_region}.",
+                    "France takes the breach penalties immediately.",
+                ],
+                "warnings": [{
+                    "severity": "critical",
+                    "text": "Repudiation marks France as the fault nation and records a betrayal strike.",
+                }],
+                "talleyrand_text": (
                     f"Sire, repudiating our bargain with {beneficiary} over {claim_region} "
                     f"will mark us as oath-breakers. Shall I proceed?"
                 ),
-                "repudiate_bargain_confirm": {
-                    "bargain_id": bargain_id,
-                    "beneficiary": beneficiary,
-                    "claim_region": claim_region,
-                },
+                "context": {"bargain_id": str(bargain_id)},
+                "options": [
+                    {
+                        "label": "Repudiate Bargain",
+                        "description": "Break the bargain and accept the fallout.",
+                        "action": "confirm_repudiate_bargain",
+                        "bargain_id": str(bargain_id),
+                    },
+                    {"label": "Reconsider", "description": "Leave the bargain intact.", "action": "reconsider"},
+                ],
+                "blocking": True,
+                "turn_created": int(world.current_turn),
+            }
+            world.dialogue_manager.replace(dialogue)
+            return {
+                "success": True,
+                "message": dialogue["talleyrand_text"],
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
                 "awaiting_diplomatic_response": True,
+                "no_action_cost": True,
             }
 
         result = _repudiate(world, bargain_id)
-        if result.get("success"):
-            world.log_event({
-                "type": "bargain_repudiated",
-                "turn": int(world.current_turn),
-                "bargain_id": bargain_id,
-                "beneficiary": result.get("breach_event", {}).get("beneficiary", ""),
-                "claim_region": result.get("breach_event", {}).get("claim_region", ""),
-            })
         return result
 
     # ════════════════════════════════════════════════════════════════════════════════
@@ -2187,7 +2466,11 @@ class DiplomaticExecutor:
     def _process_dialogue_choice(self, action: str, selected: Dict,
                                   dialogue: Dict, world) -> Dict:
         """Process a player's dialogue choice."""
-        from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
+        from backend.game_logic.diplomacy import (
+            get_available_war_objectives,
+            get_dp_cost,
+            get_transition_dp_cost,
+        )
         from backend.game_logic.diplomatic_dialogue import (
             MISSION_DP_COSTS, MISSION_DESCRIPTIONS, generate_dialogue,
         )
@@ -2218,6 +2501,12 @@ class DiplomaticExecutor:
                 "suppress_proposal_result_popup": True,
             }
 
+        elif action in ("ally_entry_accept_all", "ally_entry_proceed_without", "ally_entry_back_out"):
+            return self._resolve_ally_entry_review_choice(action, dialogue, world)
+
+        elif action == "confirm_repudiate_bargain":
+            return self._confirm_repudiate_bargain_from_dialogue(selected, dialogue, world)
+
         elif action == "select_war_objective":
             # WPS-A: Player selected objective from War Purpose popup
             world.dialogue_manager.pop()
@@ -2239,31 +2528,33 @@ class DiplomaticExecutor:
 
         elif action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty
-            from backend.game_logic.diplomacy import declare_war
             world.dialogue_manager.pop()
             fw_target = selected.get("target_nation") or target_nation
             if not fw_target:
                 return {"success": False, "message": "No target nation specified."}
-            fw_objective = dialogue.get("war_objective")
-            # DP check (1 DP)
-            dp_cost = 1
-            if world.diplomatic_points < dp_cost:
-                return {
-                    "success": False,
-                    "message": f"Insufficient Diplomatic Points. War declaration costs {dp_cost} DP, but we have {int(world.diplomatic_points)}.",
-                }
-            result = declare_war(world, world.player_nation, fw_target,
-                                 casus_belli=world.casus_belli.get(
-                                     world._make_diplo_key(world.player_nation, fw_target), False),
-                                 origin_episode_id=(
-                                     dialogue.get("origin_episode_id")
-                                     or (dialogue.get("breach_preview") or {}).get("episode_id")
-                                 ),
-                                 war_objective=fw_objective)
-            if result.get("success"):
-                world.diplomatic_points -= dp_cost
-                self._apply_diplomatic_trust_reactions(world, "war_declaration", fw_target)
-            return result
+            fw_objective = selected.get("war_objective") or dialogue.get("war_objective")
+            if not fw_objective:
+                available_objectives = [
+                    obj for obj in get_available_war_objectives(world, world.player_nation, fw_target)
+                    if obj.get("available")
+                ]
+                preferred = next(
+                    (obj for obj in available_objectives if obj.get("type") == "conquest"),
+                    available_objectives[0] if available_objectives else {},
+                )
+                fw_objective = preferred.get("type")
+            return self._execute_diplomatic_declare_war(
+                {
+                    "target_nation": fw_target,
+                    "war_objective": fw_objective,
+                    "origin_episode_id": (
+                        dialogue.get("origin_episode_id")
+                        or (dialogue.get("breach_preview") or {}).get("episode_id")
+                    ),
+                    "_treaty_warning_resolved": True,
+                },
+                world,
+            )
 
         elif action == "force_break_treaty":
             # Player confirmed manual treaty break after the reliability preview.

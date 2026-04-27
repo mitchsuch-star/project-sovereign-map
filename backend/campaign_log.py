@@ -134,11 +134,14 @@ CAMPAIGN_LOG_TYPES = {
     "forced_alliance_imposed",
     "vassal_liberated",
     # WB-B — war bargain lifecycle
+    "bargain_ratified",
     "bargain_triggered",
     "bargain_fulfilled",
     "bargain_breached",
     "bargain_voided",
     # WB-C — war-entry integration
+    "hard_block_surfaced",
+    "ally_refused_free_join",
     "declaration_backed_out",
     "bargain_repudiated",
     "ally_entry_accepted",
@@ -233,11 +236,14 @@ CATEGORY_MAP = {
     "forced_alliance_imposed": "diplomacy",
     "vassal_liberated": "diplomacy",
     # WB-B — war bargain lifecycle
+    "bargain_ratified": "diplomacy",
     "bargain_triggered": "diplomacy",
     "bargain_fulfilled": "diplomacy",
     "bargain_breached": "diplomacy",
     "bargain_voided": "diplomacy",
     # WB-C — war-entry integration
+    "hard_block_surfaced": "diplomacy",
+    "ally_refused_free_join": "diplomacy",
     "declaration_backed_out": "diplomacy",
     "bargain_repudiated": "diplomacy",
     "ally_entry_accepted": "diplomacy",
@@ -841,6 +847,13 @@ def format_event_oneliner(event: dict) -> str:
             return f"Liberation: {vassal} freed from {former_lord} by {liberator}"
         return f"Liberation: {vassal} freed from vassalage by {liberator}"
 
+    if event_type == "bargain_ratified":
+        promiser = event.get("promiser", "France")
+        beneficiary = event.get("beneficiary", "Unknown")
+        target_enemy = event.get("target_enemy", "Unknown")
+        claim_region = event.get("claim_region", "Unknown")
+        return f"{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}."
+
     if event_type == "bargain_triggered":
         beneficiary = event.get("beneficiary", "Unknown")
         target_enemy = event.get("target_enemy", "Unknown")
@@ -864,8 +877,19 @@ def format_event_oneliner(event: dict) -> str:
         end_reason = (event.get("end_reason") or "external").replace("_", " ")
         return f"Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})."
 
+    if event_type == "hard_block_surfaced":
+        beneficiary = event.get("beneficiary", "Unknown")
+        target_enemy = event.get("target_enemy") or event.get("named_enemy", "Unknown")
+        reason = str(event.get("hard_block_reason", "blocked")).replace("_", " ")
+        return f"{beneficiary} cannot join against {target_enemy}: {reason}."
+
+    if event_type == "ally_refused_free_join":
+        beneficiary = event.get("beneficiary", "Unknown")
+        target_enemy = event.get("target_enemy") or event.get("named_enemy", "Unknown")
+        return f"{beneficiary} declined to join against {target_enemy} without terms."
+
     if event_type == "declaration_backed_out":
-        named_enemy = event.get("named_enemy", "Unknown")
+        named_enemy = event.get("named_enemy") or event.get("target_enemy", "Unknown")
         return f"War declaration against {named_enemy} cancelled."
 
     if event_type == "bargain_repudiated":

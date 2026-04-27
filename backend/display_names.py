@@ -167,6 +167,7 @@ CLAUSE_TYPE_DISPLAY = {
     "cavalry_manpower": "Cavalry reserves",
     "manpower_artillery": "Artillery reserves",
     "artillery_manpower": "Artillery reserves",
+    "war_bargain": "War bargain",
 }
 
 PROPOSAL_TYPE_SUMMARY_DISPLAY = {
@@ -484,6 +485,13 @@ DECISION_REASON_DISPLAY = {
     "shared_enemy_survival": "shared-enemy survival",
     "unknown_baseline": "unknown baseline",
     "war_overload": "war exhaustion",
+    "anti_spam": "existing bargain",
+    "cooldown_active": "bargain cooldown",
+    "hard_blocked": "hard block",
+    "no_feasible_target": "no feasible target",
+    "no_valid_region": "no valid claim region",
+    "participation_blocked": "participation blocked",
+    "strength_insufficient": "insufficient strength",
 }
 
 
@@ -590,6 +598,15 @@ def _format_clause_detail(clause) -> str:
         return _format_display_value(clause.get("value"))
     if "amount" in clause:
         return _format_display_value(clause.get("amount"))
+    if clause.get("type") == "war_bargain":
+        named_enemy = clause.get("named_enemy", "")
+        claim_region = clause.get("claim_region", "")
+        parts = []
+        if named_enemy:
+            parts.append(f"against {named_enemy}")
+        if claim_region:
+            parts.append(f"claim on {claim_region}")
+        return ", ".join(parts)
     return ""
 
 

@@ -564,6 +564,44 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # Build human-readable clause descriptions
     dialogue["proposal_terms_summary"] = _format_terms_for_display(terms, proposal_type, target_nation)
 
+    war_bargain_clauses = [
+        clause for clause in (
+            list(terms.get("sweeteners", []))
+            + list(terms.get("demands", []))
+            + list(terms.get("clauses", []))
+        )
+        if isinstance(clause, dict) and clause.get("type") == "war_bargain"
+    ]
+    if war_bargain_clauses:
+        try:
+            from backend.game_logic.diplomacy import build_bargain_review
+            review = build_bargain_review(
+                world,
+                war_bargain_clauses[0],
+                {
+                    "type": terms.get("type", proposal_type),
+                    "proposer_nation": player_nation,
+                    "target_nation": target_nation,
+                    "sweeteners": terms.get("sweeteners", []),
+                    "demands": terms.get("demands", []),
+                    "clauses": terms.get("clauses", []),
+                },
+            )
+            dialogue["bargain_review"] = review
+            dialogue.setdefault("proposal_terms_summary", []).append(
+                "Bargain forecast: "
+                + str(review.get("war_entry_forecast_display", review.get("war_entry_forecast_band", "")))
+            )
+            if review.get("is_decisive"):
+                dialogue["proposal_terms_summary"].append("This bargain is currently decisive for ally entry.")
+            for warning in review.get("contradiction_warnings", []):
+                dialogue.setdefault("warnings", []).append({
+                    "severity": "high",
+                    "text": str(warning),
+                })
+        except Exception:
+            dialogue["bargain_review"] = {"error": "Unable to build bargain review"}
+
     # BPH-A: Attach annotated terms with ownership fields for Godot rendering
     from backend.game_logic.diplomatic_templates import annotate_peace_terms
     dialogue["annotated_terms"] = annotate_peace_terms(terms, player_nation, target_nation)
@@ -668,7 +706,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         proposal_type=proposal_type,
     )
     if warnings:
-        dialogue["warnings"] = warnings
+        dialogue["warnings"] = list(dialogue.get("warnings", [])) + warnings
 
     return dialogue
 

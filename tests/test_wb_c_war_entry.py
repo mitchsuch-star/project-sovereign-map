@@ -17,7 +17,9 @@ from backend.game_logic.diplomacy import (
     ai_should_propose_bargain,
     ai_evaluate_war_entry,
     _hash_war_entry_inputs,
+    _betrayal_key,
     create_war_bargain_commitment,
+    declare_war,
     set_diplomatic_state,
     _get_live_bargains,
     WAR_ENTRY_BASE,
@@ -29,6 +31,7 @@ from backend.game_logic.diplomacy import (
     BARGAIN_BREACH_COOLDOWN_TURNS,
 )
 from backend.models.world_state import WorldState
+from backend.commands.diplomatic_executor import DiplomaticExecutor
 
 
 def _wbc_world() -> WorldState:
@@ -142,6 +145,14 @@ class TestWarEntryScore:
         result = compute_war_entry_score(world, "France", "Prussia", "Britain")
         assert result["components"]["betrayal_strikes"] == -24
 
+    def test_betrayal_penalty_uses_directional_key(self):
+        world = _wbc_world()
+        world.betrayal_history[_betrayal_key("France", "Britain")] = {
+            "strikes": [{"severity": "high"}, {"severity": "medium"}],
+        }
+        result = compute_war_entry_score(world, "France", "Britain", "Prussia")
+        assert result["components"]["betrayal_strikes"] == -16
+
     def test_war_load_one_war(self):
         world = _wbc_world()
         _setup_war(world, "Prussia", "Austria")
@@ -203,19 +214,28 @@ class TestHardBlocks:
 
     def test_hard_reject_posture_offensive_only(self):
         world = _wbc_world()
-        pair_key = world._make_diplo_key("Prussia", "France")
-        world.betrayal_history[pair_key] = {
+        world.betrayal_history[_betrayal_key("France", "Britain")] = {
             "strikes": [{"severity": "high"}] * 3,
         }
         blocks_off = get_ally_entry_hard_blocks(
-            world, "France", "Prussia", "Britain", is_offensive=True,
+            world, "France", "Britain", "Prussia", is_offensive=True,
         )
         assert "hard_reject_posture" in blocks_off
 
         blocks_def = get_ally_entry_hard_blocks(
-            world, "France", "Prussia", "Britain", is_offensive=False,
+            world, "France", "Britain", "Prussia", is_offensive=False,
         )
         assert "hard_reject_posture" not in blocks_def
+
+    def test_hard_reject_ignores_wrong_direction_sorted_key(self):
+        world = _wbc_world()
+        world.betrayal_history[world._make_diplo_key("France", "Britain")] = {
+            "strikes": [{"severity": "high"}] * 3,
+        }
+        blocks = get_ally_entry_hard_blocks(
+            world, "France", "Britain", "Prussia", is_offensive=True,
+        )
+        assert "hard_reject_posture" not in blocks
 
     def test_no_participation_path(self):
         world = _wbc_world()
@@ -328,6 +348,64 @@ class TestDeclarationPreview:
 
 
 # ═══════════════════════════════════════════════════════
+class TestWarEntryCommandIntegration:
+
+    def test_declare_war_surfaces_ally_entry_dialogue(self):
+        world = _wbc_world()
+        set_diplomatic_state(world, "France", "Britain", "PEACE", "setup")
+        _setup_alliance(world)
+        world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+        world.nation_relations[world._make_diplo_key("Prussia", "Britain")] = -100
+        executor = DiplomaticExecutor(None)
+
+        result = executor._execute_diplomatic_declare_war(
+            {"target_nation": "Britain", "war_objective": "conquest"},
+            world,
+        )
+
+        assert result["success"] is True
+        assert result["awaiting_diplomatic_response"] is True
+        dialogue = result["diplomatic_dialogue"]
+        assert dialogue["context"]["kind"] == "ally_entry_review"
+        assert any(o.get("beneficiary") == "Prussia" for o in dialogue["context"]["join_opportunities"])
+
+    def test_accept_ally_entry_then_declare_war_joins_ally(self):
+        world = _wbc_world()
+        set_diplomatic_state(world, "France", "Britain", "PEACE", "setup")
+        _setup_alliance(world)
+        world.nation_relations[world._make_diplo_key("France", "Prussia")] = 100
+        world.nation_relations[world._make_diplo_key("Prussia", "Britain")] = -100
+        executor = DiplomaticExecutor(None)
+        executor._execute_diplomatic_declare_war(
+            {"target_nation": "Britain", "war_objective": "conquest"},
+            world,
+        )
+
+        result = executor.handle_diplomatic_dialogue_response(1, {"world": world})
+
+        assert result["success"] is True
+        assert world.is_at_war("France", "Britain")
+        assert world.is_at_war("Prussia", "Britain")
+        assert any(c.get("attacker_ally") == "Prussia" for c in result["cascade"])
+
+    def test_suppressed_offensive_cascade_requires_explicit_decision(self):
+        world = _wbc_world()
+        set_diplomatic_state(world, "France", "Britain", "PEACE", "setup")
+        _setup_alliance(world)
+
+        result = declare_war(
+            world,
+            "France",
+            "Britain",
+            war_objective="conquest",
+            suppress_unresolved_offensive_cascade=True,
+        )
+
+        assert result["success"] is True
+        assert not world.is_at_war("Prussia", "Britain")
+        assert any(e.get("path") == "not_requested" for e in result["war_entry_ledger"])
+
+
 # BARGAIN REVIEW (3 tests)
 # ═══════════════════════════════════════════════════════
 
@@ -394,6 +472,9 @@ class TestCounterBargain:
         assert result["success"] is True
         bargain = result["bargain"]
         assert bargain["status"] == "triggered"
+        event_types = [e.get("type") for e in world.event_log]
+        assert "bargain_ratified" in event_types
+        assert "bargain_triggered" in event_types
 
     def test_reroll_determinism(self):
         world = _wbc_world()
@@ -454,6 +535,26 @@ class TestRepudiateBargain:
         bargain = _setup_bargain(world)
         repudiate_bargain(world, str(bargain["id"]))
         assert bargain.get("cooldown_until_turn", 0) > world.current_turn
+
+    def test_repudiate_confirmation_uses_dialogue_and_costs_action(self):
+        world = _wbc_world()
+        _setup_bargain(world)
+        world.actions_remaining = 2
+        executor = DiplomaticExecutor(None)
+
+        result = executor._execute_repudiate_bargain(
+            {"action": "repudiate_bargain", "target_nation": "Prussia"},
+            world,
+        )
+        assert result["success"] is True
+        assert result["no_action_cost"] is True
+        assert result["diplomatic_dialogue"]["options"][0]["action"] == "confirm_repudiate_bargain"
+
+        response = executor.handle_diplomatic_dialogue_response(1, {"world": world})
+        assert response["success"] is True
+        assert world.actions_remaining == 1
+        assert any(e.get("type") == "bargain_breached" for e in world.event_log)
+        assert not any(e.get("type") == "bargain_repudiated" for e in world.event_log)
 
 
 # ═══════════════════════════════════════════════════════
@@ -615,6 +716,7 @@ class TestActionWiring:
     def test_wbc_event_types_in_campaign_log(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES, CATEGORY_MAP
         wbc_types = {
+            "bargain_ratified", "hard_block_surfaced", "ally_refused_free_join",
             "declaration_backed_out", "bargain_repudiated",
             "ally_entry_accepted", "ally_entry_refused",
             "counter_bargain_accepted", "counter_bargain_rejected",
@@ -627,3 +729,7 @@ class TestActionWiring:
         from backend.commands.parser import CommandParser
         parser = CommandParser()
         assert "repudiate_bargain" in parser.valid_actions
+
+    def test_repudiate_action_costs_one_ap(self):
+        world = _wbc_world()
+        assert world.get_action_cost("repudiate_bargain") == 1

@@ -226,7 +226,7 @@ class WorldState:
             "form_square": 1,  # Session 67: Form square formation (1 AP)
             "break_square": 0,  # Session 67: Break square (free action)
             "set_war_purpose": 0,  # WPS-A: political declaration, not an action
-            "repudiate_bargain": 0,  # WB-C: diplomatic, costs DP not AP
+            "repudiate_bargain": 1,  # WB-C: explicit breach action
         }
 
         # ============================================================

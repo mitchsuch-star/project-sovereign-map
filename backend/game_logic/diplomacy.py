@@ -4633,6 +4633,7 @@ def create_war_bargain_commitment(
     if not hasattr(world, "diplomatic_commitments"):
         world.diplomatic_commitments = {}
     world.diplomatic_commitments[str(cid)] = record
+    _emit_bargain_event(world, record, "bargain_ratified")
     return record
 
 
@@ -4950,6 +4951,8 @@ def _void_bargain(world, bargain: Dict, void_info: Dict) -> None:
     bargain["end_reason"] = void_info.get("reason", "external")
     bargain["end_reason_family"] = void_info.get("family", "obsolescence_or_external")
     bargain["fault_nation"] = void_info.get("fault_nation")
+    if void_info.get("decision_reason"):
+        bargain["decision_reason"] = void_info.get("decision_reason")
 
     # Cooldown: 4 turns
     bargain["cooldown_until_turn"] = int(world.current_turn) + BARGAIN_VOID_COOLDOWN_TURNS
@@ -5075,6 +5078,7 @@ def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
         "end_reason": bargain.get("end_reason"),
         "end_reason_family": bargain.get("end_reason_family"),
         "fault_nation": bargain.get("fault_nation"),
+        "decision_reason": bargain.get("decision_reason", ""),
         "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
@@ -5091,6 +5095,7 @@ def _emit_bargain_event(world, bargain: Dict, event_type: str) -> Dict:
         "claim_region": claim_region,
         "end_reason": bargain.get("end_reason", ""),
         "fault_nation": bargain.get("fault_nation", ""),
+        "decision_reason": bargain.get("decision_reason", ""),
         "episode_id": bargain.get("breach_episode_id", ""),
         "actor_nation": promiser,
         "target_nation": beneficiary,
@@ -5367,11 +5372,7 @@ def get_ally_entry_hard_blocks(
 
     # hard_reject_posture (offensive only)
     if is_offensive:
-        history = getattr(world, "betrayal_history", {})
-        pair_key = world._make_diplo_key(beneficiary, promiser)
-        record = history.get(pair_key, {})
-        strikes = record.get("strikes", [])
-        if len(strikes) >= 3:
+        if _count_betrayal_strikes_against(world, beneficiary, promiser) >= 3:
             blocks.append("hard_reject_posture")
 
     # No plausible participation path
@@ -5459,6 +5460,15 @@ def resolve_join_opportunity(
 
         result["joined"] = True
         result["message"] = f"{beneficiary} enters the war against {named_enemy}."
+        if world.is_at_war(promiser, named_enemy):
+            _trigger_matching_war_entry_bargains(
+                world,
+                promiser,
+                beneficiary,
+                named_enemy,
+                resolution_path="offensive_free_join",
+                was_bargain_decisive=False,
+            )
 
         _append_war_entry(
             getattr(world, "_current_war_entry_entries", None),
@@ -5494,6 +5504,10 @@ def resolve_join_opportunity(
             "beneficiary": beneficiary,
             "named_enemy": named_enemy,
         })
+
+    else:
+        result["success"] = False
+        result["message"] = f"Unknown ally-entry resolution: {resolution}."
 
     return result
 
@@ -5613,10 +5627,7 @@ def build_bargain_review(world, bargain_clause: Dict, proposal: Dict) -> Dict:
                 f"Existing bargain targets {existing.get('target_enemy', '')}, new targets {named_enemy}"
             )
 
-    history = getattr(world, "betrayal_history", {})
-    pair_key = world._make_diplo_key(beneficiary, promiser)
-    record = history.get(pair_key, {})
-    strike_count = len(record.get("strikes", []))
+    strike_count = _count_betrayal_strikes_against(world, beneficiary, promiser)
     would_trigger_hard_reject = strike_count >= 2
 
     return {
@@ -5720,19 +5731,32 @@ def _hash_war_entry_inputs(world, promiser: str, beneficiary: str, named_enemy: 
     """Snapshot key inputs for reroll determinism comparison."""
     treaty_state = world.get_diplomatic_state(promiser, beneficiary)
     relation = world.nation_relations.get(world._make_diplo_key(promiser, beneficiary), 0)
+    enemy_relation = world.nation_relations.get(world._make_diplo_key(beneficiary, named_enemy), 0)
     war_count = _count_active_wars(world, beneficiary)
+    war_exhaustion = _get_war_exhaustion(world, beneficiary)
     strikes = _count_betrayal_strikes_against(world, beneficiary, promiser)
     reliability = int(getattr(world, "diplomatic_reliability", {}).get(promiser, 50))
+    opposition = ",".join(sorted(get_bargain_opposition_pairs(world, promiser, beneficiary)))
+    participation = int(_has_bargain_participation_access(world, promiser, beneficiary, named_enemy))
+    enemy_regions = ",".join(sorted(
+        r_name for r_name in world.regions
+        if _region_is_held_by_enemy_or_subject(world, r_name, named_enemy)
+    ))
     coalition = getattr(world, "active_coalition", None)
     coalition_key = ""
     if coalition:
         coalition_key = f"{coalition.get('target_nation', '')}|{','.join(sorted(coalition.get('members', [])))}"
-    return f"{treaty_state}|{relation}|{war_count}|{strikes}|{reliability}|{coalition_key}"
+    return (
+        f"{treaty_state}|{relation}|{enemy_relation}|{war_count}|{war_exhaustion}|"
+        f"{strikes}|{reliability}|{opposition}|{participation}|{enemy_regions}|{coalition_key}"
+    )
 
 
 def accept_counter_bargain(
     world,
     counter: Dict,
+    *,
+    join_war: bool = True,
 ) -> Dict:
     """Accept a counter-bargain — creates a triggered war_bargain and ally joins."""
     promiser = counter.get("promiser", "")
@@ -5747,10 +5771,23 @@ def accept_counter_bargain(
     )
     bargain["status"] = "triggered"
     bargain["triggered_turn"] = int(world.current_turn)
+    bargain["trigger_context"] = {
+        "resolution_path": "offensive_counter_bargain_accept",
+        "was_bargain_decisive": True,
+        "counter_bargain_context": copy.deepcopy(counter),
+    }
+    _emit_bargain_event(world, bargain, "bargain_triggered")
+
+    joined = False
+    if join_war and beneficiary and named_enemy and not world.is_at_war(beneficiary, named_enemy):
+        set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "counter_bargain_ally_entry")
+        world.modify_nation_relation(beneficiary, named_enemy, -20)
+        joined = True
 
     return {
         "success": True,
         "bargain": bargain,
+        "joined": joined,
         "message": f"{beneficiary} demands recognition of their claim to {claim_region}. Bargain accepted — {beneficiary} joins the war.",
     }
 
@@ -5800,12 +5837,42 @@ def get_live_bargains_for_ledger(world) -> List[Dict]:
 # AI WAR BARGAIN RULES — WB-C (§11)
 # ═══════════════════════════════════════════════════════
 
+def _trigger_matching_war_entry_bargains(
+    world,
+    promiser: str,
+    beneficiary: str,
+    named_enemy: str,
+    *,
+    resolution_path: str,
+    was_bargain_decisive: bool = False,
+) -> List[Dict]:
+    """Mark live bargains triggered once the ally actually enters the named war."""
+    events = []
+    for bargain in _get_live_bargains(world):
+        if bargain.get("status") != "active":
+            continue
+        if not (
+            bargain.get("promiser") == promiser
+            and bargain.get("beneficiary") == beneficiary
+            and bargain.get("target_enemy") == named_enemy
+        ):
+            continue
+        bargain["status"] = "triggered"
+        bargain["triggered_turn"] = int(world.current_turn)
+        bargain["trigger_context"] = {
+            "resolution_path": resolution_path,
+            "was_bargain_decisive": bool(was_bargain_decisive),
+        }
+        events.append(_emit_bargain_event(world, bargain, "bargain_triggered"))
+    return events
+
+
 BARGAIN_AI_COOLDOWN_TURNS = 5
 BARGAIN_AI_DECISION_REASONS = {
     "claim_trade", "counterparty_reversal", "claim_obsolete",
     "strategic_interest", "no_valid_region", "participation_blocked",
     "anti_spam", "cooldown_active", "no_feasible_target",
-    "strength_insufficient", "contradiction",
+    "strength_insufficient", "contradiction", "hard_blocked",
 }
 
 
@@ -5836,9 +5903,21 @@ def ai_should_propose_bargain(
     if named_enemy not in opposition:
         return {"feasible": False, "decision_reason": "no_feasible_target", "claim_region": None}
 
-    # Participation access
-    if not _has_bargain_participation_access(world, proposer, target_nation, named_enemy):
-        return {"feasible": False, "decision_reason": "participation_blocked", "claim_region": None}
+    # WB-C hard blocks: armistice, enemy-side war state, anti-coalition,
+    # hard-reject, and participation access all gate bargain feasibility.
+    hard_blocks = get_ally_entry_hard_blocks(
+        world,
+        proposer,
+        target_nation,
+        named_enemy,
+        is_offensive=True,
+    )
+    if hard_blocks:
+        if "hard_reject_posture" in hard_blocks:
+            return {"feasible": False, "decision_reason": "counterparty_reversal", "claim_region": None}
+        if "no_participation_path" in hard_blocks:
+            return {"feasible": False, "decision_reason": "participation_blocked", "claim_region": None}
+        return {"feasible": False, "decision_reason": "hard_blocked", "claim_region": None}
 
     # Target must have at least one marshal and sufficient strength
     target_marshals = [
@@ -5859,10 +5938,7 @@ def ai_should_propose_bargain(
             return {"feasible": False, "decision_reason": "strength_insufficient", "claim_region": None}
 
     # Betrayal memory refusal
-    history = getattr(world, "betrayal_history", {})
-    pair_key = world._make_diplo_key(target_nation, proposer)
-    record = history.get(pair_key, {})
-    if len(record.get("strikes", [])) >= 3:
+    if _count_betrayal_strikes_against(world, target_nation, proposer) >= 3:
         return {"feasible": False, "decision_reason": "counterparty_reversal", "claim_region": None}
 
     # Find valid claim region
@@ -5945,7 +6021,9 @@ def ai_evaluate_war_entry(
                     "reason": "ai_refusal",
                     "family": "counterparty_reversal",
                     "fault_nation": beneficiary,
+                    "decision_reason": "counterparty_reversal",
                 })
+                _emit_bargain_event(world, b, "bargain_voided")
         return {
             "join": False,
             "counter_bargain": False,
@@ -6882,6 +6960,8 @@ def declare_war(
     casus_belli: bool = False,
     origin_episode_id: str = None,
     war_objective: str = None,
+    ally_entry_decisions: Optional[Dict[str, Dict]] = None,
+    suppress_unresolved_offensive_cascade: bool = False,
 ) -> Dict:
     """Declare war: transition to WAR, apply penalties, handle cascade.
 
@@ -7204,6 +7284,8 @@ def declare_war(
         root_episode_id=episode_id,
         root_aggressor=aggressor,
         war_entry_entries=war_entry_entries,
+        ally_entry_decisions=ally_entry_decisions,
+        suppress_unresolved_offensive_cascade=suppress_unresolved_offensive_cascade,
     )
     _flush_hegemony_signal_defer(world, "declare_war")
     world.log_event({
@@ -7307,6 +7389,8 @@ def _process_war_cascade(
     root_episode_id: str = None,
     root_aggressor: str = None,
     war_entry_entries: Optional[List[Dict]] = None,
+    ally_entry_decisions: Optional[Dict[str, Dict]] = None,
+    suppress_unresolved_offensive_cascade: bool = False,
 ) -> List[Dict]:
     """Process DG-4 direct-only call-to-arms when war is declared.
 
@@ -7324,6 +7408,7 @@ def _process_war_cascade(
     """
     if processed is None:
         processed = {aggressor, target}
+    ally_entry_decisions = ally_entry_decisions or {}
 
     # Fault for any rupture caused by the cascade is the root aggressor, not
     # whichever nation's treaty happens to flip in a recursive step.
@@ -7474,9 +7559,45 @@ def _process_war_cascade(
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
             if not world.is_at_war(nation, target):
-                decision = _resolve_offensive_call_path(
-                    world, aggressor=aggressor, target=target, callee=nation,
-                )
+                entry_decision = ally_entry_decisions.get(nation, {})
+                if suppress_unresolved_offensive_cascade and not entry_decision:
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="not_requested",
+                        side="attacker",
+                        reason="offensive ally entry requires explicit resolution",
+                        treaty_state=state_with_aggressor,
+                    )
+                    continue
+
+                if entry_decision:
+                    resolution = str(entry_decision.get("resolution", "reject"))
+                    if resolution in ("reject", "refuse", "blocked"):
+                        path = "hard_illegal" if resolution == "blocked" else "refused_free_join"
+                        reason = entry_decision.get("reason", "ally entry declined")
+                        _append_war_entry(
+                            war_entry_entries,
+                            nation=nation,
+                            path=path,
+                            side="attacker",
+                            reason=reason,
+                            treaty_state=state_with_aggressor,
+                        )
+                        continue
+                    decision = {
+                        "side": "attacker",
+                        "caller": aggressor,
+                        "callee": nation,
+                        "enemy": target,
+                        "path": "honored",
+                        "reason": entry_decision.get("reason", "accepted offensive ally-entry request"),
+                    }
+                else:
+                    decision = _resolve_offensive_call_path(
+                        world, aggressor=aggressor, target=target, callee=nation,
+                    )
+
                 if decision["path"] == "hard_illegal":
                     _append_war_entry(
                         war_entry_entries,
@@ -7504,10 +7625,16 @@ def _process_war_cascade(
                         refusal_episode_id=refusal["episode_id"],
                     )
                     continue
+                resolution_path = entry_decision.get("resolution_path", "offensive_free_join")
+                ledger_path = "honored"
+                if resolution_path == "offensive_counter_bargain_accept":
+                    ledger_path = "offensive_counter_bargain_accept"
+                elif resolution_path == "offensive_bargain_helped":
+                    ledger_path = "offensive_bargain_helped"
                 _append_war_entry(
                     war_entry_entries,
                     nation=nation,
-                    path="honored",
+                    path=ledger_path,
                     side="attacker",
                     reason=decision["reason"],
                     treaty_state=state_with_aggressor,
@@ -7542,6 +7669,14 @@ def _process_war_cascade(
                         },
                     )
                 world.modify_nation_relation(nation, target, -20)
+                _trigger_matching_war_entry_bargains(
+                    world,
+                    aggressor,
+                    nation,
+                    target,
+                    resolution_path=resolution_path,
+                    was_bargain_decisive=bool(entry_decision.get("was_bargain_decisive", False)),
+                )
 
                 cascade.append({
                     "attacker_ally": nation,
