@@ -48,7 +48,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         world: WorldState instance
 
     Returns:
-        Dict with nations, treaties, balance_of_europe, threat_coalition,
+        Dict with nations, treaties, balance_of_europe,
         talleyrand sections.
         All numeric values int()-wrapped.
     """
@@ -58,7 +58,6 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "treaties": _build_treaties(world),
         "recent_peace_ratifications": _build_recent_peace_ratifications(world),
         "balance_of_europe": _build_balance_of_europe(world),
-        "threat_coalition": _build_threat_coalition(world),
         "talleyrand": _build_talleyrand(world),
     }
 
@@ -613,9 +612,91 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
 
     members = []
     leader = ""
+    coalition_name = ""
+    coalition_posture = "defensive"
     if coalition:
         members = list(coalition.get("members", []) or [])
         leader = str(coalition.get("leader", "") or "")
+        coalition_name = str(coalition.get("name", "Unknown Coalition") or "Unknown Coalition")
+        coalition_posture = str(coalition.get("strategic_posture", "defensive") or "defensive")
+
+    # Threat sources this turn (with human-readable labels)
+    raw_sources = list(getattr(world, 'threat_sources_this_turn', []))
+    threat_sources = []
+    for s in raw_sources:
+        if isinstance(s, dict):
+            source_key = s.get("source", "")
+            amount = int(s.get("amount") or 0)
+            label = _THREAT_SOURCE_LABELS.get(source_key, source_key.replace("_", " ").title())
+            sign = "+" if amount >= 0 else ""
+            threat_sources.append({
+                "source": source_key,
+                "label": label,
+                "amount": amount,
+                "display": f"{label} ({sign}{amount})",
+            })
+        else:
+            threat_sources.append({"source": str(s), "label": str(s), "amount": 0, "display": str(s)})
+
+    # Active coalition member details (strength, WE, WE trend)
+    active_coalition_data = None
+    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
+    if coalition:
+        members_data = []
+        combined_strength = 0
+        for member in members:
+            member_strength = sum(
+                m.strength for m in world.marshals.values()
+                if m.nation == member and m.strength > 0
+            )
+            combined_strength += member_strength
+            vis = _get_nation_visibility(member, world)
+            strength_display = _format_army_strength(member_strength, vis)
+            we_raw = world.war_exhaustion.get(member, 0) or 0
+            if VISIBILITY_PRIORITY.get(vis, 0) < partial_priority:
+                we = 0
+            else:
+                we = we_raw
+            prev_we = getattr(world, '_prev_war_exhaustion', {}).get(member, 0)
+            if we > prev_we:
+                we_trend = "rising"
+            elif we < prev_we:
+                we_trend = "falling"
+            else:
+                we_trend = "stable"
+            members_data.append({
+                "nation": member,
+                "strength_display": strength_display,
+                "war_exhaustion": int(we),
+                "war_exhaustion_trend": we_trend,
+            })
+        best_vis = UNKNOWN
+        best_p = 0
+        for member in members:
+            vis = _get_nation_visibility(member, world)
+            p = VISIBILITY_PRIORITY.get(vis, 0)
+            if p > best_p:
+                best_vis = vis
+                best_p = p
+        combined_strength_display = _format_army_strength(combined_strength, best_vis)
+        active_coalition_data = {
+            "name": coalition_name,
+            "leader": leader,
+            "posture": coalition_posture,
+            "members": members_data,
+            "combined_strength_display": combined_strength_display,
+        }
+
+    # Threat projection
+    next_war_projection = min(100, threat_level + 20)
+    threat_projection = {
+        "current": threat_level,
+        "after_next_war": next_war_projection,
+        "brewing_threshold": 60,
+        "instant_threshold": 80,
+        "wars_until_brewing": max(0, (60 - threat_level + 19) // 20) if threat_level < 60 else 0,
+        "wars_until_instant": max(0, (80 - threat_level + 19) // 20) if threat_level < 80 else 0,
+    }
 
     return {
         "headline_case": headline_case,
@@ -636,147 +717,21 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "coalition_state": coalition_state,
         "coalition_leader": leader,
         "coalition_members": members,
+        "coalition_name": coalition_name,
+        "coalition_posture": coalition_posture,
+        "active_coalition": active_coalition_data,
         "brewing_turns_remaining": int(brewing.get("turns_remaining", 0) or 0)
         if brewing else None,
         "cooldown_turns_remaining": cooldown if cooldown > 0 else None,
-        "threat_level": threat_level,
-        "threat_tier": threat_tier,
-        "qualifying_nations": get_qualifying_nations(world),
-    }
-
-def _build_threat_coalition(world) -> Dict[str, Any]:
-    """Build threat & coalition tab."""
-    threat_level = int(getattr(world, 'threat_level', 0) or 0)
-
-    # Threat tier
-    if threat_level >= 80:
-        threat_tier = "CRITICAL"
-    elif threat_level >= 60:
-        threat_tier = "HIGH"
-    elif threat_level >= 30:
-        threat_tier = "MODERATE"
-    else:
-        threat_tier = "LOW"
-
-    # Threat sources this turn — with human-readable labels (TH3)
-    raw_sources = list(getattr(world, 'threat_sources_this_turn', []))
-    threat_sources = []
-    for s in raw_sources:
-        if isinstance(s, dict):
-            source_key = s.get("source", "")
-            amount = int(s.get("amount") or 0)
-            label = _THREAT_SOURCE_LABELS.get(source_key, source_key.replace("_", " ").title())
-            sign = "+" if amount >= 0 else ""
-            threat_sources.append({
-                "source": source_key,
-                "label": label,
-                "amount": amount,
-                "display": f"{label} ({sign}{amount})",
-            })
-        else:
-            threat_sources.append({"source": str(s), "label": str(s), "amount": 0, "display": str(s)})
-
-    # Qualifying nations
-    from backend.game_logic.coalition import get_qualifying_nations
-    qualifying = get_qualifying_nations(world)
-
-    # Brewing
-    brewing = getattr(world, 'coalition_brewing', None)
-    coalition_brewing = brewing is not None
-    brewing_turns_remaining = None
-    if brewing:
-        brewing_turns_remaining = int(brewing.get("turns_remaining") or 0)
-
-    # Active coalition
-    active_coalition_data = None
-    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
-    coalition = getattr(world, 'active_coalition', None)
-    if coalition:
-        members_data = []
-        combined_strength = 0
-        for member in coalition.get("members", []):
-            member_strength = sum(
-                m.strength for m in world.marshals.values()
-                if m.nation == member and m.strength > 0
-            )
-            combined_strength += member_strength
-
-            # Fog band logic for coalition members
-            vis = _get_nation_visibility(member, world)
-            strength_display = _format_army_strength(member_strength, vis)
-
-            we_raw = world.war_exhaustion.get(member, 0) or 0
-            # Fix 13: Only show WE if PARTIAL+ visibility
-            if VISIBILITY_PRIORITY.get(vis, 0) < partial_priority:
-                we = 0
-            else:
-                we = we_raw
-            # S4a: WE trend
-            prev_we = getattr(world, '_prev_war_exhaustion', {}).get(member, 0)
-            if we > prev_we:
-                we_trend = "rising"
-            elif we < prev_we:
-                we_trend = "falling"
-            else:
-                we_trend = "stable"
-            members_data.append({
-                "nation": member,
-                "strength_display": strength_display,
-                "war_exhaustion": int(we),
-                "war_exhaustion_trend": we_trend,
-            })
-
-        # Combined strength display — use best visibility across all members
-        best_vis = UNKNOWN
-        best_p = 0
-        for member in coalition.get("members", []):
-            vis = _get_nation_visibility(member, world)
-            p = VISIBILITY_PRIORITY.get(vis, 0)
-            if p > best_p:
-                best_vis = vis
-                best_p = p
-        combined_strength_display = _format_army_strength(
-            combined_strength, best_vis
-        )
-
-        active_coalition_data = {
-            "name": coalition.get("name", "Unknown Coalition"),
-            "leader": coalition.get("leader", ""),
-            "posture": coalition.get("strategic_posture", "defensive"),
-            "members": members_data,
-            "combined_strength_display": combined_strength_display,
-        }
-
-    # TH2: Coalition cooldown
-    coalition_cooldown = int(getattr(world, 'coalition_cooldown', 0) or 0)
-
-    # S5: Threat projection
-    next_war_projection = min(100, threat_level + 20)
-    threat_projection = {
-        "current": threat_level,
-        "after_next_war": next_war_projection,
-        "brewing_threshold": 60,
-        "instant_threshold": 80,
-        "wars_until_brewing": max(0, (60 - threat_level + 19) // 20) if threat_level < 60 else 0,
-        "wars_until_instant": max(0, (80 - threat_level + 19) // 20) if threat_level < 80 else 0,
-    }
-
-    return {
+        "coalition_cooldown": cooldown,
         "threat_level": threat_level,
         "threat_tier": threat_tier,
         "threat_sources_this_turn": threat_sources,
-        "qualifying_nations": qualifying,
-        "coalition_brewing": coalition_brewing,
-        "brewing_turns_remaining": brewing_turns_remaining,
-        "active_coalition": active_coalition_data,
-        "coalition_cooldown": coalition_cooldown,
-        # TH4: Dissolution conditions (static thresholds for display)
+        "qualifying_nations": get_qualifying_nations(world),
+        "threat_projection": threat_projection,
         "dissolution_threat_threshold": 20,
         "dissolution_war_exhaustion_limit": 80,
-        # S5: Threat projection
-        "threat_projection": threat_projection,
     }
-
 
 # ============================================================================
 # TAB 4: TALLEYRAND

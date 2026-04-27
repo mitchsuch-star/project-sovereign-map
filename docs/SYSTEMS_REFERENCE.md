@@ -2924,7 +2924,7 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 
 ### Diplomatic Ledger (Session 8B)
 
-- Backend: `build_diplomatic_ledger(world)` in `diplomatic_ledger.py` with 4 tabs: nations, treaties, threat_coalition, talleyrand
+- Backend: `build_diplomatic_ledger(world)` in `diplomatic_ledger.py` with 4 tabs: nations, treaties, balance_of_europe, talleyrand
 - All values `int()` wrapped — no floats to Godot
 - Nations: diplomatic state (WAR/ALLIANCE/NON_AGGRESSION/NEUTRAL/etc), relation value, fog-filtered army strength via nation-level visibility
 - Treaties: nation pair, type, clauses, duration (int or "permanent"), cancel cost (always 1 DP)

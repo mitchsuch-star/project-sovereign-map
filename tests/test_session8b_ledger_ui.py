@@ -25,7 +25,7 @@ os.environ["LLM_MODE"] = "mock"
 from backend.models.world_state import WorldState
 from backend.game_logic.diplomatic_ledger import (
     build_diplomatic_ledger,
-    _build_threat_coalition,
+    _build_balance_of_europe,
     _build_talleyrand,
 )
 
@@ -212,38 +212,36 @@ class TestTab3ThreatRendering:
         world.threat_level = 45
         ledger = build_diplomatic_ledger(world)
         assert "balance_of_europe" in ledger
-        assert ledger["balance_of_europe"]["threat_level"] == 45
-        assert isinstance(ledger["balance_of_europe"]["threat_level"], int)
-        tc = ledger["threat_coalition"]
-        assert tc["threat_level"] == 45
-        assert isinstance(tc["threat_level"], int)
+        boe = ledger["balance_of_europe"]
+        assert boe["threat_level"] == 45
+        assert isinstance(boe["threat_level"], int)
 
     def test_threat_tier_low(self):
         """Threat < 30 = LOW tier."""
         world = _make_world()
         world.threat_level = 10
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         assert tc["threat_tier"] == "LOW"
 
     def test_threat_tier_moderate(self):
         """Threat 30-59 = MODERATE tier."""
         world = _make_world()
         world.threat_level = 35
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         assert tc["threat_tier"] == "MODERATE"
 
     def test_threat_tier_high(self):
         """Threat 60-79 = HIGH tier."""
         world = _make_world()
         world.threat_level = 65
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         assert tc["threat_tier"] == "HIGH"
 
     def test_threat_tier_critical(self):
         """Threat >= 80 = CRITICAL tier."""
         world = _make_world()
         world.threat_level = 85
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         assert tc["threat_tier"] == "CRITICAL"
 
     def test_bar_length_calculation(self):
@@ -251,7 +249,7 @@ class TestTab3ThreatRendering:
         # This tests the logic that GDScript will replicate
         world = _make_world()
         world.threat_level = 50
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         # 50 / 5 = 10 filled chars out of 20
         filled = int(tc["threat_level"] / 5)
         assert filled == 10
@@ -261,15 +259,15 @@ class TestTab3ThreatRendering:
         """Brewing coalition surfaces turns remaining."""
         world = _make_world()
         world.coalition_brewing = {"turns_remaining": 3, "qualifying": ["Prussia", "Austria"]}
-        tc = _build_threat_coalition(world)
-        assert tc["coalition_brewing"] is True
+        tc = _build_balance_of_europe(world)
+        assert tc["coalition_state"] == "BREWING"
         assert tc["brewing_turns_remaining"] == 3
 
     def test_no_coalition_active(self):
         """When no coalition active, active_coalition is None."""
         world = _make_world()
         world.active_coalition = None
-        tc = _build_threat_coalition(world)
+        tc = _build_balance_of_europe(world)
         assert tc["active_coalition"] is None
 
 

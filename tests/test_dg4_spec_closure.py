@@ -187,7 +187,7 @@ def test_balance_of_europe_payload_and_campaign_log_route_are_live():
     ledger = build_diplomatic_ledger(world)
 
     assert "balance_of_europe" in ledger
-    assert "threat_coalition" in ledger
+    assert "balance_of_europe" in ledger
     balance = ledger["balance_of_europe"]
     assert isinstance(balance.get("bloc_members"), list)
     assert isinstance(balance.get("hegemon_power"), int)

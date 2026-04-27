@@ -6,7 +6,7 @@
 > **Depends on:** `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3 (hegemony engine + Balance of Europe headline + paradox rename + deep-audit fixes), `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `DIPLOMAT_VOICE_BIBLE.md`, `CONVERSATIONAL_DIPLOMACY_DESIGN.md`, `INFORMATIONAL_UI_PLAN.md`
 > **Bargain-era continuation:** `WAR_BARGAIN_SPEC.md` slice WB-D (presentation extension that adds bargain showpiece beats, scope-branched copy, response routes — only after `WAR_BARGAIN_SPEC` ships).
 
-**Repo reality check (April 25, 2026 supersedes the April 22 historical note below).** The `balance_of_europe_shifted` notice family, Balance of Europe ledger payload/headline, DG-4 call-to-arms routing rows, and D3 Nations-tab row stamps are now live in code. `threat_coalition` remains as a compatibility payload while `balance_of_europe` is the normative presentation owner. Remaining polish is authored prose/named-diplomat depth for future copy passes, not a missing substrate.
+**Repo reality check (April 26, 2026 supersedes the April 25 note below).** The `balance_of_europe_shifted` notice family, Balance of Europe ledger payload/headline, DG-4 call-to-arms routing rows, and D3 Nations-tab row stamps are now live in code. `threat_coalition` has been retired and its unique data (threat sources, active coalition member details, threat projection, dissolution thresholds) merged into `balance_of_europe`. Remaining polish is authored prose/named-diplomat depth for future copy passes, not a missing substrate.
 
 ---
 

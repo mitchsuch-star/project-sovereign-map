@@ -154,11 +154,11 @@ class TestTreatiesArmisticeRemaining(unittest.TestCase):
 class TestThreatCoalitionCooldown(unittest.TestCase):
     """TH2: coalition cooldown value passed through."""
 
-    def test_threat_coalition_cooldown(self):
+    def test_balance_of_europe_cooldown(self):
         world = _make_world()
         world.coalition_cooldown = 4
         ledger = build_diplomatic_ledger(world)
-        self.assertEqual(ledger["threat_coalition"]["coalition_cooldown"], 4)
+        self.assertEqual(ledger["balance_of_europe"]["coalition_cooldown"], 4)
 
 
 class TestThreatSourceLabels(unittest.TestCase):
@@ -171,7 +171,7 @@ class TestThreatSourceLabels(unittest.TestCase):
             {"source": "capital_capture", "amount": 10},
         ]
         ledger = build_diplomatic_ledger(world)
-        sources = ledger["threat_coalition"]["threat_sources_this_turn"]
+        sources = ledger["balance_of_europe"]["threat_sources_this_turn"]
         self.assertEqual(len(sources), 2)
         self.assertEqual(sources[0]["label"], "Won a battle")
         self.assertEqual(sources[1]["label"], "Captured an enemy capital")
@@ -272,7 +272,7 @@ class TestThreatSourceLabelFallback(unittest.TestCase):
             {"source": "broke_non_aggression", "amount": 8},
         ]
         ledger = build_diplomatic_ledger(world)
-        sources = ledger["threat_coalition"]["threat_sources_this_turn"]
+        sources = ledger["balance_of_europe"]["threat_sources_this_turn"]
         self.assertEqual(len(sources), 1)
         # Fallback: "broke_non_aggression" → "Broke Non Aggression"
         self.assertEqual(sources[0]["label"], "Broke Non Aggression")

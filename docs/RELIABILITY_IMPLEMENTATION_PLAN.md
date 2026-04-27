@@ -12,7 +12,7 @@
 
 The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-of-power doctrine. Static concern pairs disappear. A single per-turn hegemony calculation (~60 LOC) drives all the political pressure that the four cancelled v2.3 modifiers were trying to model. See spec v2.4 rescope note for the design rationale.
 
-**Current repo reality check (April 25, 2026):** B-Hegemony, DG-4, C-lite, and D3 per-row bloc stamps are now live. `backend/game_logic/diplomatic_ledger.py` returns `balance_of_europe` as the normative payload while retaining `threat_coalition` for compatibility; Nations rows carry transient `bloc_stamp` tags; Godot renders the Balance headline and row stamps; commitment notices route through `commitments_routing.py`; and the generic anonymous coalition clue chain has yielded to `balance_of_europe_shifted` where a same-turn Balance beat fires.
+**Current repo reality check (April 26, 2026):** B-Hegemony, DG-4, C-lite, and D3 per-row bloc stamps are now live. `backend/game_logic/diplomatic_ledger.py` returns `balance_of_europe` as the sole payload (`threat_coalition` retired April 26; unique data merged into `balance_of_europe`). Nations rows carry transient `bloc_stamp` tags; Godot renders the Balance headline and row stamps; commitment notices route through `commitments_routing.py`; and the generic anonymous coalition clue chain has yielded to `balance_of_europe_shifted` where a same-turn Balance beat fires.
 
 **Already shipped (in current `master`) — unchanged from v2.3:**
 
@@ -310,7 +310,7 @@ are now landed; deferred items are recorded in `docs/STATUS.md`.
 
 ### Legacy test migration note (applies to B-Hegemony + Slice C-lite)
 
-Closeout: `tests/test_session8a_ledger_debug.py` and `tests/test_session8b_ledger_ui.py` now assert the new `balance_of_europe` payload alongside the legacy `threat_coalition` compatibility payload. The compatibility key remains intentionally populated for old consumers, but the Balance of Europe payload is the normative owner for new assertions.
+Closeout: `threat_coalition` compatibility payload has been retired (April 26, 2026). Its unique data (threat sources, active coalition member details, threat projection, dissolution thresholds) was merged into `_build_balance_of_europe()`. All tests now assert on `balance_of_europe` exclusively.
 
 ---
 

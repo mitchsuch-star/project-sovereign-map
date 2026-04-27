@@ -366,29 +366,29 @@ class TestDiplomaticLedgerThreatCoalition:
     def test_threat_default_zero(self):
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
-        tc = ledger["threat_coalition"]
-        assert tc["threat_level"] == 0
-        assert tc["threat_tier"] == "LOW"
+        boe = ledger["balance_of_europe"]
+        assert boe["threat_level"] == 0
+        assert boe["threat_tier"] == "LOW"
 
     def test_threat_tier_moderate(self):
         world = _make_world(threat_level=35)
         ledger = build_diplomatic_ledger(world)
-        assert ledger["threat_coalition"]["threat_tier"] == "MODERATE"
+        assert ledger["balance_of_europe"]["threat_tier"] == "MODERATE"
 
     def test_threat_tier_high(self):
         world = _make_world(threat_level=65)
         ledger = build_diplomatic_ledger(world)
-        assert ledger["threat_coalition"]["threat_tier"] == "HIGH"
+        assert ledger["balance_of_europe"]["threat_tier"] == "HIGH"
 
     def test_threat_tier_critical(self):
         world = _make_world(threat_level=85)
         ledger = build_diplomatic_ledger(world)
-        assert ledger["threat_coalition"]["threat_tier"] == "CRITICAL"
+        assert ledger["balance_of_europe"]["threat_tier"] == "CRITICAL"
 
     def test_no_active_coalition_default(self):
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
-        assert ledger["threat_coalition"]["active_coalition"] is None
+        assert ledger["balance_of_europe"]["active_coalition"] is None
 
     def test_active_coalition_present(self):
         world = _make_world()
@@ -399,7 +399,7 @@ class TestDiplomaticLedgerThreatCoalition:
             "strategic_posture": "defensive",
         }
         ledger = build_diplomatic_ledger(world)
-        ac = ledger["threat_coalition"]["active_coalition"]
+        ac = ledger["balance_of_europe"]["active_coalition"]
         assert ac is not None
         assert ac["name"] == "The Austrian Coalition"
         assert ac["leader"] == "Austria"
@@ -407,39 +407,31 @@ class TestDiplomaticLedgerThreatCoalition:
 
     def test_qualifying_nations_list(self):
         world = _make_world()
-        # Set Austria relation < -10 with France (should already be -30)
         ledger = build_diplomatic_ledger(world)
-        tc = ledger["threat_coalition"]
-        assert isinstance(tc["qualifying_nations"], list)
+        boe = ledger["balance_of_europe"]
+        assert isinstance(boe["qualifying_nations"], list)
 
     def test_coalition_brewing_fields(self):
         world = _make_world()
         world.coalition_brewing = {"turns_remaining": 2, "qualifying_nations": ["Austria"]}
         ledger = build_diplomatic_ledger(world)
-        tc = ledger["threat_coalition"]
-        assert tc["coalition_brewing"] is True
-        assert tc["brewing_turns_remaining"] == 2
+        boe = ledger["balance_of_europe"]
+        assert boe["coalition_state"] == "BREWING"
+        assert boe["brewing_turns_remaining"] == 2
 
     def test_correct_keys(self):
         world = _make_world()
         ledger = build_diplomatic_ledger(world)
         assert "balance_of_europe" in ledger
+        assert "threat_coalition" not in ledger
         boe = ledger["balance_of_europe"]
-        assert {
-            "headline_case",
-            "hegemon",
-            "hegemon_share",
-            "coalition_state",
-            "threat_level",
-            "threat_tier",
-        }.issubset(set(boe.keys()))
-        tc = ledger["threat_coalition"]
         required_keys = {
-            "threat_level", "threat_tier", "threat_sources_this_turn",
-            "qualifying_nations", "coalition_brewing",
+            "headline_case", "hegemon", "hegemon_share",
+            "coalition_state", "threat_level", "threat_tier",
+            "threat_sources_this_turn", "qualifying_nations",
             "brewing_turns_remaining", "active_coalition",
         }
-        assert required_keys.issubset(set(tc.keys()))
+        assert required_keys.issubset(set(boe.keys()))
 
 
 # ════════════════════════════════════════════════════════════════
@@ -925,7 +917,7 @@ class TestDiplomaticLedgerEndpoint:
         ledger = data["ledger"]
         assert "nations" in ledger
         assert "treaties" in ledger
-        assert "threat_coalition" in ledger
+        assert "balance_of_europe" in ledger
         assert "talleyrand" in ledger
 
     def test_endpoint_nations_is_list(self):

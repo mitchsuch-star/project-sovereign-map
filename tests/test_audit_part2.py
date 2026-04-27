@@ -564,13 +564,13 @@ class TestSection10DiplomaticLedger:
         ledger = build_diplomatic_ledger(world)
         assert "treaties" in ledger
 
-    def test_ab3_threat_coalition_tab_present(self):
-        """AB-3: Threat/Coalition tab exists with threat level."""
+    def test_ab3_balance_of_europe_tab_present(self):
+        """AB-3: Balance of Europe tab exists with threat level."""
         world = _make_world()
         world.threat_level = 42
         ledger = build_diplomatic_ledger(world)
-        assert "threat_coalition" in ledger
-        assert ledger["threat_coalition"]["threat_level"] == 42
+        assert "balance_of_europe" in ledger
+        assert ledger["balance_of_europe"]["threat_level"] == 42
 
     def test_ab4_talleyrand_tab_present(self):
         """AB-4: Talleyrand tab exists with authority info."""

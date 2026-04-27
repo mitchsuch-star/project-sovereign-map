@@ -292,7 +292,7 @@ class TestR94NullGuardIntCalls:
 
         # Should not raise TypeError
         result = build_diplomatic_ledger(world)
-        assert result["threat_coalition"]["threat_level"] == 0
+        assert result["balance_of_europe"]["threat_level"] == 0
 
     def test_ledger_with_none_diplomatic_points(self):
         """Ledger should not crash if diplomatic_points is None."""
@@ -319,7 +319,7 @@ class TestR94NullGuardIntCalls:
         world.war_exhaustion["Prussia"] = None
 
         result = build_diplomatic_ledger(world)
-        tc = result["threat_coalition"]
+        tc = result["balance_of_europe"]
         assert tc["active_coalition"] is not None
         # Should have converted None to 0
         for member in tc["active_coalition"]["members"]:

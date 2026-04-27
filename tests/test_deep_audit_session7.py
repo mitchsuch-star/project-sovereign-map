@@ -397,8 +397,8 @@ class TestFix13CoalitionLedgerWEFiltered:
         )
         _set_region_intel(world, "Netherlands", UNKNOWN)
 
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         active = result.get("active_coalition")
         assert active is not None
         britain = active["members"][0]
@@ -420,8 +420,8 @@ class TestFix13CoalitionLedgerWEFiltered:
         )
         _set_region_intel(world, "Netherlands", PARTIAL)
 
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         active = result.get("active_coalition")
         assert active is not None
         britain = active["members"][0]

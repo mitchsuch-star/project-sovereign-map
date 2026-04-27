@@ -186,7 +186,7 @@ func _render_current_tab():
 		1:
 			_render_treaties()
 		2:
-			_render_threat_coalition()
+			_render_balance_of_europe()
 		3:
 			_render_talleyrand()
 
@@ -478,61 +478,62 @@ func _render_treaties():
 # TAB 3: THREAT & COALITION
 # =============================================================================
 
-func _render_threat_coalition():
-	var tc = cached_data.get("threat_coalition", {})
+func _render_balance_of_europe():
 	var boe = cached_data.get("balance_of_europe", {})
+	if boe.is_empty():
+		content_area.text = "[color=#" + Utils.COLOR_GREY + "]No data available.[/color]"
+		return
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]BALANCE OF EUROPE[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]────────────────[/color]\n"
 
-	if boe.size() > 0:
-		var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
-		var hegemon = str(boe.get("hegemon", ""))
-		var share_pct = int(float(boe.get("hegemon_share", 0.0)) * 100.0)
-		var bloc_label = str(boe.get("bloc_label", ""))
-		var descriptive_label = str(boe.get("descriptive_label", ""))
-		var label = bloc_label if bloc_label != "" and bloc_label != "<null>" else descriptive_label
-		if label == "" or label == "<null>":
-			label = hegemon
-		var bloc_members = boe.get("bloc_members", [])
-		var member_line = ""
-		if bloc_members is Array and bloc_members.size() > 1:
-			var member_names = []
-			for member in bloc_members:
-				member_names.append(str(member))
-			member_line = "Bloc members: " + ", ".join(PackedStringArray(member_names)) + ".\n"
-		match headline_case:
-			"ACTIVE_COALITION":
-				var leader = str(boe.get("coalition_leader", ""))
-				bbcode += "[color=#" + COLOR_RED + "]Coalition declared"
-				if leader != "":
-					bbcode += " under " + leader
-				bbcode += ".[/color]\n\n"
-			"BREWING":
-				bbcode += "[color=#" + COLOR_AMBER + "]A coalition is brewing against " + label + ".[/color]\n\n"
-			"COOLDOWN":
-				var cooldown = int(boe.get("cooldown_turns_remaining", 0))
-				bbcode += "[color=#" + Utils.COLOR_GREY + "]The courts are recovering from the last coalition."
-				if cooldown > 0:
-					bbcode += " Cooldown: " + str(cooldown) + " turns."
-				bbcode += "[/color]\n\n"
-			"HEGEMON_NO_COALITION":
-				bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of active European bloc power.[/color]\n"
-				var hegemon_power = int(boe.get("hegemon_power", 0))
-				var total_power = int(boe.get("total_power", 0))
-				if hegemon_power > 0 and total_power > 0:
-					bbcode += "Power score: " + str(hegemon_power) + " / " + str(total_power) + ".\n"
-				bbcode += "This counts " + hegemon + "'s direct allies and vassal bloc against all active courts. Alliance networks can overlap; the headline shows the current largest alignment.\n"
-				if member_line != "":
-					bbcode += member_line
-				bbcode += "Warning bands: 33% noticed, 50% alarming, 60% crisis.\n\n"
-			_:
-				bbcode += "[color=#" + Utils.COLOR_GREY + "]No single court dominates the balance.[/color]\n\n"
+	var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
+	var hegemon = str(boe.get("hegemon", ""))
+	var share_pct = int(float(boe.get("hegemon_share", 0.0)) * 100.0)
+	var bloc_label = str(boe.get("bloc_label", ""))
+	var descriptive_label = str(boe.get("descriptive_label", ""))
+	var label = bloc_label if bloc_label != "" and bloc_label != "<null>" else descriptive_label
+	if label == "" or label == "<null>":
+		label = hegemon
+	var bloc_members = boe.get("bloc_members", [])
+	var member_line = ""
+	if bloc_members is Array and bloc_members.size() > 1:
+		var member_names = []
+		for member in bloc_members:
+			member_names.append(str(member))
+		member_line = "Bloc members: " + ", ".join(PackedStringArray(member_names)) + ".\n"
+	match headline_case:
+		"ACTIVE_COALITION":
+			var leader = str(boe.get("coalition_leader", ""))
+			bbcode += "[color=#" + COLOR_RED + "]Coalition declared"
+			if leader != "":
+				bbcode += " under " + leader
+			bbcode += ".[/color]\n\n"
+		"BREWING":
+			bbcode += "[color=#" + COLOR_AMBER + "]A coalition is brewing against " + label + ".[/color]\n\n"
+		"COOLDOWN":
+			var cooldown = int(boe.get("cooldown_turns_remaining", 0))
+			bbcode += "[color=#" + Utils.COLOR_GREY + "]The courts are recovering from the last coalition."
+			if cooldown > 0:
+				bbcode += " Cooldown: " + str(cooldown) + " turns."
+			bbcode += "[/color]\n\n"
+		"HEGEMON_NO_COALITION":
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of active European bloc power.[/color]\n"
+			var hegemon_power = int(boe.get("hegemon_power", 0))
+			var total_power = int(boe.get("total_power", 0))
+			if hegemon_power > 0 and total_power > 0:
+				bbcode += "Power score: " + str(hegemon_power) + " / " + str(total_power) + ".\n"
+			bbcode += "This counts " + hegemon + "'s direct allies and vassal bloc against all active courts. Alliance networks can overlap; the headline shows the current largest alignment.\n"
+			if member_line != "":
+				bbcode += member_line
+			bbcode += "Warning bands: 33% noticed, 50% alarming, 60% crisis.\n\n"
+		_:
+			bbcode += "[color=#" + Utils.COLOR_GREY + "]No single court dominates the balance.[/color]\n\n"
 
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]COALITION THREAT[/color]\n"
 
-	var threat_level = int(tc.get("threat_level", 0))
-	var threat_tier = str(tc.get("threat_tier", "LOW"))
+	var threat_level = int(boe.get("threat_level", 0))
+	var threat_tier = str(boe.get("threat_tier", "LOW"))
 
 	# Tier color
 	var tier_color = Utils.COLOR_SUCCESS
@@ -572,8 +573,8 @@ func _render_threat_coalition():
 	bar += "[/color]"
 	bbcode += bar + "\n\n"
 
-	# TH3: Threat sources this turn (with human-readable labels)
-	var sources = tc.get("threat_sources_this_turn", [])
+	# Threat sources this turn (with human-readable labels)
+	var sources = boe.get("threat_sources_this_turn", [])
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]This Turn's Sources:[/color]\n"
 	if sources.size() == 0:
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]No new threats[/color]\n"
@@ -589,7 +590,7 @@ func _render_threat_coalition():
 	bbcode += "\n"
 
 	# Qualifying nations
-	var qualifying = tc.get("qualifying_nations", [])
+	var qualifying = boe.get("qualifying_nations", [])
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]Nations That Would Join Coalition:[/color]\n"
 	if qualifying.size() == 0:
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]None currently[/color]\n"
@@ -602,9 +603,9 @@ func _render_threat_coalition():
 
 	# Coalition status
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]Coalition Status:[/color]\n"
-	var coalition_brewing = tc.get("coalition_brewing", false)
-	var brewing_turns = tc.get("brewing_turns_remaining")
-	var active_coalition = tc.get("active_coalition")
+	var coalition_state = str(boe.get("coalition_state", "NO_HEGEMON"))
+	var brewing_turns = boe.get("brewing_turns_remaining")
+	var active_coalition = boe.get("active_coalition")
 
 	if active_coalition != null and active_coalition is Dictionary:
 		var c_name = str(active_coalition.get("name", "Unknown"))
@@ -632,7 +633,7 @@ func _render_threat_coalition():
 				we_bar += "░"
 
 			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/100 [" + we_bar + "]\n"
-	elif coalition_brewing:
+	elif coalition_state == "BREWING":
 		var turns_str = ""
 		if brewing_turns != null:
 			turns_str = str(int(brewing_turns))
@@ -640,18 +641,17 @@ func _render_threat_coalition():
 			turns_str = "?"
 		bbcode += "  [color=#" + COLOR_AMBER + "]Brewing — " + turns_str + " turns until formation[/color]\n"
 	else:
-		# TH2: Show coalition cooldown if active
-		var coalition_cooldown = int(tc.get("coalition_cooldown", 0))
+		var coalition_cooldown = int(boe.get("coalition_cooldown", 0))
 		if coalition_cooldown > 0:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]No coalition active. Post-dissolution cooldown: " + str(coalition_cooldown) + " turns.[/color]\n"
 		else:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]No coalition active.[/color]\n"
 
-	# TH4: Dissolution conditions
+	# Dissolution conditions
 	bbcode += "\n[color=#" + Utils.COLOR_GREY + "]Coalition dissolves if threat falls below "
-	bbcode += str(int(tc.get("dissolution_threat_threshold", 20)))
+	bbcode += str(int(boe.get("dissolution_threat_threshold", 20)))
 	bbcode += " or any member's war exhaustion exceeds "
-	bbcode += str(int(tc.get("dissolution_war_exhaustion_limit", 80)))
+	bbcode += str(int(boe.get("dissolution_war_exhaustion_limit", 80)))
 	bbcode += ".[/color]\n"
 
 	content_area.text = bbcode

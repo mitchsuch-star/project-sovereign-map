@@ -176,8 +176,8 @@ class TestS5ThreatProjection:
     """Threat projection should appear in the diplomatic ledger threat tab."""
 
     def _get_threat_data(self, world):
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        return _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        return _build_balance_of_europe(world)
 
     def test_basic_projection_at_30(self):
         """Threat 30 should project to 50 after next war."""
@@ -377,8 +377,8 @@ class TestS4WarExhaustion:
             "leader": "Prussia",
             "name": "First Coalition",
         }
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         members = result["active_coalition"]["members"]
         assert len(members) == 1
         assert members[0]["war_exhaustion_trend"] == "rising"
@@ -393,8 +393,8 @@ class TestS4WarExhaustion:
             "leader": "Prussia",
             "name": "First Coalition",
         }
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         members = result["active_coalition"]["members"]
         assert members[0]["war_exhaustion_trend"] == "stable"
 
@@ -408,8 +408,8 @@ class TestS4WarExhaustion:
             "leader": "Prussia",
             "name": "First Coalition",
         }
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         members = result["active_coalition"]["members"]
         assert members[0]["war_exhaustion_trend"] == "falling"
 
@@ -480,8 +480,8 @@ class TestS4WarExhaustion:
             "leader": "Prussia",
             "name": "First Coalition",
         }
-        from backend.game_logic.diplomatic_ledger import _build_threat_coalition
-        result = _build_threat_coalition(world)
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        result = _build_balance_of_europe(world)
         members = result["active_coalition"]["members"]
         assert isinstance(members[0]["war_exhaustion"], int)
 
