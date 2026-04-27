@@ -157,6 +157,26 @@ def test_bargain_voided_template():
     assert "alliance" in text.lower()
 
 
+@pytest.mark.parametrize("reason", [
+    "source_treaty_lost",
+    "beneficiary_aligned_with_enemy",
+    "beneficiary_joined_anti_promiser_coalition",
+    "claim_basis_lost",
+    "parties_at_war",
+    "zombie_lapse",
+])
+def test_bargain_voided_template_covers_live_void_reasons(reason):
+    text = format_commitments_notice("bargain_voided", {
+        "beneficiary": "Prussia",
+        "claim_region": "Hanover",
+        "end_reason": reason,
+    })
+
+    assert "Circumstances rendered it moot" not in text
+    assert "Prussia" in text
+    assert "Hanover" in text
+
+
 # ═══════════════════════════════════════════════════════
 # WITNESS SCOPE CLASSIFICATION (3 tests)
 # ═══════════════════════════════════════════════════════
@@ -282,6 +302,12 @@ def test_counterparty_breach_route_uses_override():
     assert route["review_target"] == "ledger_war_bargains"
 
 
+def test_counterparty_breach_label_uses_period_copy():
+    route = commitments_route("bargain_breached", {"end_reason_family": "counterparty_reversal"})
+    assert route["label"] == "Bargain Broken by Other Court"
+    assert "counterparty" not in route["label"].lower()
+
+
 def test_counterparty_breach_priority_is_normal():
     assert commitments_priority("bargain_breached", {"end_reason_family": "counterparty_reversal"}) == "NORMAL"
 
@@ -328,3 +354,17 @@ def test_ledger_all_bargains_badge_values():
     badges = {e["status"]: e.get("badge", "") for e in entries}
     assert badges.get("fulfilled") == "honoured"
     assert badges.get("breached") == "broken"
+
+
+def test_ledger_bargain_created_turns_are_ints():
+    world = _wb_world()
+    live = _create_live_bargain(world)
+    live["created_turn"] = "7"
+    live_entries = get_live_bargains_for_ledger(world)
+    assert live_entries[0]["created_turn"] == 7
+
+    live["status"] = "fulfilled"
+    live["ended_turn"] = "9"
+    all_entries = get_all_bargains_for_ledger(world)
+    completed = [e for e in all_entries if e["status"] == "fulfilled"]
+    assert completed[0]["created_turn"] == 7

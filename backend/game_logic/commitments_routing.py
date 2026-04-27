@@ -163,7 +163,7 @@ COMMITMENTS_ROUTES: Dict[str, Dict[str, str]] = {
 _BARGAIN_BREACHED_COUNTERPARTY_ROUTE: Dict[str, str] = {
     "priority": "NORMAL",
     "icon": "icon_bargain_lapsed",
-    "label": "Bargain Broken by Counterparty",
+    "label": "Bargain Broken by Other Court",
     "template": "commitments_notice_bargain_breached_counterparty",
     "speaker": "talleyrand",
     "review_target": "ledger_war_bargains",
@@ -414,9 +414,14 @@ def format_commitments_notice(
         end_reason = str(values.get("end_reason", "") or "")
         void_phrases = {
             "source_treaty_lost": "The alliance that anchored it is gone.",
-            "beneficiary_aligned_with_enemy": "The counterparty aligned with the named enemy.",
+            "beneficiary_aligned_with_enemy": "The other court aligned with the named enemy.",
+            "beneficiary_joined_anti_promiser_coalition": (
+                "The other court has entered a hostile coalition."
+            ),
             "claim_region_changed_hands": "The claim region changed hands.",
+            "claim_basis_lost": "The claim no longer rests upon the named enemy's possession.",
             "mutual_war_impossible": "The parties are now at war with each other.",
+            "parties_at_war": "The two courts now face one another as enemies.",
             "zombie_lapse": "Both parties stood idle too long.",
         }
         values["void_reason_phrase"] = void_phrases.get(

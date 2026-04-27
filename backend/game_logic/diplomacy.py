@@ -5899,7 +5899,7 @@ def get_live_bargains_for_ledger(world) -> List[Dict]:
             "claim_region": b.get("claim_term", {}).get("claim_region", ""),
             "status": b.get("status", ""),
             "source_treaty": b.get("source_treaty", ""),
-            "created_turn": b.get("created_turn", 0),
+            "created_turn": int(b.get("created_turn", 0) or 0),
             "cooldown_remaining": cooldown_remaining,
         })
     return result
@@ -5933,7 +5933,7 @@ def get_all_bargains_for_ledger(world) -> List[Dict]:
             "claim_region": b.get("claim_term", {}).get("claim_region", ""),
             "status": status,
             "source_treaty": b.get("source_treaty", ""),
-            "created_turn": b.get("created_turn", 0),
+            "created_turn": int(b.get("created_turn", 0) or 0),
             "ended_turn": int(b.get("ended_turn", 0) or 0),
             "badge": badge,
             "end_reason": b.get("end_reason", ""),
