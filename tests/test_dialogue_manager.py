@@ -527,6 +527,12 @@ class TestDialogueManagerSerialization:
         assert dm.is_hard_stop() is True
         assert DialogueManager.DIALOGUE_PRIORITY["commitment_paradox"] == 0
 
+    def test_settlement_confirm_is_hard_stop(self):
+        dm = DialogueManager()
+        dm.push({"type": "settlement_confirm", "turn_created": 1, "blocking": True})
+        assert dm.is_hard_stop() is True
+        assert DialogueManager.DIALOGUE_PRIORITY["settlement_confirm"] == 0
+
     def test_deepcopy_isolation(self):
         """Serialized data must not share references with live state."""
         dm = DialogueManager()

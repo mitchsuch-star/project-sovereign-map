@@ -870,6 +870,7 @@ acceptance_score = base_disposition
                  + war_weariness
                  + stalemate_duration
                  + political_subtotal_clamped
+                 + settlement_gratitude_mod  # optional Imperial Settlement upside, +5
                  + deal_balance           # sweetener (positive) + demands (negative)
                  + diplomat_skill_bonus
                  + personality_modifier
@@ -964,6 +965,8 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 - `composite_floor`: synthetic debug row shown when the raw political subtotal is clamped to `-60`.
 
 Threat pressure is not a standalone acceptance component in live code. Coalition threat and hegemony pressure affect diplomacy through their owning systems and through `hegemony_target_mod`.
+
+**Imperial Settlement amendment:** when Ally Participation / Common Peace lands, `settlement_gratitude_mod` is an optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, and refreshes rather than stacks.
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```

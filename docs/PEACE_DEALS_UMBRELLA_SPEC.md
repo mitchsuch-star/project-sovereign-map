@@ -106,6 +106,8 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 
 The `war_entry_score` (WB §9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
 
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.6 adds `settlement_gratitude_mod` for later proposals made to an ally France visibly rewarded in a common peace. This is a positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components must expose the key as `settlement_gratitude_mod`.
+
 ### 4.3 `threat_coalition` compatibility layer — DECIDED: retire before WB-A
 
 `threat_coalition` was kept in the diplomatic ledger payload as a compatibility layer beside the live `balance_of_europe` payload through BPH + WPS.

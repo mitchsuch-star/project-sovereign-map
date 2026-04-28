@@ -45,6 +45,7 @@ class DialogueManager:
         "alliance_paradox",
         "commitment_paradox",
         "war_purpose_selection",
+        "settlement_confirm",
     })
     # Current-turn offer types: AI-initiated offers that lapse at end of turn.
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
@@ -83,6 +84,7 @@ class DialogueManager:
     DIALOGUE_PRIORITY: Dict[str, int] = {
         "alliance_paradox": 0,
         "commitment_paradox": 0,
+        "settlement_confirm": 0,
         "vassal_rebellion_imminent": 1,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,

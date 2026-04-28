@@ -989,6 +989,7 @@ def execute_command(request: CommandRequest):
                 "harsh", "generous", "adjust",  # Proposal confirm popup actions
                 "nudge", "insist",  # PL-23: Drafting pushback actions
                 "deliver", "ultimatum", "customize", "demand",  # PL-14/15: Ultimatum wizard
+                "confirm", "back out", "back_out", "revise", "revise_terms",  # Imperial settlement
                 "elaborate", "review", "consider",  # Template actions (GAP-1)
                 "begin",  # Mission start (GAP-4/6)
                 "yes", "agree", "start", "more", "no", "never mind",
