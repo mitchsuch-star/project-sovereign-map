@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** April 16, 2026 (Post-Phase 8 Refinement Order rescoped: item 1 renamed to `Memory and Pressure`, War Bargains inserted as 3.5, `WAR_BARGAIN_SPEC.md` added to reference list. Earlier April 12 Session 8 renderer cutover note preserved.)
+> **Last Updated:** April 28, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.2, which owns the full-Europe design contract and is gated on an implementation-plan writeup before coding.)
 
 ---
 
@@ -420,8 +420,8 @@ Phase 8 implementation is complete, but the diplomacy refinement queue after it 
    Define war objectives, ticking score meaning, and settlement legitimacy at the bilateral/system layer.
 3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
    The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Depends on items 1-3; implementable as a Peace Deals phase precursor before item 4.
-4. `Ally Participation + Common Peace`
-   Later wartime settlement flow only. Do not overload the normal nation -> proposal -> terms wizard with conference logic.
+4. `Ally Participation + Common Peace` — `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
+   Full-Europe wartime settlement flow: ally beneficiaries, contribution standing, common peace routing, and settlement fallout. Do not overload the normal nation -> proposal -> terms wizard with conference logic. Coding starts after the implementation plan is written from the v1.2 spec.
 5. Remaining diplomacy follow-ups
    Agendas, Talleyrand explanation layers, and economic diplomacy all remain spec-gated behind the earlier items.
 
