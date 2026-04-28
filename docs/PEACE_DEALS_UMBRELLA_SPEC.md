@@ -3,7 +3,7 @@
 > **Status:** Draft v1.0
 > **Date:** April 25, 2026
 > **Phase placement:** After Memory and Pressure v2.4.3 (complete). Before Ally Participation + Common Peace.
-> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (deferred follow-up)
+> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (follow-up phase)
 
 ---
 
@@ -17,7 +17,7 @@ The three implementation-ready sub-specs are:
 - **War Purpose + Score Semantics (WPS)** — give wars declared purpose, ticking score, settlement tiers, forced alliance, liberation, and a vassalage power cap.
 - **War Bargains (WB)** — add a named-enemy bilateral promise mechanic with lifecycle, ally-entry integration, and breach/fulfillment consequences.
 
-The fourth doc, **War Settlement + Ally Participation**, is a deferred follow-up draft. It is explicitly out of scope for this phase but must be accounted for in interface design.
+The fourth doc, **War Settlement + Ally Participation**, is the follow-up phase. It is explicitly out of scope for the Peace Deals implementation slices but must be accounted for in interface design.
 
 ---
 
@@ -150,7 +150,8 @@ Scale-hardening amendment: WB now also serializes `archived_diplomatic_commitmen
 | `war_objectives: Dict[str, Dict[str, Dict]]` | WPS §12.1 | WPS-A | `{}` |
 | `alliance_origins: Dict[str, str]` | WPS §12.1 | WPS-C | `{}` |
 | `diplomatic_commitments: Dict[str, Dict]` | WB §12.1 | WB-A | `{}` |
-| `next_commitment_id: int` | WB §12.1 | WB-A | `0` |
+| `archived_diplomatic_commitments: List[Dict]` | WB scale-hardening amendment | WB scale cleanup | `[]` |
+| `next_commitment_id: int` | WB §12.1 | WB-A | `1` |
 
 Already shipped fields consumed by Peace Deals (no migration needed):
 - `betrayal_history`, `next_episode_id`, `reparations_cooldown`, `anti_renewal_cooldown` (Memory and Pressure v2.4.3)
@@ -309,7 +310,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 | Ally-beneficiary land promises ("Prussia gets Saxony") | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §13 | Requires common peace and contribution tracking |
 | Common peace / conference settlement flow | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7–§12 | Requires `war_instance` grouping, contribution scores, settlement shares |
 | Multi-party settlement allocation | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §11 | Cannot work without ally seat / consult / beneficiary model |
-| Settlement grievance (`shut_out_in_settlement`) | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §14 | Requires contribution tracking to evaluate "shut out" |
+| Settlement grievance (`settlement_shut_out`) | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §14 | Requires contribution tracking to evaluate "shut out" |
 | War contribution score (`war_contribution_score`) | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §9 | New per-ally settlement number; bilateral phase does not need it |
 | `war_instance` grouping container | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7 | Groups bilateral wars into one political conflict; bilateral phase works pairwise |
 | Extended battle records with multi-participant attribution | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §9.4 | Requires contribution tracking |

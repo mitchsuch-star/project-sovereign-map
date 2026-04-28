@@ -1140,7 +1140,13 @@ These represent strategic interests that make certain deals inherently more attr
 War score is calculated per war (nation pair at WAR). Range: -100 to +100. Positive means nation_a is winning.
 
 ```
-war_score = territory_score + battle_score + decisive_battle_bonus + capital_score
+war_score = (
+    territory_score
+    + battle_score
+    + decisive_battle_bonus
+    + capital_score
+    + ticking_score
+)
 
 Territory score (max ±40):
   +5 per enemy starting region currently held by you
@@ -1173,10 +1179,16 @@ Capital score (max ±30):
   -20 if enemy holds your capital
   +10 if enemy capital is contested (friendly marshal present, not yet captured)
 
+Ticking score (max ±25 per side):
+  From War Purpose + Score Semantics objectives.
+  Adds accumulated objective ticking for nation_a minus accumulated objective
+  ticking for nation_b.
+  Does not decay.
+
 Total capped at ±100.
 ```
 
-**War score updates automatically** at the end of each turn based on current territory control and cumulative battle record. Territory score recalculates from scratch each turn (current holdings vs starting holdings). Battle score is cumulative but subject to quiet-turn decay. Decisive battle bonus is cumulative and does not decay.
+**War score updates automatically** at the end of each turn based on current territory control, cumulative battle record, decisive battle record, capital control, and War Purpose ticking. Territory score recalculates from scratch each turn (current holdings vs starting holdings). Battle score is cumulative but subject to quiet-turn decay. Decisive battle bonus and ticking are cumulative and do not decay.
 
 **Battle score decays toward 0** at -2/turn when no battles have occurred for 3+ turns. Represents fading military momentum — a victory from 10 turns ago carries less diplomatic weight than a fresh one. Decay applies only to the battle component; territory score, capital score, decisive battle bonuses, and any future ticking score do not decay.
 
@@ -1367,7 +1379,7 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 2.  Mission DP deduction — deduct active mission costs (§2e)
     (If DP insufficient after regeneration, mission pauses — EC-S)
 3.  Mission effects — apply relation changes, intel collection, etc.
-4.  War score recalculation — territory + quiet-turn-decayed battles + decisive + capital (§6e)
+4.  War objective ticking + score recalculation — accumulate War Purpose ticking, then recalculate stored war scores from territory + quiet-turn-decayed battles + decisive + capital + ticking (§6e; WAR_PURPOSE_SCORE_SEMANTICS_SPEC §7)
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 6.  Vassal loyalty processing — autonomy drift, garrison, passive modifiers (§8b)
 7.  Vassal rebellion check — loyalty = 0 → rebellion fires (§8d)
@@ -2405,7 +2417,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - DiplomaticRepresentative class (Talleyrand + 4 enemy diplomats per §2b)
 - State transition validation (upgrade adjacency + downgrade §5b.1 + armistice cooldown §5b.2)
 - Acceptance formula (all live components per §6)
-- War score calculation (§6e: territory ±40 + battles ±30 + decisive ±20 + capital ±30)
+- War score calculation (§6e: territory ±40 + battles ±30 + decisive ±20 + capital ±30 + ticking ±25 per side)
 - Military Supremacy modifier (§6b.1: war score ≥70 + hold capital → +25 acceptance)
 - Nation relation modification mechanics (relation change from battles, treaties, etc.)
 - Trade income wiring: diplomatic state → gold/turn per §5a trade values, applied in `advance_turn()`
@@ -2775,7 +2787,7 @@ All design questions resolved in v1.1 feedback pass:
 **Audit-driven revision addressing 40+ findings from independent design review.** Previous grade: 47/80 (C). Target: 65+/80 (A).
 
 **Critical Fixes (C1-C4):**
-- **C1: War Score Formula defined inline (§6e).** No longer depends on non-existent COALITION_SPEC.md. Full formula: territory ±40 + battles ±30 + decisive battle bonus ±20 + capital ±30 = ±100. Includes war score decay (-2/turn stale) and implementation specification.
+- **C1: War Score Formula defined inline (§6e).** No longer depends on non-existent COALITION_SPEC.md. Full formula: territory ±40 + battles ±30 + decisive battle bonus ±20 + capital ±30 + War Purpose ticking ±25 per side, with final score capped at ±100. Includes war score decay (-2/turn stale battle component only) and implementation specification.
 - **C2: HOSTILE_NEUTRAL eliminated.** Replaced throughout with PEACE + negative relation. §1a, §1e, §5a, §10b updated. Hostility is expressed by relation value (-30), not by a phantom state.
 - **C3: Downgrade transitions added (§5b.1).** Full reverse adjacency: ALLIANCE→DEF_ALLIANCE→NON_AGGRESSION→OPEN_BORDERS→PEACE. Costs, relation hits, threat changes specified. Automatic decay when relation drops 30+ below threshold for 5 turns.
 - **C4: Command parser routing specified (§2f).** Name-gated prefix routing: Talleyrand→diplomatic parser, marshal→military parser. Mock parser keywords, execution routing, LLM integration steps documented.

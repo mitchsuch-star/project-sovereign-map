@@ -270,7 +270,7 @@ A future save/load system should use this as the specification.
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |
 | `command_history` | list | [] | LLM command context |
-| `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. DG-4 `call_to_arms_refused_defensive` entries may include `coalition_threat_partners_at_refusal` and `severity_factors`; these are event payload fields, not separate top-level save keys. |
+| `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. DG-4 `call_to_arms_refused_defensive` entries may include `coalition_threat_partners_at_refusal` and `severity_factors`; these are event payload fields, not separate top-level save keys. Future Ally Participation `settlement_summary` entries store one common-peace log record with `war_id`, `terms_summary`, and structured `participant_reactions`, not one event per participant. |
 | `notifications` | list | [] | Pending notification alerts. Each entry: `{id, type, priority, title, message, turn_created, details}`. Persists until player dismisses. Serialized via `NotificationCollector.to_list()/from_list()`. Commitments notices carry §8.1 routing metadata in `details` (`template_key`, `icon`, `label`, `speaker`, `review_target`, `review_label`). |
 | `last_bankruptcy_notification_tier` | int | 0 | Last bankruptcy tier for which a notification was fired (0-3). Prevents per-turn spam. Resets to 0 when bankruptcy ends. |
 | `eliminated_nations_notified` | list | [] | Nation names already notified as eliminated. Prevents per-turn spam. Serialized as list, deserialized to set. |
@@ -279,6 +279,28 @@ A future save/load system should use this as the specification.
 | `coordination_tutorial_shown` | bool | false | Whether the first-time coordination tutorial has been shown (Session 66). Set to true after first player combined arms attack. |
 | `nation_starting_regions` | Dict[str, list] | {} | Starting regions per nation at game start, used by AI homeland defense. Key: nation name, Value: list of region names. Empty dict for legacy saves. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
+
+Reserved future `event_log` payloads:
+
+```json
+{
+  "type": "settlement_summary",
+  "turn": 24,
+  "war_id": "war_12",
+  "covered_enemy_participants": ["Austria", "Bavaria"],
+  "terms_summary": ["territory_cede:Saxony->Prussia"],
+  "participant_reactions": [
+    {
+      "nation": "Prussia",
+      "standing_level": "consult",
+      "reaction_type": "settlement_gratitude",
+      "relation_delta": 5,
+      "grievance_type": null
+    }
+  ],
+  "warnings": []
+}
+```
 
 ---
 
