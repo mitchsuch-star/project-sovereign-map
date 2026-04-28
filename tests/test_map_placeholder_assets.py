@@ -155,6 +155,18 @@ def test_placeholder_province_entries_have_wired_and_interactive_flags():
         )
 
 
+def test_placeholder_province_entries_have_coastal_flags_matching_backend():
+    province_data = _load_province_definition()
+    for region_name, entry in province_data["regions"].items():
+        assert "is_coastal" in entry, f"Missing is_coastal flag on {region_name}"
+        assert isinstance(entry["is_coastal"], bool), (
+            f"is_coastal must be bool on {region_name}"
+        )
+        assert entry["is_coastal"] is bool(
+            REGIONS_DATA[region_name].get("is_coastal", False)
+        )
+
+
 def test_placeholder_all_current_provinces_are_wired_and_interactive():
     """The 19-region placeholder has no unwired/non-interactive provinces yet.
 

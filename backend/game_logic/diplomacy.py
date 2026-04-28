@@ -2793,10 +2793,13 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     territory_score = 0
     a_starting = set(world.nation_starting_regions.get(nation_a, []))
     b_starting = set(world.nation_starting_regions.get(nation_b, []))
-    for region in world.regions.values():
-        if region.name in b_starting and region.controller == nation_a:
+    for region_name in b_starting:
+        region = world.regions.get(region_name)
+        if region and region.controller == nation_a:
             territory_score += 5  # A holds B's starting region
-        if region.name in a_starting and region.controller == nation_b:
+    for region_name in a_starting:
+        region = world.regions.get(region_name)
+        if region and region.controller == nation_b:
             territory_score -= 5  # B holds A's starting region
     territory_score = max(-40, min(40, territory_score))
 
@@ -2960,39 +2963,96 @@ OBJECTIVE_TYPE_DISPLAY = {
 BRITISH_NAVAL_INCOME_POWER = 300
 POWER_CAP_RATIO = 2
 
-COASTAL_REGIONS_FOR_POWER = frozenset({
+LEGACY_COASTAL_REGIONS_FOR_POWER = frozenset({
     "Netherlands", "Normandy", "Brittany", "Bordeaux", "Marseille",
 })
 
 
+def _region_is_coastal_for_power(region_name: str, region) -> bool:
+    return bool(getattr(region, "is_coastal", region_name in LEGACY_COASTAL_REGIONS_FOR_POWER))
+
+
+def _regions_for_controller(
+    nation: str,
+    world,
+    *,
+    controller_override: dict = None,
+    controller_regions_override: dict = None,
+) -> list:
+    if controller_regions_override is not None:
+        return list(controller_regions_override.get(nation, []))
+    if controller_override is None:
+        return world.get_nation_regions(nation)
+
+    controlled = []
+    for rname, region in world.regions.items():
+        ctrl = controller_override.get(rname, region.controller)
+        if ctrl == nation:
+            controlled.append(rname)
+    return controlled
+
+
 def calculate_national_power(nation: str, world, *,
-                             controller_override: dict = None) -> int:
+                             controller_override: dict = None,
+                             controller_regions_override: dict = None) -> int:
     """Calculate national power from controlled regions and vassal contribution.
 
     Evaluated at proposal/objective-validation time, not per-turn hot path.
     ``controller_override`` lets callers project post-cession power without
     mutating WorldState (see ``project_power_after_terms``).
     """
-    power = 0
-    nation_regions = []
+    if controller_override is None and controller_regions_override is None:
+        vassal_signature = tuple(
+            sorted(
+                (str(vassal), str(data.get("lord") or data.get("lord_nation") or ""))
+                for vassal, data in getattr(world, "vassals", {}).items()
+            )
+        )
+        cache_key = (int(world.current_turn), nation, vassal_signature)
+        power_cache = getattr(world, "_national_power_cache", None)
+        if power_cache is None:
+            world._national_power_cache = {}
+            power_cache = world._national_power_cache
+        if cache_key in power_cache:
+            return int(power_cache[cache_key])
+    else:
+        cache_key = None
+        power_cache = None
 
-    for rname, region in world.regions.items():
-        ctrl = (controller_override or {}).get(rname, region.controller)
-        if ctrl == nation:
+    power = 0
+    nation_regions = _regions_for_controller(
+        nation,
+        world,
+        controller_override=controller_override,
+        controller_regions_override=controller_regions_override,
+    )
+
+    for rname in nation_regions:
+        region = world.regions.get(rname)
+        if region:
             power += region.income_value
-            nation_regions.append(rname)
 
     for vassal_nation, vassal_data in getattr(world, 'vassals', {}).items():
-        if vassal_data.get("lord") == nation:
-            for rname, region in world.regions.items():
-                ctrl = (controller_override or {}).get(rname, region.controller)
-                if ctrl == vassal_nation:
+        if (vassal_data.get("lord") or vassal_data.get("lord_nation")) == nation:
+            for rname in _regions_for_controller(
+                vassal_nation,
+                world,
+                controller_override=controller_override,
+                controller_regions_override=controller_regions_override,
+            ):
+                region = world.regions.get(rname)
+                if region:
                     power += region.income_value // 2
 
     if nation == "Britain" and len(nation_regions) > 0:
-        coastal_count = sum(1 for r in nation_regions if r in COASTAL_REGIONS_FOR_POWER)
+        coastal_count = sum(
+            1 for rname in nation_regions
+            if (region := world.regions.get(rname)) and _region_is_coastal_for_power(rname, region)
+        )
         power += min(BRITISH_NAVAL_INCOME_POWER, 150 + 50 * coastal_count)
 
+    if power_cache is not None and cache_key is not None:
+        power_cache[cache_key] = int(power)
     return int(power)
 
 
@@ -3058,11 +3118,23 @@ def project_power_after_terms(world, terms: list, proposer: str,
             controller_map[region_name] = to_nation
             seen_regions.add(region_name)
 
+    controller_regions_map = {}
+    for rname, controller in controller_map.items():
+        controller_regions_map.setdefault(controller, []).append(rname)
+
     return {
-        proposer: calculate_national_power(proposer, world,
-                                           controller_override=controller_map),
-        target: calculate_national_power(target, world,
-                                         controller_override=controller_map),
+        proposer: calculate_national_power(
+            proposer,
+            world,
+            controller_override=controller_map,
+            controller_regions_override=controller_regions_map,
+        ),
+        target: calculate_national_power(
+            target,
+            world,
+            controller_override=controller_map,
+            controller_regions_override=controller_regions_map,
+        ),
     }
 
 
@@ -4367,12 +4439,90 @@ def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
 # ═══════════════════════════════════════════════════════
 
 
+BARGAIN_ARCHIVE_GRACE_TURNS = 10
+
+
+def _mark_live_bargain_indexes_dirty(world) -> None:
+    world._live_bargain_indexes_dirty = True
+
+
+def _ensure_live_bargain_indexes(world) -> None:
+    if not getattr(world, "_live_bargain_indexes_dirty", True):
+        return
+
+    live = []
+    by_promiser = {}
+    by_target_enemy = {}
+    by_claim_region = {}
+
+    for bargain in getattr(world, "diplomatic_commitments", {}).values():
+        if not _is_bargain_live(bargain):
+            continue
+        live.append(bargain)
+        promiser = bargain.get("promiser", "")
+        target_enemy = bargain.get("target_enemy", "")
+        claim_region = bargain.get("claim_term", {}).get("claim_region", "")
+        if promiser:
+            by_promiser.setdefault(promiser, []).append(bargain)
+        if target_enemy:
+            by_target_enemy.setdefault(target_enemy, []).append(bargain)
+        if claim_region:
+            by_claim_region.setdefault(claim_region, []).append(bargain)
+
+    world._live_bargains_cache = live
+    world._live_bargains_by_promiser = by_promiser
+    world._live_bargains_by_target_enemy = by_target_enemy
+    world._live_bargains_by_claim_region = by_claim_region
+    world._live_bargain_indexes_dirty = False
+
+
 def _get_live_bargains(world) -> list:
     """Return all bargains with status 'active' or 'triggered'."""
+    _ensure_live_bargain_indexes(world)
     return [
-        b for b in getattr(world, "diplomatic_commitments", {}).values()
-        if b.get("status") in ("active", "triggered")
+        bargain for bargain in getattr(world, "_live_bargains_cache", [])
+        if _is_bargain_live(bargain)
     ]
+
+
+def _get_live_bargains_by_promiser(world, promiser: str) -> list:
+    _ensure_live_bargain_indexes(world)
+    return [
+        bargain
+        for bargain in getattr(world, "_live_bargains_by_promiser", {}).get(promiser, [])
+        if _is_bargain_live(bargain)
+    ]
+
+
+def _archive_concluded_bargains(world, *, grace_turns: int = BARGAIN_ARCHIVE_GRACE_TURNS) -> int:
+    """Move old terminal bargains out of the hot commitment store."""
+    commitments = getattr(world, "diplomatic_commitments", {})
+    if not commitments:
+        return 0
+
+    archived = getattr(world, "archived_diplomatic_commitments", None)
+    if archived is None:
+        world.archived_diplomatic_commitments = []
+        archived = world.archived_diplomatic_commitments
+
+    archived_count = 0
+    current_turn = int(getattr(world, "current_turn", 0))
+    for cid, bargain in list(commitments.items()):
+        if _is_bargain_live(bargain):
+            continue
+        ended_turn = int(bargain.get("ended_turn") or 0)
+        if not ended_turn or current_turn - ended_turn < grace_turns:
+            continue
+        archived_record = copy.deepcopy(bargain)
+        archived_record["archived_turn"] = current_turn
+        archived_record["archived_commitment_id"] = str(cid)
+        archived.append(archived_record)
+        del commitments[cid]
+        archived_count += 1
+
+    if archived_count:
+        _mark_live_bargain_indexes_dirty(world)
+    return archived_count
 
 
 def _get_bargain_subject_lords(world) -> dict:
@@ -4633,6 +4783,7 @@ def create_war_bargain_commitment(
     if not hasattr(world, "diplomatic_commitments"):
         world.diplomatic_commitments = {}
     world.diplomatic_commitments[str(cid)] = record
+    _mark_live_bargain_indexes_dirty(world)
     _emit_bargain_event(world, record, "bargain_ratified")
     return record
 
@@ -4728,7 +4879,7 @@ def process_bargain_lifecycle(world) -> List[Dict]:
     if not commitments:
         return events
 
-    for cid, bargain in list(commitments.items()):
+    for bargain in _get_live_bargains(world):
         if not _is_bargain_live(bargain):
             continue
 
@@ -4783,6 +4934,7 @@ def process_bargain_lifecycle(world) -> List[Dict]:
                 bargain["dormant_notice_fired"] = True
                 _emit_bargain_dormant_notice(world, bargain, turns_active)
 
+    _archive_concluded_bargains(world)
     return events
 
 
@@ -4822,6 +4974,7 @@ def _fulfill_bargain(world, bargain: Dict) -> None:
     """Mark bargain fulfilled and apply rewards."""
     bargain["status"] = "fulfilled"
     bargain["ended_turn"] = int(world.current_turn)
+    _mark_live_bargain_indexes_dirty(world)
 
     promiser = bargain.get("promiser", "")
     beneficiary = bargain.get("beneficiary", "")
@@ -4880,6 +5033,7 @@ def breach_bargain(world, bargain: Dict, end_reason: str, *, episode_id: str = N
     episode_id = episode_id or _allocate_episode_id(world, prefix="bargain")
     bargain["status"] = "breached"
     bargain["ended_turn"] = int(world.current_turn)
+    _mark_live_bargain_indexes_dirty(world)
     bargain["end_reason"] = end_reason
     bargain["end_reason_family"] = "french_breach"
     bargain["fault_nation"] = bargain.get("promiser", "France")
@@ -4948,6 +5102,7 @@ def _void_bargain(world, bargain: Dict, void_info: Dict) -> None:
     """Mark bargain as void without French penalty."""
     bargain["status"] = "void"
     bargain["ended_turn"] = int(world.current_turn)
+    _mark_live_bargain_indexes_dirty(world)
     bargain["end_reason"] = void_info.get("reason", "external")
     bargain["end_reason_family"] = void_info.get("family", "obsolescence_or_external")
     bargain["fault_nation"] = void_info.get("fault_nation")
@@ -5198,9 +5353,8 @@ def detect_bargain_breach_on_treaty_change(
     Returns list of breach events.
     """
     events = []
-    commitments = getattr(world, "diplomatic_commitments", {})
 
-    for cid, bargain in list(commitments.items()):
+    for bargain in _get_live_bargains_by_promiser(world, breaker):
         if not _is_bargain_live(bargain):
             continue
 
@@ -5249,9 +5403,16 @@ def detect_bargain_breach_on_peace(
     Called from peace ratification paths.
     """
     events = []
-    commitments = getattr(world, "diplomatic_commitments", {})
+    candidates = []
+    seen = set()
+    for promiser in (nation_a, nation_b):
+        for bargain in _get_live_bargains_by_promiser(world, promiser):
+            bid = id(bargain)
+            if bid not in seen:
+                candidates.append(bargain)
+                seen.add(bid)
 
-    for cid, bargain in list(commitments.items()):
+    for bargain in candidates:
         if not _is_bargain_live(bargain):
             continue
 

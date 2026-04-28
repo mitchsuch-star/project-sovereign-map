@@ -142,6 +142,8 @@ All new WorldState fields use `.get(key, default)` migration. No destructive sav
 
 Cumulative new WorldState fields:
 
+Scale-hardening amendment: WB now also serializes `archived_diplomatic_commitments: List[Dict] = []` and uses `next_commitment_id` default `1` in live code.
+
 | Field | Spec | Slice | Default |
 |-------|------|-------|---------|
 | `peace_ratification_log: List[Dict]` | BPH §14.1 | BPH-D | `[]` |
@@ -447,6 +449,8 @@ Items in the sub-specs that this umbrella supersedes, corrects, or has reconcile
 - **§7.3 / §8.4 / §9.4 / §11.1** — bargain opposition now derives from `get_bargain_opposition_pairs()` over current WAR states, `active_coalition` target / members, and live bargain conflicts. Do not restore authored rivalry seed data or static rivalry lookup tables.
 
 ### WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md
+
+Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nation_regions()` for current ownership, a per-turn national-power cache for repeated proposal checks, and a projected controller index for same-package cession previews. Future edits must preserve that indexed path.
 
 - **§8.1 `calculate_national_power()`** — the implementation should avoid iterating `world.regions.values()` in a hot path per CLAUDE.md Golden Rule 8. Cache the result if called more than once per turn, or compute only at vassalage-proposal time as the spec already suggests.
 - **§8.4 post-cession power cap** — preview and ratification use a pure projection helper; do not mutate `WorldState` while checking whether same-package cessions make vassalage legal.

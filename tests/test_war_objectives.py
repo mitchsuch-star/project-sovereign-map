@@ -408,6 +408,19 @@ class TestWarScoreIntegration:
         assert world.war_objectives[dk]["France"]["accumulated_ticking"] == 2
         assert world.war_scores[dk] == calculate_war_score("Austria", "France", world)
 
+    def test_territory_score_does_not_scan_all_regions(self):
+        class NoFullRegionScanDict(dict):
+            def values(self):
+                raise AssertionError("calculate_war_score must not scan all regions")
+
+        world = _war_world()
+        world.regions["Berlin"].controller = "France"
+        world.regions = NoFullRegionScanDict(world.regions)
+
+        components = calculate_war_score("France", "Prussia", world, return_components=True)
+
+        assert components["territory"] > 0
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 15. TICKING SURVIVES BATTLE SCORE DECAY

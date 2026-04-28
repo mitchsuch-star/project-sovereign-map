@@ -1940,6 +1940,7 @@ Update the region tables in:
 | `building_anchor` | `[x, y]` | Building icon placement. Currently equal to `anchor` for the placeholder. |
 | `lookup_color` | `[r, g, b]` | RGB key into the lookup PNG. Must be unique across the registry and must NOT collide with `no_province_color`. |
 | `radius` | `int` | Circle-fallback radius in pixels. Only used when commissioned bitmaps are not loaded. |
+| `is_coastal` | `bool` | Naval-power metadata mirrored with `backend.models.region.REGIONS_DATA`. Full-Europe maps must author this instead of relying on hardcoded coastal-region lists. |
 | `wired` | `bool` | Gameplay gate. `true` = region is in play, used by backend AI / ledger / dispatch. `false` = rendered as grey tint via `_apply_unwired_grey_overlay()`, click short-circuits in `MOUSE_BUTTON_LEFT` handler, hover routes to `_draw_unwired_region_tooltip()`. |
 | `interactive` | `bool` | Hover/hit-test gate. `_lookup_region_from_color_map()` returns `""` for non-interactive regions. Decoupled from `wired` so commissioned art can ship "visible but not clickable" purely-decorative tiles. |
 
@@ -1955,6 +1956,7 @@ Update the region tables in:
   "building_anchor": [520, 130],
   "radius": 54,
   "lookup_color": [120, 200, 80],
+  "is_coastal": true,
   "wired": true,
   "interactive": true
 }

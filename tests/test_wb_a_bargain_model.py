@@ -487,6 +487,24 @@ def test_roundtrip_with_commitments():
     assert rec["claim_term"]["claim_region"] == "Hanover"
 
 
+def test_roundtrip_with_archived_commitments():
+    world = _wb_world()
+    world.archived_diplomatic_commitments = [{
+        "id": 1,
+        "type": "war_bargain",
+        "status": "fulfilled",
+        "promiser": "France",
+        "beneficiary": "Prussia",
+        "target_enemy": "Britain",
+        "archived_turn": 20,
+    }]
+
+    world2 = WorldState.from_dict(world.to_dict())
+
+    assert world2.archived_diplomatic_commitments == world.archived_diplomatic_commitments
+    assert world2.diplomatic_commitments == {}
+
+
 def test_commitment_roundtrip_does_not_share_nested_dicts():
     world = _wb_world()
     set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "setup")

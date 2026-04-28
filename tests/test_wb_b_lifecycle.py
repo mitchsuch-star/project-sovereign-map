@@ -21,6 +21,9 @@ from backend.game_logic.diplomacy import (
     execute_downgrade,
     break_treaty,
     get_peace_commitment_conflicts,
+    _archive_concluded_bargains,
+    _get_live_bargains_by_promiser,
+    BARGAIN_ARCHIVE_GRACE_TURNS,
     BARGAIN_BREACH_COOLDOWN_TURNS,
     BARGAIN_VOID_COOLDOWN_TURNS,
     BARGAIN_ZOMBIE_VOID_THRESHOLD,
@@ -442,6 +445,51 @@ class TestZombieClock:
 # ═══════════════════════════════════════════════════════
 # BREACH DETECTION ON STATE CHANGES (5 tests)
 # ═══════════════════════════════════════════════════════
+
+class TestBargainScaleIndexes:
+    def test_live_bargains_by_promiser_filters_relevant_bargains(self):
+        world = _wb_world()
+        france_bargain = _create_live_bargain(world)
+        world.diplomatic_commitments["99"] = {
+            "id": 99,
+            "type": "war_bargain",
+            "status": "active",
+            "promiser": "Austria",
+            "beneficiary": "Saxony",
+            "target_enemy": "Russia",
+            "claim_term": {"claim_region": "Bohemia"},
+        }
+        world._live_bargain_indexes_dirty = True
+
+        assert _get_live_bargains_by_promiser(world, "France") == [france_bargain]
+
+    def test_old_terminal_bargains_archive_out_of_hot_store(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world)
+        rec["status"] = "fulfilled"
+        rec["ended_turn"] = int(world.current_turn) - BARGAIN_ARCHIVE_GRACE_TURNS
+        world._live_bargain_indexes_dirty = True
+
+        archived = _archive_concluded_bargains(world)
+
+        assert archived == 1
+        assert world.diplomatic_commitments == {}
+        assert len(world.archived_diplomatic_commitments) == 1
+        assert world.archived_diplomatic_commitments[0]["archived_commitment_id"] == "1"
+
+    def test_recent_terminal_bargain_stays_in_hot_store_until_grace_expires(self):
+        world = _wb_world()
+        rec = _create_live_bargain(world)
+        rec["status"] = "void"
+        rec["ended_turn"] = int(world.current_turn) - BARGAIN_ARCHIVE_GRACE_TURNS + 1
+        world._live_bargain_indexes_dirty = True
+
+        archived = _archive_concluded_bargains(world)
+
+        assert archived == 0
+        assert "1" in world.diplomatic_commitments
+        assert world.archived_diplomatic_commitments == []
+
 
 class TestBreachDetection:
     def test_breach_on_source_treaty_downgrade(self):

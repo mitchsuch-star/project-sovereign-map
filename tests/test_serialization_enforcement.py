@@ -403,6 +403,13 @@ class TestWorldStateSerializationEnforcement:
             # serialized per RELIABILITY_IMPLEMENTATION_PLAN.md
             # B-Hegemony "transient per-turn flag (NOT serialized)".
             "positive_threat_delta_this_turn",
+            # Transient scale indexes/caches rebuilt from serialized state.
+            "_live_bargain_indexes_dirty",
+            "_live_bargains_cache",
+            "_live_bargains_by_promiser",
+            "_live_bargains_by_target_enemy",
+            "_live_bargains_by_claim_region",
+            "_national_power_cache",
         }
         # Add any computed properties here as needed
 
@@ -515,7 +522,8 @@ class TestRegionSerializationEnforcement:
             adjacent_regions=["Paris", "Lyon"],
             income_value=150,
             is_capital=True,
-            terrain="hills"
+            terrain="hills",
+            is_coastal=True,
         )
         region.controller = "France"
         region.garrison_strength = 5000
@@ -536,7 +544,8 @@ class TestRegionSerializationEnforcement:
             adjacent_regions=["Paris", "Lyon"],
             income_value=150,
             is_capital=True,
-            terrain="hills"
+            terrain="hills",
+            is_coastal=True,
         )
         region.controller = "France"
         region.stability = 45
@@ -554,6 +563,7 @@ class TestRegionSerializationEnforcement:
         assert len(restored.buildings) == 1, "buildings not preserved"
         assert restored.buildings[0]["type"] == "market", "building type not preserved"
         assert restored.buildings[0]["damaged"] is True, "building damaged not preserved"
+        assert restored.is_coastal is True, "is_coastal not preserved"
         assert restored.building_under_construction is not None, "building_under_construction not preserved"
         assert restored.building_under_construction["type"] == "fortification", "construction type not preserved"
 

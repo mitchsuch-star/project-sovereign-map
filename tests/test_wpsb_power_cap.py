@@ -95,13 +95,17 @@ class TestCalculateNationalPower:
         assert total == region_only + min(
             BRITISH_NAVAL_INCOME_POWER,
             150 + 50 * sum(
-                1 for rname, r in world.regions.items()
-                if r.controller == "Britain" and rname in {
-                    "Netherlands", "Normandy", "Brittany",
-                    "Bordeaux", "Marseille",
-                }
+                1 for r in world.regions.values()
+                if r.controller == "Britain" and r.is_coastal
             ),
         )
+
+    def test_british_naval_power_reads_coastal_metadata(self):
+        world = _fresh_world()
+        base = _power("Britain", world)
+        world.regions["Hanover"].is_coastal = True
+        world.invalidate_active_nations_cache()
+        assert _power("Britain", world) == base + 50
 
     def test_controller_override_projection(self):
         world = _fresh_world()

@@ -117,7 +117,8 @@ class Region:
             income_value: int = 100,
             is_capital: bool = False,
             terrain: str = "plains",
-            region_type: str = "town"
+            region_type: str = "town",
+            is_coastal: bool = False,
     ):
         if terrain not in VALID_TERRAINS:
             raise ValueError(f"Invalid terrain '{terrain}'. Must be one of: {sorted(VALID_TERRAINS)}")
@@ -130,6 +131,7 @@ class Region:
         self.is_capital = is_capital
         self.terrain = terrain
         self.region_type = region_type
+        self.is_coastal = bool(is_coastal)
 
         # Game state (changes during play)
         self.controller: Optional[str] = None
@@ -276,6 +278,7 @@ class Region:
             "is_capital": self.is_capital,
             "terrain": self.terrain,
             "region_type": self.region_type,
+            "is_coastal": self.is_coastal,
             "controller": self.controller,
             "garrison_strength": self.garrison_strength,
             "garrison_detachment": self.garrison_detachment,
@@ -299,7 +302,11 @@ class Region:
             income_value=data.get("income_value", 100),
             is_capital=data.get("is_capital", False),
             terrain=data.get("terrain", "plains"),
-            region_type=data.get("region_type", "town")
+            region_type=data.get("region_type", "town"),
+            is_coastal=data.get(
+                "is_coastal",
+                REGIONS_DATA.get(data["name"], {}).get("is_coastal", False),
+            ),
         )
         region.controller = data.get("controller")
         region.garrison_strength = data.get("garrison_strength", 0)
@@ -350,6 +357,7 @@ REGIONS_DATA = {
         "is_capital": True,
         "terrain": "plains",
         "region_type": "capital",
+        "is_coastal": True,
         "starting_controller": "Britain",
         "grid_position": (0, 2),
     },
@@ -413,6 +421,7 @@ REGIONS_DATA = {
         "is_capital": False,
         "terrain": "plains",
         "region_type": "city",
+        "is_coastal": True,
         "starting_controller": "France",
         "grid_position": (4, 2),
     },
@@ -422,6 +431,7 @@ REGIONS_DATA = {
         "is_capital": False,
         "terrain": "forest",
         "region_type": "rural",
+        "is_coastal": True,
         "starting_controller": "France",
         "grid_position": (3, 0),
     },
@@ -431,6 +441,7 @@ REGIONS_DATA = {
         "is_capital": False,
         "terrain": "plains",
         "region_type": "rural",
+        "is_coastal": True,
         "starting_controller": "France",
         "grid_position": (4, 0),
     },
@@ -440,6 +451,7 @@ REGIONS_DATA = {
         "is_capital": False,
         "terrain": "plains",
         "region_type": "town",
+        "is_coastal": True,
         "starting_controller": "France",
         "grid_position": (2, 1),
     },
@@ -524,7 +536,8 @@ def create_regions() -> dict[str, Region]:
             income_value=data["income"],
             is_capital=data.get("is_capital", False),
             terrain=data.get("terrain", "plains"),
-            region_type=data.get("region_type", "town")
+            region_type=data.get("region_type", "town"),
+            is_coastal=data.get("is_coastal", False),
         )
     return regions
 

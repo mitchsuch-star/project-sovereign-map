@@ -113,6 +113,7 @@ A future save/load system should use this as the specification.
   "war_objectives": {},
   "alliance_origins": {},
   "diplomatic_commitments": {},
+  "archived_diplomatic_commitments": [],
   "next_commitment_id": 1,
   "reparations_cooldown": {},
   "anti_renewal_cooldown": {},
@@ -243,6 +244,7 @@ A future save/load system should use this as the specification.
 | `war_objectives` | dict | {} | **Peace Deals WPS-A (landed).** Diplo-key → nation → objective record. Each record: `{type, declaring_nation, target_nation, target_regions, accumulated_ticking, created_turn, ticking_active, objective_met_turn, concluded_turn?}`. Types: conquest/subjugation/forced_alliance/defense/liberation. Liberation adds `vassal_nations`. Ticking caps at 25. Pre-WPS-A saves load with `{}` defaulted. |
 | `alliance_origins` | dict | {} | **Peace Deals WPS-C (landed).** Diplo-key → `"forced"` or `"voluntary"`. Set on treaty ratification containing a `forced_alliance` clause; cleared when the diplomatic state drops below ALLIANCE, enters WAR, or becomes VASSAL. Drives the -10/turn forced-alliance relation drift in `process_diplomacy_turn` step 12a. Pre-WPS-C saves load with `{}` defaulted. |
 | `diplomatic_commitments` | dict | {} | **Peace Deals WB-A (landed).** Stringified commitment-id → war bargain record dict. Each record carries `id`, `type`, `promiser`, `beneficiary`, `target_enemy`, `entry_term`, `claim_term`, `status`, `source_pair`, `cooldown_key`, lifecycle timestamps, and terminal-state fields. Pre-WB-A saves load with `{}` defaulted. |
+| `archived_diplomatic_commitments` | list | [] | **Peace Deals WB scale hardening (landed).** Terminal war bargain records moved out of `diplomatic_commitments` after a 10-turn grace period. Each archive entry preserves the bargain record and adds `archived_turn` plus `archived_commitment_id`. Pre-hardening saves load with `[]` defaulted. |
 | `next_commitment_id` | int | 1 | **Peace Deals WB-A (landed).** Monotonic commitment-id allocator. Pre-WB-A saves load with `1` defaulted. |
 | `next_join_opportunity_id` | int | 1 | **Peace Deals WB-C (landed).** Monotonic join-opportunity-id allocator. Pre-WB-C saves load with `1` defaulted. |
 | `war_entry_reroll_memory` | dict | {} | **Peace Deals WB-C (landed).** Reroll-key (`"{beneficiary}\|{named_enemy}\|{request_type}\|{turn}"`) -> `{score_inputs_hash, counter_bargain}` for deterministic counter-bargain reroll. Cleared when the score-input hash changes between evaluations. Pre-WB-C saves load with `{}` defaulted. |

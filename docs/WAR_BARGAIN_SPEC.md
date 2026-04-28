@@ -685,6 +685,8 @@ If a valid bargain exists against the named enemy:
 
 ## 12. Data model additions
 
+Scale-hardening amendment: terminal bargain records move from `diplomatic_commitments` to `archived_diplomatic_commitments` after a 10-turn grace period, keeping live lifecycle and breach scans bounded while preserving history.
+
 ### 12.1 New WorldState fields
 
 - `diplomatic_commitments: Dict[str, Dict]` — bargain records keyed by commitment id (string)

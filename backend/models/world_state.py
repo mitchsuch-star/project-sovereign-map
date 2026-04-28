@@ -596,7 +596,16 @@ class WorldState:
 
         # WB-A: War bargain commitments, keyed by stringified commitment id.
         self.diplomatic_commitments: Dict[str, Dict] = {}
+        self.archived_diplomatic_commitments: List[Dict] = []
         self.next_commitment_id: int = 1
+        # WB scale: transient live-bargain indexes. Rebuilt from
+        # diplomatic_commitments after load and whenever bargain status changes.
+        self._live_bargain_indexes_dirty: bool = True
+        self._live_bargains_cache: List[Dict] = []
+        self._live_bargains_by_promiser: Dict[str, List[Dict]] = {}
+        self._live_bargains_by_target_enemy: Dict[str, List[Dict]] = {}
+        self._live_bargains_by_claim_region: Dict[str, List[Dict]] = {}
+        self._national_power_cache: Dict[Tuple[Any, ...], int] = {}
         # WB-B: Fulfillment reward 10-turn pair cap. Keyed "promiser|beneficiary" -> last fulfilled turn.
         self._bargain_fulfillment_log: Dict[str, int] = {}
         # WB-C: Join opportunity tracking + reroll memory + pending declaration
@@ -906,6 +915,7 @@ class WorldState:
         """Clear nation/region caches. Call after region controller changes."""
         self._active_nations_cache = None
         self._nation_regions_cache = None
+        self._national_power_cache = {}
         # B-Hegemony: bloc membership depends on vassalage + active nations,
         # so any seam that invalidates the active-nations cache also
         # invalidates the bloc-members cache.
@@ -1464,18 +1474,13 @@ class WorldState:
         cache_turn = getattr(self, '_nation_regions_cache_turn', -1)
         if cache is None or cache_turn != self.current_turn:
             cache = {}
+            for name, region in self.regions.items():
+                if region.controller:
+                    cache.setdefault(region.controller, []).append(name)
             self._nation_regions_cache = cache
             self._nation_regions_cache_turn = self.current_turn
 
-        if nation in cache:
-            return list(cache[nation])
-
-        result = [
-            name for name, region in self.regions.items()
-            if region.controller == nation
-        ]
-        cache[nation] = result
-        return list(result)
+        return list(cache.get(nation, []))
 
     def get_player_regions(self) -> List[str]:
         """Get regions controlled by the player."""
@@ -3572,6 +3577,9 @@ class WorldState:
             "diplomatic_commitments": {
                 str(k): copy.deepcopy(v) for k, v in self.diplomatic_commitments.items()
             },
+            "archived_diplomatic_commitments": [
+                copy.deepcopy(v) for v in self.archived_diplomatic_commitments
+            ],
             "next_commitment_id": int(self.next_commitment_id),
             "bargain_fulfillment_log": {k: int(v) for k, v in self._bargain_fulfillment_log.items()},
             "next_join_opportunity_id": int(self._next_join_opportunity_id),
@@ -3974,7 +3982,16 @@ class WorldState:
             str(k): copy.deepcopy(v)
             for k, v in data.get("diplomatic_commitments", {}).items()
         }
+        world.archived_diplomatic_commitments = [
+            copy.deepcopy(v) for v in data.get("archived_diplomatic_commitments", [])
+        ]
         world.next_commitment_id = int(data.get("next_commitment_id", 1) or 1)
+        world._live_bargain_indexes_dirty = True
+        world._live_bargains_cache = []
+        world._live_bargains_by_promiser = {}
+        world._live_bargains_by_target_enemy = {}
+        world._live_bargains_by_claim_region = {}
+        world._national_power_cache = {}
         world._bargain_fulfillment_log = {
             str(k): int(v) for k, v in data.get("bargain_fulfillment_log", {}).items()
         }
