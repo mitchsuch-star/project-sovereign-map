@@ -1,6 +1,6 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.8 SYNTHESIS CLOSURE - implementation plan updated; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
+> **Status:** v1.8 SYNTHESIS CLOSURE + AUDIT CLARIFICATIONS - implementation plan updated; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
 > **Last Updated:** April 28, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
@@ -193,6 +193,7 @@ Rules:
 
 - Empty `pressure_terms` is a hard stop: common peace has no valid covered enemy.
 - Implementation must build `direct_scores` before calling `max()`. A covered enemy with no active direct pair against the proposer side is a hard stop for that enemy: `no_direct_war_score_for_covered_enemy`.
+- Settlement preview / confirm computes `direct_scores` once per `(war_id, proposer_side, covered_enemy_participants, current_turn, draft_terms_hash)` evaluation and reuses that memoized map for side pressure, direct-score gates, burden penalties, and advisory rows. Do not call `calculate_war_score()` repeatedly for the same pair inside one draft preview.
 - Scores are clamped to the existing `[-100, 100]` war-score range after aggregation.
 - `side_pressure_score` is a headline/base component. It is not blanket authorization for target-specific demands.
 - Terms against a non-leader enemy with `direct_score < 20` are legal only as extreme terms and add the Step 4 burdened-participant penalty.
@@ -731,6 +732,18 @@ When allied participation matters, route into a dedicated settlement flow:
 - Separate peace stays in the existing bilateral wizard, but now shows ally-fallout and bargain-breach warnings before send
 - Open settlement launches a war-scoped flow keyed to `war_id`
 
+**Open Settlement eligibility / grey-out rules:**
+
+The **Open settlement** option is enabled only when all are true:
+
+- `war_id` resolves to an active `war_instance` with `ended_turn is None`.
+- The settlement actor is the current side leader for one side of that `war_instance`.
+- The `war_instance` has at least one active unresolved pair between the two sides with `pair_status in {"war", "armistice"}`.
+- At least one enemy participant is coverable: the opposing side leader, a participant named by a draft term, a participant needed for an active objective or bargain, or a participant with an active direct pair against the proposer side.
+- No other active `settlement_confirm` or `incoming_settlement_offer` dialogue is currently blocking settlement review.
+
+Grey-out / preview error reasons are deterministic: `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, or `settlement_dialogue_active`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms.
+
 ### 10.4 Endpoint and dialogue contract
 
 Open Settlement is a war-scoped flow, not a hidden variant of `propose peace`.
@@ -823,6 +836,48 @@ Mutating common peace commands must not ratify directly from `/command`. They cr
 }
 ```
 
+Incoming AI common-peace offers use a distinct current-turn offer dialogue before ratification:
+
+```python
+{
+    "type": "incoming_settlement_offer",
+    "dialogue_type": "incoming_settlement_offer",
+    "war_id": "war_12",
+    "offer_origin": "ai",
+    "offering_side": "defenders",
+    "receiving_side": "attackers",
+    "staged_leaders": {"attackers": "France", "defenders": "Austria"},
+    "settlement_terms": [...],
+    "settlement_preview": {...},
+    "acceptance_components": {...},
+    "warnings": [],
+    "actions": ["accept", "reject", "request_revision"],
+}
+```
+
+Incoming offer responses:
+
+```python
+# Accept: promote into the same settlement_confirm executor, then confirm.
+{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "accept",
+ "promoted_to": "settlement_confirm", "settlement_summary": {...}, "mutated": True}
+
+# Rejected by live-state validation / acceptance recheck; no mutation.
+{"success": False, "dialogue_type": "incoming_settlement_offer", "action": "accept",
+ "error": "proposer_leader_changed" | "inactive_war_instance" | "active_pair_changed",
+ "must_reopen": True, "mutated": False}
+
+# Reject.
+{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "reject",
+ "cancelled": True, "mutated": False}
+
+# Request revision.
+{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "request_revision",
+ "revision_requested": True, "mutated": False}
+```
+
+`incoming_settlement_offer.accept` must call the same live-state revalidation and mutation executor as `settlement_confirm.confirm`; it must not ratify directly from the offer payload.
+
 Dialogue action request contract:
 
 ```http
@@ -877,6 +932,8 @@ Godot surface:
 Common peace does not have to resolve every enemy in the `war_instance`. The proposed package covers a subset of enemy participants: the opposing side leader plus any non-leader enemies named, burdened, restored, or needed for an objective/bargain term. Every covered enemy must pass the direct-score gate in section 6.3.
 
 If a package is accepted, only active hostile pairs between the proposer side and covered enemies resolve. Enemy participants that are not covered, or that fail the direct-score gate and are removed from the draft package, remain active in the same `war_instance`. The `war_instance` ends only when section 7.3 is true: no hostile pairs remain between the two sides or one side has no active participants.
+
+An ARMISTICE pair in `active_diplo_keys` may be covered by common peace. If covered and accepted, that suspended pair resolves directly to `PEACE` or the treaty state produced by the package, clears armistice tracking/cooldown as the existing peace path does, and moves to `resolved_diplo_keys`. Uncovered ARMISTICE pairs remain suspended in the same `war_id`.
 
 If the player wants to settle one enemy and the package has no ally-beneficiary, standing, objective, or bargain reason to use war-scoped settlement machinery, use separate peace instead. Partial common peace exists for cases where a subset settlement still needs ally standing, common-peace acceptance, beneficiary terms, or WB settlement evaluation.
 
@@ -1071,6 +1128,15 @@ Complexity bound: build `affected_nations` from term payers, beneficiaries, regi
 - Campaign log emits exactly one `settlement_summary` entry per ratified common peace. Participant-level reactions are stored in `settlement_summary["participant_reactions"]` as structured data and the one-liner shows at most three named participants plus `+N more`.
 - Settlement reaction events use their own settlement route metadata. Existing `bargain_*` events continue to use commitments routing, and `balance_of_europe_shifted` remains owned by Memory and Pressure.
 
+Settlement event contract:
+
+| Event | Payload minimum | One-liner | Fog rule | Route metadata |
+|-------|-----------------|-----------|----------|----------------|
+| `settlement_summary` | `{war_id, covered_enemy_participants, proposer_side, accepting_side, terms_summary, participant_reactions, warnings, balance_projection, turn}` | "Settlement of {war_name}: {terms_summary[0]}; {participant_1}, {participant_2}, {participant_3}{+N more} react." | Visible to France; visible to any court that can see at least one covered participant, resulting territorial/alignment change, or participant reaction involving itself. | `event_family="settlement"`, `review_target="settlement_review"` when the war remains active, otherwise `review_target="diplomatic_ledger"`, `route_id="settlement_summary:{war_id}:{turn}"`. |
+| `settlement_digest` | `{war_id, hidden_reaction_count, top_reaction_types, turn}` | "{hidden_reaction_count} additional courts register the settlement aftermath." | Same as `settlement_summary`, filtered to courts that can see at least one hidden reaction. | `event_family="settlement"`, `review_target="diplomatic_ledger"`, `route_id="settlement_digest:{war_id}:{turn}"`. |
+
+Settlement route metadata is separate from `COMMITMENTS_ROUTES`. Commitment-owned `bargain_*` events keep their existing routes; settlement-owned events point to the settlement review while the war is active and to the diplomatic ledger after the war archives.
+
 ---
 
 ## 12. Territory Demand Legitimacy
@@ -1160,9 +1226,12 @@ New term types are reserved for genuinely different political actions (forced_al
 In common peace, the beneficiary can be:
 
 - France
-- An active ally on the proposer side
+- An active same-side participant with `seat` or `consult` standing, including treaty allies, coalition partners, and co-belligerents that are not formal allies
+- A same-side `beneficiary_only` participant when the term directly names its survival, capital, core territory, liberation, restoration, or existing promise basis
 - A liberated nation
 - A former owner restored by treaty
+
+"Ally" in player-facing copy can still describe treaty partners, but validation must use same-side participation plus standing/direct-stake rules. A non-treaty co-belligerent that earned `seat` or `consult` standing is eligible to receive a direct reward; a low-standing bystander is not.
 
 ### 13.3 Invalid settlement shapes
 
@@ -1315,6 +1384,28 @@ A war bargain is **breached** when:
 
 Settlement-triggered breach routes through the existing WB-B breach pipeline: `bargain_breached` → betrayal strike + reliability hit + WB-D presentation.
 
+Deterministic settlement classifier:
+
+```python
+classify_bargain_settlement_status(world, bargain, war_instance, settlement_terms, direct_scores) -> {
+    "status": "dormant" | "fulfillable" | "fulfilled_by_terms" | "at_risk" | "impossible" | "breach_if_confirmed",
+    "claim_region": str,
+    "reason": str,
+    "required_action": str | None,
+}
+```
+
+Classification rules, evaluated against the draft terms and current live state:
+
+- `dormant`: bargain is not `active` / `triggered`, is not attached to this `war_id`, or the named enemy / claim region is not covered by the draft settlement.
+- `fulfillable`: bargain is `triggered`, France and beneficiary were co-belligerents against the named enemy, France still holds `DEFENSIVE_ALLIANCE` or `ALLIANCE` with beneficiary, the claim basis still exists, and either France currently controls `claim_region` or a valid term can transfer `claim_region` from the named enemy / its subject to France.
+- `fulfilled_by_terms`: same as `fulfillable`, and the draft package includes the valid transfer or recognition that leaves France controlling `claim_region`.
+- `at_risk`: the bargain is relevant and live, but the draft package does not decide the claim region while leaving the named war or claim basis alive.
+- `impossible`: fulfillment cannot be achieved because the claim region, named enemy, source treaty, co-belligerence, or claim-holder basis disappeared for a WB-B void reason not caused by this settlement package.
+- `breach_if_confirmed`: `fulfillable` is true, but the draft package gives `claim_region` to anyone other than France, returns it to the named enemy, normalizes with the named enemy while leaving the claim unresolved, or omits the French claim while resolving the covered enemy in a way that makes later fulfillment impossible.
+
+The advisory surfaces `status`, `reason`, and `required_action`. Only `breach_if_confirmed` routes to WB-B breach on confirmation; `impossible` routes to WB-B void when the void cause is external / counterparty-owned.
+
 ### 15.3 Bargain visibility in advisory
 
 Step 2 (Talleyrand advisory) surfaces every active war bargain tied to the `war_instance`:
@@ -1367,10 +1458,11 @@ Settlement event families own their own route metadata. Do not add generic settl
 
 Settlement warnings use the same structured `warnings[]` approach as bilateral diplomacy:
 
-- Max 2 inline warnings in default preview, severity-sorted
-- Overflow behind "View all concerns"
+- All `HARD_STOP` warnings render inline.
+- Render the top 2 `WARNING` warnings inline after hard stops, severity- and salience-sorted.
+- `INFO` warnings and any additional `WARNING` rows go behind "View all concerns."
 - Settlement-specific warnings (promise breach, major ally fallout) outrank generic rivalry flavor
-- WARNING and HARD_STOP warnings always surface inline even if that exceeds the normal advisory row cap.
+- The advisory row cap applies only to standing/contribution summaries. It must not hide hard stops or the top warning rows above.
 
 ### 16.4 Hard stops vs soft warnings
 
@@ -1391,6 +1483,7 @@ AI uses the same settlement executor and validation paths as the player.
 
 - AI war leaders may propose common peace only when they are the current side leader for a `war_instance`.
 - AI proposes common peace only when there are no hard stops and either (a) the AI side is winning with `side_pressure_score >= 40` and direct score against the opposing leader is at least `20`, or (b) the AI side is losing with `side_pressure_score <= -40` and existing war exhaustion / ticking-pressure logic says continued war is strategically costly.
+- AI common-peace proposal anti-spam: at most one active `incoming_settlement_offer` may exist for the player at a time; each `war_id` has a 3-turn AI common-peace proposal cooldown after reject, request-revision, expiry, or failed live-state validation; and AI may surface at most one new settlement offer to the player per turn across all wars. AI-vs-AI internal settlements use the same per-`war_id` 3-turn cooldown to avoid proposal churn.
 - AI prefers common peace when two or more enemy participants are covered, or when settlement standing, ally-beneficiary rewards, or war-bargain settlement logic is relevant. AI prefers separate bilateral peace when only one enemy is targeted and there are no ally-beneficiary, standing, or bargain implications.
 - AI covered-enemy selection includes the opposing leader plus any non-leader with `direct_score >= 30`, any occupied-return / restitution target, and any target needed to resolve an active bargain or objective. It does not cover every enemy by default.
 - AI common-peace packages are conservative: prefer white peace / limited gold / occupied-region returns unless the AI side has `harsh_peace` or better settlement tier and direct pressure against each burdened participant.
@@ -1418,6 +1511,8 @@ world.archived_war_instances: List[Dict] = []
 world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
 world.settlement_memories: Dict[str, List[Dict]] = {}
 ```
+
+A nation may be an active participant in multiple concurrent `war_instance` records. Contribution, staying power, support, and episode ids accrue independently per `war_id`; never merge contribution across wars unless a section 7.2 war-instance merge transaction rewrites the absorbed `war_id` references first.
 
 `settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical ordered pair string `actor|subject`. Negative proposer-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
 
@@ -1485,9 +1580,16 @@ settlement_summary_event = {
     "turn": 24,
     "war_id": "war_12",
     "covered_enemy_participants": ["Austria", "Bavaria"],
+    "proposer_side": "attackers",
+    "accepting_side": "defenders",
     "terms_summary": ["territory_cede:Saxony->Prussia"],
     "participant_reactions": [],
     "warnings": [],
+    "route": {
+        "event_family": "settlement",
+        "review_target": "settlement_review",
+        "route_id": "settlement_summary:war_12:24",
+    },
 }
 ```
 
@@ -1708,6 +1810,11 @@ Highest-priority tests:
 76. `settlement_confirm` dialogue responses use the typed confirm/back-out/revise contract and return no-mutation responses on rejection, void, back-out, and revise.
 77. The Pressburg-style worked example is pinned as a deterministic Slice C fixture, and the tuning gate records any chosen primary balance knob.
 78. AI-vs-AI common peace emits one fog-eligible dispatch line and one `settlement_summary` campaign-log entry without participant spam.
+79. Open Settlement is enabled only for active side leaders with unresolved hostile or suspended pairs and at least one coverable enemy; grey-out reasons use the section 10.3 enum.
+80. A nation active in two concurrent `war_instance` records accrues staying-power and support contribution independently per `war_id`.
+81. `classify_bargain_settlement_status()` returns `fulfilled_by_terms`, `at_risk`, `impossible`, and `breach_if_confirmed` deterministically for active settlement drafts.
+82. AI common-peace offers obey one-active-offer, one-new-offer-per-turn, and per-`war_id` 3-turn cooldown rules.
+83. `settlement_summary` route metadata, one-liner, and fog filtering match the section 11 Step 6 event contract.
 
 ---
 
@@ -1754,6 +1861,7 @@ Standing, consultation, entitlement, and fallout — not hard blocking. Politica
 ## 21. Changelog
 
 - **April 28, 2026 - v1.8 synthesis closure.** Folded the Codex/Claude full-audit synthesis into the handoff: added explicit ARMISTICE pair-status lifecycle inside `war_instance`, locked common peace to PEACE/treaty outcomes rather than armistice, required all direct WAR-entry paths to attach to a `war_instance`, added concrete `settlement_confirm` dialogue response contracts, pinned a Pressburg-style worked acceptance example, made the Slice C tuning gate mandatory with `0.6` side-pressure scaling as the first adjustment knob, required the C1/C2 split, added AI-vs-AI settlement dispatch/log visibility, documented transitive merge as a rare correctness transaction, and made settlement-memory cleanup/archive retention deterministic for save/load.
+- **April 28, 2026 - v1.8 audit synthesis patch.** Closed the Codex/Claude merged audit clarifications without changing architecture: Open Settlement eligibility and grey-out reasons, same-side beneficiary eligibility beyond formal allies, deterministic bargain settlement status classification, incoming AI settlement offer contract and anti-spam, `settlement_summary` event/route/fog contract, warning cap wording, concurrent-war contribution semantics, and matching full-Europe tests.
 - **April 28, 2026 - v1.7 final audit closure.** Closed the remaining Codex/Claude synthesis gaps: reconciled DIPLOMACY acceptance docs with live War Bargain modifiers, added draft `POST /diplomatic_preview`, explicit partial common-peace continuation, event-time contribution vs battle-record pruning, same-turn lifecycle ordering, merge transaction ordering, off-map major-power shut-out precedence, AI-to-player settlement review routing, expanded Slice C tuning fixtures with monotonicity, synthetic full-Europe fixtures, Slice C split guidance, and Godot smoke gates.
 - **April 28, 2026 - v1.6 audit closure.** Synthesized the combined Codex/Claude full-Europe audit after v1.5: added hard-stop `settlement_confirm` taxonomy and leader-change behavior, fixed normalized common-peace harshness math, defined two-pass standing and zero-contribution major-power precedence, made war-instance merge transitive with absorbed-`war_id` rewrites, added explicit WAR-entry creation seams, added occupation contribution events and support-emitter ownership, renamed common-peace `hegemony_pressure` to `projected_hegemony_mod`, bounded cross-war reaction checks to three related wars, made salience ordering deterministic, added layer-50 ownership rules, idempotent settlement-memory writes, AI internal confirm routing, and new tests for the closure cases.
 - **April 28, 2026 - v1.5 handoff hardening.** Synthesized Codex and Claude full-Europe audit follow-ups: added unique `next_war_instance_id` allocation, separated active pair-key ownership from historical `objective_keys`, made contribution storage episode-scoped, made `settlement_confirm` mandatory before common-peace ratification, added the `settlement_gratitude_mod` acceptance hook, expanded AI common-peace decision rules, added the Slice C acceptance tuning gate, and aligned the implementation plan/status routing for Slice A handoff.

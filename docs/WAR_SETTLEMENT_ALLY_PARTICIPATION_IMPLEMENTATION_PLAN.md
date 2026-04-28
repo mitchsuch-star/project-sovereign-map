@@ -1,6 +1,6 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.5 READY FOR SLICE A - v1.8 synthesis-closure hardening applied
+> **Status:** v1.5 READY FOR SLICE A - v1.8 synthesis-closure hardening plus audit clarifications applied
 > **Last Updated:** April 28, 2026
 > **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.8
 
@@ -44,12 +44,14 @@ Build:
 - Ended instances get `ended_turn` / `end_reason`, remain queryable for 10 turns, then move to `archived_war_instances`.
 - Readers tolerate missing WPS `war_objectives` records for historical `objective_keys`.
 - Do not replace pairwise diplomacy. `war_instance` groups existing pairs.
+- Add an invariant helper/test assertion: every `diplomatic_states[diplo_key] == "WAR"` must appear in exactly one active `war_instance.active_diplo_keys` with `pair_status == "war"`. No active `war_instance` may claim a non-WAR pair as `pair_status == "war"`.
 
 Gate:
 - 38-44 focused tests.
 - Old saves load with `1` for `next_war_instance_id`, `{}` for `war_instances`, and `[]` for `archived_war_instances`.
 - Vassal rebellion and a synthetic three-instance chain merge attach to exactly one surviving `war_instance`.
 - Direct ally-entry, accepted counter-bargain, vassal-release rebellion, armistice collapse, and scripted/debug war-entry fixtures attach to an existing or new `war_instance`.
+- Invariant test scans live diplomatic state after each Slice A fixture: no dangling WAR pair without a `war_instance`, no duplicate active `diplo_key` ownership.
 - ARMISTICE pair-status tests prove suspended pairs do not archive the war and reuse the same `war_id` if hostilities resume.
 - Synthetic 13+ nation war-instance fixture covers 6+ participants on one side without relying on live map data.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
@@ -80,6 +82,7 @@ Build:
 - Treaty-clause gold / AP / manpower transfers emit `war_support_delivered` at ratification from `_ratify_treaty()` with `source="treaty_clause"`.
 - Access/supply support is capped per supporter per war.
 - Apply material-contribution gate: staying power alone cannot create seat-level grievance or threshold dispatch.
+- A nation active in two concurrent `war_instance` records accrues staying power, support, and current-episode totals independently per `war_id`; only a merge transaction rewrites those records together.
 
 Gate:
 - 48-55 focused tests.
@@ -87,6 +90,8 @@ Gate:
 - Old battle records with only attacker/defender/location remain valid.
 - Raw battle-record pruning does not reduce stored contribution totals.
 - Synthetic contribution fixture covers off-map Britain as a low-battle, low-occupation, seat-level major contributor through support/power-tier standing.
+- British coalition subsidy fixture proves `_process_british_subsidy()` emits `war_support_delivered` with `source="coalition_subsidy"` in addition to the existing dispatch/event summary.
+- Concurrent-war fixture covers one nation active in two `war_instance` records and proves each war's staying-power/support totals advance independently.
 
 ## Slice C - Common Peace Scoring And Term Legitimacy
 
@@ -105,6 +110,7 @@ Slice C is mandatory two-part work. Do not combine C1 and C2 in one implementati
 
 Build C1 - backend scoring and legitimacy:
 - Implement `compute_side_pressure_score(war_instance)`.
+- Build and reuse one memoized `direct_scores` map per settlement preview/confirm evaluation; side pressure, direct-score gates, burden penalties, and advisory rows must not recalculate the same pairwise war score repeatedly inside one draft preview.
 - Implement common-peace acceptance with the v1.8 constants table, including normalized treaty harshness (`term_harshness_penalty = -min(45, round(total_harshness * 45))`).
 - Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, minor-power limited common peace, and a heavily tilted 6+ participant coalition war. Pin the Pressburg-style worked example from the spec as one fixture seed.
 - Add monotonicity coverage proving acceptance does not worsen as `side_pressure_score` increases with all other components fixed.
@@ -119,12 +125,15 @@ Build C1 - backend scoring and legitimacy:
 - Parameterize scoring by `proposer_side` so defending-side common peace is symmetric.
 
 Build C2 - endpoints, dialogue, advisory, and Godot routing:
+- Add Open Settlement eligibility / grey-out rules from spec section 10.3 (`inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, `settlement_dialogue_active`).
 - Add settlement endpoint/dialogue contracts: no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_preview`, mandatory hard-stop `settlement_confirm`, typed `POST /respond_to_diplomatic_dialogue` actions for `confirm`, `back_out`, and `revise_terms`, and the exact no-mutation response shapes from the spec.
+- Add `incoming_settlement_offer` response contract and dialogue taxonomy entry for AI-to-player common peace: `accept`, `reject`, `request_revision`; accept must promote through the same `settlement_confirm` executor and never mutate directly from the incoming offer payload.
 - Verify the already-registered `settlement_confirm` entries in `DialogueManager.HARD_STOP_TYPES`, backend dialogue priority, Godot dialogue routing, command-response keyword handling, and `tests/test_dialogue_manager.py`; extend behavior rather than re-adding the type.
 - `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, active pair keys, hard stops, and acceptance before mutation.
 - Void the staged settlement if the proposer-side leader changes; re-score if only the accepting-side leader changes.
 - Implement two-pass standing: draft advisory from draft terms, final confirmation standing from locked terms.
 - AI-to-player common-peace offers create an incoming settlement-review dialogue; accepting that offer then uses the same confirm executor instead of direct mutation.
+- Add AI common-peace anti-spam: one active incoming settlement offer at a time, one new player-facing settlement offer per turn, and a 3-turn per-`war_id` cooldown after reject/request-revision/expiry/live-state void.
 - AI-vs-AI common peace emits one fog-eligible Diplomatic Affairs dispatch line and one `settlement_summary` campaign-log entry, with no participant spam.
 
 Gate:
@@ -133,10 +142,12 @@ Gate:
 - Rejection feedback names the top two objectionable components.
 - Existing bilateral peace acceptance remains unchanged.
 - `settlement_confirm` blocks ordinary commands and handles proposer-leader-change voiding.
+- Open Settlement grey-out reasons match the spec enum and non-leaders cannot stage common-peace terms.
 - `POST /diplomatic_preview` with draft terms performs no mutation.
 - Partial common peace leaves uncovered hostile or ARMISTICE pairs active in the same `war_instance`.
 - Common peace cannot create an ARMISTICE pair status.
 - AI-vs-AI common peace produces one campaign-log summary and one fog-eligible dispatch line.
+- AI-to-player common-peace offer tests cover accept/reject/request_revision response shapes, confirm-executor promotion, and cooldown/one-active-offer gating.
 - Godot smoke after C2: launch the client, open the settlement review from a synthetic payload, confirm `settlement_confirm` blocks ordinary commands, and back out/revise without mutation.
 
 ## Slice D - Settlement Reaction Pass
@@ -154,6 +165,7 @@ Build:
 - Add `settlement_memories` for `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context`.
 - Add `settlement_gratitude_mod` for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals.
 - Wire War Bargain fulfillment/breach through existing WB-B lifecycle helpers.
+- Implement `classify_bargain_settlement_status(...)` from spec section 15.2 and use it for advisory rows and settlement-confirm breach/void routing.
 - Within the common-peace ratification transaction, run lifecycle in this order: validate confirm, ratify terms, mutate ownership/alignment, run WB-B fulfillment/breach, run settlement reactions, invalidate hegemony/bloc caches, then build dispatch/log/ledger payloads.
 - Add canonical acceptance-doc amendments for `settlement_gratitude_mod`: positive `+5`, not part of the clamped political subtotal, cannot bypass hard stops or political floors, refreshes rather than stacks.
 - Document combined separate-peace relation impact: BPH-C base penalty plus settlement shut-out penalty, with no duplicate BPH-C application.
@@ -168,6 +180,7 @@ Gate:
 - No duplicate BPH-C separate-peace relation penalty.
 - Balance of Europe beats fire only through existing threshold/hegemon-swap seams.
 - `settlement_gratitude_mod` appears in canonical acceptance docs and proposal debug components.
+- Bargain settlement status tests cover `dormant`, `fulfillable`, `fulfilled_by_terms`, `at_risk`, `impossible`, and `breach_if_confirmed`.
 
 ## Slice E - Presentation, Ledger, And Logs
 
@@ -183,11 +196,13 @@ Files:
 
 Build:
 - Add settlement route metadata separate from commitment routes.
+- Implement the `settlement_summary` / `settlement_digest` event contract from spec section 11 Step 6, including payload minimums, one-liners, fog filtering, `event_family="settlement"`, `review_target`, and stable `route_id`.
 - Dispatch top four settlement beats plus one digest overflow line.
 - Notification rail spotlights only major settlement outcomes.
 - Campaign log emits one `settlement_summary` entry per common peace with structured `participant_reactions`.
 - War status panel shows contribution share and standing with top-five default rows plus overflow.
 - WARNING and HARD_STOP concerns always surface above the capped standing list.
+- Warning rendering follows the spec section 16.3 cap: all hard stops inline, top two warnings inline, info/additional warnings behind "View all concerns."
 - Use the deterministic `rank_diplomatic_salience()` tuple from the spec for all default-row ordering.
 - Settlement review is a CanvasLayer 50 information-screen surface and must close/hide existing layer-50 screens through the top-bar one-screen-at-a-time rule before opening.
 - Advisory rows show projected ally fallout costs and per-term marginal acceptance costs where available.
@@ -198,6 +213,7 @@ Gate:
 - Large 6+ participant settlement emits one campaign-log one-liner, not per-participant spam.
 - Settlement review CanvasLayer 50 renders top-five rows plus "View all participants" on a synthetic 6+ participant full-Europe payload with no overlapping text.
 - Notification buttons route to the settlement review or ledger target specified by backend route metadata.
+- `settlement_summary` and `settlement_digest` event tests verify route metadata, fog filtering, one-liner participant cap, and digest overflow.
 - Godot surfaces remain usable on both the current 19-region map and a synthetic full-Europe participant payload.
 - Manual Godot smoke after E2 verifies settlement review, war status rows, notification route, and ledger route on both current map data and the synthetic full-Europe payload.
 
