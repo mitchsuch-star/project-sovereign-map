@@ -1,6 +1,6 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.6 FULL-EUROPE AUDIT CLOSURE - implementation plan updated; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
+> **Status:** v1.7 FULL-EUROPE AUDIT FINAL CLOSURE - implementation plan updated; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
 > **Last Updated:** April 28, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
@@ -58,6 +58,8 @@ The settlement stack — each layer already exists or is well-defined:
 
 The Napoleonic frame: Napoleon dictated terms after Austerlitz, Jena, Wagram. The interesting tension is not "who gets a turn at the peace table." It is **"how long can you dictate before your allies stop tolerating it?"** — and that arc runs directly through the hegemony pressure system.
 
+Defensive-coalition settlements use the same mechanics but a different voice. If France is the defender-side leader in a coalition war it did not start, the flow is still parameterized by `proposer_side`, but presentation should shift from imperial overreach to defensive settlement counsel: preserving the coalition, ending the emergency, and judging which allies earned a say after the defense. Slice E owns that copy distinction; the mechanical rules remain the same.
+
 Contribution score is not spoils accounting. It is the mechanical basis for **why** an ally has standing. Without it, "Prussia is angry" is arbitrary. With it, "Prussia contributed 31% and you gave them nothing" is legible and deterministic. Personalities voice that result; they do not generate it.
 
 ---
@@ -82,7 +84,7 @@ Contribution score is not spoils accounting. It is the mechanical basis for **wh
 **War Bargains:**
 - Data model + creation + validation (WB-A)
 - Lifecycle: fulfillment, breach, void (WB-B)
-- War-entry integration: `war_entry_score`, hard blocks, `join_opportunity`, counter-bargains, `repudiate_bargain` (WB-C)
+- War-entry integration: `compute_war_entry_score()` / war-entry score formula, hard blocks, `join_opportunity`, counter-bargains, `repudiate_bargain` (WB-C)
 - Presentation: commitments routing, notifications, witness scope, voiced templates, ledger badges (WB-D)
 
 **Bilateral peace:**
@@ -163,7 +165,7 @@ If we reuse pairwise `war_score` for everything, the ally disappears from the pe
 
 `side_pressure_score` is a power-weighted average, not a sum. Summing pairwise scores would let France farm pressure by dragging minors into a war; using only the maximum pair would erase broad coalition pressure.
 
-For a proposed common peace, compute pressure from France's side against each covered enemy participant.
+For a proposed common peace, compute pressure from the proposer side against each covered enemy participant.
 
 **Covered enemy participant definition:** a covered enemy participant is an enemy-side nation included in the proposed common-peace package. A nation is covered when at least one term names it as `from` / payer / ceder, when the package burdens it through vassalage / forced alignment / liberation, or when it is the opposing side leader. Empty covered-enemy sets are invalid before scoring.
 
@@ -172,7 +174,7 @@ pressure_terms = []
 for enemy in covered_enemy_participants:
     direct_score = max(
         get_war_score_for(world, side_member, enemy)
-        for side_member in active_france_side_participants
+        for side_member in proposer_side_participants
         if world.is_at_war(side_member, enemy)
     )
     weight = {"major": 3, "secondary": 2, "minor": 1}.get(
@@ -190,7 +192,7 @@ side_pressure_score = round(
 Rules:
 
 - Empty `pressure_terms` is a hard stop: common peace has no valid covered enemy.
-- Implementation must build `direct_scores` before calling `max()`. A covered enemy with no active direct pair against France's side is a hard stop for that enemy: `no_direct_war_score_for_covered_enemy`.
+- Implementation must build `direct_scores` before calling `max()`. A covered enemy with no active direct pair against the proposer side is a hard stop for that enemy: `no_direct_war_score_for_covered_enemy`.
 - Scores are clamped to the existing `[-100, 100]` war-score range after aggregation.
 - `side_pressure_score` is a headline/base component. It is not blanket authorization for target-specific demands.
 - Terms against a non-leader enemy with `direct_score < 20` are legal only as extreme terms and add the Step 4 burdened-participant penalty.
@@ -268,6 +270,7 @@ world.war_instances[war_id] = {
 - **Creation seam:** every path that sets a pair to `WAR` and then calls `_process_war_cascade()` must call `ensure_war_instance_for_pair(world, originator, origin_target, *, entry_path, reason)` first. This includes player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, combat-triggered auto-war, and any future executor path that combines WAR state with cascade. The helper either creates a skeleton instance, reuses a compatible active instance, or returns a hard stop.
 - **Merge rule:** merge is transitive. If a declaration or cascade connects multiple active compatible instances, compute the full connected component of `war_instances` linked by the cascade, validate all side assignments for the merged result simultaneously, and merge into the instance with the oldest `created_sequence`. Preserve the older `created_turn`, union active participants and pair keys, preserve all participant episodes, and choose leaders using §7.4. If any side mapping in the connected component would put the same nation on both sides, the declaration is a hard stop with `war_instance_side_conflict`.
 - Merge operations also preserve the surviving instance's `war_id` and older `created_sequence` so the unique `war_id` allocator remains monotonic and archived references stay stable. Any `war_bargain.war_id`, contribution event, pending settlement dialogue, dispatch route, or ledger reference that points to an absorbed instance is rewritten to the surviving `war_id` during the merge transaction.
+- **Merge transaction order:** (1) compute the connected component and validate all side assignments without mutating state; (2) choose the surviving oldest `war_id`; (3) merge `participant_meta`, active/resolved pair keys, side lists, and episode records into an in-memory merged shape; (4) choose leaders per section 7.4; (5) rewrite `war_bargain.war_id` references; (6) rewrite `war_contribution_scores` and contribution-event `war_id` references; (7) rewrite pending settlement/dialogue/dispatch/ledger references; (8) atomically replace the survivor record and remove absorbed active instances. Any conflict before step 8 aborts the whole merge.
 - **Historical objective references:** `objective_keys` are references to WPS `war_objectives` diplo keys. Readers must tolerate missing objective records because WPS cleanup may remove concluded objective details after their retention window.
 
 ### 7.3 End condition
@@ -517,7 +520,7 @@ support_raw =
     + manpower_support_value // 500
 ```
 
-If `side_theater_strength <= 0`, the battle awards no contribution points and emits a debug warning; do not divide by zero or fall back to all participants.
+If `side_theater_strength <= 0`, the battle awards no contribution points and emits a debug warning; do not divide by zero or fall back to all participants. If an otherwise valid detected participant has `nation_theater_strength <= 0`, use a floor of `1` for that participant before risk adjustment so routed or adjacent political participants are not silently dropped.
 
 Occupation contribution is attributed by event, not by side total guesswork. Controller-change, liberation, and capital-capture paths emit:
 
@@ -599,6 +602,8 @@ At battle resolution time, record:
 }
 ```
 
+Contribution from battles is accrued at battle-resolution time into `war_contribution_scores`. Settlement readers must not reconstruct historical contribution by scanning old `world.battle_records`; those raw records may still be pruned by existing war-score cleanup. The extended battle record is the emission payload for accrual and for recent/debug display, not the canonical long-term contribution store.
+
 Participant detection:
 
 - A nation participates if it has an active marshal in the battle region or in any one-hop adjacent region during the turn of the battle.
@@ -618,6 +623,7 @@ Contribution must comply with the project hot-path rule:
 - Occupation contribution accrues event-driven at region-controller change / treaty-transfer time.
 - Staying power is the only per-turn accrual; it iterates active participants in `war_instances`, not all regions.
 - Region ownership lookups use existing cached helpers such as `get_nation_regions()` where needed. Do not add per-region scans to `advance_turn()`.
+- Same-turn episode filtering depends on event resolution order: battle, occupation, and support events for the turn must be emitted before elimination, separate-peace, or settlement exits stamp `exited_turn`. The inclusive `event.turn <= exited_turn` boundary in section 7.5 is correct only under that ordering.
 
 ### 9.6 Battle record compatibility
 
@@ -692,10 +698,10 @@ Internally, terms are grouped by payer / target enemy:
 
 - Terms imposed on Austria
 - Terms imposed on Prussia
-- Beneficiaries on France's side
+- Beneficiaries on the proposer side
 - Side-wide political aftermath
 
-If France wants to resolve only Austria while the larger war continues and no ally-beneficiary / standing logic is needed, that is separate peace. Common peace may target a single covered enemy when the package includes ally-beneficiary terms, settlement standing evaluation, or war-level bargain/legitimacy logic. The distinction is not enemy count; it is whether war-scoped settlement machinery is required.
+If the settlement actor wants to resolve only Austria while the larger war continues and no ally-beneficiary / standing logic is needed, that is separate peace. Common peace may target a single covered enemy when the package includes ally-beneficiary terms, settlement standing evaluation, or war-level bargain/legitimacy logic. The distinction is not enemy count; it is whether war-scoped settlement machinery is required.
 
 ### 10.3 Wizard routing
 
@@ -717,6 +723,23 @@ Preview endpoint extension:
 GET /diplomatic_preview?mode=settlement&war_id={war_id}
 ```
 
+`GET` returns the initial, no-terms war-scoped advisory shell. Draft terms require a non-mutating request body so territory legitimacy, projected hegemony, standing, and acceptance diagnostics can be calculated from the proposed package:
+
+```http
+POST /diplomatic_preview
+{
+    "mode": "settlement",
+    "war_id": "war_12",
+    "proposer_side": "attackers",
+    "settlement_terms": [
+        {"type": "territory_cede", "from": "Austria", "to": "Prussia",
+         "beneficiary": "Prussia", "regions": ["Saxony"], "war_id": "war_12"}
+    ]
+}
+```
+
+`POST /diplomatic_preview` is preview-only. It must never stage `settlement_confirm`, mutate terms, change ownership, or run WB-B fulfillment/breach.
+
 Preview response minimum shape:
 
 ```python
@@ -726,7 +749,8 @@ Preview response minimum shape:
     "settlement_preview": {
         "war_instance": {...},
         "covered_enemy_participants": ["Austria", "Prussia"],
-        "france_side_participants": ["France", "Saxony"],
+        "proposer_side": "attackers",
+        "proposer_side_participants": ["France", "Saxony"],
         "standing": {"Saxony": {"level": "consult", "contribution_share": 0.18}},
         "active_bargains": [],
         "side_pressure_score": 42,
@@ -793,13 +817,21 @@ Godot surface:
 - Render the war-scoped advisory in a dedicated settlement review panel. This is an information-screen surface in the CanvasLayer 50 family, so opening it must close or hide existing layer-50 screens (`diplomatic_ledger`, `strategic_ledger`, `dispatch_view`, `campaign_log`, and `marshal_management`) through the same one-screen-at-a-time top-bar ownership rule. The final confirm/back-out/revise choice is promoted through the existing popup/dialog manager when `settlement_confirm` is active.
 - Warning payloads use the existing structured `warnings[]` shape. `HARD_STOP` blocks confirmation; `WARNING` and `INFO` do not.
 
+### 10.5 Partial common peace and continuation
+
+Common peace does not have to resolve every enemy in the `war_instance`. The proposed package covers a subset of enemy participants: the opposing side leader plus any non-leader enemies named, burdened, restored, or needed for an objective/bargain term. Every covered enemy must pass the direct-score gate in section 6.3.
+
+If a package is accepted, only active hostile pairs between the proposer side and covered enemies resolve. Enemy participants that are not covered, or that fail the direct-score gate and are removed from the draft package, remain active in the same `war_instance`. The `war_instance` ends only when section 7.3 is true: no hostile pairs remain between the two sides or one side has no active participants.
+
+If the player wants to settle one enemy and the package has no ally-beneficiary, standing, objective, or bargain reason to use war-scoped settlement machinery, use separate peace instead. Partial common peace exists for cases where a subset settlement still needs ally standing, common-peace acceptance, beneficiary terms, or WB settlement evaluation.
+
 ---
 
 ## 11. Mechanical Flow
 
-No peace-conference turns. No EU4/HOI4 bidding. Peace is a decisive French action with visible consequences.
+No peace-conference turns. No EU4/HOI4 bidding. Peace is a decisive settlement-actor action with visible consequences; in the current player campaign that actor is usually France.
 
-The flow is parameterized by `proposer_side`, not hardcoded to attackers. When France is defender leader, "France's side" below means the defending side and `covered_enemy_participants` means attacker-side nations.
+The flow is parameterized by `settlement_actor`, `proposer_side`, and `accepting_side`, not hardcoded to attackers. In the current player campaign `settlement_actor` is usually France, but scoring and validation read `proposer_side_participants` from the live `war_instance`. When France is defender leader, the proposer side is the defending side and `covered_enemy_participants` means attacker-side nations.
 
 ### Step 1: Player opens peace
 
@@ -832,7 +864,7 @@ Example warnings:
 
 - One package. Terms grouped by target enemy.
 - Player can include ally beneficiary terms (§13).
-- No ally turns. France decides.
+- No ally turns. The settlement actor decides; allies react.
 - Severe cases (active war bargain breach, shutting out a `seat`-level ally) trigger a second Talleyrand confirm. This confirm is a warning, not a veto.
 
 ### Step 4: Enemy acceptance
@@ -865,7 +897,7 @@ Constants and clamps:
 | `term_harshness_penalty` | `[-45, 0]` | `-min(45, round(total_harshness * 45))`; `total_harshness` is the normalized `0.0` to `1.0` value returned by `calculate_treaty_harshness({"clauses": all_clauses, "demands": all_demands})` |
 | `burdened_participant_penalty` | `[-30, 0]` | Sum the per-burdened-enemy penalties below, capped at `-30` |
 | `leader_own_losses` | `[-25, 5]` | Acceptance is scored from the accepting leader's perspective: `-5` per accepting-leader-controlled region ceded, `-15` if the accepting leader's capital is ceded/forced-aligned, `+5` if the accepting leader keeps all owned territory |
-| `war_objective_alignment` | `[-20, 15]` | `+15` if the package satisfies France-side primary objective, `+5` if it partially satisfies it, `-15` if unrelated harsh terms dominate, `-20` if it contradicts the declared objective |
+| `war_objective_alignment` | `[-20, 15]` | `+15` if the package satisfies the proposer-side primary objective, `+5` if it partially satisfies it, `-15` if unrelated harsh terms dominate, `-20` if it contradicts the declared objective |
 | `projected_hegemony_mod` | `[-20, 10]` | New common-peace-only component from `project_balance_after_settlement()`, distinct from live bilateral `hegemony_target_mod`: `-20` if package crosses or deepens a `60%` bloc-share band, `-10` at `50%`, `-5` at `33%`, `+10` for meaningful de-escalation |
 | `war_exhaustion` | `[0, 20]` | `min(20, enemy_leader_war_exhaustion // 3)` |
 | `abandoned_by_ally_acceptance_mod` | `[0, 15]` | `+5` per same-side enemy participant that made separate peace in the last 3 turns, capped at `+15` |
@@ -876,7 +908,7 @@ Acceptance thresholds:
 - `35 <= score < 50`: reject, but feedback marks the package "near acceptable" and names the top two fixable components.
 - `score < 35`: hard reject.
 
-Slice C tuning gate: before locking constants in code, add deterministic test fixtures for Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, a coalition split by separate peace, and a decisive French victory without `total_victory`. At least one decisive French win must accept meaningful common-peace terms without requiring total victory. If the examples fail that design target, adjust exactly one primary knob before implementation lock: lower the accept threshold to `40`, raise `base_side_pressure` scaling to `0.6` or `0.7`, or add a bounded `military_supremacy_bonus`. Record the chosen knob in the Slice C tests.
+Slice C tuning gate: before locking constants in code, add at least six deterministic test fixtures: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, a coalition split by separate peace, decisive French victory without `total_victory`, minor-power limited common peace, and a heavily tilted 6+ participant coalition war. Add a monotonicity test proving acceptance does not become worse as `side_pressure_score` increases with all other components held constant. At least one decisive French win must accept meaningful common-peace terms without requiring total victory. If the examples fail that design target, adjust exactly one primary knob before implementation lock: lower the accept threshold to `40`, raise `base_side_pressure` scaling to `0.6` or `0.7`, or add a bounded `military_supremacy_bonus`. Record the chosen knob in the Slice C tests.
 
 All component calculations are integerized with `round()` at the component boundary. The final score is clamped to `[-100, 100]`. Empty covered-enemy sets are invalid before scoring.
 
@@ -911,11 +943,11 @@ The projection starts from current bloc geometry, applies forced alliance, liber
 
 `base_side_pressure` is the war-level headline component. Every term that burdens a specific enemy must also pass the section 6.3 direct-score gate for that payer; a high side average cannot authorize harsh terms against a barely-defeated major.
 
-If the accepting leader changes between proposal construction and acceptance evaluation, re-evaluate the package against the new leader before resolving. If the proposer-side leader changes, void the staged package and require reopening. If accepted, all covered active hostile pairs resolve. If rejected, the whole package fails. France can then try separate peace with individual enemies or revise terms. Rejection feedback must identify the top 1-2 objectionable terms or acceptance components by absolute penalty so the player knows whether the problem was Silesia, forced alliance, insufficient direct pressure, a bargain conflict, or accumulated harshness.
+If the accepting leader changes between proposal construction and acceptance evaluation, re-evaluate the package against the new leader before resolving. If the proposer-side leader changes, void the staged package and require reopening. If accepted, all covered active hostile pairs resolve; uncovered hostile pairs remain active under section 10.5. If rejected, the whole package fails. The player can then try separate peace with individual enemies or revise terms. Rejection feedback must identify the top 1-2 objectionable terms or acceptance components by absolute penalty so the player knows whether the problem was Silesia, forced alliance, insufficient direct pressure, a bargain conflict, or accumulated harshness.
 
 Burdened non-leader rule:
 
-- If a non-leader enemy pays territory, vassalage, forced alliance, or liberation costs, compute `direct_score = max(get_war_score_for(side_member, burdened_enemy))` across France-side participants.
+- If a non-leader enemy pays territory, vassalage, forced alliance, or liberation costs, compute `direct_score = max(get_war_score_for(side_member, burdened_enemy))` across proposer-side participants.
 - `direct_score >= 20`: normal non-leader burden.
 - `0 <= direct_score < 20`: add `burdened_participant_penalty = -15` and surface a severe warning.
 - `direct_score < 0`: add `burdened_participant_penalty = -30`; only occupied, objective-linked, or bargain-linked territorial terms are legal.
@@ -925,7 +957,7 @@ These penalties are not vetoes. They model the enemy leader's reluctance to sell
 
 ### Step 5: Settlement reaction pass
 
-After peace succeeds, every relevant party evaluates the outcome. Run for **both sides**. France-side ally reactions are the main player-facing loop, but enemy-side "sold out by leader" reactions are primary political events, not background flavor.
+After peace succeeds, every relevant party evaluates the outcome. Run for **both sides**. Proposer-side ally reactions are the main player-facing loop in the current France campaign, but enemy-side "sold out by leader" reactions are primary political events, not background flavor.
 
 Common-peace ratification uses this ordering in one transaction: validate `settlement_confirm` live state -> ratify treaty terms -> mutate region ownership / alliances / forced alignment -> run WB-B fulfillment/breach evaluation -> run settlement reaction pass -> invalidate Balance of Europe / bloc caches and fire threshold checks -> build campaign log, dispatch, notification, and ledger payloads. Separate-peace fallout that makes a bargain impossible routes through the same WB-B breach helper immediately after the separate peace mutation and before the smaller settlement reaction pass.
 
@@ -933,7 +965,7 @@ The reaction pass also checks active cross-war consequences. If a settlement cha
 
 Complexity bound: build `affected_nations` from term payers, beneficiaries, region-adjacent controllers, bargain parties, and survival/capital targets. Then inspect only active `war_instances` where at least one active participant is in `affected_nations`. Cross-war reaction checks inspect at most 3 active `war_instances` beyond the settling war, selecting the 3 with the highest overlap count with `affected_nations` and then oldest `created_sequence` as tie-break. Do not iterate all nations by all war instances.
 
-**France-side reactions** (main player-facing loop):
+**Proposer-side reactions** (France-side in the current player campaign):
 
 | Outcome | Consequence |
 |---------|-------------|
@@ -981,21 +1013,21 @@ For every territorial term, evaluate:
 
 | Basis | Strength | Description |
 |-------|----------|-------------|
-| `occupied_by_france_side` | Strong | Region is currently controlled by France or a French-side ally |
+| `occupied_by_proposer_side` | Strong | Region is currently controlled by the settlement actor or a proposer-side ally |
 | `war_objective_or_bargain` | Strong | Region is tied to declared war objective, liberation objective, or active war bargain |
-| `high_pairwise_pressure` | Medium | France has strong pairwise war score against the `from` nation |
-| `general_side_victory` | Weak | France's side is winning the overall war, but France has little direct pressure on the `from` nation |
+| `high_pairwise_pressure` | Medium | The proposer side has strong pairwise war score against the `from` nation |
+| `general_side_victory` | Weak | The proposer side is winning the overall war, but has little direct pressure on the `from` nation |
 
 ### 12.2 Penalty rules
 
 ```
 territory_demand_cost =
     base_territory_demand
-    + unoccupied_region_penalty          # if not held by France's side
+    + unoccupied_region_penalty          # if not held by proposer side
     + weak_pressure_penalty              # if low pairwise war score against `from`
     + excessive_land_burden_penalty      # if too many regions demanded from one enemy
-    - occupied_discount                  # if held by France's side
-- war_objective_discount             # if tied to declared objective
+    - occupied_discount                  # if held by proposer side
+    - war_objective_discount             # if tied to declared objective
     - bargain_claim_discount             # if tied to active WB claim for France
     - liberation_claim_discount          # if restoring a liberated nation
 ```
@@ -1005,7 +1037,7 @@ First-pass constants:
 | Term | Value |
 |------|-------|
 | `base_territory_demand` | `8` per region |
-| `unoccupied_region_penalty` | `+12` when not controlled by France's side |
+| `unoccupied_region_penalty` | `+12` when not controlled by proposer side |
 | `weak_pressure_penalty` | `+10` when `direct_score < 20`, `+20` when `direct_score < 0` |
 | `excessive_land_burden_penalty` | `+6` for the second region from same enemy, `+10` for each additional region |
 | `occupied_discount` | `-6` |
@@ -1016,8 +1048,8 @@ First-pass constants:
 ### 12.3 Edge cases
 
 - **Region belongs to a non-participant:** Hard stop. Cannot demand territory from a nation not in the war.
-- **`from` is only an enemy ally that France barely fought:** Very high acceptance penalty. The enemy war leader will resist giving away an ally's land when that ally is not the one who lost.
-- **Region tied to a war bargain but unoccupied:** Bargain discount reduces but does not eliminate the unoccupied penalty. Promise legitimacy helps, but the enemy still knows France doesn't hold it.
+- **`from` is only an enemy ally that the proposer side barely fought:** Very high acceptance penalty. The enemy war leader will resist giving away an ally's land when that ally is not the one who lost.
+- **Region tied to a war bargain but unoccupied:** Bargain discount reduces but does not eliminate the unoccupied penalty. Promise legitimacy helps, but the enemy still knows the proposer side does not hold it.
 
 ### 12.4 Talleyrand warnings
 
@@ -1033,7 +1065,7 @@ Territory legitimacy feeds into the Step 2 advisory preview:
 
 ### 13.1 Beneficiary fields on existing terms
 
-France can award territory to an ally. Use ownership fields on existing `territory_cede`, not a new term type:
+The settlement actor can award territory to an ally. Use ownership fields on existing `territory_cede`, not a new term type:
 
 ```python
 {
@@ -1056,7 +1088,7 @@ New term types are reserved for genuinely different political actions (forced_al
 In common peace, the beneficiary can be:
 
 - France
-- An active ally on France's side
+- An active ally on the proposer side
 - A liberated nation
 - A former owner restored by treaty
 
@@ -1114,7 +1146,7 @@ _add_settlement_memory(
 - Effect: moderate relation hit only (`-5` to `-10` relation)
 
 **Major shut-out:**
-- Ally had strong claim interest or high contribution (>= 20%)
+- Ally had `seat` standing, strong claim interest, or high contribution (>= 20%)
 - Effect: larger relation hit (`-15` to `-25`), `settlement_shut_out` grievance flag, possible treaty downgrade pressure
 
 **Promise breach (war bargain):**
@@ -1124,6 +1156,8 @@ _add_settlement_memory(
 **Major power humiliation:**
 - `major` power with `seat` standing, excluded or visibly subordinated
 - Effect: hard-reject posture risk, coalition drift through threat/bloc systems, possible `balance_of_europe_shifted` beat only if the existing threshold/swap contract is met
+
+Seat standing is sufficient for the major shut-out / humiliation bands even when contribution share is low. This matters for off-map or subsidy-heavy major powers such as Britain: low battle or occupation contribution may affect advisory wording, but a seat-level major excluded from settlement is still a major political event.
 
 ### 14.3 Rewarded ally memory
 
@@ -1241,6 +1275,8 @@ In common peace, Talleyrand surfaces:
 
 Default advisory rows are capped at 5 by `rank_diplomatic_salience()`: warning severity, `seat` over `consult`, material contribution over staying power, active bargain stake, direct territorial stake, rival-strengthened warning, power tier, and stable nation id/name. Overflow is grouped behind "View all participants." WARNING and HARD_STOP warnings are rendered above this list and are not suppressed by the row cap.
 
+Advisory copy distinguishes earned standing from diplomatic weight. A participant with material contribution and `standing_share >= 25%` has "earned a voice through sacrifice"; a `major` with `seat` standing but low material contribution "demands a voice at the table" because of power-tier status. The standing level is the same, but the explanation should not imply Britain or another off-map funder won battles it could not mechanically fight.
+
 ### 16.2 UI surfaces
 
 Use existing surfaces where possible:
@@ -1289,7 +1325,9 @@ AI uses the same settlement executor and validation paths as the player.
 - AI v1 does not create speculative ally-beneficiary land gifts. It may include ally-beneficiary terms only for restoration, liberation, occupied-region return, or a direct existing promise basis that passes section 13.2.
 - AI separate peace uses the existing bilateral proposal path, then runs the same smaller settlement reaction pass for remaining co-belligerents.
 - AI acceptance of a player common-peace package uses the Step 4 common-peace acceptance formula with projected hegemony, direct-score gates, and burdened-participant penalties.
-- AI common-peace proposals do not create a player-facing `settlement_confirm` popup, but they must stage an internal `settlement_confirm` payload and pass through the same `confirm` validation executor before mutation. No AI path may bypass leader revalidation, active pair-key validation, hard stops, direct-score gates, WB-B lifecycle checks, or reaction-pass construction.
+- AI common-peace proposals that resolve AI-vs-AI wars do not create a player-facing `settlement_confirm` popup, but they must stage an internal `settlement_confirm` payload and pass through the same `confirm` validation executor before mutation.
+- AI common-peace proposals offered to the player create an incoming settlement-review dialogue, not an automatic ratification. The player sees covered enemies, terms, acceptance components, ally fallout, and actions to accept, reject, or request revision. Accepting the AI offer then stages/executes the same `settlement_confirm.confirm` path with leader revalidation and no direct mutation from the incoming offer.
+- No AI path may bypass leader revalidation, active pair-key validation, hard stops, direct-score gates, WB-B lifecycle checks, or reaction-pass construction.
 - AI never creates ally-beneficiary land terms that would violate the allowed-beneficiary rules in §13.2.
 - AI never bypasses War Bargain fulfillment/breach checks; settlement-triggered promise outcomes route through WB-B/WB-D just like player outcomes.
 - AI proposal reasons use deterministic `decision_reason` values: `common_peace_pressure`, `direct_score_insufficient`, `ally_burden_too_high`, `bargain_conflict`, `hegemony_projection`, and `settlement_tier_mismatch`.
@@ -1308,7 +1346,7 @@ world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
 world.settlement_memories: Dict[str, List[Dict]] = {}
 ```
 
-`settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical ordered pair string `actor|subject`. Negative France-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
+`settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical ordered pair string `actor|subject`. Negative proposer-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
 
 Per-turn cleanup removes inactive or expired entries where `current_turn > expires_on_turn`. Run cleanup after any settlement-memory acceptance modifiers or ledger queries for that turn have read active records, and before dispatch / presentation payload construction. Cleanup must not mutate existing `betrayal_history` grievance flags.
 
@@ -1398,6 +1436,21 @@ balance_projection = project_balance_after_settlement(world, war_id, settlement_
 - `objective_keys` are historical references. Readers must tolerate missing `world.war_objectives[key]` records after WPS cleanup.
 - Battle-record readers must adapt old single-attacker/single-defender records using section 9.6.
 
+### 17.5 Turn lifecycle placement
+
+Settlement adds no broad region scan to `advance_turn()`. The settlement-specific turn work runs in this order relative to existing diplomacy processing:
+
+1. Resolve battle, occupation, subsidy/support, and treaty-ratification events for the turn; accrue battle/support/occupation contribution into `war_contribution_scores` as events fire.
+2. Apply war-state changes: declarations, cascade joins, eliminations, separate peaces, common-peace ratification, region ownership/alignment mutation, and participant `exited_turn` stamps.
+3. Run WB-B fulfillment/breach/void checks for ratified peace and separate-peace fallout.
+4. Accrue staying-power contribution by iterating active `war_instance` participants only.
+5. Recompute active war leaders and end/archive `war_instances` whose section 7.3 end condition is met.
+6. Read active `settlement_memories` for acceptance modifiers, war-entry previews, ledger rows, and dispatch payloads.
+7. Remove expired transient `settlement_memories`; do not mutate `betrayal_history` grievance flags during this cleanup.
+8. Build campaign log, dispatch, notification, and ledger payloads.
+
+The ordering preserves same-turn contribution credit before exits, keeps bargain lifecycle decisions adjacent to treaty mutation, and ensures memory cleanup cannot erase a modifier before that turn's readers consume it.
+
 ---
 
 ## 18. Implementation Sequence
@@ -1416,6 +1469,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Wire War Bargain `war_id` attachment at join_opportunity
 - Expose participant lists in war status panel and debug endpoints
 - Serialization: `to_dict` / `from_dict` round-trip for `war_instances` and `archived_war_instances`; update `SAVE_FORMAT_REFERENCE.md`
+- Synthetic full-Europe fixtures cover at least 13 nations and a 6+ participant side even before the live map grows past 19 regions
 - ~40 tests
 
 ### Slice B: Contribution tracker
@@ -1430,6 +1484,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Derive contribution shares at query time
 - Standing classification: `classify_standing()` with rule-based bucket assignment, secondary co-belligerent floor, and late-joiner rules
 - Serialization: `to_dict` / `from_dict` round-trip for `war_contribution_scores`; update `SAVE_FORMAT_REFERENCE.md`
+- Synthetic contribution fixtures cover off-map Britain, a 6+ participant side, and late join / exit / re-entry episodes
 - ~52 tests
 
 ### Slice C: Common peace plumbing + territory legitimacy
@@ -1446,12 +1501,14 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - `abandoned_by_ally_acceptance_mod`: `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`
 - Projected post-settlement hegemony modifier via `project_balance_after_settlement(...)`
 - Defender-side common-peace symmetry through `proposer_side`
-- Endpoint and dialogue contracts for `settlement_preview`, `settlement_confirm`, `back_out`, and `revise_terms`
+- Endpoint and dialogue contracts for no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_confirm`, `back_out`, and `revise_terms`
 - Mandatory `settlement_confirm` before any common-peace ratification; `confirm` revalidates live leaders, terms, hard stops, and acceptance
-- `settlement_confirm` registered as a hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
-- Slice C tuning gate for common-peace constants using Pressburg / Tilsit / coalition-split deterministic examples before implementation lock
+- Verify and extend the already-registered `settlement_confirm` hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
+- Slice C tuning gate for common-peace constants using at least six deterministic examples plus side-pressure monotonicity before implementation lock
 - Talleyrand advisory preview: standing, bargains, territory legitimacy, rival-strengthened warnings, ally-fallout warnings, salience-filtered default rows
-- ~54 tests
+- Split into C1 backend scoring/legitimacy and C2 endpoint/dialogue/advisory/Godot routing if the slice exceeds the test ceiling
+- Godot smoke gate after C2: launch the client, open the settlement review from a synthetic payload, verify `settlement_confirm` blocks ordinary commands, then back out/revise without mutation
+- ~60 tests
 
 ### Slice D: Settlement reaction pass + bargain integration
 
@@ -1484,9 +1541,10 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - "View all participants" advisory overflow
 - WARNING and HARD_STOP advisory rows surface regardless of the default participant-row cap
 - Split Slice E into E1 backend presentation payloads and E2 Godot rendering if the Godot surface grows beyond the slice gate
+- Godot smoke gate after E2: settlement review, war status rows, notification route, and ledger route render on current 19-region data plus a synthetic 6+ participant full-Europe payload with no overlapping text
 - ~36 tests
 
-**Estimated total: ~244 tests across 5 slices.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, and any UI payload tests listed above.
+**Estimated total: ~252 tests across 5 slices.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, synthetic full-Europe fixtures, and any UI payload tests listed above.
 
 ---
 
@@ -1511,7 +1569,7 @@ Highest-priority tests:
 15. Existing bilateral peace proposals still work unchanged in wars without allied settlement needs.
 16. Side pressure score weighted-average aggregation does not break existing pairwise peace acceptance logic.
 17. Standing classification respects all six inputs (contribution, power tier, territorial interest, bargain, treaty depth, survival).
-18. Settlement reaction pass fires for both France-side and enemy-side participants.
+18. Settlement reaction pass fires for both proposer-side and enemy-side participants.
 19. Imperial-looking settlement uses existing threat/bloc seams and emits `balance_of_europe_shifted` only on threshold crossing or hegemon swap.
 20. Dormant war bargains remain dormant through settlement; do not block peace.
 21. Contribution threshold signals fire once at 15% and 25%, and do not create popups.
@@ -1557,6 +1615,15 @@ Highest-priority tests:
 61. Occupation contribution is attributed by `war_occupation_event.actor_nation`.
 62. Cross-war reaction checks inspect no more than three non-settling active `war_instances`.
 63. AI common peace stages the same internal confirm payload and cannot bypass confirm validation.
+64. Partial common peace resolves only covered enemies and leaves uncovered hostile pairs active in the same `war_instance`.
+65. Draft settlement preview with `POST /diplomatic_preview` accepts `settlement_terms` and performs no mutation.
+66. Battle contribution persists from `war_contribution_scores` even after raw `battle_records` pruning.
+67. Same-turn battle contribution is credited before elimination or separate-peace `exited_turn` stamping.
+68. AI-to-player common-peace offers create an incoming settlement review instead of immediate ratification.
+69. Slice C acceptance score is monotonic with increasing `side_pressure_score` when all other components are fixed.
+70. Synthetic full-Europe fixtures cover at least 13 nations, 6+ participants on one side, and off-map Britain.
+71. `settlement_confirm` hard-stop registration is verified in backend and Godot before adding new routing behavior.
+72. Godot settlement smoke gates pass after Slice C2 and Slice E2.
 
 ---
 
@@ -1577,6 +1644,8 @@ Separate peace is also a weapon. Peeling one enemy out of a war should pressure 
 ### 20.3 No ally turns at the peace table
 
 France dictates. Allies react. The drama is in the pre-visible advisory (knowing the cost) and the post-ratification memory (paying the cost). No conference minigame.
+
+When France leads a defensive settlement, "dictates" means France owns the final player choice, not that the copy should sound like conquest. Defensive-coalition presentation should foreground coalition preservation, allied claims, and exhaustion rather than imperial overreach.
 
 ### 20.4 War Bargains are the promise system
 
@@ -1600,6 +1669,7 @@ Standing, consultation, entitlement, and fallout — not hard blocking. Politica
 
 ## 21. Changelog
 
+- **April 28, 2026 - v1.7 final audit closure.** Closed the remaining Codex/Claude synthesis gaps: reconciled DIPLOMACY acceptance docs with live War Bargain modifiers, added draft `POST /diplomatic_preview`, explicit partial common-peace continuation, event-time contribution vs battle-record pruning, same-turn lifecycle ordering, merge transaction ordering, off-map major-power shut-out precedence, AI-to-player settlement review routing, expanded Slice C tuning fixtures with monotonicity, synthetic full-Europe fixtures, Slice C split guidance, and Godot smoke gates.
 - **April 28, 2026 - v1.6 audit closure.** Synthesized the combined Codex/Claude full-Europe audit after v1.5: added hard-stop `settlement_confirm` taxonomy and leader-change behavior, fixed normalized common-peace harshness math, defined two-pass standing and zero-contribution major-power precedence, made war-instance merge transitive with absorbed-`war_id` rewrites, added explicit WAR-entry creation seams, added occupation contribution events and support-emitter ownership, renamed common-peace `hegemony_pressure` to `projected_hegemony_mod`, bounded cross-war reaction checks to three related wars, made salience ordering deterministic, added layer-50 ownership rules, idempotent settlement-memory writes, AI internal confirm routing, and new tests for the closure cases.
 - **April 28, 2026 - v1.5 handoff hardening.** Synthesized Codex and Claude full-Europe audit follow-ups: added unique `next_war_instance_id` allocation, separated active pair-key ownership from historical `objective_keys`, made contribution storage episode-scoped, made `settlement_confirm` mandatory before common-peace ratification, added the `settlement_gratitude_mod` acceptance hook, expanded AI common-peace decision rules, added the Slice C acceptance tuning gate, and aligned the implementation plan/status routing for Slice A handoff.
 

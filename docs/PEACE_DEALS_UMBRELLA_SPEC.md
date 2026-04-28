@@ -1,8 +1,8 @@
 # Peace Deals — Umbrella Spec
 
-> **Status:** Draft v1.0
-> **Date:** April 25, 2026
-> **Phase placement:** After Memory and Pressure v2.4.3 (complete). Before Ally Participation + Common Peace.
+> **Status:** v1.1 historical umbrella, BPH/WPS/WB complete; Imperial Settlement follow-up active
+> **Date:** April 28, 2026
+> **Phase placement:** After Memory and Pressure v2.4.3 (complete). BPH, WPS, and WB are landed; Ally Participation + Common Peace is now owned by `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`.
 > **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (follow-up phase)
 
 ---
@@ -11,19 +11,19 @@
 
 This spec is the umbrella for the Peace Deals phase. It defines the implementation order, dependency graph, cross-cutting decisions, milestone gates, and deferred carry-forward checklist that the four sub-specs do not individually own.
 
-The three implementation-ready sub-specs are:
+The three Peace Deals sub-specs are now landed:
 
 - **Bilateral Peace Hardening (BPH)** — make the existing bilateral peace flow legible, previewable, and politically consequential.
 - **War Purpose + Score Semantics (WPS)** — give wars declared purpose, ticking score, settlement tiers, forced alliance, liberation, and a vassalage power cap.
 - **War Bargains (WB)** — add a named-enemy bilateral promise mechanic with lifecycle, ally-entry integration, and breach/fulfillment consequences.
 
-The fourth doc, **War Settlement + Ally Participation**, is the follow-up phase. It is explicitly out of scope for the Peace Deals implementation slices but must be accounted for in interface design.
+The fourth doc, **War Settlement + Ally Participation**, is the active follow-up handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but file-level settlement coding now starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`.
 
 ---
 
 ## 2. What Peace Deals is NOT
 
-- Not multi-party peace. Common peace, ally beneficiaries, contribution-based settlement, and conference flow belong to Ally Participation (later phase).
+- Not multi-party peace within the completed BPH/WPS/WB slices. Common peace, ally beneficiaries, contribution-based settlement, and settlement fallout belong to the active Ally Participation follow-up.
 - Not a mechanics rewrite. The existing acceptance formula, pairwise war state, and bilateral treaty system remain intact. Peace Deals makes them honest.
 - Not a new diplomatic action vocabulary. BPH adds zero new verbs. WPS adds one clause type (`forced_alliance`) and one popup (War Purpose). WB adds one clause type (`war_bargain`) and one action (`repudiate_bargain`).
 
@@ -40,7 +40,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
                                               │
                                               ▼
                                     Ally Participation
-                                    (later phase)
+                                    (active follow-up)
 ```
 
 **BPH and WPS are parallel-safe.** BPH R5 says "either order works." WPS §14.3 extends BPH §8.1 with optional fields. Neither blocks the other for implementation. Interleaving their slices saves sessions.
@@ -49,7 +49,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 **WB-D (bargain presentation) is gated on WB-A/B/C.** Spotlights, split-voice copy, and response routes require live bargain state.
 
-**Ally Participation is gated on the full Peace Deals phase.** It cannot start until bilateral peace is legible (BPH), wars have purpose (WPS), and bargains work mechanically (WB-A/B/C).
+**Ally Participation was gated on the full Peace Deals phase.** That gate is now open: BPH, WPS, and WB-A through WB-D are landed, and settlement implementation can begin at Slice A.
 
 ---
 
@@ -104,17 +104,17 @@ political_subtotal_raw = (
 political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
-The `war_entry_score` (WB §9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
+The war-entry score (implemented as `compute_war_entry_score()`, WB section 9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
 
-**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.6 adds `settlement_gratitude_mod` for later proposals made to an ally France visibly rewarded in a common peace. This is a positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components must expose the key as `settlement_gratitude_mod`.
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is authoritative for `settlement_gratitude_mod`. In summary, settlement gratitude is a positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components must expose the key as `settlement_gratitude_mod`.
 
-### 4.3 `threat_coalition` compatibility layer — DECIDED: retire before WB-A
+### 4.3 `threat_coalition` compatibility layer - COMPLETE
 
 `threat_coalition` was kept in the diplomatic ledger payload as a compatibility layer beside the live `balance_of_europe` payload through BPH + WPS.
 
-**Decision (April 26, 2026, post-Gate 1):** Retire `threat_coalition` in a focused cleanup pass before WB-A begins. Rationale: `balance_of_europe` is live on all surfaces (ledger headline, threshold beats, preview warnings, declaration contrast copy, bloc stamps) since the C-lite closeout. Carrying a dead payload through WB would accumulate a third parallel ledger payload for no benefit.
+**Completed April 26, 2026:** `threat_coalition` was retired before WB-A. Rationale: `balance_of_europe` is live on all surfaces (ledger headline, threshold beats, preview warnings, declaration contrast copy, bloc stamps) since the C-lite closeout. Carrying a dead payload through WB would have accumulated a third parallel ledger payload for no benefit.
 
-**Cleanup scope:**
+**Cleanup scope shipped:**
 - Remove `threat_coalition` from `build_diplomatic_ledger()` in `backend/game_logic/diplomatic_ledger.py`
 - Remove `threat_coalition` consumption in Godot `diplomatic_ledger.gd`
 - Update tests asserting on `threat_coalition` keys to assert on `balance_of_europe` only
@@ -224,15 +224,15 @@ BPH and WPS slices can be interleaved. No ordering constraint between them.
 
 **Phase A total: ~140 tests, ~7 sessions**
 
-### Gate 1: BPH + WPS complete
+### Gate 1: BPH + WPS complete - PASSED
 
-Required before WB begins. See §7 for gate criteria.
+Passed before WB began. See section 7 for historical gate criteria.
 
-### Compatibility cleanup: `threat_coalition` retirement
+### Compatibility cleanup: `threat_coalition` retirement - COMPLETE
 
-**DECIDED (April 26, 2026):** Retire in focused cleanup pass before WB-A. See §4.3.
+**COMPLETE (April 26, 2026):** Retired in focused cleanup before WB-A. See section 4.3.
 
-### Phase B: War Bargains (WB, gated on Phase A)
+### Phase B: War Bargains (WB, gated on Phase A) - COMPLETE
 
 **WB-A: Data model + creation + validation (~22 tests)**
 - `diplomatic_commitments` + `next_commitment_id` on WorldState with serialization
@@ -257,7 +257,7 @@ Required before WB begins. See §7 for gate criteria.
 - Offensive ally-entry `join_opportunity` surface (replaces silent cascade)
 - Defensive honor call handling
 - `war_entry_counter_bargain` flow with blocking mode
-- `war_entry_score` dedicated formula
+- `compute_war_entry_score()` / war-entry score dedicated formula
 - Counter-bargain reroll determinism
 - AI bargain generation, anti-spam, refusal behavior
 - Ledger: live bargains display
@@ -265,11 +265,11 @@ Required before WB begins. See §7 for gate criteria.
 
 **Phase B total: 106 tests, ~3-4 sessions**
 
-### Gate 2: WB-A/B/C complete
+### Gate 2: WB-A/B/C complete - PASSED
 
-Required before WB-D and before Ally Participation planning. See §7 for gate criteria.
+Passed before WB-D and Ally Participation planning. See section 7 for historical gate criteria.
 
-### Phase C: Bargain presentation (WB-D, gated on Phase B)
+### Phase C: Bargain presentation (WB-D, gated on Phase B) - COMPLETE
 
 **WB-D: Bargain-era presentation extension (~18 tests)**
 - `bargain_fulfilled` spotlight + Talleyrand vindication + N+1 callback
@@ -290,7 +290,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 
 **Deferred-item HOME rule:** every deferred / later / v2 / polish / cut item must name an owner spec or holding doc in the same row. If the owner spec does not exist yet, the row must name the future spec that must be created before implementation.
 
-### Items with concrete slice assignments (will ship in Peace Deals)
+### Items with concrete slice assignments (landed in Peace Deals)
 
 | Item | Assigned Slice | Notes |
 |------|---------------|-------|
@@ -305,7 +305,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 | Response routes (redress / deepen / reopen chancery) | WB-D | WB §10.5 |
 | Bargain ratified/triggered/voided notices | WB-D | WB §10.5 |
 
-### Items explicitly deferred to Ally Participation (later phase)
+### Items explicitly deferred to Ally Participation (active follow-up)
 
 | Item | HOME / Owner Spec | Rationale |
 |------|-------------------|-----------|
@@ -335,7 +335,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 
 | Item | Decision Point | HOME / Owner Spec | Options |
 |------|---------------|-------------------|---------|
-| ~~`threat_coalition` retirement~~ | ~~After Gate 1~~ | — | **DECIDED April 26, 2026:** Retire in focused cleanup before WB-A. See §4.3. |
+| ~~`threat_coalition` retirement~~ | ~~After Gate 1~~ | - | **COMPLETE April 26, 2026:** Retired in focused cleanup before WB-A. See section 4.3. |
 | Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | Confirm Voice Bible coverage for bargain-specific lines |
 
 ---
@@ -358,9 +358,9 @@ Smoke criteria (all passing):
 8. **Forced alliance:** `forced_alliance` clause ratification jumps state to ALLIANCE, resets relation to 0, and adds origin tag. **PASS**
 9. **No regressions:** Full test suite green. Existing acceptance formula, coalition formation, and diplomatic ledger tests pass unchanged. **PASS**
 
-### Gate 2: Bargains work mechanically (after WB-A/B/C)
+### Gate 2: Bargains work mechanically (after WB-A/B/C) - PASSED
 
-**Required before WB-D and before Ally Participation planning begins.**
+**Passed April 27, 2026.** WB-D and Ally Participation planning are unblocked. The criteria below are kept as the historical checklist.
 
 Smoke criteria:
 
@@ -369,16 +369,16 @@ Smoke criteria:
 3. **Bargain fulfillment:** France captures claimed region while bargain is triggered → `fulfilled` + `fulfillment_snapshot`.
 4. **Bargain breach:** Peace with named enemy after surfaced warning → `breached` + relation penalty + reliability loss + cooldown.
 5. **Bargain void:** Beneficiary breaks source treaty → `void` (counterparty_reversal) + no French penalty.
-6. **Counter-bargain:** Offensive ally-entry with ally in 25-49 war_entry_score band opens counter-bargain flow.
+6. **Counter-bargain:** Offensive ally-entry with ally in 25-49 `compute_war_entry_score()` band opens counter-bargain flow.
 7. **War entry score:** `+25` bonus when valid bargain targets named enemy shifts ally from counter-bargain to join band.
 8. **Acceptance integration:** `bargain_value_mod` and `bargain_conflict_penalty` appear in `calculate_acceptance()` components.
 9. **Ledger:** Diplomatic Ledger shows live bargains with named enemy, claim region, status.
 10. **Save/load:** All new WorldState fields survive round-trip. Pre-Peace-Deals saves load with empty defaults.
 11. **No regressions:** Full test suite green.
 
-### Phase gate: Peace Deals complete (after WB-D)
+### Phase gate: Peace Deals complete (after WB-D) - PASSED
 
-**Required before Ally Participation can begin.**
+**Passed April 28, 2026.** Ally Participation / Common Peace may begin from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`; the checklist below is retained as the historical completion gate.
 
 Smoke criteria:
 
@@ -409,7 +409,7 @@ WPS-C's `forced_alliance` clause touches the acceptance formula, diplomatic stat
 
 ### R2. WB-C is the largest single slice
 
-WB-C (war-entry integration + Bargain Review + AI) is estimated at 52 tests and touches multiple systems: diplomacy wizard, proposal_confirm flow, ally-entry pipeline, war_entry_score formula, AI proposal generation, ledger display. This is the riskiest slice for scope creep.
+WB-C (war-entry integration + Bargain Review + AI) was estimated at 52 tests and touched multiple systems: diplomacy wizard, proposal_confirm flow, ally-entry pipeline, `compute_war_entry_score()` formula, AI proposal generation, ledger display. This was the riskiest slice for scope creep.
 
 **Mitigation:** WB-C can be sub-divided if needed: (C1) war-entry pipeline + join_opportunity + defensive honor, (C2) counter-bargain flow + reroll determinism, (C3) AI rules + ledger + repudiate. Budget flexibility: 52 tests total, but sub-slice boundaries are natural if the slice proves too large.
 
