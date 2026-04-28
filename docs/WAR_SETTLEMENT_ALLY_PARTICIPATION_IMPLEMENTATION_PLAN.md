@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.4 READY FOR SLICE A - v1.7 final audit-closure hardening applied
+> **Status:** v1.5 READY FOR SLICE A - v1.8 synthesis-closure hardening applied
 > **Last Updated:** April 28, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.7
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.8
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -14,6 +14,7 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - Presentation emits one popup/rail beat per settlement family, not one per participant.
 - A `diplo_key` can appear in at most one active `war_instance`; duplicate active instances are a hard stop.
 - `war_id` values come from `world.next_war_instance_id`; never derive them from turn number, side names, or `diplo_key`.
+- `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
 - Cross-war reaction checks are bounded by affected term beneficiaries and at most three affected active `war_instances`, not all nations by all wars.
 - Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, one 6+ participant side, and off-map Britain.
 
@@ -29,11 +30,14 @@ Files:
 Build:
 - Add `world.next_war_instance_id: int = 1`, `world.war_instances: Dict[str, Dict] = {}`, and `world.archived_war_instances: List[Dict] = []` with save/load defaults.
 - Create a skeleton `war_instance` when a pair enters `WAR` before `_process_war_cascade()`; allocate `war_id = f"war_{world.next_war_instance_id}"`, store `created_sequence`, then increment the counter.
-- Implement `ensure_war_instance_for_pair(...)` and call it from every WAR-plus-cascade seam: player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, and combat-triggered auto-war.
+- Implement `ensure_war_instance_for_pair(...)` and call it from every declaration/cascade seam: player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, and combat-triggered auto-war.
+- Add direct-entry helpers (`attach_pair_to_war_instance(...)` / `attach_participant_to_war_instance(...)`) for WAR transitions that bypass `_process_war_cascade()`: `resolve_join_opportunity()`, `accept_counter_bargain()`, vassal-release rebellion, armistice collapse, scripted/debug war entry, and combat-triggered auto-war fallbacks.
 - Store pairwise ownership in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`. `objective_keys` remains historical WPS references only.
+- Add `diplo_key_meta[pair]["pair_status"] = "war" | "armistice" | "resolved"`. `ARMISTICE -> WAR` reuses the same `war_id`; `ARMISTICE -> PEACE` moves the pair to `resolved_diplo_keys`; common peace never creates ARMISTICE.
 - Populate attackers, defenders, active participants, side metadata, and participant episodes as cascade / vassal / ally entry resolves.
 - Enforce one-active-`war_instance` per `diplo_key`; reuse compatible instances and merge same-declaration instances rather than creating overlaps.
 - Implement transitive merge in the spec order: validate side assignments without mutation, choose the oldest surviving `war_id`, merge participant/pair/episode data in memory, choose leaders, rewrite absorbed `war_id` references on war bargains, contribution events, pending settlement dialogues, dispatch routes, and ledger payloads, then atomically replace/remove records.
+- Treat transitive merge as a rare correctness transaction, not a hot path. Full-Europe fixtures should prove correctness for connected-component merges, but no extra optimization is required unless profiling shows repeated merges.
 - Store side leaders, participants, `participant_meta`, active episode ids, and re-entry episode ids.
 - Use `war_leader_score()` for non-coalition leader replacement; use coalition leadership scoring only for active coalition-leader wars.
 - Add elimination exit: stamp `exited_turn`, freeze contribution, remove from active participants, replace leader if needed, and avoid separate-peace reaction.
@@ -45,6 +49,8 @@ Gate:
 - 38-44 focused tests.
 - Old saves load with `1` for `next_war_instance_id`, `{}` for `war_instances`, and `[]` for `archived_war_instances`.
 - Vassal rebellion and a synthetic three-instance chain merge attach to exactly one surviving `war_instance`.
+- Direct ally-entry, accepted counter-bargain, vassal-release rebellion, armistice collapse, and scripted/debug war-entry fixtures attach to an existing or new `war_instance`.
+- ARMISTICE pair-status tests prove suspended pairs do not archive the war and reuse the same `war_id` if hostilities resume.
 - Synthetic 13+ nation war-instance fixture covers 6+ participants on one side without relying on live map data.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
 
@@ -95,34 +101,42 @@ Files:
 - `tests/test_common_peace_acceptance.py`
 - `tests/test_settlement_term_legitimacy.py`
 
-Build:
+Slice C is mandatory two-part work. Do not combine C1 and C2 in one implementation session unless C1 is already green and the remaining C2 scope is below the session test ceiling.
+
+Build C1 - backend scoring and legitimacy:
 - Implement `compute_side_pressure_score(war_instance)`.
-- Implement common-peace acceptance with the v1.7 constants table, including normalized treaty harshness (`term_harshness_penalty = -min(45, round(total_harshness * 45))`).
-- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, minor-power limited common peace, and a heavily tilted 6+ participant coalition war.
+- Implement common-peace acceptance with the v1.8 constants table, including normalized treaty harshness (`term_harshness_penalty = -min(45, round(total_harshness * 45))`).
+- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, minor-power limited common peace, and a heavily tilted 6+ participant coalition war. Pin the Pressburg-style worked example from the spec as one fixture seed.
 - Add monotonicity coverage proving acceptance does not worsen as `side_pressure_score` increases with all other components fixed.
+- If decisive-victory fixtures fail acceptance, first try raising `base_side_pressure` scaling from `0.5` to `0.6`; record any chosen knob in tests and implementation notes.
 - Implement `project_balance_after_settlement(world, war_id, terms)` and use projected post-settlement bloc share for `projected_hegemony_mod`, distinct from bilateral `hegemony_target_mod`.
 - Implement `abandoned_by_ally_acceptance_mod` as `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`.
 - Normalize territory terms to canonical `from` / `to`; accept `from_nation` / `to_nation` only at input boundaries.
 - Enforce direct-score gates for burdened non-leader enemies.
 - Implement pressure-basis warnings for unoccupied or barely fought regions.
 - Support single-covered-enemy common peace when ally-beneficiary terms, standing, or war-level settlement logic is required.
-- Support partial common peace: accepted packages resolve covered hostile pairs only, while uncovered hostile pairs remain in the same `war_instance` until the section 7.3 end condition is met.
+- Support partial common peace: accepted packages resolve covered hostile pairs to PEACE/treaty states only, while uncovered hostile or ARMISTICE pairs remain in the same `war_instance` until the section 7.3 end condition is met.
 - Parameterize scoring by `proposer_side` so defending-side common peace is symmetric.
-- Add settlement endpoint/dialogue contracts: no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_preview`, mandatory hard-stop `settlement_confirm`, `confirm`, `back_out`, and `revise_terms`.
+
+Build C2 - endpoints, dialogue, advisory, and Godot routing:
+- Add settlement endpoint/dialogue contracts: no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_preview`, mandatory hard-stop `settlement_confirm`, typed `POST /respond_to_diplomatic_dialogue` actions for `confirm`, `back_out`, and `revise_terms`, and the exact no-mutation response shapes from the spec.
 - Verify the already-registered `settlement_confirm` entries in `DialogueManager.HARD_STOP_TYPES`, backend dialogue priority, Godot dialogue routing, command-response keyword handling, and `tests/test_dialogue_manager.py`; extend behavior rather than re-adding the type.
 - `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, active pair keys, hard stops, and acceptance before mutation.
 - Void the staged settlement if the proposer-side leader changes; re-score if only the accepting-side leader changes.
 - Implement two-pass standing: draft advisory from draft terms, final confirmation standing from locked terms.
 - AI-to-player common-peace offers create an incoming settlement-review dialogue; accepting that offer then uses the same confirm executor instead of direct mutation.
-- Split into C1 backend scoring/legitimacy and C2 endpoint/dialogue/advisory/Godot routing if the slice exceeds the test ceiling.
+- AI-vs-AI common peace emits one fog-eligible Diplomatic Affairs dispatch line and one `settlement_summary` campaign-log entry, with no participant spam.
 
 Gate:
-- 54-64 focused tests.
+- C1: 30-35 focused tests.
+- C2: 25-30 focused tests.
 - Rejection feedback names the top two objectionable components.
 - Existing bilateral peace acceptance remains unchanged.
 - `settlement_confirm` blocks ordinary commands and handles proposer-leader-change voiding.
 - `POST /diplomatic_preview` with draft terms performs no mutation.
-- Partial common peace leaves uncovered hostile pairs active.
+- Partial common peace leaves uncovered hostile or ARMISTICE pairs active in the same `war_instance`.
+- Common peace cannot create an ARMISTICE pair status.
+- AI-vs-AI common peace produces one campaign-log summary and one fog-eligible dispatch line.
 - Godot smoke after C2: launch the client, open the settlement review from a synthetic payload, confirm `settlement_confirm` blocks ordinary commands, and back out/revise without mutation.
 
 ## Slice D - Settlement Reaction Pass
