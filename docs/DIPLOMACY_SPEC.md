@@ -883,7 +883,11 @@ acceptance_score = base_disposition
 
 political_subtotal_clamped = max(
     -60,
-    hegemony_target_mod + bilateral_betrayal_mod + grievance_modifier
+    hegemony_target_mod
+    + bilateral_betrayal_mod
+    + grievance_modifier
+    + bargain_conflict_penalty
+    + bargain_value_mod
 )
 
 deal_balance = deal_sweetener + deal_demands
