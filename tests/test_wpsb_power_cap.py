@@ -3,7 +3,7 @@
 Spec: `docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` §8.
 Plan: `docs/PEACE_DEALS_UMBRELLA_SPEC.md` §5.
 
-Covers (35 tests):
+Covers (37 tests):
   1.  calculate_national_power — region income sum
   2.  calculate_national_power — vassal contribution (50%)
   3.  calculate_national_power — British naval income included
@@ -24,6 +24,7 @@ Covers (35 tests):
   18. Wizard propose_vassal — enabled for minor
   19. War Purpose popup — subjugation greyed out with power_pct
   20. AI vassalage pre-check note (deferred, no-op test)
+  21. British turn income reads coastal metadata
 """
 from __future__ import annotations
 
@@ -106,6 +107,12 @@ class TestCalculateNationalPower:
         world.regions["Hanover"].is_coastal = True
         world.invalidate_active_nations_cache()
         assert _power("Britain", world) == base + 50
+
+    def test_british_turn_income_reads_coastal_metadata(self):
+        world = _fresh_world()
+        base = world.calculate_turn_income("Britain")["breakdown"]["naval_income"]
+        world.regions["Hanover"].is_coastal = True
+        assert world.calculate_turn_income("Britain")["breakdown"]["naval_income"] == base + 50
 
     def test_controller_override_projection(self):
         world = _fresh_world()

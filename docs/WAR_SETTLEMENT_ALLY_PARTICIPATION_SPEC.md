@@ -1,6 +1,6 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.4 FULL-EUROPE AUDIT CLOSURE - implementation plan written; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
+> **Status:** v1.5 FULL-EUROPE HANDOFF HARDENED - implementation plan updated; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
 > **Last Updated:** April 28, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
@@ -219,10 +219,16 @@ A war-level container grouping related bilateral wars into one political conflic
 world.war_instances[war_id] = {
     "war_id": str,
     "created_turn": int,
+    "created_sequence": int,              # from world.next_war_instance_id
     "originator": "France",
     "origin_target": "Austria",
     "origin_diplo_key": "Austria|France",
     "objective_keys": ["Austria|France"],  # WPS-A war_objectives keys, not a new objective store
+    "active_diplo_keys": ["Austria|France", "France|Prussia"],
+    "resolved_diplo_keys": [],
+    "diplo_key_meta": {
+        "Austria|France": {"attacker": "France", "defender": "Austria", "joined_turn": 12, "resolved_turn": None},
+    },
     "attacker_leader": "France",
     "defender_leader": "Austria",
     "leader_source": "originator",       # originator | coalition_leader | scripted
@@ -241,6 +247,8 @@ world.war_instances[war_id] = {
     },
     "separate_peaced": [],               # nations that exited via separate peace
     "war_bargains": [],                  # war_bargain IDs attached to this war
+    "ended_turn": None,
+    "end_reason": None,
 }
 ```
 
@@ -250,12 +258,15 @@ world.war_instances[war_id] = {
 
 - `diplomatic_states` remains the source of truth for whether two nations are at war.
 - `war_instances` group those pairs into one political conflict for reporting and settlement.
+- `world.next_war_instance_id: int = 1` allocates IDs. Creating a new instance uses `war_id = f"war_{world.next_war_instance_id}"`, stores that integer as `created_sequence`, then increments the counter. Do not derive `war_id` from turn number, side names, or `diplo_key`; full-Europe simultaneous declarations can collide.
 - Create a skeleton `war_instance` before `_process_war_cascade()` runs with the originator and origin target only, then pass `war_id` through the cascade path so honored/refused/vassal entries append to `attackers`, `defenders`, `side_by_nation`, `active_participants`, and `participant_meta` as each entry resolves.
 - Cascade entrants attach to the existing `war_id` of the declaration that pulled them in.
 - War Bargains created at war entry (WB-C `join_opportunity`) attach to the same `war_id`.
+- **Active pair-key ownership:** pairwise war membership lives in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`. `objective_keys` are historical WPS objective references only and must never be used as the active pair-key index.
 - **Invariant:** a `diplo_key` can appear in at most one active `war_instance` at any time. Creating a new active `war_instance` with a `diplo_key` already present in an active instance is invalid unless the operation explicitly reuses or merges the existing instance.
-- **Reuse rule:** if a declaration or cascade involves a pair already present in an active compatible `war_instance`, append any new participants to that existing `war_id` rather than creating a duplicate.
+- **Reuse rule:** if a declaration or cascade involves a pair already present in an active compatible `war_instance`, append any new participants and pair metadata to that existing `war_id` rather than creating a duplicate.
 - **Merge rule:** if a cascade connects two active compatible instances, merge them into one `war_instance`: preserve the older `created_turn`, union active participants and pair keys, preserve all participant episodes, and choose leaders using §7.4. If the side mapping conflicts in a way that would put the same nation on both sides, the declaration is a hard stop with `war_instance_side_conflict`.
+- Merge operations also preserve the older `created_sequence` so the unique `war_id` allocator remains monotonic and archived references stay stable.
 - **Historical objective references:** `objective_keys` are references to WPS `war_objectives` diplo keys. Readers must tolerate missing objective records because WPS cleanup may remove concluded objective details after their retention window.
 
 ### 7.3 End condition
@@ -425,21 +436,31 @@ The helper scans only settlement beneficiaries, affected regions, adjacent contr
 
 ```python
 world.war_contribution_scores[war_id][nation] = {
-    "battle": int,
-    "occupation": int,
-    "staying_power": int,
-    "support": int,
-    "total": int,
+    "current_episode_id": "France_12_1",
+    "episodes": {
+        "France_12_1": {
+            "joined_turn": int,
+            "exited_turn": int | None,
+            "battle": int,
+            "occupation": int,
+            "staying_power": int,
+            "support": int,
+            "total": int,
+        }
+    },
+    "historical_total": int,
 }
 ```
 
 Side-local score. Normalized into percentage share at settlement time:
 
 ```python
-standing_share[nation] = contribution_total(nation) / total_side_contribution
+standing_share[nation] = current_episode_total(nation) / total_side_current_episode_contribution
 ```
 
-If `total_side_contribution <= 0`, the leader receives `seat`, direct beneficiaries receive `beneficiary_only`, and all other participants resolve to `no_standing`.
+If `total_side_current_episode_contribution <= 0`, the leader receives `seat`, direct beneficiaries receive `beneficiary_only`, and all other participants resolve to `no_standing`.
+
+Settlement standing uses the active episode only. Historical panels may show `historical_total`, but settlement expectations and shut-out reactions must not credit earlier episodes after a nation exited and re-entered the same war. On re-entry, create a new `episode_id` instead of overwriting the old episode. Contribution readers filter battle, occupation, support, and staying-power events by the episode turn range: `joined_turn <= event.turn` and `(exited_turn is None or event.turn <= exited_turn)`.
 
 ### 9.2 Contribution buckets
 
@@ -679,6 +700,12 @@ Preview response minimum shape:
 }
 ```
 
+Preview errors use structured response shapes:
+
+```python
+{"success": False, "error": "invalid_war_id" | "inactive_war_instance" | "not_side_leader", "war_id": "war_12"}
+```
+
 Command / confirmation contract:
 
 ```python
@@ -692,7 +719,28 @@ POST /command
 }
 ```
 
-The backend may stage this as a `settlement_confirm` dialogue before ratification. The dialogue context must include `war_id`, `settlement_terms`, `settlement_preview`, `acceptance_components`, and `warnings`. Player actions are `confirm`, `back_out`, and `revise_terms`.
+Mutating common peace commands must not ratify directly from `/command`. They create a mandatory `settlement_confirm` dialogue unless a hard stop rejects the package first.
+
+`settlement_confirm` minimum shape:
+
+```python
+{
+    "dialogue_type": "settlement_confirm",
+    "war_id": "war_12",
+    "settlement_terms": [...],
+    "settlement_preview": {...},
+    "acceptance_components": {...},
+    "warnings": [],
+    "hard_stops": [],
+    "actions": ["confirm", "back_out", "revise_terms"],
+}
+```
+
+Player actions:
+
+- `confirm`: revalidates current war leader, active pair keys, hard stops, and acceptance components against live state. On success, ratifies and returns `{"success": True, "settlement_summary": {...}}`. On rejection, returns `{"success": False, "rejected": True, "feedback": [...]}` without mutating state.
+- `back_out`: closes the dialogue and returns `{"success": True, "cancelled": True}` with no state mutation.
+- `revise_terms`: returns to the settlement review surface with the prior `settlement_terms`, warnings, and acceptance diagnostics intact.
 
 Godot surface:
 
@@ -780,6 +828,8 @@ Acceptance thresholds:
 - `score >= 50`: accept.
 - `35 <= score < 50`: reject, but feedback marks the package "near acceptable" and names the top two fixable components.
 - `score < 35`: hard reject.
+
+Slice C tuning gate: before locking constants in code, run deterministic acceptance examples for Pressburg-style leader losses, Tilsit-style non-leader burden, a coalition split by separate peace, and a decisive French victory without `total_victory`. At least one decisive French win must accept meaningful common-peace terms without requiring total victory. If the examples fail that design target, adjust exactly one primary knob before implementation lock: lower the accept threshold to `40`, raise `base_side_pressure` scaling to `0.6` or `0.7`, or add a bounded `military_supremacy_bonus`. Record the chosen knob in the Slice C tests.
 
 All component calculations are integerized with `round()` at the component boundary. The final score is clamped to `[-100, 100]`. Empty covered-enemy sets are invalid before scoring.
 
@@ -1035,6 +1085,8 @@ When a `seat` or `consult` ally receives a meaningful direct reward:
 - Subsequent deep-treaty and war-entry proposals from France to that ally receive `+5` acceptance while the memory is active.
 - The bonus is capped at one active gratitude memory per pair; a subsequent rewarded settlement refreshes the expiry, not the value.
 
+Acceptance hook: expose this as `settlement_gratitude_mod = +5` when an active `settlement_gratitude` memory exists with `actor="France"` and `subject=<proposal_target>`, and the proposal is a deep treaty (`DEFENSIVE_ALLIANCE` or `ALLIANCE`), a war-entry request, or a war-bargain / ally-entry proposal where the rewarded ally is being asked to support France again. The modifier is an upside component only; it does not offset or bypass the existing negative political floor. Debug output and proposal previews name the component as `settlement_gratitude_mod`.
+
 ### 14.4 Power tier reaction scaling
 
 | Tier | Reaction scope |
@@ -1177,7 +1229,11 @@ Settlement warnings use the same structured `warnings[]` approach as bilateral d
 AI uses the same settlement executor and validation paths as the player.
 
 - AI war leaders may propose common peace only when they are the current side leader for a `war_instance`.
+- AI proposes common peace only when there are no hard stops and either (a) the AI side is winning with `side_pressure_score >= 40` and direct score against the opposing leader is at least `20`, or (b) the AI side is losing with `side_pressure_score <= -40` and existing war exhaustion / ticking-pressure logic says continued war is strategically costly.
+- AI prefers common peace when two or more enemy participants are covered, or when settlement standing, ally-beneficiary rewards, or war-bargain settlement logic is relevant. AI prefers separate bilateral peace when only one enemy is targeted and there are no ally-beneficiary, standing, or bargain implications.
+- AI covered-enemy selection includes the opposing leader plus any non-leader with `direct_score >= 30`, any occupied-return / restitution target, and any target needed to resolve an active bargain or objective. It does not cover every enemy by default.
 - AI common-peace packages are conservative: prefer white peace / limited gold / occupied-region returns unless the AI side has `harsh_peace` or better settlement tier and direct pressure against each burdened participant.
+- AI v1 does not create speculative ally-beneficiary land gifts. It may include ally-beneficiary terms only for restoration, liberation, occupied-region return, or a direct existing promise basis that passes section 13.2.
 - AI separate peace uses the existing bilateral proposal path, then runs the same smaller settlement reaction pass for remaining co-belligerents.
 - AI acceptance of a player common-peace package uses the Step 4 common-peace acceptance formula with projected hegemony, direct-score gates, and burdened-participant penalties.
 - AI never creates ally-beneficiary land terms that would violate the allowed-beneficiary rules in §13.2.
@@ -1191,9 +1247,10 @@ AI uses the same settlement executor and validation paths as the player.
 ### 17.1 New fields
 
 ```python
+world.next_war_instance_id: int = 1
 world.war_instances: Dict[str, Dict] = {}
 world.archived_war_instances: List[Dict] = []
-world.war_contribution_scores: Dict[str, Dict[str, Dict[str, int]]] = {}
+world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
 world.settlement_memories: Dict[str, List[Dict]] = {}
 ```
 
@@ -1224,8 +1281,8 @@ Canonical memory shape:
 
 Serialization ownership:
 
-- `world.war_instances`, `world.archived_war_instances`, `world.war_contribution_scores`, and `world.settlement_memories` are saved and loaded through `WorldState.to_dict()` / `WorldState.from_dict()` with `{}` / `[]` defaults for older saves.
-- `docs/SAVE_FORMAT_REFERENCE.md` must document all four fields in Slice A / B / D as each field lands.
+- `world.next_war_instance_id`, `world.war_instances`, `world.archived_war_instances`, `world.war_contribution_scores`, and `world.settlement_memories` are saved and loaded through `WorldState.to_dict()` / `WorldState.from_dict()` with `1` / `{}` / `[]` defaults for older saves.
+- `docs/SAVE_FORMAT_REFERENCE.md` must document all five fields in Slice A / B / D as each field lands.
 - `settlement_memories` stores detail payloads that do not fit the existing grievance flag shape. Existing `grievance_flags` remain `{grievance_type, episode_id, turn, source_episode_type}` only.
 
 ### 17.2 Extended fields
@@ -1295,8 +1352,9 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 
 ### Slice A: War identity + read-only grouping
 
-- Add `war_instances` and `archived_war_instances` containers
-- Create skeleton `war_instance` before `_process_war_cascade()`; pass `war_id` through cascade / vassal-entry / ally-entry paths and append resolved participants as they join
+- Add `next_war_instance_id`, `war_instances`, and `archived_war_instances` containers
+- Create skeleton `war_instance` before `_process_war_cascade()`; allocate `war_id` from `next_war_instance_id`; pass `war_id` through cascade / vassal-entry / ally-entry paths and append resolved participants as they join
+- Store active pairwise war ownership in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`; keep `objective_keys` as WPS historical references only
 - Enforce one-active-`war_instance` per `diplo_key`; reuse compatible instances and merge same-declaration instances rather than creating overlaps
 - Add side leaders, `war_leader_score()` leader replacement, `participant_meta`, active episodes, re-entry episodes, elimination exits, and WPS `war_objectives` key references
 - Wire War Bargain `war_id` attachment at join_opportunity
@@ -1306,7 +1364,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 
 ### Slice B: Contribution tracker
 
-- Add `war_contribution_scores` field
+- Add episode-scoped `war_contribution_scores` field with `current_episode_id`, `episodes`, and `historical_total`
 - Add theater-level battle attribution (`battle_region`, `attacker_participants`, `defender_participants`, `nation_theater_strength`, `war_id`) at `backend/commands/combat_executor.py` battle-emission seams; add old-record adapter
 - Wire contribution accrual: battle and occupation event-driven, support event-driven, staying power per active participant episode turn, with episode turn-range filtering
 - Add support contribution from recorded gold / subsidy / AP / manpower support, including British coalition subsidy and treaty-clause transfers
@@ -1333,6 +1391,8 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Projected post-settlement hegemony pressure via `project_balance_after_settlement(...)`
 - Defender-side common-peace symmetry through `proposer_side`
 - Endpoint and dialogue contracts for `settlement_preview`, `settlement_confirm`, `back_out`, and `revise_terms`
+- Mandatory `settlement_confirm` before any common-peace ratification; `confirm` revalidates live leaders, terms, hard stops, and acceptance
+- Slice C tuning gate for common-peace constants using Pressburg / Tilsit / coalition-split deterministic examples before implementation lock
 - Talleyrand advisory preview: standing, bargains, territory legitimacy, rival-strengthened warnings, ally-fallout warnings, salience-filtered default rows
 - ~54 tests
 
@@ -1341,6 +1401,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Post-ratification reaction pass for both sides
 - `settlement_shut_out` grievance flag on existing `betrayal_history` using the live `_add_grievance_flag(..., source_episode_type="settlement_reaction")` signature
 - `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context` records in `settlement_memories`
+- `settlement_gratitude_mod` acceptance hook for subsequent deep-treaty, war-entry, and war-bargain / ally-entry proposals
 - Wire war bargain fulfillment/breach at settlement through existing WB-B pipeline
 - Separate peace fallout: smaller reaction pass for remaining co-belligerents
 - Cross-war affected-participant reaction check bounded by active `war_instances`
@@ -1368,7 +1429,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Split Slice E into E1 backend presentation payloads and E2 Godot rendering if the Godot surface grows beyond the slice gate
 - ~36 tests
 
-**Estimated total: ~232 tests across 5 slices.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, and any UI payload tests listed above.
+**Estimated total: ~238 tests across 5 slices.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, and any UI payload tests listed above.
 
 ---
 
@@ -1428,6 +1489,11 @@ Highest-priority tests:
 50. `objective_keys` readers handle missing WPS objective records after cleanup.
 51. `combat_executor.py` battle records include theater attribution for field and garrison combat.
 52. AI common-peace proposals and acceptance use the same executor, validation, and WB settlement lifecycle as the player.
+53. `next_war_instance_id` allocates unique war IDs for same-turn declarations and survives save/load.
+54. Active pair keys live in `active_diplo_keys` / `resolved_diplo_keys`, while `objective_keys` remain WPS historical references only.
+55. Mutating common-peace commands stage `settlement_confirm`; `confirm` revalidates live leaders and terms before ratification.
+56. `settlement_gratitude_mod` applies only to eligible subsequent proposals and refreshes rather than stacks.
+57. Slice C deterministic acceptance examples meet the decisive-victory tuning gate.
 
 ---
 
@@ -1470,6 +1536,8 @@ Standing, consultation, entitlement, and fallout — not hard blocking. Politica
 ---
 
 ## 21. Changelog
+
+- **April 28, 2026 - v1.5 handoff hardening.** Synthesized Codex and Claude full-Europe audit follow-ups: added unique `next_war_instance_id` allocation, separated active pair-key ownership from historical `objective_keys`, made contribution storage episode-scoped, made `settlement_confirm` mandatory before common-peace ratification, added the `settlement_gratitude_mod` acceptance hook, expanded AI common-peace decision rules, added the Slice C acceptance tuning gate, and aligned the implementation plan/status routing for Slice A handoff.
 
 - **April 28, 2026 - v1.4 full-Europe audit closure.** Reconciled the Imperial Settlement audit with Claude's full-Europe audit: fixed abandoned-ally acceptance constants, required projected hegemony pressure, added war-instance uniqueness / archiving / elimination exits, separated non-coalition leader scoring from coalition scoring, specified episode-range contribution filtering, added combat-executor theater attribution ownership, clarified penalty stacking and rival-strengthened standing guards, added settlement API / dialogue contracts, added AI settlement behavior, tightened cleanup / save-format / warning-priority rules, and expanded the slice plan and tests for 13-20 nation wars.
 

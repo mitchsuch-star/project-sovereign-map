@@ -2793,11 +2793,12 @@ class WorldState:
             })
 
         # British naval income — abstracted trade dominance / colonial revenue
-        # Scales with coastal regions controlled: base 150 + 50 per coastal region, cap 300
-        # (Session 12 QoL: rewards Britain for maintaining a continental foothold)
-        COASTAL_REGIONS = {"Netherlands", "Normandy", "Brittany", "Bordeaux", "Marseille"}
+        # Scales from authored coastal metadata, avoiding per-map hardcoded province names.
         if nation == "Britain" and len(nation_regions) > 0:
-            coastal_count = sum(1 for r in nation_regions if r in COASTAL_REGIONS)
+            coastal_count = sum(
+                1 for r in nation_regions
+                if (region := self.regions.get(r)) and getattr(region, "is_coastal", False)
+            )
             naval_income = min(300, 150 + 50 * coastal_count)
         else:
             naval_income = 0
