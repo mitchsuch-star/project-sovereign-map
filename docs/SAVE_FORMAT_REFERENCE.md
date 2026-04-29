@@ -282,7 +282,7 @@ A future save/load system should use this as the specification.
 
 ### Pending Imperial Settlement WorldState Fields
 
-These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.20 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice. Slice A1 owns `next_war_instance_id`, `war_instances`, and `archived_war_instances` as part of the foundation gate before any behavioral settlement work starts.
+These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.21 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice. Slice A1 owns `next_war_instance_id`, `war_instances`, and `archived_war_instances` as part of the foundation gate before any behavioral settlement work starts.
 
 | Field | Type | Default | Owning slice |
 |-------|------|---------|--------------|
@@ -290,6 +290,8 @@ These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.20
 | `war_instances` | dict | {} | Slice A: active/recent political war containers keyed by `war_id`, grouping existing pairwise war state through pair keys, leaders, participant episodes, objective references, and terminal metadata. |
 | `archived_war_instances` | list[dict] | [] | Slice A: compact terminal war records moved out of `war_instances` after the 10-turn live retention window. |
 | `war_contribution_scores` | dict | {} | Slice B: episode-scoped contribution totals by `war_id` and nation, including bucket totals and fired contribution threshold signals. |
+| `ai_settlement_cooldowns` | dict[str, int] | {} | Slice C2: common-peace AI anti-spam cooldowns keyed by `war_id`, separate from bilateral proposal cooldown namespaces. |
+| `pending_settlement_dialogues` | list[dict] | [] | Slice C2: settlement-owned retry list for locked `settlement_confirm` / `incoming_settlement_offer` payloads deferred by dialogue queue capacity, with `war_id`, `dialogue_type`, locked payload, `created_turn`, `retry_after_turn`, and `expires_on_turn`. |
 | `settlement_memories` | dict | {} | Slice D1: transient positive/context settlement memories such as `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context`; negative grievances remain in `betrayal_history[pair]["grievance_flags"]`. |
 
 Reserved future `event_log` payloads:

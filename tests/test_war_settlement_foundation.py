@@ -3,6 +3,7 @@
 from backend.models.dialogue_manager import DialogueManager
 from backend.models.region import NATION_CAPITALS
 from backend.models.world_state import WorldState
+from backend.nation_config import NATION_POWER_TIERS
 
 
 def test_settlement_home_capital_alias_uses_configured_mapped_capital():
@@ -21,6 +22,14 @@ def test_settlement_home_capital_requires_region_in_current_world(monkeypatch):
 
     world.regions.pop(NATION_CAPITALS["Britain"], None)
     assert world.get_settlement_home_capital("Britain") is None
+
+
+def test_future_nation_power_tier_does_not_make_active_participant():
+    world = WorldState()
+
+    assert NATION_POWER_TIERS["Russia"] == "major"
+    assert world.get_settlement_home_capital("Russia") is None
+    assert "Russia" not in world.get_active_nations()
 
 
 def test_incoming_settlement_offer_has_mailbox_metadata():
