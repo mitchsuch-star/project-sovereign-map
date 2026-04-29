@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.11 READY FOR SLICE A1 - v1.14 codebase synthesis closure applied
+> **Status:** v1.12 READY FOR SLICE A1 - v1.15 full-Europe audit closure applied
 > **Last Updated:** April 29, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.14
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.15
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -18,8 +18,20 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - `war_id` values come from `world.next_war_instance_id`; never derive them from turn number, side names, or `diplo_key`.
 - `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
 - Cross-war reaction checks evaluate every directly affected active `war_instance`, then bound only secondary adjacency/sphere-only scans to at most three active `war_instances`; never scan all nations by all wars.
-- Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster.
+- Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain and Russia. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster.
 - Britain-specific settlement tests must include the live proxy-capital condition `NATION_CAPITALS["Britain"] == "Netherlands"` and prove that settlement scoring treats Netherlands as a continental proxy holding, not as London's capital.
+- `compute_local_balance_warning()` is called per participant (6-8 times per preview). Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation call. Do not re-derive region adjacency per participant.
+
+### Full-Europe Test Fixture Contract
+
+- Add shared helpers in `tests/helpers/full_europe_settlement_fixtures.py`.
+- Synthetic fixtures must define an explicit 13+ nation roster, explicit `major / secondary / minor` tiers, 100+ region ids when territory logic is tested, and at least one 6+ participant side.
+- Do not expand production `REGIONS_DATA`, `NATION_CAPITALS`, or `STARTING_DIPLOMATS` solely to satisfy settlement tests.
+- Tests that need active nations must either attach synthetic regions/controllers to the `WorldState` fixture or monkeypatch the specific active-nation helper under test; they must not rely on the current 5-nation runtime roster.
+- Unknown synthetic nations must not silently rely on the `secondary` fallback when a test is asserting standing, side pressure, leader selection, or major-power consultation behavior. Explicit tiers are required.
+- Off-map fixtures must include both Britain (proxy-capital `Netherlands`) and Russia (no `NATION_CAPITALS` entry) as off-map majors with zero `active_army_strength`. Prove that neither can be promoted to war leader through replacement scoring alone.
+- Full-Europe test fixtures must include synthetic `NATION_DESIRE_PROFILES` entries with non-empty `covets_regions` for all 13 test nations so `rival_strengthened` paths exercise non-trivial data. `compute_local_balance_warning()` must still produce valid results (adjacency and bloc checks) when `covets_regions` is empty.
+- Vassal auto-join fixtures must include at least two vassals entering via cascade and prove they receive at most `beneficiary_only` standing unless they independently meet material-contribution thresholds.
 
 ## Slice A - War Identity And Grouping
 
@@ -32,7 +44,7 @@ Files:
 
 Build:
 - Add `world.next_war_instance_id: int = 1`, `world.war_instances: Dict[str, Dict] = {}`, and `world.archived_war_instances: List[Dict] = []` with save/load defaults.
-- Before coding A2/A3, write a code-path inventory in the Slice A PR notes or implementation comments that maps every live WAR-entry seam to either `_process_war_cascade(...)` war-id threading or a direct `attach_pair_to_war_instance(...)` call. Include player declaration, AI declaration, coalition declaration, vassal rebellion, commitment-paradox outcome, scripted/debug war entry, join-opportunity acceptance, counter-bargain acceptance, armistice collapse, and combat-triggered auto-war fallback.
+- Before coding A2/A3, write a durable WAR-entry seam inventory as a tracked checklist in `tests/test_war_settlement_instances.py` named `WAR_ENTRY_SEAMS_UNDER_TEST`. The checklist must include player declaration, AI declaration, coalition declaration, vassal rebellion, vassal-release rebellion, commitment-paradox outcome, scripted/debug war entry, join-opportunity acceptance, counter-bargain acceptance, armistice collapse, and combat-triggered auto-war fallback. The Slice A2 invariant test must fail if a listed seam is missing focused coverage. Map every live seam to either `_process_war_cascade(...)` war-id threading or a direct `attach_pair_to_war_instance(...)` call.
 - Split Slice A into mandatory implementation gates:
   - **A1 containers/defaults/index scaffolding:** save/load fields, `next_war_instance_id`, skeleton helpers, active-instance lookup helpers, and invariant assertions.
   - **A2 war-entry threading:** cascade/direct-entry `war_id` ownership for every inventoried WAR seam, including vassal and armistice paths.

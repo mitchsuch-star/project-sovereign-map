@@ -1,6 +1,6 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.14 CODEBASE SYNTHESIS CLOSURE - Claude/Codex codebase findings folded in: Britain proxy-capital handling, raw harshness helper ownership, forced-alliance threat spike previews, stacked posture-gate precedence, and AI defender-objective tuning fixtures are now explicit; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
+> **Status:** v1.15 FULL-EUROPE AUDIT CLOSURE - Run 2 audit findings folded in: off-map generalized to Britain+Russia, leader replacement guard for off-map nations, vassal/forced-origin standing clause, formula pseudocode div/0 guards, memoization guidance for `compute_local_balance_warning()`, delta-projection note, merge termination bound. Coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
 > **Last Updated:** April 29, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
@@ -27,7 +27,7 @@ Scale guardrails:
 - Dispatch and notification output is aggregated. No settlement may emit one popup or rail notice per participant.
 - `war_instance` grouping is additive over pairwise diplomacy. Pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives` remain the mechanical source of truth.
 - Focused tests must build synthetic full-Europe fixtures instead of relying on the current small live map: at least 13 nations, 100+ region ids where territory logic is exercised, 20 active pair keys, one 6+ participant side, and off-map Britain as a low-land-participation major.
-- Off-map Britain is a settlement identity, not a `NATION_CAPITALS` lookup result. Live code currently uses `NATION_CAPITALS["Britain"] = "Netherlands"` as a spawn/topology proxy. Settlement code must treat that value as a continental proxy holding, not as London or a true home capital. Any capital-loss, leader-loss, or off-map scoring path must call an explicit helper such as `is_off_map_capital_proxy(nation, region)` / `get_settlement_home_capital(nation)` rather than assuming `NATION_CAPITALS[nation]` is authoritative for settlement capital status.
+- **Off-map nations** (currently Britain and Russia) are settlement identities, not `NATION_CAPITALS` lookup results. Live code uses `NATION_CAPITALS["Britain"] = "Netherlands"` as a spawn/topology proxy; Russia has no `NATION_CAPITALS` entry at all. Settlement code must treat proxy entries as continental proxy holdings, not as true home capitals. Any capital-loss, leader-loss, or off-map scoring path must call an explicit helper such as `is_off_map_capital_proxy(nation, region)` / `get_settlement_home_capital(nation)` / `is_off_map_nation(nation)` rather than assuming `NATION_CAPITALS[nation]` is authoritative for settlement capital status. These helpers must generalize to any nation with no home-capital region on the live map, not only Britain.
 
 ---
 
@@ -177,11 +177,15 @@ For a proposed common peace, compute pressure from the proposer side against eac
 ```python
 pressure_terms = []
 for enemy in covered_enemy_participants:
-    direct_score = max(
+    active_pairs = [
         get_war_score_for(world, side_member, enemy)
         for side_member in proposer_side_participants
         if world.is_at_war(side_member, enemy)
-    )
+    ]
+    if not active_pairs:
+        # Hard stop: no proposer-side member is at war with this covered enemy
+        return hard_stop("no_direct_war_score_for_covered_enemy", enemy=enemy)
+    direct_score = max(active_pairs)
     weight = {"major": 3, "secondary": 2, "minor": 1}.get(
         world.get_power_tier(enemy) or "secondary",
         2,
@@ -282,7 +286,7 @@ world.war_instances[war_id] = {
 - **Invariant:** a `diplo_key` can appear in at most one active `war_instance` at any time. Creating a new active `war_instance` with a `diplo_key` already present in an active instance is invalid unless the operation explicitly reuses or merges the existing instance.
 - **Reuse rule:** if a declaration or cascade involves a pair already present in an active compatible `war_instance`, append any new participants and pair metadata to that existing `war_id` rather than creating a duplicate.
 - **Creation seam:** every path that intends to set a pair to `WAR` and then call `_process_war_cascade()` must call `validate_war_declaration(world, originator, origin_target, *, entry_path, reason)` and `ensure_war_instance_for_pair(...)` before mutating `diplomatic_states`. This includes player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, combat-triggered auto-war, and any future executor path that combines WAR state with cascade. The helper either creates a skeleton instance, reuses a compatible active instance, or returns a hard stop. A `war_instance_side_conflict` must be detected pre-commit; do not set the pair to `WAR` and then discover that the cascade would place a nation on both sides.
-- **Merge rule:** merge is transitive. If a declaration or cascade connects multiple active compatible instances, compute the full connected component of `war_instances` linked by the cascade, validate all side assignments for the merged result simultaneously, and merge into the instance with the oldest `created_sequence`. Preserve the older `created_turn`, union active participants and pair keys, preserve all participant episodes, preserve every WPS objective reference as an independent objective context, and choose leaders using section 7.4. If any side mapping in the connected component would put the same nation on both sides, the declaration is a hard stop with `war_instance_side_conflict`.
+- **Merge rule:** merge is transitive. If a declaration or cascade connects multiple active compatible instances, compute the full connected component of `war_instances` linked by the cascade (visiting each active instance at most once; bounded by the count of active instances, typically < 20), validate all side assignments for the merged result simultaneously, and merge into the instance with the oldest `created_sequence`. Preserve the older `created_turn`, union active participants and pair keys, preserve all participant episodes, preserve every WPS objective reference as an independent objective context, and choose leaders using section 7.4. If any side mapping in the connected component would put the same nation on both sides, the declaration is a hard stop with `war_instance_side_conflict`.
 - Merge operations also preserve the surviving instance's `war_id` and older `created_sequence` so the unique `war_id` allocator remains monotonic and archived references stay stable. Any `war_bargain.war_id`, contribution event, pending settlement dialogue, dispatch route, or ledger reference that points to an absorbed instance is rewritten to the surviving `war_id` during the merge transaction.
 - **Merge transaction order:** (1) compute the connected component and validate all side assignments without mutating state; (2) choose the surviving oldest `war_id`; (3) merge `participant_meta`, active/resolved pair keys, side lists, and episode records into an in-memory merged shape; (4) choose leaders per section 7.4; (5) rewrite `war_bargain.war_id` references; (6) rewrite `war_contribution_scores` and contribution-event `war_id` references; (7) rewrite pending settlement/dialogue/dispatch/ledger references; (8) atomically replace the survivor record and remove absorbed active instances. Any conflict before step 8 aborts the whole merge.
 - **Merged objective rule:** a merged `war_instance` never chooses one dominant objective. `objective_keys` remains the union of historical WPS diplo-key references from every absorbed instance. Readers resolve objective context from `world.war_objectives[diplo_key][declaring_nation]` when available and must keep the originator, target, objective type, and target regions distinct per original pair. Common-peace `war_objective_alignment` selects the relevant proposer-side objective against the covered enemy being burdened; it must not treat the merged war as having one global purpose.
@@ -351,6 +355,8 @@ war_leader_score =
 `active_army_strength` means the nation's active marshal troop strength in the war theater: marshals in any active war pair's contested region, controlled front region, or one-hop adjacent region for that `war_instance`. It is not total national military strength. `relation_to_side_anchor_bias` is intentionally tiny; it must never let a minor outrank a secondary or major by relation alone. The bias must always point at the same-side anchor: `originator` for attackers and `origin_target` for defenders. Defender-side leader replacement must never use the attacker's relation as a tie-break.
 
 Use `coalition_leadership_score()` only when `leader_source == "coalition_leader"` and the active coalition target is the same political conflict. Non-coalition wars must not feed coalition-specific hostility/target assumptions into leader replacement.
+
+**Off-map leader guard:** A candidate with no home-capital region on the live map (determined by `is_off_map_nation(nation)`) AND zero `active_army_strength` cannot be promoted to leader through `war_leader_score()` replacement. Only originator status, explicit coalition-leader source, or direct side-anchor precedence can make an off-map nation a war leader. This prevents Britain or Russia from inheriting continental war leadership solely through power-tier weight when they have no active theater presence.
 
 ---
 
@@ -450,6 +456,8 @@ Definitions used by the buckets:
 - Active same-side participant with `material_contribution_points > 0` that does not meet `consult` thresholds
 
 **`no_standing`** — none of the above apply.
+
+**Vassal and forced-origin clause:** Vassal auto-joins (nations entering via cascade because they are vassals of the war leader) receive at most `beneficiary_only` standing unless they independently meet material-contribution thresholds for `consult` or `seat`. Forced-alliance co-belligerents (nations with `forced_origin=True` on their alliance) share the same standing rules as voluntary allies — they are genuine co-belligerents, not subordinates. Vassal contribution counts independently in the side total and is never folded into the lord's share.
 
 ### 8.3 Standing inputs
 
@@ -581,7 +589,10 @@ Per-nation `occupation_raw[nation]` is the sum of that nation's active-episode o
 Normalize each bucket against the side total for that bucket, multiply by the bucket weight, and store integer points:
 
 ```python
-bucket_points[nation] = round((nation_bucket_raw / side_bucket_raw) * bucket_weight)
+if side_bucket_raw <= 0:
+    bucket_points[nation] = 0
+else:
+    bucket_points[nation] = round((nation_bucket_raw / side_bucket_raw) * bucket_weight)
 ```
 
 If a side bucket has zero raw contribution, it awards zero points and its unused weight is not redistributed. Support counts only when an actual support event exists; Britain or another paymaster receives support contribution for real gold / subsidy / AP / manpower support, while `major` auto-seat prevents a major war funder from disappearing when a war has no recorded support events.
@@ -1118,7 +1129,7 @@ project_balance_after_settlement(world, war_id, terms) -> {
 }
 ```
 
-The projection starts from current bloc geometry, applies forced alliance, liberation, vassalage, and territory-transfer effects from the proposed package, and never mutates `WorldState` during preview.
+The projection starts from current bloc geometry, applies forced alliance, liberation, vassalage, and territory-transfer effects from the proposed package, and never mutates `WorldState` during preview. Implementation must use lightweight delta projection on affected alignment/ownership data only, not a full `WorldState` deep copy.
 
 `projected_hegemony_mod` is outside the bilateral `political_subtotal_clamped` floor by design because common-peace acceptance is a single war-scoped score clamped to `[-100, 100]`, not a bilateral memory subtotal. The asymmetry is intentional: bilateral hegemony resistance is persistent relationship friction, while common-peace projection scores the legitimacy of the proposed settlement package itself.
 
@@ -1692,11 +1703,17 @@ standing_share[nation] = contribution_total(nation) / total_side_contribution
 standing_level[nation] = classify_standing(nation, war_instance, standing_share, ...)
 side_pressure_score = compute_side_pressure_score(war_instance)
 direct_scores[payer] = compute_direct_scores_by_enemy(war_instance)
-rival_strengthened[nation] = compute_local_balance_warning(nation, settlement_terms)
+
+# Build term-beneficiary-adjacency map ONCE per evaluation, then pass to each call:
+term_adjacency_map = build_term_adjacency_map(settlement_terms, world)
+rival_strengthened[nation] = compute_local_balance_warning(nation, settlement_terms, term_adjacency_map)
+
 balance_projection = project_balance_after_settlement(world, war_id, settlement_terms)
 war_instances_by_leader = build_war_instances_by_leader(world)        # per-turn cache
 war_instances_by_participant = build_war_instances_by_participant(world)  # per-turn cache
 ```
+
+Implementation note: `compute_local_balance_warning()` is called per participant (6-8 times per settlement preview). Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation call. Do not re-derive region adjacency per participant.
 
 ### 17.4 Compatibility
 

@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** April 28, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.9 and `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.6; the combined Codex/Claude full-Europe audit synthesis plus implementation-seam closure are ready for Slice A coding.)
+> **Last Updated:** April 29, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.15 and `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.12; full-Europe audit Run 2 closure applied, ready for Slice A coding.)
 
 ---
 
@@ -421,7 +421,7 @@ Phase 8 implementation is complete, but the diplomacy refinement queue after it 
 3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
    The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Depends on items 1-3; implementable as a Peace Deals phase precursor before item 4.
 4. `Ally Participation + Common Peace` — `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
-   Full-Europe wartime settlement flow: ally beneficiaries, contribution standing, common peace routing, and settlement fallout. Do not overload the normal nation -> proposal -> terms wizard with conference logic. Coding starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.6 against spec v1.9.
+   Full-Europe wartime settlement flow: ally beneficiaries, contribution standing, common peace routing, and settlement fallout. Do not overload the normal nation -> proposal -> terms wizard with conference logic. Coding starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.12 against spec v1.15.
 5. Remaining diplomacy follow-ups
    Agendas, Talleyrand explanation layers, and economic diplomacy all remain spec-gated behind the earlier items.
 

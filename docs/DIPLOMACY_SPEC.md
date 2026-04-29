@@ -1106,10 +1106,14 @@ The `harshness` score in §7b requires each clause type to have a defined **valu
 | Protection guarantee | 4 | Moderate — commitment risk |
 | Continental System | 3 | Moderate — economic cost |
 
-**Harshness calculation (single source: `diplomacy.py`):**
-The `calculate_harshness()` function lives in `diplomacy.py` alongside `_calculate_acceptance()` — both are single-source formula functions. DESIGN's template layer reads the harshness value from `diplomacy.py`; it never recalculates independently.
+**Harshness calculation — current implementation note:**
+
+Live treaty harshness is calculated by `backend/game_logic/diplomatic_templates.py::calculate_treaty_harshness()`, which returns the existing bilateral 0.0-1.0 clamped value used by proposal preview and acceptance callers. The older signed `calculate_harshness()` sketch below is historical design context only and must not be used for new implementation.
+
+Imperial Settlement Slice C adds a raw common-peace harshness path in the same module (`calculate_raw_treaty_harshness(treaty)` or an explicit `clamp_max=1.5` option), preserving all current bilateral callers' 1.0-clamped behavior. See `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §11 Step 4.
 
 ```python
+# HISTORICAL DESIGN SKETCH — not live code. See diplomatic_templates.py for current implementation.
 def calculate_harshness(clauses):
     """Returns harshness score -1.0 to +1.0."""
     value_demanded = sum(clause_value(c) for c in clauses if c.direction == "demand")
