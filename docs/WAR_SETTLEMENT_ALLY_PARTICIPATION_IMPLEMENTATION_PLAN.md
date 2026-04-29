@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.10 READY FOR SLICE A1 - v1.13 full-Europe audit reconciliation closure applied
+> **Status:** v1.11 READY FOR SLICE A1 - v1.14 codebase synthesis closure applied
 > **Last Updated:** April 29, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.13
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.14
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -19,6 +19,7 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
 - Cross-war reaction checks evaluate every directly affected active `war_instance`, then bound only secondary adjacency/sphere-only scans to at most three active `war_instances`; never scan all nations by all wars.
 - Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster.
+- Britain-specific settlement tests must include the live proxy-capital condition `NATION_CAPITALS["Britain"] == "Netherlands"` and prove that settlement scoring treats Netherlands as a continental proxy holding, not as London's capital.
 
 ## Slice A - War Identity And Grouping
 
@@ -91,6 +92,10 @@ Files:
 - `tests/test_war_contribution_scores.py`
 
 Build:
+- Split Slice B into mandatory implementation gates before coding:
+  - **B1 contribution store and standing math:** data model, canonical store, save/load defaults, old-record adapter, current-episode model, standing classification, material-contribution gate, contribution-share query helpers.
+  - **B2 event emitters and theater attribution:** battle, occupation, support, treaty-support, British subsidy, sub-1000 battle contribution, and non-pipeline charge paths.
+  - **B3 lifecycle, retention, and full-Europe fixtures:** turn-order/exits, same-turn separate peace, archive compaction, concurrent-war independence, contribution threshold signals, and three-theater / off-map Britain fixtures.
 - Add episode-scoped `world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}` with `current_episode_id`, `episodes`, and `historical_total`.
 - Add theater battle-record emission in `backend/commands/combat_executor.py` through the central `_post_combat_pipeline()` where possible, plus any direct field/garrison/charge paths that bypass it: `battle_region`, `attacker_participants`, `defender_participants`, `nation_theater_strength`, optional casualty-exposure data, and `war_id`.
 - If the full-Europe map has authored theater/front metadata, include optional `campaign_theater_id` and credit active same-side marshals in that theater. The one-hop adjacency rule remains the baseline; whole-war participant credit remains forbidden.
@@ -115,7 +120,10 @@ Build:
 - Retain `war_contribution_scores[war_id]` while the war is active and through the 10-turn terminal `war_instance` retention window. On archive, compact to final per-nation totals unless a live dialogue, dispatch route, ledger row, campaign-log detail, or settlement memory still references episode detail.
 
 Gate:
-- 52-58 focused tests.
+- B1: 18-22 focused tests.
+- B2: 20-24 focused tests.
+- B3: 18-22 focused tests.
+- No Slice B sub-gate may exceed the project's observed 50-55 test single-session ceiling; B2 must not start until B1 is green, and B3 must not start until B2 event-emitter coverage is green.
 - Contribution accrual does not scan all regions per turn.
 - Old battle records with only attacker/defender/location remain valid.
 - Raw battle-record pruning does not reduce stored contribution totals.
@@ -147,13 +155,14 @@ Slice C is mandatory two-part work. Do not combine C1 and C2 in one implementati
 Build C1 - backend scoring and legitimacy:
 - Implement `compute_side_pressure_score(war_instance)`.
 - Build and reuse one memoized `direct_scores` map per settlement preview/confirm evaluation; side pressure, direct-score gates, burden penalties, and advisory rows must not recalculate the same pairwise war score repeatedly inside one draft preview.
-- Implement common-peace acceptance with the current spec constants table, including `base_side_pressure = round(side_pressure_score * 0.65)` clamped to `[-50, 60]` and common-peace harshness normalized over the `1.5` ceiling (`term_harshness_penalty = -min(45, round((min(raw_total_harshness, 1.5) / 1.5) * 45))`). Preserve the existing 1.0-clamped `calculate_treaty_harshness()` behavior for landed bilateral callers unless that helper gains an explicit raw/clamp option.
-- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, total-victory harsh terms, minor-power limited common peace, mixed-strength partial-vs-full coverage, narrow-vs-full-vs-serial settlement incentive comparison, a heavily tilted 6+ participant coalition war, Britain-led defense with no continental holdings / no free `leader_own_losses` bonus, and off-map Britain continental holdings cession/restoration cases. Pin the Pressburg-style worked example from the spec as one fixture seed.
+- Implement common-peace acceptance with the current spec constants table, including `base_side_pressure = round(side_pressure_score * 0.65)` clamped to `[-50, 60]` and common-peace harshness normalized over the `1.5` ceiling (`term_harshness_penalty = -min(45, round((min(raw_total_harshness, 1.5) / 1.5) * 45))`). Add `calculate_raw_treaty_harshness(treaty)` in `backend/game_logic/diplomatic_templates.py` or extend the existing helper with an explicit raw / `clamp_max=1.5` option. Existing bilateral callers must keep the current 1.0-clamped `calculate_treaty_harshness()` behavior.
+- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, total-victory harsh terms, minor-power limited common peace, mixed-strength partial-vs-full coverage, narrow-vs-full-vs-serial settlement incentive comparison, a heavily tilted 6+ participant coalition war, Britain-led defense with no continental holdings / no free `leader_own_losses` bonus, off-map Britain continental holdings cession/restoration cases, a live-code Britain proxy-capital case where `NATION_CAPITALS["Britain"] == "Netherlands"` does not count as true capital loss, a multi-forced-alliance package that projects `+30` or more threat and names crossed coalition thresholds, and an AI-defender package where the only WPS objective is `defense` and `war_objective_alignment <= +5`. Pin the Pressburg-style worked example from the spec as one fixture seed.
 - Add monotonicity coverage proving acceptance does not worsen as `side_pressure_score` increases with all other components fixed.
-- Expose common-peace acceptance debug components in preview/test output: `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
-- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, or mixed-strength partial-vs-full fixtures fail their design targets, adjust exactly one primary knob from the spec's v1.13 list and record the chosen knob in tests and implementation notes.
+- Expose common-peace acceptance debug components in preview/test output: `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `projected_forced_alliance_threat_delta`, crossed coalition thresholds, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
+- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, mixed-strength partial-vs-full, multi-forced-alliance threat, or AI-defender fixtures fail their design targets, adjust exactly one primary knob from the spec's v1.14 list and record the chosen knob in tests and implementation notes.
 - Add cross-formula validation tests comparing bilateral acceptance, war-entry score, and common-peace acceptance for monotonic military pressure and equivalent one-covered-enemy package sanity.
 - Implement the spec's war-objective alignment mapping table for all five WPS objective types; no live objective record yields component `0`. In merged wars, preserve all proposer-side objective contexts and select the objective relevant to the covered enemy / harshest term; debug output must name selected `diplo_key`, declaring nation, target nation, and objective type.
+- AI defender common-peace package construction must not assume `war_objective_alignment == +15`; defensive-objective fixtures must prove packages can be accepted or rejected by the whole formula when objective alignment is `0` or `+5`.
 - Implement `project_balance_after_settlement(world, war_id, terms)` as a pure projection helper and use projected post-settlement bloc share for `projected_hegemony_mod`, distinct from bilateral `hegemony_target_mod`. Add a no-mutation test around world regions, relations, diplomatic states, vassals, and bloc cache state.
 - Implement `abandoned_by_ally_acceptance_mod` as `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`.
 - Normalize territory terms to canonical `from` / `to`; accept `from_nation` / `to_nation` only at input boundaries.
@@ -169,6 +178,7 @@ Build C2 - endpoints, dialogue, advisory, and Godot routing:
 - Add Open Settlement eligibility / grey-out rules from spec section 10.3 (`inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, `settlement_dialogue_active`).
 - Add settlement endpoint/dialogue contracts: no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_preview`, mandatory hard-stop `settlement_confirm`, typed `POST /respond_to_diplomatic_dialogue` actions for `confirm`, `back_out`, and `revise_terms`, and the exact no-mutation response shapes from the spec.
 - Add `incoming_settlement_offer` response contract and dialogue taxonomy entry for AI-to-player common peace: register it as a `CURRENT_TURN_OFFER_TYPES` / mailbox-browseable offer, not a hard stop; actions are `accept`, `reject`, `request_revision`; accept must promote to a `settlement_confirm` hard stop and never mutate directly from the incoming offer payload.
+- Add `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` and cover backend mailbox summary ordering/activation plus Godot mailbox row rendering. Do not rely on generic proposal labels for settlement offers.
 - Verify the already-registered `settlement_confirm` entries in `DialogueManager.HARD_STOP_TYPES`, backend dialogue priority, Godot dialogue routing, command-response keyword handling, and `tests/test_dialogue_manager.py`; extend behavior rather than re-adding the type.
 - `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, every covered pair's active `war_id` and `pair_status`, hard stops, and acceptance before mutation. Armistice expiry or same-turn pair resolution returns `active_pair_changed`.
 - Void the staged settlement if the proposer-side leader changes; re-score if only the accepting-side leader changes.
@@ -193,6 +203,11 @@ Gate:
 - Narrow/full/serial comparison fixture proves full common peace is not dominated by serial separate settlements under the locked tuning constants.
 - AI-vs-AI common peace produces one campaign-log summary and one fog-eligible dispatch line.
 - AI-to-player common-peace offer tests cover current-turn/mailbox taxonomy, accept/reject/request_revision response shapes, confirm-executor promotion with no mutation on offer accept, and cooldown/one-active-offer gating.
+- Mailbox tests prove `incoming_settlement_offer` has its own `MAILBOX_SUMMARY_LABELS` entry and Godot route.
+- Raw harshness tests prove common-peace scoring uses unclamped `1.5` normalization while landed bilateral callers still receive the 1.0-clamped `calculate_treaty_harshness()` value.
+- Britain proxy-capital tests prove `NATION_CAPITALS["Britain"] == "Netherlands"` remains a topology/spawn proxy and does not trigger capital-loss scoring.
+- Multi-forced-alliance threat-preview tests prove projected `+30` or greater threat and crossed coalition thresholds are visible before confirm.
+- AI defender objective-alignment tests prove defensive packages with `war_objective_alignment <= +5` are evaluated by the full common-peace formula.
 - AI package-construction tests prove unacceptable losing-side white-peace offers are suppressed before surfacing.
 - Cooldown tests prove common-peace per-`war_id` cooldowns do not consume existing bilateral proposal cooldowns.
 - Godot smoke after C2: launch the client, open the settlement review from a synthetic payload, confirm `settlement_confirm` blocks ordinary commands, and back out/revise without mutation.
@@ -213,6 +228,7 @@ Build:
 - Add `settlement_gratitude_mod` for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals; creating the memory requires `material_contribution_points > 0` in the current episode.
 - Apply zero-material major severity reduction: seat/warning remains, full major shut-out grievance requires material contribution or a direct stake.
 - Add `sold_out_by_war_leader` posture gating for deep treaties and war-entry asks from the former leader unless redress or high relation exists.
+- Add combined posture-gate precedence for `sold_out_by_war_leader`, DG-4 `anti_renewal_cooldown`, hard-reject posture, oathbreaker posture, and state-transition hard stops: list every active blocker in preview/debug, compute effective unblock turn as the max active expiry, and allow concrete redress / relation `>= 50` to bypass only the sold-out gate.
 - Add serial bilateral settlement fallout for third-plus separate peaces in one `war_instance` within five turns.
 - Within the common-peace ratification transaction, run lifecycle in this order: validate confirm, ratify terms, mutate ownership/alignment, run WB-B fulfillment/breach, run settlement reactions, invalidate hegemony/bloc caches, then build dispatch/log/ledger payloads.
 - Add canonical acceptance-doc amendments for `settlement_gratitude_mod`: positive `+5`, not part of the clamped political subtotal, cannot bypass hard stops or political floors, refreshes rather than stacks.
@@ -228,6 +244,7 @@ Gate:
 - Zero-material major exclusion produces reduced warning/fallout instead of major shut-out grievance.
 - Serial bilateral settlement tests cover three or more separate peaces in five turns.
 - `sold_out_by_war_leader` posture gate blocks deep asks from the former leader during the memory window unless redress/high relation exists.
+- Combined posture-gate fixture proves sold-out and anti-renewal can stack without adding durations, previews both reasons, and rejects redress bypass while `anti_renewal_cooldown` remains active.
 
 ## Slice D2 - Bargain Integration And Cross-War Reactions
 

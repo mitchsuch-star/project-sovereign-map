@@ -29,7 +29,7 @@ Historical anchor: Napoleon's diplomatic failures were as decisive as his milita
 | **Austria** | PEACE (hostile) | Swing state — both sides court them. Relation -30. | Vienna | 3 |
 | **Saxony** | PEACE (French-leaning) | Minor nation, vassalizable by treaty or conquest. Relation +40. | Dresden | 2 |
 
-**Britain is special:** No capital on the map, no regions to conquer. British power is projected through continental holdings (Netherlands, Waterloo, Hanover) and naval supremacy (abstracted as economic/strategic effects — see §1d). Britain can lose all continental territory and still be at war. Peace with Britain requires diplomatic resolution, not military conquest. This makes them the diplomatic endgame — you can't just march to London.
+**Britain is special:** No true capital on the map, no London region to conquer. Live `NATION_CAPITALS` uses `"Netherlands"` as Britain's spawn/topology proxy (`backend/models/region.py`) so existing marshal placement, map topology, and runtime nation-support checks have a concrete region. That proxy is not Britain's settlement home capital. British power is projected through continental holdings (Netherlands, Waterloo, Hanover) and naval supremacy (abstracted as economic/strategic effects - see §1d). Britain can lose all continental territory and still be at war. Peace with Britain requires diplomatic resolution, not military conquest. This makes them the diplomatic endgame - you can't just march to London.
 
 **Nation-specific AP:** Reflects administrative capacity. France (4) is the most capable. Austria (3) is bureaucratic. Saxony (2) is tiny. This matters for treaty clauses that cost AP/turn — paying 1 AP/turn when you only have 2 is crippling.
 
@@ -665,7 +665,7 @@ DP does NOT accumulate between turns. Use it or lose it. This forces priority de
 | Nation | Base | Skill Bonus | Authority Bonus | Typical DP | Notes |
 |--------|------|-------------|-----------------|-----------|-------|
 | France | 2 | +1 (Talleyrand 10) | +1 (auth ~60) | **4** | Player nation |
-| Britain | 2 | +1 (Castlereagh 7+) | +0 | **3** | No capital on map (no capital penalty) |
+| Britain | 2 | +1 (Castlereagh 7+) | +0 | **3** | No true home capital on map; Netherlands is only a runtime proxy |
 | Prussia | 2 | +0 (Hardenberg 6) | +0 | **2** | Tight economy, tight diplomacy |
 | Austria | 2 | +1 (Metternich 9) | +0 | **3** | Metternich compensates for bureaucracy |
 | Saxony | 2 | +0 (Einsiedel 4) | +0 | **2** | Minor power, -1 skill penalty → effective 1 DP (costs +1) |
@@ -2211,10 +2211,14 @@ def get_diplomat(self, nation) -> Optional[DiplomaticRepresentative]:
     return self.diplomats.get(nation)
 
 def get_nation_capital(self, nation) -> Optional[str]:
-    """Return capital region name, or None for Britain (off-map)."""
-    CAPITALS = {"France": "Paris", "Prussia": "Berlin", "Austria": "Vienna",
-                "Saxony": "Dresden", "Britain": None}
-    return CAPITALS.get(nation)
+    """Return runtime capital/proxy region name for topology and spawns."""
+    return NATION_CAPITALS.get(nation)
+
+def get_settlement_home_capital(self, nation) -> Optional[str]:
+    """Return true settlement capital; Britain is off-map even though NATION_CAPITALS uses a proxy."""
+    if nation == "Britain":
+        return None
+    return NATION_CAPITALS.get(nation)
 
 def get_known_nations(self) -> List[str]:
     """Return list of all nation names (for validation)."""
