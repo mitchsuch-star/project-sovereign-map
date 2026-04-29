@@ -1646,7 +1646,7 @@ Settlement warnings use the same structured `warnings[]` approach as bilateral d
 
 **Everything else is political cost, not veto:**
 - Ally consultation skipped
-- Great-power humiliation risk
+- Major-power humiliation risk
 - Shut-out risk
 - Separate-peace fallout
 - Promise breach warning (player can still choose to proceed)

@@ -193,7 +193,7 @@ BPH and WPS slices can be interleaved. No ordering constraint between them.
 - AI peace proposal enrichment
 - Armistice expiration dispatch warning
 
-**WPS-A: War objectives + ticking score (~22 tests)**
+**WPS-A: War objectives + ticking score (implemented with 50 tests after audit follow-up; original estimate ~22 tests)**
 - `war_objectives` on WorldState with serialization
 - Five objective types (conquest, subjugation, forced_alliance, defense, liberation)
 - War Purpose popup at declaration time
@@ -222,7 +222,7 @@ BPH and WPS slices can be interleaved. No ordering constraint between them.
 - Tier mismatch warnings
 - AI peace timing with ticking pressure
 
-**Phase A total: ~140 tests, ~7 sessions**
+**Phase A historical estimate: ~140 tests, ~7 sessions.** Landed Phase A exceeded the original estimate after WPS-A/WPS-B audit follow-up expansion; use `STATUS.md` for landed test counts.
 
 ### Gate 1: BPH + WPS complete - PASSED
 
@@ -280,7 +280,9 @@ Passed before WB-D and Ally Participation planning. See section 7 for historical
 
 **Phase C total: ~18 tests, ~1 session**
 
-### Total budget: ~264 tests, ~11-12 sessions
+### Historical total budget: ~264 tests, ~11-12 sessions
+
+This was the original implementation estimate. Landed test counts exceeded this after audit follow-ups and scale-hardening work; use `STATUS.md` for current landed counts.
 
 ---
 
@@ -485,4 +487,4 @@ Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nat
 ## 11. Changelog
 
 - **April 26, 2026** — Gate 1 PASSED. All 9 smoke criteria verified. `threat_coalition` retirement decided: retire in focused cleanup before WB-A. Smoke test committed at `tools/gate1_smoke_test.py`.
-- **April 25, 2026** — v1.0 drafted. Covers dependency graph, 3-phase implementation sequence (BPH+WPS parallel → WB-A/B/C → WB-D), cross-cutting decisions (armistice canonized at 5 turns, acceptance modifier reconciliation against live v2.4.3 model, threat_coalition retirement scheduling, Godot surface strategy, cumulative data model delta), deferred carry-forward checklist with concrete slice assignments, 3 milestone gates with smoke criteria, 5 risks, sub-spec errata for stale WAR_BARGAIN_SPEC references. Total budget: ~264 tests, ~11-12 sessions.
+- **April 25, 2026** — v1.0 drafted. Covers dependency graph, 3-phase implementation sequence (BPH+WPS parallel → WB-A/B/C → WB-D), cross-cutting decisions (armistice canonized at 5 turns, acceptance modifier reconciliation against live v2.4.3 model, threat_coalition retirement scheduling, Godot surface strategy, cumulative data model delta), deferred carry-forward checklist with concrete slice assignments, 3 milestone gates with smoke criteria, 5 risks, sub-spec errata for stale WAR_BARGAIN_SPEC references. Original budget: ~264 tests, ~11-12 sessions.
