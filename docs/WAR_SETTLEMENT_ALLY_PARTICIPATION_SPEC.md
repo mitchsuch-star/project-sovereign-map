@@ -1,7 +1,7 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.10 FULL-EUROPE SYNTHESIS CLOSURE - Codex/Claude audit fixes applied; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
-> **Last Updated:** April 28, 2026
+> **Status:** v1.11 AUDIT SYNTHESIS CLOSURE - Codex/Claude follow-up blockers and minor cleanup applied; coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`
+> **Last Updated:** April 29, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
 
@@ -278,7 +278,7 @@ world.war_instances[war_id] = {
 - **Active pair-key ownership:** pairwise war membership lives in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`. `objective_keys` are historical WPS objective references only and must never be used as the active pair-key index.
 - **Invariant:** a `diplo_key` can appear in at most one active `war_instance` at any time. Creating a new active `war_instance` with a `diplo_key` already present in an active instance is invalid unless the operation explicitly reuses or merges the existing instance.
 - **Reuse rule:** if a declaration or cascade involves a pair already present in an active compatible `war_instance`, append any new participants and pair metadata to that existing `war_id` rather than creating a duplicate.
-- **Creation seam:** every path that sets a pair to `WAR` and then calls `_process_war_cascade()` must call `ensure_war_instance_for_pair(world, originator, origin_target, *, entry_path, reason)` first. This includes player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, combat-triggered auto-war, and any future executor path that combines WAR state with cascade. The helper either creates a skeleton instance, reuses a compatible active instance, or returns a hard stop.
+- **Creation seam:** every path that intends to set a pair to `WAR` and then call `_process_war_cascade()` must call `validate_war_declaration(world, originator, origin_target, *, entry_path, reason)` and `ensure_war_instance_for_pair(...)` before mutating `diplomatic_states`. This includes player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, combat-triggered auto-war, and any future executor path that combines WAR state with cascade. The helper either creates a skeleton instance, reuses a compatible active instance, or returns a hard stop. A `war_instance_side_conflict` must be detected pre-commit; do not set the pair to `WAR` and then discover that the cascade would place a nation on both sides.
 - **Merge rule:** merge is transitive. If a declaration or cascade connects multiple active compatible instances, compute the full connected component of `war_instances` linked by the cascade, validate all side assignments for the merged result simultaneously, and merge into the instance with the oldest `created_sequence`. Preserve the older `created_turn`, union active participants and pair keys, preserve all participant episodes, and choose leaders using section 7.4. If any side mapping in the connected component would put the same nation on both sides, the declaration is a hard stop with `war_instance_side_conflict`.
 - Merge operations also preserve the surviving instance's `war_id` and older `created_sequence` so the unique `war_id` allocator remains monotonic and archived references stay stable. Any `war_bargain.war_id`, contribution event, pending settlement dialogue, dispatch route, or ledger reference that points to an absorbed instance is rewritten to the surviving `war_id` during the merge transaction.
 - **Merge transaction order:** (1) compute the connected component and validate all side assignments without mutating state; (2) choose the surviving oldest `war_id`; (3) merge `participant_meta`, active/resolved pair keys, side lists, and episode records into an in-memory merged shape; (4) choose leaders per section 7.4; (5) rewrite `war_bargain.war_id` references; (6) rewrite `war_contribution_scores` and contribution-event `war_id` references; (7) rewrite pending settlement/dialogue/dispatch/ledger references; (8) atomically replace the survivor record and remove absorbed active instances. Any conflict before step 8 aborts the whole merge.
@@ -324,6 +324,7 @@ Settlement confirmation is leader-sensitive. A staged `settlement_confirm` recor
 - If the proposer-side leader changed, void the staged settlement with `{"success": False, "error": "proposer_leader_changed", "must_reopen": True}`. The player or AI must reopen the settlement so standing, warnings, and terms are rebuilt from live state.
 - If the accepting-side leader changed but the proposer-side leader is unchanged, recompute standing, direct-score gates, acceptance components, and warnings against the new accepting leader before resolving.
 - If either side has no active leader because the side has no active participants, reject with `inactive_war_instance` and do not mutate state.
+- Re-read every covered `diplo_key` and its `diplo_key_meta[pair]["pair_status"]`. If any covered pair is no longer active in the same `war_id`, has moved from `war` / `armistice` to `resolved`, or has changed sides since staging, reject with `active_pair_changed` and do not mutate state. This closes the armistice-expiry race where a staged settlement outlives the pair state it was built from.
 
 `war_leader_score(nation, war_instance, world)` is settlement-specific:
 
@@ -429,10 +430,10 @@ Definitions used by the buckets:
 - Active `major` power on the same side
 - Active war bargain whose named enemy or claim region is directly involved in a term being decided
 - Own capital, survival, or core territory being decided
-- Contribution share >= 25% and `material_contribution_points > 0`
+- Material contribution share >= 25% and `material_contribution_points > 0`
 
 **`consult`** — any of:
-- Contribution share >= 10% and `material_contribution_points > 0`
+- Material contribution share >= 10% and `material_contribution_points > 0`
 - `secondary` power with any material contribution
 - Region claim or territorial interest directly affected by a term
 - Treaty ally (ALLIANCE / DEFENSIVE_ALLIANCE) materially involved in the war
@@ -449,7 +450,7 @@ Definitions used by the buckets:
 
 Standing is computed from:
 
-1. **Contribution share** — from `war_contribution_score` (§9)
+1. **Material contribution share** — `material_contribution_points / total_side_material_contribution`, using battle + occupation + support only. Seat/consult thresholds use this share so staying-power padding cannot dilute a material contributor below standing.
 2. **Power tier** — `major / secondary / minor` (authored scenario data)
 3. **Direct territorial interest** — regions being transferred that the nation borders, previously owned, or covets
 4. **Active war bargain** — any WB-A bargain with `target_enemy` or `claim_term.claim_region` involved in the settlement; this grants standing and breach visibility, not automatic ally-land entitlement
@@ -580,6 +581,8 @@ bucket_points[nation] = round((nation_bucket_raw / side_bucket_raw) * bucket_wei
 
 If a side bucket has zero raw contribution, it awards zero points and its unused weight is not redistributed. Support counts only when an actual support event exists; Britain or another paymaster receives support contribution for real gold / subsidy / AP / manpower support, while `major` auto-seat prevents a major war funder from disappearing when a war has no recorded support events.
 
+Standing thresholds use `material_contribution_share`, not total contribution share. `staying_power` remains visible in total contribution displays and history panels, but it cannot dilute or inflate the battle/occupation/support denominator that decides `seat`, `consult`, threshold dispatches, or major shut-out grievance eligibility.
+
 Rounding note: bucket normalization uses `round()`. Bucket point sums may land one point below or above the nominal bucket weight in evenly split cases; final contribution shares are derived from stored totals, so this is acceptable and deterministic.
 
 Support contribution event schema:
@@ -598,7 +601,7 @@ Support contribution event schema:
 }
 ```
 
-Emission hooks are event-driven only: treaty-clause ratification, explicit support commands, scripted AI support, and any future settlement follow-up that transfers support. Ownership follows the natural emitter: coalition subsidy emission is owned by `backend/game_logic/coalition.py` advance-turn processing; treaty-clause gold / AP / manpower transfer emission is owned by `WorldState._ratify_treaty()` in `backend/models/world_state.py` as reached from `backend/commands/diplomatic_executor.py` and `backend/game_logic/ai_diplomacy.py`; explicit support-command emission is owned by the command executor that applies the support. Existing British coalition subsidy delivery must emit one `war_support_delivered` event per turn per recipient with `source: "coalition_subsidy"`. Treaty-clause gold / AP / manpower transfers emit at ratification with `source: "treaty_clause"`. Contribution readers dedupe by `episode_id` and ignore support where either side is not an active same-side participant in `war_id` on that turn. Access/supply support uses `value = 1` per qualifying turn and is capped at `5` raw support points per supporter per war to prevent open-borders farming.
+Emission hooks are event-driven only: treaty-clause ratification, per-turn treaty-clause processing, explicit support commands, scripted AI support, and any future settlement follow-up that transfers support. Ownership follows the natural emitter: coalition subsidy emission is owned by `backend/game_logic/coalition.py` advance-turn processing; one-time treaty-clause gold / AP / manpower transfer emission is owned by `WorldState._ratify_treaty()` in `backend/models/world_state.py`; recurring `gold_per_turn`, `ap_per_turn`, and future recurring support clauses emit from `WorldState._process_treaty_clauses()` as each payment is actually applied; explicit support-command emission is owned by the command executor that applies the support. Existing British coalition subsidy delivery must emit one `war_support_delivered` event per turn per recipient with `source: "coalition_subsidy"`. Treaty-clause support events use `source: "treaty_clause"` and a source detail such as `ratification`, `gold_per_turn`, or `ap_per_turn`. Contribution readers dedupe by `episode_id` and ignore support where either side is not an active same-side participant in `war_id` on that turn. Access/supply support uses `value = 1` per qualifying turn and is capped at `5` raw support points per supporter per war to prevent open-borders farming.
 
 British coalition subsidy war attribution is deterministic because `_process_british_subsidy()` currently has no `war_id` argument and may choose a recipient who is active in more than one war. If the recipient has exactly one active `war_instance` where Britain is a same-side supporter or coalition backer, emit that `war_id`. If multiple active wars qualify, choose the active coalition war with the same target first, then the war with the highest overlap between active coalition members and `war_instance.active_participants`, then oldest `created_sequence`. If no unique or ranked eligible war exists, emit an unattributed support event with `war_id = None` / `source_detail = "unattributed_subsidy"` for logging only; it must not add contribution until a later event can be tied to a single war.
 
@@ -636,6 +639,8 @@ At battle resolution time, record:
 ```
 
 Contribution from battles is accrued at battle-resolution time into `war_contribution_scores`. Settlement readers must not reconstruct historical contribution by scanning old `world.battle_records`; those raw records may still be pruned by existing war-score cleanup. The extended battle record is the emission payload for accrual and for recent/debug display, not the canonical long-term contribution store.
+
+The existing war-score battle writer ignores battles below `1000` total casualties. Settlement contribution must not inherit that filter. When a battle has valid `war_id`, side, and theater-participant data, emit and accrue the battle-contribution event before the war-score casualty gate returns. Sub-1000-casualty battles still add zero pairwise war-score battle component, but they can add settlement contribution using the same `battle_raw` formula. If a future implementation deliberately chooses to make skirmishes worth zero contribution, that must be a named balance constant and tested for minor-power wars; do not let the existing war-score gate silently decide it.
 
 Participant detection:
 
@@ -1024,8 +1029,8 @@ Constants and clamps:
 | `base_side_pressure` | `[-50, 50]` | `round(side_pressure_score * 0.5)` using section 6.3 |
 | `settlement_tier_legitimacy` | `[-20, 15]` | `+15 total_victory`, `+10 harsh_peace`, `+5 dictated_terms`, `0 favorable_terms`, `-10 white_peace`, then subtract `10` if package harshness exceeds the tier's maximum |
 | `term_harshness_penalty` | `[-45, 0]` | `-min(45, round(total_harshness * 45))`; `total_harshness` is the normalized `0.0` to `1.0` value returned by `calculate_treaty_harshness({"clauses": all_clauses, "demands": all_demands})` |
-| `burdened_participant_penalty` | `[-30, 0]` | Sum the per-burdened-enemy penalties below, capped at `-30` |
-| `leader_own_losses` | `[-25, 5]` | Acceptance is scored from the accepting leader's perspective: `-5` per accepting-leader-controlled region ceded, `-15` if the accepting leader's capital is ceded/forced-aligned, `+5` if the accepting leader keeps all owned territory |
+| `burdened_participant_penalty` | `[-60, 0]` | Sum the per-burdened-enemy penalties below, capped at `-30 * min(burdened_count, 2)` and never below `-60` |
+| `leader_own_losses` | `[-25, 5]` | Acceptance is scored from the accepting leader's perspective: `-5` per accepting-leader-controlled region ceded, `-15` if the accepting leader's capital is ceded/forced-aligned, `+5` if the accepting leader keeps all owned territory and had at least one controlled region at settlement evaluation; zero-region/off-map leaders get `0`, not a free bonus |
 | `war_objective_alignment` | `[-20, 15]` | `+15` if the package satisfies the proposer-side primary objective, `+5` if it partially satisfies it, `-15` if unrelated harsh terms dominate, `-20` if it contradicts the declared objective |
 | `projected_hegemony_mod` | `[-20, 10]` | New common-peace-only component from `project_balance_after_settlement()`, distinct from live bilateral `hegemony_target_mod`: `-20` if package crosses or deepens a `60%` bloc-share band, `-10` at `50%`, `-5` at `33%`, `+10` for meaningful de-escalation |
 | `war_exhaustion` | `[0, 20]` | `min(20, enemy_leader_war_exhaustion // 3)` |
@@ -1056,9 +1061,13 @@ This example is a fixture seed, not a desired final balance target. The Slice C 
 
 Slice C tuning gate is mandatory: before locking constants in code, add at least eight deterministic test fixtures: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, a coalition split by separate peace, decisive French victory without `total_victory`, total-victory harsh terms, minor-power limited common peace, mixed-strength partial-vs-full coverage, and a heavily tilted 6+ participant coalition war. Add a monotonicity test proving acceptance does not become worse as `side_pressure_score` increases with all other components held constant. At least one decisive French win must accept meaningful common-peace terms without requiring total victory, and at least one total-victory package with harsh but legal terms must not be reduced to a hopeless score by stacked downside modifiers alone. The backend debug/preview component output must expose every common-peace acceptance component used by these fixtures, including `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
 
-If the examples fail those design targets, adjust exactly one primary knob before implementation lock. First try raising `base_side_pressure` scaling to `0.6`; if that still fails, either raise it to `0.7`, lower the accept threshold to `40`, or add a bounded `military_supremacy_bonus`. Record the chosen knob in the Slice C tests, implementation notes, and acceptance debug output.
+Cross-formula validation is part of the Slice C gate. Focused tests must compare `calculate_acceptance()`, `compute_war_entry_score()`, and common-peace acceptance for monotonic military pressure: increasing relevant war score / side pressure must not make any of the three formulas worse when all non-military components are fixed. A package that is accepted as a bilateral peace must not be rejected as an equivalent one-covered-enemy common peace unless the debug output names a common-peace-only component such as projected hegemony, burdened non-leader cost, or ally standing fallout.
+
+If the examples fail those design targets, adjust exactly one primary knob before implementation lock. First try raising `base_side_pressure` scaling to `0.65`; if that still fails, either raise it to `0.7`, lower the accept threshold to `40`, or add a bounded `military_supremacy_bonus`. The Pressburg seed totals `42` at `0.5` and `49` at `0.6`, so `0.6` is explicitly a diagnostic midpoint rather than the expected passing knob. Record the chosen knob in the Slice C tests, implementation notes, and acceptance debug output.
 
 All component calculations are integerized with `round()` at the component boundary. The final score is clamped to `[-100, 100]`. Empty covered-enemy sets are invalid before scoring.
+
+Off-map or zero-region accepting leaders do not receive the `+5` "keeps all owned territory" bonus. If the leader had continental holdings at war entry and now has none, add `lost_continental_holdings = -10` inside `leader_own_losses` before clamping. This prevents off-map Britain or a displaced leader from becoming easier to satisfy because it has no current cedeable regions.
 
 Settlement-tier harshness ceilings:
 
@@ -1089,6 +1098,8 @@ project_balance_after_settlement(world, war_id, terms) -> {
 
 The projection starts from current bloc geometry, applies forced alliance, liberation, vassalage, and territory-transfer effects from the proposed package, and never mutates `WorldState` during preview.
 
+`projected_hegemony_mod` is outside the bilateral `political_subtotal_clamped` floor by design because common-peace acceptance is a single war-scoped score clamped to `[-100, 100]`, not a bilateral memory subtotal. The asymmetry is intentional: bilateral hegemony resistance is persistent relationship friction, while common-peace projection scores the legitimacy of the proposed settlement package itself.
+
 `base_side_pressure` is the war-level headline component. Every term that burdens a specific enemy must also pass the section 6.3 direct-score gate for that payer; a high side average cannot authorize harsh terms against a barely-defeated major.
 
 If the accepting leader changes between proposal construction and acceptance evaluation, re-evaluate the package against the new leader before resolving. If the proposer-side leader changes, void the staged package and require reopening. If accepted, all covered active hostile pairs resolve; uncovered hostile pairs remain active under section 10.5. If rejected, the whole package fails. The player can then try separate peace with individual enemies or revise terms. Rejection feedback must identify the top 1-2 objectionable terms or acceptance components by absolute penalty so the player knows whether the problem was Silesia, forced alliance, insufficient direct pressure, a bargain conflict, or accumulated harshness.
@@ -1102,6 +1113,8 @@ Burdened non-leader rule:
 - If the burdened non-leader is a `major`, add an additional `-10` unless their capital is occupied or the term directly matches the war objective.
 
 These penalties are not vetoes. They model the enemy leader's reluctance to sell out an ally and set up the post-ratification resentment in §14.6.
+
+The aggregate cap scales with the number of burdened non-leaders: one burdened enemy caps at `-30`, two or more cap at `-60`. This prevents full-Europe packages from making three moderate sellouts cheaper per participant than one severe sellout.
 
 ### Step 5: Settlement reaction pass
 
@@ -1268,6 +1281,8 @@ Keep settlement packages direct and legible.
 
 If multiple same-side participants have territorial interest in the same region, awarding it to one participant creates settlement reactions for the others. Interest can come from an active War Bargain, former ownership, core/restoration basis, local sphere, adjacency plus `rival_strengthened`, or a direct contribution/occupation claim recorded in contribution events.
 
+Warnings must name the claim basis for every shown claimant. Example shape: `"Prussia expects Saxony by war bargain; Bavaria has an occupation claim; Saxony has a restoration claim."` Do not render bare "expects this region" copy without the reason.
+
 Reaction rule:
 
 - The recipient receives the normal beneficiary reward, relation bonus, and any eligible `settlement_gratitude`.
@@ -1331,7 +1346,7 @@ _add_settlement_memory(
 - `major` power with `seat` standing, excluded or visibly subordinated
 - Effect: hard-reject posture risk, coalition drift through threat/bloc systems, possible `balance_of_europe_shifted` beat only if the existing threshold/swap contract is met
 
-Seat standing is sufficient for the major shut-out / humiliation bands even when contribution share is low. This matters for off-map or subsidy-heavy major powers such as Britain: low battle or occupation contribution may affect advisory wording, but a seat-level major excluded from settlement is still a major political event.
+Seat standing is sufficient to surface a major-power consultation warning even when material contribution is low. Severity still depends on investment. A `major` with `seat` plus material contribution, direct territorial/survival stake, active bargain stake, or real support contribution can trigger the full major shut-out / humiliation bands. A zero-material `major` with no direct stake keeps `seat` standing for visibility, but exclusion is a reduced warning: relation impact `-5` to `-10`, no major shut-out grievance flag, and no hard-reject posture or downgrade pressure unless repeated later behavior creates a normal grievance basis. This preserves Britain's great-power voice without making a zero-contribution off-map participant cost the same as a 30% material contributor.
 
 ### 14.3 Rewarded ally memory
 
@@ -1365,6 +1380,8 @@ Separate peace fires a smaller settlement reaction pass for France's remaining c
 
 Combined relation impact is intentionally visible: BPH-C base penalty (`-5` to `-15`) plus settlement shut-out penalty (`-5` to `-25`, only when standing warrants) yields a possible total of `-10` to `-40` for one affected ally. The settlement pass must never re-apply the BPH-C base penalty.
 
+Serial bilateral settlements are tracked per `war_id`. When France ratifies the third or later separate peace from the same `war_instance` within a 5-turn window, run an aggregate `serial_bilateral_settlement` warning/reaction for remaining same-side participants with `seat` or `consult` standing. This adds an extra `-5` relation hit per serial peace beyond the second, capped at `-15`, and can add `settlement_shut_out` only if the normal standing/material/direct-stake gates are met. This keeps separate peace as a weapon while preventing the player from avoiding common-peace acceptance by chopping a 6-8 participant war into consequence-light bilateral deals.
+
 ### 14.6 Enemy ally sold out by leader
 
 When the opposing leader accepts common peace terms that heavily burden a non-leader participant, the burdened participant reacts toward both France and its own leader.
@@ -1384,6 +1401,7 @@ Primary reaction:
 - Relation toward own war leader: `-15` to `-30`.
 - Add `sold_out_by_war_leader` memory for 10 turns against the leader.
 - If the burdened participant is `major`, also add alignment drift away from the leader's bloc and toward anti-leader diplomacy.
+- While `sold_out_by_war_leader` is active, deep-treaty, war-entry, and bargain/ally-entry proposals from the former leader to the sold-out participant are hard-rejected unless the proposal includes concrete redress or the relation is already `>= 50`. This is a posture gate, not a new acceptance modifier, and it expires with the memory.
 
 This is the Tilsit pattern: the leader can sell out an ally, but the sold-out ally remembers who signed the paper.
 
@@ -1685,7 +1703,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 ### Slice A: War identity + read-only grouping
 
 - Add `next_war_instance_id`, `war_instances`, and `archived_war_instances` containers
-- Create skeleton `war_instance` before `_process_war_cascade()`; allocate `war_id` from `next_war_instance_id`; pass `war_id` through the existing 9-parameter recursive cascade / vassal-entry / ally-entry paths and append resolved participants as they join
+- Create skeleton `war_instance` before `_process_war_cascade()`; allocate `war_id` from `next_war_instance_id`; pass `war_id` through the existing recursive cascade / vassal-entry / ally-entry paths and append resolved participants as they join. If this raises the live `_process_war_cascade(...)` parameter count, update every call site and test the signature explicitly rather than relying on the old 9-parameter note.
 - Attach every direct transition into `WAR` to a `war_instance`, including `resolve_join_opportunity()`, `accept_counter_bargain()`, vassal-release rebellion, armistice collapse, scripted/debug war entry, and combat-triggered auto-war paths that bypass cascade
 - Store active pairwise war ownership in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`; keep `objective_keys` as WPS historical references only
 - Add `diplo_key_meta[pair]["pair_status"] = "war" | "armistice" | "resolved"` and ensure ARMISTICE pairs stay in the same active `war_id` until they resume war or resolve to peace
@@ -1731,7 +1749,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Verify and extend the already-registered `settlement_confirm` hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
 - Register `incoming_settlement_offer` as a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds
 - Keep common-peace AI cooldowns in a per-`war_id` namespace separate from bilateral proposal cooldowns
-- Mandatory Slice C tuning gate for common-peace constants using at least eight deterministic examples plus side-pressure monotonicity before implementation lock; include mixed-strength partial-vs-full coverage, total-victory harsh terms, and acceptance debug components; try `base_side_pressure` scaling `0.6` first if decisive-victory examples fail acceptance
+- Mandatory Slice C tuning gate for common-peace constants using at least eight deterministic examples plus side-pressure monotonicity before implementation lock; include mixed-strength partial-vs-full coverage, total-victory harsh terms, cross-formula acceptance validation, and acceptance debug components; try `base_side_pressure` scaling `0.65` first if decisive-victory examples fail acceptance
 - Talleyrand advisory preview: standing, bargains, territory legitimacy, rival-strengthened warnings, ally-fallout warnings, salience-filtered default rows
 - Split Slice C into two mandatory sub-slices:
   - **C1 backend scoring/legitimacy:** `compute_side_pressure_score`, common-peace acceptance, tuning fixtures, monotonicity, projected hegemony, abandoned-ally modifier, territory normalization, direct-score gates, pressure-basis warnings, defender-side symmetry, partial common-peace scoring
@@ -1739,24 +1757,31 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Godot smoke gate after C2: launch the client, open the settlement review from a synthetic payload, verify `settlement_confirm` blocks ordinary commands, then back out/revise without mutation
 - ~60 tests split across C1/C2
 
-### Slice D: Settlement reaction pass + bargain integration
+### Slice D1: Settlement memories and direct reactions
 
 - Post-ratification reaction pass for both sides
 - `settlement_shut_out` grievance flag on existing `betrayal_history` using the live `_add_grievance_flag(..., source_episode_type="settlement_reaction")` signature
 - `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context` records in `settlement_memories`
 - `settlement_gratitude_mod` acceptance hook for subsequent deep-treaty, war-entry, and war-bargain / ally-entry proposals
+- Zero-material major-power severity reduction
+- Serial bilateral settlement fallout for third-plus separate peaces in one war instance within five turns
+- Sold-out-by-leader posture gate for deep treaties and war-entry asks from the former leader
+- Settlement-memory cleanup removes expired transient records
+- `they_chose_us` upside for rewarded allies with subsequent acceptance bonus
+- Serialization: `to_dict` / `from_dict` round-trip for `settlement_memories`; update `SAVE_FORMAT_REFERENCE.md`
+- ~24-30 tests
+
+### Slice D2: Bargain integration and cross-war reactions
+
 - Wire war bargain fulfillment/breach at settlement through existing WB-B pipeline
 - Separate peace fallout: smaller reaction pass for remaining co-belligerents
 - Cross-war affected-participant reaction check evaluates all directly affected active wars, then bounds only secondary adjacency/sphere scans to at most three related active `war_instances`
 - Competing ally-claim reactions for regions with multiple interested same-side participants
 - Combined separate-peace relation impact documents BPH-C base penalty plus settlement shut-out penalty; settlement reaction does not duplicate BPH-C
-- Settlement-memory cleanup removes expired transient records
 - WB-B fulfillment/breach timing runs in the same turn-end lifecycle pass after treaty ratification
 - Sold-out-by-leader Tilsit threshold for material losses only
-- `they_chose_us` upside for rewarded allies with subsequent acceptance bonus
 - Hegemony/threat reaction through existing add_threat/reduce_threat/bloc invalidation seams
-- Serialization: `to_dict` / `from_dict` round-trip for `settlement_memories`; update `SAVE_FORMAT_REFERENCE.md`
-- ~50 tests
+- ~26-32 tests
 
 ### Slice E: Presentation + ledger
 
@@ -1775,7 +1800,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Godot smoke gate after E2: settlement review, war status rows, notification route, and ledger route render on current 19-region data plus a synthetic 6+ participant full-Europe payload with no overlapping text
 - ~36 tests
 
-**Estimated total: ~260 tests across 5 slices.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, synthetic full-Europe fixtures, and any UI payload tests listed above.
+**Estimated total: ~260 tests across A, B, C1/C2, D1/D2, and E.** Slice boundaries are implementation gates: each slice owns its data fields, serialization/defaults, save-format documentation, focused backend tests, synthetic full-Europe fixtures, and any UI payload tests listed above.
 
 ---
 
@@ -1871,6 +1896,17 @@ Highest-priority tests:
 86. Cross-war settlement grievance flags feed subsequent bilateral acceptance through the existing `grievance_modifier` path, not a parallel cross-war modifier.
 87. `classify_bargain_settlement_status()` is pure: advisory and confirmation calls do not mutate bargains, treaties, memories, logs, dispatch, or dialogue queues.
 88. Settlement review renders separate Terms, Allies, Warnings, and Acceptance sections on a synthetic 6+ participant payload with no overlapping text.
+89. Sub-1000-casualty battles with valid theater participants accrue settlement contribution without adding pairwise war-score battle points.
+90. Burdened-participant penalties cap at `-30` for one burdened non-leader and `-60` for two or more, so distributed sellouts are not cheaper per ally.
+91. Defender-side settlements cover contribution, standing, sold-out reactions, acceptance worked example, and defensive Talleyrand advisory copy when `proposer_side == defenders`.
+92. Three or more separate peaces in one `war_instance` within five turns trigger the serial bilateral settlement fallout path.
+93. Material contribution share, not total contribution share including staying power, controls `seat`, `consult`, contribution-threshold dispatch, and major shut-out grievance eligibility.
+94. A zero-material `major` with no direct stake receives a consultation warning but not full major shut-out grievance severity.
+95. Recurring treaty support from `_process_treaty_clauses()` emits `war_support_delivered` as each payment is applied.
+96. Off-map or zero-region accepting leaders do not receive the `+5` leader-owns-no-losses bonus, and lost continental holdings apply the explicit penalty.
+97. `active_pair_changed` revalidation catches armistice expiry or pair resolution before `settlement_confirm.confirm` mutates state.
+98. Competing-claim warnings name each claimant's basis: bargain, occupation, restoration, former ownership, local sphere, or contribution.
+99. `sold_out_by_war_leader` memory creates a temporary hard-reject posture toward deep treaties and war-entry asks from the former leader unless redress or high relation exists.
 
 ---
 
@@ -1915,6 +1951,8 @@ Standing, consultation, entitlement, and fallout — not hard blocking. Politica
 ---
 
 ## 21. Changelog
+
+- **April 29, 2026 - v1.11 audit synthesis closure.** Closed the follow-up Codex/Claude merged audit: battle contribution now explicitly bypasses the pairwise war-score 1000-casualty gate, burdened-participant penalty caps scale to two burdened non-leaders, Pressburg tuning starts at `0.65`, defender-side coverage expands, serial separate-peace fallout is specified, common-peace formulas get cross-validation tests, zero-material major-power severity is reduced, recurring treaty support emits from `_process_treaty_clauses()`, `settlement_confirm` revalidates pair status with `active_pair_changed`, pre-declaration side-conflict validation is explicit, off-map leader-loss scoring is fixed, projected-hegemony floor asymmetry is documented, sold-out-by-leader memory has a posture consequence, competing-claim warnings name claim basis, and Slice D is split into D1/D2.
 
 - **April 28, 2026 - v1.10 full-Europe synthesis closure.** Closed the follow-up Codex/Claude full-map audit: replaced `relation_to_originator_bias` with same-side `relation_to_side_anchor_bias`, documented no neutral mediation and no Congress-style multipolar settlement in this phase, added mixed-strength partial-vs-full coverage and total-victory harsh-terms tuning fixtures, required common-peace acceptance debug components, changed cross-war reactions to inspect all directly affected wars before capping secondary scans, clarified grievance routing through existing `grievance_modifier`, added competing ally-claim reactions, made `classify_bargain_settlement_status()` explicitly pure, required Terms / Allies / Warnings / Acceptance settlement review sections, and raised the handoff estimate to ~260 tests.
 - **April 28, 2026 - v1.9 handoff precision closure.** Closed the post-synthesis implementation-seam audit: corrected the canonical battle writer to `diplomacy.py::record_battle()`, moved treaty-clause support emission to `WorldState._ratify_treaty()`, made cascade `war_id` threading an explicit 9-parameter recursive risk, defined `relation_to_originator_bias`, separated `incoming_settlement_offer` as a current-turn mailbox offer, clarified common-peace cooldown namespace, fixed bargain `dormant` vs `at_risk`, added contribution retention/compaction rules, and expanded synthetic full-Europe fixture requirements.

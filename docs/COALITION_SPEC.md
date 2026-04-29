@@ -57,15 +57,15 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 | Win any battle | +3 | On `resolve_combat` where France wins | Military dominance signals threat |
 | Win decisive battle | +5 | Additional, when casualty ratio > 2:1 AND total casualties > 10,000 (per DIPLOMACY_SPEC §6e) | Austerlitz, Jena — decisive victories escalate fear |
 | Annex territory in peace deal | +8 per region | On peace treaty acceptance that transfers regions | Treaty of Tilsit drove the Fifth Coalition |
-| Control >60% of regions (12+) | +1/turn | During `advance_turn` | Continental dominance |
-| Control >70% of regions (14+) | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
-| Control >80% of regions (16+) | +3/turn | During `advance_turn` (replaces +2) | Empire at its zenith |
+| Control >60% of active regions | +1/turn | During `advance_turn` | Continental dominance |
+| Control >70% of active regions | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
+| Control >80% of active regions | +3/turn | During `advance_turn` (replaces +2) | Empire at its zenith |
 | Hegemony pressure (bloc share ≥ 33%) | +1 (33% ≤ share < 50%) / +3 (50% ≤ share < 60%) / +5 (60% ≤ share < 70%) / +8 (share ≥ 70%) | Scalar applies during `advance_turn` via `_calculate_hegemony_pressure`; same-turn `33 / 50 / 60` threshold beats fire on the seam that causes the new upward crossing (Memory and Pressure §7.3) | Castlereagh's balance-of-power doctrine — excessive bloc dominance invites coordinated response even without new aggression |
 
 **Notes:**
 - "Win any battle" and "Win decisive battle" stack: a decisive victory = +3 + +5 = **+8 total**.
 - "Capture enemy capital" stacks with "Win any battle" if a battle was fought for the capital.
-- Region control % uses `len(france_controlled) / len(all_regions)`. France starts with 8/19 = 42%.
+- Region control % uses `len(france_controlled) / len(all_active_regions)` for the loaded scenario. Do not encode absolute 19-region counts into tuning or tests.
 - All values are `int()`. No fractional threat.
 - **Alliance ratification does NOT directly generate threat on the signing turn.** However, when a nation's bloc (leader + vassals + deep-treaty partners) crosses 33% of continental power, the Memory and Pressure hegemony engine (`RELIABILITY_COMMITMENTS_SPEC.md` §7) contributes a passive per-turn threat increment against the hegemon. This is the Napoleonic balance-of-power doctrine: sustained bloc dominance invites coordinated response even without fresh aggressive action. The `hegemony_passive` row above is the mechanical surface for this signal; direct aggressive actions (war, conquest, vassalization, battles, annexation) continue to be the primary threat generators. The separate `30%` threshold belongs to `hegemony_target_mod` on the acceptance-formula side, not to passive coalition pressure.
 - **Forced alliance threat is a coalition threat source only.** It does not create or restore a standalone `threat_modifier` acceptance component; treaty acceptance remains governed by the live `hegemony_target_mod` + `bilateral_betrayal_mod` + `grievance_modifier` political subtotal and any Peace Deals bargain additions.
@@ -965,7 +965,7 @@ These are intentionally deferred to playtesting rather than over-designed:
 1. **Threat values tuning.** All §2a values are starting estimates. If coalitions form too early/late, adjust source values before thresholds.
 2. **Coalition loyalty penalty (-15).** May need adjustment. Too high = coalitions unbreakable. Too low = trivially broken.
 3. **Cooldown duration (5 turns).** May need adjustment based on game length. Shorter games may need shorter cooldown.
-4. **Passive threat scaling (60/70/80% thresholds).** With 19 regions and France starting at 8, these may need adjustment based on typical game progression.
+4. **Passive threat scaling (60/70/80% thresholds).** Tune as percentage thresholds over the loaded scenario's active region set. Current-map 19-region counts are smoke examples only, not full-Europe constants.
 5. **Convergence bias values (+8/+12/+4).** May need tuning to make coalition advance threatening but not overwhelming.
 
 ---

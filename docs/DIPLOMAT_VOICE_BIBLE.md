@@ -47,6 +47,9 @@ Two rules:
 - *Tragedy (commitment_paradox framing):* grave, explicitly not quippy. Aphorism can remain, but the pleasure is absent.
 - *Cold intelligence (hard-reject aftermath):* brief, factual, unsurprised. "Doors in Europe rarely slam, Sire. They close with a servant's politeness and a statesman's memory."
 - *Advisory:* didactic but not lecturing. Always offers an option the player did not ask about.
+- *Common peace advisory:* arithmetic with manners. Names standing, bargain, and territory costs without sounding moral. "Sire, Prussia has not purchased a province with affection. It has paid in men, and will expect the receipt."
+- *Defensive settlement counsel:* quieter than conquest copy. The frame is preserving the coalition and ending the emergency, not imperial appetite. "Sire, a defensive victory is still a victory. It merely asks to be priced with less theatre."
+- *Serial separate peace warning:* dry warning that the player is creating a reputation pattern. "One separate peace is policy, Sire. Three begin to look like a habit."
 
 ---
 
@@ -80,6 +83,8 @@ Two rules:
 - *Witness to another nation's breach:* mathematical. "London reads the breach as weakness in the anti-British front."
 - *Balance of Europe beat:* institutional counting tone. At `noticed`, London observes; at `alarming`, London consults; at `crisis`, London speaks of subsidies and alignments, never panic.
 - *Acknowledging amends:* receipt, not forgiveness. "The gesture is noted. Its execution will be observed."
+- *Accepting common peace:* cold acknowledgment, no gratitude. "The terms are received. His Majesty's Government will measure them by execution."
+- *Sold out by leader:* institutional betrayal language. "London observes that its ally has been made the price of another court's convenience."
 
 ---
 
@@ -108,6 +113,9 @@ Two rules:
 
 **Register notes by scene:**
 - *Accepting terms:* grudging, honor-preserving. "Prussia accepts. The terms are recorded. France will honor them, or Prussia will know."
+- *Rewarded in settlement:* pride first, gratitude second. "Prussia accepts what it has earned. Berlin will remember whether France calls this generosity or justice."
+- *Excluded after contribution:* direct accusation. "Prussian blood has purchased a French signature. Berlin will not mistake the exchange for friendship."
+- *Sold out by leader:* anger turns toward the signer as well as France. "Prussia was not defeated at the table by France alone. It was delivered there."
 - *Rejecting terms:* contemptuous. "Prussia tears this proposal in half. Tell your Emperor that we remember."
 - *Witness to another nation's breach:* satisfaction if France is the betrayer of a Prussian rival; righteous fury if France betrays Prussia directly.
 - *Counter-offering (rare):* terse, almost military. "Prussia accepts — with these amendments. No others."
@@ -146,6 +154,9 @@ Two rules:
 - *Counter-offering:* "small modifications, really," that are always larger than they appear.
 - *Balance of Europe beat:* arrangement-and-calibration register. At `noticed`, Vienna remarks on the weather changing; at `alarming`, it speaks of consultations; at `crisis`, it implies Europe is already redrafting its arrangements.
 - *Acknowledging amends:* polished acceptance that preserves leverage. "Austria acknowledges the courtesy. One adjusts one's estimates accordingly."
+- *Accepting common peace:* cool enough to preserve room for later reversal. "Austria accepts the arrangement, which is not the same as admiring it."
+- *Sold out by leader:* colder than ordinary defeat. "Vienna notes that the injury was delivered with allied ink. Such things simplify future calculations."
+- *Defensive settlement voice:* frames restraint as European order. "Austria would prefer that a defensive victory not be dressed as conquest. Europe notices tailoring."
 
 ---
 
@@ -178,6 +189,9 @@ Two rules:
 - *Witness to another nation's breach:* reputational concern, uncertainty. "The Saxon court repeats the story as all Europe does, with a sharper distrust of French assurances — and a private worry that such assurances are the ones we rely upon."
 - *Counter-offering:* always apologetic. "His Majesty asks most respectfully if perhaps the tribute could be reduced?"
 - *Balance of Europe beat:* anxious-between-camps register. At `noticed`, Saxony grows uneasy; at `alarming`, it worries aloud about small courts being pressed to choose; at `crisis`, it sounds wounded by the narrowing room for caution.
+- *Rewarded in settlement:* grateful but still nervous. "His Majesty is grateful beyond the words available to a small court, and hopes only that gratitude is not misunderstood as boastfulness."
+- *Excluded after contribution:* hurt, not angry. "Saxony had believed its service would be remembered. We ask pardon for having believed too much."
+- *Sold out by leader:* personal grief. "Saxony had feared France's strength. It had not feared its friends."
 - *Acknowledging amends:* sincere relief with residual caution. "Saxony is grateful for the gesture, and would be glad to believe such wounds may in fact be repaired."
 
 ---
@@ -303,6 +317,8 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 ---
 
 ## Changelog
+
+- **Apr 29, 2026** - Added settlement-specific coverage for Imperial Settlement: common-peace advisory, defensive settlement counsel, serial separate-peace warnings, foreign acceptance, rewarded/excluded ally reactions, and sold-out-by-leader registers.
 
 - **Apr 20, 2026** — v1.2. Added "Bloc-naming voice contract" subsection aligned to `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a — formalizes the per-band voice contract (descriptive at `noticed`, proper-noun reveal at `alarming`, intensification without renaming at `crisis`), the no-modern-jargon list, the per-court desired feel at each band, and the Talleyrand-on-France guardrail. Top scope note realigned to v0.5.2 / §8.1a. Block 3 audit doc is now superseded by this plus the presentation-spec fold.
 - **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families, `amends_offered` acknowledgments, paradox aftermath / reactive summon / `hard_reject_clear` / `witness_strike` additive families, and retired the stale v0.3-only scope note.

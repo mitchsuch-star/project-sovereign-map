@@ -2921,6 +2921,27 @@ def get_war_score_for(world, nation: str, opponent: str) -> int:
 
 
 # ═══════════════════════════════════════════════════════
+# DIPLOMACY HELPERS
+# ═══════════════════════════════════════════════════════
+
+def get_relation(world, nation_a: str, nation_b: str) -> int:
+    """Return the canonical unordered bilateral relation for two nations."""
+    if not nation_a or not nation_b:
+        return 0
+    if nation_a == nation_b:
+        return 100
+    make_key = getattr(world, "_make_diplo_key", None)
+    if callable(make_key):
+        key = make_key(nation_a, nation_b)
+    else:
+        key = "|".join(sorted([nation_a, nation_b]))
+    try:
+        return int(getattr(world, "nation_relations", {}).get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+# ═══════════════════════════════════════════════════════
 # WPS-A: WAR OBJECTIVES + TICKING SCORE
 # ═══════════════════════════════════════════════════════
 

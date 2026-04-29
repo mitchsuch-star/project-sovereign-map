@@ -24,6 +24,7 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"ultimatum_demand_wizard",
 	"war_purpose_selection",
 	"settlement_confirm",
+	"incoming_settlement_offer",
 ]
 
 # UI References - Header Status

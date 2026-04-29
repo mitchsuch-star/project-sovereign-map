@@ -336,7 +336,11 @@ Rules:
 4. Use the same helper for treaty preview and final ratification validation so a saved or delayed proposal cannot pass with stale pre-cession power.
 5. Vassalage-cap validation reads the projected values for France and the target after cession terms, before the vassalage clause itself changes subject status.
 
-### 8.5 Starting power values (19-region map)
+### 8.5 Power-cap fixture policy
+
+The old 19-region starting table below is a legacy current-map smoke fixture only. It is no longer a design proof for vassalage eligibility at full-Europe scale. Full-Europe implementation and settlement tuning must use scenario-authored region ownership plus the section 8.1 national-power helper at preview and ratification time.
+
+Full-Europe tests must include a synthetic 13+ nation / 100+ region fixture that checks France against Britain, Prussia, Austria, Russia, and at least one minor target. At campaign start, authored `major` powers should not be routine vassalage targets. If the raw 50% formula allows campaign-start vassalage of Britain, Prussia, Austria, or Russia in the full-Europe fixture, tune scenario power inputs, naval/coastal metadata, or the vassalage cap before using those values for settlement gates.
 
 | Nation | Controlled Regions | Base Income Sum | Naval | Power |
 |--------|-------------------|----------------:|------:|------:|
@@ -348,11 +352,11 @@ Rules:
 
 **Naval income formula:** `min(300, 150 + 50 * coastal_count)`. Britain starts with 1 coastal region (Netherlands) → 200 naval income. Capturing more coastal regions (Normandy, Brittany, Bordeaux, Marseille) increases naval power up to the 300 cap.
 
-**Power cap check at game start:**
-- France (1,100) can vassalize: Saxony (250 = 23%), Prussia (400 = 36%), Britain (400 = 36%) — all under 50%
-- France (1,100) **cannot** vassalize: Austria (650 = 59%) — exceeds 50% cap
+**Legacy 19-region smoke result, superseded for full-Europe balance:**
+- The table verifies that the helper runs on the current small map; it must not prove full-Europe vassalage balance.
+- Full-Europe fixtures must prove that campaign-start Britain, Prussia, Austria, and Russia route to forced alliance, concession, indemnity, or alignment terms rather than routine vassalage.
 
-This is historically accurate. Napoleon vassalized Saxony, the Rhineland states, and Italian principalities — never Austria or Prussia as great powers. After Tilsit, he forced alliance on Russia and Prussia, not vassalage.
+Post-cession projection still matters. A major that has been materially reduced by legal same-package cessions can be re-evaluated after those cessions, but the test must prove the result is intentional rather than an artifact of the small map.
 
 **Note on Britain:** British naval income is included in power calculation. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional — Britain's power projection is real even without continental territory. Excluding naval income would make Britain appear weaker than Saxony, which is ahistorical.
 
@@ -878,7 +882,7 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 - **One objective per war per nation:** Yes. Multi-objective wars would require an objective-priority system and split ticking. Complexity not justified in v0.1.
 - **No mid-war objective changes:** Correct. Choosing an objective is a commitment — changing it mid-war would let the player game ticking by switching to whatever they're currently holding.
 - **Ticking cap at +25:** Set to be meaningful (comparable to decisive battle bonus range ±20) but not dominant. The first four components can reach ±100; ticking adds ±25 on top, capped by the overall ±100 war_score limit.
-- **Power cap at 50%:** Threshold that blocks Austria (59%) but allows Prussia (36%), Britain (36%), and Saxony (23%) at game start. Historically accurate dividing line.
+- **Power cap at 50%:** Starting threshold for the national-power check. Full-Europe fixtures, not the legacy 19-region example, decide whether the threshold is acceptable for campaign-start majors. Historically, routine vassalage should apply to minor/client-state targets, while Britain, Prussia, Austria, and Russia generally route to forced alliance, concession, indemnity, or alignment terms.
 - **Forced alliance includes Continental System:** Yes. Napoleon's forced alliances always included economic alignment. Makes the clause politically meaningful beyond military cooperation.
 - **Liberation creates DEFENSIVE_ALLIANCE, not ALLIANCE:** Liberation is gratitude, not forced alignment. The liberator earns a defensive partner, not a military puppet. This mirrors historical patterns — liberated nations allied with liberators but maintained independence.
 - **Naval income in power calculation:** Yes. Excluding it makes Britain appear weaker than Saxony, which is ahistorical and would make British vassalage trivially achievable.
@@ -887,6 +891,8 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 ---
 
 ## 18. Changelog
+
+- **April 29, 2026** - Replaced the stale 19-region vassalage proof with a full-Europe power-cap fixture policy. Campaign-start major-power vassalage must now be proven intentional under synthetic 13+ nation / 100+ region fixtures rather than inferred from old small-map values.
 
 - **April 26, 2026** - WPS-A audit follow-up clarified France-on-defense semantics: attacked France receives auto-Defense and may upgrade it once with `set_war_purpose`; keeping Defense remains valid and ticking.
 

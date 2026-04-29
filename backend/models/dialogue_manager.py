@@ -51,6 +51,7 @@ class DialogueManager:
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
     CURRENT_TURN_OFFER_TYPES = frozenset({
         "incoming_proposal",
+        "incoming_settlement_offer",
         "counter_offer",
         "counter_offer_response",
     })

@@ -112,6 +112,9 @@ class TestCurrentTurnOfferTypes:
     def test_incoming_proposal_is_offer_type(self):
         assert "incoming_proposal" in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
+    def test_incoming_settlement_offer_is_offer_type(self):
+        assert "incoming_settlement_offer" in DialogueManager.CURRENT_TURN_OFFER_TYPES
+
     def test_counter_offer_is_offer_type(self):
         assert "counter_offer" in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
