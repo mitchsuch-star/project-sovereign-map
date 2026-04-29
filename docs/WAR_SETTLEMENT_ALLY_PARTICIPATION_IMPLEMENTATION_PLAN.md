@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.12 READY FOR SLICE A1 - v1.15 full-Europe audit closure applied
+> **Status:** v1.13 READY FOR SLICE A1 - v1.16 full-Europe audit synthesis closure applied
 > **Last Updated:** April 29, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.15
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.16
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -12,20 +12,20 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - No settlement slice may add a per-turn scan of all regions for every war.
 - Hot paths use active participants, direct term targets, direct beneficiaries, live bargain indexes, and affected regions only.
 - Repeated leader-scoped war-instance queries must use a per-turn `war_instances_by_leader` / side-leader cache rather than repeatedly filtering all active instances.
-- Repeated participant-scoped war-instance queries, especially cross-war settlement reactions, must use a per-turn `war_instances_by_participant` cache rather than filtering all active instances for each affected nation.
+- Repeated participant-scoped war-instance queries, especially cross-war settlement reactions, must use a per-turn `war_instances_by_participant` cache rather than filtering all active instances for each affected nation. Common-peace ratification must invalidate or rebuild this cache inside the ratification transaction before cross-war reaction readers run.
 - Presentation emits one popup/rail beat per settlement family, not one per participant.
 - A `diplo_key` can appear in at most one active `war_instance`; duplicate active instances are a hard stop.
 - `war_id` values come from `world.next_war_instance_id`; never derive them from turn number, side names, or `diplo_key`.
 - `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
 - Cross-war reaction checks evaluate every directly affected active `war_instance`, then bound only secondary adjacency/sphere-only scans to at most three active `war_instances`; never scan all nations by all wars.
-- Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain and Russia. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster.
+- Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least the canonical 13 DG-1 internal nation ids (`France`, `Britain`, `Austria`, `Prussia`, `Russia`, `Spain`, `Ottoman`, `Sweden`, `Naples`, `Bavaria`, `Saxony`, `Portugal`, `Denmark-Norway`), 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain and Russia. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster. Display labels such as `Ottoman Empire` or `Naples/Two Sicilies` are aliases, not fixture ids.
 - Britain-specific settlement tests must include the live proxy-capital condition `NATION_CAPITALS["Britain"] == "Netherlands"` and prove that settlement scoring treats Netherlands as a continental proxy holding, not as London's capital.
 - `compute_local_balance_warning()` is called per participant (6-8 times per preview). Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation call. Do not re-derive region adjacency per participant.
 
 ### Full-Europe Test Fixture Contract
 
 - Add shared helpers in `tests/helpers/full_europe_settlement_fixtures.py`.
-- Synthetic fixtures must define an explicit 13+ nation roster, explicit `major / secondary / minor` tiers, 100+ region ids when territory logic is tested, and at least one 6+ participant side.
+- Synthetic fixtures must define the canonical 13 DG-1 nation roster above, explicit `major / secondary / minor` tiers, 100+ region ids when territory logic is tested, and at least one 6+ participant side.
 - Do not expand production `REGIONS_DATA`, `NATION_CAPITALS`, or `STARTING_DIPLOMATS` solely to satisfy settlement tests.
 - Tests that need active nations must either attach synthetic regions/controllers to the `WorldState` fixture or monkeypatch the specific active-nation helper under test; they must not rely on the current 5-nation runtime roster.
 - Unknown synthetic nations must not silently rely on the `secondary` fallback when a test is asserting standing, side pressure, leader selection, or major-power consultation behavior. Explicit tiers are required.
@@ -39,6 +39,8 @@ Files:
 - `backend/models/world_state.py`
 - `backend/game_logic/diplomacy.py`
 - `backend/game_logic/war_status.py`
+- `backend/game_logic/vassal.py`
+- `backend/commands/vassal_executor.py` if the vassal-release rebellion path owns a direct WAR mutation
 - `docs/SAVE_FORMAT_REFERENCE.md`
 - `tests/test_war_settlement_instances.py`
 
@@ -60,9 +62,9 @@ Build:
 - Update `_process_armistice_expiration()` so `ARMISTICE -> WAR` reuses the existing `war_id` and sets `diplo_key_meta[pair]["pair_status"] = "war"`, while `ARMISTICE -> PEACE` moves the pair to resolved ownership and sets `pair_status = "resolved"` before any archive/end-condition reader runs.
 - Store pairwise ownership in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`. `objective_keys` remains historical WPS references only.
 - Add `diplo_key_meta[pair]["pair_status"] = "war" | "armistice" | "resolved"`. `ARMISTICE -> WAR` reuses the same `war_id`; `ARMISTICE -> PEACE` moves the pair to `resolved_diplo_keys`; common peace never creates ARMISTICE.
-- Populate attackers, defenders, active participants, side metadata, and participant episodes as cascade / vassal / ally entry resolves.
+- Populate attackers, defenders, active participants, side metadata, and participant episodes as cascade / vassal / ally entry resolves. Side metadata stores `leader_source_by_side`, not a single global `leader_source`; coalition-source scoring on one side must never imply coalition-source scoring for the other side.
 - Enforce one-active-`war_instance` per `diplo_key`; reuse compatible instances and merge same-declaration instances rather than creating overlaps.
-- Implement transitive merge in the spec order: validate side assignments without mutation, choose the oldest surviving `war_id`, merge participant/pair/episode data in memory, choose leaders, rewrite absorbed `war_id` references on war bargains, contribution events, pending settlement dialogues, dispatch routes, and ledger payloads, then atomically replace/remove records.
+- Implement transitive merge in the spec order: validate side assignments without mutation, choose the oldest surviving `war_id`, merge participant/pair/episode data in memory, choose leaders, rewrite absorbed `war_id` references on war bargains, contribution events, pending settlement dialogues, dispatch routes, and ledger payloads, then atomically replace/remove records and invalidate `war_instances_by_leader` / `war_instances_by_participant` before any reader observes the merged state.
 - Preserve every absorbed instance's WPS objective references as independent objective contexts. A merge must not select one dominant objective; later common-peace scoring picks the relevant proposer-side objective against the covered enemy.
 - Rewrite contribution references to the surviving `war_id`, but do not preserve pre-merge contribution percentages as settlement standing. Post-merge standing uses the merged current-episode side denominator.
 - Treat transitive merge as a correctness transaction, not a hot path. Full-Europe fixtures should prove correctness for connected-component merges, including multi-objective merges, but no extra optimization is required unless profiling shows repeated merges.
@@ -70,6 +72,7 @@ Build:
 - Persist all `participant_meta` fields needed by later slices, including `contribution_signals_fired`, in `war_instances` serialization so contribution-threshold dispatches do not repeat after save/load.
 - Use `war_leader_score()` for non-coalition leader replacement; use coalition leadership scoring only for active coalition-leader wars.
 - Add elimination exit: stamp `exited_turn`, freeze contribution, remove from active participants, replace leader if needed, and avoid separate-peace reaction.
+- Add off-map elimination exemption: `is_off_map_nation(nation)` identities cannot be eliminated solely because they lost continental proxy holdings. Britain losing Netherlands and Russia having no mapped home region must remain valid settlement identities unless a future explicit off-map surrender rule says otherwise.
 - Ended instances get `ended_turn` / `end_reason`, remain queryable for 10 turns, then move to `archived_war_instances`.
 - Readers tolerate missing WPS `war_objectives` records for historical `objective_keys`.
 - Do not replace pairwise diplomacy. `war_instance` groups existing pairs.
@@ -90,6 +93,8 @@ Gate:
 - Synthetic 13+ nation war-instance fixture covers 20 active pair keys and 6+ participants on one side without relying on live map data.
 - Multi-objective merge fixture connects at least two existing wars with different WPS objectives and proves the surviving `war_instance` keeps all objective contexts without selecting one global objective.
 - Post-merge contribution fixture proves rewritten contribution records use the surviving `war_id` while advisory standing uses post-merge side totals.
+- Side-scoped leader-source fixture proves a coalition-origin attacker with a non-coalition defender, and the inverse case, choose leaders using each side's own source metadata.
+- Off-map elimination fixture proves Britain is not eliminated solely by ceding Netherlands and Russia is not eliminated merely because it has no `NATION_CAPITALS` entry.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
 
 ## Slice B - Contribution Tracker
@@ -106,12 +111,12 @@ Files:
 Build:
 - Split Slice B into mandatory implementation gates before coding:
   - **B1 contribution store and standing math:** data model, canonical store, save/load defaults, old-record adapter, current-episode model, standing classification, material-contribution gate, contribution-share query helpers.
-  - **B2 event emitters and theater attribution:** battle, occupation, support, treaty-support, British subsidy, sub-1000 battle contribution, and non-pipeline charge paths.
+  - **B2 event emitters and theater attribution:** battle, occupation, support, treaty-support, British subsidy, sub-1000 battle contribution, `_execute_attack()` inline diplo records, auto-dispatch charge records, and the glorious-charge pipeline fixture.
   - **B3 lifecycle, retention, and full-Europe fixtures:** turn-order/exits, same-turn separate peace, archive compaction, concurrent-war independence, contribution threshold signals, and three-theater / off-map Britain fixtures.
 - Add episode-scoped `world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}` with `current_episode_id`, `episodes`, and `historical_total`.
 - Add theater battle-record emission in `backend/commands/combat_executor.py` through the central `_post_combat_pipeline()` where possible, plus any direct field/garrison/charge paths that bypass it: `battle_region`, `attacker_participants`, `defender_participants`, `nation_theater_strength`, optional casualty-exposure data, and `war_id`.
 - If the full-Europe map has authored theater/front metadata, include optional `campaign_theater_id` and credit active same-side marshals in that theater. The one-hop adjacency rule remains the baseline; whole-war participant credit remains forbidden.
-- Concrete call-site inventory before coding: central path `backend/commands/combat_executor.py::_post_combat_pipeline()` currently calls diplomatic `record_battle()` from the post-combat pipeline; glorious charge in `backend/commands/combat_executor.py` and auto-dispatch charge in `backend/models/world_state.py` call diplomatic `record_battle()` outside that pipeline. Route those two non-pipeline charge paths through the same theater-attribution helper or give them equivalent participant/war detection.
+- Concrete call-site inventory before coding: central path `backend/commands/combat_executor.py::_post_combat_pipeline()` currently calls diplomatic `record_battle()` from the post-combat pipeline, and `_execute_glorious_charge()` already routes through that pipeline. The non-pipeline inventory is `_execute_attack()`'s inline diplomatic `record_battle()` path, which later calls `_post_combat_pipeline(..., skip_diplo_record=True)`, plus the auto-dispatch charge path in `backend/models/world_state.py`. Route those non-pipeline emitters through the same theater-attribution helper or give them equivalent participant/war detection.
 - Extend the canonical long-term battle writer `backend/game_logic/diplomacy.py::record_battle()` to store those fields. `WorldState.record_battle()` is only the transient `battles_this_turn` signal path and must not be treated as the contribution source of truth.
 - Accrue settlement battle contribution before the existing `record_battle()` 1000-casualty war-score gate returns. Sub-1000-casualty battles stay invisible to pairwise war-score battle records but still produce contribution when they have valid theater participants and `war_id`.
 - Add battle attribution adapter using `battle_region`, then `location`, then `region` for old records.
@@ -125,9 +130,10 @@ Build:
 - Add `war_support_delivered` event ingestion with dedupe by `episode_id`.
 - Existing British coalition subsidy emits one `war_support_delivered` event per turn per recipient with `source="coalition_subsidy"` from `backend/game_logic/coalition.py` advance-turn processing. Because `_process_british_subsidy()` has no `war_id` context today, attribution must rank eligible active wars deterministically: unique eligible war, then matching active coalition target, then highest coalition/war participant overlap, then oldest `created_sequence`; otherwise emit an unattributed logging event that does not accrue contribution.
 - Treaty-clause gold / AP / manpower transfers emit `war_support_delivered` at ratification from `WorldState._ratify_treaty()` in `backend/models/world_state.py` with `source="treaty_clause"`; recurring `gold_per_turn`, `ap_per_turn`, and future recurring support clauses emit from `WorldState._process_treaty_clauses()` when each payment is actually applied. Account for current callers in `backend/commands/diplomatic_executor.py` and `backend/game_logic/ai_diplomacy.py`.
-- Access/supply support is capped per supporter per war.
+- Access/supply support is capped per `(war_id, supporter, support_kind)` across the whole war instance. Re-entry into the same `war_id` does not reset the cap.
 - Apply material-contribution gate: staying power alone cannot create seat-level grievance or threshold dispatch.
 - Compute standing thresholds from material contribution share, not total contribution share including staying power.
+- If total contribution is positive but total material contribution is zero, material shares default to `0` and standing falls back to non-contribution rules; never divide by zero.
 - A nation active in two concurrent `war_instance` records accrues staying power, support, and current-episode totals independently per `war_id`; only a merge transaction rewrites those records together.
 - Retain `war_contribution_scores[war_id]` while the war is active and through the 10-turn terminal `war_instance` retention window. On archive, compact to final per-nation totals unless a live dialogue, dispatch route, ledger row, campaign-log detail, or settlement memory still references episode detail.
 
@@ -143,7 +149,7 @@ Gate:
 - British coalition subsidy fixtures prove `_process_british_subsidy()` emits `war_support_delivered` with `source="coalition_subsidy"` in addition to the existing dispatch/event summary, including a multi-war recipient tie-break and an unattributed/no-accrual fallback.
 - Treaty-clause support fixtures prove `WorldState._ratify_treaty()` one-time emission and `WorldState._process_treaty_clauses()` recurring emission accrue support contribution without requiring a nonexistent diplomacy-module ratification hook.
 - Sub-1000-casualty minor-power battle fixture proves settlement contribution accrues while pairwise war-score battle records stay unchanged.
-- Glorious-charge and auto-dispatch charge fixtures prove non-pipeline charge paths emit theater participants and `war_id` for settlement contribution.
+- `_execute_attack()` inline-record and auto-dispatch charge fixtures prove non-pipeline battle records emit theater participants and `war_id` for settlement contribution; the glorious-charge fixture proves its pipeline-routed record receives the same fields.
 - Three-theater full-Europe fixture proves a 6+ participant war across distant fronts does not create zero contribution for a front's real fighters and does not credit all same-side participants across unrelated fronts.
 - Same-turn AI separate-peace plus battle fixture proves the exiting nation keeps that turn's battle contribution before `exited_turn` is stamped.
 - Concurrent-war fixture covers one nation active in two `war_instance` records and proves each war's staying-power/support totals advance independently.
@@ -166,16 +172,18 @@ Slice C is mandatory two-part work. Do not combine C1 and C2 in one implementati
 
 Build C1 - backend scoring and legitimacy:
 - Implement `compute_side_pressure_score(war_instance)`.
-- Build and reuse one memoized `direct_scores` map per settlement preview/confirm evaluation; side pressure, direct-score gates, burden penalties, and advisory rows must not recalculate the same pairwise war score repeatedly inside one draft preview.
+- Build and reuse one memoized `direct_scores` map per settlement preview/confirm evaluation; side pressure, direct-score gates, burden penalties, territory-legitimacy `weak_pressure_penalty` checks, and advisory rows must not recalculate the same pairwise war score repeatedly inside one draft preview.
 - Implement common-peace acceptance with the current spec constants table, including `base_side_pressure = round(side_pressure_score * 0.65)` clamped to `[-50, 60]` and common-peace harshness normalized over the `1.5` ceiling (`term_harshness_penalty = -min(45, round((min(raw_total_harshness, 1.5) / 1.5) * 45))`). Add `calculate_raw_treaty_harshness(treaty)` in `backend/game_logic/diplomatic_templates.py` or extend the existing helper with an explicit raw / `clamp_max=1.5` option. Existing bilateral callers must keep the current 1.0-clamped `calculate_treaty_harshness()` behavior.
+- Implement formula edge cases exactly: sum `leader_own_losses` sub-components before clamping to `[-25, 5]`; `direct_score >= 20` adds `0` burdened-participant penalty unless another burden rule applies; `war_objective_alignment` includes the `-15` unrelated-harsh-terms-dominates column for all five WPS objective types; and `war_exhaustion` intentionally uses `enemy_leader_war_exhaustion // 3` rather than `round()`.
 - Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, total-victory harsh terms, minor-power limited common peace, mixed-strength partial-vs-full coverage, narrow-vs-full-vs-serial settlement incentive comparison, a heavily tilted 6+ participant coalition war, Britain-led defense with no continental holdings / no free `leader_own_losses` bonus, off-map Britain continental holdings cession/restoration cases, a live-code Britain proxy-capital case where `NATION_CAPITALS["Britain"] == "Netherlands"` does not count as true capital loss, a multi-forced-alliance package that projects `+30` or more threat and names crossed coalition thresholds, and an AI-defender package where the only WPS objective is `defense` and `war_objective_alignment <= +5`. Pin the Pressburg-style worked example from the spec as one fixture seed.
 - Add monotonicity coverage proving acceptance does not worsen as `side_pressure_score` increases with all other components fixed.
 - Expose common-peace acceptance debug components in preview/test output: `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `projected_forced_alliance_threat_delta`, crossed coalition thresholds, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
-- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, mixed-strength partial-vs-full, multi-forced-alliance threat, or AI-defender fixtures fail their design targets, adjust exactly one primary knob from the spec's v1.14 list and record the chosen knob in tests and implementation notes.
+- Add final stress coverage for more than three directly affected cross-war reactions firing in one settlement pass, plus a full-pipeline `advance_turn()` fixture with two AI-generated settlements, 20 active wars, and all 13 canonical DG-1 nations.
+- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, mixed-strength partial-vs-full, multi-forced-alliance threat, or AI-defender fixtures fail their design targets, adjust exactly one primary knob from the spec constants list and record the chosen knob in tests and implementation notes.
 - Add cross-formula validation tests comparing bilateral acceptance, war-entry score, and common-peace acceptance for monotonic military pressure and equivalent one-covered-enemy package sanity.
 - Implement the spec's war-objective alignment mapping table for all five WPS objective types; no live objective record yields component `0`. In merged wars, preserve all proposer-side objective contexts and select the objective relevant to the covered enemy / harshest term; debug output must name selected `diplo_key`, declaring nation, target nation, and objective type.
 - AI defender common-peace package construction must not assume `war_objective_alignment == +15`; defensive-objective fixtures must prove packages can be accepted or rejected by the whole formula when objective alignment is `0` or `+5`.
-- Implement `project_balance_after_settlement(world, war_id, terms)` as a pure projection helper and use projected post-settlement bloc share for `projected_hegemony_mod`, distinct from bilateral `hegemony_target_mod`. Add a no-mutation test around world regions, relations, diplomatic states, vassals, and bloc cache state.
+- Implement `project_balance_after_settlement(world, war_id, terms)` as a pure projection helper and use projected post-settlement bloc share for `projected_hegemony_mod`, distinct from bilateral `hegemony_target_mod`. Start from cached nation-region/bloc state such as `get_nation_regions()`, apply term deltas, and never iterate `world.regions.values()` inside preview loops. Add a no-mutation test around world regions, relations, diplomatic states, vassals, and bloc cache state.
 - Implement `abandoned_by_ally_acceptance_mod` as `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`.
 - Normalize territory terms to canonical `from` / `to`; accept `from_nation` / `to_nation` only at input boundaries.
 - Enforce direct-score gates for burdened non-leader enemies.
@@ -192,7 +200,7 @@ Build C2 - endpoints, dialogue, advisory, and Godot routing:
 - Add `incoming_settlement_offer` response contract and dialogue taxonomy entry for AI-to-player common peace: register it as a `CURRENT_TURN_OFFER_TYPES` / mailbox-browseable offer, not a hard stop; actions are `accept`, `reject`, `request_revision`; accept must promote to a `settlement_confirm` hard stop and never mutate directly from the incoming offer payload.
 - Add `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` and cover backend mailbox summary ordering/activation plus Godot mailbox row rendering. Do not rely on generic proposal labels for settlement offers.
 - Verify the already-registered `settlement_confirm` entries in `DialogueManager.HARD_STOP_TYPES`, backend dialogue priority, Godot dialogue routing, command-response keyword handling, and `tests/test_dialogue_manager.py`; extend behavior rather than re-adding the type.
-- `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, every covered pair's active `war_id` and `pair_status`, hard stops, and acceptance before mutation. Armistice expiry or same-turn pair resolution returns `active_pair_changed`.
+- `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, every covered pair's active `war_id` and `pair_status`, proposer-side participant membership, standing inputs, term beneficiaries, beneficiary eligibility, hard stops, and acceptance before mutation. Armistice expiry or same-turn pair resolution returns `active_pair_changed`; proposer-side participant exits/rebellions/eliminations return `active_participant_changed`; beneficiary invalidation returns `beneficiary_ineligible`.
 - Void the staged settlement if the proposer-side leader changes; re-score if only the accepting-side leader changes.
 - Implement two-pass standing: draft advisory from draft terms, final confirmation standing from locked terms.
 - AI-to-player common-peace offers create an incoming settlement-review dialogue; accepting that offer then uses the same confirm executor instead of direct mutation.
@@ -217,6 +225,7 @@ Gate:
 - AI-to-player common-peace offer tests cover current-turn/mailbox taxonomy, accept/reject/request_revision response shapes, confirm-executor promotion with no mutation on offer accept, and cooldown/one-active-offer gating.
 - Mailbox tests prove `incoming_settlement_offer` has its own `MAILBOX_SUMMARY_LABELS` entry and Godot route.
 - Raw harshness tests prove common-peace scoring uses unclamped `1.5` normalization while landed bilateral callers still receive the 1.0-clamped `calculate_treaty_harshness()` value.
+- Formula edge-case tests cover zero material contribution denominators, post-sum `leader_own_losses` clamping, normal non-leader burden as a `0` penalty, the `-15` objective-alignment column, and intentional war-exhaustion floor division.
 - Britain proxy-capital tests prove `NATION_CAPITALS["Britain"] == "Netherlands"` remains a topology/spawn proxy and does not trigger capital-loss scoring.
 - Multi-forced-alliance threat-preview tests prove projected `+30` or greater threat and crossed coalition thresholds are visible before confirm.
 - AI defender objective-alignment tests prove defensive packages with `war_objective_alignment <= +5` are evaluated by the full common-peace formula.
@@ -242,7 +251,7 @@ Build:
 - Add `sold_out_by_war_leader` posture gating for deep treaties and war-entry asks from the former leader unless redress or high relation exists.
 - Add combined posture-gate precedence for `sold_out_by_war_leader`, DG-4 `anti_renewal_cooldown`, hard-reject posture, oathbreaker posture, and state-transition hard stops: list every active blocker in preview/debug, compute effective unblock turn as the max active expiry, and allow concrete redress / relation `>= 50` to bypass only the sold-out gate.
 - Add serial bilateral settlement fallout for third-plus separate peaces in one `war_instance` within five turns.
-- Within the common-peace ratification transaction, run lifecycle in this order: validate confirm, ratify terms, mutate ownership/alignment, run WB-B fulfillment/breach, run settlement reactions, invalidate hegemony/bloc caches, then build dispatch/log/ledger payloads.
+- Within the common-peace ratification transaction, run lifecycle in this order: validate confirm, ratify terms, mutate ownership/alignment, run WB-B fulfillment/breach, invalidate `war_instances_by_leader` / `war_instances_by_participant` and hegemony/bloc caches, run settlement and cross-war reactions from fresh indexes, then build dispatch/log/ledger payloads.
 - Add canonical acceptance-doc amendments for `settlement_gratitude_mod`: positive `+5`, not part of the clamped political subtotal, cannot bypass hard stops or political floors, refreshes rather than stacks.
 - Document combined separate-peace relation impact: BPH-C base penalty plus settlement shut-out penalty, with no duplicate BPH-C application.
 - Add settlement-memory cleanup for expired transient records after active modifiers are read; writes are idempotent by `(memory_type, actor, subject, counterparty, war_id, episode_id)`.
