@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.13 READY FOR SLICE A1 - v1.16 full-Europe audit synthesis closure applied
+> **Status:** v1.14 READY FOR SLICE A1 FOUNDATION GATE - v1.17 pre-A1 Codex/Claude reconciliation closure applied
 > **Last Updated:** April 29, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.16
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.17
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -18,6 +18,7 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - `war_id` values come from `world.next_war_instance_id`; never derive them from turn number, side names, or `diplo_key`.
 - `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
 - Cross-war reaction checks evaluate every directly affected active `war_instance`, then bound only secondary adjacency/sphere-only scans to at most three active `war_instances`; never scan all nations by all wars.
+- Slice A1 is foundation-only. It must land off-map helper APIs, settlement containers, old-save defaults, empty index/cache scaffolding, and off-map elimination protection before any A2 `war_id` threading, B contribution tracking, C common-peace scoring, or D reaction work begins.
 - Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least the canonical 13 DG-1 internal nation ids (`France`, `Britain`, `Austria`, `Prussia`, `Russia`, `Spain`, `Ottoman`, `Sweden`, `Naples`, `Bavaria`, `Saxony`, `Portugal`, `Denmark-Norway`), 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain and Russia. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster. Display labels such as `Ottoman Empire` or `Naples/Two Sicilies` are aliases, not fixture ids.
 - Britain-specific settlement tests must include the live proxy-capital condition `NATION_CAPITALS["Britain"] == "Netherlands"` and prove that settlement scoring treats Netherlands as a continental proxy holding, not as London's capital.
 - `compute_local_balance_warning()` is called per participant (6-8 times per preview). Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation call. Do not re-derive region adjacency per participant.
@@ -45,13 +46,21 @@ Files:
 - `tests/test_war_settlement_instances.py`
 
 Build:
+- A1 opens with foundation work only. Do not begin live WAR-entry threading, common-peace scoring, contribution accrual, settlement dialogue mutation, or reaction logic until the A1 foundation gate below is green.
+- Add a settlement helper API, either in `backend/game_logic/settlement_helpers.py` or an equivalent shared backend helper module, with:
+  - `is_off_map_nation(nation: str) -> bool`
+  - `is_off_map_capital_proxy(nation: str, region: Optional[str]) -> bool`
+  - `get_settlement_home_capital(nation: str) -> Optional[str]`
+  The helpers must treat Britain as off-map even though live `NATION_CAPITALS["Britain"] == "Netherlands"` for spawn/topology, treat Russia as off-map while it has no mapped capital, and generalize to future off-map powers. Settlement code must not use raw `NATION_CAPITALS.get(nation)` as true home-capital truth.
 - Add `world.next_war_instance_id: int = 1`, `world.war_instances: Dict[str, Dict] = {}`, and `world.archived_war_instances: List[Dict] = []` with save/load defaults.
+- Add empty-safe `war_instances_by_leader` and `war_instances_by_participant` lookup/cache helpers plus a single invalidation hook. In A1 these helpers may return empty indexes, but they must establish the API later slices use.
+- Protect off-map identities from region-only elimination before behavioral settlement work starts: `is_off_map_nation(nation)` identities cannot be eliminated solely because they lost continental proxy holdings or have no mapped home-capital region.
 - Before coding A2/A3, write a durable WAR-entry seam inventory as a tracked checklist in `tests/test_war_settlement_instances.py` named `WAR_ENTRY_SEAMS_UNDER_TEST`. The checklist must include player declaration, AI declaration, coalition declaration, vassal rebellion, vassal-release rebellion, commitment-paradox outcome, scripted/debug war entry, join-opportunity acceptance, counter-bargain acceptance, armistice collapse, and combat-triggered auto-war fallback. The Slice A2 invariant test must fail if a listed seam is missing focused coverage. Map every live seam to either `_process_war_cascade(...)` war-id threading or a direct `attach_pair_to_war_instance(...)` call.
 - Split Slice A into mandatory implementation gates:
-  - **A1 containers/defaults/index scaffolding:** save/load fields, `next_war_instance_id`, skeleton helpers, active-instance lookup helpers, and invariant assertions.
+  - **A1 foundation gate:** off-map helper API, save/load fields, `next_war_instance_id`, empty-safe index/cache helpers, cache invalidation scaffolding, off-map elimination protection, and invariant assertions.
   - **A2 war-entry threading:** cascade/direct-entry `war_id` ownership for every inventoried WAR seam, including vassal and armistice paths.
   - **A3 merge/archive/leader invariants:** connected-component merge, objective preservation, contribution-reference rewrites, leader replacement, elimination exits, terminal retention, and archive compaction.
-  Do not start A3 merge support until A2 tests prove every direct and cascade-created `WAR` pair owns exactly one active `war_id`.
+  Do not start A2 until A1 is green. Do not start A3 merge support until A2 tests prove every direct and cascade-created `WAR` pair owns exactly one active `war_id`.
 - Validate side assignment and active-instance compatibility before any declaration mutates `diplomatic_states` to `WAR`. Add `validate_war_declaration(...)` or make `ensure_war_instance_for_pair(...)` perform the pre-commit validation; `war_instance_side_conflict` must hard-stop before state mutation.
 - Create a skeleton `war_instance` when a pair enters `WAR` before `_process_war_cascade()`; allocate `war_id = f"war_{world.next_war_instance_id}"`, store `created_sequence`, then increment the counter.
 - Implement `ensure_war_instance_for_pair(...)` and call it from every declaration/cascade seam: player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, and combat-triggered auto-war.
@@ -79,10 +88,14 @@ Build:
 - Add an invariant helper/test assertion: every `diplomatic_states[diplo_key] == "WAR"` must appear in exactly one active `war_instance.active_diplo_keys` with `pair_status == "war"`. No active `war_instance` may claim a non-WAR pair as `pair_status == "war"`.
 
 Gate:
-- A1: 8-10 focused tests for old-save defaults, monotonic `war_id` allocation, lookup helpers, and invariant assertions.
+- A1: 10-14 focused tests for old-save defaults, monotonic `war_id` allocation, empty-safe lookup/cache helpers, cache invalidation idempotence, off-map helper semantics, off-map non-elimination, and invariant assertions.
 - A2: 18-22 focused tests for cascade/direct-entry ownership across every inventoried WAR seam, including vassal rebellion and armistice collapse.
 - A3: 18-22 focused tests for merge/archive/leader/elimination behavior, including multi-objective merge preservation and post-merge contribution denominator rules.
 - Old saves load with `1` for `next_war_instance_id`, `{}` for `war_instances`, and `[]` for `archived_war_instances`.
+- Britain fixture proves `get_settlement_home_capital("Britain")` is not the live proxy `Netherlands`, and `is_off_map_capital_proxy("Britain", "Netherlands")` is true.
+- Russia fixture proves a nation with no live `NATION_CAPITALS` entry can still be a valid off-map settlement identity without fallback capital crashes.
+- Empty war-instance index fixtures prove `war_instances_by_leader` and `war_instances_by_participant` build and invalidate safely before any active `war_instance` exists.
+- Off-map treaty-cleanup fixture proves Britain is not eliminated solely by ceding Netherlands and Russia is not eliminated merely because it has no `NATION_CAPITALS` entry.
 - Vassal rebellion and a synthetic three-instance chain merge attach to exactly one surviving `war_instance`.
 - Vassal rebellion fixture covers the live `backend/game_logic/vassal.py` call site and proves `ensure_war_instance_for_pair(...)` runs before `_process_war_cascade(...)`.
 - Recursive cascade fixture proves honored allies, refused allies, and vassal auto-joins all receive the same allocated `war_id` without relying on the old episode-derived ledger id.
@@ -94,7 +107,6 @@ Gate:
 - Multi-objective merge fixture connects at least two existing wars with different WPS objectives and proves the surviving `war_instance` keeps all objective contexts without selecting one global objective.
 - Post-merge contribution fixture proves rewritten contribution records use the surviving `war_id` while advisory standing uses post-merge side totals.
 - Side-scoped leader-source fixture proves a coalition-origin attacker with a non-coalition defender, and the inverse case, choose leaders using each side's own source metadata.
-- Off-map elimination fixture proves Britain is not eliminated solely by ceding Netherlands and Russia is not eliminated merely because it has no `NATION_CAPITALS` entry.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
 
 ## Slice B - Contribution Tracker
@@ -190,6 +202,7 @@ Build C1 - backend scoring and legitimacy:
 - Implement pressure-basis warnings for unoccupied or barely fought regions.
 - Support single-covered-enemy common peace when ally-beneficiary terms, standing, or war-level settlement logic is required.
 - Support partial common peace: accepted packages resolve covered hostile pairs to PEACE/treaty states only, while uncovered hostile or ARMISTICE pairs remain in the same `war_instance` until the section 7.3 end condition is met.
+- If confirm revalidation removes every covered enemy participant because pairs resolved, expired, rebelled, or otherwise changed while the dialogue was open, void the staged settlement with `no_covered_enemy_participants` and no mutation.
 - Ratify common peace by iterating `war_instance.active_diplo_keys`: resolve only pairs between proposer-side participants and covered enemy participants, leave all uncovered hostile/suspended pairs untouched, and route forced-alliance outcomes through the existing WPS state-jump path instead of a generic `PEACE` write.
 - Parameterize scoring by `proposer_side` so defending-side common peace is symmetric.
 - Defender-side coverage must include at least five fixtures: contribution attribution while France is defender leader, standing classification for defender allies, sold-out attacker-side ally reaction, a Pressburg-inverse acceptance example, and defensive-settlement advisory copy.
@@ -198,7 +211,7 @@ Build C2 - endpoints, dialogue, advisory, and Godot routing:
 - Add Open Settlement eligibility / grey-out rules from spec section 10.3 (`inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, `settlement_dialogue_active`).
 - Add settlement endpoint/dialogue contracts: no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_preview`, mandatory hard-stop `settlement_confirm`, typed `POST /respond_to_diplomatic_dialogue` actions for `confirm`, `back_out`, and `revise_terms`, and the exact no-mutation response shapes from the spec.
 - Add `incoming_settlement_offer` response contract and dialogue taxonomy entry for AI-to-player common peace: register it as a `CURRENT_TURN_OFFER_TYPES` / mailbox-browseable offer, not a hard stop; actions are `accept`, `reject`, `request_revision`; accept must promote to a `settlement_confirm` hard stop and never mutate directly from the incoming offer payload.
-- Add `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` and cover backend mailbox summary ordering/activation plus Godot mailbox row rendering. Do not rely on generic proposal labels for settlement offers.
+- Add `DialogueManager.DIALOGUE_PRIORITY["incoming_settlement_offer"]` at the normal incoming-proposal tier and `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"`; cover backend mailbox ordering/activation plus Godot mailbox row rendering. Do not rely on generic proposal ordering or labels for settlement offers.
 - Verify the already-registered `settlement_confirm` entries in `DialogueManager.HARD_STOP_TYPES`, backend dialogue priority, Godot dialogue routing, command-response keyword handling, and `tests/test_dialogue_manager.py`; extend behavior rather than re-adding the type.
 - `POST /command` may stage common peace terms but must not ratify directly; `confirm` revalidates live leaders, every covered pair's active `war_id` and `pair_status`, proposer-side participant membership, standing inputs, term beneficiaries, beneficiary eligibility, hard stops, and acceptance before mutation. Armistice expiry or same-turn pair resolution returns `active_pair_changed`; proposer-side participant exits/rebellions/eliminations return `active_participant_changed`; beneficiary invalidation returns `beneficiary_ineligible`.
 - Void the staged settlement if the proposer-side leader changes; re-score if only the accepting-side leader changes.
@@ -223,7 +236,8 @@ Gate:
 - Narrow/full/serial comparison fixture proves full common peace is not dominated by serial separate settlements under the locked tuning constants.
 - AI-vs-AI common peace produces one campaign-log summary and one fog-eligible dispatch line.
 - AI-to-player common-peace offer tests cover current-turn/mailbox taxonomy, accept/reject/request_revision response shapes, confirm-executor promotion with no mutation on offer accept, and cooldown/one-active-offer gating.
-- Mailbox tests prove `incoming_settlement_offer` has its own `MAILBOX_SUMMARY_LABELS` entry and Godot route.
+- Mailbox tests prove `incoming_settlement_offer` has its own `DIALOGUE_PRIORITY`, `MAILBOX_SUMMARY_LABELS` entry, and Godot route.
+- Confirm-revalidation tests prove an empty covered-enemy set voids with `no_covered_enemy_participants` and no mutation.
 - Raw harshness tests prove common-peace scoring uses unclamped `1.5` normalization while landed bilateral callers still receive the 1.0-clamped `calculate_treaty_harshness()` value.
 - Formula edge-case tests cover zero material contribution denominators, post-sum `leader_own_losses` clamping, normal non-leader burden as a `0` penalty, the `-15` objective-alignment column, and intentional war-exhaustion floor division.
 - Britain proxy-capital tests prove `NATION_CAPITALS["Britain"] == "Netherlands"` remains a topology/spawn proxy and does not trigger capital-loss scoring.

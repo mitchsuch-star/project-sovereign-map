@@ -282,7 +282,7 @@ A future save/load system should use this as the specification.
 
 ### Pending Imperial Settlement WorldState Fields
 
-These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.16 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice.
+These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.17 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice. Slice A1 owns `next_war_instance_id`, `war_instances`, and `archived_war_instances` as part of the foundation gate before any behavioral settlement work starts.
 
 | Field | Type | Default | Owning slice |
 |-------|------|---------|--------------|
