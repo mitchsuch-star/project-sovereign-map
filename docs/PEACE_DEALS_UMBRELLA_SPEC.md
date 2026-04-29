@@ -70,7 +70,7 @@ This affects:
 
 Earlier WAR_BARGAIN_SPEC drafts referenced the superseded rivalry-based modifier model. WAR_BARGAIN_SPEC §7.2 and §9 now align with this canonical model; this umbrella section remains the source of truth if future wording drifts.
 
-The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based modifier model. The live acceptance layer in `calculate_acceptance()` (`diplomacy.py:3215-3409`) is:
+The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based modifier model. The live acceptance layer is `calculate_acceptance()` in `backend/game_logic/diplomacy.py` (currently around the 6300s; use `rg "def calculate_acceptance"` rather than relying on historical line numbers). Its canonical components are:
 
 | Modifier | Source | Range | Description |
 |----------|--------|-------|-------------|

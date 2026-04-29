@@ -97,7 +97,7 @@ Future scenarios (1806, 1809, etc.) extend this roster by adding authored nation
 **Superseded language**
 
 - `docs/DESIGN_REFINEMENT.md` §"National Power Tiers (Great Power / Secondary / Minor)" described `power_tier` as dynamic numeric tiers recomputed from controlled regions, income, and military strength. That model is superseded. Tier is authored; any numeric strength-derived signal is a separate `power_score` field.
-- `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §8.3 used the names `great_power / secondary_power / minor_power`. Those names are superseded by `major / secondary / minor`. The settlement-rights structure in §11 carries over under the new names unchanged.
+- Older revisions of `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` used the names `great_power / secondary_power / minor_power`. Current settlement specs use the canonical `major / secondary / minor` taxonomy. The settlement-rights structure carries over under the canonical names unchanged.
 
 ---
 

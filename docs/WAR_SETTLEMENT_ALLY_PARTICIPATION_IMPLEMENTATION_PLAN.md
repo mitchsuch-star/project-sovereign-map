@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.6 READY FOR SLICE A - v1.9 handoff-precision audit closure applied
+> **Status:** v1.7 READY FOR SLICE A - v1.10 full-Europe synthesis closure applied
 > **Last Updated:** April 28, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.9
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.10
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -15,7 +15,7 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - A `diplo_key` can appear in at most one active `war_instance`; duplicate active instances are a hard stop.
 - `war_id` values come from `world.next_war_instance_id`; never derive them from turn number, side names, or `diplo_key`.
 - `diplo_key_meta[pair]["pair_status"]` is canonical for `war` / `armistice` / `resolved`; ARMISTICE pairs remain suspended in their existing `war_id` and do not archive the war.
-- Cross-war reaction checks are bounded by affected term beneficiaries and at most three affected active `war_instances`, not all nations by all wars.
+- Cross-war reaction checks evaluate every directly affected active `war_instance`, then bound only secondary adjacency/sphere-only scans to at most three active `war_instances`; never scan all nations by all wars.
 - Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least 13 nations, 100+ region ids for territory logic, 20 active `WAR` pair keys, one 6+ participant side, and off-map Britain. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster.
 
 ## Slice A - War Identity And Grouping
@@ -29,6 +29,7 @@ Files:
 
 Build:
 - Add `world.next_war_instance_id: int = 1`, `world.war_instances: Dict[str, Dict] = {}`, and `world.archived_war_instances: List[Dict] = []` with save/load defaults.
+- Before coding A2/A3, write a code-path inventory in the Slice A PR notes or implementation comments that maps every live WAR-entry seam to either `_process_war_cascade(...)` war-id threading or a direct `attach_pair_to_war_instance(...)` call. Include player declaration, AI declaration, coalition declaration, vassal rebellion, commitment-paradox outcome, scripted/debug war entry, join-opportunity acceptance, counter-bargain acceptance, armistice collapse, and combat-triggered auto-war fallback.
 - Split Slice A internally into A1 containers/defaults, A2 cascade `war_id` threading, and A3 merge/archive invariants. Do not start merge support until A2 tests prove every direct and cascade-created `WAR` pair owns exactly one active `war_id`.
 - Create a skeleton `war_instance` when a pair enters `WAR` before `_process_war_cascade()`; allocate `war_id = f"war_{world.next_war_instance_id}"`, store `created_sequence`, then increment the counter.
 - Implement `ensure_war_instance_for_pair(...)` and call it from every declaration/cascade seam: player/AI declarations, coalition declarations, vassal rebellions, commitment-paradox outcomes, scripted war entry, and combat-triggered auto-war.
@@ -55,6 +56,7 @@ Gate:
 - Vassal rebellion and a synthetic three-instance chain merge attach to exactly one surviving `war_instance`.
 - Recursive cascade fixture proves honored allies, refused allies, and vassal auto-joins all receive the same allocated `war_id` without relying on the old episode-derived ledger id.
 - Direct ally-entry, accepted counter-bargain, vassal-release rebellion, armistice collapse, and scripted/debug war-entry fixtures attach to an existing or new `war_instance`.
+- Coalition-declaration fixtures cover every inventoried coalition entry path and prove `ensure_war_instance_for_pair(...)` runs before cascade expansion.
 - Invariant test scans live diplomatic state after each Slice A fixture: no dangling WAR pair without a `war_instance`, no duplicate active `diplo_key` ownership.
 - ARMISTICE pair-status tests prove suspended pairs do not archive the war and reuse the same `war_id` if hostilities resume.
 - Synthetic 13+ nation war-instance fixture covers 20 active pair keys and 6+ participants on one side without relying on live map data.
@@ -120,9 +122,10 @@ Build C1 - backend scoring and legitimacy:
 - Implement `compute_side_pressure_score(war_instance)`.
 - Build and reuse one memoized `direct_scores` map per settlement preview/confirm evaluation; side pressure, direct-score gates, burden penalties, and advisory rows must not recalculate the same pairwise war score repeatedly inside one draft preview.
 - Implement common-peace acceptance with the current spec constants table, including normalized treaty harshness (`term_harshness_penalty = -min(45, round(total_harshness * 45))`).
-- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, minor-power limited common peace, and a heavily tilted 6+ participant coalition war. Pin the Pressburg-style worked example from the spec as one fixture seed.
+- Add deterministic Slice C tuning gate fixtures before locking constants: Pressburg-style accepting-leader losses, Tilsit-style non-leader burden, coalition split, decisive French win without total victory, total-victory harsh terms, minor-power limited common peace, mixed-strength partial-vs-full coverage, and a heavily tilted 6+ participant coalition war. Pin the Pressburg-style worked example from the spec as one fixture seed.
 - Add monotonicity coverage proving acceptance does not worsen as `side_pressure_score` increases with all other components fixed.
-- If decisive-victory fixtures fail acceptance, first try raising `base_side_pressure` scaling from `0.5` to `0.6`; record any chosen knob in tests and implementation notes.
+- Expose common-peace acceptance debug components in preview/test output: `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
+- If decisive-victory, total-victory harsh-terms, or mixed-strength partial-vs-full fixtures fail their design targets, first try raising `base_side_pressure` scaling from `0.5` to `0.6`; record any chosen knob in tests and implementation notes.
 - Implement `project_balance_after_settlement(world, war_id, terms)` and use projected post-settlement bloc share for `projected_hegemony_mod`, distinct from bilateral `hegemony_target_mod`.
 - Implement `abandoned_by_ally_acceptance_mod` as `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`.
 - Normalize territory terms to canonical `from` / `to`; accept `from_nation` / `to_nation` only at input boundaries.
@@ -145,7 +148,7 @@ Build C2 - endpoints, dialogue, advisory, and Godot routing:
 - AI-vs-AI common peace emits one fog-eligible Diplomatic Affairs dispatch line and one `settlement_summary` campaign-log entry, with no participant spam.
 
 Gate:
-- C1: 30-35 focused tests.
+- C1: 32-38 focused tests.
 - C2: 25-30 focused tests.
 - Rejection feedback names the top two objectionable components.
 - Existing bilateral peace acceptance remains unchanged.
@@ -174,23 +177,27 @@ Build:
 - Add `settlement_memories` for `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context`.
 - Add `settlement_gratitude_mod` for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals.
 - Wire War Bargain fulfillment/breach through existing WB-B lifecycle helpers.
-- Implement `classify_bargain_settlement_status(...)` from spec section 15.2 and use it for advisory rows and settlement-confirm breach/void routing.
+- Implement `classify_bargain_settlement_status(...)` from spec section 15.2 as a pure function before wiring reactions, then use it for advisory rows and settlement-confirm breach/void routing.
 - Treat named-enemy coverage as the boundary between `dormant` and `at_risk`: active attached bargains with covered named enemies and unresolved claims are `at_risk`; bargains whose named enemy is not covered remain `dormant`.
 - Within the common-peace ratification transaction, run lifecycle in this order: validate confirm, ratify terms, mutate ownership/alignment, run WB-B fulfillment/breach, run settlement reactions, invalidate hegemony/bloc caches, then build dispatch/log/ledger payloads.
 - Add canonical acceptance-doc amendments for `settlement_gratitude_mod`: positive `+5`, not part of the clamped political subtotal, cannot bypass hard stops or political floors, refreshes rather than stacks.
 - Document combined separate-peace relation impact: BPH-C base penalty plus settlement shut-out penalty, with no duplicate BPH-C application.
 - Implement `compute_local_balance_warning()` from live relation/bloc/adjacency/desire-profile data only.
 - `rival_strengthened` alone promotes only major/secondary nations to consult; minors need material contribution or direct interests.
-- Trigger cross-war reaction checks only for affected participants and at most three affected active wars.
+- Trigger cross-war reaction checks for every directly affected active war; cap only secondary adjacency/sphere-only scans at three affected active wars.
+- Add competing ally-claim reactions for same-region awards: recipient gratitude, non-recipient warnings, and grievance/bargain routing only when standing, active bargain, direct stake, or material contribution gates are met.
+- Cross-war settlement grievance flags feed subsequent bilateral acceptance through the existing `grievance_modifier` path and composite-floor rules; do not add a separate cross-war acceptance modifier.
 - Add settlement-memory cleanup for expired transient records after active modifiers are read; writes are idempotent by `(memory_type, actor, subject, counterparty, war_id, episode_id)`.
 - Enforce turn lifecycle placement from spec section 17.5: event-time contribution, war-state mutation, WB-B lifecycle, staying power, leader/end checks, memory reads, memory cleanup, then presentation payloads.
 
 Gate:
-- 46-54 focused tests.
+- 50-58 focused tests.
 - No duplicate BPH-C separate-peace relation penalty.
 - Balance of Europe beats fire only through existing threshold/hegemon-swap seams.
 - `settlement_gratitude_mod` appears in canonical acceptance docs and proposal debug components.
 - Bargain settlement status tests cover `dormant`, `fulfillable`, `fulfilled_by_terms`, `at_risk`, `impossible`, and `breach_if_confirmed`, including the named-enemy-covered vs not-covered boundary.
+- Bargain classifier purity test proves advisory/confirmation calls do not mutate bargains, treaties, memories, logs, dispatch, or dialogue queues.
+- Cross-war reaction tests prove all directly affected wars are evaluated even when more than three exist, while adjacency/sphere-only scans stay capped at three.
 
 ## Slice E - Presentation, Ledger, And Logs
 
@@ -215,6 +222,7 @@ Build:
 - Warning rendering follows the spec section 16.3 cap: all hard stops inline, top two warnings inline, info/additional warnings behind "View all concerns."
 - Use the deterministic `rank_diplomatic_salience()` tuple from the spec for all default-row ordering.
 - Settlement review is a CanvasLayer 50 information-screen surface and must close/hide existing layer-50 screens through the top-bar one-screen-at-a-time rule before opening.
+- Settlement review separates Terms, Allies, Warnings, and Acceptance sections using tabs, segmented controls, or collapsible sections; no full-Europe payload should require rendering all participant rows, warnings, bargain rows, and acceptance components in one undifferentiated list.
 - Advisory rows show projected ally fallout costs and per-term marginal acceptance costs where available.
 - Split into E1 backend presentation payloads and E2 Godot rendering if the Godot surface exceeds the slice gate.
 
@@ -222,6 +230,7 @@ Gate:
 - 34-42 focused tests.
 - Large 6+ participant settlement emits one campaign-log one-liner, not per-participant spam.
 - Settlement review CanvasLayer 50 renders top-five rows plus "View all participants" on a synthetic 6+ participant full-Europe payload with no overlapping text.
+- Settlement review sectioning smoke verifies Terms, Allies, Warnings, and Acceptance are separately reachable and each section fits without overlapping text on synthetic 6+ participant payloads.
 - Notification buttons route to the settlement review or ledger target specified by backend route metadata.
 - `settlement_summary` and `settlement_digest` event tests verify route metadata, fog filtering, one-liner participant cap, and digest overflow.
 - Godot surfaces remain usable on both the current 19-region map and a synthetic full-Europe participant payload.

@@ -35,9 +35,9 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 - Proposal / clause display ownership is centralized in backend formatters, so popup payloads and reopen flows use the same labels.
 - Session 6 contract refactors are complete: `/command` starts from `build_base_response()`, remaining diplomacy popups use typed response paths, and `main.gd` routes modals through the registry/dispatcher layer.
 
-### Current next spec queue (April 16, 2026 rescope)
+### Historical spec queue (April 16, 2026 rescope; superseded by April 28 status)
 
-These are the next diplomacy design tracks. `Memory and Pressure` is the first implementation target; every later item below still needs a dedicated written spec before implementation.
+This queue records the April 16 diplomacy rescope. It is no longer the live implementation queue. Current status is tracked in `docs/STATUS.md`; BPH, WPS, and WB have landed, and Ally Participation + Common Peace is implementation-ready through `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.10 and `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.7.
 
 1. `Memory and Pressure` (renamed from `Reliability + Commitments` April 16)
    Substrate (betrayal memory, concern witness scope, hard-reject posture, episode_id, structured warnings) is **shipped**. Remaining work this phase: seed `nation_concerns` (4 authored pairs), wire `direct_concern_mod` + `concern_conflict_mod` + graduated `bilateral_betrayal_mod` into acceptance, wire third-party anger on ratification, redemption tick (`actor_honored_turns` +3 / 5 honored turns at OPEN_BORDERS+), rename `alliance_paradox` → `commitment_paradox`, ship C3-lite presentation pass (spotlight tier, split-voice render, named-diplomat resolution per Voice Bible). See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.2, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 (C3-lite). ~68-74 tests, ~3 sessions remaining (Slice C split into Godot-surfaces + tests/mock-prose sessions; v2.2 renames rivalry→concern for balance-of-power scale architecture + adds auto-downgrade rule + France-Austria concern pair + Make Amends verb).
@@ -49,7 +49,7 @@ These are the next diplomacy design tracks. `Memory and Pressure` is the first i
 3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
    The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Adds `war_bargain` clause type, lifecycle (active / triggered / fulfilled / void / breached), `join_opportunity` ally-entry contract, counter-bargains, `war_entry_score`, Bargain Review surface, and the WB-D presentation extension (bargain spotlights, scope-branched copy, response routes). **Depends on items 1-3.** Implementable as a single Peace Deals phase precursor before item 4. ~80-90 tests.
 4. `Ally Participation + Common Peace`
-   Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. The current draft in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is a later-direction doc, not an implementation-ready next slice. **Needs tighter dedicated spec after items 1-3.5.**
+   Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. **Current state:** the dedicated spec and implementation plan now own the active Slice A handoff; this item is no longer merely a later-direction draft.
 5. `Nation Agendas + Motive Legibility`
    Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec. **Also owns the dynamic concern system:** converting `nation_concerns` from static seeded values (shipped in Memory and Pressure) to dynamic balance-of-power evaluation driven by territory, military power, treaty opposition, and proximity — the Napoleonic "your success creates your opposition" loop. See `RELIABILITY_COMMITMENTS_SPEC.md` §7.7 for the scale architecture target and the "what breaks at 15+ nations" punch list.
 6. `Talleyrand Desk + Explanation Layer`
@@ -145,7 +145,7 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 - `Reliability + Commitments`: make alliances politically costly, promises meaningful, and betrayal cumulative.
 - `Bilateral Peace Hardening`: make separate peace and bilateral settlement review legible before multilateral settlement exists.
 - `War Purpose + Score Semantics`: make wars resolve toward recognizable political outcomes instead of generic pressure alone.
-- `Ally Participation + Common Peace`: later wartime settlement layer once the bilateral peace plumbing is strong enough.
+- `Ally Participation + Common Peace`: active wartime settlement layer; implementation starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` Slice A.
 - `Nation Agendas + Motive Legibility`: make AI motives and strategic branching legible to the player.
 
 ---
