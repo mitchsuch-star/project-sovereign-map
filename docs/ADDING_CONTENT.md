@@ -300,14 +300,14 @@ Fill out this sheet completely before implementing:
 | `backend/commands/executor.py` | Special abilities | If unique combat mechanics |
 | `backend/game_logic/combat.py` | Combat resolution | If unique combat triggers |
 | `backend/ai/enemy_ai.py` | AI behavior | If enemy marshal with special AI |
-| `backend/models/world_state.py` | Nation management | If NEW nation |
+| `backend/nation_config.py` + `backend/models/diplomat.py` | Nation runtime config and diplomat factory | If NEW nation |
 | `backend/ai/llm_client.py` | LLM keyword matching | If special command keywords |
 
 **Frontend/Godot Files (Conditional)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
-| `godot-client/.../scenes/map.gd` | Nation colors | If NEW nation |
+| `godot-client/project-sovereign/scripts/utils.gd` | Nation colors | If NEW nation |
 | `godot-client/.../scripts/main.gd` | Marshal display | Rarely (auto-handles) |
 
 **Test Files (Required)**
@@ -402,23 +402,22 @@ See [Adding New Personalities](#adding-new-personalities) section.
 
 Enemy marshals automatically use the AI system. Verify:
 - Marshal's personality threshold in `_get_attack_threshold()` (~line 500)
-- Nation is in `world.enemy_nations` list
+- Nation is present in the runtime roster via `NATION_CAPITALS` + `_DIPLOMAT_DEFINITIONS`
 
 #### Step 7: Update Godot Nation Colors (if new nation)
 
-**File:** `godot-client/project-sovereign/scenes/map.gd`
+**File:** `godot-client/project-sovereign/scripts/utils.gd`
 
-**Location:** Line ~38 (COLORS constant)
+**Location:** `Utils.NATION_COLORS` (single source of truth)
 
 ```gdscript
-const COLORS = {
+const NATION_COLORS = {
     "France": Color(0.255, 0.412, 0.882),   # Royal Blue
     "Britain": Color(0.863, 0.078, 0.235),  # Crimson
     "Prussia": Color(0.2, 0.2, 0.2),        # Dark Gray
     "Austria": Color(1.0, 0.843, 0.0),      # Gold
     "NewNation": Color(R, G, B),            # Add new nation color
     "Neutral": Color(0.565, 0.933, 0.565),  # Light Green
-    "connection": Color(0.6, 0.6, 0.6)      # Gray
 }
 ```
 
@@ -644,7 +643,7 @@ Before committing, verify ALL items:
 - [ ] All tests pass: `pytest tests/ -v`
 
 #### Frontend (if new nation)
-- [ ] Nation color added to `map.gd` COLORS constant
+- [ ] Nation color added to `Utils.NATION_COLORS`
 - [ ] Color is visually distinct from existing nations
 
 #### Documentation
@@ -763,9 +762,9 @@ enemies = {
 
 New nation's marshals appear as magenta on map (debug color).
 
-Check `godot-client/.../scenes/map.gd`:
+Check `godot-client/project-sovereign/scripts/utils.gd`:
 ```gdscript
-const COLORS = {
+const NATION_COLORS = {
     # ...existing colors...
     "NewNation": Color(R, G, B),  # Must add this!
 }
@@ -802,8 +801,8 @@ Marshal(
 | Marshal doesn't appear on map | Not added to create_*_marshals() | Add to correct function in marshal.py |
 | Marshal not at expected location | Region name typo | Check region exists in region.py |
 | Commands don't recognize marshal | Not in parser valid_marshals | Add to parser.py line ~30 |
-| Enemy AI doesn't control marshal | Nation not in enemy_nations | Check world_state.py line ~114 |
-| Nation color is magenta | Missing from COLORS dict | Add to map.gd line ~38 |
+| Enemy AI doesn't control marshal | Nation absent from runtime roster | Check `NATION_CAPITALS`, `_DIPLOMAT_DEFINITIONS`, and `backend/nation_config.py` validation |
+| Nation color is magenta | Missing from `Utils.NATION_COLORS` | Add to `godot-client/project-sovereign/scripts/utils.gd` |
 | Fuzzy matching fails | Name conflicts with existing | Use more unique name |
 | Tests failing | Missing test updates | Add tests in test_marshal_abilities.py |
 | Relationship only one-way | Forgot reciprocal | Set both directions |
@@ -930,30 +929,38 @@ Complete guide for adding a nation to the game. Nations require military infrast
 #### 1. Add Nation Color (Godot)
 
 ```gdscript
-# map.gd line ~38
-const COLORS = {
+# godot-client/project-sovereign/scripts/utils.gd
+const NATION_COLORS = {
     # ...existing...
     "NewNation": Color(R, G, B),
 }
 ```
 
-#### 2. Add to Enemy Nations List + Economy
+#### 2. Add Runtime Nation Config
+
+Runtime roster and economy setup are factory-driven. Do not edit `WorldState.__init__()` to append a nation. `backend/nation_config.py` builds `RUNTIME_NATIONS` from `NATION_CAPITALS`, diplomat definitions, and optional economy/action/authority override maps.
+
+Required:
+
+- Add the nation to `NATION_CAPITALS` in Step 3.
+- Add a diplomat definition in Step 10.
+- Add optional overrides in `backend/nation_config.py` only when the nation differs from `DEFAULT_NATION_DEFAULTS`.
 
 ```python
-# world_state.py
-self.enemy_nations: List[str] = ["Britain", "Prussia", "NewNation"]
-
-# Actions per nation (AP/turn)
-self.nation_actions: Dict[str, int] = {
-    "Britain": 4,
-    "Prussia": 4,
-    "NewNation": 3,  # Adjust: major=3-4, minor=2
+# backend/nation_config.py
+DEFAULT_NATION_GOLD = {
+    # ...existing...
+    "NewNation": 600,  # optional; default is DEFAULT_NATION_DEFAULTS["gold"]
 }
 
-# Starting gold
-self.nation_gold: Dict[str, int] = {
+BASE_NATION_ACTIONS = {
     # ...existing...
-    "NewNation": 600,
+    "NewNation": 3,  # optional; default is DEFAULT_NATION_DEFAULTS["actions"]
+}
+
+DEFAULT_NATION_AUTHORITY = {
+    # ...existing...
+    "NewNation": 60,  # optional; default is DEFAULT_NATION_DEFAULTS["authority"]
 }
 ```
 
@@ -994,14 +1001,14 @@ DEFAULT_MANPOWER_POOLS = {
 }
 ```
 
-#### 6. Add Nation Authority (Diplomacy)
+Manpower does not yet use the `DEFAULT_NATION_DEFAULTS` fallback model. Until a scenario/tier-based manpower factory exists, every recruitable production nation needs an explicit `DEFAULT_MANPOWER_POOLS` entry or scenario-provided `manpower_pools` data with infantry, cavalry, and artillery.
 
-```python
-# world_state.py — AI nation authority for DP generation
-self.nation_authority: Dict[str, int] = {
-    # ...existing...
-    "NewNation": 60,  # Default 60 for all AI nations
-}
+#### 6. Validate Runtime Nation Support
+
+The completeness guard should pass once capital/home, diplomat, and any required content entries are present:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_nation_config_factory.py tests/test_nation_config_completeness.py -q
 ```
 
 #### 7. Add Starting Diplomatic States
@@ -1040,15 +1047,19 @@ self.nation_starting_regions["NewNation"] = ["Region1", "Region2", "Region3"]
 See [Section 4: Adding a Diplomatic Representative](#4-adding-a-diplomatic-representative) for full details.
 
 ```python
-# In diplomacy initialization
-self.diplomats["NewNation"] = DiplomaticRepresentative(
-    name="DiplomatName",
-    nation="NewNation",
-    personality="hawk",  # schemer/loyalist/hawk/dove
-    skill=6,             # 1-10
-    biography="...",
-)
+# backend/models/diplomat.py
+_DIPLOMAT_DEFINITIONS = {
+    # ...existing...
+    "NewNation": {
+        "name": "DiplomatName",
+        "personality": "hawk",  # schemer/loyalist/hawk/dove
+        "skill": 6,             # 1-10
+        "biography": "...",
+    },
+}
 ```
+
+`STARTING_DIPLOMATS` and `create_starting_diplomats()` are derived from `_DIPLOMAT_DEFINITIONS`; no `WorldState` diplomat insertion is needed.
 
 #### 11. Wire Enemy AI
 
@@ -1083,7 +1094,8 @@ Required settlement-onboarding data:
 - [ ] Starting controlled regions are present, or the nation is explicitly absent from this scenario. Absent nations do not get active settlement pair keys or `war_instance` participation.
 - [ ] Diplomatic states and nation relations exist for every pair involving the new active nation. Adding nation 14 to a 13-nation scenario adds 13 new bilateral pairs.
 - [ ] Diplomat data exists in the diplomat factory definitions. Settlement previews rely on normal diplomacy identity, skill, and personality data.
-- [ ] Manpower/economy/action/authority data is explicit or intentionally falls through the nation-config defaults. If the nation can recruit or fight, `DEFAULT_MANPOWER_POOLS` or scenario data must provide infantry/cavalry/artillery pools.
+- [ ] Economy/action/authority data is explicit or intentionally falls through `DEFAULT_NATION_DEFAULTS`.
+- [ ] Manpower data is explicit. If the nation can recruit or fight, `DEFAULT_MANPOWER_POOLS` or scenario data must provide infantry/cavalry/artillery pools.
 - [ ] `NATION_DESIRE_PROFILES` entry exists in `diplomatic_templates.py`, even if some lists are empty. Full-Europe lock should use non-empty `covets_regions` where the nation has real territorial interests.
 - [ ] `TALLEYRAND_COMMENTARY` has authored entries or a tested generic fallback.
 - [ ] `NATION_DESIRES` in `ai_diplomacy.py` covers AI counter-offer behavior or explicitly uses a generic profile.
@@ -1098,19 +1110,19 @@ If a future nation is intentionally off-map, stop here and write a separate off-
 
 #### Validation Checklist (New Nations)
 
-- [ ] Godot color defined in `map.gd`
-- [ ] Added to `enemy_nations` list
-- [ ] `nation_actions` entry (AP/turn)
-- [ ] `nation_gold` entry (starting gold)
+- [ ] Godot color defined in `Utils.NATION_COLORS`
+- [ ] Runtime roster derives from `NATION_CAPITALS` + `_DIPLOMAT_DEFINITIONS`; no direct `WorldState.__init__()` roster edit
+- [ ] Optional `BASE_NATION_ACTIONS` override if AP/turn differs from `DEFAULT_NATION_DEFAULTS`
+- [ ] Optional `DEFAULT_NATION_GOLD` override if starting gold differs from `DEFAULT_NATION_DEFAULTS`
 - [ ] Mapped capital/home in `NATION_CAPITALS` (region.py)
 - [ ] All controlled regions have `starting_controller` set
-- [ ] `DEFAULT_MANPOWER_POOLS` entry
-- [ ] `nation_authority` entry
+- [ ] `DEFAULT_MANPOWER_POOLS` entry or scenario-provided manpower pools
+- [ ] Optional `DEFAULT_NATION_AUTHORITY` override if authority differs from `DEFAULT_NATION_DEFAULTS`
 - [ ] Diplomatic states for ALL nation pairs
 - [ ] Nation relations for ALL nation pairs
 - [ ] `nation_starting_regions` entry
 - [ ] At least 1 marshal created (see Adding a Marshal)
-- [ ] Diplomatic representative assigned (see Section 4)
+- [ ] Diplomatic representative added to `_DIPLOMAT_DEFINITIONS` (see Section 4)
 - [ ] Enemy AI handles new nation
 - [ ] Parser knows new nation's marshals
 - [ ] All new fields in `to_dict()` / `from_dict()`
@@ -1119,6 +1131,7 @@ If a future nation is intentionally off-map, stop here and write a separate off-
 - [ ] `NATION_DESIRES` entry in `ai_diplomacy.py` (AI counter-offer desires)
 - [ ] `SPECIAL_BONUSES` entry in `diplomacy.py` (meaningful bonuses or explicit empty/default)
 - [ ] Imperial Settlement readiness fixture added for capital/home, `power_tier`, pair keys, `war_instance` participation, desire-profile behavior, and save/load internal id stability
+- [ ] `pytest tests/test_nation_config_factory.py tests/test_nation_config_completeness.py -q` passes
 - [ ] `pytest tests/test_serialization_enforcement.py -v` passes
 - [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS; adjacency comes from backend `/map_topology`)
 
@@ -2371,8 +2384,8 @@ Answer these before implementation:
 
 | File | What to modify | Notes |
 |------|---------------|-------|
-| `backend/game_logic/diplomat.py` | `DiplomaticRepresentative` class | Add to starting diplomat creation |
-| `backend/models/world_state.py` | `self.diplomats` dict | Keyed by nation name |
+| `backend/models/diplomat.py` | `_DIPLOMAT_DEFINITIONS` + `DiplomaticRepresentative` class | Add one data entry; `STARTING_DIPLOMATS` and `create_starting_diplomats()` are derived |
+| `backend/models/world_state.py` | `self.diplomats` runtime dict | No manual insertion for standard starting diplomats; loaded from factory output |
 | `backend/game_logic/diplomacy.py` | Acceptance formula | Skill affects `skill_bonus` term |
 | `backend/game_logic/diplomatic_templates.py` | Voice/personality templates | Personality affects template selection |
 | `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine | Personality affects Talleyrand's framing |
