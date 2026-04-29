@@ -916,7 +916,7 @@ Complete guide for adding a nation to the game. Nations require military infrast
 - [ ] **Nation name:** (e.g., "Austria", "Russia")
 - [ ] **Starting diplomatic state vs France:** WAR / PEACE / ALLIANCE / etc.
 - [ ] **Starting relation with France:** -100 to +100
-- [ ] **Capital region:** Name (or None for off-map like Britain)
+- [ ] **Capital/home region:** Name of a mapped region. Current settlement-ready nations must have a mapped home; Britain currently uses `Netherlands`. `None` is only for incomplete fixture data or future off-map systems that are explicitly out of Imperial Settlement A1 scope.
 - [ ] **Controlled regions at game start:** List of region names
 - [ ] **Power tier:** `major` / `secondary` / `minor` in scenario data (`scenario_schema_version: 1`). Missing this field silently falls back to `secondary`, which hides content errors.
 - [ ] **AP per turn:** Reflects administrative capacity (France=4, major=3-4, minor=2)
@@ -963,7 +963,7 @@ self.nation_gold: Dict[str, int] = {
 # region.py
 NATION_CAPITALS = {
     # ...existing...
-    "NewNation": "CapitalRegionName",  # or None for off-map (Britain)
+    "NewNation": "CapitalRegionName",  # mapped home region required for settlement-ready nations
 }
 ```
 
@@ -1071,13 +1071,38 @@ valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot", "NewMarshal"]
 # prompt_builder.py — include nation in diplomatic context
 ```
 
+#### 13. Imperial Settlement / Full-Europe Readiness
+
+Imperial Settlement must let future nations be added one by one. Do not add settlement-specific branches for a nation; complete the normal nation checklist and then add a focused settlement fixture proving the new nation works through the generic settlement paths.
+
+Required settlement-onboarding data:
+
+- [ ] Stable internal nation id chosen. This id is used in pair keys, `war_instance` participants, contribution records, settlement memories, bargains, saves, dispatch, and ledger payloads. Display names and aliases stay separate.
+- [ ] `power_tier` authored as `major`, `secondary`, or `minor`. Do not rely on the silent `secondary` fallback for settlement-capable nations.
+- [ ] Mapped `NATION_CAPITALS` entry points to an existing region. A nation with no mapped home is absent from settlement until off-map/naval/scenario systems explicitly support it.
+- [ ] Starting controlled regions are present, or the nation is explicitly absent from this scenario. Absent nations do not get active settlement pair keys or `war_instance` participation.
+- [ ] Diplomatic states and nation relations exist for every pair involving the new active nation. Adding nation 14 to a 13-nation scenario adds 13 new bilateral pairs.
+- [ ] Diplomat data exists in the diplomat factory definitions. Settlement previews rely on normal diplomacy identity, skill, and personality data.
+- [ ] Manpower/economy/action/authority data is explicit or intentionally falls through the nation-config defaults. If the nation can recruit or fight, `DEFAULT_MANPOWER_POOLS` or scenario data must provide infantry/cavalry/artillery pools.
+- [ ] `NATION_DESIRE_PROFILES` entry exists in `diplomatic_templates.py`, even if some lists are empty. Full-Europe lock should use non-empty `covets_regions` where the nation has real territorial interests.
+- [ ] `TALLEYRAND_COMMENTARY` has authored entries or a tested generic fallback.
+- [ ] `NATION_DESIRES` in `ai_diplomacy.py` covers AI counter-offer behavior or explicitly uses a generic profile.
+- [ ] `SPECIAL_BONUSES` in `diplomacy.py` has a meaningful entry or an explicit empty dict/comment stating the nation has no clause-specific bonuses.
+- [ ] Settlement fixture proves `get_settlement_home_capital(new_nation)` returns the mapped home and does not infer off-map identity.
+- [ ] Settlement fixture creates at least one `war_instance` involving the nation and proves all new pair keys are sorted through the standard helper.
+- [ ] Settlement fixture covers the nation's authored `power_tier` in leader scoring, side-pressure scoring, or standing classification.
+- [ ] Local-balance / rival-strengthened behavior is covered with the authored desire profile, or an empty-profile fallback test proves deterministic non-crashing behavior.
+- [ ] Save/load fixture proves settlement-relevant ids use the internal nation id, not a display alias.
+
+If a future nation is intentionally off-map, stop here and write a separate off-map/naval/scenario spec first. Do not make it an active Imperial Settlement participant by leaving capital or region data blank.
+
 #### Validation Checklist (New Nations)
 
 - [ ] Godot color defined in `map.gd`
 - [ ] Added to `enemy_nations` list
 - [ ] `nation_actions` entry (AP/turn)
 - [ ] `nation_gold` entry (starting gold)
-- [ ] Capital in `NATION_CAPITALS` (region.py)
+- [ ] Mapped capital/home in `NATION_CAPITALS` (region.py)
 - [ ] All controlled regions have `starting_controller` set
 - [ ] `DEFAULT_MANPOWER_POOLS` entry
 - [ ] `nation_authority` entry
@@ -1092,7 +1117,8 @@ valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot", "NewMarshal"]
 - [ ] `NATION_DESIRE_PROFILES` entry in `diplomatic_templates.py` (covets_regions, values_gold/territory/ap, diplomatic_lever, weakness)
 - [ ] `TALLEYRAND_COMMENTARY` entries in `diplomatic_templates.py` (~5 nation-specific + peacetime tags)
 - [ ] `NATION_DESIRES` entry in `ai_diplomacy.py` (AI counter-offer desires)
-- [ ] `SPECIAL_BONUSES` entry in `diplomacy.py` (if nation has territory/clause bonuses)
+- [ ] `SPECIAL_BONUSES` entry in `diplomacy.py` (meaningful bonuses or explicit empty/default)
+- [ ] Imperial Settlement readiness fixture added for capital/home, `power_tier`, pair keys, `war_instance` participation, desire-profile behavior, and save/load internal id stability
 - [ ] `pytest tests/test_serialization_enforcement.py -v` passes
 - [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS; adjacency comes from backend `/map_topology`)
 

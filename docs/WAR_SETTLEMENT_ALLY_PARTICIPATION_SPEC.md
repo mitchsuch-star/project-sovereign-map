@@ -31,7 +31,24 @@ Scale guardrails:
 - **Capital helper safety:** Settlement code may add `get_settlement_home_capital(nation)` as a helper over `NATION_CAPITALS.get(nation)`, but missing capital data must not infer off-map participation. Capital-dependent components must tolerate `None` by skipping the capital-specific term or scoring it as `0`, and real mapped major nations missing a capital should produce a validation warning/test failure in the owning fixture.
 - **A1 opening gate:** Slice A1 is a foundation slice, not a behavioral settlement slice. Before any `war_instance` creation path, settlement scoring, or common-peace flow is implemented, A1 must land the mapped-nation capital helper, `WorldState` settlement containers, save/load defaults, empty war-instance index/cache scaffolding, and cache invalidation hooks. A2, B, C, and D may not borrow those responsibilities forward; they must consume the A1 foundation through tests.
 
-### 0.1 Pair Key Conventions
+### 0.1 Future Nation Onboarding Contract
+
+Imperial Settlement must remain buildable as Europe grows one nation at a time. Production settlement logic must read the active scenario/map/config data and must not hard-code the canonical 13-nation full-Europe fixture roster. The canonical 13 ids are test-fixture coverage targets, not a runtime whitelist.
+
+`docs/ADDING_CONTENT.md#adding-new-nations` is the operational checklist for adding a new settlement-capable nation. A nation is eligible to participate in settlement only after the nation addition checklist supplies, or explicitly defaults with validation, all of the following:
+
+- Stable internal nation id and optional display aliases. Pair keys, `war_instance` participants, memories, bargain references, and save data use the internal id only.
+- `power_tier` authored in scenario/config data. Do not rely on the silent `secondary` fallback for settlement tests, leader scoring, side-pressure scoring, major-power consultation, or Balance of Europe reactions.
+- Mapped capital/home region through `NATION_CAPITALS` and existing scenario/map region data. `None` is allowed only for incomplete fixtures or future non-settlement off-map design work; it does not make an active off-map settlement participant.
+- Controlled starting regions, or an explicit "absent from this scenario" status. Absent nations do not receive `WAR` pair keys, contribution scores, settlement standing, or common-peace evaluation.
+- Economy/action/manpower/diplomat data sufficient for the normal diplomacy loop. Default nation-config fallbacks may supply generic economy/action/authority values, but settlement-ready scenario data must still define capital/home, diplomat, tier, pair states, and relations.
+- Diplomatic pair state and relation entries against every other active scenario nation. Adding the 14th active nation means adding the 13 new bilateral pairs needed for diplomacy and settlement grouping.
+- Settlement interest data: `NATION_DESIRE_PROFILES` entry, Talleyrand commentary or generic fallback, AI counter-offer desire entry, and `SPECIAL_BONUSES` entry or an explicit empty dict when the nation has no clause-specific bonuses.
+- Fixture coverage proving the new nation can be added alone: capital helper lookup, active-nation detection, pair-key creation, at least one war-instance participant path, side-pressure/standing behavior at its authored tier, and graceful behavior when optional desire/profile fields are empty.
+
+Full-Europe tests may still synthesize all 13 DG-1 ids at once to stress scale, but production onboarding is incremental. A future nation should be able to land with one checklist, one focused fixture, and no unrelated settlement rewrites.
+
+### 0.2 Pair Key Conventions
 
 Settlement groups existing diplomatic data; it does not replace the key conventions those systems already use.
 

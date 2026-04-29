@@ -23,6 +23,8 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - Focused tests must include synthetic full-Europe fixtures because the current map data is still smaller than the target: at least the canonical 13 DG-1 internal nation ids (`France`, `Britain`, `Austria`, `Prussia`, `Russia`, `Spain`, `Ottoman`, `Sweden`, `Naples`, `Bavaria`, `Saxony`, `Portugal`, `Denmark-Norway`), 100+ region ids for territory logic, 20 active `WAR` pair keys, one cache/index fixture with 20 active `war_instance` records, and one 6+ participant side. Build these fixtures in test helpers; do not assume live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data already contains the full-Europe roster. Display labels such as `Ottoman Empire` or `Naples/Two Sicilies` are aliases, not fixture ids.
 - Britain-specific settlement tests must include the live current-map home condition `NATION_CAPITALS["Britain"] == "Netherlands"` and prove it behaves as configured mapped scenario data, not as an off-map settlement identity.
 - `compute_local_balance_warning()` is called per participant (6-8 times per preview). Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation call. Do not re-derive region adjacency per participant.
+- Future nations must be onboarded through `docs/ADDING_CONTENT.md#adding-new-nations`, not through settlement-specific hard-coding. Settlement code consumes active scenario/map/config data; the 13 DG-1 roster above is a fixture target, not a production whitelist.
+- Every new settlement-capable nation must have an incremental fixture proving it can be added alone: internal id, mapped capital/home, explicit power tier, active regions or explicit absence, diplomat, pair states/relations, desire/profile fallback behavior, and at least one `war_instance` participation path. Do not wait until all 13 nations exist to prove the addition path.
 
 ### Full-Europe Test Fixture Contract
 
@@ -30,11 +32,24 @@ This plan is the coding handoff for Imperial Settlement / Ally Participation. It
 - Synthetic fixtures must define the canonical 13 DG-1 nation roster above, explicit `major / secondary / minor` tiers, 100+ region ids when territory logic is tested, and at least one 6+ participant side.
 - A1/A2 cache/index fixtures must create 20 active `war_instance` records directly in the synthetic world state, not merely 20 pair keys, so `war_instances_by_leader` and `war_instances_by_participant` rebuild behavior is tested at target scale.
 - Do not expand production `REGIONS_DATA`, `NATION_CAPITALS`, or `STARTING_DIPLOMATS` solely to satisfy settlement tests.
+- Do not add production settlement branches for specific future nations. If a synthetic fixture needs Russia, Spain, Ottoman, Sweden, Naples, Bavaria, Portugal, or Denmark-Norway before live scenario data exists, create the fixture data locally in the helper and keep the production runtime absent until the normal nation checklist lands.
 - Tests that need active nations must either attach synthetic regions/controllers to the `WorldState` fixture or monkeypatch the specific active-nation helper under test; they must not rely on the current 5-nation runtime roster.
 - Unknown synthetic nations must not silently rely on the `secondary` fallback when a test is asserting standing, side pressure, leader selection, or major-power consultation behavior. Explicit tiers are required.
 - Settlement fixtures must not invent off-map identities. Every evaluated participant must exist in the fixture scenario/map data. Missing capital data may be used only in a targeted capital-helper safety fixture, where capital-dependent scoring must skip or warn rather than infer off-map status.
 - Full-Europe test fixtures must include synthetic `NATION_DESIRE_PROFILES` entries with non-empty `covets_regions` for all 13 test nations so `rival_strengthened` paths exercise non-trivial data. `compute_local_balance_warning()` must still produce valid results (adjacency and bloc checks) when `covets_regions` is empty.
 - Vassal auto-join fixtures must include at least two vassals entering via cascade and prove they receive at most `beneficiary_only` standing unless they independently meet material-contribution thresholds.
+
+### Future Nation Addition Gate
+
+Each time a production nation is added after A1, the owning branch must extend the normal content checklist and add a settlement readiness fixture before the nation can participate in a settlement war. Required coverage:
+
+- `docs/ADDING_CONTENT.md` checklist completed for the nation, including capital/home, regions, diplomat, power tier, pair states, pair relations, manpower/economy/action defaults, and presentation color.
+- Settlement interest data exists or has an explicit generic fallback: `NATION_DESIRE_PROFILES`, Talleyrand commentary, AI counter-offer desires, and `SPECIAL_BONUSES`.
+- The nation can join exactly one active `war_instance` through at least one real entry path relevant to the scenario, and all pair keys involving that nation still use sorted diplomatic keys.
+- `get_settlement_home_capital(nation)` returns the configured mapped home region for mapped nations; if it returns `None`, the nation is either absent from the scenario or under a targeted missing-capital safety fixture.
+- Standing and side-pressure tests use the authored `power_tier`, not the fallback tier.
+- Local-balance and rival-strengthened paths either use authored covets/interest data or prove the generic empty-profile behavior stays deterministic and non-crashing.
+- Save/load round-trip preserves any new scenario data needed for settlement participation; no settlement memory, contribution, or archived war record may depend on a display alias that could change later.
 
 ## Slice A - War Identity And Grouping
 
