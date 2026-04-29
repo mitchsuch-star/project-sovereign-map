@@ -230,7 +230,7 @@ A future save/load system should use this as the specification.
 | `coalition_brewing` | dict\|null | null | **Session 7.** Brewing coalition state. Keys: qualifying_nations, turns_remaining (3→0 countdown), started_turn. null = not brewing. |
 | `coalition_cooldown` | int | 0 | **Session 7.** Post-dissolution cooldown (5 turns). Prevents new coalition formation while > 0. Decremented in process_coalition_turn(). |
 | `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
-| `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation, intentionally shared across simultaneous wars in v0.1. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty and pending common-peace acceptance. |
+| `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation, intentionally shared across simultaneous wars in v0.1. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +8/turn at war, -5/turn at peace. Affects coalition loyalty penalty and pending common-peace acceptance. |
 | `we_dispatched_thresholds` | dict | {} | **Session 5 audit.** Highest WE threshold dispatched per nation. Keys: nation name. Values: int (20/40/60/80). Prevents double-firing of WE threshold dispatch events. Cleared on coalition dissolution. |
 | `war_start_turns` | Dict[str, int] | {} | **R142.** diplo_key → turn war began (R142 war weariness tracking). Cleared by `cleanup_war_end()`. |
 | `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
@@ -282,7 +282,7 @@ A future save/load system should use this as the specification.
 
 ### Pending Imperial Settlement WorldState Fields
 
-These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.18 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice. Slice A1 owns `next_war_instance_id`, `war_instances`, and `archived_war_instances` as part of the foundation gate before any behavioral settlement work starts.
+These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.20 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice. Slice A1 owns `next_war_instance_id`, `war_instances`, and `archived_war_instances` as part of the foundation gate before any behavioral settlement work starts.
 
 | Field | Type | Default | Owning slice |
 |-------|------|---------|--------------|

@@ -86,7 +86,7 @@
 - EU4 political map style
 - ~120-150 province outlines (we wire ~80-100 for EA v1, rest greyed out)
 - **Two deliverables:** (1) visual map (pretty, what players see), (2) province color map (each province = unique solid RGB color, same dimensions, pixel-aligned)
-- Include coastlines for Britain and North Africa where visually useful; any greyed/unwired areas are map-art staging, not settlement off-map powers
+- Include coastlines for Britain and North Africa where visually useful; any greyed/unwired areas are map-art staging, not active settlement powers
 - Each province must be a distinct closed region for hover detection and color fill
 - Artist familiar with Paradox modding ideal — this is the standard EU4 approach
 

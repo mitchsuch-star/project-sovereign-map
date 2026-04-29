@@ -29,7 +29,7 @@ Historical anchor: Napoleon's diplomatic failures were as decisive as his milita
 | **Austria** | PEACE (hostile) | Swing state — both sides court them. Relation -30. | Vienna | 3 |
 | **Saxony** | PEACE (French-leaning) | Minor nation, vassalizable by treaty or conquest. Relation +40. | Dresden | 2 |
 
-**Britain is current-map special, not off-map:** Live `NATION_CAPITALS` uses `"Netherlands"` as Britain's current-map home/spawn region (`backend/models/region.py`) so existing marshal placement, topology, and runtime nation-support checks have a concrete region. In the current implementation Britain is a mapped participant because it controls mapped regions. Future Channel/naval movement and a real British home region belong to the map/naval abstraction, not to Imperial Settlement A1.
+**Britain uses current-map data:** Live `NATION_CAPITALS` uses `"Netherlands"` as Britain's current-map home/spawn region (`backend/models/region.py`) so existing marshal placement, topology, and runtime nation-support checks have a concrete region. In the current implementation Britain is a mapped participant because it controls mapped regions. Future Channel/naval movement and a real British home region belong to the map/naval abstraction, not to Imperial Settlement A1.
 
 **Nation-specific AP:** Reflects administrative capacity. France (4) is the most capable. Austria (3) is bureaucratic. Saxony (2) is tiny. This matters for treaty clauses that cost AP/turn — paying 1 AP/turn when you only have 2 is crippling.
 
@@ -2664,7 +2664,7 @@ All design questions resolved in v1.1 feedback pass:
 |---|----------|----------|-----------|
 | 1 | Dresden (19th region) | **Keep** | Saxony needs a proper capital for conquest-vassalage. "Capture Dresden" is a clearer objective. |
 | 2 | Bavaria ownership | **Austria** (4 regions) | Stronger swing state makes the courting game more consequential. Whoever gets Austria shifts balance of power. |
-| 3 | British capital | **No separate London region in the current map** | Britain currently uses `Netherlands` as its mapped home/spawn region. Future London/Channel handling belongs to map and naval movement rules; diplomacy and settlement must not invent an off-map Britain identity. |
+| 3 | British capital | **No separate London region in the current map** | Britain currently uses `Netherlands` as its mapped home/spawn region. Future London/Channel handling belongs to map and naval movement rules; diplomacy and settlement must not invent a separate Britain identity. |
 | 4 | Talleyrand trust | **55** | Lower than expected. Sabotage window is real from day one. Player must actively build trust — creates early tension between managing Talleyrand vs. accepting risk. |
 | 5 | DP accumulation | **Use-it-or-lose-it** | Forces per-turn priority decisions. Banking = one big diplomatic blitz, which doesn't feel like managing ongoing relationships. Same philosophy as AP. |
 | 6 | Armistice duration | **5 turns** | Matches live code and `PEACE_DEALS_UMBRELLA_SPEC.md` §4.1. Enough to reposition and negotiate without enabling armistice chaining. |

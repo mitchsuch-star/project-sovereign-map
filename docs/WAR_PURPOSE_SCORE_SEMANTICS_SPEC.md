@@ -358,7 +358,7 @@ Full-Europe tests must include a synthetic 13+ nation / 100+ region fixture that
 
 Post-cession projection still matters. A major that has been materially reduced by legal same-package cessions can be re-evaluated after those cessions, but the test must prove the result is intentional rather than an artifact of the small map.
 
-**Note on Britain:** British naval income is included in power calculation for the mapped, scenario-active Britain. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional because British power projection is economic/naval as well as territorial. This power helper is not an off-map settlement identity and must not keep a landless Britain active in Imperial Settlement; future island-only or Channel-reachability cases need explicit map/naval rules.
+**Note on Britain:** British naval income is included in power calculation for the mapped, scenario-active Britain. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional because British power projection is economic/naval as well as territorial. This power helper is not a separate settlement identity and must not keep a landless Britain active in Imperial Settlement; future island-only or Channel-reachability cases need explicit map/naval rules.
 
 ### 8.6 Power cap and war objectives
 

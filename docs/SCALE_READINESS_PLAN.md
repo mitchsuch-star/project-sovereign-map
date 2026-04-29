@@ -82,14 +82,14 @@ Future scenarios (1806, 1809, etc.) extend this roster by adding authored nation
 - `strategic_power` = non-French nations whose `power_tier` is `major` or `secondary` **and** whose authored scenario record sets `counts_for_strategic_power = true`.
 - Used by: DG-2 salience filtering, dispatch priority, coalition weighting, and any later optional scenario-objective set that wants a "major powers that matter" bucket.
 - The current 1805 draft scenario marks all 8 non-French `major` / `secondary` nations as `counts_for_strategic_power = true`, but that remains authored scenario data rather than a hardcoded global denominator.
-- Off-map or partially wired interim builds must not infer strategic-power participation from map wiring alone; the authored scenario flag decides.
+- Map-absent or partially wired interim builds must not infer strategic-power participation from map wiring alone; the authored scenario flag decides.
 - **Not used for war entry.** Cascade legality is treaty-edge only per DG-4; tier does not create or block call-to-arms.
 
 **Current full-map scope note**
 
 - This scale-readiness plan targets the first full-map Europe prototype for the France-led 1805 campaign.
 - The current 1805 draft scenario uses the full 13-nation DG-1 set, but the map and scenario schema are not capped there. Larger maps or later scenarios may author more nations.
-- If an interim content build keeps a nation partially off-map or temporarily unwired, the scenario data must say so explicitly (`on_map`, `counts_for_strategic_power`, etc.) rather than silently changing salience, weighting, or AP assumptions.
+- If an interim content build keeps a nation partially map-absent or temporarily unwired, the scenario data must say so explicitly (`on_map`, `counts_for_strategic_power`, etc.) rather than silently changing salience, weighting, or AP assumptions.
 - References to France, Paris, and the French sphere in DG-2 are intentional for that scope.
 - Runtime hardening for `player_nation` remains valuable and should stay intact, but non-France full-map campaigns are not a prerequisite for "real map ready" in this plan.
 - If a later scenario ships with a different player nation, translate these gates through scenario data (`player_nation`, `home_capital`, `player_sphere`) rather than silently hardcoding a second nation-specific variant.
@@ -458,7 +458,7 @@ free_basic_actions:
 - The shorthand `by_tier_default[power_tier]` means `by_tier_default[nations[nation].power_tier]`; the nation's tier comes from authored scenario data, not a separate runtime map.
 - `player_nation`, `home_capital`, `player_sphere`, and authored `nations` are required in version `1`. Do not keep a hidden global nation table and layer scenario overrides on top of it.
 - `base_ap` is a hybrid. `by_nation` entries always win for named nations. Nations present in authored scenario data but unnamed in `by_nation` fall back to `by_tier_default[nations[nation].power_tier]`. This is the intentional shape - neither pure-by-nation nor pure-by-tier works, because France and Britain are both `major` with different AP.
-- `counts_for_strategic_power` is authored because map wiring / off-map presentation must not silently change strategic salience or any later optional objective set.
+- `counts_for_strategic_power` is authored because map wiring / map-absent presentation must not silently change strategic salience or any later optional objective set.
 - `objectives_profile` is optional. Omit it entirely for open-ended campaigns. Any later hard-objective shape must be authored per scenario rather than assumed globally.
 - `free_basic_actions` references the canonical command action IDs shared by parser / executor / meta-executor. DG-7 may group resulting events for dispatch, but dispatch categories are not action identifiers.
 

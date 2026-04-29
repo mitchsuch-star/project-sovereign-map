@@ -10,7 +10,7 @@ Scope:
 
 Method:
 - Three parallel audit agents: (1) scale formula correctness, (2) cross-doc consistency, (3) nation roster coverage.
-- Full-Europe stress targets: 13-20 active nations, 100+ regions, 78+ bilateral pairs, 20 simultaneous pairwise wars, 6+ participant sides, off-map Britain and Russia.
+- Full-Europe stress targets: 13-20 active nations, 100+ regions, 78+ bilateral pairs, 20 simultaneous pairwise wars, 6+ participant sides, map-absent Britain and Russia.
 - Builds on Run 1 findings (F-1 through F-4 from the same date).
 
 ## Metrics
@@ -18,10 +18,10 @@ Method:
 | Metric | Score | Result | Notes |
 |--------|-------|--------|-------|
 | M1 Fun | 9/10 | PASS | Unchanged from Run 1. |
-| M2 Clarity | 6/10 | PASS | Pseudocode formulas omit guards that the prose specifies; off-map generalization is Britain-specific when Russia needs the same treatment; vassal standing rules are implicit. |
+| M2 Clarity | 6/10 | PASS | Pseudocode formulas omit guards that the prose specifies; map-absent generalization is Britain-specific when Russia needs the same treatment; vassal standing rules are implicit. |
 | M3 Work Segmentation | 8/10 | PASS | Unchanged from Run 1. |
 | M4 Contradiction-Freedom | 8/10 | PASS | Cross-doc audit found no new contradictions beyond Run 1's F-2 (stale DIPLOMACY_SPEC harshness). |
-| M5 Completeness | 7/10 | PASS | Off-map nation generalization, vassal auto-join standing, desire-profile coverage for rival_strengthened, and preview memoization guidance all missing. |
+| M5 Completeness | 7/10 | PASS | Map-absent nation generalization, vassal auto-join standing, desire-profile coverage for rival_strengthened, and preview memoization guidance all missing. |
 
 ## Findings
 
@@ -65,17 +65,17 @@ Method:
 
 ### Nation Roster Issues
 
-**F-A1: `war_leader_score()` allows off-map nations to become war leaders through replacement**
+**F-A1: `war_leader_score()` allows map-absent nations to become war leaders through replacement**
 - Severity: MAJOR
 - Location: Spec §7.4 `war_leader_score` formula
-- Problem: Off-map Britain (and Russia) have `active_army_strength = 0`. Their score is `300 + 0 + relation_bias`. A drawn-down Austria with 500 troops and negative relation could lose leadership to Britain. The spec does not guard against off-map nations becoming replacement leaders for continental wars they cannot fight. This creates nonsensical common-peace flows where an off-map leader "accepts" packages it cannot enforce.
-- Fix: Add an explicit rule: "A candidate with no home-capital region on the live map AND zero `active_army_strength` cannot be promoted to leader through `war_leader_score()` replacement. Only originator status, explicit coalition-leader source, or direct side-anchor precedence can make an off-map nation a war leader."
+- Problem: Map-absent Britain (and Russia) have `active_army_strength = 0`. Their score is `300 + 0 + relation_bias`. A drawn-down Austria with 500 troops and negative relation could lose leadership to Britain. The spec does not guard against map-absent nations becoming replacement leaders for continental wars they cannot fight. This creates nonsensical common-peace flows where a map-absent leader "accepts" packages it cannot enforce.
+- Fix: Add an explicit rule: "A candidate with no home-capital region on the live map AND zero `active_army_strength` cannot be promoted to leader through `war_leader_score()` replacement. Only originator status, explicit coalition-leader source, or direct side-anchor precedence can make a map-absent nation a war leader."
 
-**F-A2: Off-map generalization is Britain-specific — Russia needs the same treatment**
+**F-A2: Map-absent generalization is Britain-specific — Russia needs the same treatment**
 - Severity: MAJOR
-- Location: Spec §0, §6.3 (off-map Britain), §7.4 (leader scoring), §11 (`leader_own_losses`)
-- Problem: Russia is a `major` in `NATION_POWER_TIERS` but has no capital, no regions, no marshals in the live map — the same situation as Britain. The spec's off-map rules, `is_off_map_capital_proxy()` helper, and `get_settlement_home_capital()` helper are described only for Britain. Russia (and any future off-map major) needs the same treatment for capital-loss scoring, leader replacement, and contribution theater attribution.
-- Fix: Generalize §0 language from "Off-map Britain" to "any nation with no home-capital region on the live map." The fixture contract should include Russia as a second off-map major alongside Britain.
+- Location: Spec §0, §6.3 (map-absent Britain), §7.4 (leader scoring), §11 (`leader_own_losses`)
+- Problem: Russia is a `major` in `NATION_POWER_TIERS` but has no capital, no regions, no marshals in the live map — the same situation as Britain. The spec's map-absent rules, `is_off_map_capital_proxy()` helper, and `get_settlement_home_capital()` helper are described only for Britain. Russia (and any future map-absent major) needs the same treatment for capital-loss scoring, leader replacement, and contribution theater attribution.
+- Fix: Generalize §0 language from "Map-absent Britain" to "any nation with no home-capital region on the live map." The fixture contract should include Russia as a second map-absent major alongside Britain.
 
 **F-A3: Vassal auto-join standing is unspecified**
 - Severity: MODERATE
@@ -92,8 +92,8 @@ Method:
 **F-A5: Russia has no `NATION_CAPITALS` entry — cannot resolve settlement home capital**
 - Severity: MODERATE
 - Location: `backend/models/region.py` NATION_CAPITALS (5 entries only)
-- Problem: Russia is major but has no entry. The spec requires `get_settlement_home_capital(nation)` to distinguish proxy holdings from true capitals. Russia cannot be resolved through this helper without a NATION_CAPITALS entry or an explicit off-map exemption.
-- Fix: The off-map generalization from F-A2 handles this — any nation absent from NATION_CAPITALS or with a documented proxy is treated as off-map. The fixture contract must include Russia. No spec change needed beyond F-A2.
+- Problem: Russia is major but has no entry. The spec requires `get_settlement_home_capital(nation)` to distinguish proxy holdings from true capitals. Russia cannot be resolved through this helper without a NATION_CAPITALS entry or an explicit map-absent exemption.
+- Fix: The map-absent generalization from F-A2 handles this — any nation absent from NATION_CAPITALS or with a documented proxy is treated as map-absent. The fixture contract must include Russia. No spec change needed beyond F-A2.
 
 ### Cross-Doc Consistency Issues
 
@@ -134,13 +134,13 @@ Step 2: Fix F-S2.
   Action: Add memoization guidance
   Content: "Build the term-beneficiary-adjacency map once per settlement evaluation and pass it into each per-nation `compute_local_balance_warning()` call. Do not re-derive region adjacency per participant."
 
-Step 3: Fix F-A1 + F-A2 (combined off-map leader guard).
+Step 3: Fix F-A1 + F-A2 (combined map-absent leader guard).
   File: `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
   Section: §0 (Scale and Ownership Contract) and §7.4 (War leaders)
-  Action: Generalize off-map rules and add leader guard
+  Action: Generalize map-absent rules and add leader guard
   Content:
-  - §0: Replace "Off-map Britain" framing with "any nation with no home-capital region on the live map (currently Britain and Russia)."
-  - §7.4: Add rule: "A candidate with no home-capital region on the live map AND zero `active_army_strength` cannot be promoted to leader through `war_leader_score()` replacement. Only originator status, explicit coalition-leader source, or direct side-anchor precedence can make an off-map nation a war leader."
+  - §0: Replace "Map-absent Britain" framing with "any nation with no home-capital region on the live map (currently Britain and Russia)."
+  - §7.4: Add rule: "A candidate with no home-capital region on the live map AND zero `active_army_strength` cannot be promoted to leader through `war_leader_score()` replacement. Only originator status, explicit coalition-leader source, or direct side-anchor precedence can make a map-absent nation a war leader."
 
 Step 4: Fix F-A3.
   File: `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
@@ -195,7 +195,7 @@ CRITICAL BLOCKERS:
   None
 
 PRE-SLICE-A1 FIXES RECOMMENDED:
-  F-A1 + F-A2: Off-map leader guard (affects §7.4 war_leader_score design)
+  F-A1 + F-A2: Map-absent leader guard (affects §7.4 war_leader_score design)
   F-A3: Vassal standing clause (affects §8.2 standing classification)
   F-S1: Formula guard (affects §6.3 pseudocode correctness)
 

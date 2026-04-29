@@ -1721,7 +1721,7 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 - Map approach: EU4-style bitmap color map (not SVG)
 - Coalitions split from Phase 8 to Phase 7
 - Phase 12 (Communication cutoff) deferred to Post-EA
-- Naval abstraction deferred to Post-EA, Britain as off-map funder
+- Naval abstraction deferred to Post-EA, Britain as map-absent funder
 - Phase 9 (Advisors) minimized: stats + flavor, no action gating
 - Phase 11 reworked: vassals + authority-based loyalty, no naval
 - Save/Load moved from Pre-EA to Phase 6

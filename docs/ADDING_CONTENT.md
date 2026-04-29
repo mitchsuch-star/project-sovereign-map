@@ -915,7 +915,7 @@ Complete guide for adding a nation to the game. Nations require military infrast
 - [ ] **Nation name:** (e.g., "Austria", "Russia")
 - [ ] **Starting diplomatic state vs France:** WAR / PEACE / ALLIANCE / etc.
 - [ ] **Starting relation with France:** -100 to +100
-- [ ] **Capital/home region:** Name of a mapped region. Current settlement-ready nations must have a mapped home; Britain currently uses `Netherlands`. `None` is only for incomplete fixture data or future off-map systems that are explicitly out of Imperial Settlement A1 scope.
+- [ ] **Capital/home region:** Name of a mapped region. Current settlement-ready nations must have a mapped home; Britain currently uses `Netherlands`. `None` is only for incomplete fixture data or future scenario systems that are explicitly out of Imperial Settlement A1 scope.
 - [ ] **Controlled regions at game start:** List of region names
 - [ ] **Power tier:** `major` / `secondary` / `minor` in scenario data (`scenario_schema_version: 1`). Missing this field silently falls back to `secondary`, which hides content errors.
 - [ ] **AP per turn:** Reflects administrative capacity (France=4, major=3-4, minor=2)
@@ -1090,7 +1090,7 @@ Required settlement-onboarding data:
 
 - [ ] Stable internal nation id chosen. This id is used in pair keys, `war_instance` participants, contribution records, settlement memories, bargains, saves, dispatch, and ledger payloads. Display names and aliases stay separate.
 - [ ] `power_tier` authored as `major`, `secondary`, or `minor`. Do not rely on the silent `secondary` fallback for settlement-capable nations.
-- [ ] Mapped `NATION_CAPITALS` entry points to an existing region. A nation with no mapped home is absent from settlement until off-map/naval/scenario systems explicitly support it.
+- [ ] Mapped `NATION_CAPITALS` entry points to an existing region. A nation with no mapped home is absent from settlement until scenario/map systems explicitly support it.
 - [ ] Starting controlled regions are present, or the nation is explicitly absent from this scenario. Absent nations do not get active settlement pair keys or `war_instance` participation.
 - [ ] Diplomatic states and nation relations exist for every pair involving the new active nation. Adding nation 14 to a 13-nation scenario adds 13 new bilateral pairs.
 - [ ] Diplomat data exists in the diplomat factory definitions. Settlement previews rely on normal diplomacy identity, skill, and personality data.
@@ -1100,13 +1100,13 @@ Required settlement-onboarding data:
 - [ ] `TALLEYRAND_COMMENTARY` has authored entries or a tested generic fallback.
 - [ ] `NATION_DESIRES` in `ai_diplomacy.py` covers AI counter-offer behavior or explicitly uses a generic profile.
 - [ ] `SPECIAL_BONUSES` in `diplomacy.py` has a meaningful entry or an explicit empty dict/comment stating the nation has no clause-specific bonuses.
-- [ ] Settlement fixture proves `get_settlement_home_capital(new_nation)` returns the mapped home and does not infer off-map identity.
+- [ ] Settlement fixture proves `get_settlement_home_capital(new_nation)` returns the mapped home and does not infer a separate settlement identity.
 - [ ] Settlement fixture creates at least one `war_instance` involving the nation and proves all new pair keys are sorted through the standard helper.
 - [ ] Settlement fixture covers the nation's authored `power_tier` in leader scoring, side-pressure scoring, or standing classification.
 - [ ] Local-balance / rival-strengthened behavior is covered with the authored desire profile, or an empty-profile fallback test proves deterministic non-crashing behavior.
 - [ ] Save/load fixture proves settlement-relevant ids use the internal nation id, not a display alias.
 
-If a future nation is intentionally off-map, stop here and write a separate off-map/naval/scenario spec first. Do not make it an active Imperial Settlement participant by leaving capital or region data blank.
+If a future nation is intentionally absent from the scenario map, stop here and write a separate naval/scenario spec first. Do not make it an active Imperial Settlement participant by leaving capital or region data blank.
 
 #### Validation Checklist (New Nations)
 

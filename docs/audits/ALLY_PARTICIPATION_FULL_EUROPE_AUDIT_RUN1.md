@@ -10,7 +10,7 @@ Scope:
 Method:
 - Used `sovereign-map-workflow` preflight and repo routing.
 - Used the `peace-deals-spec-audit` scoring model where it applies, adapted to the active Ally Participation / Common Peace handoff rather than re-auditing the completed BPH/WPS/WB suite.
-- Added explicit full-Europe checks for 13-20 nations, 100+ regions, 20 pairwise wars, 6+ participant sides, off-map Britain, bounded scans, and synthetic fixture requirements.
+- Added explicit full-Europe checks for 13-20 nations, 100+ regions, 20 pairwise wars, 6+ participant sides, map-absent Britain, bounded scans, and synthetic fixture requirements.
 
 ## Metrics
 
@@ -20,15 +20,15 @@ Method:
 | M2 Clarity | 7/10 | PASS | The active spec and plan are detailed enough for Slice A1. Clarity drops because the synthetic full-Europe fixture strategy and legacy harshness-doc ownership still need tightening. |
 | M3 Work Segmentation | 8/10 | PASS | A1/A2/A3, B1/B2/B3, C1/C2, D1/D2, and E have test budgets below the observed session ceiling. One inventory artifact should be made persistent. |
 | M4 Contradiction-Freedom | 7/10 | PASS | No hard contradiction in the active settlement spec/plan. Stale Roadmap and DIPLOMACY_SPEC harshness text conflict with current code and the active handoff. |
-| M5 Completeness | 8/10 | PASS | Full-Europe scale, off-map Britain, turn-order, AI offers, serial settlements, UI density, and save/load are covered. Fixture authoring needs a more exact contract. |
+| M5 Completeness | 8/10 | PASS | Full-Europe scale, map-absent Britain, turn-order, AI offers, serial settlements, UI density, and save/load are covered. Fixture authoring needs a more exact contract. |
 
 ## Findings
 
 F-1: Full-Europe synthetic fixture contract is underspecified.
   Severity: MAJOR
   Location: `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` Scale Rules; Slice A gate; Slice B/C/E gates
-  Problem: The plan requires synthetic full-Europe fixtures with at least 13 nations, 100+ region ids, 20 active pair keys, a 6+ participant side, and off-map Britain. It also correctly says not to rely on live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data. But it does not define the test-helper contract for creating those synthetic nations, capitals/proxies, diplomats, power tiers, region ownership, and `WorldState.get_active_nations()` compatibility without accidentally expanding production data or letting unknown nations fall through the `secondary` fallback.
-  Fix: Add a "Full-Europe Test Fixture Contract" to the implementation plan. Name the helper module, the synthetic roster, the explicit power-tier map, the region-id generator, the off-map Britain setup, and the rule that fixture tests must not depend on production `REGIONS_DATA` growing beyond 19 regions.
+  Problem: The plan requires synthetic full-Europe fixtures with at least 13 nations, 100+ region ids, 20 active pair keys, a 6+ participant side, and map-absent Britain. It also correctly says not to rely on live `NATION_CAPITALS`, `REGIONS_DATA`, or marshal data. But it does not define the test-helper contract for creating those synthetic nations, capitals/proxies, diplomats, power tiers, region ownership, and `WorldState.get_active_nations()` compatibility without accidentally expanding production data or letting unknown nations fall through the `secondary` fallback.
+  Fix: Add a "Full-Europe Test Fixture Contract" to the implementation plan. Name the helper module, the synthetic roster, the explicit power-tier map, the region-id generator, the map-absent Britain setup, and the rule that fixture tests must not depend on production `REGIONS_DATA` growing beyond 19 regions.
   Affected metrics: M2, M3, M5
 
 F-2: DIPLOMACY_SPEC harshness ownership contradicts live code and the settlement handoff.
@@ -57,7 +57,7 @@ F-4: Slice A war-entry inventory is not tied to a durable artifact.
 - Scale target is explicit: 13-20 active nations, 100+ regions, 78+ pair keys, 20 simultaneous pairwise wars, and 6-8 participant coalition sides.
 - Hot paths are bounded to active participants, direct terms, direct beneficiaries, bargain parties, affected territorial-interest nations, active major powers, and per-turn `war_instances_by_leader` / `war_instances_by_participant` indexes.
 - Common peace remains rationally distinct from serial bilateral peace through narrow/full/serial tuning fixtures and serial separate-peace fallout.
-- Off-map Britain is explicitly modeled as a settlement identity, and `NATION_CAPITALS["Britain"] == "Netherlands"` is treated as a proxy holding rather than true capital status.
+- Map-absent Britain is explicitly modeled as a settlement identity, and `NATION_CAPITALS["Britain"] == "Netherlands"` is treated as a proxy holding rather than true capital status.
 - Contribution is event-driven and explicitly avoids reconstructing historical settlement contribution from pruned `battle_records`.
 - Sub-1000 casualty battles, non-pipeline charge paths, theater attribution, British subsidy support, and same-turn exit ordering are all covered by plan gates.
 - UI density is covered: top-five rows, "View all participants", Terms/Allies/Warnings/Acceptance sectioning, scroll or pagination, and Godot smoke on synthetic 6+ participant payloads.
@@ -77,7 +77,7 @@ Step 1: Fix F-1.
   - Do not expand production `REGIONS_DATA`, `NATION_CAPITALS`, or `STARTING_DIPLOMATS` solely to satisfy settlement tests.
   - Tests that need active nations must either attach synthetic regions/controllers to the `WorldState` fixture or monkeypatch the specific active-nation helper under test; they must not rely on the current 5-nation runtime roster.
   - Unknown synthetic nations must not silently rely on the `secondary` fallback when a test is asserting standing, side pressure, leader selection, or major-power consultation behavior.
-  - Britain fixtures must include both the live proxy case (`NATION_CAPITALS["Britain"] == "Netherlands"`) and an off-map identity case where Britain has no true home-capital region.
+  - Britain fixtures must include both the live proxy case (`NATION_CAPITALS["Britain"] == "Netherlands"`) and a map-absent identity case where Britain has no true home-capital region.
   ```
 
 Step 2: Fix F-2.

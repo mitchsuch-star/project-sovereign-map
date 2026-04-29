@@ -24,7 +24,7 @@ The two audits agree on the broad state:
 
 Combined verdict: **NO-GO for immediate Slice A1.**
 
-Reason: Slice A would lock schema and war-instance invariants. The combined audits identify side-scoped leader metadata, off-map elimination behavior, proposer-side participant revalidation, and canonical fixture ids as pre-A1 issues.
+Reason: Slice A would lock schema and war-instance invariants. The combined audits identify side-scoped leader metadata, map-absent elimination behavior, proposer-side participant revalidation, and canonical fixture ids as pre-A1 issues.
 
 ## Consolidated Findings
 
@@ -36,11 +36,11 @@ Reason: Slice A would lock schema and war-instance invariants. The combined audi
 - Problem: `war_instance` has `attacker_leader` and `defender_leader`, but only one `leader_source`. Coalition scoring can leak to the wrong side in coalition-vs-France wars.
 - Fix: Replace with `leader_source_by_side` or `leader_meta_by_side`. Coalition scoring applies only to the side whose source is `coalition_leader`.
 
-**A2: Off-map nations need elimination exemption.**
+**A2: Map-absent nations need elimination exemption.**
 - Source: external audit E1; spot verified live `_is_nation_eliminated()` scans `world.regions.values()` and `WorldState.capture_region()` eliminates old controller when `get_nation_regions()` is empty.
 - Severity: MAJOR.
-- Problem: Britain can lose Netherlands and appear to have 0 controlled regions, even though it is an off-map settlement identity. Russia has no live regions. Off-map powers must not be eliminated solely by losing continental proxy holdings.
-- Fix: In section 7.6, add that `is_off_map_nation(nation)` blocks elimination from continental proxy loss alone. Off-map powers exit only through explicit scenario/scripted conditions or future off-map-power rules.
+- Problem: Britain can lose Netherlands and appear to have 0 controlled regions, even though it is a map-absent settlement identity. Russia has no live regions. Map-absent powers must not be eliminated solely by losing continental proxy holdings.
+- Fix: In section 7.6, add that `is_off_map_nation(nation)` blocks elimination from continental proxy loss alone. Map-absent powers exit only through explicit scenario/scripted conditions or future map-absent-power rules.
 
 **A3: `settlement_confirm.confirm` must revalidate proposer-side participant and beneficiary eligibility.**
 - Source: external audit E2.
@@ -132,10 +132,10 @@ Reason: Slice A would lock schema and war-instance invariants. The combined audi
 - Severity: TEST GAP.
 - Fix: Synthetic 13-nation / 20-war fixture with two AI settlements in one `advance_turn()` to prove bounded caches and no stale reaction reads.
 
-**D3: Clarify off-map-only side wording.**
+**D3: Clarify map-absent-only side wording.**
 - Source: external audit E4.
 - Severity: MINOR.
-- Fix: Use "no eligible leader" where the side still has active off-map participants but none can inherit leadership through normal replacement scoring.
+- Fix: Use "no eligible leader" where the side still has active map-absent participants but none can inherit leadership through normal replacement scoring.
 
 **D4: State same-turn multi-declaration ordering.**
 - Source: external audit E5.
@@ -160,7 +160,7 @@ Reason: Slice A would lock schema and war-instance invariants. The combined audi
 Apply in this order:
 
 1. Spec section 7.1/section 7.4: side-scoped leader metadata.
-2. Spec section 7.6: off-map elimination exemption.
+2. Spec section 7.6: map-absent elimination exemption.
 3. Spec section 7.4/section 10.4: proposer-side participant and beneficiary revalidation.
 4. Impl plan fixture contract: canonical 13-nation internal roster ids and aliases.
 5. Impl plan Slice A Files: add `vassal.py`.

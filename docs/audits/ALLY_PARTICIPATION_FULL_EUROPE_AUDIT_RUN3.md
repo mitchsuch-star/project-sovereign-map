@@ -13,7 +13,7 @@ Scope:
 Method:
 - Used `sovereign-map-workflow` preflight and repo routing.
 - Used the `peace-deals-spec-audit` scoring model, adapted to the active Ally Participation / Common Peace handoff.
-- Re-ran the full-Europe lens after Run 2 closure: 13-20 active nations, 100+ region ids, 20 active pair keys, 6+ participant sides, off-map Britain/Russia, bounded scans, and synthetic fixture suitability for the planned European roster.
+- Re-ran the full-Europe lens after Run 2 closure: 13-20 active nations, 100+ region ids, 20 active pair keys, 6+ participant sides, map-absent Britain/Russia, bounded scans, and synthetic fixture suitability for the planned European roster.
 
 ## Metrics
 
@@ -64,11 +64,11 @@ F-5: Session routing docs still point at v1.14/v1.11.
 
 ## Passed Full-Europe Checks
 
-- Run 2 closure items are present: off-map Britain/Russia handling, off-map leader guard, vassal/forced-origin standing clause, formula guards, memoized local-balance warning guidance, delta-projection note, and connected-component merge bound.
+- Run 2 closure items are present: map-absent Britain/Russia handling, map-absent leader guard, vassal/forced-origin standing clause, formula guards, memoized local-balance warning guidance, delta-projection note, and connected-component merge bound.
 - `side_pressure_score` no longer has the empty-generator `max()` gap and computes direct scores once per preview/confirm evaluation.
 - Common-peace acceptance uses raw treaty harshness from `diplomatic_templates.py` while preserving the existing 1.0-clamped bilateral helper.
 - Britain proxy-capital handling is documented in spec, plan, and save-format notes: `NATION_CAPITALS["Britain"] == "Netherlands"` is not a true settlement capital.
-- The implementation plan explicitly requires off-map Britain and Russia fixtures with zero active army strength.
+- The implementation plan explicitly requires map-absent Britain and Russia fixtures with zero active army strength.
 - Direct WAR-entry seam inventory is durable in `tests/test_war_settlement_instances.py` and covers cascade, direct joins, counter-bargains, vassal rebellion, vassal-release rebellion, armistice collapse, scripted/debug entry, and combat-triggered fallback.
 - Contribution accrual remains event-driven, with staying power as the only per-turn settlement accrual and no all-region scan in `advance_turn()`.
 - `settlement_confirm` and `incoming_settlement_offer` are already present in `DialogueManager` taxonomy; the plan correctly owns the missing mailbox label/route work in Slice C2.

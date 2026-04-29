@@ -427,6 +427,7 @@ Individual coalition members can be peaced out through standard DIPLOMACY_SPEC b
 2. **Acceptance formula** (DIPLOMACY_SPEC §6) applies normally, with one modifier:
    - **Coalition loyalty penalty:** -15 to acceptance score while in an active coalition. Members are reluctant to break ranks.
    - This penalty decreases as the member's war exhaustion rises: `penalty = min(-15 + war_exhaustion // 10, 0)`. A battered Austria with high war exhaustion becomes increasingly willing to negotiate. At 0 exhaustion: penalty = -15. At 100 exhaustion: penalty = -5. At 150+: penalty = 0.
+   - Imperial Settlement common-peace acceptance also consumes this nation-level `war_exhaustion` value. It is intentionally shared across simultaneous wars in v0.1; per-war partitioning is deferred.
 3. **If accepted:** Nation leaves coalition. Relation with remaining coalition members: -15 ("betrayal").
 4. **Coalition persistence check:** If < 2 members remain, coalition dissolves (§7).
 
@@ -789,7 +790,7 @@ Coalition logic lives in the existing diplomacy engine — no new files for Sess
 
 **Scenario:** Britain is a mapped participant in the current runtime because it controls mapped regions. A later full-Europe map may put British home territory behind water.
 
-**Rule:** Coalition and settlement logic do not create a separate unmapped Britain model. War score against Britain uses the same mapped battle and territory systems as other nations. If future map expansion makes the Channel or naval access relevant, that reachability problem belongs to movement/naval abstraction, not coalition identity.
+**Rule:** Coalition and settlement logic do not create a separate Britain model. War score against Britain uses the same mapped battle and territory systems as other nations. If future map expansion makes the Channel or naval access relevant, that reachability problem belongs to movement/naval abstraction, not coalition identity.
 
 If a future scenario gives Britain island-only holdings, that scenario must also provide the naval/movement rules needed to attack or pressure those holdings before coalition or settlement code treats Britain differently.
 
