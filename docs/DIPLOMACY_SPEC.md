@@ -24,12 +24,12 @@ Historical anchor: Napoleon's diplomatic failures were as decisive as his milita
 | Nation | Starting State vs France | Role | Capital | AP/Turn |
 |--------|-------------------------|------|---------|---------|
 | **France** | Player | Dominant military power | Paris | 4 |
-| **Britain** | WAR | Major enemy, naval power (abstracted), hard to flip | — (off-map) | 4 |
+| **Britain** | WAR | Major enemy, naval power abstracted outside settlement, hard to flip | Netherlands (current-map home/proxy) | 4 |
 | **Prussia** | WAR | Major enemy, CAN be flipped to neutral/ally | Berlin | 4 |
 | **Austria** | PEACE (hostile) | Swing state — both sides court them. Relation -30. | Vienna | 3 |
 | **Saxony** | PEACE (French-leaning) | Minor nation, vassalizable by treaty or conquest. Relation +40. | Dresden | 2 |
 
-**Britain is special:** No true capital on the map, no London region to conquer. Live `NATION_CAPITALS` uses `"Netherlands"` as Britain's spawn/topology proxy (`backend/models/region.py`) so existing marshal placement, map topology, and runtime nation-support checks have a concrete region. That proxy is not Britain's settlement home capital. British power is projected through continental holdings (Netherlands, Waterloo, Hanover) and naval supremacy (abstracted as economic/strategic effects - see §1d). Britain can lose all continental territory and still be at war. Peace with Britain requires diplomatic resolution, not military conquest. This makes them the diplomatic endgame - you can't just march to London.
+**Britain is current-map special, not off-map:** Live `NATION_CAPITALS` uses `"Netherlands"` as Britain's current-map home/spawn region (`backend/models/region.py`) so existing marshal placement, topology, and runtime nation-support checks have a concrete region. In the current implementation Britain is a mapped participant because it controls mapped regions. Future Channel/naval movement and a real British home region belong to the map/naval abstraction, not to Imperial Settlement A1.
 
 **Nation-specific AP:** Reflects administrative capacity. France (4) is the most capable. Austria (3) is bureaucratic. Saxony (2) is tiny. This matters for treaty clauses that cost AP/turn — paying 1 AP/turn when you only have 2 is crippling.
 
@@ -753,7 +753,7 @@ After an armistice expires or is broken, the same nation pair cannot enter anoth
 | From → To | DP Cost | Relation Requirement | Notes |
 |-----------|---------|---------------------|-------|
 | WAR → ARMISTICE | 1 | None (war exhaustion drives this) | 5-turn minimum |
-| ARMISTICE → PEACE | 2 | Relation > -60 | May require treaty clauses |
+| ARMISTICE → PEACE | 2 | Relation >= -60 | May require treaty clauses; relation < -60 resumes WAR on expiry |
 | PEACE → OPEN_BORDERS | 1 | Relation > -20 | |
 | OPEN_BORDERS → NON_AGGRESSION | 1 | Relation > 0 | |
 | NON_AGGRESSION → DEF_ALLIANCE | 2 | Relation > +20 | |
@@ -1195,7 +1195,7 @@ Decisive Battle Bonus (max ±20):
   "loser_casualties": int, "location": str}. Displayed in Diplomatic Ledger
   Tab 3 as named events: "Decisive Victory at Berlin (Turn 8)".
 
-Capital score (max ±30):
+Capital score (effective max ±20; contested capital is ±10):
   +20 if you hold enemy capital
   -20 if enemy holds your capital
   +10 if enemy capital is contested (friendly marshal present, not yet captured)
@@ -2219,9 +2219,7 @@ def get_nation_capital(self, nation) -> Optional[str]:
     return NATION_CAPITALS.get(nation)
 
 def get_settlement_home_capital(self, nation) -> Optional[str]:
-    """Return true settlement capital; Britain is off-map even though NATION_CAPITALS uses a proxy."""
-    if nation == "Britain":
-        return None
+    """Return configured mapped capital/home region for settlement scoring."""
     return NATION_CAPITALS.get(nation)
 
 def get_known_nations(self) -> List[str]:
@@ -2666,7 +2664,7 @@ All design questions resolved in v1.1 feedback pass:
 |---|----------|----------|-----------|
 | 1 | Dresden (19th region) | **Keep** | Saxony needs a proper capital for conquest-vassalage. "Capture Dresden" is a clearer objective. |
 | 2 | Bavaria ownership | **Austria** (4 regions) | Stronger swing state makes the courting game more consequential. Whoever gets Austria shifts balance of power. |
-| 3 | British capital | **No London** | Britain's power is naval/economic. Can't march to London — that's the point. They're the enemy you negotiate with or outlast. |
+| 3 | British capital | **No separate London region in the current map** | Britain currently uses `Netherlands` as its mapped home/spawn region. Future London/Channel handling belongs to map and naval movement rules; diplomacy and settlement must not invent an off-map Britain identity. |
 | 4 | Talleyrand trust | **55** | Lower than expected. Sabotage window is real from day one. Player must actively build trust — creates early tension between managing Talleyrand vs. accepting risk. |
 | 5 | DP accumulation | **Use-it-or-lose-it** | Forces per-turn priority decisions. Banking = one big diplomatic blitz, which doesn't feel like managing ongoing relationships. Same philosophy as AP. |
 | 6 | Armistice duration | **5 turns** | Matches live code and `PEACE_DEALS_UMBRELLA_SPEC.md` §4.1. Enough to reposition and negotiate without enabling armistice chaining. |
@@ -2898,7 +2896,7 @@ Major additions based on user feedback:
 All 9 open design questions resolved. Key decisions:
 - 19 regions confirmed (Dresden kept for Saxon capital)
 - Bavaria → Austria (4 regions, stronger swing state)
-- No London (Britain abstracted, can't be conquered)
+- No separate London region in the current map; Britain uses its configured mapped home/spawn region until map/naval rules add a different home region
 - Talleyrand trust: 55 (Schemer felt from day one)
 - DP: use-it-or-lose-it (forces per-turn decisions)
 - Armistice: 5 turns (canonical; matches live code)

@@ -251,6 +251,7 @@ Field notes:
 
 - `triggered_turn` stores the most recent turn on which the bargain entered `triggered`.
 - `trigger_context` stores `{request_type, resolution_path, was_bargain_decisive, origin_episode_id}` when triggered.
+- Imperial Settlement may add optional war-context snapshot metadata when a bargain attaches to a `war_instance`: `war_id`, `side_at_creation`, and `side_leader_at_creation`. These fields are snapshots for settlement advisory/fulfillment classification. Merges may rewrite `war_id`, but leader replacement must not rewrite `side_leader_at_creation`; current leaders determine settlement authority, not the original bargain promise context.
 
 Live-bargain rule:
 

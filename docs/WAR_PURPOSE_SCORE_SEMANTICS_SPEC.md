@@ -72,7 +72,7 @@ War score is a number. +45 means "France is winning." But does +45 entitle Franc
 - No dynamic power tiers with per-turn recalculation. Power scoring for the vassalage cap is evaluated at vassalage-proposal time, not tracked as a per-turn state.
 - No multi-objective wars (one objective per war per nation in v0.1).
 - No AI-selected Subjugation or Forced Alliance in v0.1. AI-vs-player wars rely on the defender's auto-Defense objective; AI-AI opportunistic wars default to Conquest so the war has a readable purpose.
-- Coalition settlement mechanics are deferred to WPS-C, but WPS-A records coalition-side Liberation/Defense objectives and ticking when coalition wars form.
+- Coalition settlement mechanics are deferred to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`; WPS-A records coalition-side Liberation/Defense objectives and ticking when coalition wars form.
 - No war-exhaustion rework. The existing coalition war-exhaustion system (COALITION_SPEC §10a) remains independent.
 
 ---
@@ -358,7 +358,7 @@ Full-Europe tests must include a synthetic 13+ nation / 100+ region fixture that
 
 Post-cession projection still matters. A major that has been materially reduced by legal same-package cessions can be re-evaluated after those cessions, but the test must prove the result is intentional rather than an artifact of the small map.
 
-**Note on Britain:** British naval income is included in power calculation. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional — Britain's power projection is real even without continental territory. Excluding naval income would make Britain appear weaker than Saxony, which is ahistorical.
+**Note on Britain:** British naval income is included in power calculation for the mapped, scenario-active Britain. Britain starts at 200 naval income from the formula above and can rise to the 300 cap with additional coastal regions. This is intentional because British power projection is economic/naval as well as territorial. This power helper is not an off-map settlement identity and must not keep a landless Britain active in Imperial Settlement; future island-only or Channel-reachability cases need explicit map/naval rules.
 
 ### 8.6 Power cap and war objectives
 

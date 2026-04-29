@@ -785,13 +785,13 @@ Coalition logic lives in the existing diplomacy engine — no new files for Sess
 
 **Design choice:** Keeping rebellions separate from coalitions prevents overwhelming the player with a single cascading event. The rebel fights alone, at least initially.
 
-### EC-8: Britain has no land to lose
+### EC-8: Britain, water, and current-map holdings
 
-**Scenario:** Britain has off-map territory (or only island regions). France can't march on London.
+**Scenario:** Britain is a mapped participant in the current runtime because it controls mapped regions. A later full-Europe map may put British home territory behind water.
 
-**Rule:** Britain can only be peaced out diplomatically. War score against Britain uses battle results and territory held (Netherlands, Waterloo, Hanover — Britain's continental holdings). If France captures all British continental holdings, Britain's war score drops, making them amenable to peace.
+**Rule:** Coalition and settlement logic do not create a separate unmapped Britain model. War score against Britain uses the same mapped battle and territory systems as other nations. If future map expansion makes the Channel or naval access relevant, that reachability problem belongs to movement/naval abstraction, not coalition identity.
 
-If Britain has zero continental territory, they become a "phantom belligerent" — still in the coalition, still providing subsidies, but untouchable militarily. The player must use the Continental System or ignore them.
+If a future scenario gives Britain island-only holdings, that scenario must also provide the naval/movement rules needed to attack or pressure those holdings before coalition or settlement code treats Britain differently.
 
 ### EC-9: Coalition member at war with another coalition member
 
@@ -1029,7 +1029,7 @@ This requires: capturing Berlin, winning 5+ battles (including a decisive one), 
 
 #### Path 4: Britain Peace (ENDGAME ONLY)
 
-**Starting:** WAR, relation -80, off-map, Hawk diplomat (Castlereagh, skill 7).
+**Starting:** WAR, relation -80, mapped current holdings, Hawk diplomat (Castlereagh, skill 7).
 
 **Peace acceptance (war score +80, max practically achievable):**
 ```

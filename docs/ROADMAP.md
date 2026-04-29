@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** April 29, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.17 and `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.14; pre-A1 foundation-gate reconciliation applied, ready for Slice A1 foundation coding.)
+> **Last Updated:** April 29, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.18 and `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.15; mapped-nation A1 simplification applied, ready for Slice A1 foundation coding.)
 
 ---
 
@@ -86,7 +86,7 @@
 - EU4 political map style
 - ~120-150 province outlines (we wire ~80-100 for EA v1, rest greyed out)
 - **Two deliverables:** (1) visual map (pretty, what players see), (2) province color map (each province = unique solid RGB color, same dimensions, pixel-aligned)
-- Include coastlines for Britain and North Africa (greyed out, no province borders — off-map powers)
+- Include coastlines for Britain and North Africa where visually useful; any greyed/unwired areas are map-art staging, not settlement off-map powers
 - Each province must be a distinct closed region for hover detection and color fill
 - Artist familiar with Paradox modding ideal — this is the standard EU4 approach
 
@@ -421,7 +421,7 @@ Phase 8 implementation is complete, but the diplomacy refinement queue after it 
 3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
    The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Depends on items 1-3; implementable as a Peace Deals phase precursor before item 4.
 4. `Ally Participation + Common Peace` — `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`
-   Full-Europe wartime settlement flow: ally beneficiaries, contribution standing, common peace routing, and settlement fallout. Do not overload the normal nation -> proposal -> terms wizard with conference logic. Coding starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.14 against spec v1.17, beginning with the A1 foundation gate before any A2/B/C/D behavior.
+   Full-Europe wartime settlement flow: ally beneficiaries, contribution standing, common peace routing, and settlement fallout. Do not overload the normal nation -> proposal -> terms wizard with conference logic. Coding starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.15 against spec v1.18, beginning with the A1 foundation gate before any A2/B/C/D behavior.
 5. Remaining diplomacy follow-ups
    Agendas, Talleyrand explanation layers, and economic diplomacy all remain spec-gated behind the earlier items.
 
@@ -663,7 +663,7 @@ Current: Aggressive, Cautious, Literal. Evaluate whether Loyal or Balanced adds 
 
 ## Phase 11: Vassals & Britain
 
-**Goal:** Client states work, France's empire makes geographic sense, Britain threatens from off-map.
+**Goal:** Client states work, France's empire makes geographic sense, and Britain threatens through subsidies/naval pressure once the relevant map and movement rules exist.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
@@ -672,7 +672,7 @@ Current: Aggressive, Cautious, Literal. Evaluate whether Loyal or Balanced adds 
 | Vassal Defection | If coalition threat > loyalty, vassal defects | Medium | Planned |
 | **Authority -> Loyalty** | Napoleon's authority affects all vassal loyalty (1813 snowball) | Low | Planned |
 | **Imperial Governance → Vassals** | Marshals installed as permanent rulers of conquered territory. Trust/personality determines loyalty. See `FUTURE_DESIGN.md`. | Medium | Planned |
-| **Britain Off-Map** | Britain as funder: subsidy pool, expeditionary forces, can't be attacked | Medium | Planned |
+| **Britain Naval/Subsidy Pressure** | Britain as funder: subsidy pool, expeditionary forces, Channel/naval access abstraction when the map supports it | Medium | Planned |
 | Continental System | Player action to reduce British income/subsidies | Low | Planned |
 
 ### Simplified Vassal System
@@ -681,13 +681,13 @@ No autonomy slider, no vassal management UI. Just: "Bavaria is your vassal (loya
 
 Authority drop -> vassals waver -> defect in next coalition -> lose their troops AND territory becomes hostile -> more enemies -> more authority loss. The 1813-1814 death spiral in game mechanics. Inverse: high authority -> loyal vassals -> coalition can't peel them away.
 
-### Britain as Off-Map Power
+### Britain as Naval/Subsidy Power
 
-Britain has a subsidy pool that grows from colonial income. When coalition forms, Britain funds it. Britain can spawn Wellington + troops in coastal regions (Portugal, Netherlands). Player can't attack Britain directly.
+Britain has a subsidy pool that grows from colonial income. When coalition forms, Britain funds it. If the map/naval abstraction supports it, Britain can project Wellington + troops through coastal or island-access rules.
 
 To beat Britain: exhaust their willingness to fund coalitions (war score / diplomacy) or make Continental System work (reduce income). Historically accurate for most of the Napoleonic Wars.
 
-**Naval abstraction deferred to Post-EA** (when Britain becomes playable with its own map provinces).
+**Naval abstraction is separate from Imperial Settlement A1** and should be designed when Britain/water reachability becomes a map problem.
 
 **Dependencies:** Phase 8 (coalition trigger + diplomacy for vassal creation)
 **Exit Criteria:** France has client states, vassals can defect, Britain funds enemies
@@ -860,7 +860,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)
 12. Phase 10: Marshal death/recruitment (minimal)
-13. Phase 11: Vassals (loyalty + authority), Britain (off-map funder)
+13. Phase 11: Vassals (loyalty + authority), Britain (naval/subsidy pressure)
 14. Pre-EA: Tutorial content, LLM monetization, **LLM feature toggles**, **Voice-to-Text**, **Waterloo scenario**, Steam integration
 15. Wire ~80-100 regions from commissioned map, data entry, balance
 16. **TBD 2026: Early Access**
