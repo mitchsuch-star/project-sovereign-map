@@ -321,33 +321,6 @@ DG4_OATHBREAKER_AUTO_REJECT_TURNS = 10
 DG4_LOYALTY_BOND_TURNS = 30
 DG4_LOYALTY_BOND_RELATION_DELTA = 10
 
-DEFAULT_CASCADE_PROFILE = {
-    "mode": "direct_only",
-    "qualifying_treaty_states": {
-        "defender_side": ["ALLIANCE", "DEFENSIVE_ALLIANCE"],
-        "attacker_side": ["ALLIANCE"],
-    },
-    "include_vassals": True,
-    "refusal_event_type_offensive": DG4_EVENT_REFUSED_OFFENSIVE,
-    "refusal_event_type_defensive": DG4_EVENT_REFUSED_DEFENSIVE,
-    "honored_costly_event_type": DG4_EVENT_HONORED_COSTLY,
-    "defender_refusal_allowed": True,
-    "impossibility_threshold": {
-        "power_ratio": DG4_IMPOSSIBLE_POWER_RATIO,
-        "capital_threat_auto_impossible": True,
-        "losing_war_score_floor": -40,
-    },
-    "defensive_refusal_severity_multiplier": (
-        DG4_DEFENSIVE_REFUSAL_SEVERITY_MULTIPLIER
-    ),
-    "oathbreaker_posture": {
-        "refusals_required": DG4_OATHBREAKER_REFUSALS_REQUIRED,
-        "window_turns": DG4_OATHBREAKER_WINDOW_TURNS,
-        "auto_reject_ally_proposals_turns": DG4_OATHBREAKER_AUTO_REJECT_TURNS,
-    },
-    "anti_renewal_window_turns": 15,
-}
-
 DG4_EPISODE_EFFECTS = {
     DG4_EVENT_REFUSED_OFFENSIVE: {
         "reliability_delta": -6,

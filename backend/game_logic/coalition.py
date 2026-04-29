@@ -1522,8 +1522,7 @@ def process_coalition_turn(world) -> List[Dict]:
     world.positive_threat_delta_this_turn = False
 
     # ────────── 1. Passive threat from region control (§2a) ──────────
-    france_regions = sum(1 for r in world.regions.values()
-                        if r.controller == france)
+    france_regions = len(world.get_nation_regions(france))
     total_regions = len(world.regions)
 
     if total_regions > 0:

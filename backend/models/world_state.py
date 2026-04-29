@@ -1494,6 +1494,10 @@ class WorldState:
         """Get the capital/home region for a nation."""
         return NATION_CAPITALS.get(nation)
 
+    def get_settlement_home_capital(self, nation: str) -> Optional[str]:
+        """Get the mapped settlement home/capital for a nation."""
+        return self.get_nation_capital(nation)
+
     @property
     def player_capital(self) -> Optional[str]:
         """Convenience: player nation's capital."""

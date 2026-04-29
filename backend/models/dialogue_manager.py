@@ -89,11 +89,13 @@ class DialogueManager:
         "vassal_rebellion_imminent": 1,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,
+        "incoming_settlement_offer": 3,
         "counter_offer": 3,
         "counter_offer_response": 3,
     }
     MAILBOX_SUMMARY_LABELS: Dict[str, str] = {
         "incoming_proposal": "Incoming proposal",
+        "incoming_settlement_offer": "Incoming settlement offer",
         "counter_offer": "Counter-offer",
         "counter_offer_response": "Counter response",
     }
