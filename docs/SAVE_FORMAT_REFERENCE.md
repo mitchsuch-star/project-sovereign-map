@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.1
-- **Last updated:** 2026-04-26
-- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`)
+- **Last updated:** 2026-04-29
+- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + pending Imperial Settlement Slice A/B/D fields documented below
 
 ## Top-Level Structure (WorldState)
 
@@ -279,6 +279,18 @@ A future save/load system should use this as the specification.
 | `coordination_tutorial_shown` | bool | false | Whether the first-time coordination tutorial has been shown (Session 66). Set to true after first player combined arms attack. |
 | `nation_starting_regions` | Dict[str, list] | {} | Starting regions per nation at game start, used by AI homeland defense. Key: nation name, Value: list of region names. Empty dict for legacy saves. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
+
+### Pending Imperial Settlement WorldState Fields
+
+These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.13 but are not live until their implementation slices land. They should be added to `WorldState.to_dict()` / `WorldState.from_dict()` with the listed defaults in the owning slice.
+
+| Field | Type | Default | Owning slice |
+|-------|------|---------|--------------|
+| `next_war_instance_id` | int | 1 | Slice A: monotonic war-instance allocator; `war_id = "war_{next_war_instance_id}"`, stored as `created_sequence`, then incremented. |
+| `war_instances` | dict | {} | Slice A: active/recent political war containers keyed by `war_id`, grouping existing pairwise war state through pair keys, leaders, participant episodes, objective references, and terminal metadata. |
+| `archived_war_instances` | list[dict] | [] | Slice A: compact terminal war records moved out of `war_instances` after the 10-turn live retention window. |
+| `war_contribution_scores` | dict | {} | Slice B: episode-scoped contribution totals by `war_id` and nation, including bucket totals and fired contribution threshold signals. |
+| `settlement_memories` | dict | {} | Slice D1: transient positive/context settlement memories such as `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context`; negative grievances remain in `betrayal_history[pair]["grievance_flags"]`. |
 
 Reserved future `event_log` payloads:
 

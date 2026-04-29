@@ -253,6 +253,22 @@ Worked relaxation examples (tone reference):
 
 ---
 
+### Imperial Settlement voice families
+
+Slice E of `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` must add concrete templates for these families before final settlement copy ships:
+
+- `settlement_advisory_common_peace_*`: Talleyrand names standing, contribution, bargain, pressure, and term costs without moralizing.
+- `settlement_advisory_defensive_*`: Talleyrand frames defender-side settlement around coalition preservation, exhaustion, and defensive claims, not imperial appetite.
+- `settlement_acceptance_*`: foreign leaders accept common peace while preserving their national register and future leverage.
+- `settlement_rejection_*`: foreign leaders reject common peace by naming the dominant acceptance blocker.
+- `settlement_sold_out_by_leader_*`: enemy allies react to being sacrificed by their own war leader.
+- `settlement_rewarded_ally_*`: same-side participants react to material reward or honored standing.
+- `settlement_excluded_ally_*`: same-side participants react to exclusion after contribution, bargain, or direct stake.
+
+Every family must distinguish material contribution from diplomatic weight. A subsidy-only or zero-battle `major` "demands a voice at the table"; it did not necessarily "earn a voice through sacrifice."
+
+---
+
 ## Minimum cast coverage (C3-lite required + deferred WB-D)
 
 Per `COMMITMENTS_PRESENTATION_SPEC.md` §10.3, the older nine-line cast coverage was sized for bargain breach scenarios under the v0.2 C3b spec. After the April 16, 2026 rescope and the April 20, 2026 hegemony / repair fold, the live work splits as follows. The deferred WB-D rows remain documented so the bargain-era work does not need re-authoring later.
@@ -318,7 +334,7 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
-- **Apr 29, 2026** - Added settlement-specific coverage for Imperial Settlement: common-peace advisory, defensive settlement counsel, serial separate-peace warnings, foreign acceptance, rewarded/excluded ally reactions, and sold-out-by-leader registers.
+- **Apr 29, 2026** - Tightened settlement-specific coverage for Imperial Settlement: added explicit Slice E voice families for common-peace advisory, defensive settlement counsel, acceptance/rejection, rewarded/excluded allies, and sold-out-by-leader registers, with material-contribution vs diplomatic-weight wording.
 
 - **Apr 20, 2026** — v1.2. Added "Bloc-naming voice contract" subsection aligned to `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a — formalizes the per-band voice contract (descriptive at `noticed`, proper-noun reveal at `alarming`, intensification without renaming at `crisis`), the no-modern-jargon list, the per-court desired feel at each band, and the Talleyrand-on-France guardrail. Top scope note realigned to v0.5.2 / §8.1a. Block 3 audit doc is now superseded by this plus the presentation-spec fold.
 - **Apr 20, 2026** — v1.1. Realigned labels to `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1, expanded minimum live coverage to include `balance_of_europe_shifted` warning families, `amends_offered` acknowledgments, paradox aftermath / reactive summon / `hard_reject_clear` / `witness_strike` additive families, and retired the stale v0.3-only scope note.

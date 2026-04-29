@@ -980,6 +980,8 @@ Threat pressure is not a standalone acceptance component in live code. Coalition
 
 **Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is the authoritative source for `settlement_gratitude_mod`. When Ally Participation / Common Peace lands, it is an optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France; that memory is created only by a current-episode material contribution reward. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, and refreshes rather than stacks.
 
+**Implementation status:** `settlement_gratitude_mod` is pending Imperial Settlement Slice D1. Until that slice lands, live `calculate_acceptance()` behaves as if this component is `0` and may omit it from debug output; Slice D1 must add the live component, proposal-preview row, and regression coverage.
+
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
 Gold lump sum:            +1 per 100 gold offered (R145: was 200)
