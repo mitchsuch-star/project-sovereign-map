@@ -1,7 +1,7 @@
 # COALITION_SPEC.md — v1.1
 
 > **Companion to:** DIPLOMACY_SPEC.md v2.2
-> **Status:** DRAFT — Awaiting design gate approval
+> **Status:** Approved v1.1 — implemented baseline with later Balance of Europe / v2.4.3 amendments
 > **Scope:** Threat accumulation, coalition formation, coalition structure, coalition AI, coalition breaking, dissolution
 > **Design principle:** Threat from success + diplomatic windows + coalition splitting = the Napoleonic strategic puzzle
 > **Current implementation scope:** coalition formation still targets France, but the record shape should already be generic enough to support later target generalization
