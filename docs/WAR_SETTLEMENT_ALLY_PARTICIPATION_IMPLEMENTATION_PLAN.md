@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.18 READY FOR SLICE A1 FOUNDATION GATE - v1.21 mapped-foundation readiness closure applied
-> **Last Updated:** April 29, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.21
+> **Status:** v1.19 READY FOR SLICE A1 FOUNDATION GATE - v1.22 synthesis hardening applied
+> **Last Updated:** April 30, 2026
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.22
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -108,6 +108,7 @@ Build:
 - Readers tolerate missing WPS `war_objectives` records for historical `objective_keys`.
 - Do not replace pairwise diplomacy. `war_instance` groups existing pairs.
 - Add an invariant helper/test assertion: every `diplomatic_states[diplo_key] == "WAR"` must appear in exactly one active `war_instance.active_diplo_keys` with `pair_status == "war"`. No active `war_instance` may claim a non-WAR pair as `pair_status == "war"`.
+- In A3, promote the invariant helper into an always-on post-merge assertion: `assert_war_instance_invariants(world, *, context="post_merge")`. After every merge it must also prove no absorbed `war_id` remains in live `diplomatic_commitments`, `war_contribution_scores`, `pending_settlement_dialogues`, dispatch route payloads, or ledger payloads, and that `side_by_nation` matches attacker/defender membership with no nation on both sides. Normal merge paths fail fast in tests/debug when the assertion fails; only explicit load-repair/debug-import tooling may downgrade it to a structured repair report.
 
 Gate:
 - A1: 10-14 focused tests for old-save defaults, monotonic `war_id` allocation, empty-safe lookup/cache helpers, cache invalidation idempotence, mapped capital helper safety, cached elimination helper use where touched, and invariant assertions.
@@ -128,6 +129,7 @@ Gate:
 - Synthetic 13+ nation war-instance fixture covers 20 active pair keys and 6+ participants on one side without relying on live map data.
 - Multi-objective merge fixture connects at least two existing wars with different WPS objectives and proves the surviving `war_instance` keeps all objective contexts without selecting one global objective.
 - Post-merge contribution fixture proves rewritten contribution records use the surviving `war_id` while advisory standing uses post-merge side totals.
+- Post-merge invariant fixture proves `assert_war_instance_invariants(..., context="post_merge")` catches duplicate pair ownership, a dangling absorbed `war_id` in bargains/contribution/dialogues/presentation routes, and side-map disagreement after an otherwise valid merge.
 - Side-scoped leader-source fixture proves a coalition-origin attacker with a non-coalition defender, and the inverse case, choose leaders using each side's own source metadata.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
 
@@ -215,7 +217,7 @@ Build C1 - backend scoring and legitimacy:
 - Add side-pressure source/dilution coverage: one fixture where the selected `direct_score` for a covered enemy comes from a minor ally while the side leader is losing or weak, and one fixture where many minor covered enemies dilute a strong major-vs-major pressure score. Debug output must name `direct_score_source` for each covered enemy.
 - Expose common-peace acceptance debug components in preview/test output: `base_side_pressure`, `term_harshness_penalty`, `leader_own_losses`, `burdened_participant_penalty`, `projected_hegemony_mod`, `projected_forced_alliance_threat_delta`, crossed coalition thresholds, `war_exhaustion`, and `abandoned_by_ally_acceptance_mod`.
 - Add final stress coverage for more than three directly affected cross-war reactions firing in one settlement pass, plus a full-pipeline `advance_turn()` fixture with two AI-generated settlements, 20 active wars, and all 13 canonical DG-1 nations.
-- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, mixed-strength partial-vs-full, multi-forced-alliance threat, or AI-defender fixtures fail their design targets, adjust exactly one primary knob from the spec constants list and record the chosen knob in tests and implementation notes.
+- If decisive-victory, total-victory harsh-terms, Britain-led defense, narrow/full/serial, mixed-strength partial-vs-full, multi-forced-alliance threat, or AI-defender fixtures fail their design targets, follow the spec's tuning escalation order and adjust only one primary knob per run before rerunning the target fixtures. Order: move `base_side_pressure` by `0.05`; if common peace is still dominated by serial settlement, lower the common-peace accept threshold from `50` to `40` and document the matching near-acceptable band; if only total-victory packages are blocked by projected hegemony, halve `projected_hegemony_mod` only for `total_victory`; if decisive military wins still fail without weakening anti-farming fixtures, add bounded `military_supremacy_bonus`; add `common_peace_coverage_bonus = +3` per additional covered enemy beyond the first, capped at `+12`, only as a last resort when narrow/full/serial proves breadth itself is under-rewarded after the previous knobs. Record the chosen knob in tests, implementation notes, `SYSTEMS_REFERENCE.md` when a persistent constant or threshold changes, and acceptance debug output.
 - Add cross-formula validation tests comparing bilateral acceptance, war-entry score, and common-peace acceptance for monotonic military pressure and equivalent one-covered-enemy package sanity.
 - Implement the spec's war-objective alignment mapping table for all five WPS objective types; no live objective record yields component `0`. In merged wars, preserve all proposer-side objective contexts and select the objective relevant to the covered enemy / harshest term; debug output must name selected `diplo_key`, declaring nation, target nation, and objective type.
 - AI defender common-peace package construction must not assume `war_objective_alignment == +15`; defensive-objective fixtures must prove packages can be accepted or rejected by the whole formula when objective alignment is `0` or `+5`.
@@ -273,6 +275,7 @@ Gate:
 - AI package-construction tests prove unacceptable losing-side white-peace offers are suppressed before surfacing.
 - Cooldown tests prove common-peace per-`war_id` cooldowns do not consume existing bilateral proposal cooldowns.
 - Godot smoke after C2: launch the client, open the settlement review from a synthetic payload, confirm `settlement_confirm` blocks ordinary commands, and back out/revise without mutation.
+- Manual comprehension gate before D1: run a complete common-peace settlement review with at least 4 participants. Within roughly 30 seconds, the reviewer must be able to identify the top blocker or political cost, the main affected ally/enemy, and the available next action. If not, revise payload density, copy, default ordering, or sectioning before D1 reaction work starts.
 
 ## Slice D1 - Settlement Memories And Direct Reactions
 
