@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.21 READY FOR SLICE A1 FOUNDATION GATE - v1.24 future-audit hardening applied
+> **Status:** v1.22 A1 FOUNDATION LANDED / READY FOR SLICE A2 WAR-ENTRY THREADING - v1.25 A2/A3 boundary clarification applied
 > **Last Updated:** May 1, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.24
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.25
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -75,7 +75,7 @@ Build:
 - Before coding A2/A3, write a durable WAR-entry seam inventory as a tracked checklist in `tests/test_war_settlement_instances.py` named `WAR_ENTRY_SEAMS_UNDER_TEST`. The checklist must include player declaration, AI declaration, coalition declaration, vassal rebellion, vassal-release rebellion, commitment-paradox outcome, scripted/debug war entry, join-opportunity acceptance, counter-bargain acceptance, armistice collapse, and combat-triggered auto-war fallback. The Slice A2 invariant test must fail if a listed seam is missing focused coverage. Map every live seam to either `_process_war_cascade(...)` war-id threading or a direct `attach_pair_to_war_instance(...)` call.
 - Split Slice A into mandatory implementation gates:
   - **A1 foundation gate:** mapped capital helper safety, save/load fields, `next_war_instance_id`, empty-safe index/cache helpers, cache invalidation scaffolding, cached elimination helper use where touched, and invariant assertions.
-  - **A2 war-entry threading:** cascade/direct-entry `war_id` ownership for every inventoried WAR seam, including vassal and armistice paths.
+  - **A2 war-entry threading:** cascade/direct-entry `war_id` create/reuse/attach ownership for every inventoried WAR seam, including vassal and armistice paths. A2 does not implement full transitive connected-component merge.
   - **A3 merge/archive/leader invariants:** connected-component merge, objective preservation, contribution-reference rewrites, leader replacement, elimination exits, terminal retention, and archive compaction.
   Do not start A2 until A1 is green. Do not start A3 merge support until A2 tests prove every direct and cascade-created `WAR` pair owns exactly one active `war_id`.
 - Validate side assignment and active-instance compatibility before any declaration mutates `diplomatic_states` to `WAR`. Add `validate_war_declaration(...)` or make `ensure_war_instance_for_pair(...)` perform the pre-commit validation; `war_instance_side_conflict` must hard-stop before state mutation.
@@ -92,13 +92,14 @@ Build:
 - Store pairwise ownership in `active_diplo_keys`, `resolved_diplo_keys`, and `diplo_key_meta`. `objective_keys` remains historical WPS references only.
 - Add `diplo_key_meta[pair]["pair_status"] = "war" | "armistice" | "resolved"`. `ARMISTICE -> WAR` reuses the same `war_id`; `ARMISTICE -> PEACE` moves the pair to `resolved_diplo_keys`; common peace never creates ARMISTICE.
 - Populate attackers, defenders, active participants, side metadata, and participant episodes as cascade / vassal / ally entry resolves. Side metadata stores `leader_source_by_side`, not a single global `leader_source`; coalition-source scoring on one side must never imply coalition-source scoring for the other side.
-- Enforce one-active-`war_instance` per `diplo_key`; reuse compatible instances and merge same-declaration instances rather than creating overlaps.
+- Enforce one-active-`war_instance` per `diplo_key`; A2 reuses compatible existing instances and attaches new pairs/participants rather than creating overlaps.
 - Treat a late coalition member, ally, bargain entrant, or vassal joining an existing coalition war as participant/pair attachment to the existing `war_id`. Run merge only when the entrant or new pair is already owned by a different active compatible `war_instance`.
-- Implement transitive merge in the spec order: validate side assignments without mutation, abort the triggering declaration/cascade with a player-facing `war_instance_side_conflict` if any nation would land on both sides, choose the oldest surviving `war_id`, merge participant/pair/episode data in memory, choose leaders, rewrite absorbed `war_id` references on war bargains, contribution events, pending settlement dialogues, dispatch routes, and ledger payloads, then atomically replace/remove records and invalidate `war_instances_by_leader` / `war_instances_by_participant` before any reader observes the merged state.
-- When attaching a war bargain to a `war_instance`, snapshot `side_at_creation` and `side_leader_at_creation` separately from the current `attacker_leader` / `defender_leader`. Merge rewrites the `war_id`, but leader replacement must not rewrite the original bargain context used by settlement advisory/fulfillment classification.
-- Preserve every absorbed instance's WPS objective references as independent objective contexts. A merge must not select one dominant objective; later common-peace scoring picks the relevant proposer-side objective against the covered enemy.
-- Rewrite contribution references to the surviving `war_id`, but do not preserve pre-merge contribution percentages as settlement standing. Post-merge standing uses the merged current-episode side denominator.
-- Treat transitive merge as a correctness transaction, not a hot path. Full-Europe fixtures should prove correctness for connected-component merges, including multi-objective merges, but no extra optimization is required unless profiling shows repeated merges.
+- A2 merge boundary: if an A2 seam discovers that satisfying the trigger would require combining two or more already-active compatible `war_instance` records, it must not create duplicate pair ownership. It should hard-stop with `war_instance_merge_required` / `war_instance_side_conflict` style diagnostics in tests/debug until A3 replaces that stop with the full merge transaction.
+- A3 implements transitive merge in the spec order: validate side assignments without mutation, abort the triggering declaration/cascade with a player-facing `war_instance_side_conflict` if any nation would land on both sides, choose the oldest surviving `war_id`, merge participant/pair/episode data in memory, choose leaders, rewrite absorbed `war_id` references on war bargains, contribution events, pending settlement dialogues, dispatch routes, and ledger payloads, then atomically replace/remove records and invalidate `war_instances_by_leader` / `war_instances_by_participant` before any reader observes the merged state.
+- A3 bargain merge context: when attaching a war bargain to a `war_instance`, snapshot `side_at_creation` and `side_leader_at_creation` separately from the current `attacker_leader` / `defender_leader`. Merge rewrites the `war_id`, but leader replacement must not rewrite the original bargain context used by settlement advisory/fulfillment classification.
+- A3 preserves every absorbed instance's WPS objective references as independent objective contexts. A merge must not select one dominant objective; later common-peace scoring picks the relevant proposer-side objective against the covered enemy.
+- A3 rewrites contribution references to the surviving `war_id`, but does not preserve pre-merge contribution percentages as settlement standing. Post-merge standing uses the merged current-episode side denominator.
+- Treat transitive merge as a correctness transaction, not a hot path. Full-Europe fixtures should prove correctness for connected-component merges in A3, including multi-objective merges, but no extra optimization is required unless profiling shows repeated merges.
 - Store side leaders, participants, `participant_meta`, active episode ids, and re-entry episode ids.
 - Persist all `participant_meta` fields needed by later slices, including `contribution_signals_fired`, in `war_instances` serialization so contribution-threshold dispatches do not repeat after save/load.
 - Use `war_leader_score()` for non-coalition leader replacement; use coalition leadership scoring only for active coalition-leader wars.
@@ -120,7 +121,7 @@ Gate:
 - Missing-capital fixture proves a synthetic mapped nation with no `NATION_CAPITALS` entry does not crash capital-dependent scoring, but also does not become an active settlement participant.
 - Empty war-instance index fixtures prove `war_instances_by_leader` and `war_instances_by_participant` build and invalidate safely before any active `war_instance` exists.
 - Elimination fixture proves the mapped-nation rule is explicit: a nation with no controlled regions and no vassals exits normally, while absent future nations are ignored rather than evaluated as settlement participants.
-- Vassal rebellion and a synthetic three-instance chain merge attach to exactly one surviving `war_instance`.
+- A2 vassal rebellion attaches to exactly one active `war_instance`; A3 synthetic three-instance chain merge collapses to exactly one surviving `war_instance`.
 - Vassal rebellion fixture covers the live `backend/game_logic/vassal.py` call site and proves `ensure_war_instance_for_pair(...)` runs before `_process_war_cascade(...)`.
 - Recursive cascade fixture proves honored allies, refused allies, and vassal auto-joins all receive the same allocated `war_id` without relying on the old episode-derived ledger id.
 - Direct ally-entry, accepted counter-bargain, vassal-release rebellion, armistice collapse, and scripted/debug war-entry fixtures attach to an existing or new `war_instance`.
@@ -128,9 +129,9 @@ Gate:
 - Invariant test scans live diplomatic state after each Slice A fixture: no dangling WAR pair without a `war_instance`, no duplicate active `diplo_key` ownership.
 - ARMISTICE pair-status tests prove suspended pairs do not archive the war and reuse the same `war_id` if hostilities resume.
 - Synthetic 13+ nation war-instance fixture covers 20 active pair keys and 6+ participants on one side without relying on live map data.
-- Multi-objective merge fixture connects at least two existing wars with different WPS objectives and proves the surviving `war_instance` keeps all objective contexts without selecting one global objective.
-- Post-merge contribution fixture proves rewritten contribution records use the surviving `war_id` while advisory standing uses post-merge side totals.
-- Post-merge invariant fixture proves `assert_war_instance_invariants(..., context="post_merge")` catches duplicate pair ownership, a dangling absorbed `war_id` in bargains/contribution/dialogues/presentation routes, and side-map disagreement after an otherwise valid merge.
+- A3 multi-objective merge fixture connects at least two existing wars with different WPS objectives and proves the surviving `war_instance` keeps all objective contexts without selecting one global objective.
+- A3 post-merge contribution fixture proves rewritten contribution records use the surviving `war_id` while advisory standing uses post-merge side totals.
+- A3 post-merge invariant fixture proves `assert_war_instance_invariants(..., context="post_merge")` catches duplicate pair ownership, a dangling absorbed `war_id` in bargains/contribution/dialogues/presentation routes, and side-map disagreement after an otherwise valid merge.
 - Side-scoped leader-source fixture proves a coalition-origin attacker with a non-coalition defender, and the inverse case, choose leaders using each side's own source metadata.
 - Pairwise war declarations and cleanup still pass existing WPS/WB tests.
 
