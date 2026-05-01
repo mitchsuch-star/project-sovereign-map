@@ -1,7 +1,7 @@
 # Audit Prompt: Imperial Settlement Slice A1 — Foundation Gate
 
 > **For:** A reviewing agent with no prior context on this session.
-> **Commit under review:** `<FILL IN COMMIT SHA>` ("Land Slice A1: Imperial Settlement foundation")
+> **Commit under review:** `274aee8999ccc48d2236fb59b4a869d677708c3d` ("Land Slice A1: Imperial Settlement foundation")
 > **Repo:** `C:\Users\User\PycharmProjects\project-sovereign-map`
 > **Branch:** `master`
 
