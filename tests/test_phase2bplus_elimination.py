@@ -209,6 +209,10 @@ class TestR81NationElimination:
         for region in world.regions.values():
             if region.controller == "Saxony":
                 region.controller = "France"
+        # Imperial Settlement A1: `_is_nation_eliminated` reads through the
+        # per-turn `get_nation_regions(...)` cache. Raw `region.controller`
+        # mutations require a cache invalidation before the next read.
+        world.invalidate_active_nations_cache()
         # Even if marshals remain, it should show eliminated (region check only)
         assert _is_nation_eliminated(world, "Saxony") is True
 

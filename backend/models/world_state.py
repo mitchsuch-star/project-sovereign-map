@@ -614,6 +614,28 @@ class WorldState:
         self.pending_ally_entry_opportunities: List[Dict] = []
 
         # ============================================================
+        # IMPERIAL SETTLEMENT FOUNDATION (Slice A1)
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md §0 / §7
+        # ============================================================
+        # Monotonic allocator for `war_id = f"war_{n}"`. Never derive
+        # war ids from turn / sides / diplo_key. Old saves default to 1.
+        self.next_war_instance_id: int = 1
+        # Active war_instance records keyed by `war_id` string. Empty in
+        # A1 — populated by A2 declaration / cascade / direct-entry seams.
+        self.war_instances: Dict[str, Dict] = {}
+        # Terminal war_instance records moved here after the §7.3 10-turn
+        # retention window. Empty in A1.
+        self.archived_war_instances: List[Dict] = []
+        # Transient per-turn dirty-flag indexes; rebuilt lazily from
+        # `war_instances` so a multi-pair common-peace ratification marks
+        # them dirty once and rebuilds at most once before the next reader.
+        # NOT serialized — restored as empty + dirty after load so the
+        # next read rebuilds against loaded state.
+        self._war_instance_indexes_dirty: bool = True
+        self._war_instances_by_leader_cache: Dict[str, List[str]] = {}
+        self._war_instances_by_participant_cache: Dict[str, List[str]] = {}
+
+        # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
         # Cleared at start of advance_turn() before systems populate new events
@@ -1507,6 +1529,84 @@ class WorldState:
     def player_capital(self) -> Optional[str]:
         """Convenience: player nation's capital."""
         return self.get_nation_capital(self.player_nation)
+
+    # ========================================
+    # IMPERIAL SETTLEMENT FOUNDATION (Slice A1)
+    # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md §0 / §7
+    # ========================================
+
+    def invalidate_war_instance_indexes(self) -> None:
+        """Mark `war_instances_by_leader` / `war_instances_by_participant` dirty.
+
+        Single dirty-flag invalidation hook. Idempotent: calling it 5 times
+        in a row still yields at most one rebuild on the next read. Call this
+        from every seam that mutates war_instance leader/participant/pair
+        membership: declaration, cascade attachment, merge, leader replacement,
+        elimination exit, separate peace, common peace, archive transition.
+        Slice A1 ships only the hook + caches; A2/A3 wire the seams.
+        """
+        self._war_instance_indexes_dirty = True
+        self._war_instances_by_leader_cache = {}
+        self._war_instances_by_participant_cache = {}
+
+    def _rebuild_war_instance_indexes(self) -> None:
+        """Rebuild the per-turn leader/participant indexes from `war_instances`.
+
+        Empty-safe: if `war_instances` is `{}` (the A1 default), the caches
+        are reset to `{}` and the dirty flag is cleared. Active-instance
+        filter is `ended_turn is None` per spec §7.3.
+        """
+        leader_index: Dict[str, List[str]] = {}
+        participant_index: Dict[str, List[str]] = {}
+        for war_id, instance in self.war_instances.items():
+            if not isinstance(instance, dict):
+                continue
+            if instance.get("ended_turn") is not None:
+                continue
+            attacker_leader = instance.get("attacker_leader")
+            defender_leader = instance.get("defender_leader")
+            if attacker_leader:
+                leader_index.setdefault(attacker_leader, []).append(war_id)
+            if defender_leader and defender_leader != attacker_leader:
+                leader_index.setdefault(defender_leader, []).append(war_id)
+            participants = instance.get("active_participants") or []
+            seen: Set[str] = set()
+            for nation in participants:
+                if not nation or nation in seen:
+                    continue
+                seen.add(nation)
+                participant_index.setdefault(nation, []).append(war_id)
+        self._war_instances_by_leader_cache = leader_index
+        self._war_instances_by_participant_cache = participant_index
+        self._war_instance_indexes_dirty = False
+
+    def get_war_instances_by_leader(self, leader: Optional[str] = None):
+        """Return war_ids led by each side leader.
+
+        Empty-safe: returns `{}` (or `[]` for a specific leader) when
+        `war_instances` is empty. Lazy rebuild on dirty flag — at most one
+        rebuild between invalidations. Caller must NOT mutate the returned
+        structures; they are shared cache references.
+        """
+        if self._war_instance_indexes_dirty:
+            self._rebuild_war_instance_indexes()
+        if leader is None:
+            return self._war_instances_by_leader_cache
+        return list(self._war_instances_by_leader_cache.get(leader, []))
+
+    def get_war_instances_by_participant(self, participant: Optional[str] = None):
+        """Return war_ids each nation actively participates in.
+
+        Empty-safe: returns `{}` (or `[]` for a specific participant) when
+        `war_instances` is empty. Lazy rebuild on dirty flag — at most one
+        rebuild between invalidations. Caller must NOT mutate the returned
+        structures; they are shared cache references.
+        """
+        if self._war_instance_indexes_dirty:
+            self._rebuild_war_instance_indexes()
+        if participant is None:
+            return self._war_instances_by_participant_cache
+        return list(self._war_instances_by_participant_cache.get(participant, []))
 
     # ========================================
     # MARSHAL QUERIES
@@ -3595,6 +3695,16 @@ class WorldState:
             "next_join_opportunity_id": int(self._next_join_opportunity_id),
             "war_entry_reroll_memory": {k: copy.deepcopy(v) for k, v in self._war_entry_reroll_memory.items()},
             "pending_ally_entry_opportunities": [copy.deepcopy(o) for o in self.pending_ally_entry_opportunities],
+
+            # ═══════ IMPERIAL SETTLEMENT FOUNDATION (Slice A1) ═══════
+            # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md §0 / §7
+            "next_war_instance_id": int(self.next_war_instance_id),
+            "war_instances": {
+                str(k): copy.deepcopy(v) for k, v in self.war_instances.items()
+            },
+            "archived_war_instances": [
+                copy.deepcopy(v) for v in self.archived_war_instances
+            ],
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -4012,6 +4122,22 @@ class WorldState:
         world.pending_ally_entry_opportunities = [
             copy.deepcopy(o) for o in data.get("pending_ally_entry_opportunities", [])
         ]
+
+        # ═══════ IMPERIAL SETTLEMENT FOUNDATION (Slice A1) ═══════
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md §0 / §7. Pre-A1 saves
+        # have none of these keys; defaults are 1 / {} / [] respectively.
+        world.next_war_instance_id = int(data.get("next_war_instance_id", 1) or 1)
+        world.war_instances = {
+            str(k): copy.deepcopy(v) for k, v in data.get("war_instances", {}).items()
+        }
+        world.archived_war_instances = [
+            copy.deepcopy(v) for v in data.get("archived_war_instances", [])
+        ]
+        # Transient indexes — always rebuild from loaded `war_instances`
+        # before the next reader. Empty-safe when `war_instances == {}`.
+        world._war_instance_indexes_dirty = True
+        world._war_instances_by_leader_cache = {}
+        world._war_instances_by_participant_cache = {}
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }

@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.1
-- **Last updated:** 2026-04-29
-- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + pending Imperial Settlement Slice A/B/D fields documented below
+- **Last updated:** 2026-05-01
+- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + Imperial Settlement Slice A1 foundation (`next_war_instance_id`, `war_instances`, `archived_war_instances`) + pending Imperial Settlement Slice A2/A3/B/D fields documented below
 
 ## Top-Level Structure (WorldState)
 
@@ -115,6 +115,9 @@ A future save/load system should use this as the specification.
   "diplomatic_commitments": {},
   "archived_diplomatic_commitments": [],
   "next_commitment_id": 1,
+  "next_war_instance_id": 1,
+  "war_instances": {},
+  "archived_war_instances": [],
   "reparations_cooldown": {},
   "anti_renewal_cooldown": {},
   "oathbreaker_posture": {},
@@ -249,6 +252,9 @@ A future save/load system should use this as the specification.
 | `next_join_opportunity_id` | int | 1 | **Peace Deals WB-C (landed).** Monotonic join-opportunity-id allocator. Pre-WB-C saves load with `1` defaulted. |
 | `war_entry_reroll_memory` | dict | {} | **Peace Deals WB-C (landed).** Reroll-key (`"{beneficiary}\|{named_enemy}\|{request_type}\|{turn}"`) -> `{score_inputs_hash, counter_bargain}` for deterministic counter-bargain reroll. Cleared when the score-input hash changes between evaluations. Pre-WB-C saves load with `{}` defaulted. |
 | `pending_ally_entry_opportunities` | list[dict] | [] | **Peace Deals WB-C (landed).** Queue of unresolved ally-entry join opportunities surfaced by `build_declaration_preview()`. Each carries `id`, `beneficiary`, `named_enemy`, `request_type`, `promiser`, `origin_episode_id`, nested `war_entry_score`, `hard_blocks`, and optional `counter_bargain` for the 25-49 band. Consumed by the ally-entry review flow or `resolve_join_opportunity()`. Pre-WB-C saves load with `[]` defaulted. |
+| `next_war_instance_id` | int | 1 | **Imperial Settlement Slice A1 (landed).** Monotonic allocator for `war_id = f"war_{n}"` per `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7.2. A2 declaration / cascade / direct-entry seams call `_allocate_war_id` and increment this counter; never derive ids from turn / sides / `diplo_key`. Pre-A1 saves load with `1` defaulted. |
+| `war_instances` | dict | {} | **Imperial Settlement Slice A1 (landed).** Active war-level container records keyed by `war_id` per spec §7.1. Each record carries `created_turn`, `created_sequence`, `originator`, `origin_target`, `origin_diplo_key`, `objective_keys`, `active_diplo_keys`, `resolved_diplo_keys`, `diplo_key_meta` (per-pair `pair_status` of `war`/`armistice`/`resolved`), side leaders + `leader_source_by_side`, `attackers`/`defenders`/`side_by_nation`, `active_participants` + `participant_meta`, `separate_peaced`, `war_bargains`, and terminal `ended_turn`/`end_reason`. A1 ships the container only — A2 wires creation seams. Transient `war_instances_by_leader` / `war_instances_by_participant` indexes are NOT serialized; they are rebuilt lazily after load via `invalidate_war_instance_indexes()` + dirty-flag rebuild. Pre-A1 saves load with `{}` defaulted. |
+| `archived_war_instances` | list[dict] | [] | **Imperial Settlement Slice A1 (landed).** Terminal `war_instance` records moved out of `war_instances` after the §7.3 10-turn retention window. Each entry preserves the original record plus `ended_turn`/`end_reason`. A1 ships the field only; A2/A3 own active→archived transitions. Pre-A1 saves load with `[]` defaulted. |
 | `reparations_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B7 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which Make Amends (spec §8.6.1) is next available for that pair. Absent / `0` = immediately available. Shared cooldown across the standard variant (live) and the grievance variant that ships with B-B4. |
 | `anti_renewal_cooldown` | dict | {} | **Memory and Pressure v2.4.3 (B-B4 — landed).** Pair-key (sorted `"A\|B"`) -> turn number at which new ALLIANCE / DEFENSIVE_ALLIANCE ratification is available again for that pair after a `call_to_arms_refused_defensive` episode per spec §8.8.7. Absent / `0` = no block. Default authored window is 15 turns. Gated by `diplomacy.is_anti_renewal_active` in `calculate_acceptance`; NON_AGGRESSION / OPEN_BORDERS / PEACE proposals are unaffected. Pre-B-B4 saves load with `{}` defaulted. |
 | `oathbreaker_posture` | dict | {} | **Memory and Pressure v2.4.3 (DG-4 completion audit - landed).** Nation-keyed posture store for repeated defensive-call refusals. Each record tracks posture start/expiry, refusal count, and source episode lineage. Active records mechanically block incoming ALLIANCE / DEFENSIVE_ALLIANCE acceptance through `diplomacy.is_oathbreaker_auto_reject_active`; missing or expired records behave as `{}`. Pre-DG-4-completion saves load with `{}` defaulted. |

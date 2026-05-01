@@ -8399,11 +8399,14 @@ def _is_nation_eliminated(world, nation: str) -> bool:
     """R81: Check if a nation is eliminated (0 regions).
 
     Marshals are guaranteed removed by _eliminate_nation(), so region check suffices.
+
+    Imperial Settlement A1: read through the per-turn `get_nation_regions(...)`
+    cache instead of scanning `world.regions.values()` raw. `get_active_nations()`
+    is the foundational caller of this helper and is itself part of the
+    settlement substrate's caller graph; per-turn cache reuse keeps elimination
+    detection off hot per-turn region scans at full-Europe scale.
     """
-    return not any(
-        getattr(r, 'controller', '') == nation
-        for r in world.regions.values()
-    )
+    return not world.get_nation_regions(nation)
 
 
 def _process_dp_regen(world) -> None:
