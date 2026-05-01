@@ -491,13 +491,58 @@ def check_vassal_rebellion(world) -> List[dict]:
                 "message": f"{vassal_name} breaks free but the armistice holds — no war declared."
             })
         else:
-            from backend.game_logic.diplomacy import set_diplomatic_state
-            set_diplomatic_state(world, vassal_name, lord, "WAR", "vassal_rebellion")
+            from backend.game_logic.diplomacy import (
+                _process_war_cascade,
+                set_diplomatic_state,
+            )
+            from backend.game_logic.settlement_helpers import (
+                CascadeContext,
+                ensure_war_instance_for_pair,
+            )
 
-            # War cascade: allies pulled into the war
-            from backend.game_logic.diplomacy import _process_war_cascade
-            cascade_events = _process_war_cascade(world, vassal_name, lord)
-            events.extend(cascade_events)
+            # Slice A2 §7.2 "Direct WAR-entry rule": the vassal-rebellion
+            # seam must allocate / reuse a war_instance BEFORE mutating
+            # diplomatic_states, then thread the allocated war_id through
+            # the cascade so allied joins attach to the same political
+            # conflict as the rebellion.
+            war_instance_result = ensure_war_instance_for_pair(
+                world,
+                vassal_name,
+                lord,
+                entry_path="vassal_rebellion",
+                reason="check_vassal_rebellion",
+            )
+            if war_instance_result.get("ok"):
+                set_diplomatic_state(world, vassal_name, lord, "WAR", "vassal_rebellion")
+
+                cascade_ctx = CascadeContext(
+                    war_id=war_instance_result["war_id"],
+                    root_aggressor=vassal_name,
+                    war_entry_entries=[],
+                )
+                cascade_events = _process_war_cascade(
+                    world,
+                    vassal_name,
+                    lord,
+                    ctx=cascade_ctx,
+                )
+                events.extend(cascade_events)
+            else:
+                # Hard-stop diagnostics — surface as an event so playtest
+                # logs catch a misbehaving rebellion seam. A3 will resolve
+                # `war_instance_merge_required` with the merge transaction.
+                events.append({
+                    "type": "vassal_rebellion_blocked",
+                    "vassal": vassal_name,
+                    "lord": lord,
+                    "error": war_instance_result.get("error"),
+                    "details": war_instance_result.get("details", {}),
+                    "message": (
+                        f"{vassal_name} cannot rebel against {lord}: "
+                        f"{war_instance_result.get('error')}"
+                    ),
+                })
+                continue
 
         # Transfer vassal marshals back and clean up stale state
         for marshal in list(world.marshals.values()):
@@ -939,6 +984,29 @@ def release_vassal(
     # Set diplomatic state to PEACE (or WAR if rebellion) — R2: centralized setter
     from backend.game_logic.diplomacy import set_diplomatic_state
     if rebellion:
+        # Slice A2 §7.2 "Direct WAR-entry rule": vassal-release rebellion
+        # must allocate / reuse a war_instance before the WAR transition.
+        from backend.game_logic.settlement_helpers import (
+            ensure_war_instance_for_pair,
+        )
+        war_instance_result = ensure_war_instance_for_pair(
+            world,
+            lord,
+            vassal_name,
+            entry_path="vassal_release_rebellion",
+            reason="release_vassal rebellion",
+        )
+        if not war_instance_result.get("ok"):
+            return {
+                "success": False,
+                "message": (
+                    f"Vassal release rebellion blocked: "
+                    f"{war_instance_result.get('error')} "
+                    f"({war_instance_result.get('details', {}).get('reason', '')})"
+                ),
+                "error": war_instance_result.get("error"),
+                "error_details": war_instance_result.get("details", {}),
+            }
         set_diplomatic_state(world, lord, vassal_name, "WAR", "vassal_release_rebellion")
     else:
         set_diplomatic_state(world, lord, vassal_name, "PEACE", "vassal_release")

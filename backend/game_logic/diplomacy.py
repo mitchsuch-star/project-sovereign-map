@@ -20,6 +20,17 @@ from backend.display_names import (
     STATE_DISPLAY as _STATE_DISPLAY_NAMES,
     proposal_display_name as _proposal_display_name,
 )
+from backend.game_logic.settlement_helpers import (
+    CascadeContext,
+    WAR_INSTANCE_MERGE_REQUIRED,
+    WAR_INSTANCE_SIDE_CONFLICT,
+    attach_pair_to_war_instance,
+    attach_participant_to_war_instance,
+    ensure_war_instance_for_pair,
+    mark_pair_armistice,
+    resolve_pair_to_resolved,
+    validate_war_declaration,
+)
 
 # ═══════ DIPLOMATIC STATE HIERARCHY ═══════
 # Upgrade path (adjacency enforced):
@@ -5682,8 +5693,26 @@ def resolve_join_opportunity(
             return result
 
         if not world.is_at_war(beneficiary, named_enemy):
+            attach_result = ensure_war_instance_for_pair(
+                world,
+                beneficiary,
+                named_enemy,
+                entry_path="ally_entry",
+                root_episode_id=opportunity.get("origin_episode_id", ""),
+                reason="resolve_join_opportunity accept",
+            )
+            if not attach_result.get("ok"):
+                result["success"] = False
+                result["message"] = (
+                    f"{beneficiary} cannot join: "
+                    f"{attach_result.get('error')} "
+                    f"({attach_result.get('details', {}).get('reason', '')})"
+                )
+                result["error"] = attach_result.get("error")
+                return result
             set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "ally_entry")
             world.modify_nation_relation(beneficiary, named_enemy, -20)
+            result["war_id"] = attach_result.get("war_id")
 
         result["joined"] = True
         result["message"] = f"{beneficiary} enters the war against {named_enemy}."
@@ -6006,15 +6035,36 @@ def accept_counter_bargain(
     _emit_bargain_event(world, bargain, "bargain_triggered")
 
     joined = False
+    war_id_attached: Optional[str] = None
     if join_war and beneficiary and named_enemy and not world.is_at_war(beneficiary, named_enemy):
+        attach_result = ensure_war_instance_for_pair(
+            world,
+            beneficiary,
+            named_enemy,
+            entry_path="counter_bargain_ally_entry",
+            reason="accept_counter_bargain",
+        )
+        if not attach_result.get("ok"):
+            return {
+                "success": False,
+                "bargain": bargain,
+                "joined": False,
+                "error": attach_result.get("error"),
+                "message": (
+                    f"Counter-bargain blocked: {attach_result.get('error')} "
+                    f"({attach_result.get('details', {}).get('reason', '')})"
+                ),
+            }
         set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "counter_bargain_ally_entry")
         world.modify_nation_relation(beneficiary, named_enemy, -20)
         joined = True
+        war_id_attached = attach_result.get("war_id")
 
     return {
         "success": True,
         "bargain": bargain,
         "joined": joined,
+        "war_id": war_id_attached,
         "message": f"{beneficiary} demands recognition of their claim to {claim_region}. Bargain accepted — {beneficiary} joins the war.",
     }
 
@@ -7302,6 +7352,32 @@ def declare_war(
     # bloc leaders.
     _begin_hegemony_signal_defer(world)
 
+    # Slice A2 §"Creation seam": validate side assignment + allocate or reuse
+    # the active war_instance BEFORE mutating diplomatic_states. A
+    # `war_instance_side_conflict` must hard-stop pre-commit; A2 also stops
+    # on `war_instance_merge_required` so callers can fix the seam before
+    # A3 lands the connected-component merge transaction.
+    war_instance_result = ensure_war_instance_for_pair(
+        world,
+        aggressor,
+        target,
+        entry_path="war_declaration",
+        root_episode_id=episode_id,
+        reason="player/AI war declaration",
+    )
+    if not war_instance_result.get("ok"):
+        _flush_hegemony_signal_defer(world, "declare_war_validation_failed")
+        return {
+            "success": False,
+            "message": (
+                f"Cannot declare war: {war_instance_result.get('error')} "
+                f"({war_instance_result.get('details', {}).get('reason', '')})"
+            ),
+            "error": war_instance_result.get("error"),
+            "error_details": war_instance_result.get("details", {}),
+        }
+    war_id = war_instance_result["war_id"]
+
     # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
     set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
 
@@ -7540,22 +7616,26 @@ def declare_war(
     # If paradox detected, exclude the player from cascade (player must choose)
     cascade_skip = {aggressor, target, player} if has_paradox else None
     war_entry_entries: List[Dict] = []
+    cascade_ctx = CascadeContext(
+        war_id=war_id,
+        root_episode_id=episode_id,
+        root_aggressor=aggressor,
+        war_entry_entries=war_entry_entries,
+        ally_entry_decisions=ally_entry_decisions or {},
+        suppress_unresolved_offensive_cascade=suppress_unresolved_offensive_cascade,
+    )
     cascade = _process_war_cascade(
         world,
         aggressor,
         target,
         processed=cascade_skip,
-        root_episode_id=episode_id,
-        root_aggressor=aggressor,
-        war_entry_entries=war_entry_entries,
-        ally_entry_decisions=ally_entry_decisions,
-        suppress_unresolved_offensive_cascade=suppress_unresolved_offensive_cascade,
+        ctx=cascade_ctx,
     )
     _flush_hegemony_signal_defer(world, "declare_war")
     world.log_event({
         "type": "war_entry_ledger",
         "episode_id": episode_id,
-        "war_id": f"war_{episode_id}",
+        "war_id": war_id,
         "aggressor": aggressor,
         "target": target,
         "entries": war_entry_entries,
@@ -7640,6 +7720,7 @@ def declare_war(
         "message": " ".join(messages),
         "cascade": cascade,
         "war_entry_ledger": war_entry_entries,
+        "war_id": war_id,
         "dp_cost": dp_cost,
         "relation_changes": relation_changes,
     }
@@ -7650,6 +7731,8 @@ def _process_war_cascade(
     aggressor: str,
     target: str,
     processed: set = None,
+    *,
+    ctx: Optional[CascadeContext] = None,
     root_episode_id: str = None,
     root_aggressor: str = None,
     war_entry_entries: Optional[List[Dict]] = None,
@@ -7662,6 +7745,11 @@ def _process_war_cascade(
     Offensive: Nations with ALLIANCE (not DA) with the AGGRESSOR join against the target.
     Direct vassals of either principal auto-join their lord's side.
 
+    Slice A2: every cascaded pair attaches to the root war's
+    `ctx.war_id`. Callers that pass legacy keyword args still work — a
+    `CascadeContext` is synthesized when ``ctx`` is None — but new
+    callers should construct the context once and pass it through.
+
     Cascade-forced ruptures are classified `obsolescence_or_external` (§9.9.B):
     the cascaded nation did not voluntarily break its treaty, so fault is
     attributed to the root aggressor and no reliability penalty is applied
@@ -7672,11 +7760,50 @@ def _process_war_cascade(
     """
     if processed is None:
         processed = {aggressor, target}
-    ally_entry_decisions = ally_entry_decisions or {}
+
+    if ctx is None:
+        ctx = CascadeContext(
+            war_id="",
+            root_episode_id=root_episode_id,
+            root_aggressor=root_aggressor,
+            war_entry_entries=war_entry_entries,
+            ally_entry_decisions=ally_entry_decisions or {},
+            suppress_unresolved_offensive_cascade=suppress_unresolved_offensive_cascade,
+        )
+    else:
+        # Honor legacy positional kwargs only if the context did not set them.
+        if root_episode_id is not None and ctx.root_episode_id is None:
+            ctx.root_episode_id = root_episode_id
+        if root_aggressor is not None and ctx.root_aggressor is None:
+            ctx.root_aggressor = root_aggressor
+        if war_entry_entries is not None and ctx.war_entry_entries is None:
+            ctx.war_entry_entries = war_entry_entries
+        if ally_entry_decisions:
+            for k, v in ally_entry_decisions.items():
+                ctx.ally_entry_decisions.setdefault(k, v)
+        if suppress_unresolved_offensive_cascade:
+            ctx.suppress_unresolved_offensive_cascade = True
+
+    war_entry_entries = ctx.war_entry_entries
+    ally_entry_decisions = ctx.ally_entry_decisions or {}
+    cascade_war_id = ctx.war_id or ""
+    suppress_unresolved_offensive_cascade = bool(ctx.suppress_unresolved_offensive_cascade)
+
+    def _attach_cascade_pair(attacker_nation: str, defender_nation: str, entry_path: str) -> None:
+        if not cascade_war_id:
+            return
+        attach_pair_to_war_instance(
+            world,
+            cascade_war_id,
+            attacker_nation,
+            defender_nation,
+            entry_path=entry_path,
+        )
 
     # Fault for any rupture caused by the cascade is the root aggressor, not
     # whichever nation's treaty happens to flip in a recursive step.
-    fault_aggressor = root_aggressor or aggressor
+    fault_aggressor = ctx.root_aggressor or aggressor
+    root_episode_id = ctx.root_episode_id
 
     cascade = []
     all_nations = world.get_active_nations()  # DLF-11
@@ -7765,6 +7892,7 @@ def _process_war_cascade(
                 # Force WAR — bypasses armistice cooldowns (R2: centralized setter)
                 set_diplomatic_state(world, nation, aggressor, "WAR", "defensive_cascade")
                 processed.add(nation)
+                _attach_cascade_pair(aggressor, nation, "defensive_cascade")
                 if breach_preview:
                     _record_treaty_breach(
                         world,
@@ -7919,6 +8047,7 @@ def _process_war_cascade(
                     )
                 set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
                 processed.add(nation)
+                _attach_cascade_pair(nation, target, "offensive_cascade")
                 if breach_preview:
                     _record_treaty_breach(
                         world,
@@ -7983,6 +8112,7 @@ def _process_war_cascade(
                 world, vassal_nation, aggressor, "WAR", "vassal_auto_join",
             )
             processed.add(vassal_nation)
+            _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
             _append_war_entry(
                 war_entry_entries,
                 nation=vassal_nation,
@@ -8011,6 +8141,7 @@ def _process_war_cascade(
             if not world.is_at_war(vassal_nation, target):
                 set_diplomatic_state(world, vassal_nation, target, "WAR", "vassal_auto_join")
                 processed.add(vassal_nation)
+                _attach_cascade_pair(vassal_nation, target, "vassal_offensive_auto_join")
                 _append_war_entry(
                     war_entry_entries,
                     nation=vassal_nation,
@@ -8544,7 +8675,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
         relation = world.nation_relations.get(diplo_key, 0)
 
         if relation >= -60:
-            # Transition to PEACE (R2: setter handles armistice cleanup)
+            # Transition to PEACE (R2: setter handles armistice cleanup).
+            # Slice A2 §7.3: ARMISTICE -> PEACE moves the pair to
+            # resolved_diplo_keys with pair_status='resolved'.
+            resolve_pair_to_resolved(world, diplo_key)
             set_diplomatic_state(world, nation_a, nation_b, "PEACE", "armistice_expired_peace")
             cleanup_war_end(world, diplo_key)
             events.append({
@@ -8564,7 +8698,18 @@ def _process_armistice_expiration(world) -> List[Dict]:
             queue_dispatch_event(world, "diplomatic_armistice_expired_peace",
                                 {"nation_a": nation_a, "nation_b": nation_b}, "always")
         else:
-            # Relations too hostile — back to WAR (R2: setter handles war_start + armistice cleanup + treaty)
+            # Relations too hostile — back to WAR (R2: setter handles war_start + armistice cleanup + treaty).
+            # Slice A2 §7.3: ARMISTICE -> WAR reuses the same war_id; if no
+            # war_instance currently owns the pair (e.g. from a save where
+            # the original war ended before A1 landed), allocate one so the
+            # invariant remains satisfiable.
+            ensure_war_instance_for_pair(
+                world,
+                nation_a,
+                nation_b,
+                entry_path="armistice_expired_war",
+                reason="armistice collapse",
+            )
             set_diplomatic_state(world, nation_a, nation_b, "WAR", "armistice_expired_war")
             events.append({
                 "type": "armistice_expired_war",
