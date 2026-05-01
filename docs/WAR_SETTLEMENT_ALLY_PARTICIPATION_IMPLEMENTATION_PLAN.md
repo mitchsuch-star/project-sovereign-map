@@ -112,7 +112,7 @@ Build:
 - In A3, promote the invariant helper into an always-on post-merge assertion: `assert_war_instance_invariants(world, *, context="post_merge")`. After every merge it must also prove no absorbed `war_id` remains in live `diplomatic_commitments`, `war_contribution_scores`, `pending_settlement_dialogues`, dispatch route payloads, or ledger payloads, and that `side_by_nation` matches attacker/defender membership with no nation on both sides. Normal merge paths fail fast in tests/debug when the assertion fails; only explicit load-repair/debug-import tooling may downgrade it to a structured repair report.
 
 Gate:
-- A1: 10-14 focused tests for old-save defaults, monotonic `war_id` allocation, empty-safe lookup/cache helpers, cache invalidation idempotence, mapped capital helper safety, cached elimination helper use where touched, and invariant assertions.
+- A1: 13 focused A1 tests (17 total in the foundation file including 4 pre-A1 tests) for old-save defaults, monotonic `war_id` allocation, empty-safe lookup/cache helpers, cache invalidation idempotence, mapped capital helper safety, cached elimination helper use where touched, and invariant assertions.
 - A2: 18-22 focused tests for cascade/direct-entry ownership across every inventoried WAR seam, including vassal rebellion and armistice collapse.
 - A3: 18-22 focused tests for merge/archive/leader/elimination behavior, including multi-objective merge preservation and post-merge contribution denominator rules.
 - Old saves load with `1` for `next_war_instance_id`, `{}` for `war_instances`, and `[]` for `archived_war_instances`.

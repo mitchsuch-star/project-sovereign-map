@@ -1585,13 +1585,16 @@ class WorldState:
 
         Empty-safe: returns `{}` (or `[]` for a specific leader) when
         `war_instances` is empty. Lazy rebuild on dirty flag — at most one
-        rebuild between invalidations. Caller must NOT mutate the returned
-        structures; they are shared cache references.
+        rebuild between invalidations. Returns copies so callers cannot
+        mutate the internal cache.
         """
         if self._war_instance_indexes_dirty:
             self._rebuild_war_instance_indexes()
         if leader is None:
-            return self._war_instances_by_leader_cache
+            return {
+                nation: list(war_ids)
+                for nation, war_ids in self._war_instances_by_leader_cache.items()
+            }
         return list(self._war_instances_by_leader_cache.get(leader, []))
 
     def get_war_instances_by_participant(self, participant: Optional[str] = None):
@@ -1599,13 +1602,16 @@ class WorldState:
 
         Empty-safe: returns `{}` (or `[]` for a specific participant) when
         `war_instances` is empty. Lazy rebuild on dirty flag — at most one
-        rebuild between invalidations. Caller must NOT mutate the returned
-        structures; they are shared cache references.
+        rebuild between invalidations. Returns copies so callers cannot
+        mutate the internal cache.
         """
         if self._war_instance_indexes_dirty:
             self._rebuild_war_instance_indexes()
         if participant is None:
-            return self._war_instances_by_participant_cache
+            return {
+                nation: list(war_ids)
+                for nation, war_ids in self._war_instances_by_participant_cache.items()
+            }
         return list(self._war_instances_by_participant_cache.get(participant, []))
 
     # ========================================

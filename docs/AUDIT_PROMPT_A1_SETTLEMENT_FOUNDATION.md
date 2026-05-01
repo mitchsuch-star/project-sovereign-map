@@ -38,9 +38,9 @@ labelled "A1" or "A1 foundation gate".
 You are an independent reviewer. The author claims:
 
 - A1 is foundation-only; no behavioral settlement code shipped.
-- 10-14 focused tests landed in `tests/test_war_settlement_instances.py`
-  (or the foundation-specific test file already in repo:
-  `tests/test_war_settlement_foundation.py`). The suite passes.
+- 13 focused A1 tests landed in the foundation-specific test file
+  already in repo, `tests/test_war_settlement_foundation.py`, bringing
+  that file to 17 total tests (4 pre-A1 + 13 A1). The suite passes.
 - Old saves (no settlement fields at all) load cleanly with
   `next_war_instance_id == 1`, `war_instances == {}`,
   `archived_war_instances == []`.
@@ -99,8 +99,8 @@ Verify these claims, then go beyond them.
    needs it.
 5. **Tests:** `tests/test_war_settlement_foundation.py` (existing) plus
    any new tests under `tests/test_war_settlement_instances.py`. The
-   foundation file currently has 4 tests pre-A1; A1 should bring the
-   foundation gate to 10-14 focused tests total.
+   foundation file had 4 tests pre-A1; A1 should add 13 focused tests,
+   bringing the foundation gate to 17 total tests.
 6. **Save/load reference:** `docs/SAVE_FORMAT_REFERENCE.md` — confirm
    the new fields are documented with their defaults.
 7. **Doc claims:** `docs/STATUS.md` and `CLAUDE.md` "Up Next" — A1
@@ -355,11 +355,11 @@ F6. **No new per-turn cache key collisions.** If A1 added a new
 
 ### G. Test quality
 
-G1. **Test count.** Plan demands 10-14 focused A1 tests. Count how
+G1. **Test count.** Plan demands 13 focused A1 tests. Count how
     many tests in `tests/test_war_settlement_foundation.py` and any
     new file landed under A1. Pre-A1 baseline is 4 (the existing
-    foundation tests). A1 should add 6-10 more for a 10-14 total.
-    Flag if the count is below 10 or above 14.
+    foundation tests). A1 should add 13 more for a 17-test total.
+    Flag if the A1 delta is not 13 or the total is not 17.
 
 G2. **Plan gate coverage.** The plan's A1 Gate bullets enumerate
     specific fixtures. For each, confirm a test exists and exercises

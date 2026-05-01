@@ -149,6 +149,12 @@ def test_war_instance_indexes_rebuild_at_target_scale():
     assert fake_nation not in leader_index
     assert fake_nation not in participant_index
 
+    # Public all-index reads return defensive copies, not writable cache refs.
+    leader_index["France"].append("fake_war")
+    participant_index["Saxony"].append("fake_war")
+    assert "fake_war" not in world.get_war_instances_by_leader("France")
+    assert "fake_war" not in world.get_war_instances_by_participant("Saxony")
+
 
 def test_war_instance_index_invalidation_is_idempotent():
     """Calling invalidate N times yields at most ONE rebuild on next read."""
