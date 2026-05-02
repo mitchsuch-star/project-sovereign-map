@@ -188,9 +188,9 @@ def close_episode_for_exit(
     (spec line 574). We do NOT clear ``current_episode_id`` because
     same-turn readers may still need to attribute battle / occupation /
     support events that fire after the exit stamp under correct event
-    ordering. ``exit_path`` (e.g. ``"separate_peace"``,
-    ``"common_peace"``, ``"eliminated"``) is recorded on the episode for
-    later debugging.
+    ordering. ``exit_path`` is accepted for call-site symmetry with
+    participant metadata, but is not written into the episode because
+    spec §9.1 keeps episode records to the contribution/timing fields.
 
     Returns the closed episode dict, or ``None`` if there is no active
     episode (no record / no current_episode_id).
@@ -206,8 +206,6 @@ def close_episode_for_exit(
         return None
     if episode.get("exited_turn") is None:
         episode["exited_turn"] = int(exited_turn)
-    if exit_path:
-        episode["exit_path"] = exit_path
     return episode
 
 
@@ -485,8 +483,17 @@ def classify_standing(
             return SEAT
         if has_material and share >= CONSULT_MATERIAL_SHARE_THRESHOLD:
             return CONSULT
-        # Cap: any active vassal participant defaults to beneficiary_only.
-        if is_active_same_side:
+        # Cap non-material standing inputs at beneficiary_only. The cap is
+        # not a floor: an unstaked auto-joined vassal stays no_standing.
+        if (
+            has_active_bargain_stake
+            or has_survival_stake
+            or is_named_beneficiary
+            or has_direct_territorial_interest
+            or is_treaty_ally_materially_involved
+            or rival_strengthened
+            or (is_active_same_side and has_material)
+        ):
             return BENEFICIARY_ONLY
         return NO_STANDING
 
