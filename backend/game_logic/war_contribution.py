@@ -45,7 +45,7 @@ no per-turn `world.regions.values()` walks. All readers go through
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 
 # ===========================================================================
@@ -675,6 +675,156 @@ def standing_for_participant(
 # inherit the war-score sub-1000 filter (spec §9.4 line 713).
 
 
+def detect_battle_theater(
+    world: Any,
+    *,
+    battle_region: str,
+    attacker_nation: str,
+    defender_nation: str,
+    attacker_marshal_name: Optional[str] = None,
+    defender_marshal_name: Optional[str] = None,
+    war_id: Optional[str] = None,
+    attacker_pre_battle_strength: Optional[int] = None,
+    defender_pre_battle_strength: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """One-hop adjacency theater detector for battle contribution (spec §9.4).
+
+    Builds the `attacker_participants` / `defender_participants` /
+    `nation_theater_strength` payload that `accrue_battle_contribution()`
+    consumes for theater-aware credit splitting. Per spec §9.4 line 717:
+
+    - A nation participates if it has an active marshal in the battle region
+      OR in any one-hop adjacent region during the turn of the battle.
+    - Only active participants in the same `war_instance` side can be credited.
+    - Credit divides by `nation_theater_strength` among detected participants
+      on that side (spec §9.4 line 721).
+
+    Whole-war credit is forbidden (spec §9.4 line 725): a same-side
+    participant fighting on a different front gets nothing from this battle.
+
+    Returns ``None`` when the battle cannot resolve into a war side
+    (no active war_instance owns the pair, or both nations land on
+    the same side). The caller must fall back to legacy single-attacker /
+    single-defender accrual in that case (the legacy adapter already
+    handles the no-`war_id` path inside `accrue_battle_contribution`).
+
+    `attacker_pre_battle_strength` / `defender_pre_battle_strength` are
+    optional overrides for the explicit attacker / defender; when paired with
+    marshal names they replace only that primary marshal's current
+    (post-battle) strength. Other same-nation marshals in the theater keep
+    their recorded strength, so multi-marshal same-nation theater strength
+    does not collapse to the primary combatant alone.
+    """
+    if not battle_region or not attacker_nation or not defender_nation:
+        return None
+    resolved_war_id = war_id or _resolve_active_war_id_for_pair(
+        world, attacker_nation, defender_nation,
+    )
+    if not resolved_war_id:
+        return None
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(resolved_war_id) or {}
+    if not instance:
+        return None
+    side_by_nation = instance.get("side_by_nation") or {}
+    attacker_side = side_by_nation.get(attacker_nation)
+    defender_side = side_by_nation.get(defender_nation)
+    if not attacker_side or not defender_side or attacker_side == defender_side:
+        return None
+
+    active_participants = set(instance.get("active_participants") or [])
+
+    theater_regions: Set[str] = {battle_region}
+    region_getter = getattr(world, "get_region", None)
+    region = region_getter(battle_region) if callable(region_getter) else None
+    if region is not None:
+        for adj in getattr(region, "adjacent_regions", []) or []:
+            if adj:
+                theater_regions.add(adj)
+
+    attacker_set: Set[str] = set()
+    defender_set: Set[str] = set()
+    nation_theater_strength: Dict[str, int] = {}
+
+    marshals = getattr(world, "marshals", None) or {}
+    for marshal in marshals.values():
+        if not marshal:
+            continue
+        location = getattr(marshal, "location", None)
+        if not location or location not in theater_regions:
+            continue
+        marshal_name = getattr(marshal, "name", None)
+        strength = max(0, int(getattr(marshal, "strength", 0) or 0))
+        if (
+            attacker_pre_battle_strength is not None
+            and attacker_marshal_name
+            and marshal_name == attacker_marshal_name
+        ):
+            strength = max(int(attacker_pre_battle_strength) or 0, 0)
+        elif (
+            defender_pre_battle_strength is not None
+            and defender_marshal_name
+            and marshal_name == defender_marshal_name
+        ):
+            strength = max(int(defender_pre_battle_strength) or 0, 0)
+        if strength <= 0:
+            continue
+        nation = getattr(marshal, "nation", None)
+        if not nation:
+            continue
+        if active_participants and nation not in active_participants:
+            continue
+        side = side_by_nation.get(nation)
+        if side == attacker_side:
+            attacker_set.add(nation)
+        elif side == defender_side:
+            defender_set.add(nation)
+        else:
+            continue
+        nation_theater_strength[nation] = (
+            nation_theater_strength.get(nation, 0) + strength
+        )
+
+    # Always credit the explicit attacker / defender even if their marshal
+    # was annihilated mid-resolve; floor 1 (or pre-battle override when the
+    # caller has it) keeps the per-side denominator non-zero.
+    attacker_set.add(attacker_nation)
+    defender_set.add(defender_nation)
+
+    if attacker_pre_battle_strength is not None:
+        if not attacker_marshal_name:
+            nation_theater_strength[attacker_nation] = max(
+                nation_theater_strength.get(attacker_nation, 0),
+                int(attacker_pre_battle_strength) or 0,
+                0,
+            )
+        else:
+            nation_theater_strength.setdefault(
+                attacker_nation, max(int(attacker_pre_battle_strength) or 0, 0),
+            )
+    if defender_pre_battle_strength is not None:
+        if not defender_marshal_name:
+            nation_theater_strength[defender_nation] = max(
+                nation_theater_strength.get(defender_nation, 0),
+                int(defender_pre_battle_strength) or 0,
+                0,
+            )
+        else:
+            nation_theater_strength.setdefault(
+                defender_nation, max(int(defender_pre_battle_strength) or 0, 0),
+            )
+
+    nation_theater_strength.setdefault(attacker_nation, 0)
+    nation_theater_strength.setdefault(defender_nation, 0)
+
+    return {
+        "war_id": resolved_war_id,
+        "attacker_participants": sorted(attacker_set),
+        "defender_participants": sorted(defender_set),
+        "nation_theater_strength": dict(nation_theater_strength),
+    }
+
+
 def _resolve_active_war_id_for_pair(
     world: Any, nation_a: str, nation_b: str,
 ) -> Optional[str]:
@@ -952,6 +1102,7 @@ __all__ = [
     "current_episode",
     "current_episode_material_total",
     "current_episode_total",
+    "detect_battle_theater",
     "iter_active_episodes",
     "material_contribution_points",
     "material_contribution_share",

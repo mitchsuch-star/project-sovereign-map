@@ -43,6 +43,7 @@ from backend.game_logic.war_contribution import (
     current_episode,
     current_episode_material_total,
     current_episode_total,
+    detect_battle_theater,
     iter_active_episodes,
     material_contribution_share,
     open_episode,
@@ -1212,3 +1213,742 @@ def test_accrue_battle_contribution_enforces_episode_turn_window():
     assert austria_episode is not None
     assert france_episode["battle"] == 40
     assert austria_episode["battle"] == 0
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — `detect_battle_theater()` helper
+#
+# The detector implements the spec §9.4 line 717 one-hop adjacency rule that
+# the three battle emitters (`_post_combat_pipeline`, `_execute_attack` inline
+# diplo path, auto-dispatch charge in `WorldState`) consume. Whole-war credit
+# (giving every same-side participant battle bucket points regardless of
+# location) is forbidden by spec §9.4 line 725.
+# ===========================================================================
+
+
+def _seat_marshal(world, *, name, nation, location, strength=10000):
+    """Insert a synthetic marshal directly into `world.marshals`.
+
+    Bypasses MarshalFactory's defaults (which spawn at Paris) so emitter tests
+    can place participants in arbitrary regions without touching nation
+    starting rosters.
+    """
+    from backend.models.marshal import Marshal
+    marshal = Marshal(
+        name=name,
+        location=location,
+        strength=strength,
+        personality="cautious",
+        nation=nation,
+        movement_range=1,
+        tactical_skill=7,
+        skills={"tactical": 7, "shock": 7, "defense": 7,
+                "logistics": 7, "administration": 7, "command": 7},
+        cavalry=False,
+        artillery=False,
+        spawn_location=location,
+    )
+    world.marshals[name] = marshal
+    return marshal
+
+
+def _clear_default_marshals(world):
+    """Wipe `world.marshals` so emitter tests can seat exact participants
+    without inheriting the live game's starting roster (Reynier in Dresden,
+    Schwarzenberg in Bohemia, etc.).
+    """
+    world.marshals.clear()
+    if hasattr(world, "_build_marshal_index"):
+        world._build_marshal_index()
+
+
+def test_detect_battle_theater_returns_none_when_no_active_war_instance():
+    """Spec §9.4: theater detection requires a resolvable `war_id`."""
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    world.war_instances.clear()
+    world.invalidate_war_instance_indexes()
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+    )
+    assert payload is None
+
+
+def test_detect_battle_theater_returns_none_when_nations_on_same_side():
+    """No-op when caller's two nations share a side (cannot be a battle)."""
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Saxony",
+        war_id="war_1",
+    )
+    assert payload is None
+
+
+def test_detect_battle_theater_credits_one_hop_adjacent_allies():
+    """Spec §9.4 line 717: an ally with a marshal in a one-hop adjacent
+    region gets credited with theater participation; an ally on a distant
+    front does NOT receive whole-war free credit (line 725).
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria", "Russia"),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=30000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=12000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=25000)
+    # Russian ally far from the Saxony theater — must NOT get credit.
+    _seat_marshal(world, name="Kutuzov", nation="Russia",
+                  location="Tyrol", strength=20000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+    )
+    assert payload is not None
+    assert payload["war_id"] == "war_1"
+    # Saxony (Bohemia is one-hop) gets battle credit; Russia (Tyrol) does not.
+    assert "Saxony" in payload["attacker_participants"]
+    assert "France" in payload["attacker_participants"]
+    assert "Russia" not in payload["defender_participants"]
+    assert payload["nation_theater_strength"]["France"] >= 30000
+    assert payload["nation_theater_strength"]["Saxony"] == 12000
+    assert payload["nation_theater_strength"]["Austria"] >= 25000
+    assert "Russia" not in payload["nation_theater_strength"]
+
+
+def test_detect_battle_theater_pre_battle_strength_overrides_post_battle():
+    """When the caller has pre-battle strengths captured (the post-combat
+    pipeline + inline `_execute_attack` always do), those override the
+    marshals' (post-battle) `.strength` for the explicit attacker/defender.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=200)  # post-battle remnant
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=300)  # post-battle remnant
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+        attacker_marshal_name="Napoleon",
+        defender_marshal_name="Charles",
+        attacker_pre_battle_strength=45000,
+        defender_pre_battle_strength=30000,
+    )
+    assert payload is not None
+    assert payload["nation_theater_strength"]["France"] == 45000
+    assert payload["nation_theater_strength"]["Austria"] == 30000
+
+
+def test_detect_battle_theater_preserves_same_nation_secondary_strength():
+    """Primary pre-battle overrides replace only that marshal, not the whole
+    nation bucket. Same-nation allies in the one-hop theater still count.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=200)  # post-battle remnant
+    _seat_marshal(world, name="Davout", nation="France",
+                  location="Bohemia", strength=20000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=300)
+    _seat_marshal(world, name="Bellegarde", nation="Austria",
+                  location="Bohemia", strength=12000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+        attacker_marshal_name="Napoleon",
+        defender_marshal_name="Charles",
+        attacker_pre_battle_strength=45000,
+        defender_pre_battle_strength=30000,
+    )
+    assert payload is not None
+    assert payload["nation_theater_strength"]["France"] == 65000
+    assert payload["nation_theater_strength"]["Austria"] == 42000
+
+
+def test_detect_battle_theater_filters_inactive_participants():
+    """Only nations in the war_instance `active_participants` list can be
+    credited — eliminated participants must not soak up theater credit.
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    # Saxony was eliminated — drop from active roster but keep a stray
+    # marshal in theater (e.g. liberation army that was never disbanded).
+    instance = world.war_instances["war_1"]
+    instance["active_participants"] = ["France", "Austria"]
+
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=30000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=12000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=25000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+    )
+    assert payload is not None
+    assert "Saxony" not in payload["attacker_participants"]
+    assert "Saxony" not in payload["nation_theater_strength"]
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — call-site source-order guards
+#
+# Each of the three battle paths must (a) call `detect_battle_theater` BEFORE
+# its `record_diplo_battle` call, and (b) forward `war_id`,
+# `attacker_participants`, `defender_participants`, and
+# `nation_theater_strength` to the diplomatic recorder. The source-order
+# assertion catches a future refactor that drops the theater payload while
+# keeping the `record_diplo_battle` call alive.
+# ===========================================================================
+
+
+def test_post_combat_pipeline_source_calls_detect_battle_theater_before_record():
+    """Glorious-charge / inline-attack / bombardment all funnel through
+    `_post_combat_pipeline`. The pipeline's diplo step must detect theater
+    BEFORE forwarding to `record_diplo_battle`.
+    """
+    import inspect
+
+    from backend.commands import combat_executor
+
+    src = inspect.getsource(combat_executor.CombatExecutor._post_combat_pipeline)
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_post_combat_pipeline() must call detect_battle_theater() — "
+        "Imperial Settlement B2 theater-aware emitter wiring."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos, (
+        "Theater detection must precede record_diplo_battle() so the "
+        "theater payload reaches accrue_battle_contribution()."
+    )
+    # Forwarded fields must appear in the record_diplo_battle keyword args.
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+def test_execute_attack_inline_source_calls_detect_battle_theater_before_record():
+    """`_execute_attack` records its diplo battle inline (before the
+    pipeline call sets `skip_diplo_record=True`). That inline path must
+    also detect theater and forward the payload.
+    """
+    import inspect
+
+    from backend.commands import combat_executor
+
+    src = inspect.getsource(combat_executor.CombatExecutor._execute_attack)
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_execute_attack() inline path must call detect_battle_theater() "
+        "before record_diplo_battle()."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+def test_auto_dispatch_charge_source_calls_detect_battle_theater_before_record():
+    """The reckless-cavalry auto-charge path is the third battle emitter
+    (it bypasses both `_post_combat_pipeline` and `_execute_attack`). Same
+    source-order contract applies.
+    """
+    import inspect
+
+    from backend.models import world_state
+
+    src = inspect.getsource(
+        world_state.WorldState._process_reckless_cavalry_turn_start,
+    )
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_process_reckless_cavalry_turn_start() must call "
+        "detect_battle_theater() before record_diplo_battle()."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — behavioral end-to-end fixtures
+#
+# Each fixture drives a real combat path and asserts the contribution store
+# lands the expected per-nation `battle` points. Distant same-side
+# participants must NOT receive whole-war free credit (spec §9.4 line 725).
+# ===========================================================================
+
+
+def _setup_three_theater_world(*, attackers=("France", "Saxony", "Spain"),
+                                  defenders=("Austria", "Russia"),
+                                  attacker_leader="France",
+                                  defender_leader="Austria"):
+    """Three-theater fixture: France+Saxony fight Austria in Saxony,
+    Spain is on a distant front (Madrid/Iberia), Russia is also distant.
+    """
+    world = _build_world_with_war(
+        attackers=attackers,
+        defenders=defenders,
+        attacker_leader=attacker_leader,
+        defender_leader=defender_leader,
+    )
+    diplo_key = world._make_diplo_key(attacker_leader, defender_leader)
+    world.diplomatic_states[diplo_key] = "WAR"
+    for nation in attackers + defenders:
+        open_episode(world, "war_1", nation, joined_turn=1)
+    return world
+
+
+def test_post_combat_pipeline_emits_theater_data_for_glorious_charge():
+    """End-to-end: drive `_post_combat_pipeline` with `is_glorious_charge=True`
+    and verify the theater payload reaches contribution accrual.
+
+    Saxony ally (in Bohemia, one-hop adjacent to Saxony battle region)
+    receives battle credit; Spain ally (in Marseille, distant) does not.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world()
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+    # Distant Spanish ally — must not be credited.
+    _seat_marshal(world, name="DistantAlly", nation="Spain",
+                  location="Marseille", strength=20000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 5000,
+        "defender_casualties": 8000,
+        "pre_battle_attacker_strength": 45000,
+        "pre_battle_defender_strength": 38000,
+        "battle_result": None,
+        "conquered": False,
+        "is_glorious_charge": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    spain_ep = current_episode(world, "war_1", "Spain")
+    austria_ep = current_episode(world, "war_1", "Austria")
+
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert spain_ep is not None
+    assert austria_ep is not None
+
+    # France + Saxony split the 40-point attacker battle bucket; Saxony
+    # earned non-zero credit for being one-hop adjacent. Spain (distant)
+    # gets nothing.
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert spain_ep["battle"] == 0
+    # Austria absorbs the full defender bucket as the only theater defender.
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_distant_same_side_participant_no_free_credit():
+    """Slice B v1 baseline: a same-side participant on a distant front
+    accrues nothing from this front's battle. Whole-war credit is forbidden
+    by spec §9.4 line 725.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France",),
+        defenders=("Austria", "Russia"),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+    # Russia in a far theater; should never collect Saxony battle credit.
+    _seat_marshal(world, name="Kutuzov", nation="Russia",
+                  location="Marseille", strength=25000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 4000,
+        "defender_casualties": 9000,
+        "pre_battle_attacker_strength": 44000,
+        "pre_battle_defender_strength": 39000,
+        "battle_result": None,
+        "conquered": False,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    russia_ep = current_episode(world, "war_1", "Russia")
+    assert russia_ep is not None
+    assert russia_ep["battle"] == 0
+    assert russia_ep["total"] == 0
+
+
+def test_post_combat_pipeline_garrison_emits_theater_data():
+    """Garrison combat has no defender marshal, but the pipeline still has a
+    defender nation and pre-battle garrison strength for contribution.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": None,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 2000,
+        "defender_casualties": 7000,
+        "pre_battle_attacker_strength": 42000,
+        "pre_battle_defender_strength": 18000,
+        "battle_result": None,
+        "conquered": True,
+        "is_garrison": True,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_bombardment_emits_theater_data():
+    """Bombardment routes through the same pipeline diplo emitter."""
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "bombardment",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 0,
+        "defender_casualties": 6000,
+        "pre_battle_attacker_strength": 40000,
+        "pre_battle_defender_strength": 36000,
+        "battle_result": None,
+        "conquered": False,
+        "is_bombardment": True,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_idle_reset": True,
+        "skip_exhaustion": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_theater_none_falls_back_to_legacy_adapter():
+    """If theater detection cannot build a payload, record_battle still uses
+    the legacy single-attacker / single-defender adapter.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 4000,
+        "defender_casualties": 9000,
+        "pre_battle_attacker_strength": 44000,
+        "pre_battle_defender_strength": 39000,
+        "battle_result": None,
+        "conquered": False,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] == 40
+    assert saxony_ep["battle"] == 0
+    assert austria_ep["battle"] == 40
+
+
+def test_auto_dispatch_charge_emits_theater_data():
+    """Drive the reckless-cavalry auto-charge in `world_state.py` and verify
+    the theater payload reaches contribution accrual. This path bypasses
+    `_post_combat_pipeline` — it's the last of the three battle emitters.
+    """
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    # Reckless cavalry needs aggressive personality + cavalry=True.
+    # Glorious charge gives 2x damage so a heavy cavalry stack overwhelms
+    # the defender — needed for a clear attacker_victory outcome that
+    # triggers the diplo-record path.
+    from backend.models.marshal import Marshal
+    murat = Marshal(
+        name="Murat", location="Bohemia", strength=80000,
+        personality="aggressive", nation="France",
+        cavalry=True, movement_range=2, tactical_skill=10,
+        skills={"tactical": 10, "shock": 10, "defense": 7,
+                "logistics": 7, "administration": 7, "command": 10},
+        spawn_location="Bohemia",
+    )
+    murat.recklessness = 4
+    world.marshals["Murat"] = murat
+    # Saxony ally in the Saxony battle region — should accrue alongside France.
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Saxony", strength=10000)
+    # Austrian target in the Saxony theater (Bohemia <-> Saxony are adjacent).
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=8000)
+
+    world._process_reckless_cavalry_turn_start()
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    # France must collect attacker-side credit (Murat's home nation) and
+    # Saxony allies in the Saxony battle region pick up share of the
+    # battle bucket too. Distant participants would NOT (none in this fixture).
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    # Austria absorbs full defender bucket as the only theater defender.
+    assert austria_ep["battle"] == 40
+
+
+def test_inline_execute_attack_emits_theater_data():
+    """Drive the inline `_execute_attack()` diplo-record path through a
+    full attack and verify theater data reaches contribution accrual.
+
+    The inline path's `record_diplo_battle()` call fires BEFORE
+    `_post_combat_pipeline(skip_diplo_record=True)` runs, so the inline
+    path is its own emitter and is independently tested here.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Bohemia", strength=120000)
+    # Saxony ally one-hop adjacent to the Saxony battle region.
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Berlin", strength=12000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=8000)
+    # Set Saxony's controller to Austria so Napoleon can attack into enemy
+    # territory; the attack then resolves inline.
+    saxony_region = world.get_region("Saxony")
+    if saxony_region is not None:
+        saxony_region.controller = "Austria"
+    bohemia_region = world.get_region("Bohemia")
+    if bohemia_region is not None:
+        bohemia_region.controller = "France"
+
+    executor = CommandExecutor()
+    game_state = {"world": world}
+    result = executor._combat._execute_attack(
+        marshal=napoleon,
+        target="Saxony",
+        world=world,
+        game_state=game_state,
+    )
+    # The attack must resolve (no AP / objection / fog blocker for this
+    # synthetic setup); on success the inline diplo path will have fired.
+    assert result.get("success"), (
+        f"_execute_attack returned failure: {result.get('message')}"
+    )
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    # France must accrue from its own attack; Saxony (one-hop adjacent in
+    # Berlin) must also accrue. Austria (defender) must accrue too.
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] > 0

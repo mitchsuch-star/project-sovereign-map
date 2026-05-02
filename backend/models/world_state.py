@@ -7025,11 +7025,26 @@ class WorldState:
 
                 # Record battle for diplomacy war score
                 from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+                from backend.game_logic.war_contribution import detect_battle_theater
                 outcome = combat_result.get("outcome", "")
                 atk_won_diplo = "attacker" in outcome and "victory" in outcome
                 def_won_diplo = "defender" in outcome and "victory" in outcome
                 diplo_winner = marshal.nation if atk_won_diplo else (enemy.nation if def_won_diplo else None)
                 if diplo_winner:
+                    # Imperial Settlement B2: theater-aware emitter — pass
+                    # one-hop adjacency participants + theater strength so
+                    # allies near the battle receive battle-bucket credit
+                    # (spec §9.4 line 717).
+                    theater = detect_battle_theater(
+                        self,
+                        battle_region=auto_charge_battle_region,
+                        attacker_nation=marshal.nation,
+                        defender_nation=enemy.nation,
+                        attacker_marshal_name=getattr(marshal, "name", None),
+                        defender_marshal_name=getattr(enemy, "name", None),
+                        attacker_pre_battle_strength=int(pre_battle_atk),
+                        defender_pre_battle_strength=int(pre_battle_def),
+                    )
                     record_diplo_battle(
                         self,
                         attacker_nation=marshal.nation,
@@ -7038,6 +7053,10 @@ class WorldState:
                         attacker_casualties=int(combat_result.get("attacker", {}).get("casualties", 0)),
                         defender_casualties=int(combat_result.get("defender", {}).get("casualties", 0)),
                         location=auto_charge_battle_region,
+                        war_id=(theater or {}).get("war_id"),
+                        attacker_participants=(theater or {}).get("attacker_participants"),
+                        defender_participants=(theater or {}).get("defender_participants"),
+                        nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                     )
 
                 # Only reset recklessness when the charge actually executed.

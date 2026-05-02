@@ -914,12 +914,26 @@ class CombatExecutor:
         # ── 8. Record battle for diplomacy war score ──
         if not ctx.get('skip_diplo_record'):
             from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+            from backend.game_logic.war_contribution import detect_battle_theater
             diplo_winner = None
             if attacker_won:
                 diplo_winner = attacker.nation
             elif defender_won:
                 diplo_winner = defender_nation
             if diplo_winner:
+                # Imperial Settlement B2: theater-aware emitter — pass one-hop
+                # adjacency participants + theater strength so allies near the
+                # battle receive battle-bucket credit (spec §9.4 line 717).
+                theater = detect_battle_theater(
+                    world,
+                    battle_region=battle_region,
+                    attacker_nation=attacker.nation,
+                    defender_nation=defender_nation,
+                    attacker_marshal_name=getattr(attacker, "name", None),
+                    defender_marshal_name=getattr(defender, "name", None),
+                    attacker_pre_battle_strength=int(pre_atk),
+                    defender_pre_battle_strength=int(pre_def),
+                )
                 record_diplo_battle(
                     world,
                     attacker_nation=attacker.nation,
@@ -928,6 +942,10 @@ class CombatExecutor:
                     attacker_casualties=int(atk_casualties),
                     defender_casualties=int(def_casualties),
                     location=battle_region,
+                    war_id=(theater or {}).get("war_id"),
+                    attacker_participants=(theater or {}).get("attacker_participants"),
+                    defender_participants=(theater or {}).get("defender_participants"),
+                    nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                 )
 
         # ── 9. Set last_combat_result ──
@@ -3280,11 +3298,25 @@ class CombatExecutor:
 
         # Record battle for diplomatic war score (Phase 8 Session 2)
         from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+        from backend.game_logic.war_contribution import detect_battle_theater
         outcome = battle_result.get("outcome", "")
         atk_won = "attacker" in outcome and "victory" in outcome
         def_won = "defender" in outcome and "victory" in outcome
         diplo_winner = marshal.nation if atk_won else (enemy_marshal.nation if def_won else None)
         if diplo_winner:
+            # Imperial Settlement B2: theater-aware emitter — pass one-hop
+            # adjacency participants + theater strength so allies near the
+            # battle receive battle-bucket credit (spec §9.4 line 717).
+            theater = detect_battle_theater(
+                world,
+                battle_region=target_location,
+                attacker_nation=marshal.nation,
+                defender_nation=enemy_marshal.nation,
+                attacker_marshal_name=getattr(marshal, "name", None),
+                defender_marshal_name=getattr(enemy_marshal, "name", None),
+                attacker_pre_battle_strength=int(pre_battle_attacker_strength),
+                defender_pre_battle_strength=int(pre_battle_defender_strength),
+            )
             record_diplo_battle(
                 world,
                 attacker_nation=marshal.nation,
@@ -3293,6 +3325,10 @@ class CombatExecutor:
                 attacker_casualties=int(battle_result.get("attacker", {}).get("casualties", 0)),
                 defender_casualties=int(battle_result.get("defender", {}).get("casualties", 0)),
                 location=target_location,
+                war_id=(theater or {}).get("war_id"),
+                attacker_participants=(theater or {}).get("attacker_participants"),
+                defender_participants=(theater or {}).get("defender_participants"),
+                nation_theater_strength=(theater or {}).get("nation_theater_strength"),
             )
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
