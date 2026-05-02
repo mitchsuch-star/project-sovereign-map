@@ -1,4 +1,4 @@
-"""Imperial Settlement / Ally Participation — Contribution Tracker (Slices B1 + B2 ordering guard).
+"""Imperial Settlement / Ally Participation — Contribution Tracker (Slices B1 + B2).
 
 Slice B1 ships (already landed):
 
@@ -14,22 +14,31 @@ Slice B1 ships (already landed):
   term-derived booleans explicitly so B1 callers never fabricate Slice C/D
   reaction state.
 
-Slice B2 ordering guard ships (this commit):
+Slice B2 ordering guard + emitter wiring (already landed):
 
 - `accrue_battle_contribution(...)` — the canonical battle-bucket accrual
   entrypoint, called from `diplomacy.record_battle()` BEFORE the 1000-casualty
   war-score early return (spec §9.4: sub-1000-casualty battles still accrue
-  settlement contribution). Accepts legacy single-attacker/single-defender
-  shape (current call sites) and theater shape (post-B2 emitter wiring).
+  settlement contribution).
+- `detect_battle_theater(...)` — one-hop adjacency theater detector consumed
+  by `_post_combat_pipeline()` / `_execute_attack()` inline / auto-dispatch
+  charge.
 
-Future B2 work (not in this commit):
+Slice B2 non-battle emitters (this commit):
 
-- Theater-aware call-site updates: `_post_combat_pipeline()`,
-  `_execute_attack()` inline path, auto-dispatch charge path, glorious-charge
-  pipeline. Each must pass `attacker_participants`, `defender_participants`,
-  and `nation_theater_strength` derived from one-hop adjacency.
-- Occupation, support, and treaty-clause emitters.
-- British coalition subsidy attribution.
+- `accrue_occupation_event(...)` — `war_occupation_event` accrual for
+  enemy_region_captured (20), enemy_capital_captured (40),
+  allied_region_restored (15), liberated_region_restored (15) per spec §9.2.
+  `treaty_transfer` is logged but not accrued (spec §9.2 line 641).
+- `emit_capture_occupation_event(...)` — capture-path convenience wrapper
+  that classifies the kind from `from_controller`, captured region, and
+  same-side ally membership before delegating to `accrue_occupation_event`.
+- `accrue_support_event(...)` — `war_support_delivered` accrual for
+  gold / subsidy / ap / manpower / access / supply per spec §9.2 line 614,
+  with episode-id dedupe and per-`(war_id, supporter, support_kind)`
+  access/supply cap.
+- `resolve_british_subsidy_war_id(...)` — deterministic war attribution for
+  `_process_british_subsidy()` per impl plan B2 bullets.
 
 Slice B3 ships (later):
 
@@ -45,7 +54,7 @@ no per-turn `world.regions.values()` walks. All readers go through
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 
 # ===========================================================================
@@ -675,6 +684,156 @@ def standing_for_participant(
 # inherit the war-score sub-1000 filter (spec §9.4 line 713).
 
 
+def detect_battle_theater(
+    world: Any,
+    *,
+    battle_region: str,
+    attacker_nation: str,
+    defender_nation: str,
+    attacker_marshal_name: Optional[str] = None,
+    defender_marshal_name: Optional[str] = None,
+    war_id: Optional[str] = None,
+    attacker_pre_battle_strength: Optional[int] = None,
+    defender_pre_battle_strength: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """One-hop adjacency theater detector for battle contribution (spec §9.4).
+
+    Builds the `attacker_participants` / `defender_participants` /
+    `nation_theater_strength` payload that `accrue_battle_contribution()`
+    consumes for theater-aware credit splitting. Per spec §9.4 line 717:
+
+    - A nation participates if it has an active marshal in the battle region
+      OR in any one-hop adjacent region during the turn of the battle.
+    - Only active participants in the same `war_instance` side can be credited.
+    - Credit divides by `nation_theater_strength` among detected participants
+      on that side (spec §9.4 line 721).
+
+    Whole-war credit is forbidden (spec §9.4 line 725): a same-side
+    participant fighting on a different front gets nothing from this battle.
+
+    Returns ``None`` when the battle cannot resolve into a war side
+    (no active war_instance owns the pair, or both nations land on
+    the same side). The caller must fall back to legacy single-attacker /
+    single-defender accrual in that case (the legacy adapter already
+    handles the no-`war_id` path inside `accrue_battle_contribution`).
+
+    `attacker_pre_battle_strength` / `defender_pre_battle_strength` are
+    optional overrides for the explicit attacker / defender; when paired with
+    marshal names they replace only that primary marshal's current
+    (post-battle) strength. Other same-nation marshals in the theater keep
+    their recorded strength, so multi-marshal same-nation theater strength
+    does not collapse to the primary combatant alone.
+    """
+    if not battle_region or not attacker_nation or not defender_nation:
+        return None
+    resolved_war_id = war_id or _resolve_active_war_id_for_pair(
+        world, attacker_nation, defender_nation,
+    )
+    if not resolved_war_id:
+        return None
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(resolved_war_id) or {}
+    if not instance:
+        return None
+    side_by_nation = instance.get("side_by_nation") or {}
+    attacker_side = side_by_nation.get(attacker_nation)
+    defender_side = side_by_nation.get(defender_nation)
+    if not attacker_side or not defender_side or attacker_side == defender_side:
+        return None
+
+    active_participants = set(instance.get("active_participants") or [])
+
+    theater_regions: Set[str] = {battle_region}
+    region_getter = getattr(world, "get_region", None)
+    region = region_getter(battle_region) if callable(region_getter) else None
+    if region is not None:
+        for adj in getattr(region, "adjacent_regions", []) or []:
+            if adj:
+                theater_regions.add(adj)
+
+    attacker_set: Set[str] = set()
+    defender_set: Set[str] = set()
+    nation_theater_strength: Dict[str, int] = {}
+
+    marshals = getattr(world, "marshals", None) or {}
+    for marshal in marshals.values():
+        if not marshal:
+            continue
+        location = getattr(marshal, "location", None)
+        if not location or location not in theater_regions:
+            continue
+        marshal_name = getattr(marshal, "name", None)
+        strength = max(0, int(getattr(marshal, "strength", 0) or 0))
+        if (
+            attacker_pre_battle_strength is not None
+            and attacker_marshal_name
+            and marshal_name == attacker_marshal_name
+        ):
+            strength = max(int(attacker_pre_battle_strength) or 0, 0)
+        elif (
+            defender_pre_battle_strength is not None
+            and defender_marshal_name
+            and marshal_name == defender_marshal_name
+        ):
+            strength = max(int(defender_pre_battle_strength) or 0, 0)
+        if strength <= 0:
+            continue
+        nation = getattr(marshal, "nation", None)
+        if not nation:
+            continue
+        if active_participants and nation not in active_participants:
+            continue
+        side = side_by_nation.get(nation)
+        if side == attacker_side:
+            attacker_set.add(nation)
+        elif side == defender_side:
+            defender_set.add(nation)
+        else:
+            continue
+        nation_theater_strength[nation] = (
+            nation_theater_strength.get(nation, 0) + strength
+        )
+
+    # Always credit the explicit attacker / defender even if their marshal
+    # was annihilated mid-resolve; floor 1 (or pre-battle override when the
+    # caller has it) keeps the per-side denominator non-zero.
+    attacker_set.add(attacker_nation)
+    defender_set.add(defender_nation)
+
+    if attacker_pre_battle_strength is not None:
+        if not attacker_marshal_name:
+            nation_theater_strength[attacker_nation] = max(
+                nation_theater_strength.get(attacker_nation, 0),
+                int(attacker_pre_battle_strength) or 0,
+                0,
+            )
+        else:
+            nation_theater_strength.setdefault(
+                attacker_nation, max(int(attacker_pre_battle_strength) or 0, 0),
+            )
+    if defender_pre_battle_strength is not None:
+        if not defender_marshal_name:
+            nation_theater_strength[defender_nation] = max(
+                nation_theater_strength.get(defender_nation, 0),
+                int(defender_pre_battle_strength) or 0,
+                0,
+            )
+        else:
+            nation_theater_strength.setdefault(
+                defender_nation, max(int(defender_pre_battle_strength) or 0, 0),
+            )
+
+    nation_theater_strength.setdefault(attacker_nation, 0)
+    nation_theater_strength.setdefault(defender_nation, 0)
+
+    return {
+        "war_id": resolved_war_id,
+        "attacker_participants": sorted(attacker_set),
+        "defender_participants": sorted(defender_set),
+        "nation_theater_strength": dict(nation_theater_strength),
+    }
+
+
 def _resolve_active_war_id_for_pair(
     world: Any, nation_a: str, nation_b: str,
 ) -> Optional[str]:
@@ -930,7 +1089,612 @@ def accrue_battle_contribution(
     }
 
 
+# ===========================================================================
+# Slice B2 — Occupation event accrual (spec §9.2 / §9.4)
+# ===========================================================================
+
+# Spec §9.2 line 641 raw point values, applied directly to `episode["occupation"]`.
+# `treaty_transfer` is logged but not accrued (spec §9.2 line 641: "treaty_transfer
+# events are ignored for contribution unless a future settlement-followup
+# explicitly marks them as wartime occupation credit").
+OCCUPATION_POINTS: Dict[str, int] = {
+    "enemy_region_captured": 20,
+    "enemy_capital_captured": 40,
+    "allied_region_restored": 15,
+    "liberated_region_restored": 15,
+    "treaty_transfer": 0,
+}
+
+OCCUPATION_KINDS: Tuple[str, ...] = tuple(OCCUPATION_POINTS.keys())
+
+
+def _episode_accepts_event_turn(
+    episode: Mapping[str, Any], turn: Optional[int],
+) -> bool:
+    """Inclusive ``joined_turn <= turn <= exited_turn`` boundary check.
+
+    Same rule as the per-battle filter inside `accrue_battle_contribution`:
+    spec §7.5 / §9.5 require this exact boundary so same-turn exits still see
+    the turn's contribution events when emitted before the exit stamp lands.
+    """
+    if turn is None:
+        return True
+    event_turn = int(turn)
+    joined = episode.get("joined_turn")
+    if joined is not None and event_turn < int(joined):
+        return False
+    exited = episode.get("exited_turn")
+    if exited is not None and event_turn > int(exited):
+        return False
+    return True
+
+
+def _resolve_war_id_for_pair_on_opposite_sides(
+    world: Any, actor_nation: str, target_nation: str,
+) -> Optional[str]:
+    """Return the active `war_id` where actor and target are on opposite sides.
+
+    Equivalent to `_resolve_active_war_id_for_pair` plus a side-membership
+    check. Used by occupation accrual when the caller hands us
+    ``actor_nation`` + ``target_nation`` (the previous controller of a
+    captured region) without already knowing the war_id.
+    """
+    war_id = _resolve_active_war_id_for_pair(world, actor_nation, target_nation)
+    if not war_id:
+        return None
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(war_id) or {}
+    side_by_nation = instance.get("side_by_nation") or {}
+    a_side = side_by_nation.get(actor_nation)
+    t_side = side_by_nation.get(target_nation)
+    if not a_side or not t_side or a_side == t_side:
+        return None
+    return war_id
+
+
+def accrue_occupation_event(
+    world: Any,
+    *,
+    actor_nation: str,
+    region: str,
+    occupation_kind: str,
+    from_controller: str = "",
+    to_controller: str = "",
+    war_id: Optional[str] = None,
+    target_nation: Optional[str] = None,
+    turn: Optional[int] = None,
+    event_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Accrue one occupation event into ``war_contribution_scores`` (spec §9.2).
+
+    Returns the accrual event dict on success, ``None`` on no-op:
+
+    - ``occupation_kind`` not in ``OCCUPATION_KINDS``.
+    - ``actor_nation`` empty.
+    - ``war_id`` cannot be resolved (`target_nation` must place the actor on
+      a side opposite ``target_nation`` in some active `war_instance`).
+    - Actor has no active episode in that war (spec §7.5).
+    - Episode's `joined_turn`/`exited_turn` window excludes ``turn``.
+    - ``treaty_transfer`` (spec §9.2 line 641: logged but not accrued).
+    - Duplicate ``event_id`` already seen for this nation in this war.
+
+    Per-event raw points are taken directly from ``OCCUPATION_POINTS`` and
+    added to ``episode["occupation"]`` plus ``episode["total"]``. Slice B
+    stores raw bucket points; standing computation derives shares at read
+    time (spec §9.2 normalization formula).
+    """
+    if not actor_nation:
+        return None
+    if occupation_kind not in OCCUPATION_KINDS:
+        return None
+
+    resolved_war_id = war_id
+    if not resolved_war_id and target_nation:
+        resolved_war_id = _resolve_war_id_for_pair_on_opposite_sides(
+            world, actor_nation, target_nation,
+        )
+    if not resolved_war_id:
+        return None
+
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(resolved_war_id) or {}
+    if not instance:
+        return None
+    side_by_nation = instance.get("side_by_nation") or {}
+    actor_side = side_by_nation.get(actor_nation)
+    if not actor_side:
+        return None
+    active_participants = set(instance.get("active_participants") or [])
+    if active_participants and actor_nation not in active_participants:
+        return None
+
+    points = OCCUPATION_POINTS.get(occupation_kind, 0)
+    record = _get_nation_record(world, resolved_war_id, actor_nation)
+    if not record:
+        return None
+    seen = record.setdefault("seen_occupation_event_ids", [])
+    if event_id and event_id in seen:
+        return None
+    episode = current_episode(world, resolved_war_id, actor_nation)
+    if episode is None:
+        return None
+    if not _episode_accepts_event_turn(episode, turn):
+        return None
+
+    if points > 0:
+        episode["occupation"] = int(episode.get("occupation") or 0) + points
+        episode["total"] = int(episode.get("total") or 0) + points
+    if event_id:
+        seen.append(event_id)
+
+    return {
+        "type": "war_occupation_event",
+        "war_id": resolved_war_id,
+        "actor_nation": actor_nation,
+        "side": actor_side,
+        "region": region,
+        "from_controller": from_controller,
+        "to_controller": to_controller,
+        "occupation_kind": occupation_kind,
+        "points_accrued": int(points),
+        "turn": int(turn) if turn is not None else None,
+        "episode_id": event_id,
+    }
+
+
+def _classify_capture_occupation_kind(
+    world: Any,
+    *,
+    region: str,
+    actor_nation: str,
+    from_controller: str,
+    war_id: str,
+) -> str:
+    """Decide which occupation_kind a capture event represents (spec §9.2 line 583).
+
+    - If the captured region is the previous controller's national capital,
+      it is `enemy_capital_captured`.
+    - Else if the region's `starting_controller` is a same-side ally of the
+      actor, it is `allied_region_restored`.
+    - Else it is `enemy_region_captured`.
+
+    Returns ``""`` if no kind applies (e.g. malformed inputs).
+    """
+    if not region or not actor_nation:
+        return ""
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(war_id) or {}
+    side_by_nation = instance.get("side_by_nation") or {}
+    actor_side = side_by_nation.get(actor_nation)
+    if not actor_side:
+        return ""
+
+    # Capital match — single source of truth in `region.NATION_CAPITALS`.
+    if from_controller:
+        try:
+            from backend.models.region import NATION_CAPITALS
+        except Exception:  # pragma: no cover — import guard
+            NATION_CAPITALS = {}
+        if NATION_CAPITALS.get(from_controller) == region:
+            return "enemy_capital_captured"
+
+    # Ally restoration — captured region's lawful (starting) owner is a
+    # same-side ally of actor in this war_instance. The Region class doesn't
+    # store starting controller (only current controller); the
+    # `get_starting_controllers()` helper is the single source of truth
+    # (see `region.NATION_CAPITALS` documentation block).
+    starting_controller = ""
+    try:
+        from backend.models.region import get_starting_controllers
+        starting_controller = get_starting_controllers().get(region, "") or ""
+    except Exception:  # pragma: no cover — import guard
+        starting_controller = ""
+    if (
+        starting_controller
+        and starting_controller != actor_nation
+        and side_by_nation.get(starting_controller) == actor_side
+    ):
+        return "allied_region_restored"
+
+    return "enemy_region_captured"
+
+
+def emit_capture_occupation_event(
+    world: Any,
+    *,
+    actor_nation: str,
+    region: str,
+    from_controller: str,
+    turn: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Capture-path convenience wrapper around `accrue_occupation_event`.
+
+    Resolves the war_id from ``(actor_nation, from_controller)``, classifies
+    the occupation_kind via `_classify_capture_occupation_kind`, and emits
+    the event. Returns ``None`` if the capture has no resolvable war (e.g.
+    actor and previous controller are not at war in any active war_instance).
+
+    Caller is the controller-change site (`world_state.capture_region`); this
+    keeps the kind-classification logic out of the model code per the project
+    convention of routing event-driven contribution emission through
+    `war_contribution`.
+    """
+    if not actor_nation or not from_controller or actor_nation == from_controller:
+        return None
+    war_id = _resolve_war_id_for_pair_on_opposite_sides(
+        world, actor_nation, from_controller,
+    )
+    if not war_id:
+        return None
+    kind = _classify_capture_occupation_kind(
+        world,
+        region=region,
+        actor_nation=actor_nation,
+        from_controller=from_controller,
+        war_id=war_id,
+    )
+    if not kind:
+        return None
+    event_turn = int(turn) if turn is not None else int(
+        getattr(world, "current_turn", 0) or 0,
+    )
+    event_id = (
+        f"occupation-{event_turn}-{war_id}-{actor_nation}-{kind}-{region}"
+    )
+    return accrue_occupation_event(
+        world,
+        actor_nation=actor_nation,
+        region=region,
+        occupation_kind=kind,
+        from_controller=from_controller,
+        to_controller=actor_nation,
+        war_id=war_id,
+        turn=event_turn,
+        event_id=event_id,
+    )
+
+
+# ===========================================================================
+# Slice B2 — Support event accrual (spec §9.2 line 614 / line 658)
+# ===========================================================================
+
+# Spec §9.2 raw formulas. Stored directly on `episode["support"]` per the
+# "raw points" convention shared with `accrue_occupation_event`.
+SUPPORT_KINDS: Tuple[str, ...] = (
+    "gold", "subsidy", "ap", "manpower", "access", "supply",
+)
+ACCESS_SUPPLY_CAP: int = 5  # raw points per (war_id, supporter, support_kind)
+SUPPORT_SOURCES: Tuple[str, ...] = (
+    "treaty_clause", "coalition_subsidy", "command", "scripted_ai",
+    "settlement_followup",
+)
+
+
+def _support_raw_points(support_kind: str, value: int) -> int:
+    """Spec §9.2 raw point formula, dispatched per support_kind.
+
+    - gold / subsidy: ``value // 100``
+    - ap: ``value * 5``
+    - manpower: ``value // 500``
+    - access / supply: ``1`` per qualifying turn (caller already passes
+      ``value=1``); the per-(war_id, supporter, support_kind) cap is applied
+      by `accrue_support_event`.
+    """
+    v = max(0, int(value or 0))
+    if support_kind in ("gold", "subsidy"):
+        return v // 100
+    if support_kind == "ap":
+        return v * 5
+    if support_kind == "manpower":
+        return v // 500
+    if support_kind in ("access", "supply"):
+        return 1 if v > 0 else 0
+    return 0
+
+
+def accrue_support_event(
+    world: Any,
+    *,
+    war_id: Optional[str],
+    supporter: str,
+    recipient: str,
+    support_kind: str,
+    value: int,
+    source: str,
+    source_detail: str = "",
+    turn: Optional[int] = None,
+    event_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Accrue one ``war_support_delivered`` event (spec §9.2 line 658).
+
+    Returns the accrual event dict (with `points_accrued` and `attributed`
+    booleans) on success or fall-through. Returns ``None`` for malformed
+    no-op inputs.
+
+    Filtering rules (spec §9.2 line 674):
+
+    - Both supporter and recipient must be active same-side participants in
+      ``war_id`` on the event turn.
+    - Either side missing from ``active_participants`` → no accrual.
+    - Different sides → no accrual (the spec excludes peace-treaty payments
+      between former enemies; their flow is logged but never accrued).
+    - ``war_id`` ``None`` → unattributed logging event; returns the event
+      dict with ``attributed=False`` and ``points_accrued=0``. The British
+      subsidy fallback path uses this branch.
+
+    Dedupe (spec §9.2 line 670):
+
+    - Caller may pass ``event_id``; otherwise a deterministic id is built
+      from ``(turn, war_id, supporter, recipient, support_kind, source,
+      source_detail)``. Repeat events with the same id no-op.
+
+    Cap (spec §9.2 line 674):
+
+    - ``access`` / ``supply`` raw is clamped per
+      ``(war_id, supporter, support_kind)`` to ``ACCESS_SUPPLY_CAP`` (5).
+      Re-entry in the same war_id does NOT reset the cap; the counter lives
+      on the per-nation record.
+
+    Contribution accrues to the **supporter**, not the recipient — spec
+    §9.2 line 585 ("delivered to active same-side participants") describes
+    the recipient relationship, not the credit assignment; line 652 ("Britain
+    or another paymaster receives support contribution") fixes who earns the
+    political standing.
+    """
+    if not supporter or not recipient or supporter == recipient:
+        return None
+    if support_kind not in SUPPORT_KINDS:
+        return None
+    if source not in SUPPORT_SOURCES:
+        return None
+
+    raw_points = _support_raw_points(support_kind, value)
+
+    # Unattributed logging path — spec line 676 + impl plan B2 §British
+    # subsidy bullet: no accrual, but the event still exists for callers
+    # that audit "we paid but couldn't attribute" surfaces.
+    if not war_id:
+        return {
+            "type": "war_support_delivered",
+            "war_id": None,
+            "supporter": supporter,
+            "recipient": recipient,
+            "support_kind": support_kind,
+            "value": int(value or 0),
+            "source": source,
+            "source_detail": source_detail or "unattributed_subsidy",
+            "turn": int(turn) if turn is not None else None,
+            "episode_id": event_id,
+            "points_accrued": 0,
+            "attributed": False,
+        }
+
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(war_id) or {}
+    if not instance:
+        return None
+    side_by_nation = instance.get("side_by_nation") or {}
+    s_side = side_by_nation.get(supporter)
+    r_side = side_by_nation.get(recipient)
+    if not s_side or not r_side or s_side != r_side:
+        return None
+    active_participants = set(instance.get("active_participants") or [])
+    if active_participants:
+        if supporter not in active_participants or recipient not in active_participants:
+            return None
+
+    if turn is None:
+        turn = int(getattr(world, "current_turn", 0) or 0)
+    resolved_event_id = event_id or (
+        f"support-{int(turn)}-{war_id}-{supporter}-{recipient}-"
+        f"{support_kind}-{source}-{source_detail}"
+    )
+
+    record = _get_nation_record(world, war_id, supporter)
+    if not record:
+        return None
+    seen = record.setdefault("seen_support_event_ids", [])
+    if resolved_event_id in seen:
+        return None
+
+    # Access/supply cap applied BEFORE accrual + dedupe append so a capped
+    # event neither inflates the bucket nor blocks a future legal event id.
+    if support_kind in ("access", "supply") and raw_points > 0:
+        caps = record.setdefault("support_caps", {})
+        used = int(caps.get(support_kind) or 0)
+        remaining = max(0, ACCESS_SUPPLY_CAP - used)
+        if remaining <= 0:
+            return {
+                "type": "war_support_delivered",
+                "war_id": war_id,
+                "supporter": supporter,
+                "recipient": recipient,
+                "support_kind": support_kind,
+                "value": int(value or 0),
+                "source": source,
+                "source_detail": source_detail,
+                "turn": int(turn),
+                "episode_id": resolved_event_id,
+                "points_accrued": 0,
+                "attributed": True,
+                "capped": True,
+            }
+        raw_points = min(raw_points, remaining)
+        caps[support_kind] = used + raw_points
+
+    if raw_points <= 0:
+        # Still dedupe so a 0-raw event blocks a duplicate id (e.g. 99-gold
+        # one-time payments collapsing into the same `(turn, source_detail)`
+        # episode key).
+        seen.append(resolved_event_id)
+        return {
+            "type": "war_support_delivered",
+            "war_id": war_id,
+            "supporter": supporter,
+            "recipient": recipient,
+            "support_kind": support_kind,
+            "value": int(value or 0),
+            "source": source,
+            "source_detail": source_detail,
+            "turn": int(turn),
+            "episode_id": resolved_event_id,
+            "points_accrued": 0,
+            "attributed": True,
+        }
+
+    episode = current_episode(world, war_id, supporter)
+    if episode is None:
+        return None
+    if not _episode_accepts_event_turn(episode, turn):
+        return None
+
+    episode["support"] = int(episode.get("support") or 0) + raw_points
+    episode["total"] = int(episode.get("total") or 0) + raw_points
+    seen.append(resolved_event_id)
+
+    return {
+        "type": "war_support_delivered",
+        "war_id": war_id,
+        "supporter": supporter,
+        "recipient": recipient,
+        "support_kind": support_kind,
+        "value": int(value or 0),
+        "source": source,
+        "source_detail": source_detail,
+        "turn": int(turn),
+        "episode_id": resolved_event_id,
+        "points_accrued": int(raw_points),
+        "attributed": True,
+    }
+
+
+def resolve_treaty_clause_support_war_id(
+    world: Any, supporter: str, recipient: str,
+) -> Optional[str]:
+    """Pick the war_id where supporter and recipient are active same-side allies.
+
+    Used by `_ratify_treaty()` / `_process_treaty_clauses()` to attribute
+    treaty-clause support to one specific war when the participants share
+    sides in multiple. Tie-break: oldest `created_sequence` wins.
+
+    Returns ``None`` when no such war exists; treaty-clause callers then
+    skip emission (a peace-treaty indemnity flowing between former enemies
+    is not support).
+    """
+    if not supporter or not recipient or supporter == recipient:
+        return None
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return None
+    candidates: List[Tuple[int, str]] = []
+    for war_id, instance in instances.items():
+        if not isinstance(instance, dict):
+            continue
+        side_by_nation = instance.get("side_by_nation") or {}
+        s_side = side_by_nation.get(supporter)
+        r_side = side_by_nation.get(recipient)
+        if not s_side or not r_side or s_side != r_side:
+            continue
+        active_participants = set(instance.get("active_participants") or [])
+        if active_participants and (
+            supporter not in active_participants
+            or recipient not in active_participants
+        ):
+            continue
+        seq = int(instance.get("created_sequence") or 0)
+        candidates.append((seq, war_id))
+    if not candidates:
+        return None
+    candidates.sort()
+    return candidates[0][1]
+
+
+# ===========================================================================
+# Slice B2 — British coalition subsidy attribution (impl plan §British subsidy)
+# ===========================================================================
+
+
+def resolve_british_subsidy_war_id(
+    world: Any, *, recipient: str,
+) -> Tuple[Optional[str], str]:
+    """Deterministic war attribution for `_process_british_subsidy()`.
+
+    Per impl plan B2 §British subsidy (mirrored at spec §9.2 line 676):
+
+    1. Unique eligible war (Britain + recipient same-side participants in
+       exactly one active war_instance) → return that war_id with detail
+       ``"unique_eligible"``.
+    2. Multiple eligible wars: prefer one whose `objective_target` matches
+       the active coalition's named target → ``"matching_coalition_target"``.
+    3. Else, prefer the war with the highest overlap between active
+       coalition members and `war_instance.active_participants` →
+       ``"highest_overlap"``.
+    4. Else, oldest `created_sequence` → ``"oldest_sequence"``.
+    5. None of the above (no eligible war) → return ``(None,
+       "unattributed_subsidy")``; the caller emits a logging-only event with
+       no accrual.
+    """
+    if not recipient:
+        return (None, "unattributed_subsidy")
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return (None, "unattributed_subsidy")
+
+    eligible: List[Tuple[int, str, Dict[str, Any]]] = []
+    for war_id, instance in instances.items():
+        if not isinstance(instance, dict):
+            continue
+        side_by_nation = instance.get("side_by_nation") or {}
+        b_side = side_by_nation.get("Britain")
+        r_side = side_by_nation.get(recipient)
+        if not b_side or not r_side or b_side != r_side:
+            continue
+        active_participants = set(instance.get("active_participants") or [])
+        if active_participants and (
+            "Britain" not in active_participants
+            or recipient not in active_participants
+        ):
+            continue
+        seq = int(instance.get("created_sequence") or 0)
+        eligible.append((seq, war_id, instance))
+
+    if not eligible:
+        return (None, "unattributed_subsidy")
+    if len(eligible) == 1:
+        return (eligible[0][1], "unique_eligible")
+
+    coalition = getattr(world, "active_coalition", None) or {}
+    coalition_target = coalition.get("target", "")
+    coalition_members = set(coalition.get("members") or [])
+
+    if coalition_target:
+        target_matches = [
+            (seq, wid, inst)
+            for (seq, wid, inst) in eligible
+            if inst.get("objective_target") == coalition_target
+        ]
+        if len(target_matches) == 1:
+            return (target_matches[0][1], "matching_coalition_target")
+        if len(target_matches) > 1:
+            target_matches.sort()
+            return (target_matches[0][1], "matching_coalition_target")
+
+    if coalition_members:
+        scored = []
+        for seq, wid, inst in eligible:
+            ap = set(inst.get("active_participants") or [])
+            overlap = len(ap & coalition_members)
+            scored.append((-overlap, seq, wid))
+        scored.sort()
+        if scored and scored[0][0] < 0:  # at least one overlap
+            return (scored[0][2], "highest_overlap")
+
+    eligible.sort()
+    return (eligible[0][1], "oldest_sequence")
+
+
 __all__ = [
+    "ACCESS_SUPPLY_CAP",
     "ALL_BUCKETS",
     "BENEFICIARY_ONLY",
     "BUCKET_WEIGHTS",
@@ -940,9 +1704,15 @@ __all__ = [
     "DISPATCH_SEAT_THRESHOLD",
     "MATERIAL_BUCKETS",
     "NO_STANDING",
+    "OCCUPATION_KINDS",
+    "OCCUPATION_POINTS",
     "SEAT",
     "SEAT_MATERIAL_SHARE_THRESHOLD",
+    "SUPPORT_KINDS",
+    "SUPPORT_SOURCES",
     "accrue_battle_contribution",
+    "accrue_occupation_event",
+    "accrue_support_event",
     "adapt_legacy_battle_record",
     "canonical_episode_id",
     "classify_standing",
@@ -952,10 +1722,14 @@ __all__ = [
     "current_episode",
     "current_episode_material_total",
     "current_episode_total",
+    "detect_battle_theater",
+    "emit_capture_occupation_event",
     "iter_active_episodes",
     "material_contribution_points",
     "material_contribution_share",
     "open_episode",
+    "resolve_british_subsidy_war_id",
+    "resolve_treaty_clause_support_war_id",
     "standing_for_participant",
     "total_side_current_episode_contribution",
     "total_side_material_contribution",

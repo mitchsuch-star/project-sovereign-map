@@ -967,7 +967,15 @@ def get_british_subsidy_recipient(world) -> Optional[str]:
 
 
 def _process_british_subsidy(world) -> List[Dict]:
-    """Process British subsidy payment (§4e). 200g/turn to lowest-relation partner."""
+    """Process British subsidy payment (§4e). 200g/turn to lowest-relation partner.
+
+    Imperial Settlement B2: emits one `war_support_delivered` event per
+    qualifying transfer with `source="coalition_subsidy"`, attributed to a
+    deterministic war_id via `resolve_british_subsidy_war_id` (impl plan B2
+    §British subsidy bullets / spec §9.2 line 676). When no eligible war can
+    be resolved, the support event is logged unattributed (no contribution
+    accrual).
+    """
     events = []
     recipient = get_british_subsidy_recipient(world)
     if not recipient:
@@ -985,10 +993,31 @@ def _process_british_subsidy(world) -> List[Dict]:
     # +5 relation between Britain and recipient
     world.modify_nation_relation("Britain", recipient, 5)
 
+    from backend.game_logic.war_contribution import (
+        accrue_support_event,
+        resolve_british_subsidy_war_id,
+    )
+    war_id, source_detail = resolve_british_subsidy_war_id(
+        world, recipient=recipient,
+    )
+    accrue_support_event(
+        world,
+        war_id=war_id,
+        supporter="Britain",
+        recipient=recipient,
+        support_kind="subsidy",
+        value=int(subsidy),
+        source="coalition_subsidy",
+        source_detail=source_detail,
+        turn=int(getattr(world, "current_turn", 0) or 0),
+    )
+
     events.append({
         "type": "british_subsidy",
         "recipient": recipient,
         "amount": int(subsidy),
+        "war_id": war_id,
+        "subsidy_source_detail": source_detail,
         "message": f"Britain subsidizes {recipient} with {subsidy} gold.",
     })
     return events

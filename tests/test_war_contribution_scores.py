@@ -43,6 +43,7 @@ from backend.game_logic.war_contribution import (
     current_episode,
     current_episode_material_total,
     current_episode_total,
+    detect_battle_theater,
     iter_active_episodes,
     material_contribution_share,
     open_episode,
@@ -1212,3 +1213,1589 @@ def test_accrue_battle_contribution_enforces_episode_turn_window():
     assert austria_episode is not None
     assert france_episode["battle"] == 40
     assert austria_episode["battle"] == 0
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — `detect_battle_theater()` helper
+#
+# The detector implements the spec §9.4 line 717 one-hop adjacency rule that
+# the three battle emitters (`_post_combat_pipeline`, `_execute_attack` inline
+# diplo path, auto-dispatch charge in `WorldState`) consume. Whole-war credit
+# (giving every same-side participant battle bucket points regardless of
+# location) is forbidden by spec §9.4 line 725.
+# ===========================================================================
+
+
+def _seat_marshal(world, *, name, nation, location, strength=10000):
+    """Insert a synthetic marshal directly into `world.marshals`.
+
+    Bypasses MarshalFactory's defaults (which spawn at Paris) so emitter tests
+    can place participants in arbitrary regions without touching nation
+    starting rosters.
+    """
+    from backend.models.marshal import Marshal
+    marshal = Marshal(
+        name=name,
+        location=location,
+        strength=strength,
+        personality="cautious",
+        nation=nation,
+        movement_range=1,
+        tactical_skill=7,
+        skills={"tactical": 7, "shock": 7, "defense": 7,
+                "logistics": 7, "administration": 7, "command": 7},
+        cavalry=False,
+        artillery=False,
+        spawn_location=location,
+    )
+    world.marshals[name] = marshal
+    return marshal
+
+
+def _clear_default_marshals(world):
+    """Wipe `world.marshals` so emitter tests can seat exact participants
+    without inheriting the live game's starting roster (Reynier in Dresden,
+    Schwarzenberg in Bohemia, etc.).
+    """
+    world.marshals.clear()
+    if hasattr(world, "_build_marshal_index"):
+        world._build_marshal_index()
+
+
+def test_detect_battle_theater_returns_none_when_no_active_war_instance():
+    """Spec §9.4: theater detection requires a resolvable `war_id`."""
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    world.war_instances.clear()
+    world.invalidate_war_instance_indexes()
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+    )
+    assert payload is None
+
+
+def test_detect_battle_theater_returns_none_when_nations_on_same_side():
+    """No-op when caller's two nations share a side (cannot be a battle)."""
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Saxony",
+        war_id="war_1",
+    )
+    assert payload is None
+
+
+def test_detect_battle_theater_credits_one_hop_adjacent_allies():
+    """Spec §9.4 line 717: an ally with a marshal in a one-hop adjacent
+    region gets credited with theater participation; an ally on a distant
+    front does NOT receive whole-war free credit (line 725).
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria", "Russia"),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=30000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=12000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=25000)
+    # Russian ally far from the Saxony theater — must NOT get credit.
+    _seat_marshal(world, name="Kutuzov", nation="Russia",
+                  location="Tyrol", strength=20000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+    )
+    assert payload is not None
+    assert payload["war_id"] == "war_1"
+    # Saxony (Bohemia is one-hop) gets battle credit; Russia (Tyrol) does not.
+    assert "Saxony" in payload["attacker_participants"]
+    assert "France" in payload["attacker_participants"]
+    assert "Russia" not in payload["defender_participants"]
+    assert payload["nation_theater_strength"]["France"] >= 30000
+    assert payload["nation_theater_strength"]["Saxony"] == 12000
+    assert payload["nation_theater_strength"]["Austria"] >= 25000
+    assert "Russia" not in payload["nation_theater_strength"]
+
+
+def test_detect_battle_theater_pre_battle_strength_overrides_post_battle():
+    """When the caller has pre-battle strengths captured (the post-combat
+    pipeline + inline `_execute_attack` always do), those override the
+    marshals' (post-battle) `.strength` for the explicit attacker/defender.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=200)  # post-battle remnant
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=300)  # post-battle remnant
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+        attacker_marshal_name="Napoleon",
+        defender_marshal_name="Charles",
+        attacker_pre_battle_strength=45000,
+        defender_pre_battle_strength=30000,
+    )
+    assert payload is not None
+    assert payload["nation_theater_strength"]["France"] == 45000
+    assert payload["nation_theater_strength"]["Austria"] == 30000
+
+
+def test_detect_battle_theater_preserves_same_nation_secondary_strength():
+    """Primary pre-battle overrides replace only that marshal, not the whole
+    nation bucket. Same-nation allies in the one-hop theater still count.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=200)  # post-battle remnant
+    _seat_marshal(world, name="Davout", nation="France",
+                  location="Bohemia", strength=20000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=300)
+    _seat_marshal(world, name="Bellegarde", nation="Austria",
+                  location="Bohemia", strength=12000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+        attacker_marshal_name="Napoleon",
+        defender_marshal_name="Charles",
+        attacker_pre_battle_strength=45000,
+        defender_pre_battle_strength=30000,
+    )
+    assert payload is not None
+    assert payload["nation_theater_strength"]["France"] == 65000
+    assert payload["nation_theater_strength"]["Austria"] == 42000
+
+
+def test_detect_battle_theater_filters_inactive_participants():
+    """Only nations in the war_instance `active_participants` list can be
+    credited — eliminated participants must not soak up theater credit.
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    _clear_default_marshals(world)
+    # Saxony was eliminated — drop from active roster but keep a stray
+    # marshal in theater (e.g. liberation army that was never disbanded).
+    instance = world.war_instances["war_1"]
+    instance["active_participants"] = ["France", "Austria"]
+
+    _seat_marshal(world, name="Napoleon", nation="France",
+                  location="Saxony", strength=30000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=12000)
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=25000)
+
+    payload = detect_battle_theater(
+        world,
+        battle_region="Saxony",
+        attacker_nation="France",
+        defender_nation="Austria",
+        war_id="war_1",
+    )
+    assert payload is not None
+    assert "Saxony" not in payload["attacker_participants"]
+    assert "Saxony" not in payload["nation_theater_strength"]
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — call-site source-order guards
+#
+# Each of the three battle paths must (a) call `detect_battle_theater` BEFORE
+# its `record_diplo_battle` call, and (b) forward `war_id`,
+# `attacker_participants`, `defender_participants`, and
+# `nation_theater_strength` to the diplomatic recorder. The source-order
+# assertion catches a future refactor that drops the theater payload while
+# keeping the `record_diplo_battle` call alive.
+# ===========================================================================
+
+
+def test_post_combat_pipeline_source_calls_detect_battle_theater_before_record():
+    """Glorious-charge / inline-attack / bombardment all funnel through
+    `_post_combat_pipeline`. The pipeline's diplo step must detect theater
+    BEFORE forwarding to `record_diplo_battle`.
+    """
+    import inspect
+
+    from backend.commands import combat_executor
+
+    src = inspect.getsource(combat_executor.CombatExecutor._post_combat_pipeline)
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_post_combat_pipeline() must call detect_battle_theater() — "
+        "Imperial Settlement B2 theater-aware emitter wiring."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos, (
+        "Theater detection must precede record_diplo_battle() so the "
+        "theater payload reaches accrue_battle_contribution()."
+    )
+    # Forwarded fields must appear in the record_diplo_battle keyword args.
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+def test_execute_attack_inline_source_calls_detect_battle_theater_before_record():
+    """`_execute_attack` records its diplo battle inline (before the
+    pipeline call sets `skip_diplo_record=True`). That inline path must
+    also detect theater and forward the payload.
+    """
+    import inspect
+
+    from backend.commands import combat_executor
+
+    src = inspect.getsource(combat_executor.CombatExecutor._execute_attack)
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_execute_attack() inline path must call detect_battle_theater() "
+        "before record_diplo_battle()."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+def test_auto_dispatch_charge_source_calls_detect_battle_theater_before_record():
+    """The reckless-cavalry auto-charge path is the third battle emitter
+    (it bypasses both `_post_combat_pipeline` and `_execute_attack`). Same
+    source-order contract applies.
+    """
+    import inspect
+
+    from backend.models import world_state
+
+    src = inspect.getsource(
+        world_state.WorldState._process_reckless_cavalry_turn_start,
+    )
+
+    detect_pos = src.find("detect_battle_theater(")
+    record_pos = src.find("record_diplo_battle(")
+    assert detect_pos != -1, (
+        "_process_reckless_cavalry_turn_start() must call "
+        "detect_battle_theater() before record_diplo_battle()."
+    )
+    assert record_pos != -1
+    assert detect_pos < record_pos
+    forwarded = src[record_pos:]
+    assert "war_id=" in forwarded
+    assert "attacker_participants=" in forwarded
+    assert "defender_participants=" in forwarded
+    assert "nation_theater_strength=" in forwarded
+
+
+# ===========================================================================
+# Slice B2 emitter wiring — behavioral end-to-end fixtures
+#
+# Each fixture drives a real combat path and asserts the contribution store
+# lands the expected per-nation `battle` points. Distant same-side
+# participants must NOT receive whole-war free credit (spec §9.4 line 725).
+# ===========================================================================
+
+
+def _setup_three_theater_world(*, attackers=("France", "Saxony", "Spain"),
+                                  defenders=("Austria", "Russia"),
+                                  attacker_leader="France",
+                                  defender_leader="Austria"):
+    """Three-theater fixture: France+Saxony fight Austria in Saxony,
+    Spain is on a distant front (Madrid/Iberia), Russia is also distant.
+    """
+    world = _build_world_with_war(
+        attackers=attackers,
+        defenders=defenders,
+        attacker_leader=attacker_leader,
+        defender_leader=defender_leader,
+    )
+    diplo_key = world._make_diplo_key(attacker_leader, defender_leader)
+    world.diplomatic_states[diplo_key] = "WAR"
+    for nation in attackers + defenders:
+        open_episode(world, "war_1", nation, joined_turn=1)
+    return world
+
+
+def test_post_combat_pipeline_emits_theater_data_for_glorious_charge():
+    """End-to-end: drive `_post_combat_pipeline` with `is_glorious_charge=True`
+    and verify the theater payload reaches contribution accrual.
+
+    Saxony ally (in Bohemia, one-hop adjacent to Saxony battle region)
+    receives battle credit; Spain ally (in Marseille, distant) does not.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world()
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+    # Distant Spanish ally — must not be credited.
+    _seat_marshal(world, name="DistantAlly", nation="Spain",
+                  location="Marseille", strength=20000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 5000,
+        "defender_casualties": 8000,
+        "pre_battle_attacker_strength": 45000,
+        "pre_battle_defender_strength": 38000,
+        "battle_result": None,
+        "conquered": False,
+        "is_glorious_charge": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    spain_ep = current_episode(world, "war_1", "Spain")
+    austria_ep = current_episode(world, "war_1", "Austria")
+
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert spain_ep is not None
+    assert austria_ep is not None
+
+    # France + Saxony split the 40-point attacker battle bucket; Saxony
+    # earned non-zero credit for being one-hop adjacent. Spain (distant)
+    # gets nothing.
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert spain_ep["battle"] == 0
+    # Austria absorbs the full defender bucket as the only theater defender.
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_distant_same_side_participant_no_free_credit():
+    """Slice B v1 baseline: a same-side participant on a distant front
+    accrues nothing from this front's battle. Whole-war credit is forbidden
+    by spec §9.4 line 725.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France",),
+        defenders=("Austria", "Russia"),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+    # Russia in a far theater; should never collect Saxony battle credit.
+    _seat_marshal(world, name="Kutuzov", nation="Russia",
+                  location="Marseille", strength=25000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 4000,
+        "defender_casualties": 9000,
+        "pre_battle_attacker_strength": 44000,
+        "pre_battle_defender_strength": 39000,
+        "battle_result": None,
+        "conquered": False,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    russia_ep = current_episode(world, "war_1", "Russia")
+    assert russia_ep is not None
+    assert russia_ep["battle"] == 0
+    assert russia_ep["total"] == 0
+
+
+def test_post_combat_pipeline_garrison_emits_theater_data():
+    """Garrison combat has no defender marshal, but the pipeline still has a
+    defender nation and pre-battle garrison strength for contribution.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": None,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 2000,
+        "defender_casualties": 7000,
+        "pre_battle_attacker_strength": 42000,
+        "pre_battle_defender_strength": 18000,
+        "battle_result": None,
+        "conquered": True,
+        "is_garrison": True,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_bombardment_emits_theater_data():
+    """Bombardment routes through the same pipeline diplo emitter."""
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Bohemia", strength=10000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "Saxony",
+        "outcome": "bombardment",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 0,
+        "defender_casualties": 6000,
+        "pre_battle_attacker_strength": 40000,
+        "pre_battle_defender_strength": 36000,
+        "battle_result": None,
+        "conquered": False,
+        "is_bombardment": True,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_idle_reset": True,
+        "skip_exhaustion": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] == 40
+
+
+def test_post_combat_pipeline_theater_none_falls_back_to_legacy_adapter():
+    """If theater detection cannot build a payload, record_battle still uses
+    the legacy single-attacker / single-defender adapter.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Saxony", strength=40000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=30000)
+
+    executor = CommandExecutor()
+    ctx = {
+        "attacker": napoleon,
+        "defender": charles,
+        "defender_nation": "Austria",
+        "battle_region": "",
+        "outcome": "attacker_victory",
+        "attacker_won": True,
+        "defender_won": False,
+        "attacker_casualties": 4000,
+        "defender_casualties": 9000,
+        "pre_battle_attacker_strength": 44000,
+        "pre_battle_defender_strength": 39000,
+        "battle_result": None,
+        "conquered": False,
+        "skip_cannon_fire_record": True,
+        "skip_log_battle_event": True,
+        "skip_combat_notifications": True,
+        "skip_intel_update": True,
+        "skip_war_damage": True,
+        "skip_coordination_clear": True,
+        "skip_relationships": True,
+    }
+    executor._post_combat_pipeline(ctx, world)
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    assert france_ep["battle"] == 40
+    assert saxony_ep["battle"] == 0
+    assert austria_ep["battle"] == 40
+
+
+def test_auto_dispatch_charge_emits_theater_data():
+    """Drive the reckless-cavalry auto-charge in `world_state.py` and verify
+    the theater payload reaches contribution accrual. This path bypasses
+    `_post_combat_pipeline` — it's the last of the three battle emitters.
+    """
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+    # Reckless cavalry needs aggressive personality + cavalry=True.
+    # Glorious charge gives 2x damage so a heavy cavalry stack overwhelms
+    # the defender — needed for a clear attacker_victory outcome that
+    # triggers the diplo-record path.
+    from backend.models.marshal import Marshal
+    murat = Marshal(
+        name="Murat", location="Bohemia", strength=80000,
+        personality="aggressive", nation="France",
+        cavalry=True, movement_range=2, tactical_skill=10,
+        skills={"tactical": 10, "shock": 10, "defense": 7,
+                "logistics": 7, "administration": 7, "command": 10},
+        spawn_location="Bohemia",
+    )
+    murat.recklessness = 4
+    world.marshals["Murat"] = murat
+    # Saxony ally in the Saxony battle region — should accrue alongside France.
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Saxony", strength=10000)
+    # Austrian target in the Saxony theater (Bohemia <-> Saxony are adjacent).
+    _seat_marshal(world, name="Charles", nation="Austria",
+                  location="Saxony", strength=8000)
+
+    world._process_reckless_cavalry_turn_start()
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    # France must collect attacker-side credit (Murat's home nation) and
+    # Saxony allies in the Saxony battle region pick up share of the
+    # battle bucket too. Distant participants would NOT (none in this fixture).
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    # Austria absorbs full defender bucket as the only theater defender.
+    assert austria_ep["battle"] == 40
+
+
+def test_inline_execute_attack_emits_theater_data():
+    """Drive the inline `_execute_attack()` diplo-record path through a
+    full attack and verify theater data reaches contribution accrual.
+
+    The inline path's `record_diplo_battle()` call fires BEFORE
+    `_post_combat_pipeline(skip_diplo_record=True)` runs, so the inline
+    path is its own emitter and is independently tested here.
+    """
+    from backend.commands.executor import CommandExecutor
+
+    world = _setup_three_theater_world(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    _clear_default_marshals(world)
+
+    napoleon = _seat_marshal(world, name="Napoleon", nation="France",
+                              location="Bohemia", strength=120000)
+    # Saxony ally one-hop adjacent to the Saxony battle region.
+    _seat_marshal(world, name="Bernadotte", nation="Saxony",
+                  location="Berlin", strength=12000)
+    charles = _seat_marshal(world, name="Charles", nation="Austria",
+                             location="Saxony", strength=8000)
+    # Set Saxony's controller to Austria so Napoleon can attack into enemy
+    # territory; the attack then resolves inline.
+    saxony_region = world.get_region("Saxony")
+    if saxony_region is not None:
+        saxony_region.controller = "Austria"
+    bohemia_region = world.get_region("Bohemia")
+    if bohemia_region is not None:
+        bohemia_region.controller = "France"
+
+    executor = CommandExecutor()
+    game_state = {"world": world}
+    result = executor._combat._execute_attack(
+        marshal=napoleon,
+        target="Saxony",
+        world=world,
+        game_state=game_state,
+    )
+    # The attack must resolve (no AP / objection / fog blocker for this
+    # synthetic setup); on success the inline diplo path will have fired.
+    assert result.get("success"), (
+        f"_execute_attack returned failure: {result.get('message')}"
+    )
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep is not None
+    assert saxony_ep is not None
+    assert austria_ep is not None
+    # France must accrue from its own attack; Saxony (one-hop adjacent in
+    # Berlin) must also accrue. Austria (defender) must accrue too.
+    assert france_ep["battle"] > 0
+    assert saxony_ep["battle"] > 0
+    assert austria_ep["battle"] > 0
+
+
+# ===========================================================================
+# Slice B2 — Occupation event emitter (spec §9.2 / §9.4)
+# ===========================================================================
+
+
+def _setup_war_with_episodes(
+    *,
+    war_id="war_1",
+    attackers=("France", "Saxony"),
+    defenders=("Austria", "Prussia"),
+    attacker_leader="France",
+    defender_leader="Austria",
+    joined_turn=1,
+):
+    """Helper: build war + open active episodes for every participant."""
+    world = _build_world_with_war(
+        war_id=war_id,
+        attackers=attackers,
+        defenders=defenders,
+        attacker_leader=attacker_leader,
+        defender_leader=defender_leader,
+    )
+    diplo_key = world._make_diplo_key(attacker_leader, defender_leader)
+    world.diplomatic_states[diplo_key] = "WAR"
+    for nation in attackers + defenders:
+        open_episode(world, war_id, nation, joined_turn=joined_turn)
+    return world
+
+
+def test_accrue_occupation_event_returns_none_when_no_active_war():
+    """Spec §9.2: occupation accrual requires an active war_id."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+    world.war_instances.clear()
+    world.invalidate_war_instance_indexes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Saxony",
+        occupation_kind="enemy_region_captured",
+        from_controller="Austria",
+        target_nation="Austria",
+    )
+    assert payload is None
+
+
+def test_accrue_occupation_event_returns_none_for_unknown_kind():
+    """Unknown `occupation_kind` is a malformed-input no-op."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Saxony",
+        occupation_kind="bogus_kind",
+        from_controller="Austria",
+        war_id="war_1",
+    )
+    assert payload is None
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["occupation"] == 0
+
+
+def test_accrue_occupation_event_credits_enemy_region_captured_20_pts():
+    """`enemy_region_captured` accrues 20 raw points to the actor (spec §9.2)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        occupation_kind="enemy_region_captured",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["occupation_kind"] == "enemy_region_captured"
+    assert payload["points_accrued"] == 20
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["occupation"] == 20
+    assert france_ep["total"] == 20
+
+
+def test_accrue_occupation_event_credits_enemy_capital_captured_40_pts():
+    """`enemy_capital_captured` accrues 40 raw points to the actor (spec §9.2)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Vienna",
+        occupation_kind="enemy_capital_captured",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 40
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["occupation"] == 40
+    assert france_ep["total"] == 40
+
+
+def test_accrue_occupation_event_credits_allied_region_restored_15_pts():
+    """`allied_region_restored` accrues 15 raw points (spec §9.2 line 583)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="Saxony",
+        region="Saxony",
+        occupation_kind="allied_region_restored",
+        from_controller="Austria",
+        to_controller="Saxony",
+        war_id="war_1",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 15
+
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    assert saxony_ep["occupation"] == 15
+    assert saxony_ep["total"] == 15
+
+
+def test_accrue_occupation_event_credits_liberated_region_restored_15_pts():
+    """`liberated_region_restored` accrues 15 raw points (spec §9.2 line 583)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Berlin",
+        occupation_kind="liberated_region_restored",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 15
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["occupation"] == 15
+
+
+def test_accrue_occupation_event_treaty_transfer_logs_zero_points():
+    """`treaty_transfer` emits the event but accrues 0 (spec §9.2 line 641)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        occupation_kind="treaty_transfer",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 0
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["occupation"] == 0
+
+
+def test_accrue_occupation_event_dedupes_by_event_id():
+    """Repeat events with the same `event_id` no-op (spec §9.2 line 670)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+
+    first = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        occupation_kind="enemy_region_captured",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+        event_id="occ-1-bohemia",
+    )
+    second = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        occupation_kind="enemy_region_captured",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=1,
+        event_id="occ-1-bohemia",
+    )
+    assert first is not None
+    assert second is None  # dedupe rejection
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["occupation"] == 20  # only one accrual
+
+
+def test_accrue_occupation_event_filters_outside_episode_turn_window():
+    """Events outside `joined_turn..exited_turn` do not accrue (spec §7.5)."""
+    from backend.game_logic.war_contribution import accrue_occupation_event
+
+    world = _setup_war_with_episodes()
+    # Close France's episode at turn 5; an event at turn 10 must be ignored.
+    from backend.game_logic.war_contribution import close_episode_for_exit
+    close_episode_for_exit(world, "war_1", "France", exited_turn=5)
+
+    payload = accrue_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        occupation_kind="enemy_region_captured",
+        from_controller="Austria",
+        war_id="war_1",
+        turn=10,
+    )
+    assert payload is None
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["occupation"] == 0
+
+
+def test_emit_capture_occupation_event_classifies_capital_correctly():
+    """`emit_capture_occupation_event` picks `enemy_capital_captured` when
+    the captured region is the from_controller's national capital."""
+    from backend.game_logic.war_contribution import emit_capture_occupation_event
+
+    world = _setup_war_with_episodes()
+    payload = emit_capture_occupation_event(
+        world,
+        actor_nation="France",
+        region="Vienna",  # Austria's capital per NATION_CAPITALS
+        from_controller="Austria",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["occupation_kind"] == "enemy_capital_captured"
+    assert payload["points_accrued"] == 40
+
+
+def test_emit_capture_occupation_event_returns_none_when_not_at_war():
+    """The capture wrapper returns None when no war_instance owns the pair."""
+    from backend.game_logic.war_contribution import emit_capture_occupation_event
+
+    world = _setup_war_with_episodes(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    payload = emit_capture_occupation_event(
+        world,
+        actor_nation="France",
+        region="Bohemia",
+        from_controller="Saxony",  # Saxony is not in this war
+        turn=1,
+    )
+    assert payload is None
+
+
+def test_capture_region_emits_occupation_event_for_enemy_capture():
+    """`world.capture_region()` accrues occupation contribution to the
+    capturing nation when the previous controller is an enemy."""
+    world = _setup_war_with_episodes(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    region = world.get_region("Bohemia")
+    assert region is not None
+    region.controller = "Austria"
+
+    world.capture_region("Bohemia", "France")
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["occupation"] == 20  # enemy_region_captured
+
+
+def test_capture_region_emits_capital_event_when_capturing_enemy_capital():
+    """Capturing an enemy capital region accrues 40 occupation points."""
+    world = _setup_war_with_episodes(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    vienna = world.get_region("Vienna")
+    assert vienna is not None
+    vienna.controller = "Austria"
+
+    world.capture_region("Vienna", "France")
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["occupation"] == 40  # enemy_capital_captured
+
+
+# ===========================================================================
+# Slice B2 — Support event emitter (spec §9.2 line 614 / line 658)
+# ===========================================================================
+
+
+def test_accrue_support_event_returns_none_for_self_payment():
+    """Self-payment is malformed — no event."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="France",
+        support_kind="gold",
+        value=500,
+        source="treaty_clause",
+    )
+    assert payload is None
+
+
+def test_accrue_support_event_returns_none_for_unknown_kind_or_source():
+    """Unknown `support_kind` or `source` is malformed — no event."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    bad_kind = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="weird_kind",
+        value=500,
+        source="treaty_clause",
+    )
+    bad_source = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=500,
+        source="bogus_source",
+    )
+    assert bad_kind is None
+    assert bad_source is None
+
+
+def test_accrue_support_event_credits_supporter_for_gold_to_ally():
+    """Gold transferred between same-side allies accrues to supporter (spec §9.2 line 652)."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=500,  # 500 // 100 = 5 raw points
+        source="treaty_clause",
+        source_detail="ratification",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 5
+    assert payload["attributed"] is True
+
+    france_ep = current_episode(world, "war_1", "France")
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    # Supporter (France) earns the support contribution; recipient does not.
+    assert france_ep["support"] == 5
+    assert saxony_ep["support"] == 0
+
+
+def test_accrue_support_event_filters_opposite_side_flow():
+    """Indemnity from a defeated enemy to the victor is NOT support (spec §9.2 line 674)."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="Austria",
+        recipient="France",
+        support_kind="gold",
+        value=1000,
+        source="treaty_clause",
+    )
+    assert payload is None  # opposite-side flow rejected
+
+
+def test_accrue_support_event_dedupes_by_episode_id():
+    """Repeat events with the same id no-op (spec §9.2 line 670)."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    first = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=500,
+        source="treaty_clause",
+        turn=1,
+        event_id="support-test-1",
+    )
+    second = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=500,
+        source="treaty_clause",
+        turn=1,
+        event_id="support-test-1",
+    )
+    assert first is not None
+    assert second is None
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["support"] == 5  # only one accrual
+
+
+def test_accrue_support_event_caps_access_supply_at_5():
+    """Access/supply caps at 5 raw points per (war_id, supporter, support_kind)."""
+    from backend.game_logic.war_contribution import (
+        ACCESS_SUPPLY_CAP, accrue_support_event,
+    )
+
+    world = _setup_war_with_episodes()
+    accrued: int = 0
+    for turn in range(1, 12):  # try 11 turns
+        payload = accrue_support_event(
+            world,
+            war_id="war_1",
+            supporter="France",
+            recipient="Saxony",
+            support_kind="access",
+            value=1,
+            source="command",
+            turn=turn,
+            event_id=f"access-{turn}",
+        )
+        if payload and payload.get("points_accrued"):
+            accrued += int(payload["points_accrued"])
+    assert accrued == ACCESS_SUPPLY_CAP
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["support"] == ACCESS_SUPPLY_CAP
+
+
+def test_accrue_support_event_unattributed_when_war_id_none():
+    """`war_id=None` returns a logging-only event with no accrual."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    payload = accrue_support_event(
+        world,
+        war_id=None,
+        supporter="Britain",
+        recipient="Russia",
+        support_kind="subsidy",
+        value=200,
+        source="coalition_subsidy",
+    )
+    assert payload is not None
+    assert payload["attributed"] is False
+    assert payload["points_accrued"] == 0
+    assert payload["source_detail"] == "unattributed_subsidy"
+
+
+def test_accrue_support_event_zero_raw_points_no_accrual_but_dedupes():
+    """A 99-gold transfer (raw // 100 = 0) emits with 0 points and dedupes."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=99,  # raw // 100 = 0
+        source="treaty_clause",
+        turn=1,
+        event_id="tiny",
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 0
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["support"] == 0
+    # Dedupe still applies to the 0-raw event.
+    second = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="gold",
+        value=99,
+        source="treaty_clause",
+        turn=1,
+        event_id="tiny",
+    )
+    assert second is None
+
+
+def test_accrue_support_event_ap_uses_value_times_5():
+    """AP support raw is `value * 5` (spec §9.2)."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="ap",
+        value=2,  # 2 * 5 = 10 raw
+        source="treaty_clause",
+        source_detail="ap_per_turn",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 10
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["support"] == 10
+
+
+def test_accrue_support_event_manpower_uses_floor_div_500():
+    """Manpower support raw is `value // 500` (spec §9.2)."""
+    from backend.game_logic.war_contribution import accrue_support_event
+
+    world = _setup_war_with_episodes()
+    payload = accrue_support_event(
+        world,
+        war_id="war_1",
+        supporter="France",
+        recipient="Saxony",
+        support_kind="manpower",
+        value=1500,  # 1500 // 500 = 3
+        source="treaty_clause",
+        source_detail="manpower_per_turn",
+        turn=1,
+    )
+    assert payload is not None
+    assert payload["points_accrued"] == 3
+
+
+# ===========================================================================
+# Slice B2 — British coalition subsidy attribution (impl plan B2 §British)
+# ===========================================================================
+
+
+def test_resolve_british_subsidy_war_id_unique_eligible():
+    """Exactly one active war with Britain + recipient same-side → that war."""
+    from backend.game_logic.war_contribution import resolve_british_subsidy_war_id
+
+    world = _setup_war_with_episodes(
+        attackers=("Britain", "Russia"),
+        defenders=("France",),
+        attacker_leader="Britain",
+        defender_leader="France",
+    )
+    war_id, detail = resolve_british_subsidy_war_id(world, recipient="Russia")
+    assert war_id == "war_1"
+    assert detail == "unique_eligible"
+
+
+def test_resolve_british_subsidy_war_id_returns_unattributed_when_no_eligible():
+    """No eligible war → unattributed log event."""
+    from backend.game_logic.war_contribution import resolve_british_subsidy_war_id
+
+    world = _setup_war_with_episodes(
+        attackers=("France",),
+        defenders=("Austria",),
+    )
+    war_id, detail = resolve_british_subsidy_war_id(world, recipient="Russia")
+    assert war_id is None
+    assert detail == "unattributed_subsidy"
+
+
+def test_resolve_british_subsidy_war_id_oldest_sequence_tiebreak():
+    """Multiple eligible wars without coalition data → oldest_sequence wins."""
+    from backend.game_logic.war_contribution import resolve_british_subsidy_war_id
+
+    # Build first war: Britain + Russia vs France.
+    world = _setup_war_with_episodes(
+        war_id="war_old",
+        attackers=("Britain", "Russia"),
+        defenders=("France",),
+        attacker_leader="Britain",
+        defender_leader="France",
+    )
+    # Build second war: Britain + Russia vs Austria.
+    install_synthetic_active_roster(world, ["Austria"])
+    second = make_synthetic_war_instance(
+        "war_new",
+        attackers=["Britain", "Russia"],
+        defenders=["Austria"],
+        attacker_leader="Britain",
+        defender_leader="Austria",
+        created_turn=1,
+        created_sequence=99,
+    )
+    world.war_instances["war_new"] = second
+    world.invalidate_war_instance_indexes()
+
+    war_id, detail = resolve_british_subsidy_war_id(world, recipient="Russia")
+    assert war_id == "war_old"  # lower created_sequence
+    assert detail == "oldest_sequence"
+
+
+def test_resolve_british_subsidy_war_id_matching_coalition_target():
+    """Active coalition's `target` matches one war's `objective_target` →
+    that war wins regardless of sequence."""
+    from backend.game_logic.war_contribution import resolve_british_subsidy_war_id
+
+    world = _setup_war_with_episodes(
+        war_id="war_old_default",
+        attackers=("Britain", "Russia"),
+        defenders=("Austria",),
+        attacker_leader="Britain",
+        defender_leader="Austria",
+    )
+    install_synthetic_active_roster(world, ["France"])
+    target_war = make_synthetic_war_instance(
+        "war_target",
+        attackers=["Britain", "Russia"],
+        defenders=["France"],
+        attacker_leader="Britain",
+        defender_leader="France",
+        created_turn=2,
+        created_sequence=50,  # later than war_old_default
+    )
+    target_war["objective_target"] = "France"
+    world.war_instances["war_target"] = target_war
+    world.invalidate_war_instance_indexes()
+    world.active_coalition = {"target": "France", "members": ["Britain", "Russia"]}
+
+    war_id, detail = resolve_british_subsidy_war_id(world, recipient="Russia")
+    assert war_id == "war_target"
+    assert detail == "matching_coalition_target"
+
+
+def test_process_british_subsidy_emits_support_event_with_attribution():
+    """The advance-turn subsidy step emits a `war_support_delivered` event
+    AND accrues support to Britain in the resolved war."""
+    from backend.game_logic.coalition import _process_british_subsidy
+
+    world = _setup_war_with_episodes(
+        attackers=("Britain", "Russia"),
+        defenders=("France",),
+        attacker_leader="Britain",
+        defender_leader="France",
+    )
+    world.nation_gold["Britain"] = 5000
+    world.nation_gold.setdefault("Russia", 0)
+    # Coalition state: required for `get_british_subsidy_recipient`.
+    world.active_coalition = {"members": ["Britain", "Russia"], "target": "France"}
+    # Russia must have the lowest relation to Britain to be picked.
+    world.nation_relations[world._make_diplo_key("Britain", "Russia")] = -10
+
+    events = _process_british_subsidy(world)
+    assert events, "expected a british_subsidy event"
+    assert events[0]["recipient"] == "Russia"
+    assert events[0]["war_id"] == "war_1"
+    assert events[0]["subsidy_source_detail"] == "unique_eligible"
+
+    britain_ep = current_episode(world, "war_1", "Britain")
+    assert britain_ep is not None
+    # 200 gold subsidy → 200 // 100 = 2 raw points.
+    assert britain_ep["support"] == 2
+
+
+# ===========================================================================
+# Slice B2 — Treaty-clause emission (one-time + per-turn)
+# ===========================================================================
+
+
+def test_ratify_treaty_emits_support_for_gold_lump_between_allies():
+    """Mutual `gold_lump` between same-side allies emits `war_support_delivered`."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    # France pays Saxony 500 gold via treaty (e.g., subsidy). The treaty
+    # ratification path must emit a support event under the active war.
+    world.nation_gold["France"] = 5000
+    world.nation_gold.setdefault("Saxony", 0)
+    proposal = {
+        "proposer_nation": "France",
+        "target_nation": "Saxony",
+        "type": "alliance",
+        "sweeteners": [{"type": "gold_lump", "value": 500}],
+    }
+    # Pre-condition: France-Saxony at PEACE so the treaty can transition.
+    world.diplomatic_states.pop(world._make_diplo_key("France", "Saxony"), None)
+
+    result = world._ratify_treaty(proposal)
+    # Treaty result may be None on AI-AI silent skip, but the gold_lump path
+    # still applies. Assert support contribution accrued for France.
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["support"] == 5  # 500 // 100
+
+
+def test_ratify_treaty_emits_allied_region_restored_for_territory_cede():
+    """Territory_cede returning a region to its lawful owner ally emits
+    `allied_region_restored` for the recipient ally (not the proposer)."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    # Set up: Austria currently holds Saxony's region "Saxony".
+    saxony_region = world.get_region("Saxony")
+    assert saxony_region is not None
+    saxony_region.controller = "Austria"
+    # Set high war score so the cede won't trip the elimination guard.
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.war_scores[diplo_key] = 50
+
+    proposal = {
+        "proposer_nation": "France",
+        "target_nation": "Austria",
+        "type": "peace",
+        "demands": [{
+            "type": "territory_cede",
+            "regions": ["Saxony"],
+            "from_nation": "Austria",
+            "to_nation": "Saxony",
+        }],
+    }
+    world._ratify_treaty(proposal)
+
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    assert saxony_ep is not None
+    assert saxony_ep["occupation"] == 15  # allied_region_restored
+
+
+def test_process_treaty_clauses_emits_per_turn_gold_support():
+    """Per-turn `gold_per_turn` from same-side ally emits a support event."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    diplo_key = world._make_diplo_key("France", "Saxony")
+    world.active_treaties[diplo_key] = {
+        "nations": ["France", "Saxony"],
+        "type": "alliance",
+        "clauses": [{
+            "type": "gold_per_turn",
+            "from": "France",
+            "to": "Saxony",
+            "amount": 300,
+        }],
+    }
+    world.nation_gold["France"] = 10000
+    world.nation_gold.setdefault("Saxony", 0)
+
+    world.current_turn = 2
+    world._process_treaty_clauses()
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["support"] == 3  # 300 // 100
+
+
+def test_process_treaty_clauses_emits_per_turn_ap_support():
+    """Per-turn `ap_per_turn` between allies emits AP support."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    diplo_key = world._make_diplo_key("France", "Saxony")
+    world.active_treaties[diplo_key] = {
+        "nations": ["France", "Saxony"],
+        "type": "alliance",
+        "clauses": [{
+            "type": "ap_per_turn",
+            "from": "Saxony",
+            "to": "France",
+            "amount": 1,
+        }],
+    }
+    # Pre-seat France's AP / Saxony's AP map.
+    world.nation_actions["Saxony"] = 5
+
+    world.current_turn = 1
+    world._process_treaty_clauses()
+
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    assert saxony_ep is not None
+    assert saxony_ep["support"] == 5  # 1 * 5
+
+
+def test_process_treaty_clauses_dedupes_same_turn_replay():
+    """Calling `_process_treaty_clauses` twice in one turn does not double-accrue."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    diplo_key = world._make_diplo_key("France", "Saxony")
+    world.active_treaties[diplo_key] = {
+        "nations": ["France", "Saxony"],
+        "type": "alliance",
+        "clauses": [{
+            "type": "gold_per_turn",
+            "from": "France",
+            "to": "Saxony",
+            "amount": 300,
+        }],
+    }
+    world.nation_gold["France"] = 10000
+    world.nation_gold.setdefault("Saxony", 0)
+
+    world.current_turn = 2
+    world._process_treaty_clauses()
+    france_ep_after_first = current_episode(world, "war_1", "France")
+    first_support = int(france_ep_after_first["support"])
+    # Reset France's gold and replay the same turn.
+    world.nation_gold["France"] = 10000
+    world._process_treaty_clauses()
+    france_ep_after_second = current_episode(world, "war_1", "France")
+    # Dedupe by episode_id — second replay must not double the support.
+    assert int(france_ep_after_second["support"]) == first_support

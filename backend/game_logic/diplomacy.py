@@ -13,7 +13,7 @@ Single source of truth for diplomatic mechanics:
 
 import copy
 import random  # noqa: F401 — used in _process_mission_effects
-from typing import Dict, List, Optional
+from typing import Dict, List, Mapping, Optional
 
 from backend.display_names import (
     FEEDBACK_STRINGS,
@@ -8446,7 +8446,12 @@ def check_auto_downgrade(world) -> List[Dict]:
 
 def record_battle(world, attacker_nation: str, defender_nation: str,
                   winner_nation: str, attacker_casualties: int,
-                  defender_casualties: int, location: str = "") -> None:
+                  defender_casualties: int, location: str = "",
+                  *,
+                  war_id: Optional[str] = None,
+                  attacker_participants: Optional[List[str]] = None,
+                  defender_participants: Optional[List[str]] = None,
+                  nation_theater_strength: Optional[Mapping[str, int]] = None) -> None:
     """Record a battle result for war score calculation.
 
     Also checks for decisive battle (casualty ratio > 2:1 AND total > 10,000).
@@ -8457,6 +8462,13 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
     still accrue settlement contribution). The ordering is pinned by tests in
     `tests/test_war_contribution_scores.py` — moving the accrual call below
     the gate breaks the ordering guard.
+
+    Theater fields (`war_id`, `attacker_participants`, `defender_participants`,
+    `nation_theater_strength`) are forwarded into `accrue_battle_contribution()`
+    when the caller supplies them. Callers without theater context (or with
+    legacy single-attacker / single-defender shape) leave them ``None`` and
+    the legacy adapter (spec §9.6) fills the theater shape with single-nation
+    participation.
     """
     if not world.is_at_war(attacker_nation, defender_nation):
         return  # Only record battles between nations at war
@@ -8475,9 +8487,10 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         world.decisive_battles[diplo_key] = []
 
     # Imperial Settlement B2: accrue settlement contribution BEFORE the
-    # 1000-casualty war-score gate. Theater fields default to the legacy
-    # single-attacker/single-defender shape until B2 emitter wiring updates
-    # the call sites in `combat_executor.py` / `world_state.py`.
+    # 1000-casualty war-score gate. Callers with theater context (post-B2
+    # emitter wiring) pass `attacker_participants` / `defender_participants` /
+    # `nation_theater_strength` derived from one-hop adjacency. Legacy callers
+    # leave them None and the §9.6 adapter fills single-nation defaults.
     from backend.game_logic.war_contribution import accrue_battle_contribution
     accrue_battle_contribution(
         world,
@@ -8487,6 +8500,10 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         attacker_casualties=int(attacker_casualties),
         defender_casualties=int(defender_casualties),
         location=location,
+        war_id=war_id,
+        attacker_participants=attacker_participants,
+        defender_participants=defender_participants,
+        nation_theater_strength=nation_theater_strength,
         turn=getattr(world, "current_turn", None),
     )
 
