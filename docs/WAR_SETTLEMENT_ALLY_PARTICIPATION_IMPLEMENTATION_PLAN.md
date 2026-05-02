@@ -1,8 +1,8 @@
 # War Settlement Ally Participation Implementation Plan
 
-> **Status:** v1.23 A1 FOUNDATION + A2 WAR-ENTRY THREADING + A3 MERGE/ARCHIVE/LEADER INVARIANTS LANDED / READY FOR SLICE B CONTRIBUTION TRACKER
+> **Status:** v1.24 A1 FOUNDATION + A2 WAR-ENTRY THREADING + A3 MERGE/ARCHIVE/LEADER INVARIANTS LANDED / READY FOR SLICE B CONTRIBUTION TRACKER
 > **Last Updated:** May 2, 2026
-> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.26
+> **Source spec:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.27
 
 This plan is the coding handoff for Imperial Settlement / Ally Participation. It assumes BPH, WPS, and WB are landed and keeps the settlement system additive over pairwise `diplomatic_states`, `war_scores`, and WPS `war_objectives`.
 
@@ -148,7 +148,7 @@ Files:
 
 Build:
 - Split Slice B into mandatory implementation gates before coding:
-  - **B1 contribution store and standing math:** data model, canonical store, save/load defaults, old-record adapter, current-episode model, standing classification, material-contribution gate, contribution-share query helpers.
+  - **B1 contribution store and standing math:** data model, canonical store, save/load defaults, old-record adapter, current-episode model, material-contribution gate, contribution-share query helpers, and pure contribution-derived standing inputs. B1 must not implement common-peace term legitimacy, War Bargain settlement classification, or Slice C/D reaction routing; pass future term-derived booleans explicitly and default them to false in B1-only callers.
   - **B2 event emitters and theater attribution:** battle, occupation, support, treaty-support, British subsidy, sub-1000 battle contribution, `_execute_attack()` inline diplo records, auto-dispatch charge records, and the glorious-charge pipeline fixture.
   - **B3 lifecycle, retention, and full-Europe fixtures:** turn-order/exits, same-turn separate peace, archive compaction, concurrent-war independence, contribution threshold signals, and three-theater / support-only major fixtures.
 - Add episode-scoped `world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}` with `current_episode_id`, `episodes`, and `historical_total`.
