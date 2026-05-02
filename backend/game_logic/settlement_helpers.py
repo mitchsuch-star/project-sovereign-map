@@ -35,8 +35,8 @@ substrate that the rest of the Imperial Settlement system builds on:
 - `assert_war_instance_invariants(world, *, context="post_merge")` —
   Slice A3 promoted this to an always-on post-merge assertion that also
   catches dangling absorbed `war_id` references in
-  `diplomatic_commitments`, `pending_dispatch_events`, and any optional
-  Slice B/C containers (`war_contribution_scores`,
+  `diplomatic_commitments`, `pending_dispatch_events`, recent event-log /
+  ledger payloads, and any optional Slice B/C containers (`war_contribution_scores`,
   `pending_settlement_dialogues`, `settlement_route_payloads`).
 
 Per `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7.2 / §7.3 / §7.6 these
@@ -197,6 +197,44 @@ def _known_war_ids(world: Any) -> set:
     return known
 
 
+def _iter_war_id_fields(value: Any, label: str) -> Iterable:
+    """Yield `(label, war_id)` pairs for nested dict/list payloads.
+
+    Presentation payloads are not schema-stable across slices, but the
+    project convention is explicit `war_id` keys. Walk only those keys so we
+    do not rewrite or flag arbitrary prose that happens to contain a war id.
+    """
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            nested_label = f"{label}.{key}" if label else str(key)
+            if key == "war_id":
+                yield nested_label, nested
+            if isinstance(nested, (dict, list)):
+                yield from _iter_war_id_fields(nested, nested_label)
+    elif isinstance(value, list):
+        for idx, nested in enumerate(value):
+            nested_label = f"{label}[{idx}]"
+            if isinstance(nested, (dict, list)):
+                yield from _iter_war_id_fields(nested, nested_label)
+
+
+def _rewrite_war_id_fields(value: Any, absorbed_set: set, surviving: str) -> int:
+    """Rewrite nested dict/list `war_id` fields in-place."""
+    rewritten = 0
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key == "war_id" and nested in absorbed_set:
+                value[key] = surviving
+                rewritten += 1
+            elif isinstance(nested, (dict, list)):
+                rewritten += _rewrite_war_id_fields(nested, absorbed_set, surviving)
+    elif isinstance(value, list):
+        for nested in value:
+            if isinstance(nested, (dict, list)):
+                rewritten += _rewrite_war_id_fields(nested, absorbed_set, surviving)
+    return rewritten
+
+
 def _post_merge_violations(world: Any) -> List[str]:
     """Walk live + optional containers to catch dangling absorbed war_ids.
 
@@ -225,13 +263,15 @@ def _post_merge_violations(world: Any) -> List[str]:
     for idx, event in enumerate(events):
         if not isinstance(event, dict):
             continue
-        _check(f"pending_dispatch_events[{idx}].war_id", event.get("war_id"))
-        template_vars = event.get("template_vars")
-        if isinstance(template_vars, dict):
-            _check(
-                f"pending_dispatch_events[{idx}].template_vars.war_id",
-                template_vars.get("war_id"),
-            )
+        for label, war_id in _iter_war_id_fields(event, f"pending_dispatch_events[{idx}]"):
+            _check(label, war_id)
+
+    event_log = getattr(world, "event_log", None) or []
+    for idx, event in enumerate(event_log):
+        if not isinstance(event, dict):
+            continue
+        for label, war_id in _iter_war_id_fields(event, f"event_log[{idx}]"):
+            _check(label, war_id)
 
     contribution = getattr(world, "war_contribution_scores", None)
     if isinstance(contribution, dict):
@@ -1101,13 +1141,27 @@ def _rewrite_absorbed_war_id_in_dispatch_events(
     for event in events:
         if not isinstance(event, dict):
             continue
-        if event.get("war_id") in absorbed_set:
-            event["war_id"] = surviving
-            rewritten += 1
-        template_vars = event.get("template_vars")
-        if isinstance(template_vars, dict) and template_vars.get("war_id") in absorbed_set:
-            template_vars["war_id"] = surviving
-            rewritten += 1
+        rewritten += _rewrite_war_id_fields(event, absorbed_set, surviving)
+    return rewritten
+
+
+def _rewrite_absorbed_war_id_in_event_log(
+    world: Any,
+    absorbed: Iterable[str],
+    surviving: str,
+) -> int:
+    """Rewrite absorbed `war_id` references in recent event-log / ledger payloads."""
+    if not surviving:
+        return 0
+    absorbed_set = {a for a in absorbed if a and a != surviving}
+    if not absorbed_set:
+        return 0
+    event_log = getattr(world, "event_log", None) or []
+    rewritten = 0
+    for event in event_log:
+        if not isinstance(event, dict):
+            continue
+        rewritten += _rewrite_war_id_fields(event, absorbed_set, surviving)
     return rewritten
 
 
@@ -1404,6 +1458,7 @@ def merge_war_instances(
     # Step 6: rewrite live containers.
     _rewrite_absorbed_war_id_in_bargains(world, absorbed_ids, surviving_id)
     _rewrite_absorbed_war_id_in_dispatch_events(world, absorbed_ids, surviving_id)
+    _rewrite_absorbed_war_id_in_event_log(world, absorbed_ids, surviving_id)
 
     # Step 7: no-op-safe hooks for Slice B/C containers.
     _rewrite_absorbed_war_id_in_contribution(world, absorbed_ids, surviving_id)

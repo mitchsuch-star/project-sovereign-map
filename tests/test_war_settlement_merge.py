@@ -271,6 +271,31 @@ def test_merge_rewrites_absorbed_war_id_on_bargains_but_preserves_side_leader_at
     assert rewritten["side_leader_at_creation"] == "France"  # preserved
 
 
+def test_merge_rewrites_absorbed_war_id_in_event_log_payloads():
+    """A3 rewrites recent event-log / ledger payload references too."""
+    world = _clean_world()
+    inserted = build_multi_objective_merge_fixture(world)
+    war_a, war_b = sorted(inserted.keys())
+    world.event_log.append(
+        {
+            "type": "war_entry_ledger",
+            "war_id": war_b,
+            "payload": {
+                "war_id": war_b,
+                "entries": [{"nation": "Prussia", "war_id": war_b}],
+            },
+        }
+    )
+
+    result = merge_war_instances(world, candidate_war_ids=[war_a])
+
+    assert result["ok"] is True
+    assert result["surviving_war_id"] == war_a
+    assert world.event_log[-1]["war_id"] == war_a
+    assert world.event_log[-1]["payload"]["war_id"] == war_a
+    assert world.event_log[-1]["payload"]["entries"][0]["war_id"] == war_a
+
+
 def test_pre_a3_bargain_loads_with_null_merge_context_via_from_dict_default():
     """Old saves with no `war_id` / `side_at_creation` /
     `side_leader_at_creation` fields on bargains load with None defaults
@@ -523,6 +548,25 @@ def test_post_merge_invariant_catches_dangling_absorbed_war_id_in_bargains():
     with pytest.raises(WarInstanceInvariantError) as excinfo:
         assert_war_instance_invariants(world, context="post_merge")
     assert any("war_absorbed_phantom" in v for v in excinfo.value.violations)
+
+
+def test_post_merge_invariant_catches_dangling_absorbed_war_id_in_event_log():
+    world = _clean_world()
+    world.event_log.append(
+        {
+            "type": "war_entry_ledger",
+            "war_id": "war_absorbed_phantom",
+            "payload": {"war_id": "war_absorbed_phantom"},
+        }
+    )
+
+    with pytest.raises(WarInstanceInvariantError) as excinfo:
+        assert_war_instance_invariants(world, context="post_merge")
+
+    assert any(
+        "event_log" in v and "war_absorbed_phantom" in v
+        for v in excinfo.value.violations
+    )
 
 
 def test_post_merge_no_op_safe_when_slice_bc_containers_absent():

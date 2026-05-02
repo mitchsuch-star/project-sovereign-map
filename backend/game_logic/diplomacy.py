@@ -7841,10 +7841,10 @@ def _process_war_cascade(
 
     war_entry_entries = ctx.war_entry_entries
     ally_entry_decisions = ctx.ally_entry_decisions or {}
-    cascade_war_id = ctx.war_id or ""
     suppress_unresolved_offensive_cascade = bool(ctx.suppress_unresolved_offensive_cascade)
 
     def _attach_cascade_pair(attacker_nation: str, defender_nation: str, entry_path: str) -> Dict:
+        cascade_war_id = ctx.war_id or ""
         if not cascade_war_id:
             return {"ok": True, "war_id": ""}
         result = attach_pair_to_war_instance(
@@ -7855,6 +7855,9 @@ def _process_war_cascade(
             entry_path=entry_path,
         )
         if result.get("ok"):
+            returned_war_id = result.get("war_id") or ""
+            if returned_war_id and returned_war_id != ctx.war_id:
+                ctx.war_id = returned_war_id
             return result
         blocked = {
             "type": "war_cascade_blocked",

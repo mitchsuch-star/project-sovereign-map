@@ -46,6 +46,10 @@ from backend.game_logic.vassal import (
     release_vassal,
 )
 from backend.models.world_state import WorldState
+from tests.helpers.full_europe_settlement_fixtures import (
+    install_synthetic_active_roster,
+    make_synthetic_war_instance,
+)
 
 
 def _install_vassal(world: WorldState, lord: str, vassal: str, *, loyalty: int = 60) -> None:
@@ -716,6 +720,61 @@ def test_cascade_context_propagates_through_legacy_kwargs():
     assert "Prussia" in instance["defenders"]
     assert _pair("France", "Prussia") in instance["active_diplo_keys"]
     assert_war_instance_invariants(world, context="legacy_cascade_kwargs")
+
+
+def test_cascade_updates_context_when_attach_merge_retargets_survivor():
+    """If a cascade attach absorbs the root war_id, later cascade attaches
+    must target the survivor instead of the deleted root id."""
+    world = _clean_world()
+    install_synthetic_active_roster(world, ["France", "Austria", "Prussia", "Britain"])
+    world.war_instances["war_1"] = make_synthetic_war_instance(
+        "war_1",
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=1,
+        created_sequence=1,
+    )
+    world.war_instances["war_2"] = make_synthetic_war_instance(
+        "war_2",
+        attackers=["France"],
+        defenders=["Prussia"],
+        attacker_leader="France",
+        defender_leader="Prussia",
+        created_turn=2,
+        created_sequence=2,
+    )
+    world.next_war_instance_id = 3
+    world.war_instances["war_1"]["diplo_key_meta"][_pair("France", "Austria")][
+        "pair_status"
+    ] = "armistice"
+    _set_state(world, "France", "Austria", "ARMISTICE")
+    _set_state(world, "France", "Prussia", "WAR")
+    _set_state(world, "Austria", "Prussia", "DEFENSIVE_ALLIANCE")
+    _set_state(world, "Britain", "Prussia", "DEFENSIVE_ALLIANCE")
+
+    ctx = CascadeContext(
+        war_id="war_2",
+        root_aggressor="France",
+        war_entry_entries=[],
+    )
+    cascade = _process_war_cascade(
+        world,
+        "France",
+        "Prussia",
+        processed={"France", "Prussia"},
+        ctx=ctx,
+    )
+
+    assert ctx.war_id == "war_1"
+    assert "war_2" not in world.war_instances
+    survivor = world.war_instances["war_1"]
+    assert _pair("France", "Austria") in survivor["active_diplo_keys"]
+    assert _pair("France", "Britain") in survivor["active_diplo_keys"]
+    assert not any(e.get("type") == "war_cascade_blocked" for e in world.event_log)
+    assert len(cascade) >= 2
+    assert_war_instance_invariants(world, context="cascade_merge_retarget")
 
 
 def test_validate_war_declaration_attach_when_only_one_nation_in_existing_war():
