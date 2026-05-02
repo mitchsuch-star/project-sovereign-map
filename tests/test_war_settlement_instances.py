@@ -251,9 +251,11 @@ def test_ensure_war_instance_returns_side_conflict_for_same_side_pair():
     assert result["details"]["war_id"] == war_id
 
 
-def test_ensure_war_instance_hard_stops_on_merge_required():
-    """Two separate active wars where each war owns one of the new pair's
-    nations — A2 hard-stops; A3 will resolve via merge transaction."""
+def test_ensure_war_instance_runs_merge_then_reveals_side_conflict():
+    """A3: when both nations live in distinct active war_instances, the
+    transitive merge runs first; the post-merge re-validation hard-stops
+    only if the new pair is intrinsically incompatible (both nations on
+    the same side of the merged war)."""
     world = _clean_world()
     war_a = ensure_war_instance_for_pair(
         world, "France", "Austria", entry_path="war_declaration"
@@ -262,14 +264,23 @@ def test_ensure_war_instance_hard_stops_on_merge_required():
         world, "Russia", "Prussia", entry_path="war_declaration"
     )
     assert war_a["war_id"] != war_b["war_id"]
-    # Austria (defender of war_a) wants to declare on Prussia (defender of war_b).
+    # Austria (defender of war_a) declares on Prussia (defender of war_b).
+    # Merge runs and consolidates; both Austria and Prussia land on the
+    # `defenders` side of the survivor, so the new pair would put one of
+    # them on both sides -- side_conflict is the correct hard stop.
     result = ensure_war_instance_for_pair(
         world, "Austria", "Prussia", entry_path="war_declaration"
     )
     assert result["ok"] is False
-    assert result["error"] == WAR_INSTANCE_MERGE_REQUIRED
-    assert war_a["war_id"] in result["details"]["attacker_war_ids"]
-    assert war_b["war_id"] in result["details"]["defender_war_ids"]
+    assert result["error"] == WAR_INSTANCE_SIDE_CONFLICT
+    # Merge consolidated war_a/war_b into a single survivor.
+    active = _active_instances(world)
+    assert len(active) == 1
+    surviving_id = next(iter(active))
+    assert surviving_id in (war_a["war_id"], war_b["war_id"])
+    assert {"France", "Austria", "Russia", "Prussia"}.issubset(
+        set(active[surviving_id]["active_participants"])
+    )
 
 
 def test_attach_pair_to_war_instance_is_idempotent():
@@ -724,26 +735,28 @@ def test_validate_war_declaration_attach_when_only_one_nation_in_existing_war():
     assert "Russia" in instance["defenders"]
 
 
-def test_declare_war_blocks_when_validation_returns_merge_required():
-    """Pre-commit hard-stop: declare_war must NOT mutate state when
-    validation returns `war_instance_merge_required`."""
+def test_declare_war_blocks_when_post_merge_revalidation_finds_side_conflict():
+    """A3: declare_war must NOT mutate the (Austria, Prussia) state to WAR
+    when the post-merge re-validation reveals a side conflict, even though
+    the merge transaction itself succeeded."""
     world = _clean_world()
     _set_state(world, "France", "Austria", "PEACE")
     _set_state(world, "Russia", "Prussia", "PEACE")
     declare_war(world, "France", "Austria")
     declare_war(world, "Russia", "Prussia")
 
-    # Force a merge-required state: Austria (defender of war_1) declares
-    # war on Prussia (defender of war_2). Each nation lives in a separate
-    # active war_instance — A2 hard-stops before any state mutation.
+    # Austria (defender of war_1) tries to declare on Prussia (defender of
+    # war_2). A3 merges war_1 + war_2 into a single survivor; on the
+    # survivor both Austria and Prussia are defenders -- the new pair is a
+    # genuine side conflict.
     result = declare_war(world, "Austria", "Prussia")
 
     assert result["success"] is False
-    assert result.get("error") == WAR_INSTANCE_MERGE_REQUIRED
-    # diplomatic_states must NOT have been mutated to WAR.
+    assert result.get("error") == WAR_INSTANCE_SIDE_CONFLICT
+    # The (Austria, Prussia) pair must not have advanced to WAR.
     assert (
         world.get_diplomatic_state("Austria", "Prussia") != "WAR"
-    ), "merge-required hard-stop must precede state mutation"
+    ), "side-conflict hard-stop must precede the new pair's WAR mutation"
 
 
 def test_cascade_attach_failure_does_not_mutate_war_state():
@@ -769,7 +782,10 @@ def test_cascade_attach_failure_does_not_mutate_war_state():
     assert_war_instance_invariants(world, context="blocked_cascade")
 
 
-def test_attach_pair_rejects_pair_owned_by_another_active_instance():
+def test_attach_pair_triggers_merge_when_pair_owned_by_other_active_instance():
+    """A3: attaching a pair that already lives in a different active
+    war_instance triggers `merge_war_instances(...)`, retargets `war_id` to
+    the survivor, and completes the attachment idempotently."""
     world = _clean_world()
     first = ensure_war_instance_for_pair(
         world, "France", "Austria", entry_path="war_declaration"
@@ -782,12 +798,21 @@ def test_attach_pair_rejects_pair_owned_by_another_active_instance():
         second["war_id"],
         "France",
         "Austria",
-        entry_path="bad_duplicate_attach",
+        entry_path="cross_war_attach",
     )
 
-    assert result["ok"] is False
-    assert result["error"] == WAR_INSTANCE_MERGE_REQUIRED
-    assert result["details"]["existing_war_id"] == first["war_id"]
+    assert result["ok"] is True
+    # The merge folded `second` into `first` (oldest survives).
+    surviving = result["war_id"]
+    assert surviving == first["war_id"]
+    active = _active_instances(world)
+    assert len(active) == 1
+    assert surviving in active
+    instance = active[surviving]
+    # France/Austria pair is still present (idempotent re-attach), and
+    # Russia/Prussia pair was carried in by the merge.
+    assert _pair("France", "Austria") in instance["active_diplo_keys"]
+    assert _pair("Russia", "Prussia") in instance["active_diplo_keys"]
 
 
 def test_armistice_collapse_blocks_on_merge_required_without_war_mutation():
@@ -806,7 +831,10 @@ def test_armistice_collapse_blocks_on_merge_required_without_war_mutation():
     assert_war_instance_invariants(world, context="blocked_armistice_collapse")
 
 
-def test_counter_bargain_hard_stop_does_not_create_triggered_bargain():
+def test_counter_bargain_hard_stop_when_post_merge_finds_side_conflict():
+    """A3: accept_counter_bargain hard-stops without mutating bargains or
+    diplomatic_states when the post-merge re-validation reveals a side
+    conflict on the bargain's would-be war pair."""
     world = _clean_world()
     declare_war(world, "France", "Austria")
     declare_war(world, "Russia", "Prussia")
@@ -822,7 +850,7 @@ def test_counter_bargain_hard_stop_does_not_create_triggered_bargain():
     result = accept_counter_bargain(world, counter)
 
     assert result["success"] is False
-    assert result["error"] == WAR_INSTANCE_MERGE_REQUIRED
+    assert result["error"] == WAR_INSTANCE_SIDE_CONFLICT
     assert world.diplomatic_commitments == before
     assert world.get_diplomatic_state("Austria", "Prussia") != "WAR"
 

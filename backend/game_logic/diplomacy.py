@@ -4732,6 +4732,47 @@ def validate_war_bargain(
     return (True, "")
 
 
+def _resolve_bargain_war_context(
+    world, promiser: str, target_enemy: str,
+) -> tuple:
+    """Resolve the (war_id, side_at_creation, side_leader_at_creation) tuple
+    for a bargain about to be created against `target_enemy` from `promiser`.
+
+    Per spec §11.3 line 1573, these three fields snapshot the war-instance
+    context at bargain creation. `war_id` may be rewritten on later merges
+    (`_rewrite_absorbed_war_id_in_bargains`), but the side / side-leader
+    context stays fixed for fulfillment / breach classification.
+
+    Returns ``(war_id_or_None, side_or_None, side_leader_or_None)``. Any
+    field is ``None`` when no active war_instance covers the (promiser,
+    target_enemy) pair (typical for forward-bargains attached pre-WAR via
+    the WB-C ally-entry review).
+    """
+    if not promiser or not target_enemy:
+        return (None, None, None)
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return (None, None, None)
+    for war_id, instance in instances.items():
+        if not isinstance(instance, dict):
+            continue
+        if instance.get("ended_turn") is not None:
+            continue
+        side_by_nation = instance.get("side_by_nation") or {}
+        promiser_side = side_by_nation.get(promiser)
+        target_side = side_by_nation.get(target_enemy)
+        if not promiser_side or not target_side:
+            continue
+        if promiser_side == target_side:
+            continue  # Both on same side -- not a war between them.
+        leader_key = (
+            "attacker_leader" if promiser_side == "attackers" else "defender_leader"
+        )
+        side_leader = instance.get(leader_key) or None
+        return (war_id, promiser_side, side_leader)
+    return (None, None, None)
+
+
 def create_war_bargain_commitment(
     world, promiser: str, beneficiary: str,
     target_enemy: str, claim_region: str,
@@ -4754,6 +4795,14 @@ def create_war_bargain_commitment(
 
     cid = int(getattr(world, "next_commitment_id", 1) or 1)
     world.next_commitment_id = cid + 1
+
+    # A3 §11.3 / §7.6: snapshot war-instance attachment context at creation.
+    # `war_id` is rewritten on merge (Step 6 / `_rewrite_absorbed_war_id_in_bargains`),
+    # but `side_at_creation` / `side_leader_at_creation` are PRESERVED through
+    # merges -- they record the bargain's promise context, not live state.
+    war_id_at_creation, side_at_creation, side_leader_at_creation = (
+        _resolve_bargain_war_context(world, promiser, target_enemy)
+    )
 
     record = {
         "id": cid,
@@ -4783,6 +4832,9 @@ def create_war_bargain_commitment(
         "fulfillment_snapshot": None,
         "zombie_clock_turns_elapsed": 0,
         "dormant_notice_fired": False,
+        "war_id": war_id_at_creation,
+        "side_at_creation": side_at_creation,
+        "side_leader_at_creation": side_leader_at_creation,
     }
 
     if not hasattr(world, "diplomatic_commitments"):

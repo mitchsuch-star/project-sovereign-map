@@ -334,3 +334,161 @@ def _next_unused_pair(seen_pairs: set) -> Tuple[str, str]:
         "exhausted canonical 13-nation pair space; raise CANONICAL_13_NATIONS "
         "or relax target_active_count"
     )
+
+
+# ---------------------------------------------------------------------------
+# Slice A3: merge / multi-objective / side-scoped leader fixtures
+# ---------------------------------------------------------------------------
+
+
+def build_three_instance_chain_merge_fixture(world: WorldState) -> Dict[str, Dict]:
+    """Three active war_instances connected via shared participants.
+
+    Used by Slice A3 merge tests to prove transitive connected-component
+    merge collapses to one survivor. Each pair of adjacent instances
+    shares a participant so the connected component contains all three:
+
+    - war_A: France(attackers) vs Austria(defenders)
+    - war_B: Austria(defenders) vs Prussia(attackers)  -- shares Austria with A
+    - war_C: Prussia(attackers) vs Russia(defenders)   -- shares Prussia with B
+
+    A merge seeded with any one war_id must walk to all three. After the
+    merge:
+      - attackers contain {France, Prussia}
+      - defenders contain {Austria, Russia}
+      - no nation lands on both sides (validated)
+    """
+    install_synthetic_active_roster(
+        world, ["France", "Austria", "Prussia", "Russia"]
+    )
+    inserted: Dict[str, Dict] = {}
+
+    war_a_id = _allocate_war_id(world)
+    inserted[war_a_id] = make_synthetic_war_instance(
+        war_a_id,
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, inserted[war_a_id])
+
+    war_b_id = _allocate_war_id(world)
+    inserted[war_b_id] = make_synthetic_war_instance(
+        war_b_id,
+        attackers=["Prussia"],
+        defenders=["Austria"],
+        attacker_leader="Prussia",
+        defender_leader="Austria",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, inserted[war_b_id])
+
+    war_c_id = _allocate_war_id(world)
+    inserted[war_c_id] = make_synthetic_war_instance(
+        war_c_id,
+        attackers=["Prussia"],
+        defenders=["Russia"],
+        attacker_leader="Prussia",
+        defender_leader="Russia",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, inserted[war_c_id])
+
+    world.war_instances.update(inserted)
+    world.invalidate_war_instance_indexes()
+    return inserted
+
+
+def build_multi_objective_merge_fixture(world: WorldState) -> Dict[str, Dict]:
+    """Two wars with DIFFERENT WPS objective_keys whose participants overlap.
+
+    A3 spec §7.2 line 333: a merged war_instance keeps every absorbed
+    instance's WPS objective references as independent contexts (union,
+    never one dominant).
+
+    - war_A: France(attackers) vs Austria(defenders); objective_keys=[france_austria]
+    - war_B: France(attackers) vs Prussia(defenders); objective_keys=[france_prussia]
+
+    France is shared, so the connected component contains both. Sides are
+    compatible (France=attackers in both), so merge succeeds. The survivor
+    must keep BOTH objective_keys.
+    """
+    install_synthetic_active_roster(world, ["France", "Austria", "Prussia"])
+    inserted: Dict[str, Dict] = {}
+
+    war_a_id = _allocate_war_id(world)
+    instance_a = make_synthetic_war_instance(
+        war_a_id,
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    instance_a["objective_keys"] = [instance_a["origin_diplo_key"]]
+    inserted[war_a_id] = instance_a
+    _stamp_war_pairs_in_diplomatic_states(world, instance_a)
+
+    war_b_id = _allocate_war_id(world)
+    instance_b = make_synthetic_war_instance(
+        war_b_id,
+        attackers=["France"],
+        defenders=["Prussia"],
+        attacker_leader="France",
+        defender_leader="Prussia",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    instance_b["objective_keys"] = [instance_b["origin_diplo_key"]]
+    inserted[war_b_id] = instance_b
+    _stamp_war_pairs_in_diplomatic_states(world, instance_b)
+
+    world.war_instances.update(inserted)
+    world.invalidate_war_instance_indexes()
+    return inserted
+
+
+def build_side_scoped_leader_source_fixture(
+    world: WorldState,
+    *,
+    attacker_source: str,
+    defender_source: str,
+) -> Dict[str, Dict]:
+    """One active war_instance with explicit side-scoped leader sources.
+
+    A3 spec §7.4 + impl plan line 135: each side decides its leader using
+    its own `leader_source_by_side[side]` source metadata. Coalition-source
+    sides go through `select_coalition_leader`; non-coalition sources use
+    `war_leader_score()`.
+
+    `attacker_source` / `defender_source` may be one of:
+        "originator", "origin_target", "ally_cascade", "coalition_leader",
+        "scripted".
+    """
+    install_synthetic_active_roster(
+        world, ["France", "Austria", "Prussia", "Russia"]
+    )
+    war_id = _allocate_war_id(world)
+    instance = make_synthetic_war_instance(
+        war_id,
+        attackers=["France", "Bavaria"],
+        defenders=["Austria", "Prussia"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    instance["leader_source_by_side"] = {
+        "attackers": attacker_source,
+        "defenders": defender_source,
+    }
+    _stamp_war_pairs_in_diplomatic_states(world, instance)
+    world.war_instances[war_id] = instance
+    world.invalidate_war_instance_indexes()
+    return {war_id: instance}

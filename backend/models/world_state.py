@@ -2129,6 +2129,16 @@ class WorldState:
         # hegemony check sees the post-elimination bloc geometry.
         self.invalidate_active_nations_cache()
 
+        # A3 §7.4: stamp `participant_meta[nation]["exited_turn"] = current_turn`
+        # and `["exit_path"] = "eliminated"` on every active war_instance the
+        # eliminated nation participates in, BEFORE the diplomatic_states
+        # teardown moves those pairs to PEACE. Spec line 107: no separate-peace
+        # reaction is emitted for elimination exit.
+        from backend.game_logic.settlement_helpers import (
+            mark_participant_eliminated_in_all_wars,
+        )
+        mark_participant_eliminated_in_all_wars(self, nation)
+
         # Set all diplomatic states to PEACE (R2: centralized setter)
         from backend.game_logic.diplomacy import set_diplomatic_state
         for key in list(self.diplomatic_states.keys()):
@@ -4756,6 +4766,14 @@ class WorldState:
             debug_print(f"[WARNING] advance_turn already ran for turn {self.current_turn}, skipping")
             return
         self._last_advanced_turn = self.current_turn
+
+        # A3 §7.5: archive terminal war_instances whose 10-turn retention
+        # window has elapsed. Runs at turn start so all subsequent readers
+        # observe a compacted active container.
+        from backend.game_logic.settlement_helpers import (
+            archive_terminal_war_instances,
+        )
+        archive_terminal_war_instances(self)
 
         # ════════════════════════════════════════════════════════════
         # CLEAR PER-TURN FLAGS (at turn start)
