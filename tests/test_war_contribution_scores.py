@@ -33,6 +33,7 @@ from backend.game_logic.war_contribution import (
     CONSULT,
     NO_STANDING,
     SEAT,
+    accrue_battle_contribution,
     adapt_legacy_battle_record,
     canonical_episode_id,
     classify_standing,
@@ -832,3 +833,382 @@ def test_save_load_round_trip_is_deep_copy_not_alias():
     # Mutating the restored world must not affect the original blob.
     restored.war_contribution_scores["war_1"]["France"]["historical_total"] = 99
     assert blob["war_contribution_scores"]["war_1"]["France"]["historical_total"] != 99
+
+
+# ===========================================================================
+# Slice B2 — `record_battle()` ordering guard (spec §9.4 line 713)
+#
+# Per `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` §"Slice B"
+# B2 build bullet: "Before B2 starts, add a regression guard for
+# `backend/game_logic/diplomacy.py::record_battle()` ordering. The guard must
+# fail if settlement contribution accrual moves after the 1000-casualty
+# war-score early return. A source-order assertion is acceptable only if
+# paired with a behavioral sub-1000-casualty fixture proving settlement
+# contribution accrues while no pairwise war-score battle record is added."
+#
+# This is the one place B2 emitter wiring may regress quietly — raw battle
+# records can be pruned (spec §9.4 line 711), so contribution that lands
+# AFTER the gate is permanently lost. Both halves of the guard live below.
+# ===========================================================================
+
+
+def _setup_war_pair_with_episodes(
+    *,
+    attacker: str = "France",
+    defender: str = "Austria",
+):
+    """Fixture: synthetic war_instance + WAR diplomatic state + open episodes.
+
+    Lets `diplomacy.record_battle()` survive its `is_at_war` precondition
+    AND lets `accrue_battle_contribution()` find an active episode to
+    accrue into, both without depending on B3's war-entry seam wiring.
+    """
+    world = _build_world_with_war(
+        attackers=(attacker,),
+        defenders=(defender,),
+        attacker_leader=attacker,
+        defender_leader=defender,
+    )
+    diplo_key = world._make_diplo_key(attacker, defender)
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", attacker, joined_turn=1)
+    open_episode(world, "war_1", defender, joined_turn=1)
+    return world, diplo_key
+
+
+def test_record_battle_calls_settlement_accrual_before_1000_casualty_war_score_gate():
+    """B2 ordering guard (source): settlement accrual call must appear BEFORE
+    the 1000-casualty early return in `record_battle()`.
+
+    Spec §9.4 line 713: sub-1000-casualty battles still accrue settlement
+    contribution; spec §9.4 line 711 forbids reconstructing contribution
+    from pruned raw battle records. The only correct place to accrue is
+    before the gate that drops sub-1000 records. If a future refactor moves
+    the call below the gate, this assertion fires immediately.
+    """
+    import inspect
+
+    from backend.game_logic import diplomacy
+
+    src = inspect.getsource(diplomacy.record_battle)
+
+    accrue_pos = src.find("accrue_battle_contribution")
+    gate_pos = src.find("total_casualties < 1000")
+
+    assert accrue_pos != -1, (
+        "record_battle() must call accrue_battle_contribution() — the "
+        "Slice B2 settlement contribution entrypoint."
+    )
+    assert gate_pos != -1, (
+        "record_battle() must keep the 1000-casualty war-score early return."
+    )
+    assert accrue_pos < gate_pos, (
+        "Settlement contribution accrual must precede the 1000-casualty "
+        "war-score early return (spec §9.4)."
+    )
+
+
+def test_sub_1000_casualty_battle_accrues_settlement_contribution_no_war_score_record():
+    """B2 ordering guard (behavioral): sub-1000 battle accrues settlement
+    contribution even though the pairwise war-score battle record stays empty.
+
+    Per spec §9.2 with single-attacker/single-defender shape and theater
+    strength {France: 1, Austria: 1}:
+      attacker_side_raw = def_cas//100 + atk_cas//250 + decisive*25
+                        = 300//100 + 200//250 + 0 = 3
+      defender_side_raw = atk_cas//100 + def_cas//250 + decisive*25
+                        = 200//100 + 300//250 + 0 = 3
+    """
+    from backend.game_logic.diplomacy import record_battle
+
+    world, diplo_key = _setup_war_pair_with_episodes()
+
+    record_battle(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=200,
+        defender_casualties=300,  # total 500 — well below the 1000 gate
+        location="Saxony",
+    )
+
+    # War-score gate dropped both pairwise records.
+    assert world.battle_records.get(diplo_key, []) == []
+    assert world.decisive_battles.get(diplo_key, []) == []
+
+    # Settlement contribution accrued on both sides.
+    france_episode = current_episode(world, "war_1", "France")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 40
+    assert france_episode["total"] == 40
+    assert austria_episode["total"] == 40
+
+
+def test_above_1000_casualty_battle_accrues_settlement_contribution_and_war_score_record():
+    """B2 ordering guard (regression): an above-gate battle still produces
+    BOTH a pairwise war-score battle record AND settlement contribution.
+
+    Without this test, a future refactor could short-circuit settlement
+    accrual on big battles while keeping the sub-1000 path correct, and the
+    behavioral guard would not catch it.
+    """
+    from backend.game_logic.diplomacy import record_battle
+
+    world, diplo_key = _setup_war_pair_with_episodes()
+
+    record_battle(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=2000,
+        defender_casualties=3000,  # total 5000 — above the 1000 gate
+        location="Saxony",
+    )
+
+    # Pairwise war-score battle record landed.
+    records = world.battle_records.get(diplo_key, [])
+    assert len(records) == 1
+    assert records[0]["winner"] == "France"
+    assert records[0]["attacker_casualties"] == 2000
+    assert records[0]["defender_casualties"] == 3000
+
+    # Settlement contribution also accrued. Single-participant sides receive
+    # the full normalized 40-point battle bucket.
+    france_episode = current_episode(world, "war_1", "France")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 40
+
+
+# ===========================================================================
+# Slice B2 — accrue_battle_contribution() function-level safety
+#
+# Direct-call no-op cases. Without these, the ordering guard could pass
+# while the function quietly mis-handles edge cases that B2 emitter wiring
+# will encounter (declarations not yet mutated to WAR, side-conflict bugs,
+# missing episode setup before seam wiring lands).
+# ===========================================================================
+
+
+def test_accrue_battle_contribution_returns_none_when_no_active_war_instance():
+    """Pair has no active war_instance → accrual is a silent no-op.
+
+    Mirrors the production case where `record_battle()`'s `is_at_war`
+    check passes (e.g. transient diplomatic state) but no `war_instance`
+    has been allocated yet.
+    """
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+
+    result = accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=200,
+        defender_casualties=300,
+    )
+
+    assert result is None
+    assert world.war_contribution_scores == {}
+
+
+def test_accrue_battle_contribution_returns_none_when_nations_on_same_side():
+    """Same-side battle (e.g. accidental friendly-fire wiring bug) → no-op."""
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Saxony", joined_turn=1)
+
+    result = accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Saxony",  # both attackers
+        winner_nation="France",
+        attacker_casualties=200,
+        defender_casualties=300,
+        war_id="war_1",
+    )
+
+    assert result is None
+    france_episode = current_episode(world, "war_1", "France")
+    saxony_episode = current_episode(world, "war_1", "Saxony")
+    assert france_episode["battle"] == 0
+    assert saxony_episode["battle"] == 0
+
+
+def test_accrue_battle_contribution_skips_participants_without_active_episode():
+    """Participants without an active episode are silently skipped.
+
+    Pre-B3 wiring: war-entry seams have not yet wired `open_episode()`, so
+    accrual must tolerate participants whose episode container is empty
+    rather than crashing or auto-opening (auto-opening is a B3 concern).
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    # Open an episode for France only; Austria has no episode.
+    open_episode(world, "war_1", "France", joined_turn=1)
+
+    result = accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=200,
+        defender_casualties=300,
+    )
+
+    assert result is not None
+    assert "France" in result["accrued_battle_points"]
+    assert "Austria" not in result["accrued_battle_points"]
+    france_episode = current_episode(world, "war_1", "France")
+    assert france_episode is not None
+    assert france_episode["battle"] == 40
+
+
+def test_accrue_battle_contribution_distributes_by_theater_strength_when_provided():
+    """Forward-compat: explicit theater data divides credit by strength share.
+
+    Locks in the function's theater-aware behavior so the post-B2 emitter
+    wiring (which will pass `attacker_participants` /
+    `nation_theater_strength` from one-hop adjacency) has a stable contract
+    to call.
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Saxony", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+
+    # 5000 attacker / 5000 defender:
+    # attacker_side_raw = 5000//100 + 5000//250 + 0 = 50 + 20 = 70
+    # France raw = 70 * 30/40 = 52.5 → round() → 52
+    # Saxony raw = 70 * 10/40 = 17.5 → round() → 18
+    # Stored bucket points normalize raw shares into the 40-point battle bucket:
+    # France = round(52/70*40) = 30, Saxony = round(18/70*40) = 10.
+    # round() is banker's rounding in Python 3: round(52.5) == 52, round(17.5) == 18.
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=5000,
+        defender_casualties=5000,
+        location="Saxony",
+        attacker_participants=["France", "Saxony"],
+        defender_participants=["Austria"],
+        nation_theater_strength={"France": 30, "Saxony": 10, "Austria": 40},
+        war_id="war_1",
+    )
+
+    france_episode = current_episode(world, "war_1", "France")
+    saxony_episode = current_episode(world, "war_1", "Saxony")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert saxony_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 30
+    assert saxony_episode["battle"] == 10
+    # Austria: side_raw = 5000//100 + 5000//250 + 0 = 70, single participant
+    # receives the full battle bucket.
+    assert austria_episode["battle"] == 40
+
+
+def test_accrue_battle_contribution_filters_explicit_participants_to_same_side():
+    """Explicit theater lists are caller-provided, but accrual still enforces
+    war_instance side membership before awarding bucket points.
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Saxony", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=5000,
+        defender_casualties=5000,
+        location="Saxony",
+        attacker_participants=["France", "Austria"],  # Austria is not attacker-side.
+        defender_participants=["Austria", "Saxony"],  # Saxony is not defender-side.
+        nation_theater_strength={"France": 30, "Saxony": 10, "Austria": 40},
+        war_id="war_1",
+        turn=1,
+    )
+
+    france_episode = current_episode(world, "war_1", "France")
+    saxony_episode = current_episode(world, "war_1", "Saxony")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert saxony_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert saxony_episode["battle"] == 0
+    assert austria_episode["battle"] == 40
+
+
+def test_accrue_battle_contribution_enforces_episode_turn_window():
+    """Closed episodes remain addressable by current_episode_id, but events
+    outside joined/exited turn bounds must not mutate contribution.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+    close_episode_for_exit(world, "war_1", "Austria", exited_turn=3)
+
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=500,
+        defender_casualties=500,
+        war_id="war_1",
+        turn=4,
+    )
+
+    france_episode = current_episode(world, "war_1", "France")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 0

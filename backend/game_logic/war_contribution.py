@@ -1,6 +1,6 @@
-"""Imperial Settlement / Ally Participation — Contribution Tracker (Slice B1).
+"""Imperial Settlement / Ally Participation — Contribution Tracker (Slices B1 + B2 ordering guard).
 
-Slice B1 owns:
+Slice B1 ships (already landed):
 
 - Data shape for ``world.war_contribution_scores`` per spec §9.1.
 - Episode helpers (`canonical_episode_id`, `open_episode`,
@@ -14,12 +14,29 @@ Slice B1 owns:
   term-derived booleans explicitly so B1 callers never fabricate Slice C/D
   reaction state.
 
-Slice B1 must NOT:
+Slice B2 ordering guard ships (this commit):
 
-- Implement battle / occupation / support emitters (B2).
-- Wire per-turn staying-power accrual or exit stamping (B3).
-- Read or compute common-peace term legitimacy / War Bargain settlement
-  classification / Slice C/D reaction routing.
+- `accrue_battle_contribution(...)` — the canonical battle-bucket accrual
+  entrypoint, called from `diplomacy.record_battle()` BEFORE the 1000-casualty
+  war-score early return (spec §9.4: sub-1000-casualty battles still accrue
+  settlement contribution). Accepts legacy single-attacker/single-defender
+  shape (current call sites) and theater shape (post-B2 emitter wiring).
+
+Future B2 work (not in this commit):
+
+- Theater-aware call-site updates: `_post_combat_pipeline()`,
+  `_execute_attack()` inline path, auto-dispatch charge path, glorious-charge
+  pipeline. Each must pass `attacker_participants`, `defender_participants`,
+  and `nation_theater_strength` derived from one-hop adjacency.
+- Occupation, support, and treaty-clause emitters.
+- British coalition subsidy attribution.
+
+Slice B3 ships (later):
+
+- Per-turn staying-power accrual.
+- War-entry seam wiring of `open_episode()` / `close_episode_for_exit()`.
+- Same-turn separate-peace event ordering.
+- Archive compaction.
 
 The module is event-driven by design (spec §9.5): no per-region scans,
 no per-turn `world.regions.values()` walks. All readers go through
@@ -648,6 +665,271 @@ def standing_for_participant(
     )
 
 
+# ===========================================================================
+# Slice B2 — Battle-bucket accrual entrypoint (spec §9.2 / §9.4)
+# ===========================================================================
+#
+# This is the single canonical accrual entrypoint that
+# `diplomacy.record_battle()` calls BEFORE the 1000-casualty war-score early
+# return. The ordering is pinned by tests; settlement contribution must not
+# inherit the war-score sub-1000 filter (spec §9.4 line 713).
+
+
+def _resolve_active_war_id_for_pair(
+    world: Any, nation_a: str, nation_b: str,
+) -> Optional[str]:
+    """Return the active `war_id` whose `active_diplo_keys` contains the pair.
+
+    Uses the cached `world.get_war_instances_by_participant()` index when
+    available so settlement accrual stays off the per-region/per-instance
+    scan budget at full-Europe scale (impl plan §"Scale Rules").
+
+    Returns ``None`` when no active war_instance owns the pair (e.g. the
+    diplomatic state is WAR but the war_instance has not been allocated, or
+    the pair belongs only to a `resolved_diplo_keys` archive).
+    """
+    if not nation_a or not nation_b:
+        return None
+    make_key = getattr(world, "_make_diplo_key", None)
+    diplo_key = (
+        make_key(nation_a, nation_b)
+        if callable(make_key)
+        else "|".join(sorted((nation_a, nation_b)))
+    )
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return None
+    candidate_war_ids: List[str] = []
+    participant_lookup = getattr(world, "get_war_instances_by_participant", None)
+    if callable(participant_lookup):
+        candidate_war_ids = list(participant_lookup(nation_a) or [])
+    if not candidate_war_ids:
+        candidate_war_ids = list(instances.keys())
+    for war_id in candidate_war_ids:
+        instance = instances.get(war_id) or {}
+        if diplo_key in (instance.get("active_diplo_keys") or []):
+            return war_id
+    return None
+
+
+def _battle_side_raw(
+    *,
+    inflicted_casualties: int,
+    suffered_casualties: int,
+    decisive_win: bool,
+) -> int:
+    """Per-side raw battle points per spec §9.2.
+
+    ``battle_side_raw =
+        casualties_inflicted // 100
+        + casualties_suffered // 250
+        + decisive_battle_win * 25``
+
+    The raw value is per-side; per-nation distribution divides by theater
+    strength share (spec §9.4). The decisive criterion matches the existing
+    war-score decisive criterion (ratio > 2:1 AND total > 10,000) so a single
+    battle never gets two different "decisive" interpretations; the
+    war-score decisive cap (max 2 per war) is a war-score concept and is
+    not mirrored on the settlement side because the episode boundary already
+    bounds settlement decisive credit.
+    """
+    return (
+        max(0, int(inflicted_casualties)) // 100
+        + max(0, int(suffered_casualties)) // 250
+        + (25 if decisive_win else 0)
+    )
+
+
+def _is_decisive_battle(
+    attacker_casualties: int, defender_casualties: int,
+) -> bool:
+    """Match the war-score decisive criterion in `diplomacy.record_battle()`."""
+    total = int(attacker_casualties) + int(defender_casualties)
+    if total <= 10000:
+        return False
+    if attacker_casualties <= 0 or defender_casualties <= 0:
+        return False
+    ratio = (
+        max(attacker_casualties, defender_casualties)
+        / min(attacker_casualties, defender_casualties)
+    )
+    return ratio > 2.0
+
+
+def accrue_battle_contribution(
+    world: Any,
+    *,
+    attacker_nation: str,
+    defender_nation: str,
+    winner_nation: str,
+    attacker_casualties: int,
+    defender_casualties: int,
+    location: str = "",
+    war_id: Optional[str] = None,
+    attacker_participants: Optional[List[str]] = None,
+    defender_participants: Optional[List[str]] = None,
+    nation_theater_strength: Optional[Mapping[str, int]] = None,
+    turn: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Accrue battle-bucket contribution for a battle (spec §9.2 / §9.4).
+
+    Slice B2 entrypoint, called from `diplomacy.record_battle()` BEFORE the
+    1000-casualty war-score early return. Sub-1000-casualty battles still
+    accrue settlement contribution (spec §9.4 line 713) — only the pairwise
+    war-score record is filtered.
+
+    Calling shapes:
+
+    - **Legacy** (current B2-transition callers): omit
+      `attacker_participants` / `defender_participants` /
+      `nation_theater_strength`; the legacy adapter (spec §9.6) fills them
+      with `[attacker]`, `[defender]`, theater strength `1` each.
+    - **Theater-aware** (post-B2 emitter wiring): supply explicit
+      participant lists derived from one-hop adjacency, plus per-nation
+      theater strength.
+
+    No-op cases (return ``None``):
+
+    - `attacker_nation` or `defender_nation` empty.
+    - `war_id` cannot be resolved (no active war_instance owns the pair).
+    - `war_instance` has no `side_by_nation` mapping for both nations, or
+      the two nations land on the same side.
+    - No same-side participant has an active episode (per spec §7.5 the
+      reader filters by active-episode turn range; nothing to accrue).
+    - Both side-raw values land at zero (e.g. zero casualties + no
+      decisive win).
+
+    Returns the accrual event dict (annotated with
+    `accrued_battle_points: {nation: bucket_points}`) for tests/debug callers.
+    """
+    if not attacker_nation or not defender_nation:
+        return None
+    resolved_war_id = war_id or _resolve_active_war_id_for_pair(
+        world, attacker_nation, defender_nation,
+    )
+    if not resolved_war_id:
+        return None
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(resolved_war_id) or {}
+    if not instance:
+        return None
+    side_by_nation = instance.get("side_by_nation") or {}
+    attacker_side = side_by_nation.get(attacker_nation)
+    defender_side = side_by_nation.get(defender_nation)
+    if not attacker_side or not defender_side or attacker_side == defender_side:
+        return None
+
+    # Fill theater data via the legacy adapter when caller passed nothing.
+    legacy_record = adapt_legacy_battle_record({
+        "attacker": attacker_nation,
+        "defender": defender_nation,
+        "winner": winner_nation,
+        "attacker_casualties": int(attacker_casualties),
+        "defender_casualties": int(defender_casualties),
+        "battle_region": location,
+        "war_id": resolved_war_id,
+        "turn": turn,
+        "attacker_participants": attacker_participants,
+        "defender_participants": defender_participants,
+        "nation_theater_strength": nation_theater_strength,
+    })
+    a_participants: List[str] = list(legacy_record["attacker_participants"])
+    d_participants: List[str] = list(legacy_record["defender_participants"])
+    theater: Dict[str, int] = dict(legacy_record["nation_theater_strength"])
+
+    decisive = _is_decisive_battle(attacker_casualties, defender_casualties)
+    attacker_decisive_win = decisive and winner_nation == attacker_nation
+    defender_decisive_win = decisive and winner_nation == defender_nation
+
+    attacker_side_raw = _battle_side_raw(
+        inflicted_casualties=defender_casualties,
+        suffered_casualties=attacker_casualties,
+        decisive_win=attacker_decisive_win,
+    )
+    defender_side_raw = _battle_side_raw(
+        inflicted_casualties=attacker_casualties,
+        suffered_casualties=defender_casualties,
+        decisive_win=defender_decisive_win,
+    )
+
+    accrued: Dict[str, int] = {}
+
+    def _episode_accepts_turn(episode: Mapping[str, Any]) -> bool:
+        if turn is None:
+            return True
+        event_turn = int(turn)
+        joined_turn = episode.get("joined_turn")
+        if joined_turn is not None and event_turn < int(joined_turn):
+            return False
+        exited_turn = episode.get("exited_turn")
+        if exited_turn is not None and event_turn > int(exited_turn):
+            return False
+        return True
+
+    def _accrue_side(participants: List[str], side_raw: int, side: str) -> None:
+        if side_raw <= 0 or not participants:
+            return
+        active_participants = set(instance.get("active_participants") or [])
+        same_side_participants = [
+            p for p in participants
+            if side_by_nation.get(p) == side
+            and (not active_participants or p in active_participants)
+        ]
+        if not same_side_participants:
+            return
+        # Floor 1 per spec §9.4 line 622: an otherwise valid detected
+        # participant with theater strength <= 0 is not silently dropped.
+        per_nation_strength: Dict[str, int] = {
+            p: max(1, int(theater.get(p) or 0) or 1)
+            for p in same_side_participants
+        }
+        side_strength = sum(per_nation_strength.values())
+        if side_strength <= 0:
+            return
+        for participant in same_side_participants:
+            episode = current_episode(world, resolved_war_id, participant)
+            if episode is None:
+                continue
+            if not _episode_accepts_turn(episode):
+                continue
+            nation_raw = round(
+                side_raw * per_nation_strength[participant] / side_strength,
+            )
+            if nation_raw <= 0:
+                continue
+            bucket_points = round(
+                (nation_raw / side_raw) * BUCKET_WEIGHTS["battle"],
+            )
+            if bucket_points <= 0:
+                continue
+            episode["battle"] = int(episode.get("battle") or 0) + bucket_points
+            episode["total"] = int(episode.get("total") or 0) + bucket_points
+            accrued[participant] = accrued.get(participant, 0) + bucket_points
+
+    _accrue_side(a_participants, attacker_side_raw, attacker_side)
+    _accrue_side(d_participants, defender_side_raw, defender_side)
+
+    if not accrued:
+        return None
+
+    return {
+        "type": "war_battle_contribution",
+        "war_id": resolved_war_id,
+        "battle_region": location,
+        "winner": winner_nation,
+        "turn": turn,
+        "attacker": attacker_nation,
+        "defender": defender_nation,
+        "attacker_casualties": int(attacker_casualties),
+        "defender_casualties": int(defender_casualties),
+        "attacker_participants": a_participants,
+        "defender_participants": d_participants,
+        "nation_theater_strength": theater,
+        "decisive": decisive,
+        "accrued_battle_points": dict(accrued),
+    }
+
+
 __all__ = [
     "ALL_BUCKETS",
     "BENEFICIARY_ONLY",
@@ -660,6 +942,7 @@ __all__ = [
     "NO_STANDING",
     "SEAT",
     "SEAT_MATERIAL_SHARE_THRESHOLD",
+    "accrue_battle_contribution",
     "adapt_legacy_battle_record",
     "canonical_episode_id",
     "classify_standing",

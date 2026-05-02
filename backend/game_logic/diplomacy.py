@@ -8451,6 +8451,12 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
 
     Also checks for decisive battle (casualty ratio > 2:1 AND total > 10,000).
     Max 2 decisive bonuses per war.
+
+    Imperial Settlement B2: settlement contribution accrual MUST run before the
+    1000-casualty war-score early return (spec §9.4 line 713: sub-1000 battles
+    still accrue settlement contribution). The ordering is pinned by tests in
+    `tests/test_war_contribution_scores.py` — moving the accrual call below
+    the gate breaks the ordering guard.
     """
     if not world.is_at_war(attacker_nation, defender_nation):
         return  # Only record battles between nations at war
@@ -8467,6 +8473,22 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         world.battle_records[diplo_key] = []
     if diplo_key not in world.decisive_battles:
         world.decisive_battles[diplo_key] = []
+
+    # Imperial Settlement B2: accrue settlement contribution BEFORE the
+    # 1000-casualty war-score gate. Theater fields default to the legacy
+    # single-attacker/single-defender shape until B2 emitter wiring updates
+    # the call sites in `combat_executor.py` / `world_state.py`.
+    from backend.game_logic.war_contribution import accrue_battle_contribution
+    accrue_battle_contribution(
+        world,
+        attacker_nation=attacker_nation,
+        defender_nation=defender_nation,
+        winner_nation=winner_nation,
+        attacker_casualties=int(attacker_casualties),
+        defender_casualties=int(defender_casualties),
+        location=location,
+        turn=getattr(world, "current_turn", None),
+    )
 
     # R9: Only battles with >= 1000 total casualties count for war score
     total_casualties = attacker_casualties + defender_casualties
