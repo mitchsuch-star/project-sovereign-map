@@ -383,16 +383,18 @@ def test_side_scoped_leader_source_each_side_uses_own_metadata():
     assert instance["leader_source_by_side"]["defenders"] == "origin_target"
 
 
-def test_war_leader_score_is_null_safe_before_slice_b():
-    """Slice B `war_contribution_scores` does not yet exist. The score
-    function must default the contribution component to 0 without crashing."""
+def test_war_leader_score_empty_safe_when_no_contribution_recorded():
+    """Slice B1 ships the empty contribution store. With no episodes seeded
+    yet (no B2 emitters), the contribution share is 0 and `war_leader_score`
+    must default that component to 0 without crashing."""
     world = _clean_world()
     inserted = build_side_scoped_leader_source_fixture(
         world, attacker_source="originator", defender_source="origin_target"
     )
     war_id = next(iter(inserted))
-    # No `war_contribution_scores` attribute on world.
-    assert not hasattr(world, "war_contribution_scores")
+    # B1: container exists but is empty for any war that has not accrued.
+    assert hasattr(world, "war_contribution_scores")
+    assert world.war_contribution_scores == {}
     score = war_leader_score(world, "France", war_id=war_id, side="attackers")
     # Must be a non-negative integer.
     assert isinstance(score, int)
@@ -569,16 +571,18 @@ def test_post_merge_invariant_catches_dangling_absorbed_war_id_in_event_log():
     )
 
 
-def test_post_merge_no_op_safe_when_slice_bc_containers_absent():
+def test_post_merge_no_op_safe_when_slice_bc_containers_empty_or_absent():
     """A3 cross-slice gating: post-merge invariant must not false-positive
-    when Slice B `war_contribution_scores` or Slice C
-    `pending_settlement_dialogues` / `settlement_route_payloads` containers
-    do not yet exist on world."""
+    when Slice B `war_contribution_scores` is empty (B1 ships the empty
+    container by default) and Slice C `pending_settlement_dialogues` /
+    `settlement_route_payloads` containers do not yet exist on world."""
     world = _clean_world()
     inserted = build_multi_objective_merge_fixture(world)
     war_a = sorted(inserted.keys())[0]
-    # Confirm the future-slice containers are absent.
-    assert not hasattr(world, "war_contribution_scores")
+    # B1: container exists but is empty for fixtures that have not accrued.
+    assert hasattr(world, "war_contribution_scores")
+    assert world.war_contribution_scores == {}
+    # Slice C containers are still absent.
     assert not hasattr(world, "pending_settlement_dialogues")
     assert not hasattr(world, "settlement_route_payloads")
     # Run a real merge and confirm the post-merge invariant passes.

@@ -636,6 +636,25 @@ class WorldState:
         self._war_instances_by_participant_cache: Dict[str, List[str]] = {}
 
         # ============================================================
+        # IMPERIAL SETTLEMENT — CONTRIBUTION TRACKER (Slice B1)
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md §9
+        # ============================================================
+        # Episode-scoped per-(war_id, nation) contribution store. Empty
+        # in B1 — populated by B2 event emitters at battle / occupation /
+        # support resolution time. Shape per spec §9.1:
+        #   {war_id: {nation: {
+        #       "current_episode_id": str,
+        #       "episodes": {episode_id: {joined_turn, exited_turn,
+        #                                 battle, occupation,
+        #                                 staying_power, support, total}},
+        #       "historical_total": int,
+        #   }}}
+        # B1 ships data shape + save/load + episode helpers + share math
+        # + classify_standing pure helper. B2 wires emitters; B3 wires
+        # lifecycle (per-turn staying power, exit stamping).
+        self.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
+
+        # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
         # Cleared at start of advance_turn() before systems populate new events
@@ -3721,6 +3740,14 @@ class WorldState:
             "archived_war_instances": [
                 copy.deepcopy(v) for v in self.archived_war_instances
             ],
+            # Slice B1: contribution store. Pre-B1 saves default to {}.
+            "war_contribution_scores": {
+                str(war_id): {
+                    str(nation): copy.deepcopy(record)
+                    for nation, record in nation_dict.items()
+                }
+                for war_id, nation_dict in self.war_contribution_scores.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -4154,6 +4181,14 @@ class WorldState:
         world._war_instance_indexes_dirty = True
         world._war_instances_by_leader_cache = {}
         world._war_instances_by_participant_cache = {}
+        # Slice B1: contribution store. Pre-B1 saves default to {}.
+        world.war_contribution_scores = {
+            str(war_id): {
+                str(nation): copy.deepcopy(record)
+                for nation, record in (nation_dict or {}).items()
+            }
+            for war_id, nation_dict in (data.get("war_contribution_scores") or {}).items()
+        }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }

@@ -1019,12 +1019,19 @@ def war_leader_score(world: Any, nation: str, *, war_id: str, side: str) -> int:
     tier = tier_getter(nation) if callable(tier_getter) else None
     score = int(_POWER_TIER_SCORE.get(tier or "", _DEFAULT_TIER_SCORE))
 
-    # Contribution percentage on this war_id (Slice B; null-safe before B).
-    contribution_scores = getattr(world, "war_contribution_scores", None) or {}
-    war_scores = contribution_scores.get(war_id) or {}
-    contribution_pct = war_scores.get(nation)
-    if isinstance(contribution_pct, (int, float)):
-        score += int(contribution_pct * 50)
+    # Contribution percentage on this war_id × 50 (spec §7.4).
+    # B1 ships the dict-shaped store but no emitters yet, so the share
+    # is always 0.0 until B2 accrues battle/occupation/support points.
+    # Reading via the canonical helper future-proofs the wiring.
+    try:
+        from backend.game_logic.war_contribution import material_contribution_share
+
+        share = material_contribution_share(world, war_id, nation, side)
+        score += int(share * 50)
+    except ImportError:
+        # Module truly missing — log and continue; A3 invariants do not
+        # depend on this contribution component.
+        pass
 
     # Ally seat / consult / beneficiary flags from participant_meta.
     instance = (getattr(world, "war_instances", None) or {}).get(war_id) or {}
@@ -1170,12 +1177,26 @@ def _rewrite_absorbed_war_id_in_contribution(
     absorbed: Iterable[str],
     surviving: str,
 ) -> int:
-    """No-op-safe hook for the future Slice B `war_contribution_scores` container.
+    """Move B1 contribution records from absorbed war_ids to the survivor.
 
-    Walks `world.war_contribution_scores` only if it exists; silently
-    no-ops otherwise. When Slice B lands, post-merge standing uses the
-    merged current-episode side denominator (spec line 101) — A3 only owns
-    the `war_id` rewrite, not contribution accrual.
+    B1 ships the actual contribution store shape (per-nation dicts with
+    ``current_episode_id`` / ``episodes`` / ``historical_total``). On
+    merge:
+
+    - The absorbed war_id's per-nation dict is moved under the surviving
+      war_id key.
+    - If the survivor already has a record for that nation, episodes are
+      unioned (survivor's episode_id wins on collision — spec impl plan
+      line 101 says A3 does not preserve pre-merge contribution
+      percentages, so loss of a colliding episode dict is acceptable).
+    - ``historical_total`` accumulates.
+    - ``current_episode_id`` prefers the survivor's value; falls back to
+      the absorbed value only if the survivor had none.
+
+    Empty-safe before B1 (`war_contribution_scores` defaults to ``{}``);
+    each absorbed war_id with no contribution dict is a silent no-op.
+    Returns the number of absorbed war_ids whose contribution was moved
+    (zero if nothing existed to move).
     """
     if not surviving:
         return 0
@@ -1187,12 +1208,33 @@ def _rewrite_absorbed_war_id_in_contribution(
         return 0
     rewritten = 0
     for absorbed_id in list(absorbed_set):
-        if absorbed_id in container:
-            absorbed_scores = container.pop(absorbed_id) or {}
-            surviving_scores = container.setdefault(surviving, {})
-            for nation, value in absorbed_scores.items():
-                surviving_scores[nation] = (surviving_scores.get(nation) or 0) + (value or 0)
+        if absorbed_id not in container:
+            continue
+        absorbed_war_dict = container.pop(absorbed_id) or {}
+        if not isinstance(absorbed_war_dict, dict):
             rewritten += 1
+            continue
+        surviving_war_dict = container.setdefault(surviving, {})
+        for nation, absorbed_record in absorbed_war_dict.items():
+            if not isinstance(absorbed_record, dict):
+                continue
+            existing = surviving_war_dict.get(nation)
+            if not isinstance(existing, dict):
+                surviving_war_dict[nation] = absorbed_record
+                continue
+            # Union episodes — survivor wins on episode_id collision.
+            merged_episodes = dict(absorbed_record.get("episodes") or {})
+            merged_episodes.update(existing.get("episodes") or {})
+            existing["episodes"] = merged_episodes
+            existing["historical_total"] = (
+                int(existing.get("historical_total") or 0)
+                + int(absorbed_record.get("historical_total") or 0)
+            )
+            if not existing.get("current_episode_id"):
+                existing["current_episode_id"] = (
+                    absorbed_record.get("current_episode_id") or ""
+                )
+        rewritten += 1
     return rewritten
 
 

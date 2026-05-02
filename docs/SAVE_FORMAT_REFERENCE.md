@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.1
 - **Last updated:** 2026-05-02
-- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + Imperial Settlement Slices A1/A2/A3 (`next_war_instance_id`, `war_instances`, `archived_war_instances`, plus bargain `war_id`/`side_at_creation`/`side_leader_at_creation` snapshot fields and `participant_meta[nation].exited_turn`/`exit_path` elimination stamps) + pending Imperial Settlement Slice B/C/D fields documented below
+- **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + Imperial Settlement Slices A1/A2/A3 (`next_war_instance_id`, `war_instances`, `archived_war_instances`, plus bargain `war_id`/`side_at_creation`/`side_leader_at_creation` snapshot fields and `participant_meta[nation].exited_turn`/`exit_path` elimination stamps) + Imperial Settlement Slice B1 (`war_contribution_scores` episode-scoped per-nation records) + pending Imperial Settlement Slice C/D fields documented below
 
 > Slice A3 post-review fix `d5bcefc` extends merge rewrite and invariant coverage to nested event-log / ledger payload `war_id` fields in addition to bargains, pending dispatch events, and no-op-safe future Slice B/C containers.
 
@@ -120,6 +120,7 @@ A future save/load system should use this as the specification.
   "next_war_instance_id": 1,
   "war_instances": {},
   "archived_war_instances": [],
+  "war_contribution_scores": {},
   "reparations_cooldown": {},
   "anti_renewal_cooldown": {},
   "oathbreaker_posture": {},
@@ -297,7 +298,7 @@ These fields are specified for `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.21
 | `next_war_instance_id` | int | 1 | Slice A: monotonic war-instance allocator; `war_id = "war_{next_war_instance_id}"`, stored as `created_sequence`, then incremented. |
 | `war_instances` | dict | {} | Slice A: active/recent political war containers keyed by `war_id`, grouping existing pairwise war state through pair keys, leaders, participant episodes, objective references, and terminal metadata. |
 | `archived_war_instances` | list[dict] | [] | Slice A: compact terminal war records moved out of `war_instances` after the 10-turn live retention window. |
-| `war_contribution_scores` | dict | {} | Slice B: episode-scoped contribution totals by `war_id` and nation, including bucket totals and fired contribution threshold signals. |
+| `war_contribution_scores` | dict | {} | **Slice B1 (landed).** Episode-scoped contribution store keyed by `war_id` then by nation. Each per-nation record carries `current_episode_id`, `episodes` (dict of `episode_id` → `{joined_turn, exited_turn, battle, occupation, staying_power, support, total}`), and `historical_total`. Episode ids follow the canonical `{nation}_{war_sequence}_{episode_index}` form. B1 ships the data shape, episode helpers, share/standing math (`current_episode_total`, `current_episode_material_total`, `contribution_share`, `material_contribution_share`, all zero-safe), the §9.6 old-record adapter, and the pure §8.2 standing classifier — all under `backend/game_logic/war_contribution.py`. B2 wires the battle / occupation / support emitters; B3 wires per-turn lifecycle. Pre-B1 saves load with `{}` defaulted. |
 | `ai_settlement_cooldowns` | dict[str, int] | {} | Slice C2: common-peace AI anti-spam cooldowns keyed by `war_id`, separate from bilateral proposal cooldown namespaces. |
 | `pending_settlement_dialogues` | list[dict] | [] | Slice C2: settlement-owned retry list for locked `settlement_confirm` / `incoming_settlement_offer` payloads deferred by dialogue queue capacity, with `war_id`, `dialogue_type`, locked payload, `created_turn`, `retry_after_turn`, and `expires_on_turn`. |
 | `settlement_memories` | dict | {} | Slice D1: transient positive/context settlement memories such as `settlement_gratitude`, `sold_out_by_war_leader`, and `settlement_context`; negative grievances remain in `betrayal_history[pair]["grievance_flags"]`. |
