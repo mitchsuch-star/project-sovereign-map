@@ -800,7 +800,7 @@ def accrue_battle_contribution(
       decisive win).
 
     Returns the accrual event dict (annotated with
-    `accrued_battle_points: {nation: raw_points}`) for tests/debug callers.
+    `accrued_battle_points: {nation: bucket_points}`) for tests/debug callers.
     """
     if not attacker_nation or not defender_nation:
         return None
@@ -854,32 +854,60 @@ def accrue_battle_contribution(
 
     accrued: Dict[str, int] = {}
 
-    def _accrue_side(participants: List[str], side_raw: int) -> None:
+    def _episode_accepts_turn(episode: Mapping[str, Any]) -> bool:
+        if turn is None:
+            return True
+        event_turn = int(turn)
+        joined_turn = episode.get("joined_turn")
+        if joined_turn is not None and event_turn < int(joined_turn):
+            return False
+        exited_turn = episode.get("exited_turn")
+        if exited_turn is not None and event_turn > int(exited_turn):
+            return False
+        return True
+
+    def _accrue_side(participants: List[str], side_raw: int, side: str) -> None:
         if side_raw <= 0 or not participants:
+            return
+        active_participants = set(instance.get("active_participants") or [])
+        same_side_participants = [
+            p for p in participants
+            if side_by_nation.get(p) == side
+            and (not active_participants or p in active_participants)
+        ]
+        if not same_side_participants:
             return
         # Floor 1 per spec §9.4 line 622: an otherwise valid detected
         # participant with theater strength <= 0 is not silently dropped.
         per_nation_strength: Dict[str, int] = {
-            p: max(1, int(theater.get(p) or 0) or 1) for p in participants
+            p: max(1, int(theater.get(p) or 0) or 1)
+            for p in same_side_participants
         }
         side_strength = sum(per_nation_strength.values())
         if side_strength <= 0:
             return
-        for participant in participants:
+        for participant in same_side_participants:
             episode = current_episode(world, resolved_war_id, participant)
             if episode is None:
+                continue
+            if not _episode_accepts_turn(episode):
                 continue
             nation_raw = round(
                 side_raw * per_nation_strength[participant] / side_strength,
             )
             if nation_raw <= 0:
                 continue
-            episode["battle"] = int(episode.get("battle") or 0) + nation_raw
-            episode["total"] = int(episode.get("total") or 0) + nation_raw
-            accrued[participant] = accrued.get(participant, 0) + nation_raw
+            bucket_points = round(
+                (nation_raw / side_raw) * BUCKET_WEIGHTS["battle"],
+            )
+            if bucket_points <= 0:
+                continue
+            episode["battle"] = int(episode.get("battle") or 0) + bucket_points
+            episode["total"] = int(episode.get("total") or 0) + bucket_points
+            accrued[participant] = accrued.get(participant, 0) + bucket_points
 
-    _accrue_side(a_participants, attacker_side_raw)
-    _accrue_side(d_participants, defender_side_raw)
+    _accrue_side(a_participants, attacker_side_raw, attacker_side)
+    _accrue_side(d_participants, defender_side_raw, defender_side)
 
     if not accrued:
         return None

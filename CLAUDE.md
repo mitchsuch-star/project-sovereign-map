@@ -19,6 +19,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
+- **Imperial Settlement current handoff:** B2 ordering-guard review fixes are landed. `accrue_battle_contribution(...)` now stores normalized 40-point battle-bucket values, filters explicit theater participants to active same-side war participants, and enforces episode turn windows. **B2 emitter call-site wiring remains next.**
+
 - **Scale Readiness Phase 1 — COMPLETE.** 11 new tests, hardcoded `== 19` removed, validator derives from NATION_CAPITALS.
 - **Scale Readiness Phase 0 — COMPLETE (7/7 DECIDED).** DG-1 (13 nations, 20+ capable), DG-2 (bilateral + salience filter, 5-row cap), DG-3 (supply deferred), DG-4 (direct-only bilateral call-to-arms, no transitive cascade), DG-5 (raw-count hegemony victory), DG-6 (scenario-configured pacing, `scenario_schema_version: 1`), DG-7 (categorized dispatch). Cross-cutting: `power_tier` is authored scenario data with canonical enum `major / secondary / minor`; `political_status` is runtime state. See `docs/SCALE_READINESS_PLAN.md` §Phase 0 for the canonical taxonomy.
 - **Scale Readiness Phase 2 — COMPLETE.** Distance cache, AI spatial-index wiring, live AI fog path, and the `enemy_ai.py` raw scan-conversion pass are landed suite-green. See `docs/STATUS.md` and `docs/SCALE_READINESS_PLAN.md` §Phase 2.

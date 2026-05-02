@@ -942,10 +942,10 @@ def test_sub_1000_casualty_battle_accrues_settlement_contribution_no_war_score_r
     austria_episode = current_episode(world, "war_1", "Austria")
     assert france_episode is not None
     assert austria_episode is not None
-    assert france_episode["battle"] == 3
-    assert austria_episode["battle"] == 3
-    assert france_episode["total"] == 3
-    assert austria_episode["total"] == 3
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 40
+    assert france_episode["total"] == 40
+    assert austria_episode["total"] == 40
 
 
 def test_above_1000_casualty_battle_accrues_settlement_contribution_and_war_score_record():
@@ -977,15 +977,14 @@ def test_above_1000_casualty_battle_accrues_settlement_contribution_and_war_scor
     assert records[0]["attacker_casualties"] == 2000
     assert records[0]["defender_casualties"] == 3000
 
-    # Settlement contribution also accrued.
-    # attacker_side_raw = 3000//100 + 2000//250 + 0 = 30 + 8 = 38
-    # defender_side_raw = 2000//100 + 3000//250 + 0 = 20 + 12 = 32
+    # Settlement contribution also accrued. Single-participant sides receive
+    # the full normalized 40-point battle bucket.
     france_episode = current_episode(world, "war_1", "France")
     austria_episode = current_episode(world, "war_1", "Austria")
     assert france_episode is not None
     assert austria_episode is not None
-    assert france_episode["battle"] == 38
-    assert austria_episode["battle"] == 32
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 40
 
 
 # ===========================================================================
@@ -1081,7 +1080,7 @@ def test_accrue_battle_contribution_skips_participants_without_active_episode():
     assert "Austria" not in result["accrued_battle_points"]
     france_episode = current_episode(world, "war_1", "France")
     assert france_episode is not None
-    assert france_episode["battle"] == 3
+    assert france_episode["battle"] == 40
 
 
 def test_accrue_battle_contribution_distributes_by_theater_strength_when_provided():
@@ -1104,10 +1103,12 @@ def test_accrue_battle_contribution_distributes_by_theater_strength_when_provide
     open_episode(world, "war_1", "Saxony", joined_turn=1)
     open_episode(world, "war_1", "Austria", joined_turn=1)
 
-    # 5000 attacker / 5000 defender → side raw = 50//100*0 +... let's compute:
+    # 5000 attacker / 5000 defender:
     # attacker_side_raw = 5000//100 + 5000//250 + 0 = 50 + 20 = 70
-    # France gets 70 * 30/40 = 52.5 → round() → 52
-    # Saxony gets 70 * 10/40 = 17.5 → round() → 18
+    # France raw = 70 * 30/40 = 52.5 → round() → 52
+    # Saxony raw = 70 * 10/40 = 17.5 → round() → 18
+    # Stored bucket points normalize raw shares into the 40-point battle bucket:
+    # France = round(52/70*40) = 30, Saxony = round(18/70*40) = 10.
     # round() is banker's rounding in Python 3: round(52.5) == 52, round(17.5) == 18.
     accrue_battle_contribution(
         world,
@@ -1129,8 +1130,85 @@ def test_accrue_battle_contribution_distributes_by_theater_strength_when_provide
     assert france_episode is not None
     assert saxony_episode is not None
     assert austria_episode is not None
-    # France: 70 * 30/40 = 52.5 → 52, Saxony: 70 * 10/40 = 17.5 → 18.
-    assert france_episode["battle"] == 52
-    assert saxony_episode["battle"] == 18
-    # Austria: side_raw = 5000//100 + 5000//250 + 0 = 70, single participant.
-    assert austria_episode["battle"] == 70
+    assert france_episode["battle"] == 30
+    assert saxony_episode["battle"] == 10
+    # Austria: side_raw = 5000//100 + 5000//250 + 0 = 70, single participant
+    # receives the full battle bucket.
+    assert austria_episode["battle"] == 40
+
+
+def test_accrue_battle_contribution_filters_explicit_participants_to_same_side():
+    """Explicit theater lists are caller-provided, but accrual still enforces
+    war_instance side membership before awarding bucket points.
+    """
+    world = _build_world_with_war(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Saxony", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=5000,
+        defender_casualties=5000,
+        location="Saxony",
+        attacker_participants=["France", "Austria"],  # Austria is not attacker-side.
+        defender_participants=["Austria", "Saxony"],  # Saxony is not defender-side.
+        nation_theater_strength={"France": 30, "Saxony": 10, "Austria": 40},
+        war_id="war_1",
+        turn=1,
+    )
+
+    france_episode = current_episode(world, "war_1", "France")
+    saxony_episode = current_episode(world, "war_1", "Saxony")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert saxony_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert saxony_episode["battle"] == 0
+    assert austria_episode["battle"] == 40
+
+
+def test_accrue_battle_contribution_enforces_episode_turn_window():
+    """Closed episodes remain addressable by current_episode_id, but events
+    outside joined/exited turn bounds must not mutate contribution.
+    """
+    world = _build_world_with_war(
+        attackers=("France",),
+        defenders=("Austria",),
+        attacker_leader="France",
+        defender_leader="Austria",
+    )
+    diplo_key = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[diplo_key] = "WAR"
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+    close_episode_for_exit(world, "war_1", "Austria", exited_turn=3)
+
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=500,
+        defender_casualties=500,
+        war_id="war_1",
+        turn=4,
+    )
+
+    france_episode = current_episode(world, "war_1", "France")
+    austria_episode = current_episode(world, "war_1", "Austria")
+    assert france_episode is not None
+    assert austria_episode is not None
+    assert france_episode["battle"] == 40
+    assert austria_episode["battle"] == 0
