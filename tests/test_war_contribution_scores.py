@@ -206,7 +206,11 @@ def test_close_episode_for_exit_stamps_exited_turn_inclusive():
 
     assert closed is not None
     assert closed["exited_turn"] == 9
-    assert closed["exit_path"] == "separate_peace"
+    assert "exit_path" not in closed
+    assert set(closed) == {
+        "joined_turn", "exited_turn", "battle", "occupation",
+        "staying_power", "support", "total",
+    }
 
 
 def test_close_episode_for_exit_returns_none_when_no_active_episode():
@@ -509,7 +513,15 @@ def test_classify_standing_vassal_cap_blocks_major_auto_seat():
     assert classify_standing(
         power_tier="major", material_share=0.0, material_contribution_points=0,
         is_vassal_auto_join=True,
-    ) == BENEFICIARY_ONLY
+    ) == NO_STANDING
+
+
+def test_classify_standing_vassal_without_material_or_stake_has_no_standing():
+    assert classify_standing(
+        power_tier="minor", material_share=0.0, material_contribution_points=0,
+        is_active_same_side=True,
+        is_vassal_auto_join=True,
+    ) == NO_STANDING
 
 
 def test_classify_standing_vassal_with_25_percent_material_escapes_cap_to_seat():
