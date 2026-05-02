@@ -2086,6 +2086,11 @@ class WorldState:
         Sets stability to 25 (Hostile/Secured baseline).
         TODO (6.2.E): Plunder (10) vs Secure (25) choice, reconquest bonus (60).
         R81: Triggers nation elimination if last region captured.
+
+        Imperial Settlement B2: emits a `war_occupation_event` per spec §9.2
+        line 624 BEFORE any elimination teardown so same-turn elimination
+        exits still see the capture turn's contribution (spec §9.5: events
+        precede `exited_turn` stamps).
         """
         region = self.get_region(region_name)
         if not region:
@@ -2103,6 +2108,21 @@ class WorldState:
             if starting.get(region_name) != capturing_nation:
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture")
+
+        # Imperial Settlement B2: occupation event accrual happens BEFORE
+        # `_eliminate_nation` so a final-region capture still credits the
+        # capturing nation for the controller change (spec §9.5 event ordering).
+        if old_controller and old_controller != capturing_nation:
+            from backend.game_logic.war_contribution import (
+                emit_capture_occupation_event,
+            )
+            emit_capture_occupation_event(
+                self,
+                actor_nation=capturing_nation,
+                region=region_name,
+                from_controller=old_controller,
+                turn=int(self.current_turn),
+            )
 
         # R81: Check for elimination after capture
         if (old_controller and old_controller != capturing_nation
@@ -5771,6 +5791,32 @@ class WorldState:
                         applied_clause = clause.copy()
                         applied_clause["amount"] = int(transfer)
                         applied_treaty_clauses.append(applied_clause)
+                        # Imperial Settlement B2: emit `war_support_delivered` for
+                        # gold transferred between same-side allies. Spec §9.2 line
+                        # 658 / impl plan B2 "Treaty-clause gold / AP / manpower
+                        # transfers emit ... at ratification". Filter inside
+                        # `accrue_support_event` rejects opposite-side flows
+                        # (e.g. peace-treaty indemnity), so this call is safe to
+                        # make unconditionally for any gold_lump.
+                        from backend.game_logic.war_contribution import (
+                            accrue_support_event,
+                            resolve_treaty_clause_support_war_id,
+                        )
+                        gl_war_id = resolve_treaty_clause_support_war_id(
+                            self, from_nation, to_nation,
+                        )
+                        if gl_war_id:
+                            accrue_support_event(
+                                self,
+                                war_id=gl_war_id,
+                                supporter=from_nation,
+                                recipient=to_nation,
+                                support_kind="gold",
+                                value=int(transfer),
+                                source="treaty_clause",
+                                source_detail="ratification",
+                                turn=int(self.current_turn),
+                            )
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
                 # PL-20 §F: Treaty elimination guard — block if would eliminate and war_score < 90
@@ -5795,6 +5841,45 @@ class WorldState:
                     region.stability = 50
                     transferred_count += 1
                     transferred_regions.append(region_name)
+                    # Imperial Settlement B2: emit `allied_region_restored` when
+                    # a treaty hands a region's lawful (starting) owner back
+                    # their territory from an opposite-side ceding party
+                    # (spec §9.2 line 583 + line 624). The recipient (to_nation)
+                    # is the actor who gains political credit per the §9.2
+                    # example payload (actor_nation == to_controller). Skip when
+                    # the recipient is the proposer regaining their own
+                    # territory — that's a settlement of own territory, not
+                    # ally restoration. Lawful owner comes from
+                    # `get_starting_controllers()` because the Region class
+                    # does not retain the starting controller after init.
+                    if from_nation and to_nation and to_nation != proposer:
+                        from backend.models.region import get_starting_controllers
+                        starting_controllers = get_starting_controllers()
+                        if starting_controllers.get(region_name) == to_nation:
+                            from backend.game_logic.war_contribution import (
+                                accrue_occupation_event,
+                                _resolve_war_id_for_pair_on_opposite_sides,
+                            )
+                            cede_war_id = _resolve_war_id_for_pair_on_opposite_sides(
+                                self, to_nation, from_nation,
+                            )
+                            if cede_war_id:
+                                event_id = (
+                                    f"occupation-{int(self.current_turn)}-"
+                                    f"{cede_war_id}-{to_nation}-"
+                                    f"allied_region_restored-{region_name}"
+                                )
+                                accrue_occupation_event(
+                                    self,
+                                    actor_nation=to_nation,
+                                    region=region_name,
+                                    occupation_kind="allied_region_restored",
+                                    from_controller=from_nation,
+                                    to_controller=to_nation,
+                                    war_id=cede_war_id,
+                                    turn=int(self.current_turn),
+                                    event_id=event_id,
+                                )
                 if transferred_regions:
                     applied_clause = clause.copy()
                     applied_clause["regions"] = transferred_regions
@@ -5829,6 +5914,11 @@ class WorldState:
                     target_nation if proposer == lib_from else proposer
                 )
                 if lib_vassal and lib_vassal in self.vassals:
+                    # Capture the freed vassal's regions BEFORE release so the
+                    # B2 occupation accrual sees what the liberator restored.
+                    pre_release_vassal_regions = list(
+                        self.get_nation_regions(lib_vassal)
+                    )
                     from backend.game_logic.vassal import release_vassal
                     release_result = release_vassal(
                         self,
@@ -5846,6 +5936,43 @@ class WorldState:
                     if lib_from == getattr(self, "player_nation", "France"):
                         from backend.game_logic.coalition import reduce_threat as _rt
                         _rt(self, 8, "liberation")
+
+                    # Imperial Settlement B2: emit `liberated_region_restored`
+                    # per region of the freed vassal, credited to the liberator
+                    # (the war leader who arranged the release). Spec §9.2 line
+                    # 583 ("liberated_regions_restored * 15"). Filtered through
+                    # the active war_id between liberator and former lord.
+                    if (
+                        lib_liberator
+                        and lib_from
+                        and lib_liberator != lib_from
+                        and pre_release_vassal_regions
+                    ):
+                        from backend.game_logic.war_contribution import (
+                            accrue_occupation_event,
+                            _resolve_war_id_for_pair_on_opposite_sides,
+                        )
+                        lib_war_id = _resolve_war_id_for_pair_on_opposite_sides(
+                            self, lib_liberator, lib_from,
+                        )
+                        if lib_war_id:
+                            for lib_region in pre_release_vassal_regions:
+                                event_id = (
+                                    f"occupation-{int(self.current_turn)}-"
+                                    f"{lib_war_id}-{lib_liberator}-"
+                                    f"liberated_region_restored-{lib_region}"
+                                )
+                                accrue_occupation_event(
+                                    self,
+                                    actor_nation=lib_liberator,
+                                    region=lib_region,
+                                    occupation_kind="liberated_region_restored",
+                                    from_controller=lib_from,
+                                    to_controller=lib_vassal,
+                                    war_id=lib_war_id,
+                                    turn=int(self.current_turn),
+                                    event_id=event_id,
+                                )
 
                     applied_clause = clause.copy()
                     applied_clause["vassal_nation"] = lib_vassal
@@ -6153,7 +6280,46 @@ class WorldState:
         return result
 
     def _process_treaty_clauses(self) -> None:
-        """Apply per-turn treaty clauses (gold/turn, manpower/turn)."""
+        """Apply per-turn treaty clauses (gold/turn, manpower/turn).
+
+        Imperial Settlement B2: each per-turn transfer that actually moved
+        value emits a `war_support_delivered` event with `source="treaty_clause"`
+        and a per-clause-type `source_detail`. Filtering inside
+        `accrue_support_event` (same-side allies in active war_id) skips
+        opposite-side flows; the source_detail is enough to dedupe across
+        same-turn replays of `_process_treaty_clauses` (idempotent under
+        episode-id dedupe).
+        """
+        from backend.game_logic.war_contribution import (
+            accrue_support_event,
+            resolve_treaty_clause_support_war_id,
+        )
+
+        def _emit_treaty_support(
+            *,
+            from_n: str,
+            to_n: str,
+            kind: str,
+            value: int,
+            detail: str,
+        ) -> None:
+            if value <= 0 or not from_n or not to_n or from_n == to_n:
+                return
+            war_id = resolve_treaty_clause_support_war_id(self, from_n, to_n)
+            if not war_id:
+                return
+            accrue_support_event(
+                self,
+                war_id=war_id,
+                supporter=from_n,
+                recipient=to_n,
+                support_kind=kind,
+                value=int(value),
+                source="treaty_clause",
+                source_detail=detail,
+                turn=int(self.current_turn),
+            )
+
         for pair_key, treaty in self.active_treaties.items():
             for clause in treaty.get("clauses", []):
                 ctype = clause.get("type", "")
@@ -6179,6 +6345,11 @@ class WorldState:
                                 "amount_due": str(int(amount)),
                                 "amount_paid": str(int(transfer)),
                             }, "always")
+                        _emit_treaty_support(
+                            from_n=from_nation, to_n=to_nation,
+                            kind="gold", value=int(transfer),
+                            detail="gold_per_turn",
+                        )
                 elif ctype == "manpower_per_turn":
                     # Transfer between manpower pools (Fix 2: was nation_manpower, correct is manpower_pools)
                     from_pool = self.manpower_pools.get(from_nation, {})
@@ -6190,6 +6361,11 @@ class WorldState:
                     if to_nation in self.manpower_pools:
                         self.manpower_pools[to_nation]["infantry"] = (
                             to_pool.get("infantry", 0) + transfer)
+                    _emit_treaty_support(
+                        from_n=from_nation, to_n=to_nation,
+                        kind="manpower", value=int(transfer),
+                        detail="manpower_per_turn",
+                    )
                 elif ctype == "ap_per_turn":
                     # Fix 9: Handle France (player nation) AP reduction
                     if from_nation == self.player_nation:
@@ -6198,6 +6374,13 @@ class WorldState:
                     elif from_nation in self.nation_actions:
                         self.nation_actions[from_nation] = max(
                             1, self.nation_actions[from_nation] - int(amount))
+                    # AP transfer is symbolic in the engine but semantically a
+                    # support clause; emit using the clause's nominal amount.
+                    _emit_treaty_support(
+                        from_n=from_nation, to_n=to_nation,
+                        kind="ap", value=int(amount),
+                        detail="ap_per_turn",
+                    )
 
     # R6: _decrement_proposal_cooldowns, _decrement_ai_proposal_cooldowns,
     # _decrement_proactive_cooldowns, _decrement_ultimatum_cooldowns REMOVED.
