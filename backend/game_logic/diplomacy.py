@@ -6021,6 +6021,29 @@ def accept_counter_bargain(
     claim_region = counter.get("demanded_region", "")
     source_treaty_key = world._make_diplo_key(promiser, beneficiary)
 
+    joined = False
+    war_id_attached: Optional[str] = None
+    attach_result: Optional[Dict] = None
+    if join_war and beneficiary and named_enemy and not world.is_at_war(beneficiary, named_enemy):
+        attach_result = ensure_war_instance_for_pair(
+            world,
+            beneficiary,
+            named_enemy,
+            entry_path="counter_bargain_ally_entry",
+            reason="accept_counter_bargain",
+        )
+        if not attach_result.get("ok"):
+            return {
+                "success": False,
+                "bargain": None,
+                "joined": False,
+                "error": attach_result.get("error"),
+                "message": (
+                    f"Counter-bargain blocked: {attach_result.get('error')} "
+                    f"({attach_result.get('details', {}).get('reason', '')})"
+                ),
+            }
+
     bargain = create_war_bargain_commitment(
         world, promiser, beneficiary, named_enemy, claim_region,
         "counter_bargain", source_treaty_key,
@@ -6034,27 +6057,7 @@ def accept_counter_bargain(
     }
     _emit_bargain_event(world, bargain, "bargain_triggered")
 
-    joined = False
-    war_id_attached: Optional[str] = None
-    if join_war and beneficiary and named_enemy and not world.is_at_war(beneficiary, named_enemy):
-        attach_result = ensure_war_instance_for_pair(
-            world,
-            beneficiary,
-            named_enemy,
-            entry_path="counter_bargain_ally_entry",
-            reason="accept_counter_bargain",
-        )
-        if not attach_result.get("ok"):
-            return {
-                "success": False,
-                "bargain": bargain,
-                "joined": False,
-                "error": attach_result.get("error"),
-                "message": (
-                    f"Counter-bargain blocked: {attach_result.get('error')} "
-                    f"({attach_result.get('details', {}).get('reason', '')})"
-                ),
-            }
+    if attach_result:
         set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "counter_bargain_ally_entry")
         world.modify_nation_relation(beneficiary, named_enemy, -20)
         joined = True
@@ -7789,16 +7792,39 @@ def _process_war_cascade(
     cascade_war_id = ctx.war_id or ""
     suppress_unresolved_offensive_cascade = bool(ctx.suppress_unresolved_offensive_cascade)
 
-    def _attach_cascade_pair(attacker_nation: str, defender_nation: str, entry_path: str) -> None:
+    def _attach_cascade_pair(attacker_nation: str, defender_nation: str, entry_path: str) -> Dict:
         if not cascade_war_id:
-            return
-        attach_pair_to_war_instance(
+            return {"ok": True, "war_id": ""}
+        result = attach_pair_to_war_instance(
             world,
             cascade_war_id,
             attacker_nation,
             defender_nation,
             entry_path=entry_path,
         )
+        if result.get("ok"):
+            return result
+        blocked = {
+            "type": "war_cascade_blocked",
+            "entry_path": entry_path,
+            "war_id": cascade_war_id,
+            "attacker": attacker_nation,
+            "defender": defender_nation,
+            "error": result.get("error"),
+            "details": result.get("details", {}),
+            "turn": int(getattr(world, "current_turn", 0) or 0),
+        }
+        if hasattr(world, "log_event"):
+            world.log_event(blocked)
+        _append_war_entry(
+            war_entry_entries,
+            nation=defender_nation,
+            path="war_instance_blocked",
+            side="blocked",
+            reason=str(result.get("error") or "war_instance_attach_failed"),
+            treaty_state=world.get_diplomatic_state(attacker_nation, defender_nation),
+        )
+        return result
 
     # Fault for any rupture caused by the cascade is the root aggressor, not
     # whichever nation's treaty happens to flip in a recursive step.
@@ -7866,15 +7892,6 @@ def _process_war_cascade(
                         call_context=decision,
                     )
                     honor_episode_id = honor["episode_id"]
-                _append_war_entry(
-                    war_entry_entries,
-                    nation=nation,
-                    path=decision["path"],
-                    side="defender",
-                    reason=decision["reason"],
-                    treaty_state=state,
-                    honor_episode_id=honor_episode_id,
-                )
                 existing_treaty = getattr(world, 'active_treaties', {}).get(
                     world._make_diplo_key(nation, aggressor)
                 )
@@ -7890,9 +7907,20 @@ def _process_war_cascade(
                         episode_id=root_episode_id,
                     )
                 # Force WAR — bypasses armistice cooldowns (R2: centralized setter)
+                attach_result = _attach_cascade_pair(aggressor, nation, "defensive_cascade")
+                if not attach_result.get("ok"):
+                    continue
+                _append_war_entry(
+                    war_entry_entries,
+                    nation=nation,
+                    path=decision["path"],
+                    side="defender",
+                    reason=decision["reason"],
+                    treaty_state=state,
+                    honor_episode_id=honor_episode_id,
+                )
                 set_diplomatic_state(world, nation, aggressor, "WAR", "defensive_cascade")
                 processed.add(nation)
-                _attach_cascade_pair(aggressor, nation, "defensive_cascade")
                 if breach_preview:
                     _record_treaty_breach(
                         world,
@@ -8023,14 +8051,6 @@ def _process_war_cascade(
                     ledger_path = "offensive_counter_bargain_accept"
                 elif resolution_path == "offensive_bargain_helped":
                     ledger_path = "offensive_bargain_helped"
-                _append_war_entry(
-                    war_entry_entries,
-                    nation=nation,
-                    path=ledger_path,
-                    side="attacker",
-                    reason=decision["reason"],
-                    treaty_state=state_with_aggressor,
-                )
                 existing_treaty = getattr(world, 'active_treaties', {}).get(
                     world._make_diplo_key(nation, target)
                 )
@@ -8045,9 +8065,19 @@ def _process_war_cascade(
                         fault_nation=fault_aggressor,
                         episode_id=root_episode_id,
                     )
+                attach_result = _attach_cascade_pair(nation, target, "offensive_cascade")
+                if not attach_result.get("ok"):
+                    continue
+                _append_war_entry(
+                    war_entry_entries,
+                    nation=nation,
+                    path=ledger_path,
+                    side="attacker",
+                    reason=decision["reason"],
+                    treaty_state=state_with_aggressor,
+                )
                 set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
                 processed.add(nation)
-                _attach_cascade_pair(nation, target, "offensive_cascade")
                 if breach_preview:
                     _record_treaty_breach(
                         world,
@@ -8108,11 +8138,13 @@ def _process_war_cascade(
             continue
         lord = vassal_data.get("lord", "")
         if lord == target and not world.is_at_war(vassal_nation, aggressor):
+            attach_result = _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
+            if not attach_result.get("ok"):
+                continue
             set_diplomatic_state(
                 world, vassal_nation, aggressor, "WAR", "vassal_auto_join",
             )
             processed.add(vassal_nation)
-            _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
             _append_war_entry(
                 war_entry_entries,
                 nation=vassal_nation,
@@ -8139,9 +8171,11 @@ def _process_war_cascade(
         if lord == aggressor:
             # Direct attacker vassal follows the root aggressor.
             if not world.is_at_war(vassal_nation, target):
+                attach_result = _attach_cascade_pair(vassal_nation, target, "vassal_offensive_auto_join")
+                if not attach_result.get("ok"):
+                    continue
                 set_diplomatic_state(world, vassal_nation, target, "WAR", "vassal_auto_join")
                 processed.add(vassal_nation)
-                _attach_cascade_pair(vassal_nation, target, "vassal_offensive_auto_join")
                 _append_war_entry(
                     war_entry_entries,
                     nation=vassal_nation,
@@ -8703,13 +8737,28 @@ def _process_armistice_expiration(world) -> List[Dict]:
             # war_instance currently owns the pair (e.g. from a save where
             # the original war ended before A1 landed), allocate one so the
             # invariant remains satisfiable.
-            ensure_war_instance_for_pair(
+            war_instance_result = ensure_war_instance_for_pair(
                 world,
                 nation_a,
                 nation_b,
                 entry_path="armistice_expired_war",
                 reason="armistice collapse",
             )
+            if not war_instance_result.get("ok"):
+                blocked = {
+                    "type": "armistice_expired_war_blocked",
+                    "nations": [nation_a, nation_b],
+                    "error": war_instance_result.get("error"),
+                    "details": war_instance_result.get("details", {}),
+                    "message": (
+                        f"The armistice between {nation_a} and {nation_b} "
+                        f"could not collapse: {war_instance_result.get('error')}."
+                    ),
+                }
+                events.append(blocked)
+                if hasattr(world, "log_event"):
+                    world.log_event(blocked)
+                continue
             set_diplomatic_state(world, nation_a, nation_b, "WAR", "armistice_expired_war")
             events.append({
                 "type": "armistice_expired_war",

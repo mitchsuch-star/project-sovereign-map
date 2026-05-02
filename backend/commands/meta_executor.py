@@ -2068,8 +2068,27 @@ RETREAT RECOVERY (3 turns):
             state = cheat_args[1].upper()
             player = world.player_nation
             from backend.game_logic.diplomacy import set_diplomatic_state
+            if state == "WAR" and not world.is_at_war(player, nation):
+                from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+                war_instance_result = ensure_war_instance_for_pair(
+                    world,
+                    player,
+                    nation,
+                    entry_path="scripted_or_debug_war_entry",
+                    reason="cheat set_diplo_state WAR",
+                )
+                if not war_instance_result.get("ok"):
+                    return {
+                        "success": False,
+                        "message": (
+                            f"Debug WAR blocked: {war_instance_result.get('error')} "
+                            f"({war_instance_result.get('details', {}).get('reason', '')})"
+                        ),
+                        "error": war_instance_result.get("error"),
+                        "error_details": war_instance_result.get("details", {}),
+                    }
             old = set_diplomatic_state(world, player, nation, state, "cheat_command")
-            return {"success": True, "message": f"Diplomatic state France↔{nation}: {old} → {state}"}
+            return {"success": True, "message": f"Diplomatic state {player}↔{nation}: {old} → {state}"}
 
         if cheat_type == "create_vassal":
             if not cheat_args:

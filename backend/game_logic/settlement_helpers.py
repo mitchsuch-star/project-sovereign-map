@@ -587,6 +587,25 @@ def attach_pair_to_war_instance(
 
     pair = _make_pair_key(attacker, defender)
     turn = int(joined_turn if joined_turn is not None else _now_turn(world))
+    existing_owner = _find_active_war_instance_for_pair(world, pair)
+    if existing_owner is not None and existing_owner != war_id:
+        return {
+            "ok": False,
+            "error": WAR_INSTANCE_MERGE_REQUIRED,
+            "war_id": war_id,
+            "details": {
+                "pair": pair,
+                "existing_war_id": existing_owner,
+                "requested_war_id": war_id,
+                "attacker": attacker,
+                "defender": defender,
+                "entry_path": entry_path,
+                "reason": (
+                    f"{pair} is already owned by active war_instance "
+                    f"{existing_owner!r}; A2 cannot attach it to {war_id!r}"
+                ),
+            },
+        }
 
     side_by_nation = instance.setdefault("side_by_nation", {})
     attackers_list = instance.setdefault("attackers", [])

@@ -137,8 +137,12 @@ def test_war_entry_seam_inventory_is_durable():
     """
     required = {
         "player_declaration",
+        "ai_declaration",
+        "coalition_declaration",
         "vassal_rebellion",
         "vassal_release_rebellion",
+        "commitment_paradox_outcome",
+        "scripted_or_debug_war_entry",
         "join_opportunity_acceptance",
         "counter_bargain_acceptance",
         "armistice_collapse",
@@ -740,6 +744,173 @@ def test_declare_war_blocks_when_validation_returns_merge_required():
     assert (
         world.get_diplomatic_state("Austria", "Prussia") != "WAR"
     ), "merge-required hard-stop must precede state mutation"
+
+
+def test_cascade_attach_failure_does_not_mutate_war_state():
+    """Cascade attach failures must stop before the WAR edge is visible."""
+    world = _clean_world()
+    _set_state(world, "France", "Austria", "PEACE")
+    declare_war(world, "France", "Austria", suppress_unresolved_offensive_cascade=True)
+    war_id = list(_active_instances(world).keys())[0]
+    attach_pair_to_war_instance(
+        world, war_id, "Prussia", "Austria", entry_path="ally_entry"
+    )
+    _set_state(world, "Prussia", "Austria", "WAR")
+    _set_state(world, "France", "Prussia", "PEACE")
+    _set_state(world, "France", "Britain", "PEACE")
+    _set_state(world, "Britain", "Prussia", "DEFENSIVE_ALLIANCE")
+
+    result = declare_war(world, "France", "Britain", suppress_unresolved_offensive_cascade=True)
+
+    assert result["success"] is True
+    assert world.get_diplomatic_state("France", "Prussia") != "WAR"
+    assert _pair("France", "Prussia") not in world.war_instances[war_id]["active_diplo_keys"]
+    assert any(e.get("type") == "war_cascade_blocked" for e in world.event_log)
+    assert_war_instance_invariants(world, context="blocked_cascade")
+
+
+def test_attach_pair_rejects_pair_owned_by_another_active_instance():
+    world = _clean_world()
+    first = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration"
+    )
+    second = ensure_war_instance_for_pair(
+        world, "Russia", "Prussia", entry_path="war_declaration"
+    )
+    result = attach_pair_to_war_instance(
+        world,
+        second["war_id"],
+        "France",
+        "Austria",
+        entry_path="bad_duplicate_attach",
+    )
+
+    assert result["ok"] is False
+    assert result["error"] == WAR_INSTANCE_MERGE_REQUIRED
+    assert result["details"]["existing_war_id"] == first["war_id"]
+
+
+def test_armistice_collapse_blocks_on_merge_required_without_war_mutation():
+    world = _clean_world()
+    declare_war(world, "France", "Austria")
+    declare_war(world, "Russia", "Prussia")
+    armistice_pair = _pair("Austria", "Prussia")
+    _set_state(world, "Austria", "Prussia", "ARMISTICE")
+    world.nation_relations[armistice_pair] = -90
+    world.armistice_turns = {armistice_pair: 5}
+
+    events = _process_armistice_expiration(world)
+
+    assert world.get_diplomatic_state("Austria", "Prussia") == "ARMISTICE"
+    assert any(e.get("type") == "armistice_expired_war_blocked" for e in events)
+    assert_war_instance_invariants(world, context="blocked_armistice_collapse")
+
+
+def test_counter_bargain_hard_stop_does_not_create_triggered_bargain():
+    world = _clean_world()
+    declare_war(world, "France", "Austria")
+    declare_war(world, "Russia", "Prussia")
+    before = dict(world.diplomatic_commitments)
+    counter = {
+        "type": "war_entry_counter_bargain",
+        "promiser": "France",
+        "beneficiary": "Austria",
+        "named_enemy": "Prussia",
+        "demanded_region": "Bohemia",
+    }
+
+    result = accept_counter_bargain(world, counter)
+
+    assert result["success"] is False
+    assert result["error"] == WAR_INSTANCE_MERGE_REQUIRED
+    assert world.diplomatic_commitments == before
+    assert world.get_diplomatic_state("Austria", "Prussia") != "WAR"
+
+
+def test_scripted_debug_war_entry_allocates_war_instance():
+    from backend.commands.executor import CommandExecutor
+
+    world = _clean_world()
+    result = CommandExecutor()._execute_cheat(
+        {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "WAR"],
+        },
+        {"world": world, "debug_mode": True},
+    )
+
+    assert result["success"] is True
+    assert world.is_at_war("France", "Prussia")
+    assert len(_active_instances(world)) == 1
+    assert_war_instance_invariants(world, context="debug_war_entry")
+
+
+def test_coalition_declaration_threads_war_instance():
+    from backend.game_logic.coalition import form_coalition
+
+    world = _clean_world()
+    _set_state(world, "France", "Prussia", "PEACE")
+    _set_state(world, "France", "Austria", "PEACE")
+
+    result = form_coalition(["Prussia", "Austria"], world)
+
+    assert result["success"] is True
+    active = _active_instances(world)
+    assert len(active) == 1
+    instance = next(iter(active.values()))
+    assert _pair("France", "Prussia") in instance["active_diplo_keys"]
+    assert _pair("Austria", "France") in instance["active_diplo_keys"]
+    assert_war_instance_invariants(world, context="coalition_declaration")
+
+
+def test_commitment_paradox_outcome_threads_war_instance():
+    from backend.commands.executor import CommandExecutor
+
+    world = _clean_world()
+    player = world.player_nation
+    _set_state(world, player, "Prussia", "ALLIANCE")
+    _set_state(world, player, "Austria", "ALLIANCE")
+    _set_state(world, "Austria", "Prussia", "PEACE")
+    declare_war(world, "Prussia", "Austria")
+    if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:
+        world.dialogue_manager.promote_if_empty()
+
+    result = CommandExecutor().handle_diplomatic_dialogue_response(
+        "1", {"world": world, "debug_mode": True}
+    )
+
+    assert result["success"] is True
+    assert world.is_at_war(player, "Prussia")
+    assert any(
+        _pair(player, "Prussia") in inst["active_diplo_keys"]
+        for inst in _active_instances(world).values()
+    )
+    assert_war_instance_invariants(world, context="commitment_paradox_outcome")
+
+
+def test_combat_triggered_auto_war_fallback_threads_war_instance():
+    from backend.commands.executor import CommandExecutor
+
+    world = WorldState(player_nation="France")
+    world.diplomatic_states.clear()
+    world.invalidate_war_instance_indexes()
+    _set_state(world, "France", "Prussia", "PEACE")
+    ney = world.get_marshal("Ney")
+    blucher = world.get_marshal("Blucher")
+    assert ney is not None and blucher is not None
+    ney.location = "Belgium"
+    blucher.location = "Belgium"
+    blucher.strength = 30000
+
+    CommandExecutor()._execute_attack(blucher, "Ney", world, {"world": world})
+
+    assert world.is_at_war("Prussia", "France")
+    assert any(
+        _pair("France", "Prussia") in inst["active_diplo_keys"]
+        for inst in _active_instances(world).values()
+    )
+    assert_war_instance_invariants(world, context="combat_auto_war")
 
 
 def test_reused_pair_keeps_original_joined_turn_under_armistice_resumption():
