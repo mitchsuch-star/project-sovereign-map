@@ -146,7 +146,7 @@ def compute_direct_scores_by_enemy(
 
     side_members = _proposer_side_members(war_instance, proposer_side)
     direct_scores: Dict[str, Dict[str, int]] = {}
-    for enemy in covered_enemy_participants:
+    for enemy in sorted({str(n) for n in covered_enemy_participants}):
         enemy_str = str(enemy)
         per_member: Dict[str, int] = {}
         for member in side_members:
@@ -239,7 +239,7 @@ def compute_side_pressure_score(
     The score is rounded with traditional half-away-from-zero and clamped
     to ``[WAR_SCORE_MIN, WAR_SCORE_MAX]`` per spec §6.3 line 239.
     """
-    covered = [str(n) for n in covered_enemy_participants]
+    covered = sorted({str(n) for n in covered_enemy_participants})
     hard_stops: List[Dict[str, Any]] = []
 
     if not covered:

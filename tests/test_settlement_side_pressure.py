@@ -256,6 +256,13 @@ def test_power_tier_weights_match_spec_with_secondary_fallback():
     assert power_tier_weight(world, "Bavaria") == 1
     # Unauthored nation falls back to `secondary` weight 2.
     assert power_tier_weight(world, "FictionalNation") == 2
+    # Defensive: unrecognized authored strings also fall back to secondary.
+    unknown_tier_world = type(
+        "UnknownTierWorld",
+        (),
+        {"get_power_tier": lambda self, nation: "great_power"},
+    )()
+    assert power_tier_weight(unknown_tier_world, "Austria") == 2
 
 
 def test_pressburg_worked_example_uses_round_not_floor_and_clamps_to_range():
@@ -264,7 +271,7 @@ def test_pressburg_worked_example_uses_round_not_floor_and_clamps_to_range():
 
     Concrete fixture: France (major) vs Austria (major) at +70, France vs
     Naples (secondary) at +70 → weighted average = 70.
-    Increase Naples to +80 → aggregate = (70*3 + 80*2)/5 = 74.0 → 74.
+    Increase Naples to +79 → aggregate = (70*3 + 79*2)/5 = 73.6 → 74.
     """
     world = _build_world_with_war_pair(
         pairs={
@@ -288,7 +295,7 @@ def test_pressburg_worked_example_uses_round_not_floor_and_clamps_to_range():
     world2 = _build_world_with_war_pair(
         pairs={
             ("France", "Austria"): 70,
-            ("France", "Naples"): 80,
+            ("France", "Naples"): 79,
         }
     )
     result2 = compute_side_pressure_score(
@@ -297,7 +304,7 @@ def test_pressburg_worked_example_uses_round_not_floor_and_clamps_to_range():
         proposer_side="attackers",
         covered_enemy_participants=["Austria", "Naples"],
     )
-    # (70*3 + 80*2) / 5 = 74.0 — `round()` not floor, integer clamp.
+    # (70*3 + 79*2) / 5 = 73.6 — `round()` not floor, integer clamp.
     assert result2["score"] == 74
 
 
@@ -398,6 +405,36 @@ def test_mixed_strength_minors_dilute_strong_major_vs_major_pressure():
     # Full coverage: (80*3 + 10*1 + 10*1 + 10*1) / (3+1+1+1) = 270/6 = 45
     assert full["score"] == 45
     assert full["score"] < narrow["score"]
+
+
+def test_covered_enemy_iteration_is_deterministic_for_debug_rows():
+    """Advisory/debug rows should not depend on caller iterable ordering."""
+    world = _build_world_with_war_pair(
+        pairs={
+            ("France", "Austria"): 60,
+            ("France", "Bavaria"): 20,
+            ("France", "Saxony"): 10,
+        }
+    )
+    instance = _instance(
+        attackers=["France"],
+        defenders=["Austria", "Bavaria", "Saxony"],
+    )
+
+    result = compute_side_pressure_score(
+        world,
+        instance,
+        proposer_side="attackers",
+        covered_enemy_participants={"Saxony", "Austria", "Bavaria"},
+    )
+
+    assert list(result["direct_scores"]) == ["Austria", "Bavaria", "Saxony"]
+    assert list(result["direct_score_sources"]) == [
+        "Austria",
+        "Bavaria",
+        "Saxony",
+    ]
+    assert result["pressure_terms"] == [(60, 3), (20, 1), (10, 1)]
 
 
 def test_minor_ally_high_score_outweighs_losing_leader():
