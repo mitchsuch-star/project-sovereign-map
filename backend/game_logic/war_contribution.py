@@ -1,4 +1,4 @@
-"""Imperial Settlement / Ally Participation — Contribution Tracker (Slices B1 + B2).
+"""Imperial Settlement / Ally Participation — Contribution Tracker (Slices B1 + B2 + B3).
 
 Slice B1 ships (already landed):
 
@@ -24,7 +24,7 @@ Slice B2 ordering guard + emitter wiring (already landed):
   by `_post_combat_pipeline()` / `_execute_attack()` inline / auto-dispatch
   charge.
 
-Slice B2 non-battle emitters (this commit):
+Slice B2 non-battle emitters (already landed):
 
 - `accrue_occupation_event(...)` — `war_occupation_event` accrual for
   enemy_region_captured (20), enemy_capital_captured (40),
@@ -40,12 +40,23 @@ Slice B2 non-battle emitters (this commit):
 - `resolve_british_subsidy_war_id(...)` — deterministic war attribution for
   `_process_british_subsidy()` per impl plan B2 bullets.
 
-Slice B3 ships (later):
+Slice B3 ships (this commit):
 
-- Per-turn staying-power accrual.
-- War-entry seam wiring of `open_episode()` / `close_episode_for_exit()`.
-- Same-turn separate-peace event ordering.
-- Archive compaction.
+- Per-turn staying-power accrual: `accrue_staying_power_for_war(...)` and
+  `accrue_staying_power_all_wars(...)` apply ``+5`` raw per active episode
+  per turn, capped at ``10`` qualifying turns per episode (spec §9.2
+  line 612). Idempotent per ``(war_id, nation, current_turn)``.
+- Archive compaction: `compact_war_contribution_for_archive(...)` drops
+  episode detail when an archived ``war_instance`` clears its 10-turn
+  retention window (spec §9.5 line 178). The compacted per-nation totals
+  move into ``world.archived_war_contribution_scores``.
+
+War-entry seam wiring of `open_episode()` / `close_episode_for_exit()`,
+same-turn separate-peace event ordering, and the live `cleanup_war_end`
+hook live in `backend/game_logic/settlement_helpers.py` next to the
+existing `attach_*` / `mark_participant_eliminated_in_all_wars` /
+`archive_terminal_war_instances` helpers — keeping the lifecycle wiring
+co-located with the war_instance state mutations.
 
 The module is event-driven by design (spec §9.5): no per-region scans,
 no per-turn `world.regions.values()` walks. All readers go through
@@ -1693,6 +1704,216 @@ def resolve_british_subsidy_war_id(
     return (eligible[0][1], "oldest_sequence")
 
 
+# ===========================================================================
+# Slice B3 — Per-turn staying-power accrual (spec §9.2 line 612)
+# ===========================================================================
+
+# Spec §9.2 line 612: ``staying_power_raw = min(active_turns, 10) * 5``.
+# B3 implements this as a per-turn increment of 5 raw points capped at
+# 10 qualifying turns (50 raw points) per episode. The per-turn step is
+# idempotent: re-running on the same `current_turn` is a no-op.
+STAYING_POWER_PER_TURN: int = 5
+STAYING_POWER_TURN_CAP: int = 10
+STAYING_POWER_RAW_CAP: int = STAYING_POWER_PER_TURN * STAYING_POWER_TURN_CAP
+
+
+def accrue_staying_power_for_war(
+    world: Any,
+    war_id: str,
+    *,
+    current_turn: int,
+) -> Dict[str, int]:
+    """Accrue +5 staying-power per active episode for ``war_id`` on ``current_turn``.
+
+    Spec §9.2 line 612 + §7.5: each active participant earns 5 raw points
+    per turn for the first 10 qualifying turns of the active episode, then
+    the staying-power bucket is frozen for that episode.
+
+    Idempotent per ``(war_id, nation, current_turn)``: an episode whose
+    ``last_staying_power_turn`` already covers ``current_turn`` is skipped.
+    The cap is per-episode — re-entry creates a new episode and resets the
+    counter (spec §7.5: "On re-entry, create a new episode and leave old
+    episode totals available only for history panels").
+
+    No-ops when the war instance is unknown / archived. Callers wire this
+    via `accrue_staying_power_all_wars(...)` which iterates active
+    `world.war_instances` once per `process_diplomacy_turn` call.
+
+    Returns ``{nation: bucket_points_added}`` for tests / debug.
+    """
+    accrued: Dict[str, int] = {}
+    if not war_id:
+        return accrued
+    instances = getattr(world, "war_instances", None) or {}
+    instance = instances.get(war_id)
+    if not isinstance(instance, dict):
+        return accrued
+    if instance.get("ended_turn") is not None:
+        return accrued
+    for nation, episode in iter_active_episodes(world, war_id):
+        last_turn = episode.get("last_staying_power_turn")
+        if last_turn is not None and int(last_turn) >= int(current_turn):
+            continue
+        joined = episode.get("joined_turn")
+        if joined is not None and int(current_turn) < int(joined):
+            continue
+        credited = int(episode.get("staying_power_credited_turns") or 0)
+        if credited >= STAYING_POWER_TURN_CAP:
+            episode["last_staying_power_turn"] = int(current_turn)
+            continue
+        episode["staying_power_credited_turns"] = credited + 1
+        episode["last_staying_power_turn"] = int(current_turn)
+        episode["staying_power"] = (
+            int(episode.get("staying_power") or 0) + STAYING_POWER_PER_TURN
+        )
+        episode["total"] = int(episode.get("total") or 0) + STAYING_POWER_PER_TURN
+        accrued[nation] = STAYING_POWER_PER_TURN
+    return accrued
+
+
+def accrue_staying_power_all_wars(
+    world: Any,
+    *,
+    current_turn: int,
+) -> Dict[str, Dict[str, int]]:
+    """Walk active ``world.war_instances`` once and apply per-turn staying-power.
+
+    Caller (typically `diplomacy.process_diplomacy_turn`) invokes this once
+    per turn after event-time accrual and before exit-stamping events
+    (spec §9.5 line 740). Episodes that exit later in the same turn still
+    capture this turn's staying-power because exits stamp `exited_turn`
+    but never overwrite `last_staying_power_turn`.
+
+    Empty-safe at every layer; returns ``{war_id: {nation: points}}``
+    snapshot for tests.
+    """
+    out: Dict[str, Dict[str, int]] = {}
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return out
+    for war_id, instance in instances.items():
+        if not isinstance(instance, dict):
+            continue
+        if instance.get("ended_turn") is not None:
+            continue
+        accrued = accrue_staying_power_for_war(
+            world, war_id, current_turn=current_turn,
+        )
+        if accrued:
+            out[war_id] = accrued
+    return out
+
+
+# ===========================================================================
+# Slice B3 — Archive compaction (spec §9.5 line 178)
+# ===========================================================================
+
+
+def _episode_bucket_total(episode: Mapping[str, Any]) -> int:
+    """Sum of the four spec-defined buckets on a single episode dict."""
+    return sum(int(episode.get(bucket) or 0) for bucket in ALL_BUCKETS)
+
+
+def compact_war_contribution_for_archive(
+    world: Any,
+    war_id: str,
+    *,
+    archived_turn: int,
+) -> Optional[Dict[str, Any]]:
+    """Compact ``war_contribution_scores[war_id]`` to per-nation totals (spec §9.5 line 178).
+
+    Called by `archive_terminal_war_instances(...)` once a `war_instance`
+    has cleared the 10-turn retention window. The compacted record drops
+    per-episode detail and stores per-nation finals plus the war-level
+    bucket totals so settlement memory / ledger archive readers can still
+    reconstruct shares without keeping the full episode dict alive.
+
+    Output shape (single record per archived war_id), stored under
+    ``world.archived_war_contribution_scores[war_id]``:
+
+    ``{
+        "war_id": str,
+        "archived_turn": int,
+        "per_nation_totals": {
+            nation: {
+                "battle": int, "occupation": int, "staying_power": int,
+                "support": int, "total": int, "material_total": int,
+                "episode_count": int,
+                "first_joined_turn": int, "last_exited_turn": int | None,
+            },
+            ...
+        },
+    }``
+
+    Returns the compacted record, or ``None`` when there is no contribution
+    record to compact (e.g. an archived war that never accrued anything).
+    Removes ``war_contribution_scores[war_id]`` after writing the archive
+    entry so the active-store stays in sync with active war_instances.
+    """
+    store = getattr(world, "war_contribution_scores", None)
+    if not isinstance(store, dict):
+        return None
+    war_dict = store.get(war_id)
+    if not isinstance(war_dict, dict) or not war_dict:
+        # Nothing to compact, but still drop the empty container so the
+        # active store does not retain dangling war_id keys.
+        store.pop(war_id, None)
+        return None
+
+    archived_container = getattr(world, "archived_war_contribution_scores", None)
+    if not isinstance(archived_container, dict):
+        archived_container = {}
+        setattr(world, "archived_war_contribution_scores", archived_container)
+
+    per_nation_totals: Dict[str, Dict[str, Any]] = {}
+    for nation, record in war_dict.items():
+        if not isinstance(record, dict):
+            continue
+        episodes = record.get("episodes") or {}
+        bucket_totals: Dict[str, int] = {bucket: 0 for bucket in ALL_BUCKETS}
+        first_joined: Optional[int] = None
+        last_exited: Optional[int] = None
+        episode_count = 0
+        for episode in episodes.values():
+            if not isinstance(episode, dict):
+                continue
+            episode_count += 1
+            for bucket in ALL_BUCKETS:
+                bucket_totals[bucket] += int(episode.get(bucket) or 0)
+            joined = episode.get("joined_turn")
+            if joined is not None:
+                joined_int = int(joined)
+                if first_joined is None or joined_int < first_joined:
+                    first_joined = joined_int
+            exited = episode.get("exited_turn")
+            if exited is not None:
+                exited_int = int(exited)
+                if last_exited is None or exited_int > last_exited:
+                    last_exited = exited_int
+        material_total = sum(bucket_totals[b] for b in MATERIAL_BUCKETS)
+        per_nation_totals[nation] = {
+            "battle": bucket_totals["battle"],
+            "occupation": bucket_totals["occupation"],
+            "staying_power": bucket_totals["staying_power"],
+            "support": bucket_totals["support"],
+            "total": sum(bucket_totals[b] for b in ALL_BUCKETS),
+            "material_total": int(material_total),
+            "episode_count": int(episode_count),
+            "first_joined_turn": int(first_joined) if first_joined is not None else None,
+            "last_exited_turn": int(last_exited) if last_exited is not None else None,
+            "historical_total": int(record.get("historical_total") or 0),
+        }
+
+    compacted_record = {
+        "war_id": war_id,
+        "archived_turn": int(archived_turn),
+        "per_nation_totals": per_nation_totals,
+    }
+    archived_container[war_id] = compacted_record
+    store.pop(war_id, None)
+    return compacted_record
+
+
 __all__ = [
     "ACCESS_SUPPLY_CAP",
     "ALL_BUCKETS",
@@ -1708,15 +1929,21 @@ __all__ = [
     "OCCUPATION_POINTS",
     "SEAT",
     "SEAT_MATERIAL_SHARE_THRESHOLD",
+    "STAYING_POWER_PER_TURN",
+    "STAYING_POWER_RAW_CAP",
+    "STAYING_POWER_TURN_CAP",
     "SUPPORT_KINDS",
     "SUPPORT_SOURCES",
     "accrue_battle_contribution",
     "accrue_occupation_event",
+    "accrue_staying_power_all_wars",
+    "accrue_staying_power_for_war",
     "accrue_support_event",
     "adapt_legacy_battle_record",
     "canonical_episode_id",
     "classify_standing",
     "close_episode_for_exit",
+    "compact_war_contribution_for_archive",
     "compute_standing_inputs",
     "contribution_share",
     "current_episode",

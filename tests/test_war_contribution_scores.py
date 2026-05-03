@@ -33,11 +33,17 @@ from backend.game_logic.war_contribution import (
     CONSULT,
     NO_STANDING,
     SEAT,
+    STAYING_POWER_PER_TURN,
+    STAYING_POWER_RAW_CAP,
+    STAYING_POWER_TURN_CAP,
     accrue_battle_contribution,
+    accrue_staying_power_all_wars,
+    accrue_staying_power_for_war,
     adapt_legacy_battle_record,
     canonical_episode_id,
     classify_standing,
     close_episode_for_exit,
+    compact_war_contribution_for_archive,
     compute_standing_inputs,
     contribution_share,
     current_episode,
@@ -2893,3 +2899,732 @@ def test_process_treaty_clauses_dedupes_same_turn_replay():
     france_ep_after_second = current_episode(world, "war_1", "France")
     # Dedupe by episode_id — second replay must not double the support.
     assert int(france_ep_after_second["support"]) == first_support
+
+
+# ===========================================================================
+# Slice B3 — Per-turn staying-power accrual (spec §9.2 line 612 / §7.5)
+# ===========================================================================
+
+
+def test_accrue_staying_power_for_war_adds_5_per_turn_to_active_episodes():
+    """Spec §9.2 line 612: each active episode gains 5 raw points per turn."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+
+    accrue_staying_power_for_war(world, "war_1", current_turn=2)
+
+    france_ep = current_episode(world, "war_1", "France")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep["staying_power"] == STAYING_POWER_PER_TURN
+    assert france_ep["total"] == STAYING_POWER_PER_TURN
+    assert austria_ep["staying_power"] == STAYING_POWER_PER_TURN
+    assert france_ep["staying_power_credited_turns"] == 1
+    assert france_ep["last_staying_power_turn"] == 2
+
+
+def test_accrue_staying_power_caps_at_10_qualifying_turns():
+    """Spec §9.2 line 612: staying_power_raw caps at min(active_turns, 10) * 5."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+
+    for turn in range(2, 20):
+        accrue_staying_power_for_war(world, "war_1", current_turn=turn)
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["staying_power"] == STAYING_POWER_RAW_CAP
+    assert france_ep["staying_power_credited_turns"] == STAYING_POWER_TURN_CAP
+
+
+def test_accrue_staying_power_idempotent_within_same_turn():
+    """Re-running on the same `current_turn` is a no-op (idempotency guard)."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+
+    accrue_staying_power_for_war(world, "war_1", current_turn=2)
+    france_ep = current_episode(world, "war_1", "France")
+    first = int(france_ep["staying_power"])
+    accrue_staying_power_for_war(world, "war_1", current_turn=2)
+    accrue_staying_power_for_war(world, "war_1", current_turn=2)
+    assert int(france_ep["staying_power"]) == first
+
+
+def test_accrue_staying_power_skips_closed_episodes():
+    """`iter_active_episodes` filters out exited episodes; staying-power follows."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+    open_episode(world, "war_1", "Austria", joined_turn=1)
+    close_episode_for_exit(
+        world, "war_1", "France", exited_turn=1, exit_path="separate_peace",
+    )
+
+    accrue_staying_power_for_war(world, "war_1", current_turn=2)
+    france_ep = current_episode(world, "war_1", "France")
+    austria_ep = current_episode(world, "war_1", "Austria")
+    assert france_ep["staying_power"] == 0
+    assert austria_ep["staying_power"] == STAYING_POWER_PER_TURN
+
+
+def test_accrue_staying_power_skips_ended_war_instances():
+    """No accrual once the war_instance has been stamped with `ended_turn`."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+    world.war_instances["war_1"]["ended_turn"] = 5
+    world.war_instances["war_1"]["end_reason"] = "all_pairs_resolved"
+
+    accrue_staying_power_for_war(world, "war_1", current_turn=6)
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["staying_power"] == 0
+
+
+def test_accrue_staying_power_all_wars_walks_active_only():
+    """Iterates active war_instances exactly once per call."""
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+
+    snapshot = accrue_staying_power_all_wars(world, current_turn=3)
+    assert "war_1" in snapshot
+    assert snapshot["war_1"]["France"] == STAYING_POWER_PER_TURN
+
+
+# ===========================================================================
+# Slice B3 — open_episode wiring at WAR seams
+# ===========================================================================
+
+
+def test_create_skeleton_instance_opens_episodes_for_originator_and_target():
+    """`ensure_war_instance_for_pair` opens episodes for both founding nations."""
+    from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.current_turn = 5
+
+    result = ensure_war_instance_for_pair(
+        world, "France", "Austria",
+        entry_path="war_declaration", root_episode_id="ep-1",
+    )
+    assert result["ok"]
+    war_id = result["war_id"]
+
+    france_ep = current_episode(world, war_id, "France")
+    austria_ep = current_episode(world, war_id, "Austria")
+    assert france_ep is not None
+    assert austria_ep is not None
+    assert france_ep["joined_turn"] == 5
+    assert austria_ep["joined_turn"] == 5
+
+
+def test_attach_pair_to_war_instance_opens_episode_for_new_participant():
+    """Cascade attach via `attach_pair_to_war_instance` opens the joiner's episode."""
+    from backend.game_logic.settlement_helpers import (
+        attach_pair_to_war_instance,
+        ensure_war_instance_for_pair,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria", "Prussia"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    world.current_turn = 7
+    attach = attach_pair_to_war_instance(
+        world, war_id, "France", "Prussia", entry_path="ally_cascade",
+    )
+    assert attach["ok"]
+    prussia_ep = current_episode(world, war_id, "Prussia")
+    assert prussia_ep is not None
+    assert prussia_ep["joined_turn"] == 7
+
+
+def test_attach_participant_to_war_instance_opens_episode():
+    """Single-participant attach via `attach_participant_to_war_instance` also opens."""
+    from backend.game_logic.settlement_helpers import (
+        attach_participant_to_war_instance,
+        ensure_war_instance_for_pair,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria", "Bavaria"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    world.current_turn = 8
+    result = attach_participant_to_war_instance(
+        world, war_id, "Bavaria", side="attackers", entry_path="late_join",
+    )
+    assert result["ok"]
+    bavaria_ep = current_episode(world, war_id, "Bavaria")
+    assert bavaria_ep is not None
+    assert bavaria_ep["joined_turn"] == 8
+
+
+def test_attach_pair_idempotent_when_episode_already_active():
+    """Re-attaching an existing participant is a no-op on the active episode."""
+    from backend.game_logic.settlement_helpers import (
+        attach_pair_to_war_instance,
+        ensure_war_instance_for_pair,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+    france_ep_first = current_episode(world, war_id, "France")
+    france_episode_id = world.war_contribution_scores[war_id]["France"][
+        "current_episode_id"
+    ]
+
+    # Force a re-attach via the helper; episode_id must be unchanged.
+    attach_pair_to_war_instance(
+        world, war_id, "France", "Austria", entry_path="war_declaration",
+    )
+    france_ep_second = current_episode(world, war_id, "France")
+    assert france_ep_first is france_ep_second
+    assert (
+        world.war_contribution_scores[war_id]["France"]["current_episode_id"]
+        == france_episode_id
+    )
+
+
+def test_open_episode_after_exit_creates_fresh_re_entry_episode():
+    """Spec §7.5: re-entry creates a NEW episode_id; old totals stay queryable."""
+    from backend.game_logic.settlement_helpers import (
+        attach_pair_to_war_instance,
+        ensure_war_instance_for_pair,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    # Mark Austria as exited (separate-peace) by closing its episode.
+    close_episode_for_exit(
+        world, war_id, "Austria", exited_turn=10, exit_path="separate_peace",
+    )
+    first_episode_id = world.war_contribution_scores[war_id]["Austria"][
+        "current_episode_id"
+    ]
+
+    # Re-attach Austria via the helper; a new episode_id should be created.
+    world.current_turn = 15
+    attach_pair_to_war_instance(
+        world, war_id, "France", "Austria", entry_path="armistice_expired_war",
+    )
+    second_episode_id = world.war_contribution_scores[war_id]["Austria"][
+        "current_episode_id"
+    ]
+    assert second_episode_id != first_episode_id
+    new_episode = current_episode(world, war_id, "Austria")
+    assert new_episode["joined_turn"] == 15
+    # Old episode totals are still queryable in the episodes dict.
+    austria_record = world.war_contribution_scores[war_id]["Austria"]
+    assert first_episode_id in austria_record["episodes"]
+    assert austria_record["episodes"][first_episode_id]["exited_turn"] == 10
+
+
+# ===========================================================================
+# Slice B3 — close_episode_for_exit wiring at exit seams
+# ===========================================================================
+
+
+def test_mark_participant_eliminated_closes_active_episodes():
+    """Spec §7.4 elimination: contribution episode freezes at `current_turn`."""
+    from backend.game_logic.settlement_helpers import (
+        ensure_war_instance_for_pair,
+        mark_participant_eliminated_in_all_wars,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    world.current_turn = 12
+    mark_participant_eliminated_in_all_wars(world, "Austria")
+    austria_ep = current_episode(world, war_id, "Austria")
+    assert austria_ep is not None
+    assert austria_ep["exited_turn"] == 12
+
+
+def test_resolve_pair_to_resolved_closes_episode_when_last_pair_resolves():
+    """Separate-peace exit: closing the last active pair closes the episode."""
+    from backend.game_logic.settlement_helpers import (
+        ensure_war_instance_for_pair,
+        resolve_pair_to_resolved,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    pair = "|".join(sorted(("France", "Austria")))
+    world.current_turn = 18
+    resolve_pair_to_resolved(world, pair, resolved_turn=18)
+
+    france_ep = current_episode(world, war_id, "France")
+    austria_ep = current_episode(world, war_id, "Austria")
+    assert france_ep["exited_turn"] == 18
+    assert austria_ep["exited_turn"] == 18
+    # Per spec §7.5 boundary is inclusive: 18 <= 18 → events on turn 18
+    # still credit through the current_episode reader.
+    assert austria_ep.get("exited_turn") is not None
+
+
+def test_resolve_pair_to_resolved_keeps_other_active_pairs_open():
+    """Separate-peace exit: a participant with another active pair STAYS active."""
+    from backend.game_logic.settlement_helpers import (
+        attach_pair_to_war_instance,
+        ensure_war_instance_for_pair,
+        resolve_pair_to_resolved,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria", "Prussia"])
+    world.current_turn = 5
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+
+    # France attacks Prussia in the SAME war_instance via cascade attach.
+    attach_pair_to_war_instance(
+        world, war_id, "France", "Prussia", entry_path="ally_cascade",
+    )
+
+    # Resolve the France|Austria pair only.
+    pair = "|".join(sorted(("France", "Austria")))
+    resolve_pair_to_resolved(world, pair, resolved_turn=10)
+
+    france_ep = current_episode(world, war_id, "France")
+    austria_ep = current_episode(world, war_id, "Austria")
+    prussia_ep = current_episode(world, war_id, "Prussia")
+    # France still has Prussia as adversary → episode stays open.
+    assert france_ep["exited_turn"] is None
+    # Austria's last active pair was France|Austria → episode closed.
+    assert austria_ep["exited_turn"] == 10
+    # Prussia's pair (France|Prussia) is still active → episode open.
+    assert prussia_ep["exited_turn"] is None
+    # Austria removed from active_participants on separate peace.
+    instance = world.war_instances[war_id]
+    assert "Austria" not in instance["active_participants"]
+    assert "France" in instance["active_participants"]
+    assert "Prussia" in instance["active_participants"]
+
+
+def test_resolve_pair_war_end_closes_all_remaining_episodes():
+    """When the LAST pair resolves, every still-active episode closes."""
+    from backend.game_logic.settlement_helpers import (
+        attach_pair_to_war_instance,
+        ensure_war_instance_for_pair,
+        resolve_pair_to_resolved,
+    )
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria", "Prussia"])
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+    attach_pair_to_war_instance(
+        world, war_id, "France", "Prussia", entry_path="ally_cascade",
+    )
+
+    # Resolve France|Austria first, then France|Prussia (the LAST pair).
+    resolve_pair_to_resolved(
+        world,
+        "|".join(sorted(("France", "Austria"))),
+        resolved_turn=10,
+    )
+    resolve_pair_to_resolved(
+        world,
+        "|".join(sorted(("France", "Prussia"))),
+        resolved_turn=12,
+    )
+
+    instance = world.war_instances[war_id]
+    assert instance["ended_turn"] == 12
+    assert instance["end_reason"] == "all_pairs_resolved"
+
+    # Every participant's current episode is now closed.
+    for nation in ("France", "Austria", "Prussia"):
+        ep = current_episode(world, war_id, nation)
+        assert ep is not None and ep["exited_turn"] is not None, nation
+
+
+def test_cleanup_war_end_resolves_pair_for_peace_outcome():
+    """`cleanup_war_end(conclude_objectives=True)` triggers `resolve_pair_to_resolved`."""
+    from backend.game_logic.diplomacy import cleanup_war_end, set_diplomatic_state
+    from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+    pair = "|".join(sorted(("France", "Austria")))
+
+    world.current_turn = 20
+    set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
+    cleanup_war_end(world, pair, conclude_objectives=True)
+
+    instance = world.war_instances[war_id]
+    assert pair in instance["resolved_diplo_keys"]
+    assert pair not in instance["active_diplo_keys"]
+    france_ep = current_episode(world, war_id, "France")
+    assert france_ep["exited_turn"] == 20
+
+
+def test_cleanup_war_end_armistice_does_not_resolve_pair():
+    """ARMISTICE outcome leaves the pair active and the episode open."""
+    from backend.game_logic.diplomacy import cleanup_war_end
+    from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    create = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration",
+    )
+    war_id = create["war_id"]
+    pair = "|".join(sorted(("France", "Austria")))
+
+    world.current_turn = 20
+    cleanup_war_end(world, pair, conclude_objectives=False)
+
+    instance = world.war_instances[war_id]
+    # ARMISTICE keeps the pair in active_diplo_keys (paused, not exited).
+    assert pair in instance["active_diplo_keys"]
+    france_ep = current_episode(world, war_id, "France")
+    assert france_ep["exited_turn"] is None
+
+
+# ===========================================================================
+# Slice B3 — same-turn separate-peace event ordering (spec §9.5 line 740)
+# ===========================================================================
+
+
+def test_same_turn_battle_credits_before_separate_peace_exit_stamp():
+    """Spec §9.5 line 740: events for the turn fire before exit stamping.
+
+    A battle on turn T accrues into the active episode; the inclusive
+    `event.turn <= exited_turn` boundary then keeps the credit when the
+    same turn's separate-peace stamps `exited_turn = T`.
+    """
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=10)
+    open_episode(world, "war_1", "Austria", joined_turn=10)
+
+    world.current_turn = 12
+    # Battle event fires first (during command execution).
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=2000,
+        defender_casualties=3000,
+        location="Saxony",
+        war_id="war_1",
+        turn=12,
+    )
+    france_ep = current_episode(world, "war_1", "France")
+    battle_credit = int(france_ep["battle"])
+    assert battle_credit > 0
+
+    # Then the separate peace stamps exited_turn=12.
+    close_episode_for_exit(
+        world, "war_1", "France", exited_turn=12, exit_path="separate_peace",
+    )
+    # Credit lands and is preserved on the closed episode.
+    assert int(france_ep["battle"]) == battle_credit
+
+
+def test_per_turn_staying_power_accrues_before_armistice_expiration_in_same_turn():
+    """Per-turn staying-power runs before `_process_armistice_expiration`.
+
+    process_diplomacy_turn calls `accrue_staying_power_all_wars` BEFORE
+    step 8 (armistice expiration). This test exercises the wired ordering
+    by calling both helpers in the documented sequence and verifying that
+    a turn-T expiring armistice still captures turn-T staying-power.
+    """
+    world = _build_world_with_war()
+    open_episode(world, "war_1", "France", joined_turn=1)
+
+    accrue_staying_power_all_wars(world, current_turn=2)
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep["staying_power"] == STAYING_POWER_PER_TURN
+
+
+# ===========================================================================
+# Slice B3 — concurrent-war independence (spec §9.5 line 738)
+# ===========================================================================
+
+
+def test_concurrent_wars_accrue_staying_power_independently():
+    """A nation in two war_instances has separate per-war staying-power."""
+    from tests.helpers.full_europe_settlement_fixtures import (
+        build_concurrent_war_lifecycle_fixture,
+    )
+
+    world = WorldState()
+    war_x_id, war_y_id = build_concurrent_war_lifecycle_fixture(world)
+    open_episode(world, war_x_id, "Russia", joined_turn=1)
+    open_episode(world, war_y_id, "Russia", joined_turn=1)
+
+    accrue_staying_power_all_wars(world, current_turn=2)
+    russia_ep_x = current_episode(world, war_x_id, "Russia")
+    russia_ep_y = current_episode(world, war_y_id, "Russia")
+    assert russia_ep_x["staying_power"] == STAYING_POWER_PER_TURN
+    assert russia_ep_y["staying_power"] == STAYING_POWER_PER_TURN
+
+
+def test_concurrent_war_close_does_not_affect_other_war():
+    """Closing Russia's episode in war_X does not affect war_Y's episode."""
+    from tests.helpers.full_europe_settlement_fixtures import (
+        build_concurrent_war_lifecycle_fixture,
+    )
+
+    world = WorldState()
+    war_x_id, war_y_id = build_concurrent_war_lifecycle_fixture(world)
+    open_episode(world, war_x_id, "Russia", joined_turn=1)
+    open_episode(world, war_y_id, "Russia", joined_turn=1)
+
+    close_episode_for_exit(
+        world, war_x_id, "Russia", exited_turn=10, exit_path="separate_peace",
+    )
+
+    russia_ep_x = current_episode(world, war_x_id, "Russia")
+    russia_ep_y = current_episode(world, war_y_id, "Russia")
+    assert russia_ep_x["exited_turn"] == 10
+    assert russia_ep_y["exited_turn"] is None
+
+
+# ===========================================================================
+# Slice B3 — Three-theater fixture (spec §9.4 line 717 / line 725)
+# ===========================================================================
+
+
+def test_three_theater_fixture_does_not_credit_distant_front_participant():
+    """A 6+ participant Coalition war: a battle on the German theater must NOT
+    credit Spain/Portugal (Iberian theater) for the German front battle.
+    """
+    from tests.helpers.full_europe_settlement_fixtures import (
+        build_three_theater_full_europe_fixture,
+    )
+
+    world = WorldState()
+    inserted = build_three_theater_full_europe_fixture(world)
+    war_id = next(iter(inserted))
+    for nation in (
+        "France", "Saxony", "Bavaria",
+        "Austria", "Russia", "Prussia", "Britain", "Spain", "Portugal",
+    ):
+        open_episode(world, war_id, nation, joined_turn=1)
+
+    # German theater battle: France attacker, Austria defender, no marshals
+    # in the Iberian theater. The legacy adapter (no theater payload)
+    # credits France & Austria only.
+    accrue_battle_contribution(
+        world,
+        attacker_nation="France",
+        defender_nation="Austria",
+        winner_nation="France",
+        attacker_casualties=1000,
+        defender_casualties=2000,
+        location="Saxony",
+        war_id=war_id,
+        turn=5,
+    )
+
+    france_ep = current_episode(world, war_id, "France")
+    austria_ep = current_episode(world, war_id, "Austria")
+    spain_ep = current_episode(world, war_id, "Spain")
+    portugal_ep = current_episode(world, war_id, "Portugal")
+    assert france_ep["battle"] > 0
+    assert austria_ep["battle"] > 0
+    assert spain_ep["battle"] == 0
+    assert portugal_ep["battle"] == 0
+
+
+# ===========================================================================
+# Slice B3 — Archive compaction + retention (spec §7.5 / §9.5 line 178)
+# ===========================================================================
+
+
+def test_archive_retention_window_keeps_episodes_under_10_turns():
+    """Within the 10-turn retention window, contribution episode detail survives."""
+    from backend.game_logic.settlement_helpers import archive_terminal_war_instances
+    from tests.helpers.full_europe_settlement_fixtures import (
+        build_archive_retention_fixture,
+    )
+
+    world = WorldState()
+    war_id = build_archive_retention_fixture(
+        world, ended_turn=10, current_turn=18,  # 18 - 10 = 8, less than 10
+    )
+    open_episode(world, war_id, "France", joined_turn=5)
+    france_record = world.war_contribution_scores[war_id]["France"]
+    france_ep_id = france_record["current_episode_id"]
+
+    archive_terminal_war_instances(world)
+
+    # War_instance NOT yet archived (under 10-turn window).
+    assert war_id in world.war_instances
+    assert war_id in world.war_contribution_scores
+    assert (
+        world.war_contribution_scores[war_id]["France"]["current_episode_id"]
+        == france_ep_id
+    )
+    # Archived container is empty.
+    assert world.archived_war_contribution_scores.get(war_id) is None
+
+
+def test_archive_retention_window_compacts_at_10_turns():
+    """After 10-turn retention elapses, contribution compacts to per-nation totals."""
+    from backend.game_logic.settlement_helpers import archive_terminal_war_instances
+    from tests.helpers.full_europe_settlement_fixtures import (
+        build_archive_retention_fixture,
+    )
+
+    world = WorldState()
+    war_id = build_archive_retention_fixture(
+        world, ended_turn=10, current_turn=20,  # 20 - 10 = 10, hits the cap
+    )
+    open_episode(world, war_id, "France", joined_turn=5)
+    france_ep = current_episode(world, war_id, "France")
+    france_ep["battle"] = 30
+    france_ep["occupation"] = 20
+    france_ep["staying_power"] = 25
+    france_ep["support"] = 5
+    france_ep["total"] = 80
+    open_episode(world, war_id, "Austria", joined_turn=5)
+    austria_ep = current_episode(world, war_id, "Austria")
+    austria_ep["battle"] = 10
+    austria_ep["total"] = 10
+
+    archive_terminal_war_instances(world)
+
+    assert war_id not in world.war_instances
+    # war_contribution_scores entry was MOVED to archived container.
+    assert war_id not in world.war_contribution_scores
+    archived = world.archived_war_contribution_scores[war_id]
+    assert archived["archived_turn"] == 20
+    france_totals = archived["per_nation_totals"]["France"]
+    assert france_totals["battle"] == 30
+    assert france_totals["occupation"] == 20
+    assert france_totals["staying_power"] == 25
+    assert france_totals["support"] == 5
+    assert france_totals["material_total"] == 55  # battle + occupation + support
+    assert france_totals["total"] == 80
+    assert france_totals["episode_count"] == 1
+    austria_totals = archived["per_nation_totals"]["Austria"]
+    assert austria_totals["battle"] == 10
+
+
+def test_archive_compaction_handles_multiple_episodes_per_nation():
+    """Compaction sums every episode's bucket contribution for a nation."""
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.current_turn = 30
+    instance = make_synthetic_war_instance(
+        "war_42",
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=5,
+        created_sequence=42,
+    )
+    instance["ended_turn"] = 15
+    instance["end_reason"] = "all_pairs_resolved"
+    instance["active_diplo_keys"] = []
+    instance["resolved_diplo_keys"] = ["Austria|France"]
+    instance["diplo_key_meta"]["Austria|France"]["pair_status"] = "resolved"
+    world.diplomatic_states.pop("Austria|France", None)
+    world.war_instances["war_42"] = instance
+
+    # Two episodes for France: original + re-entry after exit.
+    ep1 = open_episode(world, "war_42", "France", joined_turn=5)
+    ep1["battle"] = 20
+    ep1["occupation"] = 10
+    ep1["total"] = 30
+    close_episode_for_exit(
+        world, "war_42", "France", exited_turn=8, exit_path="separate_peace",
+    )
+    ep2 = open_episode(world, "war_42", "France", joined_turn=12)
+    ep2["battle"] = 5
+    ep2["staying_power"] = 15
+    ep2["total"] = 20
+    close_episode_for_exit(
+        world, "war_42", "France", exited_turn=15, exit_path="war_ended",
+    )
+
+    compact_war_contribution_for_archive(world, "war_42", archived_turn=25)
+
+    archived = world.archived_war_contribution_scores["war_42"]
+    france_totals = archived["per_nation_totals"]["France"]
+    assert france_totals["battle"] == 25
+    assert france_totals["occupation"] == 10
+    assert france_totals["staying_power"] == 15
+    assert france_totals["episode_count"] == 2
+    assert france_totals["first_joined_turn"] == 5
+    assert france_totals["last_exited_turn"] == 15
+    # Active store is cleared post-compaction.
+    assert "war_42" not in world.war_contribution_scores
+
+
+def test_archive_compaction_save_load_round_trip_preserves_archived_totals():
+    """`world.archived_war_contribution_scores` survives `to_dict`/`from_dict`."""
+    world = WorldState()
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    world.archived_war_contribution_scores = {
+        "war_99": {
+            "war_id": "war_99",
+            "archived_turn": 25,
+            "per_nation_totals": {
+                "France": {
+                    "battle": 30, "occupation": 10, "staying_power": 25,
+                    "support": 5, "total": 70, "material_total": 45,
+                    "episode_count": 1,
+                    "first_joined_turn": 5, "last_exited_turn": 15,
+                    "historical_total": 0,
+                },
+            },
+        },
+    }
+    data = world.to_dict()
+    new_world = WorldState.from_dict(data)
+    archived = new_world.archived_war_contribution_scores["war_99"]
+    assert archived["archived_turn"] == 25
+    assert archived["per_nation_totals"]["France"]["battle"] == 30
+    assert archived["per_nation_totals"]["France"]["material_total"] == 45
+
+
+def test_archive_compaction_no_op_when_no_contribution_record():
+    """Compacting a war_id with no contribution data returns None safely."""
+    world = WorldState()
+    result = compact_war_contribution_for_archive(
+        world, "war_does_not_exist", archived_turn=10,
+    )
+    assert result is None
+    assert world.archived_war_contribution_scores == {}

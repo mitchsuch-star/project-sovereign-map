@@ -3,7 +3,26 @@
 Slice A1 shipped the war-instance invariant assertion. Slice A2 added the
 war-entry plumbing every WAR seam must use to allocate, reuse, and attach
 to `war_instance` records. Slice A3 adds the merge / archive / leader
-substrate that the rest of the Imperial Settlement system builds on:
+substrate that the rest of the Imperial Settlement system builds on.
+
+Slice B3 layers contribution-episode lifecycle on top of every
+participant_meta stamp / unstamp site:
+
+- ``_open_contribution_episode_for_participant(...)`` is called wherever a
+  helper sets `participant_meta[nation]["joined_turn"]` (skeleton
+  creation, pair attach, single-participant attach, ARMISTICE → WAR
+  resumption when the previous episode was already closed).
+- ``_close_contribution_episode_for_participant(...)`` is called wherever
+  a helper stamps `participant_meta[nation]["exited_turn"]` (elimination,
+  separate-peace exit, all-pairs-resolved end of war).
+- ``resolve_pair_to_resolved(...)`` now also exits participants whose
+  last active pair on the war_instance just resolved (separate peace) or
+  closes every active episode when ``end_reason="all_pairs_resolved"``
+  stamps (war end).
+- ``archive_terminal_war_instances(...)`` calls
+  `compact_war_contribution_for_archive(...)` per archived war_id so
+  episode detail collapses to per-nation finals once the 10-turn
+  retention window has elapsed (spec §9.5 line 178).
 
 - `CascadeContext` — transaction object that travels through
   `_process_war_cascade()` so the cascade signature does not grow past
@@ -48,7 +67,7 @@ mutation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 # ===========================================================================
@@ -302,6 +321,73 @@ def _post_merge_violations(world: Any) -> List[str]:
     # to a structured repair report. A3 leaves a comment marker; out of scope.
 
     return out
+
+
+# ===========================================================================
+# Slice B3: contribution episode lifecycle hooks
+# ===========================================================================
+
+
+def _open_contribution_episode_for_participant(
+    world: Any,
+    war_id: str,
+    nation: str,
+    *,
+    joined_turn: int,
+) -> None:
+    """Idempotent ``open_episode`` wrapper used by every entry seam.
+
+    No-op when ``nation`` already has an active (un-stamped) episode for
+    ``war_id``. This keeps the seam helpers safe against double-attach:
+    a cascade walker can attach the same nation through both an ally
+    bargain and a defensive call without producing duplicate episode ids.
+
+    A closed episode (``exited_turn`` set) is treated as "previous" and a
+    fresh episode is opened — that is the spec §7.5 re-entry shape.
+    """
+    if not war_id or not nation:
+        return
+    try:
+        from backend.game_logic.war_contribution import (
+            current_episode,
+            open_episode,
+        )
+    except Exception:  # pragma: no cover — import guard
+        return
+    existing = current_episode(world, war_id, nation)
+    if existing is not None and existing.get("exited_turn") is None:
+        return
+    open_episode(world, war_id, nation, joined_turn=int(joined_turn))
+
+
+def _close_contribution_episode_for_participant(
+    world: Any,
+    war_id: str,
+    nation: str,
+    *,
+    exited_turn: int,
+    exit_path: str = "",
+) -> None:
+    """Idempotent ``close_episode_for_exit`` wrapper for every exit seam.
+
+    Empty-safe; no-op when there is no active episode for ``(war_id,
+    nation)``. ``exit_path`` is accepted for call-site symmetry with
+    ``participant_meta`` and is not written into the episode (spec §9.1
+    keeps the per-episode record limited to contribution / timing fields).
+    """
+    if not war_id or not nation:
+        return
+    try:
+        from backend.game_logic.war_contribution import close_episode_for_exit
+    except Exception:  # pragma: no cover — import guard
+        return
+    close_episode_for_exit(
+        world,
+        war_id,
+        nation,
+        exited_turn=int(exited_turn),
+        exit_path=exit_path,
+    )
 
 
 # ===========================================================================
@@ -569,6 +655,15 @@ def _create_skeleton_instance(
     world.war_instances[war_id] = instance
     if hasattr(world, "invalidate_war_instance_indexes"):
         world.invalidate_war_instance_indexes()
+    # Slice B3: open contribution episodes for the originator + origin target
+    # so battle/occupation/support events fired in the same turn already see
+    # active episodes for both founding participants.
+    _open_contribution_episode_for_participant(
+        world, war_id, attacker, joined_turn=turn,
+    )
+    _open_contribution_episode_for_participant(
+        world, war_id, defender, joined_turn=turn,
+    )
     return instance
 
 
@@ -834,6 +929,16 @@ def attach_pair_to_war_instance(
                 "entry_path": entry_path,
             },
         )
+        # Slice B3: open contribution episode for this participant. The
+        # helper is idempotent on an already-active episode and re-opens a
+        # fresh episode at the CURRENT attach turn after a prior exit
+        # (spec §7.5 re-entry shape — re-entry stamps a new joined_turn).
+        _open_contribution_episode_for_participant(
+            world,
+            war_id,
+            nation,
+            joined_turn=turn,
+        )
 
     if pair not in active_pairs:
         active_pairs.append(pair)
@@ -916,10 +1021,46 @@ def attach_participant_to_war_instance(
             "entry_path": entry_path,
         },
     )
+    # Slice B3: open contribution episode for the new participant. Idempotent
+    # on re-attach; a previously-exited participant gets a fresh episode at
+    # the CURRENT attach turn (spec §7.5 re-entry shape).
+    _open_contribution_episode_for_participant(
+        world,
+        war_id,
+        nation,
+        joined_turn=turn,
+    )
 
     if hasattr(world, "invalidate_war_instance_indexes"):
         world.invalidate_war_instance_indexes()
     return {"ok": True, "war_id": war_id, "instance": instance}
+
+
+def _pair_nations(pair: str) -> Tuple[Optional[str], Optional[str]]:
+    """Split a sorted-pair-key string back into ``(nation_a, nation_b)``."""
+    parts = (pair or "").split("|", 1)
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        return None, None
+    return parts[0], parts[1]
+
+
+def _nation_has_remaining_active_pair(
+    instance: Dict[str, Any], nation: str,
+) -> bool:
+    """True iff ``nation`` still appears in any active war pair on ``instance``.
+
+    Used by ``resolve_pair_to_resolved`` (B3 separate-peace exit path) to
+    decide whether the resolving pair was the nation's LAST attachment to
+    the war_instance. Iterates ``active_diplo_keys`` only; resolved pairs
+    are intentionally ignored.
+    """
+    if not nation:
+        return False
+    for active_pair in instance.get("active_diplo_keys") or []:
+        a, b = _pair_nations(active_pair)
+        if nation == a or nation == b:
+            return True
+    return False
 
 
 def resolve_pair_to_resolved(
@@ -933,6 +1074,20 @@ def resolve_pair_to_resolved(
     Use for ``ARMISTICE -> PEACE`` and (eventually in Slice C) common-peace
     ratification. Stamps ``pair_status = "resolved"`` and ``resolved_turn``.
     Returns ``{"ok": True, "war_id": <id>}`` on success.
+
+    Slice B3 contribution lifecycle:
+
+    - For each of the two pair nations, if the resolving pair was their
+      LAST active pair on this war_instance, remove them from
+      ``active_participants``, stamp
+      ``participant_meta[nation]["exited_turn"]`` /
+      ``["exit_path"] = "separate_peace"``, and close their contribution
+      episode (``close_episode_for_exit`` with ``exited_turn=resolved_turn``).
+    - When this resolution stamps ``end_reason="all_pairs_resolved"``
+      (no more active pairs left), close every still-active episode for
+      remaining participants with ``exit_path="war_ended"`` so the
+      contribution store stays consistent with the terminal war_instance
+      state.
     """
     turn = int(resolved_turn if resolved_turn is not None else _now_turn(world))
     for war_id, instance in _iter_active_war_instances(world):
@@ -949,9 +1104,68 @@ def resolve_pair_to_resolved(
             # Spec §7.5: stamp ended_turn/end_reason when the last active pair
             # resolves. Other end_reasons (common_peace, separate_peace_finalized)
             # land in Slices C/D.
+            war_just_ended = False
             if not active_pairs and instance.get("ended_turn") is None:
                 instance["ended_turn"] = turn
                 instance["end_reason"] = WAR_END_REASON_ALL_PAIRS_RESOLVED
+                war_just_ended = True
+
+            # Slice B3 §7.5: separate-peace exit + war-end episode closes.
+            participants_to_exit: List[Tuple[str, str]] = []
+            nation_a, nation_b = _pair_nations(pair)
+            for nation in (nation_a, nation_b):
+                if not nation:
+                    continue
+                if nation not in (instance.get("active_participants") or []):
+                    continue
+                if war_just_ended or not _nation_has_remaining_active_pair(
+                    instance, nation,
+                ):
+                    exit_path = (
+                        "war_ended" if war_just_ended else "separate_peace"
+                    )
+                    participants_to_exit.append((nation, exit_path))
+
+            if war_just_ended:
+                # Capture every still-active participant on the war_instance
+                # so the episode closes apply uniformly across the side, not
+                # only the resolving pair.
+                for nation in list(instance.get("active_participants") or []):
+                    if nation in (nation_a, nation_b):
+                        continue
+                    participants_to_exit.append((nation, "war_ended"))
+
+            participant_meta = instance.setdefault("participant_meta", {})
+            attackers_list = instance.setdefault("attackers", [])
+            defenders_list = instance.setdefault("defenders", [])
+            active_participants = instance.setdefault("active_participants", [])
+            side_by_nation = instance.setdefault("side_by_nation", {})
+
+            for nation, exit_path in participants_to_exit:
+                pmeta = participant_meta.setdefault(nation, {})
+                pmeta["exited_turn"] = turn
+                pmeta["exit_path"] = exit_path
+                if nation in active_participants:
+                    active_participants[:] = [
+                        n for n in active_participants if n != nation
+                    ]
+                if nation in attackers_list:
+                    attackers_list[:] = [
+                        n for n in attackers_list if n != nation
+                    ]
+                if nation in defenders_list:
+                    defenders_list[:] = [
+                        n for n in defenders_list if n != nation
+                    ]
+                side_by_nation.pop(nation, None)
+                _close_contribution_episode_for_participant(
+                    world,
+                    war_id,
+                    nation,
+                    exited_turn=turn,
+                    exit_path=exit_path,
+                )
+
             if hasattr(world, "invalidate_war_instance_indexes"):
                 world.invalidate_war_instance_indexes()
             return {"ok": True, "war_id": war_id}
@@ -1573,6 +1787,19 @@ def mark_participant_eliminated_in_all_wars(
             if instance.get(leader_key) == nation:
                 instance[leader_key] = _choose_leader_for_side(world, instance, side)
 
+        # Slice B3 §7.4: freeze the eliminated nation's active episode at
+        # `current_turn`. Spec line 107: no separate-peace reaction is
+        # emitted for elimination exit, but the contribution episode must
+        # still close so subsequent settlement readers do not credit the
+        # eliminated nation for events past their elimination turn.
+        _close_contribution_episode_for_participant(
+            world,
+            war_id,
+            nation,
+            exited_turn=turn,
+            exit_path="eliminated",
+        )
+
         touched.append(war_id)
 
     if touched and hasattr(world, "invalidate_war_instance_indexes"):
@@ -1589,6 +1816,14 @@ def archive_terminal_war_instances(world: Any) -> Dict[str, Any]:
     `world.archived_war_instances`. The terminal record stays queryable
     while `current_turn - ended_turn < 10` so contribution / settlement /
     dispatch / ledger readers can resolve recent references.
+
+    Slice B3 §9.5 line 178: when an instance archives, also compact its
+    `world.war_contribution_scores[war_id]` record into
+    `world.archived_war_contribution_scores[war_id]` (per-nation finals,
+    no episode detail). Done AFTER the war_instance moves so the
+    invariant assertion in `_post_merge_violations` (which walks
+    `war_contribution_scores`) sees the same archived war_id set as the
+    survivor lookup.
     """
     instances = getattr(world, "war_instances", None) or {}
     archive_list = getattr(world, "archived_war_instances", None)
@@ -1607,8 +1842,23 @@ def archive_terminal_war_instances(world: Any) -> Dict[str, Any]:
             archive_list.append(deepcopy(instance))
             del instances[war_id]
             archived_ids.append(war_id)
-    if archived_ids and hasattr(world, "invalidate_war_instance_indexes"):
-        world.invalidate_war_instance_indexes()
+    if archived_ids:
+        # Slice B3: compact contribution scores for the archived war_ids.
+        # Imported lazily so the module stays a leaf dependency for callers
+        # that only need the foundation helpers.
+        try:
+            from backend.game_logic.war_contribution import (
+                compact_war_contribution_for_archive,
+            )
+        except Exception:  # pragma: no cover — import guard
+            compact_war_contribution_for_archive = None  # type: ignore
+        if compact_war_contribution_for_archive is not None:
+            for war_id in archived_ids:
+                compact_war_contribution_for_archive(
+                    world, war_id, archived_turn=turn,
+                )
+        if hasattr(world, "invalidate_war_instance_indexes"):
+            world.invalidate_war_instance_indexes()
     return {"ok": True, "archived_war_ids": archived_ids}
 
 

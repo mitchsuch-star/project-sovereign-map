@@ -4352,6 +4352,20 @@ def cleanup_war_end(world, diplo_key: str, *,
             if marshal is not None:
                 marshal.strategic_order = None
 
+    # Slice B3 §7.5: a peace outcome resolves the bilateral pair on its
+    # owning war_instance and (via the B3 lifecycle hooks inside
+    # `resolve_pair_to_resolved`) closes contribution episodes for any
+    # participants whose last active pair just disappeared. Armistice
+    # outcomes leave the pair active (paused, not exited) so the helper is
+    # only invoked when ``conclude_objectives`` is True.
+    #
+    # Idempotent against the existing armistice-expiration call site
+    # (`_process_armistice_expiration` runs `resolve_pair_to_resolved`
+    # before `cleanup_war_end`); the second invocation no-ops with
+    # ``error="pair_not_owned"``.
+    if conclude_objectives:
+        resolve_pair_to_resolved(world, diplo_key)
+
 
 # ═══════════════════════════════════════════════════════
 # TERRITORY DEMAND ANALYSIS (PL-19/PL-20 shared helper)
@@ -8619,6 +8633,17 @@ def process_diplomacy_turn(world) -> List[Dict]:
     _process_relation_decay(world)
 
     # 5-7: Vassal processing (defection cascade, loyalty, rebellion) — implemented in vassal.py, wired in advance_turn()
+
+    # ── 7b. Per-turn staying-power accrual (Slice B3, spec §9.2 line 612) ──
+    # Walks every active war_instance once and adds +5 raw points per
+    # active episode per turn, capped at 10 qualifying turns per episode.
+    # Placed BEFORE the armistice-expiration step so episodes that close on
+    # this turn (ARMISTICE → PEACE) still capture the turn's staying power
+    # under the inclusive `event.turn <= exited_turn` boundary (spec §9.5).
+    from backend.game_logic.war_contribution import accrue_staying_power_all_wars
+    accrue_staying_power_all_wars(
+        world, current_turn=int(getattr(world, "current_turn", 0) or 0),
+    )
 
     # ── 8. Armistice expiration ──
     armistice_events = _process_armistice_expiration(world)

@@ -492,3 +492,150 @@ def build_side_scoped_leader_source_fixture(
     world.war_instances[war_id] = instance
     world.invalidate_war_instance_indexes()
     return {war_id: instance}
+
+
+# ---------------------------------------------------------------------------
+# Slice B3: lifecycle / per-turn staying-power / archive retention fixtures
+# ---------------------------------------------------------------------------
+
+
+def build_three_theater_full_europe_fixture(
+    world: WorldState,
+) -> Dict[str, Dict]:
+    """Single 6+ participant war spanning three distant theaters.
+
+    Spec §9.4 line 717 + impl plan B3 gate: a coalition war with marshals
+    on opposite ends of Europe must NOT credit a same-side participant
+    fighting on a different front for events on this front. This fixture
+    seats the canonical roster across three theaters (German, Iberian,
+    Russian) and returns the war_id so per-theater contribution tests can
+    drive battle / occupation events without polluting the active-roster
+    install pattern used by smaller B1/B2 tests.
+
+    Returns ``{war_id: instance}``.
+    """
+    install_synthetic_active_roster(
+        world,
+        [
+            "France", "Saxony", "Bavaria",      # German theater (attackers)
+            "Spain", "Portugal",                # Iberian theater (defenders)
+            "Russia", "Prussia",                # Russian / Northern theater (defenders)
+            "Austria",                          # German theater (defenders)
+            "Britain",                          # Iberian / strategic ally (defenders)
+        ],
+    )
+    war_id = _allocate_war_id(world)
+    instance = make_synthetic_war_instance(
+        war_id,
+        attackers=["France", "Saxony", "Bavaria"],
+        defenders=["Austria", "Russia", "Prussia", "Britain", "Spain", "Portugal"],
+        attacker_leader="France",
+        defender_leader="Russia",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, instance)
+    world.war_instances[war_id] = instance
+    world.invalidate_war_instance_indexes()
+    return {war_id: instance}
+
+
+def build_concurrent_war_lifecycle_fixture(
+    world: WorldState,
+) -> Tuple[str, str]:
+    """One nation participating in TWO independent active war_instances.
+
+    Spec §9.5 line 738 + impl plan B3 gate: a nation active in two
+    concurrent ``war_instance`` records accrues staying power, support, and
+    current-episode totals independently per ``war_id``. Only a merge
+    transaction rewrites those records together — and a merge is impossible
+    here because the two wars share zero participants beyond the bridge.
+
+    Layout (Russia is the bridge nation):
+      - war_X: France(attackers, leader) vs Russia(defenders, leader)
+      - war_Y: Russia(attackers, leader) vs Ottoman(defenders, leader)
+
+    Returns ``(war_x_id, war_y_id)``.
+    """
+    install_synthetic_active_roster(
+        world, ["France", "Russia", "Ottoman"]
+    )
+
+    war_x_id = _allocate_war_id(world)
+    instance_x = make_synthetic_war_instance(
+        war_x_id,
+        attackers=["France"],
+        defenders=["Russia"],
+        attacker_leader="France",
+        defender_leader="Russia",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, instance_x)
+    world.war_instances[war_x_id] = instance_x
+
+    war_y_id = _allocate_war_id(world)
+    instance_y = make_synthetic_war_instance(
+        war_y_id,
+        attackers=["Russia"],
+        defenders=["Ottoman"],
+        attacker_leader="Russia",
+        defender_leader="Ottoman",
+        created_turn=int(world.current_turn),
+        created_sequence=_current_sequence(world),
+    )
+    _stamp_war_pairs_in_diplomatic_states(world, instance_y)
+    world.war_instances[war_y_id] = instance_y
+
+    world.invalidate_war_instance_indexes()
+    return war_x_id, war_y_id
+
+
+def build_archive_retention_fixture(
+    world: WorldState,
+    *,
+    ended_turn: int,
+    current_turn: int,
+) -> str:
+    """Single ended ``war_instance`` ready to test the 10-turn retention boundary.
+
+    Spec §7.5 / §9.5 line 178: ``war_contribution_scores[war_id]`` survives
+    until ``current_turn - ended_turn >= 10``, then compacts to per-nation
+    finals on archive. The fixture creates one war between France and
+    Austria that ended on ``ended_turn`` and seeds ``current_turn`` so
+    retention math is deterministic.
+
+    Returns the ``war_id`` of the terminal instance. The caller is
+    responsible for seeding contribution episodes (``open_episode`` etc.)
+    against the returned war_id before exercising
+    ``archive_terminal_war_instances``.
+    """
+    install_synthetic_active_roster(world, ["France", "Austria"])
+    war_id = _allocate_war_id(world)
+    instance = make_synthetic_war_instance(
+        war_id,
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=int(ended_turn) - 5,  # arbitrary pre-end window
+        created_sequence=_current_sequence(world),
+    )
+    instance["ended_turn"] = int(ended_turn)
+    instance["end_reason"] = "all_pairs_resolved"
+    # Move the bilateral pair into the resolved bucket so the invariant
+    # walker does not flag it as an active-but-WAR pair.
+    pair = "|".join(sorted(("France", "Austria")))
+    instance["active_diplo_keys"] = []
+    instance["resolved_diplo_keys"] = [pair]
+    if pair in (instance.get("diplo_key_meta") or {}):
+        instance["diplo_key_meta"][pair]["pair_status"] = "resolved"
+        instance["diplo_key_meta"][pair]["resolved_turn"] = int(ended_turn)
+    # Drop the live-WAR diplomatic_states stamp the make_synthetic helper
+    # would have set: an ended war should not look like an active WAR pair
+    # to the invariant assertion.
+    world.diplomatic_states.pop(pair, None)
+    world.war_instances[war_id] = instance
+    world.current_turn = int(current_turn)
+    world.invalidate_war_instance_indexes()
+    return war_id

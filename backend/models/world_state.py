@@ -651,8 +651,13 @@ class WorldState:
         #   }}}
         # B1 ships data shape + save/load + episode helpers + share math
         # + classify_standing pure helper. B2 wires emitters; B3 wires
-        # lifecycle (per-turn staying power, exit stamping).
+        # lifecycle (per-turn staying power, exit stamping, archive
+        # compaction). The archived store is populated by
+        # `compact_war_contribution_for_archive(...)` once an archived
+        # `war_instance` clears the 10-turn retention window — episode
+        # detail collapses to per-nation finals (spec §9.5 line 178).
         self.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
+        self.archived_war_contribution_scores: Dict[str, Dict[str, Any]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3768,6 +3773,12 @@ class WorldState:
                 }
                 for war_id, nation_dict in self.war_contribution_scores.items()
             },
+            # Slice B3: archived per-nation totals (post-archive compaction).
+            # Pre-B3 saves default to {}.
+            "archived_war_contribution_scores": {
+                str(war_id): copy.deepcopy(record)
+                for war_id, record in self.archived_war_contribution_scores.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -4208,6 +4219,14 @@ class WorldState:
                 for nation, record in (nation_dict or {}).items()
             }
             for war_id, nation_dict in (data.get("war_contribution_scores") or {}).items()
+        }
+        # Slice B3: archived per-nation totals (post-archive compaction).
+        # Pre-B3 saves default to {}.
+        world.archived_war_contribution_scores = {
+            str(war_id): copy.deepcopy(record)
+            for war_id, record in (
+                data.get("archived_war_contribution_scores") or {}
+            ).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
