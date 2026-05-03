@@ -45,6 +45,7 @@ from backend.game_logic.vassal import (
     check_vassal_rebellion,
     release_vassal,
 )
+from backend.game_logic.war_contribution import current_episode
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import (
     install_synthetic_active_roster,
@@ -931,6 +932,75 @@ def test_scripted_debug_war_entry_allocates_war_instance():
     assert world.is_at_war("France", "Prussia")
     assert len(_active_instances(world)) == 1
     assert_war_instance_invariants(world, context="debug_war_entry")
+
+
+def test_scripted_debug_peace_closes_contribution_episode():
+    from backend.commands.executor import CommandExecutor
+
+    world = _clean_world()
+    executor = CommandExecutor()
+    executor._execute_cheat(
+        {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "WAR"],
+        },
+        {"world": world, "debug_mode": True},
+    )
+    war_id = next(iter(world.war_instances))
+    pair = _pair("France", "Prussia")
+
+    result = executor._execute_cheat(
+        {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "PEACE"],
+        },
+        {"world": world, "debug_mode": True},
+    )
+
+    assert result["success"] is True
+    instance = world.war_instances[war_id]
+    assert pair in instance["resolved_diplo_keys"]
+    assert pair not in instance["active_diplo_keys"]
+    assert instance["ended_turn"] == world.current_turn
+    assert current_episode(world, war_id, "France")["exited_turn"] == world.current_turn
+    assert current_episode(world, war_id, "Prussia")["exited_turn"] == world.current_turn
+    assert_war_instance_invariants(world, context="debug_peace_exit")
+
+
+def test_scripted_debug_armistice_suspends_pair_without_closing_episode():
+    from backend.commands.executor import CommandExecutor
+
+    world = _clean_world()
+    executor = CommandExecutor()
+    executor._execute_cheat(
+        {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "WAR"],
+        },
+        {"world": world, "debug_mode": True},
+    )
+    war_id = next(iter(world.war_instances))
+    pair = _pair("France", "Prussia")
+
+    result = executor._execute_cheat(
+        {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "ARMISTICE"],
+        },
+        {"world": world, "debug_mode": True},
+    )
+
+    assert result["success"] is True
+    instance = world.war_instances[war_id]
+    assert pair in instance["active_diplo_keys"]
+    assert instance["diplo_key_meta"][pair]["pair_status"] == "armistice"
+    assert current_episode(world, war_id, "France")["exited_turn"] is None
+    assert current_episode(world, war_id, "Prussia")["exited_turn"] is None
+    assert_war_instance_invariants(world, context="debug_armistice_exit")
 
 
 def test_coalition_declaration_threads_war_instance():

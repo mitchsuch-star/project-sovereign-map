@@ -2067,7 +2067,10 @@ RETREAT RECOVERY (3 turns):
             nation = cheat_args[0]
             state = cheat_args[1].upper()
             player = world.player_nation
-            from backend.game_logic.diplomacy import set_diplomatic_state
+            from backend.game_logic.diplomacy import (
+                cleanup_war_end,
+                set_diplomatic_state,
+            )
             if state == "WAR" and not world.is_at_war(player, nation):
                 from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
                 war_instance_result = ensure_war_instance_for_pair(
@@ -2088,6 +2091,16 @@ RETREAT RECOVERY (3 turns):
                         "error_details": war_instance_result.get("details", {}),
                     }
             old = set_diplomatic_state(world, player, nation, state, "cheat_command")
+            if old in ("WAR", "ARMISTICE") and state != "WAR":
+                diplo_key = world._make_diplo_key(player, nation)
+                if state == "ARMISTICE":
+                    from backend.game_logic.settlement_helpers import mark_pair_armistice
+                    mark_pair_armistice(world, diplo_key)
+                cleanup_war_end(
+                    world,
+                    diplo_key,
+                    conclude_objectives=(state != "ARMISTICE"),
+                )
             return {"success": True, "message": f"Diplomatic state {player}↔{nation}: {old} → {state}"}
 
         if cheat_type == "create_vassal":
