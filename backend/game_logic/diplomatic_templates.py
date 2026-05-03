@@ -1992,10 +1992,13 @@ def resolve_enemy_response_text(template: Dict, world, target_nation: str) -> st
     return resolve_template_text(text, world, target_nation)
 
 
-def calculate_treaty_harshness(treaty: Dict) -> float:
-    """Calculate harshness score (0.0-1.0) from treaty clauses AND demands.
+def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
+    """Sum the raw clause + demand harshness weights without any clamp.
 
-    Used for DD8-4 escalating harshness tracking and PL-12 acceptance penalty.
+    Internal helper shared by `calculate_treaty_harshness()` (1.0-clamped,
+    bilateral) and `calculate_raw_treaty_harshness()` (unclamped, used by
+    the common-peace acceptance formula's `term_harshness_penalty` per
+    `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §6.acceptance line 1115).
     """
     harshness = 0.0
     for clause in treaty.get("clauses", []):
@@ -2034,7 +2037,37 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.4
         elif dtype == "liberation":
             harshness += 0.3
-    return min(1.0, harshness)
+    return harshness
+
+
+def calculate_treaty_harshness(treaty: Dict) -> float:
+    """Calculate harshness score (0.0-1.0) from treaty clauses AND demands.
+
+    Used for DD8-4 escalating harshness tracking and PL-12 acceptance penalty.
+    Bilateral acceptance callers MUST keep using this 1.0-clamped helper.
+    Common-peace acceptance must call `calculate_raw_treaty_harshness()`
+    instead — the 1.5 ceiling is applied inside the C1b acceptance helper.
+    """
+    return min(1.0, _accumulate_raw_treaty_harshness(treaty))
+
+
+def calculate_raw_treaty_harshness(treaty: Dict) -> float:
+    """Unclamped sum of treaty clause + demand harshness weights.
+
+    Used exclusively by common-peace acceptance per
+    `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §6.acceptance line 1115:
+
+        term_harshness_penalty =
+            -min(45, round((min(raw_total_harshness, 1.5) / 1.5) * 45))
+
+    The 1.5 ceiling is applied at the acceptance helper, NOT here, so
+    callers can audit the raw weight (settlement reviews show this in
+    debug output) and detect packages that exceed the spec's
+    settlement-tier harshness ceilings (white_peace 0.10 / favorable_terms
+    0.25 / dictated_terms 0.45 / harsh_peace 0.70 / total_victory 1.00 —
+    spec §6.acceptance line 1188-1196).
+    """
+    return _accumulate_raw_treaty_harshness(treaty)
 
 
 # ═══════ BPH-A: TERM OWNERSHIP ANNOTATION ═══════
