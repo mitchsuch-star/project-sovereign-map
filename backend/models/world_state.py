@@ -5773,7 +5773,7 @@ class WorldState:
 
         # Apply one-time clauses (shared)
         applied_treaty_clauses: List[Dict] = []
-        for clause in treaty_clauses:
+        for clause_index, clause in enumerate(treaty_clauses):
             ctype = clause.get("type", "")
             amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
             from_nation = clause.get("from", "")
@@ -5816,6 +5816,11 @@ class WorldState:
                                 source="treaty_clause",
                                 source_detail="ratification",
                                 turn=int(self.current_turn),
+                                event_id=(
+                                    f"support-{int(self.current_turn)}-{gl_war_id}-"
+                                    f"{from_nation}-{to_nation}-gold-"
+                                    f"treaty_clause-ratification-clause-{clause_index}"
+                                ),
                             )
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
@@ -6286,9 +6291,9 @@ class WorldState:
         value emits a `war_support_delivered` event with `source="treaty_clause"`
         and a per-clause-type `source_detail`. Filtering inside
         `accrue_support_event` (same-side allies in active war_id) skips
-        opposite-side flows; the source_detail is enough to dedupe across
-        same-turn replays of `_process_treaty_clauses` (idempotent under
-        episode-id dedupe).
+        opposite-side flows; event ids include the source clause index so
+        repeated same-type clauses accrue separately while same-turn replays
+        remain idempotent.
         """
         from backend.game_logic.war_contribution import (
             accrue_support_event,
@@ -6297,6 +6302,8 @@ class WorldState:
 
         def _emit_treaty_support(
             *,
+            pair_key: str,
+            clause_index: int,
             from_n: str,
             to_n: str,
             kind: str,
@@ -6318,10 +6325,14 @@ class WorldState:
                 source="treaty_clause",
                 source_detail=detail,
                 turn=int(self.current_turn),
+                event_id=(
+                    f"support-{int(self.current_turn)}-{war_id}-{pair_key}-"
+                    f"clause-{clause_index}-{from_n}-{to_n}-{kind}-{detail}"
+                ),
             )
 
         for pair_key, treaty in self.active_treaties.items():
-            for clause in treaty.get("clauses", []):
+            for clause_index, clause in enumerate(treaty.get("clauses", [])):
                 ctype = clause.get("type", "")
                 amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
                 from_nation = clause.get("from", "")
@@ -6346,6 +6357,7 @@ class WorldState:
                                 "amount_paid": str(int(transfer)),
                             }, "always")
                         _emit_treaty_support(
+                            pair_key=pair_key, clause_index=clause_index,
                             from_n=from_nation, to_n=to_nation,
                             kind="gold", value=int(transfer),
                             detail="gold_per_turn",
@@ -6362,23 +6374,30 @@ class WorldState:
                         self.manpower_pools[to_nation]["infantry"] = (
                             to_pool.get("infantry", 0) + transfer)
                     _emit_treaty_support(
+                        pair_key=pair_key, clause_index=clause_index,
                         from_n=from_nation, to_n=to_nation,
                         kind="manpower", value=int(transfer),
                         detail="manpower_per_turn",
                     )
                 elif ctype == "ap_per_turn":
                     # Fix 9: Handle France (player nation) AP reduction
+                    applied_ap = 0
                     if from_nation == self.player_nation:
-                        self.max_actions_per_turn = max(1, self.max_actions_per_turn - int(amount))
+                        before_ap = int(self.max_actions_per_turn)
+                        self.max_actions_per_turn = max(1, before_ap - int(amount))
                         self.actions_remaining = min(self.actions_remaining, self.max_actions_per_turn)
+                        applied_ap = max(0, before_ap - int(self.max_actions_per_turn))
                     elif from_nation in self.nation_actions:
+                        before_ap = int(self.nation_actions[from_nation])
                         self.nation_actions[from_nation] = max(
-                            1, self.nation_actions[from_nation] - int(amount))
-                    # AP transfer is symbolic in the engine but semantically a
-                    # support clause; emit using the clause's nominal amount.
+                            1, before_ap - int(amount))
+                        applied_ap = max(0, before_ap - int(self.nation_actions[from_nation]))
+                    # AP transfer is symbolic in the engine; contribution
+                    # accrues only for AP the payer actually lost.
                     _emit_treaty_support(
+                        pair_key=pair_key, clause_index=clause_index,
                         from_n=from_nation, to_n=to_nation,
-                        kind="ap", value=int(amount),
+                        kind="ap", value=int(applied_ap),
                         detail="ap_per_turn",
                     )
 

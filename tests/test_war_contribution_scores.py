@@ -2680,6 +2680,34 @@ def test_ratify_treaty_emits_support_for_gold_lump_between_allies():
     assert france_ep["support"] == 5  # 500 // 100
 
 
+def test_ratify_treaty_emits_each_same_type_gold_lump_clause():
+    """Sibling `gold_lump` clauses must not dedupe into one support event."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    world.nation_gold["France"] = 5000
+    saxony_starting_gold = int(world.nation_gold.setdefault("Saxony", 0))
+    proposal = {
+        "proposer_nation": "France",
+        "target_nation": "Saxony",
+        "type": "alliance",
+        "sweeteners": [
+            {"type": "gold_lump", "value": 500},
+            {"type": "gold_lump", "value": 500},
+        ],
+    }
+    world.diplomatic_states.pop(world._make_diplo_key("France", "Saxony"), None)
+
+    world._ratify_treaty(proposal)
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["support"] == 10
+    assert world.nation_gold["France"] == 4000
+    assert world.nation_gold["Saxony"] == saxony_starting_gold + 1000
+
+
 def test_ratify_treaty_emits_allied_region_restored_for_territory_cede():
     """Territory_cede returning a region to its lawful owner ally emits
     `allied_region_restored` for the recipient ally (not the proposer)."""
@@ -2741,6 +2769,44 @@ def test_process_treaty_clauses_emits_per_turn_gold_support():
     assert france_ep["support"] == 3  # 300 // 100
 
 
+def test_process_treaty_clauses_emits_each_same_type_gold_clause():
+    """Sibling per-turn gold clauses use distinct support event ids."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    diplo_key = world._make_diplo_key("France", "Saxony")
+    world.active_treaties[diplo_key] = {
+        "nations": ["France", "Saxony"],
+        "type": "alliance",
+        "clauses": [
+            {
+                "type": "gold_per_turn",
+                "from": "France",
+                "to": "Saxony",
+                "amount": 300,
+            },
+            {
+                "type": "gold_per_turn",
+                "from": "France",
+                "to": "Saxony",
+                "amount": 300,
+            },
+        ],
+    }
+    world.nation_gold["France"] = 10000
+    saxony_starting_gold = int(world.nation_gold.setdefault("Saxony", 0))
+
+    world.current_turn = 2
+    world._process_treaty_clauses()
+
+    france_ep = current_episode(world, "war_1", "France")
+    assert france_ep is not None
+    assert france_ep["support"] == 6
+    assert world.nation_gold["France"] == 9400
+    assert world.nation_gold["Saxony"] == saxony_starting_gold + 600
+
+
 def test_process_treaty_clauses_emits_per_turn_ap_support():
     """Per-turn `ap_per_turn` between allies emits AP support."""
     world = _setup_war_with_episodes(
@@ -2767,6 +2833,34 @@ def test_process_treaty_clauses_emits_per_turn_ap_support():
     saxony_ep = current_episode(world, "war_1", "Saxony")
     assert saxony_ep is not None
     assert saxony_ep["support"] == 5  # 1 * 5
+
+
+def test_process_treaty_clauses_skips_ap_support_when_floor_blocks_payment():
+    """AP support accrues only for the AP actually removed from the payer."""
+    world = _setup_war_with_episodes(
+        attackers=("France", "Saxony"),
+        defenders=("Austria",),
+    )
+    diplo_key = world._make_diplo_key("France", "Saxony")
+    world.active_treaties[diplo_key] = {
+        "nations": ["France", "Saxony"],
+        "type": "alliance",
+        "clauses": [{
+            "type": "ap_per_turn",
+            "from": "Saxony",
+            "to": "France",
+            "amount": 1,
+        }],
+    }
+    world.nation_actions["Saxony"] = 1
+
+    world.current_turn = 1
+    world._process_treaty_clauses()
+
+    saxony_ep = current_episode(world, "war_1", "Saxony")
+    assert saxony_ep is not None
+    assert saxony_ep["support"] == 0
+    assert world.nation_actions["Saxony"] == 1
 
 
 def test_process_treaty_clauses_dedupes_same_turn_replay():
