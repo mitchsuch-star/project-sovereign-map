@@ -982,6 +982,123 @@ COALITION_TEMPLATES = {
 }
 
 
+SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
+    "settlement_advisory_common_peace_talleyrand": (
+        "Sire, the settlement of {war_label} is not a curtain call; it is an "
+        "accounting. {standing_summary} must be read beside {contribution_summary}, "
+        "and the largest political cost remains {top_blocker}."
+    ),
+    "settlement_advisory_defensive_talleyrand": (
+        "Sire, a defensive peace is judged by what it preserves. Returning "
+        "{restored_claim} steadies the coalition, while {limited_concession} "
+        "buys quiet without dressing necessity as conquest."
+    ),
+    "settlement_acceptance_castlereagh": (
+        "His Majesty's Government accepts the settlement of {war_label}. "
+        "London records the terms and reserves its judgment on the consequences."
+    ),
+    "settlement_acceptance_hardenberg": (
+        "Prussia accepts the settlement of {war_label}. Hardenberg notes what "
+        "has been conceded, and what honor will require us to remember."
+    ),
+    "settlement_acceptance_metternich": (
+        "Vienna accepts the settlement of {war_label}. Metternich observes that "
+        "the arrangement is sufficient for today, which is not the same as final."
+    ),
+    "settlement_acceptance_einsiedel": (
+        "Saxony accepts the settlement of {war_label}, respectfully and with "
+        "relief. Einsiedel asks only that small courts may now breathe."
+    ),
+    "settlement_rejection_castlereagh": (
+        "London cannot accept the settlement of {war_label}. The obstacle is "
+        "{top_blocker}; His Majesty's Government will not pretend otherwise."
+    ),
+    "settlement_rejection_hardenberg": (
+        "Prussia rejects the settlement of {war_label}. {top_blocker} is not a "
+        "detail to be filed away; it is an insult to Prussian standing."
+    ),
+    "settlement_rejection_metternich": (
+        "Vienna declines the settlement of {war_label}. The difficulty, if one "
+        "must name it plainly, is {top_blocker}; Austria prefers clarity before ink."
+    ),
+    "settlement_rejection_einsiedel": (
+        "Saxony cannot accept the settlement of {war_label}. Einsiedel begs "
+        "France to understand that {top_blocker} leaves us no safe answer."
+    ),
+    "settlement_sold_out_by_leader_castlereagh": (
+        "London observes that {leader} purchased peace with {victim}. Such an "
+        "arrangement will be remembered in the next coalition."
+    ),
+    "settlement_sold_out_by_leader_hardenberg": (
+        "Hardenberg names the matter plainly: {leader} sold out {victim}. "
+        "Prussia does not forget who treats an ally as payment."
+    ),
+    "settlement_sold_out_by_leader_metternich": (
+        "Vienna notes that {leader} found {victim} a convenient price. "
+        "Metternich will adjust the ledger accordingly."
+    ),
+    "settlement_sold_out_by_leader_einsiedel": (
+        "Einsiedel records, with regret, that {leader} has left {victim} to bear "
+        "the cost. Small courts understand that lesson too well."
+    ),
+    "settlement_rewarded_ally_castlereagh": (
+        "London acknowledges that {beneficiary} received {reward}. The reward "
+        "is material; the obligation it creates is political."
+    ),
+    "settlement_rewarded_ally_hardenberg": (
+        "Hardenberg accepts {reward} for {beneficiary} as recognition, not charity. "
+        "Prussia values a settlement that honors contribution."
+    ),
+    "settlement_rewarded_ally_metternich": (
+        "Metternich observes that {beneficiary} has been granted {reward}. "
+        "A favor so precisely placed is rarely accidental."
+    ),
+    "settlement_rewarded_ally_einsiedel": (
+        "Einsiedel thanks France for {reward} to {beneficiary}. It is a modest "
+        "security perhaps, but for Saxony security is never modest."
+    ),
+    "settlement_excluded_ally_castlereagh": (
+        "London notes that {excluded_ally} contributed {contribution_summary} "
+        "and received no seat in the settlement. The omission is legible."
+    ),
+    "settlement_excluded_ally_hardenberg": (
+        "Hardenberg will not dress this as oversight. {excluded_ally} gave "
+        "{contribution_summary}, and the settlement answered with silence."
+    ),
+    "settlement_excluded_ally_metternich": (
+        "Vienna has noticed that {excluded_ally}'s {contribution_summary} did "
+        "not survive into the articles. Such absences have weight."
+    ),
+    "settlement_excluded_ally_einsiedel": (
+        "Einsiedel asks, respectfully, how {excluded_ally} should explain "
+        "{contribution_summary} when the treaty grants nothing in return."
+    ),
+    "settlement_advisory_common_peace_serial_peace_weapon": (
+        "Sire, peeling {departing_enemy} from {war_label} weakens {remaining_leader}, "
+        "but it also teaches the remaining courts that separate peace has a price."
+    ),
+}
+
+
+def get_settlement_voice_template(template_key: str) -> Optional[str]:
+    """Return committed Imperial Settlement copy by exact template key."""
+    return SETTLEMENT_VOICE_TEMPLATES.get(str(template_key or ""))
+
+
+def resolve_settlement_voice_line(template_key: str, **slots: Any) -> str:
+    """Resolve a committed settlement voice template with caller-supplied slots."""
+    template = get_settlement_voice_template(template_key)
+    if not template:
+        return ""
+    safe_slots = {key: str(value) for key, value in slots.items()}
+    return template.format_map(_MissingSettlementSlot(safe_slots))
+
+
+class _MissingSettlementSlot(dict):
+    def __missing__(self, key: str) -> str:
+        return f"{{{key}}}"
+
+
 def resolve_coalition_template(category: str, world, **kwargs) -> Optional[str]:
     """Resolve a coalition template with slot variables.
 

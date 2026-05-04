@@ -334,6 +334,8 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **May 4, 2026** - Final Gate copy pass lands committed Imperial Settlement templates in `backend/game_logic/diplomatic_templates.py` for Talleyrand common-peace / defensive advisory, Castlereagh / Hardenberg / Metternich / Einsiedel acceptance and rejection, sold-out-by-leader, rewarded-ally, excluded-ally, plus serial-peace fallout legibility.
+
 - **May 4, 2026** - Slice E presentation lands. Settlement copy is wired through the new `settlement_presentation` module (`SETTLEMENT_ROUTES`, `settlement_notification_meta`, sectioned `build_settlement_review`), and the seven settlement voice families above remain the contract for final committed copy. Initial Slice E copy uses Talleyrand register frames for advisory beats and chancery fallbacks for the foreign-leader settlement reactions; per-cast committed lines for `settlement_acceptance_*`, `settlement_rejection_*`, `settlement_sold_out_by_leader_*`, `settlement_rewarded_ally_*`, and `settlement_excluded_ally_*` are authored in cast register passes after Slice E (still inside the Final Gate, not deferred to a future spec).
 
 - **Apr 29, 2026** - Tightened settlement-specific coverage for Imperial Settlement: added explicit Slice E voice families for common-peace advisory, defensive settlement counsel, acceptance/rejection, rewarded/excluded allies, and sold-out-by-leader registers, with material-contribution vs diplomatic-weight wording.

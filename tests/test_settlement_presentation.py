@@ -28,6 +28,10 @@ from backend.game_logic.dispatch import (
     _is_dispatch_event_visible,
 )
 from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
+from backend.game_logic.diplomatic_templates import (
+    SETTLEMENT_VOICE_TEMPLATES,
+    resolve_settlement_voice_line,
+)
 from backend.game_logic.settlement_presentation import (
     SETTLEMENT_EVENT_FAMILY,
     SETTLEMENT_INLINE_WARNING_CAP,
@@ -677,6 +681,77 @@ class TestNotificationMeta:
         meta = settlement_notification_meta(event)
         assert "awe_tags" in meta
         assert "triple_forced_alignment" in meta["awe_tags"]
+
+
+# ===========================================================================
+# Final Gate settlement voice copy
+# ===========================================================================
+
+
+class TestSettlementVoiceCopy:
+    def test_required_settlement_voice_families_have_committed_copy(self):
+        required_keys = {
+            "settlement_advisory_common_peace_talleyrand",
+            "settlement_advisory_defensive_talleyrand",
+            "settlement_acceptance_castlereagh",
+            "settlement_acceptance_hardenberg",
+            "settlement_acceptance_metternich",
+            "settlement_acceptance_einsiedel",
+            "settlement_rejection_castlereagh",
+            "settlement_rejection_hardenberg",
+            "settlement_rejection_metternich",
+            "settlement_rejection_einsiedel",
+            "settlement_sold_out_by_leader_castlereagh",
+            "settlement_sold_out_by_leader_hardenberg",
+            "settlement_sold_out_by_leader_metternich",
+            "settlement_sold_out_by_leader_einsiedel",
+            "settlement_rewarded_ally_castlereagh",
+            "settlement_rewarded_ally_hardenberg",
+            "settlement_rewarded_ally_metternich",
+            "settlement_rewarded_ally_einsiedel",
+            "settlement_excluded_ally_castlereagh",
+            "settlement_excluded_ally_hardenberg",
+            "settlement_excluded_ally_metternich",
+            "settlement_excluded_ally_einsiedel",
+        }
+        assert required_keys.issubset(SETTLEMENT_VOICE_TEMPLATES)
+
+    def test_defensive_settlement_copy_frames_preservation(self):
+        line = resolve_settlement_voice_line(
+            "settlement_advisory_defensive_talleyrand",
+            restored_claim="Bavaria",
+            limited_concession="a narrow indemnity",
+        )
+        lowered = line.lower()
+        assert "preserves" in lowered
+        assert "steadies the coalition" in lowered
+        assert "conquest" in lowered
+
+    def test_rewarded_and_excluded_copy_distinguish_material_contribution(self):
+        rewarded = resolve_settlement_voice_line(
+            "settlement_rewarded_ally_hardenberg",
+            beneficiary="Prussia",
+            reward="Saxony",
+        )
+        excluded = resolve_settlement_voice_line(
+            "settlement_excluded_ally_castlereagh",
+            excluded_ally="Britain",
+            contribution_summary="subsidies without battlefield losses",
+        )
+        assert "recognition, not charity" in rewarded
+        assert "subsidies without battlefield losses" in excluded
+
+    def test_serial_peace_weapon_copy_names_fallout(self):
+        line = resolve_settlement_voice_line(
+            "settlement_advisory_common_peace_serial_peace_weapon",
+            departing_enemy="Prussia",
+            remaining_leader="Austria",
+            war_label="France vs the Coalition",
+        )
+        lowered = line.lower()
+        assert "peeling prussia" in lowered
+        assert "weakens austria" in lowered
+        assert "separate peace has a price" in lowered
 
 
 # ===========================================================================
