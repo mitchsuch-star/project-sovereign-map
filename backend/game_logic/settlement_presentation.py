@@ -62,9 +62,14 @@ SETTLEMENT_STANDING_ROW_CAP = 5
 SETTLEMENT_INLINE_WARNING_CAP = 2
 
 # Spec §11.6 line 1287 — event family + review-target taxonomy.
+# F1 fix: archived settlements deep-link to the Recent Settlements block
+# in the Treaties tab via `ledger_settlements` rather than landing on the
+# generic `diplomatic_ledger` Nations tab. The frontend `main.gd` notice
+# router treats `ledger_settlements` as the canonical settlement deep-link
+# for both active and archived events.
 SETTLEMENT_EVENT_FAMILY = "settlement"
 SETTLEMENT_REVIEW_TARGET_ACTIVE = "settlement_review"
-SETTLEMENT_REVIEW_TARGET_ARCHIVED = "diplomatic_ledger"
+SETTLEMENT_REVIEW_TARGET_ARCHIVED = "ledger_settlements"
 
 
 # Spec §11.6 line 1290 — settlement events use their own route metadata,
@@ -646,6 +651,110 @@ def build_settlement_review(
 
 
 # ---------------------------------------------------------------------------
+# F2: Event → sectioned review (Slice E gate line 392)
+# ---------------------------------------------------------------------------
+
+
+# Spec §11.6 — participant_reaction kinds that surface as warnings on the
+# sectioned settlement review. `ally_shut_out` with `severity="major"` is
+# escalated to HARD_STOP so the warning cap inlines it unconditionally.
+_REVIEW_WARNING_KINDS: frozenset = frozenset({
+    "ally_shut_out",
+    "enemy_sold_out",
+    "bargain_breach_at_settlement",
+    "cross_war_rival_strengthened",
+})
+
+
+def build_settlement_review_from_event(
+    event: Mapping[str, Any],
+    *,
+    density: str = "compact",
+) -> Dict[str, Any]:
+    """Reconstruct a sectioned settlement review from a logged event.
+
+    Bridges the post-ratification `settlement_summary` event into the
+    spec §16.2 Terms / Allies / Warnings / Acceptance section payload so
+    the diplomatic ledger Recent Settlements block can render an inline
+    deep-link expansion. The acceptance score is not preserved on the
+    event log, so the acceptance section returns empty for archived
+    events; live `/diplomatic_preview` callers should keep using
+    `build_settlement_review` directly with the live preview's
+    acceptance payload.
+    """
+    if not isinstance(event, Mapping):
+        return {}
+    if str(event.get("type", "")) != "settlement_summary":
+        return {}
+
+    proposer_members = list(event.get("proposer_members") or [])
+    accepting_members = list(event.get("accepting_members") or [])
+    participant_reactions = list(event.get("participant_reactions") or [])
+
+    rewarded: set = set()
+    for reaction in participant_reactions:
+        if not isinstance(reaction, Mapping):
+            continue
+        if str(reaction.get("kind", "")) != "ally_rewarded":
+            continue
+        nation = (
+            reaction.get("nation")
+            or reaction.get("ally")
+            or reaction.get("beneficiary")
+        )
+        if isinstance(nation, str) and nation:
+            rewarded.add(nation)
+
+    allies: List[Dict[str, Any]] = []
+    seen: set = set()
+    for nation in proposer_members + accepting_members:
+        if not isinstance(nation, str) or not nation or nation in seen:
+            continue
+        seen.add(nation)
+        allies.append({
+            "nation": nation,
+            "standing": "consult",
+            "material_share": 0.0,
+            "is_leader": False,
+            "is_beneficiary": nation in rewarded,
+        })
+
+    warnings: List[Dict[str, Any]] = []
+    for reaction in participant_reactions:
+        if not isinstance(reaction, Mapping):
+            continue
+        kind = str(reaction.get("kind", ""))
+        if kind not in _REVIEW_WARNING_KINDS:
+            continue
+        severity = "WARNING"
+        if str(reaction.get("severity", "")) == "major":
+            severity = "HARD_STOP"
+        warnings.append({
+            "severity": severity,
+            "code": kind,
+            "salience": int(reaction.get("salience", 50) or 50),
+            "nation": str(reaction.get("nation", "") or ""),
+            "detail": str(reaction.get("detail", "") or ""),
+        })
+
+    return build_settlement_review(
+        war_id=str(event.get("war_id", "") or ""),
+        war_label=str(event.get("war_label", "") or event.get("war_id", "")),
+        proposer_side=str(event.get("proposer_side", "") or ""),
+        accepting_side=str(event.get("accepting_side", "") or ""),
+        covered_enemy_participants=list(
+            event.get("covered_enemy_participants") or []
+        ),
+        terms=list(event.get("applied_clauses") or []),
+        allies=allies,
+        warnings=warnings,
+        acceptance=None,
+        density=density,
+        awe_tags=list(event.get("awe_tags") or []),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Recent settlement summaries (ledger view)
 # ---------------------------------------------------------------------------
 
@@ -697,6 +806,13 @@ def recent_settlement_summaries(
             "review_target": review_target,
             "route_id": str((event.get("route") or {}).get("route_id", "") or ""),
             "awe_tags": list(event.get("awe_tags") or []),
+            # F2: sectioned Terms/Allies/Warnings/Acceptance payload for
+            # the inline expansion in the Recent Settlements block. Empty
+            # acceptance section is expected since the post-ratification
+            # event does not preserve the acceptance score.
+            "review_sections": build_settlement_review_from_event(
+                event, density="compact",
+            ),
         })
         if len(out) >= limit:
             break
@@ -824,6 +940,7 @@ __all__ = [
     "apply_warning_cap",
     "detect_awe_set_pieces",
     "build_settlement_review",
+    "build_settlement_review_from_event",
     "recent_settlement_summaries",
     "build_contribution_share_rows",
     "is_material_loss_term",

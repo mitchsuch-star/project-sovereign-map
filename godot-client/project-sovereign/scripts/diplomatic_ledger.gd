@@ -33,6 +33,10 @@ var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
 var _expanded_peace_ratifications: Dictionary = {}
+# F2: inline expansion state for Recent Settlements rows. Keyed by the
+# `settlement:<idx>:<route_id>` URL meta so the toggle survives a
+# `_render_treaties()` rerender; cleared on close_view().
+var _expanded_settlements: Dictionary = {}
 
 # Active tab style
 var _active_tab_style: StyleBoxFlat = null
@@ -147,6 +151,7 @@ func close_view():
 	cached_data = {}
 	_open_review_target = ""
 	_expanded_peace_ratifications = {}
+	_expanded_settlements = {}
 	_stop_critical_pulse()
 	closed.emit()
 
@@ -162,6 +167,7 @@ func _on_ledger_received(response):
 
 	cached_data = response.get("ledger", {})
 	_expanded_peace_ratifications = {}
+	_expanded_settlements = {}
 	if cached_data.is_empty():
 		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No diplomatic data available.[/color]"
 		return
@@ -480,7 +486,9 @@ func _render_treaties():
 			var s_review = str(settle.get("review_target", "settlement_review"))
 			var s_route = str(settle.get("route_id", ""))
 			var s_meta = "settlement:" + str(s_idx) + ":" + s_route
-			bbcode += "  [url=" + s_meta + "][color=#" + Utils.COLOR_GOLD + "]> " + s_headline + "[/color][/url]"
+			var s_expanded = bool(_expanded_settlements.get(s_meta, false))
+			var s_marker = "v" if s_expanded else ">"
+			bbcode += "  [url=" + s_meta + "][color=#" + Utils.COLOR_GOLD + "]" + s_marker + " " + s_headline + "[/color][/url]"
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "](T" + str(s_turn) + ", review: " + s_review + ")[/color]\n"
 			var awe_tags = settle.get("awe_tags", [])
 			if awe_tags is Array and awe_tags.size() > 0:
@@ -495,6 +503,10 @@ func _render_treaties():
 			var terms_summary = settle.get("terms_summary", [])
 			if terms_summary is Array and terms_summary.size() > 0:
 				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + str(terms_summary[0]) + "[/color]\n"
+			# F2: inline sectioned review (Terms / Allies / Warnings /
+			# Acceptance) on click; spec §16.2 line 1636.
+			if s_expanded:
+				bbcode += _format_settlement_sections(settle.get("review_sections", {}))
 			s_idx += 1
 		bbcode += "\n"
 
@@ -1057,3 +1069,105 @@ func _on_content_meta_clicked(meta):
 		_expanded_peace_ratifications[meta_key] = not expanded
 		if current_tab == 1:
 			_render_treaties()
+	elif meta_key.begins_with("settlement:"):
+		# F2: toggle the inline Terms/Allies/Warnings/Acceptance expansion.
+		var s_expanded = bool(_expanded_settlements.get(meta_key, false))
+		_expanded_settlements[meta_key] = not s_expanded
+		if current_tab == 1:
+			_render_treaties()
+
+
+func _format_settlement_sections(sections) -> String:
+	"""Render the sectioned settlement review payload inline.
+
+	`sections` is the `review_sections` dict from `recent_settlement_summaries`
+	produced by `build_settlement_review_from_event()`. Empty sections are
+	skipped silently. Output is indented two spaces deeper than the row
+	header so the expansion reads as a child block.
+	"""
+	if not sections is Dictionary or sections.is_empty():
+		return ""
+	var bbcode := ""
+	var section_dict = sections.get("sections", {})
+	if not section_dict is Dictionary:
+		return ""
+
+	# Terms section
+	var terms = section_dict.get("terms", {})
+	if terms is Dictionary:
+		var term_rows = terms.get("rows", [])
+		var term_overflow = int(terms.get("overflow_count", 0))
+		if term_rows is Array and term_rows.size() > 0:
+			bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Terms:[/color]\n"
+			for term in term_rows:
+				if not term is Dictionary:
+					continue
+				var ttype = str(term.get("type", "?"))
+				var t_from = str(term.get("from", ""))
+				var t_to = str(term.get("to", ""))
+				var arrow = ""
+				if t_from != "" or t_to != "":
+					arrow = " " + t_from + "→" + t_to
+				bbcode += "      • " + ttype + arrow + "\n"
+			if term_overflow > 0:
+				bbcode += "      [color=#" + Utils.COLOR_GREY + "]+" + str(term_overflow) + " more terms[/color]\n"
+
+	# Allies section
+	var allies = section_dict.get("allies", {})
+	if allies is Dictionary:
+		var ally_rows = allies.get("rows", [])
+		var ally_overflow = int(allies.get("overflow_count", 0))
+		if ally_rows is Array and ally_rows.size() > 0:
+			bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Allies:[/color]\n"
+			for ally in ally_rows:
+				if not ally is Dictionary:
+					continue
+				var nation = str(ally.get("nation", "?"))
+				var standing = str(ally.get("standing", "consult"))
+				var marker = ""
+				if bool(ally.get("is_beneficiary", false)):
+					marker = " (rewarded)"
+				if bool(ally.get("is_leader", false)):
+					marker = " (leader)" + marker
+				bbcode += "      • " + nation + " — " + standing + marker + "\n"
+			if ally_overflow > 0:
+				bbcode += "      [color=#" + Utils.COLOR_GREY + "]+" + str(ally_overflow) + " more participants — View all participants[/color]\n"
+
+	# Warnings section
+	var warnings = section_dict.get("warnings", {})
+	if warnings is Dictionary:
+		var inline_warns = warnings.get("inline", [])
+		var overflow_warns = warnings.get("overflow", [])
+		if inline_warns is Array and inline_warns.size() > 0:
+			bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Warnings:[/color]\n"
+			for w in inline_warns:
+				if not w is Dictionary:
+					continue
+				var sev = str(w.get("severity", "WARNING"))
+				var code = str(w.get("code", "?"))
+				var detail = str(w.get("detail", ""))
+				var warn_color = Utils.COLOR_INFO
+				if sev == "HARD_STOP":
+					warn_color = COLOR_RED
+				bbcode += "      [color=#" + warn_color + "]• [" + sev + "] " + code
+				if detail != "":
+					bbcode += " — " + detail
+				bbcode += "[/color]\n"
+			if overflow_warns is Array and overflow_warns.size() > 0:
+				bbcode += "      [color=#" + Utils.COLOR_GREY + "]+" + str(overflow_warns.size()) + " more — View all concerns[/color]\n"
+
+	# Acceptance section (often empty for archived events).
+	var acceptance = section_dict.get("acceptance", {})
+	if acceptance is Dictionary and not acceptance.is_empty():
+		var total = int(acceptance.get("total", 0))
+		var band = str(acceptance.get("band", "near_acceptable"))
+		bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Acceptance:[/color] "
+		bbcode += str(total) + " (" + band + ")\n"
+		var top = acceptance.get("top_components", [])
+		if top is Array and top.size() > 0:
+			for c in top:
+				if not c is Dictionary:
+					continue
+				bbcode += "      • " + str(c.get("name", "?")) + ": " + str(c.get("value", 0)) + "\n"
+
+	return bbcode

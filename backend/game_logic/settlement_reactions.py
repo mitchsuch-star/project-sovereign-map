@@ -919,6 +919,11 @@ def _emit_settlement_summary_event(
     one-liner shows at most three). Route metadata names the
     settlement family per spec §11.6 line 1290.
     """
+    from backend.game_logic.settlement_presentation import (
+        SETTLEMENT_EVENT_FAMILY,
+        SETTLEMENT_REVIEW_TARGET_ACTIVE,
+        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+    )
     turn = int(getattr(world, "current_turn", 0) or 0)
     terms_summary = [
         f"{c.get('type')}: {c.get('from','')}→{c.get('to','')}"
@@ -939,9 +944,11 @@ def _emit_settlement_summary_event(
         "war_ended": bool(war_ended),
         "balance_projection": dict(balance_projection or {}),
         "route": {
-            "event_family": "settlement",
+            "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": (
-                "diplomatic_ledger" if war_ended else "settlement_review"
+                SETTLEMENT_REVIEW_TARGET_ARCHIVED
+                if war_ended
+                else SETTLEMENT_REVIEW_TARGET_ACTIVE
             ),
             "route_id": f"settlement_summary:{war_id}:{turn}",
         },
@@ -1004,6 +1011,10 @@ def _emit_settlement_digest_event(
 ) -> Optional[Dict[str, Any]]:
     if hidden_reaction_count <= 0:
         return None
+    from backend.game_logic.settlement_presentation import (
+        SETTLEMENT_EVENT_FAMILY,
+        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+    )
     turn = int(getattr(world, "current_turn", 0) or 0)
     event = {
         "type": "settlement_digest",
@@ -1015,8 +1026,8 @@ def _emit_settlement_digest_event(
         "hidden_reaction_count": int(hidden_reaction_count),
         "top_reaction_types": list(top_reaction_types),
         "route": {
-            "event_family": "settlement",
-            "review_target": "diplomatic_ledger",
+            "event_family": SETTLEMENT_EVENT_FAMILY,
+            "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
             "route_id": f"settlement_digest:{war_id}:{turn}",
         },
     }

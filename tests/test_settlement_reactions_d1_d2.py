@@ -885,7 +885,7 @@ class TestSettlementDispatchEvents:
         )
         assert (
             summary["summary_event"]["route"]["review_target"]
-            == "diplomatic_ledger"
+            == "ledger_settlements"
         )
 
     def test_digest_only_fires_when_reactions_exceed_primary_cap(self):
@@ -954,7 +954,7 @@ class TestSettlementDispatchEvents:
                 == len(all_reactions) - SETTLEMENT_DISPATCH_PRIMARY_CAP
             )
             assert summary["digest_event"]["route"]["review_target"] == (
-                "diplomatic_ledger"
+                "ledger_settlements"
             )
         else:
             assert summary["digest_event"] is None

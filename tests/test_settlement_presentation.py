@@ -44,6 +44,7 @@ from backend.game_logic.settlement_presentation import (
     apply_warning_cap,
     build_contribution_share_rows,
     build_settlement_review,
+    build_settlement_review_from_event,
     cap_settlement_dispatch_lines,
     compose_digest_oneliner,
     compose_summary_oneliner,
@@ -198,12 +199,16 @@ class TestReviewTarget:
             == SETTLEMENT_REVIEW_TARGET_ACTIVE
         )
 
-    def test_archived_war_routes_to_diplomatic_ledger(self):
+    def test_archived_war_routes_to_ledger_settlements(self):
+        # F1 fix: archived settlements deep-link to the Recent Settlements
+        # block in the Treaties tab via `ledger_settlements`. The literal
+        # value is asserted explicitly to prevent silent reversion.
         event = _make_settlement_event(war_ended=True)
         assert (
             settlement_review_target(event)
             == SETTLEMENT_REVIEW_TARGET_ARCHIVED
         )
+        assert SETTLEMENT_REVIEW_TARGET_ARCHIVED == "ledger_settlements"
 
     def test_route_field_takes_precedence(self):
         event = _make_settlement_event(war_ended=False)
@@ -1025,3 +1030,165 @@ class TestWarStatusContribution:
         world = WorldState()
         contribution = build_contribution_share_rows(world, "no_such_war")
         assert contribution == {"rows": [], "overflow_count": 0}
+
+
+# ===========================================================================
+# F2: Event → sectioned review reconstruction (Slice E gate line 392)
+# ===========================================================================
+
+
+def _make_six_participant_summary_event(*, war_ended: bool = False) -> Dict:
+    """Synthetic 6+ participant settlement_summary event for F2 tests."""
+    return {
+        "type": "settlement_summary",
+        "turn": 12,
+        "war_id": "war_synth_6p",
+        "war_label": "War of Synthetic Six",
+        "proposer_side": "attackers",
+        "accepting_side": "defenders",
+        "proposer_members": ["France", "Saxony", "Bavaria"],
+        "accepting_members": ["Austria", "Prussia", "Russia"],
+        "covered_enemy_participants": ["Austria", "Prussia", "Russia"],
+        "terms_summary": [
+            "territory_cede: Austria→France",
+            "territory_cede: Prussia→Saxony",
+            "indemnity: Austria→France",
+        ],
+        "applied_clauses": [
+            {"type": "territory_cede", "from": "Austria", "to": "France",
+             "regions": ["Bohemia"]},
+            {"type": "territory_cede", "from": "Prussia", "to": "Saxony",
+             "regions": ["Silesia"]},
+            {"type": "indemnity", "from": "Austria", "to": "France",
+             "amount": 2000},
+            {"type": "forced_alliance", "from": "Austria", "to": "France"},
+            {"type": "continental_system_join", "from": "Austria"},
+            {"type": "vassalage", "from": "Russia", "to": "France"},
+        ],
+        "participant_reactions": [
+            {"kind": "ally_rewarded", "nation": "Saxony",
+             "salience": 90, "detail": "Saxony gained Silesia"},
+            {"kind": "ally_shut_out", "nation": "Bavaria",
+             "severity": "minor", "salience": 70,
+             "detail": "Bavaria received nothing"},
+            {"kind": "enemy_sold_out", "nation": "Prussia",
+             "salience": 80,
+             "detail": "Prussia carved up by leader Austria"},
+            {"kind": "bargain_breach_at_settlement", "nation": "France",
+             "salience": 95,
+             "detail": "Bohemia bargain converted to indemnity"},
+        ],
+        "war_ended": war_ended,
+        "balance_projection": {},
+        "awe_tags": ["tilsit_bargain_and_betrayal"],
+        "route": {
+            "event_family": SETTLEMENT_EVENT_FAMILY,
+            "review_target": (
+                SETTLEMENT_REVIEW_TARGET_ARCHIVED if war_ended
+                else SETTLEMENT_REVIEW_TARGET_ACTIVE
+            ),
+            "route_id": f"settlement_summary:war_synth_6p:12",
+        },
+    }
+
+
+class TestBuildSettlementReviewFromEvent:
+    def test_returns_empty_for_non_settlement_event(self):
+        result = build_settlement_review_from_event({"type": "battle_outcome"})
+        assert result == {}
+
+    def test_returns_empty_for_non_dict_input(self):
+        assert build_settlement_review_from_event(None) == {}  # type: ignore[arg-type]
+        assert build_settlement_review_from_event("nope") == {}  # type: ignore[arg-type]
+
+    def test_terms_section_populated_from_applied_clauses(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event, density="medium")
+        terms = review["sections"]["terms"]
+        # 6 applied clauses, medium density caps at 5 → 1 overflow.
+        assert len(terms["rows"]) == 5
+        assert terms["overflow_count"] == 1
+
+    def test_compact_density_caps_terms_at_three(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event, density="compact")
+        terms = review["sections"]["terms"]
+        assert len(terms["rows"]) == 3
+        assert terms["overflow_count"] == 3
+
+    def test_allies_section_includes_all_participants(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event, density="medium")
+        allies = review["sections"]["allies"]
+        nations = {row["nation"] for row in allies["rows"]}
+        # 6 participants but standing-row cap is 5 → 1 overflow.
+        assert len(allies["rows"]) == 5
+        assert allies["overflow_count"] == 1
+        # Saxony is among rendered participants and marked beneficiary.
+        all_rows_full = (
+            ["France", "Saxony", "Bavaria", "Austria", "Prussia", "Russia"]
+        )
+        assert nations.issubset(set(all_rows_full))
+
+    def test_ally_rewarded_marks_beneficiary(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event, density="verbose")
+        allies = review["sections"]["allies"]
+        saxony = next(
+            row for row in allies["rows"] if row["nation"] == "Saxony"
+        )
+        assert saxony["is_beneficiary"] is True
+        bavaria = next(
+            row for row in allies["rows"] if row["nation"] == "Bavaria"
+        )
+        assert bavaria["is_beneficiary"] is False
+
+    def test_warnings_section_classifies_reactions(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event, density="medium")
+        warnings = review["sections"]["warnings"]
+        codes = {w["code"] for w in warnings["inline"] + warnings["overflow"]}
+        # All four concerning reactions should appear as warnings.
+        assert "ally_shut_out" in codes
+        assert "enemy_sold_out" in codes
+        assert "bargain_breach_at_settlement" in codes
+
+    def test_major_severity_promotes_warning_to_hard_stop(self):
+        event = _make_six_participant_summary_event()
+        # Promote one warning to "major" severity.
+        for r in event["participant_reactions"]:
+            if r["kind"] == "ally_shut_out":
+                r["severity"] = "major"
+        review = build_settlement_review_from_event(event, density="compact")
+        inline = review["sections"]["warnings"]["inline"]
+        severities = {w["severity"] for w in inline}
+        assert "HARD_STOP" in severities
+
+    def test_acceptance_section_empty_for_archived_events(self):
+        event = _make_six_participant_summary_event(war_ended=True)
+        review = build_settlement_review_from_event(event, density="medium")
+        acceptance = review["sections"]["acceptance"]
+        # No acceptance score is preserved on the post-ratification event.
+        assert acceptance == {}
+
+    def test_awe_tags_pass_through(self):
+        event = _make_six_participant_summary_event()
+        review = build_settlement_review_from_event(event)
+        assert "tilsit_bargain_and_betrayal" in review["awe_tags"]
+
+    def test_recent_settlement_summaries_attaches_review_sections(self):
+        world = WorldState()
+        world.current_turn = 12
+        event = _make_six_participant_summary_event(war_ended=True)
+        world.event_log.append(event)
+        rows = recent_settlement_summaries(world, "France", limit=5)
+        assert len(rows) == 1
+        sections = rows[0]["review_sections"]
+        # All four sections present (acceptance is dict, possibly empty).
+        assert "sections" in sections
+        assert "terms" in sections["sections"]
+        assert "allies" in sections["sections"]
+        assert "warnings" in sections["sections"]
+        assert "acceptance" in sections["sections"]
+        # Compact density default for recent settlements.
+        assert sections["density"] == "compact"
