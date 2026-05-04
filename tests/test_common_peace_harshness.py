@@ -56,3 +56,17 @@ def test_raw_helper_matches_clamped_for_below_1_packages():
     clamped = calculate_treaty_harshness(treaty)
     # Raw < 1.0 so they must agree.
     assert abs(raw - clamped) < 1e-9
+
+
+def test_raw_helper_scores_dependency_demands():
+    """Common-peace dependency terms must contribute to raw harshness."""
+    treaty = {
+        "demands": [
+            {"type": "vassalage", "from": "Austria", "to": "France"},
+            {"type": "subjugation", "from": "Saxony", "to": "France"},
+        ],
+    }
+
+    raw = calculate_raw_treaty_harshness(treaty)
+
+    assert abs(raw - 1.0) < 1e-9

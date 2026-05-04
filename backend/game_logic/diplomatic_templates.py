@@ -2037,6 +2037,8 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.4
         elif dtype == "liberation":
             harshness += 0.3
+        elif dtype in ("vassalage", "subjugation"):
+            harshness += 0.5
     return harshness
 
 
