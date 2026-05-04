@@ -52,11 +52,19 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         talleyrand sections.
         All numeric values int()-wrapped.
     """
+    from backend.game_logic.settlement_presentation import (
+        recent_settlement_summaries,
+    )
+
+    player_nation = getattr(world, "player_nation", "France")
     return {
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
         "recent_peace_ratifications": _build_recent_peace_ratifications(world),
+        "recent_settlements": recent_settlement_summaries(
+            world, player_nation,
+        ),
         "balance_of_europe": _build_balance_of_europe(world),
         "talleyrand": _build_talleyrand(world),
         "war_bargains": _build_war_bargains(world),

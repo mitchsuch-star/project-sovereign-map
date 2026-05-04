@@ -223,6 +223,24 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 	var enemy_objective = war_data.get("enemy_objective", null)
 	if enemy_objective != null and enemy_objective is Dictionary:
 		lines.append("Enemy: " + str(enemy_objective.get("type_display", "Objective")))
+	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §16.2 — top-five
+	# contribution share rows + overflow indicator. Rows come from
+	# `build_active_wars` which already enforces the cap server-side.
+	var contribution = war_data.get("contribution_share", [])
+	if contribution is Array and contribution.size() > 0:
+		lines.append("---")
+		lines.append("Standing (top 5):")
+		for row in contribution:
+			if not row is Dictionary:
+				continue
+			var nation = str(row.get("nation", "?"))
+			var standing = str(row.get("standing", "no_standing"))
+			var material = float(row.get("material_share", 0.0)) * 100.0
+			var leader_marker = "*" if row.get("is_leader", false) else " "
+			lines.append("  " + leader_marker + " " + nation + " — " + standing + " (" + str(int(round(material))) + "%)")
+		var overflow = int(war_data.get("contribution_overflow_count", 0))
+		if overflow > 0:
+			lines.append("  +" + str(overflow) + " more participant(s)")
 	return "\n".join(lines)
 
 

@@ -3142,6 +3142,22 @@ func _on_notification_review_requested(review_target: String):
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
+	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — settlement events
+	# either route to the live settlement review (war still active) or
+	# fall back to the diplomatic ledger settlements section once the
+	# war archives. Both targets land on the diplomatic ledger
+	# CanvasLayer 50 surface for now; the settlement-review tab handle
+	# is forwarded so the ledger can deep-link into recent settlements.
+	if review_target == "settlement_review" or review_target == "ledger_settlements":
+		if top_bar:
+			if top_bar.has_method("open_diplomatic_ledger_review"):
+				top_bar.open_diplomatic_ledger_review("ledger_settlements")
+			else:
+				top_bar.toggle_screen("diplomatic_ledger")
+		return
+	if review_target == "diplomatic_ledger" and top_bar:
+		top_bar.toggle_screen("diplomatic_ledger")
+		return
 	if review_target.begins_with("ledger_") and top_bar:
 		if top_bar.has_method("open_diplomatic_ledger_review"):
 			top_bar.open_diplomatic_ledger_review(review_target)

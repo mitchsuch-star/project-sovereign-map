@@ -1,6 +1,6 @@
 """War Status Panel data builder. Produces active_wars dict for HUD + detail popup."""
 
-from typing import Dict, Any
+from typing import Any, Dict, List, Optional
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
@@ -166,6 +166,12 @@ def build_active_wars(world) -> Dict[str, Any]:
 
         tier = get_settlement_tier(score)
 
+        # Slice E §16.2 line 1629 — contribution share rows for the war
+        # status detail panel. Resolved via the active war_instance for
+        # the bilateral pair when one exists; falls back to an empty
+        # block when no war_instance is wired (early game / synthetic).
+        contribution = _resolve_contribution_share(world, france, opponent)
+
         wars.append({
             "opponent": opponent,
             "war_score": score,
@@ -185,6 +191,11 @@ def build_active_wars(world) -> Dict[str, Any]:
             "enemy_objective": enemy_objective_info,
             "settlement_tier": tier,
             "settlement_tier_display": SETTLEMENT_TIER_DISPLAY.get(tier, tier),
+            "contribution_share": contribution.get("rows", []),
+            "contribution_overflow_count": int(
+                contribution.get("overflow_count", 0) or 0
+            ),
+            "war_instance_id": contribution.get("war_id", ""),
         })
 
     # Sort: coalition leader first, then coalition members, then bilateral
@@ -294,3 +305,54 @@ def build_active_wars(world) -> Dict[str, Any]:
         "wars": wars,
         "coalition": coalition_info,
     }
+
+
+def _resolve_contribution_share(world, france: str, opponent: str) -> Dict[str, Any]:
+    """Find the active war_instance covering the France/opponent pair and
+    build top-N contribution share rows for it.
+
+    Returns ``{rows, overflow_count, war_id}``. Empty rows when no
+    active war_instance covers the pair (e.g., early game before
+    Slice A war_instance threading covers a path).
+    """
+    from backend.game_logic.settlement_presentation import (
+        build_contribution_share_rows,
+    )
+    war_id = _find_active_war_instance_id(world, france, opponent)
+    if not war_id:
+        return {"rows": [], "overflow_count": 0, "war_id": ""}
+    contribution = build_contribution_share_rows(world, war_id)
+    contribution["war_id"] = war_id
+    return contribution
+
+
+def _find_active_war_instance_id(
+    world, nation_a: str, nation_b: str,
+) -> Optional[str]:
+    """Return the active war_instance id covering both nations, or None."""
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return None
+    # Prefer the by-participant index when available.
+    index_getter = getattr(world, "get_war_instances_by_participant", None)
+    candidate_ids: List[str] = []
+    if callable(index_getter):
+        a_ids = list(index_getter(nation_a) or [])
+        b_ids = set(index_getter(nation_b) or [])
+        candidate_ids = [wid for wid in a_ids if wid in b_ids]
+    else:
+        candidate_ids = list(instances.keys())
+    for war_id in candidate_ids:
+        instance = instances.get(war_id)
+        if not isinstance(instance, dict):
+            continue
+        if instance.get("ended_turn") is not None:
+            continue
+        attackers = set(instance.get("attackers") or [])
+        defenders = set(instance.get("defenders") or [])
+        if (
+            (nation_a in attackers and nation_b in defenders)
+            or (nation_a in defenders and nation_b in attackers)
+        ):
+            return war_id
+    return None

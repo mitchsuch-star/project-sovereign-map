@@ -118,6 +118,18 @@ func open_to_war_bargains(api_client):
 	_open_with_tab(api_client, 4, "ledger_war_bargains")
 
 
+func open_to_settlements(api_client):
+	"""Fetch diplomatic ledger and open the Treaties tab focused on the
+	`Recent Settlements` section.
+
+	Settlement review uses the existing Treaties sub-tab so we keep the
+	one-screen-at-a-time CanvasLayer 50 rule and avoid a new tab; the
+	`ledger_settlements` review target is recorded so the renderer
+	highlights the settlements block.
+	"""
+	_open_with_tab(api_client, 1, "ledger_settlements")
+
+
 func _open_with_tab(api_client, tab_index: int, review_target: String):
 	"""Fetch diplomatic ledger from backend and display a chosen tab."""
 	_api_client_ref = api_client
@@ -448,6 +460,42 @@ func _render_treaties():
 				var gpt_amount = int(gpt.get("amount", 0))
 				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + gpt_from + " → " + gpt_to + ": " + str(gpt_amount) + "g/turn[/color]\n"
 
+		bbcode += "\n"
+
+	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — recent settlement
+	# summaries section. Surfaced inside the Treaties tab so the
+	# settlement-review review-target remains a single layer-50 surface
+	# per the one-screen rule.
+	var recent_settlements = cached_data.get("recent_settlements", [])
+	if recent_settlements is Array and recent_settlements.size() > 0:
+		var settle_header = "RECENT SETTLEMENTS"
+		if _open_review_target == "ledger_settlements":
+			settle_header = "▶ RECENT SETTLEMENTS"
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]--- " + settle_header + " ---[/color]\n\n"
+		var s_idx = 0
+		for settle in recent_settlements:
+			var s_war_id = str(settle.get("war_id", "?"))
+			var s_turn = int(settle.get("turn", 0))
+			var s_headline = str(settle.get("headline", "Settlement"))
+			var s_review = str(settle.get("review_target", "settlement_review"))
+			var s_route = str(settle.get("route_id", ""))
+			var s_meta = "settlement:" + str(s_idx) + ":" + s_route
+			bbcode += "  [url=" + s_meta + "][color=#" + Utils.COLOR_GOLD + "]> " + s_headline + "[/color][/url]"
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "](T" + str(s_turn) + ", review: " + s_review + ")[/color]\n"
+			var awe_tags = settle.get("awe_tags", [])
+			if awe_tags is Array and awe_tags.size() > 0:
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Awe: " + ", ".join(PackedStringArray(awe_tags)) + "[/color]\n"
+			var named = settle.get("named_reactions", [])
+			var more_count = int(settle.get("additional_reaction_count", 0))
+			if named is Array and named.size() > 0:
+				var who_str = ", ".join(PackedStringArray(named))
+				if more_count > 0:
+					who_str += " +" + str(more_count) + " more"
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Reactions: " + who_str + "[/color]\n"
+			var terms_summary = settle.get("terms_summary", [])
+			if terms_summary is Array and terms_summary.size() > 0:
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + str(terms_summary[0]) + "[/color]\n"
+			s_idx += 1
 		bbcode += "\n"
 
 	if recent_peace.size() > 0:

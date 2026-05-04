@@ -346,6 +346,17 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — settlement
+        # summary / digest events use their own fog rule (see
+        # `settlement_presentation.is_settlement_event_visible`).
+        if event_type in ("settlement_summary", "settlement_digest"):
+            from backend.game_logic.settlement_presentation import (
+                is_settlement_event_visible,
+            )
+            if is_settlement_event_visible(event, world_state, player_nation):
+                filtered.append(event)
+            continue
+
         # Peace ratification: player-involved always; foreign settlements need PARTIAL+.
         if event_type == "peace_ratified":
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility

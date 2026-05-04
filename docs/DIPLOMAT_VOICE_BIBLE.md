@@ -334,6 +334,8 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **May 4, 2026** - Slice E presentation lands. Settlement copy is wired through the new `settlement_presentation` module (`SETTLEMENT_ROUTES`, `settlement_notification_meta`, sectioned `build_settlement_review`), and the seven settlement voice families above remain the contract for final committed copy. Initial Slice E copy uses Talleyrand register frames for advisory beats and chancery fallbacks for the foreign-leader settlement reactions; per-cast committed lines for `settlement_acceptance_*`, `settlement_rejection_*`, `settlement_sold_out_by_leader_*`, `settlement_rewarded_ally_*`, and `settlement_excluded_ally_*` are authored in cast register passes after Slice E (still inside the Final Gate, not deferred to a future spec).
+
 - **Apr 29, 2026** - Tightened settlement-specific coverage for Imperial Settlement: added explicit Slice E voice families for common-peace advisory, defensive settlement counsel, acceptance/rejection, rewarded/excluded allies, and sold-out-by-leader registers, with material-contribution vs diplomatic-weight wording.
 
 - **Apr 20, 2026** — v1.2. Added "Bloc-naming voice contract" subsection aligned to `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a — formalizes the per-band voice contract (descriptive at `noticed`, proper-noun reveal at `alarming`, intensification without renaming at `crisis`), the no-modern-jargon list, the per-court desired feel at each band, and the Talleyrand-on-France guardrail. Top scope note realigned to v0.5.2 / §8.1a. Block 3 audit doc is now superseded by this plus the presentation-spec fold.

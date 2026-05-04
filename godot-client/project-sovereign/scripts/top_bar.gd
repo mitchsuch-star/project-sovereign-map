@@ -181,6 +181,8 @@ func open_diplomatic_ledger_review(review_target: String):
 		node.open_to_commitments(api_client)
 	elif review_target == "ledger_war_bargains" and node.has_method("open_to_war_bargains"):
 		node.open_to_war_bargains(api_client)
+	elif review_target == "ledger_settlements" and node.has_method("open_to_settlements"):
+		node.open_to_settlements(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:

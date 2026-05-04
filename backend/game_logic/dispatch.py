@@ -19,6 +19,15 @@ from backend.game_logic.commitments_routing import (
     commitments_priority,
     format_commitments_notice,
 )
+from backend.game_logic.settlement_presentation import (
+    SETTLEMENT_PRIMARY_BEAT_CAP,
+    cap_settlement_dispatch_lines,
+    compose_digest_oneliner,
+    compose_summary_oneliner,
+    is_settlement_event_type,
+    is_settlement_event_visible,
+    settlement_priority,
+)
 
 
 # ============================================================================
@@ -1316,6 +1325,12 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
     """
     from backend.game_logic.diplomatic_ledger import _get_nation_visibility
 
+    # Settlement events (spec §11.6 line 1287) own their own fog rule
+    # and never carry the legacy `template_vars` / `fog_rule` shape.
+    event_type = event.get("type", "")
+    if is_settlement_event_type(event_type):
+        return is_settlement_event_visible(event, world, player_nation)
+
     fog_rule = event.get("fog_rule", "always")
     template_vars = event.get("template_vars", {})
 
@@ -1372,6 +1387,14 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     """Format event text from template + variables."""
     if event_type in COMMITMENTS_ROUTES and event_type != "witness_strike_recorded":
         return format_commitments_notice(event_type, template_vars)
+
+    if event_type == "settlement_summary":
+        # Settlement events ship the full payload (no `template_vars`
+        # wrapper). The dispatch consumer passes the event dict in via
+        # `template_vars` so the existing call sites stay uniform.
+        return compose_summary_oneliner(template_vars)
+    if event_type == "settlement_digest":
+        return compose_digest_oneliner(template_vars)
 
     if event_type == "diplomatic_treaty_broken":
         nation = template_vars.get("nation", "Unknown")
@@ -1474,11 +1497,33 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
 
     result = []
     witness_group_indexes = {}
+    settlement_indexes: List[int] = []
     for event in events:
         if not _is_dispatch_event_visible(event, world, player_nation):
             continue
 
         event_type = event.get("type", "")
+        # Settlement events carry the full payload directly (no
+        # `template_vars` wrapper); the formatter accepts that shape.
+        if is_settlement_event_type(event_type):
+            text = _format_dispatch_event_text(event_type, event)
+            priority = settlement_priority(event_type, event)
+            entry = {
+                "type": event_type,
+                "text": text,
+                "priority": priority,
+                "event_family": "settlement",
+                "war_id": str(event.get("war_id", "") or ""),
+                "route_id": str(
+                    (event.get("route") or {}).get("route_id", "") or ""
+                ),
+            }
+            if event.get("awe_tags"):
+                entry["awe_tags"] = list(event.get("awe_tags") or [])
+            result.append(entry)
+            settlement_indexes.append(len(result) - 1)
+            continue
+
         template_vars = event.get("template_vars", {})
         if event_type == "witness_strike_recorded":
             episode_id = str(template_vars.get("episode_id", "") or "")
@@ -1509,7 +1554,58 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             "priority": priority,
         })
 
+    # Spec §11.6 line 1279 — cap settlement-family dispatch lines at the
+    # primary-beat threshold per ratification (`war_id:turn`). Overflow
+    # rolls into a digest event so the rail does not blow up on
+    # full-Europe ratifications. Only the primary `settlement_summary`
+    # is capped; `settlement_digest` always renders because it IS the
+    # overflow line.
+    if settlement_indexes:
+        result = _enforce_settlement_primary_beat_cap(result, settlement_indexes)
     return result
+
+
+def _enforce_settlement_primary_beat_cap(
+    rendered: List[Dict[str, Any]],
+    settlement_indexes: List[int],
+) -> List[Dict[str, Any]]:
+    """Apply the spec §11.6 line 1279 top-four cap per ratification.
+
+    Groups settlement summary lines by `war_id:turn`; keeps the first
+    `SETTLEMENT_PRIMARY_BEAT_CAP` summaries per ratification and drops
+    overflow. Digest lines are always preserved because they are the
+    overflow signal.
+    """
+    if not settlement_indexes:
+        return rendered
+    keep_indexes: set = set(range(len(rendered)))
+    summaries_per_ratification: Dict[str, List[int]] = {}
+    for idx in settlement_indexes:
+        entry = rendered[idx]
+        if entry.get("type") != "settlement_summary":
+            continue
+        route_id = str(entry.get("route_id", "") or "")
+        war_id = str(entry.get("war_id", "") or "")
+        # Group on the route_id when present (carries `war_id:turn`),
+        # else fall back to war_id.
+        key = route_id or war_id or "unknown"
+        # Strip the `settlement_summary:` prefix so summaries and any
+        # future spotlight events from the same ratification land in the
+        # same bucket.
+        if key.startswith("settlement_summary:"):
+            key = key.split("settlement_summary:", 1)[1]
+        summaries_per_ratification.setdefault(key, []).append(idx)
+    overflow_drops = 0
+    for key, indexes in summaries_per_ratification.items():
+        if len(indexes) <= SETTLEMENT_PRIMARY_BEAT_CAP:
+            continue
+        # Keep first N, drop the rest.
+        for idx in indexes[SETTLEMENT_PRIMARY_BEAT_CAP:]:
+            keep_indexes.discard(idx)
+            overflow_drops += 1
+    if overflow_drops == 0:
+        return rendered
+    return [entry for idx, entry in enumerate(rendered) if idx in keep_indexes]
 
 
 def _format_witness_grouped_dispatch_event(group: dict) -> dict:
