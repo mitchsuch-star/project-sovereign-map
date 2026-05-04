@@ -559,6 +559,21 @@ class WorldState:
         # standard + §8.6.1a grievance variant) share this cap — one Make Amends
         # of any variant per pair per 10 turns.
         self.reparations_cooldown: Dict[str, int] = {}
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14.1 / §14.3 / §14.6 (D1).
+        # Key = diplo_key (sorted "A|B") between actor (e.g. "France") and
+        # subject (the ally / sold-out enemy / etc). Each value is a list
+        # of memory dicts:
+        #   {actor, subject, memory_type, episode_id, turn,
+        #    expires_on_turn, payload}
+        # `memory_type` ∈ {they_chose_us, settlement_gratitude,
+        # sold_out_by_war_leader, settlement_context, settlement_shut_out}.
+        # Transient types (`settlement_gratitude`, `sold_out_by_war_leader`)
+        # set `expires_on_turn` per spec §14.3 / §14.6 (10-turn windows);
+        # the durable `settlement_context` and `they_chose_us` records use
+        # `expires_on_turn = None` so the diplomatic ledger keeps the long
+        # tail. `prune_expired_settlement_memories()` runs at turn advance
+        # and at deserialize.
+        self.settlement_memories: Dict[str, List[Dict[str, Any]]] = {}
         # RELIABILITY_COMMITMENTS_SPEC §8.8.7 / B-B4 — anti-renewal cooldown
         # after a `call_to_arms_refused_defensive` episode. Key = diplo_key;
         # value = turn on which new ALLIANCE / DEFENSIVE_ALLIANCE
@@ -3795,6 +3810,13 @@ class WorldState:
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
+            # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
+            # memories per (actor, subject) pair. Stored as plain dicts so
+            # round-trip is deepcopy-safe.
+            "settlement_memories": {
+                str(key): [copy.deepcopy(entry) for entry in (records or [])]
+                for key, records in self.settlement_memories.items()
+            },
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
                 str(nation): {
@@ -4254,6 +4276,17 @@ class WorldState:
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
+        }
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1). Defaults to {}
+        # so pre-D1 saves round-trip cleanly. Per-turn pruning runs at
+        # `advance_turn`; load-time pruning happens on next world tick.
+        world.settlement_memories = {
+            str(key): [
+                copy.deepcopy(entry)
+                for entry in (records or [])
+                if isinstance(entry, dict)
+            ]
+            for key, records in (data.get("settlement_memories") or {}).items()
         }
         # B-B4 §8.8.7 — anti_renewal_cooldown defaults to {} for pre-B-B4
         # saves so the round-trip stays compatible with fixtures that
@@ -5002,6 +5035,16 @@ class WorldState:
         diplo_events = process_diplomacy_turn(self)
         if diplo_events:
             tactical_events.extend(diplo_events)
+
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — prune expired
+        # transient settlement memories (`settlement_gratitude`,
+        # `sold_out_by_war_leader`) at turn advance. Durable types
+        # (`settlement_context`, `they_chose_us`) carry `expires_on_turn`
+        # = None and are never auto-pruned here.
+        from backend.game_logic.settlement_reactions import (
+            prune_expired_settlement_memories,
+        )
+        prune_expired_settlement_memories(self)
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMATIC PROPOSAL RESOLUTION (Phase 8 Session 3)

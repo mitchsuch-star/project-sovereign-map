@@ -921,9 +921,11 @@ def ratify_settlement_confirm(
        before any subsequent reaction reader runs.
     8. Pops the ``settlement_confirm`` dialogue.
 
-    Settlement / cross-war reaction routing (D1/D2) is intentionally not
-    wired here; the returned summary exposes the resolved pairs, applied
-    clauses, and pre-cleanup snapshots so the next slice can route them.
+    D1/D2 settlement / cross-war reaction routing now runs AFTER the
+    cache invalidation step in this function but BEFORE the dialogue is
+    popped, satisfying spec §11 line 1239 ordering. The returned summary
+    exposes the structured reaction payload under
+    ``settlement_reactions`` for downstream presentation work (Slice E).
     """
     war_id = str(dialogue.get("war_id") or "")
     validation = revalidate_staged_settlement(world, dialogue)
@@ -998,10 +1000,31 @@ def ratify_settlement_confirm(
     if hasattr(world, "invalidate_active_nations_cache"):
         world.invalidate_active_nations_cache()
 
-    world.dialogue_manager.pop()
-
     war_instance_after = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     war_ended = war_instance_after.get("ended_turn") is not None
+
+    # D1/D2 settlement / cross-war reaction routing per spec §11.5 / §14.
+    # Runs AFTER cache invalidation but BEFORE the dialogue is popped so
+    # any reaction reader sees fresh `war_instances_by_*` indexes.
+    from backend.game_logic.settlement_reactions import (
+        route_settlement_reactions,
+    )
+    reaction_summary = route_settlement_reactions(
+        world,
+        war_id=war_id,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        covered_enemy_participants=list(covered),
+        settlement_terms=list(settlement_terms),
+        resolved_pairs=resolved_pairs,
+        applied_clauses=applied_clauses,
+        pre_cleanup_snapshots=pre_cleanup_snapshots,
+        war_ended=bool(war_ended),
+        balance_projection=dict(dialogue.get("balance_projection") or {}),
+    )
+
+    world.dialogue_manager.pop()
+
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
@@ -1014,6 +1037,7 @@ def ratify_settlement_confirm(
         "applied_clauses": applied_clauses,
         "pre_cleanup_snapshots": pre_cleanup_snapshots,
         "war_ended": bool(war_ended),
+        "settlement_reactions": reaction_summary,
         "mutated": True,
         "message": (
             f"Common settlement of {war_id} ratified "

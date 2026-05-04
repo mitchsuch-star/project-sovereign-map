@@ -6716,6 +6716,23 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     composite_floor_adjustment = political_subtotal_clamped - political_subtotal_raw
     composite_floor_value = -60 if composite_floor_applied else 0
 
+    # ── Settlement gratitude (WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14.3) ──
+    # +5 acceptance bonus when the proposer has rewarded the target via
+    # settlement (`settlement_gratitude` memory active) and the proposal
+    # is in the deep-treaty / war-entry / war-bargain / ally-entry
+    # families. Per spec line 1482 this rides OUTSIDE
+    # `political_subtotal_clamped` and BEFORE `deal_balance`, and never
+    # bypasses hard posture gates (those clamp `score` after this sum).
+    try:
+        from backend.game_logic.settlement_reactions import (
+            settlement_gratitude_mod as _settlement_gratitude_mod,
+        )
+        settlement_gratitude_value = int(
+            _settlement_gratitude_mod(world, proposer, target, proposal_type)
+        )
+    except Exception:
+        settlement_gratitude_value = 0
+
     # ── Sum ──
     raw_score = (
         base
@@ -6724,6 +6741,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + war_weariness_mod
         + stalemate_duration_mod
         + political_subtotal_clamped
+        + settlement_gratitude_value
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -6803,6 +6821,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "composite_floor": int(composite_floor_value),
         "composite_floor_applied": bool(composite_floor_applied),
         "composite_floor_adjustment": int(composite_floor_adjustment),
+        "settlement_gratitude_mod": int(settlement_gratitude_value),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -6850,6 +6869,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
         "grievance_modifier",
+        "settlement_gratitude_mod",
         "bargain_value_mod", "bargain_conflict_penalty",
         "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",

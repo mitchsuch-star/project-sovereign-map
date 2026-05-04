@@ -261,7 +261,10 @@ class TestPeaceRatifiedCampaignLog:
         assert CATEGORY_MAP["peace_ratified"] == "diplomacy"
 
     def test_type_count(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 81
+        # 81 baseline + 2 D1/D2 settlement reaction event families
+        # (`settlement_summary`, `settlement_digest`) per
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6.
+        assert len(CAMPAIGN_LOG_TYPES) == 83
 
     def test_format_peace_oneliner(self):
         event = {

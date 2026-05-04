@@ -273,6 +273,12 @@ FEEDBACK_STRINGS = {
         "negative": "no war bargain offered",
         "positive": "a war bargain sweetens the deal",
     },
+    # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14.3 (D1) — gratitude
+    # acceptance bonus from a recently rewarded ally.
+    "settlement_gratitude_mod": {
+        "negative": "no recent settlement reward from us",
+        "positive": "the recent settlement reward they remember",
+    },
     "bargain_conflict_penalty": {
         "negative": "existing bargain conflicts with this nation",
         "positive": "no bargain conflicts",
