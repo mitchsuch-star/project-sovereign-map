@@ -904,6 +904,8 @@ def _emit_settlement_summary_event(
     war_id: str,
     proposer_side: str,
     accepting_side: str,
+    proposer_members: List[str],
+    accepting_members: List[str],
     covered_enemy_participants: List[str],
     applied_clauses: List[Mapping[str, Any]],
     participant_reactions: List[Mapping[str, Any]],
@@ -929,6 +931,8 @@ def _emit_settlement_summary_event(
         "covered_enemy_participants": list(covered_enemy_participants),
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
+        "proposer_members": list(proposer_members),
+        "accepting_members": list(accepting_members),
         "terms_summary": terms_summary,
         "applied_clauses": [dict(c) for c in applied_clauses],
         "participant_reactions": [dict(r) for r in participant_reactions],
@@ -949,7 +953,42 @@ def _emit_settlement_summary_event(
         world.pending_dispatch_events = []
         pending = world.pending_dispatch_events
     pending.append(dict(event))
+    _queue_settlement_notification(world, event)
     return event
+
+
+def _notification_priority(priority_name: str):
+    from backend.notifications import NotificationPriority
+
+    name = str(priority_name or "").upper()
+    if name == "CRITICAL":
+        return NotificationPriority.CRITICAL
+    if name == "HIGH":
+        return NotificationPriority.HIGH
+    return NotificationPriority.NORMAL
+
+
+def _queue_settlement_notification(world: Any, event: Mapping[str, Any]) -> None:
+    notifications = getattr(world, "notifications", None)
+    if notifications is None or not hasattr(notifications, "add"):
+        return
+    from backend.game_logic.settlement_presentation import (
+        compose_summary_oneliner,
+        settlement_notification_meta,
+    )
+    from backend.notifications import create_notification
+
+    meta = settlement_notification_meta(event)
+    if meta.get("rail_spotlight") != "yes":
+        return
+    notifications.add(create_notification(
+        str(meta.get("event_type", event.get("type", "settlement_summary"))),
+        _notification_priority(str(meta.get("priority", "HIGH"))),
+        str(meta.get("label", "Settlement Ratified")),
+        compose_summary_oneliner(event, world=world),
+        int(event.get("turn", 0) or 0),
+        details=meta,
+    ))
 
 
 def _emit_settlement_digest_event(
@@ -957,6 +996,9 @@ def _emit_settlement_digest_event(
     *,
     war_id: str,
     war_ended: bool,
+    proposer_members: List[str],
+    accepting_members: List[str],
+    covered_enemy_participants: List[str],
     hidden_reaction_count: int,
     top_reaction_types: List[str],
 ) -> Optional[Dict[str, Any]]:
@@ -967,6 +1009,9 @@ def _emit_settlement_digest_event(
         "type": "settlement_digest",
         "turn": turn,
         "war_id": war_id,
+        "proposer_members": list(proposer_members),
+        "accepting_members": list(accepting_members),
+        "covered_enemy_participants": list(covered_enemy_participants),
         "hidden_reaction_count": int(hidden_reaction_count),
         "top_reaction_types": list(top_reaction_types),
         "route": {
@@ -1017,6 +1062,8 @@ def route_settlement_reactions(
     proposer_member_set = set(
         _participants_on_side(instance, proposer_side)
     )
+    proposer_members = _participants_on_side(instance, proposer_side)
+    accepting_members = _participants_on_side(instance, accepting_side)
     episode_id_alloc = None
     try:
         from backend.game_logic.diplomacy import _allocate_episode_id
@@ -1087,6 +1134,8 @@ def route_settlement_reactions(
         war_id=war_id,
         proposer_side=proposer_side,
         accepting_side=accepting_side,
+        proposer_members=proposer_members,
+        accepting_members=accepting_members,
         covered_enemy_participants=list(covered_enemy_participants or []),
         applied_clauses=list(applied_clauses or []),
         participant_reactions=all_reactions,
@@ -1105,6 +1154,9 @@ def route_settlement_reactions(
             world,
             war_id=war_id,
             war_ended=bool(war_ended),
+            proposer_members=proposer_members,
+            accepting_members=accepting_members,
+            covered_enemy_participants=list(covered_enemy_participants or []),
             hidden_reaction_count=len(all_reactions)
             - SETTLEMENT_DISPATCH_PRIMARY_CAP,
             top_reaction_types=seen_types[:3],

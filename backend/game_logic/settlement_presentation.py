@@ -601,7 +601,11 @@ def build_settlement_review(
     allies_inline, allies_overflow = _slice_for_density(
         allies, density, _DENSITY_ALLIES,
     )
-    warning_split = apply_warning_cap(warnings)
+    warning_cap = 1 if density == "compact" else SETTLEMENT_INLINE_WARNING_CAP
+    warning_split = apply_warning_cap(
+        warnings,
+        inline_warning_cap=warning_cap,
+    )
 
     acceptance_payload: Dict[str, Any] = {}
     if acceptance and isinstance(acceptance, Mapping):

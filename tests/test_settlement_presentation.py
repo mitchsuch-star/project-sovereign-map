@@ -520,8 +520,24 @@ class TestSettlementReview:
     def test_warnings_section_uses_warning_cap(self):
         review = self._ratification_payload("compact")
         warnings = review["sections"]["warnings"]
-        # 1 hard stop + 2 warnings inline.
+        # Compact density keeps hard stops plus the single top warning.
+        assert len(warnings["inline"]) == 2
+        assert [w["code"] for w in warnings["inline"]] == [
+            "blocker",
+            "ally_shut_out_risk",
+        ]
+        assert len(warnings["overflow"]) >= 2
+
+    def test_medium_warnings_keep_top_two_warning_rows(self):
+        review = self._ratification_payload("medium")
+        warnings = review["sections"]["warnings"]
+        # Medium density follows the section 16.3 top-two warning cap.
         assert len(warnings["inline"]) == 3
+        assert [w["code"] for w in warnings["inline"]] == [
+            "blocker",
+            "ally_shut_out_risk",
+            "rival_strengthened",
+        ]
         assert len(warnings["overflow"]) >= 1
 
     def test_acceptance_top_components_capped_at_three(self):
@@ -767,6 +783,51 @@ class TestDispatchWiring:
                 assert entry.get("route_id", "").startswith(
                     "settlement_summary:war_e:"
                 )
+
+    def test_route_settlement_reactions_emits_members_for_fog(self):
+        world = WorldState()
+        _install_two_v_two_war(world)
+        result = route_settlement_reactions(
+            world,
+            war_id="war_e",
+            proposer_side="attackers",
+            accepting_side="defenders",
+            covered_enemy_participants=["Austria"],
+            settlement_terms=[],
+            resolved_pairs=[],
+            applied_clauses=[],
+            pre_cleanup_snapshots=[],
+            war_ended=False,
+        )
+        event = result["summary_event"]
+        assert event["proposer_members"] == ["France", "Saxony"]
+        assert event["accepting_members"] == ["Austria", "Prussia"]
+        assert is_settlement_event_visible(event, world, "Saxony")
+
+    def test_settlement_summary_queues_review_notification(self):
+        world = WorldState()
+        _install_two_v_two_war(world)
+        route_settlement_reactions(
+            world,
+            war_id="war_e",
+            proposer_side="attackers",
+            accepting_side="defenders",
+            covered_enemy_participants=["Austria"],
+            settlement_terms=[],
+            resolved_pairs=[],
+            applied_clauses=[],
+            pre_cleanup_snapshots=[],
+            war_ended=False,
+        )
+        notifications = world.notifications.get_pending()
+        settlement_notices = [
+            n for n in notifications
+            if n.get("type") == "settlement_summary"
+        ]
+        assert len(settlement_notices) == 1
+        details = settlement_notices[0]["details"]
+        assert details["review_target"] == SETTLEMENT_REVIEW_TARGET_ACTIVE
+        assert details["route_id"].startswith("settlement_summary:war_e:")
 
     def test_dispatch_filters_out_invisible_settlement(self):
         world = WorldState()
