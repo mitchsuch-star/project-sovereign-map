@@ -1,14 +1,24 @@
-"""Common-peace settlement preview and dialogue staging helpers.
+"""Common-peace settlement preview, dialogue staging, and ratification helpers.
 
-Slice C2 foundation: endpoint/dialogue contracts around the pure C1b
-acceptance formula. These helpers are preview/staging only; they never ratify
-terms or mutate treaty/region state.
+Slice C2 foundation introduced the Open Settlement eligibility / preview /
+dialogue staging contracts around the pure C1b acceptance formula.
+
+Slice C2 ratification (this slice) closes ``settlement_confirm.confirm`` so
+the staged package mutates state per spec §10.5 / §11 / §11.1: covered
+active hostile pairs resolve to ``PEACE`` (or ``ALLIANCE`` for
+forced-alliance pairs), territory / gold / liberation outcomes apply,
+forced-alliance pairs end in ``ALLIANCE`` with origin metadata + threat,
+covered pairs move to ``resolved_diplo_keys`` (closing contribution
+episodes via ``resolve_pair_to_resolved``), uncovered hostile / armistice
+pairs stay active, and ``war_instances_by_*`` / bloc / active-nation
+caches invalidate before any reaction reader runs. Settlement / cross-war
+reaction routing remains a later slice.
 """
 
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance
 
@@ -365,13 +375,427 @@ def revalidate_staged_settlement(world: Any, dialogue: Mapping[str, Any]) -> Dic
     }
 
 
+def _build_pair_ratification_plan(
+    world: Any,
+    war_instance: Mapping[str, Any],
+    *,
+    proposer_side: str,
+    covered: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Per-pair plan for which active cross-side pairs settle to which state.
+
+    Each plan entry names the pair, the proposer-side member, the covered
+    enemy, the pair's current state (so callers can branch ARMISTICE vs WAR
+    cleanup), and the post-ratification target state. ``ALLIANCE`` is set
+    only when a ``forced_alliance`` term exists with ``from`` matching the
+    covered enemy and ``to`` matching the proposer-side member of the pair
+    (spec §10.5 line 1038). Every other covered hostile pair settles to
+    ``PEACE``.
+    """
+    proposer_members: Set[str] = set(war_instance.get(proposer_side) or [])
+    covered_set: Set[str] = {str(n) for n in covered}
+    forced_alliance_targets: Dict[str, Set[str]] = {}
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if term.get("type") != "forced_alliance":
+            continue
+        fa_target = str(term.get("from") or "")
+        fa_imposer = str(term.get("to") or "")
+        if fa_target and fa_imposer:
+            forced_alliance_targets.setdefault(fa_target, set()).add(fa_imposer)
+
+    meta = war_instance.get("diplo_key_meta") or {}
+    plan: List[Dict[str, Any]] = []
+    for pair in list(war_instance.get("active_diplo_keys") or []):
+        nations = _pair_nations(pair)
+        if len(nations) != 2:
+            continue
+        a, b = nations
+        if a in proposer_members and b in covered_set:
+            proposer_member, covered_enemy = a, b
+        elif b in proposer_members and a in covered_set:
+            proposer_member, covered_enemy = b, a
+        else:
+            continue
+        pair_meta = meta.get(pair) or {}
+        if pair_meta.get("pair_status") not in ("war", "armistice"):
+            continue
+        target_state = "PEACE"
+        if proposer_member in forced_alliance_targets.get(covered_enemy, set()):
+            target_state = "ALLIANCE"
+        current_state = world.diplomatic_states.get(pair, "PEACE")
+        plan.append({
+            "pair": pair,
+            "proposer_member": proposer_member,
+            "covered_enemy": covered_enemy,
+            "current_state": current_state,
+            "pair_status_before": pair_meta.get("pair_status"),
+            "target_state": target_state,
+        })
+    return plan
+
+
+def _apply_settlement_terms(
+    world: Any,
+    *,
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Apply package-level territory, gold, and liberation outcomes.
+
+    Forced-alliance state transitions are handled per pair after pair
+    cleanup (see ``_resolve_pair_state_transitions``) because the alliance
+    state must replace the intermediate ``PEACE`` state established by
+    cleanup.
+    """
+    applied: List[Dict[str, Any]] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = term.get("type")
+        from_nation = str(term.get("from") or "")
+        to_nation = str(term.get("to") or "")
+        if ttype == "territory_cede":
+            regions = list(term.get("regions") or [])
+            transferred: List[str] = []
+            for region_name in regions:
+                if region_name not in getattr(world, "regions", {}):
+                    continue
+                region = world.regions[region_name]
+                if from_nation and getattr(region, "controller", None) != from_nation:
+                    continue
+                region.controller = to_nation
+                region.stability = 50
+                transferred.append(region_name)
+            if transferred:
+                clause = dict(term)
+                clause["regions"] = transferred
+                applied.append(clause)
+                if hasattr(world, "invalidate_active_nations_cache"):
+                    world.invalidate_active_nations_cache()
+                if to_nation == getattr(world, "player_nation", None):
+                    from backend.game_logic.coalition import add_threat
+                    add_threat(world, 8 * len(transferred), "treaty_annex")
+                if from_nation == getattr(world, "player_nation", None):
+                    from backend.game_logic.coalition import reduce_threat
+                    reduce_threat(world, 5 * len(transferred), "territory_return")
+        elif ttype == "gold_lump":
+            amount = abs(int(term.get("amount", 0) or 0))
+            nation_gold = getattr(world, "nation_gold", {}) or {}
+            if from_nation in nation_gold:
+                available = int(nation_gold.get(from_nation, 0))
+                transfer = min(amount, max(0, available))
+                nation_gold[from_nation] = available - transfer
+                if to_nation in nation_gold:
+                    nation_gold[to_nation] = int(nation_gold.get(to_nation, 0)) + transfer
+                if transfer > 0:
+                    clause = dict(term)
+                    clause["amount"] = int(transfer)
+                    applied.append(clause)
+        elif ttype == "liberation":
+            lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
+            lib_from = str(term.get("lord_nation") or term.get("to") or "")
+            lib_liberator = str(term.get("liberator") or "")
+            vassals = getattr(world, "vassals", {}) or {}
+            if lib_vassal and lib_vassal in vassals:
+                from backend.game_logic.vassal import release_vassal
+                release_result = release_vassal(
+                    world, lib_vassal, reduce_threat_on_release=False,
+                )
+                if release_result.get("success"):
+                    if lib_liberator:
+                        from backend.game_logic.diplomacy import (
+                            set_diplomatic_state as _sds,
+                        )
+                        _sds(
+                            world, lib_liberator, lib_vassal,
+                            "DEFENSIVE_ALLIANCE", "common_peace_liberation",
+                        )
+                        if hasattr(world, "modify_nation_relation"):
+                            world.modify_nation_relation(lib_vassal, lib_from, -20)
+                            world.modify_nation_relation(lib_vassal, lib_liberator, 30)
+                    if lib_from == getattr(world, "player_nation", None):
+                        from backend.game_logic.coalition import reduce_threat
+                        reduce_threat(world, 8, "liberation")
+                    clause = dict(term)
+                    clause["vassal_nation"] = lib_vassal
+                    clause["lord_nation"] = lib_from
+                    clause["liberator"] = lib_liberator
+                    applied.append(clause)
+                    if hasattr(world, "log_event"):
+                        world.log_event({
+                            "type": "vassal_liberated",
+                            "vassal_nation": lib_vassal,
+                            "former_lord": lib_from,
+                            "liberator": lib_liberator,
+                            "liberator_nation": lib_liberator,
+                            "turn": int(getattr(world, "current_turn", 0) or 0),
+                        })
+    return applied
+
+
+def _resolve_pair_state_transitions(
+    world: Any,
+    plan: List[Dict[str, Any]],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Run per-pair state transitions + cleanup for the ratification plan.
+
+    For each plan entry: set ``PEACE`` (so cleanup_war_end resolves the
+    pair, closes contribution episodes, clears war scores / start turns /
+    decisive battles / cascade tracking / stalemate counters / armistice
+    cooldowns), then for ``ALLIANCE`` targets re-set the state to
+    ``ALLIANCE`` and apply forced-alliance side effects (alliance origin,
+    Continental System membership, +15 threat when France imposes,
+    relation reset, ``forced_alliance_imposed`` log event).
+
+    Returns ``(resolved_pairs, forced_alliance_clauses_applied)`` so the
+    caller can build a structured ratification summary.
+    """
+    from backend.game_logic.diplomacy import (
+        cleanup_war_end,
+        set_diplomatic_state,
+    )
+
+    forced_alliance_terms_by_pair: Dict[Tuple[str, str], Mapping[str, Any]] = {}
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if term.get("type") != "forced_alliance":
+            continue
+        fa_target = str(term.get("from") or "")
+        fa_imposer = str(term.get("to") or "")
+        if fa_target and fa_imposer:
+            forced_alliance_terms_by_pair[(fa_imposer, fa_target)] = term
+
+    resolved_pairs: List[Dict[str, Any]] = []
+    fa_applied: List[Dict[str, Any]] = []
+
+    for entry in plan:
+        proposer_member = entry["proposer_member"]
+        covered_enemy = entry["covered_enemy"]
+        target_state = entry["target_state"]
+        pair_key = world._make_diplo_key(proposer_member, covered_enemy)
+
+        # Always transition out of WAR/ARMISTICE through PEACE so
+        # cleanup_war_end runs the same closure path as bilateral peace
+        # (resolve_pair_to_resolved + episode close + war-data clear).
+        current_state = world.get_diplomatic_state(proposer_member, covered_enemy)
+        if current_state in ("WAR", "ARMISTICE"):
+            set_diplomatic_state(
+                world, proposer_member, covered_enemy,
+                "PEACE", "common_peace_settlement",
+            )
+        cleanup_war_end(world, pair_key, conclude_objectives=True)
+
+        if target_state == "ALLIANCE":
+            set_diplomatic_state(
+                world, proposer_member, covered_enemy,
+                "ALLIANCE", "common_peace_forced_alliance",
+            )
+            world.nation_relations[pair_key] = 0
+            alliance_origins = getattr(world, "alliance_origins", {}) or {}
+            alliance_origins[pair_key] = "forced"
+            world.alliance_origins = alliance_origins
+            term = forced_alliance_terms_by_pair.get(
+                (proposer_member, covered_enemy),
+            )
+            includes_cs = bool(term.get("includes_continental_system", True)) if term else True
+            if includes_cs:
+                cs_members = getattr(world, "continental_system_members", []) or []
+                if isinstance(cs_members, set):
+                    cs_members.add(covered_enemy)
+                elif covered_enemy not in cs_members:
+                    cs_members.append(covered_enemy)
+                world.continental_system_members = cs_members
+            if proposer_member == getattr(world, "player_nation", None):
+                from backend.game_logic.coalition import add_threat
+                add_threat(world, 15, "forced_alliance")
+            if hasattr(world, "log_event"):
+                world.log_event({
+                    "type": "forced_alliance_imposed",
+                    "imposer": proposer_member,
+                    "target": covered_enemy,
+                    "imposing_nation": proposer_member,
+                    "forced_nation": covered_enemy,
+                    "includes_continental_system": includes_cs,
+                    "turn": int(getattr(world, "current_turn", 0) or 0),
+                })
+            if term is not None:
+                fa_applied.append(dict(term))
+
+        resolved_pairs.append({
+            "pair": entry["pair"],
+            "proposer_member": proposer_member,
+            "covered_enemy": covered_enemy,
+            "current_state_before": entry["current_state"],
+            "pair_status_before": entry["pair_status_before"],
+            "final_state": world.get_diplomatic_state(proposer_member, covered_enemy),
+            "target_state": target_state,
+        })
+
+    return resolved_pairs, fa_applied
+
+
+def _capture_pre_cleanup_snapshots(
+    world: Any,
+    plan: List[Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Snapshot per-pair war data before cleanup_war_end clears it.
+
+    Spec §11 ratification ordering line 1239 requires snapshotting every
+    covered pair's war-instance data before any cleanup runs. The C2
+    summary shape exposes per-pair war_score / war_duration /
+    casualties so D1 reactions can read frozen pre-settlement context.
+    """
+    from backend.game_logic.diplomacy import _capture_pre_cleanup_war_data
+
+    snapshots: Dict[str, Dict[str, Any]] = {}
+    for entry in plan:
+        snapshots[entry["pair"]] = _capture_pre_cleanup_war_data(
+            world, entry["proposer_member"], entry["covered_enemy"],
+        )
+    return snapshots
+
+
+def ratify_settlement_confirm(
+    world: Any,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Run the C2 common-peace ratification mutation.
+
+    Per spec §10.5 / §11.1 / §11 ordering this function:
+
+    1. Re-runs ``revalidate_staged_settlement`` on the live world.
+    2. Builds a per-pair plan of which active cross-side pairs settle to
+       ``PEACE`` vs ``ALLIANCE`` (forced-alliance only when a
+       ``forced_alliance`` term targets the proposer-side member of the
+       pair).
+    3. Snapshots each covered pair's war data before cleanup.
+    4. Applies package-level territory / gold / liberation term outcomes.
+    5. Drives per-pair state transitions through ``set_diplomatic_state``
+       + ``cleanup_war_end`` so the bilateral peace closure path runs
+       (which moves the pair to ``resolved_diplo_keys`` and closes the
+       contribution episode via ``resolve_pair_to_resolved``).
+    6. For forced-alliance pairs, re-sets the state to ``ALLIANCE`` and
+       applies forced-origin metadata, Continental System membership, and
+       coalition threat per WPS-C §9.2 (already wired for bilateral
+       forced-alliance treaties in ``_ratify_treaty``).
+    7. Invalidates ``war_instances_by_*`` / bloc / active-nation caches
+       before any subsequent reaction reader runs.
+    8. Pops the ``settlement_confirm`` dialogue.
+
+    Settlement / cross-war reaction routing (D1/D2) is intentionally not
+    wired here; the returned summary exposes the resolved pairs, applied
+    clauses, and pre-cleanup snapshots so the next slice can route them.
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    validation = revalidate_staged_settlement(world, dialogue)
+    if not validation.get("ok"):
+        world.dialogue_manager.pop()
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": "confirm",
+            "war_id": war_id,
+            "error": validation.get("error"),
+            "must_reopen": bool(validation.get("must_reopen")),
+            "mutated": False,
+        }
+
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
+    if not war_instance or war_instance.get("ended_turn") is not None:
+        world.dialogue_manager.pop()
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": "confirm",
+            "war_id": war_id,
+            "error": "inactive_war_instance",
+            "must_reopen": True,
+            "mutated": False,
+        }
+
+    proposer_side = str(dialogue.get("proposer_side") or "")
+    accepting_side = str(dialogue.get("accepting_side") or "")
+    covered = list(dialogue.get("covered_enemy_participants") or [])
+    settlement_terms = list(dialogue.get("settlement_terms") or [])
+
+    plan = _build_pair_ratification_plan(
+        world,
+        war_instance,
+        proposer_side=proposer_side,
+        covered=covered,
+        settlement_terms=settlement_terms,
+    )
+    if not plan:
+        world.dialogue_manager.pop()
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": "confirm",
+            "war_id": war_id,
+            "error": "no_resolvable_pairs",
+            "must_reopen": True,
+            "mutated": False,
+        }
+
+    pre_cleanup_snapshots = _capture_pre_cleanup_snapshots(world, plan)
+    applied_clauses = _apply_settlement_terms(
+        world, settlement_terms=settlement_terms,
+    )
+    resolved_pairs, fa_applied = _resolve_pair_state_transitions(
+        world, plan, settlement_terms,
+    )
+    applied_clauses.extend(fa_applied)
+
+    # Spec §11 ratification ordering line 1239: invalidate war-instance
+    # indexes + Balance of Europe / hegemony / bloc caches before any
+    # cross-war reaction reader runs in the next slice.
+    if hasattr(world, "invalidate_war_instance_indexes"):
+        world.invalidate_war_instance_indexes()
+    if hasattr(world, "invalidate_bloc_members_cache"):
+        world.invalidate_bloc_members_cache()
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+
+    world.dialogue_manager.pop()
+
+    war_instance_after = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    war_ended = war_instance_after.get("ended_turn") is not None
+    return {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": "confirm",
+        "war_id": war_id,
+        "proposer_side": proposer_side,
+        "accepting_side": accepting_side,
+        "covered_enemy_participants": list(covered),
+        "resolved_pairs": resolved_pairs,
+        "applied_clauses": applied_clauses,
+        "pre_cleanup_snapshots": pre_cleanup_snapshots,
+        "war_ended": bool(war_ended),
+        "mutated": True,
+        "message": (
+            f"Common settlement of {war_id} ratified "
+            f"({len(resolved_pairs)} pair(s) resolved)."
+        ),
+    }
+
+
 def handle_settlement_dialogue_action(
     world: Any,
     *,
     action: str,
     dialogue: Mapping[str, Any],
 ) -> Dict[str, Any]:
-    """Handle C2 settlement dialogue actions without ratification mutation."""
+    """Handle C2 settlement dialogue actions.
+
+    ``confirm_settlement`` runs the live ratification mutation through
+    ``ratify_settlement_confirm``. ``back_out`` / ``revise_terms`` remain
+    pure (no mutation, dialogue popped).
+    """
     war_id = str(dialogue.get("war_id") or "")
     if action == "back_out_settlement":
         world.dialogue_manager.pop()
@@ -397,26 +821,5 @@ def handle_settlement_dialogue_action(
             "suppress_proposal_result_popup": True,
         }
     if action == "confirm_settlement":
-        validation = revalidate_staged_settlement(world, dialogue)
-        if not validation.get("ok"):
-            world.dialogue_manager.pop()
-            return {
-                "success": False,
-                "dialogue_type": "settlement_confirm",
-                "action": "confirm",
-                "war_id": war_id,
-                "error": validation.get("error"),
-                "must_reopen": bool(validation.get("must_reopen")),
-                "mutated": False,
-            }
-        return {
-            "success": False,
-            "dialogue_type": "settlement_confirm",
-            "action": "confirm",
-            "war_id": war_id,
-            "error": "ratification_deferred",
-            "must_reopen": False,
-            "mutated": False,
-            "message": "Settlement ratification is not wired in this slice.",
-        }
+        return ratify_settlement_confirm(world, dialogue)
     return {"success": False, "error": "unknown_settlement_action", "mutated": False}
