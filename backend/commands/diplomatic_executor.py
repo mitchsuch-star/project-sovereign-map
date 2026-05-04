@@ -2408,9 +2408,9 @@ class DiplomaticExecutor:
                         "dismiss": ["dismiss"], "cancel": ["cancel_pushback", "cancel_mission", "dismiss"], "never mind": ["dismiss"],
                         "nudge": ["accept_nudge"], "insist": ["insist_original"],
                         "send": ["send_override", "send", "execute_proposal"],
-                        "proceed": ["send_override", "execute_proposal", "force_declare_war"],
-                        "yes": ["execute_proposal", "accept_ai_proposal", "force_declare_war"],
-                        "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
+                        "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
+                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "force_declare_war"],
+                        "reconsider": ["back_out_settlement", "reconsider"], "no": ["back_out_settlement", "reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
                         "adjust": ["adjust_terms", "expand_options"],
                         "territory": ["ultimatum_territory_yes", "territory_yes", "offer_region"],
@@ -2421,8 +2421,8 @@ class DiplomaticExecutor:
                         "start over": ["ultimatum_start_over"],
                         "less": ["ultimatum_less_gold", "ultimatum_less_manpower"],
                         "begin": ["start_mission"], "start": ["start_mission"],
-                        "accept": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
-                        "agree": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
+                        "accept": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
+                        "agree": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
                         "reject": ["reject_ai_proposal"], "decline": ["reject_ai_proposal"],
                         "counter": ["counter_ai_proposal"],
                         "thank": ["dismiss"],
@@ -2500,6 +2500,18 @@ class DiplomaticExecutor:
                 "message": "Of course, Sire. Take your time.",
                 "suppress_proposal_result_popup": True,
             }
+
+        elif action in (
+            "confirm_settlement",
+            "revise_settlement_terms",
+            "back_out_settlement",
+        ):
+            from backend.game_logic.settlement_preview import (
+                handle_settlement_dialogue_action,
+            )
+            return handle_settlement_dialogue_action(
+                world, action=action, dialogue=dialogue,
+            )
 
         elif action in ("ally_entry_accept_all", "ally_entry_proceed_without", "ally_entry_back_out"):
             return self._resolve_ally_entry_review_choice(action, dialogue, world)

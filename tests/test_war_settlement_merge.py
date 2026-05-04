@@ -574,16 +574,17 @@ def test_post_merge_invariant_catches_dangling_absorbed_war_id_in_event_log():
 def test_post_merge_no_op_safe_when_slice_bc_containers_empty_or_absent():
     """A3 cross-slice gating: post-merge invariant must not false-positive
     when Slice B `war_contribution_scores` is empty (B1 ships the empty
-    container by default) and Slice C `pending_settlement_dialogues` /
-    `settlement_route_payloads` containers do not yet exist on world."""
+    container by default), Slice C2 `pending_settlement_dialogues` exists
+    but is empty, and future `settlement_route_payloads` does not yet exist."""
     world = _clean_world()
     inserted = build_multi_objective_merge_fixture(world)
     war_a = sorted(inserted.keys())[0]
     # B1: container exists but is empty for fixtures that have not accrued.
     assert hasattr(world, "war_contribution_scores")
     assert world.war_contribution_scores == {}
-    # Slice C containers are still absent.
-    assert not hasattr(world, "pending_settlement_dialogues")
+    # Slice C2 dialogue retry container exists but is empty.
+    assert hasattr(world, "pending_settlement_dialogues")
+    assert world.pending_settlement_dialogues == []
     assert not hasattr(world, "settlement_route_payloads")
     # Run a real merge and confirm the post-merge invariant passes.
     merge_war_instances(world, candidate_war_ids=[war_a])

@@ -9798,6 +9798,48 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
+        settlement_war_id = None
+        try:
+            player_wars = set(world.get_war_instances_by_participant(player))
+            target_wars = set(world.get_war_instances_by_participant(target_nation))
+            common_wars = sorted(player_wars & target_wars)
+            settlement_war_id = common_wars[0] if common_wars else None
+        except Exception:
+            settlement_war_id = None
+        if settlement_war_id:
+            try:
+                from backend.game_logic.settlement_preview import (
+                    evaluate_open_settlement_eligibility,
+                )
+                settlement_eligibility = evaluate_open_settlement_eligibility(
+                    world, war_id=settlement_war_id, actor_nation=player,
+                )
+            except Exception:
+                settlement_eligibility = {
+                    "available": False,
+                    "error": "inactive_war_instance",
+                }
+        else:
+            settlement_eligibility = {
+                "available": False,
+                "error": "inactive_war_instance",
+            }
+        settlement_available = bool(settlement_eligibility.get("available")) and dp >= 1
+        if dp < 1:
+            settlement_disabled_reason = "Insufficient DP"
+        elif settlement_eligibility.get("available"):
+            settlement_disabled_reason = ""
+        else:
+            settlement_disabled_reason = settlement_eligibility.get("error", "")
+        actions.append({
+            "action": "open_settlement",
+            "display_name": "Open Settlement",
+            "dp_cost": 1,
+            "available": settlement_available,
+            "disabled_reason": settlement_disabled_reason,
+            "war_id": settlement_war_id,
+            "eligibility": settlement_eligibility,
+        })
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 

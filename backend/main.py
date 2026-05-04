@@ -2186,7 +2186,13 @@ def activate_mailbox_item(request: MailboxActivateRequest):
 # ════════════════════════════════════════════════════════════
 
 @app.get("/diplomatic_preview")
-def get_diplomatic_preview_endpoint(nation: str = ""):
+def get_diplomatic_preview_endpoint(
+    nation: str = "",
+    mode: str = "",
+    war_id: str = "",
+    proposer_side: str = "",
+    density: str = "medium",
+):
     """Get diplomatic preview for the diplomacy wizard (§3c).
 
     Without ?nation: returns categorized nation list for Step 1.
@@ -2194,6 +2200,19 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
     """
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
+    if mode == "settlement":
+        try:
+            from backend.game_logic.settlement_preview import build_settlement_preview
+            return build_settlement_preview(
+                world,
+                war_id=war_id,
+                proposer_side=proposer_side or None,
+                settlement_terms=[],
+                actor_nation=getattr(world, "player_nation", "France"),
+                density=density,
+            )
+        except Exception as e:
+            return {"success": False, "error": str(e), "mode": "settlement", "war_id": war_id}
     if not nation or not nation.strip():
         # Step 1: Return categorized nation list for the wizard
         try:
@@ -2294,6 +2313,37 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@app.post("/diplomatic_preview")
+def post_diplomatic_preview_endpoint(request: dict):
+    """Preview draft diplomatic payloads.
+
+    Slice C2 currently supports `{"mode": "settlement"}` only. This endpoint
+    is preview-only and must not stage settlement_confirm or mutate world state.
+    """
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    if request.get("mode") != "settlement":
+        return {"success": False, "error": "unsupported_preview_mode"}
+    try:
+        from backend.game_logic.settlement_preview import build_settlement_preview
+        return build_settlement_preview(
+            world,
+            war_id=str(request.get("war_id") or ""),
+            proposer_side=request.get("proposer_side"),
+            settlement_terms=request.get("settlement_terms") or [],
+            covered_enemy_participants=request.get("covered_enemy_participants"),
+            actor_nation=request.get("actor_nation") or getattr(world, "player_nation", "France"),
+            density=str(request.get("density") or "medium"),
+        )
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "mode": "settlement",
+            "war_id": request.get("war_id"),
+        }
 
 
 @app.get("/diplomatic_ledger")

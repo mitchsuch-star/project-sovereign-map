@@ -658,6 +658,13 @@ class WorldState:
         # detail collapses to per-nation finals (spec §9.5 line 178).
         self.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
         self.archived_war_contribution_scores: Dict[str, Dict[str, Any]] = {}
+        # Slice C2: settlement-owned dialogue retry/cooldown containers.
+        # `pending_settlement_dialogues` stores locked settlement_confirm /
+        # incoming_settlement_offer payloads that could not be staged in the
+        # generic dialogue queue. `ai_settlement_cooldowns` is keyed by war_id
+        # and separate from bilateral AI proposal cooldowns.
+        self.pending_settlement_dialogues: List[Dict[str, Any]] = []
+        self.ai_settlement_cooldowns: Dict[str, int] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3779,6 +3786,14 @@ class WorldState:
                 str(war_id): copy.deepcopy(record)
                 for war_id, record in self.archived_war_contribution_scores.items()
             },
+            # Slice C2: settlement dialogue/cooldown stores.
+            "pending_settlement_dialogues": [
+                copy.deepcopy(entry) for entry in self.pending_settlement_dialogues
+            ],
+            "ai_settlement_cooldowns": {
+                str(war_id): int(turn)
+                for war_id, turn in self.ai_settlement_cooldowns.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
@@ -4227,6 +4242,15 @@ class WorldState:
             for war_id, record in (
                 data.get("archived_war_contribution_scores") or {}
             ).items()
+        }
+        world.pending_settlement_dialogues = [
+            copy.deepcopy(entry)
+            for entry in (data.get("pending_settlement_dialogues") or [])
+            if isinstance(entry, dict)
+        ]
+        world.ai_settlement_cooldowns = {
+            str(war_id): int(turn)
+            for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()

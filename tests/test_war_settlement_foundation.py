@@ -70,6 +70,8 @@ def test_settlement_containers_initialize_to_spec_defaults():
     assert world.next_war_instance_id == 1
     assert world.war_instances == {}
     assert world.archived_war_instances == []
+    assert world.pending_settlement_dialogues == []
+    assert world.ai_settlement_cooldowns == {}
 
 
 def test_old_save_without_settlement_keys_loads_with_spec_defaults():
@@ -80,12 +82,16 @@ def test_old_save_without_settlement_keys_loads_with_spec_defaults():
     data.pop("next_war_instance_id", None)
     data.pop("war_instances", None)
     data.pop("archived_war_instances", None)
+    data.pop("pending_settlement_dialogues", None)
+    data.pop("ai_settlement_cooldowns", None)
 
     restored = WorldState.from_dict(data)
 
     assert restored.next_war_instance_id == 1
     assert restored.war_instances == {}
     assert restored.archived_war_instances == []
+    assert restored.pending_settlement_dialogues == []
+    assert restored.ai_settlement_cooldowns == {}
 
 
 def test_settlement_containers_round_trip_through_to_dict_from_dict():
@@ -95,6 +101,10 @@ def test_settlement_containers_round_trip_through_to_dict_from_dict():
     world.archived_war_instances = [
         {"war_id": "war_archive_1", "ended_turn": 5, "end_reason": "all_pairs_resolved"}
     ]
+    world.pending_settlement_dialogues = [
+        {"war_id": "war_1", "dialogue_type": "settlement_confirm"}
+    ]
+    world.ai_settlement_cooldowns = {"war_1": 7}
     snapshot_next_id = world.next_war_instance_id
 
     restored = WorldState.from_dict(world.to_dict())
@@ -109,6 +119,8 @@ def test_settlement_containers_round_trip_through_to_dict_from_dict():
             instance["active_participants"]
         )
     assert restored.archived_war_instances == world.archived_war_instances
+    assert restored.pending_settlement_dialogues == world.pending_settlement_dialogues
+    assert restored.ai_settlement_cooldowns == world.ai_settlement_cooldowns
 
 
 def test_war_instance_indexes_are_empty_safe_before_any_instance_exists():
