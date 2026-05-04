@@ -343,6 +343,34 @@ def test_confirm_subjugation_creates_vassal_and_resolves_pair():
     assert treaty["clauses"][0]["type"] == "subjugation"
 
 
+def test_confirm_subjugation_from_armistice_clears_tracking_and_ends_vassal():
+    world = WorldState()
+    war = _install_two_v_two_war(world)
+    pair = "France|Prussia"
+    world.diplomatic_states[pair] = "ARMISTICE"
+    war["diplo_key_meta"][pair]["pair_status"] = "armistice"
+    world.armistice_turns[pair] = world.current_turn
+    world.armistice_cooldowns[pair] = 5
+
+    dialogue = _stage_dialogue(
+        world,
+        settlement_terms=[{
+            "type": "subjugation",
+            "from": "Prussia",
+            "to": "France",
+        }],
+        covered_enemy_participants=["Prussia"],
+    )
+    result = ratify_settlement_confirm(world, dialogue)
+
+    assert result["success"] is True
+    assert world.diplomatic_states[pair] == "VASSAL"
+    assert pair not in world.armistice_turns
+    assert pair not in world.armistice_cooldowns
+    assert pair in war["resolved_diplo_keys"]
+    assert war["diplo_key_meta"][pair]["pair_status"] == "resolved"
+
+
 def test_confirm_war_score_and_start_turn_clear_for_resolved_pairs():
     world = WorldState()
     war = _install_two_v_two_war(world)

@@ -732,6 +732,12 @@ def _resolve_pair_state_transitions(
         if target_state == "VASSAL":
             term = vassalage_terms_by_pair.get((proposer_member, covered_enemy))
             vassal_result = {"success": False}
+            if current_state == "ARMISTICE" and term is not None:
+                set_diplomatic_state(
+                    world, proposer_member, covered_enemy,
+                    "WAR", "common_peace_vassalage_ratification",
+                )
+                current_state = "WAR"
             if current_state == "WAR" and term is not None:
                 from backend.game_logic.vassal import (
                     assimilate_vassal_marshals,
