@@ -39,6 +39,7 @@ from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
     stage_settlement_confirm,
 )
+from backend.game_logic.settlement_helpers import _open_contribution_episode_for_participant
 from backend.models.region import Region, REGIONS_DATA
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
@@ -276,6 +277,72 @@ def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
     assert fa_event["forced_nation"] == "Austria"
 
 
+def test_confirm_forced_alliance_with_territory_keeps_final_alliance_and_records_treaty():
+    world = WorldState()
+    _install_two_v_two_war(world)
+    target_region = next(
+        name for name, _data in REGIONS_DATA.items()
+        if world.regions[name].controller == "Austria"
+    )
+
+    dialogue = _stage_dialogue(
+        world,
+        settlement_terms=[
+            {
+                "type": "territory_cede",
+                "from": "Austria",
+                "to": "France",
+                "regions": [target_region],
+            },
+            {
+                "type": "forced_alliance",
+                "from": "Austria",
+                "to": "France",
+            },
+        ],
+        covered_enemy_participants=["Austria"],
+    )
+    result = ratify_settlement_confirm(world, dialogue)
+
+    pair = "Austria|France"
+    assert result["success"] is True
+    assert world.regions[target_region].controller == "France"
+    assert world.diplomatic_states[pair] == "ALLIANCE"
+    assert world.war_instances["war_1"]["diplo_key_meta"][pair]["pair_status"] == "resolved"
+    treaty = world.active_treaties[pair]
+    assert treaty["type"] == "alliance"
+    assert treaty["state_transition"] == "WAR_TO_ALLIANCE"
+    assert [c["type"] for c in treaty["clauses"]] == ["territory_cede", "forced_alliance"]
+
+
+def test_confirm_subjugation_creates_vassal_and_resolves_pair():
+    world = WorldState()
+    _install_two_v_two_war(world)
+    threat_before = int(world.threat_level)
+
+    dialogue = _stage_dialogue(
+        world,
+        settlement_terms=[{
+            "type": "subjugation",
+            "from": "Prussia",
+            "to": "France",
+        }],
+        covered_enemy_participants=["Prussia"],
+    )
+    result = ratify_settlement_confirm(world, dialogue)
+
+    pair = "France|Prussia"
+    assert result["success"] is True
+    assert world.diplomatic_states[pair] == "VASSAL"
+    assert world.vassals["Prussia"]["lord"] == "France"
+    assert world.vassals["Prussia"]["path"] == "conquest"
+    assert pair in world.war_instances["war_1"]["resolved_diplo_keys"]
+    assert int(world.threat_level) == threat_before + 25
+    treaty = world.active_treaties[pair]
+    assert treaty["type"] == "vassalage"
+    assert treaty["clauses"][0]["type"] == "subjugation"
+
+
 def test_confirm_war_score_and_start_turn_clear_for_resolved_pairs():
     world = WorldState()
     war = _install_two_v_two_war(world)
@@ -311,6 +378,28 @@ def test_confirm_pre_cleanup_snapshots_capture_per_pair_data():
     assert snap["war_duration"] == 4
     assert snap["french_casualties"] == 1000
     assert snap["enemy_casualties"] == 2500
+
+
+def test_confirm_pre_cleanup_snapshots_use_non_france_proposer_pair_perspective():
+    world = WorldState()
+    _install_two_v_two_war(world)
+    world.battle_records["Austria|Saxony"] = [{
+        "attacker": "Saxony", "defender": "Austria",
+        "attacker_casualties": 300, "defender_casualties": 900,
+    }]
+    world.current_turn = 6
+    world.war_start_turns["Austria|Saxony"] = 2
+
+    dialogue = _stage_dialogue(world, covered_enemy_participants=["Austria"])
+    result = ratify_settlement_confirm(world, dialogue)
+
+    snap = result["pre_cleanup_snapshots"]["Austria|Saxony"]
+    assert snap["proposer_member"] == "Saxony"
+    assert snap["covered_enemy"] == "Austria"
+    assert snap["war_duration"] == 4
+    assert snap["proposer_casualties"] == 300
+    assert snap["covered_enemy_casualties"] == 900
+    assert snap["french_casualties"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -451,3 +540,49 @@ def test_confirm_liberation_releases_vassal_and_aligns_with_liberator():
     )
     assert lib_event["vassal_nation"] == "Bavaria"
     assert lib_event["liberator"] == "France"
+
+
+def test_confirm_ally_region_restored_and_liberation_emit_occupation_contribution():
+    world = WorldState()
+    _install_two_v_two_war(world)
+    _open_contribution_episode_for_participant(
+        world, "war_1", "Saxony", joined_turn=world.current_turn,
+    )
+    _open_contribution_episode_for_participant(
+        world, "war_1", "France", joined_turn=world.current_turn,
+    )
+    world.regions["Saxony"].controller = "Austria"
+    if "Bavaria" not in world.regions:
+        world.regions["Bavaria"] = Region(
+            name="Bavaria", region_type="major", income_value=80,
+        )
+    world.regions["Bavaria"].controller = "Bavaria"
+    world.vassals["Bavaria"] = {
+        "lord": "Austria", "subject": "Bavaria", "loyalty": 50, "tribute_pct": 30,
+    }
+
+    dialogue = _stage_dialogue(
+        world,
+        settlement_terms=[
+            {
+                "type": "territory_cede",
+                "from": "Austria",
+                "to": "Saxony",
+                "regions": ["Saxony"],
+            },
+            {
+                "type": "liberation",
+                "vassal_nation": "Bavaria",
+                "lord_nation": "Austria",
+                "liberator": "France",
+            },
+        ],
+        covered_enemy_participants=["Austria"],
+    )
+    result = ratify_settlement_confirm(world, dialogue)
+
+    assert result["success"] is True
+    saxony_episode = next(iter(world.war_contribution_scores["war_1"]["Saxony"]["episodes"].values()))
+    france_episode = next(iter(world.war_contribution_scores["war_1"]["France"]["episodes"].values()))
+    assert saxony_episode["occupation"] > 0
+    assert france_episode["occupation"] > 0

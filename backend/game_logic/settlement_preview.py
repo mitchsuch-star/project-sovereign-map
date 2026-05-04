@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
+from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
 from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance
 
 
@@ -396,15 +397,20 @@ def _build_pair_ratification_plan(
     proposer_members: Set[str] = set(war_instance.get(proposer_side) or [])
     covered_set: Set[str] = {str(n) for n in covered}
     forced_alliance_targets: Dict[str, Set[str]] = {}
+    vassalage_targets: Dict[str, Dict[str, Mapping[str, Any]]] = {}
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
-        if term.get("type") != "forced_alliance":
-            continue
-        fa_target = str(term.get("from") or "")
-        fa_imposer = str(term.get("to") or "")
-        if fa_target and fa_imposer:
-            forced_alliance_targets.setdefault(fa_target, set()).add(fa_imposer)
+        if term.get("type") == "forced_alliance":
+            fa_target = str(term.get("from") or "")
+            fa_imposer = str(term.get("to") or "")
+            if fa_target and fa_imposer:
+                forced_alliance_targets.setdefault(fa_target, set()).add(fa_imposer)
+        elif term.get("type") in ("vassalage", "subjugation"):
+            vassal_target = str(term.get("from") or term.get("vassal_nation") or "")
+            vassal_lord = str(term.get("to") or term.get("lord_nation") or "")
+            if vassal_target and vassal_lord:
+                vassalage_targets.setdefault(vassal_target, {})[vassal_lord] = term
 
     meta = war_instance.get("diplo_key_meta") or {}
     plan: List[Dict[str, Any]] = []
@@ -425,6 +431,8 @@ def _build_pair_ratification_plan(
         target_state = "PEACE"
         if proposer_member in forced_alliance_targets.get(covered_enemy, set()):
             target_state = "ALLIANCE"
+        if proposer_member in vassalage_targets.get(covered_enemy, {}):
+            target_state = "VASSAL"
         current_state = world.diplomatic_states.get(pair, "PEACE")
         plan.append({
             "pair": pair,
@@ -435,6 +443,62 @@ def _build_pair_ratification_plan(
             "target_state": target_state,
         })
     return plan
+
+
+def _capture_pair_pre_cleanup_war_data(
+    world: Any,
+    proposer_member: str,
+    covered_enemy: str,
+) -> Dict[str, Any]:
+    """Snapshot war data from the resolving pair's proposer-side perspective."""
+    diplo_key = world._make_diplo_key(proposer_member, covered_enemy)
+    war_start = getattr(world, "war_start_turns", {}).get(
+        diplo_key, getattr(world, "current_turn", 0),
+    )
+    war_duration = int(max(0, int(getattr(world, "current_turn", 0) or 0) - int(war_start)))
+
+    raw_score = int(getattr(world, "war_scores", {}).get(diplo_key, 0))
+    parts = diplo_key.split("|")
+    proposer_war_score = raw_score
+    if len(parts) == 2 and parts[0] != proposer_member:
+        proposer_war_score = -raw_score
+
+    records = list(getattr(world, "battle_records", {}).get(diplo_key, []) or [])
+    proposer_casualties = 0
+    covered_enemy_casualties = 0
+    for record in records:
+        attacker = record.get("attacker")
+        defender = record.get("defender")
+        attacker_casualties = int(record.get("attacker_casualties", 0) or 0)
+        defender_casualties = int(record.get("defender_casualties", 0) or 0)
+        if attacker == proposer_member:
+            proposer_casualties += attacker_casualties
+        elif defender == proposer_member:
+            proposer_casualties += defender_casualties
+        if attacker == covered_enemy:
+            covered_enemy_casualties += attacker_casualties
+        elif defender == covered_enemy:
+            covered_enemy_casualties += defender_casualties
+
+    player = getattr(world, "player_nation", "France")
+    result = {
+        "war_duration": war_duration,
+        "war_score": int(proposer_war_score),
+        "proposer_member": proposer_member,
+        "covered_enemy": covered_enemy,
+        "proposer_casualties": int(proposer_casualties),
+        "covered_enemy_casualties": int(covered_enemy_casualties),
+    }
+    if proposer_member == player:
+        result["french_casualties"] = int(proposer_casualties)
+        result["enemy_casualties"] = int(covered_enemy_casualties)
+    elif covered_enemy == player:
+        result["french_casualties"] = int(covered_enemy_casualties)
+        result["enemy_casualties"] = int(proposer_casualties)
+    else:
+        result["french_casualties"] = 0
+        result["enemy_casualties"] = int(covered_enemy_casualties)
+    return result
 
 
 def _apply_settlement_terms(
@@ -458,6 +522,15 @@ def _apply_settlement_terms(
         to_nation = str(term.get("to") or "")
         if ttype == "territory_cede":
             regions = list(term.get("regions") or [])
+            cede_from_regions = set()
+            if from_nation:
+                cede_from_regions = set(getattr(world, "get_nation_regions")(from_nation))
+            if from_nation and regions and cede_from_regions:
+                if len(cede_from_regions - set(regions)) == 0:
+                    ws_key = world._make_diplo_key(from_nation, to_nation)
+                    ws = abs(int(getattr(world, "war_scores", {}).get(ws_key, 0) or 0))
+                    if ws < 90:
+                        continue
             transferred: List[str] = []
             for region_name in regions:
                 if region_name not in getattr(world, "regions", {}):
@@ -468,6 +541,34 @@ def _apply_settlement_terms(
                 region.controller = to_nation
                 region.stability = 50
                 transferred.append(region_name)
+                if from_nation and to_nation:
+                    from backend.models.region import get_starting_controllers
+                    starting_controllers = get_starting_controllers()
+                    if starting_controllers.get(region_name) == to_nation:
+                        from backend.game_logic.war_contribution import (
+                            _resolve_war_id_for_pair_on_opposite_sides,
+                            accrue_occupation_event,
+                        )
+                        cede_war_id = _resolve_war_id_for_pair_on_opposite_sides(
+                            world, to_nation, from_nation,
+                        )
+                        if cede_war_id:
+                            event_id = (
+                                f"occupation-{int(getattr(world, 'current_turn', 0) or 0)}-"
+                                f"{cede_war_id}-{to_nation}-"
+                                f"allied_region_restored-{region_name}"
+                            )
+                            accrue_occupation_event(
+                                world,
+                                actor_nation=to_nation,
+                                region=region_name,
+                                occupation_kind="allied_region_restored",
+                                from_controller=from_nation,
+                                to_controller=to_nation,
+                                war_id=cede_war_id,
+                                turn=int(getattr(world, "current_turn", 0) or 0),
+                                event_id=event_id,
+                            )
             if transferred:
                 clause = dict(term)
                 clause["regions"] = transferred
@@ -480,6 +581,14 @@ def _apply_settlement_terms(
                 if from_nation == getattr(world, "player_nation", None):
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(world, 5 * len(transferred), "territory_return")
+                for nation in {from_nation}:
+                    if (
+                        nation
+                        and nation != getattr(world, "player_nation", None)
+                        and hasattr(world, "get_nation_regions")
+                        and not world.get_nation_regions(nation)
+                    ):
+                        world._eliminate_nation(nation)
         elif ttype == "gold_lump":
             amount = abs(int(term.get("amount", 0) or 0))
             nation_gold = getattr(world, "nation_gold", {}) or {}
@@ -499,6 +608,7 @@ def _apply_settlement_terms(
             lib_liberator = str(term.get("liberator") or "")
             vassals = getattr(world, "vassals", {}) or {}
             if lib_vassal and lib_vassal in vassals:
+                pre_release_vassal_regions = list(world.get_nation_regions(lib_vassal))
                 from backend.game_logic.vassal import release_vassal
                 release_result = release_vassal(
                     world, lib_vassal, reduce_threat_on_release=False,
@@ -518,6 +628,37 @@ def _apply_settlement_terms(
                     if lib_from == getattr(world, "player_nation", None):
                         from backend.game_logic.coalition import reduce_threat
                         reduce_threat(world, 8, "liberation")
+                    if (
+                        lib_liberator
+                        and lib_from
+                        and lib_liberator != lib_from
+                        and pre_release_vassal_regions
+                    ):
+                        from backend.game_logic.war_contribution import (
+                            _resolve_war_id_for_pair_on_opposite_sides,
+                            accrue_occupation_event,
+                        )
+                        lib_war_id = _resolve_war_id_for_pair_on_opposite_sides(
+                            world, lib_liberator, lib_from,
+                        )
+                        if lib_war_id:
+                            for lib_region in pre_release_vassal_regions:
+                                event_id = (
+                                    f"occupation-{int(getattr(world, 'current_turn', 0) or 0)}-"
+                                    f"{lib_war_id}-{lib_liberator}-"
+                                    f"liberated_region_restored-{lib_region}"
+                                )
+                                accrue_occupation_event(
+                                    world,
+                                    actor_nation=lib_liberator,
+                                    region=lib_region,
+                                    occupation_kind="liberated_region_restored",
+                                    from_controller=lib_from,
+                                    to_controller=lib_vassal,
+                                    war_id=lib_war_id,
+                                    turn=int(getattr(world, "current_turn", 0) or 0),
+                                    event_id=event_id,
+                                )
                     clause = dict(term)
                     clause["vassal_nation"] = lib_vassal
                     clause["lord_nation"] = lib_from
@@ -559,10 +700,16 @@ def _resolve_pair_state_transitions(
     )
 
     forced_alliance_terms_by_pair: Dict[Tuple[str, str], Mapping[str, Any]] = {}
+    vassalage_terms_by_pair: Dict[Tuple[str, str], Mapping[str, Any]] = {}
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
         if term.get("type") != "forced_alliance":
+            if term.get("type") in ("vassalage", "subjugation"):
+                vassal_target = str(term.get("from") or term.get("vassal_nation") or "")
+                vassal_lord = str(term.get("to") or term.get("lord_nation") or "")
+                if vassal_target and vassal_lord:
+                    vassalage_terms_by_pair[(vassal_lord, vassal_target)] = term
             continue
         fa_target = str(term.get("from") or "")
         fa_imposer = str(term.get("to") or "")
@@ -570,7 +717,7 @@ def _resolve_pair_state_transitions(
             forced_alliance_terms_by_pair[(fa_imposer, fa_target)] = term
 
     resolved_pairs: List[Dict[str, Any]] = []
-    fa_applied: List[Dict[str, Any]] = []
+    state_clauses_applied: List[Dict[str, Any]] = []
 
     for entry in plan:
         proposer_member = entry["proposer_member"]
@@ -582,12 +729,50 @@ def _resolve_pair_state_transitions(
         # cleanup_war_end runs the same closure path as bilateral peace
         # (resolve_pair_to_resolved + episode close + war-data clear).
         current_state = world.get_diplomatic_state(proposer_member, covered_enemy)
-        if current_state in ("WAR", "ARMISTICE"):
+        if target_state == "VASSAL":
+            term = vassalage_terms_by_pair.get((proposer_member, covered_enemy))
+            vassal_result = {"success": False}
+            if current_state == "WAR" and term is not None:
+                from backend.game_logic.vassal import (
+                    assimilate_vassal_marshals,
+                    create_vassal_conquest,
+                    create_vassal_treaty,
+                )
+                if term.get("type") == "subjugation":
+                    vassal_result = create_vassal_conquest(
+                        world, proposer_member, covered_enemy,
+                        garrison_size=int(term.get("garrison_size", 0) or 0),
+                    )
+                else:
+                    vassal_result = create_vassal_treaty(
+                        world, proposer_member, covered_enemy,
+                        generosity_bonus=int(term.get("generosity_bonus", 0) or 0),
+                        terms=list(settlement_terms or []),
+                    )
+                if vassal_result.get("success"):
+                    assimilate_vassal_marshals(world, covered_enemy)
+                    state_clauses_applied.append(dict(term))
+                    cleanup_war_end(world, pair_key, conclude_objectives=True)
+                else:
+                    set_diplomatic_state(
+                        world, proposer_member, covered_enemy,
+                        "PEACE", "common_peace_settlement",
+                    )
+                    cleanup_war_end(world, pair_key, conclude_objectives=True)
+            else:
+                set_diplomatic_state(
+                    world, proposer_member, covered_enemy,
+                    "PEACE", "common_peace_settlement",
+                )
+                cleanup_war_end(world, pair_key, conclude_objectives=True)
+        elif current_state in ("WAR", "ARMISTICE"):
             set_diplomatic_state(
                 world, proposer_member, covered_enemy,
                 "PEACE", "common_peace_settlement",
             )
-        cleanup_war_end(world, pair_key, conclude_objectives=True)
+            cleanup_war_end(world, pair_key, conclude_objectives=True)
+        else:
+            cleanup_war_end(world, pair_key, conclude_objectives=True)
 
         if target_state == "ALLIANCE":
             set_diplomatic_state(
@@ -623,7 +808,7 @@ def _resolve_pair_state_transitions(
                     "turn": int(getattr(world, "current_turn", 0) or 0),
                 })
             if term is not None:
-                fa_applied.append(dict(term))
+                state_clauses_applied.append(dict(term))
 
         resolved_pairs.append({
             "pair": entry["pair"],
@@ -635,7 +820,53 @@ def _resolve_pair_state_transitions(
             "target_state": target_state,
         })
 
-    return resolved_pairs, fa_applied
+    return resolved_pairs, state_clauses_applied
+
+
+def _record_common_peace_treaties(
+    world: Any,
+    *,
+    plan: List[Dict[str, Any]],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> None:
+    """Write per-pair treaty records in the same shape bilateral ratification uses."""
+    active_treaties = getattr(world, "active_treaties", {}) or {}
+    previous_treaties = getattr(world, "previous_treaties", {}) or {}
+    all_terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    for entry in plan:
+        proposer_member = entry["proposer_member"]
+        covered_enemy = entry["covered_enemy"]
+        pair_key = world._make_diplo_key(proposer_member, covered_enemy)
+        final_state = world.get_diplomatic_state(proposer_member, covered_enemy)
+        pair_terms = []
+        for term in all_terms:
+            term_type = term.get("type")
+            term_from = str(term.get("from") or term.get("vassal_nation") or "")
+            term_to = str(term.get("to") or term.get("lord_nation") or term.get("liberator") or "")
+            if term_type in ("forced_alliance", "vassalage", "subjugation"):
+                if term_from == covered_enemy and term_to == proposer_member:
+                    pair_terms.append(term)
+            elif term_from == covered_enemy:
+                pair_terms.append(term)
+            elif term_to == proposer_member and term_from:
+                pair_terms.append(term)
+        treaty_type = {
+            "ALLIANCE": "alliance",
+            "VASSAL": "vassalage",
+            "DEFENSIVE_ALLIANCE": "defensive_alliance",
+        }.get(final_state, "peace")
+        treaty = {
+            "nations": [proposer_member, covered_enemy],
+            "type": treaty_type,
+            "state_transition": f"{entry['current_state']}_TO_{final_state}",
+            "clauses": [dict(t) for t in pair_terms],
+            "turn_signed": int(getattr(world, "current_turn", 0) or 0),
+            "harshness": calculate_treaty_harshness({"clauses": pair_terms}),
+        }
+        active_treaties[pair_key] = treaty
+        previous_treaties.setdefault(pair_key, []).append(dict(treaty))
+    world.active_treaties = active_treaties
+    world.previous_treaties = previous_treaties
 
 
 def _capture_pre_cleanup_snapshots(
@@ -649,11 +880,9 @@ def _capture_pre_cleanup_snapshots(
     summary shape exposes per-pair war_score / war_duration /
     casualties so D1 reactions can read frozen pre-settlement context.
     """
-    from backend.game_logic.diplomacy import _capture_pre_cleanup_war_data
-
     snapshots: Dict[str, Dict[str, Any]] = {}
     for entry in plan:
-        snapshots[entry["pair"]] = _capture_pre_cleanup_war_data(
+        snapshots[entry["pair"]] = _capture_pair_pre_cleanup_war_data(
             world, entry["proposer_member"], entry["covered_enemy"],
         )
     return snapshots
@@ -749,6 +978,9 @@ def ratify_settlement_confirm(
         world, plan, settlement_terms,
     )
     applied_clauses.extend(fa_applied)
+    _record_common_peace_treaties(
+        world, plan=plan, settlement_terms=settlement_terms,
+    )
 
     # Spec §11 ratification ordering line 1239: invalidate war-instance
     # indexes + Balance of Europe / hegemony / bloc caches before any
