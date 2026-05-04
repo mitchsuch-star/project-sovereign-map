@@ -50,6 +50,7 @@ from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
     stage_settlement_confirm,
 )
+import backend.game_logic.settlement_reactions as settlement_reactions_module
 from backend.game_logic.settlement_reactions import (
     SETTLEMENT_DISPATCH_PRIMARY_CAP,
     SETTLEMENT_GRATITUDE_MOD,
@@ -288,6 +289,20 @@ class TestSettlementGratitudeMod:
         # Austria asking Prussia must not benefit from France's reward.
         assert (
             settlement_gratitude_mod(world, "Austria", "Prussia", "ALLIANCE")
+            == 0
+        )
+
+    def test_expired_memory_does_not_apply_before_prune_runs(self):
+        world = WorldState()
+        world.current_turn = 1
+        _add_settlement_memory(
+            world, actor="France", subject="Prussia",
+            memory_type="settlement_gratitude",
+            episode_id="ep", payload={}, expires_in=2,
+        )
+        world.current_turn = 3
+        assert (
+            settlement_gratitude_mod(world, "France", "Prussia", "ALLIANCE")
             == 0
         )
 
@@ -595,7 +610,7 @@ class TestEnemySideSoldOut:
 
 
 class TestBargainBreachAtSettlement:
-    def _install_active_bargain(self, world, claim_region):
+    def _install_active_bargain(self, world, claim_region, *, promiser="France"):
         from backend.game_logic.diplomacy import (
             _ensure_live_bargain_indexes,
         )
@@ -607,7 +622,7 @@ class TestBargainBreachAtSettlement:
             "id": "wb_test_1",
             "type": "war_bargain",
             "war_id": "war_d1",
-            "promiser": "France",
+            "promiser": promiser,
             "beneficiary": "Saxony",
             "target_enemy": "Austria",
             "claim_term": {"claim_region": claim_region},
@@ -682,6 +697,34 @@ class TestBargainBreachAtSettlement:
         )
         assert summary["bargain_reactions"] == []
         # Bargain still live for lifecycle pass to fulfill next turn.
+        assert bargain["status"] == "active"
+
+    def test_non_french_claim_does_not_breach_in_this_slice(self):
+        world = WorldState()
+        _install_two_v_two_war(world)
+        austria_region = next(
+            name for name in REGIONS_DATA
+            if world.regions[name].controller == "Austria"
+        )
+        bargain = self._install_active_bargain(
+            world, austria_region, promiser="Austria",
+        )
+        summary = route_settlement_reactions(
+            world,
+            war_id="war_d1",
+            proposer_side="attackers",
+            accepting_side="defenders",
+            covered_enemy_participants=["Austria"],
+            settlement_terms=[{
+                "type": "territory_cede", "from": "Austria", "to": "Bavaria",
+                "beneficiary": "Bavaria", "regions": [austria_region],
+            }],
+            resolved_pairs=[],
+            applied_clauses=[],
+            pre_cleanup_snapshots=[],
+            war_ended=False,
+        )
+        assert summary["bargain_reactions"] == []
         assert bargain["status"] == "active"
 
 
@@ -979,7 +1022,7 @@ class TestRatificationWiring:
         types_logged = [e.get("type") for e in world.event_log]
         assert "settlement_summary" in types_logged
 
-    def test_invalidate_runs_before_reactions(self):
+    def test_invalidate_runs_before_reactions(self, monkeypatch):
         """Spec §11 line 1239 — caches must invalidate before reactions read."""
         world = WorldState()
         _install_two_v_two_war(world)
@@ -988,11 +1031,31 @@ class TestRatificationWiring:
         # which only returns fresh data if invalidation ran first.
         prior = world.get_war_instances_by_participant("Austria")
         assert "war_d1" in prior
+        original_route = settlement_reactions_module.route_settlement_reactions
+        observed = {}
+
+        def observing_route(observed_world, **kwargs):
+            observed["during_reaction_index"] = (
+                observed_world.get_war_instances_by_participant("Austria")
+            )
+            observed["dialogue_pending_during_reactions"] = (
+                observed_world.pending_diplomatic_dialogue is not None
+            )
+            return original_route(observed_world, **kwargs)
+
+        monkeypatch.setattr(
+            settlement_reactions_module,
+            "route_settlement_reactions",
+            observing_route,
+        )
         dialogue = _stage(world)  # full settlement
         result = ratify_settlement_confirm(world, dialogue)
         assert result["success"] is True
-        # After full settlement the war_instance ends; participant index
-        # for Austria must reflect that (no longer including war_d1).
+        # The reaction entry point itself must see the rebuilt index after
+        # full settlement ends the war, and before the dialogue is popped.
+        assert "war_d1" not in observed["during_reaction_index"]
+        assert observed["dialogue_pending_during_reactions"] is True
+        # Post-state remains fresh as a backstop.
         post = world.get_war_instances_by_participant("Austria")
         assert "war_d1" not in post
 

@@ -238,10 +238,15 @@ def settlement_gratitude_mod(
     """
     if proposal_type not in _GRATITUDE_HOOK_TREATY_TYPES:
         return 0
+    current_turn = int(getattr(world, "current_turn", 0) or 0)
     matches = get_settlement_memories(
         world, actor=asker, subject=target, memory_type="settlement_gratitude",
     )
-    return SETTLEMENT_GRATITUDE_MOD if matches else 0
+    for memory in matches:
+        expires_on_turn = memory.get("expires_on_turn")
+        if expires_on_turn is None or int(expires_on_turn) > current_turn:
+            return SETTLEMENT_GRATITUDE_MOD
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -404,8 +409,6 @@ def _compute_affected_nations(
     - beneficiaries (`to` / `beneficiary` / `liberator`)
     - resolved-pair members
     - covered enemy participants
-    - proposer-side members (so cross-war scans pick up France-against-
-      another-power consequences for France's other allies)
     """
     affected: Set[str] = set()
     for term in list(settlement_terms or []) + list(applied_clauses or []):
@@ -428,9 +431,6 @@ def _compute_affected_nations(
             if isinstance(value, str) and value:
                 affected.add(value)
     for nation in covered_enemy_participants or []:
-        if isinstance(nation, str) and nation:
-            affected.add(nation)
-    for nation in proposer_side_members or []:
         if isinstance(nation, str) and nation:
             affected.add(nation)
     return affected
@@ -744,6 +744,8 @@ def _evaluate_bargain_outcomes(
             continue
         promiser = str(bargain.get("promiser") or "")
         beneficiary = str(bargain.get("beneficiary") or "")
+        if promiser != "France":
+            continue
         claim_region = str(
             (bargain.get("claim_term") or {}).get("claim_region") or ""
         )
