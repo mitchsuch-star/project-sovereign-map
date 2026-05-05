@@ -1,6 +1,6 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.29 A1-E LANDED / SLICE F UI-UX CLOSURE REQUIRED BEFORE FINAL SMOKE - A through E backend/presentation work is green, but final player-readiness now requires a dedicated UI/UX closure slice before smoke. Common peace must be reachable from the normal diplomacy wizard and war-score/detail surfaces, not only typed command; default-start WAR pairs without `war_instance` must be shown as settlement-openable through a read-only backfill probe; `open_settlement` is free to open; `settlement_confirm` must render a readable sectioned popup; war-detail and coalition-detail surfaces must expose settlement CTAs; ledger, HUD, and popup surfaces must humanize term/standing/error enums; and final smoke is invalid until these gates close. After Slice F/final smoke, the next explicitly tracked quality phase is AI/ally settlement agency: AI war leaders can already send `incoming_settlement_offer` per §16.5, while non-leader allies need a separate petition/advisory layer that lets them ask, warn, request spoils, or demand redress without getting a veto or conference turn. Current settlement participants must exist in scenario/map data; future nations enter one by one through the `ADDING_CONTENT.md` nation checklist plus settlement readiness fixture when the map/scenario adds them. Coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.27.
+> **Status:** v1.30 A1-E LANDED / SLICE F UI-UX CONTRACT TIGHTENED BEFORE IMPLEMENTATION - A through E backend/presentation work is green, but final player-readiness now requires a dedicated UI/UX closure slice before smoke. Common peace must be reachable from the normal diplomacy wizard and war-score/detail surfaces, not only typed command; default-start WAR pairs without `war_instance` must be shown as settlement-openable through a read-only backfill probe; `open_settlement` is free to open and not DP-gated; `settlement_confirm` must render a readable sectioned popup with humanized display fields; war-detail and coalition-detail surfaces must expose settlement CTAs with a war-scoped entry contract; ledger, HUD, popup, dispatch, rail, and campaign-log surfaces must humanize term/standing/warning/acceptance/error enums; incoming AI settlement offers need at least a minimal Godot route before final smoke; and final smoke is invalid until these gates close. After Slice F/final smoke, the next explicitly tracked quality phase is AI/ally settlement agency: AI war leaders can already send `incoming_settlement_offer` per §16.5, while non-leader allies need a separate petition/advisory layer that lets them ask, warn, request spoils, or demand redress without getting a veto or conference turn. Current settlement participants must exist in scenario/map data; future nations enter one by one through the `ADDING_CONTENT.md` nation checklist plus settlement readiness fixture when the map/scenario adds them. Coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.28.
 > **Last Updated:** May 5, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
@@ -843,9 +843,30 @@ The **Open settlement** option is enabled only when all are true:
 
 Wizard availability must be read-only. It must not allocate a `war_instance`, attach pairs, open contribution episodes, invalidate caches, or stage a dialogue. Use a pure probe that can report `would_backfill=True` for default-start WAR pairs; the click/command path remains the only lazy-backfill mutation path.
 
-Opening settlement is free. The UI must display no DP cost for `open_settlement` and must not disable it for insufficient DP. If ratification later gains an explicit cost, that cost belongs to `confirm_settlement`, not the opener.
+Required probe contract:
 
-Grey-out / preview error reasons are deterministic: `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, or `settlement_dialogue_active`. Backend payloads must include player-facing display text for every reason; Godot must not render internal enum strings such as `inactive_war_instance`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms.
+```python
+probe_settlement_eligibility(
+    world,
+    *,
+    player_nation: str,
+    target_nation: str,
+    war_id: str | None = None,
+) -> {
+    "available": bool,
+    "war_id": str | None,
+    "would_backfill": bool,
+    "error": str | None,
+    "disabled_reason_display": str,
+    "debug_reason": str | None,
+}
+```
+
+`war_id` is optional for F1 / bilateral-row entry and preferred for war-detail / coalition-detail entry. If both `war_id` and `target_nation` are present, war-scoped settlement opening prefers `war_id` after validating that the target belongs to that active instance. The probe and the mutating open path must distinguish "no instance yet but backfillable" from true validation failure.
+
+Opening settlement is free. The UI must display no DP cost for `open_settlement` and must not disable it for insufficient DP. The parser/debug command path (`propose common peace with {nation}`) and the wizard path must both remain available at `DP=0` when eligibility otherwise passes. If ratification later gains an explicit cost, that cost belongs to `confirm_settlement`, not the opener.
+
+Grey-out / preview error reasons are deterministic: `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, or `settlement_dialogue_active`. Backend payloads must include player-facing display text for every reason, preferably through a single settlement display-name map/helper such as `SETTLEMENT_DISABLED_REASON_DISPLAY`; Godot must not render internal enum strings such as `inactive_war_instance`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms.
 
 ### 10.4 Endpoint and dialogue contract
 
@@ -930,16 +951,53 @@ Mutating common peace commands must not ratify directly from `/command`. They cr
     "accepting_side": "defenders",
     "staged_leaders": {"attackers": "France", "defenders": "Austria"},
     "staged_turn": 24,
+    "war_label": "France vs the Coalition",
+    "settlement_tier_display": "Decisive Victory",
     "settlement_terms": [...],
     "settlement_preview": {...},
+    "review_sections": {
+        "compact": {...},
+        "medium": {...},
+    },
+    "acceptance": {
+        "score": 61,
+        "band": "near_acceptable",
+        "band_display": "Near acceptable",
+        "top_components": [...],
+        "top_blocker": {...},
+    },
     "acceptance_components": {...},
     "warnings": [],
     "hard_stops": [],
+    "awe_tags": [],
+    "route": {
+        "review_target": "settlement_review",
+        "route_id": "settlement_summary:war_12:24",
+    },
     "actions": ["confirm", "back_out", "revise_terms"],
 }
 ```
 
+The dialogue may carry raw ids for diagnostics, but every field rendered by Godot must have a player-facing sibling or display-safe value. Required display siblings include term `display_label` / `type_display`, ally `standing_display`, optional ally `standing_phrase`, warning `code_display`, acceptance `band_display`, and disabled reason `disabled_reason_display`. These labels must be produced by backend presentation/display helpers and Godot must prefer them over raw codes.
+
+`settlement_confirm` is the primary comprehension surface. Compact mode must render, in this order:
+
+1. Header with `war_label` and a **Whole war** / **Separate front** badge.
+2. Acceptance verdict band, score, and top-blocker callout.
+3. Warnings: all hard stops, the top warning, and a severity-colored `+N concerns` overflow affordance.
+4. Terms: top rows grouped by payer/beneficiary, with Bargains and Rewards split when both are present.
+5. Allies: top rows with `standing_display`, material share, and one outcome stamp: `leader`, `rewarded`, `consulted`, `shut_out`, `sold_out`, or `ignored`.
+6. Actions: **Ratify Settlement**, **Revise Terms**, **Back Out**.
+
+The ledger is the durable detail surface; war detail is an entry/context surface. Do not add a conference minigame or ally-vote screen in Slice F.
+
+`revise_terms` and stale-state behavior are part of the contract. `revise_terms` must preserve settlement context by reopening the settlement review/popup or returning to the selected nation's action view with prior diagnostics intact. Confirm-time validation failures with `must_reopen=True` must return a human-readable reason and a route back to the same war/nation context. A silent close is invalid.
+
+Successful `confirm_settlement` must produce immediate feedback: "Settlement Ratified", friendly `war_label`, resolved-pair count, and a Review Settlement route. Notification rail and ledger entries are not enough by themselves for the confirm moment.
+
 Incoming AI common-peace offers use a distinct current-turn offer dialogue before ratification. `incoming_settlement_offer` is a `DialogueManager.CURRENT_TURN_OFFER_TYPES` dialogue, browseable through the mailbox like other incoming proposals, not a `HARD_STOP`. It must have its own dialogue priority at the normal incoming-proposal tier and its own mailbox summary label, not the default fallback label. While one is active, Open Settlement eligibility returns `settlement_dialogue_active` for the same player/war. Accepting it stages a `settlement_confirm` hard stop from the locked offer payload and then the normal `settlement_confirm.confirm` action performs live revalidation and mutation.
+
+Slice F must add at least minimal Godot routing for `incoming_settlement_offer` so it opens a settlement review/offer surface with accept/reject/request-revision options or promotes to the normal settlement-confirm surface when accepted. Full AI offer generation and non-leader ally petitions remain Slice G, but a received `incoming_settlement_offer` must not fall into a generic "pending diplomatic matter" text path during final smoke.
 
 ```python
 {
@@ -2171,12 +2229,15 @@ Highest-priority tests:
 133. At least one losing-defender AI package with only a defense objective reaches acceptance through concessions/returns/exhaustion/leader-loss avoidance, or a capped `defender_concession_bonus` is added and documented.
 134. Final UI/UX closure proves common peace is reachable from the diplomacy wizard and war-detail/coalition-detail surfaces, not only typed command.
 135. Wizard availability for default-start WAR pairs uses a read-only backfill probe and does not mutate `world.war_instances`.
-136. `open_settlement` displays as free to open and is not blocked by insufficient DP.
-137. `settlement_confirm` renders a dedicated readable popup body with review sections, terms, warnings, acceptance, and covered participants.
-138. Settlement ledger, HUD, popup, and wizard surfaces do not leak raw term, standing, or disabled-reason enums.
-139. Post-F AI/ally settlement agency is explicitly tracked: AI war-leader `incoming_settlement_offer` remains the common-peace offer path, while non-leader allies use petitions/advisories rather than co-authoring treaties.
-140. Ally petitions never bypass side-leader validation, hard stops, direct-score gates, WB-B checks, or settlement reaction construction.
-141. Ally petition UI/mailbox copy is humanized, cooldown-gated, and can focus the settlement wizard/review without mutating treaty state directly.
+136. `open_settlement` displays as free to open, is not blocked by insufficient DP, and typed/wizard paths both work at `DP=0`.
+137. `settlement_confirm` renders a dedicated readable popup body with friendly war label, compact/medium review sections, acceptance band/top blocker, warnings, terms, allies, covered participants, and required ratification feedback.
+138. Settlement ledger, HUD, popup, wizard, dispatch, rail, and campaign-log surfaces do not leak raw term, standing, warning, acceptance-band, or disabled-reason enums.
+139. War-detail and coalition-detail settlement entry carries a war-scoped route contract; `war_id` is preferred over pair-derived target lookup when supplied.
+140. Default-start WAR rows without `war_instance` expose a humanized standing placeholder instead of silently hiding standing/contribution context.
+141. `incoming_settlement_offer` has at least a minimal Godot route before final smoke; full AI/ally settlement agency remains Slice G.
+142. Post-F AI/ally settlement agency is explicitly tracked: AI war-leader `incoming_settlement_offer` remains the common-peace offer path, while non-leader allies use petitions/advisories rather than co-authoring treaties.
+143. Ally petitions never bypass side-leader validation, hard stops, direct-score gates, WB-B checks, or settlement reaction construction.
+144. Ally petition UI/mailbox copy is humanized, cooldown-gated, and can focus the settlement wizard/review without mutating treaty state directly.
 
 ---
 
@@ -2235,6 +2296,7 @@ These are presentation targets, not extra mechanics. If the mechanical result ex
 
 ## 21. Changelog
 
+- **May 5, 2026 - v1.30 Slice F pre-implementation audit synthesis.** Tightened Slice F from broad UI closure prose into executable contracts before coding: `open_settlement` is a live free-entry regression until DP gating is removed; wizard availability requires an explicit read-only probe signature; war-detail/coalition-detail settlement entry prefers `war_id` when supplied; `settlement_confirm` must carry friendly labels, compact/medium review sections, display siblings, route metadata, awe tags, stale-state/revise behavior, and required ratification feedback; all player surfaces must prefer humanized term/standing/warning/acceptance/error labels; default-start WAR rows need standing placeholders; and `incoming_settlement_offer` needs minimal Godot routing before final smoke even though full AI/ally agency remains Slice G. The companion implementation plan is v1.28.
 - **May 5, 2026 - v1.29 post-F ally-agency tracking.** Made the next phase explicit after Slice F/final smoke: AI war leaders already own `incoming_settlement_offer`, while non-leader allies need a separate petition/advisory layer for requesting settlement, consultation, rewards/restoration, bargain honor, anti-sellout warnings, and redress. Preserved the no-conference/no-veto design call by defining ally petitions as current-turn diplomatic pressure that can focus settlement UI but cannot ratify or bypass side-leader validation. The companion implementation plan is v1.27.
 - **May 5, 2026 - v1.28 final UI/UX closure phase.** Added mandatory Slice F before final smoke: common peace must be reachable from the diplomacy wizard and war-detail/coalition-detail surfaces; wizard availability uses a read-only lazy-backfill probe for default-start WAR pairs; opening settlement is free; disabled reasons are humanized; `settlement_confirm` gets a dedicated readable popup body; war-status standing placeholders cover no-instance starting wars; ledger/HUD/popup surfaces must humanize term and standing labels; and final smoke is blocked until those gates are green. The companion implementation plan is v1.26.
 - **May 2, 2026 - v1.26 A2 landed / A3 readiness cleanup.** Updated the status header after A2 review fixes landed and tightened the A3 boundary: connected-component merge owns absorbed-reference rewrites against current containers (`diplomatic_commitments`, dispatch/event-log/ledger payloads) plus no-op-safe hooks for absent future Slice B/C containers, without inventing contribution accrual or settlement-dialogue behavior early. Terminal war-instance retention is now exact: keep while `current_turn - ended_turn < 10`, archive at `>= 10`.
