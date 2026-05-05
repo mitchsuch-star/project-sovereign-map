@@ -384,18 +384,14 @@ def _find_active_war_instance_id(
 
 
 def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
-    """Return True when common peace adds value over bilateral peace.
-
-    A pure one-on-one war already has the war-detail `Negotiate Peace`
-    path. The common settlement button is reserved for multi-participant
-    war instances where a war-wide package can settle or leave out
-    multiple parties.
-    """
+    """Return True when common peace adds value over bilateral peace."""
     if not war_id:
         return False
     instance = (getattr(world, "war_instances", None) or {}).get(war_id)
     if not instance or instance.get("ended_turn") is not None:
         return False
-    attackers = list(instance.get("attackers") or [])
-    defenders = list(instance.get("defenders") or [])
-    return len(set(attackers + defenders)) > 2
+    from backend.game_logic.settlement_preview import (
+        is_common_settlement_worth_showing,
+    )
+
+    return is_common_settlement_worth_showing(instance)

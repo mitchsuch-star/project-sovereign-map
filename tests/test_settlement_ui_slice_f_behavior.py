@@ -31,6 +31,7 @@ from backend.display_names import (
     side_label_display,
     SIDE_LABEL_DISPLAY,
 )
+from backend.game_logic.diplomacy import get_available_diplomatic_actions
 from backend.game_logic.settlement_helpers import (
     resolve_or_backfill_war_instance_for_settlement,
 )
@@ -38,6 +39,7 @@ from backend.game_logic.settlement_preview import (
     _enrich_acceptance_display,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
+    evaluate_open_settlement_eligibility,
     handle_incoming_settlement_offer_action,
     stage_settlement_confirm,
 )
@@ -422,6 +424,46 @@ def test_propose_common_peace_with_invalid_war_id_returns_humanized_error():
     assert result["success"] is False
     assert result["error"] == "invalid_war_id"
     assert result["error_display"] == "This war can no longer be found."
+
+
+def test_open_settlement_eligibility_rejects_one_to_one_war():
+    world = WorldState()
+    war = make_synthetic_war_instance(
+        "war_1",
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=1,
+        created_sequence=1,
+    )
+    world.war_instances["war_1"] = war
+    for pair in war["active_diplo_keys"]:
+        world.diplomatic_states[pair] = "WAR"
+    world.invalidate_war_instance_indexes()
+
+    result = evaluate_open_settlement_eligibility(world, war_id="war_1")
+
+    assert result["available"] is False
+    assert result["error"] == "one_to_one_war"
+    assert result["disabled_reason_display"] == (
+        "Use bilateral peace or armistice for a one-on-one war."
+    )
+
+
+def test_diplomacy_wizard_action_disables_settlement_without_common_war_instance():
+    world = WorldState()
+    pair = world._make_diplo_key("France", "Austria")
+    world.diplomatic_states[pair] = "WAR"
+
+    actions = get_available_diplomatic_actions(world, "Austria")
+    action = next(a for a in actions if a["action"] == "open_settlement")
+
+    assert action["available"] is False
+    assert action["disabled_reason_display"] == (
+        "Use bilateral peace or armistice for a one-on-one war."
+    )
+    assert action["war_id"] is None
 
 
 # ---------------------------------------------------------------------------

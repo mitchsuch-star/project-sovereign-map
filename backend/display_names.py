@@ -520,6 +520,7 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "self_settlement": "France cannot settle with itself.",
     "not_at_war": "France is not at war with this court.",
     "not_side_leader": "Only the war leader can settle this side.",
+    "one_to_one_war": "Use bilateral peace or armistice for a one-on-one war.",
     "no_unresolved_hostile_pairs": "There are no hostile pairs left to settle.",
     "no_coverable_enemy": "There is no enemy participant this settlement can cover.",
     "settlement_dialogue_active": "Resolve the current settlement review first.",

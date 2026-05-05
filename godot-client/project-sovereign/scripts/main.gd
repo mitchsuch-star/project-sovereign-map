@@ -931,7 +931,7 @@ func _on_command_result(response):
 	# after Revise Terms, or after accepting an incoming offer with no war_id).
 	# Acted on regardless of success because the helper paths return success=False
 	# but still hand back a reopen_target.
-	if bool(response.get("must_reopen", false)) and response.has("reopen_target"):
+	if bool(response.get("must_reopen", false)):
 		var reopen_target = response.get("reopen_target", {})
 		if typeof(reopen_target) == TYPE_DICTIONARY:
 			var rt_war_id = str(reopen_target.get("war_id", ""))
@@ -940,6 +940,10 @@ func _on_command_result(response):
 				add_output("[color=#" + Utils.COLOR_INFO + "]Reopening settlement review for " + rt_nation + "…[/color]")
 				_on_war_settlement_clicked(rt_war_id, rt_nation)
 				return
+		add_output("[color=#e04040]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
 
 	if response.success:
 		# Format and display result based on event type

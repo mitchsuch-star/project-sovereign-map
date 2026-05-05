@@ -188,6 +188,15 @@ def get_coverable_enemy_participants(
     return sorted(coverable)
 
 
+def is_common_settlement_worth_showing(war_instance: Mapping[str, Any]) -> bool:
+    """Return True when common peace adds value over bilateral peace."""
+    if not isinstance(war_instance, Mapping):
+        return False
+    attackers = list(war_instance.get("attackers") or [])
+    defenders = list(war_instance.get("defenders") or [])
+    return len(set(attackers + defenders)) > 2
+
+
 def evaluate_open_settlement_eligibility(
     world: Any,
     *,
@@ -203,6 +212,8 @@ def evaluate_open_settlement_eligibility(
         return _blocked_payload("invalid_war_id", war_id=war_id)
     if instance.get("ended_turn") is not None:
         return _blocked_payload("inactive_war_instance", war_id=war_id)
+    if not is_common_settlement_worth_showing(instance):
+        return _blocked_payload("one_to_one_war", war_id=war_id)
 
     side = _infer_actor_side(instance, actor, proposer_side)
     if side not in VALID_SIDES:

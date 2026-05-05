@@ -161,6 +161,7 @@ def test_main_gd_handles_must_reopen_and_auto_opens_ledger() -> None:
     assert "must_reopen" in main
     assert "reopen_target" in main
     assert "Reopening settlement review for" in main
+    assert "did not provide a valid target" in main
     assert "Opening diplomatic ledger to settlement" in main
     # The wizard's structured-command signal is wired so open_settlement
     # forwards war_id to the backend.
@@ -184,6 +185,16 @@ def test_settlement_dialogue_actions_never_fallback_to_command_synthesis() -> No
     assert handler.index("if action in SETTLEMENT_DIALOGUE_ACTIONS:") < handler.index(
         'var command = "Talleyrand, %s the %s proposal"'
     )
+
+
+def test_backend_hides_common_settlement_for_one_to_one_wizard_paths() -> None:
+    display_names = read_repo_file("backend/display_names.py")
+    preview = read_repo_file("backend/game_logic/settlement_preview.py")
+    diplomacy = read_repo_file("backend/game_logic/diplomacy.py")
+
+    assert "one_to_one_war" in display_names
+    assert "is_common_settlement_worth_showing" in preview
+    assert 'settlement_disabled_reason_display("one_to_one_war")' in diplomacy
 
 
 def test_war_detail_refresh_honors_war_instance_id() -> None:

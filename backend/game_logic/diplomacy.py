@@ -9843,20 +9843,23 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             from backend.display_names import settlement_disabled_reason_display
             settlement_eligibility = {
                 "available": False,
-                "error": "inactive_war_instance",
-                "error_display": settlement_disabled_reason_display("inactive_war_instance"),
-                "disabled_reason_display": settlement_disabled_reason_display("inactive_war_instance"),
+                "error": "one_to_one_war",
+                "error_display": settlement_disabled_reason_display("one_to_one_war"),
+                "disabled_reason_display": settlement_disabled_reason_display("one_to_one_war"),
             }
             if world.diplomatic_states.get(diplo_key) == "WAR":
                 settlement_eligibility = {
-                    "available": True,
+                    "available": False,
                     "war_id": "",
-                    "would_backfill": True,
+                    "would_backfill": False,
+                    "error": "one_to_one_war",
+                    "error_display": settlement_disabled_reason_display("one_to_one_war"),
+                    "disabled_reason_display": settlement_disabled_reason_display("one_to_one_war"),
                     "proposer_side": "",
                     "accepting_side": "",
                     "coverable_enemy_participants": [target_nation],
                     "display_reason": (
-                        "Open settlement to prepare a war-wide peace review."
+                        settlement_disabled_reason_display("one_to_one_war")
                     ),
                 }
         settlement_available = bool(settlement_eligibility.get("available"))

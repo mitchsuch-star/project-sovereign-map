@@ -473,8 +473,9 @@ class TestActionFilters:
         actions = get_available_diplomatic_actions(world, "Prussia")
         for a in actions:
             if a["action"] == "open_settlement":
-                assert a["available"] is True
+                assert a["available"] is False
                 assert a["dp_cost"] == 0
+                assert "one-on-one war" in a["disabled_reason_display"]
                 continue
             assert a["available"] is False
             assert "Insufficient DP" in a["disabled_reason"]
