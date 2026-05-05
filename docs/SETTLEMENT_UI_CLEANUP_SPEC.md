@@ -1,5 +1,7 @@
 # Settlement UI Cleanup Spec
 
+> **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
+
 > **Status:** v0.1 draft - cleanup gate before further settlement coding
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
@@ -10,7 +12,7 @@ The Imperial Settlement / Common Peace feature reached normal UI paths, but the 
 
 The opening blocker is `Revise Terms`: the button currently routes through typed dialogue plumbing and reopens the same review, but it does not open an editor or change the draft package. A player-facing `Revise Terms` action that cannot revise terms is not complete.
 
-This spec exists to find and close every adjacent gap of the same class:
+This spec exists to find and close every adjacent gap of the same class. The desired end state is not a technically reachable popup; it is a settlement flow a player can use, understand, revise where promised, and trust.
 
 - Button exists, but does not perform the player-visible action.
 - UI path exists, but falls back to typed command text, generic mailbox text, or nation-picker recovery.
@@ -20,6 +22,12 @@ This spec exists to find and close every adjacent gap of the same class:
 ## Non-Negotiable Rule
 
 No settlement UI slice is complete because a route exists. It is complete only when the player-facing surface does the named action, shows the necessary state to understand the outcome, and has behavioral coverage that would fail if the action became a no-op.
+
+Deferral policy:
+
+- A visible broken or misleading settlement behavior cannot be deferred silently.
+- A defer decision must name the player impact, hide or remove the broken affordance when possible, and be explicitly accepted in status/spec text before coding proceeds.
+- If there is a conflict between finishing quickly and making the settlement feature actually usable, choose quality.
 
 ## Scope
 
