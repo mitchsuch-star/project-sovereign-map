@@ -1404,6 +1404,8 @@ async def respond_to_diplomatic_dialogue(request: dict):
             response["settlement_result_feedback"] = result["settlement_result_feedback"]
         if result.get("reopen_target"):
             response["reopen_target"] = result["reopen_target"]
+        if result.get("must_reopen"):
+            response["must_reopen"] = result["must_reopen"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
         return response

@@ -23,6 +23,8 @@ Coverage targets:
 
 from __future__ import annotations
 
+import asyncio
+
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.display_names import (
     settlement_disabled_reason_display,
@@ -43,6 +45,7 @@ from backend.game_logic.settlement_presentation import (
     build_contribution_share_rows,
     build_settlement_review,
 )
+from backend.game_logic.war_status import build_active_wars
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import (
     make_synthetic_war_instance,
@@ -323,6 +326,64 @@ def test_command_request_model_accepts_command_only():
     assert req.war_id is None
 
 
+def test_diplomatic_dialogue_endpoint_preserves_must_reopen(monkeypatch):
+    """Revise Terms depends on `must_reopen` reaching Godot.
+
+    Without this passthrough, the backend returns only text and a
+    reopen_target; main.gd never reopens the settlement popup flow.
+    """
+    import backend.main as main_module
+
+    class FakeWorld:
+        game_over = False
+        pending_diplomatic_dialogue = {
+            "type": "settlement_confirm",
+            "war_id": "war_1",
+        }
+        proposal_result_popup = None
+
+    class FakeExecutor:
+        def handle_diplomatic_dialogue_response(self, choice, game_state):
+            assert choice == 2
+            return {
+                "success": True,
+                "message": "Reopen this settlement review to revise terms.",
+                "must_reopen": True,
+                "reopen_target": {
+                    "surface": "settlement_review",
+                    "war_id": "war_1",
+                    "target_nation": "Austria",
+                },
+                "suppress_proposal_result_popup": True,
+            }
+
+    monkeypatch.setattr(main_module, "world", FakeWorld())
+    monkeypatch.setattr(main_module, "game_state", {"world": main_module.world})
+    monkeypatch.setattr(main_module, "executor", FakeExecutor())
+    monkeypatch.setattr(
+        main_module,
+        "build_base_response",
+        lambda world, success, message, **_kwargs: {
+            "success": success,
+            "message": message,
+        },
+    )
+    monkeypatch.setattr(
+        main_module,
+        "_include_peace_ratification_summary",
+        lambda response, result: None,
+    )
+
+    response = asyncio.run(
+        main_module.respond_to_diplomatic_dialogue({"choice": 2})
+    )
+
+    assert response["success"] is True
+    assert response["must_reopen"] is True
+    assert response["reopen_target"]["war_id"] == "war_1"
+    assert response["reopen_target"]["target_nation"] == "Austria"
+
+
 def test_propose_common_peace_consumes_structured_war_id():
     """End-to-end: cmd dict carries war_id, executor passes it through."""
     world = WorldState()
@@ -552,6 +613,45 @@ def test_confirm_dialogue_carries_uncovered_chips_for_popup():
     dialogue = result["diplomatic_dialogue"]
     assert "uncovered_enemy_display_chips" in dialogue
     assert "Prussia" in dialogue["uncovered_enemy_display_chips"]
+
+
+# ---------------------------------------------------------------------------
+# War detail common-settlement affordance
+# ---------------------------------------------------------------------------
+
+
+def test_active_wars_hide_common_settlement_for_one_to_one_war():
+    world = WorldState()
+    war = make_synthetic_war_instance(
+        "war_1",
+        attackers=["France"],
+        defenders=["Austria"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=1,
+        created_sequence=1,
+    )
+    world.war_instances["war_1"] = war
+    for pair in war["active_diplo_keys"]:
+        world.diplomatic_states[pair] = "WAR"
+    world.invalidate_war_instance_indexes()
+
+    result = build_active_wars(world)
+    austria = next(w for w in result["wars"] if w["opponent"] == "Austria")
+
+    assert austria["war_instance_id"] == "war_1"
+    assert austria["settlement_available"] is False
+
+
+def test_active_wars_show_common_settlement_for_multi_party_war():
+    world = WorldState()
+    _install_war(world)
+
+    result = build_active_wars(world)
+    austria = next(w for w in result["wars"] if w["opponent"] == "Austria")
+
+    assert austria["war_instance_id"] == "war_1"
+    assert austria["settlement_available"] is True
 
 
 # ---------------------------------------------------------------------------

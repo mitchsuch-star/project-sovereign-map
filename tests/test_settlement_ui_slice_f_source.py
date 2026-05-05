@@ -62,6 +62,7 @@ def test_war_detail_and_notifications_preserve_settlement_route_ids() -> None:
 
     assert "signal settlement_clicked(war_id: String, target_nation: String)" in war_detail
     assert "Open Whole-War Settlement" in war_detail
+    assert 'war_data.get("settlement_available", false)' in war_detail
     assert "_shared_coalition_war_id" in war_detail
     assert "notification_review_requested(review_target: String, route_id: String, war_id: String)" in notifications
     assert "_on_notification_review_requested(review_target: String, route_id: String = \"\", war_id: String = \"\")" in main
@@ -165,6 +166,24 @@ def test_main_gd_handles_must_reopen_and_auto_opens_ledger() -> None:
     # forwards war_id to the backend.
     assert "_on_wizard_structured_command_selected" in main
     assert "structured_command_selected" in main
+
+
+def test_settlement_dialogue_actions_never_fallback_to_command_synthesis() -> None:
+    """Settlement popup choices must stay on the dialogue endpoint.
+
+    The old generic fallback builds a natural-language command string,
+    which can drop Revise Terms into the imperial command box instead of
+    reopening the settlement popup flow.
+    """
+    main = read_repo_file("godot-client/project-sovereign/scripts/main.gd")
+    handler = gdscript_function_body(main, "_on_proposal_confirm_choice")
+
+    assert "SETTLEMENT_DIALOGUE_ACTIONS" in main
+    assert "if action in SETTLEMENT_DIALOGUE_ACTIONS:" in handler
+    assert "proposal_confirm_popup.show_dialogue(data)" in handler
+    assert handler.index("if action in SETTLEMENT_DIALOGUE_ACTIONS:") < handler.index(
+        'var command = "Talleyrand, %s the %s proposal"'
+    )
 
 
 def test_war_detail_refresh_honors_war_instance_id() -> None:

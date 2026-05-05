@@ -172,6 +172,10 @@ def build_active_wars(world) -> Dict[str, Any]:
         # block when no war_instance is wired (early game / synthetic).
         contribution = _resolve_contribution_share(world, france, opponent)
 
+        settlement_available = _is_common_settlement_worth_showing(
+            world, contribution.get("war_id", ""),
+        )
+
         wars.append({
             "opponent": opponent,
             "war_score": score,
@@ -200,6 +204,7 @@ def build_active_wars(world) -> Dict[str, Any]:
                 "standing_status_display", ""
             ),
             "war_instance_id": contribution.get("war_id", ""),
+            "settlement_available": settlement_available,
         })
 
     # Sort: coalition leader first, then coalition members, then bilateral
@@ -376,3 +381,21 @@ def _find_active_war_instance_id(
         ):
             return war_id
     return None
+
+
+def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
+    """Return True when common peace adds value over bilateral peace.
+
+    A pure one-on-one war already has the war-detail `Negotiate Peace`
+    path. The common settlement button is reserved for multi-participant
+    war instances where a war-wide package can settle or leave out
+    multiple parties.
+    """
+    if not war_id:
+        return False
+    instance = (getattr(world, "war_instances", None) or {}).get(war_id)
+    if not instance or instance.get("ended_turn") is not None:
+        return False
+    attackers = list(instance.get("attackers") or [])
+    defenders = list(instance.get("defenders") or [])
+    return len(set(attackers + defenders)) > 2

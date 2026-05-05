@@ -75,7 +75,8 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_render_war_detail(war_data)
 	_clear_buttons()
 	_add_negotiate_button(_current_nation)
-	_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
+	if bool(war_data.get("settlement_available", false)):
+		_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
 	show()
 
 

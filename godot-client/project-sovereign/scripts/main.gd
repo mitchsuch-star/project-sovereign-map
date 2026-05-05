@@ -26,6 +26,14 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"settlement_confirm",
 	"incoming_settlement_offer",
 ]
+const SETTLEMENT_DIALOGUE_ACTIONS := [
+	"confirm_settlement",
+	"revise_settlement_terms",
+	"back_out_settlement",
+	"accept_settlement_offer",
+	"reject_settlement_offer",
+	"request_settlement_revision",
+]
 
 # UI References - Header Status
 @onready var turn_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
@@ -3053,6 +3061,12 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		set_input_enabled(false)
 		api_client.send_dialogue_response(choice_index, _on_command_result)
 	else:
+		if action in SETTLEMENT_DIALOGUE_ACTIONS:
+			add_output("[color=#e04040]Settlement popup action lost its dialogue option: %s[/color]" % action)
+			set_input_enabled(false)
+			if proposal_confirm_popup:
+				proposal_confirm_popup.show_dialogue(data)
+			return
 		# Fallback for unknown actions — use old keyword path
 		var target = data.get("target_nation", "Unknown")
 		var _ACTION_KEYWORD_MAP = {
