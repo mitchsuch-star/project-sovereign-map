@@ -502,7 +502,7 @@ func _render_treaties():
 				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Reactions: " + who_str + "[/color]\n"
 			var terms_summary = settle.get("terms_summary", [])
 			if terms_summary is Array and terms_summary.size() > 0:
-				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + str(terms_summary[0]) + "[/color]\n"
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + _humanize_label(str(terms_summary[0])) + "[/color]\n"
 			# F2: inline sectioned review (Terms / Allies / Warnings /
 			# Acceptance) on click; spec §16.2 line 1636.
 			if s_expanded:
@@ -1102,7 +1102,7 @@ func _format_settlement_sections(sections) -> String:
 			for term in term_rows:
 				if not term is Dictionary:
 					continue
-				var ttype = str(term.get("type", "?"))
+				var ttype = str(term.get("display_label", term.get("type_display", term.get("type", "?"))))
 				var t_from = str(term.get("from", ""))
 				var t_to = str(term.get("to", ""))
 				var arrow = ""
@@ -1123,7 +1123,7 @@ func _format_settlement_sections(sections) -> String:
 				if not ally is Dictionary:
 					continue
 				var nation = str(ally.get("nation", "?"))
-				var standing = str(ally.get("standing", "consult"))
+				var standing = str(ally.get("standing_display", ally.get("standing", "consult")))
 				var marker = ""
 				if bool(ally.get("is_beneficiary", false)):
 					marker = " (rewarded)"
@@ -1144,7 +1144,7 @@ func _format_settlement_sections(sections) -> String:
 				if not w is Dictionary:
 					continue
 				var sev = str(w.get("severity", "WARNING"))
-				var code = str(w.get("code", "?"))
+				var code = str(w.get("code_display", w.get("code", "?")))
 				var detail = str(w.get("detail", ""))
 				var warn_color = Utils.COLOR_INFO
 				if sev == "HARD_STOP":
@@ -1160,7 +1160,7 @@ func _format_settlement_sections(sections) -> String:
 	var acceptance = section_dict.get("acceptance", {})
 	if acceptance is Dictionary and not acceptance.is_empty():
 		var total = int(acceptance.get("total", 0))
-		var band = str(acceptance.get("band", "near_acceptable"))
+		var band = str(acceptance.get("band_display", acceptance.get("band", "near_acceptable")))
 		bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Acceptance:[/color] "
 		bbcode += str(total) + " (" + band + ")\n"
 		var top = acceptance.get("top_components", [])
@@ -1171,3 +1171,10 @@ func _format_settlement_sections(sections) -> String:
 				bbcode += "      • " + str(c.get("name", "?")) + ": " + str(c.get("value", 0)) + "\n"
 
 	return bbcode
+
+
+func _humanize_label(value: String) -> String:
+	var label = value.replace("_", " ").strip_edges()
+	if label == "":
+		return value
+	return label.capitalize()

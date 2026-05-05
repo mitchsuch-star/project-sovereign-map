@@ -9840,21 +9840,31 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                     "error": "inactive_war_instance",
                 }
         else:
-            settlement_eligibility = {
-                "available": False,
-                "error": "inactive_war_instance",
-            }
-        settlement_available = bool(settlement_eligibility.get("available")) and dp >= 1
-        if dp < 1:
-            settlement_disabled_reason = "Insufficient DP"
-        elif settlement_eligibility.get("available"):
+            settlement_eligibility = {"available": False, "error": "inactive_war_instance"}
+            if world.diplomatic_states.get(diplo_key) == "WAR":
+                settlement_eligibility = {
+                    "available": True,
+                    "war_id": "",
+                    "would_backfill": True,
+                    "proposer_side": "",
+                    "accepting_side": "",
+                    "coverable_enemy_participants": [target_nation],
+                    "display_reason": (
+                        "Open settlement to prepare a war-wide peace review."
+                    ),
+                }
+        settlement_available = bool(settlement_eligibility.get("available"))
+        if settlement_eligibility.get("available"):
             settlement_disabled_reason = ""
         else:
-            settlement_disabled_reason = settlement_eligibility.get("error", "")
+            settlement_disabled_reason = settlement_eligibility.get(
+                "display_reason",
+                str(settlement_eligibility.get("error", "")).replace("_", " ").title(),
+            )
         actions.append({
             "action": "open_settlement",
             "display_name": "Open Settlement",
-            "dp_cost": 1,
+            "dp_cost": 0,
             "available": settlement_available,
             "disabled_reason": settlement_disabled_reason,
             "war_id": settlement_war_id,

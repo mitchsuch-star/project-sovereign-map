@@ -67,7 +67,7 @@ def test_open_settlement_action_appears_with_spec_greyout_reason():
 
     action = next(a for a in actions if a["action"] == "open_settlement")
     assert action["available"] is True
-    assert action["dp_cost"] == 1
+    assert action["dp_cost"] == 0
     assert action["war_id"] == "war_1"
 
 
@@ -113,7 +113,13 @@ def test_stage_settlement_confirm_creates_hard_stop_without_mutation():
     assert result["success"] is True
     assert dialogue["type"] == "settlement_confirm"
     assert world.dialogue_manager.is_hard_stop() is True
-    assert dialogue["actions"] == ["confirm", "back_out", "revise_terms"]
+    assert dialogue["actions"] == [
+        "confirm_settlement",
+        "revise_settlement_terms",
+        "back_out_settlement",
+    ]
+    assert dialogue["options"][0]["label"] == "Ratify Settlement"
+    assert "review_sections" in dialogue
     assert dict(world.diplomatic_states) == before_states
 
 

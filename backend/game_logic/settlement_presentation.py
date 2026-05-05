@@ -42,6 +42,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from backend.display_names import clause_display_name
+
 from backend.models.intel import FULL, PARTIAL, VISIBILITY_PRIORITY
 
 
@@ -60,6 +62,39 @@ SETTLEMENT_LEDGER_DEFAULT_ROWS = 5
 SETTLEMENT_STANDING_ROW_CAP = 5
 # Spec §16.3 line 1660 — top warnings rendered inline after hard stops.
 SETTLEMENT_INLINE_WARNING_CAP = 2
+
+STANDING_DISPLAY = {
+    "leader": "War leader",
+    "seat": "Seat at settlement",
+    "consult": "Consulted ally",
+    "beneficiary_only": "Named beneficiary",
+    "no_standing": "No settlement standing",
+}
+
+WARNING_CODE_DISPLAY = {
+    "ally_shut_out": "Ally shut out",
+    "enemy_sold_out": "Enemy ally sold out",
+    "bargain_breach_at_settlement": "Bargain at risk",
+    "cross_war_rival_strengthened": "Rival strengthened",
+    "hard_stop": "Settlement blocked",
+    "acceptance_component": "Acceptance concern",
+}
+
+ACCEPTANCE_BAND_DISPLAY = {
+    "acceptable": "Acceptable",
+    "near_acceptable": "Near acceptable",
+    "unlikely": "Unlikely",
+    "blocked": "Blocked",
+    "reject": "Likely rejected",
+    "counter": "Likely counter-offer",
+}
+
+AWE_TAG_DISPLAY = {
+    "triple_forced_alignment": "Triple forced alignment",
+    "tilsit_bargain_and_betrayal": "Tilsit-style settlement",
+    "defensive_coalition_preservation": "Defensive coalition preserved",
+    "balance_of_europe_crossing": "Balance of Europe shifts",
+}
 
 # Spec §11.6 line 1287 — event family + review-target taxonomy.
 # F1 fix: archived settlements deep-link to the Recent Settlements block
@@ -349,6 +384,80 @@ def _humanize_term(term_str: str) -> str:
     return f"{ttype.replace('_', ' ')}: {rest}"
 
 
+def _display_from_raw(raw: str, fallback: str = "") -> str:
+    raw = str(raw or "")
+    if not raw:
+        return fallback
+    return raw.replace("_", " ").title()
+
+
+def _standing_display(standing: str) -> str:
+    return STANDING_DISPLAY.get(str(standing or ""), _display_from_raw(standing, "Standing"))
+
+
+def _warning_code_display(code: str) -> str:
+    return WARNING_CODE_DISPLAY.get(str(code or ""), _display_from_raw(code, "Concern"))
+
+
+def _acceptance_band_display(band: str) -> str:
+    return ACCEPTANCE_BAND_DISPLAY.get(str(band or ""), _display_from_raw(band, "Acceptance"))
+
+
+def _awe_tag_display(tag: str) -> str:
+    return AWE_TAG_DISPLAY.get(str(tag or ""), _display_from_raw(tag, "Settlement"))
+
+
+def _term_display(term: Mapping[str, Any]) -> str:
+    label = str(term.get("display_label", "") or term.get("label", "") or "")
+    if label:
+        return label
+    ttype = str(term.get("type", "") or "")
+    if not ttype:
+        return "End hostilities"
+    base = clause_display_name(ttype)
+    t_from = str(term.get("from", "") or term.get("payer", "") or term.get("vassal_nation", "") or "")
+    t_to = str(term.get("to", "") or term.get("recipient", "") or term.get("overlord", "") or "")
+    region = str(term.get("region", "") or term.get("claim_region", "") or "")
+    if region and t_from and t_to:
+        return f"{base}: {region} from {t_from} to {t_to}"
+    if t_from and t_to:
+        return f"{base}: {t_from} to {t_to}"
+    if region:
+        return f"{base}: {region}"
+    return base
+
+
+def _enrich_term_row(term: Mapping[str, Any]) -> Dict[str, Any]:
+    row = dict(term)
+    ttype = str(row.get("type", "") or "")
+    row.setdefault("type_display", clause_display_name(ttype) if ttype else "Settlement term")
+    row.setdefault("display_label", _term_display(row))
+    return row
+
+
+def _enrich_ally_row(ally: Mapping[str, Any]) -> Dict[str, Any]:
+    row = dict(ally)
+    standing = str(row.get("standing", "") or "")
+    row.setdefault("standing_display", _standing_display(standing))
+    share = float(row.get("material_share", 0.0) or 0.0)
+    row.setdefault("standing_phrase", f"{_standing_display(standing)}; {round(share * 100):.0f}% material share")
+    return row
+
+
+def _enrich_warning_row(warning: Mapping[str, Any]) -> Dict[str, Any]:
+    row = dict(warning)
+    code = str(row.get("code", "") or row.get("category", "") or "")
+    row.setdefault("code", code)
+    row.setdefault("code_display", _warning_code_display(code))
+    if not row.get("detail"):
+        items = row.get("items")
+        if isinstance(items, Sequence) and not isinstance(items, (str, bytes)):
+            row["detail"] = ", ".join(_display_from_raw(str(i)) for i in items)
+        elif row.get("component"):
+            row["detail"] = _display_from_raw(str(row.get("component")))
+    return row
+
+
 def _voice_summary_template_key(event: Mapping[str, Any]) -> str:
     """Pick the Talleyrand advisory family for a summary one-liner.
 
@@ -398,8 +507,12 @@ def compose_summary_oneliner(
     elif named:
         who = ", ".join(named)
     else:
-        who = "no participant reactions"
-    fallback = f"Settlement of {war_label}: {head_term}; {who} react."
+        who = ""
+    fallback = (
+        f"Settlement of {war_label}: {head_term}; {who} react."
+        if who
+        else f"Settlement of {war_label}: {head_term}."
+    )
 
     # Voice Bible §16.1 — wrap the dispatch one-liner in the Talleyrand
     # advisory register when the template is available. Late-bound
@@ -693,25 +806,30 @@ def build_settlement_review(
     if density not in _DENSITY_TERMS:
         density = "compact"
 
-    terms_inline, terms_overflow = _slice_for_density(
-        terms, density, _DENSITY_TERMS,
-    )
-    allies_inline, allies_overflow = _slice_for_density(
-        allies, density, _DENSITY_ALLIES,
-    )
+    enriched_terms = [_enrich_term_row(t) for t in terms]
+    if not enriched_terms:
+        enriched_terms = [{"type": "peace", "type_display": "Peace", "display_label": "End hostilities"}]
+    enriched_allies = [_enrich_ally_row(a) for a in allies]
+    enriched_warnings = [_enrich_warning_row(w) for w in warnings]
+    terms_inline, terms_overflow = _slice_for_density(enriched_terms, density, _DENSITY_TERMS)
+    allies_inline, allies_overflow = _slice_for_density(enriched_allies, density, _DENSITY_ALLIES)
     warning_cap = 1 if density == "compact" else SETTLEMENT_INLINE_WARNING_CAP
     warning_split = apply_warning_cap(
-        warnings,
+        enriched_warnings,
         inline_warning_cap=warning_cap,
     )
 
     acceptance_payload: Dict[str, Any] = {}
     if acceptance and isinstance(acceptance, Mapping):
         acceptance_payload = {
-            "total": int(acceptance.get("total", 0) or 0),
-            "band": str(acceptance.get("band", "near_acceptable")),
+            "total": int(acceptance.get("total", acceptance.get("score", 0)) or 0),
+            "threshold": int(acceptance.get("threshold", 50) or 50),
+            "band": str(acceptance.get("band", acceptance.get("verdict", "near_acceptable"))).lower(),
             "top_components": list(acceptance.get("top_components") or [])[:3],
         }
+        acceptance_payload["band_display"] = _acceptance_band_display(acceptance_payload["band"])
+        if not acceptance_payload["top_components"] and acceptance.get("feedback"):
+            acceptance_payload["top_components"] = list(acceptance.get("feedback") or [])[:3]
         if density == "verbose":
             acceptance_payload["debug_components"] = list(
                 acceptance.get("debug_components") or []
@@ -723,6 +841,14 @@ def build_settlement_review(
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
         "covered_enemy_participants": list(covered_enemy_participants or []),
+        "covered_enemy_display_chips": list(covered_enemy_participants or []),
+        "coverage_scope_display": (
+            "Whole-war settlement" if len(covered_enemy_participants or []) > 1
+            else "Separate settlement"
+        ),
+        "war_scope_display": (
+            "Whole war" if len(covered_enemy_participants or []) > 1 else "Bilateral row"
+        ),
         "density": density,
         "sections": {
             "terms": {
@@ -740,6 +866,7 @@ def build_settlement_review(
             "acceptance": acceptance_payload,
         },
         "awe_tags": list(awe_tags),
+        "awe_tag_displays": [_awe_tag_display(tag) for tag in awe_tags],
     }
 
 
@@ -1007,7 +1134,10 @@ def recent_settlement_summaries(
             "war_id": str(event.get("war_id", "") or ""),
             "turn": int(event.get("turn", 0) or 0),
             "headline": compose_summary_oneliner(event, world=world),
-            "terms_summary": list(event.get("terms_summary") or []),
+            "terms_summary": [
+                _humanize_term(str(term))
+                for term in list(event.get("terms_summary") or [])
+            ],
             "covered_enemy_participants": list(
                 event.get("covered_enemy_participants") or []
             ),
@@ -1084,6 +1214,7 @@ def build_contribution_share_rows(
             "nation": nation,
             "side": side,
             "standing": standing,
+            "standing_display": _standing_display(standing),
             "material_share": float(inputs.get("material_share", 0.0) or 0.0),
             "support_share": float(inputs.get("support_share", 0.0) or 0.0),
             "is_leader": (

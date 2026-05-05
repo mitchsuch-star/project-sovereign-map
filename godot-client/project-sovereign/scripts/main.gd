@@ -249,6 +249,8 @@ func _ready():
 	if war_detail_popup:
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
+		if war_detail_popup.has_signal("settlement_clicked"):
+			war_detail_popup.settlement_clicked.connect(_on_war_settlement_clicked)
 		war_detail_popup.war_ended.connect(_on_war_ended_notification)
 
 	# Mailbox panel (Session 2 follow-up: browsable inbox, layer 119)
@@ -821,6 +823,16 @@ func _route_proposal_confirm_response(response: Dictionary):
 		push_warning("Unknown diplomatic_dialogue dtype: '%s' - showing as popup (add to PROPOSAL_CONFIRM_DIALOGUE_TYPES)" % dtype)
 	proposal_confirm_popup.show_dialogue(dialogue)
 
+func _show_confirm_dialogue_from_response(response: Dictionary, missing_message: String):
+	var dialogue = response.get("diplomatic_dialogue", {})
+	if not dialogue is Dictionary or dialogue.is_empty():
+		dialogue = response.get("incoming_settlement_offer", {})
+	if proposal_confirm_popup and dialogue is Dictionary and dialogue.size() > 0:
+		set_input_enabled(false)
+		proposal_confirm_popup.show_dialogue(dialogue)
+	else:
+		add_output("[color=#d9c08c]" + missing_message + "[/color]")
+
 func _response_has_clarification_route(response: Dictionary) -> bool:
 	return response.has("state") and response.state == "awaiting_clarification"
 
@@ -1045,6 +1057,10 @@ func _display_result(response):
 	if response.has("peace_ratification_summary") and response.peace_ratification_summary is Dictionary:
 		_display_peace_ratification_summary(response.peace_ratification_summary)
 
+	# Common Peace: compact result feedback after the confirm popup resolves.
+	if response.has("settlement_result_feedback") and response.settlement_result_feedback is Dictionary:
+		_display_settlement_result_feedback(response.settlement_result_feedback)
+
 	# Berthier's Bombardment Advisory - shown when artillery crumbles enemy forts
 	var bombardment_advisory = response.get("bombardment_advisory", "")
 	if bombardment_advisory != "" and bombardment_advisory != null:
@@ -1099,6 +1115,19 @@ func _display_peace_ratification_summary(summary: Dictionary):
 	var aftermath = _stringify_list(summary.get("political_aftermath", []))
 	if aftermath.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BATTLE + "]  Aftermath: " + "; ".join(aftermath) + "[/color]")
+
+func _display_settlement_result_feedback(feedback: Dictionary):
+	var title = str(feedback.get("title", "Settlement Ratified"))
+	var message = str(feedback.get("message", ""))
+	var war_label = str(feedback.get("war_label", ""))
+	var resolved = int(feedback.get("resolved_pair_count", 0))
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + title + "[/color]")
+	if message != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  " + message + "[/color]")
+	elif war_label != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  " + war_label + " updated.[/color]")
+	if resolved > 0:
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Covered pairings: " + str(resolved) + "[/color]")
 
 func _peace_outcome_label(outcome: String) -> String:
 	match outcome:
@@ -3138,7 +3167,7 @@ func _on_dispatch_open_envoys_requested():
 	_on_envoy_clicked()
 
 
-func _on_notification_review_requested(review_target: String):
+func _on_notification_review_requested(review_target: String, _route_id: String = "", _war_id: String = ""):
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
@@ -3230,13 +3259,8 @@ func _on_pending_envoy_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
-	elif dtype == "conflict_alert":
-		var dialogue = response.get("diplomatic_dialogue", {})
-		if proposal_confirm_popup and dialogue.size() > 0:
-			set_input_enabled(false)
-			proposal_confirm_popup.show_dialogue(dialogue)
-		else:
-			add_output("[color=#d9c08c]A diplomatic alert is pending.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
 
@@ -3268,13 +3292,8 @@ func _on_mailbox_activate_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
-	elif dtype == "conflict_alert":
-		var dialogue = response.get("diplomatic_dialogue", {})
-		if proposal_confirm_popup and dialogue.size() > 0:
-			set_input_enabled(false)
-			proposal_confirm_popup.show_dialogue(dialogue)
-		else:
-			add_output("[color=#d9c08c]Item activated but alert data missing.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
 func _on_mailbox_panel_closed():
 	"""Mailbox panel closed without selecting an item."""
@@ -3340,7 +3359,7 @@ func _update_war_panel_visibility():
 		notification_bar.set_suspended(_is_modal_dialog_open())
 
 
-func _on_war_card_clicked(nation: String, status: String):
+func _on_war_card_clicked(nation: String, status: String, _war_instance_id: String = ""):
 	"""N4h: Handle war card click — open detail popup."""
 	if war_detail_popup == null:
 		return
@@ -3371,6 +3390,14 @@ func _on_war_target_clicked(nation: String):
 	"""N4h: Handle [Target X] — open wizard for that nation."""
 	if diplomacy_wizard:
 		diplomacy_wizard.open_for_nation(nation)
+
+
+func _on_war_settlement_clicked(war_id: String, nation: String):
+	"""Open common-peace settlement from war detail / coalition detail."""
+	var command = "propose common peace with " + nation
+	add_output("[color=#d9c08c]Opening settlement review for %s[/color]" % nation)
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
 
 
 func _on_war_ended_notification(message: String):

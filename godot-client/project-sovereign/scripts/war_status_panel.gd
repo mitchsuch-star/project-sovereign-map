@@ -9,7 +9,7 @@ extends CanvasLayer
 # Clicks emit card_clicked for main.gd to open the detail popup.
 # =============================================================================
 
-signal card_clicked(nation: String, status: String)
+signal card_clicked(nation: String, status: String, war_instance_id: String)
 signal coalition_header_clicked()
 
 @onready var panel_container = $PanelContainer
@@ -170,7 +170,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	var row_btn = Button.new()
 	row_btn.flat = true
 	row_btn.custom_minimum_size = Vector2(0, 18)
-	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war"))
+	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war", str(war_data.get("war_instance_id", ""))))
 	row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row_btn.tooltip_text = _build_war_tooltip(war_data)
 
@@ -234,13 +234,18 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			if not row is Dictionary:
 				continue
 			var nation = str(row.get("nation", "?"))
-			var standing = str(row.get("standing", "no_standing"))
+			var standing = str(row.get("standing_display", row.get("standing", "no_standing")))
 			var material = float(row.get("material_share", 0.0)) * 100.0
 			var leader_marker = "*" if row.get("is_leader", false) else " "
 			lines.append("  " + leader_marker + " " + nation + " — " + standing + " (" + str(int(round(material))) + "%)")
 		var overflow = int(war_data.get("contribution_overflow_count", 0))
 		if overflow > 0:
 			lines.append("  +" + str(overflow) + " more participant(s)")
+	else:
+		var status_display = str(war_data.get("standing_status_display", ""))
+		if status_display != "":
+			lines.append("---")
+			lines.append("Standing: " + status_display)
 	return "\n".join(lines)
 
 
@@ -254,7 +259,7 @@ func _add_armistice_card(war_data: Dictionary):
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.add_theme_font_size_override("font_size", 9)
 	btn.add_theme_color_override("font_color", COLOR_DIMMED)
-	btn.pressed.connect(func(): card_clicked.emit(opponent, "armistice"))
+	btn.pressed.connect(func(): card_clicked.emit(opponent, "armistice", str(war_data.get("war_instance_id", ""))))
 	vbox.add_child(btn)
 
 

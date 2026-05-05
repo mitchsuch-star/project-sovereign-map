@@ -2481,6 +2481,8 @@ class DiplomaticExecutor:
                         "dismiss": ["dismiss"], "cancel": ["cancel_pushback", "cancel_mission", "dismiss"], "never mind": ["dismiss"],
                         "nudge": ["accept_nudge"], "insist": ["insist_original"],
                         "send": ["send_override", "send", "execute_proposal"],
+                        "confirm": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
+                        "ratify": ["confirm_settlement"],
                         "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
                         "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "force_declare_war"],
                         "reconsider": ["back_out_settlement", "reconsider"], "no": ["back_out_settlement", "reconsider"], "wait": ["reconsider"],

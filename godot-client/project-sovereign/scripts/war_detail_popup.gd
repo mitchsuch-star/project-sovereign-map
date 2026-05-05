@@ -11,6 +11,7 @@ extends CanvasLayer
 
 signal negotiate_clicked(nation: String)
 signal target_clicked(nation: String)
+signal settlement_clicked(war_id: String, target_nation: String)
 signal war_ended(message: String)
 
 @onready var background_overlay = $BackgroundOverlay
@@ -21,6 +22,7 @@ signal war_ended(message: String)
 @onready var button_row = $PanelContainer/VBoxContainer/ButtonRow
 
 var _current_nation: String = ""
+var _current_war_id: String = ""
 var _current_mode: String = ""  # "war", "coalition", "armistice"
 
 # Colors
@@ -62,6 +64,7 @@ func _on_overlay_input(event):
 func show_war(war_data: Dictionary, _coalition_data) -> void:
 	"""Show bilateral war detail (N4b)."""
 	_current_nation = str(war_data.get("opponent", ""))
+	_current_war_id = str(war_data.get("war_instance_id", ""))
 	_current_mode = "war"
 	header_label.text = "WAR WITH " + _current_nation.to_upper()
 	_clear_score_bars()
@@ -72,6 +75,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_render_war_detail(war_data)
 	_clear_buttons()
 	_add_negotiate_button(_current_nation)
+	_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
 	show()
 
 
@@ -89,6 +93,9 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 			_add_labeled_tug_of_war_bar(opp, score, 280, 12)
 	_render_coalition_detail(coalition_data, wars)
 	_clear_buttons()
+	var shared_war_id = _shared_coalition_war_id(wars)
+	if shared_war_id != "":
+		_add_settlement_button(shared_war_id, _current_nation, "Open Whole-War Settlement")
 	# Add Target buttons for non-leader coalition members
 	for w in wars:
 		if w.get("in_coalition", false) and not w.get("is_coalition_leader", false):
@@ -398,6 +405,19 @@ func _add_negotiate_button(nation: String):
 	button_row.add_child(btn)
 
 
+func _add_settlement_button(war_id: String, nation: String, label: String):
+	var btn = Button.new()
+	btn.text = label
+	btn.tooltip_text = "Open a war-wide common peace settlement review."
+	btn.custom_minimum_size = Vector2(190, 36)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.pressed.connect(func():
+		hide()
+		settlement_clicked.emit(war_id, nation)
+	)
+	button_row.add_child(btn)
+
+
 func _add_target_button(nation: String):
 	var btn = Button.new()
 	btn.text = "Target " + nation
@@ -420,6 +440,21 @@ func _add_diplomatic_options_button(nation: String):
 		negotiate_clicked.emit(nation)
 	)
 	button_row.add_child(btn)
+
+
+func _shared_coalition_war_id(wars: Array) -> String:
+	var shared := ""
+	for w in wars:
+		if not w.get("in_coalition", false) or str(w.get("status", "")) != "war":
+			continue
+		var wid = str(w.get("war_instance_id", ""))
+		if wid == "":
+			return ""
+		if shared == "":
+			shared = wid
+		elif shared != wid:
+			return ""
+	return shared
 
 
 # ── HELPERS ──

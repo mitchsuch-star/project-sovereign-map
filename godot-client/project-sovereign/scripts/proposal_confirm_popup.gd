@@ -52,6 +52,8 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_conflict_alert_content(data)
 		"ultimatum_confirm", "ultimatum_demand_wizard":
 			bbcode = _build_ultimatum_content(data)
+		"settlement_confirm", "incoming_settlement_offer":
+			bbcode = _build_settlement_content(data)
 		_:
 			if data.has("war_context_snapshot"):
 				bbcode = _build_peace_preview_content(data)
@@ -163,6 +165,92 @@ func _build_content(data: Dictionary) -> String:
 	if ttext:
 		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 
+	return bbcode
+
+
+func _build_settlement_content(data: Dictionary) -> String:
+	var war_label = str(data.get("war_label", data.get("war_id", "Settlement")))
+	var scope = str(data.get("coverage_scope_display", data.get("war_scope_display", "Settlement review")))
+	var bbcode = "[b][color=#e0c070]SETTLEMENT REVIEW - %s[/color][/b]\n" % war_label
+	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % scope
+
+	var chips = data.get("covered_enemy_display_chips", data.get("covered_enemy_participants", []))
+	if chips is Array and chips.size() > 0:
+		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
+
+	var review = data.get("review_sections", {})
+	var sections = review.get("sections", {}) if review is Dictionary else {}
+	var acceptance = data.get("acceptance_display", sections.get("acceptance", {}))
+	if acceptance is Dictionary and not acceptance.is_empty():
+		var total = int(acceptance.get("total", 0))
+		var threshold = int(acceptance.get("threshold", 50))
+		var band = str(acceptance.get("band_display", acceptance.get("band", "Review")))
+		var color = "#80c080" if total >= threshold else ("#e0e060" if total >= threshold - 10 else "#e04040")
+		bbcode += "Acceptance: [color=%s]%d / %d - %s[/color]\n" % [color, total, threshold, band]
+	bbcode += "\n"
+
+	var awe = review.get("awe_tag_displays", data.get("awe_tag_displays", [])) if review is Dictionary else []
+	if awe is Array and awe.size() > 0:
+		bbcode += "[color=#e0c070][b]" + str(awe[0]) + "[/b][/color]\n\n"
+
+	var allies = sections.get("allies", {}) if sections is Dictionary else {}
+	if allies is Dictionary:
+		var rows = allies.get("rows", [])
+		if rows is Array and rows.size() > 0:
+			bbcode += "[b]Participants[/b]\n"
+			for row in rows:
+				if not row is Dictionary:
+					continue
+				var nation = str(row.get("nation", "?"))
+				var standing = str(row.get("standing_display", row.get("standing", "Standing")))
+				var marker = ""
+				if bool(row.get("is_leader", false)):
+					marker += " leader"
+				if bool(row.get("is_beneficiary", false)):
+					marker += " rewarded"
+				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [nation, standing, marker]
+			var overflow = int(allies.get("overflow_count", 0))
+			if overflow > 0:
+				bbcode += "  [color=#808080]+%d more participants in the ledger[/color]\n" % overflow
+			bbcode += "\n"
+
+	var terms = sections.get("terms", {}) if sections is Dictionary else {}
+	if terms is Dictionary:
+		var term_rows = terms.get("rows", [])
+		if term_rows is Array and term_rows.size() > 0:
+			bbcode += "[b]Terms[/b]\n"
+			for term in term_rows:
+				if term is Dictionary:
+					bbcode += "  [color=#e0c070]*[/color] %s\n" % str(term.get("display_label", term.get("type_display", "Settlement term")))
+			var term_overflow = int(terms.get("overflow_count", 0))
+			if term_overflow > 0:
+				bbcode += "  [color=#808080]+%d more terms in the ledger[/color]\n" % term_overflow
+			bbcode += "\n"
+
+	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
+	if warnings is Dictionary:
+		var inline_warns = warnings.get("inline", [])
+		if inline_warns is Array and inline_warns.size() > 0:
+			bbcode += "[b]Warnings[/b]\n"
+			for warning in inline_warns:
+				if not warning is Dictionary:
+					continue
+				var severity = str(warning.get("severity", "WARNING"))
+				var color = "#e04040" if severity == "HARD_STOP" else "#e0a040"
+				var label = str(warning.get("code_display", warning.get("code", "Concern")))
+				var detail = str(warning.get("detail", ""))
+				bbcode += "  [color=%s]*[/color] %s" % [color, label]
+				if detail != "":
+					bbcode += " - " + detail
+				bbcode += "\n"
+			var overflow_warns = warnings.get("overflow", [])
+			if overflow_warns is Array and overflow_warns.size() > 0:
+				bbcode += "  [color=#808080]+%d more concerns in the ledger[/color]\n" % overflow_warns.size()
+			bbcode += "\n"
+
+	var ttext = data.get("talleyrand_text", "")
+	if ttext:
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 	return bbcode
 
 func _build_war_purpose_content(data: Dictionary) -> String:

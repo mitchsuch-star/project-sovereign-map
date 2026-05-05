@@ -9,7 +9,7 @@ extends Control
 # =============================================================================
 
 signal notification_dismissed(notification_id: String)
-signal notification_review_requested(review_target: String)
+signal notification_review_requested(review_target: String, route_id: String, war_id: String)
 
 const MAX_VISIBLE_ICONS := 6
 const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
@@ -331,7 +331,11 @@ func _show_expanded_panel(notif: Dictionary):
 			review_btn.text = review_label
 			review_btn.custom_minimum_size = Vector2(92, 28)
 			review_btn.add_theme_font_size_override("font_size", 10)
-			review_btn.pressed.connect(_on_review_pressed.bind(review_target))
+			review_btn.pressed.connect(_on_review_pressed.bind(
+				review_target,
+				str(details.get("route_id", "")),
+				str(details.get("war_id", ""))
+			))
 			button_row.add_child(review_btn)
 
 	var keep_btn = Button.new()
@@ -436,9 +440,9 @@ func _on_dismiss_pressed(notification_id: String):
 	notification_dismissed.emit(notification_id)
 
 
-func _on_review_pressed(review_target: String):
+func _on_review_pressed(review_target: String, route_id: String = "", war_id: String = ""):
 	_close_expanded_panel()
-	notification_review_requested.emit(review_target)
+	notification_review_requested.emit(review_target, route_id, war_id)
 
 
 func dismiss_all():

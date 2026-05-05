@@ -195,6 +195,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "contribution_overflow_count": int(
                 contribution.get("overflow_count", 0) or 0
             ),
+            "standing_status": contribution.get("standing_status", ""),
+            "standing_status_display": contribution.get(
+                "standing_status_display", ""
+            ),
             "war_instance_id": contribution.get("war_id", ""),
         })
 
@@ -311,18 +315,34 @@ def _resolve_contribution_share(world, france: str, opponent: str) -> Dict[str, 
     """Find the active war_instance covering the France/opponent pair and
     build top-N contribution share rows for it.
 
-    Returns ``{rows, overflow_count, war_id}``. Empty rows when no
-    active war_instance covers the pair (e.g., early game before
-    Slice A war_instance threading covers a path).
+    Returns ``{rows, overflow_count, war_id, standing_status}``. Empty
+    rows include a humanized status so Godot does not need to show a blank
+    standing area or raw fallback identifiers.
     """
     from backend.game_logic.settlement_presentation import (
         build_contribution_share_rows,
     )
     war_id = _find_active_war_instance_id(world, france, opponent)
     if not war_id:
-        return {"rows": [], "overflow_count": 0, "war_id": ""}
+        return {
+            "rows": [],
+            "overflow_count": 0,
+            "war_id": "",
+            "standing_status": "no_war_instance",
+            "standing_status_display": (
+                "Standing appears once this war is opened as a settlement."
+            ),
+        }
     contribution = build_contribution_share_rows(world, war_id)
     contribution["war_id"] = war_id
+    if contribution.get("rows"):
+        contribution["standing_status"] = "available"
+        contribution["standing_status_display"] = "Standing available."
+    else:
+        contribution["standing_status"] = "no_contribution_rows"
+        contribution["standing_status_display"] = (
+            "No participant standing has been recorded yet."
+        )
     return contribution
 
 

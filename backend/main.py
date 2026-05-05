@@ -1390,6 +1390,12 @@ async def respond_to_diplomatic_dialogue(request: dict):
                 )
 
         _include_peace_ratification_summary(response, result)
+        if result.get("settlement_result_feedback"):
+            response["settlement_result_feedback"] = result["settlement_result_feedback"]
+        if result.get("reopen_target"):
+            response["reopen_target"] = result["reopen_target"]
+        if result.get("error_display"):
+            response["error_display"] = result["error_display"]
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")

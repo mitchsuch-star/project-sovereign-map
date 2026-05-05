@@ -426,10 +426,14 @@ func _add_action_button(action: Dictionary):
 	var action_id = str(action.get("action", ""))
 
 	# Build button text
-	var text = display_name + " (" + str(dp_cost) + " DP"
+	var text = display_name
+	var costs = []
+	if dp_cost > 0:
+		costs.append(str(dp_cost) + " DP")
 	if gold_cost > 0:
-		text += " + " + str(gold_cost) + "g"
-	text += ")"
+		costs.append(str(gold_cost) + "g")
+	if costs.size() > 0:
+		text += " (" + " + ".join(PackedStringArray(costs)) + ")"
 
 	# W5: Mission effect text
 	var effect_text = str(action.get("effect_text", ""))
@@ -477,6 +481,8 @@ func _build_command(action_id: String, nation: String) -> String:
 			return "propose armistice with " + nation
 		"propose_peace":
 			return "propose peace with " + nation
+		"open_settlement":
+			return "propose common peace with " + nation
 		"propose_open_borders":
 			return "propose open borders with " + nation
 		"propose_non_aggression":
