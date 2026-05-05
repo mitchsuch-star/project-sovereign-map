@@ -117,6 +117,27 @@ def test_stage_settlement_confirm_creates_hard_stop_without_mutation():
     assert dict(world.diplomatic_states) == before_states
 
 
+def test_stage_settlement_confirm_preempts_without_dropping_existing_dialogue():
+    world = WorldState()
+    _install_common_peace_war(world)
+    existing = {
+        "type": "incoming_proposal",
+        "from": "Austria",
+        "target_nation": "Austria",
+        "options": [{"label": "Acknowledge", "action": "dismiss"}],
+        "blocking": False,
+        "turn_created": world.current_turn,
+    }
+    world.dialogue_manager.replace(existing)
+
+    result = stage_settlement_confirm(world, war_id="war_1", settlement_terms=[])
+
+    assert result["success"] is True
+    assert world.pending_diplomatic_dialogue["type"] == "settlement_confirm"
+    assert world.dialogue_manager.pop()["type"] == "settlement_confirm"
+    assert world.pending_diplomatic_dialogue["type"] == "incoming_proposal"
+
+
 def test_settlement_back_out_and_revise_do_not_mutate():
     world = WorldState()
     _install_common_peace_war(world)

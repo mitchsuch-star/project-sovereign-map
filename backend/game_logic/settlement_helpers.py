@@ -1862,6 +1862,60 @@ def archive_terminal_war_instances(world: Any) -> Dict[str, Any]:
     return {"ok": True, "archived_war_ids": archived_ids}
 
 
+def resolve_or_backfill_war_instance_for_settlement(
+    world: Any,
+    player_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Resolve a `war_id` for a settlement entry; lazy-backfill if needed.
+
+    B6 fix: starting wars seeded into ``diplomatic_states`` at game
+    construction predate the war-entry plumbing and carry no
+    ``war_instance`` record. The C2 settlement preview / D1/D2
+    reactions / E presentation pipeline need a `war_id`, so this helper
+    lazily creates one the first time the player tries to settle that
+    pair. Player nation is treated as the attacker (player-driven entry
+    point); the static 1805 starting wars do not preserve a real
+    declaration record.
+
+    Returns ``{"ok": bool, "war_id": str, "backfilled": bool, ...}``.
+    """
+    if not isinstance(player_nation, str) or not player_nation:
+        return {"ok": False, "error": "missing_player_nation"}
+    if not isinstance(target_nation, str) or not target_nation:
+        return {"ok": False, "error": "missing_target_nation"}
+    if player_nation == target_nation:
+        return {"ok": False, "error": "self_settlement"}
+    pair = _make_pair_key(player_nation, target_nation)
+    state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
+    if state != "WAR":
+        return {"ok": False, "error": "not_at_war", "diplomatic_state": state}
+    existing = _find_active_war_instance_for_pair(world, pair)
+    if existing is not None:
+        return {
+            "ok": True,
+            "war_id": existing,
+            "backfilled": False,
+            "instance": world.war_instances[existing],
+        }
+    result = ensure_war_instance_for_pair(
+        world,
+        player_nation,
+        target_nation,
+        entry_path="game_start_backfill",
+        root_episode_id=f"game_start_backfill_{pair}",
+        reason="settlement_entry",
+    )
+    if not result.get("ok"):
+        return result
+    return {
+        "ok": True,
+        "war_id": result["war_id"],
+        "backfilled": True,
+        "instance": result.get("instance"),
+    }
+
+
 __all__ = [
     "ARCHIVE_RETENTION_TURNS",
     "WAR_END_REASON_ALL_PAIRS_RESOLVED",
@@ -1877,6 +1931,7 @@ __all__ = [
     "mark_pair_armistice",
     "mark_participant_eliminated_in_all_wars",
     "merge_war_instances",
+    "resolve_or_backfill_war_instance_for_settlement",
     "resolve_pair_to_resolved",
     "validate_war_declaration",
     "war_leader_score",

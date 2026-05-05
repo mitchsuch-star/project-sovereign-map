@@ -224,16 +224,19 @@ def build_settlement_preview(
         settlement_terms=terms,
     )
 
+    # Severity uses the spec §16.3 line 1660 casing
+    # (HARD_STOP / WARNING / INFO) so downstream `apply_warning_cap`
+    # consumers do not need to defensively `.upper()` every row.
     warnings = []
     if acceptance.get("hard_stops"):
         warnings.append({
-            "severity": "critical",
+            "severity": "HARD_STOP",
             "category": "hard_stop",
             "items": list(acceptance.get("hard_stops") or []),
         })
     for item in acceptance.get("feedback") or []:
         warnings.append({
-            "severity": "warning",
+            "severity": "WARNING",
             "category": "acceptance_component",
             "component": item.get("component"),
             "value": item.get("value"),
@@ -331,7 +334,12 @@ def stage_settlement_confirm(
     if not preview.get("success"):
         return preview
     dialogue = build_settlement_confirm_dialogue(world, preview)
-    world.dialogue_manager.replace(dialogue)
+    if getattr(world.dialogue_manager, "peek", lambda: None)() is None:
+        world.dialogue_manager.replace(dialogue)
+    elif hasattr(world.dialogue_manager, "preempt"):
+        world.dialogue_manager.preempt(dialogue)
+    else:
+        world.dialogue_manager.replace(dialogue)
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
@@ -979,6 +987,30 @@ def ratify_settlement_confirm(
         }
 
     pre_cleanup_snapshots = _capture_pre_cleanup_snapshots(world, plan)
+    # Capture pre-cleanup participant lists + side leaders so the
+    # post-ratification `settlement_summary` event can render a friendly
+    # war_label / leader markers even after cleanup_war_end empties the
+    # live war_instance.attackers / .defenders lists. Spec §11.6 line
+    # 1287 — event payload minimums.
+    pre_cleanup_war_label = ""
+    pre_cleanup_attackers = list(war_instance.get("attackers") or [])
+    pre_cleanup_defenders = list(war_instance.get("defenders") or [])
+    if pre_cleanup_attackers and pre_cleanup_defenders:
+        pre_cleanup_war_label = (
+            f"{pre_cleanup_attackers[0]} vs {pre_cleanup_defenders[0]}"
+        )
+    pre_cleanup_proposer_members = (
+        list(pre_cleanup_attackers)
+        if proposer_side == "attackers"
+        else list(pre_cleanup_defenders)
+    )
+    pre_cleanup_accepting_members = (
+        list(pre_cleanup_attackers)
+        if accepting_side == "attackers"
+        else list(pre_cleanup_defenders)
+    )
+    pre_cleanup_attacker_leader = str(war_instance.get("attacker_leader") or "")
+    pre_cleanup_defender_leader = str(war_instance.get("defender_leader") or "")
     applied_clauses = _apply_settlement_terms(
         world, settlement_terms=settlement_terms,
     )
@@ -1021,6 +1053,11 @@ def ratify_settlement_confirm(
         pre_cleanup_snapshots=pre_cleanup_snapshots,
         war_ended=bool(war_ended),
         balance_projection=dict(dialogue.get("balance_projection") or {}),
+        pre_cleanup_war_label=pre_cleanup_war_label,
+        pre_cleanup_proposer_members=pre_cleanup_proposer_members,
+        pre_cleanup_accepting_members=pre_cleanup_accepting_members,
+        pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
+        pre_cleanup_defender_leader=pre_cleanup_defender_leader,
     )
 
     world.dialogue_manager.pop()

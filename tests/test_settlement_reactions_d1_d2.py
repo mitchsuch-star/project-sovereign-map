@@ -695,7 +695,16 @@ class TestBargainBreachAtSettlement:
             pre_cleanup_snapshots=[],
             war_ended=False,
         )
-        assert summary["bargain_reactions"] == []
+        fulfilled = [
+            r for r in summary["bargain_reactions"]
+            if r["kind"] == "bargain_fulfilled_at_settlement"
+        ]
+        breaches = [
+            r for r in summary["bargain_reactions"]
+            if r["kind"] == "bargain_breach_at_settlement"
+        ]
+        assert fulfilled
+        assert breaches == []
         # Bargain still live for lifecycle pass to fulfill next turn.
         assert bargain["status"] == "active"
 
@@ -857,7 +866,7 @@ class TestSettlementDispatchEvents:
         assert event["type"] == "settlement_summary"
         assert event["route"]["event_family"] == "settlement"
         assert event["route"]["review_target"] == "settlement_review"
-        assert event["route"]["route_id"].startswith("settlement_summary:war_d1:")
+        assert event["route"]["route_id"].startswith("war_d1:")
         assert "settlement_summary" in CAMPAIGN_LOG_TYPES
         assert CATEGORY_MAP["settlement_summary"] == "diplomacy"
         # event_log + dispatch both received the event.
@@ -963,6 +972,7 @@ class TestSettlementDispatchEvents:
         event = {
             "type": "settlement_summary",
             "war_id": "war_42",
+            "war_label": "France vs Austria",
             "terms_summary": ["territory_cede: Austria→France"],
             "participant_reactions": [
                 {"kind": "ally_rewarded", "ally": "Saxony"},
@@ -973,7 +983,8 @@ class TestSettlementDispatchEvents:
             ],
         }
         line = format_event_oneliner(event)
-        assert "war_42" in line
+        assert "France vs Austria" in line
+        assert "territory_cede" not in line
         # First three named, plus +N more.
         assert "Saxony" in line and "Prussia" in line and "Bavaria" in line
         assert "+2 more" in line
@@ -981,11 +992,12 @@ class TestSettlementDispatchEvents:
         digest = {
             "type": "settlement_digest",
             "war_id": "war_42",
+            "war_label": "France vs Austria",
             "hidden_reaction_count": 7,
         }
         digest_line = format_event_oneliner(digest)
         assert "7" in digest_line
-        assert "war_42" in digest_line
+        assert "France vs Austria" in digest_line
 
 
 # ===========================================================================

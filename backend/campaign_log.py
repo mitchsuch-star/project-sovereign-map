@@ -896,40 +896,18 @@ def format_event_oneliner(event: dict) -> str:
         return f"Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})."
 
     if event_type == "settlement_summary":
-        war_id = event.get("war_id", "war")
-        terms = list(event.get("terms_summary") or [])
-        head_term = terms[0] if terms else "settlement ratified"
-        reactions = list(event.get("participant_reactions") or [])
-        named = []
-        for r in reactions:
-            if not isinstance(r, dict):
-                continue
-            name = (
-                r.get("ally")
-                or r.get("burdened_participant")
-                or r.get("victim")
-                or r.get("recipient")
-            )
-            if name and name not in named:
-                named.append(str(name))
-            if len(named) >= 3:
-                break
-        more = max(0, len(reactions) - len(named))
-        if named and more:
-            who = f"{', '.join(named)} +{more} more"
-        elif named:
-            who = ", ".join(named)
-        else:
-            who = "no participant reactions"
-        return f"Settlement of {war_id}: {head_term}; {who} react."
+        from backend.game_logic.settlement_presentation import (
+            compose_summary_oneliner,
+        )
+
+        return compose_summary_oneliner(event)
 
     if event_type == "settlement_digest":
-        war_id = event.get("war_id", "war")
-        hidden = int(event.get("hidden_reaction_count", 0) or 0)
-        return (
-            f"{hidden} additional courts register the settlement aftermath "
-            f"({war_id})."
+        from backend.game_logic.settlement_presentation import (
+            compose_digest_oneliner,
         )
+
+        return compose_digest_oneliner(event)
 
     if event_type == "hard_block_surfaced":
         beneficiary = event.get("beneficiary", "Unknown")

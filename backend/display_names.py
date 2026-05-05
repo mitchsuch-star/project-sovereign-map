@@ -38,6 +38,7 @@ ACTION_DISPLAY = {
     "make_amends": "offers amends to",                # B-B7 (spec §8.6.1)
     "set_war_purpose": "sets war purpose against",    # WPS-A
     "repudiate_bargain": "repudiates bargain with",  # WB-C
+    "propose_common_peace": "opens settlement with",  # Imperial Settlement
 }
 
 # ============================================================================
@@ -72,6 +73,7 @@ OBJECTION_DISPLAY = {
     "make_amends": "offering amends",              # B-B7 (no marshal objections in v0.1)
     "set_war_purpose": "setting war purpose",      # WPS-A
     "repudiate_bargain": "repudiating bargain",   # WB-C
+    "propose_common_peace": "opening settlement",  # Imperial Settlement
 }
 
 # ============================================================================
@@ -106,6 +108,7 @@ DEFIANCE_DISPLAY = {
     "make_amends": "offered amends",             # B-B7 (no marshal defiance in v0.1)
     "set_war_purpose": "set war purpose",         # WPS-A
     "repudiate_bargain": "repudiated bargain",   # WB-C
+    "propose_common_peace": "opened settlement",  # Imperial Settlement
 }
 
 # ============================================================================

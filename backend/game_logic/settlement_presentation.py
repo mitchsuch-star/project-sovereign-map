@@ -333,19 +333,55 @@ def _participant_display(reaction: Mapping[str, Any]) -> str:
     )
 
 
+def _humanize_term(term_str: str) -> str:
+    """Render a `terms_summary` row in player-facing prose.
+
+    `terms_summary` is authored in the orchestrator as
+    `"{type}: {from}→{to}"`. Strip the underscored type into a phrase
+    so the dispatch one-liner does not leak `territory_cede` style
+    identifiers to the player.
+    """
+    if not term_str:
+        return "settlement ratified"
+    if ": " not in term_str:
+        return term_str.replace("_", " ")
+    ttype, _, rest = term_str.partition(": ")
+    return f"{ttype.replace('_', ' ')}: {rest}"
+
+
+def _voice_summary_template_key(event: Mapping[str, Any]) -> str:
+    """Pick the Talleyrand advisory family for a summary one-liner.
+
+    Spec §16.1 line 1600 — defender-side common peace uses the
+    defensive register so the line does not dress necessity as
+    conquest. Everything else uses the common-peace register.
+    """
+    proposer_side = str(event.get("proposer_side", "") or "")
+    if proposer_side == "defenders":
+        return "settlement_advisory_defensive_talleyrand"
+    return "settlement_advisory_common_peace_talleyrand"
+
+
 def compose_summary_oneliner(
     event: Mapping[str, Any], *, world: Any | None = None,
 ) -> str:
     """Render the one-liner per spec §11.6 line 1287.
 
-    Format: "Settlement of {war_name}: {terms_summary[0]}; {p1}, {p2},
-    {p3}{+N more} react." Caps named participants at three; the rest
-    are rolled into ``+N more``.
+    Routes through the Voice Bible §16.1
+    `settlement_advisory_common_peace_talleyrand` /
+    `settlement_advisory_defensive_talleyrand` family when the template
+    is available; falls back to a generic templated string otherwise.
+    The fallback still humanizes the term identifier so the player
+    never sees `territory_cede:` style raw keys.
     """
     war_id = str(event.get("war_id", "") or "")
-    war_label = _war_label(world, war_id) if world is not None else (war_id or "war")
+    payload_label = str(event.get("war_label", "") or "")
+    war_label = (
+        payload_label
+        or (_war_label(world, war_id) if world is not None else (war_id or "war"))
+    )
     terms = list(event.get("terms_summary") or [])
-    head_term = terms[0] if terms else "settlement ratified"
+    head_term = _humanize_term(terms[0]) if terms else "settlement ratified"
     reactions = list(event.get("participant_reactions") or [])
     named: List[str] = []
     for reaction in reactions:
@@ -363,17 +399,74 @@ def compose_summary_oneliner(
         who = ", ".join(named)
     else:
         who = "no participant reactions"
-    return f"Settlement of {war_label}: {head_term}; {who} react."
+    fallback = f"Settlement of {war_label}: {head_term}; {who} react."
+
+    # Voice Bible §16.1 — wrap the dispatch one-liner in the Talleyrand
+    # advisory register when the template is available. Late-bound
+    # import so this module stays usable without diplomatic_templates
+    # in lighter test contexts.
+    try:
+        from backend.game_logic.diplomatic_templates import (
+            resolve_settlement_voice_line,
+        )
+    except Exception:
+        return fallback
+    awe_tags = list(event.get("awe_tags") or [])
+    # `standing_summary` keeps the "+N more" overflow signal so the
+    # presentation cap on named participants survives the Voice Bible
+    # rewrap. Empty-reaction case still surfaces "no participant
+    # reactions" so the dispatch line never reads as if every court
+    # silently agreed.
+    standing_summary = who
+    contribution_summary = (
+        f"reactions from {len(reactions)} courts"
+        if reactions
+        else "no participant reactions"
+    )
+    top_blocker = head_term if not awe_tags else (
+        f"{head_term} ({', '.join(t.replace('_', ' ') for t in awe_tags)})"
+    )
+    template_key = _voice_summary_template_key(event)
+    voiced = resolve_settlement_voice_line(
+        template_key,
+        war_label=war_label,
+        standing_summary=standing_summary,
+        contribution_summary=contribution_summary,
+        top_blocker=top_blocker,
+        restored_claim=head_term,
+        limited_concession=head_term,
+    )
+    return voiced or fallback
 
 
 def compose_digest_oneliner(event: Mapping[str, Any]) -> str:
-    """Spec §11.6 line 1288 digest one-liner."""
+    """Spec §11.6 line 1288 digest one-liner.
+
+    Routes through the Voice Bible §16.1
+    `settlement_aftermath_digest_talleyrand` template when available.
+    Falls back to a generic templated string. The fallback no longer
+    leaks the raw `war_id` to the player; it uses the event's
+    `war_label` when populated.
+    """
     hidden = int(event.get("hidden_reaction_count", 0) or 0)
     war_id = str(event.get("war_id", "") or "war")
-    return (
+    war_label = str(event.get("war_label", "") or war_id)
+    fallback = (
         f"{hidden} additional courts register the settlement aftermath "
-        f"({war_id})."
+        f"({war_label})."
     )
+    try:
+        from backend.game_logic.diplomatic_templates import (
+            resolve_settlement_voice_line,
+        )
+    except Exception:
+        return fallback
+    voiced = resolve_settlement_voice_line(
+        "settlement_aftermath_digest_talleyrand",
+        hidden_count=hidden,
+        war_label=war_label,
+    )
+    return voiced or fallback
 
 
 # ---------------------------------------------------------------------------
@@ -665,11 +758,118 @@ _REVIEW_WARNING_KINDS: frozenset = frozenset({
     "cross_war_rival_strengthened",
 })
 
+_POLITICAL_WARNING_SALIENCE: Dict[str, int] = {
+    "bargain_breach_at_settlement": 100,
+    "enemy_sold_out": 90,
+    "ally_shut_out": 85,
+    "cross_war_rival_strengthened": 70,
+}
+
+
+_REACTION_NATION_FIELDS: Tuple[str, ...] = (
+    "nation",
+    "burdened_participant",
+    "victim",
+    "ally",
+    "breaker",
+    "recipient",
+    "beneficiary",
+    "promiser",
+)
+
+
+def _reaction_nation(reaction: Mapping[str, Any]) -> str:
+    """First non-empty nation-bearing field on a reaction record."""
+    for field in _REACTION_NATION_FIELDS:
+        value = reaction.get(field)
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
+def _reaction_warning_detail(kind: str, reaction: Mapping[str, Any]) -> str:
+    """Player-facing one-clause description for a reaction warning row.
+
+    Pulls from kind-specific fields so the inline expansion names *who*
+    and *what*, not just the reaction code. Falls back to any
+    pre-populated `detail` string the orchestrator wrote.
+    """
+    pre = str(reaction.get("detail", "") or "")
+    if pre:
+        return pre
+    nation = _reaction_nation(reaction)
+    if kind == "enemy_sold_out":
+        burdens = list(reaction.get("burdens") or [])
+        leader = str(reaction.get("leader", "") or "")
+        burden_str = ", ".join(b.replace("_", " ") for b in burdens) if burdens else "the terms"
+        if leader and nation:
+            return f"{nation} burdened with {burden_str} by {leader}"
+        if nation:
+            return f"{nation} burdened with {burden_str}"
+        return burden_str
+    if kind == "ally_shut_out":
+        leader = str(reaction.get("leader", "") or "")
+        if leader and nation:
+            return f"{nation} shut out by {leader}"
+        if nation:
+            return f"{nation} shut out of settlement"
+        return "ally shut out of settlement"
+    if kind == "bargain_breach_at_settlement":
+        breaker = str(reaction.get("breaker", "") or "")
+        promiser = str(reaction.get("promiser", "") or "")
+        actor = breaker or promiser
+        if actor and nation:
+            return f"{actor} breached bargain owed to {nation}"
+        if nation:
+            return f"bargain owed to {nation} breached"
+        return "bargain breached at settlement"
+    if kind == "cross_war_rival_strengthened":
+        rivals = list(reaction.get("rival_strengthened") or [])
+        if nation and rivals:
+            return f"{nation} sees rival strengthened: {', '.join(rivals)}"
+        if nation:
+            return f"{nation} sees rival strengthened"
+        return "rival strengthened by settlement"
+    return nation or kind.replace("_", " ")
+
+
+def _warning_severity_for_reaction(_reaction: Mapping[str, Any]) -> str:
+    """Map a reaction record onto §16.3 severity (HARD_STOP/WARNING/INFO).
+
+    These are post-ratification political consequences, not validity
+    blockers. Spec §16.4 reserves HARD_STOP for impossible/contradictory
+    settlement shapes; reaction rows stay WARNING and rely on salience to
+    keep promise breach / major fallout ahead of generic concerns.
+    """
+    return "WARNING"
+
+
+def _warning_salience_for_reaction(reaction: Mapping[str, Any]) -> int:
+    kind = str(reaction.get("kind", ""))
+    base = _POLITICAL_WARNING_SALIENCE.get(kind, 50)
+    score = reaction.get("severity_score")
+    try:
+        if score is not None:
+            base += min(10, max(0, int(score)))
+    except (TypeError, ValueError):
+        pass
+    explicit = str(reaction.get("severity", "")).lower()
+    if explicit in {"major", "major_shut_out"}:
+        base += 10
+    raw = reaction.get("salience")
+    try:
+        if raw is not None:
+            base = max(base, int(raw))
+    except (TypeError, ValueError):
+        pass
+    return min(100, base)
+
 
 def build_settlement_review_from_event(
     event: Mapping[str, Any],
     *,
     density: str = "compact",
+    world: Any | None = None,
 ) -> Dict[str, Any]:
     """Reconstruct a sectioned settlement review from a logged event.
 
@@ -681,6 +881,10 @@ def build_settlement_review_from_event(
     events; live `/diplomatic_preview` callers should keep using
     `build_settlement_review` directly with the live preview's
     acceptance payload.
+
+    `world` is consumed only to derive a friendly war label when the
+    event payload is missing one (older events from before the
+    presentation hardening).
     """
     if not isinstance(event, Mapping):
         return {}
@@ -690,6 +894,14 @@ def build_settlement_review_from_event(
     proposer_members = list(event.get("proposer_members") or [])
     accepting_members = list(event.get("accepting_members") or [])
     participant_reactions = list(event.get("participant_reactions") or [])
+    proposer_leader = str(event.get("proposer_leader", "") or "")
+    accepting_leader = str(event.get("accepting_leader", "") or "")
+    attacker_leader = str(event.get("attacker_leader", "") or "")
+    defender_leader = str(event.get("defender_leader", "") or "")
+    leader_set: set = {
+        n for n in (proposer_leader, accepting_leader,
+                    attacker_leader, defender_leader) if n
+    }
 
     rewarded: set = set()
     for reaction in participant_reactions:
@@ -697,12 +909,8 @@ def build_settlement_review_from_event(
             continue
         if str(reaction.get("kind", "")) != "ally_rewarded":
             continue
-        nation = (
-            reaction.get("nation")
-            or reaction.get("ally")
-            or reaction.get("beneficiary")
-        )
-        if isinstance(nation, str) and nation:
+        nation = _reaction_nation(reaction)
+        if nation:
             rewarded.add(nation)
 
     allies: List[Dict[str, Any]] = []
@@ -713,9 +921,9 @@ def build_settlement_review_from_event(
         seen.add(nation)
         allies.append({
             "nation": nation,
-            "standing": "consult",
+            "standing": "leader" if nation in leader_set else "consult",
             "material_share": 0.0,
-            "is_leader": False,
+            "is_leader": nation in leader_set,
             "is_beneficiary": nation in rewarded,
         })
 
@@ -726,20 +934,23 @@ def build_settlement_review_from_event(
         kind = str(reaction.get("kind", ""))
         if kind not in _REVIEW_WARNING_KINDS:
             continue
-        severity = "WARNING"
-        if str(reaction.get("severity", "")) == "major":
-            severity = "HARD_STOP"
+        severity = _warning_severity_for_reaction(reaction)
         warnings.append({
             "severity": severity,
             "code": kind,
-            "salience": int(reaction.get("salience", 50) or 50),
-            "nation": str(reaction.get("nation", "") or ""),
-            "detail": str(reaction.get("detail", "") or ""),
+            "salience": _warning_salience_for_reaction(reaction),
+            "nation": _reaction_nation(reaction),
+            "detail": _reaction_warning_detail(kind, reaction),
         })
 
+    war_id = str(event.get("war_id", "") or "")
+    war_label = str(event.get("war_label", "") or "")
+    if not war_label:
+        war_label = _war_label(world, war_id) if world is not None else (war_id or "war")
+
     return build_settlement_review(
-        war_id=str(event.get("war_id", "") or ""),
-        war_label=str(event.get("war_label", "") or event.get("war_id", "")),
+        war_id=war_id,
+        war_label=war_label,
         proposer_side=str(event.get("proposer_side", "") or ""),
         accepting_side=str(event.get("accepting_side", "") or ""),
         covered_enemy_participants=list(
@@ -811,7 +1022,7 @@ def recent_settlement_summaries(
             # acceptance section is expected since the post-ratification
             # event does not preserve the acceptance score.
             "review_sections": build_settlement_review_from_event(
-                event, density="compact",
+                event, density="compact", world=world,
             ),
         })
         if len(out) >= limit:

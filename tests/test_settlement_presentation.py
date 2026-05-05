@@ -860,9 +860,7 @@ class TestDispatchWiring:
         for entry in rendered:
             if entry.get("type") == "settlement_summary":
                 assert entry.get("event_family") == "settlement"
-                assert entry.get("route_id", "").startswith(
-                    "settlement_summary:war_e:"
-                )
+                assert entry.get("route_id", "").startswith("war_e:")
 
     def test_route_settlement_reactions_emits_members_for_fog(self):
         world = WorldState()
@@ -907,7 +905,7 @@ class TestDispatchWiring:
         assert len(settlement_notices) == 1
         details = settlement_notices[0]["details"]
         assert details["review_target"] == SETTLEMENT_REVIEW_TARGET_ACTIVE
-        assert details["route_id"].startswith("settlement_summary:war_e:")
+        assert details["route_id"].startswith("war_e:")
 
     def test_dispatch_filters_out_invisible_settlement(self):
         world = WorldState()
@@ -1153,16 +1151,23 @@ class TestBuildSettlementReviewFromEvent:
         assert "enemy_sold_out" in codes
         assert "bargain_breach_at_settlement" in codes
 
-    def test_major_severity_promotes_warning_to_hard_stop(self):
+    def test_major_reaction_stays_warning_but_sorts_inline_by_salience(self):
         event = _make_six_participant_summary_event()
-        # Promote one warning to "major" severity.
         for r in event["participant_reactions"]:
             if r["kind"] == "ally_shut_out":
                 r["severity"] = "major"
         review = build_settlement_review_from_event(event, density="compact")
-        inline = review["sections"]["warnings"]["inline"]
-        severities = {w["severity"] for w in inline}
-        assert "HARD_STOP" in severities
+        warnings = (
+            review["sections"]["warnings"]["inline"]
+            + review["sections"]["warnings"]["overflow"]
+        )
+        assert all(w["severity"] == "WARNING" for w in warnings)
+        assert [w["code"] for w in warnings] == [
+            "bargain_breach_at_settlement",
+            "ally_shut_out",
+            "enemy_sold_out",
+        ]
+        assert warnings[1]["salience"] >= 95
 
     def test_acceptance_section_empty_for_archived_events(self):
         event = _make_six_participant_summary_event(war_ended=True)

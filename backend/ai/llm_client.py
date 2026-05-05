@@ -498,6 +498,19 @@ class LLMClient:
         if any(kw in command_lower for kw in _repudiate_keywords):
             return self._parse_repudiate_bargain(command_text, command_lower)
 
+        # Imperial Settlement common-peace keywords route to diplomacy
+        # (`propose_common_peace` action). Distinct from bilateral
+        # `propose peace` so the parser routes to the C2 settlement
+        # pipeline instead of the bilateral proposal flow. The "common
+        # peace" / "general peace" / "settlement with" wording is the
+        # spec §11 contract.
+        _common_peace_keywords = [
+            "common peace", "general peace", "settle the war with",
+            "open settlement with", "settle with",
+        ]
+        if any(kw in command_lower for kw in _common_peace_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
                            "foreign minister", "ambassador"]
@@ -1156,6 +1169,11 @@ class LLMClient:
             "send ultimatum", "deliver ultimatum", "surrender or",
         ]):
             action = "diplomatic_ultimatum"
+        elif any(kw in command_lower for kw in [
+            "common peace", "general peace", "settle the war with",
+            "open settlement with", "settle with",
+        ]):
+            action = "propose_common_peace"
         elif any(kw in command_lower for kw in ["demand", "insist", "require"]):
             action = "diplomatic_proposal"
             tone = "demand"

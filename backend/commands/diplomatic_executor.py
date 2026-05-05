@@ -1964,6 +1964,79 @@ class DiplomaticExecutor:
         }
 
     # ════════════════════════════════════════════════════════════════════════════════
+    # IMPERIAL SETTLEMENT — COMMON PEACE PROPOSAL (Slice C2 / spec §11)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _execute_propose_common_peace(self, command: Dict, game_state: Dict) -> Dict:
+        """Open the C2 settlement_confirm dialogue for a common peace.
+
+        Spec §11 entry point. Resolves (or lazy-backfills) a war_instance
+        for the (player, target_nation) pair, then stages the
+        settlement_confirm dialogue via
+        ``stage_settlement_confirm``. Returns the staged dialogue so the
+        Godot review surface can render it. The actual ratification runs
+        through the existing `confirm_settlement` /
+        `revise_settlement_terms` / `back_out_settlement` dialogue
+        actions handled in ``handle_settlement_dialogue_action``.
+        """
+        world = game_state.get("world") if isinstance(game_state, dict) else game_state
+        cmd = command.get("command", command) if isinstance(command.get("command"), dict) else command
+        target_nation = (
+            cmd.get("target_nation")
+            or (cmd.get("diplomatic_data") or {}).get("target_nation")
+        )
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, with which court shall we open the settlement?",
+            }
+        player = world.player_nation
+        if target_nation == player:
+            return {
+                "success": False,
+                "message": "We cannot open a settlement with ourselves, Sire.",
+            }
+        from backend.game_logic.settlement_helpers import (
+            resolve_or_backfill_war_instance_for_settlement,
+        )
+        resolution = resolve_or_backfill_war_instance_for_settlement(
+            world, player, target_nation,
+        )
+        if not resolution.get("ok"):
+            err = resolution.get("error", "")
+            if err == "not_at_war":
+                return {
+                    "success": False,
+                    "message": f"We are not at war with {target_nation}, Sire.",
+                }
+            if err == "self_settlement":
+                return {
+                    "success": False,
+                    "message": "We cannot open a settlement with ourselves, Sire.",
+                }
+            return {
+                "success": False,
+                "message": (
+                    f"Sire, the chancery cannot open a settlement with "
+                    f"{target_nation}: {err or 'unknown obstacle'}."
+                ),
+            }
+        war_id = resolution["war_id"]
+        from backend.game_logic.settlement_preview import (
+            stage_settlement_confirm,
+        )
+        result = stage_settlement_confirm(
+            world,
+            war_id=war_id,
+            actor_nation=player,
+            density="medium",
+        )
+        if resolution.get("backfilled"):
+            result["war_instance_backfilled"] = True
+        result.setdefault("awaiting_diplomatic_response", True)
+        return result
+
+    # ════════════════════════════════════════════════════════════════════════════════
     # REPUDIATE BARGAIN (WB-C §8.9.C)
     # ════════════════════════════════════════════════════════════════════════════════
 

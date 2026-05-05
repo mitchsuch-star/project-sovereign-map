@@ -154,6 +154,20 @@ class DialogueManager:
 
         self._current = dialogue
 
+    def preempt(self, dialogue: dict) -> None:
+        """Make a dialogue current while preserving the displaced one.
+
+        Use when a newly-created hard-stop must surface immediately but
+        an existing soft/local dialogue should not be dropped. The
+        displaced dialogue returns through normal queue promotion after
+        the preempting dialogue is resolved.
+        """
+        self._assign_mailbox_metadata(dialogue)
+        previous = self._current
+        if previous is not None and len(self._queue) < self.QUEUE_CAP:
+            self._queue.append(previous)
+        self._current = dialogue
+
     def pop(self) -> Optional[Dict]:
         """Remove and return current dialogue. Auto-promotes highest-priority
         item from queue if available."""

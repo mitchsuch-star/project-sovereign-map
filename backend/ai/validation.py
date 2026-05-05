@@ -110,6 +110,9 @@ META_ACTIONS: Set[str] = {
     "set_war_purpose",
     # WB-C: Repudiate war bargain — no marshal needed
     "repudiate_bargain",
+    # Imperial Settlement (WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11) —
+    # opens the C2 settlement_confirm dialogue. No marshal needed.
+    "propose_common_peace",
 }
 
 # Valid stances for stance_change action

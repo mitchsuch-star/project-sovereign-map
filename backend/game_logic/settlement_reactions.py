@@ -753,9 +753,28 @@ def _evaluate_bargain_outcomes(
             continue
         award = awarded_by_region[claim_region]
         recipient = str(award.get("beneficiary") or award.get("to") or "")
-        if not recipient or recipient == beneficiary or recipient == promiser:
-            # Awarded to the bargain beneficiary or to France (the
-            # promiser): not a breach. Lifecycle pass handles fulfillment.
+        if not recipient:
+            continue
+        if recipient == promiser:
+            # War Bargains are France-claim-scoped. The WB-B lifecycle
+            # pass still owns mechanical fulfillment, but the settlement
+            # reaction event needs this marker so Tilsit-style
+            # bargain-plus-ally-fallout presentation can be tagged in the
+            # same ratification.
+            out.append({
+                "kind": "bargain_fulfilled_at_settlement",
+                "bargain_id": bargain.get("id"),
+                "promiser": promiser,
+                "beneficiary": beneficiary,
+                "claim_region": claim_region,
+                "recipient": recipient,
+            })
+            continue
+        if recipient == beneficiary:
+            # Not a breach; current bargain semantics are
+            # France-claim-scoped, so awarding the claim to the
+            # beneficiary is a settlement reward rather than WB-B
+            # fulfillment.
             continue
         breach_event = breach_bargain(
             world, bargain, "settlement_awarded_to_other",
@@ -911,6 +930,10 @@ def _emit_settlement_summary_event(
     participant_reactions: List[Mapping[str, Any]],
     war_ended: bool,
     balance_projection: Mapping[str, Any],
+    settlement_terms: Optional[List[Mapping[str, Any]]] = None,
+    pre_cleanup_war_label: str = "",
+    pre_cleanup_attacker_leader: str = "",
+    pre_cleanup_defender_leader: str = "",
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -923,26 +946,80 @@ def _emit_settlement_summary_event(
         SETTLEMENT_EVENT_FAMILY,
         SETTLEMENT_REVIEW_TARGET_ACTIVE,
         SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+        detect_awe_set_pieces,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
     terms_summary = [
         f"{c.get('type')}: {c.get('from','')}→{c.get('to','')}"
         for c in applied_clauses[:3]
     ]
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    # Pre-cleanup overrides win when the caller supplied them; otherwise
+    # fall back to the live war_instance state. Cleanup_war_end empties
+    # `attackers`/`defenders`/leader fields, so the live read is unsafe
+    # for post-ratification calls.
+    attacker_leader = (
+        pre_cleanup_attacker_leader
+        or str(instance.get("attacker_leader") or "")
+    )
+    defender_leader = (
+        pre_cleanup_defender_leader
+        or str(instance.get("defender_leader") or "")
+    )
+    proposer_leader = (
+        attacker_leader if proposer_side == "attackers" else defender_leader
+    )
+    accepting_leader = (
+        attacker_leader if accepting_side == "attackers" else defender_leader
+    )
+    if pre_cleanup_war_label:
+        war_label = pre_cleanup_war_label
+    else:
+        attackers_for_label = (
+            list(proposer_members)
+            if proposer_side == "attackers"
+            else list(accepting_members)
+        )
+        defenders_for_label = (
+            list(proposer_members)
+            if proposer_side == "defenders"
+            else list(accepting_members)
+        )
+        if not attackers_for_label:
+            attackers_for_label = list(instance.get("attackers") or [])
+        if not defenders_for_label:
+            defenders_for_label = list(instance.get("defenders") or [])
+        war_label = (
+            f"{attackers_for_label[0]} vs {defenders_for_label[0]}"
+            if attackers_for_label and defenders_for_label
+            else war_id
+        )
+    awe_tags = detect_awe_set_pieces(
+        settlement_terms=list(settlement_terms or applied_clauses or []),
+        participant_reactions=list(participant_reactions or []),
+        balance_projection=balance_projection or {},
+        proposer_side=proposer_side,
+    )
     event = {
         "type": "settlement_summary",
         "turn": turn,
         "war_id": war_id,
+        "war_label": war_label,
         "covered_enemy_participants": list(covered_enemy_participants),
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
         "proposer_members": list(proposer_members),
         "accepting_members": list(accepting_members),
+        "attacker_leader": attacker_leader,
+        "defender_leader": defender_leader,
+        "proposer_leader": proposer_leader,
+        "accepting_leader": accepting_leader,
         "terms_summary": terms_summary,
         "applied_clauses": [dict(c) for c in applied_clauses],
         "participant_reactions": [dict(r) for r in participant_reactions],
         "war_ended": bool(war_ended),
         "balance_projection": dict(balance_projection or {}),
+        "awe_tags": list(awe_tags),
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": (
@@ -950,7 +1027,7 @@ def _emit_settlement_summary_event(
                 if war_ended
                 else SETTLEMENT_REVIEW_TARGET_ACTIVE
             ),
-            "route_id": f"settlement_summary:{war_id}:{turn}",
+            "route_id": f"{war_id}:{turn}",
         },
     }
     if hasattr(world, "log_event"):
@@ -1028,7 +1105,7 @@ def _emit_settlement_digest_event(
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-            "route_id": f"settlement_digest:{war_id}:{turn}",
+            "route_id": f"{war_id}:{turn}",
         },
     }
     if hasattr(world, "log_event"):
@@ -1059,6 +1136,11 @@ def route_settlement_reactions(
     pre_cleanup_snapshots: List[Mapping[str, Any]],
     war_ended: bool,
     balance_projection: Optional[Mapping[str, Any]] = None,
+    pre_cleanup_war_label: str = "",
+    pre_cleanup_proposer_members: Optional[List[str]] = None,
+    pre_cleanup_accepting_members: Optional[List[str]] = None,
+    pre_cleanup_attacker_leader: str = "",
+    pre_cleanup_defender_leader: str = "",
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1070,11 +1152,17 @@ def route_settlement_reactions(
     `settlement_digest`.
     """
     instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
-    proposer_member_set = set(
-        _participants_on_side(instance, proposer_side)
-    )
-    proposer_members = _participants_on_side(instance, proposer_side)
-    accepting_members = _participants_on_side(instance, accepting_side)
+    # Pre-cleanup overrides win when present (set by ratify_settlement_confirm
+    # before cleanup_war_end empties the live `attackers`/`defenders` lists).
+    if pre_cleanup_proposer_members:
+        proposer_members = list(pre_cleanup_proposer_members)
+    else:
+        proposer_members = _participants_on_side(instance, proposer_side)
+    if pre_cleanup_accepting_members:
+        accepting_members = list(pre_cleanup_accepting_members)
+    else:
+        accepting_members = _participants_on_side(instance, accepting_side)
+    proposer_member_set = set(proposer_members)
     episode_id_alloc = None
     try:
         from backend.game_logic.diplomacy import _allocate_episode_id
@@ -1152,6 +1240,10 @@ def route_settlement_reactions(
         participant_reactions=all_reactions,
         war_ended=bool(war_ended),
         balance_projection=balance_projection or {},
+        settlement_terms=list(settlement_terms or []),
+        pre_cleanup_war_label=pre_cleanup_war_label,
+        pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
+        pre_cleanup_defender_leader=pre_cleanup_defender_leader,
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:

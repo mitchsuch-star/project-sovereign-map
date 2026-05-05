@@ -227,6 +227,9 @@ class WorldState:
             "break_square": 0,  # Session 67: Break square (free action)
             "set_war_purpose": 0,  # WPS-A: political declaration, not an action
             "repudiate_bargain": 1,  # WB-C: explicit breach action
+            # Imperial Settlement (spec §11): opening the C2 dialogue is
+            # free; the AP cost is spent on ratification (`confirm_settlement`).
+            "propose_common_peace": 0,
         }
 
         # ============================================================

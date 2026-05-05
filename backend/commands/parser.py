@@ -121,6 +121,8 @@ class CommandParser:
             "set_war_purpose",
             # WB-C: Repudiate a live war bargain
             "repudiate_bargain",
+            # Imperial Settlement (WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11)
+            "propose_common_peace",  # Open the C2 settlement_confirm dialogue
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

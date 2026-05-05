@@ -1077,6 +1077,15 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Sire, peeling {departing_enemy} from {war_label} weakens {remaining_leader}, "
         "but it also teaches the remaining courts that separate peace has a price."
     ),
+    # Settlement aftermath digest (spec §11.6 line 1288). Voiced in
+    # Talleyrand register so the rolled-up overflow line keeps the
+    # settlement family's narrative voice rather than reading as system
+    # log text. Spec §16.1 line 1602.
+    "settlement_aftermath_digest_talleyrand": (
+        "Sire, {hidden_count} further courts have entered the {war_label} "
+        "settlement into their ledgers — quieter reactions, but each one "
+        "remembered."
+    ),
 }
 
 
