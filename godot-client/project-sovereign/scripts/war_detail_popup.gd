@@ -118,7 +118,12 @@ func show_armistice(war_data: Dictionary) -> void:
 
 
 func refresh_if_open(active_wars_data: Dictionary) -> void:
-	"""Refresh data in-place if popup is open (N4d: don't close mid-read)."""
+	"""Refresh data in-place if popup is open (N4d: don't close mid-read).
+
+	When `_current_war_id` is known (war card opened with a specific
+	war_instance_id), match BOTH nation and war_instance_id so that
+	multiple wars vs the same nation across different war_instances
+	cannot silently swap the popup's data."""
 	if not visible:
 		return
 
@@ -129,19 +134,31 @@ func refresh_if_open(active_wars_data: Dictionary) -> void:
 		show_coalition(coalition_data, wars)
 		return
 
-	# Find the war data for current nation
+	# Find the war data for current nation. Prefer a war_instance_id
+	# match when one was captured at show_war(); fall back to nation-only
+	# only if no war_instance_id was captured (legacy entry points).
 	var found = false
-	for w in wars:
-		if str(w.get("opponent", "")) == _current_nation:
-			found = true
-			if _current_mode == "war" and str(w.get("status", "")) == "war":
-				show_war(w, coalition_data)
-			elif _current_mode == "armistice" and str(w.get("status", "")) == "armistice":
-				show_armistice(w)
-			elif str(w.get("status", "")) == "armistice":
-				# War ended, now armistice
-				show_armistice(w)
-			break
+	var matched: Variant = null
+	if _current_war_id != "":
+		for w in wars:
+			if str(w.get("opponent", "")) == _current_nation and str(w.get("war_instance_id", "")) == _current_war_id:
+				matched = w
+				found = true
+				break
+	if not found:
+		for w in wars:
+			if str(w.get("opponent", "")) == _current_nation:
+				matched = w
+				found = true
+				break
+	if matched != null:
+		if _current_mode == "war" and str(matched.get("status", "")) == "war":
+			show_war(matched, coalition_data)
+		elif _current_mode == "armistice" and str(matched.get("status", "")) == "armistice":
+			show_armistice(matched)
+		elif str(matched.get("status", "")) == "armistice":
+			# War ended, now armistice
+			show_armistice(matched)
 
 	if not found:
 		# War ended entirely — notify before closing (Fix 10)

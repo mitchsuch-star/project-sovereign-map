@@ -100,8 +100,100 @@ def test_backend_humanization_and_incoming_offer_contracts_are_pinned() -> None:
     assert "SETTLEMENT_DISABLED_REASON_DISPLAY" in display_names
     assert "ACCEPTANCE_COMPONENT_DISPLAY" in display_names
     assert "acceptance_band_phrase" in display_names
+    assert "SIDE_LABEL_DISPLAY" in display_names
+    assert "side_label_display" in display_names
+    assert "unknown_settlement_action" in display_names
+    assert "unknown_settlement_offer_action" in display_names
     assert "handle_incoming_settlement_offer_action" in preview
     assert "accept_settlement_offer" in executor
     assert "request_settlement_revision" in executor
     assert "requested_war_id" in helper
     assert "war_state_changed_since_open" in helper
+
+
+def test_route_id_uses_event_format_consistently() -> None:
+    """Spec §11.6: dialogue and event side share `{war_id}:{turn}` so the
+    diplomatic-ledger focus highlight pin works without a war_id fallback."""
+    preview = read_repo_file("backend/game_logic/settlement_preview.py")
+    reactions = read_repo_file("backend/game_logic/settlement_reactions.py")
+
+    # Dialogue side must NOT prefix `settlement_summary:`.
+    assert 'f"settlement_summary:{war_id}' not in preview
+    # Both sides must produce the same `{war_id}:{turn}` shape.
+    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' in preview
+    assert 'f"{war_id}:{turn}"' in reactions
+
+
+def test_settlement_review_emits_uncovered_chips_and_side_labels() -> None:
+    """Live preview path stamps `side_label` and `is_beneficiary` so the
+    confirm popup never falls back to raw `attackers`/`defenders` enums."""
+    presentation = read_repo_file(
+        "backend/game_logic/settlement_presentation.py"
+    )
+
+    assert "side_label_display" in presentation
+    assert '"side_label": side_label_display(side)' in presentation
+    assert "uncovered_enemy_display_chips" in presentation
+    assert "_beneficiaries_from_terms" in presentation
+    assert '"is_beneficiary": nation in beneficiaries' in presentation
+
+
+def test_main_gd_handles_must_reopen_and_auto_opens_ledger() -> None:
+    """Settlement-result feedback should programmatically open the
+    ledger, not just point at it; reopen_target must drive a real reopen."""
+    main = read_repo_file("godot-client/project-sovereign/scripts/main.gd")
+
+    assert "must_reopen" in main
+    assert "reopen_target" in main
+    assert "Reopening settlement review for" in main
+    assert "Opening diplomatic ledger to settlement" in main
+    # The wizard's structured-command signal is wired so open_settlement
+    # forwards war_id to the backend.
+    assert "_on_wizard_structured_command_selected" in main
+    assert "structured_command_selected" in main
+
+
+def test_war_detail_refresh_honors_war_instance_id() -> None:
+    war_detail = read_repo_file(
+        "godot-client/project-sovereign/scripts/war_detail_popup.gd"
+    )
+
+    # Refresh must match war_instance_id when known so multi-war
+    # disambiguation does not silently swap to a sibling war.
+    assert "_current_war_id != \"\"" in war_detail
+    assert "war_instance_id" in war_detail
+
+
+def test_diplomacy_wizard_open_settlement_forwards_war_id() -> None:
+    wizard = read_repo_file(
+        "godot-client/project-sovereign/scripts/diplomacy_wizard.gd"
+    )
+
+    assert "structured_command_selected" in wizard
+    assert "_structured_payload_for_action" in wizard
+    assert '"action": "propose_common_peace"' in wizard
+
+
+def test_acceptance_color_uses_band_code_only() -> None:
+    """Color logic must compare the raw enum band_code, never the
+    humanized `band` string — otherwise a wording change silently
+    swaps the colour."""
+    popup = read_repo_file(
+        "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd"
+    )
+
+    # The new color block uses if/elif on band_code; the regression
+    # would re-introduce `band == "Near acceptable"`.
+    assert 'band_code == "near_acceptable"' in popup
+    assert 'band == "Near acceptable"' not in popup
+
+
+def test_diplomatic_ledger_top_components_use_humanized_keys() -> None:
+    """Inline acceptance section must read `component_display` and
+    `value_display`, never the missing `name`/raw `value`."""
+    ledger = read_repo_file(
+        "godot-client/project-sovereign/scripts/diplomatic_ledger.gd"
+    )
+
+    assert "component_display" in ledger
+    assert "value_display" in ledger

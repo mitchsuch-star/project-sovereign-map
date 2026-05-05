@@ -42,7 +42,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from backend.display_names import clause_display_name
+from backend.display_names import clause_display_name, side_label_display
 
 from backend.models.intel import FULL, PARTIAL, VISIBILITY_PRIORITY
 
@@ -832,6 +832,23 @@ def build_settlement_review(
                 acceptance.get("debug_components") or []
             )
 
+    # Compute uncovered enemy participants — opposing-side allies that
+    # this settlement does NOT resolve. Surfaced as "Still at war: …" in
+    # the confirm popup so multi-enemy partial settlements show who
+    # remains hostile after ratification.
+    covered_set = {str(n) for n in (covered_enemy_participants or []) if n}
+    uncovered_chips: List[str] = []
+    for ally in enriched_allies:
+        if not isinstance(ally, Mapping):
+            continue
+        nation = str(ally.get("nation", "") or "")
+        ally_side = str(ally.get("side", "") or "")
+        if not nation or nation in covered_set:
+            continue
+        if accepting_side and ally_side and ally_side != accepting_side:
+            continue
+        uncovered_chips.append(nation)
+
     return {
         "war_id": war_id,
         "war_label": war_label,
@@ -839,6 +856,7 @@ def build_settlement_review(
         "accepting_side": accepting_side,
         "covered_enemy_participants": list(covered_enemy_participants or []),
         "covered_enemy_display_chips": list(covered_enemy_participants or []),
+        "uncovered_enemy_display_chips": uncovered_chips,
         "coverage_scope_display": (
             "Whole-war settlement" if len(covered_enemy_participants or []) > 1
             else "Separate settlement"
@@ -1037,14 +1055,22 @@ def build_settlement_review_from_event(
         if nation:
             rewarded.add(nation)
 
+    proposer_members_set: set = {n for n in proposer_members if isinstance(n, str)}
     allies: List[Dict[str, Any]] = []
     seen: set = set()
     for nation in proposer_members + accepting_members:
         if not isinstance(nation, str) or not nation or nation in seen:
             continue
         seen.add(nation)
+        side = "attackers" if nation in proposer_members_set and event.get("proposer_side") == "attackers" else (
+            "defenders" if nation in proposer_members_set and event.get("proposer_side") == "defenders" else (
+                "defenders" if event.get("proposer_side") == "attackers" else "attackers"
+            )
+        )
         allies.append({
             "nation": nation,
+            "side": side,
+            "side_label": side_label_display(side),
             "standing": "leader" if nation in leader_set else "consult",
             "material_share": 0.0,
             "is_leader": nation in leader_set,
@@ -1166,9 +1192,41 @@ def recent_settlement_summaries(
 # ---------------------------------------------------------------------------
 
 
+def _beneficiaries_from_terms(terms: Iterable[Mapping[str, Any]]) -> set:
+    """Return participant nations whose interests are advanced by `terms`.
+
+    Used to set `is_beneficiary` on live preview rows so the confirm popup
+    can stamp "rewarded" alongside leader / standing labels. Mirrors the
+    archived event path's `ally_rewarded` reaction (build_settlement_review_from_event).
+    """
+    beneficiaries: set = set()
+    for term in terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type", "") or "")
+        if ttype in ("territory_cede", "liberation"):
+            recipient = str(term.get("to", "") or term.get("recipient", "") or "")
+            if recipient:
+                beneficiaries.add(recipient)
+        elif ttype in ("vassalage", "subjugation"):
+            lord = str(term.get("to", "") or term.get("lord_nation", "") or "")
+            if lord:
+                beneficiaries.add(lord)
+        elif ttype == "forced_alliance":
+            imposer = str(term.get("to", "") or "")
+            if imposer:
+                beneficiaries.add(imposer)
+        elif ttype in ("gold_payment", "manpower_transfer"):
+            recipient = str(term.get("to", "") or term.get("recipient", "") or "")
+            if recipient:
+                beneficiaries.add(recipient)
+    return beneficiaries
+
+
 def build_contribution_share_rows(
     world: Any, war_id: str, *,
     cap: int = SETTLEMENT_STANDING_ROW_CAP,
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Top-N contribution share rows for a war_instance.
 
@@ -1177,6 +1235,11 @@ def build_contribution_share_rows(
     Overflow is the count of participants beyond the cap. When
     contribution data is missing (early war / pre-Slice B), returns an
     empty `rows` list with overflow=0.
+
+    `settlement_terms` is consumed only to stamp `is_beneficiary` on rows
+    whose nation is named as the beneficiary of any clause (territory
+    cede recipient, forced-alliance imposer, vassalage lord, etc.). The
+    flag is read by the confirm popup's stamps row alongside `is_leader`.
     """
     instances = getattr(world, "war_instances", None) or {}
     war = instances.get(war_id)
@@ -1197,6 +1260,8 @@ def build_contribution_share_rows(
     except Exception:
         return {"rows": [], "overflow_count": 0}
 
+    beneficiaries = _beneficiaries_from_terms(settlement_terms or [])
+
     for nation in participants:
         side = "attackers" if nation in (war.get("attackers") or []) else (
             "defenders" if nation in (war.get("defenders") or []) else ""
@@ -1214,6 +1279,7 @@ def build_contribution_share_rows(
         rows.append({
             "nation": nation,
             "side": side,
+            "side_label": side_label_display(side),
             "standing": standing,
             "standing_display": _standing_display(standing),
             "material_share": float(inputs.get("material_share", 0.0) or 0.0),
@@ -1222,6 +1288,7 @@ def build_contribution_share_rows(
                 nation == war.get("attacker_leader")
                 or nation == war.get("defender_leader")
             ),
+            "is_beneficiary": nation in beneficiaries,
         })
 
     rows.sort(

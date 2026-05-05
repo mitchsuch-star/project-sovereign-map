@@ -236,7 +236,14 @@ func _build_settlement_content(data: Dictionary) -> String:
 		var band = str(acceptance.get("band_display", acceptance.get("band", "Review").replace("_", " ").capitalize()))
 		var phrase = str(acceptance.get("band_phrase", ""))
 		var band_code = str(acceptance.get("band", "")).to_lower()
-		var color = "#80c080" if band_code in ["accept", "acceptable"] else ("#e0e060" if band == "Near acceptable" else "#e04040")
+		# Color decisions are made off the raw enum band code, never the
+		# humanized `band` string — that way a future tweak to
+		# ACCEPTANCE_BAND_DISPLAY wording does not silently swap the colour.
+		var color = "#e04040"
+		if band_code in ["accept", "acceptable"]:
+			color = "#80c080"
+		elif band_code == "near_acceptable":
+			color = "#e0e060"
 		bbcode += "[b]Acceptance[/b]\n"
 		bbcode += "  [color=%s]%d / %d - %s[/color]" % [color, total, threshold, band]
 		if phrase != "" and phrase != band:

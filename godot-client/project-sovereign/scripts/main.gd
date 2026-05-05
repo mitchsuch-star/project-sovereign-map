@@ -234,6 +234,8 @@ func _ready():
 
 	# Diplomacy wizard
 	diplomacy_wizard = dialog_manager.register("diplomacy_wizard", "res://scenes/diplomacy_wizard.tscn")
+	if diplomacy_wizard and diplomacy_wizard.has_signal("structured_command_selected"):
+		diplomacy_wizard.structured_command_selected.connect(_on_wizard_structured_command_selected)
 	if diplomacy_wizard:
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
 		if diplomacy_wizard.has_signal("open_envoys_requested"):
@@ -916,6 +918,21 @@ func _on_command_result(response):
 	# Re-enable input
 	set_input_enabled(true)
 
+	# Settlement reopen signal: backend asks the UI to re-open the settlement
+	# review (e.g. after a stale active_pair_changed / proposer_leader_changed,
+	# after Revise Terms, or after accepting an incoming offer with no war_id).
+	# Acted on regardless of success because the helper paths return success=False
+	# but still hand back a reopen_target.
+	if bool(response.get("must_reopen", false)) and response.has("reopen_target"):
+		var reopen_target = response.get("reopen_target", {})
+		if typeof(reopen_target) == TYPE_DICTIONARY:
+			var rt_war_id = str(reopen_target.get("war_id", ""))
+			var rt_nation = str(reopen_target.get("target_nation", reopen_target.get("nation", "")))
+			if rt_war_id != "" and rt_nation != "":
+				add_output("[color=#" + Utils.COLOR_INFO + "]Reopening settlement review for " + rt_nation + "…[/color]")
+				_on_war_settlement_clicked(rt_war_id, rt_nation)
+				return
+
 	if response.success:
 		# Format and display result based on event type
 		_display_result(response)
@@ -1134,8 +1151,12 @@ func _display_settlement_result_feedback(feedback: Dictionary):
 	if typeof(review_route) == TYPE_DICTIONARY:
 		route_id = str(review_route.get("route_id", route_id))
 		war_id = str(review_route.get("war_id", war_id))
-	if route_id != "":
-		add_output("[color=#" + Utils.COLOR_INFO + "]  Review Settlement is available in the diplomatic ledger.[/color]")
+	if route_id != "" or war_id != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Opening diplomatic ledger to settlement…[/color]")
+		# Programmatic open of the ledger focused on this settlement so the
+		# player does not have to manually press D after ratification.
+		if top_bar and top_bar.has_method("open_diplomatic_ledger_review"):
+			top_bar.open_diplomatic_ledger_review("ledger_settlements", route_id, war_id)
 
 func _peace_outcome_label(outcome: String) -> String:
 	match outcome:
@@ -3346,6 +3367,27 @@ func _on_wizard_command_selected(command: String):
 
 	# Send to backend via normal command flow
 	api_client.send_command(command, _on_command_result)
+
+
+func _on_wizard_structured_command_selected(command: String, data: Dictionary):
+	"""Handle wizard action selection that needs structured POST fields
+	(e.g. `open_settlement` carrying `war_id` so the backend can scope the
+	settlement to the correct war_instance instead of falling through to
+	the legacy first-active-war fallback)."""
+	if command.is_empty():
+		return
+
+	_add_to_history(command)
+
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+
+	set_input_enabled(false)
+
+	if api_client.has_method("send_structured_command"):
+		api_client.send_structured_command(command, data, _on_command_result)
+	else:
+		api_client.send_command(command, _on_command_result)
 
 
 # ════════════════════════════════════════════════════════════════════════════

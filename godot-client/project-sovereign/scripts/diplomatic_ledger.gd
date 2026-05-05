@@ -1181,7 +1181,9 @@ func _format_settlement_sections(sections) -> String:
 			for c in top:
 				if not c is Dictionary:
 					continue
-				bbcode += "      • " + str(c.get("name", "?")) + ": " + str(c.get("value", 0)) + "\n"
+				var component_label = str(c.get("component_display", c.get("name", "?")))
+				var value_label = str(c.get("value_display", str(c.get("value", 0))))
+				bbcode += "      • " + component_label + ": " + value_label + "\n"
 
 	return bbcode
 

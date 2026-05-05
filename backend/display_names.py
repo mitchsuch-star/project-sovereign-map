@@ -528,6 +528,15 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
     "active_participant_changed": "A participant changed sides or left the war.",
     "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
+    "unknown_settlement_action": "That settlement choice is not recognized.",
+    "unknown_settlement_offer_action": "That settlement-offer choice is not recognized.",
+}
+
+# Side label display — used by settlement review's allies block to surface
+# "Attackers" / "Defenders" instead of leaking the raw enum keys downstream.
+SIDE_LABEL_DISPLAY = {
+    "attackers": "Attackers",
+    "defenders": "Defenders",
 }
 
 ACCEPTANCE_BAND_DISPLAY = {
@@ -580,6 +589,7 @@ _CATEGORY_MAPS = {
     "settlement_disabled_reason": SETTLEMENT_DISABLED_REASON_DISPLAY,
     "acceptance_band": ACCEPTANCE_BAND_DISPLAY,
     "acceptance_component": ACCEPTANCE_COMPONENT_DISPLAY,
+    "side_label": SIDE_LABEL_DISPLAY,
 }
 
 
@@ -616,6 +626,12 @@ def acceptance_component_display(component: str) -> str:
     """Translate settlement acceptance component keys."""
     result, raw = _lookup_display_name(ACCEPTANCE_COMPONENT_DISPLAY, component)
     return result or _fallback_display_name(raw, default="Settlement pressure")
+
+
+def side_label_display(side: str) -> str:
+    """Translate `attackers` / `defenders` enum to player-facing text."""
+    result, raw = _lookup_display_name(SIDE_LABEL_DISPLAY, side)
+    return result or _fallback_display_name(raw, default="")
 
 
 def _lookup_display_name(display_map: dict, internal_name: str):

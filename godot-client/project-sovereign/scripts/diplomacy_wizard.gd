@@ -10,6 +10,7 @@ extends CanvasLayer
 # =============================================================================
 
 signal command_selected(command: String)
+signal structured_command_selected(command: String, data: Dictionary)
 signal open_envoys_requested
 
 # UI References — paths match scene tree
@@ -457,20 +458,50 @@ func _add_action_button(action: Dictionary):
 		btn.add_theme_color_override("font_color", Color("#" + color_hex))
 
 	if available:
-		btn.pressed.connect(_on_action_selected.bind(action_id))
+		btn.pressed.connect(_on_action_selected.bind(action_id, action))
 
 	content_list.add_child(btn)
 
 
-func _on_action_selected(action_id: String):
+func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 	"""Build command string and emit for main.gd to execute (§2 Step 3).
-	Peace-class proposal previews render in the canonical proposal confirmation popup."""
+	Peace-class proposal previews render in the canonical proposal confirmation popup.
+
+	When the action carries structured backend metadata (e.g. `war_id` for
+	`open_settlement` so the war-detail-popup-equivalent path can scope the
+	settlement to the correct war_instance), emit the structured signal so
+	main.gd can call `send_structured_command` instead of free-text parsing.
+	"""
 	var command = _build_command(action_id, _selected_nation)
 	if not command:
 		_show_error("Unknown diplomatic action: " + action_id)
 		return
 
+	var structured_data = _structured_payload_for_action(action_id, action_payload)
+
 	_close_wizard()
+	if structured_data.is_empty():
+		command_selected.emit(command)
+	else:
+		structured_command_selected.emit(command, structured_data)
+	return
+
+
+func _structured_payload_for_action(action_id: String, action_payload: Dictionary) -> Dictionary:
+	"""Return the structured POST fields the backend should receive alongside
+	the free-text command. Currently only `open_settlement` consumes this so
+	the wizard preserves the wizard's selected `war_id`; other actions return
+	an empty dict (which routes through the legacy free-text command path)."""
+	if action_id == "open_settlement":
+		var war_id = str(action_payload.get("war_id", ""))
+		var data = {
+			"action": "propose_common_peace",
+			"target_nation": _selected_nation,
+		}
+		if war_id != "":
+			data["war_id"] = war_id
+		return data
+	return {}
 	command_selected.emit(command)
 
 

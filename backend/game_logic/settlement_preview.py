@@ -311,7 +311,9 @@ def build_settlement_preview(
         "warnings": warnings,
         "density": density if density in ("compact", "medium", "verbose") else "medium",
     }
-    contribution = build_contribution_share_rows(world, war_id)
+    contribution = build_contribution_share_rows(
+        world, war_id, settlement_terms=terms,
+    )
     review_acceptance = _enrich_acceptance_display(acceptance)
     review_acceptance.setdefault("total", acceptance.get("score", 0))
     review_acceptance.setdefault("threshold", 50)
@@ -358,7 +360,9 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    route_id = f"settlement_summary:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    # Spec §11.6: route_id matches `settlement_reactions._emit_settlement_summary_event`
+    # so dispatch event, ledger row, and confirm dialogue all share the same key.
+    route_id = f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
     text = f"Review the settlement of {war_label}. Acceptance: {verdict} ({score if score is not None else 'blocked'})."
     review_route = {
         "surface": "ledger_settlements",
@@ -387,6 +391,7 @@ def build_settlement_confirm_dialogue(
         "coverage_scope_display": (preview.get("review_sections") or {}).get("coverage_scope_display", ""),
         "war_scope_display": (preview.get("review_sections") or {}).get("war_scope_display", ""),
         "covered_enemy_display_chips": list((preview.get("review_sections") or {}).get("covered_enemy_display_chips") or []),
+        "uncovered_enemy_display_chips": list((preview.get("review_sections") or {}).get("uncovered_enemy_display_chips") or []),
         "acceptance_display": (preview.get("review_sections") or {}).get("sections", {}).get("acceptance", {}),
         "debug_action_ids": ["confirm_settlement", "revise_settlement_terms", "back_out_settlement"],
         "options": [
@@ -1167,7 +1172,7 @@ def ratify_settlement_confirm(
     review_route_id = str(
         (reaction_summary.get("summary_event") or {}).get("route", {}).get("route_id", "")
         or dialogue.get("route_id")
-        or f"settlement_summary:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+        or f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
     )
     review_route = {
         "surface": "ledger_settlements",
@@ -1259,6 +1264,13 @@ def handle_incoming_settlement_offer_action(
 
     Accepting an offer intentionally rebuilds a fresh settlement_confirm
     from live war state instead of ratifying the stale mailbox payload.
+
+    NOTE: as of Slice F there is no producer of `incoming_settlement_offer`
+    dialogues yet — the AI-initiated common-peace offer pipeline lands
+    in a future slice (see WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.5).
+    The handler is wired up now so the action dispatcher does not need a
+    follow-up edit when offers begin to be produced; until then, this
+    code path is unreachable from gameplay.
     """
     war_id = str(dialogue.get("war_id") or "")
     actor = getattr(world, "player_nation", "France")
