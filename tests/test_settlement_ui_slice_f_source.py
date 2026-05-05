@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -6,6 +7,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def read_repo_file(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def gdscript_function_body(source: str, function_name: str) -> str:
+    match = re.search(rf"^func {re.escape(function_name)}\([^\n]*\).*$", source, re.MULTILINE)
+    assert match is not None, f"missing GDScript function {function_name}"
+    start = match.end()
+    next_func = re.search(r"^func [A-Za-z0-9_]+\(", source[start:], re.MULTILINE)
+    end = start + next_func.start() if next_func else len(source)
+    return source[start:end]
+
+
+def gdscript_body_without_docstrings(body: str) -> str:
+    return re.sub(r'"""[\s\S]*?"""', "", body)
 
 
 def test_diplomacy_wizard_maps_open_settlement_without_cost_label() -> None:
@@ -172,6 +186,24 @@ def test_diplomacy_wizard_open_settlement_forwards_war_id() -> None:
     assert "structured_command_selected" in wizard
     assert "_structured_payload_for_action" in wizard
     assert '"action": "propose_common_peace"' in wizard
+
+
+def test_diplomacy_wizard_structured_payload_helper_has_no_stray_command_emit() -> None:
+    """Catch invalid unreachable GDScript left inside the helper body.
+
+    Godot still parses unreachable statements, so an out-of-scope
+    `command_selected.emit(command)` here breaks the wizard before the
+    Open Settlement button can route its structured war_id.
+    """
+    wizard = read_repo_file(
+        "godot-client/project-sovereign/scripts/diplomacy_wizard.gd"
+    )
+    body = gdscript_body_without_docstrings(
+        gdscript_function_body(wizard, "_structured_payload_for_action")
+    )
+
+    assert "command_selected.emit" not in body
+    assert re.search(r"\bcommand\b", body) is None
 
 
 def test_acceptance_color_uses_band_code_only() -> None:

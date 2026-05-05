@@ -502,7 +502,6 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 			data["war_id"] = war_id
 		return data
 	return {}
-	command_selected.emit(command)
 
 
 func _build_command(action_id: String, nation: String) -> String:
