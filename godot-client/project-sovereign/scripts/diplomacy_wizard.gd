@@ -421,7 +421,7 @@ func _add_action_button(action: Dictionary):
 	var dp_cost = int(action.get("dp_cost", 0))
 	var gold_cost = int(action.get("gold_cost", 0))
 	var available = action.get("available", false)
-	var disabled_reason = str(action.get("disabled_reason", ""))
+	var disabled_reason = str(action.get("disabled_reason_display", action.get("error_display", action.get("disabled_reason", ""))))
 	var likelihood = str(action.get("likelihood", ""))
 	var action_id = str(action.get("action", ""))
 

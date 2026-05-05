@@ -9840,7 +9840,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                     "error": "inactive_war_instance",
                 }
         else:
-            settlement_eligibility = {"available": False, "error": "inactive_war_instance"}
+            from backend.display_names import settlement_disabled_reason_display
+            settlement_eligibility = {
+                "available": False,
+                "error": "inactive_war_instance",
+                "error_display": settlement_disabled_reason_display("inactive_war_instance"),
+                "disabled_reason_display": settlement_disabled_reason_display("inactive_war_instance"),
+            }
             if world.diplomatic_states.get(diplo_key) == "WAR":
                 settlement_eligibility = {
                     "available": True,
@@ -9856,10 +9862,18 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         settlement_available = bool(settlement_eligibility.get("available"))
         if settlement_eligibility.get("available"):
             settlement_disabled_reason = ""
+            settlement_disabled_reason_label = ""
         else:
             settlement_disabled_reason = settlement_eligibility.get(
                 "display_reason",
-                str(settlement_eligibility.get("error", "")).replace("_", " ").title(),
+                settlement_eligibility.get(
+                    "error_display",
+                    str(settlement_eligibility.get("error", "")).replace("_", " ").title(),
+                ),
+            )
+            settlement_disabled_reason_label = settlement_eligibility.get(
+                "disabled_reason_display",
+                settlement_disabled_reason,
             )
         actions.append({
             "action": "open_settlement",
@@ -9867,6 +9881,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "dp_cost": 0,
             "available": settlement_available,
             "disabled_reason": settlement_disabled_reason,
+            "disabled_reason_display": settlement_disabled_reason_label,
             "war_id": settlement_war_id,
             "eligibility": settlement_eligibility,
         })

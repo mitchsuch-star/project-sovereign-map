@@ -327,7 +327,7 @@ def test_godot_main_forwards_bargain_review_targets():
     assert 'review_target == "diplomacy_wizard"' in main
     assert "_open_diplomacy_wizard()" in main
     assert 'review_target.begins_with("ledger_")' in main
-    assert "top_bar.open_diplomatic_ledger_review(review_target)" in main
+    assert "top_bar.open_diplomatic_ledger_review(review_target, route_id, war_id)" in main
 
 
 def test_godot_notification_bar_recognizes_bargain_notices():

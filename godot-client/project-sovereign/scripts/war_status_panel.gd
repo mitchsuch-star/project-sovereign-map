@@ -234,7 +234,7 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			if not row is Dictionary:
 				continue
 			var nation = str(row.get("nation", "?"))
-			var standing = str(row.get("standing_display", row.get("standing", "no_standing")))
+			var standing = str(row.get("standing_display", "Standing pending"))
 			var material = float(row.get("material_share", 0.0)) * 100.0
 			var leader_marker = "*" if row.get("is_leader", false) else " "
 			lines.append("  " + leader_marker + " " + nation + " — " + standing + " (" + str(int(round(material))) + "%)")

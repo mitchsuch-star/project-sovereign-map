@@ -113,11 +113,12 @@ def test_stage_settlement_confirm_creates_hard_stop_without_mutation():
     assert result["success"] is True
     assert dialogue["type"] == "settlement_confirm"
     assert world.dialogue_manager.is_hard_stop() is True
-    assert dialogue["actions"] == [
+    assert dialogue["debug_action_ids"] == [
         "confirm_settlement",
         "revise_settlement_terms",
         "back_out_settlement",
     ]
+    assert "actions" not in dialogue
     assert dialogue["options"][0]["label"] == "Ratify Settlement"
     assert "review_sections" in dialogue
     assert dict(world.diplomatic_states) == before_states

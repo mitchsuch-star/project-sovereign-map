@@ -166,7 +166,7 @@ func toggle_screen(screen_name: String):
 		_open_screen(screen_name)
 
 
-func open_diplomatic_ledger_review(review_target: String):
+func open_diplomatic_ledger_review(review_target: String, route_id: String = "", war_id: String = ""):
 	"""Open the diplomatic ledger to a named review target."""
 	var screen_name = "diplomatic_ledger"
 	if not screens.has(screen_name):
@@ -182,7 +182,7 @@ func open_diplomatic_ledger_review(review_target: String):
 	elif review_target == "ledger_war_bargains" and node.has_method("open_to_war_bargains"):
 		node.open_to_war_bargains(api_client)
 	elif review_target == "ledger_settlements" and node.has_method("open_to_settlements"):
-		node.open_to_settlements(api_client)
+		node.open_to_settlements(api_client, route_id, war_id)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:

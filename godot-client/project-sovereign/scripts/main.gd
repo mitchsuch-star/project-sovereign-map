@@ -1128,6 +1128,14 @@ func _display_settlement_result_feedback(feedback: Dictionary):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  " + war_label + " updated.[/color]")
 	if resolved > 0:
 		add_output("[color=#" + Utils.COLOR_INFO + "]  Covered pairings: " + str(resolved) + "[/color]")
+	var review_route = feedback.get("review_route", {})
+	var route_id = str(feedback.get("route_id", ""))
+	var war_id = str(feedback.get("war_id", ""))
+	if typeof(review_route) == TYPE_DICTIONARY:
+		route_id = str(review_route.get("route_id", route_id))
+		war_id = str(review_route.get("war_id", war_id))
+	if route_id != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Review Settlement is available in the diplomatic ledger.[/color]")
 
 func _peace_outcome_label(outcome: String) -> String:
 	match outcome:
@@ -3167,7 +3175,7 @@ func _on_dispatch_open_envoys_requested():
 	_on_envoy_clicked()
 
 
-func _on_notification_review_requested(review_target: String, _route_id: String = "", _war_id: String = ""):
+func _on_notification_review_requested(review_target: String, route_id: String = "", war_id: String = ""):
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
@@ -3180,7 +3188,7 @@ func _on_notification_review_requested(review_target: String, _route_id: String 
 	if review_target == "settlement_review" or review_target == "ledger_settlements":
 		if top_bar:
 			if top_bar.has_method("open_diplomatic_ledger_review"):
-				top_bar.open_diplomatic_ledger_review("ledger_settlements")
+				top_bar.open_diplomatic_ledger_review("ledger_settlements", route_id, war_id)
 			else:
 				top_bar.toggle_screen("diplomatic_ledger")
 		return
@@ -3189,7 +3197,7 @@ func _on_notification_review_requested(review_target: String, _route_id: String 
 		return
 	if review_target.begins_with("ledger_") and top_bar:
 		if top_bar.has_method("open_diplomatic_ledger_review"):
-			top_bar.open_diplomatic_ledger_review(review_target)
+			top_bar.open_diplomatic_ledger_review(review_target, route_id, war_id)
 		else:
 			top_bar.toggle_screen("diplomatic_ledger")
 
@@ -3359,16 +3367,16 @@ func _update_war_panel_visibility():
 		notification_bar.set_suspended(_is_modal_dialog_open())
 
 
-func _on_war_card_clicked(nation: String, status: String, _war_instance_id: String = ""):
+func _on_war_card_clicked(nation: String, status: String, war_instance_id: String = ""):
 	"""N4h: Handle war card click — open detail popup."""
 	if war_detail_popup == null:
 		return
 	if status == "armistice":
-		var war_data = _find_war_data(nation)
+		var war_data = _find_war_data(nation, war_instance_id)
 		if war_data != null:
 			war_detail_popup.show_armistice(war_data)
 	else:
-		var war_data = _find_war_data(nation)
+		var war_data = _find_war_data(nation, war_instance_id)
 		if war_data != null:
 			war_detail_popup.show_war(war_data, _cached_coalition_data)
 
@@ -3397,7 +3405,14 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 	var command = "propose common peace with " + nation
 	add_output("[color=#d9c08c]Opening settlement review for %s[/color]" % nation)
 	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+	if api_client.has_method("send_structured_command"):
+		api_client.send_structured_command(command, {
+			"action": "propose_common_peace",
+			"target_nation": nation,
+			"war_id": war_id,
+		}, _on_command_result)
+	else:
+		api_client.send_command(command, _on_command_result)
 
 
 func _on_war_ended_notification(message: String):
@@ -3405,8 +3420,12 @@ func _on_war_ended_notification(message: String):
 	add_output("[color=#" + Utils.COLOR_INFO + "]" + message + "[/color]")
 
 
-func _find_war_data(nation: String):
+func _find_war_data(nation: String, war_instance_id: String = ""):
 	"""Find war data for a specific nation from cached active_wars."""
+	if war_instance_id != "":
+		for w in _cached_wars:
+			if str(w.get("war_instance_id", "")) == war_instance_id and str(w.get("opponent", "")) == nation:
+				return w
 	for w in _cached_wars:
 		if str(w.get("opponent", "")) == nation:
 			return w

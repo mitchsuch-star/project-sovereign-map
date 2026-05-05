@@ -1985,6 +1985,11 @@ class DiplomaticExecutor:
             cmd.get("target_nation")
             or (cmd.get("diplomatic_data") or {}).get("target_nation")
         )
+        requested_war_id = (
+            cmd.get("war_id")
+            or (cmd.get("diplomatic_data") or {}).get("war_id")
+            or ""
+        )
         if not target_nation:
             return {
                 "success": False,
@@ -2000,25 +2005,33 @@ class DiplomaticExecutor:
             resolve_or_backfill_war_instance_for_settlement,
         )
         resolution = resolve_or_backfill_war_instance_for_settlement(
-            world, player, target_nation,
+            world, player, target_nation, requested_war_id=str(requested_war_id or ""),
         )
         if not resolution.get("ok"):
             err = resolution.get("error", "")
+            from backend.display_names import settlement_disabled_reason_display
             if err == "not_at_war":
                 return {
                     "success": False,
                     "message": f"We are not at war with {target_nation}, Sire.",
+                    "error": err,
+                    "error_display": settlement_disabled_reason_display(err),
                 }
             if err == "self_settlement":
                 return {
                     "success": False,
                     "message": "We cannot open a settlement with ourselves, Sire.",
+                    "error": err,
+                    "error_display": settlement_disabled_reason_display(err),
                 }
+            display_reason = settlement_disabled_reason_display(err)
             return {
                 "success": False,
+                "error": err,
+                "error_display": display_reason,
                 "message": (
                     f"Sire, the chancery cannot open a settlement with "
-                    f"{target_nation}: {err or 'unknown obstacle'}."
+                    f"{target_nation}: {display_reason}"
                 ),
             }
         war_id = resolution["war_id"]
@@ -2585,6 +2598,18 @@ class DiplomaticExecutor:
                 handle_settlement_dialogue_action,
             )
             return handle_settlement_dialogue_action(
+                world, action=action, dialogue=dialogue,
+            )
+
+        elif action in (
+            "accept_settlement_offer",
+            "reject_settlement_offer",
+            "request_settlement_revision",
+        ):
+            from backend.game_logic.settlement_preview import (
+                handle_incoming_settlement_offer_action,
+            )
+            return handle_incoming_settlement_offer_action(
                 world, action=action, dialogue=dialogue,
             )
 

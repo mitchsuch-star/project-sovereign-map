@@ -96,6 +96,8 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	var shared_war_id = _shared_coalition_war_id(wars)
 	if shared_war_id != "":
 		_add_settlement_button(shared_war_id, _current_nation, "Open Whole-War Settlement")
+	else:
+		_add_coalition_settlement_explainer()
 	# Add Target buttons for non-leader coalition members
 	for w in wars:
 		if w.get("in_coalition", false) and not w.get("is_coalition_leader", false):
@@ -396,6 +398,7 @@ func _clear_buttons():
 func _add_negotiate_button(nation: String):
 	var btn = Button.new()
 	btn.text = "Negotiate Peace"
+	btn.tooltip_text = "Open bilateral peace options for this court only."
 	btn.custom_minimum_size = Vector2(160, 36)
 	btn.add_theme_font_size_override("font_size", 13)
 	btn.pressed.connect(func():
@@ -421,6 +424,7 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 func _add_target_button(nation: String):
 	var btn = Button.new()
 	btn.text = "Target " + nation
+	btn.tooltip_text = "Open diplomatic options for this coalition member; this is not a settlement action."
 	btn.custom_minimum_size = Vector2(130, 36)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.pressed.connect(func():
@@ -428,6 +432,17 @@ func _add_target_button(nation: String):
 		target_clicked.emit(nation)
 	)
 	button_row.add_child(btn)
+
+
+func _add_coalition_settlement_explainer():
+	var lbl = Label.new()
+	lbl.text = "Coalition spans multiple wars; settle each separately."
+	lbl.tooltip_text = "Open an individual war detail to prepare a common peace for that war."
+	lbl.custom_minimum_size = Vector2(250, 36)
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	button_row.add_child(lbl)
 
 
 func _add_diplomatic_options_button(nation: String):

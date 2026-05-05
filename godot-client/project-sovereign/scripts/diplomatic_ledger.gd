@@ -32,6 +32,8 @@ var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bar
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
+var _focus_settlement_route_id: String = ""
+var _focus_settlement_war_id: String = ""
 var _expanded_peace_ratifications: Dictionary = {}
 # F2: inline expansion state for Recent Settlements rows. Keyed by the
 # `settlement:<idx>:<route_id>` URL meta so the toggle survives a
@@ -122,7 +124,7 @@ func open_to_war_bargains(api_client):
 	_open_with_tab(api_client, 4, "ledger_war_bargains")
 
 
-func open_to_settlements(api_client):
+func open_to_settlements(api_client, route_id: String = "", war_id: String = ""):
 	"""Fetch diplomatic ledger and open the Treaties tab focused on the
 	`Recent Settlements` section.
 
@@ -131,15 +133,17 @@ func open_to_settlements(api_client):
 	`ledger_settlements` review target is recorded so the renderer
 	highlights the settlements block.
 	"""
-	_open_with_tab(api_client, 1, "ledger_settlements")
+	_open_with_tab(api_client, 1, "ledger_settlements", route_id, war_id)
 
 
-func _open_with_tab(api_client, tab_index: int, review_target: String):
+func _open_with_tab(api_client, tab_index: int, review_target: String, route_id: String = "", war_id: String = ""):
 	"""Fetch diplomatic ledger from backend and display a chosen tab."""
 	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading diplomatic ledger...[/color]"
 	current_tab = tab_index
 	_open_review_target = review_target
+	_focus_settlement_route_id = route_id
+	_focus_settlement_war_id = war_id
 	show()
 	_update_tab_highlights()
 	api_client.get_diplomatic_ledger(_on_ledger_received)
@@ -150,6 +154,8 @@ func close_view():
 	hide()
 	cached_data = {}
 	_open_review_target = ""
+	_focus_settlement_route_id = ""
+	_focus_settlement_war_id = ""
 	_expanded_peace_ratifications = {}
 	_expanded_settlements = {}
 	_stop_critical_pulse()
@@ -486,11 +492,18 @@ func _render_treaties():
 			var s_review = str(settle.get("review_target", "settlement_review"))
 			var s_route = str(settle.get("route_id", ""))
 			var s_meta = "settlement:" + str(s_idx) + ":" + s_route
+			var focus_match = (
+				(_focus_settlement_route_id != "" and s_route == _focus_settlement_route_id)
+				or (_focus_settlement_war_id != "" and s_war_id == _focus_settlement_war_id)
+			)
+			if focus_match and not _expanded_settlements.has(s_meta):
+				_expanded_settlements[s_meta] = true
 			var s_expanded = bool(_expanded_settlements.get(s_meta, false))
 			var s_marker = "v" if s_expanded else ">"
-			bbcode += "  [url=" + s_meta + "][color=#" + Utils.COLOR_GOLD + "]" + s_marker + " " + s_headline + "[/color][/url]"
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "](T" + str(s_turn) + ", review: " + s_review + ")[/color]\n"
-			var awe_tags = settle.get("awe_tags", [])
+			var row_color = Utils.COLOR_SUCCESS if focus_match else Utils.COLOR_GOLD
+			bbcode += "  [url=" + s_meta + "][color=#" + row_color + "]" + s_marker + " " + s_headline + "[/color][/url]"
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "](T" + str(s_turn) + ")[/color]\n"
+			var awe_tags = settle.get("awe_tag_displays", settle.get("awe_tags", []))
 			if awe_tags is Array and awe_tags.size() > 0:
 				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Awe: " + ", ".join(PackedStringArray(awe_tags)) + "[/color]\n"
 			var named = settle.get("named_reactions", [])
@@ -1160,7 +1173,7 @@ func _format_settlement_sections(sections) -> String:
 	var acceptance = section_dict.get("acceptance", {})
 	if acceptance is Dictionary and not acceptance.is_empty():
 		var total = int(acceptance.get("total", 0))
-		var band = str(acceptance.get("band_display", acceptance.get("band", "near_acceptable")))
+		var band = str(acceptance.get("band_display", "Review"))
 		bbcode += "    [color=#" + Utils.COLOR_HEADER + "]Acceptance:[/color] "
 		bbcode += str(total) + " (" + band + ")\n"
 		var top = acceptance.get("top_components", [])

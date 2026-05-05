@@ -171,61 +171,85 @@ func _build_content(data: Dictionary) -> String:
 func _build_settlement_content(data: Dictionary) -> String:
 	var war_label = str(data.get("war_label", data.get("war_id", "Settlement")))
 	var scope = str(data.get("coverage_scope_display", data.get("war_scope_display", "Settlement review")))
-	var bbcode = "[b][color=#e0c070]SETTLEMENT REVIEW - %s[/color][/b]\n" % war_label
-	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % scope
+	var review = data.get("review_sections", {})
+	var sections = review.get("sections", {}) if review is Dictionary else {}
+	var bbcode = ""
+
+	var missing = []
+	for key in ["war_label", "review_sections", "covered_enemy_display_chips"]:
+		if not data.has(key):
+			missing.append(key)
+	if missing.size() > 0 and str(data.get("type", data.get("dialogue_type", ""))) == "settlement_confirm":
+		bbcode += "[color=#e04040]Settlement payload incomplete: missing " + ", ".join(PackedStringArray(missing)) + "[/color]\n\n"
+
+	var awe = review.get("awe_tag_displays", data.get("awe_tag_displays", [])) if review is Dictionary else []
+	if awe is Array and awe.size() > 0:
+		bbcode += "[color=#e0c070][b]" + str(awe[0]) + "[/b][/color]\n"
+
+	var accepting_side = str(data.get("accepting_side", ""))
+	var leaders = data.get("staged_leaders", {})
+	var accepting_leader = "their leader"
+	if leaders is Dictionary and accepting_side != "":
+		accepting_leader = str(leaders.get(accepting_side, accepting_leader))
+	bbcode += "[b][color=#e0c070]Will %s accept this settlement?[/color][/b]\n" % accepting_leader
+	bbcode += "[color=#a0a0a8]%s - %s[/color]\n" % [war_label, scope]
 
 	var chips = data.get("covered_enemy_display_chips", data.get("covered_enemy_participants", []))
 	if chips is Array and chips.size() > 0:
 		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
-
-	var review = data.get("review_sections", {})
-	var sections = review.get("sections", {}) if review is Dictionary else {}
-	var acceptance = data.get("acceptance_display", sections.get("acceptance", {}))
-	if acceptance is Dictionary and not acceptance.is_empty():
-		var total = int(acceptance.get("total", 0))
-		var threshold = int(acceptance.get("threshold", 50))
-		var band = str(acceptance.get("band_display", acceptance.get("band", "Review")))
-		var color = "#80c080" if total >= threshold else ("#e0e060" if total >= threshold - 10 else "#e04040")
-		bbcode += "Acceptance: [color=%s]%d / %d - %s[/color]\n" % [color, total, threshold, band]
+	var uncovered = data.get("uncovered_enemy_display_chips", review.get("uncovered_enemy_display_chips", [])) if review is Dictionary else []
+	if uncovered is Array and uncovered.size() > 0:
+		bbcode += "[color=#e0a040][b]Still at war:[/b] " + ", ".join(PackedStringArray(uncovered)) + "[/color]\n"
 	bbcode += "\n"
-
-	var awe = review.get("awe_tag_displays", data.get("awe_tag_displays", [])) if review is Dictionary else []
-	if awe is Array and awe.size() > 0:
-		bbcode += "[color=#e0c070][b]" + str(awe[0]) + "[/b][/color]\n\n"
 
 	var allies = sections.get("allies", {}) if sections is Dictionary else {}
 	if allies is Dictionary:
 		var rows = allies.get("rows", [])
 		if rows is Array and rows.size() > 0:
-			bbcode += "[b]Participants[/b]\n"
+			bbcode += "[b]Allies and Standing[/b]\n"
 			for row in rows:
 				if not row is Dictionary:
 					continue
 				var nation = str(row.get("nation", "?"))
-				var standing = str(row.get("standing_display", row.get("standing", "Standing")))
-				var marker = ""
+				var standing = str(row.get("standing_display", row.get("standing", "Standing").replace("_", " ").capitalize()))
+				var side_label = str(row.get("side_label", row.get("side", "")))
+				var stamps = []
+				if side_label != "":
+					stamps.append(side_label)
 				if bool(row.get("is_leader", false)):
-					marker += " leader"
+					stamps.append("war leader")
 				if bool(row.get("is_beneficiary", false)):
-					marker += " rewarded"
-				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [nation, standing, marker]
+					stamps.append("rewarded")
+				var stamp_text = ""
+				if stamps.size() > 0:
+					stamp_text = " [color=#808080](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
+				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [nation, standing, stamp_text]
 			var overflow = int(allies.get("overflow_count", 0))
 			if overflow > 0:
 				bbcode += "  [color=#808080]+%d more participants in the ledger[/color]\n" % overflow
 			bbcode += "\n"
 
-	var terms = sections.get("terms", {}) if sections is Dictionary else {}
-	if terms is Dictionary:
-		var term_rows = terms.get("rows", [])
-		if term_rows is Array and term_rows.size() > 0:
-			bbcode += "[b]Terms[/b]\n"
-			for term in term_rows:
-				if term is Dictionary:
-					bbcode += "  [color=#e0c070]*[/color] %s\n" % str(term.get("display_label", term.get("type_display", "Settlement term")))
-			var term_overflow = int(terms.get("overflow_count", 0))
-			if term_overflow > 0:
-				bbcode += "  [color=#808080]+%d more terms in the ledger[/color]\n" % term_overflow
+	var acceptance = data.get("acceptance_display", sections.get("acceptance", {}))
+	if acceptance is Dictionary and not acceptance.is_empty():
+		var total = int(acceptance.get("total", 0))
+		var threshold = int(acceptance.get("threshold", 50))
+		var band = str(acceptance.get("band_display", acceptance.get("band", "Review").replace("_", " ").capitalize()))
+		var phrase = str(acceptance.get("band_phrase", ""))
+		var band_code = str(acceptance.get("band", "")).to_lower()
+		var color = "#80c080" if band_code in ["accept", "acceptable"] else ("#e0e060" if band == "Near acceptable" else "#e04040")
+		bbcode += "[b]Acceptance[/b]\n"
+		bbcode += "  [color=%s]%d / %d - %s[/color]" % [color, total, threshold, band]
+		if phrase != "" and phrase != band:
+			bbcode += " [color=#a0a0a8](" + phrase + ")[/color]"
+		bbcode += "\n"
+		var top_blocker = str(acceptance.get("top_blocker_display", ""))
+		var top_value = str(acceptance.get("top_blocker_value_display", ""))
+		if top_blocker != "":
+			bbcode += "  Top pressure: " + top_blocker
+			if top_value != "":
+				bbcode += " " + top_value
 			bbcode += "\n"
+		bbcode += "\n"
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
 	if warnings is Dictionary:
@@ -237,7 +261,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 					continue
 				var severity = str(warning.get("severity", "WARNING"))
 				var color = "#e04040" if severity == "HARD_STOP" else "#e0a040"
-				var label = str(warning.get("code_display", warning.get("code", "Concern")))
+				var label = str(warning.get("code_display", warning.get("code", "Concern").replace("_", " ").capitalize()))
 				var detail = str(warning.get("detail", ""))
 				bbcode += "  [color=%s]*[/color] %s" % [color, label]
 				if detail != "":
@@ -245,7 +269,24 @@ func _build_settlement_content(data: Dictionary) -> String:
 				bbcode += "\n"
 			var overflow_warns = warnings.get("overflow", [])
 			if overflow_warns is Array and overflow_warns.size() > 0:
-				bbcode += "  [color=#808080]+%d more concerns in the ledger[/color]\n" % overflow_warns.size()
+				bbcode += "  [color=#808080]+%d more warnings in the ledger[/color]\n" % overflow_warns.size()
+			bbcode += "\n"
+
+	var terms = sections.get("terms", {}) if sections is Dictionary else {}
+	if terms is Dictionary:
+		var term_rows = terms.get("rows", [])
+		if term_rows is Array and term_rows.size() > 0:
+			bbcode += "[b]Terms[/b]\n"
+			for term in term_rows:
+				if term is Dictionary:
+					var label = str(term.get("display_label", term.get("type_display", "Settlement term")))
+					var role = str(term.get("role_display", term.get("role", "")))
+					if role != "":
+						label = role + ": " + label
+					bbcode += "  [color=#e0c070]*[/color] %s\n" % label
+			var term_overflow = int(terms.get("overflow_count", 0))
+			if term_overflow > 0:
+				bbcode += "  [color=#808080]+%d more terms in the ledger[/color]\n" % term_overflow
 			bbcode += "\n"
 
 	var ttext = data.get("talleyrand_text", "")

@@ -1866,6 +1866,7 @@ def resolve_or_backfill_war_instance_for_settlement(
     world: Any,
     player_nation: str,
     target_nation: str,
+    requested_war_id: str = "",
 ) -> Dict[str, Any]:
     """Resolve a `war_id` for a settlement entry; lazy-backfill if needed.
 
@@ -1886,6 +1887,36 @@ def resolve_or_backfill_war_instance_for_settlement(
         return {"ok": False, "error": "missing_target_nation"}
     if player_nation == target_nation:
         return {"ok": False, "error": "self_settlement"}
+    requested = str(requested_war_id or "").strip()
+    if requested:
+        instances = getattr(world, "war_instances", {}) or {}
+        instance = instances.get(requested)
+        if not instance:
+            return {"ok": False, "error": "invalid_war_id", "war_id": requested}
+        if instance.get("ended_turn") is not None:
+            return {"ok": False, "error": "inactive_war_instance", "war_id": requested}
+        attackers = set(instance.get("attackers") or [])
+        defenders = set(instance.get("defenders") or [])
+        if player_nation not in attackers | defenders or target_nation not in attackers | defenders:
+            return {"ok": False, "error": "war_state_changed_since_open", "war_id": requested}
+        if (player_nation in attackers and target_nation in attackers) or (
+            player_nation in defenders and target_nation in defenders
+        ):
+            return {"ok": False, "error": "war_state_changed_since_open", "war_id": requested}
+        pair = _make_pair_key(player_nation, target_nation)
+        state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
+        if state != "WAR":
+            meta = instance.get("diplo_key_meta") or {}
+            pair_meta = meta.get(pair) or {}
+            if pair not in (instance.get("active_diplo_keys") or []) or pair_meta.get("pair_status") not in ("war", "armistice"):
+                return {"ok": False, "error": "not_at_war", "diplomatic_state": state, "war_id": requested}
+        return {
+            "ok": True,
+            "war_id": requested,
+            "backfilled": False,
+            "instance": instance,
+            "war_id_scoped": True,
+        }
     pair = _make_pair_key(player_nation, target_nation)
     state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
     if state != "WAR":

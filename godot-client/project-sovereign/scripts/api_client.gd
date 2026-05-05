@@ -127,6 +127,13 @@ func send_command(command: String, callback: Callable):
 	_send_post("/command", {"command": command}, callback)
 
 
+func send_structured_command(command: String, data: Dictionary, callback: Callable):
+	var body = {"command": command}
+	for key in data.keys():
+		body[key] = data[key]
+	_send_post("/command", body, callback)
+
+
 func send_objection_response(choice: String, callback: Callable):
 	_send_post("/respond_to_objection", {"choice": choice}, callback)
 

@@ -39,6 +39,7 @@ ACTION_DISPLAY = {
     "set_war_purpose": "sets war purpose against",    # WPS-A
     "repudiate_bargain": "repudiates bargain with",  # WB-C
     "propose_common_peace": "opens settlement with",  # Imperial Settlement
+    "open_settlement": "opens settlement with",       # Godot wizard action
 }
 
 # ============================================================================
@@ -74,6 +75,7 @@ OBJECTION_DISPLAY = {
     "set_war_purpose": "setting war purpose",      # WPS-A
     "repudiate_bargain": "repudiating bargain",   # WB-C
     "propose_common_peace": "opening settlement",  # Imperial Settlement
+    "open_settlement": "opening settlement",       # Godot wizard action
 }
 
 # ============================================================================
@@ -109,6 +111,7 @@ DEFIANCE_DISPLAY = {
     "set_war_purpose": "set war purpose",         # WPS-A
     "repudiate_bargain": "repudiated bargain",   # WB-C
     "propose_common_peace": "opened settlement",  # Imperial Settlement
+    "open_settlement": "opened settlement",       # Godot wizard action
 }
 
 # ============================================================================
@@ -505,6 +508,60 @@ DECISION_REASON_DISPLAY = {
 
 
 # ============================================================================
+# IMPERIAL SETTLEMENT DISPLAY — disabled reasons, acceptance, and components
+# ============================================================================
+
+SETTLEMENT_DISABLED_REASON_DISPLAY = {
+    "inactive_war_instance": "This war state has changed; reopen settlement review.",
+    "invalid_war_id": "This war can no longer be found.",
+    "war_state_changed_since_open": "This war changed while the review was open.",
+    "missing_player_nation": "No player nation was available for this settlement.",
+    "missing_target_nation": "Choose a hostile court before opening settlement.",
+    "self_settlement": "France cannot settle with itself.",
+    "not_at_war": "France is not at war with this court.",
+    "not_side_leader": "Only the war leader can settle this side.",
+    "no_unresolved_hostile_pairs": "There are no hostile pairs left to settle.",
+    "no_coverable_enemy": "There is no enemy participant this settlement can cover.",
+    "settlement_dialogue_active": "Resolve the current settlement review first.",
+    "proposer_leader_changed": "Your side's war leader changed; reopen settlement review.",
+    "active_pair_changed": "The war changed while the settlement was open.",
+    "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
+    "active_participant_changed": "A participant changed sides or left the war.",
+    "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
+}
+
+ACCEPTANCE_BAND_DISPLAY = {
+    "accept": "Acceptable",
+    "acceptable": "Acceptable",
+    "near_acceptable": "Near acceptable",
+    "reject": "Unlikely",
+    "unlikely": "Unlikely",
+    "blocked": "Blocked",
+}
+
+ACCEPTANCE_BAND_PHRASE = {
+    "accept": "Likely to accept",
+    "acceptable": "Likely to accept",
+    "near_acceptable": "Close, but not yet acceptable",
+    "reject": "Likely to reject",
+    "unlikely": "Likely to reject",
+    "blocked": "Blocked by a hard condition",
+}
+
+ACCEPTANCE_COMPONENT_DISPLAY = {
+    "base_side_pressure": "Base side pressure",
+    "settlement_tier_legitimacy": "Settlement legitimacy",
+    "term_harshness_penalty": "Term harshness",
+    "leader_own_losses": "Leader's own losses",
+    "burdened_participant_penalty": "Ally burden",
+    "projected_hegemony_mod": "Balance of Europe pressure",
+    "war_objective_alignment": "War objective alignment",
+    "war_exhaustion": "War exhaustion",
+    "abandoned_by_ally_acceptance_mod": "Abandoned ally grievance",
+}
+
+
+# ============================================================================
 # UNIVERSAL TRANSLATOR
 # ============================================================================
 
@@ -520,6 +577,9 @@ _CATEGORY_MAPS = {
     "personality": PERSONALITY_DISPLAY,
     "stance": STANCE_DISPLAY,
     "trust_tier": TRUST_TIER_DISPLAY,
+    "settlement_disabled_reason": SETTLEMENT_DISABLED_REASON_DISPLAY,
+    "acceptance_band": ACCEPTANCE_BAND_DISPLAY,
+    "acceptance_component": ACCEPTANCE_COMPONENT_DISPLAY,
 }
 
 
@@ -532,6 +592,30 @@ def diplomatic_decision_reason_display(reason: str) -> str:
     """Translate a deterministic decision_reason enum to player-facing text."""
     result, raw = _lookup_display_name(DECISION_REASON_DISPLAY, reason)
     return result or _fallback_display_name(raw, default="")
+
+
+def settlement_disabled_reason_display(reason: str) -> str:
+    """Translate settlement eligibility/refusal reason codes."""
+    result, raw = _lookup_display_name(SETTLEMENT_DISABLED_REASON_DISPLAY, reason)
+    return result or _fallback_display_name(raw, default="Settlement unavailable.")
+
+
+def acceptance_band_display(band: str) -> str:
+    """Translate settlement acceptance band/verdict codes."""
+    result, raw = _lookup_display_name(ACCEPTANCE_BAND_DISPLAY, band)
+    return result or _fallback_display_name(raw, default="Acceptance unknown")
+
+
+def acceptance_band_phrase(band: str) -> str:
+    """Return a short player-facing acceptance phrase."""
+    result, raw = _lookup_display_name(ACCEPTANCE_BAND_PHRASE, band)
+    return result or acceptance_band_display(raw)
+
+
+def acceptance_component_display(component: str) -> str:
+    """Translate settlement acceptance component keys."""
+    result, raw = _lookup_display_name(ACCEPTANCE_COMPONENT_DISPLAY, component)
+    return result or _fallback_display_name(raw, default="Settlement pressure")
 
 
 def _lookup_display_name(display_map: dict, internal_name: str):

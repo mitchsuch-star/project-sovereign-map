@@ -81,6 +81,7 @@ WARNING_CODE_DISPLAY = {
 }
 
 ACCEPTANCE_BAND_DISPLAY = {
+    "accept": "Acceptable",
     "acceptable": "Acceptable",
     "near_acceptable": "Near acceptable",
     "unlikely": "Unlikely",
@@ -513,6 +514,8 @@ def compose_summary_oneliner(
         if who
         else f"Settlement of {war_label}: {head_term}."
     )
+    if not reactions:
+        return fallback
 
     # Voice Bible §16.1 — wrap the dispatch one-liner in the Talleyrand
     # advisory register when the template is available. Late-bound
@@ -527,17 +530,11 @@ def compose_summary_oneliner(
     awe_tags = list(event.get("awe_tags") or [])
     # `standing_summary` keeps the "+N more" overflow signal so the
     # presentation cap on named participants survives the Voice Bible
-    # rewrap. Empty-reaction case still surfaces "no participant
-    # reactions" so the dispatch line never reads as if every court
-    # silently agreed.
+    # rewrap.
     standing_summary = who
-    contribution_summary = (
-        f"reactions from {len(reactions)} courts"
-        if reactions
-        else "no participant reactions"
-    )
+    contribution_summary = f"reactions from {len(reactions)} courts" if reactions else ""
     top_blocker = head_term if not awe_tags else (
-        f"{head_term} ({', '.join(t.replace('_', ' ') for t in awe_tags)})"
+        f"{head_term} ({', '.join(_awe_tag_display(t) for t in awe_tags)})"
     )
     template_key = _voice_summary_template_key(event)
     voiced = resolve_settlement_voice_line(
@@ -1147,6 +1144,10 @@ def recent_settlement_summaries(
             "review_target": review_target,
             "route_id": str((event.get("route") or {}).get("route_id", "") or ""),
             "awe_tags": list(event.get("awe_tags") or []),
+            "awe_tag_displays": [
+                _awe_tag_display(tag)
+                for tag in list(event.get("awe_tags") or [])
+            ],
             # F2: sectioned Terms/Allies/Warnings/Acceptance payload for
             # the inline expansion in the Recent Settlements block. Empty
             # acceptance section is expected since the post-ratification

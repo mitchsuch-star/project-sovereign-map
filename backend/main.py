@@ -759,6 +759,9 @@ async def serialize_state_mutations(request: Request, call_next):
 
 class CommandRequest(BaseModel):
     command: str = Field(max_length=500)
+    action: str | None = None
+    target_nation: str | None = None
+    war_id: str | None = None
 
 
 class ObjectionResponse(BaseModel):
@@ -953,6 +956,13 @@ def execute_command(request: CommandRequest):
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
         parsed = parser.parse(request.command, llm_game_state, world=world)
+        if parsed.get("success") and isinstance(parsed.get("command"), dict):
+            if request.action:
+                parsed["command"]["action"] = request.action
+            if request.target_nation:
+                parsed["command"]["target_nation"] = request.target_nation
+            if request.war_id:
+                parsed["command"]["war_id"] = request.war_id
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════

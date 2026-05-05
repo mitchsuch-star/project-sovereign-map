@@ -20,6 +20,13 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
+from backend.display_names import (
+    SETTLEMENT_DISABLED_REASON_DISPLAY,
+    acceptance_band_display,
+    acceptance_band_phrase,
+    acceptance_component_display,
+    settlement_disabled_reason_display,
+)
 from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
 from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance
 from backend.game_logic.settlement_presentation import (
@@ -31,23 +38,47 @@ from backend.game_logic.settlement_presentation import (
 VALID_SIDES = {"attackers", "defenders"}
 SETTLEMENT_COOLDOWN_TURNS = 3
 
-SETTLEMENT_ERROR_DISPLAY = {
-    "inactive_war_instance": "This war state has changed; reopen settlement review.",
-    "invalid_war_id": "This war can no longer be found.",
-    "not_side_leader": "Only the war leader can settle this side.",
-    "no_unresolved_hostile_pairs": "There are no hostile pairs left to settle.",
-    "no_coverable_enemy": "There is no enemy participant this settlement can cover.",
-    "settlement_dialogue_active": "Resolve the current settlement review first.",
-    "proposer_leader_changed": "Your side's war leader changed; reopen settlement review.",
-    "active_pair_changed": "The war changed while the settlement was open.",
-    "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
-    "active_participant_changed": "A participant changed sides or left the war.",
-    "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
-}
+SETTLEMENT_ERROR_DISPLAY = SETTLEMENT_DISABLED_REASON_DISPLAY
 
 
 def _error_display(code: str) -> str:
-    return SETTLEMENT_ERROR_DISPLAY.get(str(code or ""), str(code or "settlement_error").replace("_", " ").title())
+    return settlement_disabled_reason_display(code)
+
+
+def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
+    display = _error_display(code)
+    return {
+        "available": False,
+        "error": code,
+        "error_display": display,
+        "disabled_reason_display": display,
+        "display_reason": display,
+        **extra,
+    }
+
+
+def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
+    enriched = dict(acceptance or {})
+    band = str(enriched.get("band") or enriched.get("verdict") or "")
+    enriched["band"] = band
+    enriched["band_display"] = acceptance_band_display(band)
+    enriched["band_phrase"] = acceptance_band_phrase(band)
+    top_components = []
+    for item in enriched.get("feedback") or []:
+        if not isinstance(item, Mapping):
+            continue
+        component = str(item.get("component") or "")
+        value = item.get("value")
+        top_components.append({
+            **dict(item),
+            "component_display": acceptance_component_display(component),
+            "value_display": f"{int(value):+d}" if isinstance(value, (int, float)) else str(value or ""),
+        })
+    enriched["top_components"] = top_components[:3]
+    if top_components:
+        enriched["top_blocker_display"] = top_components[0]["component_display"]
+        enriched["top_blocker_value_display"] = top_components[0]["value_display"]
+    return enriched
 
 
 def _war_label(war_id: str, war_instance: Mapping[str, Any]) -> str:
@@ -62,8 +93,10 @@ def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
     preview = dialogue.get("settlement_preview") or {}
     covered = list(dialogue.get("covered_enemy_participants") or preview.get("covered_enemy_participants") or [])
     return {
+        "surface": "settlement_review",
         "target": "settlement_review",
         "war_id": war_id,
+        "nation": covered[0] if covered else "",
         "target_nation": covered[0] if covered else "",
         "proposer_side": str(dialogue.get("proposer_side") or preview.get("proposer_side") or ""),
     }
@@ -167,50 +200,26 @@ def evaluate_open_settlement_eligibility(
     actor = actor_nation or getattr(world, "player_nation", "France")
     instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
     if not instance:
-        return {"available": False, "error": "invalid_war_id", "error_display": _error_display("invalid_war_id"), "war_id": war_id}
+        return _blocked_payload("invalid_war_id", war_id=war_id)
     if instance.get("ended_turn") is not None:
-        return {"available": False, "error": "inactive_war_instance", "error_display": _error_display("inactive_war_instance"), "war_id": war_id}
+        return _blocked_payload("inactive_war_instance", war_id=war_id)
 
     side = _infer_actor_side(instance, actor, proposer_side)
     if side not in VALID_SIDES:
-        return {"available": False, "error": "not_side_leader", "error_display": _error_display("not_side_leader"), "war_id": war_id}
+        return _blocked_payload("not_side_leader", war_id=war_id)
     if _side_leader(instance, side) != actor:
-        return {
-            "available": False,
-            "error": "not_side_leader",
-            "error_display": _error_display("not_side_leader"),
-            "war_id": war_id,
-            "proposer_side": side,
-        }
+        return _blocked_payload("not_side_leader", war_id=war_id, proposer_side=side)
 
     pairs = _active_cross_side_pairs(instance, side)
     if not pairs:
-        return {
-            "available": False,
-            "error": "no_unresolved_hostile_pairs",
-            "error_display": _error_display("no_unresolved_hostile_pairs"),
-            "war_id": war_id,
-            "proposer_side": side,
-        }
+        return _blocked_payload("no_unresolved_hostile_pairs", war_id=war_id, proposer_side=side)
 
     coverable = get_coverable_enemy_participants(instance, side)
     if not coverable:
-        return {
-            "available": False,
-            "error": "no_coverable_enemy",
-            "error_display": _error_display("no_coverable_enemy"),
-            "war_id": war_id,
-            "proposer_side": side,
-        }
+        return _blocked_payload("no_coverable_enemy", war_id=war_id, proposer_side=side)
 
     if not ignore_active_dialogue and _settlement_dialogue_active(world, war_id):
-        return {
-            "available": False,
-            "error": "settlement_dialogue_active",
-            "error_display": _error_display("settlement_dialogue_active"),
-            "war_id": war_id,
-            "proposer_side": side,
-        }
+        return _blocked_payload("settlement_dialogue_active", war_id=war_id, proposer_side=side)
 
     accepting_side = _other_side(side)
     return {
@@ -303,10 +312,13 @@ def build_settlement_preview(
         "density": density if density in ("compact", "medium", "verbose") else "medium",
     }
     contribution = build_contribution_share_rows(world, war_id)
-    review_acceptance = dict(acceptance)
+    review_acceptance = _enrich_acceptance_display(acceptance)
     review_acceptance.setdefault("total", acceptance.get("score", 0))
     review_acceptance.setdefault("threshold", 50)
     review_acceptance.setdefault("band", acceptance.get("verdict", "near_acceptable"))
+    review_acceptance["band_display"] = acceptance_band_display(review_acceptance.get("band", ""))
+    review_acceptance["band_phrase"] = acceptance_band_phrase(review_acceptance.get("band", ""))
+    preview["acceptance"] = review_acceptance
     preview["review_sections"] = build_settlement_review(
         war_id=war_id,
         war_label=preview["war_label"],
@@ -346,14 +358,21 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    route_id = f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    route_id = f"settlement_summary:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
     text = f"Review the settlement of {war_label}. Acceptance: {verdict} ({score if score is not None else 'blocked'})."
+    review_route = {
+        "surface": "ledger_settlements",
+        "review_target": "ledger_settlements",
+        "route_id": route_id,
+        "war_id": war_id,
+    }
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
+        "route": review_route,
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
         "staged_leaders": leaders,
@@ -369,11 +388,11 @@ def build_settlement_confirm_dialogue(
         "war_scope_display": (preview.get("review_sections") or {}).get("war_scope_display", ""),
         "covered_enemy_display_chips": list((preview.get("review_sections") or {}).get("covered_enemy_display_chips") or []),
         "acceptance_display": (preview.get("review_sections") or {}).get("sections", {}).get("acceptance", {}),
-        "actions": ["confirm_settlement", "revise_settlement_terms", "back_out_settlement"],
+        "debug_action_ids": ["confirm_settlement", "revise_settlement_terms", "back_out_settlement"],
         "options": [
             {"label": "Ratify Settlement", "action": "confirm_settlement"},
-            {"label": "Revise terms", "action": "revise_settlement_terms"},
-            {"label": "Back out", "action": "back_out_settlement"},
+            {"label": "Revise Terms", "action": "revise_settlement_terms"},
+            {"label": "Back Out", "action": "back_out_settlement"},
         ],
         "message": text,
         "talleyrand_text": text,
@@ -1145,6 +1164,17 @@ def ratify_settlement_confirm(
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
         f"({len(resolved_pairs)} pair(s) resolved)."
     )
+    review_route_id = str(
+        (reaction_summary.get("summary_event") or {}).get("route", {}).get("route_id", "")
+        or dialogue.get("route_id")
+        or f"settlement_summary:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    )
+    review_route = {
+        "surface": "ledger_settlements",
+        "review_target": "ledger_settlements",
+        "route_id": review_route_id,
+        "war_id": war_id,
+    }
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
@@ -1163,8 +1193,13 @@ def ratify_settlement_confirm(
             "war_label": dialogue.get("war_label") or pre_cleanup_war_label or war_id,
             "resolved_pair_count": len(resolved_pairs),
             "review_target": "ledger_settlements",
-            "route_id": str((reaction_summary.get("summary_event") or {}).get("route", {}).get("route_id", "")),
+            "route_id": review_route_id,
             "war_id": war_id,
+            "review_route": review_route,
+            "message": (
+                f"{len(resolved_pairs)} hostile pair(s) resolved. "
+                "Review the settlement in the diplomatic ledger."
+            ),
         },
         "mutated": True,
         "message": result_message,
@@ -1212,3 +1247,69 @@ def handle_settlement_dialogue_action(
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)
     return {"success": False, "error": "unknown_settlement_action", "mutated": False}
+
+
+def handle_incoming_settlement_offer_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Handle mailbox-driven incoming settlement offers.
+
+    Accepting an offer intentionally rebuilds a fresh settlement_confirm
+    from live war state instead of ratifying the stale mailbox payload.
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    actor = getattr(world, "player_nation", "France")
+    if action == "reject_settlement_offer":
+        world.dialogue_manager.pop()
+        return {
+            "success": True,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "reject_settlement_offer",
+            "mutated": False,
+            "message": "Settlement offer rejected.",
+            "suppress_proposal_result_popup": True,
+        }
+    if action == "request_settlement_revision":
+        world.dialogue_manager.pop()
+        return {
+            "success": True,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "request_settlement_revision",
+            "war_id": war_id,
+            "must_reopen": True,
+            "reopen_target": _reopen_target(war_id, dialogue),
+            "mutated": False,
+            "message": "Revision requested. Reopen the settlement review to adjust terms.",
+            "suppress_proposal_result_popup": True,
+        }
+    if action != "accept_settlement_offer":
+        return {"success": False, "error": "unknown_settlement_offer_action", "mutated": False}
+    if not war_id:
+        world.dialogue_manager.pop()
+        return {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "accept_settlement_offer",
+            "war_id": war_id,
+            "must_reopen": True,
+            "error": "invalid_war_id",
+            "error_display": _error_display("invalid_war_id"),
+            "mutated": False,
+        }
+
+    world.dialogue_manager.pop()
+    result = stage_settlement_confirm(
+        world,
+        war_id=war_id,
+        actor_nation=actor,
+        density="medium",
+    )
+    result["dialogue_type"] = "settlement_confirm"
+    result["action"] = "accept_settlement_offer"
+    if not result.get("success"):
+        result["must_reopen"] = True
+        result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
+    return result

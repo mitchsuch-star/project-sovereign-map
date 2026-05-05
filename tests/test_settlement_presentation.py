@@ -316,7 +316,8 @@ class TestOneLiner:
     def test_summary_oneliner_empty_reactions(self):
         event = _make_settlement_event(reactions=[])
         line = compose_summary_oneliner(event)
-        assert "no participant reactions" in line
+        assert "no participant reactions" not in line
+        assert line.startswith("Settlement of")
 
     def test_summary_oneliner_uses_war_label_when_world_provided(self):
         world = WorldState()
