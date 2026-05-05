@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** April 29, 2026 (Ally Participation + Common Peace now points to `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.21 and `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.18; mapped-nation A1 simplification, future-nation onboarding hardening, active-roster fixture closure, and C2 settlement-dialogue serialization closure applied, ready for Slice A1 foundation coding.)
+> **Last Updated:** May 5, 2026 (Imperial Settlement is now routed through final UI/UX Slice F and post-F Slice G AI/ally settlement agency before closure. Before Phase 8.5 begins, run a Pre-8.5 Evaluation Gate to recover and triage buried war-LLM improvement items plus diplomacy-refinement items from `DESIGN_REFINEMENT.md`, the LLM cost/toggle table, and related future-design notes.)
 
 ---
 
@@ -16,8 +16,9 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **ALL SESSIONS COMPLETE (1A–8D).** 11 sessions, ~580 tests. Full diplomacy engine: treaties, war/peace, vassals, coalition, AI proposals, Talleyrand defiance, UI ledger + popups + dispatch (see `SESSION_8_PLAN.md`) |
-| 8.5 | Events, Goals & National Identity | Planned |
+| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Base Phase 8 sessions are complete, but Imperial Settlement now requires Slice F final UI/UX closure, manual smoke, Slice G AI/ally settlement agency, and final settlement gate before diplomacy is treated as closed. |
+| **8.EVAL** | **Pre-8.5 War LLM + Diplomacy Refinement Evaluation** | **Planned after Imperial Settlement final gate, before 8.5.** Audit buried war-LLM improvement items, battle/war narration toggle scope, creative-command war uses, `DESIGN_REFINEMENT.md` diplomacy queue items, AI ultimatums/trade/agenda/motive/Talleyrand Desk candidates, and decide what ships before 8.5 vs moves to Pre-EA/Post-EA. |
+| 8.5 | Events, Goals & National Identity | Planned, blocked on 8.EVAL |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
 | 10 | Character & People (Minimal) | Planned |
@@ -25,7 +26,7 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 follow-up note:** diplomacy implementation is complete, but the next design / implementation order is now `Memory and Pressure` first (see `RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.2, and `DIPLOMAT_VOICE_BIBLE.md` v1.2). Audit-block pass: Block 1 doc cleanup (complete), Block 2 substrate fixes (complete), Block 3 bloc naming (SUPERSEDED — folded into `COMMITMENTS_PRESENTATION_SPEC.md` §8.1a + `DIPLOMAT_VOICE_BIBLE.md` Bloc-naming voice contract + parent slices of the implementation plan). Remaining implementation slices (B-Hegemony / B-B1-lite / B-B3 / B-B4 / B-B7 / C-lite) open directly. After that come `Bilateral Peace Hardening`, `War Purpose + Score Semantics`, `War Bargains` (`WAR_BARGAIN_SPEC.md`) inside the Peace Deals phase, then `Ally Participation + Common Peace`. Period precision items (1805-accurate diplomat roster, Britain reactive bloc pressure, ledger scale UX) tracked separately in `DESIGN_REFINEMENT.md` §Historical Precision (P1 / P2 / P3) for EA scope.
+**Phase 8 follow-up note:** diplomacy implementation is no longer considered closed until the Peace Deals closure stack finishes. Completed foundations include `Memory and Pressure`, `Bilateral Peace Hardening`, `War Purpose + Score Semantics`, `War Bargains`, and most of `Ally Participation + Common Peace`; remaining closure is `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` Slice F, final smoke, Slice G AI/ally settlement agency, and the final settlement gate. After that, run **8.EVAL** before Phase 8.5: review buried war-LLM improvement ideas, battle/war narration and creative-command war uses, LLM cost/toggle implications, and the open diplomacy refinement queue (`Nation Agendas + Motive Legibility`, `Talleyrand Desk + Explanation Layer`, `Economic Diplomacy`, `AI Ultimatums to Player`, trade, and scale ledger/period-precision items). The output of 8.EVAL must be an explicit keep/defer/drop decision list and a scoped implementation handoff for anything that must ship before 8.5.
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
@@ -855,7 +856,9 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~246 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle (S67-68), V2b, Jealousy
 8. Phase 8: **Diplomacy** (11 sessions: Map Expansion, Nations, States+Formula, Talleyrand, AI Proposals, Vassals, Defiance, **Coalition**, Ledger Backend+Debug, Ledger UI+Top Bar, Popups+Notifications, Dispatch+Polish). ~525 tests. Session 8 expanded to 8A-8D per `SESSION_8_PLAN.md`.
-8b. **AI Strategic Depth:** Flanking coordination, capital defense, **AI-AI strategic intent** (opportunistic war declarations, vassalization of beaten AI opponents, cross-AI threat assessment). Infrastructure 95% nation-agnostic — needs decision-making layer only. See FUTURE_DESIGN.md "AI-AI Strategic Intent" section.
+8a. Peace Deals closure: Memory and Pressure, Bilateral Peace Hardening, War Purpose + Score Semantics, War Bargains, Ally Participation + Common Peace, Imperial Settlement Slice F UI/UX closure, Slice G AI/ally settlement agency, final smoke.
+8b. **Pre-8.5 Evaluation Gate:** audit buried war-LLM improvement items and diplomacy-refinement items before starting 8.5. Inputs: `DESIGN_REFINEMENT.md`, LLM cost/toggle table, battle/war narration notes, creative-command war uses, AI ultimatums/trade/agenda/Talleyrand Desk candidates, and any future-design AI strategic depth notes. Output: keep/defer/drop list plus scoped handoff.
+8c. **AI Strategic Depth:** Flanking coordination, capital defense, **AI-AI strategic intent** (opportunistic war declarations, vassalization of beaten AI opponents, cross-AI threat assessment). Infrastructure 95% nation-agnostic — needs decision-making layer only. See FUTURE_DESIGN.md "AI-AI Strategic Intent" section.
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)

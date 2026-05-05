@@ -1,7 +1,7 @@
 # Imperial Settlement: War Settlement + Ally Participation Spec
 
-> **Status:** v1.27 A1 FOUNDATION + A2 WAR-ENTRY THREADING + A3 MERGE/ARCHIVE/LEADER INVARIANTS LANDED / READY FOR SLICE B CONTRIBUTION TRACKER - A1 landed mapped-nation capital helper safety, `WorldState` settlement containers, old-save defaults, empty war-instance index/cache scaffolding, cache invalidation hooks, cached elimination-helper use where touched, invariant helpers, and the 20-active-`war_instance` fixture before any behavioral settlement work. A2 landed `war_id` create/reuse/attach threading across every inventoried WAR-entry seam, including declaration/cascade/direct-entry/debug/combat/armistice/vassal paths. A3 landed connected-component merge, absorbed-reference rewrites across bargains, dispatch, event-log / ledger payloads, and no-op-safe Slice B/C containers, archive/leader/elimination behavior, cascade merge retargeting, and always-on post-merge war-instance invariant assertions. Current settlement participants must exist in scenario/map data; future nations enter one by one through the `ADDING_CONTENT.md` nation checklist plus settlement readiness fixture when the map/scenario adds them. B owns contribution-before-war-score-gate hooks plus a B2 ordering guard for `record_battle()`; B1 may expose contribution-derived standing inputs but must not implement common-peace term legitimacy, bargain settlement classification, or Slice C/D reaction behavior. C owns raw harshness, explicit common-peace tuning escalation, a hard full-Europe narrow/full/serial incentive gate, settlement dialogue taxonomy, settlement cooldown serialization, settlement dialogue overflow retry storage, concrete `request_revision` semantics, forced-alliance pair lifecycle resolution, an AI-defender viability proof, a war-exhaustion exploit guard, and pre-authored settlement-review density fallbacks; C2 must pass a spec-naive manual settlement-review comprehension gate before D1 starts; D owns ratification cache-ordering, settlement-gratitude intent, and D2 cross-war reaction profiling. Coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.24.
-> **Last Updated:** May 2, 2026
+> **Status:** v1.29 A1-E LANDED / SLICE F UI-UX CLOSURE REQUIRED BEFORE FINAL SMOKE - A through E backend/presentation work is green, but final player-readiness now requires a dedicated UI/UX closure slice before smoke. Common peace must be reachable from the normal diplomacy wizard and war-score/detail surfaces, not only typed command; default-start WAR pairs without `war_instance` must be shown as settlement-openable through a read-only backfill probe; `open_settlement` is free to open; `settlement_confirm` must render a readable sectioned popup; war-detail and coalition-detail surfaces must expose settlement CTAs; ledger, HUD, and popup surfaces must humanize term/standing/error enums; and final smoke is invalid until these gates close. After Slice F/final smoke, the next explicitly tracked quality phase is AI/ally settlement agency: AI war leaders can already send `incoming_settlement_offer` per §16.5, while non-leader allies need a separate petition/advisory layer that lets them ask, warn, request spoils, or demand redress without getting a veto or conference turn. Current settlement participants must exist in scenario/map data; future nations enter one by one through the `ADDING_CONTENT.md` nation checklist plus settlement readiness fixture when the map/scenario adds them. Coding may start from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.27.
+> **Last Updated:** May 5, 2026
 > **Companion docs:** `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `PEACE_DEALS_UMBRELLA_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`
 > **Depends on (all landed):** Memory and Pressure v2.4.3, Bilateral Peace Hardening (BPH-A through BPH-D), War Purpose + Score Semantics (WPS-A through WPS-D), War Bargains (WB-A through WB-D)
 
@@ -829,17 +829,23 @@ When allied participation matters, route into a dedicated settlement flow:
 - Separate peace stays in the existing bilateral wizard, but now shows ally-fallout and bargain-breach warnings before send
 - Open settlement launches a war-scoped flow keyed to `war_id`
 
+Typed commands such as `propose common peace with Britain` may remain as parser/debug fallback, but they are not the primary player UX. The F1/Diplomacy wizard, war-score detail popup, and coalition/detail surfaces must all be able to lead the player into the same settlement flow.
+
 **Open Settlement eligibility / grey-out rules:**
 
 The **Open settlement** option is enabled only when all are true:
 
-- `war_id` resolves to an active `war_instance` with `ended_turn is None`.
+- `war_id` resolves to an active `war_instance` with `ended_turn is None`, or the current player/target pair is an existing `WAR` diplomatic state that would lazy-backfill a valid settlement `war_instance` if the player clicked the action.
 - The settlement actor is the current side leader for one side of that `war_instance`.
 - The `war_instance` has at least one active unresolved pair between the two sides with `pair_status in {"war", "armistice"}`.
 - At least one enemy participant is coverable: the opposing side leader, a participant named by a draft term, a participant needed for an active objective or bargain, or a participant with an active direct pair against the proposer side.
 - No other active `settlement_confirm` or `incoming_settlement_offer` dialogue is currently blocking settlement review.
 
-Grey-out / preview error reasons are deterministic: `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, or `settlement_dialogue_active`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms.
+Wizard availability must be read-only. It must not allocate a `war_instance`, attach pairs, open contribution episodes, invalidate caches, or stage a dialogue. Use a pure probe that can report `would_backfill=True` for default-start WAR pairs; the click/command path remains the only lazy-backfill mutation path.
+
+Opening settlement is free. The UI must display no DP cost for `open_settlement` and must not disable it for insufficient DP. If ratification later gains an explicit cost, that cost belongs to `confirm_settlement`, not the opener.
+
+Grey-out / preview error reasons are deterministic: `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, or `settlement_dialogue_active`. Backend payloads must include player-facing display text for every reason; Godot must not render internal enum strings such as `inactive_war_instance`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms.
 
 ### 10.4 Endpoint and dialogue contract
 
@@ -1626,8 +1632,11 @@ Use existing surfaces where possible:
 | Surface | Settlement use |
 |---------|---------------|
 | Proposal preview / advisory | Standing, bargain status, territory legitimacy, ally-fallout warnings |
-| War status panel | Participant list, contribution shares, war bargain status |
-| Diplomatic ledger | Post-settlement: grievance records, bargain outcomes |
+| Diplomacy wizard | Primary entry point for Open Settlement from nation selection / war state |
+| Settlement-confirm popup | Mandatory readable confirmation with terms, warnings, acceptance, and covered participants before ratification |
+| War status panel / war detail popup | Participant list, contribution shares, war bargain status, and Open Settlement affordance |
+| Coalition detail popup | Whole-war Open Settlement affordance when visible rows share a `war_instance_id` |
+| Diplomatic ledger | Post-settlement: grievance records, bargain outcomes, humanized settlement review rows |
 | Dispatch | Post-ratification: settlement reaction summaries |
 | Notification rail | Major events: bargain fulfilled, major shut-out, promise breach |
 
@@ -1651,6 +1660,21 @@ Pre-authored density fallbacks are mandatory before the spec-naive comprehension
 | `verbose` | Debug/reviewer expansion | All section data reachable with scrolling/pagination | Nothing mechanically relevant, but still grouped by section |
 
 If the spec-naive reviewer cannot identify the top blocker or political cost, the main affected ally/enemy, and the available next action within roughly 30 seconds, C2 must first try `compact` ordering and copy reduction before changing mechanics. Slice E may refine styling, but C2 owns the fallback payload shapes and default ordering.
+
+### 16.2a Final UI/UX closure before smoke
+
+Final smoke is allowed only after the UI/UX closure slice proves all player-facing settlement surfaces are wired and humanized:
+
+- `open_settlement` appears and executes from the diplomacy wizard; the button maps to the common-peace settlement flow rather than a raw unknown action.
+- Default-start WAR pairs without a preexisting `war_instance` are displayed as settlement-openable through the read-only probe described in section 10.3.
+- `settlement_confirm` uses a dedicated popup body, not the generic diplomatic-proposal renderer. The player must see the war label, covered participants, terms, hard stops/warnings, acceptance summary, and available actions before confirming.
+- War-detail popup offers Open Settlement for settlement-capable wars; coalition detail offers a whole-war Open Settlement affordance when rows share a `war_instance_id`. Bilateral rows may remain the HUD model; a separate first-class whole-war HUD row is deferred unless later UX testing demands it.
+- War-status standing blocks show contribution rows when available and a small explanatory placeholder when no `war_instance` exists yet, rather than silently disappearing.
+- Ledger recent-settlement rows, expanded review sections, HUD standing rows, and popup content must render humanized term, standing, and disabled-reason labels. Raw enums such as `territory_cede`, `forced_alliance`, `informed_consult`, `leader_consult`, `no_standing`, or `inactive_war_instance` must not appear on normal player surfaces.
+- Notification/dispatch review routes should open the relevant settlement review target and, where practical, expand or focus the matching settlement row by route id.
+- Stale wizard errors, missing optional display mappings, duplicate internal diagnostics, and tooltip indentation are polish, but they are still tracked in the final UI/UX closure plan. They may be sequenced after the blocker fixes only if no raw enum, dead button, unreadable confirmation, or missing primary entry path remains.
+
+These are not optional polish after smoke. They are the final phase that makes the already-modeled settlement system reachable and readable.
 
 ### 16.3 Warning presentation
 
@@ -1698,6 +1722,21 @@ AI uses the same settlement executor and validation paths as the player.
 - AI never creates ally-beneficiary land terms that would violate the allowed-beneficiary rules in §13.2.
 - AI never bypasses War Bargain fulfillment/breach checks; settlement-triggered promise outcomes route through WB-B/WB-D just like player outcomes.
 - AI proposal reasons use deterministic `decision_reason` values: `common_peace_pressure`, `direct_score_insufficient`, `ally_burden_too_high`, `bargain_conflict`, `hegemony_projection`, and `settlement_tier_mismatch`.
+
+### 16.6 Post-F ally settlement agency
+
+Slice F closes player reachability and readability. It does not complete settlement agency for AI allies.
+
+The current phase already authorizes **AI war leaders** to send common-peace offers through `incoming_settlement_offer` (§10.4 / §16.5). A later post-F phase must add **non-leader ally petitions/advisories** so allied participants can pressure the player before or during settlement without becoming treaty co-authors.
+
+Required scope for that phase:
+
+- Non-leader allies may send settlement petitions only when they are active participants in the relevant `war_instance`, have standing/direct stake/material contribution/active bargain basis, or are directly affected by a proposed or likely term.
+- Petition types should include at minimum: `request_open_settlement`, `request_consultation`, `request_reward_or_restoration`, `warn_against_sellout`, `demand_bargain_honor`, and `request_redress_after_settlement`.
+- Ally petitions are advisory/current-turn diplomatic items, not hard stops. Accepting one may open or focus the settlement wizard/review with prefilled context or highlight the relevant warning row; rejecting/dismissing records memory, relation, or posture consequences only where existing settlement-memory rules justify it.
+- Petitions must share the settlement anti-spam model: per-`war_id` / per-ally cooldowns, at most one active settlement-agency item from a war at a time unless the mailbox explicitly batches them, and deterministic salience ordering when multiple allies qualify.
+- Non-leader allies do not create common-peace packages, do not ratify, do not bypass side-leader validation, and do not gain a universal veto. This preserves §20.3: France/the side leader owns the final settlement choice; allies create visible political pressure.
+- Presentation must use named diplomat voice where available and must not surface raw standing or petition-type enums.
 
 ---
 
@@ -2130,6 +2169,14 @@ Highest-priority tests:
 131. Forced-alliance common-peace pairs end in `ALLIANCE` while their `diplo_key_meta[pair]["pair_status"]` becomes `resolved`, the pair moves to `resolved_diplo_keys`, contribution accrual stops after snapshot, and participant indexes include the former enemy only through other unresolved pairs.
 132. The full-Europe narrow/full/serial fixture uses at least 6 participants per side and at least 4 covered enemy participants, and constants cannot lock unless full common peace is strictly attractive in at least one decisive-victory case.
 133. At least one losing-defender AI package with only a defense objective reaches acceptance through concessions/returns/exhaustion/leader-loss avoidance, or a capped `defender_concession_bonus` is added and documented.
+134. Final UI/UX closure proves common peace is reachable from the diplomacy wizard and war-detail/coalition-detail surfaces, not only typed command.
+135. Wizard availability for default-start WAR pairs uses a read-only backfill probe and does not mutate `world.war_instances`.
+136. `open_settlement` displays as free to open and is not blocked by insufficient DP.
+137. `settlement_confirm` renders a dedicated readable popup body with review sections, terms, warnings, acceptance, and covered participants.
+138. Settlement ledger, HUD, popup, and wizard surfaces do not leak raw term, standing, or disabled-reason enums.
+139. Post-F AI/ally settlement agency is explicitly tracked: AI war-leader `incoming_settlement_offer` remains the common-peace offer path, while non-leader allies use petitions/advisories rather than co-authoring treaties.
+140. Ally petitions never bypass side-leader validation, hard stops, direct-score gates, WB-B checks, or settlement reaction construction.
+141. Ally petition UI/mailbox copy is humanized, cooldown-gated, and can focus the settlement wizard/review without mutating treaty state directly.
 
 ---
 
@@ -2152,6 +2199,8 @@ Separate peace is also a weapon. Peeling one enemy out of a war should pressure 
 France dictates. Allies react. The drama is in the pre-visible advisory (knowing the cost) and the post-ratification memory (paying the cost). No conference minigame.
 
 When France leads a defensive settlement, "dictates" means France owns the final player choice, not that the copy should sound like conquest. Defensive-coalition presentation should foreground coalition preservation, allied claims, and exhaustion rather than imperial overreach.
+
+This design call does not mean allies are silent. Non-leader allies may petition, warn, request consultation, demand bargain honor, or seek redress through the post-F ally-agency layer, but those beats are pressure and memory, not a separate settlement turn or veto.
 
 ### 20.4 War Bargains are the promise system
 
@@ -2186,6 +2235,8 @@ These are presentation targets, not extra mechanics. If the mechanical result ex
 
 ## 21. Changelog
 
+- **May 5, 2026 - v1.29 post-F ally-agency tracking.** Made the next phase explicit after Slice F/final smoke: AI war leaders already own `incoming_settlement_offer`, while non-leader allies need a separate petition/advisory layer for requesting settlement, consultation, rewards/restoration, bargain honor, anti-sellout warnings, and redress. Preserved the no-conference/no-veto design call by defining ally petitions as current-turn diplomatic pressure that can focus settlement UI but cannot ratify or bypass side-leader validation. The companion implementation plan is v1.27.
+- **May 5, 2026 - v1.28 final UI/UX closure phase.** Added mandatory Slice F before final smoke: common peace must be reachable from the diplomacy wizard and war-detail/coalition-detail surfaces; wizard availability uses a read-only lazy-backfill probe for default-start WAR pairs; opening settlement is free; disabled reasons are humanized; `settlement_confirm` gets a dedicated readable popup body; war-status standing placeholders cover no-instance starting wars; ledger/HUD/popup surfaces must humanize term and standing labels; and final smoke is blocked until those gates are green. The companion implementation plan is v1.26.
 - **May 2, 2026 - v1.26 A2 landed / A3 readiness cleanup.** Updated the status header after A2 review fixes landed and tightened the A3 boundary: connected-component merge owns absorbed-reference rewrites against current containers (`diplomatic_commitments`, dispatch/event-log/ledger payloads) plus no-op-safe hooks for absent future Slice B/C containers, without inventing contribution accrual or settlement-dialogue behavior early. Terminal war-instance retention is now exact: keep while `current_turn - ended_turn < 10`, archive at `>= 10`.
 - **May 1, 2026 - v1.25 A2 handoff cleanup.** Updated the status header after A1 landed and clarified the next implementation boundary: A2 owns `war_id` create/reuse/attach threading across every WAR-entry seam, while full transitive connected-component merge, archive/leader/elimination behavior, and post-merge absorbed-reference rewrites remain A3.
 - **May 1, 2026 - v1.24 future-audit hardening.** Closed the post-A1 audit blockers before implementation: forced-alliance common-peace pairs now resolve to `pair_status="resolved"` with `active_diplo_keys` / `resolved_diplo_keys` behavior defined; Slice C now has a hard full-Europe narrow/full/serial incentive gate; common-peace war-exhaustion farming gets an exploit fixture and optional relevance cap; AI defender common peace must prove an acceptable defense-objective package or add a capped `defender_concession_bonus`; C2 now owns compact/medium/verbose settlement-review payload fallbacks before the spec-naive comprehension gate; `settlement_gratitude_mod` intent is documented as a nudge rather than trust repair; and §20 names explicit awe set-piece targets for Slice E.
