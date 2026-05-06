@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.3 draft - synthesized Codex/Claude cleanup audit gate before further settlement coding
+> **Status:** v0.4 draft - skeptical product/code audit findings folded in before cleanup implementation
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 
@@ -75,6 +75,9 @@ Run these before coding:
 17. If a typed/free-text settlement command lacks `war_id`, does it reject multi-war ambiguity instead of choosing a silent fallback?
 18. Can stale-state recovery or `must_reopen` loop indefinitely while `settlement_confirm` remains a hard stop?
 19. Does blocked acceptance suppress misleading numeric score copy such as `0 / 50 - Blocked` and show the hard-stop reason instead?
+20. Does incoming-offer copy use incoming-offer framing, or does it reuse outgoing "Will they accept?" settlement review copy?
+21. Do active partial settlements route back to live war context instead of archived/recent-settlement ledger focus?
+22. Is every Godot settlement script at least parse/load checked, and are button/signal paths executable rather than source-string-only?
 
 ## Known Blocker: Revise Terms
 
@@ -114,11 +117,12 @@ These are the non-deferrable product issues discovered by the cleanup audit:
 4. `incoming_settlement_offer` is registered and handler-tested, but current code comments state there is no gameplay producer. Handler scaffolding is not shipped offer functionality.
 5. Multi-war and coalition settlement entry points must preserve the exact war context instead of guessing, choosing a sorted first war, dead-ending, or routing the player to a generic ledger/popup.
 6. Typed/free-text settlement entry is part of the same route-safety contract as the wizard: when no `war_id` is supplied and multiple shared wars exist, it must reject with a humanized ambiguity message rather than picking a legacy fallback.
-7. Source-string tests are not enough. Every player-facing settlement action needs behavioral coverage, and Godot scripts need parse/load or executable coverage before manual smoke.
+7. Result feedback must route active partial settlements to live war/settlement context. Sending `war_ended=False` outcomes to archived/recent-settlement ledger focus hides the remaining war from the player.
+8. Source-string tests are not enough. Every player-facing settlement action needs behavioral coverage, and Godot scripts need parse/load or executable coverage before manual smoke.
 
 ### Hard Gate Before Implementation
 
-The cleanup implementation may not start Slice G or broader settlement agency until these eight issues are closed by implementation or by hiding/removing the broken affordance:
+The cleanup implementation may not start Slice G or broader settlement agency until these nine issues are closed by implementation or by hiding/removing the broken affordance:
 
 1. **Common peace must stop pretending to be editable treaty settlement while only launching white peace.** Either ship real term authoring or rebrand to `Common White Peace`.
 2. **`Ratify Settlement` must obey the displayed acceptance verdict and hard stops.** Both the UI payload and `ratify_settlement_confirm` must enforce the same gate.
@@ -128,6 +132,7 @@ The cleanup implementation may not start Slice G or broader settlement agency un
 6. **Coalition settlement controls must be eligibility-gated and actionable.** `Open Whole-War Settlement` cannot appear just because rows share a `war_id`; it must respect settlement eligibility, and multi-war coalitions need per-war buttons or approved hidden/no-action copy.
 7. **Active settlement routes must not collapse into archived ledger focus.** `war_ended=False` routes to an active settlement review or war detail; `war_ended=True` routes to the ledger row.
 8. **Stale recovery must have an escape path.** `must_reopen` cannot loop indefinitely or strand a hard-stop dialogue; repeated/irrecoverable stale state must pop or surface a humanized back-out path.
+9. **Godot coverage must prove execution, not just source presence.** Settlement-critical Godot scripts must parse/load, button signals must execute, and tests must fail when a visible settlement action becomes a no-op or command-text fallback.
 
 If the product chooses the white-peace deferral route for item 1, the cleanup patch must hide or neutralize all treaty-authoring implications: `Revise Terms`, term harshness rows, projected-hegemony / Balance pressure rows, forced-alliance threat preview, vassalage / liberation / gold clause preview, and any Terms section copy that implies clauses beyond "End hostilities." The visible action label must say `Common White Peace` or equivalent approved copy.
 
@@ -142,6 +147,19 @@ Do not reopen these as cleanup blockers unless a new behavior test proves a regr
 - One-to-one war detail mostly hides common-peace controls through `settlement_available`; the open issue is coalition/shared-war gating, not the basic war-detail button.
 - Backend `requested_war_id` plumbing exists for the initial entry path. The route-context risks still open in this spec are multi-war wizard disambiguation, revise/stale reopen, result feedback, notification routing, and ledger focus.
 - Structured command plumbing exists, but typed/free-text `propose common peace with <nation>` remains in scope for ambiguity handling when multiple shared wars exist.
+
+### Current Audit Findings Folded Into This Spec
+
+These findings are the concrete cleanup gaps from the current audit and must remain tracked until a behavior test proves each is closed:
+
+1. **P0 - `Revise Terms` false affordance.** `settlement_confirm` exposes `Revise Terms`, but `revise_settlement_terms` only returns `must_reopen=True` with unchanged terms, and Godot restages through `_on_war_settlement_clicked(...)` without forwarding any edited draft. Covered by SC-2 and the Known Blocker section.
+2. **P0 - Ratification ignores displayed acceptance.** `build_settlement_confirm_dialogue` always offers `Ratify Settlement`, while `ratify_settlement_confirm` revalidates stale war state but not acceptance verdict, score threshold, or hard stops before mutation. Covered by SC-3 and SC-4.
+3. **P0 - Normal common peace is empty/no-clause treaty review.** Wizard, war-detail, executor, and preview GET paths can stage common peace with no player-authored `settlement_terms`, while the UI implies treaty settlement, pressure, terms, and revision. Covered by SC-1.
+4. **P1 - Incoming settlement offers are exposed scaffolding.** `incoming_settlement_offer` is registered in dialogue/mailbox/Godot action taxonomies, but code comments state there is no gameplay producer; `Request Revision` is another reopen loop. Covered by SC-5 through SC-7.
+5. **P1 - Active partial settlement routes can collapse to archived ledger focus.** Result feedback currently carries `ledger_settlements` style review routing even when `war_ended=False`, which can bury remaining hostile pairs. Covered by SC-14.
+6. **P1 - No-`war_id` typed settlement entry can choose the wrong war.** The legacy resolver still permits no-`war_id` common-peace entry and can pick the first active pair match. Covered by SC-8b.
+7. **P2 - Coalition settlement CTA is under-gated.** `Open Whole-War Settlement` appears from shared `war_instance_id` alone and does not prove backend settlement eligibility before exposing the button. Covered by SC-11 and SC-12.
+8. **P2 - Godot coverage is source-string-heavy.** Current tests pin many strings but do not guarantee Godot parse/load, signal wiring, or actual settlement button execution. Covered by SC-21 and SC-22.
 
 ## Gap Inventory
 
