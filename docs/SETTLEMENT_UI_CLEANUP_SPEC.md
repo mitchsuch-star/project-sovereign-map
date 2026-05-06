@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.5 draft - Codex + Claude skeptical product/code audit findings folded in before cleanup implementation
+> **Status:** v0.5 audit-complete gate - Codex + Claude skeptical product/code audit findings folded in before cleanup implementation
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 
