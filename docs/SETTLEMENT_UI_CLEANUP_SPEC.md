@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.12 SPEC READINESS GO / IMPLEMENTATION NO-GO - fifth-pass SPEC READINESS blockers folded in before cleanup implementation
+> **Status:** v0.13 SPEC READINESS GO / IMPLEMENTATION NO-GO - sixth-pass SPEC READINESS blockers folded in before cleanup implementation
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 > **Last audit update:** May 6, 2026
@@ -406,6 +406,40 @@ Binding v0.12 row amendments:
 - **SC-25 (save vocabulary policy):** Historical free-form text already stored in `event_log[].message` is not migrated and may render as historical text. The vocabulary contract applies to new renders produced by `compose_summary_oneliner`, voice templates, notifications, dispatch, and ledger derivations. Old-save fixtures must prove historical strings remain stable while new renders use Settlement vocabulary.
 - **SC-26 (same-war collision):** Re-staging `settlement_confirm` for the same `war_id` while an active same-war settlement-family dialogue exists must not silently replace authored draft state. It must either merge into the existing dialogue, reject with a humanized "settlement review already open for this war" beat, or refresh the existing dialogue while preserving authored terms. The chosen path must be recorded before implementation.
 
+### May 6, 2026 - Sixth SPEC READINESS Fold-In
+
+This pass incorporates the Claude v0.12 SPEC READINESS audit. Anchor verification remained clean, but the audit found four P1 readiness gaps that could still let implementation choose divergent behavior: same-war restaging, active live-route target, plan-document supersession, and POST preview conflict validation. The amendments below are binding before Gate 2 starts and lift the spec back to readiness GO without changing the implementation NO-GO gate.
+
+Sixth-pass scores after fold-in:
+
+- Fun: 8/10 - PASS. Full Treaty Settlement remains the approved, player-usable target, now with same-war restaging and live-route behavior pinned.
+- Clarity: 8/10 - PASS. Remaining implementer-choice gaps are resolved with concrete fields, route formats, write triggers, labels, validation cases, and tests.
+- Work Segmentation: 7/10 - PASS. The additions fit the existing Gate 2 ladder plus a doc-maintenance row that closes before Slice 1.
+- Contradiction-Freedom: 7/10 - PASS. The older implementation-plan contradictions now have an owning SC row and inline supersession markers.
+- Completeness: 8/10 - PASS. Clause validation, editor UX, AI/editor authority, snapshot timing, voice families, and vocabulary scan scope are now explicit.
+- Verdict: SPEC READINESS GO; IMPLEMENTATION remains NO-GO until Gate 2 behavior tests and manual smoke close the owning rows.
+
+Binding v0.13 row amendments:
+
+- **SC-1 (POST preview conflict matrix):** POST settlement preview must reject and humanize at least these clause errors: duplicate same `(type, from, to)` triples; vassalage/subjugation plus forced_alliance targeting the same nation; territory_cede where `from` does not currently control the region; liberation where the named nation is not a current vassal of the lord; subjugation where `from` is already a vassal of `to`; forced_alliance where `from` and `to` are on the same war side; gold_indemnity/gold_per_turn where `from` is not a participant in the war; and any clause naming a nation outside `proposer_members union covered_enemy_participants`. Each failure must populate `disabled_reason_display` and identify the offending clause/index for the editor.
+- **SC-1 (authored peace display):** An explicitly authored `{"type": "peace"}` clause renders in Terms with `type_display="Peace"` and `display_label="End hostilities (no material change)"`. The forbidden behavior is injecting a fake Terms row for an empty `settlement_terms=[]`, dropping an authored peace clause, or showing the raw `peace` enum. The old `_term_display` no-type fallback remains removed; this label applies only to an authored `peace` clause.
+- **SC-1 (editor authority):** The settlement editor opens only when `actor_nation == world.player_nation`. AI-driven calls into `stage_settlement_confirm(...)` must stage from an AI-supplied package directly and skip editor flags/draft writes. Wizard, war-detail, coalition-detail, revise, and incoming-offer promotion if SC-5 is explicitly reversed are the editor-eligible player routes.
+- **SC-1 (structured per-clause editor):** Every supported clause type must use structured controls, not free-text JSON. `territory_cede` uses a region picker filtered to regions controlled by `from`; `gold_indemnity` uses payer/recipient pickers plus integer amount `1..payer current gold`; `gold_per_turn` uses payer/recipient pickers plus amount and turn-count inputs; `forced_alliance` uses participant target/imposer pickers; `vassalage` and `subjugation` use vassal/lord pickers from war participants; `liberation` uses a picker filtered to existing vassals involved in the war; `peace` is a one-click zero-input clause.
+- **SC-2 (draft write trigger):** `world.pending_settlement_drafts[war_id]` is written after every successful `POST /diplomatic_preview?mode=settlement` call that previews, submits, or revise-repreviews a valid draft. It is not written per keystroke. Back Out / discard-confirm still owns explicit discard. End-turn discard runs after autosave so the autosave snapshot includes the in-flight draft but the post-end-turn loaded state does not.
+- **SC-3 (literal threshold scan scope):** The no-hardcoded-threshold scan covers `backend/game_logic/settlement_preview.py`, `backend/game_logic/settlement_presentation.py`, `backend/game_logic/settlement_reactions.py`, and `godot-client/project-sovereign/scripts/proposal_confirm_popup.gd`. Allowed tuning homes are `backend/game_logic/settlement_scoring.py` and files under `backend/balance/`. Display layers must read `threshold` from the payload; defensive `.get("threshold", 50)` defaults are forbidden once SC-3 closes. A payload contract test must prove every emitted acceptance payload contains non-null `threshold`.
+- **SC-8 / SC-8b (eligibility probe identity):** The settlement eligibility probe is `evaluate_open_settlement_eligibility(world, *, war_id, actor_nation)`. The older implementation-plan name `probe_settlement_eligibility(...)` is dropped. War-status row construction, wizard action emission, and POST preview's first validation step call this helper or an exact wrapper that preserves the same contract.
+- **SC-14 (active live-route target):** Active `war_ended=False` settlement review routes use this precedence: first, if a same-war `settlement_confirm` is still mounted in `dialogue_manager`, bring that popup to the foreground without restaging; otherwise open `war_detail_popup.show_war(war_id)` for the war's current participants. The wizard is never a live-route target; it remains an entry/authoring path only. Archived `war_ended=True` routes open the ledger settlement/history row by `route_id`.
+- **SC-14c (route id format):** Settlement route id format is `settlement:{war_id}:{turn}:{seq}`. `seq` is a per-`(war_id, turn)` monotonic counter starting at 1, stored on `world.settlement_route_seq[war_id][turn]` or an equivalent serialized world field. The staged dialogue owns the id; reaction event, dispatch, ledger, notification meta, and result feedback consume it verbatim and never recompute.
+- **SC-15 (acceptance snapshot timing):** `settlement_summary.acceptance_snapshot` captures the fresh ratification-time acceptance payload: the same score, threshold, band, verdict, top components, and display fields used by SC-3 to authorize mutation. A staged preview score may also persist as `acceptance_at_staging` for audit context, but player-facing archived review renders `acceptance_snapshot`.
+- **SC-19 (new voice families):** The cleanup must add and route these Voice Bible settlement families through `resolve_settlement_voice_line(...)` or the equivalent display helper: `settlement_blocked_for_ratification_talleyrand`, `settlement_rescored_after_staging_talleyrand`, `settlement_discard_confirm_talleyrand`, `settlement_collision_active_review_talleyrand`, `settlement_reopen_cap_exhausted_talleyrand`, and `settlement_observed_foreign_court_chancery`. Inline f-strings for those player-facing states fail SC-19.
+- **SC-25 (vocabulary scan scope):** The vocabulary scan covers CTA labels, popup headings, dialog titles, button text, route labels, mailbox summary labels, and dispatch/ledger headlines. It does not ban lowercase prose-body noun usage of "settlement" or "treaty" when not used as a top-level route name. The forbidden mixing is a single player view teaching different route labels such as Common Peace button, Settlement heading, and Treaty Review route.
+- **SC-26 (same-war and cross-war collision default):** Same-war restaging refreshes the existing dialogue and merges authored draft terms from the second call into the active draft through the SC-2 `pending_settlement_drafts` store; it brings the existing popup to the foreground without staging a second `settlement_confirm`. Cross-war restaging is rejected with a humanized "resolve current settlement first" beat. Replace-and-clobber is forbidden.
+- **SC-27 (plan supersession):** Before Gate 2 Slice 1 starts, `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` must carry inline supersession markers on the old route-id and incoming-offer Slice F paragraphs, or those paragraphs must be removed/replaced. The required marker is `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md` plus the owning SC row (`SC-14c` for route ids, `SC-5` for incoming-offer scaffolding).
+
+### Full Treaty Settlement Flow
+
+The normal player path is: (1) wizard, war detail, or coalition detail emits `settlement_clicked(war_id, target_nation)`; (2) Godot opens the editor on the existing `proposal_confirm_popup.gd` settlement surface in edit mode; (3) every clause add/remove triggers `POST /diplomatic_preview?mode=settlement` with the current `settlement_terms` and refreshes acceptance, warnings, hard stops, and `disabled_reason_display`; (4) Submit sends `/command` with `action=propose_common_peace`, `target_nation`, `war_id`, `selected_target_nation`, and `settlement_terms`; (5) `_execute_propose_common_peace` forwards `settlement_terms` into `stage_settlement_confirm(...)`; (6) `settlement_confirm` reviews the same package; (7) `Ratify Settlement` re-runs `calculate_common_peace_acceptance(...)` fresh and either mutates only after the SC-3 gate passes or refreshes/blocks with the pinned refusal UX.
+
 ## Gap Inventory
 
 Every row needs a decision before implementation: implement now, hide/remove now, rename now, or explicitly defer with the broken affordance hidden. Deferral without hiding the player-facing affordance fails this spec. Rows are ordered by priority.
@@ -446,6 +480,7 @@ Every row needs a decision before implementation: implement now, hide/remove now
 | SC-24 | P2 | Treaty metadata harshness | Common-peace treaty records can use a different harshness scale than C1b acceptance scoring. This is mostly downstream metadata, but it can mislead ledger/AI readers if not explicit. | Store both raw common-peace harshness and legacy clamped harshness under separate fields. Raw consumers: `backend/game_logic/diplomatic_ledger.py`, `backend/game_logic/ai_diplomacy.py` proposal generation, `backend/game_logic/coalition.py` threat interpretation, `backend/game_logic/dispatch.py` one-liners, and `backend/game_logic/notifications.py` warnings. Legacy bilateral consumers may keep the clamped field. | Ratification test with multi-clause harshness greater than 1.0 proving treaty metadata stores raw and clamped values. Consumer-by-consumer tests assert each named common-peace consumer reads raw harshness, not the clamped field. |
 | SC-25 | P1 | Settlement vocabulary | Player-facing copy currently mixes `Open Settlement`, common peace, treaty settlement, and typed `propose common peace` language. This lets implementation close routing while teaching the player three names for one flow. | Use **Settlement** as the player-facing route and feature term. `common peace` remains internal/backend terminology only; `treaty` describes authored clauses or stored records, not the top-level CTA. Update CTA labels, popup headings, voice templates, help/tutorial text, dispatch, ledger, and notifications to use the chosen vocabulary consistently while preserving backend type strings for save compatibility. `Open Whole-War Settlement` is allowed as a coalition scope qualifier; no CTA may use `Common Peace` or `Treaty` as the top-level label. Historical free-form `event_log[].message` text from old saves is not migrated and may render as historical text; new generated renders must use Settlement vocabulary. | Render/source scan proving one player view does not mix `common peace`, `settlement`, and `treaty` as interchangeable route names; CTA and voice-template tests proving the settlement route uses the chosen term. Coalition CTA test proves `Open Whole-War Settlement` and `Open Settlement` both route to the same editor contract. Old-save fixture proves old free-form messages render unchanged while new `compose_summary_oneliner`, dispatch, notification, and ledger text uses Settlement vocabulary. |
 | SC-26 | P1 | Cross-war / same-war settlement collision | A second settlement entry can preempt the active `settlement_confirm` dialogue via `world.dialogue_manager.replace(dialogue)` (`backend/game_logic/settlement_preview.py:443-447`), silently clobbering the existing review. SC-5 default-defer mitigates incoming-offer collision only while incoming offers stay hidden; outgoing settlements can still race. Same-war restaging can also overwrite authored draft state. | `stage_settlement_confirm` must reject preemption when a different settlement-family hard-stop is already active for another `war_id`. Subsequent settlement entries must queue/defer through the mailbox queue or return a humanized "resolve current settlement first" beat. Same-war restaging while a same-war settlement dialogue is active must merge into the existing dialogue, reject with a humanized "settlement review already open for this war" beat, or refresh the existing dialogue while preserving authored terms; the chosen path must be recorded before implementation. The current dialogue must remain active unless the player backs out, ratifies, or explicitly chooses to replace it through an approved product flow. | Stage `settlement_confirm` for `war_1`, then call `_execute_propose_common_peace` for `war_2`; assert `war_1` remains the active dialogue, `war_2` is queued/deferred or rejected with humanized copy, and no clobber occurs. Same-war test: stage `war_1` with authored `territory_cede`, restage `war_1`, and assert the active dialogue is preserved or refreshed without authored-clause loss. Add same-family collision coverage for incoming offers if SC-5 is ever reversed. |
+| SC-27 | P1 | Doc maintenance / supersession | `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` still contains older Slice F instructions that contradict this cleanup spec: route id format pinned as `settlement_summary:{war_id}:{staged_turn}` and minimal incoming-offer routing mandated for Slice F. A downstream implementer can read the older plan first and reintroduce behavior this spec forbids. | Before Gate 2 Slice 1 starts, fold supersession callouts into the implementation plan or remove/replace the contradicting paragraphs. The route-id paragraph must be marked `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-14c`; the incoming-offer paragraph must be marked `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-5`. `docs/STATUS.md` must also record that those markers exist. | Source-string scan proves each contradicting implementation-plan paragraph is removed/replaced or carries the required same-line `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-*` marker. |
 
 ## Implementation Gates
 
@@ -458,6 +493,7 @@ Before code:
 - Record the full treaty-authoring implementation slice plan before touching `Revise Terms`: draft editor, preview refresh, revise/counter route, incoming-offer package preservation, and ratification gate. Any temporary hide/remove choice must name the hidden affordance and why it is only interim.
 - Incoming-offer decision is pre-set for cleanup: defer + hide by default. Record any reversal explicitly before code starts; reversal requires producer + mailbox + popup + action handling together, not handler scaffolding alone. Otherwise remove or feature-flag the exposed type from hard-stop/mailbox/Godot player surfaces while deferred.
 - Update `docs/STATUS.md` so the next settlement step is this cleanup spec, not Slice G.
+- Close SC-27 by marking or replacing the superseded route-id and incoming-offer paragraphs in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` before implementation begins.
 
 ### Gate 2 - Ordered Cleanup Slices
 
@@ -487,11 +523,13 @@ Required closure:
 
 - Common peace becomes a real war-scoped term-authoring settlement system with populated draft packages from normal UI paths.
 - The editor supports the canonical minimum clause vocabulary: `peace`, `territory_cede`, `gold_indemnity`, `gold_per_turn`, `forced_alliance`, `vassalage`, `subjugation`, and `liberation`.
+- Every supported clause uses structured controls; free-text JSON clause entry is forbidden.
 - The editor lives on the existing `proposal_confirm_popup.gd::_build_settlement_content` settlement popup surface unless this spec records a different product decision.
 - Wizard, war-detail, coalition-detail, revise, and incoming-offer authoring paths use POST settlement preview for draft-dependent state; GET settlement preview remains read-only/eligibility baseline.
 - `_execute_propose_common_peace` and every structured Godot settlement entry path preserve authored `settlement_terms` through staging.
-- Unratified authored drafts persist only in `world.pending_settlement_drafts[war_id]`, round-trip through save/load, restore within the same turn, and are discarded on turn end, ratification, or explicit discard-confirm.
+- Unratified authored drafts persist only in `world.pending_settlement_drafts[war_id]` after successful POST preview, round-trip through save/load, restore within the same turn, and are discarded on turn end, ratification, or explicit discard-confirm.
 - Editor validation errors render inline, disable Submit/Preview/Ratify-from-editor, and are not auto-stripped.
+- POST preview enforces the SC-1 conflict matrix and points each editor error to the offending clause.
 - `Revise Terms` opens real draft mutation/preservation or is absent.
 - `Ratify Settlement` is absent from `options[]` on rejection or hard stops, and direct backend ratification refuses mutation under the same fresh acceptance/hard-stop gate.
 - Ratification re-runs `calculate_common_peace_acceptance(...)` from current world state; it does not trust the staged acceptance snapshot.
@@ -504,8 +542,11 @@ Required tests:
 - End-to-end author -> preview -> revise -> ratify behavior test with at least one distinctive material clause.
 - Structured executor test proving `_execute_propose_common_peace` forwards a distinctive `settlement_terms` package into the staged dialogue.
 - POST preview validation taxonomy tests for foreign actor, proposer-side mismatch, clause-count overflow, duplicate/conflicting clauses, empty authored draft, and a valid draft.
+- Parametrized POST preview tests for the eight SC-1 conflict-matrix cases, each proving `disabled_reason_display` and offending-clause index/field.
+- Godot editor source/executable guard proving structured controls exist for each clause type and raw JSON clause entry is absent.
+- Authored peace display test proving `type_display="Peace"` and `display_label="End hostilities (no material change)"`; empty package test proves no fake Terms row is injected.
 - Editor error-state test proving invalid clauses show inline errors and disable Submit until fixed.
-- Draft save/load round-trip and end-turn discard tests.
+- Draft write-on-preview, save/load round-trip, autosave-before-end-turn, and end-turn discard tests.
 - GET preview non-mutation property test proving no staging, no draft persistence, no dialogue changes, and no cache invalidation after repeated calls.
 - Baseline empty-term common-peace test for today's behavior, then inverted when SC-1 closes.
 - Dispatch one-liner test proving empty `terms_summary` does not render `settlement ratified` after SC-1 closes.
@@ -526,6 +567,7 @@ Required closure:
 
 - Wizard and typed/free-text settlement entry never auto-pick a war under multi-war ambiguity.
 - War-status and war-detail CTAs use active hostile-pair settlement eligibility, not unique-nation count, and the eligibility cache invalidates on `world.invalidate_war_instance_indexes()`.
+- War-status, wizard, and POST preview use `evaluate_open_settlement_eligibility(world, *, war_id, actor_nation)` as the shared eligibility probe.
 - Coalition settlement CTAs are eligibility-gated and never auto-pick coalition leader, alphabetic target, or hidden wrong-court context; focused-row per-war buttons are primary and other eligible per-war buttons are secondary.
 - Focused ineligible coalition rows render disabled with reason while eligible secondary routes remain actionable.
 - Staged dialogues carry top-level `selected_target_nation` from every production entry path, and reopen routing reads it first.
@@ -554,22 +596,27 @@ Required closure:
 - Stale recovery uses `SETTLEMENT_REOPEN_MAX_ATTEMPTS = 3` per `(war_id, turn)` and attempt 4 returns the pinned choose-from-war-detail copy.
 - Every `must_reopen=True` settlement-family response has non-empty `reopen_target.target_nation` and `error_display`, or returns a non-reopen humanized fallback / mounted-dialogue error.
 - Staged route id is the source of truth through reaction event, result feedback, dispatch, notification metadata, and ledger row.
+- Staged route ids use `settlement:{war_id}:{turn}:{seq}` and the per-turn sequence is persisted on world state.
 - Focused rows cannot be trimmed by Recent Settlements row caps.
 - Archived/aged-out dispatch clicks fail gracefully instead of opening blank focus.
 - Incoming-offer accept failures cover missing `war_id`, invalid `war_id`, and archived-since-offer-creation.
 - Cross-war settlement entries cannot clobber the active settlement-family hard-stop for another `war_id`; same-war restaging cannot overwrite authored draft state.
+- Active result/review routes foreground a mounted same-war settlement popup first, otherwise open war detail; they never open the wizard as a live-route target.
+- Same-war restaging refreshes the mounted dialogue and merges authored draft terms through `pending_settlement_drafts`; cross-war restaging rejects with humanized copy.
 
 Required tests:
 
 - Active-vs-archived routing test for result feedback and notification clicks.
+- Live-route precedence test: mounted same-war dialogue is foregrounded; no mounted dialogue opens war detail; archived settlement opens ledger by route id.
 - Dispatch-click active-vs-archived routing test using the same branch.
 - Stale-recovery loop cap test proving attempts 1-3 may reopen and attempt 4 returns `must_reopen=False` with "We cannot reopen this settlement review - choose from war detail."
 - Outgoing revise/confirm stale test proving no `must_reopen=True` response can carry empty `reopen_target.target_nation`.
 - Same-turn route-id uniqueness and continuity test proving `_emit_settlement_summary_event` consumes staged route id.
+- Route-id format test proving same-turn ids are `settlement:war_1:7:1` and `settlement:war_1:7:2`, and reaction/dispatch/ledger/notification consume them verbatim.
 - Recent-row cap focus test and aged-out dispatch-click test.
 - Stale incoming-offer accept test for empty, invalid, and archived war ids.
 - Cross-war collision test: stage `war_1`, then attempt to stage `war_2`; `war_1` remains active and `war_2` queues/defers or returns humanized rejection.
-- Same-war collision test: stage `war_1` with an authored clause, restage `war_1`, and prove the active dialogue is preserved or refreshed without losing authored terms.
+- Same-war collision test: stage `war_1` with authored `territory_cede`, restage `war_1` with authored `gold_indemnity`, and prove one active dialogue plus a merged draft containing both clauses.
 
 Required inversions:
 
@@ -603,18 +650,21 @@ Close SC-15, SC-15b, SC-16, SC-17, SC-19, SC-20, SC-23, SC-24, and SC-25 after t
 Required closure:
 
 - `settlement_confirm` explains beneficiaries, ignored parties, remaining wars, acceptance blockers, hard stops, political costs, live awe/set-piece stakes, and exact clause mutations before ratification.
+- Archived settlement review renders the fresh ratification-time `acceptance_snapshot`, not the stale staging preview.
 - Blocked acceptance suppresses misleading numeric score copy.
 - Forced-alliance threat preview uses `compute_forced_alliance_threat_preview(...)`.
 - Raw ids/enums/debug labels do not reach player surfaces, and normal production payloads do not include `debug_action_ids`.
 - Incoming and outgoing settlement voices are distinct or incoming-offer surfaces are hidden.
+- Blocked-ratify, rescore-failure, discard-confirm, collision, reopen-cap, and foreign-observer copy routes through the SC-19 voice families.
 - Ledger/dispatch peace and settlement history is merged into one reverse-chronological `PEACE & SETTLEMENT HISTORY` surface with row-level type tags, per-event rows, distinct route namespaces, and a combined cap of 5.
 - Treaty harshness metadata stores both raw common-peace harshness and legacy clamped harshness under explicit fields, and named common-peace consumers read raw harshness.
 - Player-facing copy uses `Settlement` as the route/feature term and does not mix `common peace`, `settlement`, and `treaty` as interchangeable labels.
+- Vocabulary tests target route/CTA/headline labels and do not ban lowercase prose-body noun usage.
 - Old-save free-form `event_log[].message` text is historical and not migrated; all new generated settlement renders use the new vocabulary.
 
 Required tests:
 
-- Presentation payload tests for resolved/unresolved pairs, beneficiaries, ignored parties, mutation-preview clauses, live awe, acceptance snapshot, blocked copy, forced-alliance threat projection, raw-label scan, voice perspective, reverse-chronological merged history, treaty harshness consumer fields, and settlement vocabulary including old-save/new-render behavior.
+- Presentation payload tests for resolved/unresolved pairs, beneficiaries, ignored parties, mutation-preview clauses, live awe, ratification-time acceptance snapshot, blocked copy, forced-alliance threat projection, raw-label scan, voice perspective and required voice families, reverse-chronological merged history, treaty harshness consumer fields, and route-label settlement vocabulary including old-save/new-render behavior.
 
 Required inversions:
 
