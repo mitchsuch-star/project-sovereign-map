@@ -2,9 +2,10 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.5 audit-complete gate - Codex + Claude skeptical product/code audit findings folded in before cleanup implementation
+> **Status:** v0.6 NO-GO audit-complete gate - skeptical product/code audit findings folded in before cleanup implementation
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
+> **Last audit update:** May 6, 2026
 
 ## Purpose
 
@@ -156,6 +157,15 @@ Do not reopen these as cleanup blockers unless a new behavior test proves a regr
 
 These findings are the concrete cleanup gaps from the current audit and must remain tracked until a behavior test proves each is closed. File references are the current audit anchors; line numbers may shift as implementation proceeds, but the player-facing risk remains binding.
 
+Latest audit score, May 6, 2026:
+
+- Fun: 4/10 - FAIL. The current flow is mechanically reachable but does not yet give the player meaningful settlement agency.
+- Clarity: 7/10 - PASS. The cleanup decisions are concrete enough to implement, once product chooses term-authoring vs white-peace deferral and incoming-offer implementation vs hiding.
+- Work Segmentation: 7/10 - PASS. The SC rows are individually testable, but P0/P1 rows must be closed before broader agency work.
+- Contradiction-Freedom: 6/10 - FAIL. Live code still contradicts player-facing labels around revision, acceptance, incoming offers, and active-vs-archived routing.
+- Completeness: 6/10 - FAIL. The spec is now complete enough to guide cleanup, but the feature is NO-GO for implementation-complete claims until the listed P0/P1 behavior gaps are closed or hidden with explicit approval.
+- Verdict: NO-GO. Implement or hide/remove the P0/P1 affordances before Slice G or any "player-usable settlement system" claim.
+
 1. **P0 - `Revise Terms` false affordance.** Current anchors: `backend/game_logic/settlement_preview.py::build_settlement_confirm_dialogue` exposes the option, `handle_settlement_dialogue_action(... revise_settlement_terms ...)` returns `must_reopen=True` with unchanged terms, and `godot-client/project-sovereign/scripts/main.gd::_on_war_settlement_clicked(...)` restages a fresh `propose_common_peace` command without any edited draft. Even after `main.gd` routes through `_on_war_settlement_clicked` instead of the command box, the response's `settlement_terms` are not forwarded into the staging body; `_on_war_settlement_clicked` does not accept a terms argument and its structured POST body has no `settlement_terms` field. Player impact: clicking `Revise Terms` does not revise terms. Spec action: fold into SC-2 and Known Blocker; implement a real editor/counter route, hide/remove, or rename to a review-only action only with explicit approval. Required behavior test: clicking `Revise Terms` either opens an edit-capable draft route with preserved terms, or the button is absent.
 2. **P0 - Ratification ignores displayed acceptance.** Current anchors: `build_settlement_confirm_dialogue` always offers `Ratify Settlement`; `ratify_settlement_confirm` revalidates stale war state but not acceptance verdict, score threshold, or hard stops before `_build_pair_ratification_plan`, `_apply_settlement_terms`, and pair mutation. `revalidate_staged_settlement` is the right first-line gate because it already runs first inside `ratify_settlement_confirm`. Player impact: a rejected or blocked settlement can still be ratified. Spec action: fold into SC-3 and SC-4; implement payload disable/omit plus backend hard block before mutation. Required behavior test: rejected or hard-stopped confirm returns `success=False`, `mutated=False`, and leaves diplomatic state, war instances, treaties, regions, threat, event log, and dialogue state unchanged except for a safe refusal.
 3. **P0 - Normal common peace is empty/no-clause treaty review.** Current anchors: `_execute_propose_common_peace` calls `stage_settlement_confirm(...)` without `settlement_terms`; `GET /diplomatic_preview?mode=settlement` hard-codes `settlement_terms=[]`; the POST preview accepts terms but no normal UI calls it; the Godot settlement popup still renders treaty/terms/acceptance/revision framing when data exists. The GET endpoint is load-bearing: even a well-behaved wizard client cannot ship a non-empty package through the current normal flow unless it switches to POST with a populated package. Player impact: the normal UI can ratify white peace while calling it a settlement system. Spec action: fold into SC-1; implement minimum term authoring, or explicitly rebrand to `Common White Peace` and hide treaty-authoring/projection affordances, including dead awe placeholders. Required behavior test: normal UI path either declares edit capability and preserves authored terms through preview, or shows explicit white-peace copy with no false term/revision controls.
@@ -175,6 +185,19 @@ These findings are the concrete cleanup gaps from the current audit and must rem
 17. **P1 - Same-turn settlement `route_id` can collide.** Current anchors: `build_settlement_confirm_dialogue` and `ratify_settlement_confirm` derive route ids from `{war_id}:{turn}`. Player impact: two settlements for the same `war_id` in the same turn can focus the wrong ledger row or notification. Spec action: fold into SC-14c; route ids must be unique within a turn while still preserving `war_id` for live context. Required behavior test: two same-turn settlement summaries for one `war_id` produce distinct `route_id` values and the second click focuses the second row.
 18. **P2 - Ledger peace/settlement sections have ambiguous precedence.** Current anchors: the Godot diplomatic ledger can show both Recent Settlements and legacy Recent Peace Ratifications. Player impact: common-peace and bilateral-peace outcomes are split across similarly named sections, and focus behavior is settlement-only. Spec action: fold into SC-23; document/implement precedence so common peace cannot double-render and bilateral peace stays separate or the sections are deliberately merged/renamed. Required behavior test: common peace appears only in the approved common-peace section; bilateral peace appears only in the approved bilateral section.
 19. **P2 - Treaty metadata harshness scale can diverge from acceptance scoring.** Current anchor: `_record_common_peace_treaties` writes treaty harshness using the bilateral record scale while C1b acceptance uses raw harshness. Player impact is indirect, but downstream ledger/AI consumers can read a different harshness meaning than acceptance used. Spec action: fold into SC-24; choose and document the treaty-record scale. Required behavior test: multi-clause settlement with raw harshness greater than 1.0 records the documented harshness scale.
+
+### Latest Audit Coverage Cross-Check
+
+The May 6 audit re-checked the requested backend, Godot, docs, and tests for bugs of the same class as `Revise Terms`. The spec now explicitly carries every concrete player-facing gap found in that pass:
+
+- False or misleading actions: `Revise Terms`, incoming-offer `Request Revision`, incoming-offer `Accept`, always-visible `Ratify Settlement`, and coalition `Open Whole-War Settlement`.
+- Missing player agency: normal common-peace opens as an empty/no-clause package unless external code supplies terms; no normal player path authors, previews, negotiates, or revises terms.
+- Wrong-context risk: wizard sorted-first multi-war selection, typed/free-text no-`war_id` fallback, same-turn route-id collisions, selected-target loss during reopen, and active partial settlements routed to archived ledger focus.
+- Misleading presentation: blocked acceptance numeric copy, raw verdict enum voice text, incoming offer using outgoing acceptance framing, malformed-payload developer text, production metadata named `debug_action_ids`, dead live-awe preview path, and unclear peace/settlement ledger precedence.
+- Eligibility mismatch: war-status and coalition CTAs must use active hostile-pair settlement eligibility, not broad unique-nation or shared-war-id checks.
+- Coverage weakness: source-string checks must get behavior twins, and settlement-critical Godot scripts need parse/load or executable coverage before manual smoke can pass.
+
+No additional concrete player-facing settlement bugs were found outside SC-1 through SC-24 in this pass. If a later audit finds another live affordance in the same class, add it as a new SC row before implementation rather than treating this list as closed by default.
 
 ## Gap Inventory
 
