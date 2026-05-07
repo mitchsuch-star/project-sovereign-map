@@ -141,6 +141,8 @@ The existing one-to-one peace/proposal flow is the nearest UX and engineering an
 
 Temporary hide/remove decisions are still valid when an implementation slice cannot complete the full route in one pass, but the hidden affordance and player impact must be recorded explicitly. Do not solve SC-1 by permanently rebranding the feature to white peace without a new product decision.
 
+Two-way AI-to-player negotiation, AI counter-proposals, conference rounds, and ally veto systems remain Slice G or later settlement-agency work. This cleanup still must feel complete and usable: it delivers player-authored treaty terms with iterative acceptance preview, consequence preview, revise/re-author loops, and hard-stop refusal as the negotiation feedback loop. SC-5 defer-and-hide ensures no two-way negotiation controls are exposed until the AI counterpart exists end to end.
+
 ### Player-Facing Vocabulary
 
 The player-facing term is **Settlement**. UI copy should use `Settlement`, `Open Settlement`, `Ratify Settlement`, `Settlement History`, and clause-specific treaty language inside the settlement flow. `common peace` remains an internal/backend command concept and save-compatible implementation term; it must not appear as the normal player-facing label for this flow. `treaty` may describe concrete authored clauses or stored records, but it must not be used interchangeably with the top-level CTA or route name.
@@ -284,7 +286,7 @@ Scores for this fold-in:
 Binding SC amendments from this pass:
 
 - **SC-1:** Add `backend/game_logic/settlement_presentation.py:494` to the empty/no-clause masquerade anchors. `compose_summary_oneliner` must not fall back to the literal phrase `settlement ratified` for an empty `terms_summary` after SC-1 closes. Any interim safety label must explicitly name the no-clause state and must be paired with hidden authoring promises elsewhere.
-- **SC-1:** The first full treaty editor slice must enumerate the canonical authored clause vocabulary and ship the live MVP set: `peace` / no-material-change baseline, `territory_cede`, `gold_indemnity`, and `forced_alliance`. Any non-MVP canonical clause type, including scorer-read clauses such as `vassalage` or `subjugation`, may be hidden only with the interim-hide artifacts above; unsupported visible controls are forbidden.
+- **SC-1:** The first full treaty editor slice must enumerate the canonical authored clause vocabulary and ship the required live clause floor: `peace` / no-material-change baseline, `territory_cede`, `gold_indemnity`, and `forced_alliance`. Any canonical clause type outside that first-slice floor, including scorer-read clauses such as `vassalage` or `subjugation`, may be hidden only with the interim-hide artifacts above; unsupported visible controls are forbidden.
 - **SC-1:** Authoring paths must use `POST /diplomatic_preview?mode=settlement` with the current draft `settlement_terms`. The GET settlement preview path is eligibility/read-only baseline only and is forbidden for any draft-dependent authoring action.
 - **SC-1:** Pin the POST preview request schema before implementation: required `war_id`, `actor_nation`, proposer/accepting-side context derivable from the war, `covered_enemy_participants`, `settlement_terms`, and `density`; maximum draft-clause count; duplicate/conflicting clause rejection; live revalidation on every preview call; and humanized validation errors.
 - **SC-1:** POST preview must reject unauthorized actor/context combinations. `actor_nation` must be the player nation, and proposer side must match that actor's side in the named war.
@@ -526,7 +528,7 @@ This pass folds in the combined Claude/Codex v0.15 readiness audit. Anchor verif
 
 Ninth-pass scores after fold-in:
 
-- Fun: 7/10 - PASS. Full Treaty Settlement remains player-usable after the MVP clause set and preview/mutation equivalence gates are pinned.
+- Fun: 7/10 - PASS. Full Treaty Settlement remains player-usable after the required live clause floor and preview/mutation equivalence gates are pinned.
 - Clarity: 8/10 - PASS. The remaining implementer-choice points now have explicit fields, caller kinds, merge keys, mounted-state definition, schema rules, scan tokens, and tests.
 - Work Segmentation: 8/10 - PASS. The additions fit the existing five-slice Gate 2 ladder, with Godot tooling debt capped by Slice 3.
 - Contradiction-Freedom: 8/10 - PASS. Proposer-side and accepting-side leader changes now share the same fresh-rescore rule; the widened SC-27 scan covers older plan prose variants.
@@ -535,7 +537,7 @@ Ninth-pass scores after fold-in:
 
 Binding v0.16 row amendments:
 
-- **SC-1 (MVP authorable clause set):** G2-Slice-1 closure requires at minimum `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance` enabled, previewable, submittable, and ratifiable when valid. These four MVP clause types cannot be interim-hidden at Slice 1 closure. `gold_per_turn`, `vassalage`, `subjugation`, and `liberation` may be interim-hidden only through the four-artifact protocol. SC-1 cannot close with fewer than four MVP clauses live. Required tests: `test_g2_slice_1_closure_minimum_authorable_clauses` and an end-to-end author/submit/stage test for one valid draft of each MVP type.
+- **SC-1 (required live clause floor):** G2-Slice-1 closure requires at minimum `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance` enabled, previewable, submittable, and ratifiable when valid. These four first-slice clause types cannot be interim-hidden at Slice 1 closure. `gold_per_turn`, `vassalage`, `subjugation`, and `liberation` may be interim-hidden only through the four-artifact protocol and must retain restoration gates. SC-1 cannot close with fewer than four live clauses. Required tests: `test_g2_slice_1_closure_minimum_authorable_clauses` and an end-to-end author/submit/stage test for one valid draft of each required first-slice type.
 - **SC-1 (Submit revalidation):** `_execute_propose_common_peace` must call `build_settlement_preview(...)` or the exact POST preview validator on the submitted `settlement_terms` before `stage_settlement_confirm(...)`. The submitted terms must re-pass actor, side, eligibility, clause-count, and SC-1 conflict-matrix validation. Failure returns `success=False`, `mutated=False`, `error="submitted_terms_failed_revalidation"`, humanized `disabled_reason_display`, and no staged dialogue. Required test: `test_submit_revalidates_against_post_preview_taxonomy`.
 - **SC-1 (caller-kind separation):** `stage_settlement_confirm(...)` must receive an explicit caller-kind discriminator such as `caller_kind: Literal["player_editor", "ai_offer", "system"]`. Editor-mode flags, `pending_settlement_drafts` writes, and editor controls run only for `caller_kind="player_editor"`. AI or system callers stage supplied packages directly. Inferring caller kind from `actor_nation == world.player_nation` is forbidden because later ally/proxy flows can make that ambiguous. Required test: `test_stage_settlement_confirm_does_not_persist_draft_on_ai_caller`.
 - **SC-1 (territory cede picker filter):** "Regions controlled by `from`" means `region.controller == from`. Occupied-but-uncontrolled regions are excluded from the picker; armistice-state regions still pass when their controller is `from`. Required test: `test_territory_cede_picker_excludes_occupied_uncontrolled_regions`.
@@ -562,7 +564,7 @@ This pass folds in the v0.16 SPEC READINESS audit focused on same-war restage el
 
 Tenth-pass scores after fold-in:
 
-- Fun: 8/10 - PASS. Full Treaty Settlement remains player-usable with real authored terms, revise/review mode transitions, refusal gates, and meaningful MVP clauses.
+- Fun: 8/10 - PASS. Full Treaty Settlement remains player-usable with real authored terms, revise/review mode transitions, refusal gates, and meaningful first-slice clauses.
 - Clarity: 8/10 - PASS. The remaining implementer-choice points now have explicit backend change-sites, clause schema, retry bounds, stale-save behavior, and test names.
 - Work Segmentation: 8/10 - PASS. The additions fit the existing Gate 2 ladder without adding a sixth slice; the pre-Slice-1 incoming-offer deferral guard remains a Gate 1 prerequisite.
 - Contradiction-Freedom: 8/10 - PASS. The implementation-plan cross-war queue/defer contradiction is now owned by SC-27 / SC-26 supersession text.
@@ -617,7 +619,8 @@ Binding synthesis amendments:
 
 - **All SC rows / audit history:** The Gap Inventory rows and Implementation Gates are the normative requirements source. The May 6 audit-pass sections remain binding only where their requirements have been folded into SC rows, gate bullets, required tests, required inversions, or this synthesis section. Before implementation begins, a doc-maintenance pass should either consolidate the audit-history amendments into canonical row bodies or relabel the audit-pass narrative as `Historical Audit Trail (non-normative provenance)`. Required Gate 1 scan: no implementation checklist may cite an audit-pass paragraph as the only source for an unmirrored requirement.
 - **SC-1 (editor layout contract):** The editor host is the existing settlement popup, but the layout contract is now explicit: a clause list/summary area, structured Add Clause controls, inline per-clause editor controls, a live acceptance/preview panel, validation/error rows tied to clause indexes, and persistent Submit / Revise / Ratify / Back Out controls. A pre-code layout sketch or written panel map must be recorded in this spec or `docs/STATUS.md` before G2-Slice-1 coding starts. Placeholder "controls exist somewhere" proof fails SC-1.
-- **SC-1 (MVP versus final clause availability):** The four live MVP clause types (`peace`, `territory_cede`, `gold_indemnity`, `forced_alliance`) are the minimum for G2-Slice-1 closure, not permission to close the whole cleanup as a peace-only or four-clause permanent editor. Any non-MVP canonical type that remains hidden after Slice 1 needs the interim-hide four artifacts and a restoration gate.
+- **SC-1 (preview pending and failure UX):** POST preview is part of the editor's trust contract, not a background convenience. While preview is pending, Submit and Ratify-from-editor are disabled and the acceptance panel is visibly pending. If preview fails, the editor keeps the last valid acceptance display only as a marked stale/previous result, shows humanized retry copy, and keeps the player in EDIT mode with draft controls intact. Required test: `test_editor_disables_submit_during_pending_preview_and_recovers_on_failure`.
+- **SC-1 (first-slice floor versus final clause availability):** The four required first-slice clause types (`peace`, `territory_cede`, `gold_indemnity`, `forced_alliance`) are the minimum for G2-Slice-1 closure, not permission to close the whole cleanup as a peace-only or four-clause permanent editor. Any canonical type outside that first-slice floor that remains hidden after Slice 1 needs the interim-hide four artifacts and a restoration gate.
 - **SC-1 / SC-2 / SC-14c (serialization references):** Any new world-state field added for settlement drafts or route sequencing must update `docs/SAVE_FORMAT_REFERENCE.md` in the same slice. The required fields currently anticipated are `pending_settlement_drafts` and `settlement_route_seq`; adding either without save/load defaults, old-save migration, serialization enforcement coverage, and Save Format Reference documentation fails slice closure.
 - **SC-3 (threshold field reconciliation):** The cleanup must reconcile the current scorer field name with the spec contract. Either rename `accept_threshold` to `threshold` at `calculate_common_peace_acceptance(...)`, or explicitly alias it before any SC-3 consumer reads the payload. Behavior tests must assert the production payload exposes the approved `threshold` field.
 - **SC-9:** Add named coverage `test_default_start_war_without_instance_shows_real_disabled_reason_not_one_to_one`.
@@ -631,6 +634,14 @@ Binding synthesis amendments:
 
 The normal player path is: (1) wizard, war detail, or coalition detail emits `settlement_clicked(war_id, target_nation)`; (2) Godot opens the editor on the existing `proposal_confirm_popup.gd` settlement surface in `EDIT` mode; (3) clause-add, clause-remove, and clause-edit commits trigger `POST /diplomatic_preview?mode=settlement` with the current `settlement_terms` and `covered_enemy_participants` and refresh acceptance, warnings, hard stops, and `disabled_reason_display`; (4) Submit sends `/command` with `action=propose_common_peace`, `target_nation`, `war_id`, `selected_target_nation`, `covered_enemy_participants`, `settlement_terms`, and player-editor caller context after one final POST preview; (5) `_execute_propose_common_peace` revalidates the submitted terms and covered-enemy scope against the SC-1 POST preview taxonomy, then forwards `settlement_terms`, `covered_enemy_participants`, `selected_target_nation`, and `caller_kind="player_editor"` into `stage_settlement_confirm(...)`; (6) `settlement_confirm` transitions the same popup to `REVIEW` mode and reviews the same package and scope; (7) `Revise Terms` returns the same package and covered-enemy scope to `EDIT` mode; (8) any editor-mode or review-mode `Ratify Settlement` control re-runs `calculate_common_peace_acceptance(...)` fresh and either mutates only after the SC-3 gate passes or refreshes/blocks with the pinned refusal UX.
 
+Control-state matrix:
+
+| Mode | Visible controls | Disabled / absent rules |
+| --- | --- | --- |
+| `EDIT` | Add Clause, per-clause edit controls, Preview refresh, Submit, Back Out, optional Ratify-from-editor | Submit / Preview / Ratify-from-editor are disabled while clause validation errors exist or POST preview is pending. Ratify-from-editor is absent or disabled whenever the same SC-3/SC-4 fresh acceptance and hard-stop gate would block review-mode ratification. Back Out and every popup dismiss path use SC-2 empty/non-empty discard semantics. |
+| `REVIEW` | Ratify Settlement, Revise Terms, Back Out | Ratify Settlement is absent when the fresh verdict rejects, score is below `acceptance.threshold`, hard stops exist, rescore fails, or required scope/target metadata is stale. Revise Terms is visible only when it returns the staged package to an edit-capable route. Back Out pops review while preserving same-turn draft state under SC-2. |
+| Blocked / stale recovery | Close or Back Out plus the pinned recovery route | A zero-action settlement payload must still include the synthetic close/back-out option. Recovery must not synthesize typed command text, generic proposal text, or an empty `must_reopen` target. |
+
 ### Editor Layout Contract
 
 The settlement editor is not just a route to POST preview. Before code starts, G2-Slice-1 must record a concrete layout sketch or written panel map for the existing settlement popup. Minimum structure:
@@ -640,6 +651,7 @@ The settlement editor is not just a route to POST preview. Before code starts, G
 - Inline clause editor: per-type fields use pickers, numeric inputs, toggles, and disabled reasons tied to the canonical clause schema.
 - Preview panel: live acceptance, hard stops, warnings, beneficiaries, ignored parties, political cost, and mutation preview refresh after clause commits.
 - Action rail: Back Out, Submit, Revise Terms, and Ratify controls stay predictable across EDIT and REVIEW modes; Ratify is absent/disabled under SC-3/SC-4.
+- Preview network state: while a POST settlement preview is in flight, the acceptance/preview panel shows pending state, Submit and Ratify-from-editor are disabled, and stale values are visibly marked as previous results. Preview failure preserves the last valid acceptance display with a visible stale marker and humanized "Could not preview this draft - try again" copy; it must not silently swallow the failure or show stale acceptance as current.
 - 1080p reachability: all live clause types can be reached in a 1920x1080 viewport without controls being covered by another panel; scroll is allowed only when the focused control can be fully scrolled into view.
 
 ## Gap Inventory
@@ -699,7 +711,7 @@ These amendments tighten the table rows above and override any looser wording in
 - **SC-26:** Same-war restaging merges only non-conflicting authored draft terms through `pending_settlement_drafts`. If the merged draft would fail POST preview under the SC-1 conflict matrix, the merge is rejected with `error="merge_conflict"`, humanized copy naming the offending clause, and the active draft preserved unchanged. Cross-war restaging during an active settlement-family hard stop is rejected with `error="cross_war_settlement_collision"` and humanized "resolve current settlement first" copy; it is not queued through the mailbox. AI-driven cross-war offers that hit this rejection retry next turn rather than creating a hidden mailbox defer.
 - **SC-27:** The table row's two-example marker list is not sufficient. The doc-scan must fail if any paragraph in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` containing `incoming_settlement_offer` lacks same-paragraph `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-5`, unless that paragraph has been removed/replaced or explicitly scoped to post-cleanup Slice G after SC-5 reversal. The doc-scan must also fail if any paragraph pins `settlement_summary:{war_id}:{staged_turn}` or another forbidden route-id shape without `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-14c`.
 - **SC-27 / STATUS:** `docs/STATUS.md` must name the current cleanup spec version before implementation starts and must not claim SC-27 closure unless the current doc-scan passes. A STATUS line that still names an older audit pass as the current gate, or says all supersession markers exist while the scan fails, is itself a SPEC READINESS blocker.
-- **SC-1:** G2-Slice-1 cannot close as a peace-only editor. `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance` must be live MVP clause types, Submit must revalidate submitted terms before staging, `stage_settlement_confirm(...)` must receive explicit `caller_kind`, and territory picker control means `region.controller == from`.
+- **SC-1:** G2-Slice-1 cannot close as a peace-only editor. `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance` must be the required first-slice live clause floor, Submit must revalidate submitted terms before staging, `stage_settlement_confirm(...)` must receive explicit `caller_kind`, and territory picker control means `region.controller == from`.
 - **SC-3:** Proposer-side and accepting-side leader changes share the same fresh-rescore rule; neither side causes automatic `must_reopen` when the rescored package still passes. The popup must render 0/1/2/3 settlement option counts gracefully.
 - **SC-13:** `_execute_propose_common_peace` and `stage_settlement_confirm(...)` must explicitly forward and persist `selected_target_nation` and `covered_enemy_participants`; production staging fails closed if either required field is missing.
 - **SC-14:** "Mounted" means current hard-stop `settlement_confirm` for the same `war_id`; queued or dismissed settlement-family items do not foreground as live route targets. The reopen-attempt reset is per turn by design and must not auto-fire without player action.
@@ -756,7 +768,7 @@ Close SC-1, SC-2, SC-3, and SC-4 first, including the Claude SC-1 empty-dispatch
 
 Internal sub-gates:
 
-- **G2-1a Editor and draft shell:** editor layout contract recorded, structured controls for live MVP clauses, draft storage created, empty/non-empty Back Out behavior, save/load defaults, and Save Format Reference updates.
+- **G2-1a Editor and draft shell:** editor layout contract recorded, structured controls for required first-slice clauses, draft storage created, empty/non-empty Back Out behavior, save/load defaults, and Save Format Reference updates.
 - **G2-1b Preview and validation:** POST preview schema, canonical clause conflict matrix, validation taxonomy, GET non-mutation property, and Submit revalidation.
 - **G2-1c Ratification gates:** fresh acceptance rescore, `threshold`/`accept_threshold` reconciliation, hard-stop refusal, absent ratify option, and direct backend no-mutation enforcement.
 - **G2-1d Mode transitions and recovery:** EDIT -> REVIEW -> EDIT revise flow, rescore-failure UX, option-count rendering, draft preservation, and required inversions.
@@ -778,6 +790,7 @@ Required closure:
 - Unratified authored drafts persist only in `world.pending_settlement_drafts[war_id]` after successful POST preview, round-trip through save/load, restore within the same turn, and are discarded on turn end, ratification, or explicit discard-confirm.
 - Empty-draft Back Out pops immediately without discard-confirm or draft write; non-empty draft Back Out uses discard-confirm.
 - Editor validation errors render inline, disable Submit/Preview/Ratify-from-editor, and are not auto-stripped.
+- Pending POST preview renders a visible pending state, disables Submit and Ratify-from-editor, and never presents previous acceptance as current. Failed POST preview preserves the draft and last valid preview as stale/previous, shows humanized retry copy, and does not stage or mutate.
 - POST preview enforces the SC-1 conflict matrix and points each editor error to the offending clause.
 - `Revise Terms` opens real draft mutation/preservation or is absent.
 - `Ratify Settlement` is absent from `options[]` on rejection or hard stops, and direct backend ratification refuses mutation under the same fresh acceptance/hard-stop gate.
@@ -801,6 +814,7 @@ Required tests:
 - Authored peace display test proving `type_display="Peace"` and `display_label="End hostilities (no material change)"`; empty package test proves no fake Terms row is injected.
 - Godot editor reachability test proving every live clause type can be reached from the chosen editor layout in one 1080p session, and any hidden canonical type has four-artifact interim-hide tracking.
 - Editor error-state test proving invalid clauses show inline errors and disable Submit until fixed.
+- Preview pending/failure test proving Submit and Ratify-from-editor are disabled while POST preview is in flight, a failed preview keeps the draft in EDIT mode, last valid acceptance is visibly stale, and no staging or mutation occurs.
 - Draft write-on-preview, save/load round-trip, autosave-before-end-turn, and end-turn discard tests.
 - Empty-draft Back Out test proving no discard prompt and no `pending_settlement_drafts` write.
 - Popup-close test proving Escape/window-close/click-outside with a non-empty draft triggers the same discard-confirm path as Back Out and cannot silently drop the draft.
@@ -812,7 +826,7 @@ Required tests:
 - Proposer-side leader-change test proving a still-acceptable rescored package ratifies without forced reopen.
 - Absent-ratify popup render test proving blocked/rejected payloads show "This settlement cannot be ratified now:" and suppress outgoing acceptance framing.
 - Popup option-count render test over 0, 1, 2, and 3 settlement options.
-- MVP clause availability and submit/stage behavior tests for `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance`.
+- Required first-slice clause availability and submit/stage behavior tests for `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance`.
 - Submit revalidation test proving a conflict-matrix failure returns `submitted_terms_failed_revalidation` and no staged dialogue.
 - Caller-kind test proving AI/system staging does not write `pending_settlement_drafts`.
 
@@ -1018,7 +1032,7 @@ This spec is complete only when:
 
 - No visible settlement button is a no-op or misleading label.
 - Common peace is a real term-authoring settlement system: the player can author, preview, revise/counter, and ratify concrete war-scoped terms.
-- G2-Slice-1 ships at least the live MVP clause set: `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance`.
+- G2-Slice-1 ships at least the required first-slice live clause set: `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance`.
 - Submit revalidates authored terms before staging and cannot drift from the preview/conflict-matrix contract.
 - Unratified settlement drafts have a backend storage, serialization, and end-turn discard contract; drafts are not lost or silently carried stale across turns.
 - `Ratify Settlement` cannot mutate when the displayed acceptance verdict rejects or hard stops exist.
