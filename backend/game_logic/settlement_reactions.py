@@ -934,6 +934,7 @@ def _emit_settlement_summary_event(
     pre_cleanup_war_label: str = "",
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    route_id: str = "",
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -949,6 +950,7 @@ def _emit_settlement_summary_event(
         detect_awe_set_pieces,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
+    route_id = str(route_id or f"{war_id}:{turn}")
     terms_summary = [
         f"{c.get('type')}: {c.get('from','')}→{c.get('to','')}"
         for c in applied_clauses[:3]
@@ -1027,7 +1029,7 @@ def _emit_settlement_summary_event(
                 if war_ended
                 else SETTLEMENT_REVIEW_TARGET_ACTIVE
             ),
-            "route_id": f"{war_id}:{turn}",
+            "route_id": route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1085,6 +1087,7 @@ def _emit_settlement_digest_event(
     covered_enemy_participants: List[str],
     hidden_reaction_count: int,
     top_reaction_types: List[str],
+    route_id: str = "",
 ) -> Optional[Dict[str, Any]]:
     if hidden_reaction_count <= 0:
         return None
@@ -1093,6 +1096,7 @@ def _emit_settlement_digest_event(
         SETTLEMENT_REVIEW_TARGET_ARCHIVED,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
+    route_id = str(route_id or f"{war_id}:{turn}:digest")
     event = {
         "type": "settlement_digest",
         "turn": turn,
@@ -1105,7 +1109,7 @@ def _emit_settlement_digest_event(
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-            "route_id": f"{war_id}:{turn}",
+            "route_id": route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1141,6 +1145,7 @@ def route_settlement_reactions(
     pre_cleanup_accepting_members: Optional[List[str]] = None,
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    route_id: str = "",
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1244,6 +1249,7 @@ def route_settlement_reactions(
         pre_cleanup_war_label=pre_cleanup_war_label,
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
+        route_id=route_id,
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:
@@ -1263,6 +1269,7 @@ def route_settlement_reactions(
             hidden_reaction_count=len(all_reactions)
             - SETTLEMENT_DISPATCH_PRIMARY_CAP,
             top_reaction_types=seen_types[:3],
+            route_id=f"{route_id}:digest" if route_id else "",
         )
 
     return {

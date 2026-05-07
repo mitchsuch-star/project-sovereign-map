@@ -28,7 +28,14 @@ from backend.display_names import (
     settlement_disabled_reason_display,
 )
 from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
-from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance
+from backend.game_logic.settlement_scoring import (
+    calculate_common_peace_acceptance,
+    CANONICAL_CLAUSE_TYPES,
+    CLAUSE_CONFLICT_MATRIX,
+    MAX_SETTLEMENT_CLAUSE_COUNT,
+    SETTLEMENT_HARD_STOP_CODES,
+    SETTLEMENT_MVP_CLAUSE_TYPES,
+)
 from backend.game_logic.settlement_presentation import (
     build_contribution_share_rows,
     build_settlement_review,
@@ -104,6 +111,19 @@ def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
 
 def _other_side(side: str) -> str:
     return "defenders" if side == "attackers" else "attackers"
+
+
+def _allocate_settlement_route_id(world: Any, war_id: str) -> str:
+    """Allocate a same-turn unique settlement route id for a staged dialogue."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    route_seq = getattr(world, "settlement_route_seq", None)
+    if not isinstance(route_seq, dict):
+        return f"{war_id}:{turn}:1"
+    per_war = route_seq.setdefault(str(war_id), {})
+    last_seq = int(per_war.get(turn, 0) or 0)
+    next_seq = last_seq + 1
+    per_war[turn] = next_seq
+    return f"{war_id}:{turn}:{next_seq}"
 
 
 def _side_leader(war_instance: Mapping[str, Any], side: str) -> Optional[str]:
@@ -245,6 +265,103 @@ def evaluate_open_settlement_eligibility(
     }
 
 
+def validate_settlement_terms(
+    terms: List[Dict[str, Any]],
+    *,
+    actor_nation: Optional[str] = None,
+    player_nation: Optional[str] = None,
+    proposer_side: Optional[str] = None,
+    actor_side_in_war: Optional[str] = None,
+) -> Dict[str, Any]:
+    """SC-1 POST preview clause validation.
+
+    Returns {"valid": True} or {"valid": False, "error": ..., "error_index": ...,
+    "disabled_reason_display": ...}.
+    """
+    if actor_nation and player_nation and actor_nation != player_nation:
+        return {
+            "valid": False,
+            "error": "unauthorized_actor",
+            "disabled_reason_display": _error_display("unauthorized_actor"),
+        }
+    if proposer_side and actor_side_in_war and proposer_side != actor_side_in_war:
+        return {
+            "valid": False,
+            "error": "proposer_side_mismatch",
+            "disabled_reason_display": _error_display("proposer_side_mismatch"),
+        }
+    if not isinstance(terms, list):
+        return {
+            "valid": False,
+            "error": "invalid_clause_schema",
+            "disabled_reason_display": _error_display("invalid_clause_schema"),
+        }
+    if not terms:
+        return {
+            "valid": False,
+            "error": "empty_authored_draft",
+            "disabled_reason_display": _error_display("empty_authored_draft"),
+        }
+    if len(terms) > MAX_SETTLEMENT_CLAUSE_COUNT:
+        return {
+            "valid": False,
+            "error": "max_clause_count_exceeded",
+            "error_index": MAX_SETTLEMENT_CLAUSE_COUNT,
+            "disabled_reason_display": _error_display("max_clause_count_exceeded"),
+        }
+    for idx, clause in enumerate(terms):
+        if not isinstance(clause, Mapping):
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
+        ctype = clause.get("type")
+        if ctype not in CANONICAL_CLAUSE_TYPES:
+            return {
+                "valid": False,
+                "error": "invalid_clause_type",
+                "error_index": idx,
+                "disabled_reason_display": _error_display("invalid_clause_type"),
+            }
+        spec = CANONICAL_CLAUSE_TYPES[ctype]
+        required = set(spec["required"])
+        optional = set(spec.get("optional") or set())
+        clause_keys = set(clause.keys())
+        missing = required - clause_keys
+        if missing:
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "missing_keys": sorted(missing),
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
+        unknown = clause_keys - required - optional
+        if unknown:
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "unknown_keys": sorted(unknown),
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
+    for type_a, type_b, match_keys in CLAUSE_CONFLICT_MATRIX:
+        clauses_a = [c for c in terms if c.get("type") == type_a]
+        clauses_b = [c for c in terms if c.get("type") == type_b]
+        for ca in clauses_a:
+            for cb in clauses_b:
+                if all(ca.get(k) == cb.get(k) for k in match_keys):
+                    return {
+                        "valid": False,
+                        "error": "duplicate_or_conflicting_clauses",
+                        "error_index": terms.index(cb),
+                        "disabled_reason_display": _error_display("duplicate_or_conflicting_clauses"),
+                    }
+    return {"valid": True}
+
+
 def build_settlement_preview(
     world: Any,
     *,
@@ -371,9 +488,9 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    # Spec §11.6: route_id matches `settlement_reactions._emit_settlement_summary_event`
-    # so dispatch event, ledger row, and confirm dialogue all share the same key.
-    route_id = f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    # Spec §11.6 / SC-14c: staging owns the route id that dispatch,
+    # notifications, the ledger row, and result feedback all share.
+    route_id = _allocate_settlement_route_id(world, war_id)
     text = f"Review the settlement of {war_label}. Acceptance: {verdict} ({score if score is not None else 'blocked'})."
     review_route = {
         "surface": "ledger_settlements",
@@ -381,6 +498,23 @@ def build_settlement_confirm_dialogue(
         "route_id": route_id,
         "war_id": war_id,
     }
+    # SC-3/SC-4: gate Ratify Settlement on acceptance verdict and hard stops.
+    hard_stops = list(preview["acceptance"].get("hard_stops") or [])
+    acceptance_threshold = preview["acceptance"].get("threshold") or preview["acceptance"].get("accept_threshold") or 50
+    acceptance_score = preview["acceptance"].get("score") if preview["acceptance"].get("score") is not None else preview["acceptance"].get("total")
+    can_ratify = (
+        not hard_stops
+        and verdict not in ("reject", "blocked")
+        and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
+    )
+    options = []
+    available_action_ids = []
+    if can_ratify:
+        options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
+        available_action_ids.append("confirm_settlement")
+    available_action_ids.append("back_out_settlement")
+    options.append({"label": "Back Out", "action": "back_out_settlement"})
+
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -397,19 +531,16 @@ def build_settlement_confirm_dialogue(
         "settlement_preview": preview,
         "acceptance_components": dict(preview.get("acceptance_components") or {}),
         "warnings": list(preview.get("warnings") or []),
-        "hard_stops": list(preview["acceptance"].get("hard_stops") or []),
+        "hard_stops": hard_stops,
         "review_sections": copy.deepcopy(preview.get("review_sections") or {}),
         "coverage_scope_display": (preview.get("review_sections") or {}).get("coverage_scope_display", ""),
         "war_scope_display": (preview.get("review_sections") or {}).get("war_scope_display", ""),
         "covered_enemy_display_chips": list((preview.get("review_sections") or {}).get("covered_enemy_display_chips") or []),
         "uncovered_enemy_display_chips": list((preview.get("review_sections") or {}).get("uncovered_enemy_display_chips") or []),
         "acceptance_display": (preview.get("review_sections") or {}).get("sections", {}).get("acceptance", {}),
-        "debug_action_ids": ["confirm_settlement", "revise_settlement_terms", "back_out_settlement"],
-        "options": [
-            {"label": "Ratify Settlement", "action": "confirm_settlement"},
-            {"label": "Revise Terms", "action": "revise_settlement_terms"},
-            {"label": "Back Out", "action": "back_out_settlement"},
-        ],
+        "available_action_ids": available_action_ids,
+        "can_ratify": can_ratify,
+        "options": options,
         "message": text,
         "talleyrand_text": text,
         "turn_created": int(getattr(world, "current_turn", 0) or 0),
@@ -1073,10 +1204,54 @@ def ratify_settlement_confirm(
             "mutated": False,
         }
 
+    # SC-3/SC-4: fresh acceptance rescore from current world state before mutation.
     proposer_side = str(dialogue.get("proposer_side") or "")
     accepting_side = str(dialogue.get("accepting_side") or "")
     covered = list(dialogue.get("covered_enemy_participants") or [])
     settlement_terms = list(dialogue.get("settlement_terms") or [])
+
+    fresh_acceptance = calculate_common_peace_acceptance(
+        world,
+        war_id=war_id,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        accepting_leader=_side_leader(war_instance, accepting_side),
+        proposer_side_leader=_side_leader(war_instance, proposer_side),
+        covered_enemy_participants=covered,
+        settlement_terms=settlement_terms,
+    )
+    fresh_hard_stops = list(fresh_acceptance.get("hard_stops") or [])
+    fresh_score = fresh_acceptance.get("score")
+    fresh_threshold = fresh_acceptance.get("accept_threshold") or 50
+    fresh_verdict = fresh_acceptance.get("verdict") or "reject"
+
+    # SC-4: unknown hard-stop codes fail closed.
+    has_unknown_hard_stop = any(
+        (hs.get("reason") or "") not in SETTLEMENT_HARD_STOP_CODES
+        for hs in fresh_hard_stops
+    )
+    ratification_blocked = (
+        fresh_hard_stops
+        or fresh_verdict in ("reject", "blocked")
+        or (fresh_score is not None and fresh_score < fresh_threshold)
+        or has_unknown_hard_stop
+    )
+    if ratification_blocked:
+        error = "acceptance_blocked" if fresh_hard_stops or has_unknown_hard_stop else "acceptance_rejected"
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": "confirm",
+            "war_id": war_id,
+            "error": error,
+            "error_display": _error_display(error),
+            "acceptance_verdict": fresh_verdict,
+            "acceptance_score": fresh_score,
+            "acceptance_threshold": fresh_threshold,
+            "hard_stops": fresh_hard_stops,
+            "mutated": False,
+        }
 
     plan = _build_pair_ratification_plan(
         world,
@@ -1172,6 +1347,7 @@ def ratify_settlement_confirm(
         pre_cleanup_accepting_members=pre_cleanup_accepting_members,
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
+        route_id=str(dialogue.get("route_id") or ""),
     )
 
     world.dialogue_manager.pop()
@@ -1236,29 +1412,36 @@ def handle_settlement_dialogue_action(
     """
     war_id = str(dialogue.get("war_id") or "")
     if action == "back_out_settlement":
+        # SC-2: discard-confirm semantics. Non-empty drafts signal the
+        # frontend to confirm discard; empty drafts pop immediately.
+        terms = list(dialogue.get("settlement_terms") or [])
+        has_draft = bool(terms)
         world.dialogue_manager.pop()
+        # Clear persisted draft on back-out.
+        drafts = getattr(world, "pending_settlement_drafts", {})
+        if war_id in drafts:
+            del drafts[war_id]
         return {
             "success": True,
             "dialogue_type": "settlement_confirm",
             "action": "back_out",
             "cancelled": True,
             "mutated": False,
+            "had_draft": has_draft,
             "message": "Settlement review cancelled.",
             "suppress_proposal_result_popup": True,
         }
     if action == "revise_settlement_terms":
-        world.dialogue_manager.pop()
+        # SC-2: Revise Terms is hidden until a real editor exists.
+        # If somehow called, treat as a no-op re-show.
         return {
-            "success": True,
+            "success": False,
             "dialogue_type": "settlement_confirm",
             "action": "revise_terms",
             "war_id": war_id,
-            "must_reopen": True,
-            "reopen_target": _reopen_target(war_id, dialogue),
-            "settlement_terms": list(dialogue.get("settlement_terms") or []),
+            "error": "revision_not_available",
+            "error_display": "Term revision is not yet available.",
             "mutated": False,
-            "message": "Reopen this settlement review to revise terms.",
-            "suppress_proposal_result_popup": True,
         }
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)

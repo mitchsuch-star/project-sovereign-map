@@ -623,10 +623,8 @@ def test_settlement_review_emits_no_uncovered_chips_for_whole_war_settlement():
 # ---------------------------------------------------------------------------
 
 
-def test_confirm_dialogue_route_id_matches_event_format():
-    """The dialogue's route_id must be `{war_id}:{turn}` so that the
-    event-side route_id from `_emit_settlement_summary_event` and the
-    diplomatic-ledger focus highlight share one identifier."""
+def test_confirm_dialogue_route_id_uses_same_turn_sequence():
+    """The staged route id is unique within a same-war same-turn sequence."""
     world = WorldState()
     _install_war(world)
     world.current_turn = 7
@@ -634,10 +632,13 @@ def test_confirm_dialogue_route_id_matches_event_format():
     preview = build_settlement_preview(world, war_id="war_1")
     dialogue = build_settlement_confirm_dialogue(world, preview)
 
-    assert dialogue["route_id"] == "war_1:7"
+    assert dialogue["route_id"] == "war_1:7:1"
     # Prefix-style route_ids must NOT be re-introduced.
     assert "settlement_summary:" not in dialogue["route_id"]
-    assert dialogue["route"]["route_id"] == "war_1:7"
+    assert dialogue["route"]["route_id"] == dialogue["route_id"]
+
+    next_dialogue = build_settlement_confirm_dialogue(world, preview)
+    assert next_dialogue["route_id"] == "war_1:7:2"
 
 
 def test_confirm_dialogue_carries_uncovered_chips_for_popup():

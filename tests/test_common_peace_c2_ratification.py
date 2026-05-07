@@ -34,6 +34,7 @@ Coverage:
 from __future__ import annotations
 
 import copy
+from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
@@ -43,6 +44,16 @@ from backend.game_logic.settlement_helpers import _open_contribution_episode_for
 from backend.models.region import Region, REGIONS_DATA
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
+
+
+def _acceptance_always_passes(*args, **kwargs):
+    """Monkeypatch helper: acceptance always passes for mutation tests."""
+    from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance as real
+    result = real(*args, **kwargs)
+    result["score"] = 100
+    result["verdict"] = "accept"
+    result["hard_stops"] = []
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -72,12 +83,24 @@ def _install_two_v_two_war(world: WorldState) -> dict:
         nations = pair.split("|")
         world.diplomatic_states[pair] = "WAR"
         world.war_start_turns[pair] = world.current_turn
-        # Positive war_score in favor of first-alphabetical nation; we
-        # want proposer side (France/Saxony) winning in every pair.
+        # High war_score to ensure SC-3 acceptance gate passes for
+        # ratification mutation tests.
         first = nations[0]
-        score = 60 if first not in ("France", "Saxony") else -60
+        score = 100 if first not in ("France", "Saxony") else -100
         world.war_scores[pair] = -score  # invert for proposer-winning intent
         world.battle_records[pair] = []
+    # G2-Slice-1: boost war exhaustion + add a conquest objective so the
+    # acceptance formula passes the SC-3 fresh rescore gate (threshold=50)
+    # even with forced_alliance harshness + hegemony penalty.
+    world.war_exhaustion["Austria"] = 500
+    world.war_exhaustion["Prussia"] = 500
+    world.war_objectives = getattr(world, "war_objectives", {})
+    world.war_objectives["war_1"] = [{
+        "type": "conquest",
+        "declaring_nation": "France",
+        "target_nation": "Austria",
+        "side": "attackers",
+    }]
     world.invalidate_war_instance_indexes()
     return war
 
@@ -234,6 +257,7 @@ def test_confirm_gold_lump_transfers_gold_clamped_to_payer_balance():
     assert gold_clauses[0]["amount"] == 80
 
 
+@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
 def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
     world = WorldState()
     _install_two_v_two_war(world)
@@ -277,6 +301,7 @@ def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
     assert fa_event["forced_nation"] == "Austria"
 
 
+@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
 def test_confirm_forced_alliance_with_territory_keeps_final_alliance_and_records_treaty():
     world = WorldState()
     _install_two_v_two_war(world)
