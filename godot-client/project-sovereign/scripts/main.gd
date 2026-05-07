@@ -747,6 +747,7 @@ func _configure_response_routes():
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
+		{"id": "deferred_incoming_settlement_offer", "matches": "_response_has_deferred_incoming_settlement_offer_route", "show": "_route_deferred_incoming_settlement_offer_response"},
 		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
 		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
 		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
@@ -825,6 +826,15 @@ func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
 
 func _route_incoming_proposal_response(response: Dictionary):
 	incoming_proposal_popup.show_proposal(response.incoming_proposal)
+
+func _response_has_deferred_incoming_settlement_offer_route(response: Dictionary) -> bool:
+	var dialogue = response.get("diplomatic_dialogue", {})
+	if typeof(dialogue) == TYPE_DICTIONARY and dialogue.get("type", dialogue.get("dialogue_type", "")) == "incoming_settlement_offer":
+		return true
+	return str(response.get("dialogue_type", "")) == "incoming_settlement_offer"
+
+func _route_deferred_incoming_settlement_offer_response(_response: Dictionary):
+	add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
 
 func _response_has_proposal_confirm_route(response: Dictionary) -> bool:
 	return response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null and proposal_confirm_popup != null

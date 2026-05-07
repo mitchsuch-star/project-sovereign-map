@@ -11,14 +11,16 @@ Coverage matrix (from v0.16 §SC-5 deferral-leak assertion list):
 - `/mailbox/activate` rejects injected/stale incoming-offer rows with
   the `incoming_offer_deferred` error.
 - `/pending_envoy` does not advertise the type.
-- Notification / notice rail items do not expose it (no producer code
-  exists; verified via grep + dispatch event scan).
-- Dispatch / one-liners do not render it (no producer code exists;
-  verified via grep).
-- Popup queue / `_post_hud_response_routes` do not advertise it (Godot
-  source-level guard).
+- Notification / notice rail items do not expose it (handler and stale-save
+  API paths leave notification state untouched).
+- Dispatch / one-liners do not render it (handler and stale-save API paths
+  leave dispatch state untouched).
+- Popup queue / `_post_hud_response_routes` do not advertise it (backend
+  response behavior stays empty; Godot route precedence sends malformed
+  incoming-offer dialogue payloads to the deferred branch).
 - Godot settlement-offer branches are absent or feature-flagged off
-  (source-level guard against the takedown list).
+  (route-precedence behavior guard plus source absence checks for removed
+  whitelist/action/popup arms).
 - A 50-turn normal-AI soak cannot produce, count, activate, or block
   on the type.
 
@@ -325,6 +327,40 @@ def test_handler_short_circuits_without_pop_for_every_action():
         assert world.pending_diplomatic_dialogue is active, action
 
 
+def test_deferred_handler_does_not_emit_notice_dispatch_or_popup_surface():
+    """Deferred action handling is a backend no-op across the player-facing
+    side channels, not only across the dialogue slot."""
+    from backend.main import build_base_response
+
+    for action in (
+        "accept_settlement_offer",
+        "reject_settlement_offer",
+        "request_settlement_revision",
+        "frobnicate_settlement_terms",
+    ):
+        world = WorldState()
+        _install_war(world)
+        active = _inject_offer_as_active(world)
+
+        before_notifications = list(world.notifications.get_pending())
+        before_dispatch = list(world.pending_dispatch_events)
+        before_popup_queue = world._popup_queue.to_dict()
+
+        result = handle_incoming_settlement_offer_action(
+            world, action=action, dialogue=active,
+        )
+        response = build_base_response(world, **result)
+
+        assert result["error"] == "incoming_offer_deferred", action
+        assert world.notifications.get_pending() == before_notifications, action
+        assert world.pending_dispatch_events == before_dispatch, action
+        assert world._popup_queue.to_dict() == before_popup_queue, action
+        assert "notifications" not in response, action
+        assert response.get("incoming_proposal") is None, action
+        assert response.get("proposal_result") is None, action
+        assert "diplomatic_dialogue" not in response, action
+
+
 # ---------------------------------------------------------------------------
 # Section 5 — 50-turn normal-AI soak: no producer
 # ---------------------------------------------------------------------------
@@ -411,8 +447,79 @@ def test_no_backend_producer_emits_incoming_settlement_offer_dialogue():
 # ---------------------------------------------------------------------------
 
 
+def test_stale_offer_api_paths_do_not_emit_notification_dispatch_or_popup(
+    fastapi_client,
+):
+    """Stale-save active and queued records are rejected without creating a
+    notification, dispatch event, or backend popup payload."""
+    client, backend_main = fastapi_client
+    world = backend_main.game_state["world"]
+    _install_war(world)
+    queued = _inject_offer_into_queue(world)
+    active = _inject_offer_as_active(world)
+
+    assert client.get("/notifications").json()["notifications"] == []
+    assert world.pending_dispatch_events == []
+    assert world._popup_queue.to_dict() == {}
+
+    queued_response = client.post(
+        "/mailbox/activate",
+        json={"mailbox_id": queued["mailbox_id"]},
+    ).json()
+    active_response = client.post(
+        "/mailbox/activate",
+        json={"mailbox_id": active["mailbox_id"]},
+    ).json()
+
+    for response in (queued_response, active_response):
+        assert response["success"] is False
+        assert response["error"] == "incoming_offer_deferred"
+        assert "incoming_proposal" not in response
+        assert "diplomatic_dialogue" not in response
+        assert "proposal_result" not in response
+
+    assert client.get("/notifications").json()["notifications"] == []
+    assert world.pending_dispatch_events == []
+    assert world._popup_queue.to_dict() == {}
+
+
 def _read_godot(path: str) -> str:
     return (REPO_ROOT / path).read_text(encoding="utf-8")
+
+
+def _post_hud_route_ids(source: str) -> list[str]:
+    start = source.index("_post_hud_response_routes = [")
+    end = source.index("]", start)
+    block = source[start:end]
+    route_ids: list[str] = []
+    for line in block.splitlines():
+        marker = '{"id": "'
+        if marker not in line:
+            continue
+        route_ids.append(line.split(marker, 1)[1].split('"', 1)[0])
+    return route_ids
+
+
+def _simulate_godot_post_hud_route(response: dict, route_ids: list[str]) -> str | None:
+    """Drive malformed responses through the route order used by `main.gd`."""
+    for route_id in route_ids:
+        if route_id == "incoming_proposal":
+            if response.get("incoming_proposal") is not None:
+                return route_id
+        elif route_id == "deferred_incoming_settlement_offer":
+            dialogue = response.get("diplomatic_dialogue", {})
+            if (
+                isinstance(dialogue, dict)
+                and dialogue.get("type", dialogue.get("dialogue_type", ""))
+                == "incoming_settlement_offer"
+            ):
+                return route_id
+            if response.get("dialogue_type", "") == "incoming_settlement_offer":
+                return route_id
+        elif route_id == "proposal_confirm":
+            if response.get("diplomatic_dialogue") is not None:
+                return route_id
+    return None
 
 
 def test_godot_main_drops_incoming_offer_from_popup_whitelist():
@@ -434,6 +541,40 @@ def test_godot_main_drops_incoming_offer_from_popup_whitelist():
     assert (
         '"conflict_alert", "settlement_confirm", "incoming_settlement_offer"'
         not in source
+    )
+
+
+def test_godot_post_hud_routes_deferred_offer_before_proposal_popup():
+    """Malformed popup-queue responses with an incoming-offer dialogue hit the
+    deferred route before the generic proposal-confirm popup route."""
+    source = _read_godot("godot-client/project-sovereign/scripts/main.gd")
+    route_ids = _post_hud_route_ids(source)
+
+    assert (
+        route_ids.index("deferred_incoming_settlement_offer")
+        < route_ids.index("proposal_confirm")
+    )
+
+    mixed_response = {
+        "diplomatic_dialogue": {
+            "type": "incoming_settlement_offer",
+            "war_id": "war_1",
+        },
+        "dialogue_type": "settlement_confirm",
+    }
+    assert (
+        _simulate_godot_post_hud_route(mixed_response, route_ids)
+        == "deferred_incoming_settlement_offer"
+    )
+
+    settlement_response = {
+        "diplomatic_dialogue": {
+            "type": "settlement_confirm",
+            "war_id": "war_1",
+        },
+    }
+    assert _simulate_godot_post_hud_route(settlement_response, route_ids) == (
+        "proposal_confirm"
     )
 
 
