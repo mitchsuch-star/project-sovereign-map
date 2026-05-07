@@ -544,6 +544,18 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     # SC-3/SC-4 ratification gate codes
     "acceptance_rejected": "The accepting side has rejected these terms.",
     "acceptance_blocked": "A hard stop prevents ratification of these terms.",
+    # SC-14b reopen-attempt cap
+    "reopen_attempt_cap_exceeded": "We cannot reopen this settlement review - choose from war detail.",
+    # SC-13 dual-empty fallback / SC-7b stale offer fallback
+    "no_reopen_target_available": "We cannot reopen this settlement review - choose from war detail.",
+    # SC-7b stale incoming offer
+    "incoming_offer_war_archived": "That settlement offer is no longer relevant; the war has ended.",
+    "incoming_offer_war_invalid": "That settlement offer references a war we cannot find; choose from war detail.",
+    # SC-26 collision codes
+    "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
+    "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
+    # SC-14e aged-out dispatch link
+    "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
 }
 
 # Side label display — used by settlement review's allies block to surface

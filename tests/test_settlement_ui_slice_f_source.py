@@ -127,16 +127,26 @@ def test_backend_humanization_and_incoming_offer_contracts_are_pinned() -> None:
 
 
 def test_route_id_uses_event_format_consistently() -> None:
-    """Spec §11.6: dialogue and event side share `{war_id}:{turn}` so the
-    diplomatic-ledger focus highlight pin works without a war_id fallback."""
+    """G2-Slice-3 SC-14c inversion: settlement route ids use the
+    `settlement:{war_id}:{turn}:{seq}` namespace, minted from
+    `mint_settlement_route_id(...)`. The reaction event consumes the
+    staged value verbatim instead of recomputing."""
     preview = read_repo_file("backend/game_logic/settlement_preview.py")
     reactions = read_repo_file("backend/game_logic/settlement_reactions.py")
 
-    # Dialogue side must NOT prefix `settlement_summary:`.
+    # Legacy `settlement_summary:` prefix must remain absent.
     assert 'f"settlement_summary:{war_id}' not in preview
-    # Both sides must produce the same `{war_id}:{turn}` shape.
-    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' in preview
-    assert 'f"{war_id}:{turn}"' in reactions
+    # Legacy `{war_id}:{turn}` route id literal MUST NOT regress.
+    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' \
+        not in preview
+    assert 'f"{war_id}:{turn}"' not in reactions
+    # New SC-14c surface: route id minting + namespace constant.
+    assert "mint_settlement_route_id" in preview
+    assert 'SETTLEMENT_ROUTE_NAMESPACE = "settlement"' in preview
+    # Reaction emitters consume the staged route id and only fall back to
+    # `mint_settlement_route_id` when no staged id was supplied.
+    assert "staged_route_id" in reactions
+    assert "mint_settlement_route_id" in reactions
 
 
 def test_settlement_review_emits_uncovered_chips_and_side_labels() -> None:

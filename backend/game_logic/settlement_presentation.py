@@ -184,6 +184,8 @@ def settlement_priority(
 
 def settlement_review_target(
     event: Mapping[str, Any] | None,
+    *,
+    world: Any | None = None,
 ) -> str:
     """Return the review target for a settlement event payload.
 
@@ -191,7 +193,23 @@ def settlement_review_target(
     war is active; switches to `"diplomatic_ledger"` once the war
     archives. The settlement event payload carries `route.review_target`
     (canonical) and `war_ended` (fallback).
+
+    G2-Slice-3 SC-14/SC-14d/SC-14e: when ``world`` is supplied, the live
+    war state wins over the route metadata so a row rendered while the
+    war was active opens the archived ledger row if the war archived
+    between render and click. Callers that have access to live world
+    state (notification rail, dispatch click handlers, result feedback
+    re-emit) MUST pass ``world``; callers without world state (pure
+    payload renderers) keep the legacy stamped behavior.
     """
+    if world is not None and isinstance(event, Mapping):
+        from backend.game_logic.settlement_preview import (
+            derive_settlement_review_target,
+            is_war_known,
+        )
+        war_id = str(event.get("war_id") or "")
+        if war_id and is_war_known(world, war_id):
+            return derive_settlement_review_target(world, war_id=war_id)
     if not event:
         return SETTLEMENT_REVIEW_TARGET_ACTIVE
     route = event.get("route") if isinstance(event, Mapping) else None

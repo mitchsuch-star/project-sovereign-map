@@ -263,6 +263,9 @@ def test_handle_incoming_offer_accept_restages_settlement_confirm():
 
 
 def test_handle_incoming_offer_accept_with_empty_war_id_signals_must_reopen():
+    """SC-7b/SC-13 inversion: empty war_id paths must NOT return
+    `must_reopen=True` with an empty target. They route to the SC-14b
+    choose-from-war-detail fallback instead."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world, war_id="")
@@ -272,11 +275,17 @@ def test_handle_incoming_offer_accept_with_empty_war_id_signals_must_reopen():
     )
 
     assert result["success"] is False
-    assert result["must_reopen"] is True
+    # SC-13 dual-empty + SC-7b: must_reopen is False; reopen_target falls
+    # back to war_detail with empty target_nation; the production error
+    # code remains `invalid_war_id` for the empty `war_id` case.
+    assert result["must_reopen"] is False
     assert result["error"] == "invalid_war_id"
     assert result["error_display"] == settlement_disabled_reason_display(
         "invalid_war_id"
     )
+    target = result["reopen_target"]
+    assert target["surface"] == "war_detail"
+    assert target["target_nation"] == ""
 
 
 def test_handle_incoming_offer_unknown_action_returns_error():
@@ -624,9 +633,11 @@ def test_settlement_review_emits_no_uncovered_chips_for_whole_war_settlement():
 
 
 def test_confirm_dialogue_route_id_matches_event_format():
-    """The dialogue's route_id must be `{war_id}:{turn}` so that the
-    event-side route_id from `_emit_settlement_summary_event` and the
-    diplomatic-ledger focus highlight share one identifier."""
+    """G2-Slice-3 SC-14c inversion: the dialogue's route_id must use the
+    `settlement:{war_id}:{turn}:{seq}` format so two same-turn settlement
+    events for one war can share a `(war_id, turn)` window without
+    colliding on the `seq` counter. The event side reads the staged value
+    verbatim instead of recomputing."""
     world = WorldState()
     _install_war(world)
     world.current_turn = 7
@@ -634,10 +645,13 @@ def test_confirm_dialogue_route_id_matches_event_format():
     preview = build_settlement_preview(world, war_id="war_1")
     dialogue = build_settlement_confirm_dialogue(world, preview)
 
-    assert dialogue["route_id"] == "war_1:7"
-    # Prefix-style route_ids must NOT be re-introduced.
+    assert dialogue["route_id"] == "settlement:war_1:7:1"
+    assert dialogue["route_id"].startswith("settlement:")
+    # The legacy `{war_id}:{turn}` format must not be re-introduced.
+    assert dialogue["route_id"] != "war_1:7"
+    # Prefix-style route_ids from earlier drafts must NOT be re-introduced.
     assert "settlement_summary:" not in dialogue["route_id"]
-    assert dialogue["route"]["route_id"] == "war_1:7"
+    assert dialogue["route"]["route_id"] == "settlement:war_1:7:1"
 
 
 def test_confirm_dialogue_carries_uncovered_chips_for_popup():

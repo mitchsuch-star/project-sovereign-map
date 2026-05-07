@@ -934,6 +934,7 @@ def _emit_settlement_summary_event(
     pre_cleanup_war_label: str = "",
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    staged_route_id: str = "",
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -1000,6 +1001,18 @@ def _emit_settlement_summary_event(
         balance_projection=balance_projection or {},
         proposer_side=proposer_side,
     )
+    # SC-14c: read the staged dialogue's route id verbatim. The staged
+    # dialogue minted a `settlement:{war_id}:{turn}:{seq}` id from the
+    # per-(war_id, turn) sequence; reaction events, dispatch, ledger,
+    # notification meta, and result feedback all consume it. Falling back
+    # to a recomputed id is reserved for legacy save/test fixtures that
+    # never staged through `build_settlement_confirm_dialogue`.
+    route_id = str(staged_route_id or "").strip()
+    if not route_id:
+        from backend.game_logic.settlement_preview import (
+            mint_settlement_route_id,
+        )
+        route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
     event = {
         "type": "settlement_summary",
         "turn": turn,
@@ -1027,7 +1040,7 @@ def _emit_settlement_summary_event(
                 if war_ended
                 else SETTLEMENT_REVIEW_TARGET_ACTIVE
             ),
-            "route_id": f"{war_id}:{turn}",
+            "route_id": route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1075,7 +1088,7 @@ def _queue_settlement_notification(world: Any, event: Mapping[str, Any]) -> None
     ))
 
 
-def _emit_settlement_digest_event(
+def _emit_settlement_digest_event(  # noqa: D401
     world: Any,
     *,
     war_id: str,
@@ -1085,6 +1098,7 @@ def _emit_settlement_digest_event(
     covered_enemy_participants: List[str],
     hidden_reaction_count: int,
     top_reaction_types: List[str],
+    staged_route_id: str = "",
 ) -> Optional[Dict[str, Any]]:
     if hidden_reaction_count <= 0:
         return None
@@ -1093,6 +1107,14 @@ def _emit_settlement_digest_event(
         SETTLEMENT_REVIEW_TARGET_ARCHIVED,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
+    # SC-14c: digest reuses the staged route id so dispatch/ledger group
+    # the digest under the same focus as the matching summary event.
+    route_id = str(staged_route_id or "").strip()
+    if not route_id:
+        from backend.game_logic.settlement_preview import (
+            mint_settlement_route_id,
+        )
+        route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
     event = {
         "type": "settlement_digest",
         "turn": turn,
@@ -1105,7 +1127,7 @@ def _emit_settlement_digest_event(
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-            "route_id": f"{war_id}:{turn}",
+            "route_id": route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1141,6 +1163,7 @@ def route_settlement_reactions(
     pre_cleanup_accepting_members: Optional[List[str]] = None,
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    staged_route_id: str = "",
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1244,6 +1267,7 @@ def route_settlement_reactions(
         pre_cleanup_war_label=pre_cleanup_war_label,
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
+        staged_route_id=staged_route_id,
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:
@@ -1263,6 +1287,7 @@ def route_settlement_reactions(
             hidden_reaction_count=len(all_reactions)
             - SETTLEMENT_DISPATCH_PRIMARY_CAP,
             top_reaction_types=seen_types[:3],
+            staged_route_id=staged_route_id,
         )
 
     return {

@@ -45,6 +45,21 @@ from backend.game_logic.settlement_presentation import (
 VALID_SIDES = {"attackers", "defenders"}
 SETTLEMENT_COOLDOWN_TURNS = 3
 
+# G2-Slice-3 SC-14b: stale-recovery reopen cap per (war_id, turn). Attempts
+# 1..MAX may reopen when the target is valid; attempt MAX+1 returns
+# `must_reopen=False` with the SC-14b choose-from-war-detail copy.
+SETTLEMENT_REOPEN_MAX_ATTEMPTS = 3
+
+# G2-Slice-3 SC-14c: route id namespace + format
+#   `settlement:{war_id}:{turn}:{seq}` where `seq` is a per-(war_id, turn)
+# monotonic counter starting at 1, persisted on
+# `world.settlement_route_seq[war_id][turn]`.
+SETTLEMENT_ROUTE_NAMESPACE = "settlement"
+
+SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
+    {"settlement_confirm", "incoming_settlement_offer"}
+)
+
 SETTLEMENT_ERROR_DISPLAY = SETTLEMENT_DISABLED_REASON_DISPLAY
 
 
@@ -165,6 +180,359 @@ def _settlement_dialogue_active(world: Any, war_id: str) -> bool:
         if str(dialogue.get("war_id") or "") == str(war_id):
             return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# G2-Slice-3 helpers: route id, collision, reopen cap, active-vs-archived
+# ---------------------------------------------------------------------------
+
+
+def _mounted_settlement_dialogue(world: Any) -> Optional[Mapping[str, Any]]:
+    """Return the *current* settlement-family dialogue, or None.
+
+    SC-14 / SC-26 mounted means the current hard-stop dialogue. Queued or
+    dismissed settlement-family items don't count for live-route precedence
+    or collision protection.
+    """
+    current = getattr(world, "pending_diplomatic_dialogue", None)
+    if not isinstance(current, Mapping):
+        return None
+    if current.get("type") not in SETTLEMENT_FAMILY_DIALOGUE_TYPES:
+        return None
+    return current
+
+
+def mint_settlement_route_id(
+    world: Any,
+    *,
+    war_id: str,
+    turn: Optional[int] = None,
+) -> str:
+    """SC-14c: mint a unique `settlement:{war_id}:{turn}:{seq}` route id.
+
+    `seq` is a per-(war_id, turn) monotonic counter starting at 1, persisted
+    on `world.settlement_route_seq[war_id][turn]` so two settlement events
+    in the same turn do not collide. The staged dialogue owns the id; every
+    downstream consumer (reaction event, dispatch, ledger, notification,
+    result feedback) reads the staged value verbatim and never recomputes.
+    """
+    if turn is None:
+        turn = int(getattr(world, "current_turn", 0) or 0)
+    else:
+        turn = int(turn)
+    store = getattr(world, "settlement_route_seq", None)
+    if store is None:
+        world.settlement_route_seq = {}
+        store = world.settlement_route_seq
+    per_war = store.setdefault(str(war_id), {})
+    last = int(per_war.get(turn, 0) or 0)
+    seq = last + 1
+    per_war[turn] = seq
+    return f"{SETTLEMENT_ROUTE_NAMESPACE}:{war_id}:{turn}:{seq}"
+
+
+def _reopen_attempt_store(world: Any) -> Dict[str, Dict[int, int]]:
+    store = getattr(world, "settlement_reopen_attempts", None)
+    if store is None:
+        world.settlement_reopen_attempts = {}
+        store = world.settlement_reopen_attempts
+    return store
+
+
+def get_reopen_attempts(world: Any, *, war_id: str) -> int:
+    """Read the SC-14b reopen attempt count for the current `(war_id, turn)`."""
+    if not war_id:
+        return 0
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    return int((_reopen_attempt_store(world).get(str(war_id)) or {}).get(turn, 0))
+
+
+def record_reopen_attempt(world: Any, *, war_id: str) -> int:
+    """SC-14b: increment + return the per-(war_id, turn) reopen attempt count.
+
+    Attempt 1..SETTLEMENT_REOPEN_MAX_ATTEMPTS may reopen when the target is
+    valid; the next attempt must return `must_reopen=False` with the
+    `reopen_attempt_cap_exceeded` SC-14b choose-from-war-detail copy.
+    """
+    if not war_id:
+        return 0
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    store = _reopen_attempt_store(world)
+    per_war = store.setdefault(str(war_id), {})
+    per_war[turn] = int(per_war.get(turn, 0) or 0) + 1
+    return int(per_war[turn])
+
+
+def reopen_attempt_cap_exceeded(world: Any, *, war_id: str) -> bool:
+    """True when a further reopen for this `(war_id, turn)` must NOT fire."""
+    return get_reopen_attempts(world, war_id=war_id) >= SETTLEMENT_REOPEN_MAX_ATTEMPTS
+
+
+def is_war_archived(world: Any, war_id: str) -> bool:
+    """SC-14/14d/14e: the war is archived (or no longer active) right now.
+
+    Click-time check: an active `war_instance` with no `ended_turn` is
+    live; anything else (ended, missing, or in `archived_war_instances`)
+    must route to the archived ledger row.
+    """
+    if not war_id:
+        return False
+    instances = getattr(world, "war_instances", {}) or {}
+    instance = instances.get(str(war_id))
+    if isinstance(instance, Mapping):
+        if instance.get("ended_turn") is not None:
+            return True
+        return False
+    archived = getattr(world, "archived_war_instances", None) or []
+    for entry in archived:
+        if isinstance(entry, Mapping) and str(entry.get("war_id") or "") == str(war_id):
+            return True
+    return False
+
+
+def is_war_known(world: Any, war_id: str) -> bool:
+    """True if `war_id` resolves to either an active or archived instance."""
+    if not war_id:
+        return False
+    instances = getattr(world, "war_instances", {}) or {}
+    if str(war_id) in instances:
+        return True
+    archived = getattr(world, "archived_war_instances", None) or []
+    return any(
+        isinstance(entry, Mapping) and str(entry.get("war_id") or "") == str(war_id)
+        for entry in archived
+    )
+
+
+def derive_settlement_review_target(world: Any, *, war_id: str) -> str:
+    """SC-14/14d/14e click-time re-resolution.
+
+    Returns the canonical review-target string to use *now*, regardless of
+    what was rendered into a notification, dispatch, or result feedback row
+    when it was first emitted. Active war -> live settlement review surface;
+    archived (ended/no longer in `war_instances`) -> archived ledger row.
+    """
+    from backend.game_logic.settlement_presentation import (
+        SETTLEMENT_REVIEW_TARGET_ACTIVE,
+        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+    )
+
+    if is_war_archived(world, war_id):
+        return SETTLEMENT_REVIEW_TARGET_ARCHIVED
+    return SETTLEMENT_REVIEW_TARGET_ACTIVE
+
+
+def resolve_settlement_route_click(
+    world: Any,
+    *,
+    war_id: str,
+    route_id: Optional[str] = None,
+    recent_window_route_ids: Optional[Iterable[str]] = None,
+) -> Dict[str, Any]:
+    """SC-14/14d/14e: re-resolve a settlement route click against live state.
+
+    Returns a structured payload describing what the click should do *now*:
+
+    - `available=True, review_target="settlement_review", war_id=...` for
+      live wars (route the click into an in-flight active surface).
+    - `available=True, review_target="ledger_settlements", war_id=..., route_id=...`
+      for archived rows still inside the recent-settlement window.
+    - `available=False, error="settlement_no_longer_in_recent_window"` when
+      `recent_window_route_ids` is supplied and the route id is no longer
+      present (SC-14e aged-out dispatch link).
+    - `available=False, error="invalid_war_id"` for unknown wars.
+
+    Callers pass `recent_window_route_ids` (the route ids visible in the
+    current recent-settlement window) when they care about aged-out
+    routing; callers that don't care (live result feedback) leave it
+    None and just get archived/active routing.
+    """
+    from backend.game_logic.settlement_presentation import (
+        SETTLEMENT_REVIEW_TARGET_ACTIVE,
+        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+    )
+
+    war_id_str = str(war_id or "")
+    if not war_id_str or not is_war_known(world, war_id_str):
+        return {
+            "available": False,
+            "war_id": war_id_str,
+            "route_id": str(route_id or ""),
+            "review_target": "",
+            "error": "invalid_war_id",
+            "error_display": _error_display("invalid_war_id"),
+        }
+    archived = is_war_archived(world, war_id_str)
+    if archived and recent_window_route_ids is not None:
+        window = {str(r or "") for r in recent_window_route_ids if r is not None}
+        if route_id and str(route_id) not in window:
+            return {
+                "available": False,
+                "war_id": war_id_str,
+                "route_id": str(route_id or ""),
+                "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+                "error": "settlement_no_longer_in_recent_window",
+                "error_display": _error_display(
+                    "settlement_no_longer_in_recent_window"
+                ),
+            }
+    return {
+        "available": True,
+        "war_id": war_id_str,
+        "route_id": str(route_id or ""),
+        "review_target": (
+            SETTLEMENT_REVIEW_TARGET_ARCHIVED
+            if archived
+            else SETTLEMENT_REVIEW_TARGET_ACTIVE
+        ),
+        "war_archived": bool(archived),
+    }
+
+
+def _no_reopen_target_payload(
+    war_id: str,
+    *,
+    error: str = "no_reopen_target_available",
+) -> Dict[str, Any]:
+    """SC-13 / SC-14b / SC-7b dual-empty / cap-exceeded fallback payload.
+
+    Returns the structured response fields used when reopen cannot be
+    safely fired and the player must be redirected to war detail. The
+    caller is responsible for adding success/dialogue_type/action.
+    """
+    return {
+        "must_reopen": False,
+        "reopen_target": {
+            "surface": "war_detail",
+            "target": "war_detail",
+            "war_id": war_id,
+            "nation": "",
+            "target_nation": "",
+        },
+        "error": error,
+        "error_display": _error_display(error),
+    }
+
+
+def _safe_reopen_response(
+    world: Any,
+    *,
+    war_id: str,
+    dialogue: Mapping[str, Any],
+    fallback_error: str = "no_reopen_target_available",
+) -> Dict[str, Any]:
+    """Build the SC-2/SC-3/SC-13 reopen payload with the SC-14b cap applied.
+
+    Honors SC-7b (no `must_reopen=True` with empty target), SC-13
+    (dual-empty fallback) and SC-14b (per-(war_id, turn) attempt cap).
+    The caller then merges this payload into its action result.
+    """
+    selected = str(dialogue.get("selected_target_nation") or "")
+    covered = list(dialogue.get("covered_enemy_participants") or [])
+    has_target = bool(selected) or bool(covered)
+    if not has_target:
+        return _no_reopen_target_payload(war_id, error=fallback_error)
+    if reopen_attempt_cap_exceeded(world, war_id=war_id):
+        return _no_reopen_target_payload(war_id, error="reopen_attempt_cap_exceeded")
+    record_reopen_attempt(world, war_id=war_id)
+    return {
+        "must_reopen": True,
+        "reopen_target": _reopen_target(war_id, dialogue),
+    }
+
+
+# ---------------------------------------------------------------------------
+# G2-Slice-3 SC-26: same-war / cross-war collision support
+# ---------------------------------------------------------------------------
+
+
+def _clause_identity_key(term: Mapping[str, Any]) -> Tuple[str, str, str, str]:
+    """Type-specific identity tuple per SC-26 same-war merge semantics.
+
+    Same-key entries with differing values conflict; cross-key entries
+    are non-conflicting and merge by append. The canonical identity is
+    (type, from, to, region) for clauses that have all four; missing
+    fields collapse to "" so key uniqueness aligns with the canonical
+    schema.
+    """
+    return (
+        str(term.get("type") or ""),
+        str(term.get("from") or ""),
+        str(term.get("to") or ""),
+        str(term.get("region") or ""),
+    )
+
+
+def _terms_equal(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
+    """Strict equality for clause merge conflict detection.
+
+    Two same-key clauses are equal only when every field matches. Same
+    region with different gold amounts conflicts; same region with
+    identical fields is a duplicate (the merge ignores duplicates).
+    """
+    keys = set(a.keys()) | set(b.keys())
+    for key in keys:
+        if a.get(key) != b.get(key):
+            return False
+    return True
+
+
+def merge_same_war_settlement_drafts(
+    existing_terms: Iterable[Mapping[str, Any]],
+    new_terms: Iterable[Mapping[str, Any]],
+) -> Tuple[bool, List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """SC-26 merge contract: keep authored draft, fold compatible new terms.
+
+    Returns (ok, merged_terms, conflicts):
+      - ok=True when every new term is either compatible with the active
+        draft (same identity AND same fields => duplicate, kept once) or
+        adds a new identity (appended). The merged list keeps existing
+        draft order and appends compatible additions.
+      - ok=False when any new term collides with an existing draft term
+        on the same identity but differs in fields. The merged list is
+        the unchanged existing draft (per SC-26 "active draft unchanged")
+        and the conflicts list contains the offending pairs.
+    """
+    existing_list = [dict(t) for t in (existing_terms or []) if isinstance(t, Mapping)]
+    additions: List[Dict[str, Any]] = []
+    conflicts: List[Dict[str, Any]] = []
+    by_key: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {
+        _clause_identity_key(term): term for term in existing_list
+    }
+    for term in new_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        key = _clause_identity_key(term)
+        if key in by_key:
+            if _terms_equal(by_key[key], term):
+                continue  # duplicate -> idempotent merge
+            conflicts.append({"existing": dict(by_key[key]), "incoming": dict(term)})
+        else:
+            additions.append(dict(term))
+    if conflicts:
+        return False, existing_list, conflicts
+    return True, existing_list + additions, []
+
+
+def _settlement_collision_payload(
+    *,
+    error: str,
+    active_war_id: str,
+    incoming_war_id: str,
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "success": False,
+        "error": error,
+        "error_display": _error_display(error),
+        "mutated": False,
+        "active_war_id": active_war_id,
+        "incoming_war_id": incoming_war_id,
+        "collision": True,
+    }
+    if extra:
+        payload.update(dict(extra))
+    return payload
 
 
 def _infer_actor_side(
@@ -460,9 +828,12 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    # Spec §11.6: route_id matches `settlement_reactions._emit_settlement_summary_event`
-    # so dispatch event, ledger row, and confirm dialogue all share the same key.
-    route_id = f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    # SC-14c: settlement route id format is `settlement:{war_id}:{turn}:{seq}`,
+    # minted from the per-(war_id, turn) `world.settlement_route_seq` counter
+    # so two same-turn settlement events for one war never share a focus id.
+    # Reaction event, dispatch, ledger, notification meta, and result feedback
+    # all consume this staged id verbatim.
+    route_id = mint_settlement_route_id(world, war_id=war_id)
     text = f"Review the settlement of {war_label}. Acceptance: {verdict} ({score if score is not None else 'blocked'})."
     review_route = {
         "surface": "ledger_settlements",
@@ -534,14 +905,80 @@ def stage_settlement_confirm(
     actor_nation: Optional[str] = None,
     density: str = "medium",
 ) -> Dict[str, Any]:
+    war_id_str = str(war_id or "")
+    # SC-26: settlement-family collision protection applied BEFORE building
+    # the preview so a second settlement entry for a different war_id can't
+    # mutate the staged dialogue or shift caches behind the active draft.
+    is_same_war_refresh = False
+    mounted = _mounted_settlement_dialogue(world)
+    if mounted is not None:
+        active_war_id = str(mounted.get("war_id") or "")
+        if active_war_id and active_war_id != war_id_str:
+            return _settlement_collision_payload(
+                error="cross_war_settlement_collision",
+                active_war_id=active_war_id,
+                incoming_war_id=war_id_str,
+                extra={
+                    "dialogue_type": "settlement_confirm",
+                    "war_id": war_id_str,
+                    "active_dialogue_type": str(mounted.get("type") or ""),
+                },
+            )
+        if active_war_id and active_war_id == war_id_str:
+            # Same-war restage: refresh the mounted dialogue and merge
+            # non-conflicting authored draft terms through the
+            # `pending_settlement_drafts` store. Conflicting clauses keep
+            # the active draft unchanged and surface a humanized merge
+            # conflict beat.
+            existing_terms = list(mounted.get("settlement_terms") or [])
+            incoming_terms = list(settlement_terms or [])
+            ok, merged_terms, conflicts = merge_same_war_settlement_drafts(
+                existing_terms, incoming_terms,
+            )
+            drafts = getattr(world, "pending_settlement_drafts", None)
+            if drafts is None:
+                world.pending_settlement_drafts = {}
+                drafts = world.pending_settlement_drafts
+            if not ok:
+                # Preserve the active draft per SC-26 — return without
+                # restaging. Drafts store holds the existing draft.
+                drafts[war_id_str] = [dict(t) for t in existing_terms]
+                return _settlement_collision_payload(
+                    error="same_war_merge_conflict",
+                    active_war_id=war_id_str,
+                    incoming_war_id=war_id_str,
+                    extra={
+                        "dialogue_type": "settlement_confirm",
+                        "war_id": war_id_str,
+                        "merge_conflict": True,
+                        "conflicts": conflicts,
+                        "preserved_terms": [dict(t) for t in existing_terms],
+                    },
+                )
+            # Compatible merge: persist merged draft + restage with merged
+            # terms so preview/acceptance reflect the new authored set.
+            drafts[war_id_str] = [dict(t) for t in merged_terms]
+            settlement_terms = merged_terms
+            is_same_war_refresh = True
+            # Same-war refresh inherits the mounted dialogue's selected
+            # target/covered set when the caller did not re-author them.
+            if not covered_enemy_participants:
+                covered_enemy_participants = list(
+                    mounted.get("covered_enemy_participants") or []
+                )
+            if not selected_target_nation:
+                selected_target_nation = str(
+                    mounted.get("selected_target_nation") or ""
+                ) or None
     preview = build_settlement_preview(
         world,
-        war_id=war_id,
+        war_id=war_id_str,
         proposer_side=proposer_side,
         settlement_terms=settlement_terms,
         covered_enemy_participants=covered_enemy_participants,
         actor_nation=actor_nation,
         density=density,
+        ignore_active_dialogue=is_same_war_refresh,
     )
     if not preview.get("success"):
         return preview
@@ -555,7 +992,7 @@ def stage_settlement_confirm(
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
-        "war_id": war_id,
+        "war_id": war_id_str,
         "diplomatic_dialogue": dialogue,
         "settlement_preview": preview["settlement_preview"],
         "awaiting_diplomatic_response": True,
@@ -1152,33 +1589,41 @@ def ratify_settlement_confirm(
     if not validation.get("ok"):
         world.dialogue_manager.pop()
         error = str(validation.get("error") or "")
-        return {
+        result = {
             "success": False,
             "dialogue_type": "settlement_confirm",
             "action": "confirm",
             "war_id": war_id,
             "error": error,
             "error_display": _error_display(error),
-            "reopen_target": _reopen_target(war_id, dialogue),
-            "must_reopen": bool(validation.get("must_reopen")),
             "mutated": False,
         }
+        if validation.get("must_reopen"):
+            # SC-2/SC-3/SC-13/SC-14b: gate `must_reopen=True` on a non-empty
+            # target and the SC-14b per-(war_id, turn) attempt cap.
+            result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+        else:
+            result["must_reopen"] = False
+            result["reopen_target"] = _reopen_target(war_id, dialogue)
+        return result
 
     war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
     if not war_instance or war_instance.get("ended_turn") is not None:
         world.dialogue_manager.pop()
         error = "inactive_war_instance"
-        return {
+        result = {
             "success": False,
             "dialogue_type": "settlement_confirm",
             "action": "confirm",
             "war_id": war_id,
             "error": error,
             "error_display": _error_display(error),
-            "reopen_target": _reopen_target(war_id, dialogue),
-            "must_reopen": True,
             "mutated": False,
         }
+        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+        # The original code path treated this as `must_reopen=True`; keep
+        # that behavior unless SC-14b's per-(war_id, turn) cap intervenes.
+        return result
 
     # SC-3/SC-4: fresh acceptance rescore from current world state before mutation.
     proposer_side = str(dialogue.get("proposer_side") or "")
@@ -1239,17 +1684,17 @@ def ratify_settlement_confirm(
     if not plan:
         world.dialogue_manager.pop()
         error = "no_resolvable_pairs"
-        return {
+        result = {
             "success": False,
             "dialogue_type": "settlement_confirm",
             "action": "confirm",
             "war_id": war_id,
             "error": error,
             "error_display": _error_display(error),
-            "reopen_target": _reopen_target(war_id, dialogue),
-            "must_reopen": True,
             "mutated": False,
         }
+        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+        return result
 
     pre_cleanup_snapshots = _capture_pre_cleanup_snapshots(world, plan)
     # Capture pre-cleanup participant lists + side leaders so the
@@ -1306,6 +1751,7 @@ def ratify_settlement_confirm(
     from backend.game_logic.settlement_reactions import (
         route_settlement_reactions,
     )
+    staged_route_id = str(dialogue.get("route_id") or "")
     reaction_summary = route_settlement_reactions(
         world,
         war_id=war_id,
@@ -1323,6 +1769,7 @@ def ratify_settlement_confirm(
         pre_cleanup_accepting_members=pre_cleanup_accepting_members,
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
+        staged_route_id=staged_route_id,
     )
 
     world.dialogue_manager.pop()
@@ -1331,16 +1778,26 @@ def ratify_settlement_confirm(
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
         f"({len(resolved_pairs)} pair(s) resolved)."
     )
+    # SC-14c: result feedback consumes the staged route id verbatim. The
+    # summary event already echoes the staged id, so prefer that path; fall
+    # back to the staged dialogue's id (same value) before minting a fresh
+    # one for legacy callers.
     review_route_id = str(
         (reaction_summary.get("summary_event") or {}).get("route", {}).get("route_id", "")
         or dialogue.get("route_id")
-        or f"{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+        or mint_settlement_route_id(world, war_id=war_id)
     )
+    # SC-14/14d/14e: result feedback re-resolves active vs archived at the
+    # moment ratification completes. Active partial settlements route to
+    # the live war/settlement surface; archived (full-war end) settlements
+    # route to the ledger row.
+    live_review_target = derive_settlement_review_target(world, war_id=war_id)
     review_route = {
-        "surface": "ledger_settlements",
-        "review_target": "ledger_settlements",
+        "surface": live_review_target,
+        "review_target": live_review_target,
         "route_id": review_route_id,
         "war_id": war_id,
+        "war_ended": bool(war_ended),
     }
     return {
         "success": True,
@@ -1455,29 +1912,76 @@ def handle_incoming_settlement_offer_action(
         }
     if action == "request_settlement_revision":
         world.dialogue_manager.pop()
-        return {
+        result = {
             "success": True,
             "dialogue_type": "incoming_settlement_offer",
             "action": "request_settlement_revision",
             "war_id": war_id,
-            "must_reopen": True,
-            "reopen_target": _reopen_target(war_id, dialogue),
             "mutated": False,
             "message": "Revision requested. Reopen the settlement review to adjust terms.",
             "suppress_proposal_result_popup": True,
         }
+        # SC-13/SC-14b: gate must_reopen on a non-empty target + cap.
+        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+        return result
     if action != "accept_settlement_offer":
         return {"success": False, "error": "unknown_settlement_offer_action", "mutated": False}
+    # SC-7b: empty / invalid / archived war_id all surface humanized
+    # copy and DO NOT promote to `settlement_confirm`. Empty / unknown
+    # `war_id` is the SC-13 fallback path; archived `war_id` uses the
+    # specific SC-7b `incoming_offer_war_archived` copy.
     if not war_id:
+        world.dialogue_manager.pop()
+        result = {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "accept_settlement_offer",
+            "war_id": war_id,
+            "error": "invalid_war_id",
+            "error_display": _error_display("invalid_war_id"),
+            "mutated": False,
+        }
+        result.update(_no_reopen_target_payload(war_id, error="no_reopen_target_available"))
+        result["error"] = "invalid_war_id"
+        result["error_display"] = _error_display("invalid_war_id")
+        return result
+    if not is_war_known(world, war_id):
         world.dialogue_manager.pop()
         return {
             "success": False,
             "dialogue_type": "incoming_settlement_offer",
             "action": "accept_settlement_offer",
             "war_id": war_id,
-            "must_reopen": True,
-            "error": "invalid_war_id",
-            "error_display": _error_display("invalid_war_id"),
+            "error": "incoming_offer_war_invalid",
+            "error_display": _error_display("incoming_offer_war_invalid"),
+            "must_reopen": False,
+            "reopen_target": {
+                "surface": "war_detail",
+                "target": "war_detail",
+                "war_id": war_id,
+                "nation": "",
+                "target_nation": "",
+            },
+            "mutated": False,
+        }
+    if is_war_archived(world, war_id):
+        world.dialogue_manager.pop()
+        return {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "accept_settlement_offer",
+            "war_id": war_id,
+            "error": "incoming_offer_war_archived",
+            "error_display": _error_display("incoming_offer_war_archived"),
+            "must_reopen": False,
+            "reopen_target": {
+                "surface": "war_detail",
+                "target": "war_detail",
+                "war_id": war_id,
+                "nation": "",
+                "target_nation": "",
+            },
+            "war_archived": True,
             "mutated": False,
         }
 
@@ -1491,6 +1995,9 @@ def handle_incoming_settlement_offer_action(
     result["dialogue_type"] = "settlement_confirm"
     result["action"] = "accept_settlement_offer"
     if not result.get("success"):
-        result["must_reopen"] = True
+        # Build a SC-13-safe reopen payload using the staged dialogue's
+        # selected target / covered participants if present (degrades to
+        # choose-from-war-detail when both are missing).
         result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
+        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
     return result

@@ -689,6 +689,11 @@ class WorldState:
         # Per-turn monotonic sequence for unique route ids.
         # Shape: {war_id: {turn: last_seq}}
         self.settlement_route_seq: Dict[str, Dict[int, int]] = {}
+        # G2-Slice-3 SC-14b: stale-recovery reopen attempt counter keyed
+        # by (war_id, turn). Reset every turn so a new turn legitimately
+        # restores the SC-14b player escape.
+        # Shape: {war_id: {turn: attempt_count}}
+        self.settlement_reopen_attempts: Dict[str, Dict[int, int]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3826,6 +3831,10 @@ class WorldState:
                 str(wid): {int(t): int(s) for t, s in turns.items()}
                 for wid, turns in self.settlement_route_seq.items()
             },
+            "settlement_reopen_attempts": {
+                str(wid): {int(t): int(c) for t, c in turns.items()}
+                for wid, turns in self.settlement_reopen_attempts.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
             # memories per (actor, subject) pair. Stored as plain dicts so
@@ -4298,6 +4307,10 @@ class WorldState:
         world.settlement_route_seq = {
             str(wid): {int(t): int(s) for t, s in (turns or {}).items()}
             for wid, turns in (data.get("settlement_route_seq") or {}).items()
+        }
+        world.settlement_reopen_attempts = {
+            str(wid): {int(t): int(c) for t, c in (turns or {}).items()}
+            for wid, turns in (data.get("settlement_reopen_attempts") or {}).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
@@ -4949,6 +4962,10 @@ class WorldState:
 
         # G2-Slice-1: discard unratified settlement drafts at turn end.
         self.pending_settlement_drafts = {}
+        # G2-Slice-3 SC-14b: per-turn reset of reopen attempts so the
+        # SC-14b player escape is restored each turn (a new turn can
+        # legitimately change war eligibility / acceptance / hard stops).
+        self.settlement_reopen_attempts = {}
 
         # N7: Snapshot relation values BEFORE diplomatic processing changes them
         for dk, rel_val in self.nation_relations.items():

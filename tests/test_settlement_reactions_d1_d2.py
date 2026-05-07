@@ -866,7 +866,9 @@ class TestSettlementDispatchEvents:
         assert event["type"] == "settlement_summary"
         assert event["route"]["event_family"] == "settlement"
         assert event["route"]["review_target"] == "settlement_review"
-        assert event["route"]["route_id"].startswith("war_d1:")
+        # SC-14c: settlement events carry the new
+        # `settlement:{war_id}:{turn}:{seq}` route id format.
+        assert event["route"]["route_id"].startswith("settlement:war_d1:")
         assert "settlement_summary" in CAMPAIGN_LOG_TYPES
         assert CATEGORY_MAP["settlement_summary"] == "diplomacy"
         # event_log + dispatch both received the event.
