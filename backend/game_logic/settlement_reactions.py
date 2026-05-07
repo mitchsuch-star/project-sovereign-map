@@ -935,6 +935,8 @@ def _emit_settlement_summary_event(
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
     staged_route_id: str = "",
+    acceptance_snapshot: Optional[Mapping[str, Any]] = None,
+    acceptance_at_staging: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -1033,6 +1035,11 @@ def _emit_settlement_summary_event(
         "war_ended": bool(war_ended),
         "balance_projection": dict(balance_projection or {}),
         "awe_tags": list(awe_tags),
+        # SC-15 amendment: archived settlement review renders the fresh
+        # ratification-time `acceptance_snapshot`, not the stale staging
+        # preview. `acceptance_at_staging` stays as audit context only.
+        "acceptance_snapshot": dict(acceptance_snapshot or {}),
+        "acceptance_at_staging": dict(acceptance_at_staging or {}),
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": (
@@ -1164,6 +1171,10 @@ def route_settlement_reactions(
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
     staged_route_id: str = "",
+    acceptance_snapshot: Optional[Mapping[str, Any]] = None,
+    acceptance_at_staging: Optional[Mapping[str, Any]] = None,
+    success: bool = True,
+    mutated: bool = True,
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1173,7 +1184,26 @@ def route_settlement_reactions(
     memories + grievance flags, runs WB-B bargain breach detection,
     bounded cross-war scan, and emits `settlement_summary` /
     `settlement_digest`.
+
+    SC-15 / SC-23 failed-ratification guard: callers MUST set
+    `success=False, mutated=False` (or pass empty / falsy
+    `applied_clauses` plus a missing `acceptance_snapshot`) when
+    ratification did not actually mutate state. The summary-event
+    producer refuses emission in that case so failed ratifications do
+    not leak `PEACE & SETTLEMENT HISTORY` rows into the ledger or the
+    dispatch.
     """
+    if not success or not mutated:
+        # SC-15 / SC-23 failed-ratification guard. Returning an empty
+        # summary is sufficient — callers that hold the dialogue will
+        # surface the failure through the normal acceptance refusal
+        # banner, not through history rows.
+        return {
+            "summary_event": None,
+            "digest_event": None,
+            "all_reactions": [],
+            "skipped_reason": "failed_ratification",
+        }
     instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     # Pre-cleanup overrides win when present (set by ratify_settlement_confirm
     # before cleanup_war_end empties the live `attackers`/`defenders` lists).
@@ -1268,6 +1298,8 @@ def route_settlement_reactions(
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
         staged_route_id=staged_route_id,
+        acceptance_snapshot=acceptance_snapshot,
+        acceptance_at_staging=acceptance_at_staging,
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:

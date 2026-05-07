@@ -27,7 +27,11 @@ from backend.display_names import (
     acceptance_component_display,
     settlement_disabled_reason_display,
 )
-from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+from backend.game_logic.diplomatic_templates import (
+    calculate_raw_treaty_harshness,
+    calculate_treaty_harshness,
+    resolve_settlement_voice_line,
+)
 from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
@@ -39,6 +43,7 @@ from backend.game_logic.settlement_scoring import (
 from backend.game_logic.settlement_presentation import (
     build_contribution_share_rows,
     build_settlement_review,
+    detect_awe_set_pieces,
 )
 
 
@@ -793,6 +798,23 @@ def build_settlement_preview(
     review_acceptance["band_display"] = acceptance_band_display(review_acceptance.get("band", ""))
     review_acceptance["band_phrase"] = acceptance_band_phrase(review_acceptance.get("band", ""))
     preview["acceptance"] = review_acceptance
+    # SC-15: live awe tags + SC-16: forced-alliance threat preview
+    # surfaced into review_sections at preview time (the previous
+    # `awe_tags=[]` + missing threat preview meant the popup had no
+    # signal until ratification fired; the popup-side "set-piece"
+    # affordance was effectively dead).
+    component_debug = dict(acceptance.get("component_debug") or {})
+    forced_alliance_threat_preview = (
+        component_debug.get("forced_alliance_threat_preview")
+        if isinstance(component_debug.get("forced_alliance_threat_preview"), Mapping)
+        else None
+    )
+    preview_awe_tags = detect_awe_set_pieces(
+        settlement_terms=list(terms),
+        participant_reactions=[],
+        balance_projection=None,
+        proposer_side=side,
+    )
     preview["review_sections"] = build_settlement_review(
         war_id=war_id,
         war_label=preview["war_label"],
@@ -804,7 +826,8 @@ def build_settlement_preview(
         warnings=warnings,
         acceptance=review_acceptance,
         density=preview["density"],
-        awe_tags=[],
+        awe_tags=preview_awe_tags,
+        forced_alliance_threat_preview=forced_alliance_threat_preview,
     )
     return {
         "success": True,
@@ -840,7 +863,6 @@ def build_settlement_confirm_dialogue(
     # Reaction event, dispatch, ledger, notification meta, and result feedback
     # all consume this staged id verbatim.
     route_id = mint_settlement_route_id(world, war_id=war_id)
-    text = f"Review the settlement of {war_label}. Acceptance: {verdict} ({score if score is not None else 'blocked'})."
     review_route = {
         "surface": "ledger_settlements",
         "review_target": "ledger_settlements",
@@ -856,6 +878,38 @@ def build_settlement_confirm_dialogue(
         and verdict not in ("reject", "blocked")
         and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
     )
+    # SC-17 / SC-19: humanize the live-review heading. The raw verdict
+    # f-string ("Acceptance: near_acceptable (49)") leaked enum strings
+    # to player BBCode. Resolve through the settlement voice family so
+    # the player sees acceptance band display + top-blocker phrasing,
+    # never raw `near_acceptable` / `reject` / `blocked` enums.
+    band_code = str(preview["acceptance"].get("band") or verdict or "near_acceptable").lower()
+    band_display = acceptance_band_display(band_code) or "Under review"
+    top_blocker_display = ""
+    components = list(preview["acceptance"].get("top_components") or [])
+    if components:
+        first = components[0] if isinstance(components[0], Mapping) else {}
+        top_blocker_display = str(first.get("component_display") or first.get("display") or "")
+    if not top_blocker_display:
+        top_blocker_display = "no single dominant pressure"
+    if can_ratify:
+        text = resolve_settlement_voice_line(
+            "settlement_review_heading_talleyrand",
+            war_label=war_label,
+            acceptance_band=band_display,
+            top_blocker=top_blocker_display,
+        ) or f"Review the settlement of {war_label}."
+    else:
+        # SC-3 / SC-19 / SC-15b: when ratification is blocked, suppress
+        # outgoing "Will they accept?" framing and use the blocked voice
+        # family. The popup also reads `acceptance_display.band_display`
+        # ("Blocked"), but the heading text still belongs to the voice
+        # family rather than an inline f-string.
+        text = resolve_settlement_voice_line(
+            "settlement_blocked_for_ratification_talleyrand",
+            war_label=war_label,
+            top_blocker=top_blocker_display,
+        ) or f"This settlement of {war_label} cannot be ratified now."
     options = []
     available_action_ids = []
     if can_ratify:
@@ -1524,13 +1578,25 @@ def _record_common_peace_treaties(
             "VASSAL": "vassalage",
             "DEFENSIVE_ALLIANCE": "defensive_alliance",
         }.get(final_state, "peace")
+        # SC-24: store BOTH raw common-peace harshness and the legacy
+        # 1.0-clamped harshness under separate explicit fields. Named
+        # consumers that interpret authored common-peace terms read
+        # `raw_harshness` (no 1.0 ceiling); legacy bilateral consumers
+        # may keep reading `harshness` for backward compatibility.
+        clamped_harshness = calculate_treaty_harshness({"clauses": pair_terms})
+        raw_harshness = calculate_raw_treaty_harshness({"clauses": pair_terms})
         treaty = {
             "nations": [proposer_member, covered_enemy],
             "type": treaty_type,
             "state_transition": f"{entry['current_state']}_TO_{final_state}",
             "clauses": [dict(t) for t in pair_terms],
             "turn_signed": int(getattr(world, "current_turn", 0) or 0),
-            "harshness": calculate_treaty_harshness({"clauses": pair_terms}),
+            "harshness": clamped_harshness,
+            # SC-24 raw common-peace harshness consumers: ledger / AI
+            # proposal / coalition threat / dispatch / notifications.
+            "raw_harshness": float(raw_harshness or 0.0),
+            "clamped_harshness": float(clamped_harshness or 0.0),
+            "source": "common_peace",
         }
         active_treaties[pair_key] = treaty
         previous_treaties.setdefault(pair_key, []).append(dict(treaty))
@@ -1758,6 +1824,28 @@ def ratify_settlement_confirm(
         route_settlement_reactions,
     )
     staged_route_id = str(dialogue.get("route_id") or "")
+    # SC-15: build the fresh ratification-time acceptance_snapshot from
+    # the rescore that authorized mutation. Archived settlement review
+    # later renders this snapshot rather than the stale staging score.
+    # `acceptance_at_staging` is preserved for audit context.
+    acceptance_snapshot = {
+        "score": fresh_acceptance.get("score"),
+        "verdict": fresh_acceptance.get("verdict"),
+        "threshold": fresh_acceptance.get("accept_threshold"),
+        "band": str(fresh_acceptance.get("verdict") or "near_acceptable"),
+        "band_display": acceptance_band_display(
+            str(fresh_acceptance.get("verdict") or "")
+        ),
+        "top_components": list(fresh_acceptance.get("feedback") or [])[:3],
+        "hard_stops": list(fresh_acceptance.get("hard_stops") or []),
+    }
+    staged_acceptance = (dialogue.get("settlement_preview") or {}).get("acceptance") or {}
+    acceptance_at_staging = {
+        "score": staged_acceptance.get("score") or staged_acceptance.get("total"),
+        "verdict": staged_acceptance.get("verdict") or staged_acceptance.get("band"),
+        "threshold": staged_acceptance.get("threshold") or staged_acceptance.get("accept_threshold"),
+        "band": str(staged_acceptance.get("band") or staged_acceptance.get("verdict") or ""),
+    }
     reaction_summary = route_settlement_reactions(
         world,
         war_id=war_id,
@@ -1776,6 +1864,8 @@ def ratify_settlement_confirm(
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
         staged_route_id=staged_route_id,
+        acceptance_snapshot=acceptance_snapshot,
+        acceptance_at_staging=acceptance_at_staging,
     )
 
     world.dialogue_manager.pop()

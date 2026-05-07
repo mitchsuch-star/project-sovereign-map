@@ -52,8 +52,15 @@ def test_settlement_confirm_uses_review_payload_and_humanized_fields() -> None:
     assert "display_label" in source
     assert "code_display" in source
     assert "band_display" in source
-    assert "Will %s accept this settlement?" in source
-    assert "Settlement payload incomplete" in source
+    # SC-19 (G2-Slice-5) inversion: the hard-coded "Will %s accept
+    # this settlement?" heading is gone; the popup now reads the
+    # backend-resolved settlement voice line from `talleyrand_text`.
+    assert "Will %s accept this settlement?" not in source
+    assert 'data.get("talleyrand_text"' in source
+    # SC-17 inversion: the developer "Settlement payload incomplete"
+    # text is replaced with humanized recovery copy.
+    assert "Settlement payload incomplete" not in source
+    assert "We could not prepare this settlement review" in source
     assert 'data.get("actions"' not in source
 
 

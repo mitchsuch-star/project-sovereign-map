@@ -474,12 +474,71 @@ func _render_treaties():
 
 		bbcode += "\n"
 
-	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — recent settlement
-	# summaries section. Surfaced inside the Treaties tab so the
-	# settlement-review review-target remains a single layer-50 surface
-	# per the one-screen rule.
+	# SC-23 (Settlement UI Cleanup G2-Slice-5): merged PEACE & SETTLEMENT
+	# HISTORY surface. Render `peace_settlement_history` when present
+	# (newer payload). Each row carries a `row_type` ("settlement" or
+	# "bilateral_peace") so the player sees one reverse-chronological
+	# stream with type pills instead of two confusingly named sections.
+	var merged_history = cached_data.get("peace_settlement_history", [])
 	var recent_settlements = cached_data.get("recent_settlements", [])
-	if recent_settlements is Array and recent_settlements.size() > 0:
+	var rendered_settlement_meta = {}
+	if merged_history is Array and merged_history.size() > 0:
+		var hist_header = "PEACE & SETTLEMENT HISTORY"
+		if _open_review_target == "ledger_settlements":
+			hist_header = "▶ PEACE & SETTLEMENT HISTORY"
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]--- " + hist_header + " ---[/color]\n\n"
+		var h_idx = 0
+		for row in merged_history:
+			if not row is Dictionary:
+				h_idx += 1
+				continue
+			var row_type = str(row.get("row_type", "settlement"))
+			var row_type_display = str(row.get("row_type_display", row_type.capitalize()))
+			var s_war_id = str(row.get("war_id", "?"))
+			var s_turn = int(row.get("turn", 0))
+			var s_headline = str(row.get("headline", "Settlement"))
+			var s_route = str(row.get("route_id", ""))
+			if row_type == "settlement":
+				var s_meta = "settlement:" + str(h_idx) + ":" + s_route
+				rendered_settlement_meta[s_meta] = true
+				var focus_match = (
+					(_focus_settlement_route_id != "" and s_route == _focus_settlement_route_id)
+					or (_focus_settlement_war_id != "" and s_war_id == _focus_settlement_war_id)
+				)
+				if focus_match and not _expanded_settlements.has(s_meta):
+					_expanded_settlements[s_meta] = true
+				var s_expanded = bool(_expanded_settlements.get(s_meta, false))
+				var s_marker = "v" if s_expanded else ">"
+				var row_color = Utils.COLOR_SUCCESS if focus_match else Utils.COLOR_GOLD
+				bbcode += "  [url=" + s_meta + "][color=#" + row_color + "]" + s_marker + " " + s_headline + "[/color][/url]"
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "](" + row_type_display + " · T" + str(s_turn) + ")[/color]\n"
+				var awe_tags = row.get("awe_tag_displays", row.get("awe_tags", []))
+				if awe_tags is Array and awe_tags.size() > 0:
+					bbcode += "    [color=#" + Utils.COLOR_INFO + "]Awe: " + ", ".join(PackedStringArray(awe_tags)) + "[/color]\n"
+				var named = row.get("named_reactions", [])
+				var more_count = int(row.get("additional_reaction_count", 0))
+				if named is Array and named.size() > 0:
+					var who_str = ", ".join(PackedStringArray(named))
+					if more_count > 0:
+						who_str += " +" + str(more_count) + " more"
+					bbcode += "    [color=#" + Utils.COLOR_INFO + "]Reactions: " + who_str + "[/color]\n"
+				var terms_summary = row.get("terms_summary", [])
+				if terms_summary is Array and terms_summary.size() > 0:
+					bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + _humanize_label(str(terms_summary[0])) + "[/color]\n"
+				if s_expanded:
+					bbcode += _format_settlement_sections(row.get("review_sections", {}))
+			else:
+				# Bilateral peace row — render in the same merged stream
+				# with a type pill, distinct route id namespace
+				# (`peace:{participants_signature}:{turn}:{seq}`).
+				var p_meta = "peace_ratification:" + str(h_idx)
+				bbcode += "  [url=" + p_meta + "][color=#" + Utils.COLOR_GOLD + "]> " + s_headline + "[/color][/url]"
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "](" + row_type_display + " · T" + str(s_turn) + ")[/color]\n"
+			h_idx += 1
+		bbcode += "\n"
+	# Legacy fallback: render the old "RECENT SETTLEMENTS" section only
+	# when the merged surface is unavailable (older backend payloads).
+	elif recent_settlements is Array and recent_settlements.size() > 0:
 		var settle_header = "RECENT SETTLEMENTS"
 		if _open_review_target == "ledger_settlements":
 			settle_header = "▶ RECENT SETTLEMENTS"
@@ -489,7 +548,6 @@ func _render_treaties():
 			var s_war_id = str(settle.get("war_id", "?"))
 			var s_turn = int(settle.get("turn", 0))
 			var s_headline = str(settle.get("headline", "Settlement"))
-			var s_review = str(settle.get("review_target", "settlement_review"))
 			var s_route = str(settle.get("route_id", ""))
 			var s_meta = "settlement:" + str(s_idx) + ":" + s_route
 			var focus_match = (
@@ -503,27 +561,14 @@ func _render_treaties():
 			var row_color = Utils.COLOR_SUCCESS if focus_match else Utils.COLOR_GOLD
 			bbcode += "  [url=" + s_meta + "][color=#" + row_color + "]" + s_marker + " " + s_headline + "[/color][/url]"
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "](T" + str(s_turn) + ")[/color]\n"
-			var awe_tags = settle.get("awe_tag_displays", settle.get("awe_tags", []))
-			if awe_tags is Array and awe_tags.size() > 0:
-				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Awe: " + ", ".join(PackedStringArray(awe_tags)) + "[/color]\n"
-			var named = settle.get("named_reactions", [])
-			var more_count = int(settle.get("additional_reaction_count", 0))
-			if named is Array and named.size() > 0:
-				var who_str = ", ".join(PackedStringArray(named))
-				if more_count > 0:
-					who_str += " +" + str(more_count) + " more"
-				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Reactions: " + who_str + "[/color]\n"
-			var terms_summary = settle.get("terms_summary", [])
-			if terms_summary is Array and terms_summary.size() > 0:
-				bbcode += "    [color=#" + Utils.COLOR_INFO + "]Terms: " + _humanize_label(str(terms_summary[0])) + "[/color]\n"
-			# F2: inline sectioned review (Terms / Allies / Warnings /
-			# Acceptance) on click; spec §16.2 line 1636.
-			if s_expanded:
-				bbcode += _format_settlement_sections(settle.get("review_sections", {}))
 			s_idx += 1
 		bbcode += "\n"
 
-	if recent_peace.size() > 0:
+	# Legacy bilateral peace section is suppressed when the merged
+	# surface rendered above; otherwise fall through to the original
+	# RECENT PEACE RATIFICATIONS block for older payloads.
+	var has_merged_history = (merged_history is Array and merged_history.size() > 0)
+	if not has_merged_history and recent_peace.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_HEADER + "]--- RECENT PEACE RATIFICATIONS ---[/color]\n"
 		bbcode += "\n"
 		var peace_idx = 0

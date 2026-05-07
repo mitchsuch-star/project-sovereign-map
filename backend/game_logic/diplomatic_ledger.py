@@ -53,6 +53,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         All numeric values int()-wrapped.
     """
     from backend.game_logic.settlement_presentation import (
+        build_peace_settlement_history,
         recent_settlement_summaries,
     )
 
@@ -61,8 +62,15 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
+        # SC-23 legacy fields preserved for tests / save compatibility;
+        # `peace_settlement_history` is the merged surface that the
+        # ledger header renders. Older clients reading the legacy fields
+        # see the same data split by family.
         "recent_peace_ratifications": _build_recent_peace_ratifications(world),
         "recent_settlements": recent_settlement_summaries(
+            world, player_nation,
+        ),
+        "peace_settlement_history": build_peace_settlement_history(
             world, player_nation,
         ),
         "balance_of_europe": _build_balance_of_europe(world),
