@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** May 5, 2026 (Imperial Settlement Slice F UI routing/presentation is implemented and pushed as commit `0b9289e`; remaining settlement closure is manual smoke, Slice G AI/ally settlement agency, and the final settlement gate. Before Phase 8.5 begins, run a Pre-8.5 Evaluation Gate to recover and triage buried war-LLM improvement items plus diplomacy-refinement items from `DESIGN_REFINEMENT.md`, the LLM cost/toggle table, and related future-design notes.)
+> **Last Updated:** May 6, 2026 (Settlement UI Cleanup Spec v0.17 is the current gate — must be implemented before manual smoke, Slice G, or the Final Gate. See `docs/SETTLEMENT_UI_CLEANUP_SPEC.md`.)
 
 ---
 
@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Base Phase 8 sessions are complete, and Imperial Settlement Slice F final UI/UX routing/presentation is implemented. Remaining closure: manual smoke, Slice G AI/ally settlement agency, and final settlement gate before diplomacy is treated as closed. |
+| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Slices A1–E + Slice F UI routing landed. **Current gate: Settlement UI Cleanup Spec** (`SETTLEMENT_UI_CLEANUP_SPEC.md` v0.17) — 5 ordered slices (Foundation → Entry Safety → Continuity → Incoming Offers → Presentation). Then: manual smoke → Slice G AI/ally agency → Final Gate. |
 | **8.EVAL** | **Pre-8.5 War LLM + Diplomacy Refinement Evaluation** | **Planned after Imperial Settlement final gate, before 8.5.** Audit buried war-LLM improvement items, battle/war narration toggle scope, creative-command war uses, `DESIGN_REFINEMENT.md` diplomacy queue items, AI ultimatums/trade/agenda/motive/Talleyrand Desk candidates, and decide what ships before 8.5 vs moves to Pre-EA/Post-EA. |
 | 8.5 | Events, Goals & National Identity | Planned, blocked on 8.EVAL |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -26,7 +26,13 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 follow-up note:** diplomacy implementation is no longer considered closed until the Peace Deals closure stack finishes. Completed foundations include `Memory and Pressure`, `Bilateral Peace Hardening`, `War Purpose + Score Semantics`, `War Bargains`, `Ally Participation + Common Peace` through Slice F UI routing/presentation (`0b9289e`), and the associated full-suite/source-guard verification. Remaining closure is manual smoke, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` Slice G AI/ally settlement agency, and the final settlement gate. After that, run **8.EVAL** before Phase 8.5: review buried war-LLM improvement ideas, battle/war narration and creative-command war uses, LLM cost/toggle implications, and the open diplomacy refinement queue (`Nation Agendas + Motive Legibility`, `Talleyrand Desk + Explanation Layer`, `Economic Diplomacy`, `AI Ultimatums to Player`, trade, and scale ledger/period-precision items). The output of 8.EVAL must be an explicit keep/defer/drop decision list and a scoped implementation handoff for anything that must ship before 8.5.
+**Phase 8 settlement work order:**
+1. **Settlement UI Cleanup Spec** (`docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.17) — Gate 1 doc readiness, then Gate 2 ordered slices: Foundation (SC-1–4) → Entry Safety (SC-8/8b/10–13) → Continuity (SC-14/14b–e/7b/26) → Incoming Offers (SC-5/6/7, defer+hide default) → Presentation & Metadata (SC-15/15b/16/17/19/20/23–25).
+2. **Manual Godot smoke** — settlement wizard, war detail, coalition detail, notification/dispatch routes, stale-state recovery, CanvasLayer 50 one-screen rule.
+3. **Slice G** — AI/ally settlement agency (AI war-leader packages, non-leader ally petitions/advisories). See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` §Slice G.
+4. **Final Gate** — bundled pytest across settlement + WB/WPS/BPH test files + `ruff check`. See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` line 500.
+5. **8.EVAL** — audit buried war-LLM improvements, diplomacy refinement queue, LLM cost/toggle, AI agenda/ultimatum/trade/Talleyrand Desk candidates. Output: keep/defer/drop decision list + scoped handoff for anything shipping before 8.5.
+6. **Phase 8.5** — Events, Goals & National Identity.
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
