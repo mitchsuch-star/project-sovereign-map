@@ -172,9 +172,10 @@ def build_active_wars(world) -> Dict[str, Any]:
         # block when no war_instance is wired (early game / synthetic).
         contribution = _resolve_contribution_share(world, france, opponent)
 
-        settlement_available = _evaluate_settlement_available(
+        settlement_eligibility = _evaluate_settlement_eligibility(
             world, contribution.get("war_id", ""),
         )
+        settlement_available = bool(settlement_eligibility.get("available"))
 
         wars.append({
             "opponent": opponent,
@@ -205,6 +206,13 @@ def build_active_wars(world) -> Dict[str, Any]:
             ),
             "war_instance_id": contribution.get("war_id", ""),
             "settlement_available": settlement_available,
+            "settlement_eligibility": settlement_eligibility,
+            "settlement_disabled_reason": settlement_eligibility.get(
+                "display_reason", ""
+            ) if not settlement_available else "",
+            "settlement_disabled_reason_display": settlement_eligibility.get(
+                "disabled_reason_display", ""
+            ) if not settlement_available else "",
         })
 
     # Sort: coalition leader first, then coalition members, then bilateral
@@ -397,10 +405,23 @@ def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
     return is_common_settlement_worth_showing(instance)
 
 
-def _evaluate_settlement_available(world, war_id: str) -> bool:
+def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:
     """SC-10: Use active hostile-pair eligibility, not just unique-nation count."""
+    from backend.display_names import settlement_disabled_reason_display
+
+    def _blocked(code: str, **extra: Any) -> Dict[str, Any]:
+        display = settlement_disabled_reason_display(code)
+        return {
+            "available": False,
+            "error": code,
+            "error_display": display,
+            "disabled_reason_display": display,
+            "display_reason": display,
+            **extra,
+        }
+
     if not war_id:
-        return False
+        return _blocked("invalid_war_id", war_id=war_id)
     try:
         from backend.game_logic.settlement_preview import (
             evaluate_open_settlement_eligibility,
@@ -410,6 +431,10 @@ def _evaluate_settlement_available(world, war_id: str) -> bool:
             actor_nation=getattr(world, "player_nation", "France"),
             ignore_active_dialogue=True,
         )
-        return bool(eligibility.get("available"))
+        return dict(eligibility)
     except Exception:
-        return _is_common_settlement_worth_showing(world, war_id)
+        return _blocked("settlement_eligibility_unavailable", war_id=war_id)
+
+
+def _evaluate_settlement_available(world, war_id: str) -> bool:
+    return bool(_evaluate_settlement_eligibility(world, war_id).get("available"))
