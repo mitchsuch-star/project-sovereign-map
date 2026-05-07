@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from backend.game_logic.settlement_helpers import assert_war_instance_invariants
+from backend.game_logic.war_status import build_active_wars
 from backend.game_logic.war_contribution import current_episode
 from backend.models.world_state import (
     SMOKE_START_ENV,
@@ -52,3 +53,22 @@ def test_settlement_multilateral_smoke_start_seeds_shared_war(monkeypatch):
         assert episode["exited_turn"] is None
 
     assert_war_instance_invariants(world)
+
+
+def test_settlement_multilateral_smoke_start_renders_as_one_shared_war(monkeypatch):
+    monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_MULTILATERAL)
+
+    world = WorldState()
+
+    active_wars = build_active_wars(world)
+    assert len(active_wars["wars"]) == 1
+    war = active_wars["wars"][0]
+    assert war["war_instance_id"] == "war_1"
+    assert war["opponent"] == "Britain"
+    assert war["opponents"] == ["Britain", "Prussia"]
+    assert war["opponent_display"] == "Britain + Prussia"
+    assert war["is_multi_participant_war"] is True
+    assert war["settlement_eligibility"]["coverable_enemy_participants"] == [
+        "Britain",
+        "Prussia",
+    ]

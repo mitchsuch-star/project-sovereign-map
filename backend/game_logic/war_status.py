@@ -215,6 +215,8 @@ def build_active_wars(world) -> Dict[str, Any]:
             ) if not settlement_available else "",
         })
 
+    wars = _collapse_shared_war_instance_rows(world, france, wars)
+
     # Sort: coalition leader first, then coalition members, then bilateral
     wars.sort(key=lambda w: (
         not w.get("is_coalition_leader", False),
@@ -322,6 +324,76 @@ def build_active_wars(world) -> Dict[str, Any]:
         "wars": wars,
         "coalition": coalition_info,
     }
+
+
+def _collapse_shared_war_instance_rows(
+    world,
+    france: str,
+    wars: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Collapse bilateral HUD rows that are fronts of one shared war_instance."""
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return wars
+
+    passthrough: List[Dict[str, Any]] = []
+    by_war_id: Dict[str, List[Dict[str, Any]]] = {}
+    for row in wars:
+        war_id = str(row.get("war_instance_id", "") or "")
+        instance = instances.get(war_id)
+        if (
+            not war_id
+            or not isinstance(instance, dict)
+            or instance.get("ended_turn") is not None
+            or len(instance.get("active_diplo_keys") or []) <= 1
+            or str(row.get("status", "")) != "war"
+        ):
+            passthrough.append(row)
+            continue
+        by_war_id.setdefault(war_id, []).append(row)
+
+    collapsed: List[Dict[str, Any]] = list(passthrough)
+    for war_id, rows in by_war_id.items():
+        if len(rows) <= 1:
+            collapsed.extend(rows)
+            continue
+
+        instance = instances.get(war_id) or {}
+        side_by_nation = instance.get("side_by_nation") or {}
+        france_side = side_by_nation.get(france)
+        enemy_side = "defenders" if france_side == "attackers" else "attackers"
+        leader_key = "defender_leader" if enemy_side == "defenders" else "attacker_leader"
+        enemy_leader = str(instance.get(leader_key, "") or "")
+        enemy_participants = [
+            nation for nation, side in side_by_nation.items()
+            if side == enemy_side and nation != france
+        ]
+        if not enemy_participants:
+            enemy_participants = [str(row.get("opponent", "")) for row in rows]
+
+        ordered_opponents = _leader_first(enemy_participants, enemy_leader)
+        representative = next(
+            (row for row in rows if row.get("opponent") == enemy_leader),
+            rows[0],
+        )
+        combined = dict(representative)
+        combined["opponents"] = ordered_opponents
+        combined["opponent"] = (
+            ordered_opponents[0] if ordered_opponents else representative.get("opponent", "")
+        )
+        combined["opponent_display"] = " + ".join(ordered_opponents)
+        combined["is_multi_participant_war"] = True
+        collapsed.append(combined)
+
+    return collapsed
+
+
+def _leader_first(nations: List[str], leader: str) -> List[str]:
+    ordered = sorted({str(nation) for nation in nations if nation})
+    if leader in ordered:
+        ordered.remove(leader)
+        return [leader] + ordered
+    return ordered
 
 
 def _resolve_contribution_share(world, france: str, opponent: str) -> Dict[str, Any]:
