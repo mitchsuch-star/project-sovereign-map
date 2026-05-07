@@ -25,6 +25,7 @@ from backend.game_logic.settlement_presentation import (
     build_forced_alliance_threat_preview_display,
     build_peace_settlement_history,
     build_settlement_review,
+    build_settlement_review_from_event,
     build_shut_out_allies_preview,
     build_third_party_reaction_preview,
 )
@@ -659,6 +660,72 @@ def test_sc15_failed_ratification_does_not_emit_settlement_summary_event():
     assert out.get("skipped_reason") == "failed_ratification"
     after_events = list(getattr(world, "event_log", []) or [])
     assert after_events == before_events  # no settlement_summary leaked
+
+
+def test_sc15_shut_out_preview_excludes_leaders_rewarded_and_enemy_side():
+    rows = [
+        {
+            "nation": "France",
+            "side": "attackers",
+            "standing": "no_standing",
+            "contribution_share": 0.4,
+            "is_leader": True,
+        },
+        {
+            "nation": "Saxony",
+            "side": "attackers",
+            "standing": "no_standing",
+            "contribution_share": 0.3,
+            "is_beneficiary": True,
+        },
+        {
+            "nation": "Prussia",
+            "side": "defenders",
+            "standing": "no_standing",
+            "contribution_share": 0.3,
+        },
+        {
+            "nation": "Bavaria",
+            "side": "attackers",
+            "standing": "ignored",
+            "contribution_share": 0.2,
+        },
+    ]
+
+    shut_out = build_shut_out_allies_preview(rows, [], proposer_side="attackers")
+
+    assert [row["nation"] for row in shut_out] == ["Bavaria"]
+
+
+def test_sc15_archived_review_renders_acceptance_snapshot():
+    event = {
+        "type": "settlement_summary",
+        "war_id": "war_1",
+        "war_label": "France vs Austria",
+        "proposer_side": "attackers",
+        "accepting_side": "defenders",
+        "proposer_members": ["France"],
+        "accepting_members": ["Austria"],
+        "covered_enemy_participants": ["Austria"],
+        "applied_clauses": [{"type": "peace"}],
+        "participant_reactions": [],
+        "acceptance_snapshot": {
+            "score": 54,
+            "threshold": 50,
+            "band": "near_acceptable",
+            "verdict": "near_acceptable",
+            "band_display": "Near acceptable",
+            "top_components": [{"component": "war_exhaustion", "value": 6}],
+            "hard_stops": [],
+        },
+    }
+
+    review = build_settlement_review_from_event(event)
+    acceptance = review["sections"]["acceptance"]
+
+    assert acceptance["total"] == 54
+    assert acceptance["threshold"] == 50
+    assert acceptance["band_display"] == "Near acceptable"
 
 
 # ---------------------------------------------------------------------------
