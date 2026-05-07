@@ -2073,11 +2073,22 @@ class DiplomaticExecutor:
             world.pending_settlement_drafts[war_id] = [
                 dict(t) for t in settlement_terms if isinstance(t, dict)
             ]
+        selected_target = (
+            cmd.get("selected_target_nation")
+            or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
+            or target_nation
+        )
+        covered_enemies = (
+            cmd.get("covered_enemy_participants")
+            or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
+        )
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
             actor_nation=player,
             settlement_terms=settlement_terms,
+            selected_target_nation=selected_target,
+            covered_enemy_participants=covered_enemies,
             density="medium",
         )
         if resolution.get("backfilled"):

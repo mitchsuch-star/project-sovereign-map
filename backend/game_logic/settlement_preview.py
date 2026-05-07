@@ -99,14 +99,22 @@ def _war_label(war_id: str, war_instance: Mapping[str, Any]) -> str:
 def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
     preview = dialogue.get("settlement_preview") or {}
     covered = list(dialogue.get("covered_enemy_participants") or preview.get("covered_enemy_participants") or [])
-    return {
+    selected = str(dialogue.get("selected_target_nation") or "")
+    if not selected and covered:
+        selected = covered[0]
+    diagnostic_fallback = not bool(dialogue.get("selected_target_nation"))
+    result: Dict[str, Any] = {
         "surface": "settlement_review",
         "target": "settlement_review",
         "war_id": war_id,
-        "nation": covered[0] if covered else "",
-        "target_nation": covered[0] if covered else "",
+        "nation": selected,
+        "target_nation": selected,
         "proposer_side": str(dialogue.get("proposer_side") or preview.get("proposer_side") or ""),
     }
+    if diagnostic_fallback and selected:
+        result["diagnostic_fallback_target"] = True
+        result["error_display"] = "This settlement lost its selected court. Reopen from war detail."
+    return result
 
 
 def _other_side(side: str) -> str:
@@ -437,6 +445,8 @@ def build_settlement_preview(
 def build_settlement_confirm_dialogue(
     world: Any,
     preview_response: Mapping[str, Any],
+    *,
+    selected_target_nation: Optional[str] = None,
 ) -> Dict[str, Any]:
     preview = copy.deepcopy(preview_response["settlement_preview"])
     war_id = str(preview_response["war_id"])
@@ -477,6 +487,8 @@ def build_settlement_confirm_dialogue(
     available_action_ids.append("back_out_settlement")
     options.append({"label": "Back Out", "action": "back_out_settlement"})
 
+    covered = list(preview.get("covered_enemy_participants") or [])
+    resolved_target = selected_target_nation or (covered[0] if covered else "")
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -489,7 +501,8 @@ def build_settlement_confirm_dialogue(
         "staged_leaders": leaders,
         "staged_turn": int(getattr(world, "current_turn", 0) or 0),
         "settlement_terms": copy.deepcopy(preview.get("settlement_terms") or []),
-        "covered_enemy_participants": list(preview.get("covered_enemy_participants") or []),
+        "covered_enemy_participants": covered,
+        "selected_target_nation": resolved_target,
         "settlement_preview": preview,
         "acceptance_components": dict(preview.get("acceptance_components") or {}),
         "warnings": list(preview.get("warnings") or []),
@@ -517,6 +530,7 @@ def stage_settlement_confirm(
     proposer_side: Optional[str] = None,
     settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
     covered_enemy_participants: Optional[Iterable[str]] = None,
+    selected_target_nation: Optional[str] = None,
     actor_nation: Optional[str] = None,
     density: str = "medium",
 ) -> Dict[str, Any]:
@@ -531,7 +545,7 @@ def stage_settlement_confirm(
     )
     if not preview.get("success"):
         return preview
-    dialogue = build_settlement_confirm_dialogue(world, preview)
+    dialogue = build_settlement_confirm_dialogue(world, preview, selected_target_nation=selected_target_nation)
     if getattr(world.dialogue_manager, "peek", lambda: None)() is None:
         world.dialogue_manager.replace(dialogue)
     elif hasattr(world.dialogue_manager, "preempt"):
