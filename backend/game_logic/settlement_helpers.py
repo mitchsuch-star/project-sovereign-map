@@ -1921,7 +1921,20 @@ def resolve_or_backfill_war_instance_for_settlement(
     state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
     if state != "WAR":
         return {"ok": False, "error": "not_at_war", "diplomatic_state": state}
-    existing = _find_active_war_instance_for_pair(world, pair)
+    # SC-8b: reject multi-war ambiguity when no war_id is supplied.
+    matching_war_ids: List[str] = []
+    for wid, inst in _iter_active_war_instances(world):
+        if pair in (inst.get("active_diplo_keys") or []):
+            meta = (inst.get("diplo_key_meta") or {}).get(pair) or {}
+            if meta.get("pair_status") in ("war", "armistice"):
+                matching_war_ids.append(wid)
+    if len(matching_war_ids) > 1:
+        return {
+            "ok": False,
+            "error": "multi_war_ambiguity",
+            "available_wars": sorted(matching_war_ids),
+        }
+    existing = matching_war_ids[0] if matching_war_ids else None
     if existing is not None:
         return {
             "ok": True,

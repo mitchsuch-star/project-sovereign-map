@@ -9819,14 +9819,29 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
         settlement_war_id = None
+        multi_war_ambiguity = False
+        available_wars = []
         try:
             player_wars = set(world.get_war_instances_by_participant(player))
             target_wars = set(world.get_war_instances_by_participant(target_nation))
             common_wars = sorted(player_wars & target_wars)
-            settlement_war_id = common_wars[0] if common_wars else None
+            if len(common_wars) == 1:
+                settlement_war_id = common_wars[0]
+            elif len(common_wars) > 1:
+                multi_war_ambiguity = True
+                available_wars = list(common_wars)
         except Exception:
             settlement_war_id = None
-        if settlement_war_id:
+        if multi_war_ambiguity:
+            from backend.display_names import settlement_disabled_reason_display
+            settlement_eligibility = {
+                "available": False,
+                "error": "multi_war_ambiguity",
+                "error_display": settlement_disabled_reason_display("multi_war_ambiguity"),
+                "disabled_reason_display": settlement_disabled_reason_display("multi_war_ambiguity"),
+                "available_wars": available_wars,
+            }
+        elif settlement_war_id:
             try:
                 from backend.game_logic.settlement_preview import (
                     evaluate_open_settlement_eligibility,

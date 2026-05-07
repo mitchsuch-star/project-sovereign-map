@@ -524,6 +524,7 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "no_unresolved_hostile_pairs": "There are no hostile pairs left to settle.",
     "no_coverable_enemy": "There is no enemy participant this settlement can cover.",
     "settlement_dialogue_active": "Resolve the current settlement review first.",
+    "multi_war_ambiguity": "Multiple wars with this court; select a specific war from war detail.",
     "proposer_leader_changed": "Your side's war leader changed; reopen settlement review.",
     "active_pair_changed": "The war changed while the settlement was open.",
     "no_covered_enemy_participants": "No enemy participant is selected for settlement.",

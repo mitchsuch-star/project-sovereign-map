@@ -172,7 +172,7 @@ def build_active_wars(world) -> Dict[str, Any]:
         # block when no war_instance is wired (early game / synthetic).
         contribution = _resolve_contribution_share(world, france, opponent)
 
-        settlement_available = _is_common_settlement_worth_showing(
+        settlement_available = _evaluate_settlement_available(
             world, contribution.get("war_id", ""),
         )
 
@@ -395,3 +395,21 @@ def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
     )
 
     return is_common_settlement_worth_showing(instance)
+
+
+def _evaluate_settlement_available(world, war_id: str) -> bool:
+    """SC-10: Use active hostile-pair eligibility, not just unique-nation count."""
+    if not war_id:
+        return False
+    try:
+        from backend.game_logic.settlement_preview import (
+            evaluate_open_settlement_eligibility,
+        )
+        eligibility = evaluate_open_settlement_eligibility(
+            world, war_id=war_id,
+            actor_nation=getattr(world, "player_nation", "France"),
+            ignore_active_dialogue=True,
+        )
+        return bool(eligibility.get("available"))
+    except Exception:
+        return _is_common_settlement_worth_showing(world, war_id)
