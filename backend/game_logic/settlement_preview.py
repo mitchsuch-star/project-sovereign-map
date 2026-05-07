@@ -525,13 +525,31 @@ def build_settlement_confirm_dialogue(
         and verdict not in ("reject", "blocked")
         and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
     )
+    ratify_blocked_reason = ""
+    if not can_ratify:
+        if hard_stops:
+            ratify_blocked_reason = "Ratification blocked by hard-stop warnings."
+        elif acceptance_score is None:
+            ratify_blocked_reason = f"Ratification unavailable: acceptance is blocked / {acceptance_threshold}."
+        else:
+            ratify_blocked_reason = f"Ratification unavailable: acceptance is {acceptance_score} / {acceptance_threshold}."
     options = []
     available_action_ids = []
     if can_ratify:
-        options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
+        options.append({"label": "Ratify Settlement", "action": "confirm_settlement", "available": True})
         available_action_ids.append("confirm_settlement")
+    else:
+        options.append(
+            {
+                "label": "Ratify Settlement",
+                "action": "confirm_settlement",
+                "available": False,
+                "disabled_reason": ratify_blocked_reason,
+                "description": ratify_blocked_reason,
+            }
+        )
     available_action_ids.append("back_out_settlement")
-    options.append({"label": "Back Out", "action": "back_out_settlement"})
+    options.append({"label": "Back Out", "action": "back_out_settlement", "available": True})
 
     covered = list(preview.get("covered_enemy_participants") or [])
     selected_target = str(selected_target_nation or "").strip()
@@ -564,6 +582,7 @@ def build_settlement_confirm_dialogue(
         "acceptance_display": (preview.get("review_sections") or {}).get("sections", {}).get("acceptance", {}),
         "available_action_ids": available_action_ids,
         "can_ratify": can_ratify,
+        "ratify_blocked_reason": ratify_blocked_reason,
         "options": options,
         "message": text,
         "talleyrand_text": text,

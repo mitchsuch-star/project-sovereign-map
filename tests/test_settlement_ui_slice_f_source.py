@@ -48,6 +48,9 @@ def test_settlement_confirm_uses_review_payload_and_humanized_fields() -> None:
     assert "band_display" in source
     assert "Will %s accept this settlement?" in source
     assert "Settlement payload incomplete" in source
+    assert "ratify_blocked_reason" in source
+    assert "btn.disabled = not available" in source
+    assert "font_disabled_color" in source
     assert 'data.get("actions"' not in source
 
 

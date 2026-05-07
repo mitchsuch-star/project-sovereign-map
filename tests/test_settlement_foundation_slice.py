@@ -316,7 +316,7 @@ class TestRatificationAcceptanceGate:
             == dialogue["route_id"]
         )
 
-    def test_ratification_options_absent_on_rejection(self):
+    def test_ratification_option_visible_but_disabled_on_rejection(self):
         world = WorldState()
         _install_common_peace_war(world, war_score=5)
         result = stage_settlement_confirm(
@@ -325,10 +325,14 @@ class TestRatificationAcceptanceGate:
         )
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
-        option_actions = [o["action"] for o in dialogue.get("options", [])]
-        assert "confirm_settlement" not in option_actions
-        assert "back_out_settlement" in option_actions
+        options = {o["action"]: o for o in dialogue.get("options", [])}
+        assert options["confirm_settlement"]["available"] is False
+        assert "acceptance" in options["confirm_settlement"]["disabled_reason"]
+        assert options["back_out_settlement"]["available"] is True
+        assert "confirm_settlement" not in dialogue.get("available_action_ids", [])
+        assert "back_out_settlement" in dialogue.get("available_action_ids", [])
         assert dialogue.get("can_ratify") is False
+        assert "acceptance" in dialogue.get("ratify_blocked_reason", "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
