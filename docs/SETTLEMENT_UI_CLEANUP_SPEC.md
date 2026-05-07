@@ -197,10 +197,30 @@ The cleanup implementation may not start Slice G or broader settlement agency un
 15. **G2-Slice-1 must ship a minimum live authorable clause set.** The first treaty editor slice cannot close as a peace-only or empty-shell editor. At minimum, `peace`, `territory_cede`, `gold_indemnity`, and `forced_alliance` must be enabled, previewable, submittable, and ratifiable when valid. Other canonical clauses may be interim-hidden only through the four-artifact protocol.
 16. **Submit must revalidate authored terms before staging.** `_execute_propose_common_peace` must re-run the SC-1 POST preview / conflict-matrix validation on submitted `settlement_terms` before `stage_settlement_confirm(...)`. Validation failure returns `error="submitted_terms_failed_revalidation"` with humanized copy, `success=False`, and no staged dialogue.
 17. **Settlement-family safety covers hard stops and current-turn offers.** SC-14 live-route foregrounding, SC-18 command-fallback safety, and SC-26 same-war/cross-war collision rules apply to every settlement-family dialogue, including hard-stop `settlement_confirm` and current-turn-offer `incoming_settlement_offer` if SC-5 is explicitly reversed.
+18. **Failed settlement confirmation must offer an understandable next step.** A rejected or blocked `settlement_confirm` is only a ratification gate, not a treaty editor and not a surrender menu. It must not collapse to a lone `Back Out` button with no strategic context. If `Ratify Settlement` is unavailable, the popup must keep the unavailable action visible/disabled with a humanized reason and present the best available follow-up actions for the current implementation state: `Revise Terms` when a real editor/re-author route exists, `Revise Terms` disabled with "term editor not available yet" only as an explicitly temporary cleanup state, `Seek Armistice Instead` when a valid bilateral/armistice path exists, and `Wait for Enemy Offer` only when the AI-offer producer is implemented or the copy clearly says the feature is not yet available. Losing a war must not mean the player has no peace affordance; losing-side packages such as "offer concessions," "ask for terms," or "surrender terms" are future treaty-authoring work and must be treated as peace-seeking routes, not as a requirement to win before settlement UI becomes useful.
 
 If a short interim patch ships before full treaty authoring, it must hide or neutralize incomplete treaty-authoring implications: `Revise Terms`, term harshness rows, projected-hegemony / Balance pressure rows, forced-alliance threat preview, vassalage / liberation / gold clause preview, and any Terms section copy that implies clauses beyond the actually editable draft. This is an interim safety measure, not the approved end state.
 
 If incoming settlement offers are deferred, the cleanup patch must remove the player-facing scaffolding together: drop `incoming_settlement_offer` from hard-stop and mailbox type taxonomies, mailbox summary labels, Godot proposal/settlement popup type lists, and settlement action lists, or put them behind a disabled feature flag. The handler may remain only if tests prove no normal gameplay or mailbox path can expose it.
+
+### Rejected Settlement / Losing-Side UX Contract
+
+The common settlement confirmation popup is a ratification checkpoint. It reviews a concrete settlement package and asks whether the accepting side will take it. It is not, by itself, a treaty editor, a surrender menu, or an incoming-offer mailbox. When acceptance fails, the UI must explain that the proposed package cannot be ratified in its current form and then route the player toward the real peace tools that exist.
+
+Required interim behavior before full treaty authoring:
+
+- Keep `Ratify Settlement` visible but disabled when acceptance or hard stops block it; show the exact blocked reason in the popup body and button tooltip.
+- Do not show a working `Revise Terms` action unless it opens an edit-capable draft route that preserves `war_id`, covered participants, selected target, and current `settlement_terms`.
+- If revision is not yet implemented, either hide `Revise Terms` or show it disabled with "Term editor not available yet"; do not route it to a no-op reopen loop.
+- If the player has a valid armistice/bilateral fallback, surface it as an explicit alternative rather than making `Back Out` look like the only possible move.
+- If AI settlement offers are deferred, do not imply that waiting will certainly produce one. If `Wait for Enemy Offer` appears before the producer ships, it must be disabled or phrased as informational future work.
+
+Required final behavior for losing-side peace:
+
+- The player must be able to seek peace while losing. Settlement agency cannot depend on first becoming the winning side.
+- Losing-side treaty packages must support concessionary terms such as lighter demands, offered concessions, asking for terms, or surrender terms through the same war-scoped authoring/preview/ratification pipeline.
+- Acceptance scoring may make harsh player-favored terms impossible while losing, but it must not strand the player without any peace-seeking route.
+- Incoming AI offers/counter-offers may complement losing-side peace, but they cannot be the only way for a losing player to pursue peace unless the UI says that agency is intentionally delegated and a reachable offer/counter-offer system exists.
 
 ### Audited Non-Gaps
 
