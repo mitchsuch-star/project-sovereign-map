@@ -80,7 +80,7 @@ def _error_display(code: str) -> str:
 
 def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
     display = _error_display(code)
-    return {
+    payload = {
         "available": False,
         "error": code,
         "error_display": display,
@@ -88,6 +88,40 @@ def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
         "display_reason": display,
         **extra,
     }
+    if code == "settlement_dialogue_active":
+        payload["talleyrand_text"] = resolve_settlement_voice_line(
+            "settlement_collision_active_review_talleyrand",
+            active_war_label=str(extra.get("war_id") or "the active war"),
+            blocked_war_label=str(extra.get("war_id") or "this war"),
+        )
+    return payload
+
+
+def _failed_ratification_reaction_summary(
+    world: Any,
+    *,
+    war_id: str,
+    proposer_side: str = "",
+    accepting_side: str = "",
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
+) -> Dict[str, Any]:
+    from backend.game_logic.settlement_reactions import route_settlement_reactions
+
+    return route_settlement_reactions(
+        world,
+        war_id=war_id,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        covered_enemy_participants=list(covered_enemy_participants or []),
+        settlement_terms=[dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)],
+        resolved_pairs=[],
+        applied_clauses=[],
+        pre_cleanup_snapshots=[],
+        war_ended=False,
+        success=False,
+        mutated=False,
+    )
 
 
 def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
@@ -411,7 +445,7 @@ def _no_reopen_target_payload(
     safely fired and the player must be redirected to war detail. The
     caller is responsible for adding success/dialogue_type/action.
     """
-    return {
+    payload = {
         "must_reopen": False,
         "reopen_target": {
             "surface": "war_detail",
@@ -423,6 +457,12 @@ def _no_reopen_target_payload(
         "error": error,
         "error_display": _error_display(error),
     }
+    if error == "reopen_attempt_cap_exceeded":
+        payload["talleyrand_text"] = resolve_settlement_voice_line(
+            "settlement_reopen_cap_exhausted_talleyrand",
+            war_label=war_id or "this war",
+        )
+    return payload
 
 
 def _safe_reopen_response(
@@ -540,6 +580,11 @@ def _settlement_collision_payload(
         "active_war_id": active_war_id,
         "incoming_war_id": incoming_war_id,
         "collision": True,
+        "talleyrand_text": resolve_settlement_voice_line(
+            "settlement_collision_active_review_talleyrand",
+            active_war_label=active_war_id or "the active war",
+            blocked_war_label=incoming_war_id or "this war",
+        ),
     }
     if extra:
         payload.update(dict(extra))
@@ -809,6 +854,28 @@ def build_settlement_preview(
         if isinstance(component_debug.get("forced_alliance_threat_preview"), Mapping)
         else None
     )
+    visible_enemy_nations: Set[str] = set()
+    if hasattr(world, "get_visible_enemies"):
+        try:
+            visible_enemy_nations = {
+                str(getattr(m, "nation", "") or "")
+                for m in world.get_visible_enemies(getattr(world, "player_nation", "France"))
+                if getattr(m, "nation", "")
+            }
+        except Exception:
+            visible_enemy_nations = set()
+    review_covered = [
+        n for n in covered
+        if not visible_enemy_nations or n in visible_enemy_nations
+    ]
+    review_allies = []
+    for row in list(contribution.get("rows", [])):
+        if not isinstance(row, Mapping):
+            continue
+        nation = str(row.get("nation") or "")
+        row_side = str(row.get("side") or "")
+        if row_side == side or not visible_enemy_nations or nation in visible_enemy_nations:
+            review_allies.append(row)
     preview_awe_tags = detect_awe_set_pieces(
         settlement_terms=list(terms),
         participant_reactions=[],
@@ -820,9 +887,9 @@ def build_settlement_preview(
         war_label=preview["war_label"],
         proposer_side=side,
         accepting_side=accepting_side,
-        covered_enemy_participants=covered,
+        covered_enemy_participants=review_covered,
         terms=terms,
-        allies=list(contribution.get("rows", [])),
+        allies=review_allies,
         warnings=warnings,
         acceptance=review_acceptance,
         density=preview["density"],
@@ -892,7 +959,20 @@ def build_settlement_confirm_dialogue(
         top_blocker_display = str(first.get("component_display") or first.get("display") or "")
     if not top_blocker_display:
         top_blocker_display = "no single dominant pressure"
-    if can_ratify:
+    player_nation = str(getattr(world, "player_nation", "France") or "France")
+    all_members = {
+        str(n)
+        for side_name in ("attackers", "defenders")
+        for n in (war_instance.get(side_name) or [])
+        if n
+    }
+    if player_nation not in all_members:
+        text = resolve_settlement_voice_line(
+            "settlement_observed_foreign_court_chancery",
+            war_label=war_label,
+            accepting_leader=str(leaders.get(accepting_side) or "the accepting court"),
+        ) or f"Foreign Office records the settlement of {war_label}."
+    elif can_ratify:
         text = resolve_settlement_voice_line(
             "settlement_review_heading_talleyrand",
             war_label=war_label,
@@ -1306,7 +1386,7 @@ def _apply_settlement_terms(
                         and not world.get_nation_regions(nation)
                     ):
                         world._eliminate_nation(nation)
-        elif ttype == "gold_lump":
+        elif ttype in ("gold_lump", "gold_indemnity"):
             amount = abs(int(term.get("amount", 0) or 0))
             nation_gold = getattr(world, "nation_gold", {}) or {}
             if from_nation in nation_gold:
@@ -1317,8 +1397,17 @@ def _apply_settlement_terms(
                     nation_gold[to_nation] = int(nation_gold.get(to_nation, 0)) + transfer
                 if transfer > 0:
                     clause = dict(term)
+                    clause["type"] = ttype
                     clause["amount"] = int(transfer)
                     applied.append(clause)
+        elif ttype == "gold_per_turn":
+            amount = abs(int(term.get("amount", 0) or 0))
+            turns = abs(int(term.get("turns", 0) or 0))
+            if from_nation and to_nation and amount > 0 and turns > 0:
+                clause = dict(term)
+                clause["amount"] = amount
+                clause["turns"] = turns
+                applied.append(clause)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
             lib_from = str(term.get("lord_nation") or term.get("to") or "")
@@ -1380,6 +1469,7 @@ def _apply_settlement_terms(
                     clause["vassal_nation"] = lib_vassal
                     clause["lord_nation"] = lib_from
                     clause["liberator"] = lib_liberator
+                    clause["pair_state_transition"] = "VASSALAGE -> SOVEREIGN"
                     applied.append(clause)
                     if hasattr(world, "log_event"):
                         world.log_event({
@@ -1474,7 +1564,11 @@ def _resolve_pair_state_transitions(
                     )
                 if vassal_result.get("success"):
                     assimilate_vassal_marshals(world, covered_enemy)
-                    state_clauses_applied.append(dict(term))
+                    clause = dict(term)
+                    clause.setdefault("from", covered_enemy)
+                    clause.setdefault("to", proposer_member)
+                    clause["pair_state_transition"] = "WAR -> VASSALAGE"
+                    state_clauses_applied.append(clause)
                     cleanup_war_end(world, pair_key, conclude_objectives=True)
                 else:
                     set_diplomatic_state(
@@ -1531,7 +1625,11 @@ def _resolve_pair_state_transitions(
                     "turn": int(getattr(world, "current_turn", 0) or 0),
                 })
             if term is not None:
-                state_clauses_applied.append(dict(term))
+                clause = dict(term)
+                clause["includes_continental_system"] = includes_cs
+                clause.setdefault("projected_threat_delta", 15)
+                clause["pair_state_transition"] = "WAR -> ALLIANCE"
+                state_clauses_applied.append(clause)
 
         resolved_pairs.append({
             "pair": entry["pair"],
@@ -1661,6 +1759,8 @@ def ratify_settlement_confirm(
     if not validation.get("ok"):
         world.dialogue_manager.pop()
         error = str(validation.get("error") or "")
+        proposer_side = str(dialogue.get("proposer_side") or "")
+        accepting_side = str(dialogue.get("accepting_side") or "")
         result = {
             "success": False,
             "dialogue_type": "settlement_confirm",
@@ -1669,6 +1769,14 @@ def ratify_settlement_confirm(
             "error": error,
             "error_display": _error_display(error),
             "mutated": False,
+            "settlement_reactions": _failed_ratification_reaction_summary(
+                world,
+                war_id=war_id,
+                proposer_side=proposer_side,
+                accepting_side=accepting_side,
+                covered_enemy_participants=dialogue.get("covered_enemy_participants") or [],
+                settlement_terms=dialogue.get("settlement_terms") or [],
+            ),
         }
         if validation.get("must_reopen"):
             # SC-2/SC-3/SC-13/SC-14b: gate `must_reopen=True` on a non-empty
@@ -1691,6 +1799,14 @@ def ratify_settlement_confirm(
             "error": error,
             "error_display": _error_display(error),
             "mutated": False,
+            "settlement_reactions": _failed_ratification_reaction_summary(
+                world,
+                war_id=war_id,
+                proposer_side=str(dialogue.get("proposer_side") or ""),
+                accepting_side=str(dialogue.get("accepting_side") or ""),
+                covered_enemy_participants=dialogue.get("covered_enemy_participants") or [],
+                settlement_terms=dialogue.get("settlement_terms") or [],
+            ),
         }
         result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
         # The original code path treated this as `must_reopen=True`; keep
@@ -1732,6 +1848,26 @@ def ratify_settlement_confirm(
     )
     if ratification_blocked:
         error = "acceptance_blocked" if fresh_hard_stops or has_unknown_hard_stop else "acceptance_rejected"
+        band_display = acceptance_band_display(str(fresh_verdict or ""))
+        top_blocker = ""
+        feedback = list(fresh_acceptance.get("feedback") or [])
+        if feedback and isinstance(feedback[0], Mapping):
+            top_blocker = str(
+                feedback[0].get("component_display")
+                or feedback[0].get("display")
+                or feedback[0].get("component")
+                or ""
+            )
+        if fresh_hard_stops:
+            first_stop = fresh_hard_stops[0]
+            if isinstance(first_stop, Mapping):
+                top_blocker = str(
+                    first_stop.get("display")
+                    or first_stop.get("detail")
+                    or first_stop.get("reason")
+                    or top_blocker
+                )
+        top_blocker = top_blocker or "a hard condition"
         return {
             "success": False,
             "dialogue_type": "settlement_confirm",
@@ -1744,6 +1880,20 @@ def ratify_settlement_confirm(
             "acceptance_threshold": fresh_threshold,
             "hard_stops": fresh_hard_stops,
             "mutated": False,
+            "talleyrand_text": resolve_settlement_voice_line(
+                "settlement_rescored_after_staging_talleyrand",
+                war_label=str(dialogue.get("war_label") or war_id),
+                acceptance_band=band_display,
+                top_blocker=top_blocker,
+            ),
+            "settlement_reactions": _failed_ratification_reaction_summary(
+                world,
+                war_id=war_id,
+                proposer_side=proposer_side,
+                accepting_side=accepting_side,
+                covered_enemy_participants=covered,
+                settlement_terms=settlement_terms,
+            ),
         }
 
     plan = _build_pair_ratification_plan(
@@ -1764,6 +1914,14 @@ def ratify_settlement_confirm(
             "error": error,
             "error_display": _error_display(error),
             "mutated": False,
+            "settlement_reactions": _failed_ratification_reaction_summary(
+                world,
+                war_id=war_id,
+                proposer_side=proposer_side,
+                accepting_side=accepting_side,
+                covered_enemy_participants=covered,
+                settlement_terms=settlement_terms,
+            ),
         }
         result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
         return result
@@ -1957,6 +2115,14 @@ def handle_settlement_dialogue_action(
             "mutated": False,
             "had_draft": has_draft,
             "message": "Settlement review cancelled.",
+            "talleyrand_text": (
+                resolve_settlement_voice_line(
+                    "settlement_discard_confirm_talleyrand",
+                    war_label=str(dialogue.get("war_label") or war_id or "this war"),
+                )
+                if has_draft
+                else ""
+            ),
             "suppress_proposal_result_popup": True,
         }
     if action == "revise_settlement_terms":

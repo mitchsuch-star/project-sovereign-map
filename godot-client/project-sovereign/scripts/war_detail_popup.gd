@@ -429,7 +429,7 @@ func _add_negotiate_button(nation: String):
 func _add_settlement_button(war_id: String, nation: String, label: String):
 	var btn = Button.new()
 	btn.text = label
-	btn.tooltip_text = "Open a war-wide common peace settlement review."
+	btn.tooltip_text = "Open a war-wide settlement review."
 	btn.custom_minimum_size = Vector2(190, 36)
 	btn.add_theme_font_size_override("font_size", 13)
 	btn.pressed.connect(func():
@@ -455,7 +455,7 @@ func _add_target_button(nation: String):
 func _add_coalition_settlement_explainer():
 	var lbl = Label.new()
 	lbl.text = "Coalition spans multiple wars; settle each separately."
-	lbl.tooltip_text = "Open an individual war detail to prepare a common peace for that war."
+	lbl.tooltip_text = "Open an individual war detail to prepare a settlement for that war."
 	lbl.custom_minimum_size = Vector2(250, 36)
 	lbl.add_theme_font_size_override("font_size", 11)
 	lbl.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))

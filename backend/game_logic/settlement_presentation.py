@@ -849,19 +849,24 @@ def build_applied_clauses_preview(
             row["from"] = str(term.get("from") or "")
             row["to"] = str(term.get("to") or "")
             row["includes_continental_system"] = bool(
-                term.get("includes_continental_system") or False
+                term.get("includes_continental_system", True)
             )
             row["projected_threat_delta"] = int(
-                term.get("projected_threat_delta") or 0
+                term.get("projected_threat_delta", 15) or 15
             )
             row["pair_state_transition"] = "WAR -> ALLIANCE"
         elif ttype == "vassalage" or ttype == "subjugation":
             row["vassal"] = str(term.get("vassal_nation") or term.get("from") or "")
             row["overlord"] = str(term.get("overlord") or term.get("to") or "")
+            row["from"] = row["vassal"]
+            row["to"] = row["overlord"]
             row["pair_state_transition"] = "WAR -> VASSALAGE"
         elif ttype == "liberation":
-            row["target"] = str(term.get("target") or term.get("vassal_nation") or "")
-            row["lord"] = str(term.get("lord") or term.get("overlord") or term.get("from") or "")
+            row["target"] = str(term.get("target") or term.get("vassal_nation") or term.get("from") or "")
+            row["vassal_nation"] = row["target"]
+            row["lord"] = str(term.get("lord") or term.get("overlord") or term.get("lord_nation") or term.get("to") or "")
+            row["lord_nation"] = row["lord"]
+            row["liberator"] = str(term.get("liberator") or term.get("to") or "")
             row["pair_state_transition"] = "VASSALAGE -> SOVEREIGN"
         elif ttype == "peace":
             row["pair_state_transition"] = "WAR -> PEACE"
@@ -923,13 +928,14 @@ def build_beneficiaries_preview(
         elif ttype in ("vassalage", "subjugation"):
             _record(clause.get("overlord", ""), "Gains vassal")
         elif ttype == "liberation":
-            _record(clause.get("target", ""), "Liberated from vassalage")
+            _record(clause.get("target", "") or clause.get("vassal_nation", ""), "Liberated from vassalage")
     return list(by_nation.values())
 
 
 def build_shut_out_allies_preview(
     contribution_rows: Sequence[Mapping[str, Any]] | None,
     warnings: Sequence[Mapping[str, Any]] | None,
+    proposer_side: str = "",
 ) -> List[Dict[str, Any]]:
     """SC-15: explicit shut-out / ignored coalition members preview.
 
@@ -947,6 +953,10 @@ def build_shut_out_allies_preview(
             continue
         nation = str(row.get("nation") or "")
         if not nation or nation in seen:
+            continue
+        if proposer_side and str(row.get("side") or "") != proposer_side:
+            continue
+        if bool(row.get("is_leader") or False) or bool(row.get("is_beneficiary") or False):
             continue
         standing = str(row.get("standing") or "")
         contribution_share = float(row.get("contribution_share") or row.get("contribution") or 0)
@@ -967,6 +977,8 @@ def build_shut_out_allies_preview(
             continue
         nation = str(warning.get("nation") or warning.get("ally") or "")
         if not nation or nation in seen:
+            continue
+        if proposer_side and str(warning.get("side") or warning.get("ally_side") or proposer_side) != proposer_side:
             continue
         rows.append({
             "nation": nation,
@@ -1035,11 +1047,12 @@ def build_third_party_reaction_preview(
         for threshold in crossed:
             if not threshold:
                 continue
+            display = str(threshold).replace("_", " ").capitalize()
             rows.append({
                 "kind": "coalition_threat_threshold_crossed",
                 "threshold": str(threshold),
                 "display": (
-                    f"Coalition threshold crossed: {str(threshold).replace('_', ' ')}"
+                    f"Coalition threshold crossed: {display}"
                 ),
             })
     return rows
@@ -1238,6 +1251,7 @@ def build_settlement_review(
     shut_out_allies_preview = build_shut_out_allies_preview(
         contribution_rows=allies,
         warnings=warnings,
+        proposer_side=proposer_side,
     )
     forced_alliance_threat_display = build_forced_alliance_threat_preview_display(
         forced_alliance_threat_preview,
@@ -1517,7 +1531,7 @@ def build_settlement_review_from_event(
         terms=list(event.get("applied_clauses") or []),
         allies=allies,
         warnings=warnings,
-        acceptance=None,
+        acceptance=event.get("acceptance_snapshot") or None,
         density=density,
         awe_tags=list(event.get("awe_tags") or []),
     )
@@ -1634,8 +1648,9 @@ def build_peace_settlement_history(
     """
     rows: List[Dict[str, Any]] = []
 
+    entries = list(getattr(world, "peace_ratification_log", []) or [])
     settlement_rows = recent_settlement_summaries(
-        world, player_nation, limit=limit,
+        world, player_nation, limit=max(limit, limit + len(entries)),
     )
     for row in settlement_rows:
         merged = dict(row)
@@ -1648,7 +1663,6 @@ def build_peace_settlement_history(
     # Bilateral peace ratifications. The producer remains
     # `_ratify_treaty(...)` / `cleanup_war_end(...)` — see
     # `_build_recent_peace_ratifications` for the field contract.
-    entries = list(getattr(world, "peace_ratification_log", []) or [])
     bilateral_seq_by_turn: Dict[int, int] = {}
     for entry in reversed(entries):
         if not isinstance(entry, Mapping):

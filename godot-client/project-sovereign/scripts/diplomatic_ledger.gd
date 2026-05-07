@@ -531,7 +531,7 @@ func _render_treaties():
 				# Bilateral peace row — render in the same merged stream
 				# with a type pill, distinct route id namespace
 				# (`peace:{participants_signature}:{turn}:{seq}`).
-				var p_meta = "peace_ratification:" + str(h_idx)
+				var p_meta = "peace_ratification:" + str(h_idx) + ":" + s_route
 				bbcode += "  [url=" + p_meta + "][color=#" + Utils.COLOR_GOLD + "]> " + s_headline + "[/color][/url]"
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "](" + row_type_display + " · T" + str(s_turn) + ")[/color]\n"
 			h_idx += 1
