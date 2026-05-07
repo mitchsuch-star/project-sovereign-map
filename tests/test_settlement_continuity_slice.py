@@ -30,6 +30,8 @@ from backend.game_logic.settlement_preview import (
 from backend.game_logic.settlement_presentation import (
     SETTLEMENT_REVIEW_TARGET_ACTIVE,
     SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+    recent_settlement_summaries,
+    settlement_notification_meta,
     settlement_review_target,
 )
 from backend.models.world_state import WorldState
@@ -550,6 +552,56 @@ def test_settlement_review_target_re_resolves_at_click_time_with_world():
     # With world, click-time re-resolution overrides the stamped value.
     assert settlement_review_target(rendered_event, world=world) == \
         SETTLEMENT_REVIEW_TARGET_ARCHIVED
+
+
+def test_notification_meta_re_resolves_review_target_with_live_world():
+    """SC-14: notification click metadata must not keep a stale active
+    branch when the war archives between render and click."""
+    world = WorldState()
+    war = _install_war(world)
+    event = {
+        "type": "settlement_summary",
+        "war_id": "war_1",
+        "turn": 7,
+        "war_ended": False,
+        "proposer_members": ["France"],
+        "accepting_members": ["Austria"],
+        "route": {
+            "review_target": SETTLEMENT_REVIEW_TARGET_ACTIVE,
+            "route_id": "settlement:war_1:7:1",
+        },
+    }
+    war["ended_turn"] = 8
+    meta = settlement_notification_meta(event, world=world)
+    assert meta["review_target"] == SETTLEMENT_REVIEW_TARGET_ARCHIVED
+    assert meta["route_id"] == "settlement:war_1:7:1"
+
+
+def test_recent_settlement_rows_re_resolve_review_target_with_live_world():
+    """SC-14/SC-14d: ledger rows built after archival use current world
+    state rather than the event's stale stamped route target."""
+    world = WorldState()
+    war = _install_war(world)
+    world.event_log.append({
+        "type": "settlement_summary",
+        "war_id": "war_1",
+        "turn": 7,
+        "war_ended": False,
+        "proposer_members": ["France"],
+        "accepting_members": ["Austria"],
+        "covered_enemy_participants": ["Austria"],
+        "applied_clauses": [],
+        "participant_reactions": [],
+        "terms_summary": [],
+        "route": {
+            "review_target": SETTLEMENT_REVIEW_TARGET_ACTIVE,
+            "route_id": "settlement:war_1:7:1",
+        },
+    })
+    war["ended_turn"] = 8
+    rows = recent_settlement_summaries(world, "France")
+    assert rows[0]["review_target"] == SETTLEMENT_REVIEW_TARGET_ARCHIVED
+    assert rows[0]["route_id"] == "settlement:war_1:7:1"
 
 
 def test_resolve_settlement_route_click_returns_active_for_live_war():

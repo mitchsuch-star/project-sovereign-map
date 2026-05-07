@@ -19,6 +19,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
+- **Settlement UI Cleanup audit follow-up (May 7, 2026):** G2-Slice-3 Continuity includes the follow-up fixes for live-world settlement notification/ledger review-target re-resolution and war-instance merge migration of `pending_settlement_drafts`, `settlement_route_seq`, and `settlement_reopen_attempts`. The active next gate remains **G2-Slice-4 Incoming Offers (SC-5/6/7)**.
+
 - **Imperial Settlement current handoff:** Slices A1-A3, B1-B3, C1a/C1b, C2, D1/D2, E, Slice F UI routing (commit `0b9289e`), Settlement UI Cleanup G2-Slice-1 (Foundation, commit `b699f4c`), G2-Slice-2 (Entry Safety, commit `4310903`), and G2-Slice-3 (Continuity, May 7, 2026) are landed. **Next: Settlement UI Cleanup G2-Slice-4 (Incoming Offers, SC-5/6/7)** per `docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.17. The cleanup spec is a mandatory quality gate — common peace must become a real treaty-authoring system, not a white-peace lever with misleading controls. Remaining ordered slices: **(4) Incoming Offers** (SC-5/6/7: defer+hide by default unless explicitly reversed), **(5) Presentation & Metadata** (SC-15/15b/16/17/19/20/23–25: clause preview, reaction preview, acceptance snapshots, vocabulary humanization, Voice Bible §16.1). After cleanup: manual Godot smoke → Slice G AI/ally settlement agency → Final Gate test bundle → 8.EVAL → Phase 8.5.
 
 - **Scale Readiness Phase 1 — COMPLETE.** 11 new tests, hardcoded `== 19` removed, validator derives from NATION_CAPITALS.

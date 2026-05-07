@@ -1075,7 +1075,7 @@ def _queue_settlement_notification(world: Any, event: Mapping[str, Any]) -> None
     )
     from backend.notifications import create_notification
 
-    meta = settlement_notification_meta(event)
+    meta = settlement_notification_meta(event, world=world)
     if meta.get("rail_spotlight") != "yes":
         return
     notifications.add(create_notification(

@@ -101,6 +101,39 @@ def test_three_instance_chain_merge_collapses_to_one_survivor():
     assert {"Austria", "Russia"}.issubset(set(survivor["defenders"]))
 
 
+def test_merge_rewrites_settlement_continuity_state_for_absorbed_wars():
+    """SC-26 continuity integration: war-instance merge migrates Slice 3
+    settlement draft, route-sequence, and reopen-attempt state from
+    absorbed war ids to the survivor."""
+    world = _clean_world()
+    inserted = build_three_instance_chain_merge_fixture(world)
+    war_a, war_b, war_c = sorted(inserted.keys())
+    world.pending_settlement_drafts[war_a] = [
+        {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50},
+    ]
+    world.pending_settlement_drafts[war_b] = [
+        {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
+    ]
+    world.settlement_route_seq[war_a] = {7: 2}
+    world.settlement_route_seq[war_b] = {7: 5, 8: 1}
+    world.settlement_reopen_attempts[war_b] = {7: 3}
+    world.settlement_reopen_attempts[war_c] = {8: 1}
+
+    result = merge_war_instances(world, candidate_war_ids=[war_a])
+
+    assert result["ok"] is True
+    assert result["surviving_war_id"] == war_a
+    assert war_b not in world.pending_settlement_drafts
+    assert war_b not in world.settlement_route_seq
+    assert war_c not in world.settlement_reopen_attempts
+    assert world.pending_settlement_drafts[war_a] == [
+        {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50},
+        {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
+    ]
+    assert world.settlement_route_seq[war_a] == {7: 5, 8: 1}
+    assert world.settlement_reopen_attempts[war_a] == {7: 3, 8: 1}
+
+
 def test_merge_preserves_participant_meta_joined_turn_and_entry_path():
     """Spec §7.6 step 4: participant_meta is dict-unioned; survivor wins
     on collision; absorbed metadata for non-overlapping nations is

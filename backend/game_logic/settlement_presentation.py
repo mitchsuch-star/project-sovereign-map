@@ -224,6 +224,8 @@ def settlement_review_target(
 
 def settlement_notification_meta(
     event: Mapping[str, Any],
+    *,
+    world: Any | None = None,
 ) -> Dict[str, Any]:
     """Notification rail spotlight metadata for a settlement event.
 
@@ -239,7 +241,7 @@ def settlement_notification_meta(
     route = settlement_route(event_type)
     if not route:
         return {}
-    review_target = settlement_review_target(event)
+    review_target = settlement_review_target(event, world=world)
     payload = {
         "event_type": event_type,
         "event_family": route.get("event_family", SETTLEMENT_EVENT_FAMILY),
@@ -1159,7 +1161,7 @@ def recent_settlement_summaries(
             continue
         if not is_settlement_event_visible(event, world, player_nation):
             continue
-        review_target = settlement_review_target(event)
+        review_target = settlement_review_target(event, world=world)
         reactions = list(event.get("participant_reactions") or [])
         named: List[str] = []
         for reaction in reactions:
