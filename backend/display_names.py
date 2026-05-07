@@ -551,6 +551,8 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     # SC-7b stale incoming offer
     "incoming_offer_war_archived": "That settlement offer is no longer relevant; the war has ended.",
     "incoming_offer_war_invalid": "That settlement offer references a war we cannot find; choose from war detail.",
+    # SC-5 G2-Slice-4 default defer-and-hide for incoming settlement offers
+    "incoming_offer_deferred": "Incoming settlement offers are not available in this build.",
     # SC-26 collision codes
     "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",

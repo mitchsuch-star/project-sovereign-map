@@ -52,7 +52,11 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_conflict_alert_content(data)
 		"ultimatum_confirm", "ultimatum_demand_wizard":
 			bbcode = _build_ultimatum_content(data)
-		"settlement_confirm", "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally
+		# absent from this match arm while incoming offers are deferred.
+		# Stale-save records of that type fall through to the default
+		# branch instead of rendering the settlement review.
+		"settlement_confirm":
 			bbcode = _build_settlement_content(data)
 		_:
 			if data.has("war_context_snapshot"):

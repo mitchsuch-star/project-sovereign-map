@@ -35,11 +35,17 @@ def test_diplomacy_wizard_maps_open_settlement_without_cost_label() -> None:
 
 
 def test_settlement_confirm_uses_review_payload_and_humanized_fields() -> None:
+    """SC-5 / G2-Slice-4 inversion: the popup match arm now keys only on
+    `settlement_confirm` while incoming offers are deferred-and-hidden;
+    the legacy combined `"settlement_confirm", "incoming_settlement_offer"`
+    arm is intentionally absent."""
     source = read_repo_file(
         "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd"
     )
 
-    assert '"settlement_confirm", "incoming_settlement_offer"' in source
+    # Combined arm removed by SC-5; lone `"settlement_confirm":` arm remains.
+    assert '"settlement_confirm", "incoming_settlement_offer"' not in source
+    assert '"settlement_confirm":' in source
     assert "review_sections" in source
     assert "covered_enemy_display_chips" in source
     assert "standing_display" in source

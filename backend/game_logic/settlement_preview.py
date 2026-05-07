@@ -60,6 +60,12 @@ SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
     {"settlement_confirm", "incoming_settlement_offer"}
 )
 
+# SC-5 / G2-Slice-4: incoming settlement offers are deferred-and-hidden by
+# default. The handler short-circuits before any pop / stage / mutation when
+# this flag is True. Reversal requires producer + mailbox + popup + actions
+# shipping together (see SETTLEMENT_UI_CLEANUP_SPEC.md SC-5).
+INCOMING_OFFERS_DEFERRED: bool = True
+
 SETTLEMENT_ERROR_DISPLAY = SETTLEMENT_DISABLED_REASON_DISPLAY
 
 
@@ -1888,17 +1894,31 @@ def handle_incoming_settlement_offer_action(
 ) -> Dict[str, Any]:
     """Handle mailbox-driven incoming settlement offers.
 
-    Accepting an offer intentionally rebuilds a fresh settlement_confirm
-    from live war state instead of ratifying the stale mailbox payload.
+    G2-Slice-4 (SC-5/SC-6/SC-7): incoming settlement offers are deferred
+    and hidden from all player-facing surfaces by default. While
+    `INCOMING_OFFERS_DEFERRED` is True the handler short-circuits BEFORE
+    `dialogue_manager.pop()` and BEFORE any staging / mutation, returning
+    `success=False`, `error="incoming_offer_deferred"`, and humanized
+    `error_display`. Stale or debug-injected dialogues therefore cannot
+    pop the active dialogue, stage `settlement_confirm`, mutate world
+    state, or surface a generic proposal popup.
 
-    NOTE: as of Slice F there is no producer of `incoming_settlement_offer`
-    dialogues yet — the AI-initiated common-peace offer pipeline lands
-    in a future slice (see WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.5).
-    The handler is wired up now so the action dispatcher does not need a
-    follow-up edit when offers begin to be produced; until then, this
-    code path is unreachable from gameplay.
+    The legacy SC-7b / SC-13 paths below remain in place for the
+    SC-5-reversal future (producer + popup + actions ship together).
     """
     war_id = str(dialogue.get("war_id") or "")
+    if INCOMING_OFFERS_DEFERRED:
+        return {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": action,
+            "war_id": war_id,
+            "error": "incoming_offer_deferred",
+            "error_display": _error_display("incoming_offer_deferred"),
+            "must_reopen": False,
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
     actor = getattr(world, "player_nation", "France")
     if action == "reject_settlement_offer":
         world.dialogue_manager.pop()

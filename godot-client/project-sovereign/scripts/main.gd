@@ -24,15 +24,18 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"ultimatum_demand_wizard",
 	"war_purpose_selection",
 	"settlement_confirm",
-	"incoming_settlement_offer",
+	# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally NOT
+	# whitelisted while incoming offers are deferred-and-hidden. Stale-save
+	# dialogues of that type fall through to the unknown-dtype warning branch
+	# instead of opening the settlement popup.
 ]
 const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
 	"revise_settlement_terms",
 	"back_out_settlement",
-	"accept_settlement_offer",
-	"reject_settlement_offer",
-	"request_settlement_revision",
+	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
+	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
+	# but no settlement-offer button is reachable from the player UI.
 ]
 
 # UI References - Header Status
@@ -834,9 +837,10 @@ func _route_proposal_confirm_response(response: Dictionary):
 	proposal_confirm_popup.show_dialogue(dialogue)
 
 func _show_confirm_dialogue_from_response(response: Dictionary, missing_message: String):
+	# SC-5 / G2-Slice-4: incoming-offer payload key is no longer consulted as
+	# a fallback dialogue source. Stale `incoming_settlement_offer` records
+	# never inflate into a generic settlement popup.
 	var dialogue = response.get("diplomatic_dialogue", {})
-	if not dialogue is Dictionary or dialogue.is_empty():
-		dialogue = response.get("incoming_settlement_offer", {})
 	if proposal_confirm_popup and dialogue is Dictionary and dialogue.size() > 0:
 		set_input_enabled(false)
 		proposal_confirm_popup.show_dialogue(dialogue)
@@ -3306,7 +3310,11 @@ func _on_pending_envoy_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+	elif dtype == "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
+		# pending-envoy result of this type must not open the settlement popup.
+		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
@@ -3339,7 +3347,11 @@ func _on_mailbox_activate_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+	elif dtype == "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
+		# mailbox-activate result of this type must not open the settlement popup.
+		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
 func _on_mailbox_panel_closed():
