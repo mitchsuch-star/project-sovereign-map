@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from backend.game_logic.settlement_helpers import assert_war_instance_invariants
+from backend.game_logic.settlement_preview import stage_settlement_confirm
 from backend.game_logic.war_status import build_active_wars
 from backend.game_logic.war_contribution import current_episode
 from backend.models.world_state import (
@@ -72,3 +73,22 @@ def test_settlement_multilateral_smoke_start_renders_as_one_shared_war(monkeypat
         "Britain",
         "Prussia",
     ]
+
+
+def test_settlement_multilateral_smoke_start_default_settlement_can_ratify(monkeypatch):
+    monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_MULTILATERAL)
+
+    world = WorldState()
+    result = stage_settlement_confirm(
+        world,
+        war_id="war_1",
+        actor_nation="France",
+        selected_target_nation="Britain",
+    )
+
+    assert result["success"] is True
+    dialogue = result["diplomatic_dialogue"]
+    assert dialogue["can_ratify"] is True
+    assert "confirm_settlement" in dialogue["available_action_ids"]
+    assert dialogue["settlement_preview"]["acceptance"]["score"] >= 50
+    assert dialogue["settlement_preview"]["acceptance"]["verdict"] == "accept"

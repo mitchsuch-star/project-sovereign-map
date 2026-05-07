@@ -764,6 +764,38 @@ class WorldState:
                 "failed to attach Prussia to settlement smoke war: "
                 f"{second.get('error') or second}"
             )
+        self._seed_settlement_multilateral_smoke_pressure()
+
+    def _seed_settlement_multilateral_smoke_pressure(self) -> None:
+        """Give the smoke war enough pressure for default settlement ratification."""
+        from backend.game_logic.diplomacy import calculate_war_score
+
+        for opponent, location in (("Britain", "Waterloo"), ("Prussia", "Rhineland")):
+            pair = self._make_diplo_key("France", opponent)
+            self.war_start_turns[pair] = 1
+            self.battle_records[pair] = [
+                {
+                    "turn": 1,
+                    "winner": "France",
+                    "attacker": "France",
+                    "defender": opponent,
+                    "attacker_casualties": 1000,
+                    "defender_casualties": 2500,
+                    "location": location,
+                }
+                for _ in range(10)
+            ]
+            self.decisive_battles[pair] = [
+                {"turn": 1, "winner": "France", "location": location}
+                for _ in range(2)
+            ]
+            live_score = int(calculate_war_score("France", opponent, self))
+            pair_parts = pair.split("|")
+            self.war_scores[pair] = -live_score if pair_parts[0] != "France" else live_score
+            self.previous_war_scores[pair] = int(self.war_scores[pair])
+            self.war_score_history[pair] = [int(self.war_scores[pair])]
+        self.war_exhaustion["Britain"] = 60
+        self.war_exhaustion["Prussia"] = 35
 
     def _bootstrap_hegemony_signal_state(self) -> None:
         """Seed `hegemony_signal_high_water` + `hegemony_signal_hegemon` from
