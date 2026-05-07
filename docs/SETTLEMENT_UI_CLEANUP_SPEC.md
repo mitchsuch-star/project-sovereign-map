@@ -222,6 +222,20 @@ Required final behavior for losing-side peace:
 - Acceptance scoring may make harsh player-favored terms impossible while losing, but it must not strand the player without any peace-seeking route.
 - Incoming AI offers/counter-offers may complement losing-side peace, but they cannot be the only way for a losing player to pursue peace unless the UI says that agency is intentionally delegated and a reachable offer/counter-offer system exists.
 
+### Pre-Implementation Spec Review Gate
+
+Do not code the rejected-settlement / losing-side peace UX from this text until at least one dedicated spec review pass re-audits it. The review is intentionally design-first, not implementation-first. It must decide whether the contract above is the right player-facing model before any new button, route, or backend action is added.
+
+The review must answer:
+
+- Is the separation between `settlement_confirm` ratification, treaty editing, armistice fallback, concession/surrender terms, and incoming AI offers clear enough for both players and implementers?
+- Does the spec avoid promising unavailable agency while still preventing the "Back Out is the only move" failure?
+- Are losing-side peace tools framed as active player agency instead of a passive wait for enemy AI?
+- Should concession/surrender/ask-for-terms be part of the first treaty-authoring editor slice, or explicitly staged as a follow-up with disabled/honest interim copy?
+- Are there similar cleanup misses elsewhere in settlement UI where a surface exposes incomplete actions, hides the only meaningful next step, or conflates preview/revision/ratification/offer handling?
+
+The review output must list design findings first, propose concrete spec edits, and end with a GO / NO-GO for implementing this UX contract. A NO-GO should revise this spec and `docs/STATUS.md`; it should not proceed into code.
+
 ### Audited Non-Gaps
 
 Do not reopen these as cleanup blockers unless a new behavior test proves a regression:
