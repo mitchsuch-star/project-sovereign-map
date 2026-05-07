@@ -683,6 +683,12 @@ class WorldState:
         # and separate from bilateral AI proposal cooldowns.
         self.pending_settlement_dialogues: List[Dict[str, Any]] = []
         self.ai_settlement_cooldowns: Dict[str, int] = {}
+        # Settlement UI Cleanup Spec G2-Slice-1: unratified draft storage
+        # keyed by war_id. Persists within a turn; discarded on turn end.
+        self.pending_settlement_drafts: Dict[str, List[Dict[str, Any]]] = {}
+        # Per-turn monotonic sequence for unique route ids.
+        # Shape: {war_id: {turn: last_seq}}
+        self.settlement_route_seq: Dict[str, Dict[int, int]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3812,6 +3818,14 @@ class WorldState:
                 str(war_id): int(turn)
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
+            "pending_settlement_drafts": {
+                str(wid): [copy.deepcopy(c) for c in clauses]
+                for wid, clauses in self.pending_settlement_drafts.items()
+            },
+            "settlement_route_seq": {
+                str(wid): {int(t): int(s) for t, s in turns.items()}
+                for wid, turns in self.settlement_route_seq.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
             # memories per (actor, subject) pair. Stored as plain dicts so
@@ -4276,6 +4290,14 @@ class WorldState:
         world.ai_settlement_cooldowns = {
             str(war_id): int(turn)
             for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
+        }
+        world.pending_settlement_drafts = {
+            str(wid): [copy.deepcopy(c) for c in clauses if isinstance(c, dict)]
+            for wid, clauses in (data.get("pending_settlement_drafts") or {}).items()
+        }
+        world.settlement_route_seq = {
+            str(wid): {int(t): int(s) for t, s in (turns or {}).items()}
+            for wid, turns in (data.get("settlement_route_seq") or {}).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
@@ -4924,6 +4946,9 @@ class WorldState:
             marshal.bombardments_this_turn = 0
             # Reinforcement - reset reinforced flag for new turn
             marshal.reinforced_this_turn = False
+
+        # G2-Slice-1: discard unratified settlement drafts at turn end.
+        self.pending_settlement_drafts = {}
 
         # N7: Snapshot relation values BEFORE diplomatic processing changes them
         for dk, rel_val in self.nation_relations.items():

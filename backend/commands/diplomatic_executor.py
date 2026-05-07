@@ -2035,13 +2035,49 @@ class DiplomaticExecutor:
                 ),
             }
         war_id = resolution["war_id"]
+        # SC-1: forward authored settlement_terms from command into staging.
+        settlement_terms = (
+            cmd.get("settlement_terms")
+            or (cmd.get("diplomatic_data") or {}).get("settlement_terms")
+        )
         from backend.game_logic.settlement_preview import (
             stage_settlement_confirm,
+            validate_settlement_terms,
         )
+        # SC-1 §15: revalidate authored terms before staging.
+        if settlement_terms:
+            war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+            actor_side = None
+            for side in ("attackers", "defenders"):
+                if player in (war_instance.get(side) or []):
+                    actor_side = side
+                    break
+            validation = validate_settlement_terms(
+                [dict(t) for t in settlement_terms if isinstance(t, dict)],
+                actor_nation=player,
+                player_nation=player,
+                proposer_side=actor_side,
+                actor_side_in_war=actor_side,
+            )
+            if not validation.get("valid"):
+                from backend.display_names import settlement_disabled_reason_display
+                return {
+                    "success": False,
+                    "error": "submitted_terms_failed_revalidation",
+                    "error_display": settlement_disabled_reason_display("submitted_terms_failed_revalidation"),
+                    "validation_error": validation.get("error"),
+                    "validation_detail": validation.get("disabled_reason_display"),
+                    "mutated": False,
+                }
+            # SC-1: persist draft for same-turn recovery.
+            world.pending_settlement_drafts[war_id] = [
+                dict(t) for t in settlement_terms if isinstance(t, dict)
+            ]
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
             actor_nation=player,
+            settlement_terms=settlement_terms,
             density="medium",
         )
         if resolution.get("backfilled"):

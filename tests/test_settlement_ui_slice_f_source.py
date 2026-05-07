@@ -96,7 +96,7 @@ def test_backend_confirm_payload_carries_review_and_reopen_contract() -> None:
     assert "build_settlement_review" in preview
     assert '"review_sections"' in preview
     assert '"Ratify Settlement"' in preview
-    assert '"debug_action_ids"' in preview
+    assert '"available_action_ids"' in preview
     assert '"actions": ["confirm_settlement"' not in preview
     assert '"reopen_target"' in preview
     assert '"review_route"' in preview

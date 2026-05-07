@@ -82,6 +82,39 @@ WAR_SCORE_MAX = 100
 HARD_STOP_NO_COVERED_ENEMY = "no_covered_enemy_participants"
 HARD_STOP_NO_DIRECT_WAR_SCORE = "no_direct_war_score_for_covered_enemy"
 
+# SC-4: canonical hard-stop codes. Unknown codes fail closed.
+SETTLEMENT_HARD_STOP_CODES = frozenset({
+    HARD_STOP_NO_COVERED_ENEMY,
+    HARD_STOP_NO_DIRECT_WAR_SCORE,
+})
+
+# SC-1: canonical clause types and required keys per spec table.
+CANONICAL_CLAUSE_TYPES = {
+    "peace": {"required": {"type"}, "optional": set()},
+    "territory_cede": {"required": {"type", "from", "to", "region"}, "optional": set()},
+    "gold_indemnity": {"required": {"type", "from", "to", "amount"}, "optional": set()},
+    "gold_per_turn": {"required": {"type", "from", "to", "amount", "turns"}, "optional": set()},
+    "forced_alliance": {"required": {"type", "from", "to"}, "optional": {"includes_continental_system"}},
+    "vassalage": {"required": {"type", "from", "to"}, "optional": set()},
+    "subjugation": {"required": {"type", "from", "to"}, "optional": set()},
+    "liberation": {"required": {"type", "vassal_nation", "lord_nation", "liberator"}, "optional": set()},
+}
+
+# G2-Slice-1 live MVP clause types.
+SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
+    "peace", "territory_cede", "gold_indemnity", "forced_alliance",
+})
+
+MAX_SETTLEMENT_CLAUSE_COUNT = 8
+
+# SC-1: clause conflict matrix. Each entry is (type_a, type_b, match_keys)
+# where the pair conflicts when both exist and the match_keys values agree.
+CLAUSE_CONFLICT_MATRIX = [
+    ("vassalage", "forced_alliance", ("from", "to")),
+    ("vassalage", "subjugation", ("from", "to")),
+    ("subjugation", "forced_alliance", ("from", "to")),
+]
+
 # Recognized side strings on `war_instance` records.
 _VALID_SIDES = {"attackers", "defenders"}
 

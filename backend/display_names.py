@@ -531,6 +531,18 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
     "unknown_settlement_action": "That settlement choice is not recognized.",
     "unknown_settlement_offer_action": "That settlement-offer choice is not recognized.",
+    # SC-1 POST preview validation codes
+    "max_clause_count_exceeded": "Too many treaty clauses (maximum 8).",
+    "duplicate_or_conflicting_clauses": "Some treaty clauses conflict with each other.",
+    "unauthorized_actor": "Only the player nation may author settlement terms.",
+    "proposer_side_mismatch": "The proposing court does not match your side in this war.",
+    "empty_authored_draft": "Add at least one treaty clause before submitting.",
+    "invalid_clause_type": "One or more clauses use an unrecognized type.",
+    "invalid_clause_schema": "One or more clauses are missing required fields.",
+    "submitted_terms_failed_revalidation": "The submitted terms failed validation; review and correct them.",
+    # SC-3/SC-4 ratification gate codes
+    "acceptance_rejected": "The accepting side has rejected these terms.",
+    "acceptance_blocked": "A hard stop prevents ratification of these terms.",
 }
 
 # Side label display — used by settlement review's allies block to surface
