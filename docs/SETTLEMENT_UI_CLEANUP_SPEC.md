@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.17 SPEC READINESS GO / IMPLEMENTATION NO-GO - tenth-pass requirements plus May 7 SPEC READINESS synthesis folded in before cleanup implementation
+> **Status:** v0.18 SPEC READINESS GO / IMPLEMENTATION NO-GO - tenth-pass requirements, May 7 SPEC READINESS synthesis, and post-commit quality tightenings folded in before cleanup implementation
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 > **Last audit update:** May 7, 2026
@@ -617,7 +617,7 @@ Synthesis scores after fold-in:
 
 Binding synthesis amendments:
 
-- **All SC rows / audit history:** The Gap Inventory rows and Implementation Gates are the normative requirements source. The May 6 audit-pass sections remain binding only where their requirements have been folded into SC rows, gate bullets, required tests, required inversions, or this synthesis section. Before implementation begins, a doc-maintenance pass should either consolidate the audit-history amendments into canonical row bodies or relabel the audit-pass narrative as `Historical Audit Trail (non-normative provenance)`. Required Gate 1 scan: no implementation checklist may cite an audit-pass paragraph as the only source for an unmirrored requirement.
+- **All SC rows / audit history:** The Gap Inventory rows and Implementation Gates are the normative requirements source. The May 6 audit-pass sections remain binding only where their requirements have been folded into SC rows, gate bullets, required tests, required inversions, or this synthesis section. Before Gate 2 starts, a doc-maintenance pass must either consolidate every still-binding audit-history amendment into canonical row bodies / gate bullets / required tests, or relabel the audit-pass narrative as `Historical Audit Trail (non-normative provenance)` and provide a per-SC cross-reference index for any retained binding tightenings. Required Gate 1 scan: no implementation checklist may cite an audit-pass paragraph as the only source for an unmirrored requirement.
 - **SC-1 (editor layout contract):** The editor host is the existing settlement popup, but the layout contract is now explicit: a clause list/summary area, structured Add Clause controls, inline per-clause editor controls, a live acceptance/preview panel, validation/error rows tied to clause indexes, and persistent Submit / Revise / Ratify / Back Out controls. A pre-code layout sketch or written panel map must be recorded in this spec or `docs/STATUS.md` before G2-Slice-1 coding starts. Placeholder "controls exist somewhere" proof fails SC-1.
 - **SC-1 (preview pending and failure UX):** POST preview is part of the editor's trust contract, not a background convenience. While preview is pending, Submit and Ratify-from-editor are disabled and the acceptance panel is visibly pending. If preview fails, the editor keeps the last valid acceptance display only as a marked stale/previous result, shows humanized retry copy, and keeps the player in EDIT mode with draft controls intact. Required test: `test_editor_disables_submit_during_pending_preview_and_recovers_on_failure`.
 - **SC-1 (first-slice floor versus final clause availability):** The four required first-slice clause types (`peace`, `territory_cede`, `gold_indemnity`, `forced_alliance`) are the minimum for G2-Slice-1 closure, not permission to close the whole cleanup as a peace-only or four-clause permanent editor. Any canonical type outside that first-slice floor that remains hidden after Slice 1 needs the interim-hide four artifacts and a restoration gate.
@@ -629,6 +629,19 @@ Binding synthesis amendments:
 - **SC-19:** Voice Bible §16.1 settlement families must be committed production copy, not placeholder strings. Placeholder copy, TODO text, or helper fallback strings fail SC-19 even if behavior routing is technically wired.
 - **SC-22:** The canonical Godot critical-script list includes `notification_bar.gd` and `mailbox_panel.gd` in addition to the six scripts named in the original row.
 - **SC-27 / STATUS:** Gate 1 doc scans cover active `docs/STATUS.md` current-phase / next-step rows as well as the implementation plan. Historical STATUS entries may remain, but any current table or lead paragraph that says Slice F, Slice G, or minimal incoming-offer routing is next before cleanup closure fails SC-27.
+
+### May 7, 2026 - Post-Commit Quality Readiness Fold-In
+
+This pass re-audits v0.17 after the editor-readiness tightening commit. It found no new P0/P1 product blocker and no reason to reopen the Full Treaty Settlement decision. The remaining readiness fixes were doc-handoff risks: audit-history consolidation was still optional, active `docs/STATUS.md` still named v0.17/tenth-pass and old first-slice wording, and the current-phase table still pointed at Slice F-style closure language. Those are now folded into v0.18.
+
+Post-commit scores after fold-in:
+
+- Fun: 8/10 - PASS. The spec still targets a usable player-authored settlement system with consequence preview, revision, refusal gates, and history, not a white-peace rebrand or prototype shell.
+- Clarity: 8/10 - PASS. Gate 1 now requires consolidation or non-normative relabel/indexing before implementation checklists can cite audit-history prose.
+- Work Segmentation: 8/10 - PASS. The ordered Gate 2 ladder remains intact; first-slice clause-floor language is explicit and not a completion ceiling.
+- Contradiction-Freedom: 8/10 - PASS. Active STATUS now names v0.18 cleanup as the current gate and blocks Slice G until cleanup implementation, behavior tests, and smoke close.
+- Completeness: 8/10 - PASS. No new misleading-affordance class was found; the audit fixed handoff ambiguity that could have reintroduced older Slice F or minimal-offer assumptions.
+- Verdict: SPEC READINESS GO after v0.18 fold-in; IMPLEMENTATION remains NO-GO until mandatory Gate 1 doc scans/consolidation, Gate 2 behavior tests, and manual smoke close.
 
 ### Full Treaty Settlement Flow
 
@@ -721,7 +734,7 @@ These amendments tighten the table rows above and override any looser wording in
 - **SC-22:** Godot parse/load or executable coverage must land by G2-Slice-3, or a new explicit product decision in this spec and `docs/STATUS.md` is required. Settlement-critical scripts include `notification_bar.gd` and `mailbox_panel.gd`.
 - **SC-26:** Same-war draft merge uses type-specific identity keys; same-key differing values conflict, cross-key non-conflicting values append. Collision protection applies to any settlement-family dialogue, hard stop or current-turn offer.
 - **SC-27:** The doc-scan token list includes incoming-offer action ids and natural-language variants such as `AI-to-player common-peace offer` and `AI war-leader ... offer`, not only exact `incoming_settlement_offer`.
-- **STATUS:** `docs/STATUS.md` must name this cleanup spec as v0.17 / tenth-pass before implementation starts and must not claim SC-27 closure unless the v0.17 doc-scan passes.
+- **STATUS:** `docs/STATUS.md` must name this cleanup spec as v0.18 / post-commit quality tightening before implementation starts and must not claim SC-27 closure unless the current doc-scan passes.
 
 ## Implementation Gates
 
@@ -736,9 +749,9 @@ Before code:
 - Update `docs/STATUS.md` so the next settlement step is this cleanup spec, not Slice G.
 - Close SC-27 by marking or replacing the superseded route-id and incoming-offer paragraphs in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` before implementation begins.
 - Do not mark SC-27 closed in `docs/STATUS.md` until a doc-scan proves every contradicting implementation-plan paragraph is marked, removed, replaced, or explicitly scoped to post-cleanup Slice G.
-- Verify `docs/STATUS.md` references this spec as v0.17 / tenth-pass and does not claim stale seventh-pass, eighth-pass, or ninth-pass readiness as the current gate.
+- Verify `docs/STATUS.md` references this spec as v0.18 / post-commit quality tightening and does not claim stale seventh-pass, eighth-pass, ninth-pass, or tenth-pass-only readiness as the current gate.
 - Verify active `docs/STATUS.md` current-phase / next-step rows do not point implementation at old Slice F, Slice G, or minimal incoming-offer scaffolding before cleanup closure; historical entries must be clearly historical.
-- Decide whether to perform the optional audit-history consolidation before coding. If deferred, implementation checklists must cite the SC row / gate bullets, not unmerged audit-history paragraphs.
+- Perform the audit-history consolidation or non-normative relabel/index pass before coding. This is mandatory Gate 1 work, not optional polish; implementation checklists must cite SC rows, gate bullets, required tests, required inversions, or the per-SC binding-tightening index, never unmerged audit-history paragraphs alone.
 
 ### Gate 2 - Ordered Cleanup Slices
 
