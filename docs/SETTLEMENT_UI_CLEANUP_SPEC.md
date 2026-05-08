@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.22 SPEC READINESS NO-GO / IMPLEMENTATION NO-GO - Codex + Claude settlement UX review incorporated; blocked Ratify remains absent rather than disabled; direct armistice/enemy-offer substitutes remain hidden unless future owning rows ship producer + payload + UI + tests; same-war draft scope, payload schemas, War Detail recovery copy, forced-alliance offer-mode, concession labels, SC-27 doc-scan tokens, and STATUS traceability tightened before branch reconciliation or Gate 4 smoke
+> **Status:** v0.22 SPEC READINESS NO-GO / IMPLEMENTATION NO-GO - Codex + Claude settlement UX review incorporated, and the re-audit fixes are folded in: blocked Ratify remains absent rather than disabled; direct armistice/enemy-offer substitutes remain hidden unless future owning rows ship producer + payload + UI + tests; valid below-threshold drafts may Submit into blocked REVIEW but cannot Ratify; scoped draft keys use a stable cross-runtime hash contract; review payloads require concrete player-comprehension sections; parent incoming-offer smoke wording is superseded; Slice 0 comes before Foundation; branch reconciliation, recorded review traceability, SC-27 scan, and Gate 4 smoke remain required
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 > **Last spec update:** May 8, 2026
@@ -305,10 +305,10 @@ Required behavior tests: `test_failed_settlement_open_war_detail_preserves_draft
 
 Draft identity contract:
 
-- `draft_key` is `settlement_draft:{war_id}:{selected_target_nation_or_none}:{covered_scope_hash}` where `covered_scope_hash` is a deterministic hash over sorted `covered_enemy_participants`.
+- `draft_key` is `settlement_draft:{war_id}:{selected_target_key}:{covered_scope_hash}`. `selected_target_key` is the selected target nation or the literal `_none`. `covered_scope_hash` is the first 16 hex chars of SHA-256 over the ASCII JSON array of sorted unique `covered_enemy_participants` using compact separators. Do not use Python/Godot built-in hash functions, locale-dependent joins, unsorted input order, or duplicate-sensitive scope strings.
 - Same-war same-scope restaging may merge compatible terms through SC-26. Same-war different-scope restaging is not the same draft; it must either open a chooser/replace-confirm path or return a humanized `same_war_scope_collision` with the existing draft unchanged.
 - `pending_settlement_drafts` serializes as a dict keyed by `draft_key`. Each record stores `war_id`, `selected_target_nation`, sorted `covered_enemy_participants`, `settlement_terms`, `created_turn`, `updated_turn`, and `last_preview_hash`.
-- Required behavior tests: `test_same_war_different_selected_target_drafts_do_not_merge_or_clobber`, `test_scoped_settlement_draft_key_round_trips_save_load`, and `test_same_war_same_scope_merge_uses_sc26_clause_identity`.
+- Required behavior tests: `test_same_war_different_selected_target_drafts_do_not_merge_or_clobber`, `test_scoped_settlement_draft_key_round_trips_save_load`, `test_scoped_draft_key_is_stable_across_order_duplicates_save_load_and_client_roundtrip`, and `test_same_war_same_scope_merge_uses_sc26_clause_identity`.
 
 Draft-discard notice contract:
 
@@ -342,11 +342,12 @@ The normal player path is: (1) wizard, war detail, or coalition detail emits `se
 Canonical payload schemas:
 
 - POST settlement preview request: `{"mode": "settlement", "war_id": str, "actor_nation": str, "selected_target_nation": str, "covered_enemy_participants": List[str], "settlement_terms": List[Clause], "caller_kind": "player_editor", "draft_key": str | null}`.
-- POST settlement preview response: `{"success": bool, "valid": bool, "draft_key": str, "dialogue_mode": "EDIT", "can_submit": bool, "available_clause_types": List[str], "validation_errors": List[{"clause_index": int | null, "field": str | null, "code": str, "disabled_reason_display": str}], "acceptance": {"band": str, "band_display": str, "total": int | null, "threshold": int | null, "top_components": List[Dict], "previous_band": str | null, "delta_display": str | null}, "hard_stops": List[Dict], "warnings": List[Dict], "review_sections": Dict}`. Alias keys such as `accept_threshold` may exist inside the scorer only; presentation and ratification consumers read `threshold`.
+- POST settlement preview response: `{"success": bool, "valid": bool, "draft_key": str, "dialogue_mode": "EDIT", "can_submit": bool, "available_clause_types": List[str], "validation_errors": List[{"clause_index": int | null, "field": str | null, "code": str, "disabled_reason_display": str}], "acceptance": {"band": str, "band_display": str, "total": int | null, "threshold": int | null, "top_components": List[Dict], "previous_band": str | null, "delta_display": str | null}, "hard_stops": List[Dict], "warnings": List[Dict], "review_sections": ReviewSections}`. Alias keys such as `accept_threshold` may exist inside the scorer only; presentation and ratification consumers read `threshold`.
 - Submit command request: `{"action": "propose_common_peace", "target_nation": str, "war_id": str, "selected_target_nation": str, "covered_enemy_participants": List[str], "settlement_terms": List[Clause], "draft_key": str, "caller_kind": "player_editor"}`. The executor reruns POST-preview validation before staging and returns `submitted_terms_failed_revalidation` without staging on mismatch.
 - `settlement_confirm` REVIEW payload: top-level `type="settlement_confirm"`, `dialogue_mode="REVIEW"`, `war_id`, `route_id`, `draft_key`, `selected_target_nation`, `covered_enemy_participants`, `settlement_terms`, `acceptance`, `hard_stops`, `can_ratify`, `can_edit_terms`, `options[]`, `available_action_ids[]`, `editor_route` when editable, and `recovery_route` when blocked/stale.
 - `options[]` entries use `{"action": str, "label": str, "available": bool, "disabled_reason_display": str | null, "editor_route": Dict | null, "recovery_route": Dict | null}`. For blocked ratification, no `confirm_settlement` option exists; disabled Ratify entries are forbidden.
-- Required behavior test: `test_settlement_preview_submit_and_review_payload_schema_rejects_alias_keys_and_missing_scope`.
+- `ReviewSections` is an exact player-comprehension schema, not an opaque dict: `{"beneficiaries": List[{"nation": str, "reason_display": str}], "ignored_participants": List[{"nation": str, "reason_display": str}], "remaining_wars": List[{"war_id": str, "war_label": str, "reason_display": str}], "applied_clauses_preview": List[Dict], "third_party_reactions": List[{"nation": str, "reaction_display": str, "effect_preview": Dict}], "awe_tag_displays": List[str]}`. Empty lists are allowed only when the fixture/state has no matching data; omitting the key is a schema failure.
+- Required behavior tests: `test_settlement_preview_submit_and_review_payload_schema_rejects_alias_keys_and_missing_scope` and `test_settlement_review_payload_requires_player_comprehension_sections_and_mutation_preview`.
 
 Control-state matrix:
 
@@ -371,12 +372,12 @@ The settlement editor is not just a route to POST preview. It uses this panel ma
 - Add Clause controls: structured controls for each live clause type; no raw JSON or free-text clause entry.
 - Inline clause editor: per-type fields use pickers, numeric inputs, toggles, and disabled reasons tied to the canonical clause schema.
 - Preview network state: while a POST settlement preview is in flight, the acceptance/preview panel shows pending state, Submit is disabled, no editor-mode ratification control appears, and stale values are visibly marked as previous results. Preview failure preserves the last valid acceptance display with a visible stale marker and humanized "Could not preview this draft - try again" copy; it must not silently swallow the failure or show stale acceptance as current.
-- Acceptance trend: after each completed clause commit that triggers POST preview, the editor renders the previous band, current band, and humanized delta. If a clause edit drops the package below `acceptance.threshold`, the band transition is visible before Submit and the review path remains gated by the current verdict.
+- Acceptance trend: after each completed clause commit that triggers POST preview, the editor renders the previous band, current band, and humanized delta. If a clause edit drops the package below `acceptance.threshold`, the band transition is visible before Submit. A structurally valid below-threshold draft may still Submit into REVIEW so the player can see the blocked-review explanation and recovery routes; REVIEW then omits `confirm_settlement` and blocks mutation per SC-3 / SC-4.
 - 1080p reachability: all live clause types can be reached in a 1920x1080 viewport without controls being covered by another panel; scroll is allowed only when the focused control can be fully scrolled into view.
 - A clause is committed for POST preview only when all required keys for its type are populated. Clauses with missing required keys remain editor-local `in_progress`, show an inline incomplete indicator, and do not trigger POST preview until complete. Picker open/close with no selection and invalid numeric blur do not POST; they update local validation state.
 - If a clause type's picker has zero valid options, its Add Clause control is disabled with `disabled_reason_display` instead of opening an empty picker. This applies to territory with no controlled regions, gold with no payable amount, dependency clauses with no valid target, same-side forced alliances, and liberation with no valid vassal.
 - Every authored clause renders a direction indicator in both editor and review mode: `Demanded` when the accepting side is burdened, `Conceded` when the player/proposer side offers value to the accepting side, and `Mutual` for `peace` or other no-material-change clauses. Color and wording must be consistent across the clause list, preview rows, and final review.
-- Required behavior test: `test_editor_acceptance_panel_shows_band_transition_after_clause_commit`.
+- Required behavior tests: `test_editor_acceptance_panel_shows_band_transition_after_clause_commit` and `test_below_threshold_valid_draft_can_submit_to_blocked_review_without_ratify`.
 - Scene/source checks must prove all named panels exist under `_build_settlement_content`, toggle by `dialogue_mode in {"EDIT", "REVIEW"}`, and use the Clause Display Vocabulary table for labels.
 
 ### First-Slice Clause Eligibility Matrix
@@ -445,7 +446,7 @@ These amendments tighten the table rows above and override any looser wording in
 - **SC-1:** Losing-side peace uses editor offer-mode on the canonical clause schema. Cleanup-scope concession presets use neutral labels such as `Generate concession baseline`; they are not incoming-offer waits, mailbox actions, new backend command text, or new clause types.
 - **SC-1:** Cleanup-scope losing peace is player-authored concessionary clauses only. `Ask for terms` is deferred to a future SC-5 reversal with an AI offer producer; `Surrender terms` is deferred until dependency-clause restoration explicitly ships. Both labels must be absent from cleanup payloads and editor presets.
 - **SC-1:** Settlement drafts are keyed by `draft_key`, not raw `war_id`. Same-war different selected targets or covered-enemy scopes must not merge or overwrite each other.
-- **SC-1:** The editor acceptance panel shows previous band, current band, and delta after each POST-previewed clause commit. The player must see a package fall below threshold before Submit / REVIEW can progress.
+- **SC-1:** The editor acceptance panel shows previous band, current band, and delta after each POST-previewed clause commit. The player must see a package fall below threshold before Submit. Acceptance failure alone does not disable Submit for a structurally valid draft; it progresses to REVIEW with Ratify absent, blocked-copy visible, and edit/recovery controls available.
 - **SC-1:** The first-slice `forced_alliance` control is demand-only. Losing-side offer mode hides it when it would imply the losing player can force the victor into alliance; "Offered alignment" is not a forced-alliance alias.
 - **SC-1 / SC-3:** Rejected editor-mode and review-mode ratification use the same absent-ratify contract. If fresh acceptance or hard stops block ratification, no `confirm_settlement` option is emitted; the surface renders blocker copy plus edit/recovery controls.
 - **SC-1:** The editor layout is the panel map in the Editor Layout Contract, not a loose "controls exist somewhere" requirement. Source/Godot checks must prove the header, clause package, clause controls, preview panel, and action rail exist and toggle between EDIT and REVIEW mode.
@@ -483,7 +484,7 @@ These amendments tighten the table rows above and override any looser wording in
 - **SC-19:** Required settlement voice families include losing-side pressure explanation and recovery copy: `settlement_losing_side_pressure_explained_talleyrand`, `settlement_open_war_detail_recovery_talleyrand`, `settlement_open_history_recovery_talleyrand`, `settlement_no_alternative_route_chancery`, and `settlement_concession_authored_talleyrand`. Future direct substitute CTAs must add committed Voice Bible copy before exposure.
 - **SC-22:** Godot parse/load or executable coverage must land by G2-Slice-3, or a new explicit product decision in this spec and `docs/STATUS.md` is required. Settlement-critical scripts include `notification_bar.gd` and `mailbox_panel.gd`.
 - **SC-26:** Same-war draft merge uses type-specific identity keys; same-key differing values conflict, cross-key non-conflicting values append. Collision protection applies to any settlement-family dialogue, hard stop or current-turn offer.
-- **SC-27:** The doc-scan token list includes incoming-offer action ids and natural-language variants such as `AI-to-player common-peace offer` and `AI war-leader ... offer`, not only exact `incoming_settlement_offer`.
+- **SC-27:** The doc-scan token list includes incoming-offer action ids and natural-language variants such as `AI-to-player common-peace offer`, `AI war-leader ... offer`, `Incoming AI settlement offer`, and `synthetic/debug staged offer`, not only exact `incoming_settlement_offer`.
 - **SC-27:** The doc-scan token list also includes rejected-settlement false-affordance phrases: `Wait for Enemy Offer`, `Seek Armistice Instead`, `Seek Bilateral Peace`, `Back Out is the only`, `Term editor not available yet`, `Ask for terms`, and `Surrender terms`. Any active occurrence outside the cleanup spec's explicit absence/defer language must carry a same-paragraph supersession marker naming the owning SC row.
 - **SC-28:** Rejected/blocked `settlement_confirm` payloads use the recovery affordance contract. They do not render disabled Ratify, direct `Seek Armistice`, direct `Seek Bilateral Peace`, disabled Revise placeholders, or `Wait for Enemy Offer` while SC-5 is deferred.
 - **SC-28:** `Open War Detail` is a background-and-preserve transition. It does not use ordinary Back Out discard-confirm semantics, and it preserves non-empty drafts until bilateral peace/armistice success invalidates them or the player explicitly discards them.
@@ -544,11 +545,12 @@ Gate 2 is not one bundled patch. The cleanup must proceed in this dependency ord
 
 Slice dependency rationale:
 
-- Foundation comes first because route safety does not matter while the destination is still an empty/no-clause settlement shell.
-- Entry Safety comes second because continuity tests need stable `war_id`, selected-target, and eligibility contracts.
-- Continuity comes third because result, notification, dispatch, and ledger focus must preserve the exact route produced by safe entry.
-- Incoming Offers comes fourth because offer exposure depends on the same draft package, stale-state, and route-preservation contracts.
-- Presentation And Metadata comes fifth so copy polish and ledger semantics describe a real, gated settlement flow.
+- Spec Synthesis And Doc Contract comes first because stale parent-plan instructions and STATUS drift can send implementation back to forbidden false affordances before code starts.
+- Foundation comes second because route safety does not matter while the destination is still an empty/no-clause settlement shell.
+- Entry Safety comes third because continuity tests need stable `war_id`, selected-target, and eligibility contracts.
+- Continuity comes fourth because result, notification, dispatch, and ledger focus must preserve the exact route produced by safe entry.
+- Incoming Offers comes fifth because offer exposure depends on the same draft package, stale-state, and route-preservation contracts.
+- Presentation And Metadata comes sixth so copy polish and ledger semantics describe a real, gated settlement flow.
 - Rejected / Losing Recovery Repair comes last because it verifies the player-facing failure modes after authoring, entry, continuity, incoming-offer exposure, and presentation have all been reconciled on the chosen integration target.
 
 Slice closure template:
@@ -569,13 +571,14 @@ Required closure:
 
 - Consolidate still-binding audit-history amendments into canonical SC rows, gate bullets, required tests, and required inversions. Anything left as provenance must be under a clearly non-normative historical heading.
 - Update `docs/STATUS.md` with the current spec version, review-session reference, NO-GO/GO result, and minimum remaining spec edits.
-- Run the SC-27 doc scan over the implementation plan and parent spec, including incoming-offer, route-id, rejected-settlement alternative, direct-pair-action, and future-work-copy tokens.
+- Run the SC-27 doc scan over the implementation plan and parent spec, including incoming-offer, incoming-offer smoke-branch, route-id, rejected-settlement alternative, direct-pair-action, and future-work-copy tokens.
 - Prove no active instruction points implementation at disabled Ratify, disabled Revise, direct `Seek Armistice Instead`, `Wait for Enemy Offer`, `Ask for terms`, `Surrender terms`, raw `pending_settlement_drafts[war_id]` merge semantics, or smoke-note-only pre-smoke evidence.
 
 Required tests / checks:
 
 - `test_status_md_current_phase_names_cleanup_spec_v022_and_review_session`
 - `test_doc_scan_flags_rejected_settlement_unmarked_alternatives`
+- `test_doc_scan_flags_incoming_ai_offer_smoke_step_without_sc5_supersession`
 - `test_spec_sc_rows_do_not_allow_direct_pair_action_wrappers_from_settlement_confirm`
 - `test_spec_pre_smoke_evidence_cannot_be_satisfied_by_future_smoke_note`
 
