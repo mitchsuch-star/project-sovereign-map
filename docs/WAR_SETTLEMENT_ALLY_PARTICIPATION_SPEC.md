@@ -1023,60 +1023,9 @@ Awe set pieces must render as authored/display-safe banner copy, not as raw tags
 
 Successful `confirm_settlement` must produce immediate feedback through a named settlement result payload such as `settlement_result_popup = {"war_label": str, "resolved_pair_count": int, "review_route": {...}}`. The rendered result beat says "Settlement Ratified", shows the friendly `war_label`, resolved-pair count, and a Review Settlement route. Notification rail and ledger entries are not enough by themselves for the confirm moment.
 
-Incoming AI common-peace offers use a distinct current-turn offer dialogue before ratification. `incoming_settlement_offer` is a `DialogueManager.CURRENT_TURN_OFFER_TYPES` dialogue, browseable through the mailbox like other incoming proposals, not a `HARD_STOP`. It must have its own dialogue priority at the normal incoming-proposal tier and its own mailbox summary label, not the default fallback label. While one is active, Open Settlement eligibility returns `settlement_dialogue_active` for the same player/war. If a `settlement_confirm` hard stop for war A is active and an incoming settlement offer for war B appears or is activated, the offer must queue/defer through the settlement-owned dialogue path and surface a humanized "resolve the current settlement first" beat; it must not overwrite or silently preempt the active hard stop. Accepting an offer stages a `settlement_confirm` hard stop from the locked offer payload and then the normal `confirm_settlement` action performs live revalidation and mutation.
+**SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5.** The older Slice F requirement to expose `incoming_settlement_offer` before final smoke is no longer active during cleanup. Incoming settlement offers are defer-and-hide by default unless the cleanup spec and `docs/STATUS.md` explicitly reverse SC-5 with producer, mailbox/pending-envoy payload, popup route, offer identity, package preservation, incoming-offer voice, and behavior tests together. While deferred, no player-facing mailbox count, pending-envoy route, notification, dispatch, popup queue, Godot branch, `Accept`, `Reject`, `Request Revision`, or enemy-offer waiting control may surface this dialogue type. The handler/taxonomy examples below are historical implementation-shape reference only and are non-normative until SC-5 is reversed.
 
-Slice F must add at least minimal Godot routing for `incoming_settlement_offer` so it opens a settlement review/offer surface with accept/reject/request-revision options or promotes to the normal settlement-confirm surface when accepted. Full AI offer generation and non-leader ally petitions remain Slice G, but a received `incoming_settlement_offer` must not fall into a generic "pending diplomatic matter" text path during final smoke.
-
-For Slice F, the preferred Godot route is to reuse the settlement-capable `proposal_confirm_popup.gd` renderer for `incoming_settlement_offer` after it gains settlement content support. Both pending-envoy reopen and mailbox activation paths must branch this dialogue type explicitly before generic fallback text.
-
-```python
-{
-    "type": "incoming_settlement_offer",
-    "dialogue_type": "incoming_settlement_offer",
-    "war_id": "war_12",
-    "offer_origin": "ai",
-    "offering_side": "defenders",
-    "receiving_side": "attackers",
-    "staged_leaders": {"attackers": "France", "defenders": "Austria"},
-    "settlement_terms": [...],
-    "settlement_preview": {...},
-    "acceptance_components": {...},
-    "warnings": [],
-    "options": [
-        {"label": "Accept", "action": "accept_settlement_offer"},
-        {"label": "Reject", "action": "reject_settlement_offer"},
-        {"label": "Request Revision", "action": "request_settlement_revision"},
-    ],
-}
-```
-
-Incoming offer responses:
-
-```python
-# Accept: live-revalidate, rebuild, then promote into settlement_confirm; no treaty mutation yet.
-{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "accept_settlement_offer",
- "promoted_to": "settlement_confirm", "dialogue_id": "settlement_war_12_turn_24",
- "mutated": False}
-
-# Rejected by promote-time live-state validation / acceptance recheck; no mutation.
-{"success": False, "dialogue_type": "incoming_settlement_offer", "action": "accept_settlement_offer",
- "error": "proposer_leader_changed" | "inactive_war_instance" | "active_pair_changed" | "no_covered_enemy_participants",
- "error_display": "Settlement state changed. Please reopen settlement on this war.",
- "reopen_target": {"surface": "diplomacy_wizard", "nation": "Austria", "war_id": "war_12"},
- "must_reopen": True, "mutated": False}
-
-# Reject.
-{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "reject_settlement_offer",
- "cancelled": True, "mutated": False}
-
-# Request revision.
-{"success": True, "dialogue_type": "incoming_settlement_offer", "action": "request_settlement_revision",
- "revision_requested": True, "cooldown_until_turn": 27, "mutated": False}
-```
-
-`incoming_settlement_offer.accept_settlement_offer` must run promote-time live revalidation, rebuild the `settlement_confirm` body from live state, and must not ratify directly from the offer payload. The promoted `settlement_confirm.confirm_settlement` call uses the same live-state revalidation and mutation executor as player-staged common peace.
-
-`incoming_settlement_offer.request_settlement_revision` is not a hidden counter-offer minigame in this phase. It cancels the active incoming offer without mutation, applies the normal 3-turn per-`war_id` AI settlement cooldown, records `revision_requested=True` for debug/campaign-log context, and returns control to the player. After the cooldown, AI may run the normal common-peace package construction again and surface a different offer only if it builds a concrete package that passes the acceptance guard. No immediate same-dialogue renegotiation loop is required until a future Congress/negotiation phase owns it.
+`incoming_settlement_offer.accept_settlement_offer` and `incoming_settlement_offer.request_settlement_revision` remain post-cleanup Slice G behavior unless SC-5 is explicitly reversed. If they ship later, accept must preserve stable offer identity and exact offered `settlement_terms` through live re-preview before promoting to `settlement_confirm`, and request revision must open a real counter/edit route or be hidden. During cleanup defer-and-hide, tests prove these action ids are absent from player-facing payloads.
 
 Dialogue action request contract:
 
@@ -1809,7 +1758,7 @@ AI uses the same settlement executor and validation paths as the player.
 
 - AI war leaders may propose common peace only when they are the current side leader for a `war_instance`.
 - AI proposes common peace only when there are no hard stops and either (a) the AI side is winning with `side_pressure_score >= 40` and direct score against the opposing leader is at least `20`, or (b) the AI side is losing with `side_pressure_score <= -40` and existing war exhaustion / ticking-pressure logic says continued war is strategically costly.
-- AI common-peace proposal anti-spam: at most one active `incoming_settlement_offer` may exist for the player at a time; each `war_id` has a 3-turn AI common-peace proposal cooldown after reject, request-revision, expiry, or failed live-state validation; and AI may surface at most one new settlement offer to the player per turn across all wars. AI-vs-AI internal settlements use the same per-`war_id` 3-turn cooldown to avoid proposal churn. Store these cooldowns in `world.ai_settlement_cooldowns: Dict[str, int]` keyed by `war_id` with save/load default `{}`. This cooldown namespace is separate from existing bilateral `ai_proposal_cooldowns` / `player_proposal_cooldowns`; common peace does not consume a bilateral nation-pair cooldown unless the same action also sends a bilateral proposal.
+- AI common-peace proposal anti-spam: at most one active `incoming_settlement_offer` may exist for the player at a time; each `war_id` has a 3-turn AI common-peace proposal cooldown after reject, request-revision, expiry, or failed live-state validation; and AI may surface at most one new settlement offer to the player per turn across all wars. AI-vs-AI internal settlements use the same per-`war_id` 3-turn cooldown to avoid proposal churn. Store these cooldowns in `world.ai_settlement_cooldowns: Dict[str, int]` keyed by `war_id` with save/load default `{}`. This cooldown namespace is separate from existing bilateral `ai_proposal_cooldowns` / `player_proposal_cooldowns`; common peace does not consume a bilateral nation-pair cooldown unless the same action also sends a bilateral proposal. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for player-facing incoming offers during cleanup; AI-vs-AI and post-cleanup Slice G behavior remain scoped here.
 - AI prefers common peace when two or more enemy participants are covered, or when settlement standing, ally-beneficiary rewards, or war-bargain settlement logic is relevant. AI prefers separate bilateral peace when only one enemy is targeted and there are no ally-beneficiary, standing, or bargain implications.
 - AI covered-enemy selection includes the opposing leader plus any non-leader with `direct_score >= 30`, any occupied-return / restitution target, and any target needed to resolve an active bargain or objective. It does not cover every enemy by default.
 - AI common-peace packages are conservative: prefer white peace / limited gold / occupied-region returns unless the AI side has `harsh_peace` or better settlement tier and direct pressure against each burdened participant.
@@ -1821,7 +1770,7 @@ AI uses the same settlement executor and validation paths as the player.
 - AI acceptance of a player common-peace package uses the Step 4 common-peace acceptance formula with projected hegemony, direct-score gates, and burdened-participant penalties.
 - AI common-peace proposals that resolve AI-vs-AI wars do not create a player-facing `settlement_confirm` popup, but they must stage an internal `settlement_confirm` payload and pass through the same `confirm` validation executor before mutation.
 - AI-vs-AI common peace emits one `settlement_summary` campaign-log entry and one fog-eligible Diplomatic Affairs dispatch line when the player has visibility into at least one covered participant or resulting territorial/alignment change. It must not emit one popup or rail notice per participant.
-- AI common-peace proposals offered to the player create an incoming settlement-review dialogue, not an automatic ratification. The player sees covered enemies, terms, acceptance components, ally fallout, and actions to accept, reject, or request revision. Accepting the AI offer then stages/executes the same `settlement_confirm.confirm_settlement` path with leader revalidation and no direct mutation from the incoming offer.
+- AI common-peace proposals offered to the player create an incoming settlement-review dialogue, not an automatic ratification. The player sees covered enemies, terms, acceptance components, ally fallout, and actions to accept, reject, or request revision. Accepting the AI offer then stages/executes the same `settlement_confirm.confirm_settlement` path with leader revalidation and no direct mutation from the incoming offer. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 during cleanup; this is post-cleanup Slice G unless SC-5 is explicitly reversed.
 - No AI path may bypass leader revalidation, active pair-key validation, hard stops, direct-score gates, WB-B lifecycle checks, or reaction-pass construction.
 - AI never creates ally-beneficiary land terms that would violate the allowed-beneficiary rules in §13.2.
 - AI never bypasses War Bargain fulfillment/breach checks; settlement-triggered promise outcomes route through WB-B/WB-D just like player outcomes.
@@ -1831,7 +1780,7 @@ AI uses the same settlement executor and validation paths as the player.
 
 Slice F closes player reachability and readability. It does not complete settlement agency for AI allies.
 
-The current phase already authorizes **AI war leaders** to send common-peace offers through `incoming_settlement_offer` (§10.4 / §16.5). A later post-F phase must add **non-leader ally petitions/advisories** so allied participants can pressure the player before or during settlement without becoming treaty co-authors.
+Post-cleanup Slice G may authorize **AI war leaders** to send common-peace offers through `incoming_settlement_offer` only after SC-5 is explicitly reversed with producer, payload, UI, and tests. The same later phase must add **non-leader ally petitions/advisories** so allied participants can pressure the player before or during settlement without becoming treaty co-authors. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for cleanup-time player-facing exposure.
 
 Required scope for that phase:
 
@@ -1867,6 +1816,8 @@ A nation may be an active participant in multiple concurrent `war_instance` reco
 `ai_settlement_cooldowns` stores common-peace AI anti-spam cooldowns by `war_id`. It is separate from bilateral `ai_proposal_cooldowns` / `player_proposal_cooldowns` and defaults to `{}` on old saves.
 
 `pending_settlement_dialogues` stores settlement-owned deferred dialogue payloads when a `settlement_confirm` or `incoming_settlement_offer` would be created while the generic dialogue queue is at or near cap. It is not a general dialogue queue replacement. Each entry uses the same locked payload shape as the dialogue it will later stage plus `war_id`, `dialogue_type`, `created_turn`, `retry_after_turn`, and `expires_on_turn`. The retry loop attempts at most one deferred settlement dialogue per turn across all wars after expired entries are discarded, preserving deterministic ordering by `(created_turn, war_id, dialogue_type)`. Entries expire when their underlying `war_instance` is no longer active/recent, their covered pair keys are resolved in a way that invalidates the offer, or `current_turn > expires_on_turn`. If an entry cannot be promoted because live-state validation fails, remove it and apply the normal per-`war_id` AI settlement cooldown.
+
+SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for cleanup-time incoming-offer exposure: any `pending_settlement_dialogues` use for incoming offers is inactive unless SC-5 is explicitly reversed; cleanup verification must prove deferred offers cannot surface, count, activate, notify, dispatch, queue, or block turns.
 
 Settlement-memory per-turn cleanup removes inactive or expired memory entries where `current_turn > expires_on_turn`. Run cleanup after any settlement-memory acceptance modifiers or ledger queries for that turn have read active records, and before dispatch / presentation payload construction. Cleanup must not mutate existing `betrayal_history` grievance flags. Cleanup is deterministic from `current_turn` and stored record fields only; save/load at any point in the turn lifecycle must produce the same active/expired result after cleanup runs. `pending_settlement_dialogues` expiry is handled by the C2 retry loop above.
 
@@ -2074,8 +2025,8 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Endpoint and dialogue contracts for no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_confirm`, `confirm_settlement`, `back_out_settlement`, and `revise_settlement_terms`
 - Mandatory `settlement_confirm` before any common-peace ratification; `confirm_settlement` revalidates live leaders, terms, hard stops, and acceptance
 - Verify and extend the already-registered `settlement_confirm` hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
-- Register `incoming_settlement_offer` as a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds
-- Add `DialogueManager.DIALOGUE_PRIORITY["incoming_settlement_offer"]` at the normal incoming-proposal tier and `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` with backend/Godot mailbox tests so settlement offers do not inherit generic proposal ordering or labeling
+- Register `incoming_settlement_offer` as a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this is post-cleanup Slice G behavior unless SC-5 is explicitly reversed; default cleanup behavior is no player-facing exposure.
+- Add `DialogueManager.DIALOGUE_PRIORITY["incoming_settlement_offer"]` at the normal incoming-proposal tier and `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` with backend/Godot mailbox tests so settlement offers do not inherit generic proposal ordering or labeling. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these player-facing mailbox labels/routes are hidden by default unless SC-5 is explicitly reversed.
 - Keep common-peace AI cooldowns in a per-`war_id` namespace separate from bilateral proposal cooldowns
 - Mandatory Slice C tuning gate for common-peace constants using at least eleven deterministic examples plus side-pressure monotonicity before implementation lock; include mixed-strength partial-vs-full coverage, narrow-vs-full-vs-serial settlement incentive comparison, total-victory harsh terms, Britain-led defense with current mapped holdings/home-region scoring, cross-formula acceptance validation, and acceptance debug components; start from `base_side_pressure` scaling `0.65` and the `1.5` harshness ceiling
 - Talleyrand advisory preview: standing, bargains, territory legitimacy, rival-strengthened warnings, ally-fallout warnings, salience-filtered default rows
@@ -2207,7 +2158,7 @@ Highest-priority tests:
 65. Draft settlement preview with `POST /diplomatic_preview` accepts `settlement_terms` and performs no mutation.
 66. Battle contribution persists from `war_contribution_scores` even after raw `battle_records` pruning.
 67. Same-turn battle contribution is credited before elimination or separate-peace `exited_turn` stamping.
-68. AI-to-player common-peace offers create an incoming settlement review instead of immediate ratification.
+68. AI-to-player common-peace offers create an incoming settlement review instead of immediate ratification. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this remains post-cleanup Slice G unless SC-5 is explicitly reversed.
 69. Slice C acceptance score is monotonic with increasing `side_pressure_score` when all other components are fixed.
 70. Synthetic full-Europe fixtures cover at least 13 nations, 100+ region ids for territory logic, 20 active pair keys, 6+ participants on one side, and explicit mapped/scenario data for every evaluated participant.
 71. `settlement_confirm` hard-stop registration is verified in backend and Godot before adding new routing behavior.
@@ -2254,7 +2205,7 @@ Highest-priority tests:
 112. Multi-forced-alliance common-peace preview aggregates `+30` or greater projected threat, names crossed coalition thresholds, and confirmation still emits per-clause `forced_alliance` threat through existing seams.
 113. Combined posture-gate tests prove `sold_out_by_war_leader` and `anti_renewal_cooldown` list both blockers, use the max effective unblock turn, and allow redress to bypass only the sold-out gate.
 114. AI defender common-peace fixture proves packages with only a `defense` objective and `war_objective_alignment <= +5` can still pass or fail on the full acceptance formula rather than objective alignment alone.
-115. `incoming_settlement_offer` has its own dialogue priority, mailbox summary label, and Godot mailbox route.
+115. `incoming_settlement_offer` has its own dialogue priority, mailbox summary label, and Godot mailbox route. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these player-facing routes are hidden by default unless SC-5 is explicitly reversed.
 116. `material_contribution_share` defaults to `0` when total material contribution is zero even if staying-power contribution is positive.
 117. `settlement_confirm.confirm_settlement` rejects proposer-side participant exits, rebellions, eliminations, and beneficiary invalidation without mutation.
 118. Side-scoped `leader_source_by_side` tests prove coalition leadership scoring cannot leak from one side to the other.
@@ -2262,7 +2213,7 @@ Highest-priority tests:
 120. Full-pipeline stress fixture runs two AI-generated settlements, 20 active wars, and all 13 canonical DG-1 nations in one `advance_turn()` evaluation.
 121. A2 uses a `CascadeContext` or equivalent transaction object before `_process_war_cascade(...)` grows past nine positional arguments or becomes hostile to safe recursive call-site migration.
 122. B2 pins `record_battle()` ordering so settlement contribution accrues before the 1000-casualty war-score early return.
-123. `incoming_settlement_offer.request_revision` cancels the offer, applies the normal per-`war_id` AI settlement cooldown, and does not imply an immediate counter-offer loop.
+123. `incoming_settlement_offer.request_revision` cancels the offer, applies the normal per-`war_id` AI settlement cooldown, and does not imply an immediate counter-offer loop. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this action is absent from player-facing payloads unless SC-5 is explicitly reversed.
 124. The pre-D1 manual comprehension gate is run by a reviewer who has not read the settlement spec.
 125. Slice C cannot lock constants while the narrow/full/serial fixture shows common peace is mechanically dominated by serial separate peace.
 126. D2 profiles a 5+ directly affected cross-war reaction scenario and proves candidate lookup stays participant-indexed.
@@ -2285,12 +2236,12 @@ Highest-priority tests:
 143. War-detail and coalition-detail settlement entry carries a war-scoped route contract; `war_id` is preferred over pair-derived target lookup when supplied, `war_instance_id` survives row click/detail routing, and the Godot signal carries both `war_id` and target context.
 144. The same stable non-empty `route_id` flows from confirmation through settlement event, dispatch, notification metadata, and ledger row metadata, with deterministic fallback ids for legacy/synthetic settlement rows.
 145. Default-start WAR rows without `war_instance` expose a humanized standing placeholder and tooltip legend instead of silently hiding standing/contribution context.
-146. `incoming_settlement_offer` has at least a minimal Godot route before final smoke; full AI/ally settlement agency remains Slice G.
+146. `incoming_settlement_offer` has at least a minimal Godot route before final smoke; full AI/ally settlement agency remains Slice G. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup final smoke uses the no-exposure branch unless SC-5 is explicitly reversed.
 147. Post-F AI/ally settlement agency is explicitly tracked: AI war-leader `incoming_settlement_offer` remains the common-peace offer path, while non-leader allies use petitions/advisories rather than co-authoring treaties.
 148. Ally petitions never bypass side-leader validation, hard stops, direct-score gates, WB-B checks, or settlement reaction construction.
 149. Ally petition UI/mailbox copy is humanized, cooldown-gated, and can focus the settlement wizard/review without mutating treaty state directly.
-150. `proposal_confirm_popup.gd` routes `settlement_confirm` and `incoming_settlement_offer` before generic proposal fallback and never renders malformed settlement payloads as "DIPLOMATIC PROPOSAL - Unknown".
-151. `incoming_settlement_offer` pending-envoy and mailbox-activation paths open a settlement-capable surface instead of falling through to generic pending text.
+150. `proposal_confirm_popup.gd` routes `settlement_confirm` and `incoming_settlement_offer` before generic proposal fallback and never renders malformed settlement payloads as "DIPLOMATIC PROPOSAL - Unknown". SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for incoming-offer routing during cleanup; `settlement_confirm` routing remains active.
+151. `incoming_settlement_offer` pending-envoy and mailbox-activation paths open a settlement-capable surface instead of falling through to generic pending text. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these paths prove no-exposure unless SC-5 is explicitly reversed.
 152. Accepting-side leader changes are covered separately from proposer-side leader changes: proposer-side change voids and returns `reopen_target`; accepting-side change rescoring does not automatically dump the player unless live validation fails.
 153. Coalition and war-detail settlement CTA tests cover 6+ participant and concurrent-coalition fixtures so whole-war and bilateral settlement buttons cannot emit the wrong `war_id`.
 
