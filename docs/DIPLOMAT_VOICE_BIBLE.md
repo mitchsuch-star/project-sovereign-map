@@ -253,9 +253,23 @@ Worked relaxation examples (tone reference):
 
 ---
 
-### Imperial Settlement voice families
+### 16.1 Imperial Settlement voice families
 
-Slice E of `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` must add concrete templates for these families before final settlement copy ships:
+Settlement copy follows the same conversational diplomacy standard as ordinary treaty review: Talleyrand explains the draft as a political bargain, foreign courts answer in their own register, and blocked states tell the player what diplomatic route remains. These families are committed production-copy anchors for `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-19; placeholder strings or unvoiced helper fallbacks do not satisfy the row.
+
+Core settlement review and blocked-flow families:
+
+| Family | Speaker | Authored copy contract |
+| --- | --- | --- |
+| `settlement_review_heading_talleyrand` | Talleyrand | "Sire, this settlement is a draft for signatures, not a victory bulletin. The court will judge what we demand, what we offer, and what the war still leaves unsettled." |
+| `settlement_blocked_for_ratification_talleyrand` | Talleyrand | "Sire, there is no ratification to present. {top_blocker} must be answered before any court can sign." |
+| `settlement_rescored_after_staging_talleyrand` | Talleyrand | "The ground has moved beneath the draft, Sire. What was {previous_verdict} is now {current_verdict}; {top_delta} is the change that matters." |
+| `settlement_discard_confirm_talleyrand` | Talleyrand | "This draft is not empty, Sire. If we leave the table now, these terms are abandoned unless you return before the turn passes." |
+| `settlement_collision_active_review_talleyrand` | Talleyrand | "One settlement already occupies the table, Sire. Resolve that draft before opening another, or the courts will not know which paper speaks for France." |
+| `settlement_reopen_cap_exhausted_talleyrand` | Talleyrand | "This draft can no longer be restored cleanly. Return to War Detail and choose the matter afresh." |
+| `settlement_observed_foreign_court_chancery` | Foreign chancery | "The Chancery records a settlement of {war_label}. The terms are visible, but the private bargains behind them are not." |
+
+Existing settlement-reaction families:
 
 - `settlement_advisory_common_peace_*`: Talleyrand names standing, contribution, bargain, pressure, and term costs without moralizing.
 - `settlement_advisory_defensive_*`: Talleyrand frames defender-side settlement around coalition preservation, exhaustion, and defensive claims, not imperial appetite.
@@ -334,6 +348,7 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **May 8, 2026** - Added explicit 16.1 Imperial Settlement voice-family anchors for blocked ratification, rescored drafts, discard confirmation, active-review collision, reopen-cap recovery, foreign-court observation, and review headings so `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-19 has authored copy in this Voice Bible.
 - **May 4, 2026** - Final Gate copy pass lands committed Imperial Settlement templates in `backend/game_logic/diplomatic_templates.py` for Talleyrand common-peace / defensive advisory, Castlereagh / Hardenberg / Metternich / Einsiedel acceptance and rejection, sold-out-by-leader, rewarded-ally, excluded-ally, plus serial-peace fallout legibility.
 
 - **May 4, 2026** - Slice E presentation lands. Settlement copy is wired through the new `settlement_presentation` module (`SETTLEMENT_ROUTES`, `settlement_notification_meta`, sectioned `build_settlement_review`), and the seven settlement voice families above remain the contract for final committed copy. Initial Slice E copy uses Talleyrand register frames for advisory beats and chancery fallbacks for the foreign-leader settlement reactions; per-cast committed lines for `settlement_acceptance_*`, `settlement_rejection_*`, `settlement_sold_out_by_leader_*`, `settlement_rewarded_ally_*`, and `settlement_excluded_ally_*` are authored in cast register passes after Slice E (still inside the Final Gate, not deferred to a future spec).
