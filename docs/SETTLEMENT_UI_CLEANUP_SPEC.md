@@ -2,7 +2,7 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.22 SPEC READINESS NO-GO / IMPLEMENTATION NO-GO - Codex + Claude settlement UX review incorporated, and the re-audit fixes are folded in: blocked Ratify remains absent rather than disabled; direct armistice/enemy-offer substitutes remain hidden unless future owning rows ship producer + payload + UI + tests; valid below-threshold drafts may Submit into blocked REVIEW but cannot Ratify; scoped draft keys use a stable cross-runtime hash contract; review payloads require concrete player-comprehension sections; parent incoming-offer smoke wording is superseded; Slice 0 comes before Foundation; branch reconciliation, recorded review traceability, SC-27 scan, and Gate 4 smoke remain required
+> **Status:** v0.22 SPEC READINESS NO-GO / IMPLEMENTATION NO-GO - Codex + Claude settlement UX review incorporated, and the re-audit fixes are folded in: blocked Ratify remains absent rather than disabled; direct armistice/enemy-offer substitutes remain hidden only while their concrete landing rows SC-29 / SC-30 / SC-31 / SC-32 remain unshipped; valid below-threshold drafts may Submit into blocked REVIEW but cannot Ratify; scoped draft keys use a stable cross-runtime hash contract; review payloads require concrete player-comprehension sections; parent incoming-offer smoke wording is superseded; Slice 0 comes before Foundation; branch reconciliation, recorded review traceability, SC-27 scan, and Gate 4 smoke remain required
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
 > **Last spec update:** May 8, 2026
@@ -35,7 +35,20 @@ Deferral policy:
 - A visible broken or misleading settlement behavior cannot be deferred silently.
 - A defer decision must name the player impact, hide or remove the broken affordance when possible, and be explicitly accepted in status/spec text before coding proceeds.
 - Every interim hide must record four artifacts before code starts: owning SC row, restoring implementation slice, `docs/STATUS.md` tracking line, and a CI/test gate that fails if the owning slice closes while the affordance remains hidden.
+- No deferred settlement affordance may point at an unnamed row or vague backlog. It must appear in the Deferred Work Landing Ledger below with an owning SC row, a landing slice, a completion definition, and at least one behavior test that fails if the landing slice closes while the work is still absent.
+- The landing ledger is not a waiver. It is the backlog contract for player-facing work that is hidden during cleanup. A ledger item can leave the backlog only by shipping the named behavior and tests, or by a recorded product decision in this spec and `docs/STATUS.md` that removes the player-facing promise from the game entirely.
 - If there is a conflict between finishing quickly and making the settlement feature actually usable, choose quality.
+
+### Deferred Work Landing Ledger
+
+This ledger is mandatory for every hidden settlement affordance. The cleanup slices may hide these controls to avoid false promises, but the work is not unowned or open-ended.
+
+| Hidden / deferred player-facing work | Why hidden during cleanup | Owning row | Landing slice | Work that must land | Required tests / smoke |
+| --- | --- | --- | --- | --- | --- |
+| Direct rejected-popup pair actions: `Seek Armistice Instead`, `Seek Bilateral Peace`, and settlement-family wrappers around `propose_armistice` / `propose_peace` | The rejected settlement popup is war-scoped, while armistice and bilateral peace are pair-scoped; exposing these now would lack target scope, eligibility, handoff, collision, and draft-invalidation rules. | SC-29 | G2-Slice-7 - Pair-Scoped Peace Substitute CTAs | Selected-pair scope, payload `{action, war_id, selected_target_nation, scope="selected_pair"}`, shared eligibility helper, War Detail / popup handoff, SC-13 selected-target inheritance, SC-14b no-reopen-attempt consumption, SC-26 collision behavior, draft stale/invalidation rules, and SC-19 voice copy. | `test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_only`, `test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_target_only`, `test_pair_substitute_eligibility_helper_matches_backend_refusal_codes`, `test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly`. |
+| Enemy-offer waiting and request-terms actions: `Wait for Enemy Offer`, `Ask for terms`, current-turn incoming settlement offer UI, and request-revision/counteroffer flow | A wait/request label promises an AI offer producer and mailbox/pending-envoy lifecycle that cleanup does not currently ship. | SC-30 | Slice G1 - AI Settlement Offer Producer And Request Terms | Gameplay AI offer producer, cooldowns, one-active-offer gate, mailbox and pending-envoy payloads, stable offer identity, incoming voice, accept/reject/request-revision handlers, package preservation through live preview, request-terms action that creates a real AI response path or humanized refusal, and no generic offer fallback. | `test_ai_settlement_offer_producer_surfaces_real_mailbox_payload`, `test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path_exist`, `test_ask_for_terms_creates_request_terms_state_or_humanized_refusal`, `test_incoming_offer_accept_preserves_offer_identity_and_terms_through_live_preview`. |
+| `Surrender terms` and dependency surrender presets | Surrender copy implies vassalage/subjugation or equivalent dependency consequences, preview, mutation, voice, and aftermath. Cleanup-scope concessions use gold/territory/peace only. | SC-31 | G2-Slice-8 - Dependency And Surrender Terms Restoration | Live `vassalage` / `subjugation` / liberation dependency clauses where supported, losing-side surrender preset, preview of dependency consequences, ratification mutation, history/dispatch/ledger copy, AI acceptance impact, and surrender-specific Talleyrand / foreign-court voice. | `test_surrender_terms_absent_until_dependency_clause_restoration`, then `test_surrender_terms_authors_dependency_clause_with_preview_and_mutation`, `test_surrender_terms_voice_and_history_explain_dependency_consequence`. |
+| Two-way negotiation, AI counter-proposals, ally petitions/advisories, conference mechanics, and any veto-like settlement agency | These are broader settlement-agency systems, not cleanup controls, but they must not stay as vague "later" prose. | SC-32 | Slice G2 - Settlement Agency Follow-Through | Concrete AI counterproposal loop or explicit no-counterproposal product decision, ally petition/advisory actions with no veto unless deliberately implemented, conference/veto decision recorded, payloads, cooldowns, voice, notification/mailbox routes, and behavior tests. | `test_settlement_agency_landing_ledger_has_no_unowned_future_controls`, plus per-action behavior tests before any agency CTA appears. |
 
 ## Scope
 
@@ -48,9 +61,9 @@ Included:
 - One-to-one war settlement affordances versus bilateral peace / armistice.
 - Tests that claim UI routing or button behavior is covered.
 
-Excluded:
+Out of cleanup visible scope, but not unowned:
 
-- Full Slice G AI treaty authorship, ally petitions, conference mechanics, or veto systems.
+- Full Slice G AI treaty authorship, ally petitions, conference mechanics, or veto systems are assigned to SC-32 and Slice G2 in the Deferred Work Landing Ledger.
 - New settlement term economics unless needed to make an existing button truthful.
 - Broad redesign of the diplomacy wizard outside settlement actions.
 
@@ -153,7 +166,7 @@ The existing one-to-one peace/proposal flow is the nearest UX and engineering an
 
 Temporary hide/remove decisions are still valid when an implementation slice cannot complete the full route in one pass, but the hidden affordance and player impact must be recorded explicitly. Do not solve SC-1 by permanently rebranding the feature to white peace without a new product decision.
 
-Two-way AI-to-player negotiation, AI counter-proposals, conference rounds, and ally veto systems remain Slice G or later settlement-agency work. This cleanup still must feel complete and usable: it delivers player-authored treaty terms with iterative acceptance preview, consequence preview, revise/re-author loops, and hard-stop refusal as the negotiation feedback loop. SC-5 defer-and-hide ensures no two-way negotiation controls are exposed until the AI counterpart exists end to end.
+Two-way AI-to-player negotiation, AI counter-proposals, conference rounds, and ally veto systems are assigned to SC-30 / SC-32 and the landing slices in the Deferred Work Landing Ledger. This cleanup still must feel complete and usable: it delivers player-authored treaty terms with iterative acceptance preview, consequence preview, revise/re-author loops, and hard-stop refusal as the negotiation feedback loop. SC-5 defer-and-hide ensures no two-way negotiation controls are exposed until the AI counterpart exists end to end.
 
 ### Player-Facing Vocabulary
 
@@ -171,7 +184,7 @@ Settlement controls must not appear on one-to-one wars; SC-10 enforces this on w
 
 When SC-10 hides Settlement controls on a one-to-one war row or detail surface, the same player surface must still expose the appropriate substitute peace affordance: `propose_peace` / Bilateral Peace and `propose_armistice` where eligible. Hiding Settlement without a reachable bilateral peace or armistice path on war detail and war status fails this spec, because it regresses the player from a visible but wrong CTA to no usable peace CTA.
 
-Rejected multi-party settlement recovery is different: `Open War Detail` is a route back to live war context, not a promise that a bilateral peace or armistice action exists for the selected pair. War Detail renders pair-scoped Bilateral Peace / Armistice controls only if their own eligibility probes pass for the selected target; otherwise it renders humanized no-current-pair-alternative copy and leaves the player in the live war context. Direct rejected-popup CTAs such as `Seek Armistice Instead`, `Seek Bilateral Peace`, or settlement-family wrappers around those actions remain forbidden until a future owning row explicitly defines scope, handoff payload, eligibility helper, voice, and behavior tests.
+Rejected multi-party settlement recovery is different: `Open War Detail` is a route back to live war context, not a promise that a bilateral peace or armistice action exists for the selected pair. War Detail renders pair-scoped Bilateral Peace / Armistice controls only if their own eligibility probes pass for the selected target; otherwise it renders humanized no-current-pair-alternative copy and leaves the player in the live war context. Direct rejected-popup CTAs such as `Seek Armistice Instead`, `Seek Bilateral Peace`, or settlement-family wrappers around those actions remain forbidden until SC-29 lands scope, handoff payload, eligibility helper, voice, and behavior tests.
 
 ### Canonical Settlement Clause Schema
 
@@ -319,7 +332,7 @@ Draft-discard notice contract:
 Required final behavior for losing-side peace:
 
 - The player must be able to seek peace while losing. Settlement agency cannot depend on first becoming the winning side.
-- Losing-side treaty packages must support concessionary terms through the same war-scoped authoring/preview/ratification pipeline. Cleanup-scope losing peace means player-authored concessions using canonical clauses, especially player-as-payer / player-as-ceder `gold_indemnity` and `territory_cede`, plus the neutral `peace` floor. `Ask for terms` is deferred to a future SC-5 reversal with an AI offer producer; `Surrender terms` is deferred until vassalage/subjugation restoration is explicitly live. Neither label may appear as a cleanup payload action, mailbox wait, backend command text, or editor preset.
+- Losing-side treaty packages must support concessionary terms through the same war-scoped authoring/preview/ratification pipeline. Cleanup-scope losing peace means player-authored concessions using canonical clauses, especially player-as-payer / player-as-ceder `gold_indemnity` and `territory_cede`, plus the neutral `peace` floor. `Ask for terms` belongs to SC-30's AI offer/request-terms landing slice; `Surrender terms` belongs to SC-31's dependency/surrender landing slice. Neither label may appear as a cleanup payload action, mailbox wait, backend command text, or editor preset before its landing slice ships.
 - "Concession" is primarily an authoring and presentation direction, not a new required clause type. The canonical schema already supports concessions when a clause uses `from=France` / `to=<enemy>` or otherwise benefits the accepting side. The editor must surface per-clause `direction_display` such as "Demanded from <them>" versus "Offered to <them>" and acceptance scoring must treat the sign consistently through `concession_credit` / reduced harshness components.
 - The first editor slice must include a discoverable concession baseline or suggestion affordance for losing players, such as `Generate concession baseline` or a Talleyrand suggestion using existing MVP clauses (`territory_cede`, `gold_indemnity`, `peace`). Without that, losing-side peace is technically possible but practically invisible.
 - G2-Slice-1 includes peace-with-concessions in the live floor: the `territory_cede` and `gold_indemnity` controls must support player-as-ceder and player-as-payer packages, and those packages must run through the same preview, acceptance, and ratification gates as winner-favored demands.
@@ -333,7 +346,7 @@ Rejected-popup presentation co-landings:
 - Blocked hard-stop acceptance suppresses numeric `0 / 50 - Reject/Blocked` copy. Backend acceptance display should use null/absent `total` and `threshold` for hard-stop blocked states, and Godot must render blocker copy instead of coercing null to `0`.
 - Production Godot must not show developer text such as `Settlement payload incomplete: missing ...`. Malformed settlement payloads render humanized recovery copy: "Settlement details could not be loaded; reopen from War Status."
 - Incoming and outgoing settlement voices are split, or incoming settlement offers remain hidden under SC-5.
-- Production surfaces must not show future-work copy such as "Term editor not available yet", "Wait for Enemy Offer", "Seek Armistice Instead", "Ask for terms", or "Surrender terms" unless the owning row for that exact action is implemented end to end with tests.
+- Production surfaces must not show backlog-copy labels such as "Term editor not available yet", "Wait for Enemy Offer", "Seek Armistice Instead", "Ask for terms", or "Surrender terms" unless the owning landing row for that exact action is implemented end to end with tests.
 
 ### Full Treaty Settlement Flow
 
@@ -389,7 +402,7 @@ The G2-Slice-1 editor floor cannot rely on UI authors guessing legal targets. Ea
 | `peace` | Active covered hostile/suspended pairs in `war_instance.active_diplo_keys` after current `covered_enemy_participants` filtering | none | none | No extra fields. One `peace` clause may exist; duplicates merge by `(type)`. | Talleyrand concession baseline may start with `{"type": "peace"}` as the neutral floor before adding material concessions. | If no coverable enemy remains, POST preview returns `no_coverable_enemy` / `no_covered_enemy_participants` with humanized copy and no editor Submit. |
 | `territory_cede` | Current region controllers plus settlement home/capital safety helpers and coverable participant lists | Any current war participant that controls the region and is either proposer-side or covered accepting-side, depending on demand/offer direction | Any opposing-side participant or same-side eligible beneficiary allowed by settlement beneficiary rules | `region.controller == from`; region must be transferable under existing territory mutation rules; capitals/home regions follow the same hard stops as bilateral territory terms unless the spec explicitly authorizes a cession. | Offer mode must allow France/player-side `from` when losing, with `to` set to the accepting side or a valid accepting-side beneficiary. Direction display reads "Offered to <them>"; scoring applies reduced harshness or `concession_credit`. | Empty region picker is disabled with `disabled_reason_display`; tampered payload returns offending clause index plus `field="region"` or the participant field. The validator never silently flips `from`/`to` or strips the clause. |
 | `gold_indemnity` | Nation treasury/economy data and active participant lists | Any active participant that can legally pay, including France/player-side in offer mode | Opposing-side participant or valid same-side beneficiary, according to demand/offer direction | `amount` is a positive integer, clamped by authored max display but never silently clamped on submit; submitted over-max returns validation error. | Offer mode must allow France/player-side payer packages while losing. Talleyrand baseline may choose a conservative payable amount that moves acceptance toward `near_acceptable` without bankrupting the player unless the fixture intentionally tests bankruptcy. | Zero payable amount disables Add Clause for payer-specific gold offers; invalid amount blur stays editor-local until corrected; tampered submit returns offending clause index plus `field="amount"`. |
-| `forced_alliance` | Covered enemy participants, proposer-side leader/beneficiary rules, existing alliance state, WPS forced-alliance legality, and Balance of Europe threat preview | Covered enemy participant that is not already in an equivalent alliance/treaty state with the proposed imposer | Proposer-side leader or valid proposer-side beneficiary/imposer under current settlement rules | `includes_continental_system` toggle defaults to the bilateral forced-alliance default unless explicitly set. Threat preview uses the forced-alliance projection helper. | Demand-only in the first cleanup slice. Losing-side offer mode must hide forced-alliance when it would imply the losing player can force the victor into alliance. Any voluntary alignment offer is a separate future product decision, not a forced-alliance alias. | Same-side forced alliances, already-allied targets, losing-side unavailable imposition, and no covered enemy target disable or reject with humanized reasons. |
+| `forced_alliance` | Covered enemy participants, proposer-side leader/beneficiary rules, existing alliance state, WPS forced-alliance legality, and Balance of Europe threat preview | Covered enemy participant that is not already in an equivalent alliance/treaty state with the proposed imposer | Proposer-side leader or valid proposer-side beneficiary/imposer under current settlement rules | `includes_continental_system` toggle defaults to the bilateral forced-alliance default unless explicitly set. Threat preview uses the forced-alliance projection helper. | Demand-only in the first cleanup slice. Losing-side offer mode must hide forced-alliance when it would imply the losing player can force the victor into alliance. Any voluntary alignment offer belongs to SC-32 if the product wants it; it cannot reuse forced-alliance copy. | Same-side forced alliances, already-allied targets, losing-side unavailable imposition, and no covered enemy target disable or reject with humanized reasons. |
 
 Required behavior tests: `test_first_slice_clause_picker_matrix_matches_post_preview_validator`, `test_losing_side_talleyrand_concession_baseline_uses_peace_gold_and_territory_only`, `test_gold_indemnity_over_max_rejects_without_silent_clamp`, `test_forced_alliance_losing_side_does_not_imply_unavailable_imposition`, `test_editor_renders_clause_direction_labels`, and `test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause`.
 
@@ -436,7 +449,11 @@ Every row needs a decision before implementation: implement now, hide/remove now
 | SC-26 | P1 | Cross-war / same-war settlement collision | A second settlement entry can preempt the active `settlement_confirm` dialogue via `world.dialogue_manager.replace(dialogue)` (`backend/game_logic/settlement_preview.py:443-447`), silently clobbering the existing review. SC-5 default-defer mitigates incoming-offer collision only while incoming offers stay hidden; outgoing settlements can still race. Same-war restaging can also overwrite authored draft state. | `stage_settlement_confirm` must reject preemption when a different settlement-family hard-stop is already active for another `war_id`. Cross-war restaging returns `error="cross_war_settlement_collision"` with humanized "resolve current settlement first" copy; it is not queued through the mailbox. Same-war restaging refreshes the mounted dialogue and merges only non-conflicting authored draft terms through `pending_settlement_drafts`. If the merged draft would fail POST preview under the SC-1 conflict matrix, the merge returns `error="merge_conflict"`, names the offending clause in `error_display`, and preserves the active draft unchanged. The current dialogue must remain active unless the player backs out, ratifies, or explicitly chooses to replace it through an approved product flow. | Stage `settlement_confirm` for `war_1`, then call `_execute_propose_common_peace` for `war_2`; assert `war_1` remains active, `war_2` returns `cross_war_settlement_collision`, and no queue/defer/clobber occurs. Same-war tests: restage `war_1` with compatible authored `gold_indemnity` and prove merged draft; then restage with a conflicting clause and prove `merge_conflict`, humanized conflict copy, and active draft unchanged. Add same-family collision coverage for incoming offers if SC-5 is ever reversed. |
 | SC-27 | P1 | Doc maintenance / supersession | `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` still contains older Slice F instructions that contradict this cleanup spec: route id format pinned as `settlement_summary:{war_id}:{staged_turn}` and minimal incoming-offer routing mandated for Slice F. Active `docs/STATUS.md` phase/next-step rows can also drift back to Slice F / Slice G / minimal incoming-offer instructions even when the lead status block is correct. A downstream implementer can read an older plan or current-status table first and reintroduce behavior this spec forbids. | Before Gate 2 Slice 1 starts, fold supersession callouts into the implementation plan or remove/replace the contradicting paragraphs. The route-id paragraph must be marked `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-14c`; the incoming-offer paragraph must be marked `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-5`. `docs/STATUS.md` must also record that those markers exist and every active current-phase / next-step row must name the cleanup spec as the next settlement gate, not Slice F, Slice G, or minimal incoming-offer routing. Historical STATUS entries may remain if clearly historical. | Source-string scan proves each contradicting implementation-plan paragraph is removed/replaced or carries the required same-line `SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-*` marker. STATUS scan proves active current-phase / next-step rows do not point implementation at Slice F, Slice G, or minimal incoming-offer scaffolding before cleanup closure. |
 | SC-28 | P1 | Rejected settlement / losing-side recovery | The rejected settlement popup can satisfy SC-3/SC-4 by removing Ratify but still fail player comprehension if no owned row defines the remaining action set, terminal close state, draft-preserving recovery behavior, and losing-side concession baseline. Direct popup-level `Seek Armistice`, `Seek Bilateral Peace`, disabled Ratify, disabled Revise, and `Wait for Enemy Offer` would reintroduce the same false-affordance class as `Revise Terms`. | Own the Rejected Settlement / Losing-Side UX Contract. Blocked ratify is absent, not disabled. The popup exposes only real settlement-family actions: edit/re-author when `can_edit_terms=true`, `Open War Detail` for active-war recovery, `Open Settlement History` for archived recovery, or terminal close copy when no target is recoverable. War Detail owns Bilateral Peace and Armistice. SC-5 defer-and-hide forbids enemy-offer waiting copy. Losing-side peace uses canonical concessionary clauses and the deterministic Talleyrand concession baseline. End-turn draft discard emits a one-shot player notice. Voice families include blocked-ratify, war-detail recovery, history recovery, no-alternative terminal copy, and concession-authored copy. | Behavior tests prove the recovery affordance schema, absent blocked ratify with banner/body reason, no enemy-offer wait while SC-5 is deferred, Open War Detail draft preservation without discard prompt, terminal no-alternative close copy, losing-side concession baseline reaching accept/near-accept in the smoke fixture, clause direction tags, peace-only losing hint, draft-discard notice after load, and required SC-19 voice-family routing. |
-| SC-28b | P1 | Direct armistice / bilateral substitute CTAs | A rejected settlement popup could reintroduce the Revise Terms class miss by adding `Seek Armistice Instead`, `Seek Bilateral Peace`, or a disabled "future" variant without pair scope, eligibility helper, handoff payload, route/focus preservation, or tests. | During cleanup these direct substitute CTAs are absent. `Open War Detail` is the only active-war recovery route. If a future product decision reverses this, the new row must define `scope="selected_pair"`, payload `{action, war_id, selected_target_nation, scope}`, `evaluate_armistice_substitute_eligibility(world, *, war_id, actor_nation, target_nation)` or equivalent shared helper, SC-13 selected-target inheritance, SC-14b no-reopen-attempt consumption, SC-26 collision behavior, and SC-19 voice. | Absence test `test_seek_armistice_instead_cta_absent_until_owned_by_future_row`. If reversed later, required tests include `test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_only`, `test_armistice_substitute_eligibility_helper_matches_propose_armistice_eligibility`, and `test_seek_armistice_handoff_does_not_consume_settlement_reopen_attempt`. |
+| SC-28b | P1 | Direct armistice / bilateral substitute CTAs | A rejected settlement popup could reintroduce the Revise Terms class miss by adding `Seek Armistice Instead`, `Seek Bilateral Peace`, or a disabled backlog variant without pair scope, eligibility helper, handoff payload, route/focus preservation, or tests. | During cleanup these direct substitute CTAs are absent. `Open War Detail` is the only active-war recovery route. The work lands in SC-29 / G2-Slice-7, not an unnamed placeholder. Until SC-29 ships, no popup payload, recommended alternative, disabled placeholder, mailbox hint, or Godot branch may expose the substitute labels. | Absence test `test_seek_armistice_instead_cta_absent_until_sc29_lands`. SC-29 owns the positive behavior tests. |
+| SC-29 | P1 | Pair-scoped peace substitute CTAs | Hidden direct pair actions need a real implementation home so cleanup does not become permanent omission. | Implement G2-Slice-7 Pair-Scoped Peace Substitute CTAs from the Deferred Work Landing Ledger. Add `scope="selected_pair"`, payload `{action, war_id, selected_target_nation, scope}`, `evaluate_pair_peace_substitute_eligibility(world, *, war_id, actor_nation, target_nation, action)` or equivalent shared helper, SC-13 selected-target inheritance, SC-14b no-reopen-attempt consumption, SC-26 collision behavior, scoped-draft stale/invalidation rules, and SC-19 voice. | Required tests: `test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_only`, `test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_target_only`, `test_pair_substitute_eligibility_helper_matches_backend_refusal_codes`, and `test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly`. |
+| SC-30 | P1 | AI settlement offer producer / request terms | `Wait for Enemy Offer`, `Ask for terms`, and incoming settlement offers are false affordances without an AI producer, cooldown, mailbox/pending-envoy lifecycle, package identity, and response handling. | Implement Slice G1 AI Settlement Offer Producer And Request Terms from the Deferred Work Landing Ledger before any wait/request/incoming-offer label appears. SC-5 remains defer-and-hide only until this row ships. | Required tests: `test_ai_settlement_offer_producer_surfaces_real_mailbox_payload`, `test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path_exist`, `test_ask_for_terms_creates_request_terms_state_or_humanized_refusal`, and `test_incoming_offer_accept_preserves_offer_identity_and_terms_through_live_preview`. |
+| SC-31 | P1 | Dependency / surrender terms | `Surrender terms` implies dependency consequences and cannot ride on gold/territory concessions. | Implement G2-Slice-8 Dependency And Surrender Terms Restoration before `Surrender terms` copy, preset, command text, or mailbox labels can appear. This row owns live dependency clauses, losing-side surrender preset, preview/mutation/history/dispatch/ledger consequences, and voice. | Required tests: `test_surrender_terms_absent_until_dependency_clause_restoration`, then `test_surrender_terms_authors_dependency_clause_with_preview_and_mutation` and `test_surrender_terms_voice_and_history_explain_dependency_consequence`. |
+| SC-32 | P2 | Settlement agency follow-through | Broader settlement-agency language can otherwise remain as vague Slice G intent. | Implement Slice G2 Settlement Agency Follow-Through. AI counterproposals, ally petitions/advisories, conference mechanics, veto-like systems, and voluntary alignment offers must either ship with payload/UI/voice/tests or be explicitly removed from player-facing scope in this spec and `docs/STATUS.md`. | Required test `test_settlement_agency_landing_ledger_has_no_unowned_backlog_controls`, plus per-action behavior tests before any agency CTA appears. |
 
 ### Binding Row Tightenings
 
@@ -444,7 +461,7 @@ These amendments tighten the table rows above and override any looser wording in
 
 - **SC-1:** G2-Slice-1 includes losing-side peace-with-concessions in the live floor. `territory_cede` and `gold_indemnity` controls must support player-as-ceder and player-as-payer packages, preview must show direction displays, and `test_losing_side_authored_concession_draft_can_reach_accept_band_with_realistic_war_state` must prove a realistic losing-side concession can reach `accept` or `near_acceptable`.
 - **SC-1:** Losing-side peace uses editor offer-mode on the canonical clause schema. Cleanup-scope concession presets use neutral labels such as `Generate concession baseline`; they are not incoming-offer waits, mailbox actions, new backend command text, or new clause types.
-- **SC-1:** Cleanup-scope losing peace is player-authored concessionary clauses only. `Ask for terms` is deferred to a future SC-5 reversal with an AI offer producer; `Surrender terms` is deferred until dependency-clause restoration explicitly ships. Both labels must be absent from cleanup payloads and editor presets.
+- **SC-1:** Cleanup-scope losing peace is player-authored concessionary clauses only. `Ask for terms` is owned by SC-30 and `Surrender terms` is owned by SC-31. Both labels must be absent from cleanup payloads and editor presets until their landing slices ship.
 - **SC-1:** Settlement drafts are keyed by `draft_key`, not raw `war_id`. Same-war different selected targets or covered-enemy scopes must not merge or overwrite each other.
 - **SC-1:** The editor acceptance panel shows previous band, current band, and delta after each POST-previewed clause commit. The player must see a package fall below threshold before Submit. Acceptance failure alone does not disable Submit for a structurally valid draft; it progresses to REVIEW with Ratify absent, blocked-copy visible, and edit/recovery controls available.
 - **SC-1:** The first-slice `forced_alliance` control is demand-only. Losing-side offer mode hides it when it would imply the losing player can force the victor into alliance; "Offered alignment" is not a forced-alliance alias.
@@ -488,7 +505,7 @@ These amendments tighten the table rows above and override any looser wording in
 - **SC-27:** The doc-scan token list also includes rejected-settlement false-affordance phrases: `Wait for Enemy Offer`, `Seek Armistice Instead`, `Seek Bilateral Peace`, `Back Out is the only`, `Term editor not available yet`, `Ask for terms`, and `Surrender terms`. Any active occurrence outside the cleanup spec's explicit absence/defer language must carry a same-paragraph supersession marker naming the owning SC row.
 - **SC-28:** Rejected/blocked `settlement_confirm` payloads use the recovery affordance contract. They do not render disabled Ratify, direct `Seek Armistice`, direct `Seek Bilateral Peace`, disabled Revise placeholders, or `Wait for Enemy Offer` while SC-5 is deferred.
 - **SC-28:** `Open War Detail` is a background-and-preserve transition. It does not use ordinary Back Out discard-confirm semantics, and it preserves non-empty drafts until bilateral peace/armistice success invalidates them or the player explicitly discards them.
-- **SC-28 / SC-28b:** `Open War Detail` is a live-war recovery route, not a promise that a pair action exists. War Detail renders pair-scoped Bilateral Peace / Armistice controls only when their own eligibility probes pass, and otherwise renders no-current-pair-alternative copy. Direct substitute CTAs remain absent until a future owning row ships scope, helper, handoff, voice, and behavior tests.
+- **SC-28 / SC-28b / SC-29:** `Open War Detail` is a live-war recovery route, not a promise that a pair action exists. War Detail renders pair-scoped Bilateral Peace / Armistice controls only when their own eligibility probes pass, and otherwise renders no-current-pair-alternative copy. Direct substitute CTAs remain absent until SC-29 ships scope, helper, handoff, voice, and behavior tests.
 - **SC-28:** If no edit, active-war, or archived-history route can be recovered, the popup renders `settlement_no_alternative_route_chancery` terminal copy plus a close/back-out option. This is allowed only for malformed/unrecoverable payloads and must not be used as normal rejected-settlement UX.
 - **SC-28:** End-turn draft discard produces a one-shot player notice through `pending_settlement_draft_notices[]` or an explicitly equivalent dispatch/campaign-log notice, and loading after discard must not silently drop the draft without a signal.
 - **STATUS:** `docs/STATUS.md` must name the latest cleanup spec version before implementation starts and must not claim SC-27 closure unless the current doc-scan passes.
@@ -533,7 +550,7 @@ Before Gate 4 manual smoke can start, each row below must have current pre-smoke
 | SC-14 through SC-14e continuity | Active partial settlements route to live war context, archived settlements route to history, route ids use the staged source of truth, and stale recovery attempt 4 returns a structured recovery route. |
 | SC-15 through SC-25 presentation | Player copy uses Settlement vocabulary, Talleyrand/foreign-court settlement voice families, humanized clause labels, no raw ids/enums/debug payloads, and merged `PEACE & SETTLEMENT HISTORY` semantics. |
 | SC-26 collision | Cross-war restaging returns `cross_war_settlement_collision` without clobbering the mounted settlement; same-war merges are deterministic and conflict-safe. |
-| SC-27 doc maintenance | Doc scan proves older incoming-offer, route-id, rejected-settlement alternative, and future-work-copy instructions in both `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` and `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` are removed, replaced, superseded on the same paragraph, or explicitly scoped to post-cleanup Slice G / future owning rows. |
+| SC-27 doc maintenance | Doc scan proves older incoming-offer, route-id, rejected-settlement alternative, and backlog-copy instructions in both `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` and `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` are removed, replaced, superseded on the same paragraph, or explicitly scoped to the concrete landing rows SC-29 / SC-30 / SC-31 / SC-32. |
 | SC-28 / SC-28b rejected/losing recovery | Blocked/rejected reviews follow the recovery affordance contract: absent blocked Ratify, real editor/recovery/history/terminal-close routes only, no enemy-offer wait while SC-5 is deferred, no direct `Seek Armistice Instead` or pair-action wrapper, Open War Detail preserves scoped drafts, and losing-side concession baseline is testable. |
 | STATUS alignment | `docs/STATUS.md` names v0.22 verification + branch reconciliation + Gate 4 smoke as the active gate, names the rejected/losing smoke fixture, records the latest spec-review result or NO-GO edits, and does not claim SC-27 closure until the scan above passes. |
 
@@ -571,7 +588,7 @@ Required closure:
 
 - Consolidate still-binding audit-history amendments into canonical SC rows, gate bullets, required tests, and required inversions. Anything left as provenance must be under a clearly non-normative historical heading.
 - Update `docs/STATUS.md` with the current spec version, review-session reference, NO-GO/GO result, and minimum remaining spec edits.
-- Run the SC-27 doc scan over the implementation plan and parent spec, including incoming-offer, incoming-offer smoke-branch, route-id, rejected-settlement alternative, direct-pair-action, and future-work-copy tokens.
+- Run the SC-27 doc scan over the implementation plan and parent spec, including incoming-offer, incoming-offer smoke-branch, route-id, rejected-settlement alternative, direct-pair-action, and backlog-copy tokens.
 - Prove no active instruction points implementation at disabled Ratify, disabled Revise, direct `Seek Armistice Instead`, `Wait for Enemy Offer`, `Ask for terms`, `Surrender terms`, raw `pending_settlement_drafts[war_id]` merge semantics, or smoke-note-only pre-smoke evidence.
 
 Required tests / checks:
@@ -804,7 +821,7 @@ Required closure:
 - Blocked/rejected `settlement_confirm` payloads omit `confirm_settlement` from `options[]` and `available_action_ids[]`; the blocked banner and body copy explain the reason.
 - The only blocked-review actions are real settlement-family routes: edit/re-author when available, `open_war_detail`, `open_settlement_history`, and terminal close/back-out for malformed unrecoverable payloads.
 - `open_war_detail` preserves a non-empty scoped draft without discard-confirm and opens the exact `war_id` plus selected target; War Detail, not the settlement popup, owns Bilateral Peace and Armistice controls when their own pair-scoped eligibility passes.
-- No payload, option label, disabled placeholder, recovery hint, mailbox item, notification, dispatch line, or Godot branch mentions enemy-offer waiting, `Seek Armistice Instead`, `Seek Bilateral Peace`, `Ask for terms`, or `Surrender terms` while their owning rows are deferred.
+- No payload, option label, disabled placeholder, recovery hint, mailbox item, notification, dispatch line, or Godot branch mentions enemy-offer waiting, `Seek Armistice Instead`, `Seek Bilateral Peace`, `Ask for terms`, or `Surrender terms` while their landing rows SC-29 / SC-30 / SC-31 are unshipped.
 - Losing-side concession baseline is deterministic for the smoke fixture and uses only canonical clauses.
 - End-turn draft discard produces a one-shot player notice or an explicitly equivalent dispatch/campaign-log notice.
 - `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` no longer contains unsuperseded stale route-id examples.
@@ -814,7 +831,7 @@ Required tests:
 - `test_blocked_settlement_recovery_affordance_schema`
 - `test_blocked_ratify_is_absent_and_blocked_banner_explains_reason`
 - `test_no_wait_for_enemy_offer_affordance_while_incoming_offers_deferred`
-- `test_seek_armistice_instead_cta_absent_until_owned_by_future_row`
+- `test_seek_armistice_instead_cta_absent_until_sc29_lands`
 - `test_open_war_detail_recovery_preserves_non_empty_draft_without_discard_prompt`
 - `test_open_war_detail_recovery_does_not_promise_ineligible_pair_action`
 - `test_blocked_settlement_with_no_alternatives_shows_terminal_copy_and_close`
@@ -823,6 +840,76 @@ Required tests:
 - `test_losing_peace_only_preview_prompts_concession_without_offer_wait`
 - `test_load_after_end_turn_does_not_silently_drop_draft_without_player_signal`
 - SC-27 doc scan covering both settlement implementation plan and parent settlement spec route-id examples.
+
+#### G2-Slice-7 - Pair-Scoped Peace Substitute CTAs
+
+Close SC-29 after G2-Slice-6. This slice exists because hidden direct pair actions must land somewhere concrete rather than becoming permanent invisible backlog.
+
+Required closure:
+
+- Rejected/blocked settlement review can expose `Seek Armistice Instead` and `Seek Bilateral Peace` only when the selected target pair is eligible and the payload is explicitly pair-scoped.
+- The handoff payload includes `{action, war_id, selected_target_nation, scope="selected_pair"}` and never targets all covered enemies by implication.
+- `evaluate_pair_peace_substitute_eligibility(...)` or an equivalent shared helper is the single source of truth for Godot visibility and backend refusal.
+- Clicking a substitute CTA preserves or invalidates the current scoped settlement draft according to the War Detail recovery contract; other hostile pairs remain unchanged.
+- SC-13, SC-14b, SC-19, and SC-26 interactions are covered: selected target inheritance, no settlement reopen-attempt consumption, voice copy, and same/cross-war collision behavior.
+
+Required tests:
+
+- `test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_only`
+- `test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_target_only`
+- `test_pair_substitute_eligibility_helper_matches_backend_refusal_codes`
+- `test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly`
+
+#### G2-Slice-8 - Dependency And Surrender Terms Restoration
+
+Close SC-31 before any `Surrender terms` label, preset, backend command, or mailbox row appears. This slice may run after Slice 7 or be absorbed into a larger dependency-clause restoration branch, but it remains a named landing target.
+
+Required closure:
+
+- Dependency clauses used for surrender are live, previewable, ratifiable, and recorded in settlement history.
+- Surrender presets produce concrete canonical clauses rather than prose-only surrender intent.
+- Preview explains dependency consequences, accepting-side benefit, player loss of agency, relevant third-party reactions, and any Balance of Europe / threat effects.
+- Ratification mutation, ledger/history/dispatch copy, and Voice Bible §16.1 surrender/dependency families land in the same slice.
+
+Required tests:
+
+- `test_surrender_terms_absent_until_dependency_clause_restoration`
+- `test_surrender_terms_authors_dependency_clause_with_preview_and_mutation`
+- `test_surrender_terms_voice_and_history_explain_dependency_consequence`
+
+#### Slice G1 - AI Settlement Offer Producer And Request Terms
+
+Close SC-30 before any `Wait for Enemy Offer`, `Ask for terms`, incoming-settlement-offer mailbox row, or request-revision/counteroffer control appears.
+
+Required closure:
+
+- Normal gameplay can produce an incoming settlement offer with stable offer identity and concrete settlement terms.
+- The producer is cooldown-gated, one-active-offer safe, and covered by mailbox/pending-envoy activation tests.
+- `Ask for terms` creates a real request-terms state or returns a humanized refusal; it is not a passive wait label.
+- Accept/reject/request-revision preserve package identity, live-preview before mutation, and avoid generic proposal fallback.
+- SC-5 no-exposure tests invert only in the same slice that lands the producer, payload, UI, voice, and behavior tests.
+
+Required tests:
+
+- `test_ai_settlement_offer_producer_surfaces_real_mailbox_payload`
+- `test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path_exist`
+- `test_ask_for_terms_creates_request_terms_state_or_humanized_refusal`
+- `test_incoming_offer_accept_preserves_offer_identity_and_terms_through_live_preview`
+
+#### Slice G2 - Settlement Agency Follow-Through
+
+Close SC-32 after G1. This slice owns broader settlement-agency promises so they cannot remain vague Slice G prose.
+
+Required closure:
+
+- AI counterproposals, ally petitions/advisories, conference mechanics, veto-like systems, and voluntary alignment offers each have one of two outcomes: shipped with payload/UI/voice/tests, or explicitly removed from player-facing scope in this spec and `docs/STATUS.md`.
+- No settlement-agency CTA can appear from layout tolerance, mailbox scaffolding, debug state, or old parent-spec text before its behavior lands.
+- If conference or veto systems are not part of the product direction, the row records that removal and ensures no player-facing copy implies them.
+
+Required tests:
+
+- `test_settlement_agency_landing_ledger_has_no_unowned_backlog_controls`
+- Per-action behavior tests before any agency CTA appears.
 
 ### Gate 3 - Behavioral Coverage Upgrade
 
