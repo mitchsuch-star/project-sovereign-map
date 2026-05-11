@@ -866,7 +866,7 @@ probe_settlement_eligibility(
 
 Probe errors must distinguish ordinary diplomacy state from settlement-state problems. A non-WAR pair returns `not_at_war` with display copy such as "You are not at war with Spain." A stale `war_id` from an old war-detail or coalition-detail popup returns a changed-state display reason such as "This war has changed since you opened the panel. Reopen the war detail." and must not backfill, stage dialogue, or mutate state.
 
-Opening settlement is free. The UI must display no DP cost for `open_settlement` and must not disable it for insufficient DP. The parser/debug command path (`propose common peace with {nation}`) and the wizard path must both remain available at `DP=0` when eligibility otherwise passes. If ratification later gains an explicit cost, that cost belongs to `confirm_settlement`, not the opener.
+Opening settlement is free. The UI must display no DP cost for `open_settlement` and must not disable it for insufficient DP. Historical parity wording for the parser/debug command path (`propose common peace with {nation}`) is SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-1 / SC-8b / SC-27 for normal UI: the wizard path uses the structured settlement payload, typed command remains debug/fallback, and typed no-`war_id` multi-war entry rejects ambiguity. If ratification later gains an explicit cost, that cost belongs to `confirm_settlement`, not the opener.
 
 Grey-out / preview error reasons are deterministic: `not_at_war`, `inactive_war_instance`, `not_side_leader`, `no_unresolved_hostile_pairs`, `no_coverable_enemy`, `settlement_dialogue_active`, or `war_state_changed_since_open`. Backend payloads must include player-facing display text for every reason, preferably through a single settlement display-name map/helper such as `SETTLEMENT_DISABLED_REASON_DISPLAY`; Godot must not render internal enum strings such as `inactive_war_instance`. A non-leader may still open read-only war status / contribution rows, but cannot stage common-peace terms. Wizard action rows must prefer `disabled_reason_display` and keep raw `disabled_reason` only for diagnostics.
 
@@ -988,15 +988,19 @@ Mutating common peace commands must not ratify directly from `/command`. They cr
         "review_target": "settlement_review",
         "route_id": "settlement:war_12:24:1",
     },
+    # Historical v1.33 fixed action-set example. SUPERSEDED BY
+    # SETTLEMENT_UI_CLEANUP_SPEC.md SC-2 / SC-3 / SC-28:
+    # cleanup-time payloads emit conditional options only. Ratify is absent
+    # when acceptance or hard stops block mutation, and Revise Terms is absent
+    # unless an edit-capable route with the staged package exists.
     "options": [
-        {"label": "Ratify Settlement", "action": "confirm_settlement"},
-        {"label": "Revise Terms", "action": "revise_settlement_terms"},
-        {"label": "Back Out", "action": "back_out_settlement"},
+        # Conditional cleanup-time entries only; see SETTLEMENT_UI_CLEANUP_SPEC.md
+        # SC-2 / SC-3 / SC-28 for Ratify, Revise, recovery, and Back Out rules.
     ],
 }
 ```
 
-Settlement dialogue action ids are the typed `options[].action` values above because existing Godot popups emit `options[].action` to `/respond_to_diplomatic_dialogue`. The backend may carry internal short names for diagnostics, but it must not expose a second contradictory player-action schema in the same dialogue payload. Do not emit a player-visible legacy `actions: ["confirm", "back_out", "revise_terms"]` list on settlement dialogues; if diagnostics require it, use an explicitly debug-only name and prove Godot ignores it. `/respond_to_diplomatic_dialogue` must accept `confirm_settlement`, `revise_settlement_terms`, and `back_out_settlement`.
+Settlement dialogue action ids are the typed `options[].action` values above because existing Godot popups emit `options[].action` to `/respond_to_diplomatic_dialogue`. The backend may carry internal short names for diagnostics, but it must not expose a second contradictory player-action schema in the same dialogue payload. Do not emit a player-visible legacy `actions: ["confirm", "back_out", "revise_terms"]` list on settlement dialogues; if diagnostics require it, use an explicitly debug-only name and prove Godot ignores it. `/respond_to_diplomatic_dialogue` must accept `confirm_settlement`, `revise_settlement_terms`, and `back_out_settlement` when those actions are emitted. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-3 / SC-28 for cleanup-time action availability: `confirm_settlement` is absent when blocked and `revise_settlement_terms` is absent unless an edit-capable route with staged package and scope exists.
 
 The dialogue may carry raw ids for diagnostics, but every field rendered by Godot must have a player-facing sibling or display-safe value. Required display siblings include term `display_label` / `type_display`, ally `standing_display`, optional ally `standing_phrase`, ally `standing_source` (`material`, `power_tier_only`, `leader`, or `mixed`) for phrase selection, warning `code_display`, warning `severity_display`, acceptance `band_display`, acceptance `band_phrase`, top component `label_display`, awe tag display labels, review-target display labels if shown, and disabled reason `disabled_reason_display`. These labels must be produced by backend presentation/display helpers and Godot must prefer them over raw codes.
 
@@ -1011,7 +1015,7 @@ Acceptance component ids must be humanized before reaching any visible surface. 
 5. Acceptance verdict band, `score_display` / threshold, and top-blocker callout.
 6. Warnings: all hard stops, the top warning, and severity-count overflow such as `+1 hard stop, +3 warnings`, not an undifferentiated `+4 concerns` or legacy `more concerns` wording.
 7. Terms: top rows grouped by payer/beneficiary, with Bargains and Rewards split whenever a bargain target exists. Bargain, reward, and coercion rows should have distinct display roles so a Tilsit-style "honor one promise while betraying another" package is legible at a glance.
-8. Actions: **Ratify Settlement**, **Revise Terms**, **Back Out**.
+8. Actions: historical fixed action set **SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-3 / SC-28**. Cleanup-time settlement review renders conditional options: `Ratify Settlement` only when the fresh acceptance/hard-stop gate passes, `Revise Terms` only when a real edit-capable route exists, and recovery/history/terminal close routes when blocked.
 
 The ledger is the durable detail surface; war detail is an entry/context surface. Do not add a conference minigame or ally-vote screen in Slice F.
 
@@ -1019,7 +1023,7 @@ Godot must route `settlement_confirm` to a dedicated settlement content builder 
 
 Awe set pieces must render as authored/display-safe banner copy, not as raw tags. The banner should use a settlement voice/display family (`settlement_awe_banner_*`) alongside the other Talleyrand/advisory lines. Raw tags such as `triple_forced_alignment`, `tilsit_bargain_and_betrayal`, `defensive_coalition_preservation`, and `balance_of_europe_crossing` are diagnostic ids only.
 
-`revise_settlement_terms` and stale-state behavior are part of the contract. Slice F implements one route: `revise_settlement_terms` preserves settlement context by returning a restageable payload or prior `settlement_terms`, plus `reopen_target` to the same nation/war. Confirm-time validation failures with `must_reopen=True` must return `error_display` or `message_display` and `reopen_target = {"surface": "diplomacy_wizard" | "war_detail" | "settlement_review", "nation": str, "war_id": str}`. A silent close, a nation-picker dump, or a generic "open settlement again" message is invalid.
+`revise_settlement_terms` and stale-state behavior are part of the historical Slice F contract, **SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-14b / SC-28 for cleanup readiness**. Cleanup-time Revise Terms must open a real edit-capable route with the staged package, `war_id`, `selected_target_nation`, and `covered_enemy_participants`, or be absent. Confirm-time stale failures use the cleanup spec's recovery-route and `BLOCKED_TERMINAL` rules rather than a no-op reopen loop.
 
 Successful `confirm_settlement` must produce immediate feedback through a named settlement result payload such as `settlement_result_popup = {"war_label": str, "resolved_pair_count": int, "review_route": {...}}`. The rendered result beat says "Settlement Ratified", shows the friendly `war_label`, resolved-pair count, and a Review Settlement route. Notification rail and ledger entries are not enough by themselves for the confirm moment.
 
@@ -1033,7 +1037,7 @@ Dialogue action request contract:
 POST /respond_to_diplomatic_dialogue
 {
     "dialogue_type": "settlement_confirm",
-    "action": "confirm_settlement",  # confirm_settlement | back_out_settlement | revise_settlement_terms
+    "action": "confirm_settlement",  # cleanup-time options are conditional; see SETTLEMENT_UI_CLEANUP_SPEC.md SC-2 / SC-3 / SC-28
     "war_id": "war_12",
     "dialogue_id": "settlement_war_12_turn_24"  # optional if the active dialogue is already settlement_confirm
 }
@@ -1063,8 +1067,10 @@ Dialogue action response shapes:
 {"success": True, "dialogue_type": "settlement_confirm", "action": "back_out_settlement",
  "cancelled": True, "mutated": False}
 
-# Revise terms; returns the prior draft context for the settlement review surface.
-{"success": True, "dialogue_type": "settlement_confirm", "action": "revise_settlement_terms",
+# Historical revise response example. SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md
+# SC-2: cleanup-time revise must return an edit-capable route with staged
+# package and scope, or the action must be absent.
+{"success": True, "dialogue_type": "settlement_confirm", "action": "revise_settlement_terms",  # historical example; cleanup-time revise is conditional per SETTLEMENT_UI_CLEANUP_SPEC.md SC-2
  "reopen_target": {"surface": "diplomacy_wizard", "nation": "Austria", "war_id": "war_12"},
  "settlement_terms": [...], "settlement_preview": {...}, "mutated": False}
 ```
@@ -1073,13 +1079,13 @@ Player actions:
 
 - `confirm_settlement`: revalidates current leaders, active pair keys, hard stops, and acceptance components against live state. If the proposer-side leader changed, the staged settlement is voided and must be reopened. If only the accepting-side leader changed, recompute acceptance against the new leader before resolving. On success, ratifies and returns `{"success": True, "settlement_summary": {...}, "settlement_result_popup": {...}}`. On rejection, returns `{"success": False, "rejected": True, "feedback": [...]}` without mutating state.
 - `back_out_settlement`: closes the dialogue and returns `{"success": True, "cancelled": True}` with no state mutation.
-- `revise_settlement_terms`: returns to the settlement review/wizard surface with the prior `settlement_terms`, warnings, and acceptance diagnostics intact.
+- `revise_settlement_terms`: historical behavior reference only; SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-28 for cleanup readiness. Cleanup-time revise returns to EDIT with the staged package/scope and edit-capable route, or the action is absent.
 
 Godot surface:
 
 - Reuse the diplomacy wizard shell for the entry choice.
-- `diplomacy_wizard.gd::_build_command()` maps `open_settlement` to `propose common peace with {nation}`. `open_for_nation(...)` accepts optional `war_id` or delegates to `open_for_war(...)`, and preview requests preserve that `war_id`.
-- War-status rows and war-detail popups preserve `war_instance_id`. `war_status_panel.gd` may either emit the id with row clicks or let `main.gd` retrieve it from cached war rows before calling `war_detail_popup.gd`, but the detail popup's Open Settlement CTA must be able to emit `settlement_clicked(war_id, target_nation)`.
+- Historical `diplomacy_wizard.gd::_build_command()` mapping of `open_settlement` to typed `propose common peace with {nation}` is SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-1 / SC-13 / SC-27. Cleanup-time Godot entry uses the structured settlement payload with `war_id`, `selected_target_nation`, `covered_enemy_participants`, `settlement_terms`, `draft_key`, and `caller_kind`; normal player settlement authoring must not synthesize natural-language command text. `open_for_nation(...)` accepts optional `war_id` or delegates to `open_for_war(...)`, and preview requests preserve that `war_id`.
+- War-status rows and war-detail popups preserve `war_instance_id`. `war_status_panel.gd` may either emit the id with row clicks or let `main.gd` retrieve it from cached war rows before calling `war_detail_popup.gd`, but the detail popup's Open Settlement CTA must be able to emit settlement scope. Historical `settlement_clicked(war_id, target_nation)` is **SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-13**: cleanup-time entry emits `settlement_clicked(war_id, selected_target_nation, covered_enemy_participants)`.
 - Render the war-scoped advisory in a dedicated settlement review panel. This is an information-screen surface in the CanvasLayer 50 family, so opening it must close or hide existing layer-50 screens (`diplomatic_ledger`, `strategic_ledger`, `dispatch_view`, `campaign_log`, and `marshal_management`) through the same one-screen-at-a-time top-bar ownership rule. The final confirm/back-out/revise choice is promoted through the existing popup/dialog manager when `settlement_confirm` is active.
 - War detail keeps existing `Negotiate Peace` / `Target X` controls as separate-peace or bilateral intent. `Open Settlement` / `Open Whole-War Settlement` are separate CTAs, not relabels of those existing buttons. Coalition button layout must tolerate 4+ visible members without horizontal overflow.
 - Warning payloads use the existing structured `warnings[]` shape. `HARD_STOP` blocks confirmation; `WARNING` and `INFO` do not.
@@ -1275,7 +1281,7 @@ The projection starts from current bloc geometry, applies forced alliance, liber
 
 `base_side_pressure` is the war-level headline component. Every term that burdens a specific enemy must also pass the section 6.3 direct-score gate for that payer; a high side average cannot authorize harsh terms against a barely-defeated major.
 
-If the accepting leader changes between proposal construction and acceptance evaluation, re-evaluate the package against the new leader before resolving. If the proposer-side leader changes, void the staged package and require reopening. If accepted, all covered active hostile pairs resolve; uncovered hostile pairs remain active under section 10.5. If rejected, the whole package fails. The player can then try separate peace with individual enemies or revise terms. Rejection feedback must identify the top 1-2 objectionable terms or acceptance components by absolute penalty so the player knows whether the problem was Silesia, forced alliance, insufficient direct pressure, a bargain conflict, or accumulated harshness.
+If the accepting leader changes between proposal construction and acceptance evaluation, re-evaluate the package against the new leader before resolving. If the proposer-side leader changes, void the staged package and require reopening. If accepted, all covered active hostile pairs resolve; uncovered hostile pairs remain active under section 10.5. If rejected, the whole package fails. The player can then try separate peace with individual enemies, or revise terms only when the cleanup spec's SC-2 edit-capable route exists; otherwise the cleanup spec's SC-28 recovery/history/terminal-close routes apply. Rejection feedback must identify the top 1-2 objectionable terms or acceptance components by absolute penalty so the player knows whether the problem was Silesia, forced alliance, insufficient direct pressure, a bargain conflict, or accumulated harshness. **SUPERSEDED FOR PLAYER-FACING REJECTED-REVIEW ACTIONS BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-28.**
 
 Burdened non-leader rule:
 
@@ -1720,7 +1726,7 @@ Final smoke is allowed only after the UI/UX closure slice proves all player-faci
 - The diplomacy wizard can preserve war context through `open_for_nation(nation, war_id=None)` or an equivalent `open_for_war(war_id, nation)` entry point. War-detail and coalition-detail entry must not discard `war_id`.
 - Default-start WAR pairs without a preexisting `war_instance` are displayed as settlement-openable through the read-only probe described in section 10.3.
 - `settlement_confirm` uses a dedicated popup body, not the generic diplomatic-proposal renderer. The player must see the war label, covered participants, terms, hard stops/warnings, acceptance summary, and available actions before confirming.
-- War-detail popup offers Open Settlement for settlement-capable wars; coalition detail offers a whole-war Open Settlement affordance when rows share a `war_instance_id`. The Godot signal should be explicit, for example `settlement_clicked(war_id: String, target_nation: String)`, and `main.gd` must connect it. Bilateral rows may remain the HUD model; a separate first-class whole-war HUD row is deferred unless later UX testing demands it.
+- War-detail popup offers Open Settlement for settlement-capable wars; coalition detail offers a whole-war Open Settlement affordance when rows share a `war_instance_id`. Historical `settlement_clicked(war_id: String, target_nation: String)` is **SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-13**; cleanup-time Godot entry must carry `settlement_clicked(war_id: String, selected_target_nation: String, covered_enemy_participants: PackedStringArray)`, and `main.gd` must connect it. Bilateral rows may remain the HUD model; a separate first-class whole-war HUD row is deferred unless later UX testing demands it.
 - War-status standing blocks show contribution rows when available and a small explanatory placeholder when no `war_instance` exists yet, rather than silently disappearing. Tooltips must include a one-line legend explaining that higher contribution means a stronger voice in settlement.
 - Ledger recent-settlement rows, expanded review sections, HUD standing rows, and popup content must render humanized term, standing, and disabled-reason labels. Raw enums such as `territory_cede`, `forced_alliance`, `informed_consult`, `leader_consult`, `no_standing`, or `inactive_war_instance` must not appear on normal player surfaces.
 - Notification/dispatch review routes should open the relevant settlement review target and, where practical, expand or focus the matching settlement row by route id. Exact auto-expand can be post-F polish, but the stable `route_id` must already flow through confirmation, event log, dispatch, notification metadata, and ledger row metadata in Slice F.
@@ -2022,7 +2028,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - `abandoned_by_ally_acceptance_mod`: `+5` per same-side enemy separate peace in the last 3 turns, capped at `+15`
 - Projected post-settlement hegemony modifier via `project_balance_after_settlement(...)`
 - Defender-side common-peace symmetry through `proposer_side`
-- Endpoint and dialogue contracts for no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_confirm`, `confirm_settlement`, `back_out_settlement`, and `revise_settlement_terms`
+- Endpoint and dialogue contracts for no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_confirm`, `confirm_settlement`, `back_out_settlement`, and conditional `revise_settlement_terms`. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-28 for cleanup-time Revise visibility: Revise is absent unless an edit-capable route exists with staged package and scope.
 - Mandatory `settlement_confirm` before any common-peace ratification; `confirm_settlement` revalidates live leaders, terms, hard stops, and acceptance
 - Verify and extend the already-registered `settlement_confirm` hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
 - Register `incoming_settlement_offer` as a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this is post-cleanup Slice G behavior unless SC-5 is explicitly reversed; default cleanup behavior is no player-facing exposure.
@@ -2034,7 +2040,7 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
   - **C1 backend scoring/legitimacy:** `compute_side_pressure_score`, common-peace acceptance, tuning fixtures, monotonicity, multi-objective alignment selection, projected hegemony, abandoned-ally modifier, territory normalization, direct-score gates, pressure-basis warnings, defender-side symmetry, partial common-peace scoring
   - **C2 endpoint/dialogue/advisory/Godot routing:** settlement preview endpoints, `settlement_confirm` response contract, confirm-settlement/back-out-settlement/revise-settlement handling, pair-specific treaty-state resolution, leader-change void/rescore, two-pass standing, AI-to-player settlement review only after cleanup SC-5 reversal, advisory payloads, Godot settlement review and smoke
 - Godot smoke gate after C2: launch the client, open the settlement review from a synthetic payload, verify `settlement_confirm` blocks ordinary commands, then back out/revise without mutation
-- Manual comprehension gate before D1: run a complete common-peace settlement review with at least 4 participants using a reviewer who has not read this settlement spec. Within roughly 30 seconds, the spec-naive reviewer must be able to identify the top blocker or political cost, the main affected ally/enemy, and the available next action (`confirm_settlement`, `revise_settlement_terms`, or `back_out_settlement`; add `accept_settlement_offer`, `reject_settlement_offer`, and `request_settlement_revision` only after cleanup SC-5 is explicitly reversed). If the reviewer cannot do that from the default view, reduce UI payload density, copy, or section ordering before starting D1 reaction work.
+- Manual comprehension gate before D1: run a complete common-peace settlement review with at least 4 participants using a reviewer who has not read this settlement spec. Within roughly 30 seconds, the spec-naive reviewer must be able to identify the top blocker or political cost, the main affected ally/enemy, and the available next action. Historical fixed action examples (`confirm_settlement`, `revise_settlement_terms`, or `back_out_settlement`) are SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-3 / SC-28: cleanup-time actions are conditional, blocked Ratify is absent, and Revise is absent unless edit-capable. Add `accept_settlement_offer`, `reject_settlement_offer`, and `request_settlement_revision` only after cleanup SC-5 is explicitly reversed. If the reviewer cannot do that from the default view, reduce UI payload density, copy, or section ordering before starting D1 reaction work.
 - ~60 tests split across C1/C2
 
 ### Slice D1: Settlement memories and direct reactions
@@ -2228,7 +2234,7 @@ Highest-priority tests:
 135. Wizard availability for default-start WAR pairs uses a read-only backfill probe that accepts `war_id=None`, cannot be a thin wrapper around existing-war eligibility, and does not mutate `world.war_instances`.
 136. The read-only probe is property-tested for repeated non-mutation, including no war-instance allocation, no contribution episode writes, no diplomatic-state/event-log/next-id changes, no dialogue staging, and no cache invalidation.
 137. `open_settlement` displays as free to open, is not blocked by insufficient DP, and typed/wizard paths both work at `DP=0`; Godot source/render checks prove the wizard does not show a ghost `1 DP` cost.
-138. `settlement_confirm` uses one typed Godot/backend action schema (`confirm_settlement`, `revise_settlement_terms`, `back_out_settlement`) with no contradictory player-facing `actions` list, and popup/main source guards prove settlement paths do not read `data.get("actions")`.
+138. `settlement_confirm` uses one typed Godot/backend action schema with no contradictory player-facing `actions` list, and popup/main source guards prove settlement paths do not read `data.get("actions")`. Historical fixed examples (`confirm_settlement`, `revise_settlement_terms`, `back_out_settlement`) are SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-3 / SC-28 for cleanup-time availability.
 139. `settlement_confirm` renders a dedicated readable popup body with friendly war label, visually loud whole/separate/partial badge, covered-enemy chips, side/outcome rows before terms, compact/medium review sections, acceptance band with threshold, top blocker, warnings with severity-count overflow, terms, awe banner when applicable, and required ratification feedback.
 140. Confirm-time and incoming-offer promote-time stale-state failures return `error_display` / `message_display` plus `reopen_target`; no silent close or nation-picker dump passes.
 141. Successful ratification emits a named settlement result feedback payload with friendly `war_label`, resolved-pair count, and Review Settlement route.
