@@ -267,7 +267,29 @@ Core settlement review and blocked-flow families:
 | `settlement_discard_confirm_talleyrand` | Talleyrand | "This draft is not empty, Sire. If we leave the table now, these terms are abandoned unless you return before the turn passes." |
 | `settlement_collision_active_review_talleyrand` | Talleyrand | "One settlement already occupies the table, Sire. Resolve that draft before opening another, or the courts will not know which paper speaks for France." |
 | `settlement_reopen_cap_exhausted_talleyrand` | Talleyrand | "This draft can no longer be restored cleanly. Return to War Detail and choose the matter afresh." |
+| `settlement_open_war_detail_recovery_talleyrand` | Talleyrand | "The draft cannot be signed from this table, Sire. Open the war detail and we can test the live pair terms still available." |
+| `settlement_open_history_recovery_talleyrand` | Talleyrand | "The war has moved beyond this draft, Sire. The settlement history will show what the courts now recognize." |
+| `settlement_no_alternative_route_chancery` | Foreign chancery | "The chancery cannot recover this settlement review. Reopen the live war record before presenting terms again." |
+| `settlement_concession_authored_talleyrand` | Talleyrand | "I have sketched concessions the other court may read as serious, Sire. They are offers, not surrender; inspect each clause before we present them." |
+| `settlement_losing_side_pressure_explained_talleyrand` | Talleyrand | "The balance of the war is against us, Sire. A bare peace asks the enemy to sign without profit; concessions give them a reason to answer." |
 | `settlement_observed_foreign_court_chancery` | Foreign chancery | "The Chancery records a settlement of {war_label}. The terms are visible, but the private bargains behind them are not." |
+
+Settlement recovery routing table:
+
+| Trigger | Required family |
+| --- | --- |
+| Outgoing settlement review opens in REVIEW mode | `settlement_review_heading_talleyrand` |
+| Ratification blocked by acceptance, score, or hard stop | `settlement_blocked_for_ratification_talleyrand` |
+| Live rescore changes the staged acceptance result | `settlement_rescored_after_staging_talleyrand` |
+| Non-empty draft discard confirmation | `settlement_discard_confirm_talleyrand` |
+| Cross-war settlement collision | `settlement_collision_active_review_talleyrand` |
+| Reopen cap exhausted before recovery route | `settlement_reopen_cap_exhausted_talleyrand` |
+| Blocked review routes to live War Detail | `settlement_open_war_detail_recovery_talleyrand` |
+| Stale review routes to Settlement History | `settlement_open_history_recovery_talleyrand` |
+| Malformed or unrecoverable review has no route | `settlement_no_alternative_route_chancery` |
+| Losing-side concession baseline is applied | `settlement_concession_authored_talleyrand` |
+| Losing-side peace-only draft needs concession guidance | `settlement_losing_side_pressure_explained_talleyrand` |
+| Fog-visible settlement observed by a non-French court | `settlement_observed_foreign_court_chancery` |
 
 Existing settlement-reaction families:
 
