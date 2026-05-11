@@ -229,20 +229,21 @@ class TestWarStatusSettlementEligibility:
             ignore_active_dialogue=True,
         )
         # After partial settlement leaving just one active hostile pair,
-        # the function may return no_unresolved_hostile_pairs or the war
-        # may only have 1 active cross-side pair left
-        # The key point: war-status row should NOT show settlement available
-        # when only a bilateral pair remains from a multi-party war.
+        # common settlement should not remain available. The merged
+        # war_status.py emits `settlement_eligibility` and
+        # `settlement_disabled_reason_display` on each war row, so we can
+        # assert both the boolean and the disabled-reason payload.
+        assert eligibility["available"] is False
+        assert eligibility["error"] == "one_to_one_war"
         wars = build_active_wars(world)
         austria_row = next(
             (w for w in wars.get("wars", []) if w["opponent"] == "Austria"),
             None,
         )
-        if austria_row:
-            # The eligibility check uses evaluate_open_settlement_eligibility
-            # which checks active cross-side pairs - should be unavailable
-            # or fall back to bilateral
-            pass  # Result depends on instance state after partial resolution
+        assert austria_row is not None
+        assert austria_row["settlement_available"] is False
+        assert austria_row["settlement_eligibility"]["error"] == "one_to_one_war"
+        assert austria_row["settlement_disabled_reason_display"] != ""
 
     def test_eligibility_cache_uses_evaluate_not_unique_count(self):
         """SC-10: war-status must use evaluate_open_settlement_eligibility."""
@@ -264,6 +265,31 @@ class TestWarStatusSettlementEligibility:
         )
         if austria_row:
             assert austria_row["settlement_available"] is False
+            assert austria_row["settlement_eligibility"]["error"] == "not_side_leader"
+            assert austria_row["settlement_disabled_reason_display"] != ""
+
+    def test_war_status_fails_closed_when_eligibility_probe_throws(self, monkeypatch):
+        """SC-10: evaluator exceptions must not fall back to unique-count CTA."""
+        world = _make_world()
+        _install_multi_party_war(world, "war_1")
+
+        import backend.game_logic.settlement_preview as settlement_preview
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("probe failed")
+
+        monkeypatch.setattr(
+            settlement_preview, "evaluate_open_settlement_eligibility", boom
+        )
+        wars = build_active_wars(world)
+        austria_row = next(
+            (w for w in wars.get("wars", []) if w["opponent"] == "Austria"),
+            None,
+        )
+        assert austria_row is not None
+        assert austria_row["settlement_available"] is False
+        assert austria_row["settlement_eligibility"]["error"] == "settlement_eligibility_unavailable"
+        assert austria_row["settlement_disabled_reason_display"] != ""
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -342,6 +368,7 @@ class TestSelectedTargetNationThreading:
             "target_nation": "Austria",
             "war_id": "war_1",
             "selected_target_nation": "Prussia",
+            "covered_enemy_participants": ["Prussia"],
         }
         result = executor._execute_propose_common_peace(command, {"world": world})
         assert result.get("success") is True
@@ -357,6 +384,7 @@ class TestSelectedTargetNationThreading:
             "action": "propose_common_peace",
             "target_nation": "Austria",
             "war_id": "war_1",
+            "covered_enemy_participants": ["Austria"],
         }
         result = executor._execute_propose_common_peace(command, {"world": world})
         assert result.get("success") is True
@@ -372,6 +400,7 @@ class TestSelectedTargetNationThreading:
             "action": "propose_common_peace",
             "target_nation": "Austria",
             "war_id": "war_1",
+            "selected_target_nation": "Austria",
             "covered_enemy_participants": ["Austria"],
         }
         result = executor._execute_propose_common_peace(command, {"world": world})
@@ -379,6 +408,36 @@ class TestSelectedTargetNationThreading:
         dialogue = result["diplomatic_dialogue"]
         assert "Austria" in dialogue["covered_enemy_participants"]
 
+    def test_stage_can_require_explicit_covered_scope(self):
+        """SC-13: production staging can fail closed without explicit scope."""
+        world = _make_world()
+        _install_multi_party_war(world, "war_1")
+        result = stage_settlement_confirm(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            selected_target_nation="Austria",
+            density="medium",
+            require_explicit_scope=True,
+        )
+        assert result.get("success") is False
+        assert result["error"] == "no_covered_enemy_participants"
+
+    def test_stage_rejects_selected_target_outside_covered_scope(self):
+        """SC-13: selected_target_nation must be within covered participants."""
+        world = _make_world()
+        _install_multi_party_war(world, "war_1")
+        result = stage_settlement_confirm(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            selected_target_nation="Prussia",
+            covered_enemy_participants=["Austria"],
+            density="medium",
+            require_explicit_scope=True,
+        )
+        assert result.get("success") is False
+        assert result["error"] == "selected_target_not_covered"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SC-11/SC-11b/SC-12: Coalition eligibility and target

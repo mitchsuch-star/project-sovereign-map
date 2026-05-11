@@ -2035,25 +2035,40 @@ class DiplomaticExecutor:
                 ),
             }
         war_id = resolution["war_id"]
-        # SC-1: forward authored settlement_terms from command into staging.
-        settlement_terms = (
-            cmd.get("settlement_terms")
-            or (cmd.get("diplomatic_data") or {}).get("settlement_terms")
-        )
+        # SC-1 v0.22: forward authored settlement_terms from command into
+        # staging. Distinguish between "terms key absent" (no authored draft
+        # was submitted) and "terms key present, possibly empty" (an authored
+        # draft was submitted and must be revalidated). Per v0.22 SC-1, an
+        # empty authored draft is rejected with `empty_authored_draft`.
+        diplomatic_data = cmd.get("diplomatic_data") or {}
+        has_submitted_terms = False
+        if "settlement_terms" in cmd:
+            settlement_terms = cmd.get("settlement_terms")
+            has_submitted_terms = True
+        elif "settlement_terms" in diplomatic_data:
+            settlement_terms = diplomatic_data.get("settlement_terms")
+            has_submitted_terms = True
+        else:
+            settlement_terms = None
         from backend.game_logic.settlement_preview import (
             stage_settlement_confirm,
             validate_settlement_terms,
         )
-        # SC-1 §15: revalidate authored terms before staging.
-        if settlement_terms:
+        # SC-1 §15: revalidate authored terms before staging. Defensive
+        # coercion drops non-dict entries before validation so a malformed
+        # payload cannot reach the scorer.
+        if has_submitted_terms:
             war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
             actor_side = None
             for side in ("attackers", "defenders"):
                 if player in (war_instance.get(side) or []):
                     actor_side = side
                     break
+            terms_for_validation = [
+                dict(t) for t in (settlement_terms or []) if isinstance(t, dict)
+            ]
             validation = validate_settlement_terms(
-                [dict(t) for t in settlement_terms if isinstance(t, dict)],
+                terms_for_validation,
                 actor_nation=player,
                 player_nation=player,
                 proposer_side=actor_side,
@@ -2069,10 +2084,12 @@ class DiplomaticExecutor:
                     "validation_detail": validation.get("disabled_reason_display"),
                     "mutated": False,
                 }
-            # SC-1: persist draft for same-turn recovery.
-            world.pending_settlement_drafts[war_id] = [
-                dict(t) for t in settlement_terms if isinstance(t, dict)
-            ]
+            # SC-1: persist draft for same-turn recovery. (v0.22 SC-1 will
+            # rekey this to a scoped `draft_key` in the editor wiring slice;
+            # the current `war_id` key remains the storage path until that
+            # slice lands so existing tests and Slice 3 same-war merge keep
+            # working.)
+            world.pending_settlement_drafts[war_id] = terms_for_validation
         selected_target = (
             cmd.get("selected_target_nation")
             or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")

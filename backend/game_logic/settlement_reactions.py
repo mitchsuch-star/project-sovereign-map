@@ -934,7 +934,13 @@ def _emit_settlement_summary_event(
     pre_cleanup_war_label: str = "",
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    # SC-14c v0.22: staged route id is the canonical source. The settlement
+    # summary event reads the staged value verbatim; do not recompute or pass
+    # a separate `route_id` arg here.
     staged_route_id: str = "",
+    # SC-15 v0.22: archived acceptance snapshot for the ratification-time
+    # payload (preserved on `settlement_summary` so the diplomatic ledger and
+    # dispatch surfaces can render acceptance after the fact).
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -952,6 +958,14 @@ def _emit_settlement_summary_event(
         detect_awe_set_pieces,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
+    # SC-14c v0.22: staged route id is the canonical source. If the staging
+    # path passed it in, reuse it verbatim. Otherwise mint a fresh
+    # `settlement:{war_id}:{turn}:{seq}` id via the canonical helper so we
+    # never emit the forbidden `{war_id}:{turn}` legacy shape.
+    route_id = str(staged_route_id or "").strip()
+    if not route_id:
+        from backend.game_logic.settlement_preview import mint_settlement_route_id
+        route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
     terms_summary = [
         f"{c.get('type')}: {c.get('from','')}→{c.get('to','')}"
         for c in applied_clauses[:3]
@@ -1105,6 +1119,8 @@ def _emit_settlement_digest_event(  # noqa: D401
     covered_enemy_participants: List[str],
     hidden_reaction_count: int,
     top_reaction_types: List[str],
+    # SC-14c v0.22: digest reuses the staged route id so dispatch/ledger group
+    # the digest under the same focus as the matching summary event.
     staged_route_id: str = "",
 ) -> Optional[Dict[str, Any]]:
     if hidden_reaction_count <= 0:
@@ -1115,7 +1131,10 @@ def _emit_settlement_digest_event(  # noqa: D401
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
     # SC-14c: digest reuses the staged route id so dispatch/ledger group
-    # the digest under the same focus as the matching summary event.
+    # the digest under the same focus as the matching summary event. The
+    # forbidden `{war_id}:{turn}:digest` shape is not used as a fallback;
+    # if no staged id is available we mint a fresh `settlement:{war_id}:
+    # {turn}:{seq}` id via the canonical helper.
     route_id = str(staged_route_id or "").strip()
     if not route_id:
         from backend.game_logic.settlement_preview import (
@@ -1170,9 +1189,14 @@ def route_settlement_reactions(
     pre_cleanup_accepting_members: Optional[List[str]] = None,
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    # SC-14c v0.22: staged route id is the canonical source; do not pass a
+    # separate `route_id` arg.
     staged_route_id: str = "",
+    # SC-15 v0.22: archived acceptance snapshot for downstream surfaces.
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
+    # SC-15 v0.22: failed/blocked ratification short-circuits the reaction
+    # routing so settlement-summary/history events never reach producers.
     success: bool = True,
     mutated: bool = True,
 ) -> Dict[str, Any]:

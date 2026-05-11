@@ -143,8 +143,27 @@ def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
     return result
 
 
+def _normalize_nation_list(values: Optional[Iterable[str]]) -> List[str]:
+    if values is None:
+        return []
+    return sorted({str(value) for value in values if str(value or "").strip()})
+
+
 def _other_side(side: str) -> str:
     return "defenders" if side == "attackers" else "attackers"
+
+
+def _allocate_settlement_route_id(world: Any, war_id: str) -> str:
+    """Allocate a same-turn unique settlement route id for a staged dialogue."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    route_seq = getattr(world, "settlement_route_seq", None)
+    if not isinstance(route_seq, dict):
+        return f"{war_id}:{turn}:1"
+    per_war = route_seq.setdefault(str(war_id), {})
+    last_seq = int(per_war.get(turn, 0) or 0)
+    next_seq = last_seq + 1
+    per_war[turn] = next_seq
+    return f"{war_id}:{turn}:{next_seq}"
 
 
 def _side_leader(war_instance: Mapping[str, Any], side: str) -> Optional[str]:
@@ -618,6 +637,8 @@ def evaluate_open_settlement_eligibility(
     pairs = _active_cross_side_pairs(instance, side)
     if not pairs:
         return _blocked_payload("no_unresolved_hostile_pairs", war_id=war_id, proposer_side=side)
+    if len(pairs) == 1:
+        return _blocked_payload("one_to_one_war", war_id=war_id, proposer_side=side)
 
     coverable = get_coverable_enemy_participants(instance, side)
     if not coverable:
@@ -664,6 +685,12 @@ def validate_settlement_terms(
             "error": "proposer_side_mismatch",
             "disabled_reason_display": _error_display("proposer_side_mismatch"),
         }
+    if not isinstance(terms, list):
+        return {
+            "valid": False,
+            "error": "invalid_clause_schema",
+            "disabled_reason_display": _error_display("invalid_clause_schema"),
+        }
     if not terms:
         return {
             "valid": False,
@@ -678,6 +705,13 @@ def validate_settlement_terms(
             "disabled_reason_display": _error_display("max_clause_count_exceeded"),
         }
     for idx, clause in enumerate(terms):
+        if not isinstance(clause, Mapping):
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
         ctype = clause.get("type")
         if ctype not in CANONICAL_CLAUSE_TYPES:
             return {
@@ -687,13 +721,28 @@ def validate_settlement_terms(
                 "disabled_reason_display": _error_display("invalid_clause_type"),
             }
         spec = CANONICAL_CLAUSE_TYPES[ctype]
-        missing = spec["required"] - set(clause.keys())
+        # v0.22 SC-1: alias keys outside required+optional are rejected so
+        # `target` / `imposer` etc. cannot slip through alongside canonical
+        # keys.
+        required = set(spec["required"])
+        optional = set(spec.get("optional") or set())
+        clause_keys = set(clause.keys())
+        missing = required - clause_keys
         if missing:
             return {
                 "valid": False,
                 "error": "invalid_clause_schema",
                 "error_index": idx,
                 "missing_keys": sorted(missing),
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
+        unknown = clause_keys - required - optional
+        if unknown:
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "unknown_keys": sorted(unknown),
                 "disabled_reason_display": _error_display("invalid_clause_schema"),
             }
     for type_a, type_b, match_keys in CLAUSE_CONFLICT_MATRIX:
@@ -737,8 +786,8 @@ def build_settlement_preview(
     instance = copy.deepcopy((getattr(world, "war_instances", {}) or {})[war_id])
     side = eligibility["proposer_side"]
     accepting_side = eligibility["accepting_side"]
-    covered = sorted(
-        {str(n) for n in (covered_enemy_participants or eligibility["coverable_enemy_participants"])}
+    covered = _normalize_nation_list(
+        covered_enemy_participants or eligibility["coverable_enemy_participants"]
     )
     accepting_leader = eligibility["accepting_leader"]
     proposer_leader = eligibility["proposer_leader"]
@@ -857,11 +906,13 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    # SC-14c: settlement route id format is `settlement:{war_id}:{turn}:{seq}`,
-    # minted from the per-(war_id, turn) `world.settlement_route_seq` counter
-    # so two same-turn settlement events for one war never share a focus id.
-    # Reaction event, dispatch, ledger, notification meta, and result feedback
-    # all consume this staged id verbatim.
+    # SC-14c v0.22: settlement route id format is
+    # `settlement:{war_id}:{turn}:{seq}`, minted from the per-(war_id, turn)
+    # `world.settlement_route_seq` counter so two same-turn settlement events
+    # for one war never share a focus id. Reaction event, dispatch, ledger,
+    # notification meta, and result feedback all consume this staged id
+    # verbatim. The legacy `_allocate_settlement_route_id(...)` helper is
+    # superseded; `mint_settlement_route_id` is the canonical entry point.
     route_id = mint_settlement_route_id(world, war_id=war_id)
     review_route = {
         "surface": "ledger_settlements",
@@ -878,11 +929,11 @@ def build_settlement_confirm_dialogue(
         and verdict not in ("reject", "blocked")
         and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
     )
-    # SC-17 / SC-19: humanize the live-review heading. The raw verdict
-    # f-string ("Acceptance: near_acceptable (49)") leaked enum strings
-    # to player BBCode. Resolve through the settlement voice family so
-    # the player sees acceptance band display + top-blocker phrasing,
-    # never raw `near_acceptable` / `reject` / `blocked` enums.
+    # SC-17 / SC-19 v0.22: humanize the live-review heading. The raw verdict
+    # f-string ("Acceptance: near_acceptable (49)") leaked enum strings to
+    # player BBCode. Resolve through the settlement voice family so the
+    # player sees acceptance band display + top-blocker phrasing, never raw
+    # `near_acceptable` / `reject` / `blocked` enums.
     band_code = str(preview["acceptance"].get("band") or verdict or "near_acceptable").lower()
     band_display = acceptance_band_display(band_code) or "Under review"
     top_blocker_display = ""
@@ -910,6 +961,11 @@ def build_settlement_confirm_dialogue(
             war_label=war_label,
             top_blocker=top_blocker_display,
         ) or f"This settlement of {war_label} cannot be ratified now."
+    # SC-3 / SC-4 v0.22 contract: when ratification is blocked, `confirm_settlement`
+    # is ABSENT from both `options[]` and `available_action_ids[]`. The popup
+    # banner replaces the missing primary action; the older v0.21 disabled-Ratify
+    # plumbing (`available=False`, `disabled_reason`, `ratify_blocked_reason`)
+    # is not part of the v0.22 contract.
     options = []
     available_action_ids = []
     if can_ratify:
@@ -919,7 +975,13 @@ def build_settlement_confirm_dialogue(
     options.append({"label": "Back Out", "action": "back_out_settlement"})
 
     covered = list(preview.get("covered_enemy_participants") or [])
-    resolved_target = selected_target_nation or (covered[0] if covered else "")
+    # SC-13 v0.22: the selected target must be within the covered scope
+    # when explicitly provided. The default-target fallback to
+    # `covered[0]` remains for paths that don't pass an explicit target.
+    selected_target = str(selected_target_nation or "").strip()
+    if selected_target and selected_target not in covered:
+        raise ValueError("selected_target_not_covered")
+    resolved_target = selected_target or (covered[0] if covered else "")
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -964,8 +1026,31 @@ def stage_settlement_confirm(
     selected_target_nation: Optional[str] = None,
     actor_nation: Optional[str] = None,
     density: str = "medium",
+    require_explicit_scope: bool = False,
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
+    # SC-13 v0.22 explicit-scope guards. When the caller declares
+    # `require_explicit_scope=True`, both the covered enemy scope and the
+    # selected target must be present and consistent before we touch
+    # collision/merge logic. Production entry paths set this flag; the
+    # default of False preserves backward compatibility for tests that
+    # exercise the collision/merge surface in isolation.
+    explicit_covered = _normalize_nation_list(covered_enemy_participants)
+    explicit_target = str(selected_target_nation or "").strip()
+    if require_explicit_scope and not explicit_covered:
+        return {"success": False, **_blocked_payload("no_covered_enemy_participants", war_id=war_id)}
+    if require_explicit_scope and not explicit_target:
+        return {"success": False, **_blocked_payload("no_selected_target_nation", war_id=war_id)}
+    if explicit_target and explicit_covered and explicit_target not in explicit_covered:
+        return {
+            "success": False,
+            **_blocked_payload(
+                "selected_target_not_covered",
+                war_id=war_id,
+                selected_target_nation=explicit_target,
+                covered_enemy_participants=explicit_covered,
+            ),
+        }
     # SC-26: settlement-family collision protection applied BEFORE building
     # the preview so a second settlement entry for a different war_id can't
     # mutate the staged dialogue or shift caches behind the active draft.
@@ -1042,7 +1127,32 @@ def stage_settlement_confirm(
     )
     if not preview.get("success"):
         return preview
-    dialogue = build_settlement_confirm_dialogue(world, preview, selected_target_nation=selected_target_nation)
+    # SC-13 v0.22 post-preview validation: even when `require_explicit_scope`
+    # is False, the resolved target must end up inside the covered set or
+    # we reject before staging so `_reopen_target` doesn't fall back to a
+    # nation outside the settlement scope.
+    covered = list(preview["settlement_preview"].get("covered_enemy_participants") or [])
+    resolved_target = explicit_target or (covered[0] if covered else "")
+    if not covered:
+        return {"success": False, **_blocked_payload("no_covered_enemy_participants", war_id=war_id)}
+    if not resolved_target:
+        return {"success": False, **_blocked_payload("no_selected_target_nation", war_id=war_id)}
+    if resolved_target not in covered:
+        return {
+            "success": False,
+            **_blocked_payload(
+                "selected_target_not_covered",
+                war_id=war_id,
+                selected_target_nation=resolved_target,
+                covered_enemy_participants=covered,
+            ),
+        }
+    try:
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation=resolved_target,
+        )
+    except ValueError as exc:
+        return {"success": False, **_blocked_payload(str(exc), war_id=war_id)}
     if getattr(world.dialogue_manager, "peek", lambda: None)() is None:
         world.dialogue_manager.replace(dialogue)
     elif hasattr(world.dialogue_manager, "preempt"):
@@ -2100,6 +2210,8 @@ def handle_incoming_settlement_offer_action(
         world,
         war_id=war_id,
         actor_nation=actor,
+        selected_target_nation=dialogue.get("selected_target_nation"),
+        covered_enemy_participants=dialogue.get("covered_enemy_participants"),
         density="medium",
     )
     result["dialogue_type"] = "settlement_confirm"

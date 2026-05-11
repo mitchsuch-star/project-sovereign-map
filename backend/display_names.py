@@ -527,7 +527,10 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "multi_war_ambiguity": "Multiple wars with this court; select a specific war from war detail.",
     "proposer_leader_changed": "Your side's war leader changed; reopen settlement review.",
     "active_pair_changed": "The war changed while the settlement was open.",
+    "no_selected_target_nation": "No settlement target court is selected.",
     "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
+    "selected_target_not_covered": "The selected settlement target is outside this settlement scope.",
+    "settlement_eligibility_unavailable": "Settlement eligibility could not be evaluated; reopen war detail.",
     "active_participant_changed": "A participant changed sides or left the war.",
     "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
     "unknown_settlement_action": "That settlement choice is not recognized.",
@@ -544,19 +547,19 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     # SC-3/SC-4 ratification gate codes
     "acceptance_rejected": "The accepting side has rejected these terms.",
     "acceptance_blocked": "A hard stop prevents ratification of these terms.",
-    # SC-14b reopen-attempt cap
+    # SC-14b reopen-attempt cap (G2-Slice-3)
     "reopen_attempt_cap_exceeded": "We cannot reopen this settlement review - choose from war detail.",
-    # SC-13 dual-empty fallback / SC-7b stale offer fallback
+    # SC-13 dual-empty fallback / SC-7b stale offer fallback (G2-Slice-3)
     "no_reopen_target_available": "We cannot reopen this settlement review - choose from war detail.",
-    # SC-7b stale incoming offer
+    # SC-7b stale incoming offer (G2-Slice-3)
     "incoming_offer_war_archived": "That settlement offer is no longer relevant; the war has ended.",
     "incoming_offer_war_invalid": "That settlement offer references a war we cannot find; choose from war detail.",
     # SC-5 G2-Slice-4 default defer-and-hide for incoming settlement offers
     "incoming_offer_deferred": "Incoming settlement offers are not available in this build.",
-    # SC-26 collision codes
+    # SC-26 collision codes (G2-Slice-3)
     "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
-    # SC-14e aged-out dispatch link
+    # SC-14e aged-out dispatch link (G2-Slice-3)
     "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
 }
 

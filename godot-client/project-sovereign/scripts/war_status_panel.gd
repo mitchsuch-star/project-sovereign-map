@@ -163,6 +163,7 @@ func _add_coalition_header(coalition_name: String):
 func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	"""Add a compact war entry: entire row is clickable."""
 	var opponent = str(war_data.get("opponent", "?"))
+	var opponent_display = str(war_data.get("opponent_display", opponent))
 	var score = int(float(war_data.get("war_score", 0)))
 	var duration = int(float(war_data.get("duration", 0)))
 
@@ -183,7 +184,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	# Nation name label
 	var name_label = Label.new()
 	var indent = "  " if is_coalition_member else ""
-	name_label.text = indent + opponent
+	name_label.text = indent + opponent_display
 	name_label.custom_minimum_size = Vector2(60, 0)
 	name_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	name_label.add_theme_font_size_override("font_size", 10)
@@ -211,6 +212,8 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 func _build_war_tooltip(war_data: Dictionary) -> String:
 	var lines = []
+	if bool(war_data.get("is_multi_participant_war", false)):
+		lines.append("Shared war: " + str(war_data.get("opponent_display", war_data.get("opponent", "?"))))
 	var tier = str(war_data.get("settlement_tier_display", ""))
 	if tier:
 		lines.append("Settlement: " + tier)

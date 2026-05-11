@@ -61,6 +61,13 @@ def test_settlement_confirm_uses_review_payload_and_humanized_fields() -> None:
     # text is replaced with humanized recovery copy.
     assert "Settlement payload incomplete" not in source
     assert "We could not prepare this settlement review" in source
+    # SC-3/SC-4 v0.22 contract: blocked Ratify is absent from options[]
+    # (not present-but-disabled), so codex's transitional disabled-Ratify
+    # plumbing (`ratify_blocked_reason`, `btn.disabled = not available`,
+    # `font_disabled_color` Ratify-specific styling) must not be the
+    # blocked-state rendering. The blocked-state banner takes the place
+    # of the absent option instead.
+    assert "ratify_blocked_reason" not in source
     assert 'data.get("actions"' not in source
 
 

@@ -10,6 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 import copy  # noqa: F401 - used in to_dict() for deepcopy
+import os
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
@@ -56,6 +57,9 @@ DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     },
     "anti_renewal_window_turns": 15,
 }
+
+SMOKE_START_ENV = "SOVEREIGN_SMOKE_START"
+SMOKE_START_SETTLEMENT_MULTILATERAL = "settlement_multilateral"
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -712,6 +716,8 @@ class WorldState:
         # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
         self.diplomatic_trust_applied: Dict[str, int] = {}
 
+        self._apply_smoke_start_preset()
+
         # R9: Build marshal-by-region index before visibility calc uses it
         self._build_marshal_index()
 
@@ -725,6 +731,76 @@ class WorldState:
         # does not stage inherited 1805 conditions as a fresh beat. Must
         # run AFTER _setup_initial_control() (already run above).
         self._bootstrap_hegemony_signal_state()
+
+    def _apply_smoke_start_preset(self) -> None:
+        """Apply opt-in dev-only startup presets."""
+        if os.environ.get(SMOKE_START_ENV) != SMOKE_START_SETTLEMENT_MULTILATERAL:
+            return
+        self._seed_settlement_multilateral_smoke_start()
+
+    def _seed_settlement_multilateral_smoke_start(self) -> None:
+        """Seed France vs Britain + Prussia for settlement UI smoke tests."""
+        from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+
+        first = ensure_war_instance_for_pair(
+            self,
+            "France",
+            "Britain",
+            entry_path="smoke_start_settlement_multilateral",
+            root_episode_id="smoke_start_settlement_multilateral_Britain_France",
+            reason="settlement_multilateral_smoke_start",
+        )
+        if not first.get("ok"):
+            raise RuntimeError(
+                "failed to seed settlement smoke war: "
+                f"{first.get('error') or first}"
+            )
+
+        second = ensure_war_instance_for_pair(
+            self,
+            "France",
+            "Prussia",
+            entry_path="smoke_start_settlement_multilateral",
+            root_episode_id="smoke_start_settlement_multilateral_France_Prussia",
+            reason="settlement_multilateral_smoke_start",
+        )
+        if not second.get("ok"):
+            raise RuntimeError(
+                "failed to attach Prussia to settlement smoke war: "
+                f"{second.get('error') or second}"
+            )
+        self._seed_settlement_multilateral_smoke_pressure()
+
+    def _seed_settlement_multilateral_smoke_pressure(self) -> None:
+        """Give the smoke war enough pressure for default settlement ratification."""
+        from backend.game_logic.diplomacy import calculate_war_score
+
+        for opponent, location in (("Britain", "Waterloo"), ("Prussia", "Rhineland")):
+            pair = self._make_diplo_key("France", opponent)
+            self.war_start_turns[pair] = 1
+            self.battle_records[pair] = [
+                {
+                    "turn": 1,
+                    "winner": "France",
+                    "attacker": "France",
+                    "defender": opponent,
+                    "attacker_casualties": 1000,
+                    "defender_casualties": 2500,
+                    "location": location,
+                }
+                for _ in range(10)
+            ]
+            self.decisive_battles[pair] = [
+                {"turn": 1, "winner": "France", "location": location}
+                for _ in range(2)
+            ]
+            live_score = int(calculate_war_score("France", opponent, self))
+            pair_parts = pair.split("|")
+            self.war_scores[pair] = -live_score if pair_parts[0] != "France" else live_score
+            self.previous_war_scores[pair] = int(self.war_scores[pair])
+            self.war_score_history[pair] = [int(self.war_scores[pair])]
+        self.war_exhaustion["Britain"] = 60
+        self.war_exhaustion["Prussia"] = 35
 
     def _bootstrap_hegemony_signal_state(self) -> None:
         """Seed `hegemony_signal_high_water` + `hegemony_signal_hegemon` from

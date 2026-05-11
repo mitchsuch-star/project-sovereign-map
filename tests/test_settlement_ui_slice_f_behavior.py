@@ -647,11 +647,13 @@ def test_settlement_review_emits_no_uncovered_chips_for_whole_war_settlement():
 
 
 def test_confirm_dialogue_route_id_matches_event_format():
-    """G2-Slice-3 SC-14c inversion: the dialogue's route_id must use the
+    """G2-Slice-3 SC-14c (v0.22): the dialogue's route_id must use the
     `settlement:{war_id}:{turn}:{seq}` format so two same-turn settlement
     events for one war can share a `(war_id, turn)` window without
     colliding on the `seq` counter. The event side reads the staged value
-    verbatim instead of recomputing."""
+    verbatim instead of recomputing. The legacy `{war_id}:{turn}` format
+    and the older `settlement_summary:{war_id}:{staged_turn}` prefix are
+    both forbidden."""
     world = WorldState()
     _install_war(world)
     world.current_turn = 7
@@ -666,6 +668,9 @@ def test_confirm_dialogue_route_id_matches_event_format():
     # Prefix-style route_ids from earlier drafts must NOT be re-introduced.
     assert "settlement_summary:" not in dialogue["route_id"]
     assert dialogue["route"]["route_id"] == "settlement:war_1:7:1"
+
+    next_dialogue = build_settlement_confirm_dialogue(world, preview)
+    assert next_dialogue["route_id"] == "settlement:war_1:7:2"
 
 
 def test_confirm_dialogue_carries_uncovered_chips_for_popup():

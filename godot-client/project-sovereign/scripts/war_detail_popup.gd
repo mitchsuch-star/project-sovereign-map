@@ -64,9 +64,10 @@ func _on_overlay_input(event):
 func show_war(war_data: Dictionary, _coalition_data) -> void:
 	"""Show bilateral war detail (N4b)."""
 	_current_nation = str(war_data.get("opponent", ""))
+	var opponent_display = str(war_data.get("opponent_display", _current_nation))
 	_current_war_id = str(war_data.get("war_instance_id", ""))
 	_current_mode = "war"
-	header_label.text = "WAR WITH " + _current_nation.to_upper()
+	header_label.text = "WAR WITH " + opponent_display.to_upper()
 	_clear_score_bars()
 	_add_tug_of_war_bar(
 		int(float(war_data.get("war_score", 0))),

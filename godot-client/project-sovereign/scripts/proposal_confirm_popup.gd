@@ -75,10 +75,16 @@ func show_dialogue(data: Dictionary):
 		var btn = Button.new()
 		var original_label = str(opt.get("label", "???"))
 		var original_tooltip = str(opt.get("description", ""))
+		var available = bool(opt.get("available", true))
+		var disabled_reason = str(opt.get("disabled_reason", original_tooltip))
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
 		btn.add_theme_font_size_override("font_size", 14)
+		btn.disabled = not available
+		if not available:
+			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
+			btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 		var action_str = opt.get("action", "dismiss")
 		if _should_label_ask_later(dtype, action_str, original_label):
 			btn.text = "Not Now"
@@ -288,6 +294,12 @@ func _build_settlement_content(data: Dictionary) -> String:
 			if top_value != "":
 				bbcode += " " + top_value
 			bbcode += "\n"
+		# SC-3 v0.22 blocked-ratification rendering: the backend omits
+		# `confirm_settlement` from `options[]` entirely, so the legacy
+		# blocked-banner field is no longer emitted or rendered here. The
+		# popup heading (settlement voice family, including
+		# `settlement_blocked_for_ratification_talleyrand`) and the
+		# acceptance `band_display` ("Blocked") communicate the same state.
 		bbcode += "\n"
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
