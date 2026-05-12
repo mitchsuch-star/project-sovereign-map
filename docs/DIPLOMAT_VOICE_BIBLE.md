@@ -263,6 +263,7 @@ Core settlement review and blocked-flow families:
 | --- | --- | --- |
 | `settlement_review_heading_talleyrand` | Talleyrand | "Sire, this settlement is a draft for signatures, not a victory bulletin. The court will judge what we demand, what we offer, and what the war still leaves unsettled." |
 | `settlement_blocked_for_ratification_talleyrand` | Talleyrand | "Sire, there is no ratification to present. {top_blocker} must be answered before any court can sign." |
+| `settlement_blocked_for_ratification_observer` | Foreign chancery | "The chancery records the draft as blocked. {top_blocker} leaves no court with signatures to exchange." |
 | `settlement_rescored_after_staging_talleyrand` | Talleyrand | "The ground has moved beneath the draft, Sire. What was {previous_verdict} is now {current_verdict}; {top_delta} is the change that matters." |
 | `settlement_discard_confirm_talleyrand` | Talleyrand | "This draft is not empty, Sire. If we leave the table now, these terms are abandoned unless you return before the turn passes." |
 | `settlement_collision_active_review_talleyrand` | Talleyrand | "One settlement already occupies the table, Sire. Resolve that draft before opening another, or the courts will not know which paper speaks for France." |
@@ -280,6 +281,7 @@ Settlement recovery routing table:
 | --- | --- |
 | Outgoing settlement review opens in REVIEW mode | `settlement_review_heading_talleyrand` |
 | Ratification blocked by acceptance, score, or hard stop | `settlement_blocked_for_ratification_talleyrand` |
+| Fog-visible blocked settlement observed by a non-French court | `settlement_blocked_for_ratification_observer` |
 | Live rescore changes the staged acceptance result | `settlement_rescored_after_staging_talleyrand` |
 | Non-empty draft discard confirmation | `settlement_discard_confirm_talleyrand` |
 | Cross-war settlement collision | `settlement_collision_active_review_talleyrand` |
