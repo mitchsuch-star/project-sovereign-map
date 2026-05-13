@@ -193,7 +193,8 @@ When the player opens a peace proposal (WAR/ARMISTICE → less hostile state), t
         "territory": 20,
         "battle": 15,
         "decisive_battle": 10,
-        "capital": 0
+        "capital": 0,
+        "ticking": 0
     },
     "war_duration_turns": 8,
     "battles_fought": 3,
@@ -217,14 +218,14 @@ When the player opens a peace proposal (WAR/ARMISTICE → less hostile state), t
 
 The snapshot is frozen at proposal-construction time and does not update if game state changes before the player sends. This prevents the player from gaming the preview by modifying state mid-composition.
 
-**WPS extension:** The landed `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` slice extends this snapshot with optional `war_objective`, `settlement_tier`, and ticking-score fields; see WPS §14.3 for the exact fields. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
+**WPS extension:** The landed `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` slice extends this snapshot with optional `war_objective`, `settlement_tier`, and ticking-score fields; see WPS §14.3 for the exact fields. Live war-score component readers should tolerate the fifth additive `ticking` component. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
 
 ### 8.2 Peace preview content
 
 The preview shows three sections:
 
 **Section 1 — War Summary:**
-- War score and components (territory, battles, decisive, capital)
+- War score and components (territory, battles, decisive, capital, ticking when WPS is live)
 - Duration, battles won/lost, casualty totals
 - Regions currently held by each side
 - War score trend (rising/falling/stagnant based on last 3 turns)

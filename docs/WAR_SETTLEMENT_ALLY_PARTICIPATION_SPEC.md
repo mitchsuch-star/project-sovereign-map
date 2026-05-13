@@ -14,7 +14,7 @@
 | Ally-aware settlement mechanics, war-instance grouping, contribution standing, common-peace acceptance, and settlement memories | This spec |
 | Cleanup-time player readiness, blocked/rejected/losing recovery, route-id shape, action visibility, and Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
 | Incoming AI settlement offers and player-facing `incoming_settlement_offer` routes | Deferred and hidden unless the cleanup spec explicitly reverses SC-5 with producer, payload, UI, package-preserving actions, incoming voice, and behavior tests |
-| Sections 18-19 implementation/test sequences | Historical mechanics reference unless the active cleanup spec points back to a specific row |
+| Sections 18-19 implementation/test sequences and companion implementation plan | Historical mechanics reference unless the active cleanup spec points back to a specific row; required together when scoring WSA segmentation |
 | Future non-leader ally petitions/advisories | Post-cleanup Slice G or later owner spec; not part of cleanup readiness by default |
 
 ## 0. Scale and Ownership Contract
@@ -1825,6 +1825,7 @@ world.next_war_instance_id: int = 1
 world.war_instances: Dict[str, Dict] = {}
 world.archived_war_instances: List[Dict] = []
 world.war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
+world.archived_war_contribution_scores: Dict[str, Dict[str, Dict]] = {}
 world.settlement_memories: Dict[str, List[Dict]] = {}
 world.ai_settlement_cooldowns: Dict[str, int] = {}
 world.pending_settlement_dialogues: List[Dict] = []  # SUPERSEDED BY SETTLEMENT_UI_CLEANUP_SPEC.md SC-5 / SC-26 for cleanup queue semantics
@@ -1834,11 +1835,15 @@ A nation may be an active participant in multiple concurrent `war_instance` reco
 
 `war_contribution_scores[war_id]` is retained while the `war_instance` is active and through the same 10-turn terminal retention window as the ended `war_instance`. When the ended instance moves to `world.archived_war_instances`, contribution detail may be compacted to final per-nation totals unless an active campaign-log row, ledger row, settlement dialogue, dispatch route, or settlement memory still references episode-level detail.
 
+`archived_war_contribution_scores[war_id]` stores the compacted contribution record for a war after `war_contribution_scores[war_id]` leaves the active/recent retention window. It defaults to `{}` on old saves, is written and read through `WorldState.to_dict()` / `WorldState.from_dict()`, and should contain final per-nation totals plus any episode detail still required by campaign-log, ledger, dispatch-route, or settlement-memory references. Slice B owns the contribution payload shape; archive movement is enforced with the same terminal retention rule as `archived_war_instances`.
+
 `settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical ordered pair string `actor|subject`. Negative proposer-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
 
 `ai_settlement_cooldowns` stores common-peace AI anti-spam cooldowns by `war_id`. It is separate from bilateral `ai_proposal_cooldowns` / `player_proposal_cooldowns` and defaults to `{}` on old saves.
 
 `pending_settlement_dialogues` historical retry-list behavior is SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 / SC-26 during cleanup. Incoming-offer entries are inactive unless SC-5 is explicitly reversed, and outgoing/current `settlement_confirm` cross-war collisions do not queue/defer through this list. Cross-war outgoing settlement attempts return `cross_war_settlement_collision`, leave the mounted draft/dialogue unchanged, and expose humanized copy; same-war restaging follows the scoped draft merge/conflict rules.
+
+Cleanup-owned settlement draft fields such as `pending_settlement_drafts` and `settlement_route_seq` are intentionally not specified by this mechanics section. Their type, default, route-id behavior, save/load contract, and cleanup tests are governed by `SETTLEMENT_UI_CLEANUP_SPEC.md` and `STATUS.md`; any audit that checks current cleanup readiness must read those sources.
 
 SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for cleanup-time incoming-offer exposure: any `pending_settlement_dialogues` use for incoming offers is inactive unless SC-5 is explicitly reversed; cleanup verification must prove deferred offers cannot surface, count, activate, notify, dispatch, queue, or block turns.
 
@@ -1869,7 +1874,7 @@ Canonical memory shape:
 
 Serialization ownership:
 
-- `world.next_war_instance_id`, `world.war_instances`, `world.archived_war_instances`, `world.war_contribution_scores`, `world.settlement_memories`, `world.ai_settlement_cooldowns`, and `world.pending_settlement_dialogues` are saved and loaded through `WorldState.to_dict()` / `WorldState.from_dict()` with `1` / `{}` / `[]` defaults for older saves. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 / SC-26 for cleanup queue semantics: save/load compatibility does not make incoming-offer exposure or cross-war settlement queue/defer player-facing.
+- `world.next_war_instance_id`, `world.war_instances`, `world.archived_war_instances`, `world.war_contribution_scores`, `world.archived_war_contribution_scores`, `world.settlement_memories`, `world.ai_settlement_cooldowns`, and `world.pending_settlement_dialogues` are saved and loaded through `WorldState.to_dict()` / `WorldState.from_dict()` with `1` / `{}` / `[]` defaults for older saves. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 / SC-26 for cleanup queue semantics: save/load compatibility does not make incoming-offer exposure or cross-war settlement queue/defer player-facing.
 - `docs/SAVE_FORMAT_REFERENCE.md` must document all settlement fields in Slice A / B / C2 / D as each field lands.
 - `settlement_memories` stores detail payloads that do not fit the existing grievance flag shape. Existing `grievance_flags` remain `{grievance_type, episode_id, turn, source_episode_type}` only.
 - When a terminal `war_instance` leaves the 10-turn live retention window, move a compact terminal record to `archived_war_instances`: `war_id`, `created_turn`, `ended_turn`, `end_reason`, leaders, participants, resolved pair keys, separate-peace exits, and settlement summary references. Per-event contribution detail may be compacted to final episode totals unless an active `settlement_memory`, campaign-log entry, pending dialogue, or ledger reference still points to the detailed record. Enforce retention/compaction on every archive operation, not only on periodic cleanup, so rapid full-Europe war endings cannot grow the archive unbounded for a turn. This keeps full-Europe saves bounded without losing recent settlement context.
@@ -1990,6 +1995,8 @@ The ordering preserves same-turn contribution credit before exits, keeps bargain
 This sequence is post-Peace-Deals. All Peace Deals dependencies (BPH, WPS, WB) are landed.
 
 The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`. If this overview and the plan disagree, the implementation plan owns file-level order, test allocation, and gate criteria; this spec owns mechanic intent and formulas.
+
+Audit/readiness rule: any audit that scores WSA work segmentation or completeness must read the companion implementation plan with this section. If the plan is omitted, the audit may score this section only as a historical mechanics overview and must not issue a current WSA segmentation GO.
 
 ### Slice A: War identity + read-only grouping
 

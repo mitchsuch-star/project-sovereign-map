@@ -485,7 +485,7 @@ Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nat
 ### BILATERAL_PEACE_HARDENING_SPEC.md
 
 - **§12.2** — armistice duration contradiction resolved: 5 turns is canonical. See §4.1 above.
-- **§4 Non-Goals** — `political_commitment_mod` reference corrected to the live hegemony/betrayal/grievance political subtotal with `-60` composite floor.
+- **§4 Non-Goals** — retired political-composite modifier reference corrected to the live hegemony/betrayal/grievance political subtotal with `-60` composite floor.
 - **§6.3 Reused substrate** — `nation_rivalries` reference corrected to derived hegemony/bloc-geometry signals.
 - **§10.1 Warning plumbing** — "rivalry" conflict corrected to `bloc_opposition`, derived from bloc geometry rather than a removed stored rivalry table.
 
