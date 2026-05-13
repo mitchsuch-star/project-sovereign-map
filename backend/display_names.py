@@ -255,10 +255,6 @@ FEEDBACK_STRINGS = {
         "negative": "their specific strategic interests were not addressed",
         "positive": "we addressed their core strategic interest",
     },
-    "coalition_penalty": {
-        "negative": "coalition loyalty binds them against us",
-        "positive": "coalition obligations have weakened",
-    },
     "hegemony_target_mod": {
         "negative": "the weight of the bloc pressing against them",
         "positive": "balance of power across Europe",

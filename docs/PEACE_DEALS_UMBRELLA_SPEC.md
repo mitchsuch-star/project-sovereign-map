@@ -29,6 +29,17 @@ The fourth doc, **War Settlement + Ally Participation**, is the mechanics handof
 | Historical implementation estimates and old test-count budgets | Section 5 below; use `STATUS.md` for landed counts |
 | Future/deferred settlement petitions or AI incoming offers | The cleanup spec must explicitly reverse the relevant deferral before implementation starts |
 
+**Audit scope closure:** a Peace Deals audit is implementation-ready only when its scope includes every active normative source below. If an audit intentionally covers only historical BPH/WPS/WB mechanics, it must say so in the prompt and exclude cleanup-readiness conclusions.
+
+| Behavior area | Active normative source | Historical/mechanics source | Required for tests | Included in Peace Deals historical suite |
+|---------------|-------------------------|-----------------------------|--------------------|-----------------------------------------|
+| Bilateral peace preview, fallout, and ratification summary | `BILATERAL_PEACE_HARDENING_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| War purpose, ticking score, settlement tiers, forced alliance, liberation | `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| War bargain lifecycle, ally-entry score, bargain presentation | `WAR_BARGAIN_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| Ally-aware settlement mechanics, war instances, contribution standing, common-peace scoring, settlement memories | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` + live code | `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` for historical sequencing | Yes | Partially |
+| Cleanup-time settlement routes, rejected/losing recovery, action visibility, incoming-offer exposure, Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 + `STATUS.md` | Older WSA Slice F / Final Gate notes are historical only | Yes | No |
+| Post-cleanup AI incoming offers and non-leader ally petitions | Future Slice G owner row in cleanup/status docs after SC-5 reversal | WSA historical incoming-offer examples | Yes, only after owner row exists | No |
+
 ---
 
 ## 2. What Peace Deals is NOT

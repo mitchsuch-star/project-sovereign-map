@@ -2111,7 +2111,7 @@ self.ai_proposal_cooldowns: Dict[str, int] = {}
 # Player proposal cooldowns (M4): {"nation": turns_remaining, "nation|type": turns_remaining}
 self.player_proposal_cooldowns: Dict[str, int] = {}
 
-# Armistice cooldowns (E1): {"nation_a|nation_b": turns_remaining}
+# Armistice minimum-duration lock (E1): {"nation_a|nation_b": turns_remaining while in ARMISTICE}
 self.armistice_cooldowns: Dict[str, int] = {}
 
 # Threat level (France-specific, CLAMPED 0-100 — cannot go negative)
@@ -2826,7 +2826,7 @@ All design questions resolved in v1.1 feedback pass:
 - **M8: PUPPET vassal nerfed.** PUPPET drift doubled to -4/turn (was implicit -2). Requires garrison + investment to maintain. SATELLITE and AUTONOMOUS now competitive.
 
 **Exploit Fixes (E1-E5):**
-- **E1: Armistice chaining blocked (§5b.2).** 5-turn cooldown between armistices per nation pair.
+- **E1: Armistice chaining blocked (§5b.2).** Active 5-turn minimum-duration lock while the pair remains in ARMISTICE; no post-expiration or post-break re-entry cooldown in the live contract.
 - **E2: PUPPET extraction nerfed.** Via M8 — PUPPET loyalty drains fast without heavy investment.
 - **E3: Proposal spam blocked.** Via M4 — player cooldowns match AI cooldowns.
 - **E4: Passive Talleyrand nullification fixed (§3a).** 2% Schemer minimum floor — Talleyrand is never fully tamed.

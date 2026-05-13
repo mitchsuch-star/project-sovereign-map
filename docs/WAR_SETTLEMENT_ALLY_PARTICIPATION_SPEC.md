@@ -107,7 +107,9 @@ Contribution score is not spoils accounting. It is the mechanical basis for **wh
 
 ---
 
-## 3. Current Baseline (April 27, 2026)
+## 3. Historical Pre-A1 Baseline (April 27, 2026)
+
+This section is retained as historical context for why the Imperial Settlement work was needed. It is not the current implementation-readiness source. A1-E have landed; cleanup-time player readiness is governed by `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md`.
 
 ### 3.1 What already works
 
@@ -143,14 +145,19 @@ Contribution score is not spoils accounting. It is the mechanical basis for **wh
 - DG-4 call-to-arms: refusal → termination → grievance → anti-renewal cooldown
 - Commitment paradox popup for alliance-vs-alliance conflicts
 
-### 3.2 What does not exist yet
+### 3.2 Current status summary
 
-- **War grouping:** No `war_instance` container. Wars are still only pairwise `diplo_key` entries.
-- **Contribution tracking:** No per-nation contribution within a war.
-- **Common peace:** Peace proposals are always proposer ↔ target bilateral.
-- **Ally beneficiary terms:** `territory_cede` always goes to the proposer. Cannot award territory to an ally.
-- **Settlement standing:** No model for who has earned political say on the winning side.
-- **Settlement reaction pass:** No post-ratification evaluation of how allies were treated.
+| Area | Current status | Active source for implementation/tests |
+|------|----------------|----------------------------------------|
+| War grouping | Landed via `war_instances`, active/resolved pair metadata, participant indexes, and archive retention | This spec Section 7 plus live `WorldState` / settlement helpers |
+| Contribution tracking | Landed via episode-scoped `war_contribution_scores`, material contribution gates, standing helpers, and archive compaction | This spec Section 9 plus live contribution helpers |
+| Common peace | Landed mechanically through settlement preview/review/ratification paths; cleanup owns current action availability and recovery behavior | This spec Sections 10-13 plus `SETTLEMENT_UI_CLEANUP_SPEC.md` |
+| Ally beneficiary terms | Landed for common-peace settlement terms; War Bargains remain France-claim-scoped by design | This spec Sections 13 and 15 |
+| Settlement standing | Landed through contribution share, power-tier rules, and side-leader standing presentation | This spec Sections 8-9 and presentation helpers |
+| Settlement reaction pass | Landed through settlement memories, gratitude/sold-out/shut-out reactions, and cross-war reaction routing | This spec Section 14 plus live reaction helpers |
+| Incoming AI settlement offers | Deferred and hidden during cleanup unless SC-5 is explicitly reversed with producer, payload, UI, voice, and behavior tests together | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
+| Rejected/losing settlement recovery | Active cleanup gate, not this historical baseline | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
+
 
 ### 3.3 What changed since April 13 draft
 
@@ -2041,8 +2048,8 @@ The executable slice plan lives in `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTA
 - Endpoint and dialogue contracts for no-terms `GET /diplomatic_preview`, draft-terms `POST /diplomatic_preview`, `settlement_confirm`, `confirm_settlement`, `back_out_settlement`, and conditional `revise_settlement_terms`. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-2 / SC-28 for cleanup-time Revise visibility: Revise is absent unless an edit-capable route exists with staged package and scope.
 - Mandatory `settlement_confirm` before any common-peace ratification; `confirm_settlement` revalidates live leaders, terms, hard stops, and acceptance
 - Verify and extend the already-registered `settlement_confirm` hard-stop dialogue type with proposer-leader-change voiding and accepting-leader-change rescoring
-- Register `incoming_settlement_offer` as a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this is post-cleanup Slice G behavior unless SC-5 is explicitly reversed; default cleanup behavior is no player-facing exposure.
-- Add `DialogueManager.DIALOGUE_PRIORITY["incoming_settlement_offer"]` at the normal incoming-proposal tier and `DialogueManager.MAILBOX_SUMMARY_LABELS["incoming_settlement_offer"] = "Incoming settlement offer"` with backend/Godot mailbox tests so settlement offers do not inherit generic proposal ordering or labeling. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these player-facing mailbox labels/routes are hidden by default unless SC-5 is explicitly reversed.
+- Active cleanup behavior for `incoming_settlement_offer`: do not register, queue, count, notify, route, dispatch, or expose player-facing incoming settlement offers unless `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 is explicitly reversed with producer, payload, UI, package-preserving actions, incoming voice, and behavior tests together.
+- Post-cleanup Slice G appendix behavior, inactive until SC-5 reversal: `incoming_settlement_offer` may become a current-turn offer / mailbox dialogue, not a hard stop; accepting it promotes to `settlement_confirm` and does not mutate until the confirm executor succeeds; dialogue priority, mailbox label, pending-envoy route, and Godot activation tests must ship in that same owner row.
 - Keep common-peace AI cooldowns in a per-`war_id` namespace separate from bilateral proposal cooldowns
 - Mandatory Slice C tuning gate for common-peace constants using at least eleven deterministic examples plus side-pressure monotonicity before implementation lock; include mixed-strength partial-vs-full coverage, narrow-vs-full-vs-serial settlement incentive comparison, total-victory harsh terms, Britain-led defense with current mapped holdings/home-region scoring, cross-formula acceptance validation, and acceptance debug components; start from `base_side_pressure` scaling `0.65` and the `1.5` harshness ceiling
 - Talleyrand advisory preview: standing, bargains, territory legitimacy, rival-strengthened warnings, ally-fallout warnings, salience-filtered default rows
@@ -2223,7 +2230,7 @@ Highest-priority tests:
 112. Multi-forced-alliance common-peace preview aggregates `+30` or greater projected threat, names crossed coalition thresholds, and confirmation still emits per-clause `forced_alliance` threat through existing seams.
 113. Combined posture-gate tests prove `sold_out_by_war_leader` and `anti_renewal_cooldown` list both blockers, use the max effective unblock turn, and allow redress to bypass only the sold-out gate.
 114. AI defender common-peace fixture proves packages with only a `defense` objective and `war_objective_alignment <= +5` can still pass or fail on the full acceptance formula rather than objective alignment alone.
-115. `incoming_settlement_offer` has its own dialogue priority, mailbox summary label, and Godot mailbox route. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these player-facing routes are hidden by default unless SC-5 is explicitly reversed.
+115. Active cleanup test: `incoming_settlement_offer` has no player-facing dialogue priority, mailbox summary label, mailbox count, pending-envoy route, notification, dispatch, popup queue entry, or Godot route unless `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 is explicitly reversed. Post-cleanup priority/label/route coverage belongs in the Slice G appendix row that reverses SC-5.
 116. `material_contribution_share` defaults to `0` when total material contribution is zero even if staying-power contribution is positive.
 117. `settlement_confirm.confirm_settlement` rejects proposer-side participant exits, rebellions, eliminations, and beneficiary invalidation without mutation.
 118. Side-scoped `leader_source_by_side` tests prove coalition leadership scoring cannot leak from one side to the other.
@@ -2231,7 +2238,7 @@ Highest-priority tests:
 120. Full-pipeline stress fixture runs two AI-generated settlements, 20 active wars, and all 13 canonical DG-1 nations in one `advance_turn()` evaluation.
 121. A2 uses a `CascadeContext` or equivalent transaction object before `_process_war_cascade(...)` grows past nine positional arguments or becomes hostile to safe recursive call-site migration.
 122. B2 pins `record_battle()` ordering so settlement contribution accrues before the 1000-casualty war-score early return.
-123. `incoming_settlement_offer.request_revision` cancels the offer, applies the normal per-`war_id` AI settlement cooldown, and does not imply an immediate counter-offer loop. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this action is absent from player-facing payloads unless SC-5 is explicitly reversed.
+123. Active cleanup test: `incoming_settlement_offer.accept_settlement_offer`, `incoming_settlement_offer.reject_settlement_offer`, and `incoming_settlement_offer.request_revision` are absent from player-facing payloads while SC-5 remains deferred. Post-cleanup request-revision cooldown/no-counter-loop behavior belongs in the Slice G appendix row that reverses SC-5.
 124. The pre-D1 manual comprehension gate is run by a reviewer who has not read the settlement spec.
 125. Slice C cannot lock constants while the narrow/full/serial fixture shows common peace is mechanically dominated by serial separate peace.
 126. D2 profiles a 5+ directly affected cross-war reaction scenario and proves candidate lookup stays participant-indexed.
@@ -2254,14 +2261,24 @@ Highest-priority tests:
 143. War-detail and coalition-detail settlement entry carries a war-scoped route contract; `war_id` is preferred over pair-derived target lookup when supplied, `war_instance_id` survives row click/detail routing, and the Godot signal carries both `war_id` and target context.
 144. The same stable non-empty `route_id` flows from confirmation through settlement event, dispatch, notification metadata, and ledger row metadata, with deterministic fallback ids for legacy/synthetic settlement rows.
 145. Default-start WAR rows without `war_instance` expose a humanized standing placeholder and tooltip legend instead of silently hiding standing/contribution context.
-146. `incoming_settlement_offer` has at least a minimal Godot route before final smoke; full AI/ally settlement agency remains Slice G. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup final smoke uses the no-exposure branch unless SC-5 is explicitly reversed.
+146. Active cleanup final smoke uses the no-exposure branch for `incoming_settlement_offer`: no Godot route, no pending-envoy activation, no mailbox activation, no generic proposal fallback, and no enemy-offer waiting control unless SC-5 is explicitly reversed.
 147. Post-cleanup Slice G AI/ally settlement agency is explicitly tracked: AI war-leader `incoming_settlement_offer` remains the common-peace offer path only after `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 is explicitly reversed, while non-leader allies use petitions/advisories rather than co-authoring treaties.
 148. Ally petitions never bypass side-leader validation, hard stops, direct-score gates, WB-B checks, or settlement reaction construction.
 149. Ally petition UI/mailbox copy is humanized, cooldown-gated, and can focus the settlement wizard/review without mutating treaty state directly.
-150. `proposal_confirm_popup.gd` routes `settlement_confirm` and `incoming_settlement_offer` before generic proposal fallback and never renders malformed settlement payloads as "DIPLOMATIC PROPOSAL - Unknown". SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 for incoming-offer routing during cleanup; `settlement_confirm` routing remains active.
-151. `incoming_settlement_offer` pending-envoy and mailbox-activation paths open a settlement-capable surface instead of falling through to generic pending text. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup these paths prove no-exposure unless SC-5 is explicitly reversed.
+150. `proposal_confirm_popup.gd` routes `settlement_confirm` before generic proposal fallback and never renders malformed settlement payloads as "DIPLOMATIC PROPOSAL - Unknown"; while SC-5 remains deferred, injected `incoming_settlement_offer` payloads are dropped/rejected without surfacing or falling through to generic proposal UI.
+151. Active cleanup pending-envoy and mailbox-activation paths prove `incoming_settlement_offer` no-exposure: no activation, no settlement-capable surface, no generic pending text, no route mutation, and no turn-blocking unless SC-5 is explicitly reversed.
 152. Proposer-side and accepting-side leader changes share the same fresh-rescore rule; neither side automatically dumps the player unless live validation fails, a hard stop appears, or the package is no longer acceptable.
 153. Coalition and war-detail settlement CTA tests cover 6+ participant and concurrent-coalition fixtures so whole-war and bilateral settlement buttons cannot emit the wrong `war_id`.
+
+### 19.1 Post-cleanup Slice G incoming-offer appendix (inactive until SC-5 reversal)
+
+These rows are not active cleanup requirements. They become implementation requirements only when `SETTLEMENT_UI_CLEANUP_SPEC.md` and `STATUS.md` explicitly reverse SC-5 with a producer, payload, mailbox/pending-envoy UI, package-preserving actions, incoming voice, and behavior tests in the same owner row.
+
+- `incoming_settlement_offer` has its own dialogue priority, mailbox summary label, pending-envoy activation path, and Godot route.
+- Accepting an incoming settlement offer preserves stable offer identity and exact offered terms through live re-preview before promotion to `settlement_confirm`.
+- Rejecting or requesting revision applies the per-`war_id` AI settlement cooldown and does not imply an immediate counter-offer loop.
+- `proposal_confirm_popup.gd` routes active `incoming_settlement_offer` payloads before generic proposal fallback and never renders malformed settlement payloads as generic unknown diplomatic proposals.
+- Full Slice G AI/ally settlement agency also owns non-leader ally petitions/advisories; petitions may focus settlement UI but never ratify, veto, or bypass side-leader validation.
 
 ---
 

@@ -425,7 +425,8 @@ class WorldState:
         # Decisive battle tracking (max 2 per war)
         self.decisive_battles: Dict[str, List] = {}
 
-        # Armistice cooldowns: 5-turn cooldown before same pair can re-armistice
+        # Armistice minimum-duration lock while the pair remains in ARMISTICE.
+        # Cleared when the pair leaves ARMISTICE; no post-break re-entry cooldown.
         self.armistice_cooldowns: Dict[str, int] = {}
 
         # Armistice turn tracking: tracks how many turns each pair has been in ARMISTICE
