@@ -37,6 +37,19 @@ def test_old_save_without_cleanup_keys_loads_with_spec_defaults():
     assert restored.settlement_route_seq == {}
 
 
+def test_corrupt_top_level_cleanup_containers_load_with_spec_defaults():
+    """Corrupt saves with non-dict cleanup containers must not crash load."""
+    world = WorldState()
+    data = world.to_dict()
+    data["pending_settlement_drafts"] = "not a dict"
+    data["settlement_route_seq"] = ["not", "a", "dict"]
+
+    restored = WorldState.from_dict(data)
+
+    assert restored.pending_settlement_drafts == {}
+    assert restored.settlement_route_seq == {}
+
+
 def test_pending_settlement_drafts_round_trip_through_to_dict_from_dict():
     """Authored drafts must survive save/load with field fidelity."""
     world = WorldState()
@@ -140,14 +153,23 @@ def test_settlement_route_seq_from_dict_skips_corrupt_entries():
     world = WorldState()
     data = world.to_dict()
     data["settlement_route_seq"] = {
-        "war_1": {"7": 1, "not_an_int": 2, "8": "not_an_int_seq"},
+        "war_1": {
+            "7": 1,
+            8: 2,
+            "not_an_int": 2,
+            "9": "3",
+            "10": 2.5,
+            "11": True,
+            True: 4,
+            12.5: 5,
+        },
         "war_2": "not a dict",
         "war_3": {"5": 9},
     }
 
     restored = WorldState.from_dict(data)
 
-    assert restored.settlement_route_seq["war_1"] == {7: 1}
+    assert restored.settlement_route_seq["war_1"] == {7: 1, 8: 2}
     assert "war_2" not in restored.settlement_route_seq
     assert restored.settlement_route_seq["war_3"] == {5: 9}
 

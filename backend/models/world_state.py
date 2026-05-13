@@ -4309,9 +4309,12 @@ class WorldState:
         # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-1 — pre-cleanup saves
         # default to {}. Non-dict draft payloads are dropped so corrupt
         # saves do not crash load.
+        _drafts_data = data.get("pending_settlement_drafts") or {}
+        if not isinstance(_drafts_data, dict):
+            _drafts_data = {}
         world.pending_settlement_drafts = {
             str(war_id): copy.deepcopy(draft)
-            for war_id, draft in (data.get("pending_settlement_drafts") or {}).items()
+            for war_id, draft in _drafts_data.items()
             if isinstance(draft, dict)
         }
         # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-14c — pre-cleanup
@@ -4319,17 +4322,23 @@ class WorldState:
         # convert them back to int and skip non-integer or non-int seq
         # entries so corrupt saves do not crash load.
         _route_seq: Dict[str, Dict[int, int]] = {}
-        for war_id, per_turn in (data.get("settlement_route_seq") or {}).items():
+        _route_seq_data = data.get("settlement_route_seq") or {}
+        if not isinstance(_route_seq_data, dict):
+            _route_seq_data = {}
+        for war_id, per_turn in _route_seq_data.items():
             if not isinstance(per_turn, dict):
                 continue
             converted: Dict[int, int] = {}
             for turn_key, seq in per_turn.items():
-                try:
-                    turn_int = int(turn_key)
-                    seq_int = int(seq)
-                except (TypeError, ValueError):
+                if isinstance(turn_key, bool) or not isinstance(seq, int) or isinstance(seq, bool):
                     continue
-                converted[turn_int] = seq_int
+                if isinstance(turn_key, int):
+                    turn_int = turn_key
+                elif isinstance(turn_key, str) and turn_key.isdecimal():
+                    turn_int = int(turn_key)
+                else:
+                    continue
+                converted[turn_int] = seq
             _route_seq[str(war_id)] = converted
         world.settlement_route_seq = _route_seq
         world.reparations_cooldown = {
