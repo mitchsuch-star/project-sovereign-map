@@ -1,10 +1,10 @@
 # War Bargain Spec
 
-> **Status:** Draft v1.1
+> **Status:** Historical landed implementation reference v1.1
 > **Date:** April 16, 2026
-> **Phase placement:** Peace Deals track, after `Memory and Pressure`, after `Bilateral Peace Hardening`, after `War Purpose + Score Semantics`. Sits alongside / before `Ally Participation + Common Peace`.
+> **Phase placement:** Landed Peace Deals slice, after `Memory and Pressure`, `Bilateral Peace Hardening`, and `War Purpose + Score Semantics`. Settlement ally participation/common peace now owns later settlement work.
 > **Origin:** Extracted from `docs/RELIABILITY_COMMITMENTS_SPEC.md` v1.0 §6.4 / §9 / §10.4 / §10.5 / §12.3 / §12.4 / §13 during the v2.0 rescope on April 16, 2026. The Memory and Pressure substrate (rivalries, betrayal memory, episode_id, witness scope, hard-reject posture) shipped without bargains; this spec defines the promise mechanic that was deferred out of v0.1.
-> **Companion docs:** `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `BILATERAL_PEACE_HARDENING_SPEC.md` (planned), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (planned), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later)
+> **Companion docs:** `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `BILATERAL_PEACE_HARDENING_SPEC.md` (landed), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (landed), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (active follow-up)
 
 ---
 
@@ -39,7 +39,7 @@ It feeds into:
 
 - **Ally Participation + Common Peace** — fulfilled bargain `fulfillment_snapshot` becomes input to ally-aware settlement allocation.
 
-Implementation should not begin until both Bilateral Peace Hardening and War Purpose + Score Semantics have written, gated specs. The bargain mechanic is the political-promise layer that those two systems give meaning to.
+Historically, implementation did not begin until both Bilateral Peace Hardening and War Purpose + Score Semantics had written, gated specs. The bargain mechanic is the political-promise layer that those two systems give meaning to.
 
 ---
 
@@ -178,7 +178,7 @@ A war bargain is valid only if **all** are true:
 2. The named enemy is a current war enemy of France or the beneficiary, or appears as an opposed nation for France or the beneficiary in `get_bargain_opposition_pairs()`.
 3. The claim region is currently controlled by the named enemy or that enemy's subject.
 4. The claim region is strategically plausible for France: in `covets_regions`, previously French, adjacent to French territory, or otherwise flagged as high-interest by existing desire data.
-5. The target nation has plausible participation access against the named enemy: direct border, allied-theater adjacency, or existing route heuristic.
+5. The target nation has plausible participation access against the named enemy: direct border, allied-theater adjacency, or a 2-hop friendly/uncontrolled route implemented as `_has_bargain_participation_access()` in `diplomacy.py`.
 
 Invalid uses:
 
@@ -353,6 +353,7 @@ Invalid wartime asks: ally-beneficiary land in final peace; multi-ally conferenc
 - Coalition overlap should read from `active_coalition.target_nation` and the shared opposition-pair list (the generic war-bloc contract, once generalized, must expose the same target field).
 - An active coalition whose `target_nation` equals the ally-entry initiator is a hard block on accepting that initiator's request (in v0.1 the only instantiated `active_coalition.target_nation` is France; the rule is written target-aware so the future `Coalition Generalization` follow-up does not require a rewrite).
 - If the beneficiary joins a coalition whose `target_nation` equals the bargain's `promiser` first, any live bargain from that promiser to that beneficiary voids for contrary alignment.
+- WB-A/WB-C tests must preserve the v0.1 invariant explicitly: coalition-overlap hard blocks fire only when `active_coalition.target_nation == promiser`. A coalition targeting some other nation does not block ally entry merely because the beneficiary is listed as a coalition member.
 
 ### 8.8 Fulfillment
 
@@ -464,7 +465,8 @@ Void effects:
 
 - `+10` when sweetening `DEFENSIVE_ALLIANCE`
 - `+15` when sweetening `ALLIANCE`
-- `+25` on an immediate war-entry / ally-entry evaluation against the named enemy
+
+The `+25` live-bargain bonus is not part of ordinary `calculate_acceptance()`. It belongs only to the dedicated war-entry / ally-entry evaluation in §9.4.
 
 Integration:
 
@@ -498,6 +500,8 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
 `bargain_value_mod` is positive and can counteract hegemony / betrayal / grievance pressure. `bargain_conflict_penalty` is negative and makes normalizing with a bargain target harder. Both surface as independent component rows for preview / debug legibility.
+
+Imperial Settlement follow-up: `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` section 14.3 adds `settlement_gratitude_mod` outside the clamped political subtotal after this calculation. It defaults to `0`, applies only from an active settlement-gratitude memory, and cannot bypass hard stops or the `-60` political subtotal floor.
 
 **Relationship to existing `reliability_modifier`:** the existing `calculate_acceptance()` in `diplomacy.py` includes `reliability_modifier = max(-6, min(6, reliability // 10))`. The political subtotal above is a separate, parallel group that captures pair-specific political pressure. It does not replace `reliability_modifier`, which stays as the global reputation input. Both contribute independently to the final acceptance score.
 
@@ -611,11 +615,11 @@ Per-event one-liner and fog contract:
 | `ally_refused_free_join` | "{beneficiary} declined to join against {target_enemy} without terms." | Public to France and the refusing ally; scoped witnesses only if refusal creates a commitment event. |
 | `declaration_backed_out` | "{promiser} withdrew the declaration against {target_enemy}." | Player only; no diplomatic fallout by itself. |
 
-### 10.5 Presentation pass (deferred from this spec)
+### 10.5 Presentation pass (landed in WB-D)
 
-The full bargain presentation pass — split-voice spotlight for `bargain_fulfilled` / `bargain_breached`, `dominant_witness_scope`-branched copy, named-diplomat envoy resolution at bargain ratification and breach — is the bargain-era continuation of `COMMITMENTS_PRESENTATION_SPEC.md` (which currently ships only as the `C3-lite` Memory and Pressure pass).
+The full bargain presentation pass — split-voice spotlight for `bargain_fulfilled` / `bargain_breached`, `dominant_witness_scope`-branched copy, named-diplomat envoy resolution at bargain ratification and breach — landed in WB-D as the bargain-era continuation of `COMMITMENTS_PRESENTATION_SPEC.md`.
 
-Once this spec lands, extend the presentation pass with:
+WB-D extends the presentation pass with:
 
 - `bargain_fulfilled` spotlight + Talleyrand vindication line + N+1 callback
 - `bargain_breached` split-voice spotlight (lead = injured-party named diplomat per Voice Bible, witness = scoped court reaction, aside = Talleyrand) + N+1 aftermath
@@ -691,6 +695,7 @@ Scale-hardening amendment: terminal bargain records move from `diplomatic_commit
 ### 12.1 New WorldState fields
 
 - `diplomatic_commitments: Dict[str, Dict]` — bargain records keyed by commitment id (string)
+- `archived_diplomatic_commitments: List[Dict]` — terminal bargain records moved out of live scans after the 10-turn grace period; default `[]`; serialized through `WorldState.to_dict()` / `from_dict()`
 - `next_commitment_id: int` — monotonic id
 
 ### 12.2 Cooldown contract
@@ -764,7 +769,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - Structural bargain caps + deterministic same-turn reroll memory per §8.7.3
 - Hard-block reason surfacing
 - Dedicated `war_entry_score` per §9.4 with `50+` join / `25-49` counter-bargain / `<25` refuse thresholds; defensive honor auto-join after block checks
-- `+25` war-entry acceptance bonus when valid bargain targets named enemy
+- `+25` war-entry score bonus when valid bargain targets named enemy
 - `trigger_context` capture on bargain trigger
 - Anti-France coalition overlap hooks (§8.7.4) without coalition generalization
 - Extend paradox popup to surface attached bargain-breach / reliability fallout

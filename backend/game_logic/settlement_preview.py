@@ -177,6 +177,12 @@ def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
     return result
 
 
+def _normalize_nation_list(values: Optional[Iterable[str]]) -> List[str]:
+    if values is None:
+        return []
+    return sorted({str(value) for value in values if str(value or "").strip()})
+
+
 def _other_side(side: str) -> str:
     return "defenders" if side == "attackers" else "attackers"
 
@@ -203,7 +209,7 @@ def _active_cross_side_pairs(
     pairs: List[str] = []
     for pair in war_instance.get("active_diplo_keys") or []:
         pair_meta = meta.get(pair) or {}
-        if pair_meta.get("pair_status") not in ("war", "armistice"):
+        if pair_meta.get("pair_status", "war") not in ("war", "armistice"):
             continue
         nations = _pair_nations(pair)
         if len(nations) != 2:
@@ -663,6 +669,8 @@ def evaluate_open_settlement_eligibility(
     pairs = _active_cross_side_pairs(instance, side)
     if not pairs:
         return _blocked_payload("no_unresolved_hostile_pairs", war_id=war_id, proposer_side=side)
+    if len(pairs) == 1:
+        return _blocked_payload("one_to_one_war", war_id=war_id, proposer_side=side)
 
     coverable = get_coverable_enemy_participants(instance, side)
     if not coverable:
@@ -685,7 +693,7 @@ def evaluate_open_settlement_eligibility(
 
 
 def validate_settlement_terms(
-    terms: List[Dict[str, Any]],
+    terms: Any,
     *,
     actor_nation: Optional[str] = None,
     player_nation: Optional[str] = None,
@@ -709,6 +717,12 @@ def validate_settlement_terms(
             "error": "proposer_side_mismatch",
             "disabled_reason_display": _error_display("proposer_side_mismatch"),
         }
+    if not isinstance(terms, list):
+        return {
+            "valid": False,
+            "error": "invalid_clause_schema",
+            "disabled_reason_display": _error_display("invalid_clause_schema"),
+        }
     if not terms:
         return {
             "valid": False,
@@ -723,6 +737,13 @@ def validate_settlement_terms(
             "disabled_reason_display": _error_display("max_clause_count_exceeded"),
         }
     for idx, clause in enumerate(terms):
+        if not isinstance(clause, Mapping):
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
         ctype = clause.get("type")
         if ctype not in CANONICAL_CLAUSE_TYPES:
             return {
@@ -732,13 +753,25 @@ def validate_settlement_terms(
                 "disabled_reason_display": _error_display("invalid_clause_type"),
             }
         spec = CANONICAL_CLAUSE_TYPES[ctype]
-        missing = spec["required"] - set(clause.keys())
+        required = set(spec["required"])
+        optional = set(spec.get("optional") or set())
+        clause_keys = set(clause.keys())
+        missing = required - clause_keys
         if missing:
             return {
                 "valid": False,
                 "error": "invalid_clause_schema",
                 "error_index": idx,
                 "missing_keys": sorted(missing),
+                "disabled_reason_display": _error_display("invalid_clause_schema"),
+            }
+        unknown = clause_keys - required - optional
+        if unknown:
+            return {
+                "valid": False,
+                "error": "invalid_clause_schema",
+                "error_index": idx,
+                "unknown_keys": sorted(unknown),
                 "disabled_reason_display": _error_display("invalid_clause_schema"),
             }
     for type_a, type_b, match_keys in CLAUSE_CONFLICT_MATRIX:
@@ -999,7 +1032,10 @@ def build_settlement_confirm_dialogue(
     options.append({"label": "Back Out", "action": "back_out_settlement"})
 
     covered = list(preview.get("covered_enemy_participants") or [])
-    resolved_target = selected_target_nation or (covered[0] if covered else "")
+    selected_target = str(selected_target_nation or "").strip()
+    if selected_target and selected_target not in covered:
+        raise ValueError("selected_target_not_covered")
+    resolved_target = selected_target or (covered[0] if covered else "")
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -1044,8 +1080,25 @@ def stage_settlement_confirm(
     selected_target_nation: Optional[str] = None,
     actor_nation: Optional[str] = None,
     density: str = "medium",
+    require_explicit_scope: bool = False,
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
+    explicit_covered = _normalize_nation_list(covered_enemy_participants)
+    explicit_target = str(selected_target_nation or "").strip()
+    if require_explicit_scope and not explicit_covered:
+        return {"success": False, **_blocked_payload("no_covered_enemy_participants", war_id=war_id_str)}
+    if require_explicit_scope and not explicit_target:
+        return {"success": False, **_blocked_payload("no_selected_target_nation", war_id=war_id_str)}
+    if explicit_target and explicit_covered and explicit_target not in explicit_covered:
+        return {
+            "success": False,
+            **_blocked_payload(
+                "selected_target_not_covered",
+                war_id=war_id_str,
+                selected_target_nation=explicit_target,
+                covered_enemy_participants=explicit_covered,
+            ),
+        }
     # SC-26: settlement-family collision protection applied BEFORE building
     # the preview so a second settlement entry for a different war_id can't
     # mutate the staged dialogue or shift caches behind the active draft.
@@ -1122,7 +1175,28 @@ def stage_settlement_confirm(
     )
     if not preview.get("success"):
         return preview
-    dialogue = build_settlement_confirm_dialogue(world, preview, selected_target_nation=selected_target_nation)
+    covered = list(preview["settlement_preview"].get("covered_enemy_participants") or [])
+    resolved_target = str(selected_target_nation or "").strip() or (covered[0] if covered else "")
+    if not covered:
+        return {"success": False, **_blocked_payload("no_covered_enemy_participants", war_id=war_id_str)}
+    if not resolved_target:
+        return {"success": False, **_blocked_payload("no_selected_target_nation", war_id=war_id_str)}
+    if resolved_target not in covered:
+        return {
+            "success": False,
+            **_blocked_payload(
+                "selected_target_not_covered",
+                war_id=war_id_str,
+                selected_target_nation=resolved_target,
+                covered_enemy_participants=covered,
+            ),
+        }
+    try:
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation=resolved_target,
+        )
+    except ValueError as exc:
+        return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
     if getattr(world.dialogue_manager, "peek", lambda: None)() is None:
         world.dialogue_manager.replace(dialogue)
     elif hasattr(world.dialogue_manager, "preempt"):

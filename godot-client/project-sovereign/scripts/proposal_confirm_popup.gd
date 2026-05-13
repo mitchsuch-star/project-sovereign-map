@@ -75,10 +75,16 @@ func show_dialogue(data: Dictionary):
 		var btn = Button.new()
 		var original_label = str(opt.get("label", "???"))
 		var original_tooltip = str(opt.get("description", ""))
+		var available = bool(opt.get("available", true))
+		var disabled_reason = str(opt.get("disabled_reason", original_tooltip))
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
 		btn.add_theme_font_size_override("font_size", 14)
+		btn.disabled = not available
+		if not available:
+			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
+			btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 		var action_str = opt.get("action", "dismiss")
 		if _should_label_ask_later(dtype, action_str, original_label):
 			btn.text = "Not Now"
@@ -288,6 +294,9 @@ func _build_settlement_content(data: Dictionary) -> String:
 			if top_value != "":
 				bbcode += " " + top_value
 			bbcode += "\n"
+		var ratify_blocked_reason = str(data.get("ratify_blocked_reason", ""))
+		if ratify_blocked_reason != "":
+			bbcode += "  [color=#e0a040]" + ratify_blocked_reason + "[/color]\n"
 		bbcode += "\n"
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}

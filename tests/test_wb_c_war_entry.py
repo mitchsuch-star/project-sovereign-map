@@ -212,6 +212,13 @@ class TestHardBlocks:
         blocks = get_ally_entry_hard_blocks(world, "France", "Prussia", "Britain")
         assert "anti_promiser_coalition_member" in blocks
 
+    def test_coalition_overlap_uses_target_nation_not_france_only_assumption(self):
+        world = _wbc_world()
+        _setup_alliance(world)
+        world.active_coalition = {"target_nation": "Austria", "members": ["Britain"]}
+        blocks = get_ally_entry_hard_blocks(world, "France", "Prussia", "Britain")
+        assert "anti_promiser_coalition_member" not in blocks
+
     def test_hard_reject_posture_offensive_only(self):
         world = _wbc_world()
         world.betrayal_history[_betrayal_key("France", "Britain")] = {

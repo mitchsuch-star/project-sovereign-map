@@ -667,6 +667,9 @@ def test_confirm_dialogue_route_id_matches_event_format():
     assert "settlement_summary:" not in dialogue["route_id"]
     assert dialogue["route"]["route_id"] == "settlement:war_1:7:1"
 
+    next_dialogue = build_settlement_confirm_dialogue(world, preview)
+    assert next_dialogue["route_id"] == "settlement:war_1:7:2"
+
 
 def test_confirm_dialogue_carries_uncovered_chips_for_popup():
     """The confirm dialogue surfaces uncovered_enemy_display_chips at

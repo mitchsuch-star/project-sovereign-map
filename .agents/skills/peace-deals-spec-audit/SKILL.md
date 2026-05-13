@@ -15,19 +15,24 @@ Read these docs (in this order):
 2. `docs/BILATERAL_PEACE_HARDENING_SPEC.md` (BPH)
 3. `docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (WPS)
 4. `docs/WAR_BARGAIN_SPEC.md` (WB)
-5. `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (deferred follow-up — check for leaking scope only)
+5. `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (ally-aware settlement mechanics and historical implementation handoff)
+6. `docs/SETTLEMENT_UI_CLEANUP_SPEC.md` (active cleanup readiness: routes, recovery, action visibility, incoming-offer exposure, Gate 4 smoke)
+7. `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` (WSA executable slice order, test allocation, file ownership, gates)
+8. `docs/STATUS.md` (landed counts, current cleanup status, gate records)
 
 Also read for cross-doc consistency:
 
-6. `docs/DIPLOMACY_SPEC.md` (acceptance formula, war score, diplomatic states)
-7. `docs/COALITION_SPEC.md` (threat, coalition formation, balance of europe)
-8. `docs/RELIABILITY_COMMITMENTS_SPEC.md` (betrayal memory, hegemony, acceptance modifiers)
-9. `CLAUDE.md` (golden rules, modification patterns, file reference)
+9. `docs/DIPLOMACY_SPEC.md` (acceptance formula, war score, diplomatic states)
+10. `docs/COALITION_SPEC.md` (threat, coalition formation, balance of europe)
+11. `docs/RELIABILITY_COMMITMENTS_SPEC.md` (betrayal memory, hegemony, acceptance modifiers)
+12. `CLAUDE.md` (golden rules, modification patterns, file reference)
 
 And verify against live code:
 
-10. `backend/game_logic/diplomacy.py` — `calculate_acceptance()` components, `_process_armistice_expiration()`, war score formula
-11. `backend/models/world_state.py` — existing serialization fields, `advance_turn()` processing order
+13. `backend/game_logic/diplomacy.py` — `calculate_acceptance()` components, `_process_armistice_expiration()`, war score formula
+14. `backend/models/world_state.py` — existing serialization fields, `advance_turn()` processing order
+
+Current-readiness audits must include every file above. If a run intentionally omits the cleanup spec, `STATUS.md`, or the WSA implementation plan, the verdict is limited to historical Peace Deals mechanics and must not claim cleanup-readiness GO.
 
 ## Metrics
 
@@ -92,7 +97,7 @@ Evaluate:
 Do the specs agree with each other and with the live codebase?
 
 Evaluate:
-- **Acceptance formula:** Every spec that references acceptance modifiers names the same terms as `calculate_acceptance()` in `diplomacy.py`. No references to dead modifiers (`direct_rivalry_mod`, `rival_conflict_mod`, `political_commitment_mod`).
+- **Acceptance formula:** Every spec that references acceptance modifiers names the same terms as `calculate_acceptance()` in `diplomacy.py`. No implementation-critical references to dead modifiers (`direct_rivalry_mod`, `rival_conflict_mod`, `direct_concern_mod`, `concern_conflict_mod`, `political_commitment_mod`).
 - **Armistice duration:** Every spec that references armistice timing agrees with the canonical 5-turn value and with `_process_armistice_expiration()`.
 - **War score formula:** Every spec that references war score components agrees with DIPLOMACY_SPEC §6e and the live code. Ticking is the 5th additive component, not a replacement.
 - **Composite floor:** Every spec that references the floor agrees on -60. No references to -40.
@@ -129,7 +134,7 @@ Evaluate:
 
 ### Step 1: Read
 
-Read all 11 sources listed in Audit Scope. Do not skim. Track every cross-reference.
+Read every source listed in Audit Scope. Do not skim. Track every cross-reference.
 
 ### Step 2: Score
 
@@ -206,7 +211,7 @@ Or run via agent:
 ```
 Agent({
   description: "Peace Deals spec audit run N",
-  prompt: "Run the Peace Deals spec audit per .agents/skills/peace-deals-spec-audit/SKILL.md. This is run #{N}. Read all 11 sources, score M1-M5, produce numbered findings with severity, write improvement steps for CRITICAL/MAJOR, and end with GO/NO-GO verdict."
+  prompt: "Run the Peace Deals spec audit per .agents/skills/peace-deals-spec-audit/SKILL.md. This is run #{N}. Read every Audit Scope source, score M1-M5, produce numbered findings with severity, write improvement steps for CRITICAL/MAJOR, and end with GO/NO-GO verdict."
 })
 ```
 

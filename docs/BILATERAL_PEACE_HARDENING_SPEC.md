@@ -1,10 +1,10 @@
 # Bilateral Peace Hardening Spec
 
-> **Status:** Draft v1.0
+> **Status:** Historical landed implementation reference v1.0
 > **Date:** April 16, 2026
-> **Phase placement:** Design Refinement queue item 2. After `Memory and Pressure` (substrate shipped, v2.1 remaining). Before `War Purpose + Score Semantics` (queue item 3) and `War Bargains` (queue item 3.5).
+> **Phase placement:** Landed Peace Deals slice. After `Memory and Pressure`; parallel-safe with the landed `War Purpose + Score Semantics` slice; before the landed `War Bargains` slice.
 > **Origin:** Identified in the April 10, 2026 focused audit as the second legitimacy-stack item: "make separate peace and bilateral settlement review legible before multilateral settlement exists."
-> **Companion docs:** `DIPLOMACY_SPEC.md` (§5–§7 treaty/peace), `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `WAR_BARGAIN_SPEC.md` (depends on this spec — §2, §8.9.A, R4), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (queue item 3, parallel)
+> **Companion docs:** `DIPLOMACY_SPEC.md` (§5–§7 treaty/peace), `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `WAR_BARGAIN_SPEC.md` (depends on this spec — §2, §8.9.A, R4), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (active follow-up), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (landed, parallel)
 
 ---
 
@@ -193,7 +193,8 @@ When the player opens a peace proposal (WAR/ARMISTICE → less hostile state), t
         "territory": 20,
         "battle": 15,
         "decisive_battle": 10,
-        "capital": 0
+        "capital": 0,
+        "ticking": 0
     },
     "war_duration_turns": 8,
     "battles_fought": 3,
@@ -217,14 +218,16 @@ When the player opens a peace proposal (WAR/ARMISTICE → less hostile state), t
 
 The snapshot is frozen at proposal-construction time and does not update if game state changes before the player sends. This prevents the player from gaming the preview by modifying state mid-composition.
 
-**WPS extension:** When `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` lands, this snapshot gains optional `war_objective`, `settlement_tier`, and ticking-score fields per WPS §14.3. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
+**WPS extension:** The landed `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` slice extends this snapshot with optional `war_objective`, `settlement_tier`, and ticking-score fields; see WPS §14.3 for the exact fields. Live war-score component readers should tolerate the fifth additive `ticking` component. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
+
+War-score component key note: the snapshot surface intentionally renames internal `calculate_war_score(return_components=True)` keys for player readability (`battles` -> `battle`, `decisive` -> `decisive_battle`). The translation happens in `build_war_context_snapshot()`; internal score code keeps the shorter/plural keys.
 
 ### 8.2 Peace preview content
 
 The preview shows three sections:
 
 **Section 1 — War Summary:**
-- War score and components (territory, battles, decisive, capital)
+- War score and components (territory, battles, decisive, capital, ticking when WPS is live)
 - Duration, battles won/lost, casualty totals
 - Regions currently held by each side
 - War score trend (rising/falling/stagnant based on last 3 turns)
@@ -473,8 +476,10 @@ An armistice is not peace — it is a ceasefire with an expiration. The current 
 **Armistice proposal preview** shows:
 - Current war score and trend
 - Minimum duration remaining before armistice can be broken
-- Whether armistice cooldown prevents re-entry to armistice after break
+- Remaining active minimum-duration lock from `armistice_cooldowns`, if any; v0.1 has no separate post-break re-entry cooldown
 - Predicted acceptance score for future PEACE proposal at current relation/war_score (informational projection, not a guarantee)
+
+Implementation: compute the projection by calling `calculate_acceptance()` with `proposal_type='peace'` at the current bilateral state. Display it as an informational estimate, not a guaranteed future result.
 
 **Armistice expiration warning** — 1 turn before armistice minimum expires, Morning Dispatch warns: "The armistice with [nation] expires next turn. Prepare for resumed hostilities or pursue peace."
 

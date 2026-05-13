@@ -7,6 +7,7 @@ ratification, hard-stop enforcement, and draft persistence semantics.
 from __future__ import annotations
 
 import copy
+from unittest.mock import patch
 
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.settlement_preview import (
@@ -24,6 +25,18 @@ from backend.game_logic.settlement_scoring import (
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
+
+
+def _acceptance_always_passes(*args, **kwargs):
+    """Patch helper for tests that isolate post-acceptance mutation."""
+    from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance as real
+
+    result = real(*args, **kwargs)
+    result["score"] = 100
+    result["verdict"] = "accept"
+    result["hard_stops"] = []
+    result["accept_threshold"] = 50
+    return result
 
 
 def _install_common_peace_war(world: WorldState, *, war_score: int = 70) -> dict:
@@ -94,6 +107,30 @@ class TestClauseValidation:
         assert result["error_index"] == 0
         assert "to" in result["missing_keys"]
         assert "region" in result["missing_keys"]
+
+    def test_unknown_alias_keys_rejected(self):
+        terms = [{
+            "type": "territory_cede",
+            "from": "Austria",
+            "to": "France",
+            "region": "Bohemia",
+            "target": "Bohemia",
+        }]
+        result = validate_settlement_terms(terms, actor_nation="France", player_nation="France")
+        assert result["valid"] is False
+        assert result["error"] == "invalid_clause_schema"
+        assert result["error_index"] == 0
+        assert result["unknown_keys"] == ["target"]
+
+    def test_non_dict_clause_rejected(self):
+        result = validate_settlement_terms(
+            [{"type": "peace"}, "bad"],
+            actor_nation="France",
+            player_nation="France",
+        )
+        assert result["valid"] is False
+        assert result["error"] == "invalid_clause_schema"
+        assert result["error_index"] == 1
 
     def test_unauthorized_actor(self):
         terms = [{"type": "peace"}]
@@ -185,6 +222,24 @@ class TestExecutorForwarding:
         assert result["error"] == "submitted_terms_failed_revalidation"
         assert result["mutated"] is False
 
+    def test_executor_rejects_explicit_empty_top_level_terms(self):
+        world = WorldState()
+        _install_common_peace_war(world)
+        executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
+        cmd = {
+            "action": "propose_common_peace",
+            "target_nation": "Austria",
+            "settlement_terms": [],
+            "diplomatic_data": {
+                "settlement_terms": [{"type": "peace"}],
+            },
+        }
+        result = executor._execute_propose_common_peace(cmd, {"world": world})
+        assert result["success"] is False
+        assert result["error"] == "submitted_terms_failed_revalidation"
+        assert result["validation_error"] == "empty_authored_draft"
+        assert world.pending_diplomatic_dialogue is None
+
     def test_executor_persists_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
@@ -224,6 +279,7 @@ class TestRatificationAcceptanceGate:
         assert result["mutated"] is False
         assert dict(world.diplomatic_states) == before_states
 
+    @patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
     def test_accepted_settlement_ratifies(self):
         world = WorldState()
         war = make_synthetic_war_instance(
@@ -248,6 +304,7 @@ class TestRatificationAcceptanceGate:
         )
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
+        assert dialogue["can_ratify"] is True
         # Verify acceptance passes — the dialogue should have can_ratify.
         if not dialogue.get("can_ratify"):
             # If the formula still rejects at staging time, this test is
@@ -272,7 +329,12 @@ class TestRatificationAcceptanceGate:
         result = handle_settlement_dialogue_action(
             world, action="confirm_settlement", dialogue=dialogue,
         )
-        assert result.get("success") is True or result.get("mutated") is True
+        assert result["success"] is True
+        assert result["mutated"] is True
+        assert (
+            result["settlement_reactions"]["summary_event"]["route"]["route_id"]
+            == dialogue["route_id"]
+        )
 
     def test_ratification_options_absent_on_rejection(self):
         world = WorldState()
@@ -416,3 +478,26 @@ class TestDraftPersistence:
             "war_1": [{"type": "territory_cede", "from": "A", "to": "B", "region": "X"}],
         }
         assert restored.settlement_route_seq == {"war_1": {7: 2}}
+
+    def test_settlement_route_ids_are_unique_same_war_same_turn(self):
+        world = WorldState()
+        _install_common_peace_war(world)
+
+        first = stage_settlement_confirm(
+            world,
+            war_id="war_1",
+            settlement_terms=[{"type": "peace"}],
+        )
+        first_route = first["diplomatic_dialogue"]["route_id"]
+        world.dialogue_manager.pop()
+
+        second = stage_settlement_confirm(
+            world,
+            war_id="war_1",
+            settlement_terms=[{"type": "peace"}],
+        )
+        second_route = second["diplomatic_dialogue"]["route_id"]
+
+        assert first_route != second_route
+        assert first_route == f"settlement:war_1:{world.current_turn}:1"
+        assert second_route == f"settlement:war_1:{world.current_turn}:2"

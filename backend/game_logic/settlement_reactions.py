@@ -935,6 +935,7 @@ def _emit_settlement_summary_event(
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
     staged_route_id: str = "",
+    route_id: str = "",
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -1009,12 +1010,12 @@ def _emit_settlement_summary_event(
     # notification meta, and result feedback all consume it. Falling back
     # to a recomputed id is reserved for legacy save/test fixtures that
     # never staged through `build_settlement_confirm_dialogue`.
-    route_id = str(staged_route_id or "").strip()
-    if not route_id:
+    resolved_route_id = str(staged_route_id or route_id or "").strip()
+    if not resolved_route_id:
         from backend.game_logic.settlement_preview import (
             mint_settlement_route_id,
         )
-        route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
+        resolved_route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
     event = {
         "type": "settlement_summary",
         "turn": turn,
@@ -1047,7 +1048,7 @@ def _emit_settlement_summary_event(
                 if war_ended
                 else SETTLEMENT_REVIEW_TARGET_ACTIVE
             ),
-            "route_id": route_id,
+            "route_id": resolved_route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1106,6 +1107,7 @@ def _emit_settlement_digest_event(  # noqa: D401
     hidden_reaction_count: int,
     top_reaction_types: List[str],
     staged_route_id: str = "",
+    route_id: str = "",
 ) -> Optional[Dict[str, Any]]:
     if hidden_reaction_count <= 0:
         return None
@@ -1116,12 +1118,12 @@ def _emit_settlement_digest_event(  # noqa: D401
     turn = int(getattr(world, "current_turn", 0) or 0)
     # SC-14c: digest reuses the staged route id so dispatch/ledger group
     # the digest under the same focus as the matching summary event.
-    route_id = str(staged_route_id or "").strip()
-    if not route_id:
+    resolved_route_id = str(staged_route_id or route_id or "").strip()
+    if not resolved_route_id:
         from backend.game_logic.settlement_preview import (
             mint_settlement_route_id,
         )
-        route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
+        resolved_route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
     event = {
         "type": "settlement_digest",
         "turn": turn,
@@ -1134,7 +1136,7 @@ def _emit_settlement_digest_event(  # noqa: D401
         "route": {
             "event_family": SETTLEMENT_EVENT_FAMILY,
             "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-            "route_id": route_id,
+            "route_id": resolved_route_id,
         },
     }
     if hasattr(world, "log_event"):
@@ -1171,6 +1173,7 @@ def route_settlement_reactions(
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
     staged_route_id: str = "",
+    route_id: str = "",
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
     success: bool = True,
@@ -1193,6 +1196,7 @@ def route_settlement_reactions(
     not leak `PEACE & SETTLEMENT HISTORY` rows into the ledger or the
     dispatch.
     """
+    staged_route_id = str(staged_route_id or route_id or "").strip()
     if not success or not mutated:
         # SC-15 / SC-23 failed-ratification guard. Returning an empty
         # summary is sufficient — callers that hold the dialogue will

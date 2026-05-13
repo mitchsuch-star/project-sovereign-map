@@ -89,17 +89,15 @@ class TestR112FactorKeyComponents:
         assert "rejection_hint" in popup
 
 
-# ═══════ R103: coalition_penalty and harshness_bonus in trackable/feedback ═══════
+# R103: legacy acceptance aliases retired; harshness_bonus remains trackable
 
 class TestR103FeedbackStrings:
-    """R103: coalition_penalty and harshness_bonus appear in trackable set and FEEDBACK_STRINGS."""
+    """R103: stale coalition_penalty alias is retired; harshness_bonus remains trackable."""
 
-    def test_coalition_penalty_in_feedback_strings(self):
-        """FEEDBACK_STRINGS contains coalition_penalty."""
+    def test_coalition_penalty_retired_from_feedback_strings(self):
+        """FEEDBACK_STRINGS does not retain the retired coalition_penalty alias."""
         from backend.game_logic.diplomacy import FEEDBACK_STRINGS
-        assert "coalition_penalty" in FEEDBACK_STRINGS
-        assert "negative" in FEEDBACK_STRINGS["coalition_penalty"]
-        assert "positive" in FEEDBACK_STRINGS["coalition_penalty"]
+        assert "coalition_penalty" not in FEEDBACK_STRINGS
 
     def test_harshness_bonus_in_feedback_strings(self):
         """FEEDBACK_STRINGS contains harshness_bonus."""
@@ -108,8 +106,8 @@ class TestR103FeedbackStrings:
         assert "negative" in FEEDBACK_STRINGS["harshness_bonus"]
         assert "positive" in FEEDBACK_STRINGS["harshness_bonus"]
 
-    def test_coalition_penalty_feedback_when_dominant(self, world):
-        """When coalition_penalty is the largest negative, feedback mentions it."""
+    def test_coalition_penalty_is_not_trackable_feedback(self, world):
+        """Retired coalition_penalty data cannot dominate generated feedback."""
         from backend.game_logic.diplomacy import _generate_feedback
         components = {
             "base_disposition": 30,
@@ -120,10 +118,12 @@ class TestR103FeedbackStrings:
             "personality_modifier": 0,
             "special_desire_bonus": 0,
             "coalition_penalty": -25,
+            "hegemony_target_mod": -5,
             "harshness_bonus": 0,
         }
         feedback = _generate_feedback("REJECT", components)
-        assert "coalition" in feedback.lower()
+        assert "coalition" not in feedback.lower()
+        assert "bloc" in feedback.lower()
 
     def test_harshness_bonus_feedback_when_dominant(self, world):
         """When harshness_bonus is the largest positive, feedback mentions it."""
@@ -136,7 +136,6 @@ class TestR103FeedbackStrings:
             "diplomat_skill_bonus": 0,
             "personality_modifier": 0,
             "special_desire_bonus": 0,
-            "coalition_penalty": 0,
             "harshness_bonus": 10,
         }
         feedback = _generate_feedback("ACCEPT", components)

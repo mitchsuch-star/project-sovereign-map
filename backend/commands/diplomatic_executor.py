@@ -2036,16 +2036,22 @@ class DiplomaticExecutor:
             }
         war_id = resolution["war_id"]
         # SC-1: forward authored settlement_terms from command into staging.
-        settlement_terms = (
-            cmd.get("settlement_terms")
-            or (cmd.get("diplomatic_data") or {}).get("settlement_terms")
-        )
+        diplomatic_data = cmd.get("diplomatic_data") or {}
+        has_submitted_terms = False
+        if "settlement_terms" in cmd:
+            settlement_terms = cmd.get("settlement_terms")
+            has_submitted_terms = True
+        elif "settlement_terms" in diplomatic_data:
+            settlement_terms = diplomatic_data.get("settlement_terms")
+            has_submitted_terms = True
+        else:
+            settlement_terms = None
         from backend.game_logic.settlement_preview import (
             stage_settlement_confirm,
             validate_settlement_terms,
         )
         # SC-1 §15: revalidate authored terms before staging.
-        if settlement_terms:
+        if has_submitted_terms:
             war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
             actor_side = None
             for side in ("attackers", "defenders"):
@@ -2053,7 +2059,7 @@ class DiplomaticExecutor:
                     actor_side = side
                     break
             validation = validate_settlement_terms(
-                [dict(t) for t in settlement_terms if isinstance(t, dict)],
+                settlement_terms,
                 actor_nation=player,
                 player_nation=player,
                 proposer_side=actor_side,
@@ -2071,7 +2077,7 @@ class DiplomaticExecutor:
                 }
             # SC-1: persist draft for same-turn recovery.
             world.pending_settlement_drafts[war_id] = [
-                dict(t) for t in settlement_terms if isinstance(t, dict)
+                dict(t) for t in settlement_terms
             ]
         selected_target = (
             cmd.get("selected_target_nation")

@@ -2406,33 +2406,32 @@ def post_diplomatic_preview_endpoint(request: dict):
             validate_settlement_terms,
         )
         actor = request.get("actor_nation") or getattr(world, "player_nation", "France")
-        terms = request.get("settlement_terms") or []
+        terms = request.get("settlement_terms", [])
         war_id_str = str(request.get("war_id") or "")
         # SC-1: validate authored terms before building preview.
-        if terms:
-            war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str) or {}
-            actor_side = None
-            for side in ("attackers", "defenders"):
-                if actor in (war_instance.get(side) or []):
-                    actor_side = side
-                    break
-            validation = validate_settlement_terms(
-                [dict(t) for t in terms if isinstance(t, dict)],
-                actor_nation=actor,
-                player_nation=getattr(world, "player_nation", "France"),
-                proposer_side=request.get("proposer_side"),
-                actor_side_in_war=actor_side,
-            )
-            if not validation.get("valid"):
-                return {
-                    "success": False,
-                    "mode": "settlement",
-                    "war_id": war_id_str,
-                    "error": validation.get("error"),
-                    "error_index": validation.get("error_index"),
-                    "disabled_reason_display": validation.get("disabled_reason_display"),
-                    "mutated": False,
-                }
+        war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str) or {}
+        actor_side = None
+        for side in ("attackers", "defenders"):
+            if actor in (war_instance.get(side) or []):
+                actor_side = side
+                break
+        validation = validate_settlement_terms(
+            terms,
+            actor_nation=actor,
+            player_nation=getattr(world, "player_nation", "France"),
+            proposer_side=request.get("proposer_side"),
+            actor_side_in_war=actor_side,
+        )
+        if not validation.get("valid"):
+            return {
+                "success": False,
+                "mode": "settlement",
+                "war_id": war_id_str,
+                "error": validation.get("error"),
+                "error_index": validation.get("error_index"),
+                "disabled_reason_display": validation.get("disabled_reason_display"),
+                "mutated": False,
+            }
         return build_settlement_preview(
             world,
             war_id=war_id_str,

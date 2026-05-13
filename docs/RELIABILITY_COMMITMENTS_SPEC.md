@@ -16,7 +16,7 @@ The Napoleonic period's diplomatic engine was the **balance-of-power doctrine**:
 The rescope:
 
 1. **§7 Concern System → Hegemony Pressure System.** Static seeded `nation_concerns` is deleted. Per-turn `_calculate_hegemony_pressure(world)` reads bloc shares dynamically and contributes passive threat against whichever bloc is largest. Hegemon-agnostic by construction — France today, but any bloc that crosses the threshold tomorrow.
-2. **§9 Acceptance formula collapses.** `direct_concern_mod` / `concern_conflict_mod` / composite `political_commitment_mod` floor are deleted. Replaced by one `hegemony_target_mod` (negative on proposals from a nation in the hegemon bloc, scaling with bloc share). `bilateral_betrayal_mod` simplifies to `-6 per active strike` flat — the existing 3-strike hard-reject posture still does the door-shut work.
+2. **§9 Acceptance formula collapses.** The retired concern-composite acceptance terms are deleted. Replaced by one `hegemony_target_mod` (negative on proposals from a nation in the hegemon bloc, scaling with bloc share). `bilateral_betrayal_mod` simplifies to `-6 per active strike` flat — the existing 3-strike hard-reject posture still does the door-shut work.
 3. **No data structure for rivalries.** Rivalries become *derived signals* read from bloc geometry + betrayal_history, not stored fields. The `nation_concerns` field is removed from the v0.1 ship list.
 4. **Slice B rewrites.** B-A1-fill (concern seed), B-B2a-fill (third-party ratification anger), B-B6 (redemption tick) are cancelled. New B-Hegemony slice replaces them. B-B1 collapses to two simple modifiers. B-B3 (paradox rename) and B-B7 (Make Amends) keep their existing scope.
 5. **Slice C presentation trims.** Named-diplomat resolution + paradox popup keep. Elevated rail-card variant + split-voice render infrastructure cut — three events do not justify the infra.
@@ -37,7 +37,7 @@ The April 16 audit established:
 
 - The substrate (betrayal memory, episode_id threading, witness `scope_reason`, hard-reject posture, structured `warnings[]`, paradox episode continuity) is **shipped and tested** (~220 targeted tests passing).
 - The promise mechanic (`war_bargain` / `diplomatic_commitments` / `join_opportunity` / `counter_bargain` / `war_entry_score`) was **never implemented** and is not buildable in a single phase together with the substrate.
-- The acceptance-formula integration of the substrate (graduated `bilateral_betrayal_mod`, `direct_rivalry_mod`, `rival_conflict_mod`, third-party rival anger on ratification, rivalry seed data) was **partially missing**.
+- The acceptance-formula integration of the substrate (graduated `bilateral_betrayal_mod`, retired rivalry modifiers, third-party rival anger on ratification, rivalry seed data) was **partially missing**.
 - The presentation spec was specced two audit rounds deep (`C3a` + `C3b`) for events that the engine cannot produce.
 
 The rescope:
@@ -101,7 +101,7 @@ Even after the substrate ships, the live formula treats betrayal as a 0-or-100 g
 - No war bargains, ally-entry pipeline, counter-bargains, `join_opportunity`, `pending_declaration`, or `war_entry_score` (all in `WAR_BARGAIN_SPEC.md`).
 - No common peace, ally beneficiaries, conference-style spoils allocation.
 - No new diplomacy screen family — extends existing wizard / popup / ledger / dispatch surfaces.
-- No dynamic power tiers, bloc pressure, or strategic focus.
+- No dynamic power tiers or strategic focus; bloc pressure ships only as the hegemony-pressure model in sections 7 and 9.
 - No periodic per-turn bargain reminders or warning ladders (event-driven only).
 - No coalition generalization (defer to D2 follow-up); evaluators stay parameterized but data stores stay anti-France-only in v0.1.
 
@@ -442,7 +442,7 @@ What this buys at scale:
 What the v2.4 engine does not depend on:
 - No authored rivalry pairs — engine reads bloc shares
 - No per-pair concern intensity lookup — replaced by single hegemony pressure value
-- No composite acceptance-formula floor — single negative term per asker
+- Historical pre-DG-4 note: the original reliability-only model had no composite floor. Live acceptance is superseded by section 9.3 and `DIPLOMACY_SPEC.md` section 6: clamp `hegemony_target_mod + bilateral_betrayal_mod + grievance_modifier + bargain_conflict_penalty + bargain_value_mod` at `-60`.
 
 What's flagged for later (unchanged from v2.3):
 - Voice Bible cast expansion when nations >5
@@ -907,13 +907,13 @@ Explicitly not in the amendment's scope, flagged here so later work has a handle
 
 v2.4 collapses the four-modifier composite into two core terms. The hegemony engine (§7) drives the political-pressure side; bilateral betrayal memory drives the trust side. With only those two terms live, no composite floor is needed. Once DG-4's `grievance_modifier` joins the formula, §9.3 reintroduces a conditional `-60` floor.
 
-### 9.1 Hegemony target modifier (this phase ships — replaces direct_concern_mod and concern_conflict_mod)
+### 9.1 Hegemony target modifier (this phase ships)
 
 When a nation receives a proposal from an asker who is part of the current hegemon's bloc, friction applies:
 
 ```python
 def hegemony_target_mod(asker: str, proposal_target: str, world) -> int:
-    """Single negative term — replaces direct_concern_mod + concern_conflict_mod.
+    """Single negative term for hegemon-bloc proposals.
 
     Reads the shared `_identify_max_bloc_share(world)` helper from §7.3 so
     per-pair friction can begin at the 30% boundary one band before continental
@@ -945,9 +945,7 @@ Effect:
 - Returns `-1` to `-20` on cross-bloc proposals from a hegemon-bloc nation once share rises above the 30% boundary, scaled by share.
 - Crucially decoupled from `_calculate_hegemony_pressure`: the 30-33% zone where `_calculate_hegemony_pressure` returns `{}` (threat scalar dormant) still produces real per-pair friction here. This makes §11.2's "private-tally" preview warning text mechanically backed — the courts really are counting allies before Europe names the system aloud.
 
-This single term replaces:
-- The 3-tier `direct_concern_mod` table (no per-pair lookup needed)
-- The 4-tier `concern_conflict_mod` ladder (alignment with hegemon IS the conflict)
+This single term supersedes the earlier concern-composite model; retired modifier names are preserved only in the changelog.
 
 See §9.3 for the composite-floor reintroduction once DG-4's `grievance_modifier` is live.
 
@@ -984,7 +982,7 @@ This replaces the v2.3 `-8 per strike, cap -24` formulation. The simpler `-6` fl
 
 **Pre-DG-4 (B-Hegemony + B-B1-lite alone — no `grievance_modifier` active in code):**
 
-v2.4 removes the v2.3 `political_commitment_mod = max(-40, raw)` aggregation. With only two terms (`hegemony_target_mod` capped at `-20` and `bilateral_betrayal_mod` blocked above `-18` by the 3-strike hard-reject door-shut), no composite floor is needed. The terms surface independently in debug output and `warnings[]` so player legibility is preserved.
+v2.4 removes the earlier political-composite aggregation. With only two terms (`hegemony_target_mod` capped at `-20` and `bilateral_betrayal_mod` blocked above `-18` by the 3-strike hard-reject door-shut), no composite floor is needed. The terms surface independently in debug output and `warnings[]` so player legibility is preserved.
 
 **With DG-4 (§8.8.9 `grievance_modifier` in code — B-B4 shipped):**
 
@@ -1462,7 +1460,7 @@ After the §7.3 realignment that moved the ladder gates to `33 / 50 / 60 / 70`, 
 
 ### Gate 1 — Hard forced-choice vs soft penalty for rival military alignment?
 
-**Resolved:** forced choice for deep military alignment, soft pressure below that. (v2.4 implementation: `hegemony_target_mod` scales the soft-pressure band; the 3-strike `hard_reject_posture` supplies the door-shut for deep treaties. The v2.3 `political_commitment_mod` composite was removed as redundant — the two modifiers surface independently in `warnings[]` and `components`.)
+**Resolved:** forced choice for deep military alignment, soft pressure below that. (v2.4 implementation: `hegemony_target_mod` scales the soft-pressure band; the 3-strike `hard_reject_posture` supplies the door-shut for deep treaties. The old political composite was removed as redundant — the two modifiers surface independently in `warnings[]` and `components`.)
 
 ### Gate 2 — Global reliability + bilateral betrayal, or all pair-specific?
 
