@@ -2,8 +2,8 @@
 
 > **Status:** v1.1 historical umbrella, BPH/WPS/WB complete; Imperial Settlement follow-up active
 > **Date:** April 28, 2026
-> **Phase placement:** After Memory and Pressure v2.4.3 (complete). BPH, WPS, and WB are landed; Ally Participation + Common Peace is now owned by `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`.
-> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (follow-up phase)
+> **Phase placement:** After Memory and Pressure v2.4.3 (complete). BPH, WPS, and WB are landed; Ally Participation + Common Peace mechanics are owned by `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, while current cleanup readiness is owned by `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md`.
+> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27
 
 ---
 
@@ -17,7 +17,7 @@ The three Peace Deals sub-specs are now landed:
 - **War Purpose + Score Semantics (WPS)** — give wars declared purpose, ticking score, settlement tiers, forced alliance, liberation, and a vassalage power cap.
 - **War Bargains (WB)** — add a named-enemy bilateral promise mechanic with lifecycle, ally-entry integration, and breach/fulfillment consequences.
 
-The fourth doc, **War Settlement + Ally Participation**, is the active follow-up handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but file-level settlement coding now starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`.
+The fourth doc, **War Settlement + Ally Participation**, is the mechanics handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but current settlement cleanup routing and readiness checks start from `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 and `STATUS.md`. The implementation plan remains a historical/mechanics sequencing anchor unless the active cleanup gate points back to it.
 
 ---
 
@@ -87,7 +87,7 @@ Live coalition records now carry `active_coalition.target_nation` (France in v0.
 
 WAR_BARGAIN_SPEC §9.1 (`bargain_value_mod`) and §9.2 (`bargain_conflict_penalty`) extend the live model:
 
-- `bargain_value_mod` (+10/+15/+25) integrates as a fourth political-pressure term alongside the existing three. It is positive (sweetener), so it naturally counteracts the negative political pressure from hegemony/betrayal/grievance.
+- `bargain_value_mod` (+10/+15) integrates as a fourth political-pressure term alongside the existing three for ordinary `calculate_acceptance()` treaty proposals. It is positive (sweetener), so it naturally counteracts the negative political pressure from hegemony/betrayal/grievance. The +25 live-bargain bonus belongs to dedicated `compute_war_entry_score()` ally-entry evaluation only.
 - `bargain_conflict_penalty` (§9.2, `-8` for a live bargain against target) feeds into the political subtotal before the composite floor clamp. The floor of `-60` still applies.
 - §9.3 composite re-cap references the live `-60` floor.
 
@@ -99,14 +99,14 @@ political_subtotal_raw = (
     + bilateral_betrayal
     + grievance
     + bargain_conflict_penalty   # NEW: -8 when live bargain targets this nation
-    + bargain_value_mod           # NEW: +10/+15/+25 sweetener
+    + bargain_value_mod           # NEW: +10/+15 sweetener
 )
 political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
 The war-entry score (implemented as `compute_war_entry_score()`, WB section 9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
 
-**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is authoritative for `settlement_gratitude_mod`. In summary, settlement gratitude is a positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it requires an active `settlement_gratitude` memory created from a current-episode material contribution reward, is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components must expose the key as `settlement_gratitude_mod` once Slice D1 lands. Until then, live `calculate_acceptance()` treats the component as `0`.
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is authoritative for `settlement_gratitude_mod`. In summary, settlement gratitude is a live positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it requires an active `settlement_gratitude` memory created from a current-episode material contribution reward, is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, defaults to `0` when absent, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components expose the key as `settlement_gratitude_mod`.
 
 ### 4.3 `threat_coalition` compatibility layer - COMPLETE
 
@@ -429,9 +429,9 @@ File-level partition guidance:
 
 ### R4. Acceptance modifier reconciliation may reveal formula balance issues
 
-Adding `bargain_value_mod` (+10/+15/+25) and `bargain_conflict_penalty` (-8) to the political subtotal changes the acceptance landscape. The +25 war-entry sweetener is particularly powerful.
+Adding `bargain_value_mod` (+10/+15) and `bargain_conflict_penalty` (-8) to the ordinary treaty political subtotal changes the acceptance landscape. The separate +25 live-bargain war-entry sweetener is intentionally powerful, but it belongs only to `compute_war_entry_score()`.
 
-**Mitigation:** The composite floor at -60 caps downside. The +25 is intentionally large — it's the whole point of making a political promise. Test coverage must verify that the floor still functions correctly with 5 terms instead of 3 feeding into it.
+**Mitigation:** The composite floor at -60 caps downside. Test coverage must verify that the floor still functions correctly with 5 ordinary acceptance terms instead of 3 feeding into it, and that the +25 war-entry bonus is tested through the dedicated war-entry score path rather than `calculate_acceptance()`.
 
 ### R5. War Purpose popup creates analysis paralysis risk
 

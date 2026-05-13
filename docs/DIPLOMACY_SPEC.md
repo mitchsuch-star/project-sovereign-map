@@ -973,14 +973,12 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 - `bilateral_betrayal_mod`: `-6` per active victim-side betrayal strike.
 - `grievance_modifier`: `-30` per active durable grievance, capped at 3 contributing grievances per pair.
 - `bargain_conflict_penalty`: `-8` when a live war bargain targets the nation or contested territory.
-- `bargain_value_mod`: `+10` / `+15` / `+25` when a proposal fulfills the appropriate war-bargain value band.
+- `bargain_value_mod`: `+10` / `+15` when an ordinary treaty proposal fulfills the appropriate war-bargain value band. The `+25` live-bargain bonus belongs only to dedicated war-entry / ally-entry scoring, not to the ordinary `calculate_acceptance()` political subtotal.
 - `composite_floor`: synthetic debug row shown when the raw political subtotal is clamped to `-60`.
 
 Threat pressure is not a standalone acceptance component in live code. Coalition threat and hegemony pressure affect diplomacy through their owning systems and through `hegemony_target_mod`.
 
-**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is the authoritative source for `settlement_gratitude_mod`. When Ally Participation / Common Peace lands, it is an optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France; that memory is created only by a current-episode material contribution reward. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, and refreshes rather than stacks.
-
-**Implementation status:** `settlement_gratitude_mod` is pending Imperial Settlement Slice D1. Until that slice lands, live `calculate_acceptance()` behaves as if this component is `0` and may omit it from debug output; Slice D1 must add the live component, proposal-preview row, and regression coverage.
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is the authoritative source for `settlement_gratitude_mod`. It is a live optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France; that memory is created only by a current-episode material contribution reward. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, defaults to `0` when no qualifying memory exists, refreshes rather than stacks, and is exposed in live acceptance debug/components.
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
@@ -1419,6 +1417,8 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 ```
 
 This order ensures: DP is available before mission deduction, war score is fresh before cascade checks, loyalty is processed before rebellion, threat is fresh before coalition checks (decay applies BEFORE threshold — see COALITION_SPEC §3c), and income is calculated with current diplomatic states.
+
+Implementation note: `backend/game_logic/diplomacy.py::process_diplomacy_turn()` owns steps 1-9 plus forced-alliance drift, automatic downgrade, bargain lifecycle, reliability, and authority cleanup. Vassal steps 5-7 intentionally run inside that function before armistice expiration and diplomatic normalization; `WorldState._advance_turn_internal()` clears battle tracking afterward so vassal loyalty can still read this turn's battle records.
 
 ---
 

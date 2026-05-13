@@ -5170,23 +5170,9 @@ class WorldState:
 
         # ════════════════════════════════════════════════════════════
         # VASSAL PROCESSING (Phase 8 Session 5, §7f steps 5-7)
-        # Step 5: Defection cascade check (war_score < -30)
-        # Step 6: Loyalty processing (drift + modifiers)
-        # Step 7: Rebellion check (loyalty = 0)
+        # Steps 5-7 now run inside process_diplomacy_turn() before armistice
+        # expiration and diplomatic normalization.
         # ════════════════════════════════════════════════════════════
-        if self.vassals:
-            from backend.game_logic.vassal import (
-                check_defection_cascade, process_vassal_loyalty,
-                check_vassal_rebellion, decrement_vassal_cooldowns
-            )
-            cascade_events = check_defection_cascade(self)
-            tactical_events.extend(cascade_events)
-            loyalty_events = process_vassal_loyalty(self)
-            tactical_events.extend(loyalty_events)
-            rebellion_events = check_vassal_rebellion(self)
-            tactical_events.extend(rebellion_events)
-            decrement_vassal_cooldowns(self)
-
         # Clear battle tracking AFTER vassal loyalty processing reads it (Fix 3)
         self.clear_turn_battles()
 

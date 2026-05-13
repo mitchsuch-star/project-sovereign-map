@@ -1,8 +1,8 @@
 # War Purpose + Score Semantics Spec
 
-> **Status:** Draft v1.0
+> **Status:** Historical landed implementation reference v1.0
 > **Date:** April 16, 2026
-> **Phase placement:** Design Refinement queue item 3. After `Memory and Pressure` (substrate shipped) and `Bilateral Peace Hardening` (queue item 2). Before `War Bargains` (queue item 3.5).
+> **Phase placement:** Landed Peace Deals slice. After `Memory and Pressure` and landed `Bilateral Peace Hardening`; before landed `War Bargains`.
 > **Origin:** War System Overhaul items in `DESIGN_REFINEMENT.md` §War System Overhaul: War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation. Playtest audit (March 29, 2026) identified defensive-play dominance and war-score opacity as core balance problems.
 > **Companion docs:** `DIPLOMACY_SPEC.md` (§5c war declaration, §6e war score formula), `COALITION_SPEC.md` (threat from war actions), `WAR_BARGAIN_SPEC.md` (war-objective settlement hook, §2), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later), `BILATERAL_PEACE_HARDENING_SPEC.md` (peace preview extensibility)
 
@@ -618,11 +618,12 @@ self.alliance_origins: Dict[str, str] = {}
 
 ### 12.4 Processing order in advance_turn()
 
-Ticking accumulation runs after war score recalculation (step 4 in DIPLOMACY_SPEC §7f):
+Ticking accumulation runs after battle-only decay and before the stored war-score recalculation in step 4 of `DIPLOMACY_SPEC` §7f:
 
 ```
-4.  War score recalculation — territory + quiet-turn-decayed battles + decisive + capital (§6e)
-4a. War objective ticking — accumulate per §7.2, add to war score after battle-only decay (§7.3)
+4.  Battle-only war-score decay / pruning.
+4a. War objective ticking — accumulate per §7.2 after battle-only decay so ticking is never consumed by battle decay.
+4b. Stored war-score recalculation — territory + quiet-turn-decayed battles + decisive + capital + ticking (§6e)
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 ```
 

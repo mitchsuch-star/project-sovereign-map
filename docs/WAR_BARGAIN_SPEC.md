@@ -1,8 +1,8 @@
 # War Bargain Spec
 
-> **Status:** Draft v1.1
+> **Status:** Historical landed implementation reference v1.1
 > **Date:** April 16, 2026
-> **Phase placement:** Peace Deals track, after `Memory and Pressure`, after `Bilateral Peace Hardening`, after `War Purpose + Score Semantics`. Sits alongside / before `Ally Participation + Common Peace`.
+> **Phase placement:** Landed Peace Deals slice, after `Memory and Pressure`, `Bilateral Peace Hardening`, and `War Purpose + Score Semantics`. Settlement ally participation/common peace now owns later settlement work.
 > **Origin:** Extracted from `docs/RELIABILITY_COMMITMENTS_SPEC.md` v1.0 §6.4 / §9 / §10.4 / §10.5 / §12.3 / §12.4 / §13 during the v2.0 rescope on April 16, 2026. The Memory and Pressure substrate (rivalries, betrayal memory, episode_id, witness scope, hard-reject posture) shipped without bargains; this spec defines the promise mechanic that was deferred out of v0.1.
 > **Companion docs:** `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `BILATERAL_PEACE_HARDENING_SPEC.md` (planned), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (planned), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later)
 
@@ -464,7 +464,8 @@ Void effects:
 
 - `+10` when sweetening `DEFENSIVE_ALLIANCE`
 - `+15` when sweetening `ALLIANCE`
-- `+25` on an immediate war-entry / ally-entry evaluation against the named enemy
+
+The `+25` live-bargain bonus is not part of ordinary `calculate_acceptance()`. It belongs only to the dedicated war-entry / ally-entry evaluation in §9.4.
 
 Integration:
 
@@ -764,7 +765,7 @@ When France breaches bargain #1 (e.g., with Prussia against Britain), witness cl
 - Structural bargain caps + deterministic same-turn reroll memory per §8.7.3
 - Hard-block reason surfacing
 - Dedicated `war_entry_score` per §9.4 with `50+` join / `25-49` counter-bargain / `<25` refuse thresholds; defensive honor auto-join after block checks
-- `+25` war-entry acceptance bonus when valid bargain targets named enemy
+- `+25` war-entry score bonus when valid bargain targets named enemy
 - `trigger_context` capture on bargain trigger
 - Anti-France coalition overlap hooks (§8.7.4) without coalition generalization
 - Extend paradox popup to surface attached bargain-breach / reliability fallout

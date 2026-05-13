@@ -1,8 +1,8 @@
 # Bilateral Peace Hardening Spec
 
-> **Status:** Draft v1.0
+> **Status:** Historical landed implementation reference v1.0
 > **Date:** April 16, 2026
-> **Phase placement:** Design Refinement queue item 2. After `Memory and Pressure` (substrate shipped, v2.1 remaining). Before `War Purpose + Score Semantics` (queue item 3) and `War Bargains` (queue item 3.5).
+> **Phase placement:** Landed Peace Deals slice. After `Memory and Pressure`; before the landed `War Purpose + Score Semantics` and `War Bargains` slices.
 > **Origin:** Identified in the April 10, 2026 focused audit as the second legitimacy-stack item: "make separate peace and bilateral settlement review legible before multilateral settlement exists."
 > **Companion docs:** `DIPLOMACY_SPEC.md` (§5–§7 treaty/peace), `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `WAR_BARGAIN_SPEC.md` (depends on this spec — §2, §8.9.A, R4), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (queue item 3, parallel)
 
