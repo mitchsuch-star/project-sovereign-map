@@ -744,9 +744,9 @@ Diplomatic states can degrade without jumping to WAR. Downgrades follow reverse 
 - **Treaty-break triggered:** Breaking specific treaty clauses may force a downgrade (e.g., violating open borders = OPEN_BORDERS → PEACE).
 - **Automatic decay:** Relations that remain 30+ points below the state's relation threshold for 5 consecutive turns trigger automatic downgrade with reduced penalties (half relation hit, no threat). Morning Dispatch warns 2 turns before auto-downgrade: "Talleyrand warns: our alliance with Austria is deteriorating."
 
-#### 5b.2. Armistice Cooldown
+#### 5b.2. Armistice Minimum and Cooldown
 
-After an armistice expires or is broken, the same nation pair cannot enter another armistice for **5 turns** (prevents armistice-chaining exploit). Tracked per nation-pair in `armistice_cooldowns`. War must continue or peace must be negotiated.
+An armistice has a **5-turn minimum duration**. In v0.1, `armistice_cooldowns` tracks that active minimum-duration lock for the nation pair and is cleared when the pair leaves ARMISTICE. There is no separate post-expiration or post-break re-entry cooldown in the live contract; if a later phase wants that exploit guard, add a distinct `armistice_reentry_cooldowns` field plus save/load, preview, and expiry tests instead of reusing `armistice_cooldowns`.
 
 **Transition costs (proposer):**
 

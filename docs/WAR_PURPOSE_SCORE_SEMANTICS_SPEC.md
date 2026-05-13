@@ -792,7 +792,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Implement objective types (conquest, subjugation, forced_alliance, defense, liberation)
 - War Purpose popup at declaration time
 - Objective auto-assignment for defenders and coalition
-- Ticking accumulation in `advance_turn()` after war score recalculation
+- Ticking accumulation in `advance_turn()` after battle-only decay/pruning and before stored war-score recalculation; recalculate stored `war_scores` once after ticking so ticking remains the fifth additive component and battle decay never consumes it
 - Ticking contribution to war score (5th component)
 - Ticking pause during armistice
 - Objective cleanup on war end

@@ -7,6 +7,16 @@
 
 ---
 
+## Current Normative Source Map
+
+| Area | Normative source during cleanup |
+|------|---------------------------------|
+| Ally-aware settlement mechanics, war-instance grouping, contribution standing, common-peace acceptance, and settlement memories | This spec |
+| Cleanup-time player readiness, blocked/rejected/losing recovery, route-id shape, action visibility, and Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
+| Incoming AI settlement offers and player-facing `incoming_settlement_offer` routes | Deferred and hidden unless the cleanup spec explicitly reverses SC-5 with producer, payload, UI, package-preserving actions, incoming voice, and behavior tests |
+| Sections 18-19 implementation/test sequences | Historical mechanics reference unless the active cleanup spec points back to a specific row |
+| Future non-leader ally petitions/advisories | Post-cleanup Slice G or later owner spec; not part of cleanup readiness by default |
+
 ## 0. Scale and Ownership Contract
 
 This spec is authored for the full 1805 Europe scale, not only the five-nation prototype. Implementation must assume:
@@ -1968,7 +1978,7 @@ The ordering preserves same-turn contribution credit before exits, keeps bargain
 
 ---
 
-## 18. Implementation Sequence
+## 18. Historical Implementation Sequence
 
 This sequence is post-Peace-Deals. All Peace Deals dependencies (BPH, WPS, WB) are landed.
 

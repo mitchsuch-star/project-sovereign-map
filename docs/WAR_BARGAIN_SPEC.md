@@ -4,7 +4,7 @@
 > **Date:** April 16, 2026
 > **Phase placement:** Landed Peace Deals slice, after `Memory and Pressure`, `Bilateral Peace Hardening`, and `War Purpose + Score Semantics`. Settlement ally participation/common peace now owns later settlement work.
 > **Origin:** Extracted from `docs/RELIABILITY_COMMITMENTS_SPEC.md` v1.0 §6.4 / §9 / §10.4 / §10.5 / §12.3 / §12.4 / §13 during the v2.0 rescope on April 16, 2026. The Memory and Pressure substrate (rivalries, betrayal memory, episode_id, witness scope, hard-reject posture) shipped without bargains; this spec defines the promise mechanic that was deferred out of v0.1.
-> **Companion docs:** `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `BILATERAL_PEACE_HARDENING_SPEC.md` (planned), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (planned), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later)
+> **Companion docs:** `RELIABILITY_COMMITMENTS_SPEC.md` (substrate), `BILATERAL_PEACE_HARDENING_SPEC.md` (landed), `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` (landed), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (active follow-up)
 
 ---
 
@@ -39,7 +39,7 @@ It feeds into:
 
 - **Ally Participation + Common Peace** — fulfilled bargain `fulfillment_snapshot` becomes input to ally-aware settlement allocation.
 
-Implementation should not begin until both Bilateral Peace Hardening and War Purpose + Score Semantics have written, gated specs. The bargain mechanic is the political-promise layer that those two systems give meaning to.
+Historically, implementation did not begin until both Bilateral Peace Hardening and War Purpose + Score Semantics had written, gated specs. The bargain mechanic is the political-promise layer that those two systems give meaning to.
 
 ---
 
@@ -612,11 +612,11 @@ Per-event one-liner and fog contract:
 | `ally_refused_free_join` | "{beneficiary} declined to join against {target_enemy} without terms." | Public to France and the refusing ally; scoped witnesses only if refusal creates a commitment event. |
 | `declaration_backed_out` | "{promiser} withdrew the declaration against {target_enemy}." | Player only; no diplomatic fallout by itself. |
 
-### 10.5 Presentation pass (deferred from this spec)
+### 10.5 Presentation pass (landed in WB-D)
 
-The full bargain presentation pass — split-voice spotlight for `bargain_fulfilled` / `bargain_breached`, `dominant_witness_scope`-branched copy, named-diplomat envoy resolution at bargain ratification and breach — is the bargain-era continuation of `COMMITMENTS_PRESENTATION_SPEC.md` (which currently ships only as the `C3-lite` Memory and Pressure pass).
+The full bargain presentation pass — split-voice spotlight for `bargain_fulfilled` / `bargain_breached`, `dominant_witness_scope`-branched copy, named-diplomat envoy resolution at bargain ratification and breach — landed in WB-D as the bargain-era continuation of `COMMITMENTS_PRESENTATION_SPEC.md`.
 
-Once this spec lands, extend the presentation pass with:
+WB-D extends the presentation pass with:
 
 - `bargain_fulfilled` spotlight + Talleyrand vindication line + N+1 callback
 - `bargain_breached` split-voice spotlight (lead = injured-party named diplomat per Voice Bible, witness = scoped court reaction, aside = Talleyrand) + N+1 aftermath
@@ -692,6 +692,7 @@ Scale-hardening amendment: terminal bargain records move from `diplomatic_commit
 ### 12.1 New WorldState fields
 
 - `diplomatic_commitments: Dict[str, Dict]` — bargain records keyed by commitment id (string)
+- `archived_diplomatic_commitments: List[Dict]` — terminal bargain records moved out of live scans after the 10-turn grace period; default `[]`; serialized through `WorldState.to_dict()` / `from_dict()`
 - `next_commitment_id: int` — monotonic id
 
 ### 12.2 Cooldown contract

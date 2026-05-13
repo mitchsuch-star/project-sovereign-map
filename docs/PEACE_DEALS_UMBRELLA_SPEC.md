@@ -19,6 +19,16 @@ The three Peace Deals sub-specs are now landed:
 
 The fourth doc, **War Settlement + Ally Participation**, is the mechanics handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but current settlement cleanup routing and readiness checks start from `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 and `STATUS.md`. The implementation plan remains a historical/mechanics sequencing anchor unless the active cleanup gate points back to it.
 
+### 1.1 Normative source map (May 2026)
+
+| Area | Normative source |
+|------|------------------|
+| Landed BPH/WPS/WB mechanics and historical sequencing | This umbrella plus the three landed sub-specs |
+| Ally-aware settlement mechanics | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` |
+| Cleanup-time settlement readiness, player-facing rejected/losing recovery, route-id shape, incoming-offer exposure, and Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
+| Historical implementation estimates and old test-count budgets | Section 5 below; use `STATUS.md` for landed counts |
+| Future/deferred settlement petitions or AI incoming offers | The cleanup spec must explicitly reverse the relevant deferral before implementation starts |
+
 ---
 
 ## 2. What Peace Deals is NOT
@@ -49,7 +59,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 **WB-D (bargain presentation) is gated on WB-A/B/C.** Spotlights, split-voice copy, and response routes require live bargain state.
 
-**Ally Participation was gated on the full Peace Deals phase.** That gate is now open: BPH, WPS, and WB-A through WB-D are landed, and settlement implementation can begin at Slice A.
+**Ally Participation was gated on the full Peace Deals phase.** That gate is now open: BPH, WPS, and WB-A through WB-D are landed. Ally Participation mechanics moved through A1-E; current settlement cleanup readiness starts from `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 and `STATUS.md`.
 
 ---
 
@@ -59,7 +69,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 DIPLOMACY_SPEC was internally inconsistent: §5a/§5b.2/§7d said 5 turns, but the turn-order processing, EC-Z, and design decisions table still said 3 turns.
 
-**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` checks `turns < 5`; `armistice_cooldowns` are set to 5). The conflicting active DIPLOMACY_SPEC references have been corrected to 5 turns; future edits must not reintroduce the 3-turn value.
+**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` checks `turns < 5`; `armistice_cooldowns` tracks the active minimum-duration lock while the pair remains in ARMISTICE). The live v0.1 contract does not include a separate post-expiration or post-break re-entry cooldown. The conflicting active DIPLOMACY_SPEC references have been corrected to 5 turns; future edits must not reintroduce the 3-turn value.
 
 This affects:
 - BPH §12.1 armistice preview (reads whatever `ARMISTICE_MIN_TURNS` the code uses — that's 5)
@@ -118,7 +128,7 @@ The war-entry score (implemented as `compute_war_entry_score()`, WB section 9.4)
 - Remove `threat_coalition` from `build_diplomatic_ledger()` in `backend/game_logic/diplomatic_ledger.py`
 - Remove `threat_coalition` consumption in Godot `diplomatic_ledger.gd`
 - Update tests asserting on `threat_coalition` keys to assert on `balance_of_europe` only
-- Remove any `threat_modifier` / `coalition_penalty` legacy computation paths if no longer consumed
+- Remove unused `threat_modifier` / `coalition_penalty` computation paths; if a key survives only as a legacy feedback/display alias, document it as non-normative and keep it out of acceptance components
 
 ### 4.4 Godot surface strategy
 
@@ -162,7 +172,7 @@ Each slice that adds fields must update `SAVE_FORMAT_REFERENCE.md` and pass `tes
 
 ---
 
-## 5. Implementation Sequence
+## 5. Historical Implementation Sequence
 
 ### Phase A: Bilateral legibility (BPH + WPS, parallel-safe)
 
@@ -338,7 +348,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 | Item | Decision Point | HOME / Owner Spec | Options |
 |------|---------------|-------------------|---------|
 | ~~`threat_coalition` retirement~~ | ~~After Gate 1~~ | - | **COMPLETE April 26, 2026:** Retired in focused cleanup before WB-A. See section 4.3. |
-| Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | Confirm Voice Bible coverage for bargain-specific lines |
+| Bargain presentation voice (WB-D diplomat attribution) | Complete | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | **COMPLETE:** WB-D landed the bargain presentation pass; future voice changes are polish, not a pre-WB-D design gate. |
 
 ---
 
