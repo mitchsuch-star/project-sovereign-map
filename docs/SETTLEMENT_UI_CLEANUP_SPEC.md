@@ -2,10 +2,10 @@
 
 > **QUALITY BAR:** This feature must work as a player-usable settlement system. No handwaving, no "wired but not usable" completion, and no deferring visible broken or misleading behavior without explicit product approval. Quality always beats schedule.
 
-> **Status:** v0.27 GO-pending-verification - May 12, 2026 Codex + Claude follow-up fixes folded in: rejected-popup substitute CTAs now have an explicit SC-29 timeline; `Ask for terms` cannot ship as copy-only refusal; helper schemas, clause picker option schema, forced-alliance Balance preview, hidden-clause no-disabled-leak rules, destructive re-authoring protection, typed one-to-one rejection, disabled-vs-hidden policy, and Gate 4 rejected/losing fixture split are normative. Implementation remains blocked until branch reconciliation, chosen-target SC-27 re-scan / compatibility verification, executable Godot evidence, pre-smoke verification, and expanded Gate 4 smoke close.
+> **Status:** v0.28 GO-pending-verification - May 13, 2026 next-slice planning fold-in: white-peace affordance is normative (block empty-Ratify in editor, surface explicit `Propose White Peace` wizard action), Godot parse harness commitment retires the SC-22 tooling-block deferral, and `docs/STATUS.md` Next Implementation Slice now names the four ordered steps. v0.27 contract from May 12 carries unchanged: rejected-popup substitute CTAs now have an explicit SC-29 timeline; `Ask for terms` cannot ship as copy-only refusal; helper schemas, clause picker option schema, forced-alliance Balance preview, hidden-clause no-disabled-leak rules, destructive re-authoring protection, typed one-to-one rejection, disabled-vs-hidden policy, and Gate 4 rejected/losing fixture split are normative. Implementation remains blocked until branch reconciliation, chosen-target SC-27 re-scan / compatibility verification, executable Godot evidence, pre-smoke verification, and expanded Gate 4 smoke close.
 > **Owner:** Project Sovereign / Ink & Iron settlement feature
 > **Created:** May 5, 2026
-> **Last spec update:** May 12, 2026
+> **Last spec update:** May 13, 2026
 
 ## Purpose
 
@@ -328,6 +328,37 @@ The cleanup implementation may not start Slice G or broader settlement agency un
 18. **Failed settlement confirmation must offer an understandable next step.** A rejected or blocked `settlement_confirm` is only a ratification gate, not a treaty editor, not a surrender menu, not a bilateral armistice action, and not an incoming-offer mailbox. If acceptance, score, or hard stops block ratification, `confirm_settlement` is absent from `options[]` and `available_action_ids[]`; the popup renders `settlement_blocked_for_ratification_talleyrand` as the primary banner and then shows only real next-step actions. `Revise Terms` is visible only when it opens a real editor/re-author route. `Open War Detail` is a recovery route only when SC-10b evidence and `evaluate_war_detail_actionability(...)` prove that live context can show pair-scoped peace/armistice tools or true no-current-pair terminal copy; War Detail, not the settlement popup, may expose pair-scoped Bilateral Peace / Armistice where their own eligibility allows. The settlement popup must not emit `propose_armistice`, `propose_peace`, `seek_armistice_instead`, disabled Ratify, disabled Revise placeholders, `wait_for_enemy_offer`, `ask_for_terms`, `surrender_terms`, or any enemy-offer waiting action while their owning systems are deferred; SC-29 is the only release valve for pair-scoped substitute CTAs.
 
 If a short interim patch ships before full treaty authoring, it must hide or neutralize incomplete treaty-authoring implications: `Revise Terms`, term harshness rows, projected-hegemony / Balance pressure rows, forced-alliance threat preview, vassalage / liberation / gold clause preview, and any Terms section copy that implies clauses beyond the actually editable draft. This is an interim safety measure, not the approved end state.
+
+### White Peace Affordance
+
+Empty-package ratification is forbidden through the settlement editor. The wizard's `Open Settlement` flow lands in EDIT with `Ratify Settlement` gated on `len(settlement_terms) > 0`; clicking Ratify with no authored clauses is unreachable. The "no clauses authored yet" baseline message remains visible until the player authors at least one clause or backs out.
+
+White peace as a distinct player intent is reachable through a separate, labeled `Propose White Peace` action surfaced by the F1 diplomacy wizard alongside `Open Settlement`. The action opens a dedicated white-peace confirmation popup that:
+
+- Names the war and covered enemy participants explicitly.
+- States in player copy that no terms will be exchanged.
+- Runs the same acceptance scorer against an empty draft; if acceptance rejects, the popup hard-stops with the standard blocked-ratification banner and does not offer Ratify.
+- On accept, ratifies through `ratify_settlement_confirm(...)` with `settlement_terms=[]` and emits a `settlement_summary` event tagged `white_peace=true` so dispatch / ledger / campaign log render the outcome as a labeled white peace rather than a generic settlement.
+
+The typed-command path `propose common peace with X` is treated as a debug/parser-only entry: it remains in `VALID_ACTIONS` and may stage `settlement_confirm` with an empty draft, but no player surface routes through it. Player smoke evidence covers the wizard CTAs, not the typed command.
+
+Required behavior tests:
+
+- `test_open_settlement_editor_blocks_ratify_when_settlement_terms_is_empty`
+- `test_open_settlement_editor_enables_ratify_after_first_clause_authored`
+- `test_propose_white_peace_action_visible_on_wizard_when_war_active`
+- `test_propose_white_peace_popup_uses_empty_draft_and_labeled_copy`
+- `test_propose_white_peace_acceptance_rejection_hides_ratify_and_shows_blocked_banner`
+- `test_propose_white_peace_ratify_emits_settlement_summary_with_white_peace_true`
+- `test_typed_propose_common_peace_does_not_route_through_player_facing_surfaces`
+
+Industry references for this contract: Paradox grand strategy (EU4, CK3, HOI4) labels white peace as a distinct treaty button; Civilization VI surfaces "peace deal with no terms" as its own dialog; Stellaris exposes the `status_quo` resolution as an explicit selection. The pattern is consistent: white peace is a labeled intent, not a side-effect of opening a settlement editor and clicking Ratify with no authored clauses.
+
+### Godot Parse Harness Commitment
+
+The cleanup spec previously allowed a per-slice SC-22 tooling-block deferral for Godot parse/load coverage, with an explicit cap that the deferral cannot extend past G2-Slice-3 without a new product decision. Per the May 13, 2026 next-slice plan in `docs/STATUS.md`, that deferral is retired: a headless Godot 4.4 parse/load harness lands as the first step of the next implementation slice and runs against the settlement-critical Godot scripts (`main.gd`, `diplomacy_wizard.gd`, `war_detail_popup.gd`, `war_status_panel.gd`, `diplomatic_ledger.gd`, `notification_bar.gd`, `mailbox_panel.gd`). The harness is invoked through `Godot_v4.4.1-stable_win64.exe --headless --quit --script tools/godot_parse_check.gd` and exits non-zero on any parse or load failure.
+
+After the harness lands, SC-22 tooling-block records may not be opened for new settlement Godot work. Required test: `test_godot_parse_harness_exists_and_covers_settlement_critical_scripts`.
 
 If incoming settlement offers are deferred, the cleanup patch must remove the player-facing scaffolding together: drop `incoming_settlement_offer` from hard-stop and mailbox type taxonomies, mailbox summary labels, Godot proposal/settlement popup type lists, and settlement action lists, or put them behind a disabled feature flag. The handler may remain only if tests prove no normal gameplay or mailbox path can expose it. Any enemy-offer waiting action or label is a visible promise and fails SC-5 while the producer is deferred. Required behavior test: `test_rejected_settlement_popup_with_sc5_deferred_does_not_render_enemy_offer_waiting_control`.
 
