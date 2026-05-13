@@ -31,6 +31,8 @@ The fourth doc, **War Settlement + Ally Participation**, is the mechanics handof
 
 **Audit scope closure:** a Peace Deals audit is implementation-ready only when its scope includes every active normative source below. If an audit intentionally covers only historical BPH/WPS/WB mechanics, it must say so in the prompt and exclude cleanup-readiness conclusions.
 
+Current-readiness audit input set: this umbrella, `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, `SETTLEMENT_UI_CLEANUP_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`, `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `CLAUDE.md`, and the live diplomacy/world-state code. If any active cleanup source is omitted, the run is historical-mechanics-only and must not emit a cleanup-readiness GO.
+
 | Behavior area | Active normative source | Historical/mechanics source | Required for tests | Included in Peace Deals historical suite |
 |---------------|-------------------------|-----------------------------|--------------------|-----------------------------------------|
 | Bilateral peace preview, fallout, and ratification summary | `BILATERAL_PEACE_HARDENING_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |

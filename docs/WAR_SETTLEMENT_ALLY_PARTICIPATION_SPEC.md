@@ -1974,19 +1974,22 @@ Implementation note: `compute_local_balance_warning()` is called per participant
 
 ### 17.5 Turn lifecycle placement
 
-Settlement adds no broad region scan to `advance_turn()`. The settlement-specific turn work runs in this order relative to existing diplomacy processing:
+Settlement adds no broad region scan to `advance_turn()`. Settlement work is split between event-time accrual, command/ratification transactions, and the per-turn diplomacy pass. Tests should assert this order:
 
 1. Resolve battle, occupation, subsidy/support, and treaty-ratification events for the turn; accrue battle/support/occupation contribution into `war_contribution_scores` as events fire.
-2. Apply war-state changes: declarations, direct ally entries, cascade joins, armistice collapse/resolution, eliminations, separate peaces, common-peace ratification, region ownership/alignment mutation, `diplo_key_meta[pair]["pair_status"]` updates, and participant `exited_turn` stamps.
-3. Run WB-B fulfillment/breach/void checks for ratified peace and separate-peace fallout.
-4. Accrue staying-power contribution by iterating active `war_instance` participants only.
-5. Recompute active war leaders and end/archive `war_instances` whose section 7.3 end condition is met. `ARMISTICE` pairs remain suspended in the active instance and do not satisfy the archive condition. When an ended instance leaves the 10-turn retention window, compact or archive its `war_contribution_scores[war_id]` according to section 17.1 after all settlement readers for the turn have consumed it.
-6. Invalidate Balance of Europe / bloc caches and war-instance lookup caches, then fire any threshold checks caused by the war-state, treaty, or ownership changes above. If common-peace ratification changed participants or pair status, `war_instances_by_participant` must be rebuilt before cross-war reactions read it.
-7. Read active `settlement_memories` for acceptance modifiers, war-entry previews, ledger rows, and dispatch payloads.
-8. Remove expired transient `settlement_memories`; do not mutate `betrayal_history` grievance flags during this cleanup.
-9. Build campaign log, dispatch, notification, and ledger payloads.
+2. Apply command/transaction war-state changes: declarations, direct ally entries, cascade joins, eliminations, separate peaces, common-peace ratification, region ownership/alignment mutation, `diplo_key_meta[pair]["pair_status"]` updates, and participant `exited_turn` stamps.
+3. For common-peace and separate-peace ratification, snapshot every covered pair before cleanup, then run WB-B fulfillment/breach/void immediately after the treaty mutation and before settlement/cross-war reactions read the result. The per-turn `process_bargain_lifecycle()` remains the fallback lifecycle pass after automatic diplomatic downgrade.
+4. In `process_diplomacy_turn()`, prune battle records / apply battle-only decay, accumulate WPS ticking, recalculate stored war scores, clean old war objectives, and process relation decay plus vassal loyalty.
+5. Accrue staying-power contribution by iterating active `war_instance` participants before armistice expiration so episodes closing through `ARMISTICE -> PEACE` still capture the exit-turn credit under the inclusive `event.turn <= exited_turn` boundary.
+6. Process armistice expiration/collapse/resolution and pair-status changes, then decrement cooldowns.
+7. Apply forced-alliance relation drift and automatic diplomatic downgrade, then run the per-turn WB lifecycle pass.
+8. Recompute active war leaders and end/archive `war_instances` whose section 7.3 end condition is met. `ARMISTICE` pairs remain suspended in the active instance and do not satisfy the archive condition. When an ended instance leaves the 10-turn retention window, compact or archive its `war_contribution_scores[war_id]` according to section 17.1 after all settlement readers for the turn have consumed it.
+9. Invalidate Balance of Europe / bloc caches and war-instance lookup caches before firing threshold checks or settlement/cross-war reactions caused by the war-state, treaty, ownership, or armistice changes above. If common-peace ratification changed participants or pair status, `war_instances_by_participant` must be rebuilt before cross-war reactions read it.
+10. Read active `settlement_memories` for acceptance modifiers, war-entry previews, ledger rows, and dispatch payloads.
+11. Remove expired transient `settlement_memories`; do not mutate `betrayal_history` grievance flags during this cleanup.
+12. Build campaign log, dispatch, notification, and ledger payloads.
 
-The ordering preserves same-turn contribution credit before exits, keeps bargain lifecycle decisions adjacent to treaty mutation, and ensures memory cleanup cannot erase a modifier before that turn's readers consume it.
+The ordering preserves same-turn contribution credit before exits, keeps ratification-time bargain decisions adjacent to treaty mutation, keeps the per-turn bargain lifecycle aligned with the live diplomacy pass, and ensures memory cleanup cannot erase a modifier before that turn's readers consume it.
 
 ---
 

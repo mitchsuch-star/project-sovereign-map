@@ -101,7 +101,7 @@ Even after the substrate ships, the live formula treats betrayal as a 0-or-100 g
 - No war bargains, ally-entry pipeline, counter-bargains, `join_opportunity`, `pending_declaration`, or `war_entry_score` (all in `WAR_BARGAIN_SPEC.md`).
 - No common peace, ally beneficiaries, conference-style spoils allocation.
 - No new diplomacy screen family — extends existing wizard / popup / ledger / dispatch surfaces.
-- No dynamic power tiers, bloc pressure, or strategic focus.
+- No dynamic power tiers or strategic focus; bloc pressure ships only as the hegemony-pressure model in sections 7 and 9.
 - No periodic per-turn bargain reminders or warning ladders (event-driven only).
 - No coalition generalization (defer to D2 follow-up); evaluators stay parameterized but data stores stay anti-France-only in v0.1.
 
@@ -442,7 +442,7 @@ What this buys at scale:
 What the v2.4 engine does not depend on:
 - No authored rivalry pairs — engine reads bloc shares
 - No per-pair concern intensity lookup — replaced by single hegemony pressure value
-- No composite acceptance-formula floor — single negative term per asker
+- Historical pre-DG-4 note: the original reliability-only model had no composite floor. Live acceptance is superseded by section 9.3 and `DIPLOMACY_SPEC.md` section 6: clamp `hegemony_target_mod + bilateral_betrayal_mod + grievance_modifier + bargain_conflict_penalty + bargain_value_mod` at `-60`.
 
 What's flagged for later (unchanged from v2.3):
 - Voice Bible cast expansion when nations >5
