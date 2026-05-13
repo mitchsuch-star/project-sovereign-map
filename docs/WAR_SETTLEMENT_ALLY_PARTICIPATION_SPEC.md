@@ -1837,7 +1837,7 @@ A nation may be an active participant in multiple concurrent `war_instance` reco
 
 `archived_war_contribution_scores[war_id]` stores the compacted contribution record for a war after `war_contribution_scores[war_id]` leaves the active/recent retention window. It defaults to `{}` on old saves, is written and read through `WorldState.to_dict()` / `WorldState.from_dict()`, and should contain final per-nation totals plus any episode detail still required by campaign-log, ledger, dispatch-route, or settlement-memory references. Slice B owns the contribution payload shape; archive movement is enforced with the same terminal retention rule as `archived_war_instances`.
 
-`settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical ordered pair string `actor|subject`. Negative proposer-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
+`settlement_memories` stores positive/transient settlement records such as `settlement_gratitude` and enemy-side `sold_out_by_war_leader`. Keys use the canonical diplomacy pair key from `world._make_diplo_key(actor, subject)`; the record payload stores `actor` and `subject` to preserve direction. Negative proposer-side grievances use existing `betrayal_history[pair]["grievance_flags"]` with `grievance_type="settlement_shut_out"`; do not add a parallel grievance store.
 
 `ai_settlement_cooldowns` stores common-peace AI anti-spam cooldowns by `war_id`. It is separate from bilateral `ai_proposal_cooldowns` / `player_proposal_cooldowns` and defaults to `{}` on old saves.
 
@@ -2190,7 +2190,7 @@ Highest-priority tests:
 65. Draft settlement preview with `POST /diplomatic_preview` accepts `settlement_terms` and performs no mutation.
 66. Battle contribution persists from `war_contribution_scores` even after raw `battle_records` pruning.
 67. Same-turn battle contribution is credited before elimination or separate-peace `exited_turn` stamping.
-68. AI-to-player common-peace offers create an incoming settlement review instead of immediate ratification. SUPERSEDED BY `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5 - during cleanup this remains post-cleanup Slice G unless SC-5 is explicitly reversed.
+68. AI-to-player common-peace offers create an incoming settlement review instead of immediate ratification. Inactive until the post-cleanup §19.1 / Slice G appendix explicitly reverses `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5; active cleanup uses the no-exposure tests in rows 115, 123, 146, 150, and 151.
 69. Slice C acceptance score is monotonic with increasing `side_pressure_score` when all other components are fixed.
 70. Synthetic full-Europe fixtures cover at least 13 nations, 100+ region ids for territory logic, 20 active pair keys, 6+ participants on one side, and explicit mapped/scenario data for every evaluated participant.
 71. `settlement_confirm` hard-stop registration is verified in backend and Godot before adding new routing behavior.
@@ -2204,7 +2204,7 @@ Highest-priority tests:
 79. Open Settlement is enabled only for active side leaders with unresolved hostile or suspended pairs and at least one coverable enemy; grey-out reasons use the section 10.3 enum.
 80. A nation active in two concurrent `war_instance` records accrues staying-power and support contribution independently per `war_id`.
 81. `classify_bargain_settlement_status()` returns `fulfilled_by_terms`, `at_risk`, `impossible`, and `breach_if_confirmed` deterministically for active settlement drafts, with named-enemy coverage distinguishing `dormant` from `at_risk`.
-82. AI common-peace offers obey one-active-offer, one-new-offer-per-turn, and per-`war_id` 3-turn cooldown rules without consuming bilateral proposal cooldowns.
+82. AI common-peace offers obey one-active-offer, one-new-offer-per-turn, and per-`war_id` 3-turn cooldown rules without consuming bilateral proposal cooldowns. Inactive until the post-cleanup §19.1 / Slice G appendix explicitly reverses `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5; active cleanup must not expose, count, activate, notify, dispatch, or block turns for incoming offers.
 83. `settlement_summary` route metadata, one-liner, and fog filtering match the section 11 Step 6 event contract.
 84. Treaty-clause support emitted from `WorldState._ratify_treaty()` accrues contribution without requiring a nonexistent diplomacy-module `_ratify_treaty()` hook.
 85. Competing ally claims on the same region produce recipient gratitude and non-recipient warnings/grievances only under the section 13.4 standing, bargain, direct-stake, or material-contribution gates.
@@ -2228,7 +2228,7 @@ Highest-priority tests:
 103. Cross-war reaction lookup uses `war_instances_by_participant` and does not repeatedly filter all active wars for each affected nation.
 104. Slice C compares narrow common peace, full common peace, and serial separate settlements to prove common peace is not mechanically dominated by serial settlements after decisive wins.
 105. A 6-participant / 3-theater contribution fixture proves distant-front participants earn contribution from their own theater events without receiving whole-war battle credit.
-106. AI common-peace offers are generated only when a concrete package passes the accepting side's common-peace acceptance check; losing-side white-peace spam is rejected before surfacing.
+106. AI common-peace offers are generated only when a concrete package passes the accepting side's common-peace acceptance check; losing-side white-peace spam is rejected before surfacing. Inactive until the post-cleanup §19.1 / Slice G appendix explicitly reverses `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-5; active cleanup keeps producer and player-facing offer surfacing hidden.
 107. Same-turn AI separate peace and battle contribution ordering preserves that turn's contribution before `exited_turn` is stamped.
 108. Bargain classifier returns `impossible` when a claim region is controlled by a third party or same-side ally and no legal settlement term can transfer it to France.
 109. Britain fixtures cover current mapped home-region behavior, subsidy-only major auto-seat copy, and holding cession/restoration scoring.

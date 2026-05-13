@@ -220,6 +220,8 @@ The snapshot is frozen at proposal-construction time and does not update if game
 
 **WPS extension:** The landed `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` slice extends this snapshot with optional `war_objective`, `settlement_tier`, and ticking-score fields; see WPS §14.3 for the exact fields. Live war-score component readers should tolerate the fifth additive `ticking` component. Earlier BPH consumers must ignore unknown fields so WPS can extend the payload without a breaking migration.
 
+War-score component key note: the snapshot surface intentionally renames internal `calculate_war_score(return_components=True)` keys for player readability (`battles` -> `battle`, `decisive` -> `decisive_battle`). The translation happens in `build_war_context_snapshot()`; internal score code keeps the shorter/plural keys.
+
 ### 8.2 Peace preview content
 
 The preview shows three sections:

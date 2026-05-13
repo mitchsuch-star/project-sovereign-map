@@ -558,6 +558,8 @@ The peace preview panel (BILATERAL_PEACE_HARDENING_SPEC §8) includes the settle
 
 Settlement tiers are **informational** — they describe what is politically plausible, not what is mechanically guaranteed. The acceptance formula still makes the final decision. A player at +52 who demands vassalage (Harsh Peace tier required) will see the acceptance formula reject it.
 
+Imperial Settlement follow-up: `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` section 14.3 adds `settlement_gratitude_mod` outside the clamped political subtotal when an active `settlement_gratitude` memory matches. It defaults to `0`, does not bypass hard stops, and does not change the WPS settlement-tier bands.
+
 The tiers guide the player: "you need +60 before demanding forced alliance" is actionable information that prevents trial-and-error proposals.
 
 ### 11.4 Tier warnings in proposal wizard
@@ -799,6 +801,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Campaign log events for objective declaration and ticking start
 - Wire `set_war_purpose` per CLAUDE.md "Adding a New Action": `VALID_ACTIONS` in `validation.py`, parser valid-actions, `_action_costs` in `world_state.py` (0 AP), mock parser keywords (`set war purpose`, `war purpose`), `ACTION_DISPLAY`, and campaign-log type `war_objective_declared`
 - Tests: objective creation, validation, ticking accumulation, armistice pause, war score integration, serialization round-trip
+- WPS-A audit follow-up additions behind the 50-test landed count: France-on-defense starts with auto-Defense and may upgrade once; ticking direction is pinned per declaring side, including defender pressure subtracting from France's relative score; ticking runs after battle-only decay/pruning and before stored war-score recalculation; armistice pauses ticking without concluding objectives; ARMISTICE -> PEACE or war end cleans up objectives; combat-initiated player auto-wars stage War Purpose selection instead of bypassing it; parser/direct `set_war_purpose` paths validate the same objective rules; coalition liberation and AI-AI conquest objectives are assigned; WPS campaign-log events remain fog/filter compatible.
 
 ### Slice WPS-B: Vassalage power cap (~15 tests)
 

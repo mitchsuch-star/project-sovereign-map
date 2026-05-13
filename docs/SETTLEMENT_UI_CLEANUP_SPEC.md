@@ -770,6 +770,28 @@ Slice closure template:
 - `docs/STATUS.md` records the completed slice, names the next slice, and records any interim-hide artifacts still active.
 - No intermediate cleanup slice is player-releasable merely because its own tests pass. Normal player-visible settlement surfaces must remain hidden, omitted, or explicitly approved in `docs/STATUS.md` until the visible path is no longer misleading across authoring, entry safety, continuity, presentation, recovery, and Godot coverage.
 
+Slice budget and dependency table:
+
+| Slice | Owns | Excludes | Dependencies | Estimated focused tests | Stop condition |
+|-------|------|----------|--------------|-------------------------|----------------|
+| G2-Slice-0 | Spec synthesis, STATUS/SC-27 scans, parent-doc supersession proof | Runtime behavior changes unless a scan opens G2-Slice-0a | None | 8-12 doc/source checks | Parent plans cannot point implementation at false affordances or superseded incoming-offer paths. |
+| G2-Slice-1a | Editor shell, clause controls, empty draft, Back Out, save/load defaults | Submit, ratify, stale recovery | G2-Slice-0 | 20-28 | EDIT can render without a false Ratify/Revise path or hidden dead end. |
+| G2-Slice-1b | POST preview schema, validation taxonomy, conflict matrix, forced-alliance preview if live | Ratification mutation and REVIEW recovery | G2-Slice-1a | 28-36 | Valid and invalid draft previews are deterministic and non-mutating. |
+| G2-Slice-1c | Fresh ratification rescore, hard-stop/threshold gates, zero-cost enforcement | EDIT/REVIEW transition polish | G2-Slice-1b | 24-32 | Blocked packages cannot mutate through UI or direct backend calls. |
+| G2-Slice-1d | EDIT -> REVIEW -> EDIT transitions, revise visibility, blocked/terminal recovery schema | War-detail substitute CTAs | G2-Slice-1c | 18-26 | REVIEW never strands the player without edit, history, or terminal close. |
+| G2-Slice-2 | War-scoped entry safety, selected target, concrete war scope, no typed-command normal path | Route continuity through history/rail | G2-Slice-1 | 20-30 | Normal entry cannot mount settlement from ambiguous or missing war scope. |
+| G2-Slice-3 | Route continuity through result, dispatch, notification, and ledger row focus | Incoming offers and broader presentation polish | G2-Slice-2 | 22-32 | One stable route id survives staging through review surfaces. |
+| G2-Slice-4 | SC-5/SC-6/SC-7 cleanup no-exposure proof for incoming offers | AI offer producer, mailbox offer UI, accept/reject/revision actions | G2-Slice-3 | 8-14 | Deferred incoming offers cannot surface, count, activate, notify, dispatch, or block turns. |
+| G2-Slice-5 | Humanized presentation metadata and settlement display labels | New settlement mechanics | G2-Slice-1 through G2-Slice-4 | 24-34 | Player surfaces prefer display siblings and raw enum scans are green. |
+| G2-Slice-6 | Rejected and losing recovery repair, SC-10b/SC-28/SC-28b evidence | Pair-scoped substitute CTAs | G2-Slice-5 | 26-36 | Blocked and losing paths have proven non-dead-end recovery. |
+| G2-Slice-7 | Pair-scoped peace/armistice substitute CTAs | Dependency/surrender terms | G2-Slice-6 | 12-18 | Substitute CTAs appear only when the actionability probe proves a real route. |
+| G2-Slice-8 | Dependency clauses and surrender restoration | Recurring payments and AI petitions | G2-Slice-7 | 28-40 | Dependency terms preview, mutate, record, and display without interim leaks. |
+| G2-Slice-9 | Recurring gold payments | AI incoming offers and ally petitions | G2-Slice-8 | 18-28 | Recurring payments validate, mutate, process over turns, and display safely. |
+| Slice G1 | AI settlement offer producer and Request Terms | Non-leader ally petitions/conference/veto | Gate 4 smoke plus explicit SC-5 reversal | 32-44 | Producer, mailbox/pending-envoy UI, package-preserving actions, cooldowns, and no-stale promotion tests land together. |
+| Slice G2 | Settlement agency follow-through and ally petitions/advisories | Congress/conference/veto mechanics | Slice G1 plus SC-29/SC-30/SC-31 closure or explicit cuts | 30-42 | Agency pressure can focus settlement UI without ratifying or bypassing side-leader validation. |
+
+If a slice estimate grows beyond 55 focused tests during implementation planning, split it before coding with a new exact slice id, owned SC rows, STATUS line, and closure tests. Do not close a slice by carrying unbudgeted behavior into a later presentation patch.
+
 #### G2-Slice-0 - Spec Synthesis And Doc Contract
 
 Close the v0.27 Codex + Claude follow-up synthesis before any code implementation resumes. This is code-equivalent planning work, not optional cleanup.

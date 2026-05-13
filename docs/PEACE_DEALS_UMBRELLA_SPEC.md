@@ -98,7 +98,7 @@ The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based mo
 | `hegemony_target_mod` | B-B1-lite | per-pair | Cross-bloc friction starting at 30% share |
 | `bilateral_betrayal_mod` | v2.4.3 substrate | per-pair | Graduated penalty from active betrayal strikes |
 | `grievance_modifier` | B-B4 | per-pair | -30 per active durable grievance flag, cap -90 |
-| composite floor | B-B4 | synthetic | `max(-60, hegemony + betrayal + grievance)` |
+| composite floor | B-B4 + WB-A | synthetic | `max(-60, hegemony + betrayal + grievance + bargain_conflict_penalty + bargain_value_mod)` |
 
 There is no legacy rivalry composite in the codebase. The older modifier names belong to a superseded spec revision.
 
@@ -506,6 +506,8 @@ Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nat
 ---
 
 ## 11. Changelog
+
+- **April 26, 2026** - v1.1 post-gate umbrella update. Captured the Gate 1 pass, `threat_coalition` retirement decision, WB handoff clarifications, the Imperial Settlement `settlement_gratitude_mod` amendment outside the clamped political subtotal, and the post-implementation note that landed Peace Deals test counts exceeded the original estimates after audit follow-ups.
 
 - **April 26, 2026** — Gate 1 PASSED. All 9 smoke criteria verified. `threat_coalition` retirement decided: retire in focused cleanup before WB-A. Smoke test committed at `tools/gate1_smoke_test.py`.
 - **April 25, 2026** — v1.0 drafted. Covers dependency graph, 3-phase implementation sequence (BPH+WPS parallel → WB-A/B/C → WB-D), cross-cutting decisions (armistice canonized at 5 turns, acceptance modifier reconciliation against live v2.4.3 model, threat_coalition retirement scheduling, Godot surface strategy, cumulative data model delta), deferred carry-forward checklist with concrete slice assignments, 3 milestone gates with smoke criteria, 5 risks, sub-spec errata for stale WAR_BARGAIN_SPEC references. Original budget: ~264 tests, ~11-12 sessions.

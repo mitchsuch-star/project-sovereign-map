@@ -353,6 +353,7 @@ Invalid wartime asks: ally-beneficiary land in final peace; multi-ally conferenc
 - Coalition overlap should read from `active_coalition.target_nation` and the shared opposition-pair list (the generic war-bloc contract, once generalized, must expose the same target field).
 - An active coalition whose `target_nation` equals the ally-entry initiator is a hard block on accepting that initiator's request (in v0.1 the only instantiated `active_coalition.target_nation` is France; the rule is written target-aware so the future `Coalition Generalization` follow-up does not require a rewrite).
 - If the beneficiary joins a coalition whose `target_nation` equals the bargain's `promiser` first, any live bargain from that promiser to that beneficiary voids for contrary alignment.
+- WB-A/WB-C tests must preserve the v0.1 invariant explicitly: coalition-overlap hard blocks fire only when `active_coalition.target_nation == promiser`. A coalition targeting some other nation does not block ally entry merely because the beneficiary is listed as a coalition member.
 
 ### 8.8 Fulfillment
 
@@ -499,6 +500,8 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
 `bargain_value_mod` is positive and can counteract hegemony / betrayal / grievance pressure. `bargain_conflict_penalty` is negative and makes normalizing with a bargain target harder. Both surface as independent component rows for preview / debug legibility.
+
+Imperial Settlement follow-up: `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` section 14.3 adds `settlement_gratitude_mod` outside the clamped political subtotal after this calculation. It defaults to `0`, applies only from an active settlement-gratitude memory, and cannot bypass hard stops or the `-60` political subtotal floor.
 
 **Relationship to existing `reliability_modifier`:** the existing `calculate_acceptance()` in `diplomacy.py` includes `reliability_modifier = max(-6, min(6, reliability // 10))`. The political subtotal above is a separate, parallel group that captures pair-specific political pressure. It does not replace `reliability_modifier`, which stays as the global reputation input. Both contribute independently to the final acceptance score.
 
