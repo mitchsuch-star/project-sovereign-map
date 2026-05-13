@@ -33,6 +33,7 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
 	"revise_settlement_terms",
 	"back_out_settlement",
+	"open_war_detail",
 	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
 	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
 	# but no settlement-offer button is reachable from the player UI.
@@ -921,6 +922,11 @@ func _on_command_result(response):
 		return  # Don't re-enable input or continue processing
 
 	_sync_response_hud(response)
+	if response.has("settlement_draft_notices") and response.settlement_draft_notices is Array:
+		for notice in response.settlement_draft_notices:
+			if notice is Dictionary:
+				var notice_text = str(notice.get("message_display", "Settlement draft discarded at turn end."))
+				add_output("[color=#" + Utils.COLOR_INFO + "]" + notice_text + "[/color]")
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
 	# Informational-only coalition declarations now route through the notice rail.
@@ -957,6 +963,11 @@ func _on_command_result(response):
 		add_output("[color=#e04040]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
+		return
+
+	if response.has("recovery_route") and response.recovery_route is Dictionary:
+		_process_active_wars(response)
+		_route_settlement_recovery_route(response.recovery_route)
 		return
 
 	if response.success:
@@ -3461,6 +3472,37 @@ func _on_war_card_clicked(nation: String, status: String, war_instance_id: Strin
 		var war_data = _find_war_data(nation, war_instance_id)
 		if war_data != null:
 			war_detail_popup.show_war(war_data, _cached_coalition_data)
+
+
+func _route_settlement_recovery_route(route: Dictionary):
+	var surface = str(route.get("surface", route.get("target", "")))
+	var war_id = str(route.get("war_id", ""))
+	var target_nation = str(route.get("selected_target_nation", route.get("target_nation", route.get("nation", ""))))
+	if surface == "war_detail":
+		if war_detail_popup == null:
+			add_output("[color=#e04040]War detail is not available.[/color]")
+			set_input_enabled(true)
+			command_input.grab_focus()
+			return
+		var war_data = _find_war_data(target_nation, war_id)
+		if war_data != null:
+			add_output("[color=#" + Utils.COLOR_INFO + "]Opening war detail for " + target_nation + ".[/color]")
+			war_detail_popup.show_war(war_data, _cached_coalition_data)
+		else:
+			add_output("[color=#e04040]This war is no longer active from the current war panel.[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+	if surface == "settlement_history":
+		var route_id = str(route.get("route_id", ""))
+		if top_bar and top_bar.has_method("open_diplomatic_ledger_review"):
+			top_bar.open_diplomatic_ledger_review("ledger_settlements", route_id, war_id)
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+	add_output("[color=#e04040]No verified recovery route is available.[/color]")
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 
 func _on_coalition_header_clicked():

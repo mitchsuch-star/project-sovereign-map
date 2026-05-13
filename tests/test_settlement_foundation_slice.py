@@ -18,6 +18,7 @@ from backend.game_logic.settlement_preview import (
 )
 from backend.game_logic.settlement_scoring import (
     CANONICAL_CLAUSE_TYPES,
+    CLAUSE_CONTROL_SCHEMA,
     CLAUSE_CONFLICT_MATRIX,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     SETTLEMENT_HARD_STOP_CODES,
@@ -181,6 +182,17 @@ class TestClauseValidation:
     def test_mvp_clause_types_are_canonical(self):
         for ctype in SETTLEMENT_MVP_CLAUSE_TYPES:
             assert ctype in CANONICAL_CLAUSE_TYPES
+
+    def test_clause_control_schema_hides_non_mvp_clause_types(self):
+        for ctype, row in CLAUSE_CONTROL_SCHEMA.items():
+            assert row["required_keys"] == sorted(CANONICAL_CLAUSE_TYPES[ctype]["required"])
+            assert row["optional_keys"] == sorted(CANONICAL_CLAUSE_TYPES[ctype]["optional"])
+            if ctype in SETTLEMENT_MVP_CLAUSE_TYPES:
+                assert row["enabled"] is True
+                assert row["visibility"] == "live"
+            else:
+                assert row["enabled"] is False
+                assert row["visibility"] == "hidden"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

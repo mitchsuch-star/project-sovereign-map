@@ -176,6 +176,12 @@ def build_active_wars(world) -> Dict[str, Any]:
             world, contribution.get("war_id", ""),
         )
         settlement_available = bool(settlement_eligibility.get("available"))
+        war_detail_actionability = _evaluate_war_detail_actionability(
+            world,
+            contribution.get("war_id", ""),
+            opponent,
+            settlement_eligibility.get("coverable_enemy_participants", []),
+        )
 
         wars.append({
             "opponent": opponent,
@@ -207,6 +213,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             "war_instance_id": contribution.get("war_id", ""),
             "settlement_available": settlement_available,
             "settlement_eligibility": settlement_eligibility,
+            "war_detail_actionability": war_detail_actionability,
             "settlement_disabled_reason": settlement_eligibility.get(
                 "display_reason", ""
             ) if not settlement_available else "",
@@ -510,3 +517,31 @@ def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:
 
 def _evaluate_settlement_available(world, war_id: str) -> bool:
     return bool(_evaluate_settlement_eligibility(world, war_id).get("available"))
+
+
+def _evaluate_war_detail_actionability(
+    world,
+    war_id: str,
+    selected_target_nation: str,
+    covered_enemy_participants: List[str],
+) -> Dict[str, Any]:
+    """Return SC-10b recovery metadata for the War Detail row."""
+    try:
+        from backend.game_logic.settlement_preview import (
+            evaluate_war_detail_actionability,
+        )
+        return dict(evaluate_war_detail_actionability(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected_target_nation,
+            covered_enemy_participants=covered_enemy_participants,
+        ))
+    except Exception:
+        return {
+            "actionable": False,
+            "war_id": str(war_id or ""),
+            "selected_target_nation": str(selected_target_nation or ""),
+            "refusal_code": "no_peace_seeking_control",
+            "refusal_code_display": "War detail recovery is unavailable.",
+            "peace_seeking_controls": [],
+        }

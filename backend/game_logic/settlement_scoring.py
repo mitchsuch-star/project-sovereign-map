@@ -105,6 +105,17 @@ SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
     "peace", "territory_cede", "gold_indemnity", "forced_alliance",
 })
 
+CLAUSE_CONTROL_SCHEMA = {
+    clause_type: {
+        "type": clause_type,
+        "required_keys": sorted(spec["required"]),
+        "optional_keys": sorted(spec["optional"]),
+        "enabled": clause_type in SETTLEMENT_MVP_CLAUSE_TYPES,
+        "visibility": "live" if clause_type in SETTLEMENT_MVP_CLAUSE_TYPES else "hidden",
+    }
+    for clause_type, spec in CANONICAL_CLAUSE_TYPES.items()
+}
+
 MAX_SETTLEMENT_CLAUSE_COUNT = 8
 
 # SC-1: clause conflict matrix. Each entry is (type_a, type_b, match_keys)

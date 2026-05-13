@@ -192,6 +192,18 @@ def test_main_gd_handles_must_reopen_and_auto_opens_ledger() -> None:
     assert "structured_command_selected" in main
 
 
+def test_main_gd_routes_open_war_detail_recovery_without_command_fallback() -> None:
+    main = read_repo_file("godot-client/project-sovereign/scripts/main.gd")
+
+    assert '"open_war_detail"' in main
+    assert 'response.has("recovery_route")' in main
+    assert "_route_settlement_recovery_route(response.recovery_route)" in main
+    recovery_block = main.split("func _route_settlement_recovery_route", 1)[1]
+    recovery_block = recovery_block.split("func _on_coalition_header_clicked", 1)[0]
+    assert "war_detail_popup.show_war(war_data, _cached_coalition_data)" in recovery_block
+    assert "send_command" not in recovery_block
+
+
 def test_settlement_dialogue_actions_never_fallback_to_command_synthesis() -> None:
     """Settlement popup choices must stay on the dialogue endpoint.
 

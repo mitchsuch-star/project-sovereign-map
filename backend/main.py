@@ -204,6 +204,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         _include_popup_passthroughs(response, world)
     if queue_informational_notices:
         _queue_informational_diplomacy_notices(response, world)
+    notice_drain = getattr(world, "drain_settlement_draft_notices", None)
+    if callable(notice_drain):
+        draft_notices = notice_drain()
+        if draft_notices:
+            response["settlement_draft_notices"] = draft_notices
     # Notifications — persistent alerts for Godot notification bar
     if include_notifications and world.notifications.has_pending():
         response["notifications"] = world.notifications.get_pending()
@@ -1406,6 +1411,12 @@ async def respond_to_diplomatic_dialogue(request: dict):
             response["reopen_target"] = result["reopen_target"]
         if result.get("must_reopen"):
             response["must_reopen"] = result["must_reopen"]
+        if result.get("recovery_route"):
+            response["recovery_route"] = result["recovery_route"]
+        if result.get("war_detail_actionability"):
+            response["war_detail_actionability"] = result["war_detail_actionability"]
+        if result.get("terminal_recovery_copy"):
+            response["terminal_recovery_copy"] = result["terminal_recovery_copy"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
         return response

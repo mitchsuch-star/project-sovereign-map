@@ -233,6 +233,160 @@ def _settlement_dialogue_active(world: Any, war_id: str) -> bool:
     return False
 
 
+def _settlement_history_route(
+    *,
+    war_id: str,
+    route_id: str = "",
+    reason: str = "",
+) -> Dict[str, Any]:
+    route = {
+        "surface": "settlement_history",
+        "target": "settlement_history",
+        "war_id": str(war_id or ""),
+        "route_id": str(route_id or ""),
+    }
+    if reason:
+        route["reason"] = reason
+    return route
+
+
+def _war_detail_recovery_route(
+    *,
+    war_id: str,
+    selected_target_nation: str = "",
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+    source_route_id: str = "",
+    reason: str = "",
+) -> Dict[str, Any]:
+    route = {
+        "surface": "war_detail",
+        "target": "war_detail",
+        "war_id": str(war_id or ""),
+        "selected_target_nation": str(selected_target_nation or ""),
+        "target_nation": str(selected_target_nation or ""),
+        "nation": str(selected_target_nation or ""),
+        "covered_enemy_participants": list(covered_enemy_participants or []),
+        "source_route_id": str(source_route_id or ""),
+    }
+    if reason:
+        route["reason"] = reason
+    return route
+
+
+def _terminal_recovery_copy(war_id: str = "") -> str:
+    return resolve_settlement_voice_line(
+        "settlement_no_alternative_route_chancery",
+        war_label=str(war_id or "this war"),
+    ) or (
+        "This settlement cannot currently be recovered from the existing "
+        "surfaces. Close this review and reassess the war next turn."
+    )
+
+
+def evaluate_war_detail_actionability(
+    world: Any,
+    *,
+    war_id: str,
+    selected_target_nation: Optional[str] = None,
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+    source_route_id: str = "",
+    actor_nation: Optional[str] = None,
+) -> Dict[str, Any]:
+    """SC-10b: decide whether blocked review may show Open War Detail.
+
+    This helper deliberately answers only whether War Detail is a real
+    recovery surface for the selected live pair. It does not expose direct
+    pair-substitute actions from settlement_confirm; War Detail remains the
+    owner of bilateral peace / armistice controls.
+    """
+    war_id_str = str(war_id or "")
+    actor = str(actor_nation or getattr(world, "player_nation", "France") or "France")
+    selected = str(selected_target_nation or "").strip()
+    covered = _normalize_nation_list(covered_enemy_participants)
+
+    def _blocked(code: str, **extra: Any) -> Dict[str, Any]:
+        display = _error_display(code)
+        return {
+            "actionable": False,
+            "war_id": war_id_str,
+            "selected_target_nation": selected,
+            "covered_enemy_participants": covered,
+            "refusal_code": code,
+            "refusal_code_display": display,
+            "error": code,
+            "error_display": display,
+            "peace_seeking_controls": [],
+            **extra,
+        }
+
+    if not war_id_str:
+        return _blocked("malformed_route")
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str)
+    if not isinstance(instance, Mapping):
+        if is_war_archived(world, war_id_str):
+            return _blocked(
+                "war_archived",
+                recovery_route=_settlement_history_route(
+                    war_id=war_id_str,
+                    route_id=source_route_id,
+                    reason="war_archived",
+                ),
+            )
+        return _blocked("war_archived" if is_war_known(world, war_id_str) else "malformed_route")
+    if instance.get("ended_turn") is not None:
+        return _blocked(
+            "war_archived",
+            recovery_route=_settlement_history_route(
+                war_id=war_id_str,
+                route_id=source_route_id,
+                reason="war_archived",
+            ),
+        )
+    mounted = _mounted_settlement_dialogue(world)
+    if mounted is not None and str(mounted.get("war_id") or "") not in ("", war_id_str):
+        return _blocked("settlement_collision_active")
+    if not selected:
+        return _blocked("selected_pair_missing")
+
+    side_by_nation = instance.get("side_by_nation") or {}
+    actor_side = side_by_nation.get(actor)
+    selected_side = side_by_nation.get(selected)
+    if not actor_side or not selected_side or actor_side == selected_side:
+        return _blocked("selected_pair_missing")
+
+    pair = world._make_diplo_key(actor, selected) if hasattr(world, "_make_diplo_key") else "|".join(sorted([actor, selected]))
+    meta = instance.get("diplo_key_meta") or {}
+    pair_meta = meta.get(pair) or {}
+    resolved_pairs = set(instance.get("resolved_diplo_keys") or [])
+    if pair in resolved_pairs or pair_meta.get("pair_status") == "resolved":
+        return _blocked("pair_already_resolved")
+    active_pairs = set(instance.get("active_diplo_keys") or [])
+    if pair not in active_pairs:
+        return _blocked("selected_pair_missing")
+    if pair_meta.get("pair_status", "war") != "war":
+        return _blocked("pair_not_at_war")
+    if (getattr(world, "diplomatic_states", {}) or {}).get(pair) != "WAR":
+        return _blocked("pair_not_at_war")
+
+    route = _war_detail_recovery_route(
+        war_id=war_id_str,
+        selected_target_nation=selected,
+        covered_enemy_participants=covered,
+        source_route_id=source_route_id,
+        reason="blocked_settlement_recovery",
+    )
+    return {
+        "actionable": True,
+        "war_id": war_id_str,
+        "selected_target_nation": selected,
+        "covered_enemy_participants": covered,
+        "refusal_code": "",
+        "refusal_code_display": "",
+        "peace_seeking_controls": ["negotiate_peace"],
+        "recovery_route": route,
+    }
+
+
 # ---------------------------------------------------------------------------
 # G2-Slice-3 helpers: route id, collision, reopen cap, active-vs-archived
 # ---------------------------------------------------------------------------
@@ -490,7 +644,37 @@ def _safe_reopen_response(
     if not has_target:
         return _no_reopen_target_payload(war_id, error=fallback_error)
     if reopen_attempt_cap_exceeded(world, war_id=war_id):
-        return _no_reopen_target_payload(war_id, error="reopen_attempt_cap_exceeded")
+        actionability = evaluate_war_detail_actionability(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected or (str(covered[0]) if covered else ""),
+            covered_enemy_participants=covered,
+            source_route_id=str(dialogue.get("route_id") or ""),
+        )
+        payload = {
+            "must_reopen": False,
+            "error": "reopen_attempt_cap_exceeded",
+            "error_display": _error_display("reopen_attempt_cap_exceeded"),
+            "war_detail_actionability": actionability,
+            "talleyrand_text": resolve_settlement_voice_line(
+                "settlement_reopen_cap_exhausted_talleyrand",
+                war_label=war_id or "this war",
+            ),
+        }
+        if actionability.get("actionable"):
+            route = dict(actionability.get("recovery_route") or {})
+            payload["recovery_route"] = route
+            payload["reopen_target"] = route
+        else:
+            payload["terminal_recovery_copy"] = _terminal_recovery_copy(war_id)
+            payload["reopen_target"] = {
+                "surface": "blocked_terminal",
+                "target": "blocked_terminal",
+                "war_id": war_id,
+                "nation": selected,
+                "target_nation": selected,
+            }
+        return payload
     record_reopen_attempt(world, war_id=war_id)
     return {
         "must_reopen": True,
@@ -1023,19 +1207,34 @@ def build_settlement_confirm_dialogue(
             war_label=war_label,
             top_blocker=top_blocker_display,
         ) or f"This settlement of {war_label} cannot be ratified now."
-    options = []
-    available_action_ids = []
-    if can_ratify:
-        options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
-        available_action_ids.append("confirm_settlement")
-    available_action_ids.append("back_out_settlement")
-    options.append({"label": "Back Out", "action": "back_out_settlement"})
-
     covered = list(preview.get("covered_enemy_participants") or [])
     selected_target = str(selected_target_nation or "").strip()
     if selected_target and selected_target not in covered:
         raise ValueError("selected_target_not_covered")
     resolved_target = selected_target or (covered[0] if covered else "")
+    war_detail_actionability = evaluate_war_detail_actionability(
+        world,
+        war_id=war_id,
+        selected_target_nation=resolved_target,
+        covered_enemy_participants=covered,
+        source_route_id=route_id,
+    )
+
+    options = []
+    available_action_ids = []
+    if can_ratify:
+        options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
+        available_action_ids.append("confirm_settlement")
+    elif war_detail_actionability.get("actionable"):
+        options.append({
+            "label": "Open War Detail",
+            "action": "open_war_detail",
+            "description": "Return to the live war detail for this selected court.",
+            "recovery_route": dict(war_detail_actionability.get("recovery_route") or {}),
+        })
+        available_action_ids.append("open_war_detail")
+    available_action_ids.append("back_out_settlement")
+    options.append({"label": "Back Out", "action": "back_out_settlement"})
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -1063,6 +1262,9 @@ def build_settlement_confirm_dialogue(
         "available_action_ids": available_action_ids,
         "can_ratify": can_ratify,
         "options": options,
+        "war_detail_actionability": war_detail_actionability,
+        "recovery_route": dict(war_detail_actionability.get("recovery_route") or {}) if war_detail_actionability.get("actionable") else {},
+        "terminal_recovery_copy": "" if war_detail_actionability.get("actionable") or can_ratify else _terminal_recovery_copy(war_id),
         "message": text,
         "talleyrand_text": text,
         "turn_created": int(getattr(world, "current_turn", 0) or 0),
@@ -2210,6 +2412,54 @@ def handle_settlement_dialogue_action(
             "error": "revision_not_available",
             "error_display": "Term revision is not yet available.",
             "mutated": False,
+        }
+    if action == "open_war_detail":
+        terms = [dict(t) for t in (dialogue.get("settlement_terms") or []) if isinstance(t, Mapping)]
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actionability = evaluate_war_detail_actionability(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected_target,
+            covered_enemy_participants=covered,
+            source_route_id=str(dialogue.get("route_id") or ""),
+        )
+        if not actionability.get("actionable"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "open_war_detail",
+                "war_id": war_id,
+                "error": actionability.get("error") or "no_peace_seeking_control",
+                "error_display": actionability.get("error_display") or _error_display("no_peace_seeking_control"),
+                "war_detail_actionability": actionability,
+                "terminal_recovery_copy": _terminal_recovery_copy(war_id),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        if terms:
+            drafts = getattr(world, "pending_settlement_drafts", None)
+            if drafts is None:
+                world.pending_settlement_drafts = {}
+                drafts = world.pending_settlement_drafts
+            drafts[war_id] = terms
+        world.dialogue_manager.pop()
+        route = dict(actionability.get("recovery_route") or {})
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": "open_war_detail",
+            "war_id": war_id,
+            "recovery_route": route,
+            "war_detail_actionability": actionability,
+            "draft_preserved": bool(terms),
+            "mutated": False,
+            "message": "Opening war detail.",
+            "talleyrand_text": resolve_settlement_voice_line(
+                "settlement_open_war_detail_recovery_talleyrand",
+                war_label=str(dialogue.get("war_label") or war_id or "this war"),
+            ),
+            "suppress_proposal_result_popup": True,
         }
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)

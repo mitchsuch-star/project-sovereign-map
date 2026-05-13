@@ -914,6 +914,18 @@ DIPLOMATIC_TEMPLATES = {
         ],
         "recommendation": 0,
     },
+    "settlement_open_war_detail_recovery_talleyrand": (
+        "Sire, I will keep the draft intact and return us to the live war "
+        "detail for {war_label}."
+    ),
+    "settlement_open_history_recovery_talleyrand": (
+        "Sire, this war has ended; the settlement record now belongs in "
+        "the diplomatic ledger."
+    ),
+    "settlement_no_alternative_route_chancery": (
+        "This settlement cannot currently be recovered from the existing "
+        "surfaces. Close the review and reassess the war next turn."
+    ),
 }
 
 # ═══════ COALITION TEMPLATES (T28-T34, Session 7) ═══════

@@ -2646,6 +2646,7 @@ class DiplomaticExecutor:
             "confirm_settlement",
             "revise_settlement_terms",
             "back_out_settlement",
+            "open_war_detail",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,
