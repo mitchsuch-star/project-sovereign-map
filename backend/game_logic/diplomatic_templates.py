@@ -9,7 +9,7 @@ Architecture:
   Each template has text (with {slots}), options, and recommendation index.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from backend.nation_config import get_player_nation
 
@@ -914,6 +914,18 @@ DIPLOMATIC_TEMPLATES = {
         ],
         "recommendation": 0,
     },
+    "settlement_open_war_detail_recovery_talleyrand": (
+        "Sire, I will keep the draft intact and return us to the live war "
+        "detail for {war_label}."
+    ),
+    "settlement_open_history_recovery_talleyrand": (
+        "Sire, this war has ended; the settlement record now belongs in "
+        "the diplomatic ledger."
+    ),
+    "settlement_no_alternative_route_chancery": (
+        "This settlement cannot currently be recovered from the existing "
+        "surfaces. Close the review and reassess the war next turn."
+    ),
 }
 
 # ═══════ COALITION TEMPLATES (T28-T34, Session 7) ═══════
@@ -1085,6 +1097,60 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Sire, {hidden_count} further courts have entered the {war_label} "
         "settlement into their ledgers — quieter reactions, but each one "
         "remembered."
+    ),
+    # SC-19 settlement voice families (Settlement UI Cleanup G2-Slice-5).
+    # Each family is bound to a specific trigger and surface; using any
+    # of these on the wrong surface fails the SC-19 row's required test.
+    #
+    # Live review heading — replaces the raw verdict f-string at the
+    # settlement_confirm popup heading. Talleyrand voice for outgoing
+    # review where France authored the package.
+    "settlement_review_heading_talleyrand": (
+        "Sire, the settlement of {war_label} stands ready for ratification. "
+        "Acceptance reads as {acceptance_band}; the largest pressure remains "
+        "{top_blocker}."
+    ),
+    # Foreign-court / observer settlement voice for fog-visible
+    # foreign-only settlements where France is neither proposer nor
+    # accepting member. SC-19 amendment: chancery voice, not Talleyrand
+    # authorship.
+    "settlement_observed_foreign_court_chancery": (
+        "Foreign Office records the settlement of {war_label}. The court of "
+        "{accepting_leader} reviews the terms; we observe rather than author."
+    ),
+    # Blocked ratification banner — shown when fresh acceptance verdict
+    # is reject/blocked or hard stops exist and the Ratify Settlement
+    # option is absent from the dialogue. SC-15b/SC-3 amendment: must
+    # not use "Will they accept?" framing.
+    "settlement_blocked_for_ratification_talleyrand": (
+        "Sire, the settlement of {war_label} cannot be ratified now: "
+        "{top_blocker}. Revise terms or stand down before pressing further."
+    ),
+    # Rescore-after-staging banner — fresh ratification scoring changed
+    # an accepted staged package into rejected/below-threshold/hard-stop.
+    "settlement_rescored_after_staging_talleyrand": (
+        "Sire, the situation has shifted since this settlement was staged. "
+        "Acceptance now reads {acceptance_band}; review the terms again "
+        "before ratifying."
+    ),
+    # Discard-confirm prompt (SC-2) — Back Out from a non-empty authored
+    # draft asks the player to confirm before clearing terms.
+    "settlement_discard_confirm_talleyrand": (
+        "Sire, the authored terms for {war_label} will be discarded if we "
+        "back out now. Shall I keep the draft, or strike it from the table?"
+    ),
+    # Cross-war collision (SC-26) — a second settlement entry was
+    # attempted while a different war already holds the active dialogue.
+    "settlement_collision_active_review_talleyrand": (
+        "Sire, the settlement of {active_war_label} is already on the table; "
+        "resolve it before opening a separate review for {blocked_war_label}."
+    ),
+    # Reopen-cap exhausted (SC-14b) — attempt 4 for the same
+    # (war_id, turn) — pin the player to the choose-from-war-detail
+    # escape rather than another reopen loop.
+    "settlement_reopen_cap_exhausted_talleyrand": (
+        "Sire, this settlement of {war_label} cannot be reopened again — "
+        "choose the war from war detail and stage afresh."
     ),
 }
 
@@ -2177,6 +2243,51 @@ def calculate_treaty_harshness(treaty: Dict) -> float:
     instead — the 1.5 ceiling is applied inside the C1b acceptance helper.
     """
     return min(1.0, _accumulate_raw_treaty_harshness(treaty))
+
+
+def get_treaty_harshness_for_consumer(
+    treaty: Dict,
+    *,
+    consumer: str = "common_peace",
+) -> float:
+    """SC-24: pick the right harshness scale for a treaty record.
+
+    Common-peace consumers (ledger, AI proposal generation, coalition
+    threat interpretation, dispatch one-liners, notification warnings)
+    read the raw common-peace harshness (`raw_harshness`) so authored
+    multi-clause packages that exceed 1.0 stay legible. Legacy bilateral
+    consumers may still read the 1.0-clamped `harshness` field.
+
+    Treaty records produced by `_record_common_peace_treaties` carry
+    both fields plus a `source="common_peace"` tag. Records that pre-
+    date SC-24 (or come from bilateral ratification) only carry the
+    legacy clamped field; this helper falls back to it transparently.
+    """
+    if not isinstance(treaty, Mapping):
+        return 0.0
+    consumer = str(consumer or "").lower()
+    source = str(treaty.get("source") or "").lower()
+    if consumer in {
+        "diplomatic_ledger",
+        "ai_diplomacy",
+        "coalition",
+        "dispatch",
+        "notifications",
+    } and source == "common_peace":
+        if "raw_harshness" in treaty:
+            try:
+                return float(treaty.get("raw_harshness") or 0.0)
+            except (TypeError, ValueError):
+                pass
+    if "raw_harshness" in treaty and consumer == "common_peace_acceptance":
+        try:
+            return float(treaty.get("raw_harshness") or 0.0)
+        except (TypeError, ValueError):
+            pass
+    try:
+        return float(treaty.get("harshness") or treaty.get("clamped_harshness") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def calculate_raw_treaty_harshness(treaty: Dict) -> float:

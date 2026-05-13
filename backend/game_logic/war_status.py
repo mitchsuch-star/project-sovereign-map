@@ -172,8 +172,15 @@ def build_active_wars(world) -> Dict[str, Any]:
         # block when no war_instance is wired (early game / synthetic).
         contribution = _resolve_contribution_share(world, france, opponent)
 
-        settlement_available = _is_common_settlement_worth_showing(
+        settlement_eligibility = _evaluate_settlement_eligibility(
             world, contribution.get("war_id", ""),
+        )
+        settlement_available = bool(settlement_eligibility.get("available"))
+        war_detail_actionability = _evaluate_war_detail_actionability(
+            world,
+            contribution.get("war_id", ""),
+            opponent,
+            settlement_eligibility.get("coverable_enemy_participants", []),
         )
 
         wars.append({
@@ -205,7 +212,17 @@ def build_active_wars(world) -> Dict[str, Any]:
             ),
             "war_instance_id": contribution.get("war_id", ""),
             "settlement_available": settlement_available,
+            "settlement_eligibility": settlement_eligibility,
+            "war_detail_actionability": war_detail_actionability,
+            "settlement_disabled_reason": settlement_eligibility.get(
+                "display_reason", ""
+            ) if not settlement_available else "",
+            "settlement_disabled_reason_display": settlement_eligibility.get(
+                "disabled_reason_display", ""
+            ) if not settlement_available else "",
         })
+
+    wars = _collapse_shared_war_instance_rows(world, france, wars)
 
     # Sort: coalition leader first, then coalition members, then bilateral
     wars.sort(key=lambda w: (
@@ -316,6 +333,76 @@ def build_active_wars(world) -> Dict[str, Any]:
     }
 
 
+def _collapse_shared_war_instance_rows(
+    world,
+    france: str,
+    wars: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Collapse bilateral HUD rows that are fronts of one shared war_instance."""
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return wars
+
+    passthrough: List[Dict[str, Any]] = []
+    by_war_id: Dict[str, List[Dict[str, Any]]] = {}
+    for row in wars:
+        war_id = str(row.get("war_instance_id", "") or "")
+        instance = instances.get(war_id)
+        if (
+            not war_id
+            or not isinstance(instance, dict)
+            or instance.get("ended_turn") is not None
+            or len(instance.get("active_diplo_keys") or []) <= 1
+            or str(row.get("status", "")) != "war"
+        ):
+            passthrough.append(row)
+            continue
+        by_war_id.setdefault(war_id, []).append(row)
+
+    collapsed: List[Dict[str, Any]] = list(passthrough)
+    for war_id, rows in by_war_id.items():
+        if len(rows) <= 1:
+            collapsed.extend(rows)
+            continue
+
+        instance = instances.get(war_id) or {}
+        side_by_nation = instance.get("side_by_nation") or {}
+        france_side = side_by_nation.get(france)
+        enemy_side = "defenders" if france_side == "attackers" else "attackers"
+        leader_key = "defender_leader" if enemy_side == "defenders" else "attacker_leader"
+        enemy_leader = str(instance.get(leader_key, "") or "")
+        enemy_participants = [
+            nation for nation, side in side_by_nation.items()
+            if side == enemy_side and nation != france
+        ]
+        if not enemy_participants:
+            enemy_participants = [str(row.get("opponent", "")) for row in rows]
+
+        ordered_opponents = _leader_first(enemy_participants, enemy_leader)
+        representative = next(
+            (row for row in rows if row.get("opponent") == enemy_leader),
+            rows[0],
+        )
+        combined = dict(representative)
+        combined["opponents"] = ordered_opponents
+        combined["opponent"] = (
+            ordered_opponents[0] if ordered_opponents else representative.get("opponent", "")
+        )
+        combined["opponent_display"] = " + ".join(ordered_opponents)
+        combined["is_multi_participant_war"] = True
+        collapsed.append(combined)
+
+    return collapsed
+
+
+def _leader_first(nations: List[str], leader: str) -> List[str]:
+    ordered = sorted({str(nation) for nation in nations if nation})
+    if leader in ordered:
+        ordered.remove(leader)
+        return [leader] + ordered
+    return ordered
+
+
 def _resolve_contribution_share(world, france: str, opponent: str) -> Dict[str, Any]:
     """Find the active war_instance covering the France/opponent pair and
     build top-N contribution share rows for it.
@@ -395,3 +482,66 @@ def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
     )
 
     return is_common_settlement_worth_showing(instance)
+
+
+def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:
+    """SC-10: Use active hostile-pair eligibility, not just unique-nation count."""
+    from backend.display_names import settlement_disabled_reason_display
+
+    def _blocked(code: str, **extra: Any) -> Dict[str, Any]:
+        display = settlement_disabled_reason_display(code)
+        return {
+            "available": False,
+            "error": code,
+            "error_display": display,
+            "disabled_reason_display": display,
+            "display_reason": display,
+            **extra,
+        }
+
+    if not war_id:
+        return _blocked("invalid_war_id", war_id=war_id)
+    try:
+        from backend.game_logic.settlement_preview import (
+            evaluate_open_settlement_eligibility,
+        )
+        eligibility = evaluate_open_settlement_eligibility(
+            world, war_id=war_id,
+            actor_nation=getattr(world, "player_nation", "France"),
+            ignore_active_dialogue=True,
+        )
+        return dict(eligibility)
+    except Exception:
+        return _blocked("settlement_eligibility_unavailable", war_id=war_id)
+
+
+def _evaluate_settlement_available(world, war_id: str) -> bool:
+    return bool(_evaluate_settlement_eligibility(world, war_id).get("available"))
+
+
+def _evaluate_war_detail_actionability(
+    world,
+    war_id: str,
+    selected_target_nation: str,
+    covered_enemy_participants: List[str],
+) -> Dict[str, Any]:
+    """Return SC-10b recovery metadata for the War Detail row."""
+    try:
+        from backend.game_logic.settlement_preview import (
+            evaluate_war_detail_actionability,
+        )
+        return dict(evaluate_war_detail_actionability(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected_target_nation,
+            covered_enemy_participants=covered_enemy_participants,
+        ))
+    except Exception:
+        return {
+            "actionable": False,
+            "war_id": str(war_id or ""),
+            "selected_target_nation": str(selected_target_nation or ""),
+            "refusal_code": "no_peace_seeking_control",
+            "refusal_code_display": "War detail recovery is unavailable.",
+            "peace_seeking_controls": [],
+        }

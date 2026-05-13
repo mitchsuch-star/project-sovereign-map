@@ -112,8 +112,12 @@ class TestCurrentTurnOfferTypes:
     def test_incoming_proposal_is_offer_type(self):
         assert "incoming_proposal" in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
-    def test_incoming_settlement_offer_is_offer_type(self):
-        assert "incoming_settlement_offer" in DialogueManager.CURRENT_TURN_OFFER_TYPES
+    def test_incoming_settlement_offer_is_NOT_offer_type_while_deferred(self):
+        """SC-5 / G2-Slice-4: `incoming_settlement_offer` is deferred and
+        explicitly removed from the current-turn offer set. The type stays
+        in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` for stale-save defensive
+        guards but never participates in normal mailbox/offer plumbing."""
+        assert "incoming_settlement_offer" not in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
     def test_counter_offer_is_offer_type(self):
         assert "counter_offer" in DialogueManager.CURRENT_TURN_OFFER_TYPES

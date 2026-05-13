@@ -255,10 +255,6 @@ FEEDBACK_STRINGS = {
         "negative": "their specific strategic interests were not addressed",
         "positive": "we addressed their core strategic interest",
     },
-    "coalition_penalty": {
-        "negative": "coalition loyalty binds them against us",
-        "positive": "coalition obligations have weakened",
-    },
     "hegemony_target_mod": {
         "negative": "the weight of the bloc pressing against them",
         "positive": "balance of power across Europe",
@@ -524,13 +520,51 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "no_unresolved_hostile_pairs": "There are no hostile pairs left to settle.",
     "no_coverable_enemy": "There is no enemy participant this settlement can cover.",
     "settlement_dialogue_active": "Resolve the current settlement review first.",
+    "multi_war_ambiguity": "Multiple wars with this court; select a specific war from war detail.",
     "proposer_leader_changed": "Your side's war leader changed; reopen settlement review.",
     "active_pair_changed": "The war changed while the settlement was open.",
+    "no_selected_target_nation": "No settlement target court is selected.",
     "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
+    "selected_target_not_covered": "The selected settlement target is outside this settlement scope.",
+    "settlement_eligibility_unavailable": "Settlement eligibility could not be evaluated; reopen war detail.",
+    "malformed_route": "This recovery route is incomplete.",
+    "war_archived": "This war is no longer active; review settlement history.",
+    "selected_pair_missing": "No live enemy pair is selected for war detail recovery.",
+    "pair_not_at_war": "The selected pair is not currently at war.",
+    "pair_already_resolved": "The selected pair has already been resolved.",
+    "editor_cannot_change_blocker": "The settlement editor cannot change this blocker.",
+    "no_peace_seeking_control": "War detail has no current peace-seeking control for this pair.",
+    "request_terms_ineligible": "Requesting enemy terms is not available for this pair.",
     "active_participant_changed": "A participant changed sides or left the war.",
     "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
     "unknown_settlement_action": "That settlement choice is not recognized.",
     "unknown_settlement_offer_action": "That settlement-offer choice is not recognized.",
+    # SC-1 POST preview validation codes
+    "max_clause_count_exceeded": "Too many treaty clauses (maximum 8).",
+    "duplicate_or_conflicting_clauses": "Some treaty clauses conflict with each other.",
+    "unauthorized_actor": "Only the player nation may author settlement terms.",
+    "proposer_side_mismatch": "The proposing court does not match your side in this war.",
+    "empty_authored_draft": "Add at least one treaty clause before submitting.",
+    "invalid_clause_type": "One or more clauses use an unrecognized type.",
+    "invalid_clause_schema": "One or more clauses are missing required fields.",
+    "submitted_terms_failed_revalidation": "The submitted terms failed validation; review and correct them.",
+    # SC-3/SC-4 ratification gate codes
+    "acceptance_rejected": "The accepting side has rejected these terms.",
+    "acceptance_blocked": "A hard stop prevents ratification of these terms.",
+    # SC-14b reopen-attempt cap
+    "reopen_attempt_cap_exceeded": "We cannot reopen this settlement review - choose from war detail.",
+    # SC-13 dual-empty fallback / SC-7b stale offer fallback
+    "no_reopen_target_available": "We cannot reopen this settlement review - choose from war detail.",
+    # SC-7b stale incoming offer
+    "incoming_offer_war_archived": "That settlement offer is no longer relevant; the war has ended.",
+    "incoming_offer_war_invalid": "That settlement offer references a war we cannot find; choose from war detail.",
+    # SC-5 G2-Slice-4 default defer-and-hide for incoming settlement offers
+    "incoming_offer_deferred": "Incoming settlement offers are not available in this build.",
+    # SC-26 collision codes
+    "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
+    "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
+    # SC-14e aged-out dispatch link
+    "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
 }
 
 # Side label display — used by settlement review's allies block to surface

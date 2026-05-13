@@ -857,11 +857,13 @@ class TestDispatchWiring:
         rendered = _build_diplomatic_events_section(world, "France")
         types = [r.get("type") for r in rendered]
         assert "settlement_summary" in types
-        # Each settlement entry carries route_id for the §11.6 cap path.
+        # SC-14c: each settlement entry carries the new
+        # `settlement:{war_id}:{turn}:{seq}` route id, propagated from
+        # the staged dialogue / reaction-event verbatim.
         for entry in rendered:
             if entry.get("type") == "settlement_summary":
                 assert entry.get("event_family") == "settlement"
-                assert entry.get("route_id", "").startswith("war_e:")
+                assert entry.get("route_id", "").startswith("settlement:war_e:")
 
     def test_route_settlement_reactions_emits_members_for_fog(self):
         world = WorldState()
@@ -906,7 +908,9 @@ class TestDispatchWiring:
         assert len(settlement_notices) == 1
         details = settlement_notices[0]["details"]
         assert details["review_target"] == SETTLEMENT_REVIEW_TARGET_ACTIVE
-        assert details["route_id"].startswith("war_e:")
+        # SC-14c: notification meta consumes the new
+        # `settlement:{war_id}:{turn}:{seq}` route id.
+        assert details["route_id"].startswith("settlement:war_e:")
 
     def test_dispatch_filters_out_invisible_settlement(self):
         world = WorldState()

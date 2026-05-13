@@ -2,8 +2,8 @@
 
 > **Status:** v1.1 historical umbrella, BPH/WPS/WB complete; Imperial Settlement follow-up active
 > **Date:** April 28, 2026
-> **Phase placement:** After Memory and Pressure v2.4.3 (complete). BPH, WPS, and WB are landed; Ally Participation + Common Peace is now owned by `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`.
-> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (follow-up phase)
+> **Phase placement:** After Memory and Pressure v2.4.3 (complete). BPH, WPS, and WB are landed; Ally Participation + Common Peace mechanics are owned by `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, while current cleanup readiness is owned by `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md`.
+> **Companion docs:** `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27
 
 ---
 
@@ -17,7 +17,30 @@ The three Peace Deals sub-specs are now landed:
 - **War Purpose + Score Semantics (WPS)** — give wars declared purpose, ticking score, settlement tiers, forced alliance, liberation, and a vassalage power cap.
 - **War Bargains (WB)** — add a named-enemy bilateral promise mechanic with lifecycle, ally-entry integration, and breach/fulfillment consequences.
 
-The fourth doc, **War Settlement + Ally Participation**, is the active follow-up handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but file-level settlement coding now starts from `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`.
+The fourth doc, **War Settlement + Ally Participation**, is the mechanics handoff. This umbrella remains useful for historical context and cross-cutting acceptance rules, but current settlement cleanup routing and readiness checks start from `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 and `STATUS.md`. The implementation plan remains a historical/mechanics sequencing anchor unless the active cleanup gate points back to it.
+
+### 1.1 Normative source map (May 2026)
+
+| Area | Normative source |
+|------|------------------|
+| Landed BPH/WPS/WB mechanics and historical sequencing | This umbrella plus the three landed sub-specs |
+| Ally-aware settlement mechanics | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` |
+| Cleanup-time settlement readiness, player-facing rejected/losing recovery, route-id shape, incoming-offer exposure, and Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 plus `STATUS.md` |
+| Historical implementation estimates and old test-count budgets | Section 5 below; use `STATUS.md` for landed counts |
+| Future/deferred settlement petitions or AI incoming offers | The cleanup spec must explicitly reverse the relevant deferral before implementation starts |
+
+**Audit scope closure:** a Peace Deals audit is implementation-ready only when its scope includes every active normative source below. If an audit intentionally covers only historical BPH/WPS/WB mechanics, it must say so in the prompt and exclude cleanup-readiness conclusions.
+
+Current-readiness audit input set: this umbrella, `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md`, `SETTLEMENT_UI_CLEANUP_SPEC.md`, `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md`, `STATUS.md`, `DIPLOMACY_SPEC.md`, `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `CLAUDE.md`, and the live diplomacy/world-state code. If any active cleanup source is omitted, the run is historical-mechanics-only and must not emit a cleanup-readiness GO.
+
+| Behavior area | Active normative source | Historical/mechanics source | Required for tests | Included in Peace Deals historical suite |
+|---------------|-------------------------|-----------------------------|--------------------|-----------------------------------------|
+| Bilateral peace preview, fallout, and ratification summary | `BILATERAL_PEACE_HARDENING_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| War purpose, ticking score, settlement tiers, forced alliance, liberation | `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| War bargain lifecycle, ally-entry score, bargain presentation | `WAR_BARGAIN_SPEC.md` + live code | This umbrella Section 5 | Yes | Yes |
+| Ally-aware settlement mechanics, war instances, contribution standing, common-peace scoring, settlement memories | `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` + live code | `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` for historical sequencing | Yes | Partially |
+| Cleanup-time settlement routes, rejected/losing recovery, action visibility, incoming-offer exposure, Gate 4 smoke | `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 + `STATUS.md` | Older WSA Slice F / Final Gate notes are historical only | Yes | No |
+| Post-cleanup AI incoming offers and non-leader ally petitions | Future Slice G owner row in cleanup/status docs after SC-5 reversal | WSA historical incoming-offer examples | Yes, only after owner row exists | No |
 
 ---
 
@@ -49,7 +72,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 **WB-D (bargain presentation) is gated on WB-A/B/C.** Spotlights, split-voice copy, and response routes require live bargain state.
 
-**Ally Participation was gated on the full Peace Deals phase.** That gate is now open: BPH, WPS, and WB-A through WB-D are landed, and settlement implementation can begin at Slice A.
+**Ally Participation was gated on the full Peace Deals phase.** That gate is now open: BPH, WPS, and WB-A through WB-D are landed. Ally Participation mechanics moved through A1-E; current settlement cleanup readiness starts from `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.27 and `STATUS.md`.
 
 ---
 
@@ -59,7 +82,7 @@ Memory and Pressure v2.4.3 (COMPLETE)
 
 DIPLOMACY_SPEC was internally inconsistent: §5a/§5b.2/§7d said 5 turns, but the turn-order processing, EC-Z, and design decisions table still said 3 turns.
 
-**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` checks `turns < 5`; `armistice_cooldowns` are set to 5). The conflicting active DIPLOMACY_SPEC references have been corrected to 5 turns; future edits must not reintroduce the 3-turn value.
+**Resolution:** 5 turns is canonical. Code already uses 5 (`_process_armistice_expiration` checks `turns < 5`; `armistice_cooldowns` tracks the active minimum-duration lock while the pair remains in ARMISTICE). The live v0.1 contract does not include a separate post-expiration or post-break re-entry cooldown. The conflicting active DIPLOMACY_SPEC references have been corrected to 5 turns; future edits must not reintroduce the 3-turn value.
 
 This affects:
 - BPH §12.1 armistice preview (reads whatever `ARMISTICE_MIN_TURNS` the code uses — that's 5)
@@ -77,7 +100,7 @@ The Memory and Pressure v2.4.3 hegemony refactor superseded the rivalry-based mo
 | `hegemony_target_mod` | B-B1-lite | per-pair | Cross-bloc friction starting at 30% share |
 | `bilateral_betrayal_mod` | v2.4.3 substrate | per-pair | Graduated penalty from active betrayal strikes |
 | `grievance_modifier` | B-B4 | per-pair | -30 per active durable grievance flag, cap -90 |
-| composite floor | B-B4 | synthetic | `max(-60, hegemony + betrayal + grievance)` |
+| composite floor | B-B4 + WB-A | synthetic | `max(-60, hegemony + betrayal + grievance + bargain_conflict_penalty + bargain_value_mod)` |
 
 There is no legacy rivalry composite in the codebase. The older modifier names belong to a superseded spec revision.
 
@@ -87,7 +110,7 @@ Live coalition records now carry `active_coalition.target_nation` (France in v0.
 
 WAR_BARGAIN_SPEC §9.1 (`bargain_value_mod`) and §9.2 (`bargain_conflict_penalty`) extend the live model:
 
-- `bargain_value_mod` (+10/+15/+25) integrates as a fourth political-pressure term alongside the existing three. It is positive (sweetener), so it naturally counteracts the negative political pressure from hegemony/betrayal/grievance.
+- `bargain_value_mod` (+10/+15) integrates as a fourth political-pressure term alongside the existing three for ordinary `calculate_acceptance()` treaty proposals. It is positive (sweetener), so it naturally counteracts the negative political pressure from hegemony/betrayal/grievance. The +25 live-bargain bonus belongs to dedicated `compute_war_entry_score()` ally-entry evaluation only.
 - `bargain_conflict_penalty` (§9.2, `-8` for a live bargain against target) feeds into the political subtotal before the composite floor clamp. The floor of `-60` still applies.
 - §9.3 composite re-cap references the live `-60` floor.
 
@@ -99,14 +122,14 @@ political_subtotal_raw = (
     + bilateral_betrayal
     + grievance
     + bargain_conflict_penalty   # NEW: -8 when live bargain targets this nation
-    + bargain_value_mod           # NEW: +10/+15/+25 sweetener
+    + bargain_value_mod           # NEW: +10/+15 sweetener
 )
 political_subtotal_clamped = max(-60, political_subtotal_raw)
 ```
 
 The war-entry score (implemented as `compute_war_entry_score()`, WB section 9.4) is a separate dedicated formula for ally-entry evaluation, not an extension of `calculate_acceptance()`. It remains as specified, with the understanding that its `bilateral betrayal strikes: -8 each, cap -24` term reads from the same `betrayal_history` store that `bilateral_betrayal_mod` reads from.
 
-**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is authoritative for `settlement_gratitude_mod`. In summary, settlement gratitude is a positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it requires an active `settlement_gratitude` memory created from a current-episode material contribution reward, is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components must expose the key as `settlement_gratitude_mod` once Slice D1 lands. Until then, live `calculate_acceptance()` treats the component as `0`.
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is authoritative for `settlement_gratitude_mod`. In summary, settlement gratitude is a live positive `+5` component added after `political_subtotal_clamped` and before `deal_balance`; it requires an active `settlement_gratitude` memory created from a current-episode material contribution reward, is not part of the clamped political subtotal, does not offset or bypass hard stops / political floors, defaults to `0` when absent, and refreshes rather than stacks for the same actor/subject settlement memory. Proposal previews and debug components expose the key as `settlement_gratitude_mod`.
 
 ### 4.3 `threat_coalition` compatibility layer - COMPLETE
 
@@ -118,7 +141,7 @@ The war-entry score (implemented as `compute_war_entry_score()`, WB section 9.4)
 - Remove `threat_coalition` from `build_diplomatic_ledger()` in `backend/game_logic/diplomatic_ledger.py`
 - Remove `threat_coalition` consumption in Godot `diplomatic_ledger.gd`
 - Update tests asserting on `threat_coalition` keys to assert on `balance_of_europe` only
-- Remove any `threat_modifier` / `coalition_penalty` legacy computation paths if no longer consumed
+- Remove unused `threat_modifier` / `coalition_penalty` computation paths; if a key survives only as a legacy feedback/display alias, document it as non-normative and keep it out of acceptance components
 
 ### 4.4 Godot surface strategy
 
@@ -162,7 +185,7 @@ Each slice that adds fields must update `SAVE_FORMAT_REFERENCE.md` and pass `tes
 
 ---
 
-## 5. Implementation Sequence
+## 5. Historical Implementation Sequence
 
 ### Phase A: Bilateral legibility (BPH + WPS, parallel-safe)
 
@@ -338,7 +361,7 @@ Every item deferred from Memory and Pressure v2.4.3 or identified during Peace D
 | Item | Decision Point | HOME / Owner Spec | Options |
 |------|---------------|-------------------|---------|
 | ~~`threat_coalition` retirement~~ | ~~After Gate 1~~ | - | **COMPLETE April 26, 2026:** Retired in focused cleanup before WB-A. See section 4.3. |
-| Bargain presentation voice (WB-D diplomat attribution) | Before WB-D starts | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | Confirm Voice Bible coverage for bargain-specific lines |
+| Bargain presentation voice (WB-D diplomat attribution) | Complete | `WAR_BARGAIN_SPEC.md` §10.5 + `DIPLOMAT_VOICE_BIBLE.md` | **COMPLETE:** WB-D landed the bargain presentation pass; future voice changes are polish, not a pre-WB-D design gate. |
 
 ---
 
@@ -429,9 +452,9 @@ File-level partition guidance:
 
 ### R4. Acceptance modifier reconciliation may reveal formula balance issues
 
-Adding `bargain_value_mod` (+10/+15/+25) and `bargain_conflict_penalty` (-8) to the political subtotal changes the acceptance landscape. The +25 war-entry sweetener is particularly powerful.
+Adding `bargain_value_mod` (+10/+15) and `bargain_conflict_penalty` (-8) to the ordinary treaty political subtotal changes the acceptance landscape. The separate +25 live-bargain war-entry sweetener is intentionally powerful, but it belongs only to `compute_war_entry_score()`.
 
-**Mitigation:** The composite floor at -60 caps downside. The +25 is intentionally large — it's the whole point of making a political promise. Test coverage must verify that the floor still functions correctly with 5 terms instead of 3 feeding into it.
+**Mitigation:** The composite floor at -60 caps downside. Test coverage must verify that the floor still functions correctly with 5 ordinary acceptance terms instead of 3 feeding into it, and that the +25 war-entry bonus is tested through the dedicated war-entry score path rather than `calculate_acceptance()`.
 
 ### R5. War Purpose popup creates analysis paralysis risk
 
@@ -464,7 +487,7 @@ Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nat
 ### BILATERAL_PEACE_HARDENING_SPEC.md
 
 - **§12.2** — armistice duration contradiction resolved: 5 turns is canonical. See §4.1 above.
-- **§4 Non-Goals** — `political_commitment_mod` reference corrected to the live hegemony/betrayal/grievance political subtotal with `-60` composite floor.
+- **§4 Non-Goals** — retired political-composite modifier reference corrected to the live hegemony/betrayal/grievance political subtotal with `-60` composite floor.
 - **§6.3 Reused substrate** — `nation_rivalries` reference corrected to derived hegemony/bloc-geometry signals.
 - **§10.1 Warning plumbing** — "rivalry" conflict corrected to `bloc_opposition`, derived from bloc geometry rather than a removed stored rivalry table.
 
@@ -485,6 +508,8 @@ Scale-hardening amendment: live `calculate_national_power()` uses `world.get_nat
 ---
 
 ## 11. Changelog
+
+- **April 26, 2026** - v1.1 post-gate umbrella update. Captured the Gate 1 pass, `threat_coalition` retirement decision, WB handoff clarifications, the Imperial Settlement `settlement_gratitude_mod` amendment outside the clamped political subtotal, and the post-implementation note that landed Peace Deals test counts exceeded the original estimates after audit follow-ups.
 
 - **April 26, 2026** — Gate 1 PASSED. All 9 smoke criteria verified. `threat_coalition` retirement decided: retire in focused cleanup before WB-A. Smoke test committed at `tools/gate1_smoke_test.py`.
 - **April 25, 2026** — v1.0 drafted. Covers dependency graph, 3-phase implementation sequence (BPH+WPS parallel → WB-A/B/C → WB-D), cross-cutting decisions (armistice canonized at 5 turns, acceptance modifier reconciliation against live v2.4.3 model, threat_coalition retirement scheduling, Godot surface strategy, cumulative data model delta), deferred carry-forward checklist with concrete slice assignments, 3 milestone gates with smoke criteria, 5 risks, sub-spec errata for stale WAR_BARGAIN_SPEC references. Original budget: ~264 tests, ~11-12 sessions.

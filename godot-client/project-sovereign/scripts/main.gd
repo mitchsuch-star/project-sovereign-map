@@ -24,15 +24,19 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"ultimatum_demand_wizard",
 	"war_purpose_selection",
 	"settlement_confirm",
-	"incoming_settlement_offer",
+	# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally NOT
+	# whitelisted while incoming offers are deferred-and-hidden. Stale-save
+	# dialogues of that type fall through to the unknown-dtype warning branch
+	# instead of opening the settlement popup.
 ]
 const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
 	"revise_settlement_terms",
 	"back_out_settlement",
-	"accept_settlement_offer",
-	"reject_settlement_offer",
-	"request_settlement_revision",
+	"open_war_detail",
+	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
+	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
+	# but no settlement-offer button is reachable from the player UI.
 ]
 
 # UI References - Header Status
@@ -744,6 +748,7 @@ func _configure_response_routes():
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
+		{"id": "deferred_incoming_settlement_offer", "matches": "_response_has_deferred_incoming_settlement_offer_route", "show": "_route_deferred_incoming_settlement_offer_response"},
 		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
 		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
 		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
@@ -823,6 +828,15 @@ func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
 func _route_incoming_proposal_response(response: Dictionary):
 	incoming_proposal_popup.show_proposal(response.incoming_proposal)
 
+func _response_has_deferred_incoming_settlement_offer_route(response: Dictionary) -> bool:
+	var dialogue = response.get("diplomatic_dialogue", {})
+	if typeof(dialogue) == TYPE_DICTIONARY and dialogue.get("type", dialogue.get("dialogue_type", "")) == "incoming_settlement_offer":
+		return true
+	return str(response.get("dialogue_type", "")) == "incoming_settlement_offer"
+
+func _route_deferred_incoming_settlement_offer_response(_response: Dictionary):
+	add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+
 func _response_has_proposal_confirm_route(response: Dictionary) -> bool:
 	return response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null and proposal_confirm_popup != null
 
@@ -834,9 +848,10 @@ func _route_proposal_confirm_response(response: Dictionary):
 	proposal_confirm_popup.show_dialogue(dialogue)
 
 func _show_confirm_dialogue_from_response(response: Dictionary, missing_message: String):
+	# SC-5 / G2-Slice-4: incoming-offer payload key is no longer consulted as
+	# a fallback dialogue source. Stale `incoming_settlement_offer` records
+	# never inflate into a generic settlement popup.
 	var dialogue = response.get("diplomatic_dialogue", {})
-	if not dialogue is Dictionary or dialogue.is_empty():
-		dialogue = response.get("incoming_settlement_offer", {})
 	if proposal_confirm_popup and dialogue is Dictionary and dialogue.size() > 0:
 		set_input_enabled(false)
 		proposal_confirm_popup.show_dialogue(dialogue)
@@ -907,6 +922,11 @@ func _on_command_result(response):
 		return  # Don't re-enable input or continue processing
 
 	_sync_response_hud(response)
+	if response.has("settlement_draft_notices") and response.settlement_draft_notices is Array:
+		for notice in response.settlement_draft_notices:
+			if notice is Dictionary:
+				var notice_text = str(notice.get("message_display", "Settlement draft discarded at turn end."))
+				add_output("[color=#" + Utils.COLOR_INFO + "]" + notice_text + "[/color]")
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
 	# Informational-only coalition declarations now route through the notice rail.
@@ -943,6 +963,11 @@ func _on_command_result(response):
 		add_output("[color=#e04040]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
+		return
+
+	if response.has("recovery_route") and response.recovery_route is Dictionary:
+		_process_active_wars(response)
+		_route_settlement_recovery_route(response.recovery_route)
 		return
 
 	if response.success:
@@ -3306,7 +3331,11 @@ func _on_pending_envoy_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+	elif dtype == "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
+		# pending-envoy result of this type must not open the settlement popup.
+		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
@@ -3339,7 +3368,11 @@ func _on_mailbox_activate_result(response: Dictionary):
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
 			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm", "incoming_settlement_offer"]:
+	elif dtype == "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
+		# mailbox-activate result of this type must not open the settlement popup.
+		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
 func _on_mailbox_panel_closed():
@@ -3439,6 +3472,37 @@ func _on_war_card_clicked(nation: String, status: String, war_instance_id: Strin
 		var war_data = _find_war_data(nation, war_instance_id)
 		if war_data != null:
 			war_detail_popup.show_war(war_data, _cached_coalition_data)
+
+
+func _route_settlement_recovery_route(route: Dictionary):
+	var surface = str(route.get("surface", route.get("target", "")))
+	var war_id = str(route.get("war_id", ""))
+	var target_nation = str(route.get("selected_target_nation", route.get("target_nation", route.get("nation", ""))))
+	if surface == "war_detail":
+		if war_detail_popup == null:
+			add_output("[color=#e04040]War detail is not available.[/color]")
+			set_input_enabled(true)
+			command_input.grab_focus()
+			return
+		var war_data = _find_war_data(target_nation, war_id)
+		if war_data != null:
+			add_output("[color=#" + Utils.COLOR_INFO + "]Opening war detail for " + target_nation + ".[/color]")
+			war_detail_popup.show_war(war_data, _cached_coalition_data)
+		else:
+			add_output("[color=#e04040]This war is no longer active from the current war panel.[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+	if surface == "settlement_history":
+		var route_id = str(route.get("route_id", ""))
+		if top_bar and top_bar.has_method("open_diplomatic_ledger_review"):
+			top_bar.open_diplomatic_ledger_review("ledger_settlements", route_id, war_id)
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+	add_output("[color=#e04040]No verified recovery route is available.[/color]")
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 
 func _on_coalition_header_clicked():

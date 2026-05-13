@@ -49,9 +49,14 @@ class DialogueManager:
     })
     # Current-turn offer types: AI-initiated offers that lapse at end of turn.
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
+    #
+    # SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally absent
+    # from this set. Incoming settlement offers are deferred-and-hidden until
+    # producer + popup + accept/reject/revise actions ship together. The
+    # type stays in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` so stale-save records
+    # still hit family-level safety guards.
     CURRENT_TURN_OFFER_TYPES = frozenset({
         "incoming_proposal",
-        "incoming_settlement_offer",
         "counter_offer",
         "counter_offer_response",
     })
@@ -89,13 +94,11 @@ class DialogueManager:
         "vassal_rebellion_imminent": 1,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,
-        "incoming_settlement_offer": 3,
         "counter_offer": 3,
         "counter_offer_response": 3,
     }
     MAILBOX_SUMMARY_LABELS: Dict[str, str] = {
         "incoming_proposal": "Incoming proposal",
-        "incoming_settlement_offer": "Incoming settlement offer",
         "counter_offer": "Counter-offer",
         "counter_offer_response": "Counter response",
     }

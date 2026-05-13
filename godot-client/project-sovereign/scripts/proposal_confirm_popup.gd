@@ -52,7 +52,11 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_conflict_alert_content(data)
 		"ultimatum_confirm", "ultimatum_demand_wizard":
 			bbcode = _build_ultimatum_content(data)
-		"settlement_confirm", "incoming_settlement_offer":
+		# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally
+		# absent from this match arm while incoming offers are deferred.
+		# Stale-save records of that type fall through to the default
+		# branch instead of rendering the settlement review.
+		"settlement_confirm":
 			bbcode = _build_settlement_content(data)
 		_:
 			if data.has("war_context_snapshot"):
@@ -71,10 +75,16 @@ func show_dialogue(data: Dictionary):
 		var btn = Button.new()
 		var original_label = str(opt.get("label", "???"))
 		var original_tooltip = str(opt.get("description", ""))
+		var available = bool(opt.get("available", true))
+		var disabled_reason = str(opt.get("disabled_reason", original_tooltip))
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
 		btn.add_theme_font_size_override("font_size", 14)
+		btn.disabled = not available
+		if not available:
+			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
+			btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 		var action_str = opt.get("action", "dismiss")
 		if _should_label_ask_later(dtype, action_str, original_label):
 			btn.text = "Not Now"
@@ -175,23 +185,40 @@ func _build_settlement_content(data: Dictionary) -> String:
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
 
+	# SC-17: Humanize the malformed-payload guard. Players never need to
+	# see raw structured key names; the voice-resolved talleyrand_text
+	# below stays mounted while the player escapes via Back Out / war
+	# detail.
 	var missing = []
 	for key in ["war_label", "review_sections", "covered_enemy_display_chips"]:
 		if not data.has(key):
 			missing.append(key)
 	if missing.size() > 0 and str(data.get("type", data.get("dialogue_type", ""))) == "settlement_confirm":
-		bbcode += "[color=#e04040]Settlement payload incomplete: missing " + ", ".join(PackedStringArray(missing)) + "[/color]\n\n"
+		bbcode += "[color=#e04040]We could not prepare this settlement review. Reopen from war detail.[/color]\n\n"
 
 	var awe = review.get("awe_tag_displays", data.get("awe_tag_displays", [])) if review is Dictionary else []
 	if awe is Array and awe.size() > 0:
 		bbcode += "[color=#e0c070][b]" + str(awe[0]) + "[/b][/color]\n"
 
+	# SC-19: Settlement heading routes through the backend-resolved
+	# settlement voice family (talleyrand_text). When ratification is
+	# blocked the backend supplies blocked-banner copy that suppresses
+	# "Will they accept?" framing; otherwise the live-review voice line
+	# carries acceptance band + top blocker. Foreign-court / observer
+	# settlements get their own chancery voice via the same field.
 	var accepting_side = str(data.get("accepting_side", ""))
 	var leaders = data.get("staged_leaders", {})
 	var accepting_leader = "their leader"
 	if leaders is Dictionary and accepting_side != "":
 		accepting_leader = str(leaders.get(accepting_side, accepting_leader))
-	bbcode += "[b][color=#e0c070]Will %s accept this settlement?[/color][/b]\n" % accepting_leader
+	var heading_voice = str(data.get("talleyrand_text", ""))
+	var can_ratify_now = bool(data.get("can_ratify", true))
+	if heading_voice != "":
+		bbcode += "[b][color=#e0c070]%s[/color][/b]\n" % heading_voice
+	elif can_ratify_now:
+		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
+	else:
+		bbcode += "[b][color=#e04040]This settlement cannot be ratified now.[/color][/b]\n"
 	bbcode += "[color=#a0a0a8]%s - %s[/color]\n" % [war_label, scope]
 
 	var chips = data.get("covered_enemy_display_chips", data.get("covered_enemy_participants", []))
@@ -231,10 +258,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 
 	var acceptance = data.get("acceptance_display", sections.get("acceptance", {}))
 	if acceptance is Dictionary and not acceptance.is_empty():
-		var total = int(acceptance.get("total", 0))
-		var threshold = int(acceptance.get("threshold", 50))
 		var band = str(acceptance.get("band_display", acceptance.get("band", "Review").replace("_", " ").capitalize()))
-		var phrase = str(acceptance.get("band_phrase", ""))
 		var band_code = str(acceptance.get("band", "")).to_lower()
 		# Color decisions are made off the raw enum band code, never the
 		# humanized `band` string — that way a future tweak to
@@ -245,10 +269,24 @@ func _build_settlement_content(data: Dictionary) -> String:
 		elif band_code == "near_acceptable":
 			color = "#e0e060"
 		bbcode += "[b]Acceptance[/b]\n"
-		bbcode += "  [color=%s]%d / %d - %s[/color]" % [color, total, threshold, band]
-		if phrase != "" and phrase != band:
-			bbcode += " [color=#a0a0a8](" + phrase + ")[/color]"
-		bbcode += "\n"
+		# SC-15b: structurally blocked acceptance must not show a
+		# numeric `0 / 50` line that reads like a tunable score gap.
+		# The backend payload sets total/threshold to null in this
+		# case and supplies blocker_display + band_display="Blocked".
+		if band_code == "blocked" or acceptance.get("total") == null or acceptance.get("threshold") == null:
+			var blocker_display = str(acceptance.get("blocker_display", ""))
+			bbcode += "  [color=%s]%s[/color]" % [color, band]
+			if blocker_display != "":
+				bbcode += " — " + blocker_display
+			bbcode += "\n"
+		else:
+			# SC-20: render exactly one acceptance label per band. The
+			# legacy " (phrase)" suffix that produced "Unlikely (Likely
+			# to reject)" duplicates is gone; band_display is the single
+			# player-facing label per band.
+			var total = int(acceptance.get("total", 0))
+			var threshold = int(acceptance.get("threshold", 50))
+			bbcode += "  [color=%s]%d / %d - %s[/color]\n" % [color, total, threshold, band]
 		var top_blocker = str(acceptance.get("top_blocker_display", ""))
 		var top_value = str(acceptance.get("top_blocker_value_display", ""))
 		if top_blocker != "":
@@ -256,6 +294,9 @@ func _build_settlement_content(data: Dictionary) -> String:
 			if top_value != "":
 				bbcode += " " + top_value
 			bbcode += "\n"
+		var ratify_blocked_reason = str(data.get("ratify_blocked_reason", ""))
+		if ratify_blocked_reason != "":
+			bbcode += "  [color=#e0a040]" + ratify_blocked_reason + "[/color]\n"
 		bbcode += "\n"
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}

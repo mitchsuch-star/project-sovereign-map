@@ -6867,7 +6867,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "war_weariness", "stalemate_duration",
         "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
-        "coalition_penalty", "hegemony_target_mod", "bilateral_betrayal_mod",
+        "hegemony_target_mod", "bilateral_betrayal_mod",
         "grievance_modifier",
         "settlement_gratitude_mod",
         "bargain_value_mod", "bargain_conflict_penalty",
@@ -8610,6 +8610,7 @@ def process_diplomacy_turn(world) -> List[Dict]:
     Implements §7f processing order (items this session covers):
     1. DP regeneration
     4. War score recalculation
+    5-7. Vassal defection, loyalty, and rebellion checks
     8. Armistice expiration (minimum 5 turns)
     9. Cooldown decrements
     10. Trade income (handled separately in income phase)
@@ -8652,7 +8653,18 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 4c. Relation decay (R4a) ──
     _process_relation_decay(world)
 
-    # 5-7: Vassal processing (defection cascade, loyalty, rebellion) — implemented in vassal.py, wired in advance_turn()
+    # 5-7: Vassal processing must run after war score/ticking and before
+    # armistice expiration or diplomatic normalization. This lets war outcomes
+    # shake vassal loyalty before an expiring ceasefire can settle the pair.
+    if getattr(world, "vassals", None):
+        from backend.game_logic.vassal import (
+            check_defection_cascade,
+            check_vassal_rebellion,
+            process_vassal_loyalty,
+        )
+        events.extend(check_defection_cascade(world))
+        events.extend(process_vassal_loyalty(world))
+        events.extend(check_vassal_rebellion(world))
 
     # ── 7b. Per-turn staying-power accrual (Slice B3, spec §9.2 line 612) ──
     # Walks every active war_instance once and adds +5 raw points per
@@ -8671,6 +8683,8 @@ def process_diplomacy_turn(world) -> List[Dict]:
 
     # ── 9. Cooldown decrements ──
     _decrement_cooldowns(world)
+    from backend.game_logic.vassal import decrement_vassal_cooldowns
+    decrement_vassal_cooldowns(world)
 
     # 9a-9d: Coalition processing (war exhaustion, threat accumulation/decay, coalition check) — implemented in coalition.py, wired in advance_turn()
 
@@ -9819,14 +9833,29 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
         settlement_war_id = None
+        multi_war_ambiguity = False
+        available_wars = []
         try:
             player_wars = set(world.get_war_instances_by_participant(player))
             target_wars = set(world.get_war_instances_by_participant(target_nation))
             common_wars = sorted(player_wars & target_wars)
-            settlement_war_id = common_wars[0] if common_wars else None
+            if len(common_wars) == 1:
+                settlement_war_id = common_wars[0]
+            elif len(common_wars) > 1:
+                multi_war_ambiguity = True
+                available_wars = list(common_wars)
         except Exception:
             settlement_war_id = None
-        if settlement_war_id:
+        if multi_war_ambiguity:
+            from backend.display_names import settlement_disabled_reason_display
+            settlement_eligibility = {
+                "available": False,
+                "error": "multi_war_ambiguity",
+                "error_display": settlement_disabled_reason_display("multi_war_ambiguity"),
+                "disabled_reason_display": settlement_disabled_reason_display("multi_war_ambiguity"),
+                "available_wars": available_wars,
+            }
+        elif settlement_war_id:
             try:
                 from backend.game_logic.settlement_preview import (
                     evaluate_open_settlement_eligibility,
@@ -10150,7 +10179,6 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "relation_modifier": "Current relations",
                 "war_weariness": "Exhaustion from prolonged conflict",
                 "stalemate_duration": "Stalemate weariness",
-                "coalition_penalty": "Coalition loyalty binds them",
                 "hegemony_target_mod": "Hegemon bloc pressure",
                 "bilateral_betrayal_mod": "Remembered betrayals",
                 "deal_balance": "Deal terms",

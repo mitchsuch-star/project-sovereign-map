@@ -1,8 +1,8 @@
 # War Purpose + Score Semantics Spec
 
-> **Status:** Draft v1.0
+> **Status:** Historical landed implementation reference v1.0
 > **Date:** April 16, 2026
-> **Phase placement:** Design Refinement queue item 3. After `Memory and Pressure` (substrate shipped) and `Bilateral Peace Hardening` (queue item 2). Before `War Bargains` (queue item 3.5).
+> **Phase placement:** Landed Peace Deals slice. After `Memory and Pressure` and landed `Bilateral Peace Hardening`; before landed `War Bargains`.
 > **Origin:** War System Overhaul items in `DESIGN_REFINEMENT.md` §War System Overhaul: War Objectives + Ticking War Score, Vassalage Power Cap, Forced Alliance, Liberation. Playtest audit (March 29, 2026) identified defensive-play dominance and war-score opacity as core balance problems.
 > **Companion docs:** `DIPLOMACY_SPEC.md` (§5c war declaration, §6e war score formula), `COALITION_SPEC.md` (threat from war actions), `WAR_BARGAIN_SPEC.md` (war-objective settlement hook, §2), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` (later), `BILATERAL_PEACE_HARDENING_SPEC.md` (peace preview extensibility)
 
@@ -558,6 +558,8 @@ The peace preview panel (BILATERAL_PEACE_HARDENING_SPEC §8) includes the settle
 
 Settlement tiers are **informational** — they describe what is politically plausible, not what is mechanically guaranteed. The acceptance formula still makes the final decision. A player at +52 who demands vassalage (Harsh Peace tier required) will see the acceptance formula reject it.
 
+Imperial Settlement follow-up: `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` section 14.3 adds `settlement_gratitude_mod` outside the clamped political subtotal when an active `settlement_gratitude` memory matches. It defaults to `0`, does not bypass hard stops, and does not change the WPS settlement-tier bands.
+
 The tiers guide the player: "you need +60 before demanding forced alliance" is actionable information that prevents trial-and-error proposals.
 
 ### 11.4 Tier warnings in proposal wizard
@@ -618,11 +620,12 @@ self.alliance_origins: Dict[str, str] = {}
 
 ### 12.4 Processing order in advance_turn()
 
-Ticking accumulation runs after war score recalculation (step 4 in DIPLOMACY_SPEC §7f):
+Ticking accumulation runs after battle-only decay and before the stored war-score recalculation in step 4 of `DIPLOMACY_SPEC` §7f:
 
 ```
-4.  War score recalculation — territory + quiet-turn-decayed battles + decisive + capital (§6e)
-4a. War objective ticking — accumulate per §7.2, add to war score after battle-only decay (§7.3)
+4.  Battle-only war-score decay / pruning.
+4a. War objective ticking — accumulate per §7.2 after battle-only decay so ticking is never consumed by battle decay.
+4b. Stored war-score recalculation — territory + quiet-turn-decayed battles + decisive + capital + ticking (§6e)
 5.  Defection cascade check — if war score < -30, check vassals (§8d)
 ```
 
@@ -791,13 +794,14 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - Implement objective types (conquest, subjugation, forced_alliance, defense, liberation)
 - War Purpose popup at declaration time
 - Objective auto-assignment for defenders and coalition
-- Ticking accumulation in `advance_turn()` after war score recalculation
+- Ticking accumulation in `advance_turn()` after battle-only decay/pruning and before stored war-score recalculation; recalculate stored `war_scores` once after ticking so ticking remains the fifth additive component and battle decay never consumes it
 - Ticking contribution to war score (5th component)
 - Ticking pause during armistice
 - Objective cleanup on war end
 - Campaign log events for objective declaration and ticking start
 - Wire `set_war_purpose` per CLAUDE.md "Adding a New Action": `VALID_ACTIONS` in `validation.py`, parser valid-actions, `_action_costs` in `world_state.py` (0 AP), mock parser keywords (`set war purpose`, `war purpose`), `ACTION_DISPLAY`, and campaign-log type `war_objective_declared`
 - Tests: objective creation, validation, ticking accumulation, armistice pause, war score integration, serialization round-trip
+- WPS-A audit follow-up additions behind the 50-test landed count: France-on-defense starts with auto-Defense and may upgrade once; ticking direction is pinned per declaring side, including defender pressure subtracting from France's relative score; ticking runs after battle-only decay/pruning and before stored war-score recalculation; armistice pauses ticking without concluding objectives; ARMISTICE -> PEACE or war end cleans up objectives; combat-initiated player auto-wars stage War Purpose selection instead of bypassing it; parser/direct `set_war_purpose` paths validate the same objective rules; coalition liberation and AI-AI conquest objectives are assigned; WPS campaign-log events remain fog/filter compatible.
 
 ### Slice WPS-B: Vassalage power cap (~15 tests)
 
@@ -841,7 +845,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - AI liberation priority and peace evaluation
 - Tests: tier classification, display correctness, AI ticking pressure modifier, AI power cap, AI liberation behavior
 
-**Total: ~75 tests, ~4 sessions**
+**Total: ~103 tests, ~4 sessions** (revised upward after the WPS-A audit follow-up)
 
 ---
 
@@ -896,4 +900,4 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 
 - **April 26, 2026** - WPS-A audit follow-up clarified France-on-defense semantics: attacked France receives auto-Defense and may upgrade it once with `set_war_purpose`; keeping Defense remains valid and ticking.
 
-- **April 16, 2026** — v1.0 drafted. Covers war objectives (5 types), ticking war score (5th component), vassalage power cap (50% national power), forced alliance (new clause type), liberation (coalition war goal), war score legibility (settlement tiers). ~75 tests across 4 slices. Starting power values validated against DIPLOMACY_SPEC §1b region table. References WAR_BARGAIN_SPEC §2 (war-objective settlement hook), BILATERAL_PEACE_HARDENING_SPEC (peace preview extensibility), COALITION_SPEC (threat from forced alliance).
+- **April 16, 2026** — v1.0 drafted. Covers war objectives (5 types), ticking war score (5th component), vassalage power cap (50% national power), forced alliance (new clause type), liberation (coalition war goal), war score legibility (settlement tiers). ~103 tests across 4 slices, revised upward after the WPS-A audit follow-up. Starting power values validated against DIPLOMACY_SPEC §1b region table. References WAR_BARGAIN_SPEC §2 (war-objective settlement hook), BILATERAL_PEACE_HARDENING_SPEC (peace preview extensibility), COALITION_SPEC (threat from forced alliance).

@@ -113,13 +113,11 @@ def test_stage_settlement_confirm_creates_hard_stop_without_mutation():
     assert result["success"] is True
     assert dialogue["type"] == "settlement_confirm"
     assert world.dialogue_manager.is_hard_stop() is True
-    assert dialogue["debug_action_ids"] == [
-        "confirm_settlement",
-        "revise_settlement_terms",
-        "back_out_settlement",
-    ]
+    assert "available_action_ids" in dialogue
+    assert "back_out_settlement" in dialogue["available_action_ids"]
     assert "actions" not in dialogue
-    assert dialogue["options"][0]["label"] == "Ratify Settlement"
+    # Options are gated by acceptance; at minimum Back Out is present.
+    assert any(o["action"] == "back_out_settlement" for o in dialogue["options"])
     assert "review_sections" in dialogue
     assert dict(world.diplomatic_states) == before_states
 
@@ -161,32 +159,36 @@ def test_settlement_back_out_and_revise_do_not_mutate():
     assert world.pending_diplomatic_dialogue is None
     assert dict(world.diplomatic_states) == before_states
 
+    from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
     stage_settlement_confirm(world, war_id="war_1", settlement_terms=[])
-    revise = executor.handle_diplomatic_dialogue_response(
-        "revise", {"world": world},
+    dialogue = world.pending_diplomatic_dialogue
+    revise = handle_settlement_dialogue_action(
+        world, action="revise_settlement_terms", dialogue=dialogue,
     )
 
-    assert revise["success"] is True
-    assert revise["action"] == "revise_terms"
+    # SC-2: Revise Terms is now hidden/blocked until real editor exists.
+    assert revise["success"] is False
+    assert revise["error"] == "revision_not_available"
     assert revise["mutated"] is False
-    assert world.pending_diplomatic_dialogue is None
     assert dict(world.diplomatic_states) == before_states
 
 
 def test_settlement_confirm_revalidation_blocks_changed_pair_without_mutation():
+    from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
     world = WorldState()
     war = _install_common_peace_war(world)
-    executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
     before_states = dict(world.diplomatic_states)
 
     stage_settlement_confirm(world, war_id="war_1", settlement_terms=[])
+    dialogue = world.pending_diplomatic_dialogue
     pair = war["active_diplo_keys"][0]
     war["active_diplo_keys"].remove(pair)
     war["resolved_diplo_keys"].append(pair)
     war["diplo_key_meta"][pair]["pair_status"] = "resolved"
 
-    result = executor.handle_diplomatic_dialogue_response(
-        "confirm", {"world": world},
+    # Call handler directly to bypass options gate (SC-3 may hide ratify).
+    result = handle_settlement_dialogue_action(
+        world, action="confirm_settlement", dialogue=dialogue,
     )
 
     assert result["success"] is False

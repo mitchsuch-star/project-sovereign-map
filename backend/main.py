@@ -204,6 +204,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         _include_popup_passthroughs(response, world)
     if queue_informational_notices:
         _queue_informational_diplomacy_notices(response, world)
+    notice_drain = getattr(world, "drain_settlement_draft_notices", None)
+    if callable(notice_drain):
+        draft_notices = notice_drain()
+        if draft_notices:
+            response["settlement_draft_notices"] = draft_notices
     # Notifications — persistent alerts for Godot notification bar
     if include_notifications and world.notifications.has_pending():
         response["notifications"] = world.notifications.get_pending()
@@ -1406,6 +1411,12 @@ async def respond_to_diplomatic_dialogue(request: dict):
             response["reopen_target"] = result["reopen_target"]
         if result.get("must_reopen"):
             response["must_reopen"] = result["must_reopen"]
+        if result.get("recovery_route"):
+            response["recovery_route"] = result["recovery_route"]
+        if result.get("war_detail_actionability"):
+            response["war_detail_actionability"] = result["war_detail_actionability"]
+        if result.get("terminal_recovery_copy"):
+            response["terminal_recovery_copy"] = result["terminal_recovery_copy"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
         return response
@@ -2116,6 +2127,10 @@ def get_pending_envoy():
     Session 2 follow-up: Active-item-only. If no active mailbox item
     (queued-only or non-mailbox active), returns has_pending=false with
     accurate count. GET /mailbox is the authoritative browse surface.
+
+    SC-5 / SC-7 (G2-Slice-4): never advertise `incoming_settlement_offer`
+    while incoming offers are deferred. Stale-save records of that type
+    are skipped here even if a corrupt save brought one back.
     """
     world = game_state["world"]
     dm = world.dialogue_manager
@@ -2129,6 +2144,8 @@ def get_pending_envoy():
     current = dm.peek()
     if current and current.get("type", "") in dm.SOFT_STOP_MAILBOX_TYPES:
         dtype = current.get("type", "")
+        if dtype == "incoming_settlement_offer":
+            return result
         if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
             result["has_pending"] = True
             result["dialogue_type"] = dtype
@@ -2144,14 +2161,22 @@ def get_mailbox():
     """Return ordered list of mailbox items for the inbox panel.
 
     Session 2 follow-up: Authoritative browse surface for pending diplomacy.
+
+    SC-5 / SC-7 (G2-Slice-4): defensively strip any stale-save
+    `incoming_settlement_offer` rows out of the listing so the type
+    cannot increment count, render in the panel, or be activated.
     """
     world = game_state["world"]
     dm = world.dialogue_manager
 
+    items = [
+        item for item in dm.get_mailbox_items()
+        if item.get("item_type") != "incoming_settlement_offer"
+    ]
     return {
         "success": True,
-        "items": dm.get_mailbox_items(),
-        "count": int(dm.get_mailbox_count()),
+        "items": items,
+        "count": len(items),
     }
 
 
@@ -2165,9 +2190,45 @@ def activate_mailbox_item(request: MailboxActivateRequest):
 
     Session 2 follow-up: Returns the popup-safe payload for the newly
     active item. The previously active item returns to queue.
+
+    SC-5 / SC-7 (G2-Slice-4): defensively reject activation of any
+    stale-save `incoming_settlement_offer` row with a humanized
+    `incoming_offer_deferred` error. The active slot is not mutated.
     """
     world = game_state["world"]
     dm = world.dialogue_manager
+
+    # Defensive lookup — incoming_settlement_offer is no longer mailbox-eligible,
+    # so SOFT_STOP_MAILBOX_TYPES filtering would normally hide it from
+    # `get_mailbox_items()` already. A stale-save record could still carry the
+    # mailbox_id; reject it here before any swap happens.
+    queue_snapshot = list(getattr(dm, "_queue", []) or [])
+    active_snapshot = dm.peek()
+    candidates = list(queue_snapshot)
+    if active_snapshot is not None:
+        candidates.append(active_snapshot)
+    for entry in candidates:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("mailbox_id") != request.mailbox_id:
+            continue
+        if entry.get("type") == "incoming_settlement_offer":
+            from backend.display_names import settlement_disabled_reason_display
+            return {
+                "success": False,
+                "error": "incoming_offer_deferred",
+                "error_display": settlement_disabled_reason_display(
+                    "incoming_offer_deferred"
+                ),
+                "message": settlement_disabled_reason_display(
+                    "incoming_offer_deferred"
+                ),
+                "items": [
+                    item for item in dm.get_mailbox_items()
+                    if item.get("item_type") != "incoming_settlement_offer"
+                ],
+                "count": int(dm.get_mailbox_count()),
+            }
 
     dialogue = dm.activate_mailbox_item(request.mailbox_id)
 
@@ -2176,7 +2237,10 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         return {
             "success": False,
             "message": "Item not found or activation blocked by current dialogue.",
-            "items": dm.get_mailbox_items(),
+            "items": [
+                item for item in dm.get_mailbox_items()
+                if item.get("item_type") != "incoming_settlement_offer"
+            ],
             "count": int(dm.get_mailbox_count()),
         }
 
@@ -2185,7 +2249,10 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     result = {
         "success": True,
         "dialogue_type": dtype,
-        "items": dm.get_mailbox_items(),
+        "items": [
+            item for item in dm.get_mailbox_items()
+            if item.get("item_type") != "incoming_settlement_offer"
+        ],
         "count": int(dm.get_mailbox_count()),
     }
 
@@ -2345,14 +2412,44 @@ def post_diplomatic_preview_endpoint(request: dict):
     if request.get("mode") != "settlement":
         return {"success": False, "error": "unsupported_preview_mode"}
     try:
-        from backend.game_logic.settlement_preview import build_settlement_preview
+        from backend.game_logic.settlement_preview import (
+            build_settlement_preview,
+            validate_settlement_terms,
+        )
+        actor = request.get("actor_nation") or getattr(world, "player_nation", "France")
+        terms = request.get("settlement_terms", [])
+        war_id_str = str(request.get("war_id") or "")
+        # SC-1: validate authored terms before building preview.
+        war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str) or {}
+        actor_side = None
+        for side in ("attackers", "defenders"):
+            if actor in (war_instance.get(side) or []):
+                actor_side = side
+                break
+        validation = validate_settlement_terms(
+            terms,
+            actor_nation=actor,
+            player_nation=getattr(world, "player_nation", "France"),
+            proposer_side=request.get("proposer_side"),
+            actor_side_in_war=actor_side,
+        )
+        if not validation.get("valid"):
+            return {
+                "success": False,
+                "mode": "settlement",
+                "war_id": war_id_str,
+                "error": validation.get("error"),
+                "error_index": validation.get("error_index"),
+                "disabled_reason_display": validation.get("disabled_reason_display"),
+                "mutated": False,
+            }
         return build_settlement_preview(
             world,
-            war_id=str(request.get("war_id") or ""),
+            war_id=war_id_str,
             proposer_side=request.get("proposer_side"),
-            settlement_terms=request.get("settlement_terms") or [],
+            settlement_terms=terms,
             covered_enemy_participants=request.get("covered_enemy_participants"),
-            actor_nation=request.get("actor_nation") or getattr(world, "player_nation", "France"),
+            actor_nation=actor,
             density=str(request.get("density") or "medium"),
         )
     except Exception as e:

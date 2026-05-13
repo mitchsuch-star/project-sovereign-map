@@ -14,6 +14,7 @@ from backend.models.intel import (
     FULL, PARTIAL, STALE, UNKNOWN,
     VISIBILITY_PRIORITY,
 )
+from backend.game_logic.diplomatic_templates import get_treaty_harshness_for_consumer
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
@@ -53,6 +54,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         All numeric values int()-wrapped.
     """
     from backend.game_logic.settlement_presentation import (
+        build_peace_settlement_history,
         recent_settlement_summaries,
     )
 
@@ -61,8 +63,15 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
+        # SC-23 legacy fields preserved for tests / save compatibility;
+        # `peace_settlement_history` is the merged surface that the
+        # ledger header renders. Older clients reading the legacy fields
+        # see the same data split by family.
         "recent_peace_ratifications": _build_recent_peace_ratifications(world),
         "recent_settlements": recent_settlement_summaries(
+            world, player_nation,
+        ),
+        "peace_settlement_history": build_peace_settlement_history(
             world, player_nation,
         ),
         "balance_of_europe": _build_balance_of_europe(world),
@@ -456,6 +465,12 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
             "nation_b": nation_b,
             "treaty_type": treaty_type,
             "clauses": clauses,
+            "harshness": round(
+                get_treaty_harshness_for_consumer(
+                    treaty, consumer="diplomatic_ledger",
+                ),
+                2,
+            ),
             "duration": duration,
             "cancel_cost": 1,
             "gold_per_turn": gold_per_turn_costs if gold_per_turn_costs else None,
@@ -470,7 +485,11 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
 def _build_recent_peace_ratifications(world) -> List[Dict[str, Any]]:
     """BPH-D 15.3: recent peace ratification summaries for Treaties tab."""
     recent = []
-    entries = list(getattr(world, "peace_ratification_log", []) or [])[-5:]
+    from backend.game_logic.settlement_presentation import PEACE_HISTORY_DEFAULT_ROWS
+
+    entries = list(getattr(world, "peace_ratification_log", []) or [])[
+        -PEACE_HISTORY_DEFAULT_ROWS:
+    ]
     for entry in reversed(entries):
         if entry.get("new_state", "PEACE") != "PEACE":
             continue

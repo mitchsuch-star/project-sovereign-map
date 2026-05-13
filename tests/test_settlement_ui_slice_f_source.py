@@ -35,19 +35,32 @@ def test_diplomacy_wizard_maps_open_settlement_without_cost_label() -> None:
 
 
 def test_settlement_confirm_uses_review_payload_and_humanized_fields() -> None:
+    """SC-5 / G2-Slice-4 inversion: the popup match arm now keys only on
+    `settlement_confirm` while incoming offers are deferred-and-hidden;
+    the legacy combined `"settlement_confirm", "incoming_settlement_offer"`
+    arm is intentionally absent."""
     source = read_repo_file(
         "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd"
     )
 
-    assert '"settlement_confirm", "incoming_settlement_offer"' in source
+    # Combined arm removed by SC-5; lone `"settlement_confirm":` arm remains.
+    assert '"settlement_confirm", "incoming_settlement_offer"' not in source
+    assert '"settlement_confirm":' in source
     assert "review_sections" in source
     assert "covered_enemy_display_chips" in source
     assert "standing_display" in source
     assert "display_label" in source
     assert "code_display" in source
     assert "band_display" in source
-    assert "Will %s accept this settlement?" in source
-    assert "Settlement payload incomplete" in source
+    # SC-19 (G2-Slice-5) inversion: the hard-coded "Will %s accept
+    # this settlement?" heading is gone; the popup now reads the
+    # backend-resolved settlement voice line from `talleyrand_text`.
+    assert "Will %s accept this settlement?" not in source
+    assert 'data.get("talleyrand_text"' in source
+    # SC-17 inversion: the developer "Settlement payload incomplete"
+    # text is replaced with humanized recovery copy.
+    assert "Settlement payload incomplete" not in source
+    assert "We could not prepare this settlement review" in source
     assert 'data.get("actions"' not in source
 
 
@@ -96,7 +109,7 @@ def test_backend_confirm_payload_carries_review_and_reopen_contract() -> None:
     assert "build_settlement_review" in preview
     assert '"review_sections"' in preview
     assert '"Ratify Settlement"' in preview
-    assert '"debug_action_ids"' in preview
+    assert '"available_action_ids"' in preview
     assert '"actions": ["confirm_settlement"' not in preview
     assert '"reopen_target"' in preview
     assert '"review_route"' in preview
@@ -127,16 +140,26 @@ def test_backend_humanization_and_incoming_offer_contracts_are_pinned() -> None:
 
 
 def test_route_id_uses_event_format_consistently() -> None:
-    """Spec §11.6: dialogue and event side share `{war_id}:{turn}` so the
-    diplomatic-ledger focus highlight pin works without a war_id fallback."""
+    """G2-Slice-3 SC-14c inversion: settlement route ids use the
+    `settlement:{war_id}:{turn}:{seq}` namespace, minted from
+    `mint_settlement_route_id(...)`. The reaction event consumes the
+    staged value verbatim instead of recomputing."""
     preview = read_repo_file("backend/game_logic/settlement_preview.py")
     reactions = read_repo_file("backend/game_logic/settlement_reactions.py")
 
-    # Dialogue side must NOT prefix `settlement_summary:`.
+    # Legacy `settlement_summary:` prefix must remain absent.
     assert 'f"settlement_summary:{war_id}' not in preview
-    # Both sides must produce the same `{war_id}:{turn}` shape.
-    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' in preview
-    assert 'f"{war_id}:{turn}"' in reactions
+    # Legacy `{war_id}:{turn}` route id literal MUST NOT regress.
+    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' \
+        not in preview
+    assert 'f"{war_id}:{turn}"' not in reactions
+    # New SC-14c surface: route id minting + namespace constant.
+    assert "mint_settlement_route_id" in preview
+    assert 'SETTLEMENT_ROUTE_NAMESPACE = "settlement"' in preview
+    # Reaction emitters consume the staged route id and only fall back to
+    # `mint_settlement_route_id` when no staged id was supplied.
+    assert "staged_route_id" in reactions
+    assert "mint_settlement_route_id" in reactions
 
 
 def test_settlement_review_emits_uncovered_chips_and_side_labels() -> None:
@@ -167,6 +190,18 @@ def test_main_gd_handles_must_reopen_and_auto_opens_ledger() -> None:
     # forwards war_id to the backend.
     assert "_on_wizard_structured_command_selected" in main
     assert "structured_command_selected" in main
+
+
+def test_main_gd_routes_open_war_detail_recovery_without_command_fallback() -> None:
+    main = read_repo_file("godot-client/project-sovereign/scripts/main.gd")
+
+    assert '"open_war_detail"' in main
+    assert 'response.has("recovery_route")' in main
+    assert "_route_settlement_recovery_route(response.recovery_route)" in main
+    recovery_block = main.split("func _route_settlement_recovery_route", 1)[1]
+    recovery_block = recovery_block.split("func _on_coalition_header_clicked", 1)[0]
+    assert "war_detail_popup.show_war(war_data, _cached_coalition_data)" in recovery_block
+    assert "send_command" not in recovery_block
 
 
 def test_settlement_dialogue_actions_never_fallback_to_command_synthesis() -> None:

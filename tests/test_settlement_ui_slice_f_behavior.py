@@ -210,76 +210,99 @@ def _stage_offer_dialogue(world: WorldState, war_id: str = "war_1") -> dict:
     return dialogue
 
 
-def test_handle_incoming_offer_reject_pops_dialogue_no_mutation():
+def test_handle_incoming_offer_reject_returns_deferred_without_pop():
+    """SC-5 / G2-Slice-4 inversion: while incoming offers are deferred,
+    `reject_settlement_offer` must short-circuit without popping the
+    active dialogue, mutating state, or staging a settlement_confirm."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world)
+    snapshot = world.pending_diplomatic_dialogue
 
     result = handle_incoming_settlement_offer_action(
         world, action="reject_settlement_offer", dialogue=dialogue,
     )
 
-    assert result["success"] is True
-    assert result["action"] == "reject_settlement_offer"
+    assert result["success"] is False
+    assert result["error"] == "incoming_offer_deferred"
+    assert result["error_display"] == settlement_disabled_reason_display(
+        "incoming_offer_deferred"
+    )
     assert result["mutated"] is False
-    assert result["suppress_proposal_result_popup"] is True
-    assert world.pending_diplomatic_dialogue is None
+    assert result["must_reopen"] is False
+    # Dialogue is NOT popped — defensive guard leaves world state untouched.
+    assert world.pending_diplomatic_dialogue is snapshot
 
 
-def test_handle_incoming_offer_revise_signals_must_reopen():
+def test_handle_incoming_offer_revise_returns_deferred_without_pop():
+    """SC-5 / G2-Slice-4 inversion: `request_settlement_revision` is also
+    a deferred no-op while incoming offers are hidden."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world)
+    snapshot = world.pending_diplomatic_dialogue
 
     result = handle_incoming_settlement_offer_action(
         world, action="request_settlement_revision", dialogue=dialogue,
     )
 
-    assert result["success"] is True
-    assert result["must_reopen"] is True
-    assert result["reopen_target"]["war_id"] == "war_1"
-    # First covered enemy is Austria.
-    assert result["reopen_target"]["target_nation"] == "Austria"
-    assert result["reopen_target"]["surface"] == "settlement_review"
-    assert world.pending_diplomatic_dialogue is None
+    assert result["success"] is False
+    assert result["error"] == "incoming_offer_deferred"
+    assert result["must_reopen"] is False
+    assert result["mutated"] is False
+    assert world.pending_diplomatic_dialogue is snapshot
 
 
-def test_handle_incoming_offer_accept_restages_settlement_confirm():
+def test_handle_incoming_offer_accept_returns_deferred_without_stage():
+    """SC-5 / SC-6 / G2-Slice-4 inversion: `accept_settlement_offer` must
+    NOT stage a fresh `settlement_confirm` (no package preservation work
+    runs while offers are deferred). The offer dialogue is left in place
+    so the player cannot interact with the deferred surface at all."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world)
-
-    result = handle_incoming_settlement_offer_action(
-        world, action="accept_settlement_offer", dialogue=dialogue,
-    )
-
-    assert result["success"] is True
-    assert result["dialogue_type"] == "settlement_confirm"
-    # The mailbox dialogue is gone, replaced by a fresh settlement_confirm.
-    current = world.pending_diplomatic_dialogue
-    assert current is not None
-    assert current["type"] == "settlement_confirm"
-    assert current["war_id"] == "war_1"
-
-
-def test_handle_incoming_offer_accept_with_empty_war_id_signals_must_reopen():
-    world = WorldState()
-    _install_war(world)
-    dialogue = _stage_offer_dialogue(world, war_id="")
+    snapshot = world.pending_diplomatic_dialogue
 
     result = handle_incoming_settlement_offer_action(
         world, action="accept_settlement_offer", dialogue=dialogue,
     )
 
     assert result["success"] is False
-    assert result["must_reopen"] is True
-    assert result["error"] == "invalid_war_id"
-    assert result["error_display"] == settlement_disabled_reason_display(
-        "invalid_war_id"
+    assert result["error"] == "incoming_offer_deferred"
+    assert result["mutated"] is False
+    # The mailbox dialogue is unchanged — no settlement_confirm staged.
+    current = world.pending_diplomatic_dialogue
+    assert current is snapshot
+    assert current["type"] == "incoming_settlement_offer"
+
+
+def test_handle_incoming_offer_accept_with_empty_war_id_returns_deferred():
+    """SC-5 / G2-Slice-4 inversion: deferral takes precedence over the
+    SC-7b empty-war_id branch. The handler short-circuits before touching
+    dialogue state regardless of `war_id` validity."""
+    world = WorldState()
+    _install_war(world)
+    dialogue = _stage_offer_dialogue(world, war_id="")
+    snapshot = world.pending_diplomatic_dialogue
+
+    result = handle_incoming_settlement_offer_action(
+        world, action="accept_settlement_offer", dialogue=dialogue,
     )
 
+    assert result["success"] is False
+    assert result["error"] == "incoming_offer_deferred"
+    assert result["error_display"] == settlement_disabled_reason_display(
+        "incoming_offer_deferred"
+    )
+    assert result["must_reopen"] is False
+    assert result["mutated"] is False
+    assert world.pending_diplomatic_dialogue is snapshot
 
-def test_handle_incoming_offer_unknown_action_returns_error():
+
+def test_handle_incoming_offer_unknown_action_returns_deferred():
+    """SC-5 / G2-Slice-4 inversion: unknown offer actions also short-circuit
+    on deferral. Without the deferral guard, a typo could otherwise pop or
+    surface a generic error."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world)
@@ -289,7 +312,7 @@ def test_handle_incoming_offer_unknown_action_returns_error():
     )
 
     assert result["success"] is False
-    assert result["error"] == "unknown_settlement_offer_action"
+    assert result["error"] == "incoming_offer_deferred"
     assert result["mutated"] is False
 
 
@@ -624,9 +647,11 @@ def test_settlement_review_emits_no_uncovered_chips_for_whole_war_settlement():
 
 
 def test_confirm_dialogue_route_id_matches_event_format():
-    """The dialogue's route_id must be `{war_id}:{turn}` so that the
-    event-side route_id from `_emit_settlement_summary_event` and the
-    diplomatic-ledger focus highlight share one identifier."""
+    """G2-Slice-3 SC-14c inversion: the dialogue's route_id must use the
+    `settlement:{war_id}:{turn}:{seq}` format so two same-turn settlement
+    events for one war can share a `(war_id, turn)` window without
+    colliding on the `seq` counter. The event side reads the staged value
+    verbatim instead of recomputing."""
     world = WorldState()
     _install_war(world)
     world.current_turn = 7
@@ -634,10 +659,16 @@ def test_confirm_dialogue_route_id_matches_event_format():
     preview = build_settlement_preview(world, war_id="war_1")
     dialogue = build_settlement_confirm_dialogue(world, preview)
 
-    assert dialogue["route_id"] == "war_1:7"
-    # Prefix-style route_ids must NOT be re-introduced.
+    assert dialogue["route_id"] == "settlement:war_1:7:1"
+    assert dialogue["route_id"].startswith("settlement:")
+    # The legacy `{war_id}:{turn}` format must not be re-introduced.
+    assert dialogue["route_id"] != "war_1:7"
+    # Prefix-style route_ids from earlier drafts must NOT be re-introduced.
     assert "settlement_summary:" not in dialogue["route_id"]
-    assert dialogue["route"]["route_id"] == "war_1:7"
+    assert dialogue["route"]["route_id"] == "settlement:war_1:7:1"
+
+    next_dialogue = build_settlement_confirm_dialogue(world, preview)
+    assert next_dialogue["route_id"] == "settlement:war_1:7:2"
 
 
 def test_confirm_dialogue_carries_uncovered_chips_for_popup():

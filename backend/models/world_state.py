@@ -10,6 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 import copy  # noqa: F401 - used in to_dict() for deepcopy
+import os
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
@@ -56,6 +57,12 @@ DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     },
     "anti_renewal_window_turns": 15,
 }
+
+SMOKE_START_ENV = "SOVEREIGN_SMOKE_START"
+SMOKE_START_SETTLEMENT_MULTILATERAL = "settlement_multilateral"
+SMOKE_START_SETTLEMENT_REJECTED = "settlement_rejected"
+SMOKE_START_SETTLEMENT_LOSING = "settlement_losing"
+SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY = "settlement_multiwar_ambiguity"
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -683,6 +690,20 @@ class WorldState:
         # and separate from bilateral AI proposal cooldowns.
         self.pending_settlement_dialogues: List[Dict[str, Any]] = []
         self.ai_settlement_cooldowns: Dict[str, int] = {}
+        # Settlement UI Cleanup Spec G2-Slice-1: unratified draft storage
+        # keyed by war_id. Persists within a turn; discarded on turn end.
+        self.pending_settlement_drafts: Dict[str, List[Dict[str, Any]]] = {}
+        # Settlement UI Cleanup SC-28: one-shot notices for drafts discarded
+        # by turn advance / recovery invalidation. Drained at response render.
+        self.pending_settlement_draft_notices: List[Dict[str, Any]] = []
+        # Per-turn monotonic sequence for unique route ids.
+        # Shape: {war_id: {turn: last_seq}}
+        self.settlement_route_seq: Dict[str, Dict[int, int]] = {}
+        # G2-Slice-3 SC-14b: stale-recovery reopen attempt counter keyed
+        # by (war_id, turn). Reset every turn so a new turn legitimately
+        # restores the SC-14b player escape.
+        # Shape: {war_id: {turn: attempt_count}}
+        self.settlement_reopen_attempts: Dict[str, Dict[int, int]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -701,6 +722,8 @@ class WorldState:
         # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
         self.diplomatic_trust_applied: Dict[str, int] = {}
 
+        self._apply_smoke_start_preset()
+
         # R9: Build marshal-by-region index before visibility calc uses it
         self._build_marshal_index()
 
@@ -714,6 +737,180 @@ class WorldState:
         # does not stage inherited 1805 conditions as a fresh beat. Must
         # run AFTER _setup_initial_control() (already run above).
         self._bootstrap_hegemony_signal_state()
+
+    def _apply_smoke_start_preset(self) -> None:
+        """Apply opt-in dev-only startup presets."""
+        preset = os.environ.get(SMOKE_START_ENV)
+        if preset == SMOKE_START_SETTLEMENT_MULTILATERAL:
+            self._seed_settlement_multilateral_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_REJECTED:
+            self._seed_settlement_rejected_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_LOSING:
+            self._seed_settlement_losing_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY:
+            self._seed_settlement_multiwar_ambiguity_smoke_start()
+
+    def _seed_settlement_multilateral_smoke_start(self) -> None:
+        """Seed France vs Britain + Prussia for settlement UI smoke tests."""
+        from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+
+        first = ensure_war_instance_for_pair(
+            self,
+            "France",
+            "Britain",
+            entry_path="smoke_start_settlement_multilateral",
+            root_episode_id="smoke_start_settlement_multilateral_Britain_France",
+            reason="settlement_multilateral_smoke_start",
+        )
+        if not first.get("ok"):
+            raise RuntimeError(
+                "failed to seed settlement smoke war: "
+                f"{first.get('error') or first}"
+            )
+
+        second = ensure_war_instance_for_pair(
+            self,
+            "France",
+            "Prussia",
+            entry_path="smoke_start_settlement_multilateral",
+            root_episode_id="smoke_start_settlement_multilateral_France_Prussia",
+            reason="settlement_multilateral_smoke_start",
+        )
+        if not second.get("ok"):
+            raise RuntimeError(
+                "failed to attach Prussia to settlement smoke war: "
+                f"{second.get('error') or second}"
+            )
+        self._seed_settlement_multilateral_smoke_pressure()
+
+    def _seed_settlement_multilateral_smoke_pressure(self) -> None:
+        """Give the smoke war enough pressure for default settlement ratification."""
+        from backend.game_logic.diplomacy import calculate_war_score
+
+        for opponent, location in (("Britain", "Waterloo"), ("Prussia", "Rhineland")):
+            pair = self._make_diplo_key("France", opponent)
+            self.war_start_turns[pair] = 1
+            self.battle_records[pair] = [
+                {
+                    "turn": 1,
+                    "winner": "France",
+                    "attacker": "France",
+                    "defender": opponent,
+                    "attacker_casualties": 1000,
+                    "defender_casualties": 2500,
+                    "location": location,
+                }
+                for _ in range(10)
+            ]
+            self.decisive_battles[pair] = [
+                {"turn": 1, "winner": "France", "location": location}
+                for _ in range(2)
+            ]
+            live_score = int(calculate_war_score("France", opponent, self))
+            pair_parts = pair.split("|")
+            self.war_scores[pair] = (
+                -live_score if pair_parts[0] != "France" else live_score
+            )
+            self.previous_war_scores[pair] = int(self.war_scores[pair])
+            self.war_score_history[pair] = [int(self.war_scores[pair])]
+        self.war_exhaustion["Britain"] = 60
+        self.war_exhaustion["Prussia"] = 35
+
+    def _set_smoke_war_pressure(
+        self,
+        *,
+        france_score: int,
+        enemy_exhaustion: int,
+        battle_winner: str,
+    ) -> None:
+        """Set deterministic pressure for settlement smoke presets."""
+        for opponent, location in (("Britain", "Waterloo"), ("Prussia", "Rhineland")):
+            winner = opponent if battle_winner == "enemy" else battle_winner
+            pair = self._make_diplo_key("France", opponent)
+            self.war_start_turns[pair] = 1
+            self.battle_records[pair] = [
+                {
+                    "turn": 1,
+                    "winner": winner,
+                    "attacker": "France",
+                    "defender": opponent,
+                    "attacker_casualties": 3500 if winner == opponent else 1000,
+                    "defender_casualties": 1000 if winner == opponent else 3500,
+                    "location": location,
+                }
+                for _ in range(8)
+            ]
+            self.decisive_battles[pair] = [
+                {"turn": 1, "winner": winner, "location": location}
+                for _ in range(2)
+            ]
+            parts = pair.split("|")
+            self.war_scores[pair] = (
+                france_score if parts[0] == "France" else -france_score
+            )
+            self.previous_war_scores[pair] = int(self.war_scores[pair])
+            self.war_score_history[pair] = [int(self.war_scores[pair])]
+            self.war_exhaustion[opponent] = int(enemy_exhaustion)
+
+    def _seed_settlement_rejected_smoke_start(self) -> None:
+        """Seed a shared war whose default settlement review is rejected."""
+        self._seed_settlement_multilateral_smoke_start()
+        self._set_smoke_war_pressure(
+            france_score=-70,
+            enemy_exhaustion=5,
+            battle_winner="enemy",
+        )
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_REJECTED,
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+        }
+
+    def _seed_settlement_losing_smoke_start(self) -> None:
+        """Seed a losing-side fixture with a concrete concession region."""
+        self._seed_settlement_multilateral_smoke_start()
+        self._set_smoke_war_pressure(
+            france_score=-85,
+            enemy_exhaustion=0,
+            battle_winner="enemy",
+        )
+        self.nation_gold["France"] = max(int(self.nation_gold.get("France", 0)), 1500)
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_LOSING,
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+            "concession_region": "Belgium",
+            "minimum_france_gold": 1500,
+        }
+
+    def _seed_settlement_multiwar_ambiguity_smoke_start(self) -> None:
+        """Seed multiple active France wars for wizard ambiguity smoke."""
+        from backend.game_logic.settlement_helpers import _create_skeleton_instance
+
+        for opponent in ("Britain", "Austria", "Prussia"):
+            instance = _create_skeleton_instance(
+                self,
+                "France",
+                opponent,
+                entry_path="smoke_start_settlement_multiwar_ambiguity",
+                root_episode_id=f"smoke_start_settlement_multiwar_ambiguity_France_{opponent}",
+            )
+            for pair in instance.get("active_diplo_keys", []):
+                self.diplomatic_states[pair] = "WAR"
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY,
+            "war_ids": sorted((self.war_instances or {}).keys()),
+        }
+
+    def drain_settlement_draft_notices(self) -> List[Dict[str, Any]]:
+        """Return and clear one-shot settlement draft discard notices."""
+        notices = [
+            copy.deepcopy(entry)
+            for entry in getattr(self, "pending_settlement_draft_notices", [])
+            if isinstance(entry, dict)
+        ]
+        self.pending_settlement_draft_notices = []
+        return notices
 
     def _bootstrap_hegemony_signal_state(self) -> None:
         """Seed `hegemony_signal_high_water` + `hegemony_signal_hegemon` from
@@ -3812,6 +4009,23 @@ class WorldState:
                 str(war_id): int(turn)
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
+            "pending_settlement_drafts": {
+                str(wid): [copy.deepcopy(c) for c in clauses]
+                for wid, clauses in self.pending_settlement_drafts.items()
+            },
+            "pending_settlement_draft_notices": [
+                copy.deepcopy(entry)
+                for entry in self.pending_settlement_draft_notices
+                if isinstance(entry, dict)
+            ],
+            "settlement_route_seq": {
+                str(wid): {int(t): int(s) for t, s in turns.items()}
+                for wid, turns in self.settlement_route_seq.items()
+            },
+            "settlement_reopen_attempts": {
+                str(wid): {int(t): int(c) for t, c in turns.items()}
+                for wid, turns in self.settlement_reopen_attempts.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
             # memories per (actor, subject) pair. Stored as plain dicts so
@@ -4276,6 +4490,23 @@ class WorldState:
         world.ai_settlement_cooldowns = {
             str(war_id): int(turn)
             for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
+        }
+        world.pending_settlement_drafts = {
+            str(wid): [copy.deepcopy(c) for c in clauses if isinstance(c, dict)]
+            for wid, clauses in (data.get("pending_settlement_drafts") or {}).items()
+        }
+        world.pending_settlement_draft_notices = [
+            copy.deepcopy(entry)
+            for entry in (data.get("pending_settlement_draft_notices") or [])
+            if isinstance(entry, dict)
+        ]
+        world.settlement_route_seq = {
+            str(wid): {int(t): int(s) for t, s in (turns or {}).items()}
+            for wid, turns in (data.get("settlement_route_seq") or {}).items()
+        }
+        world.settlement_reopen_attempts = {
+            str(wid): {int(t): int(c) for t, c in (turns or {}).items()}
+            for wid, turns in (data.get("settlement_reopen_attempts") or {}).items()
         }
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
@@ -4925,6 +5156,34 @@ class WorldState:
             # Reinforcement - reset reinforced flag for new turn
             marshal.reinforced_this_turn = False
 
+        # G2-Slice-1 / SC-28: discard unratified settlement drafts at turn
+        # end and leave a one-shot player signal instead of silently losing
+        # authored clauses.
+        discarded_settlement_drafts = getattr(self, "pending_settlement_drafts", {}) or {}
+        if discarded_settlement_drafts:
+            notices = getattr(self, "pending_settlement_draft_notices", None)
+            if notices is None:
+                self.pending_settlement_draft_notices = []
+                notices = self.pending_settlement_draft_notices
+            for wid, clauses in discarded_settlement_drafts.items():
+                clause_count = len(clauses or [])
+                if clause_count <= 0:
+                    continue
+                notices.append({
+                    "war_id": str(wid),
+                    "turn_discarded": int(self.current_turn),
+                    "draft_clause_count": int(clause_count),
+                    "selected_target_nation": "",
+                    "message_display": (
+                        "Unratified settlement draft discarded at turn end."
+                    ),
+                })
+        self.pending_settlement_drafts = {}
+        # G2-Slice-3 SC-14b: per-turn reset of reopen attempts so the
+        # SC-14b player escape is restored each turn (a new turn can
+        # legitimately change war eligibility / acceptance / hard stops).
+        self.settlement_reopen_attempts = {}
+
         # N7: Snapshot relation values BEFORE diplomatic processing changes them
         for dk, rel_val in self.nation_relations.items():
             if dk not in self.relation_history:
@@ -5067,24 +5326,8 @@ class WorldState:
         if self.pending_talleyrand_sabotage and not self.pending_talleyrand_sabotage.get("discovered"):
             self.pending_talleyrand_sabotage["turns_hidden"] = self.pending_talleyrand_sabotage.get("turns_hidden", 0) + 1
 
-        # ════════════════════════════════════════════════════════════
-        # VASSAL PROCESSING (Phase 8 Session 5, §7f steps 5-7)
-        # Step 5: Defection cascade check (war_score < -30)
-        # Step 6: Loyalty processing (drift + modifiers)
-        # Step 7: Rebellion check (loyalty = 0)
-        # ════════════════════════════════════════════════════════════
-        if self.vassals:
-            from backend.game_logic.vassal import (
-                check_defection_cascade, process_vassal_loyalty,
-                check_vassal_rebellion, decrement_vassal_cooldowns
-            )
-            cascade_events = check_defection_cascade(self)
-            tactical_events.extend(cascade_events)
-            loyalty_events = process_vassal_loyalty(self)
-            tactical_events.extend(loyalty_events)
-            rebellion_events = check_vassal_rebellion(self)
-            tactical_events.extend(rebellion_events)
-            decrement_vassal_cooldowns(self)
+        # Vassal defection, loyalty, rebellion, and cooldown processing run
+        # inside process_diplomacy_turn so rebellion precedes armistice expiry.
 
         # Clear battle tracking AFTER vassal loyalty processing reads it (Fix 3)
         self.clear_turn_battles()

@@ -515,7 +515,7 @@ Floor:    0.02 (Schemer minimum — Talleyrand is NEVER fully tamed)
 
 **Schemer minimum (E4 fix):** Unlike combat marshals (who CAN reach 0% defiance), Talleyrand always has a 2% baseline. This is the Schemer personality expressing itself — he's the greatest diplomat of his era and always reserves the right to "adjust" your proposals. A player who maxes authority AND trust still faces a 1-in-50 chance of sabotage. This prevents the exploit of trivially neutralizing defiance through high stats.
 
-**E7 DEFERRED — Defiance floor redesign:** The audit recommended considering raising the floor to 5% for more gameplay visibility. This decision is deferred to the next design session. The defiance system should align with the Building Blocks principle — diplomatic defiance should mirror the combat defiance pattern (V2b) in its probability structure. A comprehensive review of the Schemer minimum floor, the probability curve, and how it integrates with the objection system (V2a pattern) will be conducted before implementation. For now, 2% remains the spec value.
+**E7 defiance floor redesign (`DWL-DIP-E7`):** The audit recommended considering raising the floor to 5% for more gameplay visibility. This is an `ACTIVE_DEFERRED` balance decision owned by the Deferred Work Landing Ledger in `STATUS.md`, not an unowned next-design-session placeholder. The Pre-8.5 War LLM + Diplomacy Refinement Evaluation must decide whether to keep 2%, raise to 5%, retune the curve, or remove the follow-up; implementation requires formula docs, Talleyrand defiance tests, and balance notes. For now, 2% remains the spec value.
 
 **Example scenarios:**
 - Authority 85, Trust 75: 0.05 - 0.05 - 0.05 = -0.05 → Floor 0.02 (2% — Schemer minimum)
@@ -744,9 +744,9 @@ Diplomatic states can degrade without jumping to WAR. Downgrades follow reverse 
 - **Treaty-break triggered:** Breaking specific treaty clauses may force a downgrade (e.g., violating open borders = OPEN_BORDERS → PEACE).
 - **Automatic decay:** Relations that remain 30+ points below the state's relation threshold for 5 consecutive turns trigger automatic downgrade with reduced penalties (half relation hit, no threat). Morning Dispatch warns 2 turns before auto-downgrade: "Talleyrand warns: our alliance with Austria is deteriorating."
 
-#### 5b.2. Armistice Cooldown
+#### 5b.2. Armistice Minimum and Cooldown
 
-After an armistice expires or is broken, the same nation pair cannot enter another armistice for **5 turns** (prevents armistice-chaining exploit). Tracked per nation-pair in `armistice_cooldowns`. War must continue or peace must be negotiated.
+An armistice has a **5-turn minimum duration**. In v0.1, `armistice_cooldowns` tracks that active minimum-duration lock for the nation pair and is cleared when the pair leaves ARMISTICE. There is no separate post-expiration or post-break re-entry cooldown in the live contract; if a later phase wants that exploit guard, add a distinct `armistice_reentry_cooldowns` field plus save/load, preview, and expiry tests instead of reusing `armistice_cooldowns`.
 
 **Transition costs (proposer):**
 
@@ -973,14 +973,12 @@ political_subtotal_clamped = max(-60, political_subtotal_raw)
 - `bilateral_betrayal_mod`: `-6` per active victim-side betrayal strike.
 - `grievance_modifier`: `-30` per active durable grievance, capped at 3 contributing grievances per pair.
 - `bargain_conflict_penalty`: `-8` when a live war bargain targets the nation or contested territory.
-- `bargain_value_mod`: `+10` / `+15` / `+25` when a proposal fulfills the appropriate war-bargain value band.
+- `bargain_value_mod`: `+10` / `+15` when an ordinary treaty proposal fulfills the appropriate war-bargain value band. The `+25` live-bargain bonus belongs only to dedicated war-entry / ally-entry scoring, not to the ordinary `calculate_acceptance()` political subtotal.
 - `composite_floor`: synthetic debug row shown when the raw political subtotal is clamped to `-60`.
 
 Threat pressure is not a standalone acceptance component in live code. Coalition threat and hegemony pressure affect diplomacy through their owning systems and through `hegemony_target_mod`.
 
-**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is the authoritative source for `settlement_gratitude_mod`. When Ally Participation / Common Peace lands, it is an optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France; that memory is created only by a current-episode material contribution reward. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, and refreshes rather than stacks.
-
-**Implementation status:** `settlement_gratitude_mod` is pending Imperial Settlement Slice D1. Until that slice lands, live `calculate_acceptance()` behaves as if this component is `0` and may omit it from debug output; Slice D1 must add the live component, proposal-preview row, and regression coverage.
+**Imperial Settlement amendment:** `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` is the authoritative source for `settlement_gratitude_mod`. It is a live optional positive `+5` component for eligible later deep-treaty, war-entry, and war-bargain / ally-entry proposals to an ally that has an active `settlement_gratitude` memory from France; that memory is created only by a current-episode material contribution reward. It is added outside `political_subtotal_clamped`, cannot bypass hard posture gates or political floors, defaults to `0` when no qualifying memory exists, refreshes rather than stacks, and is exposed in live acceptance debug/components.
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
@@ -1420,6 +1418,8 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 
 This order ensures: DP is available before mission deduction, war score is fresh before cascade checks, loyalty is processed before rebellion, threat is fresh before coalition checks (decay applies BEFORE threshold — see COALITION_SPEC §3c), and income is calculated with current diplomatic states.
 
+Implementation note: `backend/game_logic/diplomacy.py::process_diplomacy_turn()` owns steps 1-9 plus forced-alliance drift, automatic downgrade, bargain lifecycle, reliability, and authority cleanup. Vassal steps 5-7 intentionally run inside that function before armistice expiration and diplomatic normalization; `WorldState._advance_turn_internal()` clears battle tracking afterward so vassal loyalty can still read this turn's battle records.
+
 ---
 
 ## §8. Vassal System
@@ -1537,8 +1537,9 @@ After conquering enemy regions, France can **carve new vassal entities** from th
 ```
 "Talleyrand, carve a vassal from Rhineland"              → Auto-named "Duchy of Rhineland"
 "Talleyrand, create vassal from Rhineland, Bavaria"       → Multi-region carved vassal
-"Talleyrand, rename Duchy of Rhineland to Confederation"  → Player rename (polish feature)
 ```
+
+Player rename commands are not active scope. The old rename example is `REMOVED` in `STATUS.md` (`DWL-DIP-RENAME`) until a future naming/customization spec owns a real editor surface and behavior tests.
 
 **What a carved vassal IS:**
 - A territory + tribute source + buffer zone + rebellion risk
@@ -1706,9 +1707,9 @@ Counter-offers are free for the AI (same as player — responding costs 0 DP). T
 
 ### 9c. AI-AI Diplomacy
 
-> **DEFERRED TO SESSION 8 (Ledger UI + Polish).** AI-AI diplomacy is not part of the Walking Skeleton. The core experience works without it — nations only interact with the player in Sessions 1-6. AI-AI diplomacy adds immersion but is not mechanically required. The system described below is the target design for Session 8.
+> **Historical deferral note (`DWL-DIP-AIAI`):** AI-AI diplomacy was once deferred to Session 8, but the current codebase has landed `process_ai_ai_diplomatic_phase`, AI-AI treaty state changes, dispatch, fog visibility, and campaign-log routing. Treat the design below as current mechanics/reference, not as an active deferral. Richer AI agenda behavior belongs to a future Pre-8.5 evaluation row if reopened.
 >
-> **Impact of deferral:** The world feels less alive without AI-AI diplomacy. Alliance shifts between AI nations won't happen dynamically. The player won't see "Britain and Austria have signed a defensive alliance" events. This is acceptable for initial playtesting — the player's own diplomatic choices are the priority.
+> **Current impact:** no active AI-AI diplomacy deferral remains in this spec; future changes must get a new ledger row instead of reviving the old Session 8 placeholder.
 
 Nations negotiate with each other automatically. This makes the world feel alive.
 
@@ -2111,7 +2112,7 @@ self.ai_proposal_cooldowns: Dict[str, int] = {}
 # Player proposal cooldowns (M4): {"nation": turns_remaining, "nation|type": turns_remaining}
 self.player_proposal_cooldowns: Dict[str, int] = {}
 
-# Armistice cooldowns (E1): {"nation_a|nation_b": turns_remaining}
+# Armistice minimum-duration lock (E1): {"nation_a|nation_b": turns_remaining while in ARMISTICE}
 self.armistice_cooldowns: Dict[str, int] = {}
 
 # Threat level (France-specific, CLAMPED 0-100 — cannot go negative)
@@ -2401,7 +2402,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 *Economy:*
 - Starting economy for all 5 nations per §1d region income
 - **British naval income:** Wire +300 gold/turn flat bonus in `calculate_turn_income()`. This is base economy, not diplomacy. Britain runs a massive deficit without it (3 continental regions = 200 income vs 380 upkeep).
-- **Trade income: DEFERRED to Session 2.** The §1d trade income breakdown (France +150, Britain +400, etc.) requires diplomatic state mechanics to calculate. Session 1B economy will be lower than the §1d "Net/Turn" column until trade is wired. Add comment in code and STATUS.md.
+- **Trade income (`DWL-DIP-TRADE`): LANDED.** This Session 1B note is historical. Diplomatic-state trade income is now wired during the income phase and specified in §7e; use the ledger row in `STATUS.md` for routing instead of treating this as active deferred work.
 
 *Minimal diplomatic data (required for AI safety):*
 - Add `diplomatic_states: Dict[str, str]` to WorldState per §13 — key format `"NationA|NationB"` (alphabetical order). Pre-populated from §1e (10 nation pairs). Example: `{"Austria|France": "PEACE", "Britain|France": "WAR", "France|Saxony": "OPEN_BORDERS", ...}`.
@@ -2581,32 +2582,22 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - DP cost display in dialogue options
 - Ledger cross-references from dialogue
 
-**Scope (deferred mechanical items — DD7):**
+**Scope (historical deferred mechanical items - current statuses in `STATUS.md` Deferred Work Landing Ledger):**
 
-| Deferred Item | Why Deferred | Gameplay Impact |
+| Item | Current status | Ledger ID |
 |---|---|---|
-| AI-AI diplomacy (§9c) | Not required for player-facing diplomacy loop | World feels less alive, but all player interactions work |
-| Full Continental System | Economic warfare is flavor, not core combat loop | Minor diplomatic tool missing |
-| Fog-filtered diplomatic intel | Existing fog system works; diplomatic fog is polish | Player sees slightly more diplomatic info than intended |
-| Campaign log diplomatic events | Campaign log works; diplomatic entries are display-only | Diplomatic events don't appear in campaign log history |
-| Special acceptance bonuses (§6d) | Generic formula works for all proposals | Nation-specific desires not reflected |
-| Metternich armed mediation (DD8-3) | Schemer-specific AI polish | Metternich doesn't gain coalition bonus |
+| AI-AI diplomacy (§9c) | LANDED | `DWL-DIP-AIAI` |
+| Full Continental System | LANDED | `DWL-DIP-CONTINENTAL` |
+| Fog-filtered diplomatic intel | LANDED | `DWL-DIP-FOGINTEL` |
+| Campaign log diplomatic events | LANDED | `DWL-DIP-CAMPAIGNLOG` |
+| Special acceptance bonuses (§6d) | LANDED | `DWL-DIP-SPECIALBONUS` |
+| Metternich armed mediation (DD8-3) | ACTIVE_DEFERRED for Pre-8.5 evaluation | `DWL-DIP-METTERNICH` |
 
-**Estimated tests:** ~45
+**Historical estimate:** ~45 tests. Do not route work from this table; use the ledger row and current STATUS gate.
 
-### What Can Be Deferred
+### Historical deferral snapshot
 
-| Feature | Impact of Deferral |
-|---------|-------------------|
-| AI-AI diplomacy | Medium — world feels less alive, but player-facing diplomacy works |
-| Continental System | Low — economic warfare is flavor, not core |
-| Vassal courting | Low — can add after vassal system is stable |
-| Talleyrand defiance | Medium — core diplomatic flow works without sabotage layer |
-| Counter-offers | Low — accept/reject is sufficient for v1 |
-| Special acceptance bonuses (§6d) | Low — generic formula works, bonuses add flavor |
-| Vassal carving (DD1) | Medium — territory management missing, but full-nation vassalage works |
-| Feasibility requests (§2g) | Low — player can still propose without pre-assessment |
-| Formula feedback (§6f) | Medium — player doesn't know WHY proposals fail, trial-and-error frustration |
+Historical planning snapshot only. Do not route current work from this list; implemented items are `LANDED` in the `STATUS.md` Deferred Work Landing Ledger, active follow-ups have `ACTIVE_DEFERRED` rows, and items that no longer make sense are `SUPERSEDED` or `REMOVED` there.
 
 ### Integration Risk Points
 
@@ -2651,7 +2642,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - **Modding support** — Diplomatic personality definitions could be moddable later
 - **Map renderer updates** — Art-blocked, separate task
 - **Multiple simultaneous wars** — France can be at war with multiple nations, but the war score is tracked per pair
-- **Peace conference (multi-nation)** — Deferred. V1 uses bilateral negotiations only
+- **Peace conference (multi-nation)** — SUPERSEDED (`DWL-DIP-CONFERENCE`). Current common-peace needs are owned by Imperial Settlement; a separate Congress System requires a future approved spec before any work starts.
 - **Espionage system** — Sabotage detection through Talleyrand is the only intel mechanic for now
 
 ---
@@ -2687,7 +2678,7 @@ All design questions resolved in v1.1 feedback pass:
 - **C4: Wrong spawn locations** — Session 1B scope now includes spawn_location fixes for all enemy marshals to use NATION_CAPITALS.
 
 **High Fixes:**
-- **H1: Trade income scope confusion** — Session 1B scope now explicitly states "Trade income: DEFERRED to Session 2" with rationale. Session 2 scope updated to include trade income wiring.
+- **H1: Trade income scope confusion** — Historical note: Session 1B once deferred trade income to Session 2; current routing is LANDED in `DWL-DIP-TRADE`.
 - **H2: British naval income missing** — Session 1B scope now includes +300/turn naval income as base economy (not diplomacy).
 - **H3: Session 2 boundary unclear** — Session 2 scope now says "Builds on Session 1B" and clarifies it adds mechanics (transitions, formulas, DP) on top of 1B data structures.
 
@@ -2729,7 +2720,7 @@ All design questions resolved in v1.1 feedback pass:
 - **M4: Battlefield Diplomacy missing from §6b** — Added as new acceptance component: +10 when war_score > 20. Non-stacking with Military Supremacy.
 
 **Stale Reference Fixes:**
-- §9c: "DEFERRED TO SESSION 6 (Polish)" → "DEFERRED TO SESSION 8 (Ledger UI + Polish)"
+- §9c: old Session 6/8 polish-deferral wording is superseded; current routing is `DWL-DIP-AIAI` (LANDED).
 - DD8-1 changelog: "deferred to Session 6" → "implemented in Session 7 — Coalition"
 - DD7 changelog: "Session 6 deferred table" → "Session 8 deferred table"
 - Test count: ~310 → ~365 across 8 sessions
@@ -2751,7 +2742,7 @@ All design questions resolved in v1.1 feedback pass:
 - **M5: Conflicting Alliance Obligations** — Added §5b.3 with explicit resolution rule (higher-relation partner wins).
 - **M6: Session 3 Risk** — Split into Session 3A (parser routing) + 3B (AI proposals), both rated HIGH.
 - **M7: Save Migration Plan** — Added save-breaking version bump note to Session 1A + Integration Risk Points.
-- **M8: AI-AI Diplomacy Scope** — §9c explicitly marked DEFERRED TO SESSION 8 with impact assessment.
+- **M8: AI-AI Diplomacy Scope** — Historical issue; §9c now maps the old AI-AI deferral to `DWL-DIP-AIAI` (LANDED).
 
 **Minor Fixes:**
 - **m1:** Fixed "authority ~60" annotation to "authority ~100" in §4a example.
@@ -2777,7 +2768,7 @@ All design questions resolved in v1.1 feedback pass:
 - **DD4: Formula Feedback** — New §6f. Every proposal response includes natural-language hint mapping the largest formula component. REJECT/COUNTER/ACCEPT all get feedback.
 - **DD5: Sweetener Changes** — +30 cap on deal sweeteners. Per-turn manpower and AP offer variants added. Protection guarantee reduced contextually (E8).
 - **DD6: Session Plan** — Session 1 split into 1A/1B. Session 3 split into 3A/3B. All four rated HIGH.
-- **DD7: Deferred Items** — Session 8 now has explicit table with rationale, impact, and target for every deferred item.
+- **DD7: Landing Ledger** — Historical issue; old deferral items now map to `STATUS.md` Deferred Work Landing Ledger rows with current status.
 - **DD8: Historical Suggestions** — Evaluated all 4 from Audit Appendix B:
   - DD8-1: British subsidy → added to §9c as AI behavior (implemented in Session 7 — Coalition)
   - DD8-2: Vassal defection cascade → added to §8d as tipping point mechanic
@@ -2826,7 +2817,7 @@ All design questions resolved in v1.1 feedback pass:
 - **M8: PUPPET vassal nerfed.** PUPPET drift doubled to -4/turn (was implicit -2). Requires garrison + investment to maintain. SATELLITE and AUTONOMOUS now competitive.
 
 **Exploit Fixes (E1-E5):**
-- **E1: Armistice chaining blocked (§5b.2).** 5-turn cooldown between armistices per nation pair.
+- **E1: Armistice chaining blocked (§5b.2).** Active 5-turn minimum-duration lock while the pair remains in ARMISTICE; no post-expiration or post-break re-entry cooldown in the live contract.
 - **E2: PUPPET extraction nerfed.** Via M8 — PUPPET loyalty drains fast without heavy investment.
 - **E3: Proposal spam blocked.** Via M4 — player cooldowns match AI cooldowns.
 - **E4: Passive Talleyrand nullification fixed (§3a).** 2% Schemer minimum floor — Talleyrand is never fully tamed.
@@ -3006,7 +2997,7 @@ See §18 for full audit summary.
 | **Balance & Exploits** | 10/10 | Sweetener cap, OPEN_BORDERS gate, armistice cooldown, proposal spam prevention, PUPPET nerf, queue limits. |
 | **Historical Plausibility** | 10/10 | Continental System, decisive battles, Metternich armed mediation, British subsidies, Treaty of Tilsit scenario. |
 | **Spec Prose Quality** | 9/10 | Clear, well-organized, good worked examples. §17 changelog is comprehensive. One minor deduction: spec is very long (~2600 lines) — consider summary index for developers. |
-| **Deferred Items Clarity** | 9/10 | All deferred items have rationale and target session. E7 defiance floor redesign still vague on timeline (-1). |
+| **Deferral Clarity** | 9/10 | Historical audit score; current routing is the `STATUS.md` Deferred Work Landing Ledger. |
 
 **Subtotal: 48/50**
 
@@ -3017,7 +3008,7 @@ See §18 for full audit summary.
 Deductions:
 - -1: Cross-doc section references are fragile (renumbering would break them)
 - -1: Spec length (~2600 lines) may cause implementation fatigue; consider a developer quick-reference
-- -1: E7 defiance floor redesign deferred without concrete timeline
+- -1 historical: E7 defiance floor redesign now routes through `DWL-DIP-E7` in `STATUS.md`.
 
 ### 18d. Fun & Innovation Scores
 
@@ -3035,6 +3026,6 @@ Deductions:
 
 1. **Session 1A remains the highest-risk session.** Map expansion (13 → 19 regions) will break 100+ tests. The mandatory pre-session codebase audit in the spec is essential — do not skip it.
 
-2. **E7 defiance floor redesign** should be scheduled for Session 5 or deferred explicitly to post-Phase-8 polish. The current 2% floor works mechanically but the audit recommends reconsidering 5% for gameplay visibility. This is a balance decision, not a spec gap.
+2. **E7 defiance floor redesign** is now routed through `DWL-DIP-E7` in `STATUS.md`; keep the current 2% floor until the Pre-8.5 refinement evaluation makes an explicit balance decision.
 
 **Both specs are implementation-ready.** All Critical/Major findings resolved. No ambiguity that would block a developer. Every formula, field, transition, and edge case is specified.

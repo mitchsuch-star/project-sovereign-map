@@ -1518,6 +1518,59 @@ def _rewrite_absorbed_war_id_in_route_payloads(
     return rewritten
 
 
+def _rewrite_absorbed_war_id_in_settlement_continuity_state(
+    world: Any,
+    absorbed: Iterable[str],
+    surviving: str,
+) -> int:
+    """Rewrite G2-Slice-3 settlement state keyed by `war_id`.
+
+    Pending drafts and reopen attempts are active continuity state and must
+    follow the surviving war instance. Route sequence counters are folded by
+    turn so the survivor's next minted route id stays monotonic after merge.
+    """
+    if not surviving:
+        return 0
+    absorbed_set = {str(a) for a in absorbed if a and str(a) != str(surviving)}
+    if not absorbed_set:
+        return 0
+    rewritten = 0
+
+    drafts = getattr(world, "pending_settlement_drafts", None)
+    if isinstance(drafts, dict):
+        survivor_terms = list(drafts.get(surviving) or [])
+        for absorbed_id in sorted(absorbed_set):
+            if absorbed_id not in drafts:
+                continue
+            absorbed_terms = drafts.pop(absorbed_id) or []
+            for term in absorbed_terms:
+                if term not in survivor_terms:
+                    survivor_terms.append(term)
+            rewritten += 1
+        if survivor_terms:
+            drafts[surviving] = survivor_terms
+
+    for state_field in ("settlement_route_seq", "settlement_reopen_attempts"):
+        store = getattr(world, state_field, None)
+        if not isinstance(store, dict):
+            continue
+        survivor_turns = store.setdefault(surviving, {})
+        for absorbed_id in sorted(absorbed_set):
+            turns = store.pop(absorbed_id, None)
+            if not isinstance(turns, dict):
+                continue
+            for turn, count in turns.items():
+                turn_key = int(turn)
+                survivor_turns[turn_key] = max(
+                    int(survivor_turns.get(turn_key, 0) or 0),
+                    int(count or 0),
+                )
+            rewritten += 1
+        if not survivor_turns:
+            store.pop(surviving, None)
+    return rewritten
+
+
 def _connected_component_war_ids(
     world: Any,
     seed_war_ids: Iterable[str],
@@ -1720,6 +1773,9 @@ def merge_war_instances(
     _rewrite_absorbed_war_id_in_contribution(world, absorbed_ids, surviving_id)
     _rewrite_absorbed_war_id_in_settlement_dialogues(world, absorbed_ids, surviving_id)
     _rewrite_absorbed_war_id_in_route_payloads(world, absorbed_ids, surviving_id)
+    _rewrite_absorbed_war_id_in_settlement_continuity_state(
+        world, absorbed_ids, surviving_id,
+    )
 
     # Step 8: atomic swap.
     instances[surviving_id] = survivor_working
@@ -1921,7 +1977,20 @@ def resolve_or_backfill_war_instance_for_settlement(
     state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
     if state != "WAR":
         return {"ok": False, "error": "not_at_war", "diplomatic_state": state}
-    existing = _find_active_war_instance_for_pair(world, pair)
+    # SC-8b: reject multi-war ambiguity when no war_id is supplied.
+    matching_war_ids: List[str] = []
+    for wid, inst in _iter_active_war_instances(world):
+        if pair in (inst.get("active_diplo_keys") or []):
+            meta = (inst.get("diplo_key_meta") or {}).get(pair) or {}
+            if meta.get("pair_status") in ("war", "armistice"):
+                matching_war_ids.append(wid)
+    if len(matching_war_ids) > 1:
+        return {
+            "ok": False,
+            "error": "multi_war_ambiguity",
+            "available_wars": sorted(matching_war_ids),
+        }
+    existing = matching_war_ids[0] if matching_war_ids else None
     if existing is not None:
         return {
             "ok": True,
