@@ -178,7 +178,7 @@ A war bargain is valid only if **all** are true:
 2. The named enemy is a current war enemy of France or the beneficiary, or appears as an opposed nation for France or the beneficiary in `get_bargain_opposition_pairs()`.
 3. The claim region is currently controlled by the named enemy or that enemy's subject.
 4. The claim region is strategically plausible for France: in `covets_regions`, previously French, adjacent to French territory, or otherwise flagged as high-interest by existing desire data.
-5. The target nation has plausible participation access against the named enemy: direct border, allied-theater adjacency, or existing route heuristic.
+5. The target nation has plausible participation access against the named enemy: direct border, allied-theater adjacency, or a 2-hop friendly/uncontrolled route implemented as `_has_bargain_participation_access()` in `diplomacy.py`.
 
 Invalid uses:
 

@@ -842,7 +842,7 @@ Dispatch items use the same payload sources and fog rules as the campaign-log ev
 - AI liberation priority and peace evaluation
 - Tests: tier classification, display correctness, AI ticking pressure modifier, AI power cap, AI liberation behavior
 
-**Total: ~75 tests, ~4 sessions**
+**Total: ~103 tests, ~4 sessions** (revised upward after the WPS-A audit follow-up)
 
 ---
 
@@ -897,4 +897,4 @@ If this spec ships before or after BILATERAL_PEACE_HARDENING_SPEC, the peace pre
 
 - **April 26, 2026** - WPS-A audit follow-up clarified France-on-defense semantics: attacked France receives auto-Defense and may upgrade it once with `set_war_purpose`; keeping Defense remains valid and ticking.
 
-- **April 16, 2026** — v1.0 drafted. Covers war objectives (5 types), ticking war score (5th component), vassalage power cap (50% national power), forced alliance (new clause type), liberation (coalition war goal), war score legibility (settlement tiers). ~75 tests across 4 slices. Starting power values validated against DIPLOMACY_SPEC §1b region table. References WAR_BARGAIN_SPEC §2 (war-objective settlement hook), BILATERAL_PEACE_HARDENING_SPEC (peace preview extensibility), COALITION_SPEC (threat from forced alliance).
+- **April 16, 2026** — v1.0 drafted. Covers war objectives (5 types), ticking war score (5th component), vassalage power cap (50% national power), forced alliance (new clause type), liberation (coalition war goal), war score legibility (settlement tiers). ~103 tests across 4 slices, revised upward after the WPS-A audit follow-up. Starting power values validated against DIPLOMACY_SPEC §1b region table. References WAR_BARGAIN_SPEC §2 (war-objective settlement hook), BILATERAL_PEACE_HARDENING_SPEC (peace preview extensibility), COALITION_SPEC (threat from forced alliance).

@@ -476,6 +476,8 @@ An armistice is not peace — it is a ceasefire with an expiration. The current 
 - Whether armistice cooldown prevents re-entry to armistice after break
 - Predicted acceptance score for future PEACE proposal at current relation/war_score (informational projection, not a guarantee)
 
+Implementation: compute the projection by calling `calculate_acceptance()` with `proposal_type='peace'` at the current bilateral state. Display it as an informational estimate, not a guaranteed future result.
+
 **Armistice expiration warning** — 1 turn before armistice minimum expires, Morning Dispatch warns: "The armistice with [nation] expires next turn. Prepare for resumed hostilities or pursue peace."
 
 ### 12.2 DIPLOMACY_SPEC armistice duration resolution
