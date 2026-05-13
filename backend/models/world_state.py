@@ -683,6 +683,18 @@ class WorldState:
         # and separate from bilateral AI proposal cooldowns.
         self.pending_settlement_dialogues: List[Dict[str, Any]] = []
         self.ai_settlement_cooldowns: Dict[str, int] = {}
+        # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-1 — per-war authored
+        # draft term packages persisted only after successful POST preview.
+        # Keyed by war_id. Discarded on turn end, ratification, or explicit
+        # discard-confirm. Empty default so pre-cleanup saves round-trip.
+        self.pending_settlement_drafts: Dict[str, Dict[str, Any]] = {}
+        # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-14c — per-(war_id, turn)
+        # route-id sequence counter so same-turn settlement events for one
+        # war get distinct `settlement:{war_id}:{turn}:{seq}` ids. Outer key
+        # is war_id; inner key is turn (int). Empty default so pre-cleanup
+        # saves round-trip; JSON serializes inner int keys as strings and
+        # `from_dict` converts back to int.
+        self.settlement_route_seq: Dict[str, Dict[int, int]] = {}
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -3812,6 +3824,23 @@ class WorldState:
                 str(war_id): int(turn)
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
+            # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-1 — authored draft
+            # term packages per war. deepcopy so callers cannot mutate the
+            # serialized payload through aliasing.
+            "pending_settlement_drafts": {
+                str(war_id): copy.deepcopy(draft)
+                for war_id, draft in self.pending_settlement_drafts.items()
+            },
+            # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-14c — per-(war_id,
+            # turn) route-id sequence counter. JSON object keys must be
+            # strings, so inner int turns serialize as decimal strings.
+            "settlement_route_seq": {
+                str(war_id): {
+                    str(int(turn)): int(seq)
+                    for turn, seq in (per_turn or {}).items()
+                }
+                for war_id, per_turn in self.settlement_route_seq.items()
+            },
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
             # memories per (actor, subject) pair. Stored as plain dicts so
@@ -4277,6 +4306,32 @@ class WorldState:
             str(war_id): int(turn)
             for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
         }
+        # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-1 — pre-cleanup saves
+        # default to {}. Non-dict draft payloads are dropped so corrupt
+        # saves do not crash load.
+        world.pending_settlement_drafts = {
+            str(war_id): copy.deepcopy(draft)
+            for war_id, draft in (data.get("pending_settlement_drafts") or {}).items()
+            if isinstance(draft, dict)
+        }
+        # SETTLEMENT_UI_CLEANUP_SPEC §G2-Slice-1 / SC-14c — pre-cleanup
+        # saves default to {}. JSON stringifies the inner int turn keys;
+        # convert them back to int and skip non-integer or non-int seq
+        # entries so corrupt saves do not crash load.
+        _route_seq: Dict[str, Dict[int, int]] = {}
+        for war_id, per_turn in (data.get("settlement_route_seq") or {}).items():
+            if not isinstance(per_turn, dict):
+                continue
+            converted: Dict[int, int] = {}
+            for turn_key, seq in per_turn.items():
+                try:
+                    turn_int = int(turn_key)
+                    seq_int = int(seq)
+                except (TypeError, ValueError):
+                    continue
+                converted[turn_int] = seq_int
+            _route_seq[str(war_id)] = converted
+        world.settlement_route_seq = _route_seq
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }
