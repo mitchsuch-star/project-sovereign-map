@@ -157,6 +157,9 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     "reject_settlement_offer",
     "request_settlement_revision",
     "re_author_with_concessions",
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs.
+    "seek_bilateral_peace",
+    "seek_armistice_instead",
 }
 
 

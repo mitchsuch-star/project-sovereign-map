@@ -565,6 +565,18 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
     # SC-14e aged-out dispatch link
     "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute eligibility codes.
+    # Closed taxonomy per SETTLEMENT_UI_CLEANUP_SPEC.md "Pair substitute
+    # eligibility helper schema". Reuses pair_not_at_war / war_archived /
+    # malformed_route / settlement_collision_active from the surrounding
+    # helper taxonomy.
+    "already_at_peace": "France is already at peace with this court.",
+    "already_in_armistice": "France is already in armistice with this court.",
+    "actor_not_at_war_with_target": "France is not at war with this court.",
+    "target_not_selected_pair": "This court is not the selected hostile pair for this war.",
+    "target_not_in_war": "This court is not a participant in this war.",
+    "cooldown_active": "A recent proposal cooldown is still active for this court.",
+    "insufficient_resources": "Insufficient diplomatic points for this proposal.",
 }
 
 # Side label display — used by settlement review's allies block to surface

@@ -1152,6 +1152,22 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Sire, this settlement of {war_label} cannot be reopened again — "
         "choose the war from war detail and stage afresh."
     ),
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. The rejected
+    # settlement popup may surface these only when the selected target
+    # pair is eligible under `evaluate_pair_peace_substitute_eligibility`.
+    # Talleyrand frames the substitute as a pair-scoped fallback, not as a
+    # repeated settlement attempt.
+    "settlement_seek_bilateral_peace_instead_talleyrand": (
+        "Sire, since the larger settlement of {war_label} cannot ratify, "
+        "I shall open a separate bilateral peace with {target_nation}; "
+        "the other hostile pairs remain at war until they are addressed "
+        "in turn."
+    ),
+    "settlement_seek_armistice_instead_talleyrand": (
+        "Sire, an armistice with {target_nation} buys quiet on that "
+        "front while {war_label} continues elsewhere; it does not end "
+        "the war, but it does end the bleeding."
+    ),
 }
 
 

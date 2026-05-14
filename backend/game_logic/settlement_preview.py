@@ -388,6 +388,183 @@ def evaluate_war_detail_actionability(
 
 
 # ---------------------------------------------------------------------------
+# SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs
+# ---------------------------------------------------------------------------
+
+
+PAIR_SUBSTITUTE_ACTIONS = frozenset({"seek_armistice_instead", "seek_bilateral_peace"})
+
+PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES = frozenset({"cooldown_active"})
+
+PAIR_SUBSTITUTE_REFUSAL_CODES = frozenset({
+    "already_at_peace",
+    "already_in_armistice",
+    "pair_not_at_war",
+    "war_archived",
+    "actor_not_at_war_with_target",
+    "target_not_selected_pair",
+    "target_not_in_war",
+    "settlement_collision_active",
+    "cooldown_active",
+    "insufficient_resources",
+    "malformed_route",
+})
+
+
+def evaluate_pair_peace_substitute_eligibility(
+    world: Any,
+    *,
+    war_id: str,
+    actor_nation: str,
+    target_nation: str,
+    action: str,
+) -> Dict[str, Any]:
+    """SC-29 / G2-Slice-7: decide whether a rejected settlement popup may
+    expose `Seek Armistice Instead` or `Seek Bilateral Peace` for the
+    selected actor/target pair.
+
+    Returns a dict whose shape is pinned by the spec
+    "Pair substitute eligibility helper schema":
+
+        {
+            "eligible": bool,
+            "refusal_code": str | null,
+            "disabled_reason_display": str | null,
+            "selected_pair": {
+                "actor": str,
+                "target": str,
+                "war_id": str,
+            },
+        }
+
+    The refusal taxonomy is closed (see `PAIR_SUBSTITUTE_REFUSAL_CODES`).
+    Only `cooldown_active` is a temporal disabled state per spec
+    "Disabled vs Hidden Affordance Policy"; every other code hides the
+    substitute action rather than rendering it disabled.
+    """
+    war_id_str = str(war_id or "")
+    actor = str(actor_nation or "").strip()
+    target = str(target_nation or "").strip()
+    action_str = str(action or "").strip()
+
+    selected_pair = {"actor": actor, "target": target, "war_id": war_id_str}
+
+    def _refused(code: str) -> Dict[str, Any]:
+        return {
+            "eligible": False,
+            "refusal_code": code,
+            "disabled_reason_display": _error_display(code),
+            "selected_pair": selected_pair,
+        }
+
+    if action_str not in PAIR_SUBSTITUTE_ACTIONS:
+        return _refused("malformed_route")
+    if not war_id_str or not actor or not target:
+        return _refused("malformed_route")
+    if actor == target:
+        return _refused("malformed_route")
+
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str)
+    if not isinstance(instance, Mapping):
+        if is_war_archived(world, war_id_str):
+            return _refused("war_archived")
+        return _refused("malformed_route")
+    if instance.get("ended_turn") is not None:
+        return _refused("war_archived")
+
+    side_by_nation = instance.get("side_by_nation") or {}
+    actor_side = side_by_nation.get(actor)
+    target_side = side_by_nation.get(target)
+    if not actor_side:
+        return _refused("actor_not_at_war_with_target")
+    if not target_side:
+        return _refused("target_not_in_war")
+    if actor_side == target_side:
+        return _refused("target_not_selected_pair")
+
+    pair = (
+        world._make_diplo_key(actor, target)
+        if hasattr(world, "_make_diplo_key")
+        else "|".join(sorted([actor, target]))
+    )
+    pair_state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
+    if pair_state == "PEACE":
+        return _refused("already_at_peace")
+    if pair_state == "ARMISTICE":
+        if action_str == "seek_armistice_instead":
+            return _refused("already_in_armistice")
+    if pair_state not in ("WAR", "ARMISTICE"):
+        return _refused("actor_not_at_war_with_target")
+
+    meta = instance.get("diplo_key_meta") or {}
+    pair_meta = meta.get(pair) or {}
+    resolved_pairs = set(instance.get("resolved_diplo_keys") or [])
+    if pair in resolved_pairs or pair_meta.get("pair_status") == "resolved":
+        return _refused("pair_already_resolved")
+    active_pairs = set(instance.get("active_diplo_keys") or [])
+    if pair not in active_pairs:
+        return _refused("target_not_selected_pair")
+    pair_status = pair_meta.get("pair_status", "war")
+    if pair_status == "armistice" and action_str == "seek_armistice_instead":
+        return _refused("already_in_armistice")
+    if pair_status not in ("war", "armistice"):
+        return _refused("pair_not_at_war")
+    if action_str == "seek_bilateral_peace" and pair_state == "WAR" and pair_status != "war":
+        # State and pair_status disagree — fail safe so we never advertise
+        # a substitute action on a stale view.
+        return _refused("pair_not_at_war")
+
+    mounted = _mounted_settlement_dialogue(world)
+    if mounted is not None and str(mounted.get("war_id") or "") not in ("", war_id_str):
+        return _refused("settlement_collision_active")
+
+    cooldowns = getattr(world, "player_proposal_cooldowns", None) or {}
+    proposal_type = "armistice" if action_str == "seek_armistice_instead" else "peace"
+    type_key = f"{target}_{proposal_type}"
+    if isinstance(cooldowns, Mapping):
+        if cooldowns.get(target, 0) > 0:
+            return _refused("cooldown_active")
+        if cooldowns.get(type_key, 0) > 0:
+            return _refused("cooldown_active")
+
+    # DP cost is computed via the same helper the proposal executor uses,
+    # so the substitute CTA never advertises a proposal the player cannot
+    # actually send.
+    try:
+        from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
+    except Exception:  # pragma: no cover - defensive import guard
+        get_dp_cost = None
+        get_transition_dp_cost = None
+    if get_dp_cost is not None and get_transition_dp_cost is not None:
+        _state_map = {
+            "peace": "PEACE",
+            "armistice": "ARMISTICE",
+        }
+        try:
+            current_diplo = world.get_diplomatic_state(actor, target)
+        except Exception:  # pragma: no cover - defensive
+            current_diplo = pair_state or "WAR"
+        target_diplo = _state_map.get(proposal_type, "PEACE")
+        jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+        try:
+            from backend.nation_config import get_player_diplomat
+            talleyrand = get_player_diplomat(world)
+            skill = int(getattr(talleyrand, "skill", 5)) if talleyrand else 5
+        except Exception:  # pragma: no cover - defensive
+            skill = 5
+        cost = get_dp_cost(f"propose_{proposal_type}", skill, transition_base=jump_cost)
+        if float(getattr(world, "diplomatic_points", 0) or 0) < float(cost):
+            return _refused("insufficient_resources")
+
+    return {
+        "eligible": True,
+        "refusal_code": None,
+        "disabled_reason_display": None,
+        "selected_pair": selected_pair,
+    }
+
+
+# ---------------------------------------------------------------------------
 # G2-Slice-3 helpers: route id, collision, reopen cap, active-vs-archived
 # ---------------------------------------------------------------------------
 
@@ -1658,6 +1835,72 @@ def build_settlement_confirm_dialogue(
             "concession_baseline_preview": concession_baseline,
         })
         available_action_ids.append("re_author_with_concessions")
+    # SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs. Only emitted
+    # on blocked ratification, with a non-empty selected target, and only
+    # when `evaluate_pair_peace_substitute_eligibility(...)` returns
+    # eligible=True for each action. Order per failure-state table:
+    # Re-author -> Revise Terms -> Seek Bilateral Peace -> Seek Armistice
+    # Instead -> Open War Detail -> Back Out.
+    if not can_ratify and resolved_target:
+        actor_for_substitute = str(
+            getattr(world, "player_nation", "France") or "France"
+        )
+        for action_id, label, voice_key, description in (
+            (
+                "seek_bilateral_peace",
+                "Seek Bilateral Peace",
+                "settlement_seek_bilateral_peace_instead_talleyrand",
+                "Open a bilateral peace with the selected court only; "
+                "the other hostile pairs remain at war.",
+            ),
+            (
+                "seek_armistice_instead",
+                "Seek Armistice Instead",
+                "settlement_seek_armistice_instead_talleyrand",
+                "Open an armistice with the selected court only; "
+                "the war continues elsewhere.",
+            ),
+        ):
+            eligibility = evaluate_pair_peace_substitute_eligibility(
+                world,
+                war_id=war_id,
+                actor_nation=actor_for_substitute,
+                target_nation=resolved_target,
+                action=action_id,
+            )
+            if not eligibility.get("eligible"):
+                # SC-29 + Disabled vs Hidden Affordance Policy: only
+                # `cooldown_active` may render as a pre-click disabled
+                # button after SC-29 lands. Every other refusal hides
+                # the substitute action entirely.
+                if eligibility.get("refusal_code") in PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES:
+                    options.append({
+                        "label": label,
+                        "action": action_id,
+                        "available": False,
+                        "disabled_reason_display": eligibility.get(
+                            "disabled_reason_display"
+                        ),
+                        "scope": "selected_pair",
+                        "war_id": war_id,
+                        "selected_target_nation": resolved_target,
+                    })
+                continue
+            options.append({
+                "label": label,
+                "action": action_id,
+                "description": description,
+                "scope": "selected_pair",
+                "war_id": war_id,
+                "selected_target_nation": resolved_target,
+                "talleyrand_text": resolve_settlement_voice_line(
+                    voice_key,
+                    war_label=war_label or war_id or "this war",
+                    target_nation=resolved_target,
+                ),
+                "voice_family": voice_key,
+            })
+            available_action_ids.append(action_id)
     if not can_ratify and war_detail_actionability.get("actionable"):
         options.append({
             "label": "Open War Detail",
@@ -3061,9 +3304,162 @@ def handle_settlement_dialogue_action(
             ),
             "suppress_proposal_result_popup": True,
         }
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. Two explicit
+    # branches per action id satisfy the Gate 3 action-id whitelist test
+    # that scans `settlement_preview.py` for `action == "..."` strings.
+    if action == "seek_bilateral_peace":
+        return _handle_pair_peace_substitute_action(
+            world, action="seek_bilateral_peace", dialogue=dialogue
+        )
+    if action == "seek_armistice_instead":
+        return _handle_pair_peace_substitute_action(
+            world, action="seek_armistice_instead", dialogue=dialogue
+        )
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)
     return {"success": False, "error": "unknown_settlement_action", "mutated": False}
+
+
+def _handle_pair_peace_substitute_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """SC-29 / G2-Slice-7 dialogue handler for `seek_bilateral_peace` and
+    `seek_armistice_instead`.
+
+    Click-time re-runs `evaluate_pair_peace_substitute_eligibility(...)`;
+    if the pair has become ineligible between render and click, the
+    settlement dialogue stays mounted, no scoped draft is mutated, no
+    pair route opens, and a humanized no-longer-eligible response is
+    returned with the normal recovery options preserved.
+
+    On positive re-validation, the handler pops the settlement dialogue,
+    flags any scoped settlement draft whose covered scope includes the
+    target pair as stale (per the War Detail recovery contract), then
+    stages a `proposal_confirm` dialogue for the underlying
+    `propose_armistice` / `propose_peace` flow with `target_nation =
+    selected_target_nation`. The handler does not deduct DP or set
+    proposal cooldowns; those happen when the player confirms / sends
+    the proposal through the existing executor.
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    selected_target = str(dialogue.get("selected_target_nation") or "")
+    actor = str(getattr(world, "player_nation", "France") or "France")
+    proposal_type = "armistice" if action == "seek_armistice_instead" else "peace"
+    voice_key = (
+        "settlement_seek_armistice_instead_talleyrand"
+        if action == "seek_armistice_instead"
+        else "settlement_seek_bilateral_peace_instead_talleyrand"
+    )
+    war_label = str(dialogue.get("war_label") or war_id or "this war")
+
+    eligibility = evaluate_pair_peace_substitute_eligibility(
+        world,
+        war_id=war_id,
+        actor_nation=actor,
+        target_nation=selected_target,
+        action=action,
+    )
+    if not eligibility.get("eligible"):
+        refusal = eligibility.get("refusal_code") or "malformed_route"
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "selected_target_nation": selected_target,
+            "scope": "selected_pair",
+            "error": refusal,
+            "error_display": eligibility.get("disabled_reason_display")
+            or _error_display(refusal),
+            "pair_substitute_eligibility": eligibility,
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+
+    # SC-29 / War Detail recovery contract: a successful pair substitute
+    # makes any preserved scoped settlement draft that covers the target
+    # stale. Cleanup default for cleanup-stage `pending_settlement_drafts`
+    # is keyed by `war_id`; mark the entry stale via removal here, and
+    # re-preview is required on the next settlement entry per the spec.
+    drafts = getattr(world, "pending_settlement_drafts", None) or {}
+    covered = list(dialogue.get("covered_enemy_participants") or [])
+    draft_invalidated = False
+    if war_id in drafts and selected_target in covered:
+        try:
+            del drafts[war_id]
+            draft_invalidated = True
+        except Exception:  # pragma: no cover - defensive
+            draft_invalidated = False
+
+    # Stage the proposal dialogue through the existing classification +
+    # template path so the substitute hands off into the standard
+    # propose_armistice / propose_peace flow on confirm.
+    try:
+        from backend.game_logic.diplomatic_dialogue import (
+            classify_diplomatic_intent,
+            generate_dialogue,
+        )
+    except Exception:  # pragma: no cover - defensive
+        classify_diplomatic_intent = None  # type: ignore[assignment]
+        generate_dialogue = None  # type: ignore[assignment]
+
+    proposal_dialogue: Optional[Dict[str, Any]] = None
+    if classify_diplomatic_intent is not None and generate_dialogue is not None:
+        diplomatic_data = {
+            "target_nation": selected_target,
+            "proposal_type": proposal_type,
+            "raw_text": f"propose {proposal_type} with {selected_target}",
+            "has_diplomatic_keywords": True,
+            "is_question": False,
+            "clauses": [],
+        }
+        try:
+            intent = classify_diplomatic_intent(diplomatic_data, world)
+            proposal_dialogue = generate_dialogue(intent, diplomatic_data, world)
+        except Exception:  # pragma: no cover - defensive
+            proposal_dialogue = None
+
+    world.dialogue_manager.pop()
+    if isinstance(proposal_dialogue, Mapping):
+        world.dialogue_manager.replace(dict(proposal_dialogue))
+
+    talleyrand_text = resolve_settlement_voice_line(
+        voice_key,
+        war_label=war_label,
+        target_nation=selected_target,
+    )
+
+    return {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": action,
+        "war_id": war_id,
+        "selected_target_nation": selected_target,
+        "scope": "selected_pair",
+        "proposal_type": proposal_type,
+        "voice_family": voice_key,
+        "talleyrand_text": talleyrand_text,
+        "message": talleyrand_text,
+        "draft_invalidated": draft_invalidated,
+        "pair_substitute_eligibility": eligibility,
+        "diplomatic_dialogue": proposal_dialogue
+        if isinstance(proposal_dialogue, Mapping)
+        else None,
+        "recovery_route": {
+            "surface": "proposal_confirm",
+            "target": "proposal_confirm",
+            "war_id": war_id,
+            "selected_target_nation": selected_target,
+            "target_nation": selected_target,
+            "scope": "selected_pair",
+            "proposal_type": proposal_type,
+        },
+        "mutated": False,
+        "suppress_proposal_result_popup": True,
+    }
 
 
 def handle_incoming_settlement_offer_action(

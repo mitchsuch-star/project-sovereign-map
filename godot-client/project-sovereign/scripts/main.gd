@@ -34,6 +34,13 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"revise_settlement_terms",
 	"back_out_settlement",
 	"open_war_detail",
+	"re_author_with_concessions",
+	# SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. The backend
+	# dialogue handler re-runs `evaluate_pair_peace_substitute_eligibility`
+	# at click time and either stages the underlying propose_armistice /
+	# propose_peace proposal dialogue or returns a humanized refusal.
+	"seek_bilateral_peace",
+	"seek_armistice_instead",
 	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
 	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
 	# but no settlement-offer button is reachable from the player UI.
