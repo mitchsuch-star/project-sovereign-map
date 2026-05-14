@@ -2656,7 +2656,7 @@ def _build_pair_ratification_plan(
     proposer_members: Set[str] = set(war_instance.get(proposer_side) or [])
     covered_set: Set[str] = {str(n) for n in covered}
     forced_alliance_targets: Dict[str, Set[str]] = {}
-    vassalage_targets: Dict[str, Dict[str, Mapping[str, Any]]] = {}
+    vassalage_terms_by_pair: Dict[frozenset[str], Mapping[str, Any]] = {}
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
@@ -2669,7 +2669,7 @@ def _build_pair_ratification_plan(
             vassal_target = str(term.get("from") or term.get("vassal_nation") or "")
             vassal_lord = str(term.get("to") or term.get("lord_nation") or "")
             if vassal_target and vassal_lord:
-                vassalage_targets.setdefault(vassal_target, {})[vassal_lord] = term
+                vassalage_terms_by_pair[frozenset((vassal_lord, vassal_target))] = term
 
     meta = war_instance.get("diplo_key_meta") or {}
     plan: List[Dict[str, Any]] = []
@@ -2690,8 +2690,20 @@ def _build_pair_ratification_plan(
         target_state = "PEACE"
         if proposer_member in forced_alliance_targets.get(covered_enemy, set()):
             target_state = "ALLIANCE"
-        if proposer_member in vassalage_targets.get(covered_enemy, {}):
+        vassalage_term = vassalage_terms_by_pair.get(
+            frozenset((proposer_member, covered_enemy))
+        )
+        if vassalage_term is not None:
             target_state = "VASSAL"
+            vassal_lord = str(
+                vassalage_term.get("to") or vassalage_term.get("lord_nation") or ""
+            )
+            vassal_target = str(
+                vassalage_term.get("from") or vassalage_term.get("vassal_nation") or ""
+            )
+        else:
+            vassal_lord = ""
+            vassal_target = ""
         current_state = world.diplomatic_states.get(pair, "PEACE")
         plan.append({
             "pair": pair,
@@ -2700,6 +2712,8 @@ def _build_pair_ratification_plan(
             "current_state": current_state,
             "pair_status_before": pair_meta.get("pair_status"),
             "target_state": target_state,
+            "vassal_lord": vassal_lord,
+            "vassal_target": vassal_target,
         })
     return plan
 
@@ -3015,7 +3029,9 @@ def _resolve_pair_state_transitions(
         # (resolve_pair_to_resolved + episode close + war-data clear).
         current_state = world.get_diplomatic_state(proposer_member, covered_enemy)
         if target_state == "VASSAL":
-            term = vassalage_terms_by_pair.get((proposer_member, covered_enemy))
+            vassal_lord = str(entry.get("vassal_lord") or "")
+            vassal_target = str(entry.get("vassal_target") or "")
+            term = vassalage_terms_by_pair.get((vassal_lord, vassal_target))
             vassal_result = {"success": False}
             if current_state == "ARMISTICE" and term is not None:
                 set_diplomatic_state(
@@ -3031,22 +3047,22 @@ def _resolve_pair_state_transitions(
                 )
                 if term.get("type") == "subjugation":
                     vassal_result = create_vassal_conquest(
-                        world, proposer_member, covered_enemy,
+                        world, vassal_lord, vassal_target,
                         garrison_size=int(term.get("garrison_size", 0) or 0),
                     )
                 else:
                     vassal_result = create_vassal_treaty(
-                        world, proposer_member, covered_enemy,
+                        world, vassal_lord, vassal_target,
                         generosity_bonus=int(term.get("generosity_bonus", 0) or 0),
                         terms=list(settlement_terms or []),
                     )
                 if vassal_result.get("success"):
                     assimilated_marshals = assimilate_vassal_marshals(
-                        world, covered_enemy
+                        world, vassal_target
                     )
                     clause = dict(term)
-                    clause.setdefault("from", covered_enemy)
-                    clause.setdefault("to", proposer_member)
+                    clause.setdefault("from", vassal_target)
+                    clause.setdefault("to", vassal_lord)
                     clause["pair_state_transition"] = "WAR -> VASSALAGE"
                     # SC-31 / G2-Slice-8 applied_clauses_preview fields
                     # for vassalage / subjugation. Values read from the
@@ -3059,9 +3075,10 @@ def _resolve_pair_state_transitions(
                     # for conquest, +5 for treaty per WPS-B §2a);
                     # marshal_assimilation_count counts marshals moved
                     # to the lord pool.
-                    vassal_record = (getattr(world, "vassals", {}) or {}).get(
-                        covered_enemy
-                    ) or {}
+                    vassal_record = (
+                        (getattr(world, "vassals", {}) or {}).get(vassal_target)
+                        or {}
+                    )
                     autonomy_level = int(vassal_record.get("autonomy", 1))
                     autonomy_after_display = {
                         0: "Puppet",

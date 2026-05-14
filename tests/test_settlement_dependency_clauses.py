@@ -904,6 +904,51 @@ def _force_acceptance(score=100, verdict="accept"):
 
 
 class TestSettlementSummarySurrenderPresetFlag:
+    def test_losing_side_surrender_ratification_vassalizes_player_nation(self):
+        """Player-side surrender must apply the dependency consequence.
+
+        Regression for codex-2026-05-14-settlement-G2-Slice-8: the
+        surrender preset authors `from=France, to=Britain` while France
+        is the proposer-side member and Britain is the covered enemy. The
+        ratification plan must still treat Britain as lord and France as
+        vassal instead of resolving the pair as plain peace.
+        """
+        world = WorldState()
+        _install_power_legal_surrender_war(world)
+        with patch(
+            "backend.game_logic.settlement_preview."
+            "calculate_common_peace_acceptance",
+            return_value=_force_acceptance(),
+        ):
+            stage_result = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                settlement_terms=[
+                    {"type": "peace"},
+                    {"type": "subjugation", "from": "France", "to": "Britain"},
+                ],
+                covered_enemy_participants=["Britain"],
+                actor_nation="France",
+                selected_target_nation="Britain",
+                proposer_side="defenders",
+                caller_kind="player_editor",
+                surrender_preset=True,
+            )
+            assert stage_result["success"] is True, stage_result
+            dialogue = world.pending_diplomatic_dialogue
+            result = ratify_settlement_confirm(world, dialogue)
+        assert result["success"] is True
+        assert result["mutated"] is True
+        assert world.get_diplomatic_state("France", "Britain") == "VASSAL"
+        assert world.vassals["France"]["lord"] == "Britain"
+        sub_clauses = [
+            c for c in result["applied_clauses"] if c.get("type") == "subjugation"
+        ]
+        assert len(sub_clauses) == 1
+        assert sub_clauses[0]["from"] == "France"
+        assert sub_clauses[0]["to"] == "Britain"
+        assert result["settlement_reactions"]["summary_event"]["surrender_preset"] is True
+
     def test_summary_event_tags_surrender_preset_true_after_preset_ratification(self):
         world = WorldState()
         _install_power_legal_surrender_war(world)
