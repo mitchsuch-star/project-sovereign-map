@@ -755,6 +755,21 @@ def merge_same_war_settlement_drafts(
     return True, existing_list + additions, []
 
 
+def _territory_term_regions(term: Mapping[str, Any]) -> List[str]:
+    regions = term.get("regions")
+    if isinstance(regions, (list, tuple)) and regions:
+        return [str(r) for r in regions if str(r)]
+    region = str(term.get("region") or "")
+    return [region] if region else []
+
+
+def _has_material_concession_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
+    return any(
+        isinstance(term, Mapping) and term.get("type") != "peace"
+        for term in (terms or [])
+    )
+
+
 def _settlement_collision_payload(
     *,
     error: str,
@@ -1617,10 +1632,33 @@ def build_settlement_confirm_dialogue(
 
     options = []
     available_action_ids = []
+    concession_baseline = (
+        copy.deepcopy(preview.get("concession_baseline"))
+        if preview.get("concession_baseline_visible")
+        else None
+    )
+    baseline_terms = (
+        list(concession_baseline.get("terms") or [])
+        if isinstance(concession_baseline, Mapping)
+        else []
+    )
+    can_re_author_with_concessions = (
+        not can_ratify
+        and bool(preview.get("concession_baseline_visible"))
+        and _has_material_concession_terms(baseline_terms)
+    )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
         available_action_ids.append("confirm_settlement")
-    elif war_detail_actionability.get("actionable"):
+    elif can_re_author_with_concessions:
+        options.append({
+            "label": "Re-author with Concessions",
+            "action": "re_author_with_concessions",
+            "description": "Apply Talleyrand's concession baseline after a fresh preview.",
+            "concession_baseline_preview": concession_baseline,
+        })
+        available_action_ids.append("re_author_with_concessions")
+    if not can_ratify and war_detail_actionability.get("actionable"):
         options.append({
             "label": "Open War Detail",
             "action": "open_war_detail",
@@ -1684,11 +1722,7 @@ def build_settlement_confirm_dialogue(
         "concession_baseline_visible": bool(
             preview.get("concession_baseline_visible")
         ),
-        "concession_baseline": (
-            copy.deepcopy(preview.get("concession_baseline"))
-            if preview.get("concession_baseline_visible")
-            else None
-        ),
+        "concession_baseline": concession_baseline,
     }
 
 
@@ -2019,7 +2053,7 @@ def _apply_settlement_terms(
         from_nation = str(term.get("from") or "")
         to_nation = str(term.get("to") or "")
         if ttype == "territory_cede":
-            regions = list(term.get("regions") or [])
+            regions = _territory_term_regions(term)
             cede_from_regions = set()
             if from_nation:
                 cede_from_regions = set(getattr(world, "get_nation_regions")(from_nation))
@@ -2069,7 +2103,10 @@ def _apply_settlement_terms(
                             )
             if transferred:
                 clause = dict(term)
-                clause["regions"] = transferred
+                if "regions" in clause:
+                    clause["regions"] = transferred
+                elif transferred:
+                    clause["region"] = transferred[0]
                 applied.append(clause)
                 if hasattr(world, "invalidate_active_nations_cache"):
                     world.invalidate_active_nations_cache()
@@ -2862,6 +2899,119 @@ def handle_settlement_dialogue_action(
             "error": "revision_not_available",
             "error_display": "Term revision is not yet available.",
             "mutated": False,
+        }
+    if action == "re_author_with_concessions":
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actor = getattr(world, "player_nation", "France")
+        current_terms = [
+            dict(t)
+            for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "re_author_with_concessions",
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "concession_baseline_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No concession baseline is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        baseline = fresh_preview.get("concession_baseline")
+        baseline_terms = (
+            [dict(t) for t in (baseline.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(baseline, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("concession_baseline_visible")
+            or not _has_material_concession_terms(baseline_terms)
+        ):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "re_author_with_concessions",
+                "war_id": war_id,
+                "error": "concession_baseline_unavailable",
+                "error_display": "No concession baseline is available now.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        if current_terms:
+            return {
+                "success": True,
+                "dialogue_type": "settlement_confirm",
+                "action": "re_author_with_concessions",
+                "war_id": war_id,
+                "requires_replace_confirm": True,
+                "replacement_terms": baseline_terms,
+                "concession_baseline": copy.deepcopy(baseline),
+                "mutated": False,
+                "message": "Confirm replacing the current draft with Talleyrand's concession baseline.",
+                "suppress_proposal_result_popup": True,
+            }
+        baseline_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=baseline_terms,
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not baseline_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "re_author_with_concessions",
+                "war_id": war_id,
+                "error": baseline_preview.get("error") or "concession_baseline_failed_preview",
+                "error_display": baseline_preview.get("error_display") or (
+                    "The concession baseline could not be previewed."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        new_dialogue = build_settlement_confirm_dialogue(
+            world,
+            baseline_preview,
+            selected_target_nation=selected_target or None,
+            caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
+            white_peace=False,
+        )
+        drafts = getattr(world, "pending_settlement_drafts", None)
+        if drafts is None:
+            world.pending_settlement_drafts = {}
+            drafts = world.pending_settlement_drafts
+        drafts[war_id] = [dict(t) for t in baseline_terms]
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": "re_author_with_concessions",
+            "war_id": war_id,
+            "diplomatic_dialogue": new_dialogue,
+            "settlement_preview": baseline_preview["settlement_preview"],
+            "awaiting_diplomatic_response": True,
+            "concession_baseline": copy.deepcopy(baseline),
+            "mutated": False,
+            "message": "Talleyrand's concession baseline has been drafted for review.",
+            "suppress_proposal_result_popup": True,
         }
     if action == "open_war_detail":
         terms = [dict(t) for t in (dialogue.get("settlement_terms") or []) if isinstance(t, Mapping)]

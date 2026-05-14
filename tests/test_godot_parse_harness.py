@@ -216,6 +216,22 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
             f"{action!r}."
         )
 
+    settlement_preview_text = (
+        REPO_ROOT / "backend" / "game_logic" / "settlement_preview.py"
+    ).read_text(encoding="utf-8")
+    for action in SETTLEMENT_FAMILY_ACTION_IDS - {
+        "propose_common_peace",
+        "propose_white_peace",
+        "open_settlement",
+        "accept_settlement_offer",
+        "reject_settlement_offer",
+        "request_settlement_revision",
+    }:
+        assert f'action == "{action}"' in settlement_preview_text, (
+            f"settlement_preview.py missing dialogue handler branch for "
+            f"{action!r}; visible settlement action would become a no-op."
+        )
+
     # The wizard must have a `_build_command` arm for the settlement
     # wizard entry ids it surfaces.
     build_ids, _structured_ids = _collect_wizard_mappings()

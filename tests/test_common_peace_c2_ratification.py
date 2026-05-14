@@ -244,6 +244,41 @@ def test_confirm_territory_cession_transfers_regions_and_invalidates_cache():
     ]
 
 
+@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
+def test_confirm_canonical_territory_cede_region_transfers_region():
+    """The canonical SC-1 schema uses singular `region`; it must not
+    validate/stage and then become a ratification no-op."""
+    world = WorldState()
+    _install_two_v_two_war(world)
+    target_region = next(
+        name for name, _data in REGIONS_DATA.items()
+        if world.regions[name].controller == "Austria"
+    )
+
+    dialogue = _stage_dialogue(
+        world,
+        settlement_terms=[{
+            "type": "territory_cede",
+            "from": "Austria",
+            "to": "France",
+            "region": target_region,
+        }],
+        covered_enemy_participants=["Austria"],
+    )
+    result = ratify_settlement_confirm(world, dialogue)
+
+    assert result["success"] is True
+    assert result["mutated"] is True
+    assert world.regions[target_region].controller == "France"
+    cession_clauses = [
+        c for c in result["applied_clauses"] if c["type"] == "territory_cede"
+    ]
+    assert cession_clauses == [
+        {"type": "territory_cede", "from": "Austria", "to": "France",
+         "region": target_region},
+    ]
+
+
 def test_confirm_gold_lump_transfers_gold_clamped_to_payer_balance():
     world = WorldState()
     _install_two_v_two_war(world)

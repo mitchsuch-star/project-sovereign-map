@@ -509,6 +509,9 @@ def _term_regions(term: Mapping[str, Any]) -> List[str]:
     regions = term.get("regions")
     if isinstance(regions, (list, tuple)) and regions:
         return [str(r) for r in regions]
+    region = str(term.get("region") or "")
+    if region:
+        return [region]
     return []
 
 

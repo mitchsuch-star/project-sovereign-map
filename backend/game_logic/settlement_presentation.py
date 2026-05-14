@@ -835,7 +835,13 @@ def build_applied_clauses_preview(
         if ttype == "territory_cede":
             row["from"] = str(term.get("from") or "")
             row["to"] = str(term.get("to") or "")
-            row["regions"] = list(term.get("regions") or [])
+            regions = list(term.get("regions") or [])
+            region = str(term.get("region") or "")
+            if not regions and region:
+                regions = [region]
+            row["regions"] = regions
+            if region:
+                row["region"] = region
         elif ttype == "gold_lump" or ttype == "gold_indemnity":
             row["from"] = str(term.get("from") or term.get("payer") or "")
             row["to"] = str(term.get("to") or term.get("recipient") or "")

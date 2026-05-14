@@ -29,6 +29,7 @@ from backend.game_logic.settlement_preview import (
     _compute_concession_baseline,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
+    handle_settlement_dialogue_action,
     stage_settlement_confirm,
 )
 from backend.models.world_state import WorldState
@@ -400,6 +401,47 @@ class TestClickTimeRevalidation:
         if preview["settlement_preview"]["concession_baseline_visible"]:
             assert dialogue["concession_baseline_visible"] is True
             assert dialogue["concession_baseline"] is not None
+            assert "re_author_with_concessions" in dialogue["available_action_ids"]
+            assert any(
+                opt.get("action") == "re_author_with_concessions"
+                for opt in dialogue["options"]
+            )
+
+    def test_re_author_with_concessions_applies_revalidated_empty_draft_baseline(self):
+        """The visible concession baseline must be a behavior path, not
+        banner-only copy. From an empty editor-staged draft, clicking the
+        action revalidates through POST preview, installs baseline terms as
+        the current draft, and does not mutate world state."""
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        if not dialogue["concession_baseline_visible"]:
+            return
+        world.dialogue_manager.replace(dialogue)
+        gold_before = dict(world.nation_gold)
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="re_author_with_concessions",
+            dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        assert world.nation_gold == gold_before
+        refreshed = world.pending_diplomatic_dialogue
+        assert refreshed["type"] == "settlement_confirm"
+        assert refreshed["settlement_terms"]
+        assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
 
 
 class TestConcessionAcceptanceDirection:
