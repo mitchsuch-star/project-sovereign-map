@@ -1168,6 +1168,71 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "front while {war_label} continues elsewhere; it does not end "
         "the war, but it does end the bleeding."
     ),
+    # SC-31 / G2-Slice-8 Voice Bible §16.1 surrender / dependency families.
+    # Surrender preset is a structured, labeled action — Talleyrand frames
+    # it as deliberate concession, not collapse — and the foreign-court
+    # reactions answer the dependency consequence (loss of sovereignty,
+    # lord assimilation, Continental System pull) rather than treating it
+    # as a generic peace acceptance.
+    "settlement_surrender_preset_authored_talleyrand": (
+        "Sire, the surrender draft for {war_label} is set: peace, and "
+        "{vassal_kind} of {proposer_leader} under {accepting_leader}. "
+        "It costs us our sovereignty; it ends the war."
+    ),
+    "settlement_surrender_preset_blocked_talleyrand": (
+        "Sire, surrender terms cannot be drafted now: {top_blocker}. "
+        "Author concessions or hold the line until the field changes."
+    ),
+    "settlement_dependency_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} binds {vassal_nation} "
+        "to {lord_nation} as a {vassal_kind}. The crown survives; "
+        "the court answers to {lord_nation} now."
+    ),
+    "settlement_dependency_acceptance_castlereagh": (
+        "His Majesty's Government accepts the settlement of {war_label} "
+        "with {vassal_nation} under {lord_nation}. London notes the "
+        "submission and will measure {lord_nation} by what it does next."
+    ),
+    "settlement_dependency_acceptance_hardenberg": (
+        "Prussia accepts the settlement of {war_label}. Hardenberg records "
+        "that {vassal_nation} now answers to {lord_nation}, and that "
+        "Prussian standing must adjust accordingly."
+    ),
+    "settlement_dependency_acceptance_metternich": (
+        "Vienna accepts the settlement of {war_label}. Metternich "
+        "observes that {vassal_nation}'s submission to {lord_nation} "
+        "rearranges Europe quietly; quiet does not mean settled."
+    ),
+    "settlement_dependency_acceptance_einsiedel": (
+        "Saxony accepts the settlement of {war_label}. Einsiedel hopes, "
+        "with care, that {lord_nation} remembers small courts when "
+        "{vassal_nation} kneels."
+    ),
+    "settlement_dependency_rejection_castlereagh": (
+        "London cannot accept the settlement of {war_label}. The "
+        "subjection of {vassal_nation} to {lord_nation} is more than "
+        "a treaty matter; {top_blocker} forbids it."
+    ),
+    "settlement_dependency_rejection_hardenberg": (
+        "Prussia rejects the settlement of {war_label}. Hardenberg "
+        "names the obstacle plainly: {top_blocker}. {vassal_nation} "
+        "cannot be handed to {lord_nation} under those circumstances."
+    ),
+    "settlement_dependency_rejection_metternich": (
+        "Vienna declines the settlement of {war_label}. The difficulty "
+        "is {top_blocker}; Austria will not consent to {vassal_nation} "
+        "becoming a vassal of {lord_nation} on those terms."
+    ),
+    "settlement_dependency_rejection_einsiedel": (
+        "Saxony cannot accept the settlement of {war_label}. Einsiedel "
+        "begs {lord_nation} to understand that {top_blocker} leaves "
+        "{vassal_nation} no safe answer."
+    ),
+    "settlement_liberation_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} frees {vassal_nation} from "
+        "{former_lord} into a defensive alliance with {liberator}. The "
+        "court of {vassal_nation} will remember who opened the door."
+    ),
 }
 
 

@@ -183,11 +183,17 @@ class TestClauseValidation:
         for ctype in SETTLEMENT_MVP_CLAUSE_TYPES:
             assert ctype in CANONICAL_CLAUSE_TYPES
 
-    def test_clause_control_schema_hides_non_mvp_clause_types(self):
+    def test_clause_control_schema_marks_live_and_hidden_types(self):
+        # SC-31 / G2-Slice-8 - Dependency clauses (vassalage / subjugation /
+        # liberation) are now live alongside the G2-Slice-1 MVP set.
+        # `gold_per_turn` remains hidden until SC-33 / G2-Slice-9.
+        from backend.game_logic.settlement_scoring import (
+            SETTLEMENT_LIVE_CLAUSE_TYPES,
+        )
         for ctype, row in CLAUSE_CONTROL_SCHEMA.items():
             assert row["required_keys"] == sorted(CANONICAL_CLAUSE_TYPES[ctype]["required"])
             assert row["optional_keys"] == sorted(CANONICAL_CLAUSE_TYPES[ctype]["optional"])
-            if ctype in SETTLEMENT_MVP_CLAUSE_TYPES:
+            if ctype in SETTLEMENT_LIVE_CLAUSE_TYPES:
                 assert row["enabled"] is True
                 assert row["visibility"] == "live"
             else:

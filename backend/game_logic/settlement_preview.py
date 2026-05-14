@@ -1181,6 +1181,324 @@ def _format_concession_reasoning(
     )
 
 
+# SC-31 / G2-Slice-8 - Dependency clause eligibility helpers.
+#
+# These helpers are the source of truth for whether a vassalage /
+# subjugation / liberation clause can be authored. They are reused by
+# the POST preview validator, the surrender-preset algorithm, and by
+# the SC-31 behavior tests so a single closed taxonomy of refusal codes
+# governs both editor visibility and submit-time rejection.
+
+
+def _resolve_war_sides(
+    war_instance: Mapping[str, Any], nation: str
+) -> Optional[str]:
+    """Return ``"attackers"`` / ``"defenders"`` for ``nation`` on a war."""
+    for side in VALID_SIDES:
+        if nation in (war_instance.get(side) or []):
+            return side
+    return None
+
+
+def _dependency_eligibility_payload(
+    eligible: bool,
+    *,
+    refusal_code: str = "",
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    if eligible:
+        payload: Dict[str, Any] = {"eligible": True, "refusal_code": None, "disabled_reason_display": None}
+    else:
+        payload = {
+            "eligible": False,
+            "refusal_code": refusal_code or "dependency_invalid",
+            "disabled_reason_display": _error_display(refusal_code or "dependency_invalid"),
+        }
+    if extra:
+        payload.update(dict(extra))
+    return payload
+
+
+def _check_vassalage_state(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Shared pre-checks for vassalage / subjugation.
+
+    Returns an eligible payload OR a refusal payload from the closed
+    taxonomy ``dependency_*``. Power-cap is checked separately so
+    callers can branch on `dependency_power_cap_blocked` independently.
+    """
+    if not lord_nation or not target_nation or lord_nation == target_nation:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_direction_invalid")
+    lord_side = _resolve_war_sides(war_instance, lord_nation)
+    target_side = _resolve_war_sides(war_instance, target_nation)
+    if lord_side is None or target_side is None or lord_side == target_side:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_not_in_war")
+    pair_key = world._make_diplo_key(lord_nation, target_nation)
+    meta = (war_instance.get("diplo_key_meta") or {}).get(pair_key) or {}
+    pair_status = str(meta.get("pair_status") or "")
+    if pair_status not in ("war", "armistice"):
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_not_in_war")
+    vassals = getattr(world, "vassals", {}) or {}
+    if target_nation in vassals:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_already_vassal")
+    return _dependency_eligibility_payload(True)
+
+
+def evaluate_subjugation_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Whether a ``subjugation`` clause may target ``target_nation``.
+
+    Direction is canonical: ``target_nation`` is the prospective vassal
+    (clause ``from``); ``lord_nation`` is the prospective lord (clause
+    ``to``). Power-cap is enforced through `check_vassalage_power_cap`
+    so a defeated giant cannot be forcibly vassalized by a smaller
+    coalition member.
+    """
+    state = _check_vassalage_state(
+        world,
+        war_instance=war_instance,
+        lord_nation=lord_nation,
+        target_nation=target_nation,
+    )
+    if not state.get("eligible"):
+        return state
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord_nation, target_nation)
+    if not cap.get("allowed"):
+        return _dependency_eligibility_payload(
+            False,
+            refusal_code="dependency_power_cap_blocked",
+            extra={
+                "lord_power": int(cap.get("lord_power", 0) or 0),
+                "target_power": int(cap.get("target_power", 0) or 0),
+                "power_pct": int(cap.get("pct", 0) or 0),
+            },
+        )
+    return _dependency_eligibility_payload(
+        True,
+        extra={
+            "lord_power": int(cap.get("lord_power", 0) or 0),
+            "target_power": int(cap.get("target_power", 0) or 0),
+            "power_pct": int(cap.get("pct", 0) or 0),
+        },
+    )
+
+
+def evaluate_vassalage_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Whether a ``vassalage`` (treaty path) clause may target ``target_nation``.
+
+    Treaty vassalization shares the same pre-checks as subjugation —
+    direction, war state, not-already-vassal, and the power cap.
+    """
+    return evaluate_subjugation_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=lord_nation,
+        target_nation=target_nation,
+    )
+
+
+def evaluate_liberation_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    vassal_nation: str,
+    lord_nation: str,
+    liberator: str,
+) -> Dict[str, Any]:
+    """Whether a ``liberation`` clause may free ``vassal_nation``.
+
+    Liberation requires (a) the target is currently someone's vassal,
+    (b) the declared ``lord_nation`` matches the current lord, and
+    (c) the ``liberator`` is a recognized nation different from the
+    current lord. The pair (lord vs liberator) must also currently be
+    on opposite sides of the war so the clause has cross-side authority.
+    """
+    if not vassal_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_target_not_vassal"
+        )
+    vassals = getattr(world, "vassals", {}) or {}
+    state = vassals.get(vassal_nation)
+    if not isinstance(state, Mapping):
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_target_not_vassal"
+        )
+    current_lord = str(state.get("lord") or state.get("lord_nation") or "")
+    if not current_lord or current_lord != lord_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_lord_mismatch",
+            extra={"current_lord": current_lord},
+        )
+    if not liberator or liberator == current_lord or liberator == vassal_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    # Liberator must be a known nation in the world; reject typos.
+    known_nations: Set[str] = set()
+    diplomatic_states = getattr(world, "diplomatic_states", {}) or {}
+    for key in diplomatic_states:
+        for part in str(key).split("|"):
+            if part:
+                known_nations.add(part)
+    if liberator not in known_nations:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    lord_side = _resolve_war_sides(war_instance, current_lord)
+    liberator_side = _resolve_war_sides(war_instance, liberator)
+    if lord_side is None or liberator_side is None or lord_side == liberator_side:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    return _dependency_eligibility_payload(
+        True, extra={"current_lord": current_lord},
+    )
+
+
+def _compute_surrender_preset(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    accepting_leader: str,
+    proposer_side_leader: Optional[str],
+    covered_enemy_participants: Iterable[str],
+    side_pressure_score: Optional[int],
+) -> Dict[str, Any]:
+    """SC-31 / G2-Slice-8 surrender-preset algorithm.
+
+    Deterministic ``[peace, dependency]`` preset where ``dependency`` is
+    the harshest legal clause in the order
+    ``subjugation -> vassalage`` against the accepting leader. The
+    accepting leader is the prospective lord because surrender is the
+    losing-side player handing dependency authority to the winning
+    leader. Liberation is never authored by this preset (it is owned by
+    the editor's standalone liberation control).
+
+    Visibility reuses the concession-baseline losing-side predicate
+    (``side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD``) AND
+    requires at least one material dependency to be legal under the
+    accepting leader's power cap. When the predicate passes but no
+    legal dependency clause can be authored — the most common cause
+    being the accepting leader being too small under POWER_CAP_RATIO —
+    the affordance is hidden, not disabled, per the Disabled vs Hidden
+    Affordance Policy at spec §"Disabled vs Hidden Affordance Policy".
+
+    Result shape:
+
+    - ``{"losing_for_surrender_preset": bool,
+        "surrender_preset_visible": bool,
+        "surrender_preset": {"terms": List[Clause], "reasoning": str,
+                              "dependency_kind": str} | None,
+        "surrender_preset_reason": str}``
+    """
+    if side_pressure_score is None:
+        return {
+            "losing_for_surrender_preset": False,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "no_side_pressure_score",
+        }
+    losing = int(side_pressure_score) <= LOSING_SIDE_PRESSURE_THRESHOLD
+    if not losing:
+        return {
+            "losing_for_surrender_preset": False,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "not_losing_side",
+        }
+    if not proposer_side_leader or not accepting_leader:
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "missing_leaders",
+        }
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    if accepting_leader not in covered:
+        # Spec line 277 requires clause targets to lie in
+        # `covered_enemy_participants`; if the accepting leader is not
+        # covered, dependency cannot legally beneficiary-route.
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "accepting_leader_not_covered",
+        }
+    subjugation = evaluate_subjugation_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=accepting_leader,
+        target_nation=proposer_side_leader,
+    )
+    dependency_kind: Optional[str] = None
+    if subjugation.get("eligible"):
+        dependency_kind = "subjugation"
+    else:
+        vassalage = evaluate_vassalage_eligibility(
+            world,
+            war_instance=war_instance,
+            lord_nation=accepting_leader,
+            target_nation=proposer_side_leader,
+        )
+        if vassalage.get("eligible"):
+            dependency_kind = "vassalage"
+    if not dependency_kind:
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "no_legal_dependency_clause",
+        }
+    preset_terms: List[Dict[str, Any]] = [
+        {"type": "peace"},
+        {
+            "type": dependency_kind,
+            "from": proposer_side_leader,
+            "to": accepting_leader,
+        },
+    ]
+    if dependency_kind == "subjugation":
+        reasoning = (
+            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
+            "as a conquest vassal in exchange for ending the war."
+        )
+    else:
+        reasoning = (
+            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
+            "as a treaty vassal in exchange for ending the war."
+        )
+    return {
+        "losing_for_surrender_preset": True,
+        "surrender_preset_visible": True,
+        "surrender_preset": {
+            "terms": preset_terms,
+            "reasoning": reasoning,
+            "dependency_kind": dependency_kind,
+        },
+        "surrender_preset_reason": "material_dependency_available",
+    }
+
+
 def _compute_concession_baseline(
     world: Any,
     *,
@@ -1401,11 +1719,36 @@ def validate_settlement_terms(
     player_nation: Optional[str] = None,
     proposer_side: Optional[str] = None,
     actor_side_in_war: Optional[str] = None,
+    world: Any = None,
+    war_instance: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """SC-1 POST preview clause validation.
 
     Returns {"valid": True} or {"valid": False, "error": ..., "error_index": ...,
     "disabled_reason_display": ...}.
+
+    SC-31 / G2-Slice-8: when ``world`` and ``war_instance`` are supplied,
+    dependency-clause direction, target eligibility, and power-cap legality
+    are additionally enforced. Hidden clause types are never live in
+    `CLAUSE_CONTROL_SCHEMA`, but illegal-by-state dependency clauses
+    submitted via tampered payloads return canonical error codes:
+
+    - ``dependency_direction_invalid`` — vassalage / subjugation use
+      ``from = vassal/subjugated, to = lord``; the validator rejects
+      reversed projections.
+    - ``dependency_target_not_in_war`` — vassalage / subjugation target
+      must currently be at WAR or ARMISTICE with the lord on the war
+      instance.
+    - ``dependency_target_already_vassal`` — vassalage / subjugation
+      target is already someone's vassal.
+    - ``dependency_power_cap_blocked`` — lord power is not at least
+      ``POWER_CAP_RATIO`` × target power.
+    - ``liberation_target_not_vassal`` — liberation target is not
+      currently a vassal of any lord.
+    - ``liberation_lord_mismatch`` — declared ``lord_nation`` does not
+      match the current lord of ``vassal_nation``.
+    - ``liberation_invalid_liberator`` — ``liberator`` is missing,
+      equal to the current lord, or not a recognized nation.
     """
     if actor_nation and player_nation and actor_nation != player_nation:
         return {
@@ -1487,6 +1830,67 @@ def validate_settlement_terms(
                         "error": "duplicate_or_conflicting_clauses",
                         "error_index": terms.index(cb),
                         "disabled_reason_display": _error_display("duplicate_or_conflicting_clauses"),
+                    }
+
+    # SC-31 / G2-Slice-8: dependency-clause eligibility uses world state.
+    # When called without a `world`+`war_instance` context (legacy callers
+    # / pure schema validation), the dependency-state checks are skipped.
+    if world is not None and isinstance(war_instance, Mapping):
+        for idx, clause in enumerate(terms):
+            ctype = clause.get("type")
+            if ctype in ("vassalage", "subjugation"):
+                # Canonical direction: from = vassal/subjugated, to = lord.
+                vassal_nation = str(clause.get("from") or "")
+                lord_nation = str(clause.get("to") or "")
+                if not vassal_nation or not lord_nation or vassal_nation == lord_nation:
+                    return {
+                        "valid": False,
+                        "error": "dependency_direction_invalid",
+                        "error_index": idx,
+                        "disabled_reason_display": _error_display(
+                            "dependency_direction_invalid"
+                        ),
+                    }
+                eligibility = (
+                    evaluate_subjugation_eligibility
+                    if ctype == "subjugation"
+                    else evaluate_vassalage_eligibility
+                )(
+                    world,
+                    war_instance=war_instance,
+                    lord_nation=lord_nation,
+                    target_nation=vassal_nation,
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "dependency_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "dependency_invalid")
+                        ),
+                    }
+            elif ctype == "liberation":
+                vassal_nation = str(clause.get("vassal_nation") or "")
+                lord_nation = str(clause.get("lord_nation") or "")
+                liberator = str(clause.get("liberator") or "")
+                eligibility = evaluate_liberation_eligibility(
+                    world,
+                    war_instance=war_instance,
+                    vassal_nation=vassal_nation,
+                    lord_nation=lord_nation,
+                    liberator=liberator,
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "liberation_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "liberation_invalid")
+                        ),
                     }
     return {"valid": True}
 
@@ -1664,6 +2068,33 @@ def build_settlement_preview(
     preview["concession_baseline_reason"] = str(
         baseline_payload.get("concession_baseline_reason") or ""
     )
+    # SC-31 / G2-Slice-8 - surrender preset payload mirrors the concession
+    # baseline contract: POST preview is the source of truth, and the
+    # staged settlement_confirm dialogue carries the same three keys at
+    # the canonical position so Godot can render the EDIT-rail
+    # `Author surrender terms (Talleyrand)` button without an extra
+    # preview round-trip.
+    surrender_payload = _compute_surrender_preset(
+        world,
+        war_id=war_id,
+        war_instance=instance,
+        proposer_side=side,
+        accepting_side=accepting_side,
+        accepting_leader=str(accepting_leader or ""),
+        proposer_side_leader=str(proposer_leader or ""),
+        covered_enemy_participants=covered,
+        side_pressure_score=acceptance.get("side_pressure_score"),
+    )
+    preview["losing_for_surrender_preset"] = bool(
+        surrender_payload.get("losing_for_surrender_preset")
+    )
+    preview["surrender_preset_visible"] = bool(
+        surrender_payload.get("surrender_preset_visible")
+    )
+    preview["surrender_preset"] = surrender_payload.get("surrender_preset")
+    preview["surrender_preset_reason"] = str(
+        surrender_payload.get("surrender_preset_reason") or ""
+    )
     return {
         "success": True,
         "mode": "settlement",
@@ -1681,6 +2112,7 @@ def build_settlement_confirm_dialogue(
     selected_target_nation: Optional[str] = None,
     caller_kind: str = "player_editor",
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     preview = copy.deepcopy(preview_response["settlement_preview"])
     war_id = str(preview_response["war_id"])
@@ -1824,6 +2256,24 @@ def build_settlement_confirm_dialogue(
         and bool(preview.get("concession_baseline_visible"))
         and _has_material_concession_terms(baseline_terms)
     )
+    surrender_preset_payload = (
+        copy.deepcopy(preview.get("surrender_preset"))
+        if preview.get("surrender_preset_visible")
+        else None
+    )
+    surrender_terms_preset = (
+        list(surrender_preset_payload.get("terms") or [])
+        if isinstance(surrender_preset_payload, Mapping)
+        else []
+    )
+    can_author_surrender_terms = (
+        not can_ratify
+        and bool(preview.get("surrender_preset_visible"))
+        and any(
+            isinstance(t, Mapping) and t.get("type") in ("vassalage", "subjugation")
+            for t in surrender_terms_preset
+        )
+    )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
         available_action_ids.append("confirm_settlement")
@@ -1835,6 +2285,24 @@ def build_settlement_confirm_dialogue(
             "concession_baseline_preview": concession_baseline,
         })
         available_action_ids.append("re_author_with_concessions")
+    # SC-31 / G2-Slice-8 - Surrender preset CTA. Appears only when the
+    # losing-side concession baseline predicate passes AND the surrender
+    # preset can author a material dependency clause. Order matters: it
+    # sits between Re-author with Concessions and Seek Bilateral Peace /
+    # Seek Armistice Instead because surrender is a more drastic
+    # concessionary authoring step than gold/territory concessions but
+    # still narrower than abandoning the war-scoped settlement entirely.
+    if can_author_surrender_terms:
+        options.append({
+            "label": "Author surrender terms (Talleyrand)",
+            "action": "author_surrender_terms",
+            "description": (
+                "Apply Talleyrand's surrender preset: peace plus a dependency "
+                "clause submitting to the accepting court."
+            ),
+            "surrender_preset_preview": surrender_preset_payload,
+        })
+        available_action_ids.append("author_surrender_terms")
     # SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs. Only emitted
     # on blocked ratification, with a non-empty selected target, and only
     # when `evaluate_pair_peace_substitute_eligibility(...)` returns
@@ -1966,6 +2434,20 @@ def build_settlement_confirm_dialogue(
             preview.get("concession_baseline_visible")
         ),
         "concession_baseline": concession_baseline,
+        # SC-31 / G2-Slice-8 - `surrender_preset` (the bool flag) labels
+        # the dialogue as a surrender-preset-authored package for banner
+        # copy + emitted `settlement_summary.surrender_preset` tagging.
+        # `surrender_preset_visible` / `surrender_preset` are the
+        # preview-time payloads Godot reads to render the EDIT-rail CTA.
+        "surrender_preset": bool(surrender_preset),
+        "losing_for_surrender_preset": bool(
+            preview.get("losing_for_surrender_preset")
+        ),
+        "surrender_preset_visible": bool(
+            preview.get("surrender_preset_visible")
+        ),
+        "surrender_preset_payload": surrender_preset_payload,
+        "surrender_preset_reason": str(preview.get("surrender_preset_reason") or ""),
     }
 
 
@@ -1982,6 +2464,7 @@ def stage_settlement_confirm(
     require_explicit_scope: bool = False,
     caller_kind: str = "player_editor",
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
     explicit_covered = _normalize_nation_list(covered_enemy_participants)
@@ -2098,6 +2581,7 @@ def stage_settlement_confirm(
             selected_target_nation=resolved_target,
             caller_kind=caller_kind,
             white_peace=white_peace,
+            surrender_preset=surrender_preset,
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
@@ -2451,6 +2935,19 @@ def _apply_settlement_terms(
                     clause["lord_nation"] = lib_from
                     clause["liberator"] = lib_liberator
                     clause["pair_state_transition"] = "VASSALAGE -> SOVEREIGN"
+                    # SC-31 / G2-Slice-8 applied_clauses_preview fields
+                    # for liberation: defensive_alliance_with_liberator,
+                    # relation_deltas (lib_vassal vs former lord -20 /
+                    # vs liberator +30), threat_reduction (lord-on-player
+                    # side delta).
+                    clause["defensive_alliance_with_liberator"] = bool(lib_liberator)
+                    clause["relation_deltas"] = {
+                        f"{lib_vassal}|{lib_from}": -20,
+                        f"{lib_vassal}|{lib_liberator}": 30,
+                    }
+                    clause["threat_reduction"] = (
+                        8 if lib_from == getattr(world, "player_nation", None) else 0
+                    )
                     applied.append(clause)
                     if hasattr(world, "log_event"):
                         world.log_event({
@@ -2544,11 +3041,43 @@ def _resolve_pair_state_transitions(
                         terms=list(settlement_terms or []),
                     )
                 if vassal_result.get("success"):
-                    assimilate_vassal_marshals(world, covered_enemy)
+                    assimilated_marshals = assimilate_vassal_marshals(
+                        world, covered_enemy
+                    )
                     clause = dict(term)
                     clause.setdefault("from", covered_enemy)
                     clause.setdefault("to", proposer_member)
                     clause["pair_state_transition"] = "WAR -> VASSALAGE"
+                    # SC-31 / G2-Slice-8 applied_clauses_preview fields
+                    # for vassalage / subjugation. Values read from the
+                    # live vassal record so the preview matches the
+                    # mutation that ran. autonomy_after / loyalty_after /
+                    # tribute_rate_after / vassal_path use the values
+                    # stamped by create_vassal_conquest /
+                    # create_vassal_treaty; threat_delta_for_lord is the
+                    # coalition-threat delta from the same helper (+25
+                    # for conquest, +5 for treaty per WPS-B §2a);
+                    # marshal_assimilation_count counts marshals moved
+                    # to the lord pool.
+                    vassal_record = (getattr(world, "vassals", {}) or {}).get(
+                        covered_enemy
+                    ) or {}
+                    autonomy_level = int(vassal_record.get("autonomy", 1))
+                    autonomy_after_display = {
+                        0: "Puppet",
+                        1: "Satellite",
+                        2: "Autonomous",
+                    }.get(autonomy_level, "Satellite")
+                    clause["autonomy_after"] = autonomy_after_display
+                    clause["loyalty_after"] = int(vassal_record.get("loyalty") or 0)
+                    clause["tribute_rate_after"] = float(
+                        vassal_record.get("tribute_rate") or 0.0
+                    )
+                    clause["vassal_path"] = str(vassal_record.get("path") or "")
+                    clause["marshal_assimilation_count"] = len(assimilated_marshals)
+                    clause["threat_delta_for_lord"] = (
+                        25 if term.get("type") == "subjugation" else 5
+                    )
                     state_clauses_applied.append(clause)
                     cleanup_war_end(world, pair_key, conclude_objectives=True)
                 else:
@@ -2806,6 +3335,13 @@ def ratify_settlement_confirm(
     # `available_action_ids[]` omission).
     white_peace = bool(dialogue.get("white_peace", False))
     caller_kind = str(dialogue.get("caller_kind") or "player_editor")
+    # SC-31 / G2-Slice-8 - surrender_preset propagates through the
+    # ratification event so dispatch/ledger/campaign-log render the
+    # outcome as a labeled surrender. The flag is set when the player
+    # accepted Talleyrand's surrender preset (or any future authored
+    # surrender package that opts into the label); generic dependency
+    # clauses authored manually do not toggle the flag automatically.
+    surrender_preset = bool(dialogue.get("surrender_preset", False))
     if (
         caller_kind == "player_editor"
         and not settlement_terms
@@ -3030,6 +3566,7 @@ def ratify_settlement_confirm(
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
         white_peace=white_peace,
+        surrender_preset=surrender_preset,
     )
 
     world.dialogue_manager.pop()
@@ -3254,6 +3791,131 @@ def handle_settlement_dialogue_action(
             "concession_baseline": copy.deepcopy(baseline),
             "mutated": False,
             "message": "Talleyrand's concession baseline has been drafted for review.",
+            "suppress_proposal_result_popup": True,
+        }
+    if action == "author_surrender_terms":
+        # SC-31 / G2-Slice-8 - Apply Talleyrand's surrender preset.
+        # Mirrors `re_author_with_concessions`: re-runs POST preview
+        # against an empty draft to revalidate the surrender preset, and
+        # only stages a fresh `settlement_confirm` with the preset terms
+        # after a click-time re-check. On stale failure the current
+        # draft is preserved verbatim, no mutation, no popup, and the
+        # caller-side popup remains mounted so the player can choose
+        # another recovery route.
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actor = getattr(world, "player_nation", "France")
+        current_terms = [
+            dict(t)
+            for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "surrender_preset_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No surrender preset is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        preset_payload = fresh_preview.get("surrender_preset")
+        preset_terms = (
+            [dict(t) for t in (preset_payload.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(preset_payload, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("surrender_preset_visible")
+            or not any(
+                t.get("type") in ("vassalage", "subjugation") for t in preset_terms
+            )
+        ):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": "surrender_preset_unavailable",
+                "error_display": "No surrender preset is available now.",
+                "mutated": False,
+                "preserved_terms": current_terms,
+                "suppress_proposal_result_popup": True,
+            }
+        if current_terms:
+            return {
+                "success": True,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "requires_replace_confirm": True,
+                "replacement_terms": preset_terms,
+                "surrender_preset": copy.deepcopy(preset_payload),
+                "mutated": False,
+                "message": "Confirm replacing the current draft with Talleyrand's surrender preset.",
+                "suppress_proposal_result_popup": True,
+            }
+        preset_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=preset_terms,
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not preset_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": preset_preview.get("error") or "surrender_preset_failed_preview",
+                "error_display": preset_preview.get("error_display") or (
+                    "The surrender preset could not be previewed."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        new_dialogue = build_settlement_confirm_dialogue(
+            world,
+            preset_preview,
+            selected_target_nation=selected_target or None,
+            caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
+            white_peace=False,
+            surrender_preset=True,
+        )
+        drafts = getattr(world, "pending_settlement_drafts", None)
+        if drafts is None:
+            world.pending_settlement_drafts = {}
+            drafts = world.pending_settlement_drafts
+        drafts[war_id] = [dict(t) for t in preset_terms]
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": "author_surrender_terms",
+            "war_id": war_id,
+            "diplomatic_dialogue": new_dialogue,
+            "settlement_preview": preset_preview["settlement_preview"],
+            "awaiting_diplomatic_response": True,
+            "surrender_preset": copy.deepcopy(preset_payload),
+            "mutated": False,
+            "message": "Talleyrand's surrender preset has been drafted for review.",
             "suppress_proposal_result_popup": True,
         }
     if action == "open_war_detail":

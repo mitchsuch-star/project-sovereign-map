@@ -63,6 +63,7 @@ SMOKE_START_SETTLEMENT_MULTILATERAL = "settlement_multilateral"
 SMOKE_START_SETTLEMENT_REJECTED = "settlement_rejected"
 SMOKE_START_SETTLEMENT_LOSING = "settlement_losing"
 SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY = "settlement_multiwar_ambiguity"
+SMOKE_START_SETTLEMENT_SURRENDER = "settlement_surrender"
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -749,6 +750,8 @@ class WorldState:
             self._seed_settlement_losing_smoke_start()
         elif preset == SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY:
             self._seed_settlement_multiwar_ambiguity_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_SURRENDER:
+            self._seed_settlement_surrender_smoke_start()
 
     def _seed_settlement_multilateral_smoke_start(self) -> None:
         """Seed France vs Britain + Prussia for settlement UI smoke tests."""
@@ -881,6 +884,52 @@ class WorldState:
             "selected_target_nation": "Britain",
             "concession_region": "Belgium",
             "minimum_france_gold": 1500,
+        }
+
+    def _seed_settlement_surrender_smoke_start(self) -> None:
+        """Seed a losing-side fixture where surrender preset is legal.
+
+        SC-31 / G2-Slice-8 contract: the surrender preset requires the
+        accepting leader to satisfy the WPS-B vassalage power cap
+        against the proposer leader. The default 1805 map gives France
+        ~1100 power vs Britain's ~400 (~275%) — Britain cannot legally
+        vassalize France there, so settlement_losing cannot prove the
+        positive surrender path. This fixture transfers six high-income
+        French regions to Britain so Britain has roughly 3× France's
+        remaining power; the power cap then allows
+        subjugation / vassalage with Britain as lord. War pressure mirrors
+        the settlement_losing preset so the losing-side concession
+        baseline + surrender preset predicates both fire.
+        """
+        self._seed_settlement_multilateral_smoke_start()
+        self._set_smoke_war_pressure(
+            france_score=-90,
+            enemy_exhaustion=0,
+            battle_winner="enemy",
+        )
+        # Reassign French regions to Britain so Britain satisfies the
+        # WPS-B power cap (target_power <= lord_power // 2). Paris and
+        # Brittany stay French so France is not eliminated.
+        transferable = ("Belgium", "Lyon", "Marseille", "Milan", "Normandy", "Bordeaux")
+        for region_name in transferable:
+            region = self.regions.get(region_name)
+            if region is None:
+                continue
+            region.controller = "Britain"
+        # Invalidate national-power cache so the power-cap check reads
+        # the post-transfer geometry rather than a stale init cache.
+        if hasattr(self, "_national_power_cache"):
+            self._national_power_cache = {}
+        if hasattr(self, "invalidate_active_nations_cache"):
+            self.invalidate_active_nations_cache()
+        self.nation_gold["France"] = max(int(self.nation_gold.get("France", 0)), 800)
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_SURRENDER,
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+            "accepting_leader": "Britain",
+            "surrender_lord_candidate": "Britain",
+            "expected_surrender_dependency": "subjugation",
         }
 
     def _seed_settlement_multiwar_ambiguity_smoke_start(self) -> None:

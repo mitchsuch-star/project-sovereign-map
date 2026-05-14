@@ -105,13 +105,24 @@ SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
     "peace", "territory_cede", "gold_indemnity", "forced_alliance",
 })
 
+# SC-31 / G2-Slice-8 - Dependency clauses become editor-live alongside the
+# G2-Slice-1 MVP set. `gold_per_turn` remains interim-hidden under SC-33 /
+# G2-Slice-9.
+SETTLEMENT_DEPENDENCY_CLAUSE_TYPES = frozenset({
+    "vassalage", "subjugation", "liberation",
+})
+
+SETTLEMENT_LIVE_CLAUSE_TYPES = frozenset(
+    SETTLEMENT_MVP_CLAUSE_TYPES | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
+)
+
 CLAUSE_CONTROL_SCHEMA = {
     clause_type: {
         "type": clause_type,
         "required_keys": sorted(spec["required"]),
         "optional_keys": sorted(spec["optional"]),
-        "enabled": clause_type in SETTLEMENT_MVP_CLAUSE_TYPES,
-        "visibility": "live" if clause_type in SETTLEMENT_MVP_CLAUSE_TYPES else "hidden",
+        "enabled": clause_type in SETTLEMENT_LIVE_CLAUSE_TYPES,
+        "visibility": "live" if clause_type in SETTLEMENT_LIVE_CLAUSE_TYPES else "hidden",
     }
     for clause_type, spec in CANONICAL_CLAUSE_TYPES.items()
 }

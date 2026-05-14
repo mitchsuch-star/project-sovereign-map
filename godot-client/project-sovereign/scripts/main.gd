@@ -41,6 +41,11 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# propose_peace proposal dialogue or returns a humanized refusal.
 	"seek_bilateral_peace",
 	"seek_armistice_instead",
+	# SC-31 / G2-Slice-8 Author surrender terms (Talleyrand). Backend
+	# handler revalidates surrender-preset visibility at click time and
+	# stages a fresh settlement_confirm with surrender_preset=true on
+	# success, or returns a humanized refusal without mutating the draft.
+	"author_surrender_terms",
 	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
 	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
 	# but no settlement-offer button is reachable from the player UI.

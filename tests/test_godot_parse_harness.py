@@ -160,6 +160,8 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs.
     "seek_bilateral_peace",
     "seek_armistice_instead",
+    # SC-31 / G2-Slice-8 surrender preset CTA.
+    "author_surrender_terms",
 }
 
 

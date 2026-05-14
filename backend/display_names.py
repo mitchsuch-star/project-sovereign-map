@@ -154,11 +154,17 @@ PROPOSAL_TYPE_DISPLAY = {
 }
 
 CLAUSE_TYPE_DISPLAY = {
+    "peace": "Peace",
     "gold_lump": "Gold payment",
+    "gold_indemnity": "Gold indemnity",
     "gold_per_turn": "Gold per turn",
     "territory_cede": "Territory cession",
     "territory_return": "Territory return",
     "territory": "Territory cession",
+    "forced_alliance": "Forced alliance",
+    "vassalage": "Vassalage",
+    "subjugation": "Subjugation",
+    "liberation": "Liberation",
     "action_point": "Action point concession",
     "ap_per_turn": "Action point concession",
     "ap_reduction": "Action point reduction",
@@ -577,6 +583,45 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "target_not_in_war": "This court is not a participant in this war.",
     "cooldown_active": "A recent proposal cooldown is still active for this court.",
     "insufficient_resources": "Insufficient diplomatic points for this proposal.",
+    # SC-31 / G2-Slice-8 dependency-clause eligibility codes. Closed
+    # taxonomy returned by evaluate_subjugation_eligibility /
+    # evaluate_vassalage_eligibility / evaluate_liberation_eligibility.
+    "dependency_direction_invalid": (
+        "Dependency clauses must list the vassal/subjugated nation as "
+        "from and the lord as to."
+    ),
+    "dependency_target_not_in_war": (
+        "Dependency clauses require the lord and the target to be on "
+        "opposite sides of the active war."
+    ),
+    "dependency_target_already_vassal": (
+        "That nation is already someone's vassal; release them before "
+        "imposing a new dependency."
+    ),
+    "dependency_power_cap_blocked": (
+        "The lord lacks the national power to legally vassalize a "
+        "target this large."
+    ),
+    "dependency_invalid": "Dependency clause is not eligible for this war.",
+    "liberation_target_not_vassal": (
+        "Liberation requires the target to currently be a vassal."
+    ),
+    "liberation_lord_mismatch": (
+        "The declared lord does not match the target's current lord."
+    ),
+    "liberation_invalid_liberator": (
+        "The liberator must be a recognized nation on the opposite side "
+        "of the current lord, and not the lord or the vassal itself."
+    ),
+    "liberation_invalid": "Liberation clause is not eligible for this war.",
+    # SC-31 / G2-Slice-8 surrender preset dialogue refusal codes.
+    "surrender_preset_unavailable": (
+        "No surrender preset is available now; author concessions or "
+        "hold the line."
+    ),
+    "surrender_preset_failed_preview": (
+        "The surrender preset could not be previewed; try refreshing."
+    ),
 }
 
 # Side label display — used by settlement review's allies block to surface
