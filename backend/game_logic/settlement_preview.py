@@ -4523,6 +4523,34 @@ def _is_renewed_war_between(world: Any, payer: str, recipient: str) -> bool:
     return str(state or "") in ("WAR", "ARMISTICE")
 
 
+def _is_recurring_payment_nation_eliminated(
+    world: Any,
+    nation: str,
+    *,
+    nation_gold: Mapping[str, Any],
+    vassals: Mapping[str, Any],
+    active_nations: Optional[Set[str]],
+) -> bool:
+    """Match the live active-nation contract for payment cancellation.
+
+    `nation_gold` persists for eliminated courts, so treasury membership is
+    only a legacy fallback. Cached active-nation state is authoritative when
+    the world exposes it.
+    """
+    if not nation:
+        return True
+    if nation in vassals:
+        return False
+    if nation not in nation_gold:
+        return True
+    if active_nations is not None:
+        return nation not in active_nations
+    # Do not fall back to a region scan from the per-payment loop. Production
+    # WorldState exposes cached get_active_nations(); lightweight fakes still
+    # get the legacy nation_gold absence behavior above.
+    return False
+
+
 def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
     """SC-33 / G2-Slice-9 income-phase processor for recurring settlement
     gold payments.
@@ -4554,6 +4582,13 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
     events = {"paid": [], "partial": [], "completed": [], "cancelled": []}
     nation_gold = getattr(world, "nation_gold", None) or {}
     vassals = getattr(world, "vassals", None) or {}
+    active_nations: Optional[Set[str]] = None
+    get_active_nations = getattr(world, "get_active_nations", None)
+    if callable(get_active_nations):
+        try:
+            active_nations = {str(n) for n in get_active_nations()}
+        except Exception:
+            active_nations = None
 
     def _war_label_for(entry: Mapping[str, Any]) -> str:
         wid = str(entry.get("war_id") or "")
@@ -4577,27 +4612,6 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
             # Malformed / already drained — drop silently.
             continue
 
-        payer_active = payer in nation_gold
-        if not payer_active:
-            # Pre-vassalize check: a nation removed from nation_gold may
-            # still appear in vassals (eliminated path) — both are
-            # cancellation. Vassalize cancellation is recorded with
-            # `payer_vassalized` reason for fidelity.
-            reason = "payer_vassalized" if payer in vassals else "payer_eliminated"
-            events["cancelled"].append({
-                "payment_id": str(entry.get("payment_id") or ""),
-                "from": payer,
-                "to": recipient,
-                "reason": reason,
-                "remaining_turns": int(turns_remaining),
-            })
-            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
-                "from_nation": payer,
-                "to_nation": recipient,
-                "war_label": _war_label_for(entry),
-                "reason": reason,
-            }, "always")
-            continue
         if payer in vassals:
             reason = "payer_vassalized"
             events["cancelled"].append({
@@ -4614,7 +4628,35 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "reason": reason,
             }, "always")
             continue
-        if recipient not in nation_gold:
+        if _is_recurring_payment_nation_eliminated(
+            world,
+            payer,
+            nation_gold=nation_gold,
+            vassals=vassals,
+            active_nations=active_nations,
+        ):
+            reason = "payer_eliminated"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if _is_recurring_payment_nation_eliminated(
+            world,
+            recipient,
+            nation_gold=nation_gold,
+            vassals=vassals,
+            active_nations=active_nations,
+        ):
             reason = "recipient_eliminated"
             events["cancelled"].append({
                 "payment_id": str(entry.get("payment_id") or ""),

@@ -105,6 +105,32 @@ def _install_recurring_gold_war(world: WorldState) -> dict:
     return war
 
 
+def _acceptance_always_passes(*args, **kwargs):
+    from backend.game_logic.settlement_scoring import (
+        calculate_common_peace_acceptance as real,
+    )
+
+    result = real(*args, **kwargs)
+    result["score"] = 100
+    result["verdict"] = "accept"
+    result["hard_stops"] = []
+    return result
+
+
+def _eliminate_nation_through_world_path(
+    world: WorldState,
+    nation: str,
+    *,
+    new_controller: str = "France",
+) -> None:
+    """Drive the same zero-region path production uses before elimination."""
+    for region in world.regions.values():
+        if region.controller == nation:
+            region.controller = new_controller
+    world.invalidate_active_nations_cache()
+    world._eliminate_nation(nation)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Required #1 — `gold_per_turn` is no longer absent under SC-33.
 # ═══════════════════════════════════════════════════════════════════════════
@@ -346,12 +372,13 @@ class TestValidator:
 class TestRecurringObligationProcessing:
     def _seed_obligation(
         self, world: WorldState, *, amount: int = 100, turns: int = 3,
-        leave_at_war: bool = False,
+        leave_at_war: bool = False, payer: str = "France",
+        recipient: str = "Britain",
     ) -> dict:
         _install_recurring_gold_war(world)
         terms = [{
-            "type": "gold_per_turn", "from": "France",
-            "to": "Britain", "amount": amount, "turns": turns,
+            "type": "gold_per_turn", "from": payer,
+            "to": recipient, "amount": amount, "turns": turns,
         }]
         _apply_settlement_terms(
             world, settlement_terms=terms,
@@ -364,10 +391,7 @@ class TestRecurringObligationProcessing:
             # mirror that contract so the `renewed_war` cancellation
             # does not preempt the per-turn tick.
             for pair in list(world.diplomatic_states.keys()):
-                if (
-                    "France" in pair.split("|")
-                    and "Britain" in pair.split("|")
-                ):
+                if set(pair.split("|")) == {payer, recipient}:
                     world.diplomatic_states[pair] = "PEACE"
         assert len(world.recurring_settlement_payments) == 1
         return world.recurring_settlement_payments[0]
@@ -407,10 +431,48 @@ class TestRecurringObligationProcessing:
         assert len(events["completed"]) == 1
         assert events["completed"][0]["total_amount"] == 100
 
+    def test_ratify_settlement_confirm_registers_and_advance_turn_processes_payment(
+        self,
+    ):
+        world = WorldState()
+        _install_recurring_gold_war(world)
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "gold_per_turn", "from": "France",
+                "to": "Britain", "amount": 60, "turns": 3,
+            },
+        ]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_always_passes,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                settlement_terms=terms,
+                caller_kind="player_editor",
+            )
+            assert staged["success"] is True, staged
+            dialogue = world.pending_diplomatic_dialogue
+            result = ratify_settlement_confirm(world, dialogue)
+        assert result["success"] is True, result
+        assert len(world.recurring_settlement_payments) == 1
+        assert world.recurring_settlement_payments[0]["turns_remaining"] == 3
+
+        world.advance_turn()
+
+        assert len(world.recurring_settlement_payments) == 1
+        assert world.recurring_settlement_payments[0]["turns_remaining"] == 2
+        assert any(
+            event.get("type") == "settlement_recurring_gold_paid"
+            for event in world.pending_dispatch_events
+        )
+
     def test_cancellation_when_recipient_eliminated(self):
         world = WorldState()
         self._seed_obligation(world, amount=50, turns=5)
-        world.nation_gold.pop("Britain", None)
+        _eliminate_nation_through_world_path(world, "Britain")
         events = process_recurring_settlement_payments(world)
         assert world.recurring_settlement_payments == []
         assert len(events["cancelled"]) == 1
@@ -418,8 +480,10 @@ class TestRecurringObligationProcessing:
 
     def test_cancellation_when_payer_eliminated(self):
         world = WorldState()
-        self._seed_obligation(world, amount=50, turns=5)
-        world.nation_gold.pop("France", None)
+        self._seed_obligation(
+            world, amount=50, turns=5, payer="Britain", recipient="France",
+        )
+        _eliminate_nation_through_world_path(world, "Britain")
         events = process_recurring_settlement_payments(world)
         assert world.recurring_settlement_payments == []
         assert len(events["cancelled"]) == 1
