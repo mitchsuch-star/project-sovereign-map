@@ -112,10 +112,20 @@ def _stage_dialogue(
     settlement_terms=None,
     covered_enemy_participants=None,
 ) -> dict:
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 empty-Ratify gate:
+    # editor-staged empty drafts (`caller_kind="player_editor"`,
+    # `settlement_terms == []`, `white_peace=False`) cannot ratify. The
+    # ratification mechanics tests below validate pair lifecycle and
+    # mutation, not the editor gate — they author a minimum legitimate
+    # `[{"type": "peace"}]` package when the caller does not supply
+    # explicit material clauses, mirroring the spec's "peace-only is a
+    # valid below-threshold draft" treatment.
+    if not settlement_terms:
+        settlement_terms = [{"type": "peace"}]
     result = stage_settlement_confirm(
         world,
         war_id=war_id,
-        settlement_terms=settlement_terms or [],
+        settlement_terms=settlement_terms,
         covered_enemy_participants=covered_enemy_participants,
     )
     assert result["success"] is True

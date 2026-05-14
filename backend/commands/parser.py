@@ -123,6 +123,11 @@ class CommandParser:
             "repudiate_bargain",
             # Imperial Settlement (WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11)
             "propose_common_peace",  # Open the C2 settlement_confirm dialogue
+            # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1: distinct white
+            # peace action — surfaced only via the wizard's structured
+            # payload, but valid_actions still names it so action-id
+            # validation accepts it.
+            "propose_white_peace",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

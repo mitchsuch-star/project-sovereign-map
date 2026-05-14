@@ -489,13 +489,26 @@ func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 
 func _structured_payload_for_action(action_id: String, action_payload: Dictionary) -> Dictionary:
 	"""Return the structured POST fields the backend should receive alongside
-	the free-text command. Currently only `open_settlement` consumes this so
-	the wizard preserves the wizard's selected `war_id`; other actions return
-	an empty dict (which routes through the legacy free-text command path)."""
+	the free-text command. `open_settlement` and `propose_white_peace`
+	(SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1) both consume this so the
+	wizard preserves the wizard's selected `war_id`; other actions return
+	an empty dict (which routes through the legacy free-text command path).
+	Spec line 352: `propose_white_peace` is structured-only on the wizard
+	surface — the typed `propose white peace with X` echo is display copy,
+	not a parser dependency."""
 	if action_id == "open_settlement":
 		var war_id = str(action_payload.get("war_id", ""))
 		var data = {
 			"action": "propose_common_peace",
+			"target_nation": _selected_nation,
+		}
+		if war_id != "":
+			data["war_id"] = war_id
+		return data
+	if action_id == "propose_white_peace":
+		var war_id = str(action_payload.get("war_id", ""))
+		var data = {
+			"action": "propose_white_peace",
 			"target_nation": _selected_nation,
 		}
 		if war_id != "":
@@ -513,6 +526,12 @@ func _build_command(action_id: String, nation: String) -> String:
 			return "propose peace with " + nation
 		"open_settlement":
 			return "propose common peace with " + nation
+		"propose_white_peace":
+			# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1: labeled
+			# white-peace echo. Structured payload routes the action;
+			# the typed string is display copy only — the backend
+			# parser does not auto-classify "white peace".
+			return "propose white peace with " + nation
 		"propose_open_borders":
 			return "propose open borders with " + nation
 		"propose_non_aggression":

@@ -79,11 +79,16 @@ def test_settlement_multilateral_smoke_start_default_settlement_can_ratify(monke
     monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_MULTILATERAL)
 
     world = WorldState()
+    # G2-Slice-W1 empty-Ratify gate: editor-staged empty drafts can no
+    # longer ratify. The multilateral smoke-start authors a minimum
+    # peace package so this acceptance-verdict probe still exercises
+    # the ratification gate it was written for.
     result = stage_settlement_confirm(
         world,
         war_id="war_1",
         actor_nation="France",
         selected_target_nation="Britain",
+        settlement_terms=[{"type": "peace"}],
     )
 
     assert result["success"] is True

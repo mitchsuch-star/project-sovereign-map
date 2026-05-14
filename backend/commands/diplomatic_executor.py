@@ -2096,6 +2096,85 @@ class DiplomaticExecutor:
             selected_target_nation=selected_target,
             covered_enemy_participants=covered_enemies,
             density="medium",
+            caller_kind="player_editor",
+            white_peace=False,
+        )
+        if resolution.get("backfilled"):
+            result["war_instance_backfilled"] = True
+        result.setdefault("awaiting_diplomatic_response", True)
+        return result
+
+    def _execute_propose_white_peace(self, command: Dict, game_state: Dict) -> Dict:
+        """Open the labeled White Peace settlement_confirm dialogue.
+
+        SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 White Peace Affordance:
+        stages the same `settlement_confirm` dialogue type as
+        `propose_common_peace` but with `settlement_terms=[]` and
+        `white_peace=True`, which bypasses the editor empty-Ratify gate
+        and propagates the labeled outcome into `settlement_summary`.
+        """
+        world = game_state.get("world") if isinstance(game_state, dict) else game_state
+        cmd = command.get("command", command) if isinstance(command.get("command"), dict) else command
+        target_nation = (
+            cmd.get("target_nation")
+            or (cmd.get("diplomatic_data") or {}).get("target_nation")
+        )
+        requested_war_id = (
+            cmd.get("war_id")
+            or (cmd.get("diplomatic_data") or {}).get("war_id")
+            or ""
+        )
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, which court shall we offer a white peace?",
+            }
+        player = world.player_nation
+        if target_nation == player:
+            return {
+                "success": False,
+                "message": "We cannot offer a white peace to ourselves, Sire.",
+            }
+        from backend.game_logic.settlement_helpers import (
+            resolve_or_backfill_war_instance_for_settlement,
+        )
+        resolution = resolve_or_backfill_war_instance_for_settlement(
+            world, player, target_nation, requested_war_id=str(requested_war_id or ""),
+        )
+        if not resolution.get("ok"):
+            err = resolution.get("error", "")
+            from backend.display_names import settlement_disabled_reason_display
+            display_reason = settlement_disabled_reason_display(err)
+            return {
+                "success": False,
+                "error": err,
+                "error_display": display_reason,
+                "message": (
+                    f"Sire, the chancery cannot offer a white peace to "
+                    f"{target_nation}: {display_reason}"
+                ),
+            }
+        war_id = resolution["war_id"]
+        from backend.game_logic.settlement_preview import stage_settlement_confirm
+        selected_target = (
+            cmd.get("selected_target_nation")
+            or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
+            or target_nation
+        )
+        covered_enemies = (
+            cmd.get("covered_enemy_participants")
+            or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
+        )
+        result = stage_settlement_confirm(
+            world,
+            war_id=war_id,
+            actor_nation=player,
+            settlement_terms=[],
+            selected_target_nation=selected_target,
+            covered_enemy_participants=covered_enemies,
+            density="medium",
+            caller_kind="player_editor",
+            white_peace=True,
         )
         if resolution.get("backfilled"):
             result["war_instance_backfilled"] = True

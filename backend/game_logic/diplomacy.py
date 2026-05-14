@@ -9917,6 +9917,24 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "war_id": settlement_war_id,
             "eligibility": settlement_eligibility,
         })
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 White Peace
+        # Affordance: distinct CTA next to Open Settlement, sharing the
+        # same eligibility gate so the wizard never offers a labeled
+        # white peace when settlement entry itself is blocked. The
+        # structured payload key is `propose_white_peace`; backend
+        # routes through `_execute_propose_white_peace` and stages a
+        # `settlement_confirm` dialogue with `white_peace=True`.
+        actions.append({
+            "action": "propose_white_peace",
+            "display_name": "Propose White Peace",
+            "dp_cost": 0,
+            "available": settlement_available,
+            "disabled_reason": settlement_disabled_reason,
+            "disabled_reason_display": settlement_disabled_reason_label,
+            "war_id": settlement_war_id,
+            "eligibility": settlement_eligibility,
+            "white_peace": True,
+        })
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 

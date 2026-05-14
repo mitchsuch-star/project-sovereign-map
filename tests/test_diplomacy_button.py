@@ -472,7 +472,11 @@ class TestActionFilters:
         _set_diplo_state(world, "France", "Prussia", "WAR")
         actions = get_available_diplomatic_actions(world, "Prussia")
         for a in actions:
-            if a["action"] == "open_settlement":
+            # SETTLEMENT_UI_CLEANUP_SPEC G2-Slice-W1: `propose_white_peace`
+            # shares the same eligibility/disabled-reason payload as
+            # `open_settlement` (both 0 DP, both gated on settlement
+            # eligibility, both surface "one-on-one war" copy here).
+            if a["action"] in ("open_settlement", "propose_white_peace"):
                 assert a["available"] is False
                 assert a["dp_cost"] == 0
                 assert "one-on-one war" in a["disabled_reason_display"]

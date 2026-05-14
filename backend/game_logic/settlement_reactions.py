@@ -938,6 +938,7 @@ def _emit_settlement_summary_event(
     route_id: str = "",
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
+    white_peace: bool = False,
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -1036,6 +1037,12 @@ def _emit_settlement_summary_event(
         "war_ended": bool(war_ended),
         "balance_projection": dict(balance_projection or {}),
         "awe_tags": list(awe_tags),
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 White Peace
+        # Affordance: labels the emitted outcome so dispatch/ledger/
+        # campaign-log can render it as a labeled white peace rather
+        # than a generic settlement. Defaults to False for normal
+        # treaty ratification.
+        "white_peace": bool(white_peace),
         # SC-15 amendment: archived settlement review renders the fresh
         # ratification-time `acceptance_snapshot`, not the stale staging
         # preview. `acceptance_at_staging` stays as audit context only.
@@ -1178,6 +1185,7 @@ def route_settlement_reactions(
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
     success: bool = True,
     mutated: bool = True,
+    white_peace: bool = False,
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1304,6 +1312,7 @@ def route_settlement_reactions(
         staged_route_id=staged_route_id,
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
+        white_peace=bool(white_peace),
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:

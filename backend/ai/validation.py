@@ -74,6 +74,10 @@ VALID_ACTIONS: Set[str] = {
     "set_war_purpose",
     # WB-C: Repudiate a live war bargain
     "repudiate_bargain",
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 White Peace Affordance —
+    # distinct labeled action that stages settlement_confirm with
+    # white_peace=true and bypasses the editor empty-Ratify gate.
+    "propose_white_peace",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -113,6 +117,10 @@ META_ACTIONS: Set[str] = {
     # Imperial Settlement (WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11) —
     # opens the C2 settlement_confirm dialogue. No marshal needed.
     "propose_common_peace",
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 White Peace Affordance —
+    # distinct labeled action that stages settlement_confirm with
+    # white_peace=true and bypasses the editor empty-Ratify gate.
+    "propose_white_peace",
 }
 
 # Valid stances for stance_change action

@@ -337,6 +337,25 @@ func _build_settlement_content(data: Dictionary) -> String:
 				bbcode += "  [color=#808080]+%d more terms in the ledger[/color]\n" % term_overflow
 			bbcode += "\n"
 
+	# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
+	# when `concession_baseline_visible=true` the dialogue carries a
+	# deterministic draft + humanized reasoning. The popup renders a
+	# first-frame primary-weighted note describing the suggested
+	# Talleyrand concession; the actual "Generate concession baseline"
+	# action button is rendered alongside the existing options by the
+	# editor surface. Click-time revalidation re-POSTs the preview and
+	# only applies the baseline when the predicate still holds.
+	if bool(data.get("concession_baseline_visible", false)):
+		var baseline = data.get("concession_baseline", {})
+		if baseline is Dictionary:
+			var reasoning = str(baseline.get("reasoning", ""))
+			if reasoning != "":
+				bbcode += "[color=#80c080][b]Talleyrand's concession draft:[/b] %s[/color]\n" % reasoning
+	# White peace banner: when the dialogue is staged with
+	# `white_peace=true` the popup labels the outcome explicitly.
+	if bool(data.get("white_peace", false)):
+		bbcode += "[color=#a0a0d0][b]White Peace[/b] — no terms will be exchanged.[/color]\n"
+
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext

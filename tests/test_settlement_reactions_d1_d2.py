@@ -102,10 +102,15 @@ def _install_two_v_two_war(world: WorldState) -> dict:
 
 
 def _stage(world, *, war_id="war_d1", terms=None, covered=None):
+    # G2-Slice-W1 empty-Ratify gate: editor-staged empty drafts cannot
+    # ratify. D1/D2 reaction-routing tests author a minimum peace
+    # package when caller does not supply material clauses.
+    if not terms:
+        terms = [{"type": "peace"}]
     result = stage_settlement_confirm(
         world,
         war_id=war_id,
-        settlement_terms=terms or [],
+        settlement_terms=terms,
         covered_enemy_participants=covered,
     )
     assert result["success"] is True

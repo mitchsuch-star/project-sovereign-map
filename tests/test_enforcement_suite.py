@@ -59,6 +59,11 @@ def _get_free_actions():
         "invest_vassal", "change_autonomy", "make_vassal", "release_vassal",
         # B-B7: Make Amends — paid in DP/gold, no AP cost (spec §8.6.1)
         "make_amends",
+        # Imperial Settlement — opens settlement_confirm dialogue, free.
+        "propose_common_peace",
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 — labeled white
+        # peace shares settlement_confirm dialogue, free action.
+        "propose_white_peace",
     }
 
 
@@ -233,6 +238,10 @@ class TestAllActionsHaveDisplayNames:
         "diplomatic_declare_war", "diplomatic_ultimatum",
         # Vassal actions — displayed via custom messages
         "invest_vassal", "change_autonomy", "make_vassal", "release_vassal",
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 — labeled CTAs
+        # displayed by the wizard ("Propose White Peace"), not via
+        # ACTION_DISPLAY's tactical-action humanizer.
+        "propose_white_peace",
         # Aliases
         "hold",  # Maps to defend
     }

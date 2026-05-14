@@ -179,7 +179,12 @@ def test_settlement_confirm_revalidation_blocks_changed_pair_without_mutation():
     war = _install_common_peace_war(world)
     before_states = dict(world.diplomatic_states)
 
-    stage_settlement_confirm(world, war_id="war_1", settlement_terms=[])
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 empty-Ratify gate
+    # short-circuits before pair revalidation, so author a minimum
+    # legitimate peace package and probe the pair-changed guard.
+    stage_settlement_confirm(
+        world, war_id="war_1", settlement_terms=[{"type": "peace"}],
+    )
     dialogue = world.pending_diplomatic_dialogue
     pair = war["active_diplo_keys"][0]
     war["active_diplo_keys"].remove(pair)

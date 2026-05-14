@@ -167,7 +167,10 @@ def test_route_id_consumers_all_read_staged_value():
         world,
         war_id="war_1",
         covered_enemy_participants=["Austria"],
-        settlement_terms=[],
+        # G2-Slice-W1 empty-Ratify gate: editor-staged empty drafts cannot
+        # ratify. Continuity tests author a minimum legitimate peace
+        # package to probe routing rather than the gate.
+        settlement_terms=[{"type": "peace"}],
     )
     dialogue = staged["diplomatic_dialogue"]
     staged_route_id = dialogue["route_id"]
@@ -696,7 +699,10 @@ def test_ratify_result_feedback_routes_to_active_review_when_war_continues():
         world,
         war_id="war_1",
         covered_enemy_participants=["Austria"],  # partial: Prussia uncovered
-        settlement_terms=[],
+        # G2-Slice-W1 empty-Ratify gate: editor-staged empty drafts cannot
+        # ratify. Continuity tests author a minimum legitimate peace
+        # package to probe routing rather than the gate.
+        settlement_terms=[{"type": "peace"}],
     )
     dialogue = staged["diplomatic_dialogue"]
     result = ratify_settlement_confirm(world, dialogue)
@@ -720,7 +726,10 @@ def test_ratify_result_feedback_routes_to_ledger_when_war_ends():
         world,
         war_id="war_1",
         covered_enemy_participants=["Austria", "Prussia"],
-        settlement_terms=[],
+        # G2-Slice-W1 empty-Ratify gate: editor-staged empty drafts cannot
+        # ratify. Continuity tests author a minimum legitimate peace
+        # package to probe routing rather than the gate.
+        settlement_terms=[{"type": "peace"}],
     )
     dialogue = staged["diplomatic_dialogue"]
     result = ratify_settlement_confirm(world, dialogue)

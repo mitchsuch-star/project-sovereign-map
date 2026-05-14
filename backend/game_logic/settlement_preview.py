@@ -826,6 +826,332 @@ def is_common_settlement_worth_showing(war_instance: Mapping[str, Any]) -> bool:
     return len(set(attackers + defenders)) > 2
 
 
+# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline.
+# Spec §"Concession And Treaty Conversation Contract" pins the deterministic
+# normal-gameplay algorithm: losing-side predicate uses
+# `side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD`, gold candidate is
+# the smallest strictly positive of (treasury - reserve, hard cap, acceptance
+# gap * 100), and territory escalation uses BFS distance from the accepting
+# leader's capital with deterministic tie-breaking.
+LOSING_SIDE_PRESSURE_THRESHOLD = -20
+CONCESSION_BASELINE_TREASURY_RESERVE = 500
+CONCESSION_BASELINE_GOLD_HARD_CAP = 1500
+CONCESSION_BASELINE_GOLD_FLOOR = 300
+CONCESSION_BASELINE_BFS_MAX_DEPTH = 6
+
+
+def _concession_baseline_payer_balance(world: Any, nation: str) -> int:
+    """Return the payer nation's available gold balance (int)."""
+    gold_map = getattr(world, "nation_gold", None)
+    if isinstance(gold_map, Mapping):
+        try:
+            return int(gold_map.get(nation, 0) or 0)
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
+def _concession_baseline_bfs_distance(
+    world: Any,
+    *,
+    origin_region: str,
+    target_region: str,
+    max_depth: int = CONCESSION_BASELINE_BFS_MAX_DEPTH,
+) -> Optional[int]:
+    """Bounded BFS over `region.adjacent_regions` for capital-distance sort.
+
+    Returns the shortest hop count from `origin_region` to `target_region`,
+    or None when the target is unreachable inside `max_depth`. Spec §"Concession
+    And Treaty Conversation Contract" line 284: regions unreachable inside the
+    bound fall through to the lower priority sort keys rather than being
+    excluded.
+    """
+    if not origin_region or not target_region:
+        return None
+    if origin_region == target_region:
+        return 0
+    regions = getattr(world, "regions", None)
+    if not isinstance(regions, Mapping):
+        return None
+    if origin_region not in regions or target_region not in regions:
+        return None
+    visited = {origin_region}
+    frontier = [origin_region]
+    for depth in range(1, max_depth + 1):
+        next_frontier: List[str] = []
+        for current in frontier:
+            region = regions.get(current)
+            adjacent = (
+                getattr(region, "adjacent_regions", None) or []
+                if region is not None
+                else []
+            )
+            for neighbour in adjacent:
+                if neighbour in visited:
+                    continue
+                if neighbour == target_region:
+                    return depth
+                visited.add(neighbour)
+                next_frontier.append(neighbour)
+        frontier = next_frontier
+        if not frontier:
+            break
+    return None
+
+
+def _concession_baseline_select_transferable_region(
+    world: Any,
+    *,
+    proposer_side_participants: Iterable[str],
+    accepting_leader: str,
+) -> Optional[str]:
+    """Pick the deterministic concession region per the spec algorithm.
+
+    Sort key: (BFS distance from `NATION_CAPITALS[accepting_leader]` when
+    reachable inside `CONCESSION_BASELINE_BFS_MAX_DEPTH`, else a sentinel
+    above all real depths), then economic income value (low first), then
+    region name. Eligible regions are currently controlled by a proposer-side
+    participant, not a capital, and not the historical home of any proposer-
+    side participant (so a captured rival region returns to the accepting
+    leader rather than the proposer ceding home territory).
+
+    Historical home lookup goes through `region.get_starting_controllers()`
+    rather than `region.starting_controller` because the Region class
+    stores the starting controller only in the module-level
+    REGIONS_DATA dict; the Region instance carries the live `controller`
+    field only.
+    """
+    proposer_set = {str(n) for n in proposer_side_participants if n}
+    if not proposer_set:
+        return None
+    from backend.models.region import NATION_CAPITALS, get_starting_controllers
+
+    target_region = NATION_CAPITALS.get(accepting_leader)
+    regions = getattr(world, "regions", None)
+    if not isinstance(regions, Mapping):
+        return None
+    starting_controllers = get_starting_controllers()
+
+    candidates: List[Tuple[int, int, str]] = []
+    unreachable_sentinel = CONCESSION_BASELINE_BFS_MAX_DEPTH + 1
+    for name, region in regions.items():
+        controller = str(getattr(region, "controller", "") or "")
+        if controller not in proposer_set:
+            continue
+        if bool(getattr(region, "is_capital", False)):
+            continue
+        starting = str(starting_controllers.get(name, "") or "")
+        if starting in proposer_set:
+            continue
+        distance = (
+            _concession_baseline_bfs_distance(
+                world,
+                origin_region=str(target_region or ""),
+                target_region=str(name),
+            )
+            if target_region
+            else None
+        )
+        if distance is None:
+            distance = unreachable_sentinel
+        income_value = int(getattr(region, "income_value", 100) or 100)
+        candidates.append((distance, income_value, str(name)))
+    if not candidates:
+        return None
+    candidates.sort()
+    return candidates[0][2]
+
+
+def _format_concession_reasoning(
+    *,
+    proposer_leader: str,
+    accepting_leader: str,
+    gold_amount: Optional[int],
+    region: Optional[str],
+) -> str:
+    """Humanized one-line rationale for the baseline draft."""
+    parts: List[str] = []
+    if gold_amount is not None and gold_amount > 0:
+        parts.append(
+            f"{proposer_leader} would pay {accepting_leader} {gold_amount} gold"
+        )
+    if region:
+        if parts:
+            parts.append(f"and cede {region}")
+        else:
+            parts.append(f"{proposer_leader} would cede {region} to {accepting_leader}")
+    if not parts:
+        return ""
+    return (
+        "Talleyrand's draft: "
+        + " ".join(parts)
+        + " to bring acceptance back into reach."
+    )
+
+
+def _compute_concession_baseline(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    accepting_leader: str,
+    proposer_side_leader: Optional[str],
+    covered_enemy_participants: Iterable[str],
+    side_pressure_score: Optional[int],
+    accept_threshold: int = 50,
+    near_acceptance_floor: int = 35,
+) -> Dict[str, Any]:
+    """Return the deterministic losing-side concession baseline payload.
+
+    Result shape:
+
+    - ``{"losing_for_concession_baseline": bool, "concession_baseline_visible":
+      bool, "concession_baseline": {"terms": List[Clause], "reasoning": str} |
+      None, "concession_baseline_reason": str}``
+
+    Visibility is the conjunction of the side-pressure predicate
+    (``side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD``) and the
+    algorithm's ability to author at least one material concession (gold,
+    territory, or both). When the predicate passes but no material concession
+    is possible, ``concession_baseline_visible`` is False and
+    ``concession_baseline`` is None per spec §"Concession And Treaty
+    Conversation Contract".
+    """
+    if side_pressure_score is None:
+        return {
+            "losing_for_concession_baseline": False,
+            "concession_baseline_visible": False,
+            "concession_baseline": None,
+            "concession_baseline_reason": "no_side_pressure_score",
+        }
+    losing = int(side_pressure_score) <= LOSING_SIDE_PRESSURE_THRESHOLD
+    if not losing:
+        return {
+            "losing_for_concession_baseline": False,
+            "concession_baseline_visible": False,
+            "concession_baseline": None,
+            "concession_baseline_reason": "not_losing_side",
+        }
+    if not proposer_side_leader or not accepting_leader:
+        return {
+            "losing_for_concession_baseline": True,
+            "concession_baseline_visible": False,
+            "concession_baseline": None,
+            "concession_baseline_reason": "missing_leaders",
+        }
+    covered = [str(n) for n in (covered_enemy_participants or []) if n]
+    proposer_participants = list(war_instance.get(proposer_side) or [])
+    peace_floor_result = calculate_common_peace_acceptance(
+        world,
+        war_id=war_id,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        accepting_leader=accepting_leader,
+        proposer_side_leader=proposer_side_leader,
+        covered_enemy_participants=covered,
+        settlement_terms=[{"type": "peace"}],
+    )
+    peace_only_score = peace_floor_result.get("score")
+    if peace_only_score is None:
+        return {
+            "losing_for_concession_baseline": True,
+            "concession_baseline_visible": False,
+            "concession_baseline": None,
+            "concession_baseline_reason": "peace_only_score_unavailable",
+        }
+    acceptance_gap = max(0, int(accept_threshold) - int(peace_only_score))
+    payer_balance = _concession_baseline_payer_balance(world, proposer_side_leader)
+    treasury_candidate = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
+    gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR, acceptance_gap * 100)
+    # Affordability first: gold is offered only when treasury - 500 is
+    # strictly positive (the spec's "available treasury above a 500-gold
+    # reserve" / "strictly positive payable amount" promise). The 1500
+    # hard cap and the gap-derived candidate cap the amount when the
+    # payer can afford a non-trivial indemnity; they cannot themselves
+    # mint a payment from a near-empty treasury.
+    if treasury_candidate > 0:
+        positive_candidates = [
+            c for c in (treasury_candidate, CONCESSION_BASELINE_GOLD_HARD_CAP, gap_candidate)
+            if c > 0
+        ]
+        gold_amount: Optional[int] = (
+            int(min(positive_candidates)) if positive_candidates else None
+        )
+    else:
+        gold_amount = None
+
+    draft_terms: List[Dict[str, Any]] = [{"type": "peace"}]
+    if gold_amount is not None:
+        draft_terms.append({
+            "type": "gold_indemnity",
+            "from": proposer_side_leader,
+            "to": accepting_leader,
+            "amount": int(gold_amount),
+        })
+
+    hypothetical = (
+        calculate_common_peace_acceptance(
+            world,
+            war_id=war_id,
+            war_instance=war_instance,
+            proposer_side=proposer_side,
+            accepting_side=accepting_side,
+            accepting_leader=accepting_leader,
+            proposer_side_leader=proposer_side_leader,
+            covered_enemy_participants=covered,
+            settlement_terms=draft_terms,
+        )
+        if gold_amount is not None
+        else peace_floor_result
+    )
+    hypothetical_score = hypothetical.get("score")
+    escalate_to_territory = (
+        hypothetical_score is None
+        or int(hypothetical_score) < int(near_acceptance_floor)
+    )
+    region_choice: Optional[str] = None
+    if escalate_to_territory:
+        region_choice = _concession_baseline_select_transferable_region(
+            world,
+            proposer_side_participants=proposer_participants,
+            accepting_leader=accepting_leader,
+        )
+        if region_choice:
+            draft_terms.append({
+                "type": "territory_cede",
+                "from": proposer_side_leader,
+                "to": accepting_leader,
+                "region": region_choice,
+            })
+
+    material_terms = [t for t in draft_terms if t.get("type") != "peace"]
+    if not material_terms:
+        return {
+            "losing_for_concession_baseline": True,
+            "concession_baseline_visible": False,
+            "concession_baseline": None,
+            "concession_baseline_reason": "no_material_concession_available",
+        }
+    reasoning = _format_concession_reasoning(
+        proposer_leader=str(proposer_side_leader),
+        accepting_leader=str(accepting_leader),
+        gold_amount=gold_amount,
+        region=region_choice,
+    )
+    return {
+        "losing_for_concession_baseline": True,
+        "concession_baseline_visible": True,
+        "concession_baseline": {
+            "terms": draft_terms,
+            "reasoning": reasoning,
+        },
+        "concession_baseline_reason": "material_concession_available",
+    }
+
+
 def evaluate_open_settlement_eligibility(
     world: Any,
     *,
@@ -1113,6 +1439,39 @@ def build_settlement_preview(
         awe_tags=preview_awe_tags,
         forced_alliance_threat_preview=forced_alliance_threat_preview,
     )
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
+    # POST preview is the source of truth for `losing_for_concession_baseline`,
+    # `concession_baseline_visible`, and `concession_baseline`. The dialogue
+    # builder later copies these onto the staged `settlement_confirm` payload.
+    baseline_payload = _compute_concession_baseline(
+        world,
+        war_id=war_id,
+        war_instance=instance,
+        proposer_side=side,
+        accepting_side=accepting_side,
+        accepting_leader=str(accepting_leader or ""),
+        proposer_side_leader=str(proposer_leader or ""),
+        covered_enemy_participants=covered,
+        side_pressure_score=acceptance.get("side_pressure_score"),
+        accept_threshold=int(
+            acceptance.get("accept_threshold")
+            or review_acceptance.get("threshold")
+            or 50
+        ),
+        near_acceptance_floor=int(
+            acceptance.get("near_acceptable_threshold") or 35
+        ),
+    )
+    preview["losing_for_concession_baseline"] = bool(
+        baseline_payload.get("losing_for_concession_baseline")
+    )
+    preview["concession_baseline_visible"] = bool(
+        baseline_payload.get("concession_baseline_visible")
+    )
+    preview["concession_baseline"] = baseline_payload.get("concession_baseline")
+    preview["concession_baseline_reason"] = str(
+        baseline_payload.get("concession_baseline_reason") or ""
+    )
     return {
         "success": True,
         "mode": "settlement",
@@ -1128,6 +1487,8 @@ def build_settlement_confirm_dialogue(
     preview_response: Mapping[str, Any],
     *,
     selected_target_nation: Optional[str] = None,
+    caller_kind: str = "player_editor",
+    white_peace: bool = False,
 ) -> Dict[str, Any]:
     preview = copy.deepcopy(preview_response["settlement_preview"])
     war_id = str(preview_response["war_id"])
@@ -1157,10 +1518,23 @@ def build_settlement_confirm_dialogue(
     hard_stops = list(preview["acceptance"].get("hard_stops") or [])
     acceptance_threshold = preview["acceptance"].get("threshold") or preview["acceptance"].get("accept_threshold") or 50
     acceptance_score = preview["acceptance"].get("score") if preview["acceptance"].get("score") is not None else preview["acceptance"].get("total")
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 empty-Ratify gate:
+    # editor-staged empty drafts with `white_peace=False` may not mint
+    # Ratify regardless of acceptance verdict. White-peace dialogues
+    # set the flag explicitly so the labeled action can ratify an empty
+    # package. AI/system staging (caller_kind != "player_editor") still
+    # respects acceptance gating only.
+    staged_terms_for_gate = list(preview.get("settlement_terms") or [])
+    empty_editor_block = (
+        caller_kind == "player_editor"
+        and not staged_terms_for_gate
+        and not white_peace
+    )
     can_ratify = (
         not hard_stops
         and verdict not in ("reject", "blocked")
         and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
+        and not empty_editor_block
     )
     # SC-17 / SC-19: humanize the live-review heading. The raw verdict
     # f-string ("Acceptance: near_acceptable (49)") leaked enum strings
@@ -1189,6 +1563,27 @@ def build_settlement_confirm_dialogue(
             war_label=war_label,
             accepting_leader=str(leaders.get(accepting_side) or "the accepting court"),
         ) or f"Foreign Office records the settlement of {war_label}."
+    elif white_peace and can_ratify:
+        # G2-Slice-W1: labeled white-peace heading variant. Reuses
+        # `settlement_review_heading_talleyrand` template if no
+        # white-peace-specific family is registered, but the popup
+        # already labels the action as a White Peace via `white_peace`.
+        text = (
+            resolve_settlement_voice_line(
+                "settlement_white_peace_heading_talleyrand",
+                war_label=war_label,
+            )
+            or f"White peace with {war_label}: no terms will be exchanged."
+        )
+    elif white_peace and not can_ratify:
+        text = (
+            resolve_settlement_voice_line(
+                "settlement_white_peace_blocked_talleyrand",
+                war_label=war_label,
+                top_blocker=top_blocker_display,
+            )
+            or f"A white peace for {war_label} cannot be ratified now."
+        )
     elif can_ratify:
         text = resolve_settlement_voice_line(
             "settlement_review_heading_talleyrand",
@@ -1269,6 +1664,31 @@ def build_settlement_confirm_dialogue(
         "talleyrand_text": text,
         "turn_created": int(getattr(world, "current_turn", 0) or 0),
         "blocking": True,
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 propagation:
+        # `caller_kind` distinguishes player-editor-staged dialogues from
+        # AI/system staging so the empty-Ratify gate fires only for
+        # player editor drafts. `white_peace` labels the dialogue as a
+        # white-peace ratification path so the popup exempts the empty
+        # draft from the editor gate and the emitted summary event tags
+        # `white_peace=true`.
+        "caller_kind": str(caller_kind or "player_editor"),
+        "white_peace": bool(white_peace),
+        # G2-Slice-W1 Concession Baseline payload is published on the
+        # staged dialogue in addition to POST preview so Godot can render
+        # the first-frame `Generate concession baseline (Talleyrand)`
+        # button without an extra preview round trip. POST preview remains
+        # the source of truth for click-time revalidation.
+        "losing_for_concession_baseline": bool(
+            preview.get("losing_for_concession_baseline")
+        ),
+        "concession_baseline_visible": bool(
+            preview.get("concession_baseline_visible")
+        ),
+        "concession_baseline": (
+            copy.deepcopy(preview.get("concession_baseline"))
+            if preview.get("concession_baseline_visible")
+            else None
+        ),
     }
 
 
@@ -1283,6 +1703,8 @@ def stage_settlement_confirm(
     actor_nation: Optional[str] = None,
     density: str = "medium",
     require_explicit_scope: bool = False,
+    caller_kind: str = "player_editor",
+    white_peace: bool = False,
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
     explicit_covered = _normalize_nation_list(covered_enemy_participants)
@@ -1395,7 +1817,10 @@ def stage_settlement_confirm(
         }
     try:
         dialogue = build_settlement_confirm_dialogue(
-            world, preview, selected_target_nation=resolved_target,
+            world, preview,
+            selected_target_nation=resolved_target,
+            caller_kind=caller_kind,
+            white_peace=white_peace,
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
@@ -2094,6 +2519,30 @@ def ratify_settlement_confirm(
     accepting_side = str(dialogue.get("accepting_side") or "")
     covered = list(dialogue.get("covered_enemy_participants") or [])
     settlement_terms = list(dialogue.get("settlement_terms") or [])
+    # G2-Slice-W1: pass labeled white-peace + caller_kind through to the
+    # ratification event + empty-Ratify gate. Player-editor-staged empty
+    # drafts with white_peace=False fail the gate even if acceptance
+    # passes (defense-in-depth on top of the dialogue's `options[]` /
+    # `available_action_ids[]` omission).
+    white_peace = bool(dialogue.get("white_peace", False))
+    caller_kind = str(dialogue.get("caller_kind") or "player_editor")
+    if (
+        caller_kind == "player_editor"
+        and not settlement_terms
+        and not white_peace
+    ):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": "confirm",
+            "war_id": war_id,
+            "error": "empty_editor_draft_ratification",
+            "error_display": _error_display("empty_authored_draft"),
+            "mutated": False,
+            "talleyrand_text": (
+                "Sire, this settlement cannot be ratified without authored terms."
+            ),
+        }
 
     fresh_acceptance = calculate_common_peace_acceptance(
         world,
@@ -2300,6 +2749,7 @@ def ratify_settlement_confirm(
         staged_route_id=staged_route_id,
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
+        white_peace=white_peace,
     )
 
     world.dialogue_manager.pop()
