@@ -67,7 +67,8 @@ def test_godot_parse_report_passes_for_every_covered_script():
     assert REPORT_PATH.exists(), (
         f"Committed Godot parse report missing at {REPORT_PATH}; "
         f"regenerate via `Godot_v4.4.1-stable_win64.exe --headless --quit "
-        f"--script tools/godot_parse_check.gd`."
+        f"--path godot-client/project-sovereign --script "
+        f"../../tools/godot_parse_check.gd`."
     )
     report = _load_report()
     # Schema must contain timestamp + scripts list.
@@ -135,8 +136,9 @@ def test_godot_parse_report_is_not_stale_relative_to_settlement_godot_sources():
         f"Godot parse report is stale: report timestamp {report_dt!r} "
         f"is older than youngest settlement-critical script "
         f"{youngest_path!r} mtime {youngest_dt!r}. Regenerate via "
-        f"`Godot_v4.4.1-stable_win64.exe --headless --quit --script "
-        f"tools/godot_parse_check.gd`."
+        f"`Godot_v4.4.1-stable_win64.exe --headless --quit --path "
+        f"godot-client/project-sovereign --script "
+        f"../../tools/godot_parse_check.gd`."
     )
 
 
@@ -157,6 +159,11 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     "reject_settlement_offer",
     "request_settlement_revision",
     "re_author_with_concessions",
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs.
+    "seek_bilateral_peace",
+    "seek_armistice_instead",
+    # SC-31 / G2-Slice-8 surrender preset CTA.
+    "author_surrender_terms",
 }
 
 

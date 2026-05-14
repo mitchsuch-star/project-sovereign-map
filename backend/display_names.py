@@ -154,11 +154,17 @@ PROPOSAL_TYPE_DISPLAY = {
 }
 
 CLAUSE_TYPE_DISPLAY = {
+    "peace": "Peace",
     "gold_lump": "Gold payment",
+    "gold_indemnity": "Gold indemnity",
     "gold_per_turn": "Gold per turn",
     "territory_cede": "Territory cession",
     "territory_return": "Territory return",
     "territory": "Territory cession",
+    "forced_alliance": "Forced alliance",
+    "vassalage": "Vassalage",
+    "subjugation": "Subjugation",
+    "liberation": "Liberation",
     "action_point": "Action point concession",
     "ap_per_turn": "Action point concession",
     "ap_reduction": "Action point reduction",
@@ -565,6 +571,69 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
     # SC-14e aged-out dispatch link
     "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute eligibility codes.
+    # Closed taxonomy per SETTLEMENT_UI_CLEANUP_SPEC.md "Pair substitute
+    # eligibility helper schema". Reuses pair_not_at_war / war_archived /
+    # malformed_route / settlement_collision_active from the surrounding
+    # helper taxonomy.
+    "already_at_peace": "France is already at peace with this court.",
+    "already_in_armistice": "France is already in armistice with this court.",
+    "actor_not_at_war_with_target": "France is not at war with this court.",
+    "target_not_selected_pair": "This court is not the selected hostile pair for this war.",
+    "target_not_in_war": "This court is not a participant in this war.",
+    "cooldown_active": "A recent proposal cooldown is still active for this court.",
+    "insufficient_resources": "Insufficient diplomatic points for this proposal.",
+    # SC-31 / G2-Slice-8 dependency-clause eligibility codes. Closed
+    # taxonomy returned by evaluate_subjugation_eligibility /
+    # evaluate_vassalage_eligibility / evaluate_liberation_eligibility.
+    "dependency_direction_invalid": (
+        "Dependency clauses must list the vassal/subjugated nation as "
+        "from and the lord as to."
+    ),
+    "dependency_target_not_in_war": (
+        "Dependency clauses require the lord and the target to be on "
+        "opposite sides of the active war."
+    ),
+    "dependency_target_already_vassal": (
+        "That nation is already someone's vassal; release them before "
+        "imposing a new dependency."
+    ),
+    "dependency_power_cap_blocked": (
+        "The lord lacks the national power to legally vassalize a "
+        "target this large."
+    ),
+    "dependency_invalid": "Dependency clause is not eligible for this war.",
+    "liberation_target_not_vassal": (
+        "Liberation requires the target to currently be a vassal."
+    ),
+    "liberation_lord_mismatch": (
+        "The declared lord does not match the target's current lord."
+    ),
+    "liberation_invalid_liberator": (
+        "The liberator must be a recognized nation on the opposite side "
+        "of the current lord, and not the lord or the vassal itself."
+    ),
+    "liberation_invalid": "Liberation clause is not eligible for this war.",
+    # SC-31 / G2-Slice-8 surrender preset dialogue refusal codes.
+    "surrender_preset_unavailable": (
+        "No surrender preset is available now; author concessions or "
+        "hold the line."
+    ),
+    "surrender_preset_failed_preview": (
+        "The surrender preset could not be previewed; try refreshing."
+    ),
+    # SC-33 / G2-Slice-9 recurring gold payment validator codes.
+    "gold_per_turn_amount_too_small": (
+        "Recurring gold payments must be at least 10 gold per turn."
+    ),
+    "gold_per_turn_duration_out_of_range": (
+        "Recurring gold payments must run between 1 and 20 turns."
+    ),
+    "gold_payment_budget_conflict": (
+        "The combined gold obligation exceeds projected solvency for "
+        "the payer; reduce the amount, the duration, or pair it with a "
+        "smaller lump-sum demand."
+    ),
 }
 
 # Side label display — used by settlement review's allies block to surface

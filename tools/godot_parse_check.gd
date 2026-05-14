@@ -1,7 +1,7 @@
 # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Godot Parse Harness.
 #
 # Invoke headless:
-#   Godot_v4.4.1-stable_win64.exe --headless --quit --script tools/godot_parse_check.gd
+#   Godot_v4.4.1-stable_win64.exe --headless --quit --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd
 #
 # The harness parses + loads every settlement-critical Godot script and
 # writes a JSON report to tools/godot_parse_report.json. Exit code is
@@ -22,6 +22,8 @@ extends SceneTree
 
 
 const SETTLEMENT_CRITICAL_SCRIPTS = [
+	"res://scripts/utils.gd",
+	"res://scripts/dialog_manager.gd",
 	"res://scripts/main.gd",
 	"res://scripts/diplomacy_wizard.gd",
 	"res://scripts/proposal_confirm_popup.gd",
@@ -33,13 +35,15 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/mailbox_panel.gd",
 ]
 
-const REPORT_PATH = "res://../tools/godot_parse_report.json"
+const REPORT_PATH = "res://../../tools/godot_parse_report.json"
 
 
 func _init():
 	var report = {
-		"timestamp": Time.get_datetime_string_from_system(true, true),
+		"timestamp": Time.get_datetime_string_from_system(true, false) + "Z",
 		"godot_version": Engine.get_version_info().get("string", ""),
+		"harness": "tools/godot_parse_check.gd",
+		"note": "SETTLEMENT_UI_CLEANUP_SPEC v0.29 G2-Slice-8 audit refresh codex-2026-05-14-settlement-G2-Slice-8. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
 		"scripts": [],
 	}
 	var any_failed = false

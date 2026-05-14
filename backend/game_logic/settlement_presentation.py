@@ -465,6 +465,14 @@ def _term_display(term: Mapping[str, Any]) -> str:
     t_from = str(term.get("from", "") or term.get("payer", "") or term.get("vassal_nation", "") or "")
     t_to = str(term.get("to", "") or term.get("recipient", "") or term.get("overlord", "") or "")
     region = str(term.get("region", "") or term.get("claim_region", "") or "")
+    # SC-33 / G2-Slice-9: recurring gold rows render the per-turn amount
+    # + duration so the player reads the obligation, not just the
+    # parties. Lump-sum gold continues to render through the generic
+    # `base: from to to` form.
+    if ttype == "gold_per_turn" and t_from and t_to:
+        amount = int(term.get("amount", 0) or 0)
+        turns = int(term.get("turns", 0) or 0)
+        return f"{base}: {amount} gold/turn from {t_from} to {t_to} ({turns} turns)"
     if region and t_from and t_to:
         return f"{base}: {region} from {t_from} to {t_to}"
     if t_from and t_to:
@@ -802,6 +810,8 @@ def detect_awe_set_pieces(
 
 def build_applied_clauses_preview(
     settlement_terms: Sequence[Mapping[str, Any]] | None,
+    *,
+    world: Any | None = None,
 ) -> List[Dict[str, Any]]:
     """SC-15 mutation preview: structurally equal to the actual ratification
     mutation set per clause.
@@ -811,6 +821,13 @@ def build_applied_clauses_preview(
     forced-alliance imposer/target, vassalage lord/vassal, liberation
     target), and a humanized display label. The frontend renders this
     list so the player can read what will mutate before pressing Ratify.
+
+    SC-33 / G2-Slice-9 `gold_per_turn` rows additionally carry
+    `payer_balance_before`, `payer_balance_after_first_payment`,
+    `projected_total_obligation`, and `first_payment_turn` when `world`
+    is supplied. Without `world` the projected total is still computed
+    (it is pure `amount * turns`) but the balance fields default to 0
+    so legacy schema-only callers stay backward compatible.
 
     The preview is structurally aligned with `_apply_settlement_terms`
     in `settlement_preview.py`; consumers MUST treat clause-specific
@@ -851,6 +868,30 @@ def build_applied_clauses_preview(
             row["to"] = str(term.get("to") or term.get("recipient") or "")
             row["amount"] = int(term.get("amount") or 0)
             row["turns"] = int(term.get("turns") or 0)
+            # SC-33 / G2-Slice-9 applied_clauses_preview value fields.
+            # `projected_total_obligation = amount * turns` is pure
+            # and always emitted. Balance fields require world state;
+            # when unavailable they default to 0 so consumers still
+            # receive the structural schema.
+            amount = int(row["amount"] or 0)
+            turns = int(row["turns"] or 0)
+            row["projected_total_obligation"] = int(amount * turns)
+            payer_balance_before = 0
+            current_turn = 0
+            if world is not None and row["from"]:
+                nation_gold = getattr(world, "nation_gold", None) or {}
+                payer_balance_before = int(nation_gold.get(row["from"], 0) or 0)
+                current_turn = int(getattr(world, "current_turn", 0) or 0)
+            row["payer_balance_before"] = int(payer_balance_before)
+            # First payment lands on the next turn's income phase per
+            # the per-turn processor wiring; current_turn 0 fallback
+            # means "next available tick" for schema-only callers.
+            row["first_payment_turn"] = (
+                int(current_turn + 1) if current_turn else 1
+            )
+            row["payer_balance_after_first_payment"] = max(
+                0, int(payer_balance_before) - int(amount)
+            )
         elif ttype == "forced_alliance":
             row["from"] = str(term.get("from") or "")
             row["to"] = str(term.get("to") or "")
@@ -1152,6 +1193,7 @@ def build_settlement_review(
     density: str = "compact",
     awe_tags: Sequence[str] = (),
     forced_alliance_threat_preview: Mapping[str, Any] | None = None,
+    world: Any | None = None,
 ) -> Dict[str, Any]:
     """Sectioned settlement review payload per spec §16.2 line 1636.
 
@@ -1247,7 +1289,7 @@ def build_settlement_review(
     # SC-15 / SC-16: live preview enrichment. Each helper returns a
     # structurally stable list; callers (popup, dispatch preview,
     # ledger, tooltips) read from the same payload contract.
-    applied_clauses_preview = build_applied_clauses_preview(terms)
+    applied_clauses_preview = build_applied_clauses_preview(terms, world=world)
     beneficiaries_preview = build_beneficiaries_preview(
         contribution_rows=allies,
         applied_clauses_preview=applied_clauses_preview,
@@ -1540,6 +1582,7 @@ def build_settlement_review_from_event(
         acceptance=event.get("acceptance_snapshot") or None,
         density=density,
         awe_tags=list(event.get("awe_tags") or []),
+        world=world,
     )
 
 

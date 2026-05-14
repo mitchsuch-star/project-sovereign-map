@@ -63,6 +63,8 @@ SMOKE_START_SETTLEMENT_MULTILATERAL = "settlement_multilateral"
 SMOKE_START_SETTLEMENT_REJECTED = "settlement_rejected"
 SMOKE_START_SETTLEMENT_LOSING = "settlement_losing"
 SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY = "settlement_multiwar_ambiguity"
+SMOKE_START_SETTLEMENT_SURRENDER = "settlement_surrender"
+SMOKE_START_SETTLEMENT_RECURRING_GOLD = "settlement_recurring_gold"
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -704,6 +706,14 @@ class WorldState:
         # restores the SC-14b player escape.
         # Shape: {war_id: {turn: attempt_count}}
         self.settlement_reopen_attempts: Dict[str, Dict[int, int]] = {}
+        # SC-33 / G2-Slice-9: recurring gold-per-turn obligations ratified
+        # through settlement. Each record is owned by the originating
+        # settlement event (`war_id` + `settlement_route_id`) and processed
+        # once per income phase by `process_recurring_settlement_payments`
+        # until `turns_remaining` reaches zero or a cancellation condition
+        # fires (payer / recipient eliminated, payer vassalized, renewed
+        # war between the pair). See `docs/SAVE_FORMAT_REFERENCE.md`.
+        self.recurring_settlement_payments: List[Dict[str, Any]] = []
 
         # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
@@ -749,6 +759,10 @@ class WorldState:
             self._seed_settlement_losing_smoke_start()
         elif preset == SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY:
             self._seed_settlement_multiwar_ambiguity_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_SURRENDER:
+            self._seed_settlement_surrender_smoke_start()
+        elif preset == SMOKE_START_SETTLEMENT_RECURRING_GOLD:
+            self._seed_settlement_recurring_gold_smoke_start()
 
     def _seed_settlement_multilateral_smoke_start(self) -> None:
         """Seed France vs Britain + Prussia for settlement UI smoke tests."""
@@ -880,6 +894,85 @@ class WorldState:
             "war_id": "war_1",
             "selected_target_nation": "Britain",
             "concession_region": "Belgium",
+            "minimum_france_gold": 1500,
+        }
+
+    def _seed_settlement_surrender_smoke_start(self) -> None:
+        """Seed a losing-side fixture where surrender preset is legal.
+
+        SC-31 / G2-Slice-8 contract: the surrender preset requires the
+        accepting leader to satisfy the WPS-B vassalage power cap
+        against the proposer leader. The default 1805 map gives France
+        ~1100 power vs Britain's ~400 (~275%) — Britain cannot legally
+        vassalize France there, so settlement_losing cannot prove the
+        positive surrender path. This fixture transfers six high-income
+        French regions to Britain so Britain has roughly 3× France's
+        remaining power; the power cap then allows
+        subjugation / vassalage with Britain as lord. War pressure mirrors
+        the settlement_losing preset so the losing-side concession
+        baseline + surrender preset predicates both fire.
+        """
+        self._seed_settlement_multilateral_smoke_start()
+        self._set_smoke_war_pressure(
+            france_score=-90,
+            enemy_exhaustion=0,
+            battle_winner="enemy",
+        )
+        # Reassign French regions to Britain so Britain satisfies the
+        # WPS-B power cap (target_power <= lord_power // 2). Paris and
+        # Brittany stay French so France is not eliminated.
+        transferable = ("Belgium", "Lyon", "Marseille", "Milan", "Normandy", "Bordeaux")
+        for region_name in transferable:
+            region = self.regions.get(region_name)
+            if region is None:
+                continue
+            region.controller = "Britain"
+        # Invalidate national-power cache so the power-cap check reads
+        # the post-transfer geometry rather than a stale init cache.
+        if hasattr(self, "_national_power_cache"):
+            self._national_power_cache = {}
+        if hasattr(self, "invalidate_active_nations_cache"):
+            self.invalidate_active_nations_cache()
+        self.nation_gold["France"] = max(int(self.nation_gold.get("France", 0)), 800)
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_SURRENDER,
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+            "accepting_leader": "Britain",
+            "surrender_lord_candidate": "Britain",
+            "expected_surrender_dependency": "subjugation",
+        }
+
+    def _seed_settlement_recurring_gold_smoke_start(self) -> None:
+        """SC-33 / G2-Slice-9 recurring-gold authoring fixture.
+
+        Reuses the multilateral war geometry so the editor can author a
+        `gold_per_turn` clause from France to Britain (the player's
+        proposer-side leader and the accepting court). France is seeded
+        with 1500 gold so the projected-solvency budget conflict does
+        not fire on small drafts; war pressure is set near the losing
+        side so concessionary recurring payments fit the player flow,
+        but not so low that the surrender preset takes over the
+        affordance.
+        """
+        self._seed_settlement_multilateral_smoke_start()
+        self._set_smoke_war_pressure(
+            france_score=-30,
+            enemy_exhaustion=10,
+            battle_winner="enemy",
+        )
+        self.nation_gold["France"] = max(
+            int(self.nation_gold.get("France", 0)), 1500
+        )
+        self.settlement_smoke_fixture = {
+            "name": SMOKE_START_SETTLEMENT_RECURRING_GOLD,
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+            "accepting_leader": "Britain",
+            "expected_recurring_payer": "France",
+            "expected_recurring_recipient": "Britain",
+            "expected_recurring_amount_min": 50,
+            "expected_recurring_turns_min": 3,
             "minimum_france_gold": 1500,
         }
 
@@ -4026,6 +4119,13 @@ class WorldState:
                 str(wid): {int(t): int(c) for t, c in turns.items()}
                 for wid, turns in self.settlement_reopen_attempts.items()
             },
+            # SC-33 / G2-Slice-9 - serialized recurring gold obligations
+            # ratified through settlement.
+            "recurring_settlement_payments": [
+                copy.deepcopy(entry)
+                for entry in self.recurring_settlement_payments
+                if isinstance(entry, dict)
+            ],
             "reparations_cooldown": {k: int(v) for k, v in self.reparations_cooldown.items()},
             # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §14 (D1) — settlement
             # memories per (actor, subject) pair. Stored as plain dicts so
@@ -4508,6 +4608,14 @@ class WorldState:
             str(wid): {int(t): int(c) for t, c in (turns or {}).items()}
             for wid, turns in (data.get("settlement_reopen_attempts") or {}).items()
         }
+        # SC-33 / G2-Slice-9 - deserialize recurring gold obligations. The
+        # new-field-default-empty contract keeps pre-SC-33 saves loading
+        # cleanly (per implementation directive May 14, 2026).
+        world.recurring_settlement_payments = [
+            copy.deepcopy(entry)
+            for entry in (data.get("recurring_settlement_payments") or [])
+            if isinstance(entry, dict)
+        ]
         world.reparations_cooldown = {
             str(k): int(v) for k, v in data.get("reparations_cooldown", {}).items()
         }
@@ -5409,6 +5517,19 @@ class WorldState:
         if self.vassals:
             from backend.game_logic.vassal import process_vassal_tribute
             process_vassal_tribute(self)
+
+        # ════════════════════════════════════════════════════════════
+        # RECURRING SETTLEMENT GOLD (SC-33 / G2-Slice-9) — after vassal
+        # tribute and before bankruptcy check, mirroring treaty per-turn
+        # clause ordering. Iterates only
+        # `world.recurring_settlement_payments` (no per-region scan)
+        # per golden rule 8.
+        # ════════════════════════════════════════════════════════════
+        if self.recurring_settlement_payments:
+            from backend.game_logic.settlement_preview import (
+                process_recurring_settlement_payments,
+            )
+            process_recurring_settlement_payments(self)
 
         # ════════════════════════════════════════════════════════════
         # BANKRUPTCY CHECK — AFTER all income sources

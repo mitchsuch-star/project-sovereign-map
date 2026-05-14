@@ -1152,6 +1152,108 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Sire, this settlement of {war_label} cannot be reopened again — "
         "choose the war from war detail and stage afresh."
     ),
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. The rejected
+    # settlement popup may surface these only when the selected target
+    # pair is eligible under `evaluate_pair_peace_substitute_eligibility`.
+    # Talleyrand frames the substitute as a pair-scoped fallback, not as a
+    # repeated settlement attempt.
+    "settlement_seek_bilateral_peace_instead_talleyrand": (
+        "Sire, since the larger settlement of {war_label} cannot ratify, "
+        "I shall open a separate bilateral peace with {target_nation}; "
+        "the other hostile pairs remain at war until they are addressed "
+        "in turn."
+    ),
+    "settlement_seek_armistice_instead_talleyrand": (
+        "Sire, an armistice with {target_nation} buys quiet on that "
+        "front while {war_label} continues elsewhere; it does not end "
+        "the war, but it does end the bleeding."
+    ),
+    # SC-31 / G2-Slice-8 Voice Bible §16.1 surrender / dependency families.
+    # Surrender preset is a structured, labeled action — Talleyrand frames
+    # it as deliberate concession, not collapse — and the foreign-court
+    # reactions answer the dependency consequence (loss of sovereignty,
+    # lord assimilation, Continental System pull) rather than treating it
+    # as a generic peace acceptance.
+    "settlement_surrender_preset_authored_talleyrand": (
+        "Sire, the surrender draft for {war_label} is set: peace, and "
+        "{vassal_kind} of {proposer_leader} under {accepting_leader}. "
+        "It costs us our sovereignty; it ends the war."
+    ),
+    "settlement_surrender_preset_blocked_talleyrand": (
+        "Sire, surrender terms cannot be drafted now: {top_blocker}. "
+        "Author concessions or hold the line until the field changes."
+    ),
+    "settlement_dependency_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} binds {vassal_nation} "
+        "to {lord_nation} as a {vassal_kind}. The crown survives; "
+        "the court answers to {lord_nation} now."
+    ),
+    "settlement_dependency_acceptance_castlereagh": (
+        "His Majesty's Government accepts the settlement of {war_label} "
+        "with {vassal_nation} under {lord_nation}. London notes the "
+        "submission and will measure {lord_nation} by what it does next."
+    ),
+    "settlement_dependency_acceptance_hardenberg": (
+        "Prussia accepts the settlement of {war_label}. Hardenberg records "
+        "that {vassal_nation} now answers to {lord_nation}, and that "
+        "Prussian standing must adjust accordingly."
+    ),
+    "settlement_dependency_acceptance_metternich": (
+        "Vienna accepts the settlement of {war_label}. Metternich "
+        "observes that {vassal_nation}'s submission to {lord_nation} "
+        "rearranges Europe quietly; quiet does not mean settled."
+    ),
+    "settlement_dependency_acceptance_einsiedel": (
+        "Saxony accepts the settlement of {war_label}. Einsiedel hopes, "
+        "with care, that {lord_nation} remembers small courts when "
+        "{vassal_nation} kneels."
+    ),
+    "settlement_dependency_rejection_castlereagh": (
+        "London cannot accept the settlement of {war_label}. The "
+        "subjection of {vassal_nation} to {lord_nation} is more than "
+        "a treaty matter; {top_blocker} forbids it."
+    ),
+    "settlement_dependency_rejection_hardenberg": (
+        "Prussia rejects the settlement of {war_label}. Hardenberg "
+        "names the obstacle plainly: {top_blocker}. {vassal_nation} "
+        "cannot be handed to {lord_nation} under those circumstances."
+    ),
+    "settlement_dependency_rejection_metternich": (
+        "Vienna declines the settlement of {war_label}. The difficulty "
+        "is {top_blocker}; Austria will not consent to {vassal_nation} "
+        "becoming a vassal of {lord_nation} on those terms."
+    ),
+    "settlement_dependency_rejection_einsiedel": (
+        "Saxony cannot accept the settlement of {war_label}. Einsiedel "
+        "begs {lord_nation} to understand that {top_blocker} leaves "
+        "{vassal_nation} no safe answer."
+    ),
+    "settlement_liberation_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} frees {vassal_nation} from "
+        "{former_lord} into a defensive alliance with {liberator}. The "
+        "court of {vassal_nation} will remember who opened the door."
+    ),
+    # SC-33 / G2-Slice-9 recurring gold payment Voice Bible families.
+    # Authored / ratified / completed split mirrors the surrender preset
+    # authored / ratified pattern so the player hears a deliberate
+    # framing when the obligation is drafted, when it ratifies, and
+    # when it concludes.
+    "settlement_recurring_gold_authored_talleyrand": (
+        "Sire, the draft commits {payer} to {amount_per_turn} gold per "
+        "turn to {recipient} for {turns} turns ({projected_total} gold "
+        "in total). Recurring payments steady the peace; they also "
+        "tie the treasury for years."
+    ),
+    "settlement_recurring_gold_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} obliges {payer} to send "
+        "{amount_per_turn} gold per turn to {recipient} for {turns} "
+        "turns. The first installment leaves the treasury next turn."
+    ),
+    "settlement_recurring_gold_completed_talleyrand": (
+        "Sire, the recurring obligation from {payer} to {recipient} "
+        "for {war_label} is fulfilled — {total_amount} gold has changed "
+        "hands. The clause closes itself."
+    ),
 }
 
 
@@ -2196,7 +2298,20 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
     for clause in treaty.get("clauses", []):
         ctype = clause.get("type", "")
         if ctype == "gold_per_turn":
-            harshness += 0.1 * (clause.get("amount", 0) / 100)
+            # SC-33 / G2-Slice-9: finite-duration recurring gold (settlement
+            # clauses carry an explicit `turns` field) uses the lump-sum
+            # gold-indemnity weight (`0.08 per 100 gold`) applied to the
+            # full projected obligation `amount * turns`. Bilateral
+            # treaties record `gold_per_turn` without a `turns` field —
+            # those are perpetual streams and keep the original per-turn
+            # weight so existing bilateral acceptance is not perturbed.
+            turns = int(clause.get("turns", 0) or 0)
+            if turns > 0:
+                harshness += 0.08 * (
+                    (clause.get("amount", 0) or 0) * turns / 100
+                )
+            else:
+                harshness += 0.1 * (clause.get("amount", 0) / 100)
         elif ctype == "territory_cede":
             harshness += 0.3 * len(clause.get("regions", []))
         elif ctype == "manpower_per_turn":
@@ -2212,7 +2327,14 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
         dtype = demand.get("type", "")
         amt = abs(demand.get("value", 0) or demand.get("amount", 0) or 0)
         if dtype == "gold_per_turn":
-            harshness += 0.1 * (amt / 100)
+            # SC-33 / G2-Slice-9: finite settlement-style stream projects
+            # to lump-sum weight; bilateral perpetual stream keeps the
+            # legacy per-turn weight. See clause branch above for details.
+            d_turns = int(demand.get("turns", 0) or 0)
+            if d_turns > 0:
+                harshness += 0.08 * (amt * d_turns / 100)
+            else:
+                harshness += 0.1 * (amt / 100)
         elif dtype in ("territory_cede", "territory"):
             regions = demand.get("regions", [])
             count = len(regions) if regions else max(1, amt)

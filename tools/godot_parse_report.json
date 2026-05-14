@@ -1,17 +1,74 @@
 {
-  "timestamp": "2026-05-15T00:00:00Z",
-  "godot_version": "4.4.1.stable.official",
+  "godot_version": "4.4.1-stable (official)",
   "harness": "tools/godot_parse_check.gd",
-  "note": "Initial committed baseline for SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1. Regenerate locally with Godot_v4.4.1-stable_win64.exe --headless --quit --script tools/godot_parse_check.gd before merge. Pytest stale-report guard re-fires when any settlement-critical .gd mtime exceeds this report timestamp (24h tolerance window).",
+  "note": "SETTLEMENT_UI_CLEANUP_SPEC v0.30 G2-Slice-9 SC-33 / DWL-SET-SC33 recurring gold payments refresh. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
   "scripts": [
-    {"path": "res://scripts/main.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/diplomacy_wizard.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/proposal_confirm_popup.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/war_detail_popup.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/war_status_panel.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/diplomatic_ledger.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/top_bar.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/notification_bar.gd", "parse_ok": true, "load_ok": true, "errors": []},
-    {"path": "res://scripts/mailbox_panel.gd", "parse_ok": true, "load_ok": true, "errors": []}
-  ]
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/utils.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/dialog_manager.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/main.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/diplomacy_wizard.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/proposal_confirm_popup.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/war_detail_popup.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/war_status_panel.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/diplomatic_ledger.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/top_bar.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/notification_bar.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/mailbox_panel.gd"
+    }
+  ],
+  "timestamp": "2026-05-14T22:00:00Z"
 }

@@ -1232,6 +1232,23 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "bargain_breached": "{fault_nation} broke the bargain with {beneficiary} over {claim_region}.",
     "bargain_voided": "Bargain with {beneficiary} over {claim_region} lapsed ({end_reason}).",
     "bargain_dormant_notice": "Bargain with {beneficiary} over {claim_region} has been idle for {turns_active} turns.",
+    # SC-33 / G2-Slice-9 - recurring settlement gold payment events.
+    "settlement_recurring_gold_paid": (
+        "{from_nation} paid {amount_paid} gold to {to_nation} on the "
+        "settlement of {war_label} ({turns_remaining} turns remaining)."
+    ),
+    "settlement_recurring_gold_partial": (
+        "{from_nation} could only pay {amount_paid}/{amount_due} gold to "
+        "{to_nation} on the settlement of {war_label}."
+    ),
+    "settlement_recurring_gold_completed": (
+        "The settlement obligation of {total_amount} gold from "
+        "{from_nation} to {to_nation} (for {war_label}) is fulfilled."
+    ),
+    "settlement_recurring_gold_cancelled": (
+        "The recurring settlement payment from {from_nation} to "
+        "{to_nation} (for {war_label}) has been cancelled ({reason})."
+    ),
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -1260,6 +1277,10 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_defection_cascade": "HIGH",
     "diplomatic_ai_ai_treaty": "MEDIUM",
     "diplomatic_treaty_payment_failed": "MEDIUM",
+    "settlement_recurring_gold_paid": "LOW",
+    "settlement_recurring_gold_partial": "MEDIUM",
+    "settlement_recurring_gold_completed": "MEDIUM",
+    "settlement_recurring_gold_cancelled": "MEDIUM",
     "diplomatic_auto_downgrade": "MEDIUM",
     "diplomatic_coalition_formed": "HIGH",
     "diplomatic_coalition_dissolved": "MEDIUM",

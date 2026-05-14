@@ -2432,6 +2432,8 @@ def post_diplomatic_preview_endpoint(request: dict):
             player_nation=getattr(world, "player_nation", "France"),
             proposer_side=request.get("proposer_side"),
             actor_side_in_war=actor_side,
+            world=world,
+            war_instance=war_instance,
         )
         if not validation.get("valid"):
             return {

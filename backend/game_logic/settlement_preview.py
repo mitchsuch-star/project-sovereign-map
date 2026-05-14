@@ -36,6 +36,9 @@ from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
     CLAUSE_CONFLICT_MATRIX,
+    GOLD_PER_TURN_MAX_TURNS,
+    GOLD_PER_TURN_MIN_AMOUNT,
+    GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     SETTLEMENT_HARD_STOP_CODES,
     SETTLEMENT_MVP_CLAUSE_TYPES,
@@ -95,6 +98,126 @@ def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
             blocked_war_label=str(extra.get("war_id") or "this war"),
         )
     return payload
+
+
+# ---------------------------------------------------------------------------
+# SC-33 / G2-Slice-9 - Recurring gold payment helpers
+# ---------------------------------------------------------------------------
+
+
+def _estimate_payer_net_income_per_turn(world: Any, payer: str) -> int:
+    """Non-mutating per-turn net income estimate for `payer`.
+
+    Sums region income for regions controlled by `payer` (the closest
+    existing non-mutating income projection — `process_income_phase`
+    debits upkeep and admin bonuses, which we avoid because they are
+    not idempotent). Clamped at 0 because the validator capacity rule
+    uses `max(0, expected_net_income_per_turn)`.
+
+    Falls back to 0 when `world.regions` is unavailable so legacy
+    schema-only callers degrade safely.
+    """
+    regions = getattr(world, "regions", None) or {}
+    income = 0
+    for region in regions.values():
+        if getattr(region, "controller", None) != payer:
+            continue
+        try:
+            income += int(region.get_effective_income())
+        except Exception:
+            continue
+    return max(0, int(income))
+
+
+def _check_gold_payment_budget_conflict(
+    world: Any,
+    terms: List[Mapping[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """SC-1 / SC-33 budget conflict: combined gold obligations versus
+    projected solvency, per the cleanup spec.
+
+    Formula (per implementation directive May 14, 2026):
+
+        payer_new_obligation =
+            lump_sum_gold_due_now + sum(amount * turns) over submitted
+            `gold_per_turn` clauses authored by the payer
+        payer_existing_obligation =
+            sum of (amount_per_turn * turns_remaining) over the payer's
+            existing `world.recurring_settlement_payments`
+        capacity =
+            current_gold
+            + max(0, expected_net_income_per_turn)
+              * max_turns_in_submitted_terms
+
+    Rejects with `gold_payment_budget_conflict` when
+    `payer_new_obligation + payer_existing_obligation > capacity`. The
+    rejection names the offending clause index so the editor can focus
+    the budget conflict on the recurring entry.
+    """
+    nation_gold = getattr(world, "nation_gold", None) or {}
+    payer_obligations: Dict[str, Dict[str, Any]] = {}
+    max_turns = 0
+    for idx, clause in enumerate(terms):
+        ctype = clause.get("type")
+        if ctype not in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            continue
+        payer = str(clause.get("from") or "")
+        if not payer:
+            continue
+        amount = int(clause.get("amount", 0) or 0)
+        record = payer_obligations.setdefault(
+            payer,
+            {"lump": 0, "recurring": 0, "max_turns": 0, "last_recurring_idx": None},
+        )
+        if ctype == "gold_per_turn":
+            turns = int(clause.get("turns", 0) or 0)
+            if turns <= 0 or amount <= 0:
+                continue
+            record["recurring"] += amount * turns
+            record["max_turns"] = max(record["max_turns"], turns)
+            record["last_recurring_idx"] = idx
+            max_turns = max(max_turns, turns)
+        else:
+            record["lump"] += abs(amount)
+    if not payer_obligations:
+        return None
+
+    existing = getattr(world, "recurring_settlement_payments", None) or []
+    for payer, data in payer_obligations.items():
+        existing_obligation = 0
+        for entry in existing:
+            if not isinstance(entry, Mapping):
+                continue
+            if str(entry.get("from") or "") != payer:
+                continue
+            existing_obligation += int(
+                int(entry.get("amount_per_turn", 0) or 0)
+                * int(entry.get("turns_remaining", 0) or 0)
+            )
+        current_gold = int(nation_gold.get(payer, 0) or 0)
+        net_income = _estimate_payer_net_income_per_turn(world, payer)
+        capacity = current_gold + max(0, net_income) * max(0, data["max_turns"])
+        new_obligation = int(data["lump"]) + int(data["recurring"])
+        if new_obligation + existing_obligation > capacity:
+            error_index = data["last_recurring_idx"]
+            if error_index is None:
+                # Lump-sum-only budget conflict: focus the first lump-sum
+                # clause for this payer.
+                for jdx, clause in enumerate(terms):
+                    if clause.get("type") in ("gold_indemnity", "gold_lump") and (
+                        str(clause.get("from") or "") == payer
+                    ):
+                        error_index = jdx
+                        break
+            return {
+                "valid": False,
+                "error": "gold_payment_budget_conflict",
+                "error_index": error_index,
+                "disabled_reason_display": _error_display(
+                    "gold_payment_budget_conflict"
+                ),
+            }
+    return None
 
 
 def _failed_ratification_reaction_summary(
@@ -384,6 +507,183 @@ def evaluate_war_detail_actionability(
         "refusal_code_display": "",
         "peace_seeking_controls": ["negotiate_peace"],
         "recovery_route": route,
+    }
+
+
+# ---------------------------------------------------------------------------
+# SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs
+# ---------------------------------------------------------------------------
+
+
+PAIR_SUBSTITUTE_ACTIONS = frozenset({"seek_armistice_instead", "seek_bilateral_peace"})
+
+PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES = frozenset({"cooldown_active"})
+
+PAIR_SUBSTITUTE_REFUSAL_CODES = frozenset({
+    "already_at_peace",
+    "already_in_armistice",
+    "pair_not_at_war",
+    "war_archived",
+    "actor_not_at_war_with_target",
+    "target_not_selected_pair",
+    "target_not_in_war",
+    "settlement_collision_active",
+    "cooldown_active",
+    "insufficient_resources",
+    "malformed_route",
+})
+
+
+def evaluate_pair_peace_substitute_eligibility(
+    world: Any,
+    *,
+    war_id: str,
+    actor_nation: str,
+    target_nation: str,
+    action: str,
+) -> Dict[str, Any]:
+    """SC-29 / G2-Slice-7: decide whether a rejected settlement popup may
+    expose `Seek Armistice Instead` or `Seek Bilateral Peace` for the
+    selected actor/target pair.
+
+    Returns a dict whose shape is pinned by the spec
+    "Pair substitute eligibility helper schema":
+
+        {
+            "eligible": bool,
+            "refusal_code": str | null,
+            "disabled_reason_display": str | null,
+            "selected_pair": {
+                "actor": str,
+                "target": str,
+                "war_id": str,
+            },
+        }
+
+    The refusal taxonomy is closed (see `PAIR_SUBSTITUTE_REFUSAL_CODES`).
+    Only `cooldown_active` is a temporal disabled state per spec
+    "Disabled vs Hidden Affordance Policy"; every other code hides the
+    substitute action rather than rendering it disabled.
+    """
+    war_id_str = str(war_id or "")
+    actor = str(actor_nation or "").strip()
+    target = str(target_nation or "").strip()
+    action_str = str(action or "").strip()
+
+    selected_pair = {"actor": actor, "target": target, "war_id": war_id_str}
+
+    def _refused(code: str) -> Dict[str, Any]:
+        return {
+            "eligible": False,
+            "refusal_code": code,
+            "disabled_reason_display": _error_display(code),
+            "selected_pair": selected_pair,
+        }
+
+    if action_str not in PAIR_SUBSTITUTE_ACTIONS:
+        return _refused("malformed_route")
+    if not war_id_str or not actor or not target:
+        return _refused("malformed_route")
+    if actor == target:
+        return _refused("malformed_route")
+
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str)
+    if not isinstance(instance, Mapping):
+        if is_war_archived(world, war_id_str):
+            return _refused("war_archived")
+        return _refused("malformed_route")
+    if instance.get("ended_turn") is not None:
+        return _refused("war_archived")
+
+    side_by_nation = instance.get("side_by_nation") or {}
+    actor_side = side_by_nation.get(actor)
+    target_side = side_by_nation.get(target)
+    if not actor_side:
+        return _refused("actor_not_at_war_with_target")
+    if not target_side:
+        return _refused("target_not_in_war")
+    if actor_side == target_side:
+        return _refused("target_not_selected_pair")
+
+    pair = (
+        world._make_diplo_key(actor, target)
+        if hasattr(world, "_make_diplo_key")
+        else "|".join(sorted([actor, target]))
+    )
+    pair_state = (getattr(world, "diplomatic_states", {}) or {}).get(pair)
+    if pair_state == "PEACE":
+        return _refused("already_at_peace")
+    if pair_state == "ARMISTICE":
+        if action_str == "seek_armistice_instead":
+            return _refused("already_in_armistice")
+    if pair_state not in ("WAR", "ARMISTICE"):
+        return _refused("actor_not_at_war_with_target")
+
+    meta = instance.get("diplo_key_meta") or {}
+    pair_meta = meta.get(pair) or {}
+    resolved_pairs = set(instance.get("resolved_diplo_keys") or [])
+    if pair in resolved_pairs or pair_meta.get("pair_status") == "resolved":
+        return _refused("pair_not_at_war")
+    active_pairs = set(instance.get("active_diplo_keys") or [])
+    if pair not in active_pairs:
+        return _refused("target_not_selected_pair")
+    pair_status = pair_meta.get("pair_status", "war")
+    if pair_status == "armistice" and action_str == "seek_armistice_instead":
+        return _refused("already_in_armistice")
+    if pair_status not in ("war", "armistice"):
+        return _refused("pair_not_at_war")
+    if action_str == "seek_bilateral_peace" and pair_state == "WAR" and pair_status != "war":
+        # State and pair_status disagree — fail safe so we never advertise
+        # a substitute action on a stale view.
+        return _refused("pair_not_at_war")
+
+    mounted = _mounted_settlement_dialogue(world)
+    if mounted is not None and str(mounted.get("war_id") or "") not in ("", war_id_str):
+        return _refused("settlement_collision_active")
+
+    cooldowns = getattr(world, "player_proposal_cooldowns", None) or {}
+    proposal_type = "armistice" if action_str == "seek_armistice_instead" else "peace"
+    type_key = f"{target}_{proposal_type}"
+    if isinstance(cooldowns, Mapping):
+        if cooldowns.get(target, 0) > 0:
+            return _refused("cooldown_active")
+        if cooldowns.get(type_key, 0) > 0:
+            return _refused("cooldown_active")
+
+    # DP cost is computed via the same helper the proposal executor uses,
+    # so the substitute CTA never advertises a proposal the player cannot
+    # actually send.
+    try:
+        from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
+    except Exception:  # pragma: no cover - defensive import guard
+        get_dp_cost = None
+        get_transition_dp_cost = None
+    if get_dp_cost is not None and get_transition_dp_cost is not None:
+        _state_map = {
+            "peace": "PEACE",
+            "armistice": "ARMISTICE",
+        }
+        try:
+            current_diplo = world.get_diplomatic_state(actor, target)
+        except Exception:  # pragma: no cover - defensive
+            current_diplo = pair_state or "WAR"
+        target_diplo = _state_map.get(proposal_type, "PEACE")
+        jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+        try:
+            from backend.nation_config import get_player_diplomat
+            talleyrand = get_player_diplomat(world)
+            skill = int(getattr(talleyrand, "skill", 5)) if talleyrand else 5
+        except Exception:  # pragma: no cover - defensive
+            skill = 5
+        cost = get_dp_cost(f"propose_{proposal_type}", skill, transition_base=jump_cost)
+        if float(getattr(world, "diplomatic_points", 0) or 0) < float(cost):
+            return _refused("insufficient_resources")
+
+    return {
+        "eligible": True,
+        "refusal_code": None,
+        "disabled_reason_display": None,
+        "selected_pair": selected_pair,
     }
 
 
@@ -1004,6 +1304,324 @@ def _format_concession_reasoning(
     )
 
 
+# SC-31 / G2-Slice-8 - Dependency clause eligibility helpers.
+#
+# These helpers are the source of truth for whether a vassalage /
+# subjugation / liberation clause can be authored. They are reused by
+# the POST preview validator, the surrender-preset algorithm, and by
+# the SC-31 behavior tests so a single closed taxonomy of refusal codes
+# governs both editor visibility and submit-time rejection.
+
+
+def _resolve_war_sides(
+    war_instance: Mapping[str, Any], nation: str
+) -> Optional[str]:
+    """Return ``"attackers"`` / ``"defenders"`` for ``nation`` on a war."""
+    for side in VALID_SIDES:
+        if nation in (war_instance.get(side) or []):
+            return side
+    return None
+
+
+def _dependency_eligibility_payload(
+    eligible: bool,
+    *,
+    refusal_code: str = "",
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    if eligible:
+        payload: Dict[str, Any] = {"eligible": True, "refusal_code": None, "disabled_reason_display": None}
+    else:
+        payload = {
+            "eligible": False,
+            "refusal_code": refusal_code or "dependency_invalid",
+            "disabled_reason_display": _error_display(refusal_code or "dependency_invalid"),
+        }
+    if extra:
+        payload.update(dict(extra))
+    return payload
+
+
+def _check_vassalage_state(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Shared pre-checks for vassalage / subjugation.
+
+    Returns an eligible payload OR a refusal payload from the closed
+    taxonomy ``dependency_*``. Power-cap is checked separately so
+    callers can branch on `dependency_power_cap_blocked` independently.
+    """
+    if not lord_nation or not target_nation or lord_nation == target_nation:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_direction_invalid")
+    lord_side = _resolve_war_sides(war_instance, lord_nation)
+    target_side = _resolve_war_sides(war_instance, target_nation)
+    if lord_side is None or target_side is None or lord_side == target_side:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_not_in_war")
+    pair_key = world._make_diplo_key(lord_nation, target_nation)
+    meta = (war_instance.get("diplo_key_meta") or {}).get(pair_key) or {}
+    pair_status = str(meta.get("pair_status") or "")
+    if pair_status not in ("war", "armistice"):
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_not_in_war")
+    vassals = getattr(world, "vassals", {}) or {}
+    if target_nation in vassals:
+        return _dependency_eligibility_payload(False, refusal_code="dependency_target_already_vassal")
+    return _dependency_eligibility_payload(True)
+
+
+def evaluate_subjugation_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Whether a ``subjugation`` clause may target ``target_nation``.
+
+    Direction is canonical: ``target_nation`` is the prospective vassal
+    (clause ``from``); ``lord_nation`` is the prospective lord (clause
+    ``to``). Power-cap is enforced through `check_vassalage_power_cap`
+    so a defeated giant cannot be forcibly vassalized by a smaller
+    coalition member.
+    """
+    state = _check_vassalage_state(
+        world,
+        war_instance=war_instance,
+        lord_nation=lord_nation,
+        target_nation=target_nation,
+    )
+    if not state.get("eligible"):
+        return state
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord_nation, target_nation)
+    if not cap.get("allowed"):
+        return _dependency_eligibility_payload(
+            False,
+            refusal_code="dependency_power_cap_blocked",
+            extra={
+                "lord_power": int(cap.get("lord_power", 0) or 0),
+                "target_power": int(cap.get("target_power", 0) or 0),
+                "power_pct": int(cap.get("pct", 0) or 0),
+            },
+        )
+    return _dependency_eligibility_payload(
+        True,
+        extra={
+            "lord_power": int(cap.get("lord_power", 0) or 0),
+            "target_power": int(cap.get("target_power", 0) or 0),
+            "power_pct": int(cap.get("pct", 0) or 0),
+        },
+    )
+
+
+def evaluate_vassalage_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    lord_nation: str,
+    target_nation: str,
+) -> Dict[str, Any]:
+    """Whether a ``vassalage`` (treaty path) clause may target ``target_nation``.
+
+    Treaty vassalization shares the same pre-checks as subjugation —
+    direction, war state, not-already-vassal, and the power cap.
+    """
+    return evaluate_subjugation_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=lord_nation,
+        target_nation=target_nation,
+    )
+
+
+def evaluate_liberation_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    vassal_nation: str,
+    lord_nation: str,
+    liberator: str,
+) -> Dict[str, Any]:
+    """Whether a ``liberation`` clause may free ``vassal_nation``.
+
+    Liberation requires (a) the target is currently someone's vassal,
+    (b) the declared ``lord_nation`` matches the current lord, and
+    (c) the ``liberator`` is a recognized nation different from the
+    current lord. The pair (lord vs liberator) must also currently be
+    on opposite sides of the war so the clause has cross-side authority.
+    """
+    if not vassal_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_target_not_vassal"
+        )
+    vassals = getattr(world, "vassals", {}) or {}
+    state = vassals.get(vassal_nation)
+    if not isinstance(state, Mapping):
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_target_not_vassal"
+        )
+    current_lord = str(state.get("lord") or state.get("lord_nation") or "")
+    if not current_lord or current_lord != lord_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_lord_mismatch",
+            extra={"current_lord": current_lord},
+        )
+    if not liberator or liberator == current_lord or liberator == vassal_nation:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    # Liberator must be a known nation in the world; reject typos.
+    known_nations: Set[str] = set()
+    diplomatic_states = getattr(world, "diplomatic_states", {}) or {}
+    for key in diplomatic_states:
+        for part in str(key).split("|"):
+            if part:
+                known_nations.add(part)
+    if liberator not in known_nations:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    lord_side = _resolve_war_sides(war_instance, current_lord)
+    liberator_side = _resolve_war_sides(war_instance, liberator)
+    if lord_side is None or liberator_side is None or lord_side == liberator_side:
+        return _dependency_eligibility_payload(
+            False, refusal_code="liberation_invalid_liberator"
+        )
+    return _dependency_eligibility_payload(
+        True, extra={"current_lord": current_lord},
+    )
+
+
+def _compute_surrender_preset(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    accepting_leader: str,
+    proposer_side_leader: Optional[str],
+    covered_enemy_participants: Iterable[str],
+    side_pressure_score: Optional[int],
+) -> Dict[str, Any]:
+    """SC-31 / G2-Slice-8 surrender-preset algorithm.
+
+    Deterministic ``[peace, dependency]`` preset where ``dependency`` is
+    the harshest legal clause in the order
+    ``subjugation -> vassalage`` against the accepting leader. The
+    accepting leader is the prospective lord because surrender is the
+    losing-side player handing dependency authority to the winning
+    leader. Liberation is never authored by this preset (it is owned by
+    the editor's standalone liberation control).
+
+    Visibility reuses the concession-baseline losing-side predicate
+    (``side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD``) AND
+    requires at least one material dependency to be legal under the
+    accepting leader's power cap. When the predicate passes but no
+    legal dependency clause can be authored — the most common cause
+    being the accepting leader being too small under POWER_CAP_RATIO —
+    the affordance is hidden, not disabled, per the Disabled vs Hidden
+    Affordance Policy at spec §"Disabled vs Hidden Affordance Policy".
+
+    Result shape:
+
+    - ``{"losing_for_surrender_preset": bool,
+        "surrender_preset_visible": bool,
+        "surrender_preset": {"terms": List[Clause], "reasoning": str,
+                              "dependency_kind": str} | None,
+        "surrender_preset_reason": str}``
+    """
+    if side_pressure_score is None:
+        return {
+            "losing_for_surrender_preset": False,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "no_side_pressure_score",
+        }
+    losing = int(side_pressure_score) <= LOSING_SIDE_PRESSURE_THRESHOLD
+    if not losing:
+        return {
+            "losing_for_surrender_preset": False,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "not_losing_side",
+        }
+    if not proposer_side_leader or not accepting_leader:
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "missing_leaders",
+        }
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    if accepting_leader not in covered:
+        # Spec line 277 requires clause targets to lie in
+        # `covered_enemy_participants`; if the accepting leader is not
+        # covered, dependency cannot legally beneficiary-route.
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "accepting_leader_not_covered",
+        }
+    subjugation = evaluate_subjugation_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=accepting_leader,
+        target_nation=proposer_side_leader,
+    )
+    dependency_kind: Optional[str] = None
+    if subjugation.get("eligible"):
+        dependency_kind = "subjugation"
+    else:
+        vassalage = evaluate_vassalage_eligibility(
+            world,
+            war_instance=war_instance,
+            lord_nation=accepting_leader,
+            target_nation=proposer_side_leader,
+        )
+        if vassalage.get("eligible"):
+            dependency_kind = "vassalage"
+    if not dependency_kind:
+        return {
+            "losing_for_surrender_preset": True,
+            "surrender_preset_visible": False,
+            "surrender_preset": None,
+            "surrender_preset_reason": "no_legal_dependency_clause",
+        }
+    preset_terms: List[Dict[str, Any]] = [
+        {"type": "peace"},
+        {
+            "type": dependency_kind,
+            "from": proposer_side_leader,
+            "to": accepting_leader,
+        },
+    ]
+    if dependency_kind == "subjugation":
+        reasoning = (
+            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
+            "as a conquest vassal in exchange for ending the war."
+        )
+    else:
+        reasoning = (
+            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
+            "as a treaty vassal in exchange for ending the war."
+        )
+    return {
+        "losing_for_surrender_preset": True,
+        "surrender_preset_visible": True,
+        "surrender_preset": {
+            "terms": preset_terms,
+            "reasoning": reasoning,
+            "dependency_kind": dependency_kind,
+        },
+        "surrender_preset_reason": "material_dependency_available",
+    }
+
+
 def _compute_concession_baseline(
     world: Any,
     *,
@@ -1224,11 +1842,36 @@ def validate_settlement_terms(
     player_nation: Optional[str] = None,
     proposer_side: Optional[str] = None,
     actor_side_in_war: Optional[str] = None,
+    world: Any = None,
+    war_instance: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """SC-1 POST preview clause validation.
 
     Returns {"valid": True} or {"valid": False, "error": ..., "error_index": ...,
     "disabled_reason_display": ...}.
+
+    SC-31 / G2-Slice-8: when ``world`` and ``war_instance`` are supplied,
+    dependency-clause direction, target eligibility, and power-cap legality
+    are additionally enforced. Hidden clause types are never live in
+    `CLAUSE_CONTROL_SCHEMA`, but illegal-by-state dependency clauses
+    submitted via tampered payloads return canonical error codes:
+
+    - ``dependency_direction_invalid`` — vassalage / subjugation use
+      ``from = vassal/subjugated, to = lord``; the validator rejects
+      reversed projections.
+    - ``dependency_target_not_in_war`` — vassalage / subjugation target
+      must currently be at WAR or ARMISTICE with the lord on the war
+      instance.
+    - ``dependency_target_already_vassal`` — vassalage / subjugation
+      target is already someone's vassal.
+    - ``dependency_power_cap_blocked`` — lord power is not at least
+      ``POWER_CAP_RATIO`` × target power.
+    - ``liberation_target_not_vassal`` — liberation target is not
+      currently a vassal of any lord.
+    - ``liberation_lord_mismatch`` — declared ``lord_nation`` does not
+      match the current lord of ``vassal_nation``.
+    - ``liberation_invalid_liberator`` — ``liberator`` is missing,
+      equal to the current lord, or not a recognized nation.
     """
     if actor_nation and player_nation and actor_nation != player_nation:
         return {
@@ -1310,6 +1953,106 @@ def validate_settlement_terms(
                         "error": "duplicate_or_conflicting_clauses",
                         "error_index": terms.index(cb),
                         "disabled_reason_display": _error_display("duplicate_or_conflicting_clauses"),
+                    }
+
+    # SC-33 / G2-Slice-9: per-clause amount + duration bounds for
+    # `gold_per_turn` clauses (no silent clamping — submitted values are
+    # rejected with humanized copy if out of range).
+    for idx, clause in enumerate(terms):
+        if clause.get("type") != "gold_per_turn":
+            continue
+        amount = int(clause.get("amount", 0) or 0)
+        turns = int(clause.get("turns", 0) or 0)
+        if amount < GOLD_PER_TURN_MIN_AMOUNT:
+            return {
+                "valid": False,
+                "error": "gold_per_turn_amount_too_small",
+                "error_index": idx,
+                "disabled_reason_display": _error_display(
+                    "gold_per_turn_amount_too_small"
+                ),
+            }
+        if turns < GOLD_PER_TURN_MIN_TURNS or turns > GOLD_PER_TURN_MAX_TURNS:
+            return {
+                "valid": False,
+                "error": "gold_per_turn_duration_out_of_range",
+                "error_index": idx,
+                "disabled_reason_display": _error_display(
+                    "gold_per_turn_duration_out_of_range"
+                ),
+            }
+
+    # SC-33 / G2-Slice-9: projected-solvency budget conflict. Combines all
+    # lump-sum + recurring gold obligations the same payer is committing
+    # to in this draft, plus their existing recurring settlement
+    # obligations, against `current_gold + max(0, expected_net_income) *
+    # max_turns_in_submitted_terms`. Rejects when the combined obligation
+    # exceeds capacity. Skipped when `world` is unavailable (legacy
+    # schema-only callers).
+    if world is not None:
+        conflict = _check_gold_payment_budget_conflict(world, terms)
+        if conflict is not None:
+            return conflict
+
+    # SC-31 / G2-Slice-8: dependency-clause eligibility uses world state.
+    # When called without a `world`+`war_instance` context (legacy callers
+    # / pure schema validation), the dependency-state checks are skipped.
+    if world is not None and isinstance(war_instance, Mapping):
+        for idx, clause in enumerate(terms):
+            ctype = clause.get("type")
+            if ctype in ("vassalage", "subjugation"):
+                # Canonical direction: from = vassal/subjugated, to = lord.
+                vassal_nation = str(clause.get("from") or "")
+                lord_nation = str(clause.get("to") or "")
+                if not vassal_nation or not lord_nation or vassal_nation == lord_nation:
+                    return {
+                        "valid": False,
+                        "error": "dependency_direction_invalid",
+                        "error_index": idx,
+                        "disabled_reason_display": _error_display(
+                            "dependency_direction_invalid"
+                        ),
+                    }
+                eligibility = (
+                    evaluate_subjugation_eligibility
+                    if ctype == "subjugation"
+                    else evaluate_vassalage_eligibility
+                )(
+                    world,
+                    war_instance=war_instance,
+                    lord_nation=lord_nation,
+                    target_nation=vassal_nation,
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "dependency_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "dependency_invalid")
+                        ),
+                    }
+            elif ctype == "liberation":
+                vassal_nation = str(clause.get("vassal_nation") or "")
+                lord_nation = str(clause.get("lord_nation") or "")
+                liberator = str(clause.get("liberator") or "")
+                eligibility = evaluate_liberation_eligibility(
+                    world,
+                    war_instance=war_instance,
+                    vassal_nation=vassal_nation,
+                    lord_nation=lord_nation,
+                    liberator=liberator,
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "liberation_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "liberation_invalid")
+                        ),
                     }
     return {"valid": True}
 
@@ -1453,6 +2196,7 @@ def build_settlement_preview(
         density=preview["density"],
         awe_tags=preview_awe_tags,
         forced_alliance_threat_preview=forced_alliance_threat_preview,
+        world=world,
     )
     # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
     # POST preview is the source of truth for `losing_for_concession_baseline`,
@@ -1487,6 +2231,33 @@ def build_settlement_preview(
     preview["concession_baseline_reason"] = str(
         baseline_payload.get("concession_baseline_reason") or ""
     )
+    # SC-31 / G2-Slice-8 - surrender preset payload mirrors the concession
+    # baseline contract: POST preview is the source of truth, and the
+    # staged settlement_confirm dialogue carries the same three keys at
+    # the canonical position so Godot can render the EDIT-rail
+    # `Author surrender terms (Talleyrand)` button without an extra
+    # preview round-trip.
+    surrender_payload = _compute_surrender_preset(
+        world,
+        war_id=war_id,
+        war_instance=instance,
+        proposer_side=side,
+        accepting_side=accepting_side,
+        accepting_leader=str(accepting_leader or ""),
+        proposer_side_leader=str(proposer_leader or ""),
+        covered_enemy_participants=covered,
+        side_pressure_score=acceptance.get("side_pressure_score"),
+    )
+    preview["losing_for_surrender_preset"] = bool(
+        surrender_payload.get("losing_for_surrender_preset")
+    )
+    preview["surrender_preset_visible"] = bool(
+        surrender_payload.get("surrender_preset_visible")
+    )
+    preview["surrender_preset"] = surrender_payload.get("surrender_preset")
+    preview["surrender_preset_reason"] = str(
+        surrender_payload.get("surrender_preset_reason") or ""
+    )
     return {
         "success": True,
         "mode": "settlement",
@@ -1504,6 +2275,7 @@ def build_settlement_confirm_dialogue(
     selected_target_nation: Optional[str] = None,
     caller_kind: str = "player_editor",
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     preview = copy.deepcopy(preview_response["settlement_preview"])
     war_id = str(preview_response["war_id"])
@@ -1647,6 +2419,24 @@ def build_settlement_confirm_dialogue(
         and bool(preview.get("concession_baseline_visible"))
         and _has_material_concession_terms(baseline_terms)
     )
+    surrender_preset_payload = (
+        copy.deepcopy(preview.get("surrender_preset"))
+        if preview.get("surrender_preset_visible")
+        else None
+    )
+    surrender_terms_preset = (
+        list(surrender_preset_payload.get("terms") or [])
+        if isinstance(surrender_preset_payload, Mapping)
+        else []
+    )
+    can_author_surrender_terms = (
+        not can_ratify
+        and bool(preview.get("surrender_preset_visible"))
+        and any(
+            isinstance(t, Mapping) and t.get("type") in ("vassalage", "subjugation")
+            for t in surrender_terms_preset
+        )
+    )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
         available_action_ids.append("confirm_settlement")
@@ -1658,6 +2448,90 @@ def build_settlement_confirm_dialogue(
             "concession_baseline_preview": concession_baseline,
         })
         available_action_ids.append("re_author_with_concessions")
+    # SC-31 / G2-Slice-8 - Surrender preset CTA. Appears only when the
+    # losing-side concession baseline predicate passes AND the surrender
+    # preset can author a material dependency clause. Order matters: it
+    # sits between Re-author with Concessions and Seek Bilateral Peace /
+    # Seek Armistice Instead because surrender is a more drastic
+    # concessionary authoring step than gold/territory concessions but
+    # still narrower than abandoning the war-scoped settlement entirely.
+    if can_author_surrender_terms:
+        options.append({
+            "label": "Author surrender terms (Talleyrand)",
+            "action": "author_surrender_terms",
+            "description": (
+                "Apply Talleyrand's surrender preset: peace plus a dependency "
+                "clause submitting to the accepting court."
+            ),
+            "surrender_preset_preview": surrender_preset_payload,
+        })
+        available_action_ids.append("author_surrender_terms")
+    # SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs. Only emitted
+    # on blocked ratification, with a non-empty selected target, and only
+    # when `evaluate_pair_peace_substitute_eligibility(...)` returns
+    # eligible=True for each action. Order per failure-state table:
+    # Re-author -> Revise Terms -> Seek Bilateral Peace -> Seek Armistice
+    # Instead -> Open War Detail -> Back Out.
+    if not can_ratify and resolved_target:
+        actor_for_substitute = str(
+            getattr(world, "player_nation", "France") or "France"
+        )
+        for action_id, label, voice_key, description in (
+            (
+                "seek_bilateral_peace",
+                "Seek Bilateral Peace",
+                "settlement_seek_bilateral_peace_instead_talleyrand",
+                "Open a bilateral peace with the selected court only; "
+                "the other hostile pairs remain at war.",
+            ),
+            (
+                "seek_armistice_instead",
+                "Seek Armistice Instead",
+                "settlement_seek_armistice_instead_talleyrand",
+                "Open an armistice with the selected court only; "
+                "the war continues elsewhere.",
+            ),
+        ):
+            eligibility = evaluate_pair_peace_substitute_eligibility(
+                world,
+                war_id=war_id,
+                actor_nation=actor_for_substitute,
+                target_nation=resolved_target,
+                action=action_id,
+            )
+            if not eligibility.get("eligible"):
+                # SC-29 + Disabled vs Hidden Affordance Policy: only
+                # `cooldown_active` may render as a pre-click disabled
+                # button after SC-29 lands. Every other refusal hides
+                # the substitute action entirely.
+                if eligibility.get("refusal_code") in PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES:
+                    options.append({
+                        "label": label,
+                        "action": action_id,
+                        "available": False,
+                        "disabled_reason_display": eligibility.get(
+                            "disabled_reason_display"
+                        ),
+                        "scope": "selected_pair",
+                        "war_id": war_id,
+                        "selected_target_nation": resolved_target,
+                    })
+                continue
+            options.append({
+                "label": label,
+                "action": action_id,
+                "description": description,
+                "scope": "selected_pair",
+                "war_id": war_id,
+                "selected_target_nation": resolved_target,
+                "talleyrand_text": resolve_settlement_voice_line(
+                    voice_key,
+                    war_label=war_label or war_id or "this war",
+                    target_nation=resolved_target,
+                ),
+                "voice_family": voice_key,
+            })
+            available_action_ids.append(action_id)
     if not can_ratify and war_detail_actionability.get("actionable"):
         options.append({
             "label": "Open War Detail",
@@ -1723,6 +2597,20 @@ def build_settlement_confirm_dialogue(
             preview.get("concession_baseline_visible")
         ),
         "concession_baseline": concession_baseline,
+        # SC-31 / G2-Slice-8 - `surrender_preset` (the bool flag) labels
+        # the dialogue as a surrender-preset-authored package for banner
+        # copy + emitted `settlement_summary.surrender_preset` tagging.
+        # `surrender_preset_visible` / `surrender_preset` are the
+        # preview-time payloads Godot reads to render the EDIT-rail CTA.
+        "surrender_preset": bool(surrender_preset),
+        "losing_for_surrender_preset": bool(
+            preview.get("losing_for_surrender_preset")
+        ),
+        "surrender_preset_visible": bool(
+            preview.get("surrender_preset_visible")
+        ),
+        "surrender_preset_payload": surrender_preset_payload,
+        "surrender_preset_reason": str(preview.get("surrender_preset_reason") or ""),
     }
 
 
@@ -1739,6 +2627,7 @@ def stage_settlement_confirm(
     require_explicit_scope: bool = False,
     caller_kind: str = "player_editor",
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
     explicit_covered = _normalize_nation_list(covered_enemy_participants)
@@ -1855,6 +2744,7 @@ def stage_settlement_confirm(
             selected_target_nation=resolved_target,
             caller_kind=caller_kind,
             white_peace=white_peace,
+            surrender_preset=surrender_preset,
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
@@ -1929,7 +2819,7 @@ def _build_pair_ratification_plan(
     proposer_members: Set[str] = set(war_instance.get(proposer_side) or [])
     covered_set: Set[str] = {str(n) for n in covered}
     forced_alliance_targets: Dict[str, Set[str]] = {}
-    vassalage_targets: Dict[str, Dict[str, Mapping[str, Any]]] = {}
+    vassalage_terms_by_pair: Dict[frozenset[str], Mapping[str, Any]] = {}
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
@@ -1942,7 +2832,7 @@ def _build_pair_ratification_plan(
             vassal_target = str(term.get("from") or term.get("vassal_nation") or "")
             vassal_lord = str(term.get("to") or term.get("lord_nation") or "")
             if vassal_target and vassal_lord:
-                vassalage_targets.setdefault(vassal_target, {})[vassal_lord] = term
+                vassalage_terms_by_pair[frozenset((vassal_lord, vassal_target))] = term
 
     meta = war_instance.get("diplo_key_meta") or {}
     plan: List[Dict[str, Any]] = []
@@ -1963,8 +2853,20 @@ def _build_pair_ratification_plan(
         target_state = "PEACE"
         if proposer_member in forced_alliance_targets.get(covered_enemy, set()):
             target_state = "ALLIANCE"
-        if proposer_member in vassalage_targets.get(covered_enemy, {}):
+        vassalage_term = vassalage_terms_by_pair.get(
+            frozenset((proposer_member, covered_enemy))
+        )
+        if vassalage_term is not None:
             target_state = "VASSAL"
+            vassal_lord = str(
+                vassalage_term.get("to") or vassalage_term.get("lord_nation") or ""
+            )
+            vassal_target = str(
+                vassalage_term.get("from") or vassalage_term.get("vassal_nation") or ""
+            )
+        else:
+            vassal_lord = ""
+            vassal_target = ""
         current_state = world.diplomatic_states.get(pair, "PEACE")
         plan.append({
             "pair": pair,
@@ -1973,6 +2875,8 @@ def _build_pair_ratification_plan(
             "current_state": current_state,
             "pair_status_before": pair_meta.get("pair_status"),
             "target_state": target_state,
+            "vassal_lord": vassal_lord,
+            "vassal_target": vassal_target,
         })
     return plan
 
@@ -2037,6 +2941,8 @@ def _apply_settlement_terms(
     world: Any,
     *,
     settlement_terms: Iterable[Mapping[str, Any]],
+    war_id: str = "",
+    settlement_route_id: str = "",
 ) -> List[Dict[str, Any]]:
     """Apply package-level territory, gold, and liberation outcomes.
 
@@ -2044,9 +2950,13 @@ def _apply_settlement_terms(
     cleanup (see ``_resolve_pair_state_transitions``) because the alliance
     state must replace the intermediate ``PEACE`` state established by
     cleanup.
+
+    `war_id` / `settlement_route_id` are forwarded as identity columns on
+    ratified recurring-gold obligations so the per-turn processor and the
+    diplomatic ledger can attribute each tick to the originating war.
     """
     applied: List[Dict[str, Any]] = []
-    for term in settlement_terms or []:
+    for idx, term in enumerate(settlement_terms or []):
         if not isinstance(term, Mapping):
             continue
         ttype = term.get("type")
@@ -2142,9 +3052,47 @@ def _apply_settlement_terms(
             amount = abs(int(term.get("amount", 0) or 0))
             turns = abs(int(term.get("turns", 0) or 0))
             if from_nation and to_nation and amount > 0 and turns > 0:
+                # SC-33 / G2-Slice-9: register a recurring obligation on
+                # `world.recurring_settlement_payments`. The income-phase
+                # processor in `world_state.advance_turn` debits the
+                # payer once per turn until `turns_remaining` hits zero
+                # or a cancellation condition fires (payer/recipient
+                # eliminated, payer vassalized, renewed war between the
+                # pair). Ratification itself does not move gold — the
+                # first transfer happens on the next turn's income
+                # phase, mirroring bilateral treaty per-turn clauses.
+                payments = getattr(world, "recurring_settlement_payments", None)
+                if payments is None:
+                    payments = []
+                    setattr(world, "recurring_settlement_payments", payments)
+                ratified_turn = int(getattr(world, "current_turn", 0) or 0)
+                seq = sum(
+                    1
+                    for entry in payments
+                    if isinstance(entry, Mapping)
+                    and int(entry.get("ratified_turn", -1) or -1) == ratified_turn
+                )
+                payment_id = (
+                    f"recurring_gold:{from_nation}:{to_nation}:"
+                    f"{ratified_turn}:{seq}"
+                )
+                payments.append({
+                    "payment_id": payment_id,
+                    "from": from_nation,
+                    "to": to_nation,
+                    "amount_per_turn": int(amount),
+                    "turns_remaining": int(turns),
+                    "total_turns": int(turns),
+                    "war_id": str(war_id or ""),
+                    "ratified_turn": int(ratified_turn),
+                    "settlement_route_id": str(settlement_route_id or ""),
+                    "source_clause_index": int(idx),
+                })
                 clause = dict(term)
                 clause["amount"] = amount
                 clause["turns"] = turns
+                clause["payment_id"] = payment_id
+                clause["ratified_turn"] = int(ratified_turn)
                 applied.append(clause)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
@@ -2208,6 +3156,19 @@ def _apply_settlement_terms(
                     clause["lord_nation"] = lib_from
                     clause["liberator"] = lib_liberator
                     clause["pair_state_transition"] = "VASSALAGE -> SOVEREIGN"
+                    # SC-31 / G2-Slice-8 applied_clauses_preview fields
+                    # for liberation: defensive_alliance_with_liberator,
+                    # relation_deltas (lib_vassal vs former lord -20 /
+                    # vs liberator +30), threat_reduction (lord-on-player
+                    # side delta).
+                    clause["defensive_alliance_with_liberator"] = bool(lib_liberator)
+                    clause["relation_deltas"] = {
+                        f"{lib_vassal}|{lib_from}": -20,
+                        f"{lib_vassal}|{lib_liberator}": 30,
+                    }
+                    clause["threat_reduction"] = (
+                        8 if lib_from == getattr(world, "player_nation", None) else 0
+                    )
                     applied.append(clause)
                     if hasattr(world, "log_event"):
                         world.log_event({
@@ -2275,7 +3236,9 @@ def _resolve_pair_state_transitions(
         # (resolve_pair_to_resolved + episode close + war-data clear).
         current_state = world.get_diplomatic_state(proposer_member, covered_enemy)
         if target_state == "VASSAL":
-            term = vassalage_terms_by_pair.get((proposer_member, covered_enemy))
+            vassal_lord = str(entry.get("vassal_lord") or "")
+            vassal_target = str(entry.get("vassal_target") or "")
+            term = vassalage_terms_by_pair.get((vassal_lord, vassal_target))
             vassal_result = {"success": False}
             if current_state == "ARMISTICE" and term is not None:
                 set_diplomatic_state(
@@ -2291,21 +3254,54 @@ def _resolve_pair_state_transitions(
                 )
                 if term.get("type") == "subjugation":
                     vassal_result = create_vassal_conquest(
-                        world, proposer_member, covered_enemy,
+                        world, vassal_lord, vassal_target,
                         garrison_size=int(term.get("garrison_size", 0) or 0),
                     )
                 else:
                     vassal_result = create_vassal_treaty(
-                        world, proposer_member, covered_enemy,
+                        world, vassal_lord, vassal_target,
                         generosity_bonus=int(term.get("generosity_bonus", 0) or 0),
                         terms=list(settlement_terms or []),
                     )
                 if vassal_result.get("success"):
-                    assimilate_vassal_marshals(world, covered_enemy)
+                    assimilated_marshals = assimilate_vassal_marshals(
+                        world, vassal_target
+                    )
                     clause = dict(term)
-                    clause.setdefault("from", covered_enemy)
-                    clause.setdefault("to", proposer_member)
+                    clause.setdefault("from", vassal_target)
+                    clause.setdefault("to", vassal_lord)
                     clause["pair_state_transition"] = "WAR -> VASSALAGE"
+                    # SC-31 / G2-Slice-8 applied_clauses_preview fields
+                    # for vassalage / subjugation. Values read from the
+                    # live vassal record so the preview matches the
+                    # mutation that ran. autonomy_after / loyalty_after /
+                    # tribute_rate_after / vassal_path use the values
+                    # stamped by create_vassal_conquest /
+                    # create_vassal_treaty; threat_delta_for_lord is the
+                    # coalition-threat delta from the same helper (+25
+                    # for conquest, +5 for treaty per WPS-B §2a);
+                    # marshal_assimilation_count counts marshals moved
+                    # to the lord pool.
+                    vassal_record = (
+                        (getattr(world, "vassals", {}) or {}).get(vassal_target)
+                        or {}
+                    )
+                    autonomy_level = int(vassal_record.get("autonomy", 1))
+                    autonomy_after_display = {
+                        0: "Puppet",
+                        1: "Satellite",
+                        2: "Autonomous",
+                    }.get(autonomy_level, "Satellite")
+                    clause["autonomy_after"] = autonomy_after_display
+                    clause["loyalty_after"] = int(vassal_record.get("loyalty") or 0)
+                    clause["tribute_rate_after"] = float(
+                        vassal_record.get("tribute_rate") or 0.0
+                    )
+                    clause["vassal_path"] = str(vassal_record.get("path") or "")
+                    clause["marshal_assimilation_count"] = len(assimilated_marshals)
+                    clause["threat_delta_for_lord"] = (
+                        25 if term.get("type") == "subjugation" else 5
+                    )
                     state_clauses_applied.append(clause)
                     cleanup_war_end(world, pair_key, conclude_objectives=True)
                 else:
@@ -2563,6 +3559,13 @@ def ratify_settlement_confirm(
     # `available_action_ids[]` omission).
     white_peace = bool(dialogue.get("white_peace", False))
     caller_kind = str(dialogue.get("caller_kind") or "player_editor")
+    # SC-31 / G2-Slice-8 - surrender_preset propagates through the
+    # ratification event so dispatch/ledger/campaign-log render the
+    # outcome as a labeled surrender. The flag is set when the player
+    # accepted Talleyrand's surrender preset (or any future authored
+    # surrender package that opts into the label); generic dependency
+    # clauses authored manually do not toggle the flag automatically.
+    surrender_preset = bool(dialogue.get("surrender_preset", False))
     if (
         caller_kind == "player_editor"
         and not settlement_terms
@@ -2714,7 +3717,10 @@ def ratify_settlement_confirm(
     pre_cleanup_attacker_leader = str(war_instance.get("attacker_leader") or "")
     pre_cleanup_defender_leader = str(war_instance.get("defender_leader") or "")
     applied_clauses = _apply_settlement_terms(
-        world, settlement_terms=settlement_terms,
+        world,
+        settlement_terms=settlement_terms,
+        war_id=war_id,
+        settlement_route_id=str(dialogue.get("route_id") or ""),
     )
     resolved_pairs, fa_applied = _resolve_pair_state_transitions(
         world, plan, settlement_terms,
@@ -2787,6 +3793,7 @@ def ratify_settlement_confirm(
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
         white_peace=white_peace,
+        surrender_preset=surrender_preset,
     )
 
     world.dialogue_manager.pop()
@@ -3013,6 +4020,131 @@ def handle_settlement_dialogue_action(
             "message": "Talleyrand's concession baseline has been drafted for review.",
             "suppress_proposal_result_popup": True,
         }
+    if action == "author_surrender_terms":
+        # SC-31 / G2-Slice-8 - Apply Talleyrand's surrender preset.
+        # Mirrors `re_author_with_concessions`: re-runs POST preview
+        # against an empty draft to revalidate the surrender preset, and
+        # only stages a fresh `settlement_confirm` with the preset terms
+        # after a click-time re-check. On stale failure the current
+        # draft is preserved verbatim, no mutation, no popup, and the
+        # caller-side popup remains mounted so the player can choose
+        # another recovery route.
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actor = getattr(world, "player_nation", "France")
+        current_terms = [
+            dict(t)
+            for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "surrender_preset_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No surrender preset is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        preset_payload = fresh_preview.get("surrender_preset")
+        preset_terms = (
+            [dict(t) for t in (preset_payload.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(preset_payload, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("surrender_preset_visible")
+            or not any(
+                t.get("type") in ("vassalage", "subjugation") for t in preset_terms
+            )
+        ):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": "surrender_preset_unavailable",
+                "error_display": "No surrender preset is available now.",
+                "mutated": False,
+                "preserved_terms": current_terms,
+                "suppress_proposal_result_popup": True,
+            }
+        if current_terms:
+            return {
+                "success": True,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "requires_replace_confirm": True,
+                "replacement_terms": preset_terms,
+                "surrender_preset": copy.deepcopy(preset_payload),
+                "mutated": False,
+                "message": "Confirm replacing the current draft with Talleyrand's surrender preset.",
+                "suppress_proposal_result_popup": True,
+            }
+        preset_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=preset_terms,
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not preset_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_surrender_terms",
+                "war_id": war_id,
+                "error": preset_preview.get("error") or "surrender_preset_failed_preview",
+                "error_display": preset_preview.get("error_display") or (
+                    "The surrender preset could not be previewed."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        new_dialogue = build_settlement_confirm_dialogue(
+            world,
+            preset_preview,
+            selected_target_nation=selected_target or None,
+            caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
+            white_peace=False,
+            surrender_preset=True,
+        )
+        drafts = getattr(world, "pending_settlement_drafts", None)
+        if drafts is None:
+            world.pending_settlement_drafts = {}
+            drafts = world.pending_settlement_drafts
+        drafts[war_id] = [dict(t) for t in preset_terms]
+        world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": "author_surrender_terms",
+            "war_id": war_id,
+            "diplomatic_dialogue": new_dialogue,
+            "settlement_preview": preset_preview["settlement_preview"],
+            "awaiting_diplomatic_response": True,
+            "surrender_preset": copy.deepcopy(preset_payload),
+            "mutated": False,
+            "message": "Talleyrand's surrender preset has been drafted for review.",
+            "suppress_proposal_result_popup": True,
+        }
     if action == "open_war_detail":
         terms = [dict(t) for t in (dialogue.get("settlement_terms") or []) if isinstance(t, Mapping)]
         covered = list(dialogue.get("covered_enemy_participants") or [])
@@ -3061,9 +4193,162 @@ def handle_settlement_dialogue_action(
             ),
             "suppress_proposal_result_popup": True,
         }
+    # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. Two explicit
+    # branches per action id satisfy the Gate 3 action-id whitelist test
+    # that scans `settlement_preview.py` for `action == "..."` strings.
+    if action == "seek_bilateral_peace":
+        return _handle_pair_peace_substitute_action(
+            world, action="seek_bilateral_peace", dialogue=dialogue
+        )
+    if action == "seek_armistice_instead":
+        return _handle_pair_peace_substitute_action(
+            world, action="seek_armistice_instead", dialogue=dialogue
+        )
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)
     return {"success": False, "error": "unknown_settlement_action", "mutated": False}
+
+
+def _handle_pair_peace_substitute_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """SC-29 / G2-Slice-7 dialogue handler for `seek_bilateral_peace` and
+    `seek_armistice_instead`.
+
+    Click-time re-runs `evaluate_pair_peace_substitute_eligibility(...)`;
+    if the pair has become ineligible between render and click, the
+    settlement dialogue stays mounted, no scoped draft is mutated, no
+    pair route opens, and a humanized no-longer-eligible response is
+    returned with the normal recovery options preserved.
+
+    On positive re-validation, the handler pops the settlement dialogue,
+    flags any scoped settlement draft whose covered scope includes the
+    target pair as stale (per the War Detail recovery contract), then
+    stages a `proposal_confirm` dialogue for the underlying
+    `propose_armistice` / `propose_peace` flow with `target_nation =
+    selected_target_nation`. The handler does not deduct DP or set
+    proposal cooldowns; those happen when the player confirms / sends
+    the proposal through the existing executor.
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    selected_target = str(dialogue.get("selected_target_nation") or "")
+    actor = str(getattr(world, "player_nation", "France") or "France")
+    proposal_type = "armistice" if action == "seek_armistice_instead" else "peace"
+    voice_key = (
+        "settlement_seek_armistice_instead_talleyrand"
+        if action == "seek_armistice_instead"
+        else "settlement_seek_bilateral_peace_instead_talleyrand"
+    )
+    war_label = str(dialogue.get("war_label") or war_id or "this war")
+
+    eligibility = evaluate_pair_peace_substitute_eligibility(
+        world,
+        war_id=war_id,
+        actor_nation=actor,
+        target_nation=selected_target,
+        action=action,
+    )
+    if not eligibility.get("eligible"):
+        refusal = eligibility.get("refusal_code") or "malformed_route"
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "selected_target_nation": selected_target,
+            "scope": "selected_pair",
+            "error": refusal,
+            "error_display": eligibility.get("disabled_reason_display")
+            or _error_display(refusal),
+            "pair_substitute_eligibility": eligibility,
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+
+    # SC-29 / War Detail recovery contract: a successful pair substitute
+    # makes any preserved scoped settlement draft that covers the target
+    # stale. Cleanup default for cleanup-stage `pending_settlement_drafts`
+    # is keyed by `war_id`; mark the entry stale via removal here, and
+    # re-preview is required on the next settlement entry per the spec.
+    drafts = getattr(world, "pending_settlement_drafts", None) or {}
+    covered = list(dialogue.get("covered_enemy_participants") or [])
+    draft_invalidated = False
+    if war_id in drafts and selected_target in covered:
+        try:
+            del drafts[war_id]
+            draft_invalidated = True
+        except Exception:  # pragma: no cover - defensive
+            draft_invalidated = False
+
+    # Stage the proposal dialogue through the existing classification +
+    # template path so the substitute hands off into the standard
+    # propose_armistice / propose_peace flow on confirm.
+    try:
+        from backend.game_logic.diplomatic_dialogue import (
+            classify_diplomatic_intent,
+            generate_dialogue,
+        )
+    except Exception:  # pragma: no cover - defensive
+        classify_diplomatic_intent = None  # type: ignore[assignment]
+        generate_dialogue = None  # type: ignore[assignment]
+
+    proposal_dialogue: Optional[Dict[str, Any]] = None
+    if classify_diplomatic_intent is not None and generate_dialogue is not None:
+        diplomatic_data = {
+            "target_nation": selected_target,
+            "proposal_type": proposal_type,
+            "raw_text": f"propose {proposal_type} with {selected_target}",
+            "has_diplomatic_keywords": True,
+            "is_question": False,
+            "clauses": [],
+        }
+        try:
+            intent = classify_diplomatic_intent(diplomatic_data, world)
+            proposal_dialogue = generate_dialogue(intent, diplomatic_data, world)
+        except Exception:  # pragma: no cover - defensive
+            proposal_dialogue = None
+
+    world.dialogue_manager.pop()
+    if isinstance(proposal_dialogue, Mapping):
+        world.dialogue_manager.replace(dict(proposal_dialogue))
+
+    talleyrand_text = resolve_settlement_voice_line(
+        voice_key,
+        war_label=war_label,
+        target_nation=selected_target,
+    )
+
+    return {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": action,
+        "war_id": war_id,
+        "selected_target_nation": selected_target,
+        "scope": "selected_pair",
+        "proposal_type": proposal_type,
+        "voice_family": voice_key,
+        "talleyrand_text": talleyrand_text,
+        "message": talleyrand_text,
+        "draft_invalidated": draft_invalidated,
+        "pair_substitute_eligibility": eligibility,
+        "diplomatic_dialogue": proposal_dialogue
+        if isinstance(proposal_dialogue, Mapping)
+        else None,
+        "recovery_route": {
+            "surface": "proposal_confirm",
+            "target": "proposal_confirm",
+            "war_id": war_id,
+            "selected_target_nation": selected_target,
+            "target_nation": selected_target,
+            "scope": "selected_pair",
+            "proposal_type": proposal_type,
+        },
+        "mutated": False,
+        "suppress_proposal_result_popup": True,
+    }
 
 
 def handle_incoming_settlement_offer_action(
@@ -3201,3 +4486,273 @@ def handle_incoming_settlement_offer_action(
         result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
         result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
     return result
+
+
+# ---------------------------------------------------------------------------
+# SC-33 / G2-Slice-9 - Per-turn recurring gold payment processor.
+# Wired from `WorldState.advance_turn` near `_process_treaty_clauses` /
+# `process_vassal_tribute` so it runs after income/trade and before the
+# bankruptcy check. The helper iterates only
+# `world.recurring_settlement_payments` (no per-region scan) per golden
+# rule 8.
+# ---------------------------------------------------------------------------
+
+
+def _is_renewed_war_between(world: Any, payer: str, recipient: str) -> bool:
+    """True when payer / recipient are currently on opposite sides of an
+    active war or armistice. Used as a recurring-payment cancellation
+    condition (renewed war between the pair voids the obligation).
+    """
+    is_at_war = getattr(world, "is_at_war", None)
+    if callable(is_at_war):
+        try:
+            if bool(is_at_war(payer, recipient)):
+                return True
+        except Exception:
+            pass
+    diplomatic_states = getattr(world, "diplomatic_states", None) or {}
+    make_key = getattr(world, "_make_diplo_key", None)
+    if callable(make_key):
+        try:
+            key = make_key(payer, recipient)
+        except Exception:
+            key = "|".join(sorted([payer, recipient]))
+    else:
+        key = "|".join(sorted([payer, recipient]))
+    state = diplomatic_states.get(key)
+    return str(state or "") in ("WAR", "ARMISTICE")
+
+
+def _is_recurring_payment_nation_eliminated(
+    world: Any,
+    nation: str,
+    *,
+    nation_gold: Mapping[str, Any],
+    vassals: Mapping[str, Any],
+    active_nations: Optional[Set[str]],
+) -> bool:
+    """Match the live active-nation contract for payment cancellation.
+
+    `nation_gold` persists for eliminated courts, so treasury membership is
+    only a legacy fallback. Cached active-nation state is authoritative when
+    the world exposes it.
+    """
+    if not nation:
+        return True
+    if nation in vassals:
+        return False
+    if nation not in nation_gold:
+        return True
+    if active_nations is not None:
+        return nation not in active_nations
+    # Do not fall back to a region scan from the per-payment loop. Production
+    # WorldState exposes cached get_active_nations(); lightweight fakes still
+    # get the legacy nation_gold absence behavior above.
+    return False
+
+
+def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
+    """SC-33 / G2-Slice-9 income-phase processor for recurring settlement
+    gold payments.
+
+    Cancellation conditions (per implementation directive May 14, 2026):
+
+    - Payer eliminated (no longer in `world.nation_gold` or no regions).
+    - Recipient eliminated.
+    - Payer vassalized (now lives in `world.vassals`).
+    - Renewed war between payer and recipient (active WAR/ARMISTICE pair).
+
+    Non-cancellation runtime behavior:
+
+    - Payer cannot afford full payment: transfer `min(amount, balance)`,
+      never go negative, emit a `settlement_recurring_gold_partial`
+      dispatch event, decrement `turns_remaining`, and keep the
+      obligation alive until natural completion.
+    - Natural completion: when `turns_remaining` reaches zero after a
+      tick, emit `settlement_recurring_gold_completed` and remove the
+      record.
+
+    Returns an event summary `{paid, partial, completed, cancelled}`.
+    """
+    payments = getattr(world, "recurring_settlement_payments", None) or []
+    if not payments:
+        return {"paid": [], "partial": [], "completed": [], "cancelled": []}
+
+    survivors: List[Dict[str, Any]] = []
+    events = {"paid": [], "partial": [], "completed": [], "cancelled": []}
+    nation_gold = getattr(world, "nation_gold", None) or {}
+    vassals = getattr(world, "vassals", None) or {}
+    active_nations: Optional[Set[str]] = None
+    get_active_nations = getattr(world, "get_active_nations", None)
+    if callable(get_active_nations):
+        try:
+            active_nations = {str(n) for n in get_active_nations()}
+        except Exception:
+            active_nations = None
+
+    def _war_label_for(entry: Mapping[str, Any]) -> str:
+        wid = str(entry.get("war_id") or "")
+        if not wid:
+            return "the settlement"
+        instance = (getattr(world, "war_instances", {}) or {}).get(wid) or {}
+        attackers = list(instance.get("attackers") or [])
+        defenders = list(instance.get("defenders") or [])
+        if attackers and defenders:
+            return f"{attackers[0]} vs {defenders[0]}"
+        return wid
+
+    for entry in payments:
+        if not isinstance(entry, Mapping):
+            continue
+        payer = str(entry.get("from") or "")
+        recipient = str(entry.get("to") or "")
+        amount = int(entry.get("amount_per_turn", 0) or 0)
+        turns_remaining = int(entry.get("turns_remaining", 0) or 0)
+        if not payer or not recipient or amount <= 0 or turns_remaining <= 0:
+            # Malformed / already drained — drop silently.
+            continue
+
+        if payer in vassals:
+            reason = "payer_vassalized"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if _is_recurring_payment_nation_eliminated(
+            world,
+            payer,
+            nation_gold=nation_gold,
+            vassals=vassals,
+            active_nations=active_nations,
+        ):
+            reason = "payer_eliminated"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if _is_recurring_payment_nation_eliminated(
+            world,
+            recipient,
+            nation_gold=nation_gold,
+            vassals=vassals,
+            active_nations=active_nations,
+        ):
+            reason = "recipient_eliminated"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if _is_renewed_war_between(world, payer, recipient):
+            reason = "renewed_war"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+
+        # Tick: transfer what's affordable, decrement, surface partial /
+        # full / completion events.
+        balance = int(nation_gold.get(payer, 0) or 0)
+        transfer = min(int(amount), max(0, balance))
+        nation_gold[payer] = balance - transfer
+        nation_gold[recipient] = int(nation_gold.get(recipient, 0) or 0) + transfer
+        turns_remaining -= 1
+        record = dict(entry)
+        record["turns_remaining"] = int(turns_remaining)
+        if transfer < amount:
+            events["partial"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "amount_paid": int(transfer),
+                "amount_due": int(amount),
+                "turns_remaining": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_partial", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": str(int(transfer)),
+                "amount_due": str(int(amount)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+        elif transfer > 0:
+            events["paid"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "amount_paid": int(transfer),
+                "turns_remaining": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_paid", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": str(int(transfer)),
+                "turns_remaining": str(int(turns_remaining)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+
+        if turns_remaining <= 0:
+            total_amount = int(record.get("total_turns", 0) or 0) * int(amount)
+            events["completed"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "total_amount": int(total_amount),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_completed", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "total_amount": str(int(total_amount)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+            # Drop the record on natural completion.
+            continue
+
+        survivors.append(record)
+
+    setattr(world, "recurring_settlement_payments", survivors)
+    return events
+
+
+# Import here to avoid a circular import on module load; the dispatch
+# helper is a leaf utility.
+from backend.game_logic.dispatch import queue_dispatch_event  # noqa: E402

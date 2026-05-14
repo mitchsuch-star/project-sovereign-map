@@ -939,6 +939,7 @@ def _emit_settlement_summary_event(
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
     acceptance_at_staging: Optional[Mapping[str, Any]] = None,
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     """Emit `settlement_summary` to event_log + pending_dispatch.
 
@@ -1043,6 +1044,12 @@ def _emit_settlement_summary_event(
         # than a generic settlement. Defaults to False for normal
         # treaty ratification.
         "white_peace": bool(white_peace),
+        # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-8 Dependency And
+        # Surrender Terms Restoration: labels the emitted outcome when
+        # the player ratified a Talleyrand surrender preset (peace +
+        # dependency clause). Defaults to False for non-surrender
+        # ratification, including manual dependency-clause authoring.
+        "surrender_preset": bool(surrender_preset),
         # SC-15 amendment: archived settlement review renders the fresh
         # ratification-time `acceptance_snapshot`, not the stale staging
         # preview. `acceptance_at_staging` stays as audit context only.
@@ -1186,6 +1193,7 @@ def route_settlement_reactions(
     success: bool = True,
     mutated: bool = True,
     white_peace: bool = False,
+    surrender_preset: bool = False,
 ) -> Dict[str, Any]:
     """D1/D2 settlement / cross-war reaction routing.
 
@@ -1313,6 +1321,7 @@ def route_settlement_reactions(
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
         white_peace=bool(white_peace),
+        surrender_preset=bool(surrender_preset),
     )
     digest_event: Optional[Dict[str, Any]] = None
     if len(all_reactions) > SETTLEMENT_DISPATCH_PRIMARY_CAP:

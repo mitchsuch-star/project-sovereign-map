@@ -2064,6 +2064,8 @@ class DiplomaticExecutor:
                 player_nation=player,
                 proposer_side=actor_side,
                 actor_side_in_war=actor_side,
+                world=world,
+                war_instance=war_instance,
             )
             if not validation.get("valid"):
                 from backend.display_names import settlement_disabled_reason_display

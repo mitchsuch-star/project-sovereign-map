@@ -351,10 +351,37 @@ func _build_settlement_content(data: Dictionary) -> String:
 			var reasoning = str(baseline.get("reasoning", ""))
 			if reasoning != "":
 				bbcode += "[color=#80c080][b]Talleyrand's concession draft:[/b] %s[/color]\n" % reasoning
+	# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-8 Surrender Preset:
+	# when `surrender_preset_visible=true` the dialogue carries a
+	# deterministic peace + dependency preset. The popup renders a
+	# first-frame note describing Talleyrand's surrender draft; the
+	# actual `Author surrender terms (Talleyrand)` action button is
+	# rendered alongside the existing options by the editor surface.
+	if bool(data.get("surrender_preset_visible", false)):
+		var preset_payload = data.get("surrender_preset_payload", {})
+		if preset_payload is Dictionary:
+			var preset_reasoning = str(preset_payload.get("reasoning", ""))
+			if preset_reasoning != "":
+				bbcode += "[color=#d0a080][b]Talleyrand's surrender draft:[/b] %s[/color]\n" % preset_reasoning
+	# Surrender-preset-authored banner: when the dialogue is staged with
+	# `surrender_preset=true` the popup labels the outcome as a deliberate
+	# Talleyrand surrender draft so the player understands the dependency
+	# consequence is intentional, not a system fallback.
+	if bool(data.get("surrender_preset", false)):
+		bbcode += "[color=#d09080][b]Surrender draft[/b] — dependency consequence applied at ratification.[/color]\n"
 	# White peace banner: when the dialogue is staged with
 	# `white_peace=true` the popup labels the outcome explicitly.
 	if bool(data.get("white_peace", false)):
 		bbcode += "[color=#a0a0d0][b]White Peace[/b] — no terms will be exchanged.[/color]\n"
+	# SETTLEMENT_UI_CLEANUP_SPEC v0.30 G2-Slice-9 SC-33: Recurring gold
+	# rows render through the standard `display_label` path; the backend
+	# now formats `gold_per_turn` clauses as
+	# `Gold per turn: <amount> gold/turn from <payer> to <recipient>
+	# (<turns> turns)` so the obligation reads as a finite commitment
+	# rather than a perpetual stream. No popup wiring required beyond
+	# this acknowledgement comment; structured payloads from the
+	# wizard / future per-clause editor flow through the existing
+	# `propose_common_peace` path.
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
