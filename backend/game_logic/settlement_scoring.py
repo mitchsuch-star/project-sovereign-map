@@ -106,14 +106,31 @@ SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
 })
 
 # SC-31 / G2-Slice-8 - Dependency clauses become editor-live alongside the
-# G2-Slice-1 MVP set. `gold_per_turn` remains interim-hidden under SC-33 /
-# G2-Slice-9.
+# G2-Slice-1 MVP set.
 SETTLEMENT_DEPENDENCY_CLAUSE_TYPES = frozenset({
     "vassalage", "subjugation", "liberation",
 })
 
+# SC-33 / G2-Slice-9 - Recurring gold payments become editor-live. The clause
+# carries finite duration (1..20 turns) and a per-turn amount (>=10 gold);
+# ratification registers an obligation on
+# `world.recurring_settlement_payments` that the income-phase processor
+# debits on each subsequent turn until duration expires or a cancellation
+# condition fires (payer/recipient eliminated, payer vassalized, renewed
+# war between payer/recipient).
+SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES = frozenset({"gold_per_turn"})
+
+# SC-33 validator bounds. `amount` is per-turn gold (>=10, no silent
+# clamp). `turns` is bounded duration. Both are honored by
+# `validate_settlement_terms` and surfaced through the editor preview.
+GOLD_PER_TURN_MIN_AMOUNT = 10
+GOLD_PER_TURN_MIN_TURNS = 1
+GOLD_PER_TURN_MAX_TURNS = 20
+
 SETTLEMENT_LIVE_CLAUSE_TYPES = frozenset(
-    SETTLEMENT_MVP_CLAUSE_TYPES | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
+    SETTLEMENT_MVP_CLAUSE_TYPES
+    | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
+    | SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES
 )
 
 CLAUSE_CONTROL_SCHEMA = {

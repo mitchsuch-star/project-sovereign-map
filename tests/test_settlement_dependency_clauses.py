@@ -154,15 +154,28 @@ class TestClauseControlSchema:
             assert row["enabled"] is True, ctype
             assert row["visibility"] == "live", ctype
 
-    def test_settlement_live_clause_types_is_mvp_plus_dependency(self):
+    def test_settlement_live_clause_types_is_mvp_plus_dependency_plus_recurring(self):
+        # SC-33 / G2-Slice-9 - `gold_per_turn` joins the live set; the
+        # pre-G2-Slice-9 invariant
+        # `SETTLEMENT_LIVE_CLAUSE_TYPES == MVP | DEPENDENCY`
+        # is inverted to also include the recurring-gold set.
+        from backend.game_logic.settlement_scoring import (
+            SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES,
+        )
         assert SETTLEMENT_LIVE_CLAUSE_TYPES == (
-            SETTLEMENT_MVP_CLAUSE_TYPES | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
+            SETTLEMENT_MVP_CLAUSE_TYPES
+            | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
+            | SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES
         )
 
-    def test_gold_per_turn_remains_hidden_until_sc33(self):
+    def test_gold_per_turn_is_live_after_sc33(self):
+        # SC-33 / G2-Slice-9 - DWL-SET-SC33 inversion: `gold_per_turn`
+        # is now editor-live with the canonical
+        # `{type, from, to, amount, turns}` schema; the prior hidden
+        # assertion is inverted in the same slice that lands the clause.
         row = CLAUSE_CONTROL_SCHEMA["gold_per_turn"]
-        assert row["enabled"] is False
-        assert row["visibility"] == "hidden"
+        assert row["enabled"] is True
+        assert row["visibility"] == "live"
 
     def test_dependency_clause_required_keys_match_canonical(self):
         for ctype in ("vassalage", "subjugation"):

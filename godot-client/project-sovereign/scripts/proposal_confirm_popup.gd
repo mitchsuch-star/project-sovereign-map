@@ -373,6 +373,15 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# `white_peace=true` the popup labels the outcome explicitly.
 	if bool(data.get("white_peace", false)):
 		bbcode += "[color=#a0a0d0][b]White Peace[/b] — no terms will be exchanged.[/color]\n"
+	# SETTLEMENT_UI_CLEANUP_SPEC v0.30 G2-Slice-9 SC-33: Recurring gold
+	# rows render through the standard `display_label` path; the backend
+	# now formats `gold_per_turn` clauses as
+	# `Gold per turn: <amount> gold/turn from <payer> to <recipient>
+	# (<turns> turns)` so the obligation reads as a finite commitment
+	# rather than a perpetual stream. No popup wiring required beyond
+	# this acknowledgement comment; structured payloads from the
+	# wizard / future per-clause editor flow through the existing
+	# `propose_common_peace` path.
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:

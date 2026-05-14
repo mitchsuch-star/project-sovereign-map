@@ -36,6 +36,9 @@ from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
     CLAUSE_CONFLICT_MATRIX,
+    GOLD_PER_TURN_MAX_TURNS,
+    GOLD_PER_TURN_MIN_AMOUNT,
+    GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     SETTLEMENT_HARD_STOP_CODES,
     SETTLEMENT_MVP_CLAUSE_TYPES,
@@ -95,6 +98,126 @@ def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
             blocked_war_label=str(extra.get("war_id") or "this war"),
         )
     return payload
+
+
+# ---------------------------------------------------------------------------
+# SC-33 / G2-Slice-9 - Recurring gold payment helpers
+# ---------------------------------------------------------------------------
+
+
+def _estimate_payer_net_income_per_turn(world: Any, payer: str) -> int:
+    """Non-mutating per-turn net income estimate for `payer`.
+
+    Sums region income for regions controlled by `payer` (the closest
+    existing non-mutating income projection — `process_income_phase`
+    debits upkeep and admin bonuses, which we avoid because they are
+    not idempotent). Clamped at 0 because the validator capacity rule
+    uses `max(0, expected_net_income_per_turn)`.
+
+    Falls back to 0 when `world.regions` is unavailable so legacy
+    schema-only callers degrade safely.
+    """
+    regions = getattr(world, "regions", None) or {}
+    income = 0
+    for region in regions.values():
+        if getattr(region, "controller", None) != payer:
+            continue
+        try:
+            income += int(region.get_effective_income())
+        except Exception:
+            continue
+    return max(0, int(income))
+
+
+def _check_gold_payment_budget_conflict(
+    world: Any,
+    terms: List[Mapping[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """SC-1 / SC-33 budget conflict: combined gold obligations versus
+    projected solvency, per the cleanup spec.
+
+    Formula (per implementation directive May 14, 2026):
+
+        payer_new_obligation =
+            lump_sum_gold_due_now + sum(amount * turns) over submitted
+            `gold_per_turn` clauses authored by the payer
+        payer_existing_obligation =
+            sum of (amount_per_turn * turns_remaining) over the payer's
+            existing `world.recurring_settlement_payments`
+        capacity =
+            current_gold
+            + max(0, expected_net_income_per_turn)
+              * max_turns_in_submitted_terms
+
+    Rejects with `gold_payment_budget_conflict` when
+    `payer_new_obligation + payer_existing_obligation > capacity`. The
+    rejection names the offending clause index so the editor can focus
+    the budget conflict on the recurring entry.
+    """
+    nation_gold = getattr(world, "nation_gold", None) or {}
+    payer_obligations: Dict[str, Dict[str, Any]] = {}
+    max_turns = 0
+    for idx, clause in enumerate(terms):
+        ctype = clause.get("type")
+        if ctype not in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            continue
+        payer = str(clause.get("from") or "")
+        if not payer:
+            continue
+        amount = int(clause.get("amount", 0) or 0)
+        record = payer_obligations.setdefault(
+            payer,
+            {"lump": 0, "recurring": 0, "max_turns": 0, "last_recurring_idx": None},
+        )
+        if ctype == "gold_per_turn":
+            turns = int(clause.get("turns", 0) or 0)
+            if turns <= 0 or amount <= 0:
+                continue
+            record["recurring"] += amount * turns
+            record["max_turns"] = max(record["max_turns"], turns)
+            record["last_recurring_idx"] = idx
+            max_turns = max(max_turns, turns)
+        else:
+            record["lump"] += abs(amount)
+    if not payer_obligations:
+        return None
+
+    existing = getattr(world, "recurring_settlement_payments", None) or []
+    for payer, data in payer_obligations.items():
+        existing_obligation = 0
+        for entry in existing:
+            if not isinstance(entry, Mapping):
+                continue
+            if str(entry.get("from") or "") != payer:
+                continue
+            existing_obligation += int(
+                int(entry.get("amount_per_turn", 0) or 0)
+                * int(entry.get("turns_remaining", 0) or 0)
+            )
+        current_gold = int(nation_gold.get(payer, 0) or 0)
+        net_income = _estimate_payer_net_income_per_turn(world, payer)
+        capacity = current_gold + max(0, net_income) * max(0, data["max_turns"])
+        new_obligation = int(data["lump"]) + int(data["recurring"])
+        if new_obligation + existing_obligation > capacity:
+            error_index = data["last_recurring_idx"]
+            if error_index is None:
+                # Lump-sum-only budget conflict: focus the first lump-sum
+                # clause for this payer.
+                for jdx, clause in enumerate(terms):
+                    if clause.get("type") in ("gold_indemnity", "gold_lump") and (
+                        str(clause.get("from") or "") == payer
+                    ):
+                        error_index = jdx
+                        break
+            return {
+                "valid": False,
+                "error": "gold_payment_budget_conflict",
+                "error_index": error_index,
+                "disabled_reason_display": _error_display(
+                    "gold_payment_budget_conflict"
+                ),
+            }
+    return None
 
 
 def _failed_ratification_reaction_summary(
@@ -1832,6 +1955,45 @@ def validate_settlement_terms(
                         "disabled_reason_display": _error_display("duplicate_or_conflicting_clauses"),
                     }
 
+    # SC-33 / G2-Slice-9: per-clause amount + duration bounds for
+    # `gold_per_turn` clauses (no silent clamping — submitted values are
+    # rejected with humanized copy if out of range).
+    for idx, clause in enumerate(terms):
+        if clause.get("type") != "gold_per_turn":
+            continue
+        amount = int(clause.get("amount", 0) or 0)
+        turns = int(clause.get("turns", 0) or 0)
+        if amount < GOLD_PER_TURN_MIN_AMOUNT:
+            return {
+                "valid": False,
+                "error": "gold_per_turn_amount_too_small",
+                "error_index": idx,
+                "disabled_reason_display": _error_display(
+                    "gold_per_turn_amount_too_small"
+                ),
+            }
+        if turns < GOLD_PER_TURN_MIN_TURNS or turns > GOLD_PER_TURN_MAX_TURNS:
+            return {
+                "valid": False,
+                "error": "gold_per_turn_duration_out_of_range",
+                "error_index": idx,
+                "disabled_reason_display": _error_display(
+                    "gold_per_turn_duration_out_of_range"
+                ),
+            }
+
+    # SC-33 / G2-Slice-9: projected-solvency budget conflict. Combines all
+    # lump-sum + recurring gold obligations the same payer is committing
+    # to in this draft, plus their existing recurring settlement
+    # obligations, against `current_gold + max(0, expected_net_income) *
+    # max_turns_in_submitted_terms`. Rejects when the combined obligation
+    # exceeds capacity. Skipped when `world` is unavailable (legacy
+    # schema-only callers).
+    if world is not None:
+        conflict = _check_gold_payment_budget_conflict(world, terms)
+        if conflict is not None:
+            return conflict
+
     # SC-31 / G2-Slice-8: dependency-clause eligibility uses world state.
     # When called without a `world`+`war_instance` context (legacy callers
     # / pure schema validation), the dependency-state checks are skipped.
@@ -2034,6 +2196,7 @@ def build_settlement_preview(
         density=preview["density"],
         awe_tags=preview_awe_tags,
         forced_alliance_threat_preview=forced_alliance_threat_preview,
+        world=world,
     )
     # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
     # POST preview is the source of truth for `losing_for_concession_baseline`,
@@ -2778,6 +2941,8 @@ def _apply_settlement_terms(
     world: Any,
     *,
     settlement_terms: Iterable[Mapping[str, Any]],
+    war_id: str = "",
+    settlement_route_id: str = "",
 ) -> List[Dict[str, Any]]:
     """Apply package-level territory, gold, and liberation outcomes.
 
@@ -2785,9 +2950,13 @@ def _apply_settlement_terms(
     cleanup (see ``_resolve_pair_state_transitions``) because the alliance
     state must replace the intermediate ``PEACE`` state established by
     cleanup.
+
+    `war_id` / `settlement_route_id` are forwarded as identity columns on
+    ratified recurring-gold obligations so the per-turn processor and the
+    diplomatic ledger can attribute each tick to the originating war.
     """
     applied: List[Dict[str, Any]] = []
-    for term in settlement_terms or []:
+    for idx, term in enumerate(settlement_terms or []):
         if not isinstance(term, Mapping):
             continue
         ttype = term.get("type")
@@ -2883,9 +3052,47 @@ def _apply_settlement_terms(
             amount = abs(int(term.get("amount", 0) or 0))
             turns = abs(int(term.get("turns", 0) or 0))
             if from_nation and to_nation and amount > 0 and turns > 0:
+                # SC-33 / G2-Slice-9: register a recurring obligation on
+                # `world.recurring_settlement_payments`. The income-phase
+                # processor in `world_state.advance_turn` debits the
+                # payer once per turn until `turns_remaining` hits zero
+                # or a cancellation condition fires (payer/recipient
+                # eliminated, payer vassalized, renewed war between the
+                # pair). Ratification itself does not move gold — the
+                # first transfer happens on the next turn's income
+                # phase, mirroring bilateral treaty per-turn clauses.
+                payments = getattr(world, "recurring_settlement_payments", None)
+                if payments is None:
+                    payments = []
+                    setattr(world, "recurring_settlement_payments", payments)
+                ratified_turn = int(getattr(world, "current_turn", 0) or 0)
+                seq = sum(
+                    1
+                    for entry in payments
+                    if isinstance(entry, Mapping)
+                    and int(entry.get("ratified_turn", -1) or -1) == ratified_turn
+                )
+                payment_id = (
+                    f"recurring_gold:{from_nation}:{to_nation}:"
+                    f"{ratified_turn}:{seq}"
+                )
+                payments.append({
+                    "payment_id": payment_id,
+                    "from": from_nation,
+                    "to": to_nation,
+                    "amount_per_turn": int(amount),
+                    "turns_remaining": int(turns),
+                    "total_turns": int(turns),
+                    "war_id": str(war_id or ""),
+                    "ratified_turn": int(ratified_turn),
+                    "settlement_route_id": str(settlement_route_id or ""),
+                    "source_clause_index": int(idx),
+                })
                 clause = dict(term)
                 clause["amount"] = amount
                 clause["turns"] = turns
+                clause["payment_id"] = payment_id
+                clause["ratified_turn"] = int(ratified_turn)
                 applied.append(clause)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
@@ -3510,7 +3717,10 @@ def ratify_settlement_confirm(
     pre_cleanup_attacker_leader = str(war_instance.get("attacker_leader") or "")
     pre_cleanup_defender_leader = str(war_instance.get("defender_leader") or "")
     applied_clauses = _apply_settlement_terms(
-        world, settlement_terms=settlement_terms,
+        world,
+        settlement_terms=settlement_terms,
+        war_id=war_id,
+        settlement_route_id=str(dialogue.get("route_id") or ""),
     )
     resolved_pairs, fa_applied = _resolve_pair_state_transitions(
         world, plan, settlement_terms,
@@ -4276,3 +4486,231 @@ def handle_incoming_settlement_offer_action(
         result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
         result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
     return result
+
+
+# ---------------------------------------------------------------------------
+# SC-33 / G2-Slice-9 - Per-turn recurring gold payment processor.
+# Wired from `WorldState.advance_turn` near `_process_treaty_clauses` /
+# `process_vassal_tribute` so it runs after income/trade and before the
+# bankruptcy check. The helper iterates only
+# `world.recurring_settlement_payments` (no per-region scan) per golden
+# rule 8.
+# ---------------------------------------------------------------------------
+
+
+def _is_renewed_war_between(world: Any, payer: str, recipient: str) -> bool:
+    """True when payer / recipient are currently on opposite sides of an
+    active war or armistice. Used as a recurring-payment cancellation
+    condition (renewed war between the pair voids the obligation).
+    """
+    is_at_war = getattr(world, "is_at_war", None)
+    if callable(is_at_war):
+        try:
+            if bool(is_at_war(payer, recipient)):
+                return True
+        except Exception:
+            pass
+    diplomatic_states = getattr(world, "diplomatic_states", None) or {}
+    make_key = getattr(world, "_make_diplo_key", None)
+    if callable(make_key):
+        try:
+            key = make_key(payer, recipient)
+        except Exception:
+            key = "|".join(sorted([payer, recipient]))
+    else:
+        key = "|".join(sorted([payer, recipient]))
+    state = diplomatic_states.get(key)
+    return str(state or "") in ("WAR", "ARMISTICE")
+
+
+def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
+    """SC-33 / G2-Slice-9 income-phase processor for recurring settlement
+    gold payments.
+
+    Cancellation conditions (per implementation directive May 14, 2026):
+
+    - Payer eliminated (no longer in `world.nation_gold` or no regions).
+    - Recipient eliminated.
+    - Payer vassalized (now lives in `world.vassals`).
+    - Renewed war between payer and recipient (active WAR/ARMISTICE pair).
+
+    Non-cancellation runtime behavior:
+
+    - Payer cannot afford full payment: transfer `min(amount, balance)`,
+      never go negative, emit a `settlement_recurring_gold_partial`
+      dispatch event, decrement `turns_remaining`, and keep the
+      obligation alive until natural completion.
+    - Natural completion: when `turns_remaining` reaches zero after a
+      tick, emit `settlement_recurring_gold_completed` and remove the
+      record.
+
+    Returns an event summary `{paid, partial, completed, cancelled}`.
+    """
+    payments = getattr(world, "recurring_settlement_payments", None) or []
+    if not payments:
+        return {"paid": [], "partial": [], "completed": [], "cancelled": []}
+
+    survivors: List[Dict[str, Any]] = []
+    events = {"paid": [], "partial": [], "completed": [], "cancelled": []}
+    nation_gold = getattr(world, "nation_gold", None) or {}
+    vassals = getattr(world, "vassals", None) or {}
+
+    def _war_label_for(entry: Mapping[str, Any]) -> str:
+        wid = str(entry.get("war_id") or "")
+        if not wid:
+            return "the settlement"
+        instance = (getattr(world, "war_instances", {}) or {}).get(wid) or {}
+        attackers = list(instance.get("attackers") or [])
+        defenders = list(instance.get("defenders") or [])
+        if attackers and defenders:
+            return f"{attackers[0]} vs {defenders[0]}"
+        return wid
+
+    for entry in payments:
+        if not isinstance(entry, Mapping):
+            continue
+        payer = str(entry.get("from") or "")
+        recipient = str(entry.get("to") or "")
+        amount = int(entry.get("amount_per_turn", 0) or 0)
+        turns_remaining = int(entry.get("turns_remaining", 0) or 0)
+        if not payer or not recipient or amount <= 0 or turns_remaining <= 0:
+            # Malformed / already drained — drop silently.
+            continue
+
+        payer_active = payer in nation_gold
+        if not payer_active:
+            # Pre-vassalize check: a nation removed from nation_gold may
+            # still appear in vassals (eliminated path) — both are
+            # cancellation. Vassalize cancellation is recorded with
+            # `payer_vassalized` reason for fidelity.
+            reason = "payer_vassalized" if payer in vassals else "payer_eliminated"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if payer in vassals:
+            reason = "payer_vassalized"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if recipient not in nation_gold:
+            reason = "recipient_eliminated"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+        if _is_renewed_war_between(world, payer, recipient):
+            reason = "renewed_war"
+            events["cancelled"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "reason": reason,
+                "remaining_turns": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            }, "always")
+            continue
+
+        # Tick: transfer what's affordable, decrement, surface partial /
+        # full / completion events.
+        balance = int(nation_gold.get(payer, 0) or 0)
+        transfer = min(int(amount), max(0, balance))
+        nation_gold[payer] = balance - transfer
+        nation_gold[recipient] = int(nation_gold.get(recipient, 0) or 0) + transfer
+        turns_remaining -= 1
+        record = dict(entry)
+        record["turns_remaining"] = int(turns_remaining)
+        if transfer < amount:
+            events["partial"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "amount_paid": int(transfer),
+                "amount_due": int(amount),
+                "turns_remaining": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_partial", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": str(int(transfer)),
+                "amount_due": str(int(amount)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+        elif transfer > 0:
+            events["paid"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "amount_paid": int(transfer),
+                "turns_remaining": int(turns_remaining),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_paid", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": str(int(transfer)),
+                "turns_remaining": str(int(turns_remaining)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+
+        if turns_remaining <= 0:
+            total_amount = int(record.get("total_turns", 0) or 0) * int(amount)
+            events["completed"].append({
+                "payment_id": str(entry.get("payment_id") or ""),
+                "from": payer,
+                "to": recipient,
+                "total_amount": int(total_amount),
+            })
+            queue_dispatch_event(world, "settlement_recurring_gold_completed", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "total_amount": str(int(total_amount)),
+                "war_label": _war_label_for(entry),
+            }, "always")
+            # Drop the record on natural completion.
+            continue
+
+        survivors.append(record)
+
+    setattr(world, "recurring_settlement_payments", survivors)
+    return events
+
+
+# Import here to avoid a circular import on module load; the dispatch
+# helper is a leaf utility.
+from backend.game_logic.dispatch import queue_dispatch_event  # noqa: E402

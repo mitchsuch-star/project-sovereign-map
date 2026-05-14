@@ -185,8 +185,9 @@ class TestClauseValidation:
 
     def test_clause_control_schema_marks_live_and_hidden_types(self):
         # SC-31 / G2-Slice-8 - Dependency clauses (vassalage / subjugation /
-        # liberation) are now live alongside the G2-Slice-1 MVP set.
-        # `gold_per_turn` remains hidden until SC-33 / G2-Slice-9.
+        # liberation) are live alongside the G2-Slice-1 MVP set.
+        # SC-33 / G2-Slice-9 - `gold_per_turn` joins the live set; no
+        # canonical clause type remains hidden after SC-33.
         from backend.game_logic.settlement_scoring import (
             SETTLEMENT_LIVE_CLAUSE_TYPES,
         )

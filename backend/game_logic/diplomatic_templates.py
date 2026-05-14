@@ -1233,6 +1233,27 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{former_lord} into a defensive alliance with {liberator}. The "
         "court of {vassal_nation} will remember who opened the door."
     ),
+    # SC-33 / G2-Slice-9 recurring gold payment Voice Bible families.
+    # Authored / ratified / completed split mirrors the surrender preset
+    # authored / ratified pattern so the player hears a deliberate
+    # framing when the obligation is drafted, when it ratifies, and
+    # when it concludes.
+    "settlement_recurring_gold_authored_talleyrand": (
+        "Sire, the draft commits {payer} to {amount_per_turn} gold per "
+        "turn to {recipient} for {turns} turns ({projected_total} gold "
+        "in total). Recurring payments steady the peace; they also "
+        "tie the treasury for years."
+    ),
+    "settlement_recurring_gold_ratified_talleyrand": (
+        "Sire, the settlement of {war_label} obliges {payer} to send "
+        "{amount_per_turn} gold per turn to {recipient} for {turns} "
+        "turns. The first installment leaves the treasury next turn."
+    ),
+    "settlement_recurring_gold_completed_talleyrand": (
+        "Sire, the recurring obligation from {payer} to {recipient} "
+        "for {war_label} is fulfilled — {total_amount} gold has changed "
+        "hands. The clause closes itself."
+    ),
 }
 
 
@@ -2277,7 +2298,20 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
     for clause in treaty.get("clauses", []):
         ctype = clause.get("type", "")
         if ctype == "gold_per_turn":
-            harshness += 0.1 * (clause.get("amount", 0) / 100)
+            # SC-33 / G2-Slice-9: finite-duration recurring gold (settlement
+            # clauses carry an explicit `turns` field) uses the lump-sum
+            # gold-indemnity weight (`0.08 per 100 gold`) applied to the
+            # full projected obligation `amount * turns`. Bilateral
+            # treaties record `gold_per_turn` without a `turns` field —
+            # those are perpetual streams and keep the original per-turn
+            # weight so existing bilateral acceptance is not perturbed.
+            turns = int(clause.get("turns", 0) or 0)
+            if turns > 0:
+                harshness += 0.08 * (
+                    (clause.get("amount", 0) or 0) * turns / 100
+                )
+            else:
+                harshness += 0.1 * (clause.get("amount", 0) / 100)
         elif ctype == "territory_cede":
             harshness += 0.3 * len(clause.get("regions", []))
         elif ctype == "manpower_per_turn":
@@ -2293,7 +2327,14 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
         dtype = demand.get("type", "")
         amt = abs(demand.get("value", 0) or demand.get("amount", 0) or 0)
         if dtype == "gold_per_turn":
-            harshness += 0.1 * (amt / 100)
+            # SC-33 / G2-Slice-9: finite settlement-style stream projects
+            # to lump-sum weight; bilateral perpetual stream keeps the
+            # legacy per-turn weight. See clause branch above for details.
+            d_turns = int(demand.get("turns", 0) or 0)
+            if d_turns > 0:
+                harshness += 0.08 * (amt * d_turns / 100)
+            else:
+                harshness += 0.1 * (amt / 100)
         elif dtype in ("territory_cede", "territory"):
             regions = demand.get("regions", [])
             count = len(regions) if regions else max(1, amt)

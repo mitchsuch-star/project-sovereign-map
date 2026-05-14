@@ -622,6 +622,18 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "surrender_preset_failed_preview": (
         "The surrender preset could not be previewed; try refreshing."
     ),
+    # SC-33 / G2-Slice-9 recurring gold payment validator codes.
+    "gold_per_turn_amount_too_small": (
+        "Recurring gold payments must be at least 10 gold per turn."
+    ),
+    "gold_per_turn_duration_out_of_range": (
+        "Recurring gold payments must run between 1 and 20 turns."
+    ),
+    "gold_payment_budget_conflict": (
+        "The combined gold obligation exceeds projected solvency for "
+        "the payer; reduce the amount, the duration, or pair it with a "
+        "smaller lump-sum demand."
+    ),
 }
 
 # Side label display — used by settlement review's allies block to surface
