@@ -500,7 +500,7 @@ def evaluate_pair_peace_substitute_eligibility(
     pair_meta = meta.get(pair) or {}
     resolved_pairs = set(instance.get("resolved_diplo_keys") or [])
     if pair in resolved_pairs or pair_meta.get("pair_status") == "resolved":
-        return _refused("pair_already_resolved")
+        return _refused("pair_not_at_war")
     active_pairs = set(instance.get("active_diplo_keys") or [])
     if pair not in active_pairs:
         return _refused("target_not_selected_pair")

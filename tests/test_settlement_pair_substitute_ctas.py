@@ -17,6 +17,7 @@ from backend.game_logic.settlement_preview import (
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     evaluate_pair_peace_substitute_eligibility,
+    get_reopen_attempts,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
 )
@@ -132,6 +133,27 @@ def test_pair_substitute_refusal_code_taxonomy_is_closed_set():
             if result["eligible"]:
                 continue
             assert result["refusal_code"] in expected, result
+
+
+def test_pair_substitute_resolved_pair_maps_to_closed_refusal_code():
+    """Resolved-pair metadata must not escape the SC-29 closed taxonomy."""
+    world = WorldState()
+    war = _install_rejected_war(world)
+    pair = world._make_diplo_key("France", "Austria")
+    war["resolved_diplo_keys"] = [pair]
+    war["diplo_key_meta"][pair]["pair_status"] = "resolved"
+
+    result = evaluate_pair_peace_substitute_eligibility(
+        world,
+        war_id="war_1",
+        actor_nation="France",
+        target_nation="Austria",
+        action="seek_bilateral_peace",
+    )
+
+    assert result["eligible"] is False
+    assert result["refusal_code"] == "pair_not_at_war"
+    assert result["refusal_code"] in PAIR_SUBSTITUTE_REFUSAL_CODES
 
 
 def test_pair_substitute_eligibility_helper_matches_backend_refusal_codes():
@@ -290,6 +312,32 @@ def test_pair_substitute_click_time_reresolution_blocks_when_pair_state_changed(
     assert result["pair_substitute_eligibility"]["refusal_code"] == "already_at_peace"
 
 
+def test_pair_substitute_clicks_do_not_consume_reopen_attempts():
+    """SC-14b reopen attempts are for settlement reopen paths, not SC-29
+    direct pair-substitute handoffs or click-time refusals."""
+    world = WorldState()
+    _install_rejected_war(world)
+    dialogue = _stage_rejected_dialogue(world)
+
+    assert get_reopen_attempts(world, war_id="war_1") == 0
+    success = handle_settlement_dialogue_action(
+        world, action="seek_bilateral_peace", dialogue=dialogue,
+    )
+    assert success["success"] is True
+    assert get_reopen_attempts(world, war_id="war_1") == 0
+
+    refused_world = WorldState()
+    _install_rejected_war(refused_world)
+    refused_dialogue = _stage_rejected_dialogue(refused_world)
+    refused_world.diplomatic_states["Austria|France"] = "PEACE"
+
+    refusal = handle_settlement_dialogue_action(
+        refused_world, action="seek_bilateral_peace", dialogue=refused_dialogue,
+    )
+    assert refusal["success"] is False
+    assert get_reopen_attempts(refused_world, war_id="war_1") == 0
+
+
 # ───────────────────────────────────────────────────────────────────────
 # Successful pair-scoped substitution staging (spec lines 1169-1170)
 # ───────────────────────────────────────────────────────────────────────
@@ -316,7 +364,11 @@ def test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_targe
     assert world.diplomatic_states["France|Prussia"] == "WAR"
     # The settlement dialogue has been popped and replaced.
     assert world.pending_diplomatic_dialogue is not None
-    assert world.pending_diplomatic_dialogue.get("type") != "settlement_confirm"
+    assert world.pending_diplomatic_dialogue.get("type") == "proposal_confirm"
+    assert world.pending_diplomatic_dialogue.get("target_nation") == "Austria"
+    assert world.pending_diplomatic_dialogue.get("context", {}).get("proposal_type") == "peace"
+    assert result["recovery_route"]["target"] == "proposal_confirm"
+    assert result["recovery_route"]["target_nation"] == "Austria"
 
 
 def test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_only():
@@ -332,6 +384,12 @@ def test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_
     assert result["scope"] == "selected_pair"
     assert result["selected_target_nation"] == "Austria"
     assert result["proposal_type"] == "armistice"
+    assert world.pending_diplomatic_dialogue is not None
+    assert world.pending_diplomatic_dialogue.get("type") == "proposal_confirm"
+    assert world.pending_diplomatic_dialogue.get("target_nation") == "Austria"
+    assert world.pending_diplomatic_dialogue.get("context", {}).get("proposal_type") == "armistice"
+    assert result["recovery_route"]["target"] == "proposal_confirm"
+    assert result["recovery_route"]["target_nation"] == "Austria"
     # Other hostile pairs remain at WAR.
     assert world.diplomatic_states["Austria|France"] == "WAR"
     assert world.diplomatic_states["France|Prussia"] == "WAR"
@@ -388,6 +446,39 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
     assert result_off_scope["success"] is True
     assert result_off_scope["draft_invalidated"] is False
     assert world2.pending_settlement_drafts.get("war_1") == terms
+
+
+def test_pair_substitute_cross_war_collision_uses_closed_refusal_code():
+    """A mounted settlement review for another war blocks substitute handoff
+    without staging a second settlement-family route."""
+    world = WorldState()
+    _install_rejected_war(world)
+    _stage_rejected_dialogue(world)
+
+    war_2 = make_synthetic_war_instance(
+        "war_2",
+        attackers=["France"],
+        defenders=["Britain"],
+        attacker_leader="France",
+        defender_leader="Britain",
+        created_turn=1,
+        created_sequence=2,
+    )
+    world.war_instances["war_2"] = war_2
+    for pair in war_2["active_diplo_keys"]:
+        world.diplomatic_states[pair] = "WAR"
+
+    result = evaluate_pair_peace_substitute_eligibility(
+        world,
+        war_id="war_2",
+        actor_nation="France",
+        target_nation="Britain",
+        action="seek_bilateral_peace",
+    )
+
+    assert result["eligible"] is False
+    assert result["refusal_code"] == "settlement_collision_active"
+    assert result["refusal_code"] in PAIR_SUBSTITUTE_REFUSAL_CODES
 
 
 # ───────────────────────────────────────────────────────────────────────
