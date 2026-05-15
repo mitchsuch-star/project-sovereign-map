@@ -668,6 +668,11 @@ class TestRecurringGoldDialogueSurface:
         actions = [opt["action"] for opt in dialogue["options"]]
         assert "author_recurring_gold_terms" in actions
         assert "author_recurring_gold_terms" in dialogue["available_action_ids"]
+        recurring_option = next(
+            opt for opt in dialogue["options"]
+            if opt.get("action") == "author_recurring_gold_terms"
+        )
+        assert recurring_option["label"] == "Offer Gold Over Time"
         recurring_payload = dialogue["recurring_gold_preset_payload"]
         assert recurring_payload["payer"] == "France"
         assert recurring_payload["recipient"] == "Britain"
@@ -695,6 +700,10 @@ class TestRecurringGoldDialogueSurface:
             "turns": 3,
         }
         assert "author_recurring_gold_terms" not in refreshed["available_action_ids"]
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
+        assert refreshed["concession_baseline_visible"] is False
+        assert refreshed["recurring_gold_preset_visible"] is False
+        assert refreshed["recurring_gold_preset_payload"] is None
         labels = [
             row.get("display_label", "")
             for row in refreshed["review_sections"]["sections"]["terms"].get("rows", [])

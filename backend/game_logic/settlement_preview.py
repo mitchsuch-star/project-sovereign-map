@@ -2555,7 +2555,11 @@ def build_settlement_confirm_dialogue(
 
     options = []
     available_action_ids = []
-    suppress_concession_baseline = bool(surrender_preset)
+    staged_has_recurring_gold = any(
+        isinstance(t, Mapping) and t.get("type") == "gold_per_turn"
+        for t in staged_terms_for_gate
+    )
+    suppress_concession_baseline = bool(surrender_preset) or staged_has_recurring_gold
     concession_baseline = (
         copy.deepcopy(preview.get("concession_baseline"))
         if preview.get("concession_baseline_visible") and not suppress_concession_baseline
@@ -2626,7 +2630,7 @@ def build_settlement_confirm_dialogue(
         amount = int(recurring_gold_preset_payload.get("amount") or 0)
         turns = int(recurring_gold_preset_payload.get("turns") or 0)
         options.append({
-            "label": f"Author {amount}/Turn Gold",
+            "label": "Offer Gold Over Time",
             "action": "author_recurring_gold_terms",
             "description": (
                 "Apply Talleyrand's recurring-gold draft: a finite payment "
@@ -2804,8 +2808,11 @@ def build_settlement_confirm_dialogue(
         ),
         "recurring_gold_preset_visible": bool(
             preview.get("recurring_gold_preset_visible")
+            and not staged_has_recurring_gold
         ),
-        "recurring_gold_preset_payload": recurring_gold_preset_payload,
+        "recurring_gold_preset_payload": (
+            None if staged_has_recurring_gold else recurring_gold_preset_payload
+        ),
         "recurring_gold_preset_reason": str(
             preview.get("recurring_gold_preset_reason") or ""
         ),
