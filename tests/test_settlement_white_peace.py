@@ -117,6 +117,18 @@ class TestEmptyRatifyGate:
             o.get("action") for o in dialogue.get("options", []) or []
         ]
         assert "confirm_settlement" not in option_actions
+        terms_rows = (
+            dialogue.get("review_sections", {})
+            .get("sections", {})
+            .get("terms", {})
+            .get("rows", [])
+        )
+        assert terms_rows == []
+        assert dialogue["acceptance_display"]["band"] == "blocked"
+        assert dialogue["acceptance_display"]["total"] is None
+        assert dialogue["ratify_blocked_reason"] == "No settlement terms have been authored."
+        assert "no settlement terms authored" in dialogue["talleyrand_text"]
+        assert "no single dominant pressure" not in dialogue["talleyrand_text"]
 
     def test_open_settlement_editor_enables_ratify_after_first_clause_authored(self):
         """Authoring at least one material clause re-enables Ratify if

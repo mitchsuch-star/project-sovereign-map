@@ -80,6 +80,7 @@ func show_dialogue(data: Dictionary):
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.add_theme_font_size_override("font_size", 14)
 		btn.disabled = not available
 		if not available:

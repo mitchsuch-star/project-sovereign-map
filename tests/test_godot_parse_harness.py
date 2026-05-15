@@ -38,6 +38,7 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     "mailbox_panel.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
+GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"
 
 
 def _load_report() -> dict:
@@ -447,6 +448,25 @@ def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():
         "pair-substitute responses get consumed before the proposal "
         "popup can open from `diplomatic_dialogue`."
     )
+
+
+def test_proposal_confirm_button_container_wraps_settlement_action_rail():
+    """Settlement REVIEW can expose six legal actions after SC-29/31/33.
+
+    A fixed HBox silently clips lower-priority actions in the 720px popup,
+    which made player smoke ambiguous. The scene must use a wrapping grid
+    and the script must let buttons expand inside grid cells.
+    """
+    scene_text = (
+        GODOT_SCENES_DIR / "proposal_confirm_popup.tscn"
+    ).read_text(encoding="utf-8")
+    script_text = (
+        GODOT_SCRIPTS_DIR / "proposal_confirm_popup.gd"
+    ).read_text(encoding="utf-8")
+
+    assert '[node name="ButtonContainer" type="GridContainer"' in scene_text
+    assert "columns = 3" in scene_text
+    assert "btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL" in script_text
 
 
 def test_godot_command_result_routes_proposal_confirm_recovery_response_to_popup():

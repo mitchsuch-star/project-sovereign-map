@@ -2504,6 +2504,8 @@ def build_settlement_confirm_dialogue(
         top_blocker_display = str(first.get("component_display") or first.get("display") or "")
     if not top_blocker_display:
         top_blocker_display = "no single dominant pressure"
+    if empty_editor_block:
+        top_blocker_display = "no settlement terms authored"
     player_nation = str(getattr(world, "player_nation", "France") or "France")
     all_members = {
         str(n)
@@ -2749,6 +2751,36 @@ def build_settlement_confirm_dialogue(
         available_action_ids.append("open_war_detail")
     available_action_ids.append("back_out_settlement")
     options.append({"label": "Back Out", "action": "back_out_settlement"})
+    ratify_blocked_reason = ""
+    if empty_editor_block:
+        ratify_blocked_reason = "No settlement terms have been authored."
+    elif not can_ratify:
+        if hard_stops:
+            first_stop = hard_stops[0]
+            if isinstance(first_stop, Mapping):
+                ratify_blocked_reason = str(
+                    first_stop.get("display")
+                    or first_stop.get("detail")
+                    or first_stop.get("code")
+                    or ""
+                )
+            else:
+                ratify_blocked_reason = str(first_stop or "")
+        elif verdict in ("reject", "blocked") or (
+            acceptance_score is not None and acceptance_score < acceptance_threshold
+        ):
+            ratify_blocked_reason = top_blocker_display
+    review_sections_payload = copy.deepcopy(preview.get("review_sections") or {})
+    if empty_editor_block:
+        sections_payload = review_sections_payload.setdefault("sections", {})
+        sections_payload["acceptance"] = {
+            "total": None,
+            "threshold": None,
+            "band": "blocked",
+            "band_display": "Blocked",
+            "top_components": [],
+            "blocker_display": ratify_blocked_reason,
+        }
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -2767,14 +2799,15 @@ def build_settlement_confirm_dialogue(
         "acceptance_components": dict(preview.get("acceptance_components") or {}),
         "warnings": list(preview.get("warnings") or []),
         "hard_stops": hard_stops,
-        "review_sections": copy.deepcopy(preview.get("review_sections") or {}),
-        "coverage_scope_display": (preview.get("review_sections") or {}).get("coverage_scope_display", ""),
-        "war_scope_display": (preview.get("review_sections") or {}).get("war_scope_display", ""),
-        "covered_enemy_display_chips": list((preview.get("review_sections") or {}).get("covered_enemy_display_chips") or []),
-        "uncovered_enemy_display_chips": list((preview.get("review_sections") or {}).get("uncovered_enemy_display_chips") or []),
-        "acceptance_display": (preview.get("review_sections") or {}).get("sections", {}).get("acceptance", {}),
+        "review_sections": review_sections_payload,
+        "coverage_scope_display": review_sections_payload.get("coverage_scope_display", ""),
+        "war_scope_display": review_sections_payload.get("war_scope_display", ""),
+        "covered_enemy_display_chips": list(review_sections_payload.get("covered_enemy_display_chips") or []),
+        "uncovered_enemy_display_chips": list(review_sections_payload.get("uncovered_enemy_display_chips") or []),
+        "acceptance_display": review_sections_payload.get("sections", {}).get("acceptance", {}),
         "available_action_ids": available_action_ids,
         "can_ratify": can_ratify,
+        "ratify_blocked_reason": ratify_blocked_reason,
         "options": options,
         "war_detail_actionability": war_detail_actionability,
         "recovery_route": dict(war_detail_actionability.get("recovery_route") or {}) if war_detail_actionability.get("actionable") else {},

@@ -460,7 +460,9 @@ def _term_display(term: Mapping[str, Any]) -> str:
         return label
     ttype = str(term.get("type", "") or "")
     if not ttype:
-        return "End hostilities"
+        return "No authored terms"
+    if ttype == "peace":
+        return "End hostilities (no material change)"
     base = clause_display_name(ttype)
     t_from = str(term.get("from", "") or term.get("payer", "") or term.get("vassal_nation", "") or "")
     t_to = str(term.get("to", "") or term.get("recipient", "") or term.get("overlord", "") or "")
@@ -1250,8 +1252,6 @@ def build_settlement_review(
         density = "compact"
 
     enriched_terms = [_enrich_term_row(t) for t in terms]
-    if not enriched_terms:
-        enriched_terms = [{"type": "peace", "type_display": "Peace", "display_label": "End hostilities"}]
     enriched_allies = [_enrich_ally_row(a) for a in allies]
     enriched_warnings = [_enrich_warning_row(w) for w in warnings]
     terms_inline, terms_overflow = _slice_for_density(enriched_terms, density, _DENSITY_TERMS)

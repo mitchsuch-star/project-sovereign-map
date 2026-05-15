@@ -59,7 +59,8 @@ fit_content = true
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+[node name="ButtonContainer" type="GridContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
+columns = 3
