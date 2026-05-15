@@ -31,6 +31,7 @@ from backend.game_logic.diplomacy import get_available_diplomatic_actions
 from backend.game_logic.settlement_preview import (
     build_settlement_confirm_dialogue,
     build_settlement_preview,
+    handle_settlement_dialogue_action,
     ratify_settlement_confirm,
     stage_settlement_confirm,
 )
@@ -65,6 +66,7 @@ def _acceptance_accepts(*args, **kwargs):
     result["verdict"] = "accept"
     result["hard_stops"] = []
     result["accept_threshold"] = 50
+    result["side_pressure_score"] = 70
     return result
 
 
@@ -129,6 +131,56 @@ class TestEmptyRatifyGate:
         assert dialogue["ratify_blocked_reason"] == "No settlement terms have been authored."
         assert "no settlement terms authored" in dialogue["talleyrand_text"]
         assert "no single dominant pressure" not in dialogue["talleyrand_text"]
+        assert "author_gold_indemnity_terms" in dialogue["available_action_ids"]
+        assert "author_gold_per_turn_terms" in dialogue["available_action_ids"]
+
+    def test_empty_first_open_can_author_gold_per_turn_demand(self):
+        """The first Open Settlement screen must offer a real authoring
+        path, not only pair-substitute escape hatches."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=[],
+                selected_target_nation="Austria",
+                caller_kind="player_editor",
+                white_peace=False,
+            )
+            dialogue = staged["diplomatic_dialogue"]
+            result = handle_settlement_dialogue_action(
+                world,
+                action="author_gold_per_turn_terms",
+                dialogue=dialogue,
+            )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        assert refreshed["settlement_terms"] == [
+            {"type": "peace"},
+            {
+                "type": "gold_per_turn",
+                "from": "Austria",
+                "to": "France",
+                "amount": 50,
+                "turns": 3,
+            },
+        ]
+        labels = [
+            row.get("display_label", "")
+            for row in refreshed["review_sections"]["sections"]["terms"].get("rows", [])
+        ]
+        assert "End hostilities (no material change)" in labels
+        assert any(
+            "50 gold/turn from Austria to France (3 turns)" in label
+            for label in labels
+        )
 
     def test_open_settlement_editor_enables_ratify_after_first_clause_authored(self):
         """Authoring at least one material clause re-enables Ratify if

@@ -2633,6 +2633,13 @@ def build_settlement_confirm_dialogue(
         )
         and not _term_lists_equal(staged_terms_for_gate, recurring_gold_terms_preset)
     )
+    side_pressure_score = preview.get("acceptance", {}).get("side_pressure_score")
+    can_author_gold_demands = (
+        empty_editor_block
+        and resolved_target
+        and side_pressure_score is not None
+        and int(side_pressure_score) >= 0
+    )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
         available_action_ids.append("confirm_settlement")
@@ -2657,6 +2664,24 @@ def build_settlement_confirm_dialogue(
             "recurring_gold_preset_preview": recurring_gold_preset_payload,
         })
         available_action_ids.append("author_recurring_gold_terms")
+    if can_author_gold_demands:
+        options.append({
+            "label": "Demand Gold",
+            "action": "author_gold_indemnity_terms",
+            "description": (
+                f"Author a draft demanding 200 gold from {resolved_target}."
+            ),
+        })
+        available_action_ids.append("author_gold_indemnity_terms")
+        options.append({
+            "label": "Demand Gold Over Time",
+            "action": "author_gold_per_turn_terms",
+            "description": (
+                f"Author a draft demanding 50 gold per turn from {resolved_target} "
+                "for 3 turns."
+            ),
+        })
+        available_action_ids.append("author_gold_per_turn_terms")
     # SC-31 / G2-Slice-8 - Surrender preset CTA. Appears only when the
     # losing-side concession baseline predicate passes AND the surrender
     # preset can author a material dependency clause. Order matters: it
@@ -4311,6 +4336,68 @@ def handle_settlement_dialogue_action(
             "error_display": "Term revision is not yet available.",
             "mutated": False,
         }
+    if action == "author_gold_indemnity_terms":
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actor = str(getattr(world, "player_nation", "France") or "France")
+        if not selected_target:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "no_selected_target_nation",
+                "error_display": _error_display("no_selected_target_nation"),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        authored_terms = [
+            {"type": "peace"},
+            {
+                "type": "gold_indemnity",
+                "from": selected_target,
+                "to": actor,
+                "amount": 200,
+                "turns": 0,
+            },
+        ]
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action="author_gold_indemnity_terms",
+            terms=authored_terms,
+            message="A gold-indemnity demand has been drafted for review.",
+        )
+    if action == "author_gold_per_turn_terms":
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        actor = str(getattr(world, "player_nation", "France") or "France")
+        if not selected_target:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "no_selected_target_nation",
+                "error_display": _error_display("no_selected_target_nation"),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        authored_terms = [
+            {"type": "peace"},
+            {
+                "type": "gold_per_turn",
+                "from": selected_target,
+                "to": actor,
+                "amount": 50,
+                "turns": 3,
+            },
+        ]
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action="author_gold_per_turn_terms",
+            terms=authored_terms,
+            message="A recurring-gold demand has been drafted for review.",
+        )
 
     def _fresh_recurring_gold_preset(
         action_id: str,

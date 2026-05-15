@@ -53,6 +53,10 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# a finite `gold_per_turn` draft and revalidates it at click time.
 	"author_recurring_gold_terms",
 	"apply_recurring_gold_preset_replacement",
+	# Empty first-open settlement authoring controls for winning-side
+	# gold demands.
+	"author_gold_indemnity_terms",
+	"author_gold_per_turn_terms",
 	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
 	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
 	# but no settlement-offer button is reachable from the player UI.

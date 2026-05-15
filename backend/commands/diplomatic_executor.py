@@ -2753,6 +2753,10 @@ class DiplomaticExecutor:
             # through to the legacy "Unknown dialogue action" path.
             "author_recurring_gold_terms",
             "apply_recurring_gold_preset_replacement",
+            # Empty first-open authoring controls for winning-side
+            # settlement demands.
+            "author_gold_indemnity_terms",
+            "author_gold_per_turn_terms",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,

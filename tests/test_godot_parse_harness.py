@@ -167,6 +167,9 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     "author_surrender_terms",
     # SC-33 / G2-Slice-9 recurring-gold finite-payment authoring CTA.
     "author_recurring_gold_terms",
+    # Empty first-open winning-side settlement authoring CTAs.
+    "author_gold_indemnity_terms",
+    "author_gold_per_turn_terms",
 }
 
 
@@ -358,6 +361,8 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "apply_surrender_preset_replacement",
     "author_recurring_gold_terms",
     "apply_recurring_gold_preset_replacement",
+    "author_gold_indemnity_terms",
+    "author_gold_per_turn_terms",
 ]
 
 
