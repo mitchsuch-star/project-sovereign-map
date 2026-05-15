@@ -896,6 +896,47 @@ class TestAuthorSurrenderTermsHandler:
         # No-overwrite contract: preserved_terms echo the player's draft.
         assert result["preserved_terms"] == original_draft
 
+    def test_dialogue_response_routes_author_surrender_terms_through_executor_dispatch(self):
+        """Gate 4 repair regression: the player clicks a popup option,
+        so the action must travel through `/respond_to_diplomatic_dialogue`
+        and `DiplomaticExecutor._process_dialogue_choice`, not only the
+        direct settlement handler unit path."""
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world = WorldState()
+        _install_power_legal_surrender_war(world)
+        dialogue = _stage_blocked_surrender_dialogue(world)
+        target_idx = next(
+            idx
+            for idx, option in enumerate(dialogue["options"], start=1)
+            if option.get("action") == "author_surrender_terms"
+        )
+
+        with patch(
+            "backend.game_logic.settlement_preview."
+            "calculate_common_peace_acceptance"
+        ) as mock_accept:
+            mock_accept.return_value = {
+                "score": 10,
+                "verdict": "reject",
+                "hard_stops": [],
+                "feedback": [],
+                "top_components": [],
+                "components": {},
+                "side_pressure_score": -90,
+                "accept_threshold": 50,
+                "near_acceptable_threshold": 35,
+            }
+            result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+                target_idx, {"world": world}
+            )
+
+        assert "Unknown dialogue action" not in str(result.get("message", ""))
+        assert result["success"] is True
+        assert result["action"] == "author_surrender_terms"
+        assert result["requires_replace_confirm"] is True
+        assert result["mutated"] is False
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Ratification: settlement_summary.surrender_preset propagation

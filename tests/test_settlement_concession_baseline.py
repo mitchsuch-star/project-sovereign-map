@@ -443,6 +443,46 @@ class TestClickTimeRevalidation:
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
 
+    def test_dialogue_response_routes_re_author_with_concessions_through_executor_dispatch(self):
+        """Gate 4 repair regression: the visible concession action must
+        execute through the same dialogue endpoint Godot uses after a
+        popup click, not just through the direct handler unit path."""
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        assert dialogue["concession_baseline_visible"] is True
+        target_idx = next(
+            idx
+            for idx, option in enumerate(dialogue["options"], start=1)
+            if option.get("action") == "re_author_with_concessions"
+        )
+        world.dialogue_manager.replace(dialogue)
+        gold_before = dict(world.nation_gold)
+
+        result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+            target_idx, {"world": world}
+        )
+
+        assert "Unknown dialogue action" not in str(result.get("message", ""))
+        assert result["success"] is True
+        assert result["action"] == "re_author_with_concessions"
+        assert result["mutated"] is False
+        assert world.nation_gold == gold_before
+        refreshed = world.pending_diplomatic_dialogue
+        assert refreshed["type"] == "settlement_confirm"
+        assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+
 
 class TestConcessionAcceptanceDirection:
     def test_concession_terms_move_acceptance_in_accepting_side_direction(self):

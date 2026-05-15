@@ -180,6 +180,66 @@ def _collect_wizard_mappings() -> Tuple[List[str], List[str]]:
     return build_ids, structured_ids
 
 
+def _extract_gd_string_array(source: str, const_name: str) -> List[str]:
+    start = source.index(f"const {const_name} := [")
+    end = source.index("]", start)
+    return re.findall(r'"([A-Za-z0-9_]+)"', source[start:end])
+
+
+def _extract_post_hud_route_ids(source: str) -> List[str]:
+    start = source.index("_post_hud_response_routes = [")
+    end = source.index("]", start)
+    block = source[start:end]
+    return re.findall(r'{"id": "([A-Za-z0-9_]+)"', block)
+
+
+def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
+    handler_anchor = (
+        "from backend.game_logic.settlement_preview import (\n"
+        "                handle_settlement_dialogue_action,\n"
+        "            )"
+    )
+    pre_handler = source.split(handler_anchor, 1)[0]
+    elif_open = pre_handler.rfind("elif action in (")
+    assert elif_open != -1
+    tuple_block = pre_handler[elif_open:]
+    tuple_body = tuple_block.split("):", 1)[0]
+    return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
+
+
+def _simulate_main_gd_command_result_route(response: dict, source: str) -> str:
+    """Small executable model of the relevant `_on_command_result` route order.
+
+    The model intentionally covers only the settlement/proposal branches used
+    by this gate: post-HUD modal routing runs before the recovery-route branch,
+    and `_route_settlement_recovery_route` handles only war detail/history.
+    """
+    for route_id in _extract_post_hud_route_ids(source):
+        if route_id == "deferred_incoming_settlement_offer":
+            dialogue = response.get("diplomatic_dialogue", {})
+            if (
+                isinstance(dialogue, dict)
+                and dialogue.get("type", dialogue.get("dialogue_type", ""))
+                == "incoming_settlement_offer"
+            ):
+                return route_id
+            if response.get("dialogue_type", "") == "incoming_settlement_offer":
+                return route_id
+        elif route_id == "proposal_confirm":
+            if response.get("diplomatic_dialogue") is not None:
+                return route_id
+
+    recovery_route = response.get("recovery_route")
+    if isinstance(recovery_route, dict):
+        surface = str(
+            recovery_route.get("surface", recovery_route.get("target", ""))
+        )
+        if surface in {"war_detail", "settlement_history"}:
+            return f"recovery_route:{surface}"
+        return "continue_without_recovery_early_return"
+    return "continue"
+
+
 def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_wizard():
     """Backend must dispatch the settlement-family structured action ids
     the wizard sends. Spec Gate 3 §"Action-id whitelist sync test"
@@ -338,6 +398,26 @@ def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler()
         )
 
 
+def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly():
+    """Similar-bug guard: every Godot settlement popup action must have
+    the backend dialogue-endpoint dispatch arm, with no extra action id
+    hiding in either list."""
+    main_text = (GODOT_SCRIPTS_DIR / "main.gd").read_text(encoding="utf-8")
+    executor_text = (
+        REPO_ROOT / "backend" / "commands" / "diplomatic_executor.py"
+    ).read_text(encoding="utf-8")
+
+    godot_actions = set(
+        _extract_gd_string_array(main_text, "SETTLEMENT_DIALOGUE_ACTIONS")
+    )
+    backend_dispatch_actions = set(
+        _extract_executor_settlement_dispatch_actions(executor_text)
+    )
+
+    assert godot_actions == set(SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS)
+    assert backend_dispatch_actions == godot_actions
+
+
 def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():
     """Godot regression guard: `_on_command_result` must not consume a
     response with `recovery_route.surface == "proposal_confirm"` via
@@ -360,3 +440,45 @@ def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():
         "pair-substitute responses get consumed before the proposal "
         "popup can open from `diplomatic_dialogue`."
     )
+
+
+def test_godot_command_result_routes_proposal_confirm_recovery_response_to_popup():
+    """Behavior twin for the source guard above.
+
+    The SC-29 substitute response carries both a recovery route and a fresh
+    proposal dialogue. Driving that response through the route-order model
+    must pick the proposal popup, while the two real recovery surfaces still
+    route to `_route_settlement_recovery_route`.
+    """
+    main_text = (GODOT_SCRIPTS_DIR / "main.gd").read_text(encoding="utf-8")
+    proposal_response = {
+        "success": True,
+        "recovery_route": {
+            "surface": "proposal_confirm",
+            "target": "proposal_confirm",
+            "war_id": "war_1",
+            "selected_target_nation": "Austria",
+        },
+        "diplomatic_dialogue": {
+            "type": "proposal_confirm",
+            "target_nation": "Austria",
+            "context": {"proposal_type": "peace"},
+        },
+    }
+    assert (
+        _simulate_main_gd_command_result_route(proposal_response, main_text)
+        == "proposal_confirm"
+    )
+
+    for surface in ("war_detail", "settlement_history"):
+        recovery_response = {
+            "success": False,
+            "recovery_route": {
+                "surface": surface,
+                "war_id": "war_1",
+                "selected_target_nation": "Austria",
+            },
+        }
+        assert _simulate_main_gd_command_result_route(
+            recovery_response, main_text
+        ) == f"recovery_route:{surface}"
