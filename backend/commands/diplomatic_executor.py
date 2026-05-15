@@ -2728,6 +2728,22 @@ class DiplomaticExecutor:
             "revise_settlement_terms",
             "back_out_settlement",
             "open_war_detail",
+            # G2-Slice-W1 re-author with concessions handler.
+            "re_author_with_concessions",
+            # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. These
+            # arrive through `respond_to_diplomatic_dialogue` after the
+            # player clicks the rejected-popup substitute action; the
+            # dialogue-family handler re-runs the eligibility helper and
+            # stages a `proposal_confirm` for propose_peace / propose_armistice
+            # on success. Missing this dispatch arm makes the action fall
+            # through to "Unknown dialogue action: ...".
+            "seek_bilateral_peace",
+            "seek_armistice_instead",
+            # SC-31 / G2-Slice-8 surrender-preset action. Same dispatch
+            # gap class as SC-29: the action ships in the popup options
+            # and Godot whitelist, but without this arm the dialogue
+            # endpoint reports "Unknown dialogue action: author_surrender_terms".
+            "author_surrender_terms",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,

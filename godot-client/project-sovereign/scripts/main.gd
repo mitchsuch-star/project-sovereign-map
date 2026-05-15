@@ -978,9 +978,20 @@ func _on_command_result(response):
 		return
 
 	if response.has("recovery_route") and response.recovery_route is Dictionary:
-		_process_active_wars(response)
-		_route_settlement_recovery_route(response.recovery_route)
-		return
+		# SC-29 / G2-Slice-7 pair-scoped substitute CTAs return a
+		# recovery_route with surface=proposal_confirm together with a
+		# fresh diplomatic_dialogue. _route_settlement_recovery_route
+		# only knows war_detail and settlement_history; if we return
+		# early for proposal_confirm the new proposal popup never opens
+		# and the player is left with no clickable target. Restrict the
+		# early-return to surfaces the helper actually handles, and let
+		# proposal_confirm fall through to the normal diplomatic_dialogue
+		# route below.
+		var rr_surface = str(response.recovery_route.get("surface", response.recovery_route.get("target", "")))
+		if rr_surface in ["war_detail", "settlement_history"]:
+			_process_active_wars(response)
+			_route_settlement_recovery_route(response.recovery_route)
+			return
 
 	if response.success:
 		# Format and display result based on event type

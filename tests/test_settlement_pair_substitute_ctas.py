@@ -548,3 +548,86 @@ def test_settlement_helper_signatures_are_distinct_and_not_substituted():
     assert "actionable_kind" not in pair_result
     # The closed temporal refusal set covers only cooldown_active.
     assert PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES == {"cooldown_active"}
+
+
+# ───────────────────────────────────────────────────────────────────────
+# G2-Gate4-Repair-1: Dispatch reaches handler through executor entry
+# ───────────────────────────────────────────────────────────────────────
+
+
+def test_dialogue_response_routes_seek_bilateral_peace_through_executor_dispatch():
+    """Gate 4 smoke regression: clicking the rejected-popup substitute
+    CTA arrives at the executor through `/respond_to_diplomatic_dialogue`,
+    which calls `DiplomaticExecutor.handle_diplomatic_dialogue_response`
+    with the 1-based option index. The action must reach
+    `handle_settlement_dialogue_action` instead of falling through to
+    "Unknown dialogue action: seek_bilateral_peace".
+
+    Pre-repair, the dispatch tuple in `_process_dialogue_choice` only
+    routed four ids; this test would have failed with a fall-through
+    "Unknown dialogue action" message. The unit tests in this file
+    called `handle_settlement_dialogue_action` directly and never
+    exercised the dispatch arm — which is exactly how the regression
+    shipped past Gate 3."""
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+    world = WorldState()
+    _install_rejected_war(world)
+    dialogue = _stage_rejected_dialogue(world)
+    # Find the 1-based option index for seek_bilateral_peace in the
+    # staged dialogue's options list, exactly as Godot would.
+    options = dialogue.get("options", [])
+    target_idx = None
+    for idx, opt in enumerate(options, start=1):
+        if opt.get("action") == "seek_bilateral_peace":
+            target_idx = idx
+            break
+    assert target_idx is not None, (
+        f"Staged rejected dialogue does not expose seek_bilateral_peace "
+        f"in options; got actions {[o.get('action') for o in options]}"
+    )
+
+    executor = DiplomaticExecutor(None)
+    result = executor.handle_diplomatic_dialogue_response(
+        target_idx, {"world": world}
+    )
+
+    # The handler must NOT report Unknown dialogue action.
+    message = str(result.get("message", ""))
+    assert "Unknown dialogue action" not in message, (
+        f"Executor dispatch fell through to 'Unknown dialogue action' "
+        f"for seek_bilateral_peace: {result}"
+    )
+    # Positive contract: the substitute handler popped the settlement
+    # dialogue and staged a proposal_confirm for the pair.
+    assert result.get("success") is True, result
+    assert result.get("scope") == "selected_pair"
+    assert result.get("selected_target_nation") == "Austria"
+    assert result.get("proposal_type") == "peace"
+
+
+def test_dialogue_response_routes_seek_armistice_instead_through_executor_dispatch():
+    """Symmetric Gate 4 regression for `seek_armistice_instead`."""
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+    world = WorldState()
+    _install_rejected_war(world)
+    dialogue = _stage_rejected_dialogue(world)
+    options = dialogue.get("options", [])
+    target_idx = None
+    for idx, opt in enumerate(options, start=1):
+        if opt.get("action") == "seek_armistice_instead":
+            target_idx = idx
+            break
+    assert target_idx is not None
+
+    executor = DiplomaticExecutor(None)
+    result = executor.handle_diplomatic_dialogue_response(
+        target_idx, {"world": world}
+    )
+
+    message = str(result.get("message", ""))
+    assert "Unknown dialogue action" not in message, result
+    assert result.get("success") is True
+    assert result.get("scope") == "selected_pair"
+    assert result.get("proposal_type") == "armistice"

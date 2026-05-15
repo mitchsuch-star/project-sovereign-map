@@ -266,3 +266,97 @@ def test_settlement_action_id_whitelists_have_no_orphan_typed_command_mappings()
         "diplomacy_wizard.gd must reference propose_white_peace "
         "(via `_build_command` and `_structured_payload_for_action`)."
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G2-Gate4-Repair-1: Dialogue-endpoint dispatch coverage regression
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# Settlement-family dialogue action ids that arrive through
+# /respond_to_diplomatic_dialogue (NOT structured /command entry).
+# These are popup-button actions inside the staged settlement_confirm
+# dialogue. They must be routed to `handle_settlement_dialogue_action`
+# inside `DiplomaticExecutor._process_dialogue_choice`. Missing the
+# dispatch tuple makes the action fall through to the "Unknown dialogue
+# action" branch and breaks the Godot popup — exactly the SC-29 /
+# SC-31 / G2-Slice-W1 Gate 4 smoke regression this test pins.
+SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
+    "confirm_settlement",
+    "revise_settlement_terms",
+    "back_out_settlement",
+    "open_war_detail",
+    "re_author_with_concessions",
+    "seek_bilateral_peace",
+    "seek_armistice_instead",
+    "author_surrender_terms",
+]
+
+
+def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler():
+    """Backend regression guard: every settlement-family popup action id
+    that ships in the Godot `SETTLEMENT_DIALOGUE_ACTIONS` whitelist and
+    in `handle_settlement_dialogue_action` must also be routed by
+    `DiplomaticExecutor._process_dialogue_choice` to the settlement
+    handler. The pre-repair dispatch tuple only listed four ids, so
+    SC-29 `seek_bilateral_peace` / `seek_armistice_instead`, SC-31
+    `author_surrender_terms`, and G2-Slice-W1 `re_author_with_concessions`
+    all hit the "Unknown dialogue action" fall-through. Backend tests
+    that called the handler directly never caught it because they
+    bypassed the executor dispatch."""
+    executor_path = REPO_ROOT / "backend" / "commands" / "diplomatic_executor.py"
+    text = executor_path.read_text(encoding="utf-8")
+
+    # Find the `elif action in (...)` dispatch tuple that routes to
+    # `handle_settlement_dialogue_action`. The arm is the only place
+    # in _process_dialogue_choice that imports that handler.
+    handler_anchor = "from backend.game_logic.settlement_preview import (\n                handle_settlement_dialogue_action,\n            )"
+    assert handler_anchor in text, (
+        "diplomatic_executor.py no longer imports "
+        "handle_settlement_dialogue_action inside _process_dialogue_choice; "
+        "the dispatch wiring has been refactored away from the anchor "
+        "this regression test pins. Update the anchor."
+    )
+
+    # Slice the file from the start to the handler import; the action
+    # tuple lives in the `elif action in (...)` block immediately above.
+    pre_handler = text.split(handler_anchor, 1)[0]
+    # Take the last `elif action in (...)` block before the import; the
+    # tuple body sits between the opening `(` and the closing `):`.
+    elif_open = pre_handler.rfind("elif action in (")
+    assert elif_open != -1, (
+        "Could not locate the `elif action in (` dispatch tuple "
+        "immediately above the handle_settlement_dialogue_action import."
+    )
+    tuple_block = pre_handler[elif_open:]
+    for action_id in SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS:
+        assert f'"{action_id}"' in tuple_block, (
+            f"_process_dialogue_choice dispatch tuple is missing "
+            f"{action_id!r}. Without this dispatch arm, the popup action "
+            f"falls through to the 'Unknown dialogue action' branch and "
+            f"the Godot settlement popup hangs."
+        )
+
+
+def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():
+    """Godot regression guard: `_on_command_result` must not consume a
+    response with `recovery_route.surface == "proposal_confirm"` via
+    `_route_settlement_recovery_route` (which only handles `war_detail`
+    and `settlement_history`). The SC-29 pair-substitute response
+    carries both `recovery_route` (surface=proposal_confirm) and a
+    fresh `diplomatic_dialogue`; if the recovery branch returns early
+    for that surface the new proposal popup never opens."""
+    main_path = GODOT_SCRIPTS_DIR / "main.gd"
+    text = main_path.read_text(encoding="utf-8")
+    # The repair pattern: gate the early return on the surface set the
+    # recovery helper actually understands. The literal phrase pins it.
+    expected_gate = (
+        'if rr_surface in ["war_detail", "settlement_history"]'
+    )
+    assert expected_gate in text, (
+        "main.gd::_on_command_result must scope the recovery_route "
+        "early-return to surfaces that "
+        "`_route_settlement_recovery_route` handles; otherwise SC-29 "
+        "pair-substitute responses get consumed before the proposal "
+        "popup can open from `diplomatic_dialogue`."
+    )
