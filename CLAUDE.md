@@ -14,6 +14,16 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 8. **Scale-ready code: NO per-region scans in hot paths** — Map is scaling to full 1805 Europe. Never iterate `world.regions.values()` in loops called multiple times per turn. Use cached helpers (e.g. `get_active_nations()` is per-turn cached, `get_nation_regions()` for region lookups). If adding a new helper that scans regions, cache the result per-turn and invalidate via `invalidate_active_nations_cache()` pattern.
 9. **No open-ended deferrals** — any hidden, cut, deferred, later, v2, or polish player-facing work must name a concrete owner row/spec, landing slice, completion definition, STATUS tracking line, and behavior test. If the work is not going to land, remove the player-facing promise explicitly. Do not leave "future work" labels, disabled placeholders, or vague backlog notes in active specs.
 
+## Workflow: work directly on master
+
+This is a single-developer project with pre-commit-hook test gating and Codex audits run by commit SHA. Branch-per-slice / worktree-per-slice creates state-drift bugs (the branch falls behind master between slices, the merge back is noisy, and the audit prompt still ends up referencing master after merge anyway). The default is:
+
+- **Commit directly to master.** No `claude/<slice-id>` feature branch, no worktree.
+- **The pre-commit hook runs the full pytest suite.** If a commit is blocked, fix the underlying test failures — do not bypass with `--no-verify`.
+- **Codex audits target master at the slice's commit SHA.** When emitting an audit prompt, write `Audit master at commit <SHA>...` rather than naming a feature branch. The audit prompt should also instruct Codex to verify any follow-up work continues on master.
+- **If the harness spawns a worktree on a `claude/...` branch anyway:** finish the slice in the worktree (avoid mid-session churn), push branch-tip-to-master via `git push origin <branch>:master`, and add a note to the session summary recommending the user disable auto-worktree creation in their launcher.
+- **Exception:** Use a feature branch only when the slice is genuinely throwaway/experimental and the user explicitly asks for one.
+
 ## Current Phase
 
 **Phases 6, 6.5, 7 Core, 7b — COMPLETE.** See `docs/STATUS.md` for full session history.
