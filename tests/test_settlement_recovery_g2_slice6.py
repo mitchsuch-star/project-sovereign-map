@@ -214,9 +214,9 @@ def test_smoke_start_losing_fixture_has_concession_baseline_inputs(monkeypatch):
     world = WorldState()
 
     assert world.settlement_smoke_fixture["name"] == SMOKE_START_SETTLEMENT_LOSING
-    assert world.settlement_smoke_fixture["concession_region"] == "Belgium"
+    assert world.settlement_smoke_fixture["concession_region"] == "Waterloo"
     assert world.nation_gold["France"] >= 1500
-    assert world.regions["Belgium"].controller == "France"
+    assert world.regions["Waterloo"].controller == "France"
 
 
 def test_smoke_start_multiwar_ambiguity_fixture_has_multiple_war_instances(monkeypatch):

@@ -592,10 +592,42 @@ class TestConcessionAcceptanceDirection:
                 {"type": "gold_indemnity", "from": "France", "to": "Austria", "amount": 1500},
             ],
         )
-        # Concession from the losing side should not lower acceptance.
-        assert (
-            int(with_gold.get("score") or 0) >= int(peace_only.get("score") or 0) - 5
+        # Concession from the losing side should improve acceptance.
+        assert int(with_gold.get("score") or 0) > int(peace_only.get("score") or 0)
+        assert int(with_gold["components"]["concession_credit"]) > 0
+        assert with_gold["component_debug"]["concession_credit"]["credited_terms"]
+
+    def test_settlement_losing_smoke_baseline_reaches_near_acceptable(self, monkeypatch):
+        from backend.models.world_state import (
+            SMOKE_START_ENV,
+            SMOKE_START_SETTLEMENT_LOSING,
         )
+
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_LOSING)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        baseline = preview["settlement_preview"]["concession_baseline"]
+        assert baseline is not None
+        assert any(
+            t.get("type") == "territory_cede" and t.get("region") == "Waterloo"
+            for t in baseline["terms"]
+        )
+
+        baseline_preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=baseline["terms"],
+        )
+
+        acceptance = baseline_preview["settlement_preview"]["acceptance"]
+        assert acceptance["score"] >= 35
+        assert acceptance["components"]["concession_credit"] > 0
 
 
 class TestStageSettlementPropagation:

@@ -669,6 +669,7 @@ ACCEPTANCE_COMPONENT_DISPLAY = {
     "burdened_participant_penalty": "Ally burden",
     "projected_hegemony_mod": "Balance of Europe pressure",
     "war_objective_alignment": "War objective alignment",
+    "concession_credit": "Concession credit",
     "war_exhaustion": "War exhaustion",
     "abandoned_by_ally_acceptance_mod": "Abandoned ally grievance",
 }

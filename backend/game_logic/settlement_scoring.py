@@ -33,7 +33,8 @@ full common-peace acceptance formula lands in C1b:
 The C1b sub-gate will layer the common-peace acceptance formula
 (`base_side_pressure`, `term_harshness_penalty`, leader-own-loss clamp,
 burdened-participant penalty, projected-hegemony / forced-alliance threat,
-war-objective alignment, war exhaustion, abandoned-by-ally) on top of
+war-objective alignment, concession credit, war exhaustion,
+abandoned-by-ally) on top of
 these helpers. The C1a helpers are intentionally pure: no mutation of
 world state, no ratification, no side-effects. They never call into
 diplomacy ratification paths.
@@ -398,14 +399,11 @@ def compute_side_pressure_score(
 # `diplomatic_templates.py`. C2 (endpoints / dialogue / Godot routing)
 # wires preview / confirm against this helper.
 #
-# Component pipeline (spec line 1097-1107) — note that CLAUDE.md "Up Next"
-# names eight components, but the spec lists nine including
-# `settlement_tier_legitimacy` (line 1099, 1114). The Pressburg worked
-# example at line 1162 totals 58 only when tier legitimacy is included
-# (`46 + 10 - 11 + 0 - 10 + 15 - 5 + 13 + 0 = 58`), so C1b ships the full
-# nine-component spec table and uses the existing
-# `diplomacy.get_settlement_tier()` to classify the package by
-# `abs(side_pressure_score)`.
+# Component pipeline (spec line 1097-1107 plus G2 concession contract):
+# the original C1b table named nine components. G2 adds the explicit
+# `concession_credit` component permitted by the settlement cleanup spec
+# so concessions authored from the losing/proposer side are rewarded from
+# the accepting side's perspective instead of behaving as no-op burdens.
 #
 # Performance: every component reads cached helpers
 # (`get_nation_regions`, `get_bloc_members`, `get_active_nations`,
@@ -475,6 +473,13 @@ WPS_OBJECTIVE_PRIORITY = (
     "liberation",
     "defense",
 )
+
+# Concession credit (G2 concession contract).
+CONCESSION_GOLD_DIVISOR = 25
+CONCESSION_GOLD_CAP = 40
+CONCESSION_TERRITORY_PER_REGION = 35
+CONCESSION_DEPENDENCY_CREDIT = 45
+CONCESSION_CREDIT_CLAMP = (0, 80)
 
 # War-exhaustion (spec line 1120 — intentional floor division).
 WAR_EXHAUSTION_DIVISOR = 3
@@ -1229,6 +1234,80 @@ def calculate_war_objective_alignment(
     }
 
 
+def _concession_credit_for_term(
+    term: Mapping[str, Any],
+    *,
+    proposer_set: set,
+    accepting_set: set,
+) -> int:
+    """Positive credit for clauses that benefit the accepting side."""
+    from_n = _term_from_nation(term)
+    to_n = _term_to_nation(term)
+    if from_n not in proposer_set or to_n not in accepting_set:
+        return 0
+    ttype = str(term.get("type") or "")
+    if ttype in ("gold_indemnity", "gold_lump"):
+        amount = max(0, int(term.get("amount", 0) or 0))
+        return min(CONCESSION_GOLD_CAP, amount // CONCESSION_GOLD_DIVISOR)
+    if ttype == "gold_per_turn":
+        amount = max(0, int(term.get("amount", 0) or 0))
+        turns = max(0, int(term.get("turns", 0) or 0))
+        projected = amount * turns
+        return min(CONCESSION_GOLD_CAP, projected // CONCESSION_GOLD_DIVISOR)
+    if ttype in _TERRITORY_TERM_TYPES:
+        return CONCESSION_TERRITORY_PER_REGION * len(_term_regions(term))
+    if ttype in ("vassalage", "subjugation", "forced_alliance"):
+        return CONCESSION_DEPENDENCY_CREDIT
+    return 0
+
+
+def calculate_concession_credit(
+    *,
+    proposer_side_participants: Iterable[str],
+    accepting_side_participants: Iterable[str],
+    accepting_leader: str,
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Score concessions from the accepting side's perspective.
+
+    The broader harshness pipeline already penalizes terms that burden
+    the accepting side. This component covers the opposite direction:
+    when the proposer pays, cedes, or submits to the accepting side, the
+    accepting court should see the draft as more acceptable.
+    """
+    proposer_set = {str(n) for n in proposer_side_participants if n}
+    accepting_set = {str(n) for n in accepting_side_participants if n}
+    accepting_set.update(str(n) for n in covered_enemy_participants if n)
+    if accepting_leader:
+        accepting_set.add(str(accepting_leader))
+    credited_terms: List[Dict[str, Any]] = []
+    raw_score = 0
+    for idx, term in enumerate(_iter_terms(settlement_terms)):
+        credit = _concession_credit_for_term(
+            term,
+            proposer_set=proposer_set,
+            accepting_set=accepting_set,
+        )
+        if credit <= 0:
+            continue
+        raw_score += credit
+        credited_terms.append({
+            "index": idx,
+            "type": str(term.get("type") or ""),
+            "from": _term_from_nation(term),
+            "to": _term_to_nation(term),
+            "score": int(credit),
+        })
+    score = _clamp(raw_score, CONCESSION_CREDIT_CLAMP)
+    return {
+        "score": int(score),
+        "raw_score": int(raw_score),
+        "credited_terms": credited_terms,
+        "clamp": CONCESSION_CREDIT_CLAMP,
+    }
+
+
 def calculate_war_exhaustion_component(
     world: Any,
     *,
@@ -1696,12 +1775,13 @@ def calculate_common_peace_acceptance(
     7. `burdened_participant_penalty` — uses memoized direct_scores.
     8. `projected_hegemony_mod` — from `project_balance_after_settlement()`.
     9. `war_objective_alignment` — from WPS objective table.
-    10. `war_exhaustion` — floor division (spec line 1120).
-    11. `abandoned_by_ally_acceptance_mod`.
-    12. Sum 9 components → `raw_total` → clamp `[-100, 100]` → `score`.
-    13. Verdict: `accept` (>=50) / `near_acceptable` (35-49) / `reject`.
-    14. Build `feedback`: top 1-2 components by absolute negative magnitude.
-    15. Compute forced-alliance threat preview.
+    10. `concession_credit` — proposer-paid concessions benefit acceptance.
+    11. `war_exhaustion` — floor division (spec line 1120).
+    12. `abandoned_by_ally_acceptance_mod`.
+    13. Sum components → `raw_total` → clamp `[-100, 100]` → `score`.
+    14. Verdict: `accept` (>=50) / `near_acceptable` (35-49) / `reject`.
+    15. Build `feedback`: top 1-2 components by absolute negative magnitude.
+    16. Compute forced-alliance threat preview.
 
     Returns the canonical settlement-preview shape (see module docstring).
 
@@ -1817,7 +1897,16 @@ def calculate_common_peace_acceptance(
         settlement_terms=settlement_terms,
     )
 
-    # Step 10: war exhaustion (floor division per spec line 1120).
+    # Step 10: concession credit from the accepting side's perspective.
+    concession_debug = calculate_concession_credit(
+        proposer_side_participants=proposer_participants,
+        accepting_side_participants=accepting_participants,
+        accepting_leader=accepting_leader,
+        covered_enemy_participants=covered,
+        settlement_terms=settlement_terms,
+    )
+
+    # Step 11: war exhaustion (floor division per spec line 1120).
     exhaustion_debug = calculate_war_exhaustion_component(
         world,
         accepting_leader=accepting_leader,
@@ -1826,7 +1915,7 @@ def calculate_common_peace_acceptance(
         apply_relevance_cap=apply_war_exhaustion_relevance_cap,
     )
 
-    # Step 11: abandoned by ally.
+    # Step 12: abandoned by ally.
     if current_turn is None:
         try:
             current_turn = int(getattr(world, "current_turn", 0) or 0)
@@ -1838,7 +1927,7 @@ def calculate_common_peace_acceptance(
         current_turn=int(current_turn),
     )
 
-    # Step 12: aggregate.
+    # Step 13: aggregate.
     components = {
         "base_side_pressure": int(base_debug["score"]),
         "settlement_tier_legitimacy": int(tier_debug["score"]),
@@ -1847,13 +1936,14 @@ def calculate_common_peace_acceptance(
         "burdened_participant_penalty": int(burden_debug["score"]),
         "projected_hegemony_mod": int(hegemony_debug["modifier"]),
         "war_objective_alignment": int(alignment_debug["score"]),
+        "concession_credit": int(concession_debug["score"]),
         "war_exhaustion": int(exhaustion_debug["score"]),
         "abandoned_by_ally_acceptance_mod": int(abandoned_debug["score"]),
     }
     raw_total = sum(components.values())
     score = _clamp(int(raw_total), ACCEPTANCE_FINAL_CLAMP)
 
-    # Step 13: verdict.
+    # Step 14: verdict.
     if score >= ACCEPTANCE_THRESHOLD:
         verdict = "accept"
     elif score >= NEAR_ACCEPTANCE_FLOOR:
@@ -1861,7 +1951,7 @@ def calculate_common_peace_acceptance(
     else:
         verdict = "reject"
 
-    # Step 14: feedback (top 1-2 components by absolute negative magnitude).
+    # Step 15: feedback (top 1-2 components by absolute negative magnitude).
     feedback: List[Dict[str, Any]] = []
     if verdict in ("near_acceptable", "reject"):
         negatives = [
@@ -1875,7 +1965,7 @@ def calculate_common_peace_acceptance(
                 "magnitude": abs(int(value)),
             })
 
-    # Step 15: forced-alliance threat preview.
+    # Step 16: forced-alliance threat preview.
     threat_preview = compute_forced_alliance_threat_preview(
         world, settlement_terms=settlement_terms,
     )
@@ -1891,6 +1981,7 @@ def calculate_common_peace_acceptance(
         "crossed_coalition_thresholds": list(threat_preview["crossed_thresholds"]),
         "forced_alliance_threat_preview": dict(threat_preview),
         "war_objective_alignment": dict(alignment_debug),
+        "concession_credit": dict(concession_debug),
         "war_exhaustion": dict(exhaustion_debug),
         "abandoned_by_ally": dict(abandoned_debug),
     }
