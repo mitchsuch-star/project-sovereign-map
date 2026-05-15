@@ -41,6 +41,7 @@ from backend.game_logic.settlement_scoring import (
     GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     SETTLEMENT_HARD_STOP_CODES,
+    SETTLEMENT_LIVE_CLAUSE_TYPES,
     SETTLEMENT_MVP_CLAUSE_TYPES,
 )
 from backend.game_logic.settlement_presentation import (
@@ -1633,6 +1634,125 @@ def _compute_surrender_preset(
     }
 
 
+def _compute_recurring_gold_preset(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    proposer_side_leader: Optional[str],
+    accepting_leader: str,
+    covered_enemy_participants: Iterable[str],
+    side_pressure_score: Optional[int],
+) -> Dict[str, Any]:
+    """SC-33 / G2-Slice-9 recurring-gold draft for the settlement popup.
+
+    The action exposes payer, recipient, amount, and duration in the
+    staged payload and authors a legal finite `gold_per_turn` draft using
+    the fixture-provided smoke values when present and otherwise the
+    SC-33 validator minimums.
+    """
+    if "gold_per_turn" not in SETTLEMENT_LIVE_CLAUSE_TYPES:
+        return {
+            "losing_for_recurring_gold_preset": False,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": "gold_per_turn_not_live",
+        }
+    if side_pressure_score is None:
+        return {
+            "losing_for_recurring_gold_preset": False,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": "no_side_pressure_score",
+        }
+    losing = int(side_pressure_score) <= LOSING_SIDE_PRESSURE_THRESHOLD
+    if not losing:
+        return {
+            "losing_for_recurring_gold_preset": False,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": "not_losing_side",
+        }
+    if not proposer_side_leader or not accepting_leader:
+        return {
+            "losing_for_recurring_gold_preset": True,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": "missing_leaders",
+        }
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    if accepting_leader not in covered:
+        return {
+            "losing_for_recurring_gold_preset": True,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": "accepting_leader_not_covered",
+        }
+
+    fixture = getattr(world, "settlement_smoke_fixture", None)
+    fixture_meta = fixture if isinstance(fixture, Mapping) else {}
+
+    def _bounded_int(raw: Any, default: int, *, low: int, high: int) -> int:
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            value = int(default)
+        return max(low, min(high, value))
+
+    amount = _bounded_int(
+        fixture_meta.get("expected_recurring_amount_min"),
+        GOLD_PER_TURN_MIN_AMOUNT,
+        low=GOLD_PER_TURN_MIN_AMOUNT,
+        high=10_000,
+    )
+    turns = _bounded_int(
+        fixture_meta.get("expected_recurring_turns_min"),
+        3,
+        low=GOLD_PER_TURN_MIN_TURNS,
+        high=GOLD_PER_TURN_MAX_TURNS,
+    )
+    preset_terms: List[Dict[str, Any]] = [
+        {"type": "peace"},
+        {
+            "type": "gold_per_turn",
+            "from": str(proposer_side_leader),
+            "to": str(accepting_leader),
+            "amount": int(amount),
+            "turns": int(turns),
+        },
+    ]
+    validation = validate_settlement_terms(
+        preset_terms,
+        world=world,
+        war_instance=war_instance,
+    )
+    if not validation.get("valid"):
+        return {
+            "losing_for_recurring_gold_preset": True,
+            "recurring_gold_preset_visible": False,
+            "recurring_gold_preset": None,
+            "recurring_gold_preset_reason": str(
+                validation.get("error") or "recurring_gold_preset_invalid"
+            ),
+        }
+    reasoning = (
+        f"Talleyrand's draft: {proposer_side_leader} would pay {accepting_leader} "
+        f"{amount} gold per turn for {turns} turns."
+    )
+    return {
+        "losing_for_recurring_gold_preset": True,
+        "recurring_gold_preset_visible": True,
+        "recurring_gold_preset": {
+            "terms": preset_terms,
+            "reasoning": reasoning,
+            "amount": int(amount),
+            "turns": int(turns),
+            "payer": str(proposer_side_leader),
+            "recipient": str(accepting_leader),
+        },
+        "recurring_gold_preset_reason": "finite_recurring_gold_available",
+    }
+
+
 def _compute_concession_baseline(
     world: Any,
     *,
@@ -2269,6 +2389,26 @@ def build_settlement_preview(
     preview["surrender_preset_reason"] = str(
         surrender_payload.get("surrender_preset_reason") or ""
     )
+    recurring_gold_payload = _compute_recurring_gold_preset(
+        world,
+        war_instance=instance,
+        proposer_side_leader=str(proposer_leader or ""),
+        accepting_leader=str(accepting_leader or ""),
+        covered_enemy_participants=covered,
+        side_pressure_score=acceptance.get("side_pressure_score"),
+    )
+    preview["losing_for_recurring_gold_preset"] = bool(
+        recurring_gold_payload.get("losing_for_recurring_gold_preset")
+    )
+    preview["recurring_gold_preset_visible"] = bool(
+        recurring_gold_payload.get("recurring_gold_preset_visible")
+    )
+    preview["recurring_gold_preset"] = recurring_gold_payload.get(
+        "recurring_gold_preset"
+    )
+    preview["recurring_gold_preset_reason"] = str(
+        recurring_gold_payload.get("recurring_gold_preset_reason") or ""
+    )
     return {
         "success": True,
         "mode": "settlement",
@@ -2452,6 +2592,25 @@ def build_settlement_confirm_dialogue(
         )
         and not _term_lists_equal(staged_terms_for_gate, surrender_terms_preset)
     )
+    recurring_gold_preset_payload = (
+        copy.deepcopy(preview.get("recurring_gold_preset"))
+        if preview.get("recurring_gold_preset_visible")
+        else None
+    )
+    recurring_gold_terms_preset = (
+        list(recurring_gold_preset_payload.get("terms") or [])
+        if isinstance(recurring_gold_preset_payload, Mapping)
+        else []
+    )
+    can_author_recurring_gold_terms = (
+        not can_ratify
+        and bool(preview.get("recurring_gold_preset_visible"))
+        and any(
+            isinstance(t, Mapping) and t.get("type") == "gold_per_turn"
+            for t in recurring_gold_terms_preset
+        )
+        and not _term_lists_equal(staged_terms_for_gate, recurring_gold_terms_preset)
+    )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
         available_action_ids.append("confirm_settlement")
@@ -2463,6 +2622,19 @@ def build_settlement_confirm_dialogue(
             "concession_baseline_preview": concession_baseline,
         })
         available_action_ids.append("re_author_with_concessions")
+    if can_author_recurring_gold_terms:
+        amount = int(recurring_gold_preset_payload.get("amount") or 0)
+        turns = int(recurring_gold_preset_payload.get("turns") or 0)
+        options.append({
+            "label": f"Author {amount}/Turn Gold",
+            "action": "author_recurring_gold_terms",
+            "description": (
+                "Apply Talleyrand's recurring-gold draft: a finite payment "
+                f"of {amount} gold per turn for {turns} turns."
+            ),
+            "recurring_gold_preset_preview": recurring_gold_preset_payload,
+        })
+        available_action_ids.append("author_recurring_gold_terms")
     # SC-31 / G2-Slice-8 - Surrender preset CTA. Appears only when the
     # losing-side concession baseline predicate passes AND the surrender
     # preset can author a material dependency clause. Order matters: it
@@ -2627,6 +2799,16 @@ def build_settlement_confirm_dialogue(
         ),
         "surrender_preset_payload": surrender_preset_payload,
         "surrender_preset_reason": str(preview.get("surrender_preset_reason") or ""),
+        "losing_for_recurring_gold_preset": bool(
+            preview.get("losing_for_recurring_gold_preset")
+        ),
+        "recurring_gold_preset_visible": bool(
+            preview.get("recurring_gold_preset_visible")
+        ),
+        "recurring_gold_preset_payload": recurring_gold_preset_payload,
+        "recurring_gold_preset_reason": str(
+            preview.get("recurring_gold_preset_reason") or ""
+        ),
     }
 
 
@@ -3880,6 +4062,7 @@ def _build_settlement_replace_confirm_dialogue(
     message: str,
     concession_baseline: Optional[Mapping[str, Any]] = None,
     surrender_preset_payload: Optional[Mapping[str, Any]] = None,
+    recurring_gold_preset_payload: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     current_terms = [
         dict(t)
@@ -3920,6 +4103,10 @@ def _build_settlement_replace_confirm_dialogue(
         confirm["concession_baseline"] = copy.deepcopy(concession_baseline)
     if surrender_preset_payload is not None:
         confirm["surrender_preset_payload"] = copy.deepcopy(surrender_preset_payload)
+    if recurring_gold_preset_payload is not None:
+        confirm["recurring_gold_preset_payload"] = copy.deepcopy(
+            recurring_gold_preset_payload
+        )
     return confirm
 
 
@@ -4042,6 +4229,57 @@ def handle_settlement_dialogue_action(
             "error_display": "Term revision is not yet available.",
             "mutated": False,
         }
+
+    def _fresh_recurring_gold_preset(
+        action_id: str,
+    ) -> Tuple[Optional[Mapping[str, Any]], List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        actor = getattr(world, "player_nation", "France")
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return None, [], {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action_id,
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "recurring_gold_preset_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No recurring-gold draft is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        preset_payload = fresh_preview.get("recurring_gold_preset")
+        preset_terms = (
+            [dict(t) for t in (preset_payload.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(preset_payload, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("recurring_gold_preset_visible")
+            or not any(t.get("type") == "gold_per_turn" for t in preset_terms)
+        ):
+            return None, [], {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action_id,
+                "war_id": war_id,
+                "error": "recurring_gold_preset_unavailable",
+                "error_display": "No recurring-gold draft is available now.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        return preset_payload, preset_terms, None
+
     if action == "keep_current_settlement_draft":
         preserved_terms = [
             dict(t)
@@ -4059,6 +4297,17 @@ def handle_settlement_dialogue_action(
             terms=preserved_terms,
             message="Keeping the current settlement draft unchanged.",
             surrender_preset=bool(dialogue.get("surrender_preset", False)),
+        )
+    if action == "apply_recurring_gold_preset_replacement":
+        preset_payload, preset_terms, error_payload = _fresh_recurring_gold_preset(action)
+        if error_payload is not None:
+            return error_payload
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action=action,
+            terms=preset_terms,
+            message="Talleyrand's recurring-gold draft has replaced the current draft.",
         )
     if action == "apply_concession_baseline_replacement":
         covered = list(dialogue.get("covered_enemy_participants") or [])
@@ -4324,6 +4573,78 @@ def handle_settlement_dialogue_action(
             "message": "Talleyrand's concession baseline has been drafted for review.",
             "suppress_proposal_result_popup": True,
         }
+    if action == "author_recurring_gold_terms":
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        current_terms = [
+            dict(t)
+            for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        preset_payload, preset_terms, error_payload = _fresh_recurring_gold_preset(action)
+        if error_payload is not None:
+            error_payload["preserved_terms"] = current_terms
+            return error_payload
+        if current_terms:
+            if _term_lists_equal(current_terms, preset_terms):
+                refreshed = copy.deepcopy(dict(dialogue))
+                refreshed["options"] = [
+                    dict(opt)
+                    for opt in (refreshed.get("options") or [])
+                    if opt.get("action") != "author_recurring_gold_terms"
+                ]
+                refreshed["available_action_ids"] = [
+                    str(a)
+                    for a in (refreshed.get("available_action_ids") or [])
+                    if str(a) != "author_recurring_gold_terms"
+                ]
+                refreshed["message"] = "Talleyrand's recurring-gold draft is already drafted."
+                refreshed["talleyrand_text"] = refreshed["message"]
+                world.dialogue_manager.replace(refreshed)
+                return {
+                    "success": True,
+                    "dialogue_type": "settlement_confirm",
+                    "action": "author_recurring_gold_terms",
+                    "war_id": war_id,
+                    "diplomatic_dialogue": refreshed,
+                    "awaiting_diplomatic_response": True,
+                    "mutated": False,
+                    "message": refreshed["message"],
+                    "suppress_proposal_result_popup": True,
+                }
+            replace_dialogue = _build_settlement_replace_confirm_dialogue(
+                dialogue,
+                replacement_terms=preset_terms,
+                apply_action="apply_recurring_gold_preset_replacement",
+                apply_label="Discard draft and apply recurring gold",
+                replacement_kind="recurring_gold_preset",
+                message=(
+                    "This draft is not empty. Replace it with Talleyrand's "
+                    "recurring-gold draft?"
+                ),
+                recurring_gold_preset_payload=preset_payload,
+            )
+            world.dialogue_manager.replace(replace_dialogue)
+            return {
+                "success": True,
+                "dialogue_type": "settlement_confirm",
+                "action": "author_recurring_gold_terms",
+                "war_id": war_id,
+                "requires_replace_confirm": True,
+                "replacement_terms": preset_terms,
+                "diplomatic_dialogue": replace_dialogue,
+                "awaiting_diplomatic_response": True,
+                "recurring_gold_preset": copy.deepcopy(preset_payload),
+                "mutated": False,
+                "message": "Confirm replacing the current draft with Talleyrand's recurring-gold draft.",
+                "suppress_proposal_result_popup": True,
+            }
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action="author_recurring_gold_terms",
+            terms=preset_terms,
+            message="Talleyrand's recurring-gold draft has been drafted for review.",
+        )
     if action == "author_surrender_terms":
         # SC-31 / G2-Slice-8 - Apply Talleyrand's surrender preset.
         # Mirrors `re_author_with_concessions`: re-runs POST preview

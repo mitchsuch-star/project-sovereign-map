@@ -2747,6 +2747,12 @@ class DiplomaticExecutor:
             # endpoint reports "Unknown dialogue action: author_surrender_terms".
             "author_surrender_terms",
             "apply_surrender_preset_replacement",
+            # SC-33 / G2-Slice-9 recurring-gold popup authoring. The
+            # backend already validates / mutates `gold_per_turn`; this
+            # arm keeps the player-facing settlement button from falling
+            # through to the legacy "Unknown dialogue action" path.
+            "author_recurring_gold_terms",
+            "apply_recurring_gold_preset_replacement",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,

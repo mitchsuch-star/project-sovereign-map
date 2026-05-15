@@ -46,6 +46,9 @@ from backend.game_logic.diplomatic_templates import (
 from backend.game_logic.settlement_preview import (
     _apply_settlement_terms,
     _check_gold_payment_budget_conflict,
+    build_settlement_confirm_dialogue,
+    build_settlement_preview,
+    handle_settlement_dialogue_action,
     process_recurring_settlement_payments,
     ratify_settlement_confirm,
     stage_settlement_confirm,
@@ -635,6 +638,127 @@ class TestSmokeFixture:
         assert world.settlement_smoke_fixture.get("expected_recurring_recipient") == "Britain"
         assert world.nation_gold["France"] >= 1500
         assert "war_1" in world.war_instances
+
+
+class TestRecurringGoldDialogueSurface:
+    def _stage_recurring_gold_fixture_dialogue(self) -> tuple[WorldState, dict]:
+        with patch.dict(
+            os.environ, {SMOKE_START_ENV: SMOKE_START_SETTLEMENT_RECURRING_GOLD},
+        ):
+            world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        assert preview["success"] is True
+        dialogue = build_settlement_confirm_dialogue(
+            world,
+            preview,
+            selected_target_nation="Britain",
+            caller_kind="player_editor",
+        )
+        world.dialogue_manager.replace(dialogue)
+        return world, dialogue
+
+    def test_recurring_gold_popup_action_authors_visible_structured_draft(self):
+        world, dialogue = self._stage_recurring_gold_fixture_dialogue()
+
+        actions = [opt["action"] for opt in dialogue["options"]]
+        assert "author_recurring_gold_terms" in actions
+        assert "author_recurring_gold_terms" in dialogue["available_action_ids"]
+        recurring_payload = dialogue["recurring_gold_preset_payload"]
+        assert recurring_payload["payer"] == "France"
+        assert recurring_payload["recipient"] == "Britain"
+        assert recurring_payload["amount"] >= 50
+        assert recurring_payload["turns"] >= 3
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="author_recurring_gold_terms",
+            dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        term = next(
+            t for t in refreshed["settlement_terms"]
+            if t.get("type") == "gold_per_turn"
+        )
+        assert term == {
+            "type": "gold_per_turn",
+            "from": "France",
+            "to": "Britain",
+            "amount": 50,
+            "turns": 3,
+        }
+        assert "author_recurring_gold_terms" not in refreshed["available_action_ids"]
+        labels = [
+            row.get("display_label", "")
+            for row in refreshed["review_sections"]["sections"]["terms"].get("rows", [])
+        ]
+        assert any(
+            "50 gold/turn from France to Britain (3 turns)" in label
+            for label in labels
+        )
+
+    def test_dialogue_response_routes_recurring_gold_action_through_executor_dispatch(self):
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world, dialogue = self._stage_recurring_gold_fixture_dialogue()
+        target_idx = next(
+            idx
+            for idx, option in enumerate(dialogue["options"], start=1)
+            if option.get("action") == "author_recurring_gold_terms"
+        )
+
+        result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+            target_idx,
+            {"world": world},
+        )
+
+        assert "Unknown dialogue action" not in str(result.get("message", ""))
+        assert result["success"] is True
+        assert result["action"] == "author_recurring_gold_terms"
+        assert result["mutated"] is False
+        assert any(
+            term.get("type") == "gold_per_turn"
+            for term in result["diplomatic_dialogue"]["settlement_terms"]
+        )
+
+    def test_recurring_gold_replace_confirm_applies_after_non_empty_draft(self):
+        world, dialogue = self._stage_recurring_gold_fixture_dialogue()
+        dialogue = dict(dialogue)
+        dialogue["settlement_terms"] = [{"type": "peace"}]
+        world.dialogue_manager.replace(dialogue)
+
+        replace_result = handle_settlement_dialogue_action(
+            world,
+            action="author_recurring_gold_terms",
+            dialogue=dialogue,
+        )
+        assert replace_result["success"] is True
+        assert replace_result["requires_replace_confirm"] is True
+        replace_dialogue = replace_result["diplomatic_dialogue"]
+        assert [opt["action"] for opt in replace_dialogue["options"]] == [
+            "apply_recurring_gold_preset_replacement",
+            "keep_current_settlement_draft",
+        ]
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="apply_recurring_gold_preset_replacement",
+            dialogue=replace_dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        assert any(
+            term.get("type") == "gold_per_turn"
+            for term in result["diplomatic_dialogue"]["settlement_terms"]
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -49,6 +49,10 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# success, or returns a humanized refusal without mutating the draft.
 	"author_surrender_terms",
 	"apply_surrender_preset_replacement",
+	# SC-33 / G2-Slice-9 recurring-gold authoring path. Backend stages
+	# a finite `gold_per_turn` draft and revalidates it at click time.
+	"author_recurring_gold_terms",
+	"apply_recurring_gold_preset_replacement",
 	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
 	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
 	# but no settlement-offer button is reachable from the player UI.

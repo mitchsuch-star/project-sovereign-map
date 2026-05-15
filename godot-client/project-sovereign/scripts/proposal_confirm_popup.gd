@@ -373,15 +373,15 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# `white_peace=true` the popup labels the outcome explicitly.
 	if bool(data.get("white_peace", false)):
 		bbcode += "[color=#a0a0d0][b]White Peace[/b] — no terms will be exchanged.[/color]\n"
-	# SETTLEMENT_UI_CLEANUP_SPEC v0.30 G2-Slice-9 SC-33: Recurring gold
-	# rows render through the standard `display_label` path; the backend
-	# now formats `gold_per_turn` clauses as
-	# `Gold per turn: <amount> gold/turn from <payer> to <recipient>
-	# (<turns> turns)` so the obligation reads as a finite commitment
-	# rather than a perpetual stream. No popup wiring required beyond
-	# this acknowledgement comment; structured payloads from the
-	# wizard / future per-clause editor flow through the existing
-	# `propose_common_peace` path.
+	# SETTLEMENT_UI_CLEANUP_SPEC v0.30 G2-Slice-9 SC-33: Recurring-gold
+	# draft payloads expose the finite payer / recipient / amount /
+	# duration before the player clicks the structured authoring action.
+	if bool(data.get("recurring_gold_preset_visible", false)):
+		var recurring_payload = data.get("recurring_gold_preset_payload", {})
+		if recurring_payload is Dictionary:
+			var recurring_reasoning = str(recurring_payload.get("reasoning", ""))
+			if recurring_reasoning != "":
+				bbcode += "[color=#80b8c0][b]Talleyrand's recurring-gold draft:[/b] %s[/color]\n" % recurring_reasoning
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
