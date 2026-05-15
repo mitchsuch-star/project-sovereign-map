@@ -345,7 +345,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# action button is rendered alongside the existing options by the
 	# editor surface. Click-time revalidation re-POSTs the preview and
 	# only applies the baseline when the predicate still holds.
-	if bool(data.get("concession_baseline_visible", false)):
+	if bool(data.get("concession_baseline_visible", false)) and not bool(data.get("surrender_preset", false)):
 		var baseline = data.get("concession_baseline", {})
 		if baseline is Dictionary:
 			var reasoning = str(baseline.get("reasoning", ""))

@@ -829,6 +829,9 @@ class TestAuthorSurrenderTermsHandler:
         # Newly staged dialogue carries surrender_preset=True so
         # downstream ratification tags the settlement_summary event.
         assert new_dialogue["surrender_preset"] is True
+        assert new_dialogue["concession_baseline_visible"] is False
+        assert new_dialogue["concession_baseline"] is None
+        assert "re_author_with_concessions" not in new_dialogue["available_action_ids"]
         # Pre-applied terms are [peace, subjugation].
         types = [t["type"] for t in new_dialogue["settlement_terms"]]
         assert types == ["peace", "subjugation"]
@@ -918,6 +921,9 @@ class TestAuthorSurrenderTermsHandler:
         assert result["mutated"] is False
         refreshed = result["diplomatic_dialogue"]
         assert refreshed["surrender_preset"] is True
+        assert refreshed["concession_baseline_visible"] is False
+        assert refreshed["concession_baseline"] is None
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
         types = [t["type"] for t in refreshed["settlement_terms"]]
         assert "subjugation" in types or "vassalage" in types
         assert "author_surrender_terms" not in refreshed["available_action_ids"]

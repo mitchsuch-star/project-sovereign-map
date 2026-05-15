@@ -1311,7 +1311,7 @@ def _format_concession_reasoning(
     return (
         "Talleyrand's draft: "
         + " ".join(parts)
-        + " to bring acceptance back into reach."
+        + " to improve acceptance."
     )
 
 
@@ -2415,9 +2415,10 @@ def build_settlement_confirm_dialogue(
 
     options = []
     available_action_ids = []
+    suppress_concession_baseline = bool(surrender_preset)
     concession_baseline = (
         copy.deepcopy(preview.get("concession_baseline"))
-        if preview.get("concession_baseline_visible")
+        if preview.get("concession_baseline_visible") and not suppress_concession_baseline
         else None
     )
     baseline_terms = (
@@ -2427,6 +2428,7 @@ def build_settlement_confirm_dialogue(
     )
     can_re_author_with_concessions = (
         not can_ratify
+        and not suppress_concession_baseline
         and bool(preview.get("concession_baseline_visible"))
         and _has_material_concession_terms(baseline_terms)
         and not _term_lists_equal(staged_terms_for_gate, baseline_terms)
@@ -2608,6 +2610,7 @@ def build_settlement_confirm_dialogue(
         ),
         "concession_baseline_visible": bool(
             preview.get("concession_baseline_visible")
+            and not suppress_concession_baseline
         ),
         "concession_baseline": concession_baseline,
         # SC-31 / G2-Slice-8 - `surrender_preset` (the bool flag) labels

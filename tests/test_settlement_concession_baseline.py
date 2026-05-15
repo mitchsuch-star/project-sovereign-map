@@ -629,6 +629,27 @@ class TestConcessionAcceptanceDirection:
         assert acceptance["score"] >= 35
         assert acceptance["components"]["concession_credit"] > 0
 
+    def test_concession_baseline_copy_promises_improvement_not_acceptance_band(self, monkeypatch):
+        from backend.models.world_state import (
+            SMOKE_START_ENV,
+            SMOKE_START_SETTLEMENT_REJECTED,
+        )
+
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_REJECTED)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        baseline = preview["settlement_preview"]["concession_baseline"]
+        assert baseline is not None
+
+        reasoning = str(baseline["reasoning"])
+        assert "to improve acceptance" in reasoning
+        assert "back into reach" not in reasoning
+
 
 class TestStageSettlementPropagation:
     def test_stage_settlement_confirm_propagates_concession_baseline_to_dialogue(self):
