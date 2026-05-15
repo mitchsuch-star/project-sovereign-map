@@ -42,10 +42,15 @@ from backend.game_logic.settlement_scoring import (
     compute_forced_alliance_threat_preview,
     project_balance_after_settlement,
 )
+from backend.game_logic.settlement_preview import (
+    build_settlement_confirm_dialogue,
+    build_settlement_preview,
+)
 from backend.game_logic.settlement_presentation import (
     build_applied_clauses_preview,
 )
 from backend.models.world_state import WorldState
+from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +62,36 @@ def _make_world(threat_level: int = 30) -> WorldState:
     world = WorldState()
     world.threat_level = int(threat_level)
     return world
+
+
+def _install_common_peace_war(world: WorldState) -> dict:
+    war = make_synthetic_war_instance(
+        "war_1",
+        attackers=["France", "Saxony"],
+        defenders=["Austria", "Prussia"],
+        attacker_leader="France",
+        defender_leader="Austria",
+        created_turn=1,
+        created_sequence=1,
+    )
+    world.war_instances["war_1"] = war
+    for pair in war["active_diplo_keys"]:
+        a, _b = pair.split("|")
+        world.diplomatic_states[pair] = "WAR"
+        world.war_start_turns[pair] = world.current_turn
+        world.war_scores[pair] = 100 if a in ("Austria", "Prussia") else -100
+        world.battle_records[pair] = []
+    world.war_exhaustion["Austria"] = 500
+    world.war_exhaustion["Prussia"] = 500
+    world.war_objectives = getattr(world, "war_objectives", {})
+    world.war_objectives["war_1"] = [{
+        "type": "conquest",
+        "declaring_nation": "France",
+        "target_nation": "Austria",
+        "side": "attackers",
+    }]
+    world.invalidate_war_instance_indexes()
+    return war
 
 
 def _forced_alliance_term(
@@ -88,7 +123,11 @@ def test_forced_alliance_continental_toggle_preview_shows_cost_difference():
     per-clause through `compute_forced_alliance_continental_toggle_differential`,
     the applied-clauses preview row, and (via the build_settlement_preview
     payload contract) reachable by POST preview consumers."""
+    assert FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE == 10
+    expected_diff = 10
+
     world = _make_world(threat_level=30)
+    _install_common_peace_war(world)
     austria_clause = _forced_alliance_term(
         from_n="Austria", to_n="France", includes_continental_system=True,
     )
@@ -118,7 +157,6 @@ def test_forced_alliance_continental_toggle_preview_shows_cost_difference():
     # other row remains CS=True. Expected math for a 2-clause CS=True
     # baseline: with_cs total threat_delta = 25 + 25 = 50; without_cs
     # total threat_delta = 15 + 25 = 40. Difference = 10 per clause.
-    expected_diff = int(FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)
     assert with_cs["threat_delta"] - without_cs["threat_delta"] == expected_diff
     assert row["threat_delta_difference"] == expected_diff
     # Balance delta is 0 by spec (alliance pair formed regardless of CS).
@@ -137,14 +175,34 @@ def test_forced_alliance_continental_toggle_preview_shows_cost_difference():
     assert row_1["to"] == "France"
     assert row_1["threat_delta_difference"] == expected_diff
 
-    # Integration: applied-clauses preview row carries the differential
-    # for the matching forced_alliance row, so the player-facing
-    # ratification preview can render the cost difference next to the
-    # toggled clause. POST preview wiring is covered by source-level
-    # contract: `build_settlement_preview` writes
-    # `preview["forced_alliance_continental_toggle_differential"]` and
-    # `build_settlement_confirm_dialogue` propagates the field onto the
-    # staged dialogue via the explicit return-dict write.
+    # Integration: POST preview, staged dialogue, and applied-clauses
+    # preview all carry the same per-clause differential payload.
+    preview_response = build_settlement_preview(
+        world,
+        war_id="war_1",
+        settlement_terms=terms,
+        covered_enemy_participants=["Austria", "Prussia"],
+    )
+    assert preview_response["success"] is True
+    preview_diffs = (
+        preview_response["settlement_preview"][
+            "forced_alliance_continental_toggle_differential"
+        ]
+    )
+    assert len(preview_diffs) == 2
+    assert preview_diffs == diffs
+    assert preview_diffs[0]["threat_delta_difference"] == expected_diff
+
+    dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview_response,
+        selected_target_nation="Austria",
+    )
+    dialogue_diffs = dialogue["forced_alliance_continental_toggle_differential"]
+    assert len(dialogue_diffs) == 2
+    assert dialogue_diffs == preview_diffs
+    assert dialogue_diffs[0]["threat_delta_difference"] == expected_diff
+
     applied = build_applied_clauses_preview(terms, world=world)
     fa_rows = [r for r in applied if r["type"] == "forced_alliance"]
     assert len(fa_rows) == 2

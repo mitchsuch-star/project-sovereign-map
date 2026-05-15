@@ -16,7 +16,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Workflow: work directly on master
 
-This is a single-developer project with pre-commit-hook test gating and Codex audits run by commit SHA. Branch-per-slice / worktree-per-slice creates state-drift bugs (the branch falls behind master between slices, the merge back is noisy, and the audit prompt still ends up referencing master after merge anyway). The default is:
+This is a single-developer project with pre-commit-hook test gating and Codex audits run by commit SHA. Branch-per-slice / worktree-per-slice creates state-drift bugs (the branch falls behind master between slices, the merge back is noisy, and the audit prompt still ends up referencing master after merge anyway). The workflow is intentionally single-threaded: one local master worktree, one active implementation path, and audit/fix follow-ups recorded by master commit SHA. The default is:
 
 - **Commit directly to master.** No `claude/<slice-id>` feature branch, no worktree.
 - **The pre-commit hook runs the full pytest suite.** If a commit is blocked, fix the underlying test failures — do not bypass with `--no-verify`.
