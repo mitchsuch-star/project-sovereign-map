@@ -441,6 +441,7 @@ class TestClickTimeRevalidation:
         assert refreshed["type"] == "settlement_confirm"
         assert refreshed["settlement_terms"]
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
         assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
 
     def test_dialogue_response_routes_re_author_with_concessions_through_executor_dispatch(self):
@@ -481,6 +482,78 @@ class TestClickTimeRevalidation:
         refreshed = world.pending_diplomatic_dialogue
         assert refreshed["type"] == "settlement_confirm"
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
+        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+
+    def test_re_author_with_concessions_mounts_replace_confirm_for_non_empty_draft(self):
+        """A non-empty draft cannot return a dead requires_replace_confirm
+        payload. The popup hides on click, so the backend must mount and
+        return the replacement confirmation dialogue immediately."""
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[{"type": "peace"}],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        assert "re_author_with_concessions" in dialogue["available_action_ids"]
+        world.dialogue_manager.replace(dialogue)
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="re_author_with_concessions",
+            dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["requires_replace_confirm"] is True
+        replace_dialogue = result["diplomatic_dialogue"]
+        assert replace_dialogue["replace_confirm"] is True
+        assert world.pending_diplomatic_dialogue == replace_dialogue
+        option_actions = [opt["action"] for opt in replace_dialogue["options"]]
+        assert option_actions == [
+            "apply_concession_baseline_replacement",
+            "keep_current_settlement_draft",
+        ]
+
+    def test_apply_concession_replacement_restages_baseline_and_hides_repeat_action(self):
+        """The second click path must be real behavior: confirming the
+        replacement restages the concession baseline, keeps mutation false,
+        and removes the repeat Re-author affordance."""
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[{"type": "peace"}],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        world.dialogue_manager.replace(dialogue)
+        replace_result = handle_settlement_dialogue_action(
+            world,
+            action="re_author_with_concessions",
+            dialogue=dialogue,
+        )
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="apply_concession_baseline_replacement",
+            dialogue=replace_result["diplomatic_dialogue"],
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        assert refreshed["settlement_terms"]
+        assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
         assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
 
 

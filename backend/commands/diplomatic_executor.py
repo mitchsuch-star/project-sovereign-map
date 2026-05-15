@@ -2730,6 +2730,8 @@ class DiplomaticExecutor:
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
             "re_author_with_concessions",
+            "apply_concession_baseline_replacement",
+            "keep_current_settlement_draft",
             # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs. These
             # arrive through `respond_to_diplomatic_dialogue` after the
             # player clicks the rejected-popup substitute action; the
@@ -2744,6 +2746,7 @@ class DiplomaticExecutor:
             # and Godot whitelist, but without this arm the dialogue
             # endpoint reports "Unknown dialogue action: author_surrender_terms".
             "author_surrender_terms",
+            "apply_surrender_preset_replacement",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,

@@ -1070,6 +1070,17 @@ def _has_material_concession_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
     )
 
 
+def _term_lists_equal(
+    left: Iterable[Mapping[str, Any]],
+    right: Iterable[Mapping[str, Any]],
+) -> bool:
+    left_terms = [dict(t) for t in (left or []) if isinstance(t, Mapping)]
+    right_terms = [dict(t) for t in (right or []) if isinstance(t, Mapping)]
+    if len(left_terms) != len(right_terms):
+        return False
+    return all(_terms_equal(a, b) for a, b in zip(left_terms, right_terms))
+
+
 def _settlement_collision_payload(
     *,
     error: str,
@@ -2418,6 +2429,7 @@ def build_settlement_confirm_dialogue(
         not can_ratify
         and bool(preview.get("concession_baseline_visible"))
         and _has_material_concession_terms(baseline_terms)
+        and not _term_lists_equal(staged_terms_for_gate, baseline_terms)
     )
     surrender_preset_payload = (
         copy.deepcopy(preview.get("surrender_preset"))
@@ -2436,6 +2448,7 @@ def build_settlement_confirm_dialogue(
             isinstance(t, Mapping) and t.get("type") in ("vassalage", "subjugation")
             for t in surrender_terms_preset
         )
+        and not _term_lists_equal(staged_terms_for_gate, surrender_terms_preset)
     )
     if can_ratify:
         options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
@@ -3854,6 +3867,125 @@ def ratify_settlement_confirm(
     }
 
 
+def _build_settlement_replace_confirm_dialogue(
+    dialogue: Mapping[str, Any],
+    *,
+    replacement_terms: Iterable[Mapping[str, Any]],
+    apply_action: str,
+    apply_label: str,
+    replacement_kind: str,
+    message: str,
+    concession_baseline: Optional[Mapping[str, Any]] = None,
+    surrender_preset_payload: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    current_terms = [
+        dict(t)
+        for t in (dialogue.get("settlement_terms") or [])
+        if isinstance(t, Mapping)
+    ]
+    confirm = copy.deepcopy(dict(dialogue))
+    confirm.update({
+        "type": "settlement_confirm",
+        "dialogue_type": "settlement_confirm",
+        "replace_confirm": True,
+        "replacement_kind": replacement_kind,
+        "replacement_terms": [
+            dict(t) for t in (replacement_terms or []) if isinstance(t, Mapping)
+        ],
+        "preserved_terms": current_terms,
+        "available_action_ids": [apply_action, "keep_current_settlement_draft"],
+        "can_ratify": False,
+        "options": [
+            {
+                "label": apply_label,
+                "action": apply_action,
+                "description": "Replace the current draft without mutating the world.",
+            },
+            {
+                "label": "Keep my draft",
+                "action": "keep_current_settlement_draft",
+                "description": "Return to the current draft unchanged.",
+            },
+        ],
+        "message": message,
+        "talleyrand_text": message,
+        "terminal_recovery_copy": "",
+        "mutated": False,
+        "blocking": True,
+    })
+    if concession_baseline is not None:
+        confirm["concession_baseline"] = copy.deepcopy(concession_baseline)
+    if surrender_preset_payload is not None:
+        confirm["surrender_preset_payload"] = copy.deepcopy(surrender_preset_payload)
+    return confirm
+
+
+def _stage_replacement_settlement_terms(
+    world: Any,
+    dialogue: Mapping[str, Any],
+    *,
+    action: str,
+    terms: Iterable[Mapping[str, Any]],
+    message: str,
+    surrender_preset: bool = False,
+) -> Dict[str, Any]:
+    war_id = str(dialogue.get("war_id") or "")
+    covered = list(dialogue.get("covered_enemy_participants") or [])
+    selected_target = str(dialogue.get("selected_target_nation") or "")
+    actor = getattr(world, "player_nation", "France")
+    replacement_terms = [
+        dict(t) for t in (terms or []) if isinstance(t, Mapping)
+    ]
+    preview = build_settlement_preview(
+        world,
+        war_id=war_id,
+        proposer_side=str(dialogue.get("proposer_side") or ""),
+        settlement_terms=replacement_terms,
+        covered_enemy_participants=covered,
+        actor_nation=actor,
+        ignore_active_dialogue=True,
+    )
+    if not preview.get("success"):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": preview.get("error") or "settlement_replacement_failed_preview",
+            "error_display": preview.get("error_display") or (
+                "The replacement draft could not be previewed."
+            ),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    new_dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview,
+        selected_target_nation=selected_target or None,
+        caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
+        white_peace=bool(dialogue.get("white_peace", False)),
+        surrender_preset=surrender_preset,
+    )
+    drafts = getattr(world, "pending_settlement_drafts", None)
+    if drafts is None:
+        world.pending_settlement_drafts = {}
+        drafts = world.pending_settlement_drafts
+    drafts[war_id] = [dict(t) for t in replacement_terms]
+    world.dialogue_manager.replace(new_dialogue)
+    return {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": action,
+        "war_id": war_id,
+        "diplomatic_dialogue": new_dialogue,
+        "settlement_preview": preview["settlement_preview"],
+        "awaiting_diplomatic_response": True,
+        "mutated": False,
+        "message": message,
+        "suppress_proposal_result_popup": True,
+    }
+
+
 def handle_settlement_dialogue_action(
     world: Any,
     *,
@@ -3907,6 +4039,134 @@ def handle_settlement_dialogue_action(
             "error_display": "Term revision is not yet available.",
             "mutated": False,
         }
+    if action == "keep_current_settlement_draft":
+        preserved_terms = [
+            dict(t)
+            for t in (
+                dialogue.get("preserved_terms")
+                or dialogue.get("settlement_terms")
+                or []
+            )
+            if isinstance(t, Mapping)
+        ]
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action="keep_current_settlement_draft",
+            terms=preserved_terms,
+            message="Keeping the current settlement draft unchanged.",
+            surrender_preset=bool(dialogue.get("surrender_preset", False)),
+        )
+    if action == "apply_concession_baseline_replacement":
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        actor = getattr(world, "player_nation", "France")
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "concession_baseline_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No concession baseline is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        baseline = fresh_preview.get("concession_baseline")
+        baseline_terms = (
+            [dict(t) for t in (baseline.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(baseline, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("concession_baseline_visible")
+            or not _has_material_concession_terms(baseline_terms)
+        ):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "concession_baseline_unavailable",
+                "error_display": "No concession baseline is available now.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action=action,
+            terms=baseline_terms,
+            message="Talleyrand's concession baseline has replaced the current draft.",
+        )
+    if action == "apply_surrender_preset_replacement":
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        actor = getattr(world, "player_nation", "France")
+        fresh_empty_preview = build_settlement_preview(
+            world,
+            war_id=war_id,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            settlement_terms=[],
+            covered_enemy_participants=covered,
+            actor_nation=actor,
+            ignore_active_dialogue=True,
+        )
+        if not fresh_empty_preview.get("success"):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": fresh_empty_preview.get("error") or "surrender_preset_unavailable",
+                "error_display": fresh_empty_preview.get("error_display") or (
+                    "No surrender preset is available now."
+                ),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        fresh_preview = fresh_empty_preview["settlement_preview"]
+        preset_payload = fresh_preview.get("surrender_preset")
+        preset_terms = (
+            [dict(t) for t in (preset_payload.get("terms") or []) if isinstance(t, Mapping)]
+            if isinstance(preset_payload, Mapping)
+            else []
+        )
+        if (
+            not fresh_preview.get("surrender_preset_visible")
+            or not any(
+                isinstance(t, Mapping) and t.get("type") in ("vassalage", "subjugation")
+                for t in preset_terms
+            )
+        ):
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "surrender_preset_unavailable",
+                "error_display": "No surrender preset is available now.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        return _stage_replacement_settlement_terms(
+            world,
+            dialogue,
+            action=action,
+            terms=preset_terms,
+            message="Talleyrand's surrender preset has replaced the current draft.",
+            surrender_preset=True,
+        )
     if action == "re_author_with_concessions":
         covered = list(dialogue.get("covered_enemy_participants") or [])
         selected_target = str(dialogue.get("selected_target_nation") or "")
@@ -3960,6 +4220,45 @@ def handle_settlement_dialogue_action(
                 "suppress_proposal_result_popup": True,
             }
         if current_terms:
+            if _term_lists_equal(current_terms, baseline_terms):
+                refreshed = copy.deepcopy(dict(dialogue))
+                refreshed["options"] = [
+                    dict(opt)
+                    for opt in (refreshed.get("options") or [])
+                    if opt.get("action") != "re_author_with_concessions"
+                ]
+                refreshed["available_action_ids"] = [
+                    str(a)
+                    for a in (refreshed.get("available_action_ids") or [])
+                    if str(a) != "re_author_with_concessions"
+                ]
+                refreshed["message"] = "Talleyrand's concession baseline is already drafted."
+                refreshed["talleyrand_text"] = refreshed["message"]
+                world.dialogue_manager.replace(refreshed)
+                return {
+                    "success": True,
+                    "dialogue_type": "settlement_confirm",
+                    "action": "re_author_with_concessions",
+                    "war_id": war_id,
+                    "diplomatic_dialogue": refreshed,
+                    "awaiting_diplomatic_response": True,
+                    "mutated": False,
+                    "message": refreshed["message"],
+                    "suppress_proposal_result_popup": True,
+                }
+            replace_dialogue = _build_settlement_replace_confirm_dialogue(
+                dialogue,
+                replacement_terms=baseline_terms,
+                apply_action="apply_concession_baseline_replacement",
+                apply_label="Discard draft and apply Talleyrand baseline",
+                replacement_kind="concession_baseline",
+                message=(
+                    "This draft is not empty. Replace it with Talleyrand's "
+                    "concession baseline?"
+                ),
+                concession_baseline=baseline,
+            )
+            world.dialogue_manager.replace(replace_dialogue)
             return {
                 "success": True,
                 "dialogue_type": "settlement_confirm",
@@ -3967,6 +4266,8 @@ def handle_settlement_dialogue_action(
                 "war_id": war_id,
                 "requires_replace_confirm": True,
                 "replacement_terms": baseline_terms,
+                "diplomatic_dialogue": replace_dialogue,
+                "awaiting_diplomatic_response": True,
                 "concession_baseline": copy.deepcopy(baseline),
                 "mutated": False,
                 "message": "Confirm replacing the current draft with Talleyrand's concession baseline.",
@@ -4084,6 +4385,45 @@ def handle_settlement_dialogue_action(
                 "suppress_proposal_result_popup": True,
             }
         if current_terms:
+            if _term_lists_equal(current_terms, preset_terms):
+                refreshed = copy.deepcopy(dict(dialogue))
+                refreshed["options"] = [
+                    dict(opt)
+                    for opt in (refreshed.get("options") or [])
+                    if opt.get("action") != "author_surrender_terms"
+                ]
+                refreshed["available_action_ids"] = [
+                    str(a)
+                    for a in (refreshed.get("available_action_ids") or [])
+                    if str(a) != "author_surrender_terms"
+                ]
+                refreshed["message"] = "Talleyrand's surrender preset is already drafted."
+                refreshed["talleyrand_text"] = refreshed["message"]
+                world.dialogue_manager.replace(refreshed)
+                return {
+                    "success": True,
+                    "dialogue_type": "settlement_confirm",
+                    "action": "author_surrender_terms",
+                    "war_id": war_id,
+                    "diplomatic_dialogue": refreshed,
+                    "awaiting_diplomatic_response": True,
+                    "mutated": False,
+                    "message": refreshed["message"],
+                    "suppress_proposal_result_popup": True,
+                }
+            replace_dialogue = _build_settlement_replace_confirm_dialogue(
+                dialogue,
+                replacement_terms=preset_terms,
+                apply_action="apply_surrender_preset_replacement",
+                apply_label="Discard draft and apply surrender preset",
+                replacement_kind="surrender_preset",
+                message=(
+                    "This draft is not empty. Replace it with Talleyrand's "
+                    "surrender preset?"
+                ),
+                surrender_preset_payload=preset_payload,
+            )
+            world.dialogue_manager.replace(replace_dialogue)
             return {
                 "success": True,
                 "dialogue_type": "settlement_confirm",
@@ -4091,6 +4431,8 @@ def handle_settlement_dialogue_action(
                 "war_id": war_id,
                 "requires_replace_confirm": True,
                 "replacement_terms": preset_terms,
+                "diplomatic_dialogue": replace_dialogue,
+                "awaiting_diplomatic_response": True,
                 "surrender_preset": copy.deepcopy(preset_payload),
                 "mutated": False,
                 "message": "Confirm replacing the current draft with Talleyrand's surrender preset.",

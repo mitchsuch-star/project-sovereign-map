@@ -865,11 +865,62 @@ class TestAuthorSurrenderTermsHandler:
             )
         assert result["success"] is True
         assert result["requires_replace_confirm"] is True
+        replace_dialogue = result["diplomatic_dialogue"]
+        assert replace_dialogue["replace_confirm"] is True
+        assert world.pending_diplomatic_dialogue == replace_dialogue
+        assert [opt["action"] for opt in replace_dialogue["options"]] == [
+            "apply_surrender_preset_replacement",
+            "keep_current_settlement_draft",
+        ]
         # Replacement terms come from the surrender preset, not the
         # concession baseline. Replacement must not run until the player
         # confirms discard of the active draft.
         types = [t["type"] for t in result["replacement_terms"]]
         assert "subjugation" in types or "vassalage" in types
+
+    def test_apply_surrender_replacement_restages_preset_after_confirm(self):
+        world = WorldState()
+        _install_power_legal_surrender_war(world)
+        dialogue = _stage_blocked_surrender_dialogue(
+            world,
+            with_draft=[{
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Britain",
+                "amount": 500,
+            }],
+        )
+        with patch(
+            "backend.game_logic.settlement_preview."
+            "calculate_common_peace_acceptance"
+        ) as mock_accept:
+            mock_accept.return_value = {
+                "score": 10,
+                "verdict": "reject",
+                "hard_stops": [],
+                "feedback": [],
+                "top_components": [],
+                "components": {},
+                "side_pressure_score": -90,
+                "accept_threshold": 50,
+                "near_acceptable_threshold": 35,
+            }
+            replace_result = handle_settlement_dialogue_action(
+                world, action="author_surrender_terms", dialogue=dialogue,
+            )
+            result = handle_settlement_dialogue_action(
+                world,
+                action="apply_surrender_preset_replacement",
+                dialogue=replace_result["diplomatic_dialogue"],
+            )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        assert refreshed["surrender_preset"] is True
+        types = [t["type"] for t in refreshed["settlement_terms"]]
+        assert "subjugation" in types or "vassalage" in types
+        assert "author_surrender_terms" not in refreshed["available_action_ids"]
 
     def test_handler_refuses_mutation_on_stale_failure(self):
         world = WorldState()
@@ -935,6 +986,7 @@ class TestAuthorSurrenderTermsHandler:
         assert result["success"] is True
         assert result["action"] == "author_surrender_terms"
         assert result["requires_replace_confirm"] is True
+        assert result["diplomatic_dialogue"]["replace_confirm"] is True
         assert result["mutated"] is False
 
 

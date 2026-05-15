@@ -347,9 +347,12 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "back_out_settlement",
     "open_war_detail",
     "re_author_with_concessions",
+    "apply_concession_baseline_replacement",
+    "keep_current_settlement_draft",
     "seek_bilateral_peace",
     "seek_armistice_instead",
     "author_surrender_terms",
+    "apply_surrender_preset_replacement",
 ]
 
 
