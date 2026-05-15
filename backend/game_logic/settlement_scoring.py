@@ -478,8 +478,9 @@ WPS_OBJECTIVE_PRIORITY = (
 CONCESSION_GOLD_DIVISOR = 25
 CONCESSION_GOLD_CAP = 40
 CONCESSION_TERRITORY_PER_REGION = 35
-CONCESSION_DEPENDENCY_CREDIT = 45
-CONCESSION_CREDIT_CLAMP = (0, 80)
+CONCESSION_DEPENDENCY_CREDIT = 100
+CONCESSION_FORCED_ALLIANCE_CREDIT = 45
+CONCESSION_CREDIT_CLAMP = (0, 120)
 
 # War-exhaustion (spec line 1120 — intentional floor division).
 WAR_EXHAUSTION_DIVISOR = 3
@@ -1256,8 +1257,10 @@ def _concession_credit_for_term(
         return min(CONCESSION_GOLD_CAP, projected // CONCESSION_GOLD_DIVISOR)
     if ttype in _TERRITORY_TERM_TYPES:
         return CONCESSION_TERRITORY_PER_REGION * len(_term_regions(term))
-    if ttype in ("vassalage", "subjugation", "forced_alliance"):
+    if ttype in ("vassalage", "subjugation"):
         return CONCESSION_DEPENDENCY_CREDIT
+    if ttype == "forced_alliance":
+        return CONCESSION_FORCED_ALLIANCE_CREDIT
     return 0
 
 

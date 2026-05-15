@@ -1194,6 +1194,36 @@ class TestSettlementSurrenderSmokeFixture:
         assert meta.get("surrender_lord_candidate") == "Britain"
         assert meta.get("expected_surrender_dependency") == "subjugation"
 
+    def test_settlement_surrender_smoke_preset_is_ratifiable_without_acceptance_patch(self, monkeypatch):
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_SURRENDER)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[
+                {"type": "peace"},
+                {"type": "subjugation", "from": "France", "to": "Britain"},
+            ],
+            ignore_active_dialogue=True,
+        )
+        assert preview["success"] is True, preview
+        acceptance = preview["settlement_preview"]["acceptance"]
+        assert acceptance["verdict"] == "accept"
+        assert acceptance["score"] >= acceptance["accept_threshold"]
+        assert acceptance["components"]["concession_credit"] >= 100
+
+        dialogue = build_settlement_confirm_dialogue(
+            world,
+            preview,
+            selected_target_nation="Britain",
+            caller_kind="player_editor",
+            surrender_preset=True,
+        )
+        assert dialogue["can_ratify"] is True
+        assert "confirm_settlement" in dialogue["available_action_ids"]
+        assert "re_author_with_concessions" not in dialogue["available_action_ids"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Voice Bible §16.1 surrender / dependency families
