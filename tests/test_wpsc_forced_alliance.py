@@ -323,7 +323,11 @@ class TestForcedAllianceRatification:
         assert "Prussia" in world.continental_system_members
         assert "Austria" in world.continental_system_members
         assert austria_key not in world.war_scores
-        assert world.threat_level == before_threat + 30
+        # G2-Slice-1b-Repair-1: each forced_alliance clause defaults to
+        # `includes_continental_system=True`, so the threat charge is
+        # `+15 base + +10 Continental System surcharge = +25` per clause.
+        # Two clauses → +50.
+        assert world.threat_level == before_threat + 50
         fa_events = [e for e in world.event_log if e.get("type") == "forced_alliance_imposed"]
         assert len(fa_events) == 2
 

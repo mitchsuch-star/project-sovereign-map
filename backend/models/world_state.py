@@ -6534,7 +6534,10 @@ class WorldState:
                     )
                 _set_ds(self, fa_imposer, fa_target, "ALLIANCE", "forced_alliance")
                 self.nation_relations[fa_key] = 0
-                if fa_clause.get("includes_continental_system", True):
+                includes_cs = bool(
+                    fa_clause.get("includes_continental_system", True)
+                )
+                if includes_cs:
                     cs_members = getattr(self, 'continental_system_members', [])
                     if isinstance(cs_members, set):
                         cs_members.add(fa_target)
@@ -6542,18 +6545,29 @@ class WorldState:
                         cs_members.append(fa_target)
                     self.continental_system_members = cs_members
                 self.alliance_origins[fa_key] = "forced"
+                # G2-Slice-1b-Repair-1: apply the same +10 Continental
+                # System surcharge to bilateral-treaty ratification that
+                # the settlement-confirm path applies, so the imperial
+                # cost of forcing CS inclusion is uniform across entry
+                # paths.
+                from backend.game_logic.settlement_scoring import (
+                    FORCED_ALLIANCE_THREAT_PER_CLAUSE as _BASE,
+                    FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE as _SURCHARGE,
+                )
+                fa_threat_delta = int(_BASE) + (
+                    int(_SURCHARGE) if includes_cs else 0
+                )
                 if fa_imposer == getattr(self, "player_nation", "France"):
                     from backend.game_logic.coalition import add_threat as _at
-                    _at(self, 15, "forced_alliance")
+                    _at(self, fa_threat_delta, "forced_alliance")
                 self.log_event({
                     "type": "forced_alliance_imposed",
                     "imposer": fa_imposer,
                     "target": fa_target,
                     "imposing_nation": fa_imposer,
                     "forced_nation": fa_target,
-                    "includes_continental_system": bool(
-                        fa_clause.get("includes_continental_system", True)
-                    ),
+                    "includes_continental_system": includes_cs,
+                    "projected_threat_delta": fa_threat_delta,
                     "turn": int(self.current_turn),
                 })
 

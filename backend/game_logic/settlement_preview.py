@@ -2409,6 +2409,22 @@ def build_settlement_preview(
     preview["recurring_gold_preset_reason"] = str(
         recurring_gold_payload.get("recurring_gold_preset_reason") or ""
     )
+    # G2-Slice-1b-Repair-1 - per-clause Continental System toggle
+    # differential. Surfaces the threat / Balance cost differential
+    # between `includes_continental_system=True` and `=False` for every
+    # forced_alliance clause in the draft, so the player can see the
+    # imperial cost of the toggle before authoring. Empty list when no
+    # forced_alliance clause is present; the staged dialogue copies the
+    # field through `copy.deepcopy(preview)` in
+    # `build_settlement_confirm_dialogue`.
+    from backend.game_logic.settlement_scoring import (
+        compute_forced_alliance_continental_toggle_differential,
+    )
+    preview["forced_alliance_continental_toggle_differential"] = (
+        compute_forced_alliance_continental_toggle_differential(
+            world, war_id=war_id, settlement_terms=terms,
+        )
+    )
     return {
         "success": True,
         "mode": "settlement",
@@ -2815,6 +2831,15 @@ def build_settlement_confirm_dialogue(
         ),
         "recurring_gold_preset_reason": str(
             preview.get("recurring_gold_preset_reason") or ""
+        ),
+        # G2-Slice-1b-Repair-1: surface the per-clause Continental
+        # System toggle differential at the staged dialogue's top level
+        # so Godot can read it without descending into
+        # `settlement_preview`. POST preview remains the source of
+        # truth and is consumed for click-time revalidation when the
+        # editor toggle flips.
+        "forced_alliance_continental_toggle_differential": list(
+            preview.get("forced_alliance_continental_toggle_differential") or []
         ),
     }
 
@@ -3550,9 +3575,22 @@ def _resolve_pair_state_transitions(
                 elif covered_enemy not in cs_members:
                     cs_members.append(covered_enemy)
                 world.continental_system_members = cs_members
+            # G2-Slice-1b-Repair-1: Continental System surcharge.
+            # Base +15 threat for the alliance imposition; +10 extra
+            # when CS=True so the imperial cost of forcing inclusion is
+            # charged at ratification, matching what the preview shows.
+            from backend.game_logic.settlement_scoring import (
+                FORCED_ALLIANCE_THREAT_PER_CLAUSE,
+                FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE,
+            )
+            clause_threat_delta = int(FORCED_ALLIANCE_THREAT_PER_CLAUSE)
+            if includes_cs:
+                clause_threat_delta += int(
+                    FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE
+                )
             if proposer_member == getattr(world, "player_nation", None):
                 from backend.game_logic.coalition import add_threat
-                add_threat(world, 15, "forced_alliance")
+                add_threat(world, clause_threat_delta, "forced_alliance")
             if hasattr(world, "log_event"):
                 world.log_event({
                     "type": "forced_alliance_imposed",
@@ -3561,12 +3599,16 @@ def _resolve_pair_state_transitions(
                     "imposing_nation": proposer_member,
                     "forced_nation": covered_enemy,
                     "includes_continental_system": includes_cs,
+                    "projected_threat_delta": clause_threat_delta,
                     "turn": int(getattr(world, "current_turn", 0) or 0),
                 })
             if term is not None:
                 clause = dict(term)
                 clause["includes_continental_system"] = includes_cs
-                clause.setdefault("projected_threat_delta", 15)
+                # Always overwrite so preview and applied row agree on
+                # the CS-adjusted delta even when the editor pre-stamped
+                # the legacy +15 baseline before authoring the toggle.
+                clause["projected_threat_delta"] = clause_threat_delta
                 clause["pair_state_transition"] = "WAR -> ALLIANCE"
                 state_clauses_applied.append(clause)
 

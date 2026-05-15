@@ -501,6 +501,12 @@ NEAR_ACCEPTANCE_FLOOR = 35
 
 # Forced-alliance threat preview (spec line 1273 — `+15` per clause).
 FORCED_ALLIANCE_THREAT_PER_CLAUSE = 15
+# G2-Slice-1b-Repair-1: extra threat surcharge applied when a forced_alliance
+# clause carries `includes_continental_system=True`. Surfaces the imperial cost
+# of forcing Continental System inclusion separately from the base alliance
+# imposition. Spec contract: `SETTLEMENT_UI_CLEANUP_SPEC.md` §"Editor Layout
+# Contract" forced-alliance preview patch.
+FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE = 10
 COALITION_THRESHOLD_BREWING = 60   # `COALITION_SPEC` brewing
 COALITION_THRESHOLD_INSTANT = 80   # instant-declaration
 COALITION_THRESHOLD_OVERRIDE = 90  # cooldown-override
@@ -1690,6 +1696,37 @@ def project_balance_after_settlement(
 # --- Forced-alliance threat preview -----------------------------------------
 
 
+def _forced_alliance_clause_threat_delta(term: Mapping[str, Any]) -> int:
+    """Threat delta for a single forced_alliance clause.
+
+    Base `+15` per clause; `+10` Continental System surcharge when
+    `includes_continental_system=True` (default per the canonical
+    clause schema). G2-Slice-1b-Repair-1.
+    """
+    if term.get("type") != "forced_alliance":
+        return 0
+    delta = FORCED_ALLIANCE_THREAT_PER_CLAUSE
+    if bool(term.get("includes_continental_system", True)):
+        delta += FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE
+    return int(delta)
+
+
+def _read_current_threat(world: Any) -> int:
+    """Coalition `threat_level` for the proposer side, default 0."""
+    coalition = getattr(world, "coalition_state", None)
+    if coalition:
+        try:
+            return int(coalition.get("threat_level", 0))
+        except Exception:
+            return 0
+    if hasattr(world, "threat_level"):
+        try:
+            return int(world.threat_level or 0)
+        except Exception:
+            return 0
+    return 0
+
+
 def compute_forced_alliance_threat_preview(
     world: Any,
     *,
@@ -1697,33 +1734,30 @@ def compute_forced_alliance_threat_preview(
 ) -> Dict[str, Any]:
     """Spec §6.acceptance line 1273: project per-clause threat delta.
 
-    Each `forced_alliance` clause adds `+15` threat. Settlement preview
-    must aggregate the projected delta and name any crossed coalition
-    thresholds (`60` brewing / `80` instant / `90` cooldown override per
+    Each `forced_alliance` clause adds `+15` threat. G2-Slice-1b-Repair-1
+    adds an additional `+10` surcharge when the clause carries
+    `includes_continental_system=True` so the player sees the imperial
+    cost of forcing Continental System inclusion separately from the
+    base alliance imposition. Settlement preview must aggregate the
+    projected delta and name any crossed coalition thresholds (`60`
+    brewing / `80` instant / `90` cooldown override per
     `COALITION_SPEC.md`) so the player sees the imperial cost before
     confirmation.
     """
-    forced_clauses = sum(
-        1 for t in _iter_terms(settlement_terms)
+    forced_alliance_terms = [
+        t for t in _iter_terms(settlement_terms)
         if t.get("type") == "forced_alliance"
+    ]
+    forced_clauses = len(forced_alliance_terms)
+    continental_system_clauses = sum(
+        1 for t in forced_alliance_terms
+        if bool(t.get("includes_continental_system", True))
     )
-    delta = forced_clauses * FORCED_ALLIANCE_THREAT_PER_CLAUSE
+    delta = sum(
+        _forced_alliance_clause_threat_delta(t) for t in forced_alliance_terms
+    )
 
-    # Read current threat for the proposer side from coalition state if
-    # available; default 0 when no coalition system is active.
-    current_threat = 0
-    coalition = getattr(world, "coalition_state", None)
-    if coalition:
-        try:
-            current_threat = int(coalition.get("threat_level", 0))
-        except Exception:
-            current_threat = 0
-    elif hasattr(world, "threat_level"):
-        try:
-            current_threat = int(world.threat_level or 0)
-        except Exception:
-            current_threat = 0
-
+    current_threat = _read_current_threat(world)
     projected = current_threat + delta
     crossed: List[int] = []
     for thr in (
@@ -1735,11 +1769,108 @@ def compute_forced_alliance_threat_preview(
             crossed.append(thr)
     return {
         "forced_alliance_clauses": int(forced_clauses),
+        "continental_system_clauses": int(continental_system_clauses),
         "projected_threat_delta": int(delta),
         "current_threat": int(current_threat),
         "projected_threat": int(projected),
         "crossed_thresholds": crossed,
     }
+
+
+def compute_forced_alliance_continental_toggle_differential(
+    world: Any,
+    *,
+    war_id: Optional[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """G2-Slice-1b-Repair-1 — per-clause CS-toggle cost differential.
+
+    For every `forced_alliance` clause in `settlement_terms`, build a
+    payload comparing the `includes_continental_system=True` and `=False`
+    projections (keeping every other clause's toggle state untouched).
+    The payload surfaces the threat surcharge added by
+    `FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE` and the matching
+    Balance/hegemony projection from `project_balance_after_settlement`
+    so the player sees the imperial cost differential before authoring
+    a settlement.
+
+    Returns a list of per-clause differential rows. Empty list when no
+    `forced_alliance` clause is present.
+
+    Each row shape (closed contract):
+
+        {
+            "clause_index": int,
+            "from": str,
+            "to": str,
+            "with_continental_system": {
+                "threat_delta": int,
+                "projected_threat": int,
+                "balance_modifier": int,
+                "balance_post_share": float,
+                "balance_crossed_band": int | None,
+            },
+            "without_continental_system": {... same shape ...},
+            "threat_delta_difference": int,
+            "balance_delta_difference": int,
+            "display": str,
+        }
+
+    Pure projection — never mutates `settlement_terms` items, never
+    mutates `world` (delegates to `project_balance_after_settlement`
+    which is itself pure).
+    """
+    terms_list = list(_iter_terms(settlement_terms))
+    rows: List[Dict[str, Any]] = []
+    for index, term in enumerate(terms_list):
+        if term.get("type") != "forced_alliance":
+            continue
+
+        def _projection_for(toggle: bool) -> Dict[str, Any]:
+            scratch = [dict(t) for t in terms_list]
+            scratch[index] = dict(term)
+            scratch[index]["includes_continental_system"] = bool(toggle)
+            threat_preview = compute_forced_alliance_threat_preview(
+                world, settlement_terms=scratch,
+            )
+            balance_preview = project_balance_after_settlement(
+                world, war_id=war_id, settlement_terms=scratch,
+            )
+            return {
+                "threat_delta": int(threat_preview["projected_threat_delta"]),
+                "projected_threat": int(threat_preview["projected_threat"]),
+                "balance_modifier": int(balance_preview.get("modifier", 0) or 0),
+                "balance_post_share": float(
+                    balance_preview.get("post_share", 0.0) or 0.0
+                ),
+                "balance_crossed_band": balance_preview.get("crossed_band"),
+            }
+
+        with_cs = _projection_for(True)
+        without_cs = _projection_for(False)
+        threat_delta_diff = int(
+            with_cs["threat_delta"] - without_cs["threat_delta"]
+        )
+        balance_delta_diff = int(
+            with_cs["balance_modifier"] - without_cs["balance_modifier"]
+        )
+        target = str(term.get("to") or "")
+        display = (
+            f"Adds {target} to the Continental System; extra threat cost applies."
+            if target
+            else "Adds target to the Continental System; extra threat cost applies."
+        )
+        rows.append({
+            "clause_index": int(index),
+            "from": str(term.get("from") or ""),
+            "to": target,
+            "with_continental_system": with_cs,
+            "without_continental_system": without_cs,
+            "threat_delta_difference": threat_delta_diff,
+            "balance_delta_difference": balance_delta_diff,
+            "display": display,
+        })
+    return rows
 
 
 # --- Pipeline composer ------------------------------------------------------

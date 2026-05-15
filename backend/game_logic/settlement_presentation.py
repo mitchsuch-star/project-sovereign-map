@@ -833,11 +833,35 @@ def build_applied_clauses_preview(
     in `settlement_preview.py`; consumers MUST treat clause-specific
     value fields as load-bearing (a SC-15 test asserts equality with
     the post-ratification `applied_clauses` list).
+
+    G2-Slice-1b-Repair-1: forced_alliance rows additionally carry a
+    `continental_toggle_differential` payload describing the threat /
+    Balance cost difference between `includes_continental_system=True`
+    and `=False` for that clause.
     """
+    # G2-Slice-1b-Repair-1: compute per-clause Continental toggle
+    # differentials once and key by `clause_index` so the forced_alliance
+    # branch below can attach the matching row without re-running the
+    # projection helper for every term.
+    from backend.game_logic.settlement_scoring import (
+        compute_forced_alliance_continental_toggle_differential,
+    )
+    valid_terms = [
+        t for t in (settlement_terms or []) if isinstance(t, Mapping)
+    ]
+    differentials_by_index: Dict[int, Dict[str, Any]] = {
+        int(d["clause_index"]): d
+        for d in compute_forced_alliance_continental_toggle_differential(
+            world, war_id=None, settlement_terms=valid_terms,
+        )
+    }
     rows: List[Dict[str, Any]] = []
-    for term in settlement_terms or []:
-        if not isinstance(term, Mapping):
-            continue
+    # Iterate the filtered `valid_terms` so `term_index` aligns with
+    # `clause_index` from the differential helper (which positions over
+    # `_iter_terms`-filtered terms only). This keeps the differential
+    # row attached to the correct forced_alliance clause even when the
+    # caller passes a sparse list containing non-Mapping entries.
+    for term_index, term in enumerate(valid_terms):
         ttype = str(term.get("type") or "")
         row: Dict[str, Any] = {
             "type": ttype,
@@ -895,13 +919,30 @@ def build_applied_clauses_preview(
         elif ttype == "forced_alliance":
             row["from"] = str(term.get("from") or "")
             row["to"] = str(term.get("to") or "")
-            row["includes_continental_system"] = bool(
-                term.get("includes_continental_system", True)
+            includes_cs = bool(term.get("includes_continental_system", True))
+            row["includes_continental_system"] = includes_cs
+            # G2-Slice-1b-Repair-1: applied-clause threat delta carries
+            # the CS surcharge (`+10`) when CS=True, so `compute_*`
+            # helpers, ratification mutation, applied-clause preview,
+            # and forced-alliance threat preview all agree. Existing
+            # callers that pre-stamp `projected_threat_delta` win only
+            # when they supply a non-zero value; otherwise we derive
+            # from the live CS toggle.
+            from backend.game_logic.settlement_scoring import (
+                FORCED_ALLIANCE_THREAT_PER_CLAUSE,
+                FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE,
+            )
+            default_threat = int(FORCED_ALLIANCE_THREAT_PER_CLAUSE) + (
+                int(FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)
+                if includes_cs else 0
             )
             row["projected_threat_delta"] = int(
-                term.get("projected_threat_delta", 15) or 15
+                term.get("projected_threat_delta") or default_threat
             )
             row["pair_state_transition"] = "WAR -> ALLIANCE"
+            differential = differentials_by_index.get(term_index)
+            if differential is not None:
+                row["continental_toggle_differential"] = differential
         elif ttype == "vassalage" or ttype == "subjugation":
             row["vassal"] = str(term.get("vassal_nation") or term.get("from") or "")
             row["overlord"] = str(term.get("overlord") or term.get("to") or "")

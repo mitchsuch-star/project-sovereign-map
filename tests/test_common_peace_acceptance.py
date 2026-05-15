@@ -1271,7 +1271,13 @@ def test_debug_exposes_raw_and_relevance_split_exhaustion():
 
 
 def test_debug_exposes_forced_alliance_threat_delta_and_crossed_thresholds():
-    """Spec line 1273: debug exposes projected threat delta + crossed thresholds."""
+    """Spec line 1273: debug exposes projected threat delta + crossed thresholds.
+
+    G2-Slice-1b-Repair-1: a forced_alliance clause without an explicit
+    `includes_continental_system` toggle defaults to CS=True, so the
+    threat delta now carries the `+10` Continental System surcharge on
+    top of the `+15` base, totaling `+25` per clause. Cleared thresholds
+    are recomputed against the larger delta."""
     world = _make_world(pairs={("France", "Austria"): 30})
     world.threat_level = 70
     war = _instance(attackers=["France"], defenders=["Austria"])
@@ -1287,9 +1293,11 @@ def test_debug_exposes_forced_alliance_threat_delta_and_crossed_thresholds():
         settlement_terms=terms,
     )
     debug = result["component_debug"]
-    assert debug["projected_forced_alliance_threat_delta"] == 15
-    # 70 + 15 = 85 crosses 80 threshold.
+    # 70 base + 25 (15 base + 10 CS surcharge) = 95.
+    assert debug["projected_forced_alliance_threat_delta"] == 25
+    # 80 instant + 90 cooldown-override both crossed from base 70.
     assert 80 in debug["crossed_coalition_thresholds"]
+    assert 90 in debug["crossed_coalition_thresholds"]
 
 
 def test_feedback_names_top_two_components_when_rejected():

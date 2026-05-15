@@ -29,6 +29,36 @@ from backend.game_logic.combat import CombatResolver
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+# TEST ISOLATION FROM DEV-ENV SMOKE PRESETS
+# ════════════════════════════════════════════════════════════════════════════════
+#
+# `WorldState.__init__` consults `SOVEREIGN_SMOKE_START` to seed manual
+# Gate 4 smoke fixtures (Waterloo transfer, gold bump, war pressure, etc.).
+# `LLMClient.__init__` loads `.env` via `dotenv`, which can inject a leftover
+# preset (e.g. `SOVEREIGN_SMOKE_START=settlement_losing`) into `os.environ`
+# the first time a test imports the client. From that point on, every
+# `WorldState()` constructed in the same pytest process picks up the
+# preset, transferring regions / bumping resources and poisoning ~150
+# tests that expect the base 1805 scenario.
+#
+# This autouse fixture pops the var before each test runs, so a dev-env
+# leak in `.env` (or a sibling test that imports LLMClient) cannot
+# cross-contaminate. Manual smoke sessions still work — they export the
+# var in the shell that runs the live server, not the pytest process.
+
+
+@pytest.fixture(autouse=True)
+def _isolate_sovereign_smoke_start(monkeypatch):
+    """Ensure SOVEREIGN_SMOKE_START is unset for every test.
+
+    Defense in depth: the canonical fix is to keep `.env` from carrying a
+    stale smoke preset between sessions, but tests must not silently rely
+    on developers remembering to unset it.
+    """
+    monkeypatch.delenv("SOVEREIGN_SMOKE_START", raising=False)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # MARSHAL FACTORY
 # ════════════════════════════════════════════════════════════════════════════════
 

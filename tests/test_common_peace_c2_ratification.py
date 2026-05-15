@@ -330,7 +330,9 @@ def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
         assert "Austria" in cs_members
     else:
         assert "Austria" in cs_members
-    assert int(world.threat_level) == threat_before + 15
+    # G2-Slice-1b-Repair-1: forced_alliance with `includes_continental_system=True`
+    # charges +15 base + +10 Continental System surcharge = +25.
+    assert int(world.threat_level) == threat_before + 25
     # Pair still moved from active to resolved per spec §10.5 line 1040.
     war = world.war_instances["war_1"]
     assert fa_pair in war["resolved_diplo_keys"]
