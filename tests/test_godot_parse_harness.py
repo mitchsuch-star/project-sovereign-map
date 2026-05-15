@@ -164,6 +164,8 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     "seek_armistice_instead",
     # SC-31 / G2-Slice-8 surrender preset CTA.
     "author_surrender_terms",
+    # SC-33 / G2-Slice-9 recurring-gold finite-payment authoring CTA.
+    "author_recurring_gold_terms",
 }
 
 
@@ -178,6 +180,66 @@ def _collect_wizard_mappings() -> Tuple[List[str], List[str]]:
     structured_pattern = re.compile(r'action_id == "(\w+)"')
     structured_ids = structured_pattern.findall(text)
     return build_ids, structured_ids
+
+
+def _extract_gd_string_array(source: str, const_name: str) -> List[str]:
+    start = source.index(f"const {const_name} := [")
+    end = source.index("]", start)
+    return re.findall(r'"([A-Za-z0-9_]+)"', source[start:end])
+
+
+def _extract_post_hud_route_ids(source: str) -> List[str]:
+    start = source.index("_post_hud_response_routes = [")
+    end = source.index("]", start)
+    block = source[start:end]
+    return re.findall(r'{"id": "([A-Za-z0-9_]+)"', block)
+
+
+def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
+    handler_anchor = (
+        "from backend.game_logic.settlement_preview import (\n"
+        "                handle_settlement_dialogue_action,\n"
+        "            )"
+    )
+    pre_handler = source.split(handler_anchor, 1)[0]
+    elif_open = pre_handler.rfind("elif action in (")
+    assert elif_open != -1
+    tuple_block = pre_handler[elif_open:]
+    tuple_body = tuple_block.split("):", 1)[0]
+    return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
+
+
+def _simulate_main_gd_command_result_route(response: dict, source: str) -> str:
+    """Small executable model of the relevant `_on_command_result` route order.
+
+    The model intentionally covers only the settlement/proposal branches used
+    by this gate: post-HUD modal routing runs before the recovery-route branch,
+    and `_route_settlement_recovery_route` handles only war detail/history.
+    """
+    for route_id in _extract_post_hud_route_ids(source):
+        if route_id == "deferred_incoming_settlement_offer":
+            dialogue = response.get("diplomatic_dialogue", {})
+            if (
+                isinstance(dialogue, dict)
+                and dialogue.get("type", dialogue.get("dialogue_type", ""))
+                == "incoming_settlement_offer"
+            ):
+                return route_id
+            if response.get("dialogue_type", "") == "incoming_settlement_offer":
+                return route_id
+        elif route_id == "proposal_confirm":
+            if response.get("diplomatic_dialogue") is not None:
+                return route_id
+
+    recovery_route = response.get("recovery_route")
+    if isinstance(recovery_route, dict):
+        surface = str(
+            recovery_route.get("surface", recovery_route.get("target", ""))
+        )
+        if surface in {"war_detail", "settlement_history"}:
+            return f"recovery_route:{surface}"
+        return "continue_without_recovery_early_return"
+    return "continue"
 
 
 def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_wizard():
@@ -266,3 +328,164 @@ def test_settlement_action_id_whitelists_have_no_orphan_typed_command_mappings()
         "diplomacy_wizard.gd must reference propose_white_peace "
         "(via `_build_command` and `_structured_payload_for_action`)."
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G2-Gate4-Repair-1: Dialogue-endpoint dispatch coverage regression
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# Settlement-family dialogue action ids that arrive through
+# /respond_to_diplomatic_dialogue (NOT structured /command entry).
+# These are popup-button actions inside the staged settlement_confirm
+# dialogue. They must be routed to `handle_settlement_dialogue_action`
+# inside `DiplomaticExecutor._process_dialogue_choice`. Missing the
+# dispatch tuple makes the action fall through to the "Unknown dialogue
+# action" branch and breaks the Godot popup — exactly the SC-29 /
+# SC-31 / G2-Slice-W1 Gate 4 smoke regression this test pins.
+SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
+    "confirm_settlement",
+    "revise_settlement_terms",
+    "back_out_settlement",
+    "open_war_detail",
+    "re_author_with_concessions",
+    "apply_concession_baseline_replacement",
+    "keep_current_settlement_draft",
+    "seek_bilateral_peace",
+    "seek_armistice_instead",
+    "author_surrender_terms",
+    "apply_surrender_preset_replacement",
+    "author_recurring_gold_terms",
+    "apply_recurring_gold_preset_replacement",
+]
+
+
+def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler():
+    """Backend regression guard: every settlement-family popup action id
+    that ships in the Godot `SETTLEMENT_DIALOGUE_ACTIONS` whitelist and
+    in `handle_settlement_dialogue_action` must also be routed by
+    `DiplomaticExecutor._process_dialogue_choice` to the settlement
+    handler. The pre-repair dispatch tuple only listed four ids, so
+    SC-29 `seek_bilateral_peace` / `seek_armistice_instead`, SC-31
+    `author_surrender_terms`, and G2-Slice-W1 `re_author_with_concessions`
+    all hit the "Unknown dialogue action" fall-through. Backend tests
+    that called the handler directly never caught it because they
+    bypassed the executor dispatch."""
+    executor_path = REPO_ROOT / "backend" / "commands" / "diplomatic_executor.py"
+    text = executor_path.read_text(encoding="utf-8")
+
+    # Find the `elif action in (...)` dispatch tuple that routes to
+    # `handle_settlement_dialogue_action`. The arm is the only place
+    # in _process_dialogue_choice that imports that handler.
+    handler_anchor = "from backend.game_logic.settlement_preview import (\n                handle_settlement_dialogue_action,\n            )"
+    assert handler_anchor in text, (
+        "diplomatic_executor.py no longer imports "
+        "handle_settlement_dialogue_action inside _process_dialogue_choice; "
+        "the dispatch wiring has been refactored away from the anchor "
+        "this regression test pins. Update the anchor."
+    )
+
+    # Slice the file from the start to the handler import; the action
+    # tuple lives in the `elif action in (...)` block immediately above.
+    pre_handler = text.split(handler_anchor, 1)[0]
+    # Take the last `elif action in (...)` block before the import; the
+    # tuple body sits between the opening `(` and the closing `):`.
+    elif_open = pre_handler.rfind("elif action in (")
+    assert elif_open != -1, (
+        "Could not locate the `elif action in (` dispatch tuple "
+        "immediately above the handle_settlement_dialogue_action import."
+    )
+    tuple_block = pre_handler[elif_open:]
+    for action_id in SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS:
+        assert f'"{action_id}"' in tuple_block, (
+            f"_process_dialogue_choice dispatch tuple is missing "
+            f"{action_id!r}. Without this dispatch arm, the popup action "
+            f"falls through to the 'Unknown dialogue action' branch and "
+            f"the Godot settlement popup hangs."
+        )
+
+
+def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly():
+    """Similar-bug guard: every Godot settlement popup action must have
+    the backend dialogue-endpoint dispatch arm, with no extra action id
+    hiding in either list."""
+    main_text = (GODOT_SCRIPTS_DIR / "main.gd").read_text(encoding="utf-8")
+    executor_text = (
+        REPO_ROOT / "backend" / "commands" / "diplomatic_executor.py"
+    ).read_text(encoding="utf-8")
+
+    godot_actions = set(
+        _extract_gd_string_array(main_text, "SETTLEMENT_DIALOGUE_ACTIONS")
+    )
+    backend_dispatch_actions = set(
+        _extract_executor_settlement_dispatch_actions(executor_text)
+    )
+
+    assert godot_actions == set(SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS)
+    assert backend_dispatch_actions == godot_actions
+
+
+def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():
+    """Godot regression guard: `_on_command_result` must not consume a
+    response with `recovery_route.surface == "proposal_confirm"` via
+    `_route_settlement_recovery_route` (which only handles `war_detail`
+    and `settlement_history`). The SC-29 pair-substitute response
+    carries both `recovery_route` (surface=proposal_confirm) and a
+    fresh `diplomatic_dialogue`; if the recovery branch returns early
+    for that surface the new proposal popup never opens."""
+    main_path = GODOT_SCRIPTS_DIR / "main.gd"
+    text = main_path.read_text(encoding="utf-8")
+    # The repair pattern: gate the early return on the surface set the
+    # recovery helper actually understands. The literal phrase pins it.
+    expected_gate = (
+        'if rr_surface in ["war_detail", "settlement_history"]'
+    )
+    assert expected_gate in text, (
+        "main.gd::_on_command_result must scope the recovery_route "
+        "early-return to surfaces that "
+        "`_route_settlement_recovery_route` handles; otherwise SC-29 "
+        "pair-substitute responses get consumed before the proposal "
+        "popup can open from `diplomatic_dialogue`."
+    )
+
+
+def test_godot_command_result_routes_proposal_confirm_recovery_response_to_popup():
+    """Behavior twin for the source guard above.
+
+    The SC-29 substitute response carries both a recovery route and a fresh
+    proposal dialogue. Driving that response through the route-order model
+    must pick the proposal popup, while the two real recovery surfaces still
+    route to `_route_settlement_recovery_route`.
+    """
+    main_text = (GODOT_SCRIPTS_DIR / "main.gd").read_text(encoding="utf-8")
+    proposal_response = {
+        "success": True,
+        "recovery_route": {
+            "surface": "proposal_confirm",
+            "target": "proposal_confirm",
+            "war_id": "war_1",
+            "selected_target_nation": "Austria",
+        },
+        "diplomatic_dialogue": {
+            "type": "proposal_confirm",
+            "target_nation": "Austria",
+            "context": {"proposal_type": "peace"},
+        },
+    }
+    assert (
+        _simulate_main_gd_command_result_route(proposal_response, main_text)
+        == "proposal_confirm"
+    )
+
+    for surface in ("war_detail", "settlement_history"):
+        recovery_response = {
+            "success": False,
+            "recovery_route": {
+                "surface": surface,
+                "war_id": "war_1",
+                "selected_target_nation": "Austria",
+            },
+        }
+        assert _simulate_main_gd_command_result_route(
+            recovery_response, main_text
+        ) == f"recovery_route:{surface}"

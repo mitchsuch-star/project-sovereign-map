@@ -441,6 +441,119 @@ class TestClickTimeRevalidation:
         assert refreshed["type"] == "settlement_confirm"
         assert refreshed["settlement_terms"]
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
+        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+
+    def test_dialogue_response_routes_re_author_with_concessions_through_executor_dispatch(self):
+        """Gate 4 repair regression: the visible concession action must
+        execute through the same dialogue endpoint Godot uses after a
+        popup click, not just through the direct handler unit path."""
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        assert dialogue["concession_baseline_visible"] is True
+        target_idx = next(
+            idx
+            for idx, option in enumerate(dialogue["options"], start=1)
+            if option.get("action") == "re_author_with_concessions"
+        )
+        world.dialogue_manager.replace(dialogue)
+        gold_before = dict(world.nation_gold)
+
+        result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+            target_idx, {"world": world}
+        )
+
+        assert "Unknown dialogue action" not in str(result.get("message", ""))
+        assert result["success"] is True
+        assert result["action"] == "re_author_with_concessions"
+        assert result["mutated"] is False
+        assert world.nation_gold == gold_before
+        refreshed = world.pending_diplomatic_dialogue
+        assert refreshed["type"] == "settlement_confirm"
+        assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
+        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+
+    def test_re_author_with_concessions_mounts_replace_confirm_for_non_empty_draft(self):
+        """A non-empty draft cannot return a dead requires_replace_confirm
+        payload. The popup hides on click, so the backend must mount and
+        return the replacement confirmation dialogue immediately."""
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[{"type": "peace"}],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        assert "re_author_with_concessions" in dialogue["available_action_ids"]
+        world.dialogue_manager.replace(dialogue)
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="re_author_with_concessions",
+            dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["requires_replace_confirm"] is True
+        replace_dialogue = result["diplomatic_dialogue"]
+        assert replace_dialogue["replace_confirm"] is True
+        assert world.pending_diplomatic_dialogue == replace_dialogue
+        option_actions = [opt["action"] for opt in replace_dialogue["options"]]
+        assert option_actions == [
+            "apply_concession_baseline_replacement",
+            "keep_current_settlement_draft",
+        ]
+
+    def test_apply_concession_replacement_restages_baseline_and_hides_repeat_action(self):
+        """The second click path must be real behavior: confirming the
+        replacement restages the concession baseline, keeps mutation false,
+        and removes the repeat Re-author affordance."""
+        world = _make_world(gold=2000)
+        _install_losing_war(world)
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[{"type": "peace"}],
+        )
+        dialogue = build_settlement_confirm_dialogue(
+            world, preview, selected_target_nation="Austria",
+        )
+        world.dialogue_manager.replace(dialogue)
+        replace_result = handle_settlement_dialogue_action(
+            world,
+            action="re_author_with_concessions",
+            dialogue=dialogue,
+        )
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="apply_concession_baseline_replacement",
+            dialogue=replace_result["diplomatic_dialogue"],
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        assert refreshed["settlement_terms"]
+        assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
         assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
 
 
@@ -479,10 +592,63 @@ class TestConcessionAcceptanceDirection:
                 {"type": "gold_indemnity", "from": "France", "to": "Austria", "amount": 1500},
             ],
         )
-        # Concession from the losing side should not lower acceptance.
-        assert (
-            int(with_gold.get("score") or 0) >= int(peace_only.get("score") or 0) - 5
+        # Concession from the losing side should improve acceptance.
+        assert int(with_gold.get("score") or 0) > int(peace_only.get("score") or 0)
+        assert int(with_gold["components"]["concession_credit"]) > 0
+        assert with_gold["component_debug"]["concession_credit"]["credited_terms"]
+
+    def test_settlement_losing_smoke_baseline_reaches_near_acceptable(self, monkeypatch):
+        from backend.models.world_state import (
+            SMOKE_START_ENV,
+            SMOKE_START_SETTLEMENT_LOSING,
         )
+
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_LOSING)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        baseline = preview["settlement_preview"]["concession_baseline"]
+        assert baseline is not None
+        assert any(
+            t.get("type") == "territory_cede" and t.get("region") == "Waterloo"
+            for t in baseline["terms"]
+        )
+
+        baseline_preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=baseline["terms"],
+        )
+
+        acceptance = baseline_preview["settlement_preview"]["acceptance"]
+        assert acceptance["score"] >= 35
+        assert acceptance["components"]["concession_credit"] > 0
+
+    def test_concession_baseline_copy_promises_improvement_not_acceptance_band(self, monkeypatch):
+        from backend.models.world_state import (
+            SMOKE_START_ENV,
+            SMOKE_START_SETTLEMENT_REJECTED,
+        )
+
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_REJECTED)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[],
+        )
+        baseline = preview["settlement_preview"]["concession_baseline"]
+        assert baseline is not None
+
+        reasoning = str(baseline["reasoning"])
+        assert "to improve acceptance" in reasoning
+        assert "back into reach" not in reasoning
 
 
 class TestStageSettlementPropagation:

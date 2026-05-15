@@ -1,7 +1,8 @@
 """Slice C1b common-peace acceptance formula tests.
 
 `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §6.acceptance lines 1095-1147
-defines the nine-component acceptance formula:
+defines the original common-peace acceptance formula. G2 adds the settlement
+cleanup contract's explicit concession credit component:
 
     common_peace_acceptance =
         base_side_pressure
@@ -11,6 +12,7 @@ defines the nine-component acceptance formula:
         + leader_own_losses
         + war_objective_alignment
         + projected_hegemony_mod
+        + concession_credit
         + war_exhaustion
         + abandoned_by_ally_acceptance_mod
 
@@ -1149,7 +1151,7 @@ def test_one_covered_enemy_common_peace_uses_full_formula():
         covered_enemy_participants=["Austria"],
         settlement_terms=[],
     )
-    # The result must contain ALL nine components (proves we're using
+    # The result must contain ALL components (proves we're using
     # the full formula, not bilateral shortcut).
     expected = {
         "base_side_pressure",
@@ -1159,6 +1161,7 @@ def test_one_covered_enemy_common_peace_uses_full_formula():
         "burdened_participant_penalty",
         "projected_hegemony_mod",
         "war_objective_alignment",
+        "concession_credit",
         "war_exhaustion",
         "abandoned_by_ally_acceptance_mod",
     }
@@ -1177,7 +1180,7 @@ def test_acceptance_final_score_clamped_to_minus_100_to_100():
 # ===========================================================================
 
 
-def test_debug_exposes_all_nine_components():
+def test_debug_exposes_all_components():
     """Plan line 222: debug output exposes every component used by fixtures."""
     world = _make_world(pairs={("France", "Austria"): 30})
     war = _instance(attackers=["France"], defenders=["Austria"])
@@ -1203,6 +1206,7 @@ def test_debug_exposes_all_nine_components():
         "crossed_coalition_thresholds",
         "forced_alliance_threat_preview",
         "war_objective_alignment",
+        "concession_credit",
         "war_exhaustion",
         "abandoned_by_ally",
     }

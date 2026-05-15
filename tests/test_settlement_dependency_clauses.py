@@ -829,6 +829,9 @@ class TestAuthorSurrenderTermsHandler:
         # Newly staged dialogue carries surrender_preset=True so
         # downstream ratification tags the settlement_summary event.
         assert new_dialogue["surrender_preset"] is True
+        assert new_dialogue["concession_baseline_visible"] is False
+        assert new_dialogue["concession_baseline"] is None
+        assert "re_author_with_concessions" not in new_dialogue["available_action_ids"]
         # Pre-applied terms are [peace, subjugation].
         types = [t["type"] for t in new_dialogue["settlement_terms"]]
         assert types == ["peace", "subjugation"]
@@ -865,11 +868,65 @@ class TestAuthorSurrenderTermsHandler:
             )
         assert result["success"] is True
         assert result["requires_replace_confirm"] is True
+        replace_dialogue = result["diplomatic_dialogue"]
+        assert replace_dialogue["replace_confirm"] is True
+        assert world.pending_diplomatic_dialogue == replace_dialogue
+        assert [opt["action"] for opt in replace_dialogue["options"]] == [
+            "apply_surrender_preset_replacement",
+            "keep_current_settlement_draft",
+        ]
         # Replacement terms come from the surrender preset, not the
         # concession baseline. Replacement must not run until the player
         # confirms discard of the active draft.
         types = [t["type"] for t in result["replacement_terms"]]
         assert "subjugation" in types or "vassalage" in types
+
+    def test_apply_surrender_replacement_restages_preset_after_confirm(self):
+        world = WorldState()
+        _install_power_legal_surrender_war(world)
+        dialogue = _stage_blocked_surrender_dialogue(
+            world,
+            with_draft=[{
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Britain",
+                "amount": 500,
+            }],
+        )
+        with patch(
+            "backend.game_logic.settlement_preview."
+            "calculate_common_peace_acceptance"
+        ) as mock_accept:
+            mock_accept.return_value = {
+                "score": 10,
+                "verdict": "reject",
+                "hard_stops": [],
+                "feedback": [],
+                "top_components": [],
+                "components": {},
+                "side_pressure_score": -90,
+                "accept_threshold": 50,
+                "near_acceptable_threshold": 35,
+            }
+            replace_result = handle_settlement_dialogue_action(
+                world, action="author_surrender_terms", dialogue=dialogue,
+            )
+            result = handle_settlement_dialogue_action(
+                world,
+                action="apply_surrender_preset_replacement",
+                dialogue=replace_result["diplomatic_dialogue"],
+            )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        refreshed = result["diplomatic_dialogue"]
+        assert refreshed["surrender_preset"] is True
+        assert refreshed["concession_baseline_visible"] is False
+        assert refreshed["concession_baseline"] is None
+        assert "re_author_with_concessions" not in refreshed["available_action_ids"]
+        types = [t["type"] for t in refreshed["settlement_terms"]]
+        assert "subjugation" in types or "vassalage" in types
+        assert "author_surrender_terms" not in refreshed["available_action_ids"]
 
     def test_handler_refuses_mutation_on_stale_failure(self):
         world = WorldState()
@@ -895,6 +952,48 @@ class TestAuthorSurrenderTermsHandler:
         assert result["error"] == "surrender_preset_unavailable"
         # No-overwrite contract: preserved_terms echo the player's draft.
         assert result["preserved_terms"] == original_draft
+
+    def test_dialogue_response_routes_author_surrender_terms_through_executor_dispatch(self):
+        """Gate 4 repair regression: the player clicks a popup option,
+        so the action must travel through `/respond_to_diplomatic_dialogue`
+        and `DiplomaticExecutor._process_dialogue_choice`, not only the
+        direct settlement handler unit path."""
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world = WorldState()
+        _install_power_legal_surrender_war(world)
+        dialogue = _stage_blocked_surrender_dialogue(world)
+        target_idx = next(
+            idx
+            for idx, option in enumerate(dialogue["options"], start=1)
+            if option.get("action") == "author_surrender_terms"
+        )
+
+        with patch(
+            "backend.game_logic.settlement_preview."
+            "calculate_common_peace_acceptance"
+        ) as mock_accept:
+            mock_accept.return_value = {
+                "score": 10,
+                "verdict": "reject",
+                "hard_stops": [],
+                "feedback": [],
+                "top_components": [],
+                "components": {},
+                "side_pressure_score": -90,
+                "accept_threshold": 50,
+                "near_acceptable_threshold": 35,
+            }
+            result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+                target_idx, {"world": world}
+            )
+
+        assert "Unknown dialogue action" not in str(result.get("message", ""))
+        assert result["success"] is True
+        assert result["action"] == "author_surrender_terms"
+        assert result["requires_replace_confirm"] is True
+        assert result["diplomatic_dialogue"]["replace_confirm"] is True
+        assert result["mutated"] is False
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1094,6 +1193,36 @@ class TestSettlementSurrenderSmokeFixture:
         assert meta.get("name") == SMOKE_START_SETTLEMENT_SURRENDER
         assert meta.get("surrender_lord_candidate") == "Britain"
         assert meta.get("expected_surrender_dependency") == "subjugation"
+
+    def test_settlement_surrender_smoke_preset_is_ratifiable_without_acceptance_patch(self, monkeypatch):
+        monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_SURRENDER)
+        world = WorldState()
+        preview = build_settlement_preview(
+            world,
+            war_id="war_1",
+            actor_nation="France",
+            settlement_terms=[
+                {"type": "peace"},
+                {"type": "subjugation", "from": "France", "to": "Britain"},
+            ],
+            ignore_active_dialogue=True,
+        )
+        assert preview["success"] is True, preview
+        acceptance = preview["settlement_preview"]["acceptance"]
+        assert acceptance["verdict"] == "accept"
+        assert acceptance["score"] >= acceptance["accept_threshold"]
+        assert acceptance["components"]["concession_credit"] >= 100
+
+        dialogue = build_settlement_confirm_dialogue(
+            world,
+            preview,
+            selected_target_nation="Britain",
+            caller_kind="player_editor",
+            surrender_preset=True,
+        )
+        assert dialogue["can_ratify"] is True
+        assert "confirm_settlement" in dialogue["available_action_ids"]
+        assert "re_author_with_concessions" not in dialogue["available_action_ids"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -888,12 +888,21 @@ class WorldState:
             enemy_exhaustion=0,
             battle_winner="enemy",
         )
+        # Give the concession-baseline algorithm one non-home, non-capital
+        # region controlled by France so it can escalate beyond gold when
+        # the affordable indemnity alone does not reach near-acceptable.
+        if "Waterloo" in self.regions:
+            self.regions["Waterloo"].controller = "France"
+            if hasattr(self, "_national_power_cache"):
+                self._national_power_cache = {}
+            if hasattr(self, "invalidate_active_nations_cache"):
+                self.invalidate_active_nations_cache()
         self.nation_gold["France"] = max(int(self.nation_gold.get("France", 0)), 1500)
         self.settlement_smoke_fixture = {
             "name": SMOKE_START_SETTLEMENT_LOSING,
             "war_id": "war_1",
             "selected_target_nation": "Britain",
-            "concession_region": "Belgium",
+            "concession_region": "Waterloo",
             "minimum_france_gold": 1500,
         }
 
