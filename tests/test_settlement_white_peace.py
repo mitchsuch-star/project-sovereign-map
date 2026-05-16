@@ -181,6 +181,50 @@ class TestEmptyRatifyGate:
             "50 gold/turn from Austria to France (3 turns)" in label
             for label in labels
         )
+        action_ids = [opt["action"] for opt in refreshed["options"]]
+        assert action_ids[:2] == ["confirm_settlement", "open_war_detail"]
+
+    def test_non_empty_ratifiable_review_can_open_war_detail_to_preserve_draft(self):
+        """Accepted settlement reviews still need a non-mutating exit route
+        for same-war off-editor smoke and draft preservation."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=[
+                    {"type": "peace"},
+                    {
+                        "type": "gold_per_turn",
+                        "from": "Austria",
+                        "to": "France",
+                        "amount": 50,
+                        "turns": 3,
+                    },
+                ],
+                selected_target_nation="Austria",
+                caller_kind="player_editor",
+                white_peace=False,
+            )
+        dialogue = staged["diplomatic_dialogue"]
+        actions = [opt["action"] for opt in dialogue["options"]]
+        assert actions[:2] == ["confirm_settlement", "open_war_detail"]
+
+        result = handle_settlement_dialogue_action(
+            world,
+            action="open_war_detail",
+            dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["draft_preserved"] is True
+        assert world.pending_diplomatic_dialogue is None
+        assert world.pending_settlement_drafts["war_1"] == dialogue["settlement_terms"]
 
     def test_open_settlement_editor_enables_ratify_after_first_clause_authored(self):
         """Authoring at least one material clause re-enables Ratify if

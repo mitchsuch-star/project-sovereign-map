@@ -2766,7 +2766,9 @@ def build_settlement_confirm_dialogue(
                 "voice_family": voice_key,
             })
             available_action_ids.append(action_id)
-    if not can_ratify and war_detail_actionability.get("actionable"):
+    if war_detail_actionability.get("actionable") and (
+        not can_ratify or bool(staged_terms_for_gate)
+    ):
         options.append({
             "label": "Open War Detail",
             "action": "open_war_detail",
