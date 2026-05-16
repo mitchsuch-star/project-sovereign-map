@@ -5206,8 +5206,9 @@ def _remove_pending_settlement_offer(
     `world.pending_settlement_dialogues` until the UI layer (commit 2)
     promotes them into `dialogue_manager`. Accept / reject must remove
     the entry so the one-active-offer-per-war guard re-opens for the
-    next producer tick. Matches first by `offer_id` (canonical), then
-    by `war_id` as a stale-save fallback.
+    next producer tick. Matches by `offer_id` when present (canonical);
+    `war_id` fallback is reserved for stale-save entries that predate
+    stable offer ids.
     """
     pending = getattr(world, "pending_settlement_dialogues", None)
     if not isinstance(pending, list):
@@ -5220,11 +5221,13 @@ def _remove_pending_settlement_offer(
                 continue
             if str(entry.get("offer_id") or "") == offer_id:
                 return pending.pop(index)
-    if war_id:
+    if not offer_id and war_id:
         for index, entry in enumerate(pending):
             if not isinstance(entry, Mapping):
                 continue
             if entry.get("type") != "incoming_settlement_offer":
+                continue
+            if str(entry.get("offer_id") or ""):
                 continue
             if str(entry.get("war_id") or "") == war_id:
                 return pending.pop(index)
@@ -5268,10 +5271,13 @@ def handle_incoming_settlement_offer_action(
       settlement_terms, turn_created, ...}`.
     - This handler removes the matching entry on accept / reject, and on
       accept calls `stage_settlement_confirm(...)` forwarding the offered
-      `settlement_terms`, `proposer_side`, `covered_enemy_participants`,
-      and a `selected_target_nation` derived from the covered scope. The
-      staged review therefore preserves the exact offered package through
-      live re-preview, per the spec §G2-Slice-4 package-preservation
+      `settlement_terms`, `covered_enemy_participants`, and a
+      `selected_target_nation` derived from the covered scope. It
+      deliberately does not forward the offer's `proposer_side`: the
+      player is accepting the package, so the staged review infers the
+      proposer side from `actor_nation=player`. The staged review
+      therefore preserves the exact offered package through live
+      re-preview, per the spec §G2-Slice-4 package-preservation
       requirement.
     - `dialogue_manager.pop()` is only invoked when the offer is also the
       active dialogue slot (i.e. promoted by commit 2). Backend-only

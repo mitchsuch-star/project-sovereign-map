@@ -407,6 +407,28 @@ def test_incoming_offer_accept_with_unknown_war_id_returns_humanized_error_and_d
     assert world.pending_settlement_dialogues[0]["offer_id"] == real_offer["offer_id"]
 
 
+def test_incoming_offer_accept_with_tampered_offer_id_does_not_clear_real_offer_by_war_id():
+    """A mismatched `offer_id` must not fall back to `war_id` and remove
+    a legitimate pending offer. `war_id` cleanup fallback exists only for
+    stale-save entries that have no stable offer id."""
+    world = _world_at_turn(5)
+    _install_multi_party_war(world)
+    [real_offer] = process_settlement_offer_phase(world)
+
+    tampered_offer = dict(real_offer)
+    tampered_offer["offer_id"] = "settlement_offer:tampered:5:1"
+    tampered_offer["settlement_terms"] = [{"type": "peace"}]
+
+    result = handle_incoming_settlement_offer_action(
+        world, action="accept_settlement_offer", dialogue=tampered_offer,
+    )
+
+    assert result["dialogue_type"] == "settlement_confirm"
+    assert len(world.pending_settlement_dialogues) == 1
+    assert world.pending_settlement_dialogues[0]["offer_id"] == real_offer["offer_id"]
+    assert world.pending_settlement_dialogues[0]["settlement_terms"] == real_offer["settlement_terms"]
+
+
 def test_incoming_offer_accept_with_archived_war_id_returns_archived_error():
     """SC-7b archived `war_id`: humanized archived rejection."""
     world = _world_at_turn(5)
