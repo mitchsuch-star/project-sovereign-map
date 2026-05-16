@@ -465,15 +465,14 @@ def test_dual_empty_reopen_returns_no_reopen_with_choose_from_war_detail_copy():
 # ---------------------------------------------------------------------------
 
 
-def test_incoming_offer_accept_with_archived_war_returns_deferred():
-    """SC-5 / G2-Slice-4 inversion: deferral takes precedence over the
-    SC-7b archived-war branch. The handler short-circuits before
-    consulting `is_war_archived` so a stale-save incoming offer cannot
-    promote to settlement_confirm or reach the SC-7b war_archived
-    payload while incoming offers are deferred-and-hidden."""
+def test_incoming_offer_accept_with_archived_war_returns_archived_error():
+    """SC-5 reversal (May 15, 2026 / Slice G1 commit 1): with the deferral
+    flag off, the SC-7b archived-war branch reaches its canonical humanized
+    error path. Accept does not promote a stale-archived offer to
+    settlement_confirm."""
     world = WorldState()
     war = _install_war(world)
-    war["ended_turn"] = 4  # archived between offer creation and accept
+    war["ended_turn"] = 4
     world.dialogue_manager.replace({
         "type": "incoming_settlement_offer",
         "war_id": "war_1",
@@ -484,22 +483,17 @@ def test_incoming_offer_accept_with_archived_war_returns_deferred():
         world, action="accept_settlement_offer", dialogue=dialogue,
     )
     assert result["success"] is False
-    assert result["error"] == "incoming_offer_deferred"
+    assert result["error"] == "incoming_offer_war_archived"
     assert result["error_display"] == settlement_disabled_reason_display(
-        "incoming_offer_deferred"
+        "incoming_offer_war_archived"
     )
     assert result["mutated"] is False
-    # Defensive: dialogue is left mounted, not popped, so no settlement_confirm
-    # is staged and the SC-7b `war_archived` flag is never reached.
-    current = world.pending_diplomatic_dialogue
-    assert current is not None
-    assert current["type"] == "incoming_settlement_offer"
-    assert "war_archived" not in result
+    assert result.get("war_archived") is True
 
 
-def test_incoming_offer_accept_with_unknown_war_id_returns_deferred():
-    """SC-5 / G2-Slice-4 inversion: deferral takes precedence over the
-    SC-7b unknown-war_id branch."""
+def test_incoming_offer_accept_with_unknown_war_id_returns_invalid_error():
+    """SC-5 reversal: SC-7b unknown-war_id branch reaches its canonical
+    humanized error path with the deferral flag off."""
     world = WorldState()
     _install_war(world)
     world.dialogue_manager.replace({
@@ -512,9 +506,10 @@ def test_incoming_offer_accept_with_unknown_war_id_returns_deferred():
         world, action="accept_settlement_offer", dialogue=dialogue,
     )
     assert result["success"] is False
-    assert result["error"] == "incoming_offer_deferred"
+    assert result["error"] == "incoming_offer_war_invalid"
     assert result["must_reopen"] is False
     assert result["mutated"] is False
+    assert result.get("reopen_target", {}).get("surface") == "war_detail"
 
 
 # ---------------------------------------------------------------------------
@@ -780,11 +775,12 @@ def test_no_resolvable_pairs_uses_safe_reopen_response():
     assert target["target_nation"] == "Austria"
 
 
-def test_request_revision_returns_deferred_while_offers_hidden():
-    """SC-5 / G2-Slice-4 inversion: deferral takes precedence over the
-    SC-13 `_safe_reopen_response` request-revision fallback. Stale-save
-    request-revision attempts short-circuit on the deferral guard
-    instead of producing a war-detail reopen target."""
+def test_request_revision_returns_counter_edit_hint_after_sc5_reversal():
+    """SC-5 reversal: `request_settlement_revision` now returns a
+    counter / edit hint that names the offer_id, war_id, offered
+    terms, and covered scope without mutation. The real counter /
+    edit route wiring lands in commit 2; commit 1 only needs to
+    expose the hint payload."""
     world = WorldState()
     _install_war(world)
     world.dialogue_manager.replace({
@@ -793,15 +789,21 @@ def test_request_revision_returns_deferred_while_offers_hidden():
         "offer_id": "offer_x",
         "selected_target_nation": "",
         "covered_enemy_participants": [],
+        "settlement_terms": [{"type": "peace"}],
+        "proposer_side": "defenders",
     })
     dialogue = world.pending_diplomatic_dialogue
     result = handle_incoming_settlement_offer_action(
         world, action="request_settlement_revision", dialogue=dialogue,
     )
-    assert result["success"] is False
-    assert result["error"] == "incoming_offer_deferred"
-    assert result["must_reopen"] is False
+    assert result["success"] is True
+    assert result["action"] == "request_settlement_revision"
     assert result["mutated"] is False
+    assert result["offer_id"] == "offer_x"
+    hint = result.get("counter_edit_hint")
+    assert isinstance(hint, dict)
+    assert hint["war_id"] == "war_1"
+    assert hint["seed_settlement_terms"] == [{"type": "peace"}]
 
 
 # ---------------------------------------------------------------------------

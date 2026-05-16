@@ -400,6 +400,24 @@ class TurnManager:
                 for event in courting_events:
                     debug_print(f"[VASSAL COURTING] {event.get('message', '')}")
 
+        # ════════════════════════════════════════════════════════════
+        # SETTLEMENT OFFER PRODUCER (SC-5 reversal / Slice G1 commit 1)
+        # AI side-leaders produce incoming settlement offers for the
+        # player on active multi-party wars. Produced offers live in
+        # `world.pending_settlement_dialogues` until commit 2's UI
+        # promotion layer surfaces them through the mailbox / Godot
+        # popup. Cooldowns and one-active-offer-per-war guards are
+        # enforced inside the producer.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
+        produced_offers = process_settlement_offer_phase(world)
+        for offer in produced_offers:
+            debug_print(
+                "[SETTLEMENT OFFER] "
+                f"{offer.get('proposer_nation')} offered settlement on "
+                f"{offer.get('war_id')} (offer_id={offer.get('offer_id')})"
+            )
+
         return delivered
 
     def _process_autonomous_marshals(self, game_state: Dict) -> Dict:

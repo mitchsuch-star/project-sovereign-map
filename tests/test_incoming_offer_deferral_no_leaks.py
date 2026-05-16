@@ -1,39 +1,31 @@
-"""SC-5 / G2-Slice-4: incoming-settlement-offer deferral no-leak suite.
+"""SC-5 reversal (commit 1 of 2): no-UI-exposure-yet suite.
 
-Required by `docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.10/v0.16/v0.17 — proves
-that while `INCOMING_OFFERS_DEFERRED` is True, no normal gameplay or
-player-facing surface can produce, count, activate, render, route, or
-block on an `incoming_settlement_offer`.
+Pre-reversal (`INCOMING_OFFERS_DEFERRED=True`) state proved that no
+gameplay or player-facing surface could produce / count / activate /
+render / route / block on `incoming_settlement_offer`.
 
-Coverage matrix (from v0.16 §SC-5 deferral-leak assertion list):
+May 15, 2026 commit 1 of the SC-5 reversal lands the backend producer
+(`ai_diplomacy.process_settlement_offer_phase`) and flips the deferral
+flag to `False`. Produced offers live in
+`world.pending_settlement_dialogues` only — the dialogue-manager
+taxonomy, mailbox endpoint, `/pending_envoy`, notification rail,
+dispatch, popup queue, and Godot popup routing are intentionally
+untouched until commit 2 ships the UI promotion layer.
 
-- `dialogue_manager.get_mailbox_count()` excludes the type.
-- `/mailbox/activate` rejects injected/stale incoming-offer rows with
-  the `incoming_offer_deferred` error.
-- `/pending_envoy` does not advertise the type.
-- Notification / notice rail items do not expose it (handler and stale-save
-  API paths leave notification state untouched).
-- Dispatch / one-liners do not render it (handler and stale-save API paths
-  leave dispatch state untouched).
-- Popup queue / `_post_hud_response_routes` do not advertise it (backend
-  response behavior stays empty; Godot route precedence sends malformed
-  incoming-offer dialogue payloads to the deferred branch).
-- Godot settlement-offer branches are absent or feature-flagged off
-  (route-precedence behavior guard plus source absence checks for removed
-  whitelist/action/popup arms).
-- A 50-turn normal-AI soak cannot produce, count, activate, or block
-  on the type.
+This file now proves the commit-1 invariant: real offers are produced,
+but until the commit-2 UI layer lands, no player-facing surface
+surfaces them. The deferral-flag assertion is inverted; the handler
+short-circuit + deferred-no-side-effects tests are removed (replaced
+by `tests/test_settlement_incoming_offers.py` positive coverage); the
+backend-producer-grep test is inverted to assert that the producer is
+the only legitimate emitter of the `"type": "incoming_settlement_offer"`
+literal; everything else (taxonomy exclusion, mailbox / pending_envoy
+filtering, Godot UI absence) is preserved verbatim because commit 2
+is what re-introduces those surfaces.
 
-The handler tests proper deferral short-circuit semantics in
-`tests/test_settlement_ui_slice_f_behavior.py` and
-`tests/test_settlement_continuity_slice.py`. This file adds the
-no-exposure surface enumeration the spec mandates as the closure
-artifact for G2-Slice-4.
-
-If incoming offers are later reversed (SC-5 reversal package: producer
-+ mailbox + popup + actions ship together), this whole file is
-replaced by the SC-7 implemented-payload tests in spec §G2-Slice-4
-required-tests "if implemented".
+When commit 2 lands, the remaining no-UI-exposure assertions in this
+file flip into positive UI tests and this file is renamed (or merged
+into `test_settlement_incoming_offers.py`).
 """
 
 from __future__ import annotations
@@ -119,10 +111,13 @@ def _inject_offer_as_active(world: WorldState, war_id: str = "war_1") -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_deferral_flag_is_on_by_default():
-    """SC-5 / G2-Slice-4: deferral defaults to ON. Reversal requires an
-    explicit producer + popup + actions package per spec."""
-    assert INCOMING_OFFERS_DEFERRED is True
+def test_deferral_flag_is_off_after_sc5_reversal():
+    """SC-5 reversal (May 15, 2026 / Slice G1 commit 1): the deferral
+    flag is off so the AI settlement-offer producer can run and the
+    handler can process accept/reject. The flag remains a named
+    constant so a future emergency disable can flip it back to True
+    without code rewrite."""
+    assert INCOMING_OFFERS_DEFERRED is False
 
 
 def test_settlement_family_set_keeps_offer_for_defensive_guards():
@@ -300,65 +295,11 @@ def test_mailbox_activate_rejects_stale_active_incoming_offer(fastapi_client):
 # ---------------------------------------------------------------------------
 
 
-def test_handler_short_circuits_without_pop_for_every_action():
-    """SC-5 v0.17: handler must short-circuit BEFORE pop / stage / mutate
-    for every settlement-offer action surface."""
-    world = WorldState()
-    _install_war(world)
-    active = _inject_offer_as_active(world)
-
-    for action in (
-        "accept_settlement_offer",
-        "reject_settlement_offer",
-        "request_settlement_revision",
-        "frobnicate_settlement_terms",  # unknown action
-    ):
-        result = handle_incoming_settlement_offer_action(
-            world, action=action, dialogue=active,
-        )
-        assert result["success"] is False, action
-        assert result["error"] == "incoming_offer_deferred", action
-        assert result["error_display"] == settlement_disabled_reason_display(
-            "incoming_offer_deferred"
-        ), action
-        assert result["mutated"] is False, action
-        assert result["must_reopen"] is False, action
-        # Active slot untouched after every handler call.
-        assert world.pending_diplomatic_dialogue is active, action
-
-
-def test_deferred_handler_does_not_emit_notice_dispatch_or_popup_surface():
-    """Deferred action handling is a backend no-op across the player-facing
-    side channels, not only across the dialogue slot."""
-    from backend.main import build_base_response
-
-    for action in (
-        "accept_settlement_offer",
-        "reject_settlement_offer",
-        "request_settlement_revision",
-        "frobnicate_settlement_terms",
-    ):
-        world = WorldState()
-        _install_war(world)
-        active = _inject_offer_as_active(world)
-
-        before_notifications = list(world.notifications.get_pending())
-        before_dispatch = list(world.pending_dispatch_events)
-        before_popup_queue = world._popup_queue.to_dict()
-
-        result = handle_incoming_settlement_offer_action(
-            world, action=action, dialogue=active,
-        )
-        response = build_base_response(world, **result)
-
-        assert result["error"] == "incoming_offer_deferred", action
-        assert world.notifications.get_pending() == before_notifications, action
-        assert world.pending_dispatch_events == before_dispatch, action
-        assert world._popup_queue.to_dict() == before_popup_queue, action
-        assert "notifications" not in response, action
-        assert response.get("incoming_proposal") is None, action
-        assert response.get("proposal_result") is None, action
-        assert "diplomatic_dialogue" not in response, action
+# Handler short-circuit + deferred-no-side-effects tests removed by the
+# SC-5 reversal commit 1. Positive handler behavior — package preservation,
+# stale war_id rejection, reject without mutation, request-revision
+# counter-edit hint, one-active-offer guard reset on accept/reject — is
+# now covered by `tests/test_settlement_incoming_offers.py`.
 
 
 # ---------------------------------------------------------------------------
@@ -414,21 +355,29 @@ def test_fifty_turn_soak_does_not_produce_incoming_offer():
 # ---------------------------------------------------------------------------
 
 
-def test_no_backend_producer_emits_incoming_settlement_offer_dialogue():
-    """A grep-style audit guards against future regressions where a
-    producer accidentally pushes the deferred dialogue type. Only the
-    dispatcher / handler / family set / spec docs should reference the
-    type while it is hidden.
+def test_settlement_offer_producer_is_the_only_backend_emitter_of_dialogue_literal():
+    """SC-5 reversal commit 1: only the named producer in
+    `backend/game_logic/ai_diplomacy.py` may emit the literal
+    `"type": "incoming_settlement_offer"` dialogue dict. Any other
+    backend module emitting that literal would be a stray producer
+    that bypasses the canonical cooldown / one-active-offer guards.
 
-    The producer pattern we forbid is a literal string of the form
-    `"type": "incoming_settlement_offer"` (or single-quoted variants)
-    appearing in any backend module other than the deliberate handler /
-    family-set / display-map sites."""
+    Allowed sites:
+
+    - `backend/game_logic/ai_diplomacy.py` —
+      `process_settlement_offer_phase(world)` is the canonical producer.
+
+    Disallowed: any other backend module emitting the literal."""
     forbidden = ['"type": "incoming_settlement_offer"']
     forbidden += ["'type': 'incoming_settlement_offer'"]
     backend_dir = REPO_ROOT / "backend"
+    allowed_paths = {
+        backend_dir / "game_logic" / "ai_diplomacy.py",
+    }
     offenders: list[str] = []
     for path in backend_dir.rglob("*.py"):
+        if path in allowed_paths:
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except OSError:
@@ -437,9 +386,16 @@ def test_no_backend_producer_emits_incoming_settlement_offer_dialogue():
             if token in text:
                 offenders.append(f"{path.relative_to(REPO_ROOT)}: {token!r}")
     assert offenders == [], (
-        "Forbidden incoming-offer producer literal found while SC-5 deferral "
-        "is active:\n  " + "\n  ".join(offenders)
+        "Unexpected incoming-offer producer literal found outside the "
+        "canonical `process_settlement_offer_phase` producer:\n  "
+        + "\n  ".join(offenders)
     )
+    # Positive assertion: the canonical producer DOES emit the literal,
+    # so this grep test stays useful when audits run from a fresh clone.
+    canonical = (backend_dir / "game_logic" / "ai_diplomacy.py").read_text(
+        encoding="utf-8"
+    )
+    assert '"type": "incoming_settlement_offer"' in canonical
 
 
 # ---------------------------------------------------------------------------

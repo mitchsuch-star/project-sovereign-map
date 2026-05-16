@@ -1583,3 +1583,267 @@ def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
 
 
     # _ratify_ai_ai_treaty removed (R107/R108) — unified into WorldState._ratify_treaty()
+
+
+# ═══════════════════════════════════════════════════════════════
+# SETTLEMENT OFFER PRODUCER (SC-5 reversal / Slice G1 commit 1)
+# ═══════════════════════════════════════════════════════════════
+#
+# `process_settlement_offer_phase(world)` is the gameplay-natural
+# producer that replaces the previous SC-5 defer-and-hide stance.
+#
+# Scope (this commit):
+#   - Backend production only. Produced offers live in
+#     `world.pending_settlement_dialogues`. No mailbox, notification,
+#     dispatch, popup-queue, or Godot surface is touched in this
+#     commit; commit 2 wires the UI promotion layer.
+#   - Triggers for active multi-party (3+ participant) war_instances
+#     where the player is a participant on one side and the opposing
+#     side leader is an AI nation.
+#   - Cooldown: `SETTLEMENT_OFFER_COOLDOWN_TURNS` turns per `war_id`
+#     after the most recent offer, tracked in
+#     `world.ai_settlement_cooldowns[war_id]` as the next-allowed turn.
+#   - One-active-offer guard: skip if `pending_settlement_dialogues`
+#     already carries an `incoming_settlement_offer` entry for the
+#     same `war_id`.
+#   - Stable offer identity: `offer_id="settlement_offer:{war_id}:
+#     {turn}:{seq}"` where `seq` is a per-(war_id, turn) monotonic
+#     counter derived from existing offers.
+#   - Terms: `[{"type": "peace"}, {"type": "gold_indemnity", ...}]`
+#     with a deterministic amount based on the war's age. Other clause
+#     types (territory_cede, forced_alliance, dependency) are reserved
+#     for SC-32 / Slice G2 follow-through where the producer can
+#     reason about side_pressure_score and beneficial direction.
+#
+# Out of scope (commit 2 or later):
+#   - Promotion into `dialogue_manager`, mailbox payloads, notifications,
+#     dispatch events, popup-queue entries, Godot popup routing, Voice
+#     Bible §16.1 incoming-offer voice families, `Request Revision`
+#     counter/edit route, request-terms lifecycle.
+
+SETTLEMENT_OFFER_COOLDOWN_TURNS = 5
+SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS = 2
+SETTLEMENT_OFFER_MULTI_PARTY_MIN_PARTICIPANTS = 3
+SETTLEMENT_OFFER_BASE_GOLD_AMOUNT = 500
+SETTLEMENT_OFFER_PER_DURATION_BONUS = 50
+SETTLEMENT_OFFER_MAX_GOLD_AMOUNT = 2000
+
+
+def _settlement_offer_next_seq(
+    pending: List[Dict],
+    *,
+    war_id: str,
+    current_turn: int,
+) -> int:
+    """Per-(war_id, turn) monotonic counter for offer_id stability.
+
+    The one-active-offer guard normally caps existing offers per war
+    at 1, so `seq` is `1` in normal flow. The counter remains for
+    audit-trail clarity and future producers (e.g. SC-32) that may
+    legitimately re-author within the same turn after explicit
+    cleanup.
+    """
+    seq = 1
+    prefix = f"settlement_offer:{war_id}:{current_turn}:"
+    for entry in pending:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("type") != "incoming_settlement_offer":
+            continue
+        if str(entry.get("offer_id") or "").startswith(prefix):
+            seq += 1
+    return seq
+
+
+def _settlement_offer_already_pending(
+    pending: List[Dict],
+    *,
+    war_id: str,
+) -> bool:
+    """One-active-offer-per-war guard."""
+    for entry in pending:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("type") != "incoming_settlement_offer":
+            continue
+        if str(entry.get("war_id") or "") == war_id:
+            return True
+    return False
+
+
+def _settlement_offer_opposing_side_leader(
+    war: Dict,
+    *,
+    player_side: str,
+) -> Optional[str]:
+    """Return the leader of the side NOT containing the player."""
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    leader_key = (
+        "defender_leader" if opposing_side == "defenders" else "attacker_leader"
+    )
+    leader = war.get(leader_key)
+    if not leader:
+        return None
+    return str(leader)
+
+
+def _settlement_offer_build_terms(
+    *,
+    player: str,
+    proposer_nation: str,
+    war_age_turns: int,
+) -> List[Dict]:
+    """Deterministic peace + gold_indemnity package.
+
+    Amount scales modestly with war age so longer wars produce
+    higher-stakes offers, capped at `SETTLEMENT_OFFER_MAX_GOLD_AMOUNT`.
+    Direction: player pays the AI side leader, matching the typical
+    "settle now, pay reparations" framing. The player can still reject
+    or counter through the editor.
+    """
+    duration_bonus = max(0, war_age_turns) * SETTLEMENT_OFFER_PER_DURATION_BONUS
+    amount = min(
+        SETTLEMENT_OFFER_MAX_GOLD_AMOUNT,
+        SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus,
+    )
+    return [
+        {"type": "peace"},
+        {
+            "type": "gold_indemnity",
+            "from": player,
+            "to": proposer_nation,
+            "amount": int(amount),
+        },
+    ]
+
+
+def _settlement_offer_eligible_for_war(
+    world,
+    war: Dict,
+    *,
+    player: str,
+    current_turn: int,
+) -> Optional[str]:
+    """Return `None` when the war is eligible to produce an offer this
+    turn, otherwise the refusal code (for telemetry / future
+    instrumentation).
+    """
+    if war.get("ended_turn") is not None:
+        return "war_archived"
+    participants = list(war.get("active_participants") or [])
+    if len(participants) < SETTLEMENT_OFFER_MULTI_PARTY_MIN_PARTICIPANTS:
+        return "war_not_multi_party"
+    if player not in participants:
+        return "player_not_participant"
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    if player_side not in ("attackers", "defenders"):
+        return "player_side_unknown"
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    leader = _settlement_offer_opposing_side_leader(war, player_side=player_side)
+    if not leader or leader == player:
+        return "opposing_leader_unknown"
+    if side_by_nation.get(leader) != opposing_side:
+        return "opposing_leader_side_mismatch"
+    covered_enemies = [
+        nation
+        for nation, side in side_by_nation.items()
+        if side == opposing_side and nation != player
+    ]
+    if not covered_enemies:
+        return "no_covered_enemy"
+    created_turn = int(war.get("created_turn") or current_turn)
+    if current_turn - created_turn < SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS:
+        return "war_too_young"
+    cooldowns = getattr(world, "ai_settlement_cooldowns", None) or {}
+    next_allowed = int(cooldowns.get(str(war.get("war_id") or "")) or 0)
+    if current_turn < next_allowed:
+        return "cooldown_active"
+    pending = getattr(world, "pending_settlement_dialogues", None) or []
+    if _settlement_offer_already_pending(pending, war_id=str(war.get("war_id") or "")):
+        return "offer_already_pending"
+    return None
+
+
+def process_settlement_offer_phase(world) -> List[Dict]:
+    """Produce AI-originated incoming settlement offers for the player.
+
+    Runs once per turn from the AI diplomatic phase. Returns the list
+    of offers appended to `world.pending_settlement_dialogues` this
+    tick (may be empty). The handler
+    `handle_incoming_settlement_offer_action(...)` in
+    `settlement_preview.py` is the package-preserving consumer; the
+    UI promotion layer that surfaces these offers in
+    `dialogue_manager` lands in commit 2 of the SC-5 reversal.
+    """
+    player = getattr(world, "player_nation", "France")
+    current_turn = int(getattr(world, "current_turn", 0))
+    war_instances = getattr(world, "war_instances", None) or {}
+    if not war_instances:
+        return []
+
+    # Defensive: ensure the storage attributes exist on legacy saves.
+    pending = getattr(world, "pending_settlement_dialogues", None)
+    if pending is None:
+        pending = []
+        world.pending_settlement_dialogues = pending
+    cooldowns = getattr(world, "ai_settlement_cooldowns", None)
+    if cooldowns is None:
+        cooldowns = {}
+        world.ai_settlement_cooldowns = cooldowns
+
+    produced: List[Dict] = []
+
+    # Deterministic iteration order so tests can pin offer_id sequence.
+    for war_id in sorted(war_instances.keys()):
+        war = war_instances[war_id]
+        if not isinstance(war, dict):
+            continue
+
+        refusal = _settlement_offer_eligible_for_war(
+            world, war, player=player, current_turn=current_turn,
+        )
+        if refusal is not None:
+            continue
+
+        side_by_nation = war.get("side_by_nation") or {}
+        player_side = side_by_nation.get(player)
+        opposing_side = "defenders" if player_side == "attackers" else "attackers"
+        proposer_nation = _settlement_offer_opposing_side_leader(
+            war, player_side=player_side,
+        )
+        covered_enemies = [
+            nation
+            for nation, side in side_by_nation.items()
+            if side == opposing_side and nation != player
+        ]
+        war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
+
+        terms = _settlement_offer_build_terms(
+            player=player,
+            proposer_nation=proposer_nation,
+            war_age_turns=war_age_turns,
+        )
+        seq = _settlement_offer_next_seq(
+            pending, war_id=str(war_id), current_turn=current_turn,
+        )
+        offer_id = f"settlement_offer:{war_id}:{current_turn}:{seq}"
+
+        offer = {
+            "type": "incoming_settlement_offer",
+            "dialogue_type": "incoming_settlement_offer",
+            "offer_id": offer_id,
+            "war_id": str(war_id),
+            "proposer_nation": proposer_nation,
+            "proposer_side": opposing_side,
+            "accepting_side": player_side,
+            "accepting_leader": player,
+            "covered_enemy_participants": list(covered_enemies),
+            "settlement_terms": terms,
+            "turn_created": current_turn,
+        }
+        pending.append(offer)
+        cooldowns[str(war_id)] = current_turn + SETTLEMENT_OFFER_COOLDOWN_TURNS
+        produced.append(offer)
+
+    return produced
