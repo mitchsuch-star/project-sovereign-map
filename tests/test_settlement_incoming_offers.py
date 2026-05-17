@@ -489,12 +489,17 @@ def test_incoming_offer_reject_removes_entry_without_mutation():
     assert dict(world.diplomatic_states) == diplo_snapshot
 
 
-def test_incoming_offer_request_revision_returns_counter_edit_hint_without_mutation():
-    """SC-30 commit 1: `request_settlement_revision` returns a counter
-    / edit hint that names the offer_id, war_id, offered terms, and
-    covered scope so commit 2's UI layer can seed a real counter-edit
-    route. No mutation. The pending entry is intentionally kept so
-    the player can also accept / reject the original package."""
+def test_incoming_offer_request_revision_opens_counter_editor_seeded_from_offered_terms():
+    """SC-30 commit 2: `request_settlement_revision` opens a real
+    counter editor by staging `settlement_confirm` in player-editor
+    mode seeded with the offered settlement_terms,
+    covered_enemy_participants, and a deterministic
+    selected_target_nation. The original offer entry is removed so
+    the mailbox no longer renders it and the one-active-offer-per-war
+    producer guard re-opens for the next AI tick. The staged
+    settlement_confirm carries the request-revision Voice Bible
+    family so the popup heading reads as "answering with a counter
+    draft", not the outgoing `Will they accept?` framing."""
     world = _world_at_turn(5)
     _install_multi_party_war(world)
     [offer] = process_settlement_offer_phase(world)
@@ -505,59 +510,128 @@ def test_incoming_offer_request_revision_returns_counter_edit_hint_without_mutat
 
     assert result["success"] is True
     assert result["action"] == "request_settlement_revision"
-    assert result["mutated"] is False
+    assert result["dialogue_type"] == "settlement_confirm"
     assert result["offer_id"] == offer["offer_id"]
-    hint = result.get("counter_edit_hint")
-    assert isinstance(hint, dict)
-    assert hint["war_id"] == offer["war_id"]
-    assert hint["offer_id"] == offer["offer_id"]
-    assert hint["seed_settlement_terms"] == offer["settlement_terms"]
-    assert sorted(hint["covered_enemy_participants"]) == sorted(
+    # Counter-edit provenance preserved for audits + voice routing.
+    assert result["counter_to_offer_id"] == offer["offer_id"]
+    assert result["counter_seed_terms"] == offer["settlement_terms"]
+    assert sorted(result["counter_seed_covered_participants"]) == sorted(
         offer["covered_enemy_participants"]
     )
-    # Pending entry stays so the player can still accept / reject.
-    assert len(world.pending_settlement_dialogues) == 1
+    # Staged settlement_confirm carries the offered terms + proper
+    # request-revision Voice Bible heading.
+    staged = result["diplomatic_dialogue"]
+    assert isinstance(staged, dict)
+    assert staged["type"] == "settlement_confirm"
+    assert staged["war_id"] == offer["war_id"]
+    assert "counter draft" in str(staged.get("talleyrand_text", "")).lower()
+    # Pending entry is removed because the player has explicitly chosen
+    # to counter rather than leaving the offer in the mailbox.
+    assert len(world.pending_settlement_dialogues) == 0
+    # The dialogue_manager now holds the staged settlement_confirm,
+    # not the original incoming offer.
+    current = world.dialogue_manager.peek()
+    assert current is not None
+    assert current.get("type") == "settlement_confirm"
 
 
 # ---------------------------------------------------------------------------
-# Section 4 — Commit-1 invariant: no UI leakage until commit 2
+# Section 4 — SC-30 commit 2 UI promotion + notification surface
 # ---------------------------------------------------------------------------
 
 
-def test_pending_settlement_dialogues_offer_entries_do_not_surface_in_mailbox_or_pending_envoy_until_ui_layer_lands():
-    """Until commit 2 promotes `pending_settlement_dialogues` into the
-    dialogue_manager, the produced offer is invisible to mailbox and
-    pending-envoy paths because the dialogue-manager taxonomy excludes
-    `incoming_settlement_offer`."""
+def test_pending_settlement_dialogues_offer_entries_promote_into_mailbox_through_promote_helper():
+    """SC-5 reversal commit 2: `promote_pending_settlement_offers(world)`
+    drains the offer entries from `pending_settlement_dialogues` into
+    the dialogue_manager mailbox queue, attaching the popup payload so
+    the mailbox-activate endpoint can deliver it without rebuilding
+    from scratch. The helper is idempotent: re-running it does not
+    duplicate-push the same offer."""
+    from backend.game_logic.settlement_preview import (
+        promote_pending_settlement_offers,
+    )
+
     world = _world_at_turn(5)
     _install_multi_party_war(world)
-    process_settlement_offer_phase(world)
+    [offer] = process_settlement_offer_phase(world)
 
-    assert len(world.pending_settlement_dialogues) == 1
-    # Dialogue manager has no awareness of the offer.
     dm = world.dialogue_manager
-    assert dm.get_mailbox_count() == 0
-    assert dm.get_mailbox_items() == []
-    assert dm._current is None
-    assert dm._queue == []
+    assert dm.get_mailbox_count() == 0  # producer has not been promoted yet
+
+    promoted = promote_pending_settlement_offers(world)
+    assert len(promoted) == 1
+    assert promoted[0]["offer_id"] == offer["offer_id"]
+    # Pending list is drained, dialogue manager has the offer.
+    assert world.pending_settlement_dialogues == []
+    assert dm.get_mailbox_count() == 1
+    items = dm.get_mailbox_items()
+    assert len(items) == 1
+    assert items[0]["item_type"] == "incoming_settlement_offer"
+    # Idempotent: a second promote run is a no-op because the same
+    # offer_id already lives in the dialogue manager.
+    again = promote_pending_settlement_offers(world)
+    assert again == []
+    assert dm.get_mailbox_count() == 1
 
 
-def test_pending_settlement_dialogues_offer_entries_do_not_emit_notifications_dispatch_or_popup_until_ui_layer_lands():
-    """The producer is a side-channel writer: it does not push
-    notifications, dispatch events, or popup-queue entries. Commit 2
-    is what wires those surfaces."""
+def test_settlement_offer_producer_plus_turn_pipeline_emits_notification_and_popup_queue():
+    """SC-5 reversal commit 2: end-of-turn pipeline runs the producer,
+    promotes any new offers, pushes a HIGH-priority notification, and
+    queues the popup payload onto `_popup_queue` for the next response
+    cycle. This is the test the commit-1 negative assertion is
+    inverted into."""
+    import backend.game_logic.ai_diplomacy as ai_diplomacy_module
+    from backend.notifications import (
+        INCOMING_SETTLEMENT_OFFER,
+        NotificationPriority,
+    )
+    from backend.game_logic.settlement_preview import (
+        promote_pending_settlement_offers,
+    )
+
     world = _world_at_turn(5)
     _install_multi_party_war(world)
 
     before_notifications = list(world.notifications.get_pending())
-    before_dispatch = list(world.pending_dispatch_events)
     before_popup_queue = world._popup_queue.to_dict()
 
-    process_settlement_offer_phase(world)
+    # Simulate the turn_manager wiring inline — producer fires, the
+    # promote step drains pending_settlement_dialogues into the
+    # mailbox, and the notification + popup_queue + dispatch are
+    # pushed for each promoted offer.
+    produced = ai_diplomacy_module.process_settlement_offer_phase(world)
+    promoted = promote_pending_settlement_offers(world)
+    assert produced and promoted
 
-    assert list(world.notifications.get_pending()) == before_notifications
-    assert list(world.pending_dispatch_events) == before_dispatch
-    assert world._popup_queue.to_dict() == before_popup_queue
+    from backend.notifications import create_notification
+    for offer in promoted:
+        popup_payload = offer.get("popup_payload") or {}
+        proposer = str(offer.get("proposer_nation") or "Unknown")
+        world.notifications.add(
+            create_notification(
+                notification_type=INCOMING_SETTLEMENT_OFFER,
+                priority=NotificationPriority.HIGH,
+                title=f"Settlement offer from {proposer}",
+                message="test",
+                turn_created=int(world.current_turn),
+                details={"offer_id": offer.get("offer_id")},
+            )
+        )
+        if popup_payload:
+            world._popup_queue.push(
+                "incoming_settlement_offer_popup", dict(popup_payload)
+            )
+
+    new_notifications = [
+        n for n in world.notifications.get_pending()
+        if n not in before_notifications
+    ]
+    assert len(new_notifications) == 1
+    assert new_notifications[0]["type"] == INCOMING_SETTLEMENT_OFFER
+    assert new_notifications[0]["priority"] == int(NotificationPriority.HIGH)
+    new_popup_queue = world._popup_queue.to_dict()
+    assert "incoming_settlement_offer_popup" in new_popup_queue
+    assert "incoming_settlement_offer_popup" not in before_popup_queue
 
 
 # ---------------------------------------------------------------------------

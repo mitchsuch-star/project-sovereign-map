@@ -1254,6 +1254,69 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "for {war_label} is fulfilled — {total_amount} gold has changed "
         "hands. The clause closes itself."
     ),
+    # SC-5 reversal / Slice G1 commit 2 incoming-offer Voice Bible §16.1
+    # families. Talleyrand frames the offer for the player's reading;
+    # each foreign court's voice is what the proposer-side leader puts
+    # on the dispatch. The committed copy distinguishes incoming
+    # acceptance framing ("they are asking for") from outgoing review
+    # framing ("we are asking for").
+    "settlement_incoming_offer_arrival_talleyrand": (
+        "Sire, {proposer_leader} has dispatched a settlement of "
+        "{war_label}. They ask {amount} gold to close the war; the "
+        "table is theirs to set, the signature is ours to give or "
+        "withhold."
+    ),
+    "settlement_incoming_offer_arrival_castlereagh": (
+        "His Majesty's Government offers terms for {war_label}. London "
+        "asks {amount} gold and a return to peace; the price is set, "
+        "and London is not in the habit of revising figures lightly."
+    ),
+    "settlement_incoming_offer_arrival_hardenberg": (
+        "Prussia proposes a settlement of {war_label}. Hardenberg names "
+        "{amount} gold as the close; what Prussia gives by signing is "
+        "quiet, and what Prussia keeps is the lesson."
+    ),
+    "settlement_incoming_offer_arrival_metternich": (
+        "Vienna submits terms for {war_label}. Metternich asks {amount} "
+        "gold; the figure is modest by Vienna's reckoning and the "
+        "alternative is another season of campaign."
+    ),
+    "settlement_incoming_offer_arrival_einsiedel": (
+        "Saxony forwards a settlement of {war_label}. Einsiedel asks "
+        "{amount} gold, respectfully — small courts cannot afford long "
+        "wars, and the offer is shaped accordingly."
+    ),
+    "settlement_incoming_offer_arrival_chancery": (
+        "The chancery of {proposer_leader} has forwarded a settlement "
+        "of {war_label}. The terms ask {amount} gold; the court awaits "
+        "France's answer."
+    ),
+    # Request Revision is the accepting-side counter authoring route.
+    # Talleyrand explains that we are opening the editor seeded from the
+    # exact offered package so the player can revise before sending a
+    # counter; this must NOT reuse outgoing "Revise Terms" framing.
+    "settlement_incoming_offer_request_revision_talleyrand": (
+        "Sire, I shall open the offered terms for {war_label} for our "
+        "own hand. We answer the dispatch from {proposer_leader} with a "
+        "counter draft, not silence."
+    ),
+    # Blocked recovery for the accepting-side review (player accepted the
+    # offer but it cannot ratify in its current form). Talleyrand names
+    # the blocker and points the player at Request Revision rather than
+    # outgoing Revise Terms copy.
+    "settlement_incoming_offer_blocked_recovery_talleyrand": (
+        "Sire, the offer from {proposer_leader} cannot ratify as it "
+        "stands: {top_blocker}. Request a revision and we answer with "
+        "our own draft instead of refusing without a reply."
+    ),
+    # Cross-court observer copy when a non-French court learns that a
+    # settlement was blocked. Spec §SC-19 amendment + §SC-30 Voice Bible
+    # cross-court rule require chancery voice (not Talleyrand) so the
+    # observed-from-outside reading does not pretend French authorship.
+    "settlement_blocked_for_ratification_observer": (
+        "The chancery records the draft of {war_label} as blocked. "
+        "{top_blocker} leaves no court with signatures to exchange."
+    ),
 }
 
 

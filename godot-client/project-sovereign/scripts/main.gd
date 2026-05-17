@@ -24,10 +24,11 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"ultimatum_demand_wizard",
 	"war_purpose_selection",
 	"settlement_confirm",
-	# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally NOT
-	# whitelisted while incoming offers are deferred-and-hidden. Stale-save
-	# dialogues of that type fall through to the unknown-dtype warning branch
-	# instead of opening the settlement popup.
+	# SC-5 reversal commit 2 (Slice G1): incoming AI settlement offers
+	# reuse the proposal_confirm popup; the popup script branches on
+	# dtype to render the incoming-offer arrival copy and Voice Bible
+	# §16.1 incoming-offer voice.
+	"incoming_settlement_offer",
 ]
 const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
@@ -57,9 +58,14 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# gold demands.
 	"author_gold_indemnity_terms",
 	"author_gold_per_turn_terms",
-	# SC-5 / G2-Slice-4: incoming-offer actions removed while offers are
-	# deferred. The backend handler short-circuits with `incoming_offer_deferred`,
-	# but no settlement-offer button is reachable from the player UI.
+	# SC-5 reversal commit 2 (Slice G1) incoming-offer actions. Accept
+	# stages settlement_confirm with the offered package preserved;
+	# Reject removes the pending entry without mutation; Request
+	# Revision opens the editor seeded from the offered terms so the
+	# player can answer with a counter draft.
+	"accept_settlement_offer",
+	"reject_settlement_offer",
+	"request_settlement_revision",
 ]
 
 # UI References - Header Status
@@ -771,7 +777,7 @@ func _configure_response_routes():
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
-		{"id": "deferred_incoming_settlement_offer", "matches": "_response_has_deferred_incoming_settlement_offer_route", "show": "_route_deferred_incoming_settlement_offer_response"},
+		{"id": "incoming_settlement_offer", "matches": "_response_has_incoming_settlement_offer_route", "show": "_route_incoming_settlement_offer_response"},
 		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
 		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
 		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
@@ -851,14 +857,25 @@ func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
 func _route_incoming_proposal_response(response: Dictionary):
 	incoming_proposal_popup.show_proposal(response.incoming_proposal)
 
-func _response_has_deferred_incoming_settlement_offer_route(response: Dictionary) -> bool:
+func _response_has_incoming_settlement_offer_route(response: Dictionary) -> bool:
+	# SC-5 reversal commit 2 (Slice G1): match either the dedicated
+	# `incoming_settlement_offer` popup-queue key or a dialogue dict
+	# whose type is `incoming_settlement_offer`. The proposal_confirm
+	# route handles the popup body once we deliver it here.
+	if response.has("incoming_settlement_offer") and response.incoming_settlement_offer != null:
+		return proposal_confirm_popup != null
 	var dialogue = response.get("diplomatic_dialogue", {})
 	if typeof(dialogue) == TYPE_DICTIONARY and dialogue.get("type", dialogue.get("dialogue_type", "")) == "incoming_settlement_offer":
-		return true
-	return str(response.get("dialogue_type", "")) == "incoming_settlement_offer"
+		return proposal_confirm_popup != null
+	return false
 
-func _route_deferred_incoming_settlement_offer_response(_response: Dictionary):
-	add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+func _route_incoming_settlement_offer_response(response: Dictionary):
+	var dialogue = response.get("incoming_settlement_offer", {})
+	if typeof(dialogue) != TYPE_DICTIONARY or dialogue.is_empty():
+		dialogue = response.get("diplomatic_dialogue", {})
+	if proposal_confirm_popup != null and dialogue is Dictionary and dialogue.size() > 0:
+		set_input_enabled(false)
+		proposal_confirm_popup.show_dialogue(dialogue)
 
 func _response_has_proposal_confirm_route(response: Dictionary) -> bool:
 	return response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null and proposal_confirm_popup != null
@@ -871,9 +888,11 @@ func _route_proposal_confirm_response(response: Dictionary):
 	proposal_confirm_popup.show_dialogue(dialogue)
 
 func _show_confirm_dialogue_from_response(response: Dictionary, missing_message: String):
-	# SC-5 / G2-Slice-4: incoming-offer payload key is no longer consulted as
-	# a fallback dialogue source. Stale `incoming_settlement_offer` records
-	# never inflate into a generic settlement popup.
+	# SC-5 reversal commit 2 (Slice G1): the incoming-offer payload is
+	# delivered via the dedicated `incoming_settlement_offer` response
+	# key + popup route, not as a generic `diplomatic_dialogue`
+	# fallback. This helper only inflates explicit
+	# `diplomatic_dialogue` payloads.
 	var dialogue = response.get("diplomatic_dialogue", {})
 	if proposal_confirm_popup and dialogue is Dictionary and dialogue.size() > 0:
 		set_input_enabled(false)
@@ -3366,9 +3385,15 @@ func _on_pending_envoy_result(response: Dictionary):
 		else:
 			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
 	elif dtype == "incoming_settlement_offer":
-		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
-		# pending-envoy result of this type must not open the settlement popup.
-		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+		# SC-5 reversal commit 2 (Slice G1): open the incoming
+		# settlement offer popup. The pending-envoy response returns
+		# the popup payload under `incoming_settlement_offer`.
+		var offer_data = response.get("incoming_settlement_offer", {})
+		if proposal_confirm_popup and offer_data is Dictionary and offer_data.size() > 0:
+			set_input_enabled(false)
+			proposal_confirm_popup.show_dialogue(offer_data)
+		else:
+			add_output("[color=#d9c08c]A settlement offer is waiting but the popup data could not be retrieved.[/color]")
 	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
@@ -3403,9 +3428,15 @@ func _on_mailbox_activate_result(response: Dictionary):
 		else:
 			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
 	elif dtype == "incoming_settlement_offer":
-		# SC-5 / G2-Slice-4: incoming settlement offers are deferred. A stale
-		# mailbox-activate result of this type must not open the settlement popup.
-		add_output("[color=#d9c08c]Incoming settlement offers are not available in this build.[/color]")
+		# SC-5 reversal commit 2 (Slice G1): open the incoming
+		# settlement offer popup. The mailbox-activate response
+		# returns the popup payload under `incoming_settlement_offer`.
+		var offer_data = response.get("incoming_settlement_offer", {})
+		if proposal_confirm_popup and offer_data is Dictionary and offer_data.size() > 0:
+			set_input_enabled(false)
+			proposal_confirm_popup.show_dialogue(offer_data)
+		else:
+			add_output("[color=#d9c08c]Item activated but settlement-offer popup data missing.[/color]")
 	elif dtype in ["conflict_alert", "settlement_confirm"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 

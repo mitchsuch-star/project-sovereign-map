@@ -52,12 +52,15 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_conflict_alert_content(data)
 		"ultimatum_confirm", "ultimatum_demand_wizard":
 			bbcode = _build_ultimatum_content(data)
-		# SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally
-		# absent from this match arm while incoming offers are deferred.
-		# Stale-save records of that type fall through to the default
-		# branch instead of rendering the settlement review.
 		"settlement_confirm":
 			bbcode = _build_settlement_content(data)
+		# SC-5 reversal commit 2 (Slice G1): incoming AI settlement
+		# offers render with accepting-side framing — the player is
+		# reading a draft authored by a foreign court, so the popup
+		# uses the Voice Bible §16.1 incoming-offer arrival families
+		# and labels the Ratify path as Accept Settlement.
+		"incoming_settlement_offer":
+			bbcode = _build_incoming_settlement_offer_content(data)
 		_:
 			if data.has("war_context_snapshot"):
 				bbcode = _build_peace_preview_content(data)
@@ -666,6 +669,42 @@ func _build_feasibility_content(data: Dictionary) -> String:
 		if hint:
 			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
 	return bbcode
+
+
+func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
+	"""SC-5 reversal commit 2 (Slice G1): render an AI-authored
+	settlement offer using accepting-side framing. The backend popup
+	payload supplies `talleyrand_text` (Talleyrand framing) and
+	`proposer_voice` (foreign chancery line) per Voice Bible §16.1
+	incoming-offer families, plus a structured terms summary.
+	"""
+	var proposer = str(data.get("proposer_nation", "Unknown"))
+	var war_label = str(data.get("war_label", data.get("war_id", "settlement")))
+	var bbcode = ""
+	bbcode += "[b]SETTLEMENT OFFER FROM %s[/b]\n\n" % proposer.to_upper()
+	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+
+	var proposer_voice = str(data.get("proposer_voice", ""))
+	if proposer_voice != "":
+		bbcode += "[color=#e0c070][i]\"%s\"[/i][/color]\n\n" % proposer_voice
+
+	var terms = data.get("terms_summary", [])
+	if terms is Array and terms.size() > 0:
+		bbcode += "[b]Their proposed terms:[/b]\n"
+		for t in terms:
+			bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t)
+		bbcode += "\n"
+
+	var covered = data.get("covered_enemy_participants", [])
+	if covered is Array and covered.size() > 0:
+		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(covered)) + "\n\n"
+
+	var talleyrand = str(data.get("talleyrand_text", ""))
+	if talleyrand != "":
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % talleyrand
+
+	return bbcode
+
 
 func _build_advisory_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "")

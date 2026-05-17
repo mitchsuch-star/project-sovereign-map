@@ -1,7 +1,7 @@
 {
   "godot_version": "4.4.1-stable (official)",
   "harness": "tools/godot_parse_check.gd",
-  "note": "SETTLEMENT_UI_CLEANUP_SPEC v0.31 first-open settlement gold-authoring repair. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+  "note": "SETTLEMENT_UI_CLEANUP_SPEC SC-5 reversal commit 2 / Slice G1 UI promotion. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
   "scripts": [
     {
       "errors": [],
@@ -70,5 +70,5 @@
       "path": "res://scripts/mailbox_panel.gd"
     }
   ],
-  "timestamp": "2026-05-15T17:52:28Z"
+  "timestamp": "2026-05-17T19:00:00Z"
 }

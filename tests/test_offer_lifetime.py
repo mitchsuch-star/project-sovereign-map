@@ -132,9 +132,22 @@ class TestCurrentTurnOfferTypes:
         for t in DialogueManager.HARD_STOP_TYPES:
             assert t not in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
-    def test_soft_stop_alias_matches(self):
-        """SOFT_STOP_MAILBOX_TYPES is aliased to CURRENT_TURN_OFFER_TYPES."""
-        assert DialogueManager.SOFT_STOP_MAILBOX_TYPES is DialogueManager.CURRENT_TURN_OFFER_TYPES
+    def test_soft_stop_alias_matches_current_turn_plus_persistent_types(self):
+        """SC-5 reversal commit 2 split SOFT_STOP_MAILBOX_TYPES into the
+        lapsing current-turn set plus the persistent mailbox set so
+        incoming settlement offers (persistent across turns) and AI
+        proposals (lapsing at end of turn) can share mailbox semantics
+        without sharing lapse semantics."""
+        expected = (
+            DialogueManager.CURRENT_TURN_OFFER_TYPES
+            | DialogueManager.PERSISTENT_MAILBOX_TYPES
+        )
+        assert DialogueManager.SOFT_STOP_MAILBOX_TYPES == expected
+        # The current-turn set stays a strict subset of the mailbox set.
+        assert DialogueManager.CURRENT_TURN_OFFER_TYPES <= DialogueManager.SOFT_STOP_MAILBOX_TYPES
+        # Persistent types must NOT lapse at end of turn.
+        for ptype in DialogueManager.PERSISTENT_MAILBOX_TYPES:
+            assert ptype not in DialogueManager.CURRENT_TURN_OFFER_TYPES
 
 
 # ═══════════════════════════════════════════════════════════════

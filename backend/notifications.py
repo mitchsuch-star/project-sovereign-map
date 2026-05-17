@@ -76,6 +76,12 @@ AMENDS_OFFERED = "amends_offered"
 BARGAIN_FULFILLED = "bargain_fulfilled"          # HIGH: bargain honoured
 BARGAIN_BREACHED = "bargain_breached"            # CRITICAL: bargain broken
 BARGAIN_VOIDED = "bargain_voided"                # NORMAL: bargain lapsed
+# SC-5 reversal commit 2 / Slice G1: incoming AI settlement offer
+# arrival. The producer enforces cooldown + one-active-offer-per-war
+# guards so the rail cannot spam; priority is HIGH because settlement
+# offers touch entire wars and persist across turns until accept /
+# reject. Review target routes to the incoming-settlement-offer popup.
+INCOMING_SETTLEMENT_OFFER = "incoming_settlement_offer"
 
 
 def create_notification(

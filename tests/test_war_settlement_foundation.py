@@ -54,17 +54,20 @@ def test_future_nation_power_tier_does_not_make_active_participant():
     assert "Russia" not in world.get_active_nations()
 
 
-def test_incoming_settlement_offer_excluded_from_mailbox_taxonomy():
-    """SC-5 / G2-Slice-4 inversion: incoming settlement offers are
-    deferred-and-hidden. The type must NOT appear in mailbox/offer
-    taxonomies, priority maps, or summary labels while deferred. The
-    type stays in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` (see SC-18 v0.17)
-    so stale-save records still hit family-level safety guards, but
-    no player-facing mailbox/badge plumbing references it."""
+def test_incoming_settlement_offer_in_persistent_mailbox_taxonomy_after_sc5_reversal_commit2():
+    """SC-5 reversal commit 2 (Slice G1) re-adds
+    `incoming_settlement_offer` to the persistent mailbox set so the
+    producer-promoted offer can surface through `/mailbox`,
+    `/pending_envoy`, and the Godot mailbox panel. The type stays out
+    of `CURRENT_TURN_OFFER_TYPES` because incoming settlement offers
+    persist across turns (no end-of-turn lapse) and out of
+    `HARD_STOP_TYPES` because they never block ordinary commands."""
+    assert "incoming_settlement_offer" in DialogueManager.PERSISTENT_MAILBOX_TYPES
+    assert "incoming_settlement_offer" in DialogueManager.SOFT_STOP_MAILBOX_TYPES
+    assert "incoming_settlement_offer" in DialogueManager.DIALOGUE_PRIORITY
+    assert "incoming_settlement_offer" in DialogueManager.MAILBOX_SUMMARY_LABELS
     assert "incoming_settlement_offer" not in DialogueManager.CURRENT_TURN_OFFER_TYPES
-    assert "incoming_settlement_offer" not in DialogueManager.SOFT_STOP_MAILBOX_TYPES
-    assert "incoming_settlement_offer" not in DialogueManager.DIALOGUE_PRIORITY
-    assert "incoming_settlement_offer" not in DialogueManager.MAILBOX_SUMMARY_LABELS
+    assert "incoming_settlement_offer" not in DialogueManager.HARD_STOP_TYPES
 
 
 def test_settlement_containers_initialize_to_spec_defaults():

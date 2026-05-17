@@ -5254,6 +5254,232 @@ def _is_offer_active_dialogue(world: Any, dialogue: Mapping[str, Any]) -> bool:
     return str(current.get("war_id") or "") == str(dialogue.get("war_id") or "")
 
 
+def _is_offer_known_to_dialogue_manager(
+    world: Any, *, offer_id: str
+) -> bool:
+    """True when an incoming-offer dialogue with `offer_id` already lives
+    in the active dialogue slot or the queue. Used by the promotion step
+    so save-loaded saves never duplicate-push the same offer."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not offer_id:
+        return False
+    current = getattr(dm, "_current", None)
+    if (
+        isinstance(current, Mapping)
+        and current.get("type") == "incoming_settlement_offer"
+        and str(current.get("offer_id") or "") == offer_id
+    ):
+        return True
+    for queued in getattr(dm, "_queue", None) or []:
+        if (
+            isinstance(queued, Mapping)
+            and queued.get("type") == "incoming_settlement_offer"
+            and str(queued.get("offer_id") or "") == offer_id
+        ):
+            return True
+    return False
+
+
+def _incoming_offer_summary_text(offer: Mapping[str, Any]) -> str:
+    """One-line dispatch / mailbox summary for an incoming settlement offer."""
+    proposer = str(offer.get("proposer_nation") or "Unknown")
+    war_id = str(offer.get("war_id") or "")
+    amount = 0
+    for term in offer.get("settlement_terms") or []:
+        if isinstance(term, Mapping) and term.get("type") == "gold_indemnity":
+            try:
+                amount = int(term.get("amount") or 0)
+            except (TypeError, ValueError):
+                amount = 0
+            break
+    parts = [f"Settlement offer from {proposer}"]
+    if war_id:
+        parts.append(f"({war_id})")
+    if amount:
+        parts.append(f"— {amount} gold for peace")
+    return " ".join(parts)
+
+
+def build_incoming_settlement_offer_popup(
+    world: Any, offer: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Return a popup-safe payload for an incoming settlement offer.
+
+    The payload uses the `proposal_confirm` popup schema (label,
+    description, action per option) so Godot's existing dialogue popup
+    can render the offer alongside ordinary diplomatic confirms; the
+    `incoming_settlement_offer` arm in `proposal_confirm_popup.gd`
+    knows how to format the offered settlement_terms and Voice Bible
+    incoming-offer copy. The package is read-only; click handlers route
+    back through `/respond_to_diplomatic_dialogue` so backend
+    revalidation runs before any mutation.
+    """
+    war_id = str(offer.get("war_id") or "")
+    offer_id = str(offer.get("offer_id") or "")
+    proposer_nation = str(offer.get("proposer_nation") or "")
+    accepting_side = str(offer.get("accepting_side") or "")
+    covered = list(offer.get("covered_enemy_participants") or [])
+    settlement_terms = [
+        dict(t) for t in offer.get("settlement_terms") or []
+        if isinstance(t, Mapping)
+    ]
+    war_instances = getattr(world, "war_instances", None) or {}
+    war = war_instances.get(war_id) if isinstance(war_instances, Mapping) else None
+    if isinstance(war, Mapping):
+        war_label = _war_label(war_id, war) if war_id else "settlement"
+    else:
+        war_label = war_id or "settlement"
+
+    amount = 0
+    for term in settlement_terms:
+        if term.get("type") == "gold_indemnity":
+            try:
+                amount = int(term.get("amount") or 0)
+            except (TypeError, ValueError):
+                amount = 0
+            break
+
+    # Voice routing per Voice Bible §16.1 incoming-offer families. Named
+    # diplomats use their own register; non-cast courts fall back to the
+    # chancery variant.
+    diplomat_family = {
+        "Britain": "settlement_incoming_offer_arrival_castlereagh",
+        "Prussia": "settlement_incoming_offer_arrival_hardenberg",
+        "Austria": "settlement_incoming_offer_arrival_metternich",
+        "Saxony": "settlement_incoming_offer_arrival_einsiedel",
+    }
+    proposer_family = diplomat_family.get(
+        proposer_nation,
+        "settlement_incoming_offer_arrival_chancery",
+    )
+    proposer_voice = resolve_settlement_voice_line(
+        proposer_family,
+        war_label=war_label,
+        proposer_leader=proposer_nation or "their leader",
+        amount=str(amount or 0),
+    )
+    talleyrand_voice = resolve_settlement_voice_line(
+        "settlement_incoming_offer_arrival_talleyrand",
+        war_label=war_label,
+        proposer_leader=proposer_nation or "their leader",
+        amount=str(amount or 0),
+    )
+
+    terms_summary: List[str] = []
+    for term in settlement_terms:
+        ttype = str(term.get("type") or "")
+        if ttype == "peace":
+            terms_summary.append("Peace")
+        elif ttype == "gold_indemnity":
+            terms_summary.append(
+                f"{term.get('amount', 0)} gold ({term.get('from', '')} → {term.get('to', '')})"
+            )
+        elif ttype:
+            terms_summary.append(ttype.replace("_", " ").title())
+
+    options = [
+        {
+            "label": "Accept Settlement",
+            "description": "Ratify the offered package.",
+            "action": "accept_settlement_offer",
+            "available": True,
+        },
+        {
+            "label": "Request Revision",
+            "description": (
+                "Open the offered terms in the editor and answer with a counter draft."
+            ),
+            "action": "request_settlement_revision",
+            "available": True,
+        },
+        {
+            "label": "Reject Settlement",
+            "description": "Decline the offer without further negotiation.",
+            "action": "reject_settlement_offer",
+            "available": True,
+        },
+    ]
+
+    return {
+        "type": "incoming_settlement_offer",
+        "dialogue_type": "incoming_settlement_offer",
+        "offer_id": offer_id,
+        "war_id": war_id,
+        "war_label": war_label,
+        "proposer_nation": proposer_nation,
+        "accepting_side": accepting_side,
+        "covered_enemy_participants": list(covered),
+        "settlement_terms": settlement_terms,
+        "terms_summary": terms_summary,
+        "amount": int(amount),
+        "talleyrand_text": talleyrand_voice or "",
+        "proposer_voice": proposer_voice or "",
+        "options": options,
+        "available_action_ids": [opt["action"] for opt in options],
+        # SC-30 hidden controls: Wait for Enemy Offer / Ask for Terms
+        # only appear once their lifecycle ships. Explicit absence is
+        # part of the contract.
+        "wait_for_enemy_offer_visible": False,
+        "ask_for_terms_visible": False,
+    }
+
+
+def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
+    """Drain `world.pending_settlement_dialogues` of `incoming_settlement_offer`
+    entries and push them into the dialogue_manager mailbox queue.
+
+    SC-5 reversal commit 2 / SC-30 Slice G1: the AI producer writes
+    offers into `world.pending_settlement_dialogues`; this helper is
+    the one place that promotes them onto the mailbox so the
+    Godot popup and `/pending_envoy` / `/mailbox` paths see them. The
+    helper is idempotent: an offer whose `offer_id` already lives in
+    the dialogue manager is left in pending only if it has not been
+    promoted yet (it has — we skip it). Returns the list of newly
+    promoted dialogues for logging / notification routing.
+    """
+    pending = getattr(world, "pending_settlement_dialogues", None)
+    if not isinstance(pending, list) or not pending:
+        return []
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return []
+    promoted: List[Dict[str, Any]] = []
+    remaining: List[Dict[str, Any]] = []
+    for entry in pending:
+        if not isinstance(entry, dict):
+            remaining.append(entry)
+            continue
+        if entry.get("type") != "incoming_settlement_offer":
+            remaining.append(entry)
+            continue
+        offer_id = str(entry.get("offer_id") or "")
+        if _is_offer_known_to_dialogue_manager(world, offer_id=offer_id):
+            # Already promoted (e.g. by an earlier promote call on the
+            # same response cycle). Drop from pending so the storage
+            # does not grow.
+            continue
+        # Build the mailbox-ready dialogue. The offer dict already has
+        # all the contract fields plus `turn_created`; we copy them
+        # forward verbatim so save/load round-trips through dialogue
+        # manager identically.
+        dialogue = copy.deepcopy(entry)
+        dialogue.setdefault("type", "incoming_settlement_offer")
+        dialogue.setdefault("dialogue_type", "incoming_settlement_offer")
+        dialogue.setdefault("blocking", False)
+        # Attach the popup payload so the mailbox-activate endpoint can
+        # return it without rebuilding from scratch. The popup payload
+        # is regenerated through `build_incoming_settlement_offer_popup`
+        # on demand for save-loaded dialogues.
+        dialogue["popup_payload"] = build_incoming_settlement_offer_popup(
+            world, entry
+        )
+        dm.push(dialogue)
+        promoted.append(dialogue)
+    if promoted:
+        world.pending_settlement_dialogues = remaining
+    return promoted
+
+
 def handle_incoming_settlement_offer_action(
     world: Any,
     *,
@@ -5326,37 +5552,143 @@ def handle_incoming_settlement_offer_action(
         }
 
     if action == "request_settlement_revision":
-        # Commit 1: counter / edit hint only. The real counter editor
-        # route lands with commit 2's UI layer; until then we leave the
-        # offer entry in place so the player can reopen and either
-        # accept the existing package or reject it. We do not pop the
-        # dialogue_manager unless the offer is currently active.
-        if _is_offer_active_dialogue(world, dialogue):
-            world.dialogue_manager.pop()
-        result = {
-            "success": True,
-            "dialogue_type": "incoming_settlement_offer",
-            "action": "request_settlement_revision",
-            "war_id": war_id,
-            "offer_id": offer_id,
-            "mutated": False,
-            "message": (
-                "Revision requested. Reopen the settlement review to adjust terms."
-            ),
-            "counter_edit_hint": {
-                "surface": "settlement_editor",
+        # SC-5 reversal commit 2: `request_settlement_revision` opens a
+        # real counter / edit route by staging `settlement_confirm` in
+        # player-editor mode seeded with the exact offered terms. The
+        # player can revise and then submit / ratify as a counter, or
+        # back out of the editor without sending a counter. The original
+        # offer entry is removed because the player has explicitly
+        # chosen to counter (rather than leaving the offer open in the
+        # mailbox alongside an editor draft). Click-time revalidation
+        # still runs through `stage_settlement_confirm`, so a
+        # state-changed war returns a humanized error instead of
+        # opening a stale editor.
+        offered_terms = list(dialogue.get("settlement_terms") or [])
+        covered_enemies = list(dialogue.get("covered_enemy_participants") or [])
+        offer_proposer_nation = dialogue.get("proposer_nation")
+        selected_target = (
+            dialogue.get("selected_target_nation")
+            or (
+                offer_proposer_nation
+                if offer_proposer_nation and offer_proposer_nation in covered_enemies
+                else (covered_enemies[0] if covered_enemies else None)
+            )
+        )
+
+        # SC-7b: empty / invalid / archived war_id surface humanized
+        # copy and DO NOT open the editor. The offer entry is still
+        # removed defensively so the mailbox does not keep referencing
+        # an offer that points nowhere.
+        defensive_fail: Optional[Dict[str, Any]] = None
+        if not war_id:
+            defensive_fail = {
+                "error": "invalid_war_id",
+                "error_display": _error_display("invalid_war_id"),
+            }
+        elif not is_war_known(world, war_id):
+            defensive_fail = {
+                "error": "incoming_offer_war_invalid",
+                "error_display": _error_display("incoming_offer_war_invalid"),
+            }
+        elif is_war_archived(world, war_id):
+            defensive_fail = {
+                "error": "incoming_offer_war_archived",
+                "error_display": _error_display("incoming_offer_war_archived"),
+                "war_archived": True,
+            }
+        if defensive_fail is not None:
+            _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
+            if _is_offer_active_dialogue(world, dialogue):
+                world.dialogue_manager.pop()
+            result = {
+                "success": False,
+                "dialogue_type": "incoming_settlement_offer",
+                "action": "request_settlement_revision",
                 "war_id": war_id,
                 "offer_id": offer_id,
-                "seed_settlement_terms": list(dialogue.get("settlement_terms") or []),
-                "covered_enemy_participants": list(
-                    dialogue.get("covered_enemy_participants") or []
-                ),
-                "proposer_side": dialogue.get("proposer_side"),
-            },
-            "suppress_proposal_result_popup": True,
+                "mutated": False,
+                "must_reopen": False,
+                **defensive_fail,
+            }
+            if defensive_fail["error"] == "invalid_war_id":
+                result.update(
+                    _no_reopen_target_payload(
+                        war_id, error="no_reopen_target_available"
+                    )
+                )
+                result["error"] = "invalid_war_id"
+                result["error_display"] = _error_display("invalid_war_id")
+            else:
+                result["reopen_target"] = {
+                    "surface": "war_detail",
+                    "target": "war_detail",
+                    "war_id": war_id,
+                    "nation": "",
+                    "target_nation": "",
+                }
+            return result
+
+        # Remove the offer first so the mailbox no longer renders it and
+        # the one-active-offer-per-war producer guard re-opens for the
+        # next AI tick. Editor state lives in
+        # `world.pending_settlement_drafts[war_id]` from `stage_settlement_confirm`.
+        _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
+        if _is_offer_active_dialogue(world, dialogue):
+            world.dialogue_manager.pop()
+
+        stage_kwargs: Dict[str, Any] = {
+            "war_id": war_id,
+            "actor_nation": actor,
+            "density": "medium",
+            # Player-editor mode so the editor controls (Submit for
+            # Review, clause edits, Back Out / discard confirm) appear
+            # the way they do for the standard player-authored
+            # settlement review. The offered terms become the initial
+            # draft.
+            "caller_kind": "player_editor",
         }
-        # SC-13/SC-14b: gate must_reopen on a non-empty target + cap.
-        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+        if offered_terms:
+            stage_kwargs["settlement_terms"] = offered_terms
+        if covered_enemies:
+            stage_kwargs["covered_enemy_participants"] = covered_enemies
+        if selected_target:
+            stage_kwargs["selected_target_nation"] = selected_target
+
+        result = stage_settlement_confirm(world, **stage_kwargs)
+        result["dialogue_type"] = "settlement_confirm"
+        result["action"] = "request_settlement_revision"
+        result["offer_id"] = offer_id
+        # Echo the originating offer terms so audits / observers can
+        # confirm the counter editor was seeded from the exact offered
+        # package. The staged draft itself can drift as the player
+        # edits, but `counter_to_offer_id` + `counter_seed_terms` pin
+        # the conversation provenance for the SC-30 voice-routing tests.
+        result["counter_to_offer_id"] = offer_id
+        result["counter_seed_terms"] = offered_terms
+        result["counter_seed_covered_participants"] = covered_enemies
+        # Override the staged settlement_confirm `talleyrand_text` with
+        # the request-revision voice family so the editor heading reads
+        # as "answering with a counter draft", not "Will they accept?".
+        revision_voice = resolve_settlement_voice_line(
+            "settlement_incoming_offer_request_revision_talleyrand",
+            war_label=str(war_id),
+            proposer_leader=str(offer_proposer_nation or "their leader"),
+        )
+        if revision_voice:
+            result["talleyrand_text"] = revision_voice
+            # Echo into the staged dialogue payload so the popup banner
+            # picks up the request-revision framing even after future
+            # re-renders. `diplomatic_dialogue` is the canonical key
+            # `stage_settlement_confirm` returns.
+            staged = result.get("diplomatic_dialogue")
+            if isinstance(staged, dict):
+                staged["talleyrand_text"] = revision_voice
+            result["message"] = revision_voice
+        if not result.get("success"):
+            result["error_display"] = result.get("error_display") or _error_display(
+                str(result.get("error") or "invalid_war_id")
+            )
+            result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
         return result
 
     if action != "accept_settlement_offer":

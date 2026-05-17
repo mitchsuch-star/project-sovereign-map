@@ -213,6 +213,20 @@ def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
     return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
 
 
+def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
+    handler_anchor = (
+        "from backend.game_logic.settlement_preview import (\n"
+        "                handle_incoming_settlement_offer_action,\n"
+        "            )"
+    )
+    pre_handler = source.split(handler_anchor, 1)[0]
+    elif_open = pre_handler.rfind("elif action in (")
+    assert elif_open != -1
+    tuple_block = pre_handler[elif_open:]
+    tuple_body = tuple_block.split("):", 1)[0]
+    return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
+
+
 def _simulate_main_gd_command_result_route(response: dict, source: str) -> str:
     """Small executable model of the relevant `_on_command_result` route order.
 
@@ -365,6 +379,17 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "author_gold_per_turn_terms",
 ]
 
+# SC-5 reversal commit 2 / Slice G1 incoming-offer dispatch tuple.
+# These ids reach `handle_incoming_settlement_offer_action`, NOT the
+# standard `handle_settlement_dialogue_action`, but they still ship in
+# Godot's SETTLEMENT_DIALOGUE_ACTIONS whitelist and must be present in
+# the executor's incoming-offer dispatch arm.
+INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS = [
+    "accept_settlement_offer",
+    "reject_settlement_offer",
+    "request_settlement_revision",
+]
+
 
 def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler():
     """Backend regression guard: every settlement-family popup action id
@@ -413,8 +438,10 @@ def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler()
 
 def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly():
     """Similar-bug guard: every Godot settlement popup action must have
-    the backend dialogue-endpoint dispatch arm, with no extra action id
-    hiding in either list."""
+    a backend dialogue-endpoint dispatch arm. SC-5 reversal commit 2
+    adds the three incoming-offer action ids to a second dispatch
+    tuple (`handle_incoming_settlement_offer_action`); they are not
+    extra orphans, just routed to a different handler."""
     main_text = (GODOT_SCRIPTS_DIR / "main.gd").read_text(encoding="utf-8")
     executor_text = (
         REPO_ROOT / "backend" / "commands" / "diplomatic_executor.py"
@@ -423,12 +450,28 @@ def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly(
     godot_actions = set(
         _extract_gd_string_array(main_text, "SETTLEMENT_DIALOGUE_ACTIONS")
     )
-    backend_dispatch_actions = set(
+    backend_settlement_dispatch = set(
         _extract_executor_settlement_dispatch_actions(executor_text)
     )
+    backend_incoming_dispatch = set(
+        _extract_executor_incoming_offer_dispatch_actions(executor_text)
+    )
 
-    assert godot_actions == set(SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS)
-    assert backend_dispatch_actions == godot_actions
+    expected_godot_actions = (
+        set(SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS)
+        | set(INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS)
+    )
+    assert godot_actions == expected_godot_actions
+    assert backend_settlement_dispatch == set(
+        SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS
+    )
+    assert backend_incoming_dispatch == set(
+        INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS
+    )
+    # No orphan action ids: every Godot whitelist id must appear in
+    # exactly one backend dispatch tuple.
+    union = backend_settlement_dispatch | backend_incoming_dispatch
+    assert godot_actions == union
 
 
 def test_godot_recovery_route_does_not_block_proposal_confirm_fall_through():

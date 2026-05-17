@@ -401,22 +401,89 @@ class TurnManager:
                     debug_print(f"[VASSAL COURTING] {event.get('message', '')}")
 
         # ════════════════════════════════════════════════════════════
-        # SETTLEMENT OFFER PRODUCER (SC-5 reversal / Slice G1 commit 1)
+        # SETTLEMENT OFFER PRODUCER + UI PROMOTION
+        # (SC-5 reversal / Slice G1 commit 2)
         # AI side-leaders produce incoming settlement offers for the
-        # player on active multi-party wars. Produced offers live in
-        # `world.pending_settlement_dialogues` until commit 2's UI
-        # promotion layer surfaces them through the mailbox / Godot
-        # popup. Cooldowns and one-active-offer-per-war guards are
-        # enforced inside the producer.
+        # player on active multi-party wars. The producer writes into
+        # `world.pending_settlement_dialogues`; `promote_pending_
+        # settlement_offers` drains that into the dialogue_manager
+        # mailbox so the Godot popup / `/pending_envoy` / `/mailbox`
+        # routes can surface the offer. Notification + popup-queue
+        # push happens here too so the first encounter auto-shows.
+        # Cooldowns and one-active-offer-per-war guards are enforced
+        # inside the producer.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
+        from backend.game_logic.settlement_preview import (
+            promote_pending_settlement_offers,
+        )
+        from backend.notifications import (
+            INCOMING_SETTLEMENT_OFFER,
+            NotificationPriority,
+            create_notification,
+        )
         produced_offers = process_settlement_offer_phase(world)
+        promoted_offers = promote_pending_settlement_offers(world)
         for offer in produced_offers:
             debug_print(
                 "[SETTLEMENT OFFER] "
                 f"{offer.get('proposer_nation')} offered settlement on "
                 f"{offer.get('war_id')} (offer_id={offer.get('offer_id')})"
             )
+        for offer in promoted_offers:
+            popup_payload = offer.get("popup_payload") or {}
+            proposer = str(offer.get("proposer_nation") or "Unknown")
+            war_label = str(
+                popup_payload.get("war_label")
+                or offer.get("war_id")
+                or "settlement"
+            )
+            amount = int(popup_payload.get("amount") or 0)
+            message = (
+                f"{proposer} has offered terms to settle {war_label}."
+                + (f" Asking {amount} gold." if amount else "")
+            )
+            world.notifications.add(
+                create_notification(
+                    notification_type=INCOMING_SETTLEMENT_OFFER,
+                    priority=NotificationPriority.HIGH,
+                    title=f"Settlement offer from {proposer}",
+                    message=message,
+                    turn_created=int(getattr(world, "current_turn", 0)),
+                    details={
+                        "war_id": str(offer.get("war_id") or ""),
+                        "offer_id": str(offer.get("offer_id") or ""),
+                        "proposer_nation": proposer,
+                        "amount": amount,
+                        "review_target": "incoming_settlement_offer_popup",
+                    },
+                )
+            )
+            # Push the popup payload to the popup queue so the very
+            # first response cycle after producer fires auto-shows the
+            # offer. The mailbox path remains available for queue
+            # browsing / dismissed-popup recovery.
+            popup_queue = getattr(world, "_popup_queue", None)
+            if popup_queue is not None and popup_payload:
+                popup_queue.push(
+                    "incoming_settlement_offer_popup", dict(popup_payload)
+                )
+            # Settlement-offer arrival dispatch line — categorized as a
+            # diplomacy event so the dispatch panel groups it with
+            # other settlement family beats.
+            dispatch_events = getattr(world, "pending_dispatch_events", None)
+            if isinstance(dispatch_events, list):
+                dispatch_events.append({
+                    "type": "settlement_offer_arrival",
+                    "war_id": str(offer.get("war_id") or ""),
+                    "offer_id": str(offer.get("offer_id") or ""),
+                    "proposer_nation": proposer,
+                    "war_label": war_label,
+                    "amount": amount,
+                    "message": message,
+                    "turn": int(getattr(world, "current_turn", 0)),
+                    "event_family": "diplomatic",
+                })
 
         return delivered
 

@@ -775,22 +775,30 @@ def test_no_resolvable_pairs_uses_safe_reopen_response():
     assert target["target_nation"] == "Austria"
 
 
-def test_request_revision_returns_counter_edit_hint_after_sc5_reversal():
-    """SC-5 reversal: `request_settlement_revision` now returns a
-    counter / edit hint that names the offer_id, war_id, offered
-    terms, and covered scope without mutation. The real counter /
-    edit route wiring lands in commit 2; commit 1 only needs to
-    expose the hint payload."""
+def test_request_revision_opens_counter_editor_after_sc5_reversal_commit2():
+    """SC-5 reversal commit 2: `request_settlement_revision` opens a
+    real counter editor by staging `settlement_confirm` in
+    player-editor mode seeded with the offered terms. The original
+    offer entry is removed; the staged dialogue carries the offer_id
+    as counter provenance and the request-revision Voice Bible
+    family as `talleyrand_text` so the popup heading reads as
+    "answering with a counter draft" rather than the outgoing
+    `Will they accept?` framing."""
     world = WorldState()
     _install_war(world)
+    # Use a real covered enemy so stage_settlement_confirm can resolve
+    # a selected target without falling into the dual-empty fallback.
     world.dialogue_manager.replace({
         "type": "incoming_settlement_offer",
         "war_id": "war_1",
         "offer_id": "offer_x",
-        "selected_target_nation": "",
-        "covered_enemy_participants": [],
+        "selected_target_nation": "Austria",
+        "covered_enemy_participants": ["Austria"],
         "settlement_terms": [{"type": "peace"}],
         "proposer_side": "defenders",
+        "proposer_nation": "Austria",
+        "accepting_side": "attackers",
+        "accepting_leader": "France",
     })
     dialogue = world.pending_diplomatic_dialogue
     result = handle_incoming_settlement_offer_action(
@@ -798,12 +806,16 @@ def test_request_revision_returns_counter_edit_hint_after_sc5_reversal():
     )
     assert result["success"] is True
     assert result["action"] == "request_settlement_revision"
-    assert result["mutated"] is False
+    assert result["dialogue_type"] == "settlement_confirm"
     assert result["offer_id"] == "offer_x"
-    hint = result.get("counter_edit_hint")
-    assert isinstance(hint, dict)
-    assert hint["war_id"] == "war_1"
-    assert hint["seed_settlement_terms"] == [{"type": "peace"}]
+    assert result["counter_to_offer_id"] == "offer_x"
+    assert result["counter_seed_terms"] == [{"type": "peace"}]
+    # The staged settlement_confirm is now the active dialogue.
+    current = world.dialogue_manager.peek()
+    assert current is not None
+    assert current.get("type") == "settlement_confirm"
+    # Request-revision heading appears on the staged dialogue.
+    assert "counter draft" in str(current.get("talleyrand_text", "")).lower()
 
 
 # ---------------------------------------------------------------------------

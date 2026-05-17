@@ -1061,7 +1061,12 @@ Required inversions:
 
 #### G2-Slice-4 - Incoming Offers
 
-Close SC-5, SC-6, and SC-7 by the default defer-and-hide decision unless a new explicit product reversal is recorded in this spec and `docs/STATUS.md` before code starts.
+SC-5 reversal landed in two commits on master:
+
+- **Commit 1** (May 15, 2026, `2a1f9d7`): backend producer + package-preserving accept/reject handler substrate. `INCOMING_OFFERS_DEFERRED=False` from this commit forward.
+- **Commit 2** (May 17, 2026): UI promotion layer — dialogue-manager `PERSISTENT_MAILBOX_TYPES` split, `promote_pending_settlement_offers(world)` drain, `build_incoming_settlement_offer_popup(world, offer)`, mailbox + pending-envoy + popup-queue + notification + dispatch wiring, Voice Bible §16.1 incoming-offer families per cast diplomat plus `settlement_blocked_for_ratification_observer` chancery voice, real `Request Revision` counter editor seeded from offered terms, Godot popup + whitelist routing.
+
+SC-6 and SC-7 close as part of the same reversal package because their gates were subordinate to SC-5's defer-and-hide decision.
 
 Required closure:
 

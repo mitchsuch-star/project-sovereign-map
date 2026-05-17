@@ -235,13 +235,24 @@ def test_handle_incoming_offer_reject_succeeds_after_sc5_reversal():
     assert world.pending_settlement_dialogues == []
 
 
-def test_handle_incoming_offer_revise_returns_counter_edit_hint_after_sc5_reversal():
-    """SC-5 reversal: `request_settlement_revision` returns a counter /
-    edit hint with offer_id + war_id + seeded terms + covered scope
-    so commit 2's UI layer can open a real counter / edit route."""
+def test_handle_incoming_offer_revise_opens_counter_editor_after_sc5_reversal_commit2():
+    """SC-5 reversal commit 2: `request_settlement_revision` opens a
+    real counter editor by staging `settlement_confirm` in
+    player-editor mode seeded with the offered terms. The result no
+    longer surfaces a `counter_edit_hint` placeholder — it stages a
+    full settlement_confirm and the original offer is removed."""
     world = WorldState()
     _install_war(world)
     dialogue = _stage_offer_dialogue(world)
+    # Add the fields the counter route preserves into the staged
+    # settlement_confirm. The legacy `_stage_offer_dialogue` synth was
+    # written before commit 1 stabilized the offer dict shape.
+    dialogue["offer_id"] = "offer_x"
+    dialogue["settlement_terms"] = [{"type": "peace"}]
+    dialogue["selected_target_nation"] = "Austria"
+    dialogue["proposer_nation"] = "Austria"
+    dialogue["accepting_side"] = "attackers"
+    dialogue["accepting_leader"] = "France"
 
     result = handle_incoming_settlement_offer_action(
         world, action="request_settlement_revision", dialogue=dialogue,
@@ -249,10 +260,9 @@ def test_handle_incoming_offer_revise_returns_counter_edit_hint_after_sc5_revers
 
     assert result["success"] is True
     assert result["action"] == "request_settlement_revision"
-    assert result["mutated"] is False
-    hint = result.get("counter_edit_hint")
-    assert isinstance(hint, dict)
-    assert hint["war_id"] == dialogue["war_id"]
+    assert result["dialogue_type"] == "settlement_confirm"
+    assert result["counter_to_offer_id"] == "offer_x"
+    assert result["counter_seed_terms"] == [{"type": "peace"}]
 
 
 def test_handle_incoming_offer_accept_stages_settlement_confirm_after_sc5_reversal():

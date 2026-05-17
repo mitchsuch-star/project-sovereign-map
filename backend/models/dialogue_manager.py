@@ -49,21 +49,33 @@ class DialogueManager:
     })
     # Current-turn offer types: AI-initiated offers that lapse at end of turn.
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
-    #
-    # SC-5 / G2-Slice-4: `incoming_settlement_offer` is intentionally absent
-    # from this set. Incoming settlement offers are deferred-and-hidden until
-    # producer + popup + accept/reject/revise actions ship together. The
-    # type stays in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` so stale-save records
-    # still hit family-level safety guards.
     CURRENT_TURN_OFFER_TYPES = frozenset({
         "incoming_proposal",
         "counter_offer",
         "counter_offer_response",
     })
-    # Alias — downstream code references SOFT_STOP_MAILBOX_TYPES for mailbox
-    # eligibility. After conflict_alert reclassification, this equals the
-    # current-turn offer set.
-    SOFT_STOP_MAILBOX_TYPES = CURRENT_TURN_OFFER_TYPES
+    # Persistent mailbox types: AI-initiated offers that persist across turns
+    # until accepted, rejected, or the producer cooldown / one-active-offer
+    # guard removes them. Mailbox-eligible like current-turn offers but
+    # `lapse_pending_offers()` and `has_current_turn_offers()` deliberately
+    # exclude this set.
+    #
+    # SC-5 reversal commit 2 (Slice G1): `incoming_settlement_offer` is the
+    # only persistent mailbox type today. The producer
+    # (`ai_diplomacy.process_settlement_offer_phase`) writes offers into
+    # `world.pending_settlement_dialogues`, the
+    # `promote_pending_settlement_offers(...)` helper drains them into the
+    # mailbox queue, and the player accepts / rejects / requests revision
+    # via `handle_incoming_settlement_offer_action(...)`. The type also
+    # stays in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` so cross-war family
+    # guards keep catching it.
+    PERSISTENT_MAILBOX_TYPES = frozenset({
+        "incoming_settlement_offer",
+    })
+    # Combined mailbox-eligible set: lapsing (current-turn) + persistent.
+    # Downstream code references SOFT_STOP_MAILBOX_TYPES for mailbox
+    # eligibility regardless of lapse semantics.
+    SOFT_STOP_MAILBOX_TYPES = CURRENT_TURN_OFFER_TYPES | PERSISTENT_MAILBOX_TYPES
     # Hybrid soft-stop: does NOT block ordinary commands, but end_turn
     # should auto-default or warn if unresolved.
     HYBRID_SOFT_STOP_TYPES = frozenset({
@@ -92,6 +104,10 @@ class DialogueManager:
         "commitment_paradox": 0,
         "settlement_confirm": 0,
         "vassal_rebellion_imminent": 1,
+        # SC-5 reversal commit 2: incoming settlement offers sit above
+        # ordinary proposals because they touch entire wars and persist
+        # across turns. Tested via mailbox ordering regressions.
+        "incoming_settlement_offer": 2,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,
         "counter_offer": 3,
@@ -101,6 +117,7 @@ class DialogueManager:
         "incoming_proposal": "Incoming proposal",
         "counter_offer": "Counter-offer",
         "counter_offer_response": "Counter response",
+        "incoming_settlement_offer": "Settlement offer",
     }
 
     def __init__(self):
@@ -251,19 +268,31 @@ class DialogueManager:
 
         def _make_summary(d: dict) -> dict:
             ctx = d.get("context", {})
-            source = d.get("target_nation", ctx.get("source", "Unknown"))
             dtype = d.get("type", "unknown")
             turn = d.get("turn_created", 0)
-            terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
-            ptype = terms.get("type", dtype)
-            summary = str(
-                d.get("proposal_terms_summary", "")
-                or ctx.get("proposal_terms_summary", "")
-                or (
-                    f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Diplomatic item')}: "
-                    f"{ptype.replace('_', ' ').title()}"
+            # Settlement offers store the proposer at top level (not in
+            # `context.source`) because they are produced outside the
+            # ordinary AI-proposal pipeline.
+            if dtype == "incoming_settlement_offer":
+                source = d.get("proposer_nation", "Unknown")
+                ptype = "settlement_offer"
+                war_id = d.get("war_id", "")
+                summary = (
+                    f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Settlement offer')}"
+                    + (f": {war_id}" if war_id else "")
                 )
-            ).strip()
+            else:
+                source = d.get("target_nation", ctx.get("source", "Unknown"))
+                terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
+                ptype = terms.get("type", dtype)
+                summary = str(
+                    d.get("proposal_terms_summary", "")
+                    or ctx.get("proposal_terms_summary", "")
+                    or (
+                        f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Diplomatic item')}: "
+                        f"{ptype.replace('_', ' ').title()}"
+                    )
+                ).strip()
             summary = summary.splitlines()[0]
             if len(summary) > 72:
                 summary = summary[:69].rstrip() + "..."

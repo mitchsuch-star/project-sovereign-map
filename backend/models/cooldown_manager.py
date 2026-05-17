@@ -137,13 +137,18 @@ class PopupQueue:
         "alliance_paradox_popup": "commitment_paradox_popup",
     }
 
-    # Priority order: lower index = higher priority
+    # Priority order: lower index = higher priority.
+    # SC-5 reversal commit 2 places `incoming_settlement_offer_popup`
+    # just below `incoming_proposal_popup`: settlement offers are
+    # important but less urgent than ordinary AI proposals because
+    # they persist across turns (no end-of-turn lapse).
     PRIORITY_ORDER = [
         "coalition_popup",
         "diplomatic_sabotage_popup",
         "vassal_rebellion_imminent_popup",
         "diplomatic_objection_popup",
         "incoming_proposal_popup",
+        "incoming_settlement_offer_popup",
         "proposal_result_popup",
         "commitment_paradox_popup",
         "alliance_paradox_popup",
@@ -156,6 +161,7 @@ class PopupQueue:
         "vassal_rebellion_imminent_popup": "vassal_rebellion_imminent",
         "diplomatic_objection_popup": "diplomatic_objection",
         "incoming_proposal_popup": "incoming_proposal",
+        "incoming_settlement_offer_popup": "incoming_settlement_offer",
         "proposal_result_popup": "proposal_result",
         "commitment_paradox_popup": "commitment_paradox_popup",
         "alliance_paradox_popup": "commitment_paradox_popup",

@@ -443,11 +443,14 @@ class TestCooldownPopupEnforcement:
         assert mgr._registered_scalars == {"talleyrand_defiance", "ultimatum_global"}
 
     def test_popup_priority_order_length(self):
-        """PopupQueue tracks 8 keys: 7 canonical slots plus one legacy alias."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 8
-        assert len(PopupQueue.RESPONSE_KEYS) == 8
+        """PopupQueue tracks 9 keys: 8 canonical slots plus one legacy alias.
+        SC-5 reversal commit 2 added `incoming_settlement_offer_popup`."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 9
+        assert len(PopupQueue.RESPONSE_KEYS) == 9
         assert PopupQueue.RESPONSE_KEYS["commitment_paradox_popup"] == "commitment_paradox_popup"
         assert PopupQueue.RESPONSE_KEYS["alliance_paradox_popup"] == "commitment_paradox_popup"
+        assert "incoming_settlement_offer_popup" in PopupQueue.PRIORITY_ORDER
+        assert PopupQueue.RESPONSE_KEYS["incoming_settlement_offer_popup"] == "incoming_settlement_offer"
 
     def test_popup_priority_order_matches_response_keys(self):
         """Every PRIORITY_ORDER entry has a RESPONSE_KEYS mapping."""
