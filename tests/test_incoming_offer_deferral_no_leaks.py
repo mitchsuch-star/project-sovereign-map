@@ -28,6 +28,7 @@ end-to-end.
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ from backend.game_logic.diplomatic_templates import resolve_settlement_voice_lin
 from backend.game_logic.settlement_preview import (
     INCOMING_OFFERS_DEFERRED,
     SETTLEMENT_FAMILY_DIALOGUE_TYPES,
+    build_settlement_confirm_dialogue,
     handle_incoming_settlement_offer_action,
     promote_pending_settlement_offers,
 )
@@ -184,6 +186,23 @@ def test_promote_helper_is_idempotent_across_save_load_cycles():
     assert rehydrated.dialogue_manager.get_mailbox_count() == 1
 
 
+def test_promote_helper_prunes_already_promoted_pending_duplicate():
+    """A save/debug duplicate with the same offer_id must be drained from
+    pending storage even when the helper does not push a new mailbox row."""
+    world = _seeded_world(5)
+    _install_multi_party_war(world)
+    [offer] = process_settlement_offer_phase(world)
+    promote_pending_settlement_offers(world)
+
+    world.pending_settlement_dialogues = [copy.deepcopy(offer)]
+
+    repeat = promote_pending_settlement_offers(world)
+
+    assert repeat == []
+    assert world.pending_settlement_dialogues == []
+    assert world.dialogue_manager.get_mailbox_count() == 1
+
+
 # ---------------------------------------------------------------------------
 # Section 3 — `/mailbox`, `/pending_envoy`, `/mailbox/activate` surfaces
 # ---------------------------------------------------------------------------
@@ -325,6 +344,70 @@ def test_sc30_reversal_authors_observer_blocked_ratification_voice_family():
     # Chancery register, not Talleyrand "Sire" register.
     assert "sire" not in text.lower()
     assert "chancery" in text.lower()
+
+
+def test_voice_bible_section_16_1_documents_incoming_offer_families():
+    """The authoritative Voice Bible must document the same incoming-offer
+    families that backend templates expose."""
+    voice_bible = (REPO_ROOT / "docs" / "DIPLOMAT_VOICE_BIBLE.md").read_text(
+        encoding="utf-8"
+    )
+    families = [
+        "settlement_incoming_offer_arrival_talleyrand",
+        "settlement_incoming_offer_arrival_castlereagh",
+        "settlement_incoming_offer_arrival_hardenberg",
+        "settlement_incoming_offer_arrival_metternich",
+        "settlement_incoming_offer_arrival_einsiedel",
+        "settlement_incoming_offer_arrival_chancery",
+        "settlement_incoming_offer_request_revision_talleyrand",
+        "settlement_incoming_offer_blocked_recovery_talleyrand",
+        "settlement_blocked_for_ratification_observer",
+    ]
+    for family in families:
+        assert f"`{family}`" in voice_bible
+
+
+def test_foreign_court_blocked_settlement_routes_observer_voice_family():
+    """A non-participant player observing a blocked settlement must get the
+    chancery observer blocked family, not the generic observed-settlement line."""
+    world = _seeded_world(5)
+    world.player_nation = "Spain"
+    war = _install_multi_party_war(world)
+    preview_response = {
+        "success": True,
+        "war_id": "war_1",
+        "settlement_preview": {
+            "proposer_side": "attackers",
+            "accepting_side": "defenders",
+            "war_instance": war,
+            "war_label": "France-Austria War",
+            "settlement_terms": [{"type": "peace"}],
+            "covered_enemy_participants": ["Austria"],
+            "acceptance": {
+                "score": 0,
+                "threshold": 50,
+                "verdict": "blocked",
+                "band": "blocked",
+                "hard_stops": [],
+                "top_components": [
+                    {"component_display": "Acceptance pressure"}
+                ],
+            },
+            "review_sections": {"sections": {"acceptance": {}}},
+        },
+    }
+
+    dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview_response,
+        selected_target_nation="Austria",
+        caller_kind="ai_system",
+    )
+
+    text = str(dialogue.get("talleyrand_text", ""))
+    assert "chancery records the draft" in text.lower()
+    assert "acceptance pressure" in text.lower()
+    assert "sire" not in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -542,6 +625,29 @@ def test_fifty_turn_soak_produces_offer_and_promotion_stays_consistent():
             world.current_turn += 1
     assert saw_at_least_one_offer
     assert world.current_turn >= starting_turn + 1
+
+
+def test_producer_does_not_reoffer_same_war_when_offer_is_promoted_and_unresolved():
+    """Cooldown expiry must not create a second mailbox offer for the
+    same war while the first promoted offer is still unresolved."""
+    world = _seeded_world(3)
+    _install_multi_party_war(world)
+
+    [first] = process_settlement_offer_phase(world)
+    promote_pending_settlement_offers(world)
+    world.current_turn = 3 + 5
+
+    second = process_settlement_offer_phase(world)
+    promote_pending_settlement_offers(world)
+
+    assert second == []
+    assert world.pending_settlement_dialogues == []
+    offer_rows = [
+        item for item in world.dialogue_manager.get_mailbox_items()
+        if item["item_type"] == "incoming_settlement_offer"
+    ]
+    assert len(offer_rows) == 1
+    assert world.dialogue_manager.peek()["offer_id"] == first["offer_id"]
 
 
 # ---------------------------------------------------------------------------

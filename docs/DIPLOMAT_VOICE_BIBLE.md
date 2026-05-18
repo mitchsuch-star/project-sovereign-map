@@ -275,6 +275,19 @@ Core settlement review and blocked-flow families:
 | `settlement_losing_side_pressure_explained_talleyrand` | Talleyrand | "The balance of the war is against us, Sire. A bare peace asks the enemy to sign without profit; concessions give them a reason to answer." |
 | `settlement_observed_foreign_court_chancery` | Foreign chancery | "The Chancery records a settlement of {war_label}. The terms are visible, but the private bargains behind them are not." |
 
+Incoming settlement-offer families:
+
+| Family | Speaker | Authored copy contract |
+| --- | --- | --- |
+| `settlement_incoming_offer_arrival_talleyrand` | Talleyrand | "Sire, {proposer_leader} has dispatched a settlement of {war_label}. They ask {amount} gold to close the war; the table is theirs to set, the signature is ours to give or withhold." |
+| `settlement_incoming_offer_arrival_castlereagh` | Castlereagh | "His Majesty's Government offers terms for {war_label}. London asks {amount} gold and a return to peace; the price is set, and London is not in the habit of revising figures lightly." |
+| `settlement_incoming_offer_arrival_hardenberg` | Hardenberg | "Prussia proposes a settlement of {war_label}. Hardenberg names {amount} gold as the close; what Prussia gives by signing is quiet, and what Prussia keeps is the lesson." |
+| `settlement_incoming_offer_arrival_metternich` | Metternich | "Vienna submits terms for {war_label}. Metternich asks {amount} gold; the figure is modest by Vienna's reckoning and the alternative is another season of campaign." |
+| `settlement_incoming_offer_arrival_einsiedel` | Einsiedel | "Saxony forwards a settlement of {war_label}. Einsiedel asks {amount} gold, respectfully - small courts cannot afford long wars, and the offer is shaped accordingly." |
+| `settlement_incoming_offer_arrival_chancery` | Foreign chancery | "The chancery of {proposer_leader} has forwarded a settlement of {war_label}. The terms ask {amount} gold; the court awaits France's answer." |
+| `settlement_incoming_offer_request_revision_talleyrand` | Talleyrand | "Sire, I shall open the offered terms for {war_label} for our own hand. We answer the dispatch from {proposer_leader} with a counter draft, not silence." |
+| `settlement_incoming_offer_blocked_recovery_talleyrand` | Talleyrand | "Sire, the offer from {proposer_leader} cannot ratify as it stands: {top_blocker}. Request a revision and we answer with our own draft instead of refusing without a reply." |
+
 Settlement recovery routing table:
 
 | Trigger | Required family |

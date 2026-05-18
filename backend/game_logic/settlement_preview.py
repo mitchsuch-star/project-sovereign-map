@@ -2519,11 +2519,18 @@ def build_settlement_confirm_dialogue(
         if n
     }
     if player_nation not in all_members:
-        text = resolve_settlement_voice_line(
-            "settlement_observed_foreign_court_chancery",
-            war_label=war_label,
-            accepting_leader=str(leaders.get(accepting_side) or "the accepting court"),
-        ) or f"Foreign Office records the settlement of {war_label}."
+        if can_ratify:
+            text = resolve_settlement_voice_line(
+                "settlement_observed_foreign_court_chancery",
+                war_label=war_label,
+                accepting_leader=str(leaders.get(accepting_side) or "the accepting court"),
+            ) or f"Foreign Office records the settlement of {war_label}."
+        else:
+            text = resolve_settlement_voice_line(
+                "settlement_blocked_for_ratification_observer",
+                war_label=war_label,
+                top_blocker=top_blocker_display,
+            ) or f"The chancery records the draft of {war_label} as blocked."
     elif white_peace and can_ratify:
         # G2-Slice-W1: labeled white-peace heading variant. Reuses
         # `settlement_review_heading_talleyrand` template if no
@@ -5433,9 +5440,10 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
     the one place that promotes them onto the mailbox so the
     Godot popup and `/pending_envoy` / `/mailbox` paths see them. The
     helper is idempotent: an offer whose `offer_id` already lives in
-    the dialogue manager is left in pending only if it has not been
-    promoted yet (it has — we skip it). Returns the list of newly
-    promoted dialogues for logging / notification routing.
+    the dialogue manager is skipped and pruned from pending storage so
+    save/load and multi-call paths do not duplicate-push or preserve
+    stale copies. Returns the list of newly promoted dialogues for
+    logging / notification routing.
     """
     pending = getattr(world, "pending_settlement_dialogues", None)
     if not isinstance(pending, list) or not pending:
@@ -5445,6 +5453,7 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
         return []
     promoted: List[Dict[str, Any]] = []
     remaining: List[Dict[str, Any]] = []
+    pruned_offer = False
     for entry in pending:
         if not isinstance(entry, dict):
             remaining.append(entry)
@@ -5457,6 +5466,7 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
             # Already promoted (e.g. by an earlier promote call on the
             # same response cycle). Drop from pending so the storage
             # does not grow.
+            pruned_offer = True
             continue
         # Build the mailbox-ready dialogue. The offer dict already has
         # all the contract fields plus `turn_created`; we copy them
@@ -5475,7 +5485,8 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
         )
         dm.push(dialogue)
         promoted.append(dialogue)
-    if promoted:
+        pruned_offer = True
+    if pruned_offer:
         world.pending_settlement_dialogues = remaining
     return promoted
 

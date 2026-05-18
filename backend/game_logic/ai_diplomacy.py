@@ -1660,10 +1660,31 @@ def _settlement_offer_already_pending(
     *,
     war_id: str,
 ) -> bool:
-    """One-active-offer-per-war guard."""
+    """One-active-offer-per-war guard for unpromoted producer storage."""
     for entry in pending:
         if not isinstance(entry, dict):
             continue
+        if entry.get("type") != "incoming_settlement_offer":
+            continue
+        if str(entry.get("war_id") or "") == war_id:
+            return True
+    return False
+
+
+def _settlement_offer_already_promoted(world, *, war_id: str) -> bool:
+    """One-active-offer-per-war guard for promoted mailbox entries."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return False
+    candidates = []
+    current = getattr(dm, "_current", None)
+    if isinstance(current, dict):
+        candidates.append(current)
+    candidates.extend(
+        item for item in (getattr(dm, "_queue", None) or [])
+        if isinstance(item, dict)
+    )
+    for entry in candidates:
         if entry.get("type") != "incoming_settlement_offer":
             continue
         if str(entry.get("war_id") or "") == war_id:
@@ -1762,6 +1783,8 @@ def _settlement_offer_eligible_for_war(
     pending = getattr(world, "pending_settlement_dialogues", None) or []
     if _settlement_offer_already_pending(pending, war_id=str(war.get("war_id") or "")):
         return "offer_already_pending"
+    if _settlement_offer_already_promoted(world, war_id=str(war.get("war_id") or "")):
+        return "offer_already_promoted"
     return None
 
 
