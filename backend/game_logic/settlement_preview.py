@@ -1301,7 +1301,15 @@ def _format_concession_reasoning(
     gold_amount: Optional[int],
     region: Optional[str],
 ) -> str:
-    """Humanized one-line rationale for the baseline draft."""
+    """Humanized one-line rationale for the baseline draft.
+
+    May 24, 2026 audit punch list Tier 2: the final reasoning string now
+    routes through `settlement_concession_authored_talleyrand` (Voice
+    Bible §16.1) instead of returning a hard-coded f-string. The parts
+    construction logic above remains unchanged so the popup keeps
+    rendering "pay X gold and cede Y" baseline summaries; only the
+    surrounding Talleyrand frame moves into the template registry.
+    """
     parts: List[str] = []
     if gold_amount is not None and gold_amount > 0:
         parts.append(
@@ -1314,11 +1322,12 @@ def _format_concession_reasoning(
             parts.append(f"{proposer_leader} would cede {region} to {accepting_leader}")
     if not parts:
         return ""
-    return (
-        "Talleyrand's draft: "
-        + " ".join(parts)
-        + " to improve acceptance."
-    )
+    summary = " ".join(parts)
+    return resolve_settlement_voice_line(
+        "settlement_concession_authored_talleyrand",
+        summary=summary,
+        accepting_leader=accepting_leader,
+    ) or ("Talleyrand's draft: " + summary + " to improve acceptance.")
 
 
 # SC-31 / G2-Slice-8 - Dependency clause eligibility helpers.
@@ -1617,16 +1626,22 @@ def _compute_surrender_preset(
             "to": accepting_leader,
         },
     ]
-    if dependency_kind == "subjugation":
-        reasoning = (
-            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
-            "as a conquest vassal in exchange for ending the war."
-        )
-    else:
-        reasoning = (
-            f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
-            "as a treaty vassal in exchange for ending the war."
-        )
+    vassal_kind = "conquest vassal" if dependency_kind == "subjugation" else "treaty vassal"
+    # May 24, 2026 audit punch list Tier 2: route the surrender preset
+    # reasoning through `settlement_surrender_preset_authored_talleyrand`
+    # (Voice Bible §16.1) instead of the prior hard-coded f-string. The
+    # template ships the deliberate-surrender framing; the inline string
+    # remains as the fallback when the template is missing/disabled.
+    reasoning = resolve_settlement_voice_line(
+        "settlement_surrender_preset_authored_talleyrand",
+        war_label=str(war_id or "this war"),
+        vassal_kind=vassal_kind,
+        proposer_leader=str(proposer_side_leader),
+        accepting_leader=str(accepting_leader),
+    ) or (
+        f"Talleyrand's draft: {proposer_side_leader} submits to {accepting_leader} "
+        f"as a {vassal_kind} in exchange for ending the war."
+    )
     return {
         "losing_for_surrender_preset": True,
         "surrender_preset_visible": True,
@@ -1739,9 +1754,22 @@ def _compute_recurring_gold_preset(
                 validation.get("error") or "recurring_gold_preset_invalid"
             ),
         }
-    reasoning = (
+    # May 24, 2026 audit punch list Tier 2: route the recurring-gold
+    # preset reasoning through `settlement_recurring_gold_authored_talleyrand`
+    # (Voice Bible §16.1) instead of the prior hard-coded f-string. The
+    # template ships the projected-total framing ("ties the treasury for
+    # years") that the f-string omitted.
+    projected_total = int(amount) * int(turns)
+    reasoning = resolve_settlement_voice_line(
+        "settlement_recurring_gold_authored_talleyrand",
+        payer=str(proposer_side_leader),
+        amount_per_turn=str(int(amount)),
+        recipient=str(accepting_leader),
+        turns=str(int(turns)),
+        projected_total=str(projected_total),
+    ) or (
         f"Talleyrand's draft: {proposer_side_leader} would pay {accepting_leader} "
-        f"{amount} gold per turn for {turns} turns."
+        f"{amount} gold per turn for {turns} turns ({projected_total} gold in total)."
     )
     return {
         "losing_for_recurring_gold_preset": True,
@@ -2877,6 +2905,24 @@ def build_settlement_confirm_dialogue(
             and not suppress_concession_baseline
         ),
         "concession_baseline": concession_baseline,
+        # May 24, 2026 audit punch list Tier 2: Voice Bible §16.1
+        # `settlement_losing_side_pressure_explained_talleyrand` is published
+        # on the staged dialogue whenever `losing_for_concession_baseline=True`,
+        # so the popup can render a Talleyrand reading of the top blocker
+        # (alongside the existing concession-baseline reasoning) rather than
+        # forcing the player to infer the losing-side context from the
+        # acceptance-band display alone. Empty string when not on the losing
+        # side or no top blocker is identifiable.
+        "losing_side_pressure_voice": (
+            resolve_settlement_voice_line(
+                "settlement_losing_side_pressure_explained_talleyrand",
+                war_label=war_label,
+                top_pressure_label=top_blocker_display,
+                accepting_leader=str(leaders.get(accepting_side) or "the accepting court"),
+            )
+            if preview.get("losing_for_concession_baseline")
+            else ""
+        ),
         # SC-31 / G2-Slice-8 - `surrender_preset` (the bool flag) labels
         # the dialogue as a surrender-preset-authored package for banner
         # copy + emitted `settlement_summary.surrender_preset` tagging.

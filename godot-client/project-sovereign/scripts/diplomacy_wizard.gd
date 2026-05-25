@@ -462,6 +462,34 @@ func _add_action_button(action: Dictionary):
 
 	content_list.add_child(btn)
 
+	# May 24, 2026 audit punch list Tier 2: multi-war ambiguity in-wizard
+	# rescue. When the backend marks the action unavailable with
+	# `error="multi_war_ambiguity"` and surfaces `available_wars`, render
+	# a clickable per-war picker below the disabled action button so the
+	# player can pick a specific `war_id` without leaving the wizard.
+	# Each picker button reuses `_on_action_selected` with the original
+	# `action_id` and a payload clone carrying the chosen `war_id`,
+	# which `_structured_payload_for_action` then forwards to the backend.
+	var error_code = str(action.get("error", ""))
+	var available_wars = action.get("available_wars", [])
+	if not available and error_code == "multi_war_ambiguity" and available_wars is Array and available_wars.size() > 0:
+		var picker_label = RichTextLabel.new()
+		picker_label.bbcode_enabled = true
+		picker_label.fit_content = true
+		picker_label.scroll_active = false
+		picker_label.text = "  [color=#a0a0a0][i]Pick a war to settle:[/i][/color]"
+		content_list.add_child(picker_label)
+		for war_entry in available_wars:
+			var war_str = str(war_entry)
+			var war_btn = Button.new()
+			war_btn.text = "    \u21B3 " + war_str
+			war_btn.custom_minimum_size = Vector2(0, 30)
+			war_btn.add_theme_font_size_override("font_size", 11)
+			var picker_payload = action.duplicate(true)
+			picker_payload["war_id"] = war_str
+			war_btn.pressed.connect(_on_action_selected.bind(action_id, picker_payload))
+			content_list.add_child(war_btn)
+
 
 func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 	"""Build command string and emit for main.gd to execute (§2 Step 3).

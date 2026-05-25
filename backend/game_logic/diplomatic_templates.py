@@ -1317,6 +1317,47 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "The chancery records the draft of {war_label} as blocked. "
         "{top_blocker} leaves no court with signatures to exchange."
     ),
+    # G2-Slice-W1 white-peace heading families. Authored as part of the
+    # May 24, 2026 audit punch list Tier 2: `build_settlement_confirm_dialogue`
+    # already calls `resolve_settlement_voice_line` for these two keys at
+    # the white_peace branches of the heading text logic, but the templates
+    # were missing — the resolver therefore returned empty and the popup
+    # fell through to inline f-string fallbacks. Authoring them here brings
+    # the white-peace heading under Voice Bible §16.1 alongside the
+    # blocked / ratifiable / observer variants above.
+    "settlement_white_peace_heading_talleyrand": (
+        "Sire, the white peace for {war_label} is ready: no terms exchanged, "
+        "no map redrawn — only the war ends. Ratify and the field falls quiet."
+    ),
+    "settlement_white_peace_blocked_talleyrand": (
+        "Sire, a white peace for {war_label} cannot be sealed as it stands: "
+        "{top_blocker}. Author terms or hold until the field shifts."
+    ),
+    # Losing-side concession-baseline Voice Bible families. Authored as
+    # part of the May 24, 2026 audit punch list Tier 2 so the concession
+    # baseline reasoning the popup already renders is registered Voice
+    # Bible copy rather than a hard-coded f-string in
+    # `_format_concession_reasoning(...)`. `{summary}` is the formatted
+    # one-line concession action the helper already constructs ("pay X
+    # gold", "cede Y", or both joined). `{accepting_leader}` echoes the
+    # foreign-court target so the line reads as deliberate authoring
+    # rather than as a generic acceptance hint.
+    "settlement_concession_authored_talleyrand": (
+        "Sire, the concession draft — {summary} — would lift acceptance "
+        "toward {accepting_leader}. It is what the field asks of us."
+    ),
+    # Losing-side pressure-explanation family. Authored alongside the
+    # concession-baseline family so the dialogue can surface a Talleyrand
+    # reading of why the player is on the losing side (top negative
+    # pressure component + accepting leader), not only the baseline
+    # reasoning. Surfaced on the dialogue as `losing_side_pressure_voice`
+    # when `losing_for_concession_baseline=True` and resolved with
+    # `{war_label}`, `{top_pressure_label}`, and `{accepting_leader}`.
+    "settlement_losing_side_pressure_explained_talleyrand": (
+        "Sire, the pressure on {war_label} reads against us — {top_pressure_label} "
+        "is the loudest blocker, and {accepting_leader} is the court whose "
+        "acceptance must shift before terms move."
+    ),
 }
 
 

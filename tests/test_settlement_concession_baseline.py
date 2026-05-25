@@ -647,7 +647,13 @@ class TestConcessionAcceptanceDirection:
         assert baseline is not None
 
         reasoning = str(baseline["reasoning"])
-        assert "to improve acceptance" in reasoning
+        # May 24, 2026 audit punch list Tier 2 — the legacy hard-coded
+        # f-string ("...to improve acceptance.") now routes through the
+        # `settlement_concession_authored_talleyrand` Voice Bible §16.1
+        # template ("...would lift acceptance toward {accepting_leader}.").
+        # The test's intent is unchanged: the copy must promise
+        # *improvement* (not a guaranteed acceptance band).
+        assert "lift acceptance" in reasoning
         assert "back into reach" not in reasoning
 
 

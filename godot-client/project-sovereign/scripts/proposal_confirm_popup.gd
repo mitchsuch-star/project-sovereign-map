@@ -301,6 +301,16 @@ func _build_settlement_content(data: Dictionary) -> String:
 		var ratify_blocked_reason = str(data.get("ratify_blocked_reason", ""))
 		if ratify_blocked_reason != "":
 			bbcode += "  [color=#e0a040]" + ratify_blocked_reason + "[/color]\n"
+		# May 24, 2026 audit punch list Tier 2: render the
+		# `terminal_recovery_copy` field after `ratify_blocked_reason`
+		# so the chancery recovery line authored by the backend via
+		# `settlement_no_alternative_route_chancery` actually reaches
+		# the player. Backend emits empty string when ratification is
+		# available or War Detail recovery is actionable; this render
+		# is therefore a no-op outside the terminal-stale state.
+		var terminal_recovery_copy = str(data.get("terminal_recovery_copy", ""))
+		if terminal_recovery_copy != "":
+			bbcode += "  [color=#a0a0a0][i]" + terminal_recovery_copy + "[/i][/color]\n"
 		bbcode += "\n"
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
