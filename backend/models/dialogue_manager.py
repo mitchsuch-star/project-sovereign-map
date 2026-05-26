@@ -19,6 +19,7 @@ class DialogueManager:
         replace(dialogue)      — overwrite current (enrichment / clear-then-set)
         pop()                  — clear current, auto-promote from queue
         peek()                 — read current without side effects
+        iter_queue()           — public read-only view of queued dialogues
         is_blocking()          — True if current dialogue blocks commands
         is_hard_stop()         — True if current dialogue blocks ALL commands
         is_soft_stop()         — True if current is mailbox/hybrid soft-stop
@@ -199,6 +200,16 @@ class DialogueManager:
     def peek(self) -> Optional[Dict]:
         """Read current dialogue without removing it."""
         return self._current
+
+    def iter_queue(self) -> List[Dict]:
+        """Public read-only view of queued (non-current) dialogues.
+
+        Returned as a shallow list copy so callers can iterate or filter
+        without mutating internal queue state. Use this in preference
+        to reaching into `_queue` directly so the dialogue-manager
+        public API stays the only allowed seam.
+        """
+        return list(self._queue)
 
     def is_blocking(self) -> bool:
         """True if current dialogue has blocking=True."""

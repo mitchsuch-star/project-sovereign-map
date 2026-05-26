@@ -293,7 +293,21 @@ func _build_settlement_content(data: Dictionary) -> String:
 			bbcode += "  [color=%s]%d / %d - %s[/color]\n" % [color, total, threshold, band]
 		var top_blocker = str(acceptance.get("top_blocker_display", ""))
 		var top_value = str(acceptance.get("top_blocker_value_display", ""))
-		if top_blocker != "":
+		# May 24, 2026 audit punch list Tier 3 P3 polish: when the
+		# acceptance band reads "Acceptable" and the total comfortably
+		# exceeds threshold (>= +10), suppress the "Top pressure" line
+		# so the popup does not read as conflicting with its own verdict.
+		# The line still renders when the score is close to threshold
+		# (the player needs to know which component is the swing factor),
+		# in non-accept bands, and on structurally blocked acceptance
+		# (covered separately above).
+		var suppress_top_pressure = false
+		if band_code in ["accept", "acceptable"]:
+			var current_total = int(acceptance.get("total", 0))
+			var current_threshold = int(acceptance.get("threshold", 50))
+			if current_total - current_threshold >= 10:
+				suppress_top_pressure = true
+		if top_blocker != "" and not suppress_top_pressure:
 			bbcode += "  Top pressure: " + top_blocker
 			if top_value != "":
 				bbcode += " " + top_value
@@ -365,24 +379,28 @@ func _build_settlement_content(data: Dictionary) -> String:
 			var reasoning = str(baseline.get("reasoning", ""))
 			if reasoning != "":
 				bbcode += "[color=#80c080][b]Talleyrand's concession draft:[/b] %s[/color]\n" % reasoning
-	# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-8 Surrender Preset:
-	# when `surrender_preset_visible=true` the dialogue carries a
-	# deterministic peace + dependency preset. The popup renders a
-	# first-frame note describing Talleyrand's surrender draft; the
-	# actual `Author surrender terms (Talleyrand)` action button is
-	# rendered alongside the existing options by the editor surface.
-	if bool(data.get("surrender_preset_visible", false)):
+	# Surrender preset banner: a single banner covers both the editor-side
+	# "Talleyrand is offering a surrender draft" affordance and the
+	# staged-outcome "surrender draft applied at ratification" state.
+	# May 24, 2026 audit punch list Tier 3 P2 collapsed the previous
+	# double-banner cluster (reasoning banner + outcome banner) into one
+	# labeled block so the popup does not advertise the same draft twice.
+	var surrender_preset_staged = bool(data.get("surrender_preset", false))
+	var surrender_preset_visible = bool(data.get("surrender_preset_visible", false))
+	if surrender_preset_staged or surrender_preset_visible:
+		var preset_reasoning = ""
 		var preset_payload = data.get("surrender_preset_payload", {})
 		if preset_payload is Dictionary:
-			var preset_reasoning = str(preset_payload.get("reasoning", ""))
+			preset_reasoning = str(preset_payload.get("reasoning", ""))
+		if surrender_preset_staged:
+			var staged_line = "[color=#d09080][b]Surrender draft[/b] — dependency consequence applied at ratification."
+			if preset_reasoning != "":
+				staged_line += " " + preset_reasoning
+			staged_line += "[/color]\n"
+			bbcode += staged_line
+		else:
 			if preset_reasoning != "":
 				bbcode += "[color=#d0a080][b]Talleyrand's surrender draft:[/b] %s[/color]\n" % preset_reasoning
-	# Surrender-preset-authored banner: when the dialogue is staged with
-	# `surrender_preset=true` the popup labels the outcome as a deliberate
-	# Talleyrand surrender draft so the player understands the dependency
-	# consequence is intentional, not a system fallback.
-	if bool(data.get("surrender_preset", false)):
-		bbcode += "[color=#d09080][b]Surrender draft[/b] — dependency consequence applied at ratification.[/color]\n"
 	# White peace banner: when the dialogue is staged with
 	# `white_peace=true` the popup labels the outcome explicitly.
 	if bool(data.get("white_peace", false)):

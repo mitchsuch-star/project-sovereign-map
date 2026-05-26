@@ -45,6 +45,7 @@ from backend.game_logic.settlement_scoring import (
     SETTLEMENT_MVP_CLAUSE_TYPES,
 )
 from backend.game_logic.settlement_presentation import (
+    _term_display,
     build_contribution_share_rows,
     build_settlement_review,
     detect_awe_set_pieces,
@@ -351,7 +352,8 @@ def _active_cross_side_pairs(
 
 def _settlement_dialogue_active(world: Any, war_id: str) -> bool:
     current = getattr(world, "pending_diplomatic_dialogue", None)
-    queued = list(getattr(getattr(world, "dialogue_manager", None), "_queue", []) or [])
+    dm = getattr(world, "dialogue_manager", None)
+    queued = list(dm.iter_queue()) if dm is not None and hasattr(dm, "iter_queue") else []
     for dialogue in ([current] if current else []) + queued:
         if not isinstance(dialogue, Mapping):
             continue
@@ -1264,11 +1266,31 @@ def _concession_baseline_select_transferable_region(
         return None
     starting_controllers = get_starting_controllers()
 
+    # Golden Rule 8: iterate per-participant via the cached
+    # `world.get_nation_regions(...)` lookup and union the results
+    # rather than scanning every region in the world. The pattern
+    # mirrors `settlement_scoring._project_balance_after_settlement`
+    # line 1589 and scales to the 1805 Europe map.
+    candidate_names: set[str] = set()
+    if hasattr(world, "get_nation_regions"):
+        for participant in proposer_set:
+            try:
+                candidate_names.update(world.get_nation_regions(participant))
+            except Exception:
+                continue
+    else:
+        # Defensive fallback for tests that build a thin world stub
+        # without the cached lookup helper. Behaviour matches the
+        # original full scan.
+        for name, region in regions.items():
+            if str(getattr(region, "controller", "") or "") in proposer_set:
+                candidate_names.add(name)
+
     candidates: List[Tuple[int, int, str]] = []
     unreachable_sentinel = CONCESSION_BASELINE_BFS_MAX_DEPTH + 1
-    for name, region in regions.items():
-        controller = str(getattr(region, "controller", "") or "")
-        if controller not in proposer_set:
+    for name in candidate_names:
+        region = regions.get(name)
+        if region is None:
             continue
         if bool(getattr(region, "is_capital", False)):
             continue
@@ -5316,18 +5338,19 @@ def _is_offer_known_to_dialogue_manager(
     dm = getattr(world, "dialogue_manager", None)
     if dm is None or not offer_id:
         return False
-    current = getattr(dm, "_current", None)
+    current = dm.peek() if hasattr(dm, "peek") else getattr(dm, "_current", None)
     if (
         isinstance(current, Mapping)
         and current.get("type") == "incoming_settlement_offer"
         and str(current.get("offer_id") or "") == offer_id
     ):
         return True
-    for queued in getattr(dm, "_queue", None) or []:
+    queued = dm.iter_queue() if hasattr(dm, "iter_queue") else (getattr(dm, "_queue", None) or [])
+    for queued_dialogue in queued:
         if (
-            isinstance(queued, Mapping)
-            and queued.get("type") == "incoming_settlement_offer"
-            and str(queued.get("offer_id") or "") == offer_id
+            isinstance(queued_dialogue, Mapping)
+            and queued_dialogue.get("type") == "incoming_settlement_offer"
+            and str(queued_dialogue.get("offer_id") or "") == offer_id
         ):
             return True
     return False
@@ -5418,17 +5441,48 @@ def build_incoming_settlement_offer_popup(
         amount=str(amount or 0),
     )
 
+    # May 24, 2026 audit punch list Tier 3 P2: every non-gold clause is
+    # rendered with structured copy so a region cession, forced alliance,
+    # vassalage, subjugation, liberation, or recurring-gold offer cannot
+    # show up in the popup as a bare title-cased token. Gold indemnity
+    # keeps its existing amount-leading form because the popup leads with
+    # the offered gold value; everything else delegates to the canonical
+    # `_term_display(...)` helper used by the settlement review + applied
+    # clauses preview, so the incoming-offer popup and the editor agree
+    # on what a clause reads as.
     terms_summary: List[str] = []
     for term in settlement_terms:
         ttype = str(term.get("type") or "")
+        if not ttype:
+            continue
         if ttype == "peace":
             terms_summary.append("Peace")
-        elif ttype == "gold_indemnity":
+            continue
+        if ttype == "gold_indemnity":
             terms_summary.append(
                 f"{term.get('amount', 0)} gold ({term.get('from', '')} → {term.get('to', '')})"
             )
-        elif ttype:
-            terms_summary.append(ttype.replace("_", " ").title())
+            continue
+        if ttype == "gold_per_turn":
+            amount = int(term.get("amount", 0) or 0)
+            turns = int(term.get("turns", 0) or 0)
+            terms_summary.append(
+                f"{amount} gold/turn for {turns} turns "
+                f"({term.get('from', '')} → {term.get('to', '')})"
+            )
+            continue
+        if ttype == "forced_alliance":
+            cs_suffix = (
+                ", incl. Continental System"
+                if bool(term.get("includes_continental_system"))
+                else ""
+            )
+            terms_summary.append(
+                f"Forced alliance ({term.get('from', '')} → {term.get('to', '')}"
+                f"{cs_suffix})"
+            )
+            continue
+        terms_summary.append(_term_display(term))
 
     options = [
         {

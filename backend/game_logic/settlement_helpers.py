@@ -1,67 +1,11 @@
 """Imperial Settlement / Ally Participation foundation helpers.
 
-Slice A1 shipped the war-instance invariant assertion. Slice A2 added the
-war-entry plumbing every WAR seam must use to allocate, reuse, and attach
-to `war_instance` records. Slice A3 adds the merge / archive / leader
-substrate that the rest of the Imperial Settlement system builds on.
-
-Slice B3 layers contribution-episode lifecycle on top of every
-participant_meta stamp / unstamp site:
-
-- ``_open_contribution_episode_for_participant(...)`` is called wherever a
-  helper sets `participant_meta[nation]["joined_turn"]` (skeleton
-  creation, pair attach, single-participant attach, ARMISTICE → WAR
-  resumption when the previous episode was already closed).
-- ``_close_contribution_episode_for_participant(...)`` is called wherever
-  a helper stamps `participant_meta[nation]["exited_turn"]` (elimination,
-  separate-peace exit, all-pairs-resolved end of war).
-- ``resolve_pair_to_resolved(...)`` now also exits participants whose
-  last active pair on the war_instance just resolved (separate peace) or
-  closes every active episode when ``end_reason="all_pairs_resolved"``
-  stamps (war end).
-- ``archive_terminal_war_instances(...)`` calls
-  `compact_war_contribution_for_archive(...)` per archived war_id so
-  episode detail collapses to per-nation finals once the 10-turn
-  retention window has elapsed (spec §9.5 line 178).
-
-- `CascadeContext` — transaction object that travels through
-  `_process_war_cascade()` so the cascade signature does not grow past
-  nine positional arguments.
-- `validate_war_declaration(...)` — pre-commit check that returns either
-  `merge_required=True` (A3 will consolidate) or
-  `war_instance_side_conflict` (a real hard stop).
-- `ensure_war_instance_for_pair(...)` — owns declaration / cascade
-  creation. Reuses compatible active instances; runs `merge_war_instances`
-  when both nations are active in distinct instances; allocates a fresh
-  skeleton otherwise.
-- `attach_pair_to_war_instance(...)` and
-  `attach_participant_to_war_instance(...)` — narrower helpers used by
-  direct-entry seams. `attach_pair_to_war_instance` triggers a merge if
-  the pair is already owned by a different active instance and retargets
-  the survivor.
-- `resolve_pair_to_resolved(...)` / `mark_pair_armistice(...)` —
-  pair-status transitions; `resolve_pair_to_resolved` stamps `ended_turn`
-  / `end_reason="all_pairs_resolved"` when the last active pair resolves.
-- `merge_war_instances(...)` — Slice A3 transitive merge transaction
-  per spec §7.6.
-- `mark_participant_eliminated_in_all_wars(...)` — Slice A3 elimination
-  exit per spec §7.4 (no separate-peace reaction).
-- `archive_terminal_war_instances(...)` — Slice A3 archive compaction
-  per spec §7.5 (10-turn retention window).
-- `war_leader_score(...)` — Slice A3 settlement-specific leader score
-  per spec §7.4 (used by non-coalition leader replacement; coalition
-  leader wars use `coalition.select_coalition_leader(...)`).
-- `assert_war_instance_invariants(world, *, context="post_merge")` —
-  Slice A3 promoted this to an always-on post-merge assertion that also
-  catches dangling absorbed `war_id` references in
-  `diplomatic_commitments`, `pending_dispatch_events`, recent event-log /
-  ledger payloads, and any optional Slice B/C containers (`war_contribution_scores`,
-  `pending_settlement_dialogues`, `settlement_route_payloads`).
-
-Per `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7.2 / §7.3 / §7.6 these
-helpers are empty-safe, idempotent, and invalidate the lazy
+War-instance lifecycle, pair/participant attach, contribution-episode
+bookkeeping, archive compaction, and post-merge invariants. Helpers are
+empty-safe, idempotent, and invalidate the lazy
 `war_instances_by_leader` / `war_instances_by_participant` indexes after
-mutation.
+mutation. See `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §7 for
+the normative contract.
 """
 
 from __future__ import annotations

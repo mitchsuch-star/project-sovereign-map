@@ -351,6 +351,34 @@ class TestDialogueManagerPeek:
         assert dm.peek() is None
 
 
+class TestDialogueManagerIterQueue:
+    """iter_queue() — public read-only view of queued dialogues."""
+
+    def test_iter_queue_empty_returns_empty_list(self):
+        dm = DialogueManager()
+        assert dm.iter_queue() == []
+
+    def test_iter_queue_excludes_current_includes_queued(self):
+        dm = DialogueManager()
+        dm.push({"type": "incoming_proposal", "turn_created": 1, "id": "a"})
+        dm.push({"type": "incoming_proposal", "turn_created": 1, "id": "b"})
+        dm.push({"type": "incoming_proposal", "turn_created": 1, "id": "c"})
+        queued = dm.iter_queue()
+        # Current slot ("a") is excluded; "b" and "c" are queued.
+        assert [item.get("id") for item in queued] == ["b", "c"]
+        assert dm.peek().get("id") == "a"
+
+    def test_iter_queue_returns_copy_not_internal_list(self):
+        dm = DialogueManager()
+        dm.push({"type": "incoming_proposal", "turn_created": 1, "id": "a"})
+        dm.push({"type": "incoming_proposal", "turn_created": 1, "id": "b"})
+        snapshot = dm.iter_queue()
+        snapshot.clear()
+        # Mutating the returned list must not mutate the internal queue.
+        assert dm.queue_size == 1
+        assert dm.iter_queue()[0].get("id") == "b"
+
+
 class TestDialogueManagerBlocking:
     """is_blocking() — check if current dialogue blocks commands."""
 

@@ -332,11 +332,18 @@ def test_forced_alliance_continental_toggle_helper_equivalence():
     )
     assert with_cs["balance_modifier"] == int(balance_with.get("modifier", 0) or 0)
     assert without_cs["balance_modifier"] == int(balance_without.get("modifier", 0) or 0)
-    assert with_cs["balance_post_share"] == float(
-        balance_with.get("post_share", 0.0) or 0.0
+    # May 24, 2026 audit punch list Tier 3 P1 (Rule 2): balance_post_share
+    # is reported as integer whole-percent points (post_share * 100) so
+    # the field is safe for Godot to read raw.
+    assert isinstance(with_cs["balance_post_share_pct"], int)
+    assert isinstance(without_cs["balance_post_share_pct"], int)
+    assert "balance_post_share" not in with_cs
+    assert "balance_post_share" not in without_cs
+    assert with_cs["balance_post_share_pct"] == int(
+        round((balance_with.get("post_share", 0.0) or 0.0) * 100)
     )
-    assert without_cs["balance_post_share"] == float(
-        balance_without.get("post_share", 0.0) or 0.0
+    assert without_cs["balance_post_share_pct"] == int(
+        round((balance_without.get("post_share", 0.0) or 0.0) * 100)
     )
 
     # Ratification mutation behaviour for forced_alliance is covered by

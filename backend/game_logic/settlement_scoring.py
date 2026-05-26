@@ -1807,7 +1807,7 @@ def compute_forced_alliance_continental_toggle_differential(
                 "threat_delta": int,
                 "projected_threat": int,
                 "balance_modifier": int,
-                "balance_post_share": float,
+                "balance_post_share_pct": int,
                 "balance_crossed_band": int | None,
             },
             "without_continental_system": {... same shape ...},
@@ -1815,6 +1815,11 @@ def compute_forced_alliance_continental_toggle_differential(
             "balance_delta_difference": int,
             "display": str,
         }
+
+    Golden Rule 2: every numeric field returned here is `int`. The
+    `balance_post_share_pct` field is the projected post-settlement
+    hegemony share scaled to whole-percent integer points (0-100) so
+    Godot can read it raw without crashing on floats.
 
     Pure projection — never mutates `settlement_terms` items, never
     mutates `world` (delegates to `project_balance_after_settlement`
@@ -1840,8 +1845,8 @@ def compute_forced_alliance_continental_toggle_differential(
                 "threat_delta": int(threat_preview["projected_threat_delta"]),
                 "projected_threat": int(threat_preview["projected_threat"]),
                 "balance_modifier": int(balance_preview.get("modifier", 0) or 0),
-                "balance_post_share": float(
-                    balance_preview.get("post_share", 0.0) or 0.0
+                "balance_post_share_pct": int(
+                    round((balance_preview.get("post_share", 0.0) or 0.0) * 100)
                 ),
                 "balance_crossed_band": balance_preview.get("crossed_band"),
             }
