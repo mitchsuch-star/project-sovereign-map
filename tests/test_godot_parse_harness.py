@@ -170,6 +170,9 @@ SETTLEMENT_FAMILY_ACTION_IDS = {
     # Empty first-open winning-side settlement authoring CTAs.
     "author_gold_indemnity_terms",
     "author_gold_per_turn_terms",
+    # G2-Slice-G2e same-war different-scope chooser CTAs.
+    "replace_current_scope_draft",
+    "keep_current_scope_draft",
 }
 
 
@@ -377,6 +380,8 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "apply_recurring_gold_preset_replacement",
     "author_gold_indemnity_terms",
     "author_gold_per_turn_terms",
+    "replace_current_scope_draft",
+    "keep_current_scope_draft",
 ]
 
 # SC-5 reversal commit 2 / Slice G1 incoming-offer dispatch tuple.

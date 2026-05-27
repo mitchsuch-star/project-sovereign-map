@@ -1148,6 +1148,11 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # Reopen-cap exhausted (SC-14b) — attempt 4 for the same
     # (war_id, turn) — pin the player to the choose-from-war-detail
     # escape rather than another reopen loop.
+    "settlement_scope_replace_confirm_talleyrand": (
+        "Sire, {war_label} already has a settlement draft for {current_scope}. "
+        "Shall I replace it with the new scope, {incoming_scope}, or keep the "
+        "current draft?"
+    ),
     "settlement_reopen_cap_exhausted_talleyrand": (
         "Sire, this settlement of {war_label} cannot be reopened again — "
         "choose the war from war detail and stage afresh."

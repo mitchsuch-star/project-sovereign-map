@@ -2757,6 +2757,9 @@ class DiplomaticExecutor:
             # settlement demands.
             "author_gold_indemnity_terms",
             "author_gold_per_turn_terms",
+            # G2-Slice-G2e same-war different-scope settlement chooser.
+            "replace_current_scope_draft",
+            "keep_current_scope_draft",
         ):
             from backend.game_logic.settlement_preview import (
                 handle_settlement_dialogue_action,

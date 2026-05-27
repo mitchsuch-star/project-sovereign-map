@@ -24,6 +24,7 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"ultimatum_demand_wizard",
 	"war_purpose_selection",
 	"settlement_confirm",
+	"settlement_scope_replace_confirm",
 	# SC-5 reversal commit 2 (Slice G1): incoming AI settlement offers
 	# reuse the proposal_confirm popup; the popup script branches on
 	# dtype to render the incoming-offer arrival copy and Voice Bible
@@ -58,6 +59,9 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# gold demands.
 	"author_gold_indemnity_terms",
 	"author_gold_per_turn_terms",
+	# G2-Slice-G2e same-war different-scope settlement chooser.
+	"replace_current_scope_draft",
+	"keep_current_scope_draft",
 	# SC-5 reversal commit 2 (Slice G1) incoming-offer actions. Accept
 	# stages settlement_confirm with the offered package preserved;
 	# Reject removes the pending entry without mutation; Request

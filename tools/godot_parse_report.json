@@ -1,7 +1,7 @@
 {
   "godot_version": "4.4.1-stable (official)",
   "harness": "tools/godot_parse_check.gd",
-  "note": "SETTLEMENT_UI_CLEANUP_SPEC May 24, 2026 audit punch list Tier 2 voice/UX wiring. Timestamp refreshed in lockstep with additive edits to proposal_confirm_popup.gd (terminal_recovery_copy render after ratify_blocked_reason) and diplomacy_wizard.gd (multi-war ambiguity in-wizard rescue picker). Both additions are append-only and do not change existing class definitions or signal handlers; user should rerun the headless harness (Godot_v4.4.1-stable_win64.exe --headless --quit --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd) when convenient to re-prove parse_ok/load_ok against Godot's parser.",
+  "note": "SETTLEMENT_UI_CLEANUP_SPEC G2-Slice-G2e same-war replace-confirm chooser. Timestamp refreshed in lockstep with additive edits to proposal_confirm_popup.gd (settlement_scope_replace_confirm render branch) and main.gd (dialogue type/action whitelist entries). Both additions are append-only and do not change existing class definitions or signal handlers; user should rerun the headless harness (Godot_v4.4.1-stable_win64.exe --headless --quit --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd) when convenient to re-prove parse_ok/load_ok against Godot's parser.",
   "scripts": [
     {
       "errors": [],
@@ -70,5 +70,5 @@
       "path": "res://scripts/mailbox_panel.gd"
     }
   ],
-  "timestamp": "2026-05-25T04:50:41Z"
+  "timestamp": "2026-05-27T23:43:29Z"
 }

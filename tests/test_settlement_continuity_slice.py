@@ -338,10 +338,15 @@ def test_merge_helper_appends_compatible_cross_keys_and_blocks_same_key_diffs():
 
 def test_settlement_family_dialogue_types_match_canonical_set():
     """SC-18 (anchor for SC-26): the settlement-family dialogue type set is
-    `{"settlement_confirm", "incoming_settlement_offer"}` so collision
-    protection covers both hard stops and current-turn offers."""
+    `{"settlement_confirm", "incoming_settlement_offer",
+    "settlement_scope_replace_confirm"}` so collision protection covers hard
+    stops, current-turn offers, and the G2e same-war scope chooser."""
     assert SETTLEMENT_FAMILY_DIALOGUE_TYPES == frozenset(
-        {"settlement_confirm", "incoming_settlement_offer"}
+        {
+            "settlement_confirm",
+            "incoming_settlement_offer",
+            "settlement_scope_replace_confirm",
+        }
     )
 
 

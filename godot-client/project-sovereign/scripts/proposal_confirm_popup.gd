@@ -54,6 +54,8 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_ultimatum_content(data)
 		"settlement_confirm":
 			bbcode = _build_settlement_content(data)
+		"settlement_scope_replace_confirm":
+			bbcode = _build_settlement_scope_replace_content(data)
 		# SC-5 reversal commit 2 (Slice G1): incoming AI settlement
 		# offers render with accepting-side framing — the player is
 		# reading a draft authored by a foreign court, so the popup
@@ -417,6 +419,20 @@ func _build_settlement_content(data: Dictionary) -> String:
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+	return bbcode
+
+func _build_settlement_scope_replace_content(data: Dictionary) -> String:
+	var war_label = str(data.get("war_label", data.get("war_id", "Settlement")))
+	var current_scope = str(data.get("current_scope_display", "current scope"))
+	var incoming_scope = str(data.get("incoming_scope_display", "new scope"))
+	var bbcode = ""
+	bbcode += "[b][color=#e0c070]Settlement scope already staged[/color][/b]\n"
+	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+	bbcode += "[b]Current draft:[/b] %s\n" % current_scope
+	bbcode += "[b]New scope:[/b] %s\n\n" % incoming_scope
+	var ttext = str(data.get("talleyrand_text", ""))
+	if ttext != "":
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 	return bbcode
 

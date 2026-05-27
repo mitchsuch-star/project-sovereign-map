@@ -18,6 +18,8 @@ reaction routing remains a later slice.
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from backend.display_names import (
@@ -67,7 +69,7 @@ SETTLEMENT_REOPEN_MAX_ATTEMPTS = 3
 SETTLEMENT_ROUTE_NAMESPACE = "settlement"
 
 SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
-    {"settlement_confirm", "incoming_settlement_offer"}
+    {"settlement_confirm", "incoming_settlement_offer", "settlement_scope_replace_confirm"}
 )
 
 # SC-5 reversal (May 15, 2026 / Slice G1 commit 1): incoming settlement
@@ -412,6 +414,54 @@ def _terminal_recovery_copy(war_id: str = "") -> str:
         "This settlement cannot currently be recovered from the existing "
         "surfaces. Close this review and reassess the war next turn."
     )
+
+
+def compute_settlement_draft_key(
+    war_id: str,
+    selected_target_nation: Optional[str],
+    covered_enemy_participants: Optional[Iterable[str]],
+) -> str:
+    """Canonical scoped settlement draft key from the cleanup spec."""
+    selected_key = str(selected_target_nation or "").strip() or "_none"
+    covered = sorted(
+        {
+            str(n).strip()
+            for n in (covered_enemy_participants or [])
+            if str(n).strip()
+        }
+    )
+    scope_json = json.dumps(covered, separators=(",", ":"), ensure_ascii=True)
+    scope_hash = hashlib.sha256(scope_json.encode("ascii")).hexdigest()[:16]
+    return f"settlement_draft:{str(war_id or '')}:{selected_key}:{scope_hash}"
+
+
+def _scope_display(selected_target_nation: str, covered: Iterable[str]) -> str:
+    covered_list = [str(n) for n in (covered or []) if str(n)]
+    if not covered_list:
+        return str(selected_target_nation or "no covered court")
+    if selected_target_nation and selected_target_nation not in covered_list:
+        covered_list = [selected_target_nation] + covered_list
+    return ", ".join(covered_list)
+
+
+def _dialogue_scope_values(dialogue: Mapping[str, Any]) -> Tuple[str, List[str]]:
+    covered = _normalize_nation_list(dialogue.get("covered_enemy_participants") or [])
+    selected = str(dialogue.get("selected_target_nation") or "").strip()
+    if not selected and covered:
+        selected = covered[0]
+    return selected, covered
+
+
+def _scope_changed(
+    current_dialogue: Mapping[str, Any],
+    *,
+    incoming_selected_target: str,
+    incoming_covered: Iterable[str],
+) -> bool:
+    current_selected, current_covered = _dialogue_scope_values(current_dialogue)
+    incoming_selected = str(incoming_selected_target or "").strip()
+    incoming_scope = _normalize_nation_list(incoming_covered)
+    return current_selected != incoming_selected or current_covered != incoming_scope
 
 
 def evaluate_war_detail_actionability(
@@ -1113,6 +1163,86 @@ def _settlement_collision_payload(
     if extra:
         payload.update(dict(extra))
     return payload
+
+
+def _build_settlement_scope_replace_confirm_dialogue(
+    current_dialogue: Mapping[str, Any],
+    *,
+    incoming_request: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Build the G2e same-war different-scope replace chooser."""
+    war_id = str(current_dialogue.get("war_id") or incoming_request.get("war_id") or "")
+    current_selected, current_covered = _dialogue_scope_values(current_dialogue)
+    incoming_covered = _normalize_nation_list(
+        incoming_request.get("covered_enemy_participants") or []
+    )
+    incoming_selected = str(
+        incoming_request.get("selected_target_nation") or ""
+    ).strip() or (incoming_covered[0] if incoming_covered else "")
+    current_key = str(current_dialogue.get("draft_key") or "") or compute_settlement_draft_key(
+        war_id, current_selected, current_covered,
+    )
+    incoming_key = compute_settlement_draft_key(
+        war_id, incoming_selected, incoming_covered,
+    )
+    current_scope_display = _scope_display(current_selected, current_covered)
+    incoming_scope_display = _scope_display(incoming_selected, incoming_covered)
+    war_label = str(current_dialogue.get("war_label") or war_id or "this war")
+    message = resolve_settlement_voice_line(
+        "settlement_scope_replace_confirm_talleyrand",
+        war_label=war_label,
+        current_scope=current_scope_display,
+        incoming_scope=incoming_scope_display,
+    ) or (
+        "A different settlement scope is already staged. Replace it or keep "
+        "the current draft."
+    )
+    return {
+        "type": "settlement_scope_replace_confirm",
+        "dialogue_type": "settlement_scope_replace_confirm",
+        "war_id": war_id,
+        "war_label": war_label,
+        "current_dialogue": copy.deepcopy(dict(current_dialogue)),
+        "incoming_request": copy.deepcopy(dict(incoming_request)),
+        "current_draft_key": current_key,
+        "incoming_draft_key": incoming_key,
+        "current_scope": {
+            "selected_target_nation": current_selected,
+            "covered_enemy_participants": current_covered,
+            "display": current_scope_display,
+        },
+        "incoming_scope": {
+            "selected_target_nation": incoming_selected,
+            "covered_enemy_participants": incoming_covered,
+            "display": incoming_scope_display,
+        },
+        "current_scope_display": current_scope_display,
+        "incoming_scope_display": incoming_scope_display,
+        "available_action_ids": [
+            "replace_current_scope_draft",
+            "keep_current_scope_draft",
+        ],
+        "options": [
+            {
+                "label": "Replace current draft",
+                "action": "replace_current_scope_draft",
+                "description": (
+                    "Clear the current scoped draft and stage the new scope."
+                ),
+            },
+            {
+                "label": "Keep current draft",
+                "action": "keep_current_scope_draft",
+                "description": "Return to the current scoped draft unchanged.",
+            },
+        ],
+        "outer_cancel_action": "keep_current_scope_draft",
+        "outer_cancel_treated_as_keep": True,
+        "message": message,
+        "talleyrand_text": message,
+        "mutated": False,
+        "blocking": True,
+    }
 
 
 def _infer_actor_side(
@@ -2876,6 +3006,7 @@ def build_settlement_confirm_dialogue(
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
+        "draft_key": compute_settlement_draft_key(war_id, resolved_target, covered),
         "route": review_route,
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
@@ -3040,6 +3171,69 @@ def stage_settlement_confirm(
             # `pending_settlement_drafts` store. Conflicting clauses keep
             # the active draft unchanged and surface a humanized merge
             # conflict beat.
+            mounted_covered = _normalize_nation_list(
+                mounted.get("covered_enemy_participants") or []
+            )
+            incoming_covered_for_scope = (
+                explicit_covered if explicit_covered else mounted_covered
+            )
+            incoming_target_for_scope = (
+                explicit_target
+                or (
+                    incoming_covered_for_scope[0]
+                    if explicit_covered and incoming_covered_for_scope
+                    else str(mounted.get("selected_target_nation") or "")
+                )
+            )
+            if incoming_target_for_scope and (
+                incoming_target_for_scope not in incoming_covered_for_scope
+            ):
+                return {
+                    "success": False,
+                    **_blocked_payload(
+                        "selected_target_not_covered",
+                        war_id=war_id_str,
+                        selected_target_nation=incoming_target_for_scope,
+                        covered_enemy_participants=incoming_covered_for_scope,
+                    ),
+                }
+            if _scope_changed(
+                mounted,
+                incoming_selected_target=incoming_target_for_scope,
+                incoming_covered=incoming_covered_for_scope,
+            ):
+                incoming_request = {
+                    "war_id": war_id_str,
+                    "proposer_side": proposer_side,
+                    "settlement_terms": [
+                        dict(t)
+                        for t in (settlement_terms or [])
+                        if isinstance(t, Mapping)
+                    ],
+                    "covered_enemy_participants": incoming_covered_for_scope,
+                    "selected_target_nation": incoming_target_for_scope,
+                    "actor_nation": actor_nation,
+                    "density": density,
+                    "caller_kind": caller_kind,
+                    "white_peace": bool(white_peace),
+                    "surrender_preset": bool(surrender_preset),
+                }
+                replace_dialogue = _build_settlement_scope_replace_confirm_dialogue(
+                    mounted,
+                    incoming_request=incoming_request,
+                )
+                world.dialogue_manager.replace(replace_dialogue)
+                return {
+                    "success": True,
+                    "dialogue_type": "settlement_scope_replace_confirm",
+                    "war_id": war_id_str,
+                    "diplomatic_dialogue": replace_dialogue,
+                    "awaiting_diplomatic_response": True,
+                    "mutated": False,
+                    "requires_scope_replace_confirm": True,
+                    "message": replace_dialogue["talleyrand_text"],
+                    "suppress_proposal_result_popup": True,
+                }
             existing_terms = list(mounted.get("settlement_terms") or [])
             incoming_terms = list(settlement_terms or [])
             ok, merged_terms, conflicts = merge_same_war_settlement_drafts(
@@ -4365,6 +4559,149 @@ def _stage_replacement_settlement_terms(
     }
 
 
+def _restore_scope_replace_current_dialogue(
+    world: Any,
+    dialogue: Mapping[str, Any],
+    *,
+    action: str,
+) -> Dict[str, Any]:
+    current_dialogue = copy.deepcopy(dict(dialogue.get("current_dialogue") or {}))
+    war_id = str(dialogue.get("war_id") or current_dialogue.get("war_id") or "")
+    if current_dialogue:
+        world.dialogue_manager.replace(current_dialogue)
+    else:
+        world.dialogue_manager.pop()
+    return {
+        "success": True,
+        "dialogue_type": str(
+            current_dialogue.get("dialogue_type")
+            or current_dialogue.get("type")
+            or "settlement_confirm"
+        ),
+        "action": action,
+        "war_id": war_id,
+        "diplomatic_dialogue": current_dialogue,
+        "awaiting_diplomatic_response": bool(current_dialogue),
+        "scope_replaced": False,
+        "mutated": False,
+        "message": "Keeping the current settlement draft unchanged.",
+        "suppress_proposal_result_popup": True,
+    }
+
+
+def _apply_scope_replace_confirm(
+    world: Any,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    current_dialogue = copy.deepcopy(dict(dialogue.get("current_dialogue") or {}))
+    incoming_request = dict(dialogue.get("incoming_request") or {})
+    war_id = str(dialogue.get("war_id") or incoming_request.get("war_id") or "")
+    current_selected, current_covered = _dialogue_scope_values(current_dialogue)
+    incoming_covered = _normalize_nation_list(
+        incoming_request.get("covered_enemy_participants") or []
+    )
+    incoming_selected = str(
+        incoming_request.get("selected_target_nation") or ""
+    ).strip() or (incoming_covered[0] if incoming_covered else "")
+    current_key = compute_settlement_draft_key(war_id, current_selected, current_covered)
+    incoming_key = compute_settlement_draft_key(
+        war_id, incoming_selected, incoming_covered,
+    )
+    if current_key == incoming_key:
+        restored = _restore_scope_replace_current_dialogue(
+            world, dialogue, action="replace_current_scope_draft",
+        )
+        restored["scope_revalidation"] = "same_scope_no_replace"
+        restored["message"] = "The settlement scope is already current."
+        return restored
+    if incoming_selected and incoming_selected not in incoming_covered:
+        restored = _restore_scope_replace_current_dialogue(
+            world, dialogue, action="replace_current_scope_draft",
+        )
+        restored.update({
+            "success": False,
+            "error": "selected_target_not_covered",
+            "error_display": _error_display("selected_target_not_covered"),
+            "scope_revalidation": "invalid_incoming_scope",
+        })
+        return restored
+
+    incoming_terms = [
+        dict(t)
+        for t in (incoming_request.get("settlement_terms") or [])
+        if isinstance(t, Mapping)
+    ]
+    preview = build_settlement_preview(
+        world,
+        war_id=war_id,
+        proposer_side=str(incoming_request.get("proposer_side") or ""),
+        settlement_terms=incoming_terms,
+        covered_enemy_participants=incoming_covered,
+        actor_nation=incoming_request.get("actor_nation"),
+        density=str(incoming_request.get("density") or "medium"),
+        ignore_active_dialogue=True,
+    )
+    if not preview.get("success"):
+        restored = _restore_scope_replace_current_dialogue(
+            world, dialogue, action="replace_current_scope_draft",
+        )
+        restored.update({
+            "success": False,
+            "error": preview.get("error") or "scope_replace_failed_preview",
+            "error_display": preview.get("error_display") or (
+                "The replacement scope could not be previewed."
+            ),
+            "scope_revalidation": "preview_failed",
+        })
+        return restored
+    covered = list(preview["settlement_preview"].get("covered_enemy_participants") or [])
+    resolved_target = incoming_selected or (covered[0] if covered else "")
+    if not resolved_target or resolved_target not in covered:
+        restored = _restore_scope_replace_current_dialogue(
+            world, dialogue, action="replace_current_scope_draft",
+        )
+        restored.update({
+            "success": False,
+            "error": "selected_target_not_covered",
+            "error_display": _error_display("selected_target_not_covered"),
+            "scope_revalidation": "invalid_preview_scope",
+        })
+        return restored
+    new_dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview,
+        selected_target_nation=resolved_target,
+        caller_kind=str(incoming_request.get("caller_kind") or "player_editor"),
+        white_peace=bool(incoming_request.get("white_peace", False)),
+        surrender_preset=bool(incoming_request.get("surrender_preset", False)),
+    )
+    drafts = getattr(world, "pending_settlement_drafts", None)
+    if drafts is None:
+        world.pending_settlement_drafts = {}
+        drafts = world.pending_settlement_drafts
+    for key in (current_key, str(dialogue.get("current_draft_key") or ""), war_id):
+        if key in drafts:
+            del drafts[key]
+    if incoming_terms:
+        drafts[war_id] = [dict(t) for t in incoming_terms]
+    world.dialogue_manager.replace(new_dialogue)
+    return {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": "replace_current_scope_draft",
+        "war_id": war_id,
+        "diplomatic_dialogue": new_dialogue,
+        "settlement_preview": preview["settlement_preview"],
+        "awaiting_diplomatic_response": True,
+        "scope_replaced": True,
+        "cleared_draft_key": current_key,
+        "draft_key": new_dialogue.get("draft_key"),
+        "mutated": False,
+        "message": "The replacement settlement scope has been staged for review.",
+        "suppress_proposal_result_popup": True,
+    }
+
+
 def handle_settlement_dialogue_action(
     world: Any,
     *,
@@ -4378,6 +4715,26 @@ def handle_settlement_dialogue_action(
     pure (no mutation, dialogue popped).
     """
     war_id = str(dialogue.get("war_id") or "")
+    dialogue_type = str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+    if dialogue_type == "settlement_scope_replace_confirm":
+        if action == "keep_current_scope_draft":
+            return _restore_scope_replace_current_dialogue(
+                world, dialogue, action=action,
+            )
+        if action == "back_out_settlement":
+            return _restore_scope_replace_current_dialogue(
+                world, dialogue, action=action,
+            )
+        if action == "replace_current_scope_draft":
+            return _apply_scope_replace_confirm(world, dialogue)
+        return {
+            "success": False,
+            "dialogue_type": "settlement_scope_replace_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "unknown_settlement_action",
+            "mutated": False,
+        }
     if action == "back_out_settlement":
         # SC-2: discard-confirm semantics. Non-empty drafts signal the
         # frontend to confirm discard; empty drafts pop immediately.
