@@ -2780,6 +2780,14 @@ class DiplomaticExecutor:
                 world, action=action, dialogue=dialogue,
             )
 
+        elif action == "acknowledge_ally_settlement_petition":
+            from backend.game_logic.settlement_preview import (
+                handle_ally_settlement_petition_action,
+            )
+            return handle_ally_settlement_petition_action(
+                world, action=action, dialogue=dialogue,
+            )
+
         elif action in ("ally_entry_accept_all", "ally_entry_proceed_without", "ally_entry_back_out"):
             return self._resolve_ally_entry_review_choice(action, dialogue, world)
 

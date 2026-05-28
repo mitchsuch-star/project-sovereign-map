@@ -72,6 +72,19 @@ SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
     {"settlement_confirm", "incoming_settlement_offer", "settlement_scope_replace_confirm"}
 )
 
+ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE = "ally_settlement_petition"
+ALLY_SETTLEMENT_PETITION_REQUEST_OPEN = "request_open_settlement"
+ALLY_SETTLEMENT_PETITION_WARN_SELLOUT = "warn_against_sellout"
+ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES = frozenset({
+    ALLY_SETTLEMENT_PETITION_REQUEST_OPEN,
+    ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
+})
+ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS = frozenset({
+    "open_settlement",
+    "stage_settlement",
+})
+ALLY_SETTLEMENT_PETITION_ACK_ACTION = "acknowledge_ally_settlement_petition"
+
 # SC-5 reversal (May 15, 2026 / Slice G1 commit 1): incoming settlement
 # offers are produced by the AI settlement-offer phase (`ai_diplomacy.
 # process_settlement_offer_phase`) and consumed by `handle_incoming_
@@ -325,6 +338,17 @@ def _side_leader(war_instance: Mapping[str, Any], side: str) -> Optional[str]:
     if side == "defenders":
         return war_instance.get("defender_leader")
     return None
+
+
+def _side_for_nation(war_instance: Mapping[str, Any], nation: str) -> Optional[str]:
+    nation_name = str(nation or "")
+    if nation_name in set(war_instance.get("attackers") or []):
+        return "attackers"
+    if nation_name in set(war_instance.get("defenders") or []):
+        return "defenders"
+    side_by_nation = war_instance.get("side_by_nation") or {}
+    side = str(side_by_nation.get(nation_name) or "")
+    return side if side in VALID_SIDES else None
 
 
 def _pair_nations(pair: str) -> List[str]:
@@ -3318,12 +3342,39 @@ def stage_settlement_confirm(
         world.dialogue_manager.preempt(dialogue)
     else:
         world.dialogue_manager.replace(dialogue)
+    ally_petitions: List[Dict[str, Any]] = []
+    if caller_kind == "player_editor":
+        staged_terms_source = dialogue.get("settlement_terms") or settlement_terms or []
+        terms_for_trigger = [
+            dict(term)
+            for term in staged_terms_source
+            if isinstance(term, Mapping)
+        ]
+        if terms_for_trigger or white_peace:
+            petition_trigger = "stage_settlement"
+        else:
+            petition_trigger = "open_settlement"
+        ally_petitions = queue_ally_settlement_petitions_for_player_action(
+            world,
+            trigger_action=petition_trigger,
+            war_id=war_id_str,
+            covered_enemy_participants=covered,
+            settlement_terms=terms_for_trigger,
+        )
+        if ally_petitions:
+            dialogue["ally_petitions"] = [
+                build_ally_settlement_petition_popup(petition)
+                for petition in ally_petitions
+            ]
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
         "war_id": war_id_str,
         "diplomatic_dialogue": dialogue,
         "settlement_preview": preview["settlement_preview"],
+        "ally_settlement_petitions": [
+            copy.deepcopy(petition) for petition in ally_petitions
+        ],
         "awaiting_diplomatic_response": True,
         "mutated": False,
         "message": dialogue["talleyrand_text"],
@@ -5711,6 +5762,536 @@ def _is_offer_known_to_dialogue_manager(
         ):
             return True
     return False
+
+
+def _are_treaty_allies(world: Any, nation_a: str, nation_b: str) -> bool:
+    if not nation_a or not nation_b or nation_a == nation_b:
+        return False
+    if hasattr(world, "get_diplomatic_state"):
+        state = str(world.get_diplomatic_state(nation_a, nation_b) or "")
+    else:
+        key = world._make_diplo_key(nation_a, nation_b)
+        state = str((getattr(world, "diplomatic_states", {}) or {}).get(key) or "")
+    return state in {"ALLIANCE", "DEFENSIVE_ALLIANCE"}
+
+
+def _active_war_id_for_diplo_key(world: Any, diplo_key: str) -> str:
+    for war_id, war in (getattr(world, "war_instances", {}) or {}).items():
+        if not isinstance(war, Mapping) or war.get("ended_turn") is not None:
+            continue
+        if str(diplo_key or "") in set(war.get("active_diplo_keys") or []):
+            return str(war_id)
+    return ""
+
+
+def _objective_has_material_claim(objective: Mapping[str, Any]) -> bool:
+    obj_type = str(objective.get("type") or "")
+    if obj_type == "defense":
+        return False
+    if objective.get("target_regions") or objective.get("vassal_nations"):
+        return True
+    return obj_type in {"conquest", "forced_alliance", "subjugation", "liberation"}
+
+
+def _objective_claim_region(objective: Mapping[str, Any]) -> str:
+    target_regions = list(objective.get("target_regions") or [])
+    if target_regions:
+        return str(target_regions[0])
+    vassals = list(objective.get("vassal_nations") or [])
+    if vassals:
+        return str(vassals[0])
+    target = str(objective.get("target_nation") or "")
+    return target or "the claimed objective"
+
+
+def _war_label_for_id(world: Any, war_id: str) -> str:
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if isinstance(war, Mapping):
+        return _war_label(str(war_id or ""), war)
+    return str(war_id or "settlement")
+
+
+def _active_objective_claims_for_ally(
+    world: Any,
+    ally_nation: str,
+    *,
+    target_enemy: str = "",
+    required_war_id: str = "",
+    excluded_war_id: str = "",
+) -> List[Dict[str, Any]]:
+    claims: List[Dict[str, Any]] = []
+    objectives_by_pair = getattr(world, "war_objectives", {}) or {}
+    if not isinstance(objectives_by_pair, Mapping):
+        return claims
+    for diplo_key, nation_objectives in objectives_by_pair.items():
+        if not isinstance(nation_objectives, Mapping):
+            continue
+        objective = nation_objectives.get(ally_nation)
+        if not isinstance(objective, Mapping):
+            continue
+        if objective.get("concluded_turn") is not None:
+            continue
+        if not _objective_has_material_claim(objective):
+            continue
+        claim_war_id = _active_war_id_for_diplo_key(world, str(diplo_key))
+        if not claim_war_id:
+            continue
+        if required_war_id and claim_war_id != required_war_id:
+            continue
+        if excluded_war_id and claim_war_id == excluded_war_id:
+            continue
+        objective_target = str(objective.get("target_nation") or "")
+        pair_nations = set(_pair_nations(str(diplo_key)))
+        if target_enemy and target_enemy not in pair_nations:
+            continue
+        if target_enemy and objective_target and objective_target != target_enemy:
+            continue
+        target = objective_target or (
+            target_enemy
+            if target_enemy
+            else next((n for n in pair_nations if n != ally_nation), "")
+        )
+        claims.append({
+            "ally_nation": ally_nation,
+            "claim_war_id": claim_war_id,
+            "claim_war_label": _war_label_for_id(world, claim_war_id),
+            "objective_type": str(objective.get("type") or ""),
+            "target_enemy": target,
+            "claim_region": _objective_claim_region(objective),
+            "objective": dict(objective),
+        })
+    return claims
+
+
+def _settlement_terms_satisfy_ally_claim(
+    settlement_terms: Iterable[Mapping[str, Any]],
+    claim: Mapping[str, Any],
+) -> bool:
+    ally = str(claim.get("ally_nation") or "")
+    target_enemy = str(claim.get("target_enemy") or "")
+    claim_region = str(claim.get("claim_region") or "")
+    objective_type = str(claim.get("objective_type") or "")
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        term_type = str(term.get("type") or "")
+        to_nation = str(term.get("to") or term.get("lord_nation") or "")
+        from_nation = str(term.get("from") or term.get("vassal_nation") or "")
+        if term_type == "territory_cede" and to_nation == ally:
+            regions = [
+                str(region)
+                for region in (
+                    term.get("regions")
+                    or ([term.get("region")] if term.get("region") else [])
+                )
+            ]
+            if not claim_region or claim_region in regions:
+                return True
+        if (
+            term_type == "forced_alliance"
+            and objective_type == "forced_alliance"
+            and to_nation == ally
+            and (not target_enemy or from_nation == target_enemy)
+        ):
+            return True
+        if (
+            term_type in {"vassalage", "subjugation"}
+            and objective_type == "subjugation"
+            and to_nation == ally
+            and (not target_enemy or from_nation == target_enemy)
+        ):
+            return True
+        if term_type == "liberation" and objective_type == "liberation":
+            liberated = str(term.get("vassal_nation") or term.get("from") or "")
+            if liberated and liberated == claim_region:
+                return True
+    return False
+
+
+def _find_request_open_settlement_petition_context(
+    world: Any,
+    *,
+    war_id: str,
+) -> Optional[Dict[str, Any]]:
+    player = str(getattr(world, "player_nation", "France") or "France")
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping) or war.get("ended_turn") is not None:
+        return None
+    participants = set(war.get("active_participants") or [])
+    known_nations = set(getattr(world, "enemy_nations", []) or [])
+    known_nations.add(player)
+    for nation_objectives in (getattr(world, "war_objectives", {}) or {}).values():
+        if isinstance(nation_objectives, Mapping):
+            known_nations.update(str(nation) for nation in nation_objectives.keys())
+    for ally in sorted(known_nations):
+        if ally in participants or not _are_treaty_allies(world, player, ally):
+            continue
+        claims = _active_objective_claims_for_ally(
+            world,
+            ally,
+            excluded_war_id=str(war_id or ""),
+        )
+        if claims:
+            claim = claims[0]
+            claim.update({
+                "war_id": str(war_id or ""),
+                "war_label": _war_label_for_id(world, str(war_id or "")),
+            })
+            return claim
+    return None
+
+
+def _find_warn_sellout_petition_context(
+    world: Any,
+    *,
+    war_id: str,
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    player = str(getattr(world, "player_nation", "France") or "France")
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping) or war.get("ended_turn") is not None:
+        return None
+    player_side = _side_for_nation(war, player)
+    if player_side not in VALID_SIDES:
+        return None
+    same_side = [
+        str(nation)
+        for nation in (war.get(player_side) or [])
+        if str(nation) and str(nation) != player
+    ]
+    for ally in sorted(same_side):
+        if not _are_treaty_allies(world, player, ally):
+            continue
+        for enemy in covered_enemy_participants or []:
+            claims = _active_objective_claims_for_ally(
+                world,
+                ally,
+                target_enemy=str(enemy),
+                required_war_id=str(war_id or ""),
+            )
+            for claim in claims:
+                if _settlement_terms_satisfy_ally_claim(settlement_terms, claim):
+                    continue
+                claim.update({
+                    "war_id": str(war_id or ""),
+                    "war_label": _war_label_for_id(world, str(war_id or "")),
+                })
+                return claim
+    return None
+
+
+def _ally_petition_voice_family(petition_type: str, ally_nation: str) -> str:
+    suffix = {
+        "Britain": "castlereagh",
+        "Prussia": "hardenberg",
+        "Austria": "metternich",
+        "Saxony": "einsiedel",
+    }.get(str(ally_nation or ""), "chancery")
+    return f"settlement_ally_petition_{petition_type}_{suffix}"
+
+
+def _ally_petition_summary_text(petition: Mapping[str, Any]) -> str:
+    ally = str(petition.get("ally_nation") or "An ally")
+    ptype = str(petition.get("petition_type") or "")
+    claim_region = str(petition.get("claim_region") or "a claim")
+    target_enemy = str(petition.get("target_enemy") or "the enemy")
+    if ptype == ALLY_SETTLEMENT_PETITION_REQUEST_OPEN:
+        return f"{ally} asks to be heard before {claim_region} is left outside peace."
+    if ptype == ALLY_SETTLEMENT_PETITION_WARN_SELLOUT:
+        return f"{ally} warns that {claim_region} against {target_enemy} is omitted."
+    return f"{ally} petitions over settlement scope."
+
+
+def build_ally_settlement_petition_dialogue(
+    world: Any,
+    *,
+    petition_type: str,
+    context: Mapping[str, Any],
+    trigger_action: str,
+) -> Dict[str, Any]:
+    war_id = str(context.get("war_id") or "")
+    ally_nation = str(context.get("ally_nation") or "")
+    claim_war_id = str(context.get("claim_war_id") or "")
+    target_enemy = str(context.get("target_enemy") or "")
+    claim_region = str(context.get("claim_region") or "the claimed objective")
+    petition_key = (
+        f"ally_petition:{petition_type}:{war_id}:{ally_nation}:"
+        f"{claim_war_id}:{target_enemy}:{claim_region}"
+    )
+    voice_slots = {
+        "ally_nation": ally_nation or "the ally",
+        "war_label": str(context.get("war_label") or _war_label_for_id(world, war_id)),
+        "claim_war_label": str(
+            context.get("claim_war_label") or _war_label_for_id(world, claim_war_id)
+        ),
+        "target_enemy": target_enemy or "the enemy",
+        "claim_region": claim_region,
+    }
+    ally_voice = resolve_settlement_voice_line(
+        _ally_petition_voice_family(petition_type, ally_nation),
+        **voice_slots,
+    )
+    if not ally_voice:
+        ally_voice = resolve_settlement_voice_line(
+            f"settlement_ally_petition_{petition_type}_chancery",
+            **voice_slots,
+        )
+    talleyrand_text = resolve_settlement_voice_line(
+        "settlement_ally_petition_talleyrand",
+        **voice_slots,
+    )
+    options = [{
+        "label": "Acknowledge",
+        "description": "Record the allied petition without changing the settlement draft.",
+        "action": ALLY_SETTLEMENT_PETITION_ACK_ACTION,
+        "available": True,
+    }]
+    dialogue: Dict[str, Any] = {
+        "type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "petition_type": str(petition_type or ""),
+        "petition_id": petition_key,
+        "petition_key": petition_key,
+        "trigger_action": str(trigger_action or ""),
+        "blocking": False,
+        "war_id": war_id,
+        "war_label": voice_slots["war_label"],
+        "claim_war_id": claim_war_id,
+        "claim_war_label": voice_slots["claim_war_label"],
+        "claim_region": claim_region,
+        "target_enemy": target_enemy,
+        "ally_nation": ally_nation,
+        "objective_type": str(context.get("objective_type") or ""),
+        "turn_created": int(getattr(world, "current_turn", 0) or 0),
+        "ally_voice": ally_voice or "",
+        "talleyrand_text": talleyrand_text or "",
+        "summary_text": "",
+        "options": options,
+        "available_action_ids": [ALLY_SETTLEMENT_PETITION_ACK_ACTION],
+    }
+    dialogue["summary_text"] = _ally_petition_summary_text(dialogue)
+    dialogue["popup_payload"] = build_ally_settlement_petition_popup(dialogue)
+    return dialogue
+
+
+def build_ally_settlement_petition_popup(
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    options = [
+        dict(opt)
+        for opt in (dialogue.get("options") or [])
+        if isinstance(opt, Mapping)
+    ]
+    if not options:
+        options = [{
+            "label": "Acknowledge",
+            "description": "Record the allied petition without changing the draft.",
+            "action": ALLY_SETTLEMENT_PETITION_ACK_ACTION,
+            "available": True,
+        }]
+    return {
+        "type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "petition_type": str(dialogue.get("petition_type") or ""),
+        "petition_id": str(dialogue.get("petition_id") or ""),
+        "petition_key": str(dialogue.get("petition_key") or ""),
+        "war_id": str(dialogue.get("war_id") or ""),
+        "war_label": str(dialogue.get("war_label") or "settlement"),
+        "claim_war_id": str(dialogue.get("claim_war_id") or ""),
+        "claim_war_label": str(dialogue.get("claim_war_label") or ""),
+        "claim_region": str(dialogue.get("claim_region") or ""),
+        "target_enemy": str(dialogue.get("target_enemy") or ""),
+        "ally_nation": str(dialogue.get("ally_nation") or ""),
+        "objective_type": str(dialogue.get("objective_type") or ""),
+        "trigger_action": str(dialogue.get("trigger_action") or ""),
+        "blocking": False,
+        "ally_voice": str(dialogue.get("ally_voice") or ""),
+        "talleyrand_text": str(dialogue.get("talleyrand_text") or ""),
+        "summary_text": str(dialogue.get("summary_text") or ""),
+        "options": options,
+        "available_action_ids": [str(opt.get("action") or "") for opt in options],
+    }
+
+
+def _is_ally_petition_known_to_dialogue_manager(
+    world: Any,
+    *,
+    petition_key: str,
+) -> bool:
+    if not petition_key:
+        return False
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is not None:
+        current = dm.peek() if hasattr(dm, "peek") else getattr(dm, "_current", None)
+        if (
+            isinstance(current, Mapping)
+            and current.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+            and str(current.get("petition_key") or "") == petition_key
+        ):
+            return True
+        queued = (
+            dm.iter_queue()
+            if hasattr(dm, "iter_queue")
+            else (getattr(dm, "_queue", None) or [])
+        )
+        for queued_dialogue in queued:
+            if (
+                isinstance(queued_dialogue, Mapping)
+                and queued_dialogue.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+                and str(queued_dialogue.get("petition_key") or "") == petition_key
+            ):
+                return True
+    for entry in getattr(world, "pending_settlement_dialogues", []) or []:
+        if (
+            isinstance(entry, Mapping)
+            and entry.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+            and str(entry.get("petition_key") or "") == petition_key
+        ):
+            return True
+    return False
+
+
+def _emit_ally_settlement_petition_notification(
+    world: Any,
+    petition: Mapping[str, Any],
+) -> None:
+    notifications = getattr(world, "notifications", None)
+    if notifications is None or not hasattr(notifications, "add"):
+        return
+    from backend.notifications import (
+        ALLY_SETTLEMENT_PETITION,
+        NotificationPriority,
+        create_notification,
+    )
+
+    ally = str(petition.get("ally_nation") or "Ally")
+    notifications.add(create_notification(
+        ALLY_SETTLEMENT_PETITION,
+        NotificationPriority.HIGH,
+        f"{ally} petitions over settlement scope",
+        str(petition.get("summary_text") or ""),
+        int(getattr(world, "current_turn", 0) or 0),
+        details={
+            "review_target": "ally_settlement_petition_popup",
+            "review_label": "Open Envoys",
+            "war_id": str(petition.get("war_id") or ""),
+            "petition_id": str(petition.get("petition_id") or ""),
+            "petition_type": str(petition.get("petition_type") or ""),
+            "ally_nation": ally,
+        },
+    ))
+
+
+def _queue_ally_settlement_petition(
+    world: Any,
+    *,
+    petition_type: str,
+    context: Optional[Mapping[str, Any]],
+    trigger_action: str,
+) -> Optional[Dict[str, Any]]:
+    if petition_type not in ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES:
+        return None
+    if trigger_action not in ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS:
+        return None
+    if not isinstance(context, Mapping):
+        return None
+    dialogue = build_ally_settlement_petition_dialogue(
+        world,
+        petition_type=petition_type,
+        context=context,
+        trigger_action=trigger_action,
+    )
+    petition_key = str(dialogue.get("petition_key") or "")
+    if _is_ally_petition_known_to_dialogue_manager(
+        world,
+        petition_key=petition_key,
+    ):
+        return None
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not hasattr(dm, "push"):
+        return None
+    dm.push(dialogue)
+    _emit_ally_settlement_petition_notification(world, dialogue)
+    return dialogue
+
+
+def queue_ally_settlement_petitions_for_player_action(
+    world: Any,
+    *,
+    trigger_action: str,
+    war_id: str,
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    if trigger_action not in ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS:
+        return []
+    if trigger_action == "open_settlement":
+        context = _find_request_open_settlement_petition_context(
+            world,
+            war_id=str(war_id or ""),
+        )
+        petition = _queue_ally_settlement_petition(
+            world,
+            petition_type=ALLY_SETTLEMENT_PETITION_REQUEST_OPEN,
+            context=context,
+            trigger_action=trigger_action,
+        )
+        return [petition] if petition is not None else []
+    if trigger_action == "stage_settlement":
+        context = _find_warn_sellout_petition_context(
+            world,
+            war_id=str(war_id or ""),
+            covered_enemy_participants=covered_enemy_participants or [],
+            settlement_terms=settlement_terms or [],
+        )
+        petition = _queue_ally_settlement_petition(
+            world,
+            petition_type=ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
+            context=context,
+            trigger_action=trigger_action,
+        )
+        return [petition] if petition is not None else []
+    return []
+
+
+def handle_ally_settlement_petition_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+) -> Dict[str, Any]:
+    if action != ALLY_SETTLEMENT_PETITION_ACK_ACTION:
+        return {
+            "success": False,
+            "message": f"Unknown ally petition action: {action}",
+        }
+    petition_key = str(dialogue.get("petition_key") or "")
+    dm = getattr(world, "dialogue_manager", None)
+    removed = 0
+    if dm is not None and hasattr(dm, "remove_matching"):
+        removed = dm.remove_matching(
+            lambda item: (
+                isinstance(item, Mapping)
+                and item.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+                and (
+                    not petition_key
+                    or str(item.get("petition_key") or "") == petition_key
+                )
+            )
+        )
+    return {
+        "success": True,
+        "message": "The allied petition has been recorded.",
+        "mutated": False,
+        "removed_dialogues": int(removed),
+        "pending_envoy_count": int(
+            dm.get_mailbox_count()
+            if dm is not None and hasattr(dm, "get_mailbox_count")
+            else 0
+        ),
+        "suppress_proposal_result_popup": True,
+    }
 
 
 def _incoming_offer_summary_text(offer: Mapping[str, Any]) -> str:

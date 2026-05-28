@@ -2135,6 +2135,7 @@ def get_pending_envoy():
     consistent.
     """
     from backend.game_logic.settlement_preview import (
+        build_ally_settlement_petition_popup,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,
     )
@@ -2160,6 +2161,14 @@ def get_pending_envoy():
                 popup = build_incoming_settlement_offer_popup(world, current)
                 current["popup_payload"] = popup
             result["incoming_settlement_offer"] = popup
+        elif dtype == "ally_settlement_petition":
+            result["has_pending"] = True
+            result["dialogue_type"] = dtype
+            popup = current.get("popup_payload")
+            if not isinstance(popup, dict) or not popup:
+                popup = build_ally_settlement_petition_popup(current)
+                current["popup_payload"] = popup
+            result["diplomatic_dialogue"] = popup
         elif dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
             result["has_pending"] = True
             result["dialogue_type"] = dtype
@@ -2213,6 +2222,7 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     selected `mailbox_id` resolves to a real dialogue.
     """
     from backend.game_logic.settlement_preview import (
+        build_ally_settlement_petition_popup,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,
     )
@@ -2250,6 +2260,12 @@ def activate_mailbox_item(request: MailboxActivateRequest):
             popup = build_incoming_settlement_offer_popup(world, dialogue)
             dialogue["popup_payload"] = popup
         result["incoming_settlement_offer"] = popup
+    elif dtype == "ally_settlement_petition":
+        popup = dialogue.get("popup_payload")
+        if not isinstance(popup, dict) or not popup:
+            popup = build_ally_settlement_petition_popup(dialogue)
+            dialogue["popup_payload"] = popup
+        result["diplomatic_dialogue"] = popup
 
     return result
 

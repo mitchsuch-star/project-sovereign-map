@@ -30,6 +30,7 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	# dtype to render the incoming-offer arrival copy and Voice Bible
 	# §16.1 incoming-offer voice.
 	"incoming_settlement_offer",
+	"ally_settlement_petition",
 ]
 const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
@@ -70,6 +71,7 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"accept_settlement_offer",
 	"reject_settlement_offer",
 	"request_settlement_revision",
+	"acknowledge_ally_settlement_petition",
 ]
 
 # UI References - Header Status
@@ -3300,6 +3302,9 @@ func _on_notification_review_requested(review_target: String, route_id: String =
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
+	if review_target == "ally_settlement_petition_popup":
+		_on_envoy_clicked()
+		return
 	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — settlement events
 	# either route to the live settlement review (war still active) or
 	# fall back to the diplomatic ledger settlements section once the
@@ -3398,7 +3403,7 @@ func _on_pending_envoy_result(response: Dictionary):
 			proposal_confirm_popup.show_dialogue(offer_data)
 		else:
 			add_output("[color=#d9c08c]A settlement offer is waiting but the popup data could not be retrieved.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm"]:
+	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
@@ -3441,7 +3446,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 			proposal_confirm_popup.show_dialogue(offer_data)
 		else:
 			add_output("[color=#d9c08c]Item activated but settlement-offer popup data missing.[/color]")
-	elif dtype in ["conflict_alert", "settlement_confirm"]:
+	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
 func _on_mailbox_panel_closed():

@@ -1296,6 +1296,59 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "of {war_label}. The terms ask {amount} gold; the court awaits "
         "France's answer."
     ),
+    "settlement_ally_petition_request_open_settlement_castlereagh": (
+        "London asks to be heard before {war_label} closes. "
+        "His Majesty's Government still presses {claim_region} in "
+        "{claim_war_label}, and expects France not to settle around it."
+    ),
+    "settlement_ally_petition_request_open_settlement_hardenberg": (
+        "Hardenberg asks France to keep Prussia's claim in view before "
+        "{war_label} is closed. {claim_region} remains before "
+        "{target_enemy}, and silence would read as abandonment."
+    ),
+    "settlement_ally_petition_request_open_settlement_metternich": (
+        "Metternich requests that Vienna's claim to {claim_region} be "
+        "consulted before {war_label} is sealed. A settlement that "
+        "forgets {claim_war_label} will not be forgotten in Vienna."
+    ),
+    "settlement_ally_petition_request_open_settlement_einsiedel": (
+        "Einsiedel asks France not to close {war_label} while Saxony's "
+        "claim to {claim_region} in {claim_war_label} remains unsettled."
+    ),
+    "settlement_ally_petition_request_open_settlement_chancery": (
+        "The chancery of {ally_nation} asks to be heard before "
+        "{war_label} is closed. Its claim to {claim_region} remains "
+        "unsettled in {claim_war_label}."
+    ),
+    "settlement_ally_petition_warn_against_sellout_castlereagh": (
+        "London warns that {ally_nation}'s claim to {claim_region} "
+        "against {target_enemy} is absent from {war_label}. A treaty can "
+        "sell out an ally without naming the price."
+    ),
+    "settlement_ally_petition_warn_against_sellout_hardenberg": (
+        "Hardenberg warns that {claim_region} against {target_enemy} has "
+        "vanished from {war_label}. Prussia will not call that omission "
+        "a clerical detail."
+    ),
+    "settlement_ally_petition_warn_against_sellout_metternich": (
+        "Metternich observes that {ally_nation}'s claim to {claim_region} "
+        "has no place in {war_label}. Vienna recognizes an ally being "
+        "set aside even when the article is politely drafted."
+    ),
+    "settlement_ally_petition_warn_against_sellout_einsiedel": (
+        "Einsiedel warns, respectfully, that Saxony's claim to "
+        "{claim_region} against {target_enemy} is missing from "
+        "{war_label}; small courts know when peace is bought with them."
+    ),
+    "settlement_ally_petition_warn_against_sellout_chancery": (
+        "The chancery of {ally_nation} warns that its claim to "
+        "{claim_region} against {target_enemy} is absent from "
+        "{war_label}."
+    ),
+    "settlement_ally_petition_talleyrand": (
+        "Sire, {ally_nation}'s petition is advisory. It records the claim "
+        "to {claim_region} without blocking ratification."
+    ),
     # Request Revision is the accepting-side counter authoring route.
     # Talleyrand explains that we are opening the editor seeded from the
     # exact offered package so the player can revise before sending a

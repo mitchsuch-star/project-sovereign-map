@@ -61,8 +61,8 @@ class DialogueManager:
     # `lapse_pending_offers()` and `has_current_turn_offers()` deliberately
     # exclude this set.
     #
-    # SC-5 reversal commit 2 (Slice G1): `incoming_settlement_offer` is the
-    # only persistent mailbox type today. The producer
+    # SC-5 reversal commit 2 (Slice G1): `incoming_settlement_offer` is a
+    # persistent mailbox type. The producer
     # (`ai_diplomacy.process_settlement_offer_phase`) writes offers into
     # `world.pending_settlement_dialogues`, the
     # `promote_pending_settlement_offers(...)` helper drains them into the
@@ -70,8 +70,14 @@ class DialogueManager:
     # via `handle_incoming_settlement_offer_action(...)`. The type also
     # stays in `SETTLEMENT_FAMILY_DIALOGUE_TYPES` so cross-war family
     # guards keep catching it.
+    #
+    # G2-Slice-G2b: `ally_settlement_petition` is also persistent and
+    # mailbox-eligible, but it is advisory only: it never enters
+    # HARD_STOP_TYPES and never blocks ordinary commands or settlement
+    # ratification.
     PERSISTENT_MAILBOX_TYPES = frozenset({
         "incoming_settlement_offer",
+        "ally_settlement_petition",
     })
     # Combined mailbox-eligible set: lapsing (current-turn) + persistent.
     # Downstream code references SOFT_STOP_MAILBOX_TYPES for mailbox
@@ -109,6 +115,7 @@ class DialogueManager:
         # ordinary proposals because they touch entire wars and persist
         # across turns. Tested via mailbox ordering regressions.
         "incoming_settlement_offer": 2,
+        "ally_settlement_petition": 4,
         "sabotage_confrontation": 2,
         "incoming_proposal": 3,
         "counter_offer": 3,
@@ -119,6 +126,7 @@ class DialogueManager:
         "counter_offer": "Counter-offer",
         "counter_offer_response": "Counter response",
         "incoming_settlement_offer": "Settlement offer",
+        "ally_settlement_petition": "Ally settlement petition",
     }
 
     def __init__(self):
@@ -292,6 +300,17 @@ class DialogueManager:
                     f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Settlement offer')}"
                     + (f": {war_id}" if war_id else "")
                 )
+            elif dtype == "ally_settlement_petition":
+                source = d.get("ally_nation", "Unknown")
+                ptype = str(d.get("petition_type", "ally_petition"))
+                war_id = d.get("war_id", "")
+                summary = str(
+                    d.get("summary_text", "")
+                    or (
+                        f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Ally petition')}"
+                        + (f": {war_id}" if war_id else "")
+                    )
+                ).strip()
             else:
                 source = d.get("target_nation", ctx.get("source", "Unknown"))
                 terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}

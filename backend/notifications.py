@@ -82,6 +82,10 @@ BARGAIN_VOIDED = "bargain_voided"                # NORMAL: bargain lapsed
 # offers touch entire wars and persist across turns until accept /
 # reject. Review target routes to the incoming-settlement-offer popup.
 INCOMING_SETTLEMENT_OFFER = "incoming_settlement_offer"
+# G2-Slice-G2b: advisory allied-court petition about settlement scope.
+# It is mailbox-eligible and notification-visible, but never blocks the
+# player's own settlement ratification.
+ALLY_SETTLEMENT_PETITION = "ally_settlement_petition"
 
 
 def create_notification(

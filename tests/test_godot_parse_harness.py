@@ -230,6 +230,19 @@ def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
     return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
 
 
+def _extract_executor_ally_petition_dispatch_actions(source: str) -> List[str]:
+    handler_anchor = (
+        "from backend.game_logic.settlement_preview import (\n"
+        "                handle_ally_settlement_petition_action,\n"
+        "            )"
+    )
+    pre_handler = source.split(handler_anchor, 1)[0]
+    elif_open = pre_handler.rfind("elif action == ")
+    assert elif_open != -1
+    branch_block = pre_handler[elif_open:]
+    return re.findall(r'"([A-Za-z0-9_]+)"', branch_block.split(":", 1)[0])
+
+
 def _simulate_main_gd_command_result_route(response: dict, source: str) -> str:
     """Small executable model of the relevant `_on_command_result` route order.
 
@@ -395,6 +408,10 @@ INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS = [
     "request_settlement_revision",
 ]
 
+ALLY_SETTLEMENT_PETITION_DISPATCH_ACTION_IDS = [
+    "acknowledge_ally_settlement_petition",
+]
+
 
 def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler():
     """Backend regression guard: every settlement-family popup action id
@@ -461,10 +478,14 @@ def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly(
     backend_incoming_dispatch = set(
         _extract_executor_incoming_offer_dispatch_actions(executor_text)
     )
+    backend_ally_petition_dispatch = set(
+        _extract_executor_ally_petition_dispatch_actions(executor_text)
+    )
 
     expected_godot_actions = (
         set(SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS)
         | set(INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS)
+        | set(ALLY_SETTLEMENT_PETITION_DISPATCH_ACTION_IDS)
     )
     assert godot_actions == expected_godot_actions
     assert backend_settlement_dispatch == set(
@@ -473,9 +494,16 @@ def test_godot_settlement_dialogue_actions_match_backend_dispatch_tuple_exactly(
     assert backend_incoming_dispatch == set(
         INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS
     )
+    assert backend_ally_petition_dispatch == set(
+        ALLY_SETTLEMENT_PETITION_DISPATCH_ACTION_IDS
+    )
     # No orphan action ids: every Godot whitelist id must appear in
-    # exactly one backend dispatch tuple.
-    union = backend_settlement_dispatch | backend_incoming_dispatch
+    # exactly one backend dispatch branch.
+    union = (
+        backend_settlement_dispatch
+        | backend_incoming_dispatch
+        | backend_ally_petition_dispatch
+    )
     assert godot_actions == union
 
 

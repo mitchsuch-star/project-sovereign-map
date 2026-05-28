@@ -63,6 +63,8 @@ func show_dialogue(data: Dictionary):
 		# and labels the Ratify path as Accept Settlement.
 		"incoming_settlement_offer":
 			bbcode = _build_incoming_settlement_offer_content(data)
+		"ally_settlement_petition":
+			bbcode = _build_ally_settlement_petition_content(data)
 		_:
 			if data.has("war_context_snapshot"):
 				bbcode = _build_peace_preview_content(data)
@@ -234,6 +236,20 @@ func _build_settlement_content(data: Dictionary) -> String:
 	if uncovered is Array and uncovered.size() > 0:
 		bbcode += "[color=#e0a040][b]Still at war:[/b] " + ", ".join(PackedStringArray(uncovered)) + "[/color]\n"
 	bbcode += "\n"
+
+	var ally_petitions = data.get("ally_petitions", [])
+	if ally_petitions is Array and ally_petitions.size() > 0:
+		bbcode += "[b]Allied petitions[/b]\n"
+		for petition in ally_petitions:
+			if not petition is Dictionary:
+				continue
+			var ally = str(petition.get("ally_nation", "An ally"))
+			var ally_voice = str(petition.get("ally_voice", ""))
+			if ally_voice != "":
+				bbcode += "  [color=#e0c070]*[/color] [i]\"" + ally_voice + "\"[/i]\n"
+			else:
+				bbcode += "  [color=#e0c070]*[/color] " + ally + " petitions over settlement scope.\n"
+		bbcode += "\n"
 
 	var allies = sections.get("allies", {}) if sections is Dictionary else {}
 	if allies is Dictionary:
@@ -747,6 +763,34 @@ func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 	if talleyrand != "":
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % talleyrand
 
+	return bbcode
+
+
+func _build_ally_settlement_petition_content(data: Dictionary) -> String:
+	var ally = str(data.get("ally_nation", "Ally"))
+	var war_label = str(data.get("war_label", data.get("war_id", "settlement")))
+	var claim_war = str(data.get("claim_war_label", data.get("claim_war_id", "")))
+	var claim_region = str(data.get("claim_region", "claim"))
+	var target_enemy = str(data.get("target_enemy", "the enemy"))
+	var bbcode = ""
+	bbcode += "[b]ALLY SETTLEMENT PETITION - %s[/b]\n\n" % ally.to_upper()
+	bbcode += "[color=#a0a0a8]%s[/color]\n" % war_label
+	if claim_war != "":
+		bbcode += "[color=#a0a0a8]Related claim: %s[/color]\n" % claim_war
+	bbcode += "\n"
+
+	var ally_voice = str(data.get("ally_voice", ""))
+	if ally_voice != "":
+		bbcode += "[color=#e0c070][i]\"%s\"[/i][/color]\n\n" % ally_voice
+
+	bbcode += "[b]Claim at issue:[/b] %s" % claim_region
+	if target_enemy != "":
+		bbcode += " against " + target_enemy
+	bbcode += "\n\n"
+
+	var talleyrand = str(data.get("talleyrand_text", ""))
+	if talleyrand != "":
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % talleyrand
 	return bbcode
 
 
