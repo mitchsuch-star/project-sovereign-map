@@ -38,6 +38,7 @@ from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
     CLAUSE_CONFLICT_MATRIX,
+    CLAUSE_CONTROL_SCHEMA,
     GOLD_PER_TURN_MAX_TURNS,
     GOLD_PER_TURN_MIN_AMOUNT,
     GOLD_PER_TURN_MIN_TURNS,
@@ -2645,6 +2646,160 @@ def build_settlement_preview(
     }
 
 
+SETTLEMENT_EDITOR_CALLER_KIND = "player_editor"
+SETTLEMENT_EDITOR_SOURCES = frozenset({"rejected_review", "stale_recovery", "explicit_revise"})
+
+# SC-5R-1 pre-ratification clause-type guard allowlist for legacy aliases
+# the apply path still tolerates (`gold_lump` is a pre-cleanup alias for
+# `gold_indemnity` recognized by `_apply_settlement_terms` at line ~3877).
+# Cut clause types (e.g. clause types removed by a SC-32 / D-series
+# product decision) do not appear here and are rejected by the guard.
+RATIFY_LEGACY_APPLY_CLAUSE_TYPES = frozenset({"gold_lump"})
+
+
+def _scoped_settlement_drafts(world: Any) -> Dict[str, List[Dict[str, Any]]]:
+    """Return the SC-5R scoped settlement draft store, creating it lazily.
+
+    Storage is keyed by ``compute_settlement_draft_key(...)`` so same-war
+    drafts with different ``selected_target_nation`` / covered scope do not
+    collide. The legacy ``pending_settlement_drafts`` (war_id keyed) store
+    remains for backward compatibility within SC-5R-1; SC-5R-2 routes the
+    editor through the scoped store.
+    """
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if drafts is None:
+        world.pending_settlement_drafts_by_key = {}
+        drafts = world.pending_settlement_drafts_by_key
+    return drafts
+
+
+def save_scoped_settlement_draft(
+    world: Any,
+    *,
+    war_id: str,
+    selected_target_nation: Optional[str],
+    covered_enemy_participants: Optional[Iterable[str]],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> str:
+    """Persist ``settlement_terms`` under the scoped ``draft_key``.
+
+    Returns the canonical draft_key so callers can echo it back on the
+    staged dialogue. Empty / non-mapping clauses are filtered before
+    storage; an explicit empty list is stored as an empty list (callers
+    that want to delete the slot should remove the key directly).
+    """
+    drafts = _scoped_settlement_drafts(world)
+    draft_key = compute_settlement_draft_key(
+        war_id, selected_target_nation, covered_enemy_participants,
+    )
+    drafts[draft_key] = [
+        dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)
+    ]
+    return draft_key
+
+
+def load_scoped_settlement_draft(
+    world: Any,
+    *,
+    war_id: str,
+    selected_target_nation: Optional[str],
+    covered_enemy_participants: Optional[Iterable[str]],
+) -> Optional[List[Dict[str, Any]]]:
+    """Return the scoped draft for the given war/scope, or ``None``."""
+    draft_key = compute_settlement_draft_key(
+        war_id, selected_target_nation, covered_enemy_participants,
+    )
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if not isinstance(drafts, dict):
+        return None
+    entry = drafts.get(draft_key)
+    if not isinstance(entry, list):
+        return None
+    return [dict(t) for t in entry if isinstance(t, Mapping)]
+
+
+def discard_scoped_settlement_draft(
+    world: Any,
+    *,
+    war_id: str,
+    selected_target_nation: Optional[str],
+    covered_enemy_participants: Optional[Iterable[str]],
+) -> bool:
+    """Remove the scoped draft if it exists. Returns whether anything was removed."""
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if not isinstance(drafts, dict):
+        return False
+    draft_key = compute_settlement_draft_key(
+        war_id, selected_target_nation, covered_enemy_participants,
+    )
+    return drafts.pop(draft_key, None) is not None
+
+
+def _build_clause_control_schema_for_review() -> Dict[str, Dict[str, Any]]:
+    """Return the SC-5R clause control schema for live clause types.
+
+    The schema is the backend source of truth for Godot picker contents
+    (spec §Editor Layout Contract). Hidden clause types are absent from
+    both the schema and ``available_clause_types[]`` so clients cannot
+    synthesize disabled rows for absent types.
+    """
+    schema: Dict[str, Dict[str, Any]] = {}
+    for clause_type, base in CLAUSE_CONTROL_SCHEMA.items():
+        if not base.get("enabled"):
+            continue
+        if clause_type not in SETTLEMENT_LIVE_CLAUSE_TYPES:
+            continue
+        schema[clause_type] = {
+            "type": clause_type,
+            "enabled": True,
+            "visibility": "live",
+            "required_keys": list(base.get("required_keys") or []),
+            "optional_keys": list(base.get("optional_keys") or []),
+        }
+    return schema
+
+
+def _available_clause_types_for_review() -> List[str]:
+    """Return the ordered list of live clause types for ``available_clause_types[]``."""
+    schema = _build_clause_control_schema_for_review()
+    return sorted(schema.keys())
+
+
+def _build_settlement_editor_route(
+    *,
+    war_id: str,
+    selected_target_nation: str,
+    covered_enemy_participants: Iterable[str],
+    draft_key: str,
+    available_clause_types: Iterable[str],
+    staged_settlement_terms: Iterable[Mapping[str, Any]],
+    source_route_id: Optional[str] = None,
+    source: str = "explicit_revise",
+) -> Dict[str, Any]:
+    """Build the SC-5R ``editor_route`` payload for an EDIT-capable review.
+
+    The shape is exact per spec line 548; SC-5R-2 will consume this on
+    the Godot side to mount the editor surface.
+    """
+    if source not in SETTLEMENT_EDITOR_SOURCES:
+        source = "explicit_revise"
+    return {
+        "surface": "settlement_editor",
+        "war_id": str(war_id or ""),
+        "selected_target_nation": str(selected_target_nation or ""),
+        "covered_enemy_participants": [
+            str(n) for n in (covered_enemy_participants or []) if str(n)
+        ],
+        "draft_key": str(draft_key or ""),
+        "available_clause_types": list(available_clause_types or []),
+        "staged_settlement_terms": [
+            dict(t) for t in (staged_settlement_terms or []) if isinstance(t, Mapping)
+        ],
+        "source_route_id": str(source_route_id) if source_route_id else None,
+        "source": source,
+    }
+
+
 def build_settlement_confirm_dialogue(
     world: Any,
     preview_response: Mapping[str, Any],
@@ -3025,13 +3180,49 @@ def build_settlement_confirm_dialogue(
             "top_components": [],
             "blocker_display": ratify_blocked_reason,
         }
+    # SC-5R-1: publish the EDIT payload contract per spec line 543-556.
+    # `can_edit_terms` is the gate for showing `Revise Terms` on REVIEW;
+    # SC-5R-2 will consume `available_clause_types[]` + `clause_control_schema`
+    # + `editor_route` to mount the Godot editor surface. Hidden clause
+    # types are absent from both fields so clients cannot synthesize
+    # disabled rows for absent types.
+    war_active = bool(
+        war_instance
+        and isinstance(war_instance, Mapping)
+        and war_instance.get("ended_turn") is None
+    )
+    sc5r_available_clause_types = _available_clause_types_for_review()
+    sc5r_clause_control_schema = _build_clause_control_schema_for_review()
+    staged_terms_for_edit = copy.deepcopy(preview.get("settlement_terms") or [])
+    can_edit_terms = bool(
+        str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+        and war_active
+        and staged_terms_for_edit
+        and sc5r_available_clause_types
+    )
+    sc5r_draft_key = compute_settlement_draft_key(war_id, resolved_target, covered)
+    sc5r_editor_route = (
+        _build_settlement_editor_route(
+            war_id=war_id,
+            selected_target_nation=resolved_target,
+            covered_enemy_participants=covered,
+            draft_key=sc5r_draft_key,
+            available_clause_types=sc5r_available_clause_types,
+            staged_settlement_terms=staged_terms_for_edit,
+            source_route_id=route_id,
+            source="explicit_revise",
+        )
+        if can_edit_terms
+        else None
+    )
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
+        "dialogue_mode": "REVIEW",
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
-        "draft_key": compute_settlement_draft_key(war_id, resolved_target, covered),
+        "draft_key": sc5r_draft_key,
         "route": review_route,
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
@@ -3137,6 +3328,23 @@ def build_settlement_confirm_dialogue(
         "forced_alliance_continental_toggle_differential": list(
             preview.get("forced_alliance_continental_toggle_differential") or []
         ),
+        # SC-5R-1 EDIT payload contract per spec §Full Treaty Settlement
+        # Flow line 546-556. `can_edit_terms` is true only when the
+        # staged dialogue is a player-editor draft on an active war with
+        # a non-empty package and at least one live clause type
+        # authorable; `available_clause_types[]` and
+        # `clause_control_schema` are absent (empty) when not editable
+        # so hidden clause types cannot leak as disabled labels;
+        # `editor_route` is None when not editable so SC-5R-2 cannot
+        # advertise an editor handoff for non-editor staging.
+        "can_edit_terms": can_edit_terms,
+        "available_clause_types": (
+            list(sc5r_available_clause_types) if can_edit_terms else []
+        ),
+        "clause_control_schema": (
+            copy.deepcopy(sc5r_clause_control_schema) if can_edit_terms else {}
+        ),
+        "editor_route": sc5r_editor_route,
     }
 
 
@@ -3272,6 +3480,19 @@ def stage_settlement_confirm(
                 # Preserve the active draft per SC-26 — return without
                 # restaging. Drafts store holds the existing draft.
                 drafts[war_id_str] = [dict(t) for t in existing_terms]
+                # SC-5R-1 scoped draft persistence: dual-write the
+                # preserved draft to the scoped store under the active
+                # dialogue's scope so reopen / War Detail recovery
+                # finds it under `draft_key`, not just `war_id`.
+                save_scoped_settlement_draft(
+                    world,
+                    war_id=war_id_str,
+                    selected_target_nation=str(
+                        mounted.get("selected_target_nation") or ""
+                    ),
+                    covered_enemy_participants=mounted_covered,
+                    settlement_terms=existing_terms,
+                )
                 return _settlement_collision_payload(
                     error="same_war_merge_conflict",
                     active_war_id=war_id_str,
@@ -3287,6 +3508,16 @@ def stage_settlement_confirm(
             # Compatible merge: persist merged draft + restage with merged
             # terms so preview/acceptance reflect the new authored set.
             drafts[war_id_str] = [dict(t) for t in merged_terms]
+            # SC-5R-1: dual-write the merged draft to the scoped store
+            # under the incoming scope (same-war refresh adopts the
+            # caller's scope when present).
+            save_scoped_settlement_draft(
+                world,
+                war_id=war_id_str,
+                selected_target_nation=incoming_target_for_scope,
+                covered_enemy_participants=incoming_covered_for_scope,
+                settlement_terms=merged_terms,
+            )
             settlement_terms = merged_terms
             is_same_war_refresh = True
             # Same-war refresh inherits the mounted dialogue's selected
@@ -4217,6 +4448,70 @@ def ratify_settlement_confirm(
             ),
         }
 
+    # SC-5R-1 pre-ratification clause-type revalidation: defense in
+    # depth for dialogues that bypass the submit-time `validate_settlement_terms`
+    # call (e.g. fixture-staged tests, save-loaded drafts that survived
+    # a code change). The goal is narrow: the cut clause type guard
+    # (an unrecognized `type` like the D3-CUT clause) must fail before
+    # `_apply_settlement_terms` runs so treaty history cannot record an
+    # unsupported clause. Strict per-key schema validation already runs
+    # at submit time through `_execute_propose_common_peace` and
+    # `_stage_replacement_settlement_terms`; the legacy apply path
+    # tolerates a few key variants (e.g. `regions` vs `region`) for
+    # backward compat with historical ratification fixtures, so the
+    # pre-ratify guard checks only the clause `type` field. White peace
+    # ratifies an empty package by design and skips the non-empty guard.
+    if settlement_terms and not white_peace:
+        for idx, clause in enumerate(settlement_terms):
+            if not isinstance(clause, Mapping):
+                world.dialogue_manager.pop()
+                return {
+                    "success": False,
+                    "dialogue_type": "settlement_confirm",
+                    "action": "confirm",
+                    "war_id": war_id,
+                    "error": "submitted_terms_failed_revalidation",
+                    "error_display": _error_display(
+                        "submitted_terms_failed_revalidation"
+                    ),
+                    "validation_error": "invalid_clause_schema",
+                    "validation_detail": _error_display(
+                        "invalid_clause_schema"
+                    ),
+                    "validation_error_index": idx,
+                    "mutated": False,
+                    "talleyrand_text": (
+                        "Sire, the settlement draft is malformed and cannot "
+                        "be ratified."
+                    ),
+                }
+            clause_type = clause.get("type")
+            if (
+                clause_type not in CANONICAL_CLAUSE_TYPES
+                and clause_type not in RATIFY_LEGACY_APPLY_CLAUSE_TYPES
+            ):
+                world.dialogue_manager.pop()
+                return {
+                    "success": False,
+                    "dialogue_type": "settlement_confirm",
+                    "action": "confirm",
+                    "war_id": war_id,
+                    "error": "submitted_terms_failed_revalidation",
+                    "error_display": _error_display(
+                        "submitted_terms_failed_revalidation"
+                    ),
+                    "validation_error": "invalid_clause_type",
+                    "validation_detail": _error_display(
+                        "invalid_clause_type"
+                    ),
+                    "validation_error_index": idx,
+                    "mutated": False,
+                    "talleyrand_text": (
+                        "Sire, the settlement draft contains an unsupported "
+                        "clause and cannot be ratified."
+                    ),
+                }
+
     fresh_acceptance = calculate_common_peace_acceptance(
         world,
         war_id=war_id,
@@ -4561,6 +4856,37 @@ def _stage_replacement_settlement_terms(
     replacement_terms = [
         dict(t) for t in (terms or []) if isinstance(t, Mapping)
     ]
+    # SC-5R-1 pre-staging revalidation: an author handler that
+    # constructs tampered or cut clause types (e.g. a clause `type`
+    # that is no longer in `CANONICAL_CLAUSE_TYPES`, or a
+    # `gold_indemnity` carrying an unknown `turns` field) must fail
+    # before `build_settlement_preview(...)` so the dialogue never
+    # reaches the player. The validator is the single source of truth
+    # for clause schema; the matching pre-ratification guard in
+    # `ratify_settlement_confirm` provides defense in depth for
+    # dialogues that bypass this path (fixture-staged or save-loaded).
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    revalidation = validate_settlement_terms(
+        replacement_terms,
+        world=world,
+        war_instance=war_instance,
+    )
+    if not revalidation.get("valid"):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "submitted_terms_failed_revalidation",
+            "error_display": _error_display(
+                "submitted_terms_failed_revalidation"
+            ),
+            "validation_error": revalidation.get("error"),
+            "validation_detail": revalidation.get("disabled_reason_display"),
+            "validation_error_index": revalidation.get("error_index"),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
     preview = build_settlement_preview(
         world,
         war_id=war_id,
@@ -4596,6 +4922,20 @@ def _stage_replacement_settlement_terms(
         world.pending_settlement_drafts = {}
         drafts = world.pending_settlement_drafts
     drafts[war_id] = [dict(t) for t in replacement_terms]
+    # SC-5R-1 scoped draft persistence: dual-write the replacement
+    # draft into the scoped store keyed by `compute_settlement_draft_key`
+    # so a same-war restage with a different selected target /
+    # covered scope keeps both drafts addressable. Legacy
+    # `pending_settlement_drafts[war_id]` storage is preserved for
+    # backward compatibility within SC-5R-1 (SC-5R-2 routes the
+    # Godot editor through the scoped store and may decommission it).
+    save_scoped_settlement_draft(
+        world,
+        war_id=war_id,
+        selected_target_nation=selected_target,
+        covered_enemy_participants=covered,
+        settlement_terms=replacement_terms,
+    )
     world.dialogue_manager.replace(new_dialogue)
     return {
         "success": True,
@@ -4736,6 +5076,21 @@ def _apply_scope_replace_confirm(
             del drafts[key]
     if incoming_terms:
         drafts[war_id] = [dict(t) for t in incoming_terms]
+    # SC-5R-1 scoped store: clear the prior scope's scoped draft (the
+    # chooser is the explicit "replace this scope's draft" path) and
+    # write the incoming scope's draft under its own scoped key so a
+    # reopen of either scope can read its own draft without collision.
+    scoped_drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if isinstance(scoped_drafts, dict):
+        scoped_drafts.pop(current_key, None)
+    if incoming_terms:
+        save_scoped_settlement_draft(
+            world,
+            war_id=war_id,
+            selected_target_nation=resolved_target,
+            covered_enemy_participants=covered,
+            settlement_terms=incoming_terms,
+        )
     world.dialogue_manager.replace(new_dialogue)
     return {
         "success": True,
@@ -4841,6 +5196,13 @@ def handle_settlement_dialogue_action(
                 "mutated": False,
                 "suppress_proposal_result_popup": True,
             }
+        # SC-5R-1 audit punch list fix: `gold_indemnity` schema per
+        # CANONICAL_CLAUSE_TYPES is {type, from, to, amount} with no
+        # optional keys. The previous draft included `"turns": 0` which
+        # `validate_settlement_terms` rejects as `invalid_clause_schema`
+        # (unknown_keys=["turns"]) at Submit/ratify time. Use
+        # gold_per_turn for recurring obligations; gold_indemnity is a
+        # single-payment lump sum.
         authored_terms = [
             {"type": "peace"},
             {
@@ -4848,7 +5210,6 @@ def handle_settlement_dialogue_action(
                 "from": selected_target,
                 "to": actor,
                 "amount": 200,
-                "turns": 0,
             },
         ]
         return _stage_replacement_settlement_terms(

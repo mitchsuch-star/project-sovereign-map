@@ -2081,6 +2081,30 @@ class DiplomaticExecutor:
             world.pending_settlement_drafts[war_id] = [
                 dict(t) for t in settlement_terms
             ]
+            # SC-5R-1 scoped draft persistence: dual-write to the scoped
+            # store so a same-war re-staging with a different selected
+            # target / covered scope can be restored without clobbering
+            # the legacy `pending_settlement_drafts[war_id]` slot.
+            from backend.game_logic.settlement_preview import (
+                save_scoped_settlement_draft,
+            )
+            scope_selected_target = (
+                cmd.get("selected_target_nation")
+                or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
+                or target_nation
+            )
+            scope_covered = (
+                cmd.get("covered_enemy_participants")
+                or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
+                or []
+            )
+            save_scoped_settlement_draft(
+                world,
+                war_id=war_id,
+                selected_target_nation=scope_selected_target,
+                covered_enemy_participants=scope_covered,
+                settlement_terms=settlement_terms,
+            )
         selected_target = (
             cmd.get("selected_target_nation")
             or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
