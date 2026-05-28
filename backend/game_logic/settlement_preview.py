@@ -2735,7 +2735,250 @@ def discard_scoped_settlement_draft(
     return drafts.pop(draft_key, None) is not None
 
 
-def _build_clause_control_schema_for_review() -> Dict[str, Dict[str, Any]]:
+def _discard_scoped_settlement_draft_for_dialogue(
+    world: Any,
+    dialogue: Mapping[str, Any],
+) -> bool:
+    """Discard the scoped draft addressed by a staged settlement dialogue."""
+    war_id = str(dialogue.get("war_id") or "")
+    selected, covered = _dialogue_scope_values(dialogue)
+    removed = discard_scoped_settlement_draft(
+        world,
+        war_id=war_id,
+        selected_target_nation=selected,
+        covered_enemy_participants=covered,
+    )
+    draft_key = str(dialogue.get("draft_key") or "")
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if draft_key and isinstance(drafts, dict):
+        removed = drafts.pop(draft_key, None) is not None or removed
+    return removed
+
+
+def _field_schema(
+    *,
+    control: str,
+    label: str,
+    options: Optional[List[Dict[str, Any]]] = None,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
+    default: Any = None,
+    direction_metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    return {
+        "control": control,
+        "label": label,
+        "options": list(options or []),
+        "min": min_value,
+        "max": max_value,
+        "default": default,
+        "direction_metadata": dict(direction_metadata or {}),
+    }
+
+
+def _control_option(
+    option_id: str,
+    *,
+    label: Optional[str] = None,
+    disabled: bool = False,
+    disabled_reason_display: Optional[str] = None,
+) -> Dict[str, Any]:
+    return {
+        "id": str(option_id),
+        "label": str(label if label is not None else option_id),
+        "disabled": bool(disabled),
+        "disabled_reason_display": disabled_reason_display,
+    }
+
+
+def _nation_control_options(
+    world: Any,
+    war_instance: Optional[Mapping[str, Any]],
+    covered_enemy_participants: Optional[Iterable[str]],
+) -> List[Dict[str, Any]]:
+    nations: List[str] = []
+    if isinstance(war_instance, Mapping):
+        for side in ("attackers", "defenders"):
+            for nation in war_instance.get(side) or []:
+                nation_str = str(nation or "").strip()
+                if nation_str and nation_str not in nations:
+                    nations.append(nation_str)
+    for nation in covered_enemy_participants or []:
+        nation_str = str(nation or "").strip()
+        if nation_str and nation_str not in nations:
+            nations.append(nation_str)
+    player = str(getattr(world, "player_nation", "") or "").strip()
+    if player and player not in nations:
+        nations.append(player)
+    return [_control_option(nation) for nation in nations]
+
+
+def _region_control_options(
+    world: Any,
+    nation_options: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    allowed_controllers = {str(option.get("id") or "") for option in nation_options}
+    regions = getattr(world, "regions", None) or {}
+    options: List[Dict[str, Any]] = []
+    for region_name in sorted(regions):
+        region = regions.get(region_name)
+        controller = str(getattr(region, "controller", "") or "")
+        if allowed_controllers and controller not in allowed_controllers:
+            continue
+        options.append(_control_option(str(region_name)))
+    return options
+
+
+def _vassal_control_options(world: Any) -> List[Dict[str, Any]]:
+    vassals = getattr(world, "vassals", None) or {}
+    if isinstance(vassals, Mapping):
+        return [_control_option(str(nation)) for nation in sorted(vassals)]
+    return []
+
+
+def _clause_fields_for_review(
+    clause_type: str,
+    *,
+    nation_options: Optional[List[Dict[str, Any]]] = None,
+    region_options: Optional[List[Dict[str, Any]]] = None,
+    vassal_options: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    nation_picker = {
+        "control": "picker",
+        "options": list(nation_options or []),
+        "min_value": None,
+        "max_value": None,
+        "default": None,
+    }
+    if clause_type == "peace":
+        return {}
+    if clause_type == "territory_cede":
+        return {
+            "from": _field_schema(
+                **nation_picker,
+                label="Ceding court",
+                direction_metadata={"role": "payer", "direction": "conceded"},
+            ),
+            "to": _field_schema(
+                **nation_picker,
+                label="Receiving court",
+                direction_metadata={"role": "recipient", "direction": "demanded"},
+            ),
+            "region": _field_schema(
+                control="picker",
+                label="Region",
+                options=list(region_options or []),
+                direction_metadata={"role": "asset", "direction": "demanded"},
+            ),
+        }
+    if clause_type == "gold_indemnity":
+        return {
+            "from": _field_schema(
+                **nation_picker,
+                label="Paying court",
+                direction_metadata={"role": "payer", "direction": "demanded"},
+            ),
+            "to": _field_schema(
+                **nation_picker,
+                label="Receiving court",
+                direction_metadata={"role": "recipient", "direction": "demanded"},
+            ),
+            "amount": _field_schema(
+                control="number",
+                label="Gold",
+                min_value=1,
+                default=200,
+                direction_metadata={"role": "amount", "direction": "demanded"},
+            ),
+        }
+    if clause_type == "gold_per_turn":
+        return {
+            "from": _field_schema(
+                **nation_picker,
+                label="Paying court",
+                direction_metadata={"role": "payer", "direction": "demanded"},
+            ),
+            "to": _field_schema(
+                **nation_picker,
+                label="Receiving court",
+                direction_metadata={"role": "recipient", "direction": "demanded"},
+            ),
+            "amount": _field_schema(
+                control="number",
+                label="Gold per turn",
+                min_value=GOLD_PER_TURN_MIN_AMOUNT,
+                default=max(GOLD_PER_TURN_MIN_AMOUNT, 50),
+                direction_metadata={"role": "amount", "direction": "demanded"},
+            ),
+            "turns": _field_schema(
+                control="number",
+                label="Turns",
+                min_value=GOLD_PER_TURN_MIN_TURNS,
+                max_value=GOLD_PER_TURN_MAX_TURNS,
+                default=3,
+                direction_metadata={"role": "duration", "direction": "demanded"},
+            ),
+        }
+    if clause_type == "forced_alliance":
+        return {
+            "from": _field_schema(
+                **nation_picker,
+                label="Court forced into alliance",
+                direction_metadata={"role": "subject", "direction": "demanded"},
+            ),
+            "to": _field_schema(
+                **nation_picker,
+                label="Alliance imposed by",
+                direction_metadata={"role": "imposer", "direction": "demanded"},
+            ),
+            "includes_continental_system": _field_schema(
+                control="toggle",
+                label="Continental System inclusion",
+                default=False,
+                direction_metadata={"role": "modifier", "direction": "demanded"},
+            ),
+        }
+    if clause_type in {"vassalage", "subjugation"}:
+        return {
+            "from": _field_schema(
+                **nation_picker,
+                label="Subject court",
+                direction_metadata={"role": "subject", "direction": "demanded"},
+            ),
+            "to": _field_schema(
+                **nation_picker,
+                label="Overlord court",
+                direction_metadata={"role": "overlord", "direction": "demanded"},
+            ),
+        }
+    if clause_type == "liberation":
+        return {
+            "vassal_nation": _field_schema(
+                control="picker",
+                label="Vassal to liberate",
+                options=list(vassal_options or nation_options or []),
+                direction_metadata={"role": "subject", "direction": "demanded"},
+            ),
+            "lord_nation": _field_schema(
+                **nation_picker,
+                label="Current overlord",
+                direction_metadata={"role": "overlord", "direction": "demanded"},
+            ),
+            "liberator": _field_schema(
+                **nation_picker,
+                label="Liberating court",
+                direction_metadata={"role": "liberator", "direction": "demanded"},
+            ),
+        }
+    return {}
+
+
+def _build_clause_control_schema_for_review(
+    world: Any = None,
+    *,
+    war_instance: Optional[Mapping[str, Any]] = None,
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+) -> Dict[str, Dict[str, Any]]:
     """Return the SC-5R clause control schema for live clause types.
 
     The schema is the backend source of truth for Godot picker contents
@@ -2744,17 +2987,25 @@ def _build_clause_control_schema_for_review() -> Dict[str, Dict[str, Any]]:
     synthesize disabled rows for absent types.
     """
     schema: Dict[str, Dict[str, Any]] = {}
+    nation_options = _nation_control_options(
+        world, war_instance, covered_enemy_participants,
+    )
+    region_options = _region_control_options(world, nation_options)
+    vassal_options = _vassal_control_options(world)
     for clause_type, base in CLAUSE_CONTROL_SCHEMA.items():
         if not base.get("enabled"):
             continue
         if clause_type not in SETTLEMENT_LIVE_CLAUSE_TYPES:
             continue
         schema[clause_type] = {
-            "type": clause_type,
             "enabled": True,
-            "visibility": "live",
-            "required_keys": list(base.get("required_keys") or []),
-            "optional_keys": list(base.get("optional_keys") or []),
+            "disabled_reason_display": None,
+            "fields": _clause_fields_for_review(
+                clause_type,
+                nation_options=nation_options,
+                region_options=region_options,
+                vassal_options=vassal_options,
+            ),
         }
     return schema
 
@@ -3191,8 +3442,12 @@ def build_settlement_confirm_dialogue(
         and isinstance(war_instance, Mapping)
         and war_instance.get("ended_turn") is None
     )
-    sc5r_available_clause_types = _available_clause_types_for_review()
-    sc5r_clause_control_schema = _build_clause_control_schema_for_review()
+    sc5r_clause_control_schema = _build_clause_control_schema_for_review(
+        world,
+        war_instance=war_instance,
+        covered_enemy_participants=covered,
+    )
+    sc5r_available_clause_types = sorted(sc5r_clause_control_schema.keys())
     staged_terms_for_edit = copy.deepcopy(preview.get("settlement_terms") or [])
     can_edit_terms = bool(
         str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
@@ -4725,6 +4980,10 @@ def ratify_settlement_confirm(
     )
 
     world.dialogue_manager.pop()
+    drafts = getattr(world, "pending_settlement_drafts", None)
+    if isinstance(drafts, dict):
+        drafts.pop(war_id, None)
+    _discard_scoped_settlement_draft_for_dialogue(world, dialogue)
 
     result_message = (
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
@@ -5152,6 +5411,7 @@ def handle_settlement_dialogue_action(
         drafts = getattr(world, "pending_settlement_drafts", {})
         if war_id in drafts:
             del drafts[war_id]
+        _discard_scoped_settlement_draft_for_dialogue(world, dialogue)
         return {
             "success": True,
             "dialogue_type": "settlement_confirm",
@@ -5580,6 +5840,13 @@ def handle_settlement_dialogue_action(
             world.pending_settlement_drafts = {}
             drafts = world.pending_settlement_drafts
         drafts[war_id] = [dict(t) for t in baseline_terms]
+        save_scoped_settlement_draft(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected_target,
+            covered_enemy_participants=covered,
+            settlement_terms=baseline_terms,
+        )
         world.dialogue_manager.replace(new_dialogue)
         return {
             "success": True,
@@ -5818,6 +6085,13 @@ def handle_settlement_dialogue_action(
             world.pending_settlement_drafts = {}
             drafts = world.pending_settlement_drafts
         drafts[war_id] = [dict(t) for t in preset_terms]
+        save_scoped_settlement_draft(
+            world,
+            war_id=war_id,
+            selected_target_nation=selected_target,
+            covered_enemy_participants=covered,
+            settlement_terms=preset_terms,
+        )
         world.dialogue_manager.replace(new_dialogue)
         return {
             "success": True,
@@ -5862,6 +6136,13 @@ def handle_settlement_dialogue_action(
                 world.pending_settlement_drafts = {}
                 drafts = world.pending_settlement_drafts
             drafts[war_id] = terms
+            save_scoped_settlement_draft(
+                world,
+                war_id=war_id,
+                selected_target_nation=selected_target,
+                covered_enemy_participants=covered,
+                settlement_terms=terms,
+            )
         world.dialogue_manager.pop()
         route = dict(actionability.get("recovery_route") or {})
         return {
@@ -5969,6 +6250,11 @@ def _handle_pair_peace_substitute_action(
             draft_invalidated = True
         except Exception:  # pragma: no cover - defensive
             draft_invalidated = False
+    if selected_target in covered:
+        draft_invalidated = (
+            _discard_scoped_settlement_draft_for_dialogue(world, dialogue)
+            or draft_invalidated
+        )
 
     # Stage the proposal dialogue through the existing classification +
     # template path so the substitute hands off into the standard
@@ -7222,6 +7508,10 @@ def handle_incoming_settlement_offer_action(
         "war_id": war_id,
         "actor_nation": actor,
         "density": "medium",
+        # Accepting an AI-authored offer is not an outgoing player-editor
+        # draft. Keep the staged review ratifiable, but do not advertise
+        # the outgoing `Revise Terms` editor route from SC-5R.
+        "caller_kind": "ai_system",
     }
     if offered_terms:
         stage_kwargs["settlement_terms"] = offered_terms

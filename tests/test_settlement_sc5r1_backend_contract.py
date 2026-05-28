@@ -52,6 +52,7 @@ from backend.game_logic.settlement_preview import (
     compute_settlement_draft_key,
     discard_scoped_settlement_draft,
     handle_settlement_dialogue_action,
+    handle_incoming_settlement_offer_action,
     load_scoped_settlement_draft,
     ratify_settlement_confirm,
     save_scoped_settlement_draft,
@@ -327,6 +328,59 @@ class TestSettlementConfirmEditPayloadContract:
             assert clause_type not in dialogue["available_clause_types"]
             assert clause_type not in dialogue["clause_control_schema"]
 
+    def test_clause_control_schema_rows_match_spec_line_554_shape(self):
+        """The REVIEW payload must give SC-5R-2 real structured controls,
+        not only a list of required keys."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        schema = staged["diplomatic_dialogue"]["clause_control_schema"]
+        assert schema
+        for clause_type, row in schema.items():
+            assert set(row) == {"enabled", "disabled_reason_display", "fields"}
+            assert row["enabled"] is True
+            assert row["disabled_reason_display"] is None
+            assert isinstance(row["fields"], dict), clause_type
+            for field_name, field in row["fields"].items():
+                assert set(field) == {
+                    "control",
+                    "label",
+                    "options",
+                    "min",
+                    "max",
+                    "default",
+                    "direction_metadata",
+                }, (clause_type, field_name)
+                assert field["control"] in {"picker", "number", "toggle", "readonly"}
+                assert isinstance(field["label"], str) and field["label"]
+                assert isinstance(field["options"], list)
+                for option in field["options"]:
+                    assert set(option) == {
+                        "id",
+                        "label",
+                        "disabled",
+                        "disabled_reason_display",
+                    }, (clause_type, field_name, option)
+                assert isinstance(field["direction_metadata"], dict)
+
+        assert schema["gold_indemnity"]["fields"]["from"]["options"]
+        assert schema["gold_indemnity"]["fields"]["amount"]["control"] == "number"
+        assert schema["forced_alliance"]["fields"][
+            "includes_continental_system"
+        ]["control"] == "toggle"
+
     def test_settlement_confirm_publishes_dialogue_mode_review(self):
         """Spec line 546 contract: `dialogue_mode` is `REVIEW` on
         `settlement_confirm`. EDIT mode is owned by SC-5R-2's editor
@@ -348,6 +402,45 @@ class TestSettlementConfirmEditPayloadContract:
             )
         dialogue = staged["diplomatic_dialogue"]
         assert dialogue["dialogue_mode"] == "REVIEW"
+
+    def test_accepting_incoming_ai_offer_does_not_publish_outgoing_editor_route(self):
+        """Accepting an AI-authored offer is not the outgoing player editor
+        path, so it must not set `can_edit_terms=true`."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        offer = {
+            "type": "incoming_settlement_offer",
+            "dialogue_type": "incoming_settlement_offer",
+            "offer_id": "settlement_offer:war_1:1:1",
+            "war_id": "war_1",
+            "proposer_nation": "Austria",
+            "proposer_side": "defenders",
+            "accepting_side": "attackers",
+            "covered_enemy_participants": ["Austria", "Prussia"],
+            "settlement_terms": [
+                {"type": "peace"},
+                {
+                    "type": "gold_indemnity",
+                    "from": "France",
+                    "to": "Austria",
+                    "amount": 100,
+                },
+            ],
+        }
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            result = handle_incoming_settlement_offer_action(
+                world, action="accept_settlement_offer", dialogue=offer,
+            )
+        assert result["success"] is True
+        dialogue = result["diplomatic_dialogue"]
+        assert dialogue["caller_kind"] == "ai_system"
+        assert dialogue["can_edit_terms"] is False
+        assert dialogue["editor_route"] is None
+        assert dialogue["available_clause_types"] == []
+        assert dialogue["clause_control_schema"] == {}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -503,6 +596,147 @@ class TestScopedSettlementDraftPersistence:
             covered_enemy_participants=["Austria", "Prussia"],
         )
         assert loaded == terms
+
+    def test_execute_propose_common_peace_does_not_write_draft_when_staging_fails(self):
+        """Validation passing is not enough to persist a draft; the
+        submitted package must actually stage."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        result = DiplomaticExecutor(None)._execute_propose_common_peace(
+            {
+                "command": {
+                    "target_nation": "Austria",
+                    "war_id": "war_1",
+                    "selected_target_nation": "Prussia",
+                    "covered_enemy_participants": ["Austria"],
+                    "settlement_terms": terms,
+                },
+            },
+            {"world": world},
+        )
+        assert result["success"] is False
+        assert result["error"] == "selected_target_not_covered"
+        assert world.pending_settlement_drafts == {}
+        assert world.pending_settlement_drafts_by_key == {}
+
+    def test_back_out_discards_legacy_and_scoped_draft(self):
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=terms,
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        dialogue = staged["diplomatic_dialogue"]
+        world.pending_settlement_drafts["war_1"] = list(terms)
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="Austria",
+            covered_enemy_participants=["Austria", "Prussia"],
+            settlement_terms=terms,
+        )
+
+        result = handle_settlement_dialogue_action(
+            world, action="back_out_settlement", dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert world.pending_settlement_drafts == {}
+        assert (
+            load_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+            )
+            is None
+        )
+
+    def test_open_war_detail_preserves_legacy_and_scoped_draft(self):
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=terms,
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        dialogue = staged["diplomatic_dialogue"]
+
+        result = handle_settlement_dialogue_action(
+            world, action="open_war_detail", dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert world.pending_settlement_drafts["war_1"] == terms
+        assert (
+            load_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+            )
+            == terms
+        )
+
+    def test_ratification_discards_legacy_and_scoped_draft(self):
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=terms,
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+            dialogue = staged["diplomatic_dialogue"]
+            world.pending_settlement_drafts["war_1"] = list(terms)
+            save_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                settlement_terms=terms,
+            )
+            result = ratify_settlement_confirm(world, dialogue)
+
+        assert result["success"] is True
+        assert "war_1" not in world.pending_settlement_drafts
+        assert (
+            load_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+            )
+            is None
+        )
 
     def test_turn_end_discards_scoped_drafts(self):
         """`advance_turn` clears the scoped store along with the legacy

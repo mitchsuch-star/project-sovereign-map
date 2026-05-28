@@ -2077,34 +2077,6 @@ class DiplomaticExecutor:
                     "validation_detail": validation.get("disabled_reason_display"),
                     "mutated": False,
                 }
-            # SC-1: persist draft for same-turn recovery.
-            world.pending_settlement_drafts[war_id] = [
-                dict(t) for t in settlement_terms
-            ]
-            # SC-5R-1 scoped draft persistence: dual-write to the scoped
-            # store so a same-war re-staging with a different selected
-            # target / covered scope can be restored without clobbering
-            # the legacy `pending_settlement_drafts[war_id]` slot.
-            from backend.game_logic.settlement_preview import (
-                save_scoped_settlement_draft,
-            )
-            scope_selected_target = (
-                cmd.get("selected_target_nation")
-                or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
-                or target_nation
-            )
-            scope_covered = (
-                cmd.get("covered_enemy_participants")
-                or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
-                or []
-            )
-            save_scoped_settlement_draft(
-                world,
-                war_id=war_id,
-                selected_target_nation=scope_selected_target,
-                covered_enemy_participants=scope_covered,
-                settlement_terms=settlement_terms,
-            )
         selected_target = (
             cmd.get("selected_target_nation")
             or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
@@ -2125,6 +2097,34 @@ class DiplomaticExecutor:
             caller_kind="player_editor",
             white_peace=False,
         )
+        if (
+            has_submitted_terms
+            and result.get("success")
+            and result.get("dialogue_type") == "settlement_confirm"
+        ):
+            staged_dialogue = result.get("diplomatic_dialogue") or {}
+            # SC-1: persist draft for same-turn recovery only after the
+            # submitted package has actually staged.
+            world.pending_settlement_drafts[war_id] = [
+                dict(t) for t in settlement_terms
+            ]
+            from backend.game_logic.settlement_preview import (
+                save_scoped_settlement_draft,
+            )
+            save_scoped_settlement_draft(
+                world,
+                war_id=war_id,
+                selected_target_nation=(
+                    staged_dialogue.get("selected_target_nation")
+                    or selected_target
+                ),
+                covered_enemy_participants=(
+                    staged_dialogue.get("covered_enemy_participants")
+                    or covered_enemies
+                    or []
+                ),
+                settlement_terms=settlement_terms,
+            )
         if resolution.get("backfilled"):
             result["war_instance_backfilled"] = True
         result.setdefault("awaiting_diplomatic_response", True)
