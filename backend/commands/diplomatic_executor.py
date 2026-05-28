@@ -2162,6 +2162,17 @@ class DiplomaticExecutor:
             result["war_instance_backfilled"] = True
         if restored_draft_from_scope:
             result["draft_restored_from_scope"] = True
+        if (
+            not has_submitted_terms
+            and result.get("success")
+            and isinstance(result.get("diplomatic_dialogue"), dict)
+            and result["diplomatic_dialogue"].get("can_edit_terms")
+            and result["diplomatic_dialogue"].get("editor_route")
+        ):
+            # Initial Open Settlement / reopen flows should land in EDIT.
+            # Submit for Review still has has_submitted_terms=True and
+            # therefore falls through to the normal REVIEW popup.
+            result["open_editor_on_mount"] = True
         result.setdefault("awaiting_diplomatic_response", True)
         return result
 

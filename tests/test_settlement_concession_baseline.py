@@ -435,6 +435,7 @@ class TestClickTimeRevalidation:
         )
 
         assert result["success"] is True
+        assert result.get("open_editor_on_mount") is True
         assert result["mutated"] is False
         assert world.nation_gold == gold_before
         refreshed = world.pending_diplomatic_dialogue
@@ -477,6 +478,7 @@ class TestClickTimeRevalidation:
         assert "Unknown dialogue action" not in str(result.get("message", ""))
         assert result["success"] is True
         assert result["action"] == "re_author_with_concessions"
+        assert result.get("open_editor_on_mount") is True
         assert result["mutated"] is False
         assert world.nation_gold == gold_before
         refreshed = world.pending_diplomatic_dialogue

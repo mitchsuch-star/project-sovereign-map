@@ -138,9 +138,10 @@ class TestSettlementConfirmEditPayloadContract:
     def test_can_edit_terms_true_iff_player_editor_and_clause_types_available_and_war_active(
         self,
     ):
-        """Spec line 556 contract: `can_edit_terms` is true only when
+        """Spec line 556 + editor layout contract: `can_edit_terms` is true when
         caller_kind=player_editor AND active war_instance AND non-empty
-        settlement_terms AND non-empty available_clause_types[]."""
+        available_clause_types[]. Empty drafts still open EDIT with
+        Submit for Review disabled."""
         world = WorldState()
         _install_common_peace_war(world)
         with patch(
@@ -185,9 +186,9 @@ class TestSettlementConfirmEditPayloadContract:
         assert dialogue["available_clause_types"] == []
         assert dialogue["clause_control_schema"] == {}
 
-    def test_can_edit_terms_false_when_settlement_terms_empty(self):
-        """Empty staged drafts are not edit-capable — the player has
-        nothing to revise yet."""
+    def test_can_edit_terms_true_when_settlement_terms_empty_for_open_editor(self):
+        """Open Settlement starts in EDIT even with an empty package;
+        the editor disables Submit for Review until the player authors a clause."""
         world = WorldState()
         _install_common_peace_war(world)
         with patch(
@@ -204,8 +205,9 @@ class TestSettlementConfirmEditPayloadContract:
                 caller_kind="player_editor",
             )
         dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is False
-        assert dialogue["editor_route"] is None
+        assert dialogue["can_edit_terms"] is True
+        assert dialogue["editor_route"]["surface"] == "settlement_editor"
+        assert dialogue["editor_route"]["staged_settlement_terms"] == []
 
     def test_editor_route_payload_shape_matches_spec_line_548(self):
         """When `can_edit_terms=true`, `editor_route` carries the exact

@@ -3088,12 +3088,14 @@ def build_settlement_confirm_dialogue(
     hard_stops = list(preview["acceptance"].get("hard_stops") or [])
     acceptance_threshold = preview["acceptance"].get("threshold") or preview["acceptance"].get("accept_threshold") or 50
     acceptance_score = preview["acceptance"].get("score") if preview["acceptance"].get("score") is not None else preview["acceptance"].get("total")
-    # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 empty-Ratify gate:
+    # SETTLEMENT_UI_CLEANUP_SPEC v0.32 SC-5R edit contract:
     # editor-staged empty drafts with `white_peace=False` may not mint
-    # Ratify regardless of acceptance verdict. White-peace dialogues
-    # set the flag explicitly so the labeled action can ratify an empty
-    # package. AI/system staging (caller_kind != "player_editor") still
-    # respects acceptance gating only.
+    # Ratify regardless of acceptance verdict. They can still open the
+    # EDIT editor so the player can author the first clause; the Godot
+    # action rail disables Submit for Review until a non-empty package
+    # exists. White-peace dialogues set the flag explicitly so the labeled
+    # action can ratify an empty package. AI/system staging
+    # (caller_kind != "player_editor") still respects acceptance gating only.
     staged_terms_for_gate = list(preview.get("settlement_terms") or [])
     empty_editor_block = (
         caller_kind == "player_editor"
@@ -3431,7 +3433,8 @@ def build_settlement_confirm_dialogue(
             "top_components": [],
             "blocker_display": ratify_blocked_reason,
         }
-    # SC-5R-1: publish the EDIT payload contract per spec line 543-556.
+    # SC-5R-1/2: publish the EDIT payload contract per spec line 543-556
+    # plus the editor-layout empty-draft rule at line 595.
     # `can_edit_terms` is the gate for showing `Revise Terms` on REVIEW;
     # SC-5R-2 will consume `available_clause_types[]` + `clause_control_schema`
     # + `editor_route` to mount the Godot editor surface. Hidden clause
@@ -3452,7 +3455,7 @@ def build_settlement_confirm_dialogue(
     can_edit_terms = bool(
         str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
         and war_active
-        and staged_terms_for_edit
+        and not white_peace
         and sc5r_available_clause_types
     )
     sc5r_draft_key = compute_settlement_draft_key(war_id, resolved_target, covered)
@@ -3584,10 +3587,13 @@ def build_settlement_confirm_dialogue(
             preview.get("forced_alliance_continental_toggle_differential") or []
         ),
         # SC-5R-1 EDIT payload contract per spec §Full Treaty Settlement
-        # Flow line 546-556. `can_edit_terms` is true only when the
-        # staged dialogue is a player-editor draft on an active war with
-        # a non-empty package and at least one live clause type
-        # authorable; `available_clause_types[]` and
+        # Flow line 546-556 plus the editor-layout empty-draft rule.
+        # `can_edit_terms` is true when the staged dialogue is a
+        # player-editor draft on an active war with at least one live
+        # clause type authorable; empty packages open EDIT with Submit
+        # disabled instead of blocking editor mount. White peace remains
+        # a REVIEW-only empty-package ratification path.
+        # `available_clause_types[]` and
         # `clause_control_schema` are absent (empty) when not editable
         # so hidden clause types cannot leak as disabled labels;
         # `editor_route` is None when not editable so SC-5R-2 cannot
@@ -5196,7 +5202,7 @@ def _stage_replacement_settlement_terms(
         settlement_terms=replacement_terms,
     )
     world.dialogue_manager.replace(new_dialogue)
-    return {
+    result = {
         "success": True,
         "dialogue_type": "settlement_confirm",
         "action": action,
@@ -5208,6 +5214,13 @@ def _stage_replacement_settlement_terms(
         "message": message,
         "suppress_proposal_result_popup": True,
     }
+    if (
+        action == "apply_concession_baseline_replacement"
+        and new_dialogue.get("can_edit_terms")
+        and new_dialogue.get("editor_route")
+    ):
+        result["open_editor_on_mount"] = True
+    return result
 
 
 def _restore_scope_replace_current_dialogue(
@@ -5848,7 +5861,7 @@ def handle_settlement_dialogue_action(
             settlement_terms=baseline_terms,
         )
         world.dialogue_manager.replace(new_dialogue)
-        return {
+        result = {
             "success": True,
             "dialogue_type": "settlement_confirm",
             "action": "re_author_with_concessions",
@@ -5861,6 +5874,9 @@ def handle_settlement_dialogue_action(
             "message": "Talleyrand's concession baseline has been drafted for review.",
             "suppress_proposal_result_popup": True,
         }
+        if new_dialogue.get("can_edit_terms") and new_dialogue.get("editor_route"):
+            result["open_editor_on_mount"] = True
+        return result
     if action == "author_recurring_gold_terms":
         selected_target = str(dialogue.get("selected_target_nation") or "")
         current_terms = [
@@ -7376,6 +7392,16 @@ def handle_incoming_settlement_offer_action(
         result["dialogue_type"] = "settlement_confirm"
         result["action"] = "request_settlement_revision"
         result["offer_id"] = offer_id
+        if (
+            result.get("success")
+            and isinstance(result.get("diplomatic_dialogue"), dict)
+            and result["diplomatic_dialogue"].get("can_edit_terms")
+            and result["diplomatic_dialogue"].get("editor_route")
+        ):
+            # Request Revision is an explicit counter-authoring choice;
+            # mount EDIT immediately instead of making the player click
+            # Revise Terms on an intermediate REVIEW popup.
+            result["open_editor_on_mount"] = True
         # Echo the originating offer terms so audits / observers can
         # confirm the counter editor was seeded from the exact offered
         # package. The staged draft itself can drift as the player

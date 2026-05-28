@@ -27,6 +27,7 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/main.gd",
 	"res://scripts/diplomacy_wizard.gd",
 	"res://scripts/proposal_confirm_popup.gd",
+	"res://scripts/settlement_editor_popup.gd",
 	"res://scripts/war_detail_popup.gd",
 	"res://scripts/war_status_panel.gd",
 	"res://scripts/diplomatic_ledger.gd",

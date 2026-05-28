@@ -12,6 +12,7 @@ extends CanvasLayer
 
 signal submit_requested(payload: Dictionary)
 signal back_out_requested(payload: Dictionary)
+signal concession_baseline_requested(payload: Dictionary)
 
 const COLOR_GOLD = "#d9c08c"
 const COLOR_DIMMED = "#808080"
@@ -29,6 +30,7 @@ const COLOR_GREEN = "#80c080"
 @onready var confirm_clause_button: Button = $PanelContainer/VBoxContainer/ClauseSection/ClauseEditorPanel/ClauseEditorActions/ConfirmClauseButton
 @onready var cancel_clause_button: Button = $PanelContainer/VBoxContainer/ClauseSection/ClauseEditorPanel/ClauseEditorActions/CancelClauseButton
 @onready var status_label: RichTextLabel = $PanelContainer/VBoxContainer/StatusLabel
+@onready var action_rail: HBoxContainer = $PanelContainer/VBoxContainer/ActionRail
 @onready var back_out_button: Button = $PanelContainer/VBoxContainer/ActionRail/BackOutButton
 @onready var submit_button: Button = $PanelContainer/VBoxContainer/ActionRail/SubmitForReviewButton
 
@@ -41,21 +43,38 @@ var clause_control_schema: Dictionary = {}
 var available_clause_types: Array = []
 var pending_clause_type: String = ""
 var pending_clause_field_controls: Dictionary = {}
+var concession_baseline_button: Button = null
+var inline_error_text: String = ""
+var baseline_replace_pending: bool = false
 
 func _ready():
 	hide()
+	concession_baseline_button = Button.new()
+	concession_baseline_button.text = "Generate concession baseline (Talleyrand)"
+	concession_baseline_button.custom_minimum_size = Vector2(280, 40)
+	concession_baseline_button.visible = false
+	concession_baseline_button.pressed.connect(_on_apply_concession_baseline_pressed)
+	action_rail.add_child(concession_baseline_button)
+	action_rail.move_child(concession_baseline_button, 1)
 	add_clause_button.pressed.connect(_on_add_clause_pressed)
 	confirm_clause_button.pressed.connect(_on_confirm_clause_pressed)
 	cancel_clause_button.pressed.connect(_on_cancel_clause_pressed)
 	submit_button.pressed.connect(_on_submit_pressed)
 	back_out_button.pressed.connect(_on_back_out_pressed)
 
-func show_editor(data: Dictionary):
+func show_editor(data: Dictionary) -> bool:
 	"""Mount the editor with a staged settlement_confirm payload that
 	carries `can_edit_terms=true`, `editor_route`, `available_clause_types`,
 	and `clause_control_schema`."""
+	var editor_route_data = data.get("editor_route", null)
+	if not bool(data.get("can_edit_terms", false)):
+		return false
+	if not (editor_route_data is Dictionary) or editor_route_data.size() == 0:
+		return false
 	current_data = data.duplicate(true)
-	editor_route = data.get("editor_route", {}) if data.get("editor_route") is Dictionary else {}
+	inline_error_text = str(data.get("editor_inline_error", ""))
+	baseline_replace_pending = false
+	editor_route = editor_route_data.duplicate(true)
 	# Seed terms from editor_route.staged_settlement_terms if present;
 	# otherwise from the top-level settlement_terms.
 	if editor_route.has("staged_settlement_terms"):
@@ -112,8 +131,10 @@ func show_editor(data: Dictionary):
 	_render_covered_enemies()
 	_render_clause_list()
 	_populate_add_clause_selector()
+	_render_concession_baseline_button()
 	_render_status()
 	show()
+	return true
 
 func _render_header():
 	var war_label = str(current_data.get("war_label", current_data.get("war_id", "Settlement")))
@@ -230,6 +251,8 @@ func _on_remove_clause_pressed(index: int):
 	if index < 0 or index >= settlement_terms.size():
 		return
 	settlement_terms.remove_at(index)
+	baseline_replace_pending = false
+	_render_concession_baseline_button()
 	_render_clause_list()
 	_render_status()
 
@@ -247,6 +270,32 @@ func _populate_add_clause_selector():
 		add_clause_selector.add_item(label)
 		var idx = add_clause_selector.item_count - 1
 		add_clause_selector.set_item_metadata(idx, str(ttype))
+
+func _baseline_terms() -> Array:
+	var baseline = current_data.get("concession_baseline", null)
+	var terms: Array = []
+	if baseline is Dictionary:
+		var raw_terms = baseline.get("terms", [])
+		if raw_terms is Array:
+			for term in raw_terms:
+				if term is Dictionary:
+					terms.append(term.duplicate(true))
+	return terms
+
+func _has_material_terms(terms: Array) -> bool:
+	for term in terms:
+		if term is Dictionary and str(term.get("type", "")) != "peace":
+			return true
+	return false
+
+func _render_concession_baseline_button():
+	if concession_baseline_button == null:
+		return
+	var terms = _baseline_terms()
+	var visible = bool(current_data.get("concession_baseline_visible", false)) and _has_material_terms(terms)
+	concession_baseline_button.visible = visible
+	concession_baseline_button.disabled = not visible
+	concession_baseline_button.text = "Confirm baseline replacement" if baseline_replace_pending else "Generate concession baseline (Talleyrand)"
 
 func _humanize_clause_type(ttype: String) -> String:
 	match ttype:
@@ -396,12 +445,43 @@ func _on_confirm_clause_pressed():
 			", ".join(PackedStringArray(missing)),
 		])
 		return
+	baseline_replace_pending = false
+	_render_concession_baseline_button()
 	settlement_terms.append(clause)
 	pending_clause_type = ""
 	pending_clause_field_controls = {}
 	clause_editor_panel.visible = false
 	_render_clause_list()
 	_render_status()
+
+func _on_apply_concession_baseline_pressed():
+	var terms = _baseline_terms()
+	if terms.is_empty() or not _has_material_terms(terms):
+		inline_error_text = "No concession baseline is available for this draft."
+		_render_status()
+		return
+	if not settlement_terms.is_empty() and not baseline_replace_pending:
+		baseline_replace_pending = true
+		inline_error_text = "This will replace the current draft. Click Confirm baseline replacement to continue."
+		_render_concession_baseline_button()
+		_render_status()
+		return
+	var payload = _baseline_request_payload()
+	inline_error_text = "Refreshing Talleyrand's concession baseline..."
+	_render_status()
+	hide()
+	concession_baseline_requested.emit(payload)
+
+func _baseline_request_payload() -> Dictionary:
+	return {
+		"action": "re_author_with_concessions",
+		"war_id": str(current_data.get("war_id", editor_route.get("war_id", ""))),
+		"selected_target_nation": str(current_data.get("selected_target_nation", editor_route.get("selected_target_nation", ""))),
+		"covered_enemy_participants": covered_enemies.duplicate(),
+		"settlement_terms": settlement_terms.duplicate(true),
+		"draft_key": str(editor_route.get("draft_key", current_data.get("draft_key", ""))),
+		"caller_kind": "player_editor",
+	}
 
 func _on_cancel_clause_pressed():
 	pending_clause_type = ""
@@ -412,6 +492,8 @@ func _on_cancel_clause_pressed():
 func _render_status():
 	var lines: Array = []
 	var submit_enabled = true
+	if inline_error_text != "":
+		lines.append("[color=%s]%s[/color]" % [COLOR_RED, inline_error_text])
 	if settlement_terms.is_empty():
 		lines.append("[color=%s]Author at least one clause to enable Submit for Review.[/color]" % COLOR_DIMMED)
 		submit_enabled = false
@@ -431,6 +513,7 @@ func _set_status(text: String):
 	status_label.append_text(text)
 
 func _on_submit_pressed():
+	inline_error_text = ""
 	var payload = {
 		"action": "propose_common_peace",
 		"war_id": str(current_data.get("war_id", editor_route.get("war_id", ""))),
