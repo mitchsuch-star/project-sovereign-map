@@ -5880,11 +5880,6 @@ def build_incoming_settlement_offer_popup(
         "proposer_voice": proposer_voice or "",
         "options": options,
         "available_action_ids": [opt["action"] for opt in options],
-        # SC-30 hidden controls: Wait for Enemy Offer / Ask for Terms
-        # only appear once their lifecycle ships. Explicit absence is
-        # part of the contract.
-        "wait_for_enemy_offer_visible": False,
-        "ask_for_terms_visible": False,
     }
 
 

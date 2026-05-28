@@ -569,13 +569,6 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     # without a code rewrite. The display string is only ever reached
     # through a stale-save defensive path or that emergency disable.
     "incoming_offer_deferred": "Incoming settlement offers are not available in this build.",
-    # SC-30 / Slice G1 commit 2 hidden controls. `Wait for Enemy Offer`
-    # only appears once an enemy-offer waiting lifecycle ships; until
-    # then the deferred display copy explains the absence if any
-    # stale-save defensive path returns it. The existing
-    # `request_terms_ineligible` row above already covers
-    # `Ask for terms`.
-    "wait_for_enemy_offer_unavailable": "Waiting for an enemy offer is not available in this build.",
     # SC-26 collision codes
     "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",

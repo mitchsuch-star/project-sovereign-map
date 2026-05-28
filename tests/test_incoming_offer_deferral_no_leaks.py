@@ -34,7 +34,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.display_names import settlement_disabled_reason_display
+from backend.display_names import (
+    SETTLEMENT_DISABLED_REASON_DISPLAY,
+    settlement_disabled_reason_display,
+)
 from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
 from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
 from backend.game_logic.settlement_preview import (
@@ -89,6 +92,32 @@ def _seeded_world(turn: int = 5) -> WorldState:
 def _produce_and_promote(world: WorldState) -> list[dict]:
     process_settlement_offer_phase(world)
     return promote_pending_settlement_offers(world)
+
+
+def _minimal_settlement_preview_response(war: dict) -> dict:
+    return {
+        "success": True,
+        "war_id": "war_1",
+        "settlement_preview": {
+            "proposer_side": "attackers",
+            "accepting_side": "defenders",
+            "war_instance": war,
+            "war_label": "France-Austria War",
+            "settlement_terms": [{"type": "peace"}],
+            "covered_enemy_participants": ["Austria"],
+            "acceptance": {
+                "score": 0,
+                "threshold": 50,
+                "verdict": "blocked",
+                "band": "blocked",
+                "hard_stops": [],
+                "top_components": [
+                    {"component_display": "Acceptance pressure"}
+                ],
+            },
+            "review_sections": {"sections": {"acceptance": {}}},
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -271,9 +300,9 @@ def test_pending_envoy_endpoint_returns_incoming_offer_popup_payload(fastapi_cli
     assert "accept_settlement_offer" in action_ids
     assert "request_settlement_revision" in action_ids
     assert "reject_settlement_offer" in action_ids
-    # SC-30 hidden controls remain hidden.
-    assert popup["wait_for_enemy_offer_visible"] is False
-    assert popup["ask_for_terms_visible"] is False
+    # G2-Slice-G2d removes the orphan hidden-control flags entirely.
+    assert "wait_for_enemy_offer_visible" not in popup
+    assert "ask_for_terms_visible" not in popup
 
 
 def test_mailbox_activate_returns_incoming_offer_popup_payload(fastapi_client):
@@ -421,11 +450,9 @@ def test_foreign_court_blocked_settlement_routes_observer_voice_family():
 
 def test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path_exist(fastapi_client):
     """SC-30 spec required test: the `Wait for Enemy Offer` control is
-    not present on any settlement surface in this commit because the
-    request-terms lifecycle has not landed. SC-5 reversal commit 2
-    must surface an `wait_for_enemy_offer_visible=False` flag on the
-    incoming-offer popup so the Godot popup never invents the
-    control."""
+    not present on any settlement surface. G2-Slice-G2d removes the
+    orphan `_visible=False` payload flag instead of carrying a dead
+    structural promise."""
     client, backend_main = fastapi_client
     world = backend_main.game_state["world"]
     world.current_turn = 5
@@ -433,7 +460,7 @@ def test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path
     _produce_and_promote(world)
 
     popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
-    assert popup["wait_for_enemy_offer_visible"] is False
+    assert "wait_for_enemy_offer_visible" not in popup
     # No CTA matches the wait-for-offer label.
     labels = [str(opt.get("label", "")) for opt in popup.get("options", [])]
     for label in labels:
@@ -442,8 +469,8 @@ def test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path
 
 def test_ask_for_terms_visible_only_when_request_terms_state_can_actually_advance(fastapi_client):
     """SC-30 spec required test: `Ask for terms` cannot ship as a
-    click-only polite refusal. With the request-terms lifecycle still
-    deferred, the popup explicitly hides the control."""
+    click-only polite refusal. G2-Slice-G2d removes the orphan
+    `_visible=False` payload flag while keeping the control absent."""
     client, backend_main = fastapi_client
     world = backend_main.game_state["world"]
     world.current_turn = 5
@@ -451,10 +478,60 @@ def test_ask_for_terms_visible_only_when_request_terms_state_can_actually_advanc
     _produce_and_promote(world)
 
     popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
-    assert popup["ask_for_terms_visible"] is False
+    assert "ask_for_terms_visible" not in popup
     labels = [str(opt.get("label", "")) for opt in popup.get("options", [])]
     for label in labels:
         assert "ask for terms" not in label.lower()
+
+
+def test_wait_for_enemy_offer_visible_flag_removed_from_payload_v032(fastapi_client):
+    """G2-Slice-G2d D2: incoming-offer and settlement-confirm payloads
+    do not publish the retired wait-for-enemy-offer visibility flag."""
+    client, backend_main = fastapi_client
+    world = backend_main.game_state["world"]
+    world.current_turn = 5
+    war = _install_multi_party_war(world)
+    _produce_and_promote(world)
+
+    popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
+    assert "wait_for_enemy_offer_visible" not in popup
+
+    preview_response = _minimal_settlement_preview_response(war)
+    dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview_response,
+        selected_target_nation="Austria",
+        caller_kind="player_editor",
+    )
+    assert "wait_for_enemy_offer_visible" not in dialogue
+
+
+def test_ask_for_terms_visible_flag_removed_from_payload_v032(fastapi_client):
+    """G2-Slice-G2d D2: incoming-offer and settlement-confirm payloads
+    do not publish the retired ask-for-terms visibility flag."""
+    client, backend_main = fastapi_client
+    world = backend_main.game_state["world"]
+    world.current_turn = 5
+    war = _install_multi_party_war(world)
+    _produce_and_promote(world)
+
+    popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
+    assert "ask_for_terms_visible" not in popup
+
+    preview_response = _minimal_settlement_preview_response(war)
+    dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview_response,
+        selected_target_nation="Austria",
+        caller_kind="player_editor",
+    )
+    assert "ask_for_terms_visible" not in dialogue
+
+
+def test_wait_for_enemy_offer_unavailable_display_string_removed():
+    """G2-Slice-G2d D2: the retired wait-for-enemy-offer defensive
+    display row is removed with the orphan payload flags."""
+    assert "wait_for_enemy_offer_unavailable" not in SETTLEMENT_DISABLED_REASON_DISPLAY
 
 
 def test_ask_for_terms_click_produces_observable_state_change_not_just_copy(fastapi_client):
