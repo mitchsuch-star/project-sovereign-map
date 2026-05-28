@@ -2049,7 +2049,40 @@ class DiplomaticExecutor:
         from backend.game_logic.settlement_preview import (
             stage_settlement_confirm,
             validate_settlement_terms,
+            load_scoped_settlement_draft,
         )
+        # SC-5R-2 draft round-trip: when the caller opens Settlement without
+        # submitting fresh terms (e.g., from War Detail or the diplomacy
+        # wizard after a Back Out), the backend restores any scoped draft
+        # the player previously authored for the same (war_id,
+        # selected_target_nation, covered_enemy_participants) key. The
+        # editor then mounts with the restored clauses already populated.
+        # Same-turn only: end_turn cleanup clears `pending_settlement_drafts_by_key`.
+        restored_draft_from_scope = False
+        if not has_submitted_terms:
+            scoped_selected_target = (
+                cmd.get("selected_target_nation")
+                or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
+                or target_nation
+            )
+            scoped_covered = (
+                cmd.get("covered_enemy_participants")
+                or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
+                or []
+            )
+            try:
+                restored = load_scoped_settlement_draft(
+                    world,
+                    war_id=war_id,
+                    selected_target_nation=scoped_selected_target,
+                    covered_enemy_participants=scoped_covered,
+                )
+            except Exception:
+                restored = None
+            if restored:
+                settlement_terms = [dict(t) for t in restored if isinstance(t, dict)]
+                if settlement_terms:
+                    restored_draft_from_scope = True
         # SC-1 §15: revalidate authored terms before staging.
         if has_submitted_terms:
             war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
@@ -2127,6 +2160,8 @@ class DiplomaticExecutor:
             )
         if resolution.get("backfilled"):
             result["war_instance_backfilled"] = True
+        if restored_draft_from_scope:
+            result["draft_restored_from_scope"] = True
         result.setdefault("awaiting_diplomatic_response", True)
         return result
 

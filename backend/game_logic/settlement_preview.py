@@ -7070,10 +7070,20 @@ def build_incoming_settlement_offer_popup(
             continue
         terms_summary.append(_term_display(term))
 
+    # SC-5R-2: action labels must match behavior. `accept_settlement_offer`
+    # stages a fresh `settlement_confirm` review (not an immediate
+    # ratification); the player still has to ratify on the next popup.
+    # Calling the button "Accept Settlement" with description "Ratify the
+    # offered package" overclaimed the action. The label / description are
+    # rewritten to read as "open this offer for review", which is what the
+    # backend handler actually does.
     options = [
         {
-            "label": "Accept Settlement",
-            "description": "Ratify the offered package.",
+            "label": "Review Settlement Offer",
+            "description": (
+                "Open the offered terms for ratification review. "
+                "Ratification still requires a final confirm."
+            ),
             "action": "accept_settlement_offer",
             "available": True,
         },
@@ -7086,7 +7096,7 @@ def build_incoming_settlement_offer_popup(
             "available": True,
         },
         {
-            "label": "Reject Settlement",
+            "label": "Reject Offer",
             "description": "Decline the offer without further negotiation.",
             "action": "reject_settlement_offer",
             "available": True,

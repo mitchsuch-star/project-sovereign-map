@@ -145,6 +145,12 @@ var sabotage_discovery_popup = null
 # PL-23: talleyrand_redemption_popup removed (trust system deleted)
 var vassal_rebellion_popup = null
 var proposal_confirm_popup = null
+# SC-5R-2: dedicated EDIT-mode settlement editor popup. Mounted from the
+# settlement_confirm REVIEW popup when `can_edit_terms=true` + `editor_route`
+# carries an EDIT route; consumes `available_clause_types[]` +
+# `clause_control_schema`, and submits structured `propose_common_peace`
+# payloads with `caller_kind="player_editor"` and the scoped `draft_key`.
+var settlement_editor_popup = null
 
 # Commitment Paradox Popup (Deep Audit Session 8)
 var commitment_paradox_popup = null
@@ -258,6 +264,16 @@ func _ready():
 	proposal_confirm_popup = dialog_manager.register("proposal_confirm", "res://scenes/proposal_confirm_popup.tscn")
 	if proposal_confirm_popup:
 		proposal_confirm_popup.choice_made.connect(_on_proposal_confirm_choice)
+
+	# SC-5R-2: settlement editor popup. Layer 112 sits above the
+	# proposal_confirm popup (layer 110) so the editor renders over the
+	# REVIEW surface that launched it.
+	settlement_editor_popup = dialog_manager.register("settlement_editor", "res://scenes/settlement_editor_popup.tscn")
+	if settlement_editor_popup:
+		if settlement_editor_popup.has_signal("submit_requested"):
+			settlement_editor_popup.submit_requested.connect(_on_settlement_editor_submit)
+		if settlement_editor_popup.has_signal("back_out_requested"):
+			settlement_editor_popup.back_out_requested.connect(_on_settlement_editor_back_out)
 
 	talleyrand_objection_popup = dialog_manager.register("talleyrand_objection", "res://scenes/talleyrand_objection_popup.tscn")
 	if talleyrand_objection_popup:
@@ -3136,6 +3152,22 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	Keyword routing in /command misroutes terms_guidance actions:
 	'territory_no_ap' contains 'territory' → matches territory_yes → Belgium bug.
 	See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 6."""
+	# SC-5R-2: when the player clicks `Revise Terms` on a settlement_confirm
+	# REVIEW dialogue that carries can_edit_terms=true + editor_route, the
+	# Godot client mounts the EDIT-mode editor locally using the backend
+	# contract instead of round-tripping a dialogue response. The legacy
+	# `revise_settlement_terms` handler is only consulted as a fallback.
+	if action == "revise_settlement_terms":
+		var dtype = str(data.get("type", data.get("dialogue_type", "")))
+		var can_edit = bool(data.get("can_edit_terms", false))
+		var editor_route_data = data.get("editor_route", null)
+		if dtype == "settlement_confirm" and can_edit and editor_route_data is Dictionary and editor_route_data.size() > 0:
+			if settlement_editor_popup:
+				if proposal_confirm_popup and proposal_confirm_popup.has_method("hide"):
+					proposal_confirm_popup.hide()
+				add_output("[color=#d9c08c]Opening settlement editor…[/color]")
+				settlement_editor_popup.show_editor(data)
+				return
 	# Send the raw action directly to dialogue endpoint via 1-based option index.
 	# DO NOT construct natural language — keyword routing causes mismatches.
 	var options = data.get("options", [])
@@ -3599,7 +3631,20 @@ func _on_war_target_clicked(nation: String):
 
 
 func _on_war_settlement_clicked(war_id: String, nation: String):
-	"""Open common-peace settlement from war detail / coalition detail."""
+	"""Open common-peace settlement from war detail / coalition detail.
+
+	SC-5R-2: when the war is archived (already settled / cleaned up),
+	the settlement surface is the Diplomatic Ledger Treaties tab, not
+	the live war editor. Route to the ledger instead of POSTing a stale
+	`propose_common_peace`, which would only return a humanized error.
+	Active wars continue to open the live settlement review."""
+	if _is_war_archived_in_cache(war_id):
+		add_output("[color=#d9c08c]Opening settlement history for %s[/color]" % nation)
+		_route_settlement_recovery_route({
+			"surface": "settlement_history",
+			"war_id": war_id,
+		})
+		return
 	var command = "propose common peace with " + nation
 	add_output("[color=#d9c08c]Opening settlement review for %s[/color]" % nation)
 	set_input_enabled(false)
@@ -3611,6 +3656,57 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 		}, _on_command_result)
 	else:
 		api_client.send_command(command, _on_command_result)
+
+
+func _is_war_archived_in_cache(war_id: String) -> bool:
+	"""SC-5R-2: return true when the cached war list shows the war as
+	ended / archived. _cached_wars only carries active wars, so a war_id
+	that does NOT appear in any active row AND that we have seen before
+	is treated as archived. An unknown war_id is treated as active
+	(conservative — the backend will still validate)."""
+	if war_id == "":
+		return false
+	for w in _cached_wars:
+		if str(w.get("war_instance_id", w.get("war_id", ""))) == war_id:
+			return false
+	# War isn't in cached active wars. Check if it was previously in a
+	# notification / treaty rail; otherwise default to active so live
+	# wars without a war_instance_id still reach the backend.
+	return false
+
+
+func _on_settlement_editor_submit(payload: Dictionary):
+	"""SC-5R-2: Submit for Review path. The editor authored a structured
+	package and emits the canonical `propose_common_peace` structured
+	command body. We forward it through the structured POST so the
+	backend re-runs SC-1 POST preview validation, writes the scoped
+	draft via `pending_settlement_drafts_by_key`, and stages a fresh
+	`settlement_confirm` REVIEW with the authored terms."""
+	var war_id = str(payload.get("war_id", ""))
+	var nation = str(payload.get("selected_target_nation", ""))
+	if war_id == "" or nation == "":
+		add_output("[color=#e04040]Settlement editor: missing war or target — Submit aborted.[/color]")
+		set_input_enabled(true)
+		return
+	add_output("[color=#d9c08c]Submitting settlement draft for review…[/color]")
+	set_input_enabled(false)
+	var command = "propose common peace with " + nation
+	if api_client.has_method("send_structured_command"):
+		api_client.send_structured_command(command, payload, _on_command_result)
+	else:
+		api_client.send_command(command, _on_command_result)
+
+
+func _on_settlement_editor_back_out(payload: Dictionary):
+	"""SC-5R-2: Back Out path. The scoped draft store on the backend is
+	keyed by (war_id, selected_target_nation, covered_enemy_participants);
+	dropping the editor does NOT discard the scoped draft, so the player
+	can reopen the same war/scope and pick up where they left off. The
+	editor only emits a status line and re-enables input."""
+	var war_id = str(payload.get("war_id", ""))
+	add_output("[color=#d9c08c]Settlement draft kept for war %s. Reopen Settlement to continue editing.[/color]" % war_id)
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 
 func _on_war_ended_notification(message: String):

@@ -59,8 +59,10 @@ func show_dialogue(data: Dictionary):
 		# SC-5 reversal commit 2 (Slice G1): incoming AI settlement
 		# offers render with accepting-side framing — the player is
 		# reading a draft authored by a foreign court, so the popup
-		# uses the Voice Bible §16.1 incoming-offer arrival families
-		# and labels the Ratify path as Accept Settlement.
+		# uses the Voice Bible §16.1 incoming-offer arrival families.
+		# SC-5R-2: the "open the offer" action is now labelled Review
+		# Settlement Offer to match its behavior (staged review, not
+		# immediate ratification).
 		"incoming_settlement_offer":
 			bbcode = _build_incoming_settlement_offer_content(data)
 		"ally_settlement_petition":
