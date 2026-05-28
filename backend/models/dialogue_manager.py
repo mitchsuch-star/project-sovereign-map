@@ -465,9 +465,10 @@ class DialogueManager:
         if not self._current:
             return None
 
-        # Current-turn offers are lapsed explicitly, not by generic stale clearing
+        # Current-turn offers are lapsed explicitly, not by generic stale clearing.
+        # Persistent mailbox items remain until the player resolves them.
         dtype = self._current.get("type", "")
-        if dtype in self.CURRENT_TURN_OFFER_TYPES:
+        if dtype in self.SOFT_STOP_MAILBOX_TYPES:
             return None
 
         turn_created = self._current.get("turn_created", 0)

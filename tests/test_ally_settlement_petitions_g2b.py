@@ -15,6 +15,7 @@ from backend.game_logic.settlement_preview import (
     build_ally_settlement_petition_popup,
     build_settlement_preview,
     handle_ally_settlement_petition_action,
+    handle_incoming_settlement_offer_action,
     queue_ally_settlement_petitions_for_player_action,
     stage_settlement_confirm,
 )
@@ -324,6 +325,38 @@ def test_ally_petition_warn_against_sellout_renders_named_ally_voice_not_generic
     ).read_text(encoding="utf-8")
     assert '"ally_settlement_petition":' in godot_popup
     assert "_build_ally_settlement_petition_content" in godot_popup
+
+
+def test_ally_petition_warn_against_sellout_fires_on_rejected_incoming_offer():
+    world = _seed_warn_sellout_world()
+    offer = {
+        "type": "incoming_settlement_offer",
+        "dialogue_type": "incoming_settlement_offer",
+        "offer_id": "settlement_offer:war_1:5:1",
+        "war_id": "war_1",
+        "proposer_nation": "Austria",
+        "covered_enemy_participants": ["Austria"],
+        "settlement_terms": _sellout_terms(),
+        "turn_created": world.current_turn,
+        "blocking": False,
+    }
+    world.dialogue_manager.push(dict(offer))
+
+    result = handle_incoming_settlement_offer_action(
+        world,
+        action="reject_settlement_offer",
+        dialogue=offer,
+    )
+
+    assert result["success"] is True
+    petitions = _ally_petitions(world)
+    assert len(petitions) == 1
+    assert petitions[0]["petition_type"] == "warn_against_sellout"
+    assert petitions[0]["trigger_action"] == "reject_settlement_offer"
+    assert (
+        result["ally_settlement_petitions"][0]["petition_key"]
+        == petitions[0]["petition_key"]
+    )
 
 
 def test_ally_petition_request_consultation_removed_from_player_facing_scope():

@@ -422,6 +422,17 @@ class TestDialogueManagerClearStale:
         assert result is None
         assert dm.peek() is not None
 
+    def test_keeps_persistent_mailbox_items_when_old(self):
+        for dialogue_type in ("incoming_settlement_offer", "ally_settlement_petition"):
+            dm = DialogueManager()
+            dm.push({"type": dialogue_type, "turn_created": 1, "blocking": False})
+
+            result = dm.clear_stale(current_turn=5)
+
+            assert result is None
+            assert dm.peek()["type"] == dialogue_type
+            assert dm.get_mailbox_count() == 1
+
     def test_clears_blocking_after_timeout(self):
         dm = DialogueManager()
         dm.push(self._d(turn=1, blocking=True))

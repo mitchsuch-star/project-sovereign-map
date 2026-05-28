@@ -82,6 +82,7 @@ ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES = frozenset({
 ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS = frozenset({
     "open_settlement",
     "stage_settlement",
+    "reject_settlement_offer",
 })
 ALLY_SETTLEMENT_PETITION_ACK_ACTION = "acknowledge_ally_settlement_petition"
 
@@ -6238,7 +6239,7 @@ def queue_ally_settlement_petitions_for_player_action(
             trigger_action=trigger_action,
         )
         return [petition] if petition is not None else []
-    if trigger_action == "stage_settlement":
+    if trigger_action in {"stage_settlement", "reject_settlement_offer"}:
         context = _find_warn_sellout_petition_context(
             world,
             war_id=str(war_id or ""),
@@ -6581,15 +6582,31 @@ def handle_incoming_settlement_offer_action(
     actor = getattr(world, "player_nation", "France")
 
     if action == "reject_settlement_offer":
+        offered_terms = [
+            dict(term)
+            for term in (dialogue.get("settlement_terms") or [])
+            if isinstance(term, Mapping)
+        ]
+        covered_enemies = list(dialogue.get("covered_enemy_participants") or [])
         _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
         if _is_offer_active_dialogue(world, dialogue):
             world.dialogue_manager.pop()
+        ally_petitions = queue_ally_settlement_petitions_for_player_action(
+            world,
+            trigger_action="reject_settlement_offer",
+            war_id=war_id,
+            covered_enemy_participants=covered_enemies,
+            settlement_terms=offered_terms,
+        )
         return {
             "success": True,
             "dialogue_type": "incoming_settlement_offer",
             "action": "reject_settlement_offer",
             "war_id": war_id,
             "offer_id": offer_id,
+            "ally_settlement_petitions": [
+                copy.deepcopy(petition) for petition in ally_petitions
+            ],
             "mutated": False,
             "message": "Settlement offer rejected.",
             "suppress_proposal_result_popup": True,
