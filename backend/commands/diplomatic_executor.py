@@ -2657,6 +2657,25 @@ class DiplomaticExecutor:
         dialogue = world.pending_diplomatic_dialogue
         options = dialogue.get("options", [])
 
+        # SC-5R-2 follow-up: the settlement editor's Back Out sends a safe
+        # "suspend" close that pops the staged settlement_confirm hard-stop
+        # while preserving the scoped draft. It is intentionally NOT part of
+        # the REVIEW options[] surface (back_out_settlement owns the discard
+        # path there), so resolve it directly against the staged dialogue
+        # rather than through option/keyword matching.
+        if (
+            isinstance(choice, str)
+            and choice.strip() == "suspend_settlement_editor"
+            and str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+            == "settlement_confirm"
+        ):
+            return self._process_dialogue_choice(
+                "suspend_settlement_editor",
+                {"action": "suspend_settlement_editor"},
+                dialogue,
+                world,
+            )
+
         # Resolve choice to option
         selected = None
         if isinstance(choice, int):
@@ -2797,6 +2816,9 @@ class DiplomaticExecutor:
             "confirm_settlement",
             "revise_settlement_terms",
             "back_out_settlement",
+            # SC-5R-2 follow-up: non-destructive editor close that pops the
+            # settlement_confirm hard-stop while preserving the scoped draft.
+            "suspend_settlement_editor",
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
             "re_author_with_concessions",

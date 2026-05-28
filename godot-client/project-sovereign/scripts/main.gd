@@ -36,6 +36,10 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
 	"revise_settlement_terms",
 	"back_out_settlement",
+	# SC-5R-2 follow-up: the editor's non-destructive Back Out. Pops the
+	# staged settlement_confirm hard-stop while preserving the scoped draft
+	# (back_out_settlement discards; this suspend close does not).
+	"suspend_settlement_editor",
 	"open_war_detail",
 	"re_author_with_concessions",
 	"apply_concession_baseline_replacement",
@@ -3877,15 +3881,17 @@ func _on_settlement_editor_concession_baseline_requested(payload: Dictionary):
 
 
 func _on_settlement_editor_back_out(payload: Dictionary):
-	"""SC-5R-2: Back Out path. The scoped draft store on the backend is
-	keyed by (war_id, selected_target_nation, covered_enemy_participants);
-	dropping the editor does NOT discard the scoped draft, so the player
-	can reopen the same war/scope and pick up where they left off. The
-	editor only emits a status line and re-enables input."""
+	"""SC-5R-2: Back Out path. Closes the editor and pops the staged
+	settlement_confirm hard-stop on the backend via the non-destructive
+	`suspend_settlement_editor` dialogue action, so subsequent commands
+	are not held by the executor hard-stop gate. The scoped draft store
+	(keyed by war_id, selected_target_nation, covered_enemy_participants)
+	is PRESERVED by that action — unlike the discard close — so the
+	player can reopen the same war/scope and pick up where they left off."""
 	var war_id = str(payload.get("war_id", ""))
 	add_output("[color=#d9c08c]Settlement draft kept for war %s. Reopen Settlement to continue editing.[/color]" % war_id)
-	set_input_enabled(true)
-	command_input.grab_focus()
+	set_input_enabled(false)
+	api_client.send_dialogue_response("suspend_settlement_editor", _on_command_result)
 
 
 func _on_war_ended_notification(message: String):

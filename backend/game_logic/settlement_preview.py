@@ -5414,6 +5414,46 @@ def handle_settlement_dialogue_action(
             "error": "unknown_settlement_action",
             "mutated": False,
         }
+    if action == "suspend_settlement_editor":
+        # SC-5R-2 follow-up: the client-side settlement editor's Back Out
+        # closes the staged settlement_confirm hard-stop so ordinary
+        # commands are no longer held by the executor hard-stop gate,
+        # while PRESERVING the scoped draft so the player can reopen the
+        # same war/scope and resume. Unlike `back_out_settlement` (which
+        # discards by the SC-2 contract), this is a non-destructive
+        # suspend modelled on the `open_war_detail` preserve path: no
+        # mutation, no recovery navigation, drafts kept.
+        terms = [
+            dict(t)
+            for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        if terms:
+            drafts = getattr(world, "pending_settlement_drafts", None)
+            if drafts is None:
+                world.pending_settlement_drafts = {}
+                drafts = world.pending_settlement_drafts
+            drafts[war_id] = terms
+            save_scoped_settlement_draft(
+                world,
+                war_id=war_id,
+                selected_target_nation=selected_target,
+                covered_enemy_participants=covered,
+                settlement_terms=terms,
+            )
+        world.dialogue_manager.pop()
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": "suspend_settlement_editor",
+            "war_id": war_id,
+            "draft_preserved": bool(terms),
+            "mutated": False,
+            "message": "Settlement draft kept. Reopen Settlement to continue editing.",
+            "suppress_proposal_result_popup": True,
+        }
     if action == "back_out_settlement":
         # SC-2: discard-confirm semantics. Non-empty drafts signal the
         # frontend to confirm discard; empty drafts pop immediately.

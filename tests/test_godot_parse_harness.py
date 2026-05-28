@@ -382,6 +382,9 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "confirm_settlement",
     "revise_settlement_terms",
     "back_out_settlement",
+    # SC-5R-2 follow-up: non-destructive editor Back Out (pops the
+    # settlement_confirm hard-stop, preserves the scoped draft).
+    "suspend_settlement_editor",
     "open_war_detail",
     "re_author_with_concessions",
     "apply_concession_baseline_replacement",

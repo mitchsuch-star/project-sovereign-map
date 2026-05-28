@@ -700,6 +700,52 @@ class TestScopedSettlementDraftPersistence:
             == terms
         )
 
+    def test_suspend_settlement_editor_preserves_drafts_and_pops_hardstop(self):
+        """SC-5R-2 follow-up: `suspend_settlement_editor` is the editor's
+        non-destructive Back Out. It pops the staged settlement_confirm
+        hard-stop (so ordinary commands are no longer held by the executor
+        gate) while PRESERVING both the legacy and scoped drafts — the
+        complement of `back_out_settlement`, which discards."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=terms,
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        dialogue = staged["diplomatic_dialogue"]
+        assert world.dialogue_manager.is_hard_stop() is True
+
+        result = handle_settlement_dialogue_action(
+            world, action="suspend_settlement_editor", dialogue=dialogue,
+        )
+
+        assert result["success"] is True
+        assert result["mutated"] is False
+        assert result["draft_preserved"] is True
+        # The staged hard-stop is popped so the next command is not held.
+        assert world.dialogue_manager.is_hard_stop() is False
+        # Both draft stores survive (unlike back_out_settlement).
+        assert world.pending_settlement_drafts["war_1"] == terms
+        assert (
+            load_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+            )
+            == terms
+        )
+
     def test_ratification_discards_legacy_and_scoped_draft(self):
         world = WorldState()
         _install_common_peace_war(world)

@@ -360,14 +360,20 @@ class TestMainGdWiringForEditor:
         assert "api_client.send_dialogue_response(1, _on_command_result)" in continuation
 
     def test_main_back_out_handler_preserves_draft(self):
-        """Back Out is a no-op for the scoped draft store; the editor
-        emits a status line and re-enables input. The backend keeps
-        the draft alive under its `draft_key`."""
+        """Back Out closes the editor and pops the staged settlement_confirm
+        hard-stop on the backend via the non-destructive
+        `suspend_settlement_editor` dialogue action, so the next command is
+        not held by the executor hard-stop gate. It must NOT send the
+        discard close (`back_out_settlement`) and must not call a scoped
+        discard helper — the backend keeps the draft alive under its
+        `draft_key`."""
         body = _function_body(MAIN_SCRIPT, "_on_settlement_editor_back_out")
         assert body.startswith("func _on_settlement_editor_back_out(payload: Dictionary)")
         assert "Settlement draft kept for war" in body
         assert "discard_scoped_settlement_draft" not in body
         assert "back_out_settlement" not in body
+        # The fix: pop the staged hard-stop without discarding the draft.
+        assert 'send_dialogue_response("suspend_settlement_editor"' in body
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -524,6 +530,53 @@ class TestBackendDraftRoundTrip:
             covered_enemy_participants=["Prussia"],
         )
         assert restored is None or restored == []
+
+    def test_suspend_settlement_editor_choice_pops_hardstop_and_keeps_draft(self):
+        """SC-5R-2 follow-up bug fix: the editor Back Out sends the string
+        choice `suspend_settlement_editor`. The dialogue resolver routes it
+        to the settlement handler even though it is absent from the REVIEW
+        options[] surface; the handler pops the staged settlement_confirm
+        hard-stop (so ordinary commands are no longer held) while PRESERVING
+        the scoped draft for same-turn reopen. This is the distinguishing
+        behavior from `back_out_settlement`, which discards."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        terms = [{"type": "peace"}, _gold_indemnity_clause(150)]
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=terms,
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        # The staged settlement_confirm is a hard-stop that would hold
+        # ordinary commands at the executor gate.
+        assert world.dialogue_manager.is_hard_stop() is True
+        executor = DiplomaticExecutor(None)
+        result = executor.handle_diplomatic_dialogue_response(
+            "suspend_settlement_editor", {"world": world},
+        )
+        assert result.get("success") is True
+        assert result.get("action") == "suspend_settlement_editor"
+        assert result.get("mutated") is False
+        # Bug fix: the hard-stop is popped so the next command is not held.
+        assert world.dialogue_manager.is_hard_stop() is False
+        # Scoped draft preserved verbatim for same-turn reopen.
+        assert (
+            load_scoped_settlement_draft(
+                world,
+                war_id="war_1",
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+            )
+            == terms
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
