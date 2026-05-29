@@ -352,8 +352,17 @@ class TestSettlementConfirmEditPayloadContract:
         assert schema
         for clause_type, row in schema.items():
             assert set(row) == {"enabled", "disabled_reason_display", "fields"}
-            assert row["enabled"] is True
-            assert row["disabled_reason_display"] is None
+            # Slice 0: `enabled` is now computed per clause type from picker
+            # emptiness. An enabled row carries no reason; a disabled row
+            # (e.g. liberation with no vassals in this world) carries a
+            # humanized reason. The row still appears as a schema key so the
+            # client can grey it out rather than silently dropping it.
+            assert isinstance(row["enabled"], bool)
+            if row["enabled"]:
+                assert row["disabled_reason_display"] is None, clause_type
+            else:
+                assert isinstance(row["disabled_reason_display"], str), clause_type
+                assert row["disabled_reason_display"], clause_type
             assert isinstance(row["fields"], dict), clause_type
             for field_name, field in row["fields"].items():
                 assert set(field) == {

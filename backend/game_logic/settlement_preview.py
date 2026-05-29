@@ -2956,7 +2956,13 @@ def _clause_fields_for_review(
             "vassal_nation": _field_schema(
                 control="picker",
                 label="Vassal to liberate",
-                options=list(vassal_options or nation_options or []),
+                # Slice 0 / cleanup spec line 601: the picker offers only real
+                # vassals. The old `or nation_options` fallback let non-vassals
+                # (including France) appear, which is what produced the
+                # France-liberates-France nonsense the validator only caught at
+                # Submit. With no vassals the picker is empty and the clause is
+                # disabled (see _build_clause_control_schema_for_review).
+                options=list(vassal_options or []),
                 direction_metadata={"role": "subject", "direction": "demanded"},
             ),
             "lord_nation": _field_schema(
@@ -2971,6 +2977,30 @@ def _clause_fields_for_review(
             ),
         }
     return {}
+
+
+def _clause_enabled_from_pickers(
+    fields: Mapping[str, Mapping[str, Any]],
+) -> Tuple[bool, Optional[str]]:
+    """Compute per-clause-type ``enabled`` from picker emptiness.
+
+    Slice 0 / cleanup spec line 601 contract: a live clause type whose
+    required picker fields have zero options after filtering cannot author
+    a valid clause, so its Add Clause control is disabled with a humanized
+    reason naming the empty picker(s). Number / toggle fields never gate
+    ``enabled`` (only ``picker`` controls carry a target list), and a
+    clause type with no fields at all (``peace``) is always enabled.
+    """
+    empty_picker_labels = [
+        str(field.get("label") or name)
+        for name, field in fields.items()
+        if field.get("control") == "picker" and not field.get("options")
+    ]
+    if empty_picker_labels:
+        return False, "No eligible options available for: " + ", ".join(
+            empty_picker_labels
+        )
+    return True, None
 
 
 def _build_clause_control_schema_for_review(
@@ -2997,15 +3027,17 @@ def _build_clause_control_schema_for_review(
             continue
         if clause_type not in SETTLEMENT_LIVE_CLAUSE_TYPES:
             continue
+        fields = _clause_fields_for_review(
+            clause_type,
+            nation_options=nation_options,
+            region_options=region_options,
+            vassal_options=vassal_options,
+        )
+        enabled, disabled_reason_display = _clause_enabled_from_pickers(fields)
         schema[clause_type] = {
-            "enabled": True,
-            "disabled_reason_display": None,
-            "fields": _clause_fields_for_review(
-                clause_type,
-                nation_options=nation_options,
-                region_options=region_options,
-                vassal_options=vassal_options,
-            ),
+            "enabled": enabled,
+            "disabled_reason_display": disabled_reason_display,
+            "fields": fields,
         }
     return schema
 
