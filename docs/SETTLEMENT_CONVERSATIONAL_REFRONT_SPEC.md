@@ -310,7 +310,7 @@ V1, V3 (the "right side" generalization across a multi-court set) are the genuin
 
 Pickers mirror the validator (§12) so the illegal cannot be **authored**, not merely rejected. Authority remains the validator (`SETTLEMENT_UI_CLEANUP_SPEC.md:609`); pickers are a filtered view of it.
 
-- **P1 — Add Clause disabled when a clause type has no valid target.** `_build_clause_control_schema_for_review` (`settlement_preview.py:2976`) computes `enabled` **per clause type** from whether its required pickers have ≥1 valid option after filtering; sets `enabled=False` + `disabled_reason_display` otherwise. This implements the cleanup-spec line-601 contract that was never wired (today it hardcodes `enabled=True` at `:3001`). Applies to: territory with no controlled regions, gold with no payable amount, dependency clauses with no valid target, same-side forced alliances, and **liberation with no valid vassal**.
+- **P1 — Add Clause disabled when a clause type has no valid target.** `_build_clause_control_schema_for_review` (`settlement_preview.py:2976`) computes `enabled` **per clause type** from whether its required pickers have ≥1 valid option after filtering; sets `enabled=False` + `disabled_reason_display` otherwise. This implements the **backend** half of the cleanup-spec line-601 contract that was never wired (today it hardcodes `enabled=True` at `:3001`). Applies to: territory with no controlled regions, gold with no payable amount, dependency clauses with no valid target, same-side forced alliances, and **liberation with no valid vassal**. **Frontend half:** the Godot editor *consuming* these flags (greying the Add Clause control + surfacing the reason instead of opening an empty picker) is **REFRONT-8**, landing with the Tier-3 editor in **Slice 3** — Slice 0 lands only the backend computation.
 - **P2 — Role pickers filtered to valid sides.** Each role picker offers only legal participants:
   - `liberation.vassal_nation` → **current vassals only** (`_vassal_control_options`, `:2832`); **the `vassal_options or nation_options` fallback at `:2959` is removed** so non-vassals (including France) can never appear.
   - `liberation.lord_nation` → the vassal's current lord; `liberation.liberator` → opposite-side participants (mirror `evaluate_liberation_eligibility`).
@@ -327,14 +327,14 @@ P1 + the P2 liberation fallback removal are exactly the **interim band-aid** (§
 
 Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior test, and every deferred/cut item has an owner row + landing slice + completion definition + test. The interim band-aid is **Slice 0** and is independently shippable (§16).
 
-### Slice 0 — Interim picker band-aid (independent de-risk; lands the cleanup-spec line-601 contract)
-- **Scope:** P1 (`enabled` computation + `disabled_reason_display`) and the P2 liberation `vassal_options or nation_options` fallback removal in `settlement_preview.py`.
+### Slice 0 — Interim picker band-aid (independent de-risk; lands the **backend** half of the cleanup-spec line-601 contract) — **LANDED at master `4ffdfcc`** (backend only; suite `10256 passed, 1 skipped`, ruff clean)
+- **Scope:** P1 **backend computation** (`enabled` per clause type + `disabled_reason_display`) and the P2 liberation `vassal_options or nation_options` fallback removal in `settlement_preview.py`. **Backend-only by design.** The Godot editor's *consumption* of `enabled`/`disabled_reason_display` — greying/disabling the Add Clause control and surfacing the reason **instead of opening an empty picker** — is **not** Slice 0; it is owned as **REFRONT-8** and lands with the Tier-3 editor in **Slice 3**.
 - **Tests:**
   - `test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause` *(the cleanup-spec line-618 test that never landed)*
   - `test_liberation_vassal_picker_excludes_non_vassals`
   - `test_clause_control_schema_enabled_false_carries_disabled_reason`
   - `test_settlement_no_self_referential_clause` (liberation France-France-France not constructible **or** rejected pre-stage)
-- **Completion:** no live clause type renders an empty picker; liberation offers only real vassals; full suite green.
+- **Completion:** no live clause type's schema row renders an *enabled* empty picker (disabled rows carry `enabled=False` + a humanized reason and stay schema keys so `available_clause_types[]` is unchanged); liberation offers only real vassals — and because the Godot picker faithfully renders that options list, **`vassal=France` is unconstructable end-to-end**; full suite green. **What Slice 0 does NOT close:** the full line-601 *editor UX* ("Add Clause control disabled instead of opening an empty picker") for other empty-picker clause types — that needs the Godot consumer in **REFRONT-8 / Slice 3**, so Slice 0 alone does **not** fully unblock the Gate 4 smoke pass.
 
 ### Slice 1 — Tier 1 baseline (multi-party, any side) + PROPOSE surface + per-court gate
 - **Scope:** generalize `_compute_concession_baseline` → `compute_settlement_baseline` (per-court direction, OQ#5); add `dialogue_mode="PROPOSE"` + the `per_court_acceptance` / `overall_acceptance` payload (§11.2); add the **per-court ratification gate** (§11.4) — `carries` iff every covered court ≥ threshold, REVIEW carries `per_court_acceptance`, holdout courts surface ease/drop; render the PROPOSE surface; route `propose_common_peace` to land PROPOSE (not blank EDIT).
@@ -373,7 +373,7 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
 - **Completion:** dials move per-court acceptance live, whole-table and focused; coverage edits re-score; advisory targeting never mutates terms; the per-court loop runs one shared score/projection pass; suite green. **Gate 4 manual smoke re-runs here.** **Split escape hatch (sizing):** if the dial + coverage + scale tests exceed the ~55-test single-session ceiling, split coverage editing (`settlement_cover_add` / `settlement_cover_drop` + their re-score/`remaining_wars` tests) into **Slice 2b**, leaving the dials + focus + advisory in **Slice 2a** (2b depends only on 2a, no parallel coupling).
 
 ### Slice 3 — Tier 3 valid-by-construction editor (folds in DWL-SET-SC5R-3)
-- **Scope:** `Adjust terms` from PROPOSE → EDIT (optionally focused court); cross-court validity V1–V5 in `validate_settlement_terms`; full P2/P3 picker filtering; **DWL-SET-SC5R-3 inline merge-conflict `Discard new clause` / `Replace active clause` controls** (cleanup spec `:589`).
+- **Scope:** `Adjust terms` from PROPOSE → EDIT (optionally focused court); cross-court validity V1–V5 in `validate_settlement_terms`; full P2/P3 picker filtering; **REFRONT-8 — the Godot Tier-3 editor consumes `clause_control_schema[type].enabled` / `disabled_reason_display`** (greys/disables the Add Clause item for disabled types + surfaces the reason instead of opening an empty picker; closes the line-601 editor UX whose backend precondition Slice 0 landed); **DWL-SET-SC5R-3 inline merge-conflict `Discard new clause` / `Replace active clause` controls** (cleanup spec `:589`).
 - **Tests:**
   - `test_adjust_terms_from_propose_opens_edit_optionally_focused`
   - `test_no_region_promised_to_two_courts` (V1)
@@ -383,7 +383,8 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
   - `test_merge_conflict_replace_active_clause_control` (DWL-SET-SC5R-3)
   - `test_tier3_picker_refilters_on_coverage_change` (P3)
   - `test_tier1_default_identity_remains_replaceable_in_tier3` (OQ#7 — the Tier-1 pre-filled region/gold default can be changed or replaced in the editor)
-- **Completion:** Tier 3 cannot author any V1–V5 violation; merge-conflict controls work; `DWL-SET-SC5R-3` flips to LANDED; suite green.
+  - `test_godot_editor_disables_add_clause_for_disabled_type_and_surfaces_reason` (REFRONT-8 — the Godot consumer of Slice 0's `enabled` / `disabled_reason_display`)
+- **Completion:** Tier 3 cannot author any V1–V5 violation; the editor honors `enabled` / `disabled_reason_display` (REFRONT-8 — no disabled clause type opens an empty picker); merge-conflict controls work; `DWL-SET-SC5R-3` and `REFRONT-8` flip to LANDED; suite green.
 
 ### Voice — Multi-court settlement-table voice (NEW; closes Voice Bible gap B4)
 - **Owner / landing:** the resolver rule + family **land before or with Slice 1's PROPOSE copy — not after** (otherwise Slice 1's per-court lines have no resolver contract and risk the anonymous-voice beats §13 forbids); Slice 2's dial copy extends the same family; tracked as spec row REFRONT-V. **Slice 1 completion depends on this resolver rule existing (see Slice 1 completion).**
@@ -401,6 +402,7 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
 | **REFRONT-5** | Incoming-offer (SC-5/SC-30) presentation convergence onto per-court model | **DEFER** (post Slices 1–3) | Lands when SC-30 inbound UI is revisited; completion = incoming offers render the same `per_court_acceptance` block | `test_incoming_offer_uses_per_court_presentation` |
 | **REFRONT-6** | Bounded presentation-only novelty variation for repeat conferences | **CUT (default)** | Only if ever wanted: a gated presentation slice; completion = variation provably never changes the scored result | `test_presentation_variation_never_changes_scored_result` |
 | **REFRONT-7** | `_region_control_options` full-region scan hardening for full-Europe | **DEFER** (scale hardening) | Pre-filter region picker by participants' holdings via `get_nation_regions` instead of scanning all regions; completion = no all-regions scan in the Tier-3 schema build | `test_region_picker_options_scale_with_participants_not_world` |
+| **REFRONT-8** | Godot Tier-3 editor *consumes* `clause_control_schema[type].enabled` / `disabled_reason_display` (Slice 0 lands only the **backend** computation; `settlement_editor_popup.gd` does not yet read the flags — `_populate_add_clause_selector:259` lists every type, `_on_add_clause_pressed:321` ignores `enabled`, so a disabled type still opens an empty picker rejected only at Submit) | **FOLDED into Slice 3** (the Tier-3 valid-by-construction editor) | Completion = the editor greys/disables the Add Clause item for `enabled=False` types and surfaces `disabled_reason_display` instead of opening an empty picker; closes the line-601 *editor UX* (Slice 0 closed only its backend precondition) | `test_godot_editor_disables_add_clause_for_disabled_type_and_surfaces_reason` |
 | **DWL-SET-SC5R-3** | Inline merge-conflict Discard/Replace controls | **FOLDED into Slice 3** | Completion = the two controls land with tests above | (Slice 3 tests) |
 | **Slice G / AI-ally agency** | AI-side settlement authoring + ally petitions | **SEPARATE / LATER.** The **SC-32 / Slice G2 decision ledger (D1–D7) already LANDED** (`STATUS.md`, May 28) — resolved mostly as **CUTs** (AI counterproposals D1, Wait-for-Offer + Ask-for-Terms D2, voluntary alliance D3, conference/veto D5, request_consultation/request_redress D4c) plus a thin advisory ally-petition substrate (D4a/D4b) and the same-war replace-confirm chooser (D6). The **still-unbuilt** AI-side work is owned **by the cleanup spec, not here**: **Slice G1** (AI settlement *offer producer* + Request Terms — gated behind **Gate 4 smoke + explicit SC-5 reversal**, `SETTLEMENT_UI_CLEANUP_SPEC.md:858`), the broader **Slice G2 follow-through** (gated behind Slice G1 + SC-29/SC-30/SC-31 closure, `:859`), and **Slice H** (deferred ally-petition types `request_reward_or_restoration` / `demand_bargain_honor`). | Completion: this re-front ships **no** AI-initiated settlement path — the new PROPOSE / dial / coverage routes are **player-only** (mirror the cleanup `can_edit_terms` / `caller_kind` rule, cleanup `:556`); AI agency lands or is explicitly cut in Slice G1 / Slice G2 / Slice H, **not here**. | `test_propose_and_dial_routes_reject_non_player_caller_kind` (absence test owned **here**) |
 
@@ -441,13 +443,13 @@ With these shared, each per-court call only finalizes the court-specific compone
 
 ## 16. Interim de-risk band-aid (optional, independent)
 
-Strictly a symptom patch that can ship **before** the full re-front to unblock the current Gate 4 pass. It is **Slice 0** above and lands a contract that already exists in `SETTLEMENT_UI_CLEANUP_SPEC.md` (line 601) but was never wired:
+Strictly a symptom patch that can ship **before** the full re-front to **de-risk** the current Gate 4 pass. It is **Slice 0** above and lands the **backend half** of a contract that already exists in `SETTLEMENT_UI_CLEANUP_SPEC.md` (line 601) but was never wired:
 
-- Compute `enabled` per clause type in `_build_clause_control_schema_for_review` (P1).
-- Remove the `vassal_options or nation_options` fallback in liberation's `vassal_nation` field (`:2959`) so the picker offers only real vassals (P2 liberation).
+- Compute `enabled` per clause type in `_build_clause_control_schema_for_review` (P1) — **backend computation only.**
+- Remove the `vassal_options or nation_options` fallback in liberation's `vassal_nation` field (`:2959`) so the picker offers only real vassals (P2 liberation). Because the Godot picker faithfully renders the options list, this lands **end-to-end**: `vassal=France` is unconstructable in the editor.
 - Land the cleanup-spec line-618 test `test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause` (it does not exist today).
 
-It does **not** add the baseline, dials, per-court acceptance, or conversational front — that is the cure (Slices 1–3). The band-aid has no dependency on the re-front and can land first.
+It does **not** add the baseline, dials, per-court acceptance, or conversational front — that is the cure (Slices 1–3). **Nor does it close the line-601 *editor UX* in full:** the Godot editor does not yet *consume* `enabled`/`disabled_reason_display`, so a disabled clause type (other than the now-filtered liberation vassal pick) can still be selected and opens an empty picker rejected only at Submit. That Godot consumer is **REFRONT-8**, folded into **Slice 3** — so Slice 0 alone does **not** fully unblock Gate 4. The band-aid has no dependency on the re-front and can land first.
 
 ---
 
