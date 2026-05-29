@@ -1,15 +1,15 @@
 # Settlement Conversational Re-front Spec
 
-**Status:** DRAFT **v0.2** — **DESIGN GATE. NEEDS APPROVAL. DO NOT CODE WITHOUT USER APPROVAL.**
+**Status:** DRAFT **v0.3** — **DESIGN GATE. NEEDS APPROVAL. DO NOT CODE WITHOUT USER APPROVAL.**
 (Follows the same gate convention as `JEALOUSY_SPEC.md`.)
 
-**Date:** May 28, 2026 (v0.1 vision → v0.2 detailed, same day)
+**Date:** May 28, 2026 (v0.1 vision → v0.2 detailed → v0.3 second-audit cleanup, same day)
 **Owner / sequencing:** Next-up priority for the Peace Deals / Imperial Settlement arc.
 **Builds on (reuse, do not rebuild):** `DIPLOMACY_SPEC.md` (bilateral proposal flow), `SETTLEMENT_UI_CLEANUP_SPEC.md` (clause model, acceptance scorer, scoped draft store, ratification gate), `DIPLOMAT_VOICE_BIBLE.md` (settlement voice families).
 **Supersedes as the player-facing front door:** the raw SC-5R-2 settlement editor form, which becomes the opt-in deep tier (see §6). **It does not revert SC-5R-2 or the `suspend_settlement_editor` Back Out fix — both stay landed.**
-**Audit:** v0.2 was audited before approval — see the sibling note `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_AUDIT.md` (verdict: **GO-with-changes**, all changes folded into this v0.2).
+**Audit:** audited twice before approval — see the sibling note `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_AUDIT.md`. v0.2 folded the first pass (verdict **GO-with-changes**); **v0.3** folds a second independent run (verdict **GO**): per-court scorer call signature pinned (§11.2), Slice-1 leader→per-court fixture migration bounded (§11.4/§14), per-court no-generable-baseline → `peace` floor (§8 OQ#5), Slice-2 `balance_projection` internal rewire made explicit (§15), and the ratify line cite corrected `:4776`→`:4583` (§11.4).
 
-> v0.1 was a high-level **vision** spec. v0.2 resolves every §8 open question into a locked decision, adds per-tier control-state + payload shapes, multi-party validity rules, the picker valid-by-construction contract, a slice plan with named behavior tests, and a concrete reuse map citing real functions. The audit verdict is appended in the sibling note. Implementation does **not** begin until the user approves v0.2.
+> v0.1 was a high-level **vision** spec. v0.2 resolves every §8 open question into a locked decision, adds per-tier control-state + payload shapes, multi-party validity rules, the picker valid-by-construction contract, a slice plan with named behavior tests, and a concrete reuse map citing real functions. **v0.3 (second-audit cleanup):** pins the exact per-court `calculate_common_peace_acceptance` call signature (which args vary per court vs are shared — §11.2), bounds the Slice-1 leader→per-court fixture migration with an explicit enumeration + split escape hatch (§11.4/§14), adds the per-court no-generable-baseline → `{"type":"peace"}` floor (§8 OQ#5), makes the Slice-2 `balance_projection` param + internal-call rewire explicit (§15), and corrects the ratify line cite. The audit verdicts are in the sibling note. Implementation does **not** begin until the user approves v0.3.
 
 ---
 
@@ -166,6 +166,7 @@ Each former open question is now a locked decision with rationale. (v0.1 numberi
   - loops over each covered court and produces that court's slice;
   - chooses **direction per court** from that court's side-pressure (the existing `LOSING_SIDE_PRESSURE_THRESHOLD` predicate, evaluated per court): **demand** value where France leads (mirrors `generate_suggested_terms` demand-stage selection of border/coveted regions + calibrated gold), **concede** value where France is pressured (the existing peace→gold→territory escalation);
   - so a mixed conference (winning vs Prussia, losing vs Britain) emits demands from Prussia *and* concessions to Britain in **one** baseline — exactly the §17 worked example;
+  - **a court at neither extreme — France does not lead it (no demand target) and is not pressured by it (no concession needed) — falls back to the `{"type":"peace"}` neutral floor** (the cleanup-spec line-613 neutral start), so every covered court always receives a valid slice and the conference can never present an empty or illegal per-court row;
   - targets each court at `near_acceptable`+ by default (the existing escalation already targets `near_acceptance_floor`) and **never** escalates past what the player would request — suggestions, not impositions.
 - **Rationale:** the worked example requires per-court direction; a losing-side-only baseline cannot express it. Generalizing reuses the escalation loop + scorer; the demand side reuses the proven bilateral selectors.
 
@@ -248,6 +249,14 @@ overall_acceptance: {
 
 `per_court_acceptance` reuses the scorer's canonical preview shape (`band`/`verdict`/`feedback`/`top_components`); `top_blocker_display` is the scorer's top negative component (no new math). All numeric fields are `int()`. `delta_display` is **presentation-only** and never feeds the scored result (Golden Rule #6 / OQ#6).
 
+**Per-court call signature (pinned).** Each `per_court_acceptance` entry is exactly one `calculate_common_peace_acceptance` call (`settlement_scoring.py:1884`, verified single-`accepting_leader` signature at `:1891`). To make the aggregator unambiguous:
+
+- **Varies per court (one value per call):** `accepting_leader=<that court>`, and that court's `accepting_leader_regions_at_evaluation` / `accepting_leader_mapped_holdings_at_entry` (the scorer's per-leader holdings params, `:1898-1899`).
+- **Held constant across the whole per-court loop:** `covered_enemy_participants=<the full covered set>` — **not** a singleton `{court}` — so every court's `burdened_participant_penalty` and `abandoned_by_ally_acceptance_mod` still reflect the entire table (this is what makes Talleyrand "reason across the table," principle 5 / §4.5, rather than scoring each court in isolation); plus `proposer_side` / `accepting_side` and the shared package-level inputs `direct_scores` / `side_pressure_result` / `raw_total_harshness` / `balance_projection` (§15 scale hook).
+- **Therefore only the court-specific components differ between calls:** `leader_own_losses`, that court's `war_objective_alignment`, and its `burdened_participant_penalty`. Everything else is shared work computed once per dial/coverage action.
+
+Test: `test_per_court_call_varies_leader_and_holdings_holds_covered_set` (Slice 1).
+
 ### 11.3 PROPOSE request/response and dial/coverage actions
 
 PROPOSE reuses the settlement preview request shape (`SETTLEMENT_UI_CLEANUP_SPEC.md:543`) with `dialogue_mode="PROPOSE"`. New action verbs (all deterministic redraft-and-rescore, mirroring `modify_harsh`):
@@ -262,7 +271,7 @@ Each dial/coverage response carries the same `per_court_acceptance` / `overall_a
 
 ### 11.4 Ratification gate — per-covered-court (the one deliberate mechanics change)
 
-> **What changes from today.** The current settlement gate scores a **single `accepting_leader`** for the whole covered set (`settlement_preview.py:2431-2444`; ratify at `:4776`); the 9-component formula lowers the *leader's* willingness when allies are burdened (`burdened_participant_penalty`), i.e. today's model is "the coalition leader signs for the bloc with ally sympathy." A multi-court settlement therefore ratifies if the leader accepts, even if a covered minor would refuse.
+> **What changes from today.** The current settlement gate scores a **single `accepting_leader`** for the whole covered set (`build_settlement_preview` scores one leader at `settlement_preview.py:2431-2444`; ratify at `ratify_settlement_confirm:4583`); the 9-component formula lowers the *leader's* willingness when allies are burdened (`burdened_participant_penalty`), i.e. today's model is "the coalition leader signs for the bloc with ally sympathy." A multi-court settlement therefore ratifies if the leader accepts, even if a covered minor would refuse.
 
 **v0.2 locks the per-court gate:**
 
@@ -270,6 +279,7 @@ Each dial/coverage response carries the same `per_court_acceptance` / `overall_a
 - **A holdout is never a dead-end.** Every holdout court row exposes both `Ease <court>` (focused `More generous`, §11.3) and `Drop <court>` (focused `settlement_cover_drop`, §11.3) as one-click actions. Dropping leaves that pair at war.
 - **REVIEW carries `per_court_acceptance` too**, not only PROPOSE — so the gate and the displayed blocking reason are the same data. (Today REVIEW carries a single `acceptance` object; it gains the per-court block.) The single `acceptance` object is retained for the n=1 bilateral case and as the leader-row summary.
 - **Regression surface (call out for the implementer):** existing multi-court settlement tests/fixtures that assume leader-gating may change verdict under per-court gating. Updating them to per-court expectations is expected and is *not* a regression — the suite must still end green. Named owner test: `test_ratify_requires_all_covered_courts_at_or_above_threshold_not_just_leader`.
+- **Migration bound (so Slice 1 stays single-session-sized).** The fixture-update scope is **enumerated**, not open-ended: `grep -rE "can_ratify|carries|confirm_settlement" tests/test_settlement_*.py tests/test_common_peace_*.py`, filtered to **multi-court** fixtures (≥2 covered courts). Update exactly those in the **same commit** as the gate change so the diff is legible (RR1). **Single-court / bilateral (n=1) fixtures are unaffected** — the lone covered court *is* the leader, so the gate verdict is identical; the scorer's component math (the bulk of `tests/test_common_peace_acceptance.py`) is untouched because the formula does not change, only the gate that reads it. **Escape hatch:** if the enumerated migration plus Slice 1's ten named tests would exceed the project's ~55-test single-session ceiling, split the gate + REVIEW per-court block + migration into **Slice 1b**, leaving baseline + PROPOSE + routing in **Slice 1a** (1b depends only on 1a, no parallel coupling).
 
 **Why per-court (historical + UX, answering the v0.2 design question).** *Historical analogue:* Napoleonic coalition wars ended by each court making its **own** peace, never a bloc signature — Pressburg (1805): Austria signed while Russia withdrew and Britain fought on; Tilsit (1807): Napoleon signed **separate** treaties with Russia (lenient) and Prussia (punitive). "Dropping a holdout" is exactly the historical "separate peace; the holdout fights on" (Britain is the archetype). The single-leader gate is the ahistorical one. *UX:* if the gate were single-leader, the per-court rows would be dishonest (showing "Prussia refuses" while the peace ratifies); per-court makes the displayed acceptance the real gate, and the ease/drop lever prevents any hard block.
 
@@ -324,9 +334,11 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
 - **Tests:**
   - `test_settlement_baseline_demands_from_winning_courts_concedes_to_losing`
   - `test_settlement_baseline_per_court_direction_uses_side_pressure`
+  - `test_settlement_baseline_court_with_no_demand_or_concession_uses_peace_floor` (OQ#5 no-generable-baseline floor)
   - `test_settlement_baseline_suggestions_are_valid_by_construction`
   - `test_settlement_baseline_is_deterministic_same_world_same_terms` (no RNG — OQ#6)
   - `test_propose_mode_payload_shape_per_court_and_overall`
+  - `test_per_court_call_varies_leader_and_holdings_holds_covered_set` (§11.2 pinned call signature)
   - `test_ratify_requires_all_covered_courts_at_or_above_threshold_not_just_leader` (§11.4 gate change)
   - `test_review_payload_carries_per_court_acceptance`
   - `test_holdout_court_offers_ease_or_drop_not_dead_end`
@@ -345,6 +357,7 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
   - `test_coverage_add_court_redraws_baseline_for_new_set`
   - `test_targeted_posture_is_voice_only_not_applied`
   - `test_per_court_scoring_shares_one_direct_score_side_pressure_and_balance_projection_pass` (scale — Golden Rule #8; see §15 balance-projection memoization param)
+  - `test_balance_projection_param_falls_back_to_internal_compute_when_not_injected` (§15 F-5 internal rewire preserves existing single-call callers)
 - **Completion:** dials move per-court acceptance live, whole-table and focused; coverage edits re-score; advisory targeting never mutates terms; the per-court loop runs one shared score/projection pass; suite green. **Gate 4 manual smoke re-runs here.**
 
 ### Slice 3 — Tier 3 valid-by-construction editor (folds in DWL-SET-SC5R-3)
@@ -405,7 +418,7 @@ Every row was checked against the codebase during v0.2 authoring. "EXTEND" = cal
 **Scale-readiness design hook (Golden Rule #8).** Per-court scoring is N calls (N = covered courts in **one** war, bounded — typically a handful), invoked on **user dial/coverage actions**, not in a per-turn AI hot path. Three of the scorer's heaviest inputs are **package-level** (identical across the per-court loop) and must be computed once per dial action and shared:
 - `direct_scores` — `compute_direct_scores_by_enemy:192` (the scorer already accepts it memoized at :1896),
 - `side_pressure_result` — `compute_side_pressure_score:278` (side-level quantity, identical across courts; memoized param at :1895),
-- the balance projection — `project_balance_after_settlement:1537` takes `(world, war_id, settlement_terms)` and is **independent of `accepting_leader`**, so it is identical across courts. The scorer currently recomputes it internally with **no** injection param (unlike the three above). **Slice 2 adds one memoization param** (`balance_projection=...`) mirroring the existing pattern, so the aggregator computes the projection once and passes it to each per-court finalization.
+- the balance projection — `project_balance_after_settlement:1537` takes `(world, *, war_id, settlement_terms)` and is **independent of `accepting_leader`** (verified signature has no leader arg), so it is identical across courts. The scorer currently calls it **internally** with **no** injection param (unlike the three above). **Slice 2 must do two things:** (1) add a `balance_projection: Optional[Mapping[str, Any]] = None` param to `calculate_common_peace_acceptance` mirroring the existing memoized-param pattern (`side_pressure_result:1895` / `direct_scores:1896` / `raw_total_harshness:1897`); and (2) **rewire the scorer's internal `project_balance_after_settlement(...)` call site** to use the injected value when supplied and fall back to computing it when `None` — so every existing single-call caller is unchanged (they pass nothing and still get a correct projection). The aggregator then computes the projection **once per dial/coverage action** and passes the same object to each per-court call. Test: `test_balance_projection_param_falls_back_to_internal_compute_when_not_injected` (Slice 2).
 
 With these shared, each per-court call only finalizes the court-specific components (`leader_own_losses`, that court's `war_objective_alignment`, its `burdened_participant_penalty`). No per-court re-scan of `world.regions`; lookups use cached `get_nation_regions()` / `get_active_nations()`. The one remaining all-regions scan (`_region_control_options:2816`, in the Tier-3 schema build) runs once per POST-preview (user-initiated, not per-turn) and is recorded as scale-hardening row REFRONT-7.
 
