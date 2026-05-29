@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** May 6, 2026 (Settlement UI Cleanup Spec v0.17 is the current gate — must be implemented before manual smoke, Slice G, or the Final Gate. See `docs/SETTLEMENT_UI_CLEANUP_SPEC.md`.)
+> **Last Updated:** May 29, 2026. **Phase 8 settlement gate (current):** the Settlement UI Cleanup Spec reached **v0.32 GO** (SC-5R editor + SC-32/Slice G2 LANDED); **Gate 4 manual smoke is still open**; the **next-up item is the Settlement Conversational Re-front v0.6** (`docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`, DESIGN GATE — NEEDS APPROVAL); Slice G AI/ally agency stays gated behind Gate 4 smoke. See `docs/STATUS.md` for live state. (Historical: the May 6 entry pinned cleanup v0.17.)
 
 ---
 
@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Slices A1–E + Slice F UI routing landed. **Current gate: Settlement UI Cleanup Spec** (`SETTLEMENT_UI_CLEANUP_SPEC.md` v0.17) — 5 ordered slices (Foundation → Entry Safety → Continuity → Incoming Offers → Presentation). Then: manual smoke → Slice G AI/ally agency → Final Gate. |
+| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Settlement UI Cleanup Spec reached **v0.32 GO** (the 5 cleanup slices + SC-5R editor + SC-32/Slice G2 LANDED). **Current: Gate 4 manual smoke open; next-up = Settlement Conversational Re-front v0.6** (DESIGN GATE, NEEDS APPROVAL — `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`). Then: Slice G AI/ally agency (gated behind Gate 4 smoke). See `docs/STATUS.md`. |
 | **8.EVAL** | **Pre-8.5 War LLM + Diplomacy Refinement Evaluation** | **Planned after Imperial Settlement final gate, before 8.5.** Audit buried war-LLM improvement items, battle/war narration toggle scope, creative-command war uses, `DESIGN_REFINEMENT.md` diplomacy queue items, AI ultimatums/trade/agenda/motive/Talleyrand Desk candidates, and decide what ships before 8.5 vs moves to Pre-EA/Post-EA. |
 | 8.5 | Events, Goals & National Identity | Planned, blocked on 8.EVAL |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -26,8 +26,8 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Phase 8 settlement work order:**
-1. **Settlement UI Cleanup Spec** (`docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.17) — Gate 1 doc readiness, then Gate 2 ordered slices: Foundation (SC-1–4) → Entry Safety (SC-8/8b/10–13) → Continuity (SC-14/14b–e/7b/26) → Incoming Offers (SC-5/6/7, defer+hide default) → Presentation & Metadata (SC-15/15b/16/17/19/20/23–25).
+**Phase 8 settlement work order** (updated May 29 — steps 1–2 largely landed; the **Settlement Conversational Re-front v0.6** is the next-up item — DESIGN GATE pending approval — and re-fronts step 1's editor; see `docs/STATUS.md`):
+1. **Settlement UI Cleanup Spec** — **LANDED at v0.32 GO** (`docs/SETTLEMENT_UI_CLEANUP_SPEC.md`): Foundation (SC-1–4) → Entry Safety (SC-8/8b/10–13) → Continuity (SC-14/14b–e/7b/26) → Incoming Offers (SC-5/6/7) → Presentation & Metadata (SC-15/15b/16/17/19/20/23–25), plus the SC-5R editor and SC-32/Slice G2. **Gate 4 manual smoke is still open.**
 2. **Manual Godot smoke** — settlement wizard, war detail, coalition detail, notification/dispatch routes, stale-state recovery, CanvasLayer 50 one-screen rule.
 3. **Slice G** — AI/ally settlement agency (AI war-leader packages, non-leader ally petitions/advisories). See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` §Slice G.
 4. **Final Gate** — bundled pytest across settlement + WB/WPS/BPH test files + `ruff check`. See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` line 500.
