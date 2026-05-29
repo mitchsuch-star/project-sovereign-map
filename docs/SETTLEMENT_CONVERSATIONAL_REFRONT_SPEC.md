@@ -1,14 +1,15 @@
 # Settlement Conversational Re-front Spec
 
-**Status:** DRAFT v0.1 — **DESIGN GATE. NEEDS APPROVAL. DO NOT CODE WITHOUT USER APPROVAL.**
+**Status:** DRAFT **v0.2** — **DESIGN GATE. NEEDS APPROVAL. DO NOT CODE WITHOUT USER APPROVAL.**
 (Follows the same gate convention as `JEALOUSY_SPEC.md`.)
 
-**Date:** May 28, 2026
+**Date:** May 28, 2026 (v0.1 vision → v0.2 detailed, same day)
 **Owner / sequencing:** Next-up priority for the Peace Deals / Imperial Settlement arc.
-**Builds on (reuse, do not rebuild):** `DIPLOMACY_SPEC.md` (bilateral proposal + terms-guidance flow), `SETTLEMENT_UI_CLEANUP_SPEC.md` (clause model, acceptance scorer, scoped draft store, ratification gate), `DIPLOMAT_VOICE_BIBLE.md` (settlement voice families).
-**Supersedes as the player-facing front door:** the raw SC-5R-2 settlement editor form, which becomes the opt-in deep tier (see §6).
+**Builds on (reuse, do not rebuild):** `DIPLOMACY_SPEC.md` (bilateral proposal flow), `SETTLEMENT_UI_CLEANUP_SPEC.md` (clause model, acceptance scorer, scoped draft store, ratification gate), `DIPLOMAT_VOICE_BIBLE.md` (settlement voice families).
+**Supersedes as the player-facing front door:** the raw SC-5R-2 settlement editor form, which becomes the opt-in deep tier (see §6). **It does not revert SC-5R-2 or the `suspend_settlement_editor` Back Out fix — both stay landed.**
+**Audit:** v0.2 was audited before approval — see the sibling note `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_AUDIT.md` (verdict: **GO-with-changes**, all changes folded into this v0.2).
 
-> This is a high-level **vision** spec. Its job is to lock the coherent model before any implementation. Detailed control-state matrices, payload schemas, and per-dial deltas are deferred to a v0.2 written only **after** this vision is approved.
+> v0.1 was a high-level **vision** spec. v0.2 resolves every §8 open question into a locked decision, adds per-tier control-state + payload shapes, multi-party validity rules, the picker valid-by-construction contract, a slice plan with named behavior tests, and a concrete reuse map citing real functions. The audit verdict is appended in the sibling note. Implementation does **not** begin until the user approves v0.2.
 
 ---
 
@@ -23,7 +24,9 @@ The SC-5R-2 settlement editor set out to fix a narrow bug (empty/no-clause commo
 
 The invalid-combo bug found during Gate 4 smoke is a **symptom**: a naked raw form with no baseline and no guidance lets the player assemble contradictions. The cure is to restore the conversational spine that bilateral diplomacy already has.
 
-**The machinery to do this right already exists** (see §5). This is mostly wiring, not net-new systems.
+**The machinery to do this right already exists and was verified line-by-line for v0.2** (see §15). This is mostly wiring, not net-new systems. The few genuinely-new pieces are flagged honestly in §15.
+
+> **Verified during v0.2 authoring:** the picker contract that would have prevented the liberation bug is *already written into `SETTLEMENT_UI_CLEANUP_SPEC.md` line 601* ("If a clause type's picker has zero valid options, its Add Clause control is disabled… liberation with no valid vassal") **and** that spec names a test for it on line 618 (`test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause`). Neither the implementation nor the test ever landed: `_build_clause_control_schema_for_review` hardcodes `"enabled": True` (`settlement_preview.py:3001`), liberation's vassal picker falls back to *all nations* (`vassal_options or nation_options or []`, `settlement_preview.py:2959`), and no such test exists in `tests/`. So the interim band-aid (§16) is not new design — it is landing a contract the cleanup spec already promised.
 
 ---
 
@@ -42,19 +45,46 @@ A settlement is simply *"a peace proposal that can name several courts."* Same s
 4. **You can never author the illegal.** You can push on what is *allowed*; when something isn't, you're told why rather than discovering it at Submit.
 5. **Multi-party is first-class.** Coverage, per-court acceptance, and cross-court trade-offs are part of the conversation, not an afterthought.
 6. **The player requests; the advisor suggests — never random.** Specific terms (which region is ceded, how much gold, which clause) are **requested by the player** with full agency, exactly as in a bilateral peace. Talleyrand **suggests** logically from each court's desires and holdings and the military picture (`NATION_DESIRE_PROFILES` + war state) and explains *why* — but the system never randomly assigns or silently auto-fills a term. A suggestion is a starting point you can accept, change, or replace, not an imposition. (Territory and gold are requestable terms, not system-rolled outcomes.)
-7. **Every conference feels novel — not a carbon copy per war score.** Two conferences should rarely read the same. Novelty comes from **situational specificity** (which courts are at the table, what each covets and holds, relationships, betrayal memory, coalition posture — a large enough input space that situations rarely repeat) and from **conversational texture** (Talleyrand's per-conference read; per-court voice via the Voice Bible families), **not** from randomness and **not** from a rote `war_score → fixed template → identical screen` mapping. Mechanics stay deterministic per Golden Rule #6 — acceptance scoring and term effects are reproducible for a given full situation; "novel" is a property of input-richness and presentation, never of randomized outcomes. Any future variation for repeat situations must be **bounded and presentation-only**, never touching the scored result.
+7. **Every conference feels novel — not a carbon copy per war score.** Novelty comes from **situational specificity** (which courts are at the table, what each covets and holds, relationships, betrayal memory, coalition posture) and from **conversational texture** (Talleyrand's per-conference read; per-court voice via the Voice Bible families), **not** from randomness and **not** from a rote `war_score → fixed template → identical screen` mapping. Mechanics stay deterministic per Golden Rule #6 — acceptance scoring and term effects are reproducible for a given full situation; "novel" is a property of input-richness and presentation, never of randomized outcomes. (See §8 OQ#6 for the locked enumeration of inputs and the explicit rejection of RNG/LLM-decided variation.)
 
 ---
 
 ## 3. The three-tier flow (mirror of bilateral diplomacy)
 
-| Tier | Bilateral diplomacy today | Settlement re-front (this spec) |
+| Tier | Bilateral diplomacy today (**implemented**, see §15 for code cites) | Settlement re-front (this spec) |
 | --- | --- | --- |
 | **1 — Propose** | Talleyrand drafts smart terms (`generate_suggested_terms`, 5-stage, nation-aware, economically capped) | Talleyrand drafts a baseline settlement for the whole covered set — valid for every court by construction |
 | **2 — Steer by intent** | `Send as suggested` / `Harsher terms` / `More generous`, each re-scoring acceptance live | Same verbs over the settlement package — applied to the **whole table by default or to a single focused court** ("press Prussia," "ease Britain") — with **per-court + overall acceptance** updating live. Talleyrand may also lead with a targeted posture recommendation; his targeting is advice/voice only |
 | **3 — Push on specifics** | `Adjust terms` — guided step-by-step builder | The existing structured clause editor, now the **opt-in deep layer**, with **valid-by-construction** pickers |
 
-The default path is Tiers 1→2 (propose, then nudge). Tier 3 is the power-user surface for players who want to hand-shape a specific clause — but it inherits the same validity guarantee, so the liberation-style nonsense can't be built there either.
+The default landing is the **PROPOSE** surface (Tiers 1→2). The existing EDIT editor (Tier 3) is reached on demand via **`Adjust terms`**, exactly as the bilateral `adjust_terms` option sits beside `Harsher`/`More generous` (`diplomatic_templates.py:243`). Tier 3 inherits the same validity guarantee, so the liberation-style nonsense can't be built there either.
+
+> **Coherence note (important, from the v0.2 audit):** the bilateral three-tier *steering* flow is a property of the **implementation** (`diplomatic_templates.py:226-296`, `diplomatic_executor.py` `modify_harsh`:3101 / `modify_generous`), **not** of `DIPLOMACY_SPEC.md`, which documents only the older two-turn propose→counter-offer flow. This spec mirrors the implemented terms-guidance flow and cites the code as its source of truth. The two are not in conflict — `DIPLOMACY_SPEC.md` simply predates the terms-guidance UI.
+
+### 3a. State machine
+
+```
+War Detail "Open Settlement"
+        │  (propose_common_peace; existing route)
+        ▼
+   ┌─────────────────────┐  Harsher / More generous (whole-table or focused court)
+   │  PROPOSE  (Tier 1/2) │◄───────── re-draft + re-score, stay in PROPOSE
+   │  baseline + per-court │  Coverage: add / drop court ──► re-draw baseline + re-score
+   │  acceptance + dials   │
+   └─────────┬─────────────┘
+   Adjust    │  Submit for Review
+   terms     │
+   ▼         ▼
+┌──────┐  ┌─────────────────────┐  Ratify (fresh rescore gate; existing)
+│ EDIT │  │  REVIEW (existing)   │────────────────────────────► applies per-pair peace
+│Tier 3│─►│  blocked if any court│
+│      │  │  below threshold     │
+└──────┘  └─────────────────────┘
+  ▲  Submit for Review
+  └── Back Out preserves the scoped draft (suspend_settlement_editor; unchanged)
+```
+
+Today the flow jumps straight from `propose_common_peace` to the blank EDIT editor (`open_editor_on_mount=true`). The re-front inserts **PROPOSE** as the default landing; EDIT becomes the `Adjust terms` branch. REVIEW and Ratify are unchanged.
 
 ---
 
@@ -63,73 +93,337 @@ The default path is Tiers 1→2 (propose, then nudge). Tier 3 is the power-user 
 This is the heart of "works like other peace but allows multi-party":
 
 1. **One settlement, a set of covered courts.** A settlement names `covered_enemy_participants` within a single war. Courts not covered stay at war.
-2. **Per-court acceptance, never a blended number.** Each covered court has its own pressure, losses, and objectives, so each has its own acceptance. The conversation surfaces *per-court* readings ("Britain will sign; Prussia will not unless you concede X"), plus an overall "does this settlement carry" summary.
-3. **Coverage is part of the conversation.** Adding or dropping a court ("make peace with Prussia too?") re-draws the baseline, each court's terms, and who remains at war — and Talleyrand reasons about whether widening the net is wise.
-4. **Cross-court validity.** Valid-by-construction spans the whole set: the same region can't be promised to two courts, a non-covered court can't be bound, and a clause's `from`/`to` must be real participants on the right side.
-5. **Talleyrand reasons across the table,** not clause-by-clause in isolation — he weighs the package against each court and flags the binding constraint.
+2. **Per-court acceptance, never a blended number.** Each covered court has its own pressure, losses, and objectives, so each has its own acceptance. The conversation surfaces *per-court* readings ("Britain will sign; Prussia will not unless you concede X"), plus an overall "does this settlement carry" summary. (Payload shape: §11.2.)
+3. **Coverage is part of the conversation.** Adding or dropping a court re-draws the baseline, each court's terms, and who remains at war — and Talleyrand reasons about whether widening the net is wise. (Both the checklist and a conversational prompt write the same state — §8 OQ#2.)
+4. **Cross-court validity.** Valid-by-construction spans the whole set: the same region can't be promised to two courts, a non-covered court can't be bound, and a clause's `from`/`to` must be real participants on the right side. (Rules: §12.)
+5. **Talleyrand reasons across the table,** not clause-by-clause in isolation — he weighs the package against each court and flags the binding constraint. (Conference voice: §13.)
 
 Bilateral peace is then just the n=1 case of this same model.
 
 ---
 
-## 5. Reuse map (this is mostly wiring)
+## 5. Reuse summary (detail in §15)
 
-| Need | Existing machinery to build on |
-| --- | --- |
-| Baseline draft (Tier 1) | `generate_suggested_terms` pattern + the existing concession-baseline generator — **generalized beyond losing-side-only** to propose for any side, any number of covered courts |
-| Live acceptance (Tier 2) | `calculate_common_peace_acceptance` (already per-settlement) wired into the editor the way `calculate_acceptance` feeds the bilateral proposal flow (`acceptance_breakdown`) |
-| Intent dials (Tier 2) | the `modify_harsh` / `modify_generous` redraft-and-rescore pattern, adapted to operate on the settlement package (and/or per court) |
-| Voice + recommendations | `DIPLOMAT_VOICE_BIBLE.md` settlement families (already authored) + the named-diplomat resolver |
-| Deep editor (Tier 3) | the SC-5R-2 `settlement_editor_popup`, with pickers refiltered to be valid-by-construction |
-| Draft persistence | scoped `pending_settlement_drafts_by_key` + the non-destructive `suspend_settlement_editor` close (unchanged) |
-| Ratification gate | the existing fresh-rescore `confirm_settlement` gate (unchanged) |
+This is mostly wiring. Tier-1 baseline = generalize the concession generator + borrow the bilateral demand-term selector. Live acceptance = the existing per-settlement scorer, called once per covered court over one shared score pass. Intent dials = the `modify_harsh`/`modify_generous` redraft-and-rescore pattern. Voice = the Voice Bible settlement families + the named-diplomat resolver. Deep editor = the SC-5R-2 editor with valid-by-construction pickers. Draft persistence + ratification gate = unchanged. **Concrete function-level reuse map with file:line cites and a "new vs extend" column is §15.**
 
 ---
 
 ## 6. What changes / what stays
 
-- **Front door changes:** blank raw form → Talleyrand-proposed baseline + intent dials + live per-court acceptance.
-- **The structured picker editor stays** — but becomes **Tier 3** ("push on specifics"), reached on demand, with **valid-by-construction pickers** (this absorbs the liberation/invalid-combo class of bug and the deferred `DWL-SET-SC5R-3` inline-merge-conflict follow-up).
-- **Backend clause/validation/ratification contracts stay.** We feed them from the conversational front instead of a naked form; the validator remains the source of truth, and pickers mirror it.
-- **Incoming AI offers** (the SC-5 / SC-30 path) read naturally as the inbound side of the same model and should converge on the same per-court presentation.
+- **Front door changes:** blank raw form → Talleyrand-proposed baseline + intent dials + live per-court acceptance (the new **PROPOSE** surface).
+- **The structured picker editor stays** — but becomes **Tier 3** (`Adjust terms`), reached on demand, with **valid-by-construction pickers** (this absorbs the liberation/invalid-combo class of bug and the deferred `DWL-SET-SC5R-3` inline-merge-conflict follow-up).
+- **Backend clause/validation/ratification contracts stay.** We feed them from the conversational front instead of a naked form; the validator remains the source of truth, and pickers mirror it (`SETTLEMENT_UI_CLEANUP_SPEC.md:609`).
+- **SC-5R-2 and `suspend_settlement_editor` are NOT reverted.** The editor scene/script, scoped-draft round-trip, active-vs-archived routing, and the non-destructive Back Out all stay landed; this spec re-fronts them.
+- **Incoming AI offers** (the SC-5 / SC-30 path) read naturally as the inbound side of the same model and should converge on the same per-court presentation. (Out of scope to build here — see §7.)
 
 ---
 
 ## 7. Non-goals (this pass)
 
-- Not redesigning the clause set, acceptance math, or ratification mechanics.
-- Not building AI-side settlement agency — **Slice G stays a separate, later item.**
-- Not specifying exact dial deltas, control-state matrices, or payload schemas — those land in v0.2 after this vision is approved.
+- Not redesigning the clause set or the **9-component acceptance formula** (`calculate_common_peace_acceptance`'s per-court math is unchanged). **In scope and deliberate:** extending the ratification *gate* from single-leader to per-covered-court (§11.4) — this is the one mechanics change the vision requires and is owned by a named requirement + test, not smuggled in as "wiring."
+- Not building AI-side settlement agency — **Slice G stays a separate, later item** (blocked behind Gate 4 smoke per `STATUS.md`).
+- Not building the inbound (incoming-offer) presentation convergence; this spec defines the **outbound** (player-authored) conference. Convergence is recorded as an owned follow-up (§14, row REFRONT-5) so it is not an orphan.
 - Not removing Tier 3; the goal is to *front* it with guidance, not delete the power-user surface.
 
 ---
 
-## 8. Open questions for approval
+## 8. Resolved decisions (was "Open questions for approval")
 
-1. **Dial scope:** do `Harsher` / `More generous` operate on the whole settlement, per side, per covered court — or offer both whole-package and per-court? *(Discussion lean: **both** — whole-table by default + per-court when a court is focused, via progressive disclosure; Talleyrand may lead with a targeted posture as voice/advice only, never LLM-decided mechanics. Tier 2 stays court-level; clause-level precision stays in Tier 3. Confirm and lock in v0.2.)*
-2. **Coverage editing:** conversational ("also make peace with Prussia?") vs. the existing covered-enemies checklist vs. both.
-3. **Tier-3 exposure:** is the raw editor always one click away ("Edit terms"), or gated behind an "advanced" affordance so the default experience stays conversational?
-4. **Per-court acceptance display:** how much detail in Tier 2 (a band per court? top blocker per court? full component breakdown only in Tier 3?).
-5. **Losing-side framing:** the existing concession baseline becomes the Tier-1 baseline for the losing side — confirm it generalizes cleanly to multi-party (different courts may want different concessions).
-6. **Novelty sourcing:** which inputs feed the per-conference texture (court desires, betrayal memory, coalition posture, relationships, holdings), and is any *bounded, presentation-only* variation wanted for repeat conferences in the same situation — strictly never touching the scored mechanics?
-7. **Request affordance for territory/gold:** confirm the player requests specific regions/amounts through the Tier-3 surface (mirroring bilateral "Adjust terms"), with Tier-1 advisor suggestions pre-filling the logical default that the player can override.
+Each former open question is now a locked decision with rationale. (v0.1 numbering retained.)
+
+### OQ#1 — Dial scope → **LOCKED: BOTH (whole-table default + focused court), Tier-2 stays court-level, targeting is voice-only.**
+
+- `Harsher terms` / `More generous` operate on the **whole settlement package by default** (re-draft + re-score every covered court).
+- When a court is **focused** (the player selects a per-court row), the dial applies to **that court only** — "press Prussia," "ease Britain" — leaving the other courts' terms untouched.
+- Talleyrand **may lead with a targeted posture recommendation** ("I'd press Prussia and ease Britain, Sire"). This is **advice/voice only**: it never silently retargets or applies the dial, and it is never LLM-decided mechanics. The player must click to apply. (`test_targeted_posture_is_voice_only_not_applied`.)
+- **Tier 2 granularity is court-level.** Clause-level precision (which region, how much gold) is **Tier 3** only.
+- Canonical labels mirror bilateral exactly: **`Harsher terms`** and **`More generous`** (a.k.a. "kinder"). Per-court phrasing in voice copy may read "press/ease <court>."
+- **Rationale:** preserves the bilateral mental model (one dial on the active proposal) while making the multi-party case first-class; honors Golden Rule #6 (player requests, advisor suggests, deterministic application); avoids a combinatorial per-clause dial in Tier 2.
+
+### OQ#2 — Coverage editing → **LOCKED: BOTH, unified on one backend state.**
+
+- Coverage is editable two ways that both write the **same** `covered_enemy_participants` and trigger the **same** baseline re-draw + per-court re-score:
+  1. the existing covered-enemies **checklist** (already in the editor — `settlement_editor_popup.gd` `_render_covered_enemies`), and
+  2. a **conversational prompt** in PROPOSE — Talleyrand surfaces uncovered hostile courts as one-click "Also bring Prussia to the table?" / "Drop Britain from the conference" suggestions that toggle the same checklist state.
+- Both paths update `ignored_participants[]` / `remaining_wars[]` / the scope badge on the next preview (the cleanup spec already requires the checklist to do this — `SETTLEMENT_UI_CLEANUP_SPEC.md:594`). At least one covered enemy must remain (`:586`).
+- **Rationale:** the checklist already exists and is the source of truth; the conversational prompt is a discoverability/voice layer over the *same* state, not a second store — no drift, no new persistence.
+
+### OQ#3 — Tier-3 exposure → **LOCKED: always one click away (`Adjust terms`), never the default.**
+
+- Tier 3 is reached via an **`Adjust terms`** affordance present in PROPOSE, mirroring the bilateral `adjust_terms` option (`diplomatic_templates.py:243`). It is one click away and always available, but the default landing is the conversational PROPOSE surface.
+- `Adjust terms` may be invoked **focused on a specific court** (opens EDIT seeded to that court's slice) or unfocused (whole package).
+- **Rationale:** mirrors bilateral exactly; "front it with guidance, don't delete it" (§7). Gating behind an "advanced" menu would diverge from bilateral and hide a surface that already shipped.
+
+### OQ#4 — Per-court acceptance display detail → **LOCKED: progressive disclosure by tier.**
+
+- **Tier 1/2 (per-court row):** acceptance **band** + `band_display` + a **one-line top blocker** when below threshold ("Prussia: refuses — territory demand too harsh"), plus the live **delta** on dial actions (previous band → current band). An **overall** summary line ("this peace carries" / "Prussia is the holdout"). This mirrors what bilateral shows (categorical outcome + largest-component feedback — `DIPLOMACY_SPEC.md` A2; `acceptance_breakdown` at `diplomatic_executor.py:392-432`) and the cleanup spec's acceptance-trend contract (`:597`).
+- **Tier 3 (focused court):** full **component breakdown** (the scorer's `feedback` / `top_components`, the 9-component table) for the focused court — the editor's existing preview panel.
+- **Rationale:** band + top blocker is enough to steer; the full component table is detail you only need when hand-shaping a clause. Reuses the scorer's existing output — no new math, all `int()` (Golden Rule #2).
+
+### OQ#5 — Losing-side concession baseline generalized to multi-party → **LOCKED: per-court direction, both sides.**
+
+- The Tier-1 baseline generalizes `_compute_concession_baseline` (`settlement_preview.py:1967`) into a per-court baseline (`compute_settlement_baseline`, §15) that:
+  - loops over each covered court and produces that court's slice;
+  - chooses **direction per court** from that court's side-pressure (the existing `LOSING_SIDE_PRESSURE_THRESHOLD` predicate, evaluated per court): **demand** value where France leads (mirrors `generate_suggested_terms` demand-stage selection of border/coveted regions + calibrated gold), **concede** value where France is pressured (the existing peace→gold→territory escalation);
+  - so a mixed conference (winning vs Prussia, losing vs Britain) emits demands from Prussia *and* concessions to Britain in **one** baseline — exactly the §17 worked example;
+  - targets each court at `near_acceptable`+ by default (the existing escalation already targets `near_acceptance_floor`) and **never** escalates past what the player would request — suggestions, not impositions.
+- **Rationale:** the worked example requires per-court direction; a losing-side-only baseline cannot express it. Generalizing reuses the escalation loop + scorer; the demand side reuses the proven bilateral selectors.
+
+### OQ#6 — Novelty sourcing → **LOCKED: deterministic input set only; bounded presentation-variation REJECTED for v0.2 (recorded as a default-CUT owned item).**
+
+- Per-conference texture is sourced **entirely** from deterministic situational inputs already in world state: per-court desires (`NATION_DESIRE_PROFILES`), holdings (`get_nation_regions`), side-pressure / direct-scores, war objectives (WPS), relationships, betrayal memory, coalition posture/threat, leader losses, power tier.
+- Talleyrand's per-conference read is **composed** from those inputs via the Voice Bible families. **Selection of which families/lines fire is deterministic** from the inputs (exactly as bilateral works). LLM may surface the prose (flavor) but never decides which mechanical situation obtains — Golden Rule #6, reinforced by `DIPLOMACY_SPEC.md` design-philosophy ("LLM explains, never decides").
+- The optional "bounded, presentation-only variation for repeat conferences" is **NOT adopted in v0.2.** It is **not an orphan deferral**: it is recorded as an explicitly-owned, **default-CUT** item (§14, row REFRONT-6) with a completion definition and a guard test (`test_presentation_variation_never_changes_scored_result`) that any future implementation must satisfy. Reason it is cut: the deterministic input space is already large enough that exact repeats are rare, so the variation buys little and risks smuggling RNG into a deterministic engine.
+- **Rationale:** keeps the gate clean and the engine deterministic; satisfies the "feels novel" claim through input richness + voice at zero mechanical cost.
+
+### OQ#7 — Territory/gold request affordance → **LOCKED: identity in Tier 3, magnitude in Tier 2, advisor pre-fills the default.**
+
+- Specific region / gold-amount **requests** are authored in **Tier 3** (the structured editor — region picker, numeric input), exactly as bilateral `Adjust terms` builds the offer step by step.
+- The **Tier-1 baseline pre-fills the logical default** (suggested region from `NATION_DESIRE_PROFILES` / border logic; conservative payable gold) that the player can accept, change, or replace.
+- **Tier-2 dials adjust magnitude at the court level** (harsher = larger/more demands; generous = fewer/smaller); the **specific identity** of the region/amount is a Tier-3 request.
+- **Rationale:** matches bilateral exactly (magnitude in Tier 2, identity in Tier 3); preserves "player requests, advisor suggests" (principle 6 / Golden Rule #6).
 
 ---
 
 ## 9. Gate & sequencing
 
-- **Immediate next action — finish this spec, then audit it.** Resolve the §8 open questions into a **v0.2** (detailed control-state, payloads, per-dial behavior, tests), then run a coherence/completeness **audit** of the spec — before any implementation code or final approval.
+- **Status:** v0.2 finished and audited (sibling note). **Next gate: USER APPROVAL.** No implementation code until approved.
 - **This is the next-up priority** for the settlement arc (ahead of Slice G, which remains blocked and separate).
-- **Design gate:** NEEDS APPROVAL. On approval → write v0.2 (detailed control-state, payloads, per-dial behavior, tests) → implement in slices:
-  - Slice 1 — Tier 1 baseline (generalize the suggested-terms / concession generator to multi-party, any side).
-  - Slice 2 — Tier 2 intent dials + live per-court acceptance wired into the front surface.
-  - Slice 3 — Tier 3 valid-by-construction editor (folds in `DWL-SET-SC5R-3`).
-- **Gate 4 manual smoke re-runs** against the re-fronted flow once Slices 1–2 land.
-- **Interim de-risk (optional, independent):** the cheap picker-filtering band-aid (disable Add Clause when a clause type has no valid target; filter role pickers so self-referential combos can't be authored) can land on its own to unblock the current Gate 4 pass without waiting for the full re-front. It is strictly a symptom patch; the re-front is the cure.
+- **On approval →** implement the slices in §14 in order. Gate 4 manual smoke re-runs against the re-fronted flow once Slices 1–2 land.
+- **Interim de-risk (optional, independent — §16):** the cheap picker-filtering band-aid can land on its own to unblock the current Gate 4 pass without waiting for the full re-front. It is strictly a symptom patch (it lands the cleanup-spec line-601 contract + its named test); the re-front is the cure.
 
 ---
 
-## 10. Worked example — war with three courts
+## 10. Surfaces & dialogue modes
+
+The settlement dialogue family gains one new mode. All three modes live on the existing `settlement_confirm` dialogue contract (the cleanup spec already defines EDIT / REVIEW / BLOCKED_TERMINAL); PROPOSE is added in front.
+
+| `dialogue_mode` | Surface | Tier | Blocking? | Reached from |
+| --- | --- | --- | --- | --- |
+| **`PROPOSE`** *(new)* | Conversational front: baseline + per-court acceptance + dials + coverage | 1–2 | **not a hard-stop** (authoring surface, like EDIT) | `propose_common_peace` (default landing) |
+| `EDIT` *(existing)* | `settlement_editor_popup.gd` structured editor | 3 | not a hard-stop (end turn discards draft) | PROPOSE `Adjust terms`; revise routes |
+| `REVIEW` *(existing)* | `proposal_confirm_popup.gd` `_build_settlement_content` | — | hard-stop | PROPOSE / EDIT `Submit for Review` |
+| `BLOCKED_TERMINAL` *(existing)* | blocked-ratification banner + recovery | — | hard-stop | stale / unrecoverable |
+
+**Why PROPOSE is *not* a hard-stop:** it is an **authoring** surface (Tiers 1–2), the same role EDIT plays, and the cleanup spec deliberately made settlement authoring non-blocking (`SETTLEMENT_UI_CLEANUP_SPEC.md:575` — "EDIT mode is not a hard stop… the player may end the turn from an editor draft"). Classifying PROPOSE like EDIT keeps the player from being trapped and avoids the asymmetry where `Adjust terms → EDIT` would become an end-turn escape hatch. End turn from PROPOSE discards the unsubmitted draft via the SC-2 discard-notice contract (identical to EDIT). **Back Out** from PROPOSE uses the non-destructive `suspend_settlement_editor` semantics already shipped (preserves the scoped draft for same-turn reopen). Only `REVIEW` / `BLOCKED_TERMINAL` (staged-decision surfaces) remain hard-stops. PROPOSE / EDIT / REVIEW remain one continuous authoring session over one scoped draft. *(Test: `test_propose_does_not_block_end_turn_while_review_does`.)*
+
+**Godot rendering.** PROPOSE renders per-court rows (court name, band, top blocker, direction summary) + the dial action rail. It either extends `proposal_confirm_popup.gd::_build_settlement_content` with a PROPOSE branch or adds a sibling `settlement_propose_popup` on a layer below the editor (112). The editor (Tier 3) stays exactly where it is. (Surface choice is an implementation detail for Slice 1; the **payload** is fixed below so backend work is unblocked either way.)
+
+---
+
+## 11. Per-tier control-state and payloads
+
+### 11.1 PROPOSE control-state matrix
+
+| Mode | Visible controls | Disabled / absent rules |
+| --- | --- | --- |
+| `PROPOSE` | Per-court acceptance rows (focusable); `Harsher terms`; `More generous`; per-court focus toggle; `Coverage` add/drop prompts; `Adjust terms` (→ EDIT, optionally focused); `Submit for Review`; Back Out | `Submit for Review` is disabled while a re-score is in flight, while `covered_enemy_participants` is empty, or while the baseline failed to generate. `Harsher`/`More generous` are disabled while a re-score is in flight. Below-threshold courts do **not** disable `Submit` — Submit into a blocked REVIEW is allowed (cleanup spec `:597`), but the click first renders the same inline below-threshold warning the editor uses. A focused dial is disabled for a court already at the band floor/ceiling (e.g. `More generous` on a court already at `accept` shows "already certain to sign"). Talleyrand's targeted-posture line is advisory text, never an auto-applied control. |
+
+PROPOSE is an authoring surface — **not** a hard-stop (§10) — and shares EDIT's end-turn-discards-draft + Back Out-preserves-draft semantics (SC-2). Below-threshold **holdout** courts surface `Ease <court>` / `Drop <court>` (§11.4) so a holdout is never a dead-end. EDIT ↔ REVIEW ↔ PROPOSE cycles from normal revision are **not** SC-14b stale-reopen attempts and have no loop cap.
+
+### 11.2 Per-court acceptance payload (`per_court_acceptance`)
+
+Returned by PROPOSE preview and by every dial/coverage re-score. One entry per covered court, each produced by one `calculate_common_peace_acceptance` call (see §15 for the shared-score-pass scale design).
+
+```
+per_court_acceptance: List[{
+  "nation": str,                      # covered court
+  "band": str,                        # "accept" | "near_acceptable" | "reject"
+  "band_display": str,                # humanized, Voice-Bible-consistent
+  "total": int | null,               # int() per Golden Rule #2; null on hard-stop
+  "threshold": int,                   # accept threshold (currently 50)
+  "verdict": str,                     # mirrors scorer verdict
+  "top_blocker_display": str | null, # one-line worst negative component when below threshold
+  "direction_summary": str,           # "Demanded: Silesia + 200g" / "Conceded: white peace"
+  "previous_band": str | null,       # for live delta; null on first paint
+  "delta_display": str | null,       # "Prussia 78% → 44% (now refuses)" style; presentation only
+  "hard_stops": List[Dict]            # per-court hard stops bubbled from the scorer
+}]
+overall_acceptance: {
+  "carries": bool,                    # true iff every covered court is at/above threshold
+  "holdout_courts": List[str],
+  "summary_display": str              # "This peace carries" / "Prussia is the holdout"
+}
+```
+
+`per_court_acceptance` reuses the scorer's canonical preview shape (`band`/`verdict`/`feedback`/`top_components`); `top_blocker_display` is the scorer's top negative component (no new math). All numeric fields are `int()`. `delta_display` is **presentation-only** and never feeds the scored result (Golden Rule #6 / OQ#6).
+
+### 11.3 PROPOSE request/response and dial/coverage actions
+
+PROPOSE reuses the settlement preview request shape (`SETTLEMENT_UI_CLEANUP_SPEC.md:543`) with `dialogue_mode="PROPOSE"`. New action verbs (all deterministic redraft-and-rescore, mirroring `modify_harsh`):
+
+- `settlement_dial_harsher` — `{war_id, draft_key, scope: "table" | court_nation}`. Re-drafts the package harsher (whole table or one court) and returns `per_court_acceptance` + `overall_acceptance` + the new `settlement_terms`.
+- `settlement_dial_generous` — same shape, opposite direction.
+- `settlement_cover_add` / `settlement_cover_drop` — `{war_id, draft_key, nation}`. Mutates `covered_enemy_participants`, re-draws the baseline for the new set, re-scores, and updates `ignored_participants[]` / `remaining_wars[]`.
+- `settlement_focus_court` — `{war_id, draft_key, nation | null}`. Presentation-only focus; does not mutate terms.
+- `adjust_terms` (→ EDIT) and `propose_common_peace` (→ Submit for Review) reuse existing routes; `adjust_terms` carries optional `focused_court`.
+
+Each dial/coverage response carries the same `per_court_acceptance` / `overall_acceptance` block so Godot re-renders identically regardless of which action fired.
+
+### 11.4 Ratification gate — per-covered-court (the one deliberate mechanics change)
+
+> **What changes from today.** The current settlement gate scores a **single `accepting_leader`** for the whole covered set (`settlement_preview.py:2431-2444`; ratify at `:4776`); the 9-component formula lowers the *leader's* willingness when allies are burdened (`burdened_participant_penalty`), i.e. today's model is "the coalition leader signs for the bloc with ally sympathy." A multi-court settlement therefore ratifies if the leader accepts, even if a covered minor would refuse.
+
+**v0.2 locks the per-court gate:**
+
+- **`overall_acceptance.carries` is true iff *every* covered court is at/above its threshold.** Ratification (`confirm_settlement`) is offered only when `carries` is true. A covered court below threshold is a **holdout** that blocks the settlement until it is **eased** (dialed/edited toward acceptance) or **dropped** from coverage (it stays at war). REVIEW omits `confirm_settlement` while any covered court is a holdout (extends the existing below-threshold-blocks-ratify rule, `SETTLEMENT_UI_CLEANUP_SPEC.md:570/597`, from "the score" to "every court's score").
+- **A holdout is never a dead-end.** Every holdout court row exposes both `Ease <court>` (focused `More generous`, §11.3) and `Drop <court>` (focused `settlement_cover_drop`, §11.3) as one-click actions. Dropping leaves that pair at war.
+- **REVIEW carries `per_court_acceptance` too**, not only PROPOSE — so the gate and the displayed blocking reason are the same data. (Today REVIEW carries a single `acceptance` object; it gains the per-court block.) The single `acceptance` object is retained for the n=1 bilateral case and as the leader-row summary.
+- **Regression surface (call out for the implementer):** existing multi-court settlement tests/fixtures that assume leader-gating may change verdict under per-court gating. Updating them to per-court expectations is expected and is *not* a regression — the suite must still end green. Named owner test: `test_ratify_requires_all_covered_courts_at_or_above_threshold_not_just_leader`.
+
+**Why per-court (historical + UX, answering the v0.2 design question).** *Historical analogue:* Napoleonic coalition wars ended by each court making its **own** peace, never a bloc signature — Pressburg (1805): Austria signed while Russia withdrew and Britain fought on; Tilsit (1807): Napoleon signed **separate** treaties with Russia (lenient) and Prussia (punitive). "Dropping a holdout" is exactly the historical "separate peace; the holdout fights on" (Britain is the archetype). The single-leader gate is the ahistorical one. *UX:* if the gate were single-leader, the per-court rows would be dishonest (showing "Prussia refuses" while the peace ratifies); per-court makes the displayed acceptance the real gate, and the ease/drop lever prevents any hard block.
+
+---
+
+## 12. Multi-party cross-court validity rules
+
+Valid-by-construction spans the whole covered set. These rules are enforced in `validate_settlement_terms` (`settlement_preview.py:2180`, the source of truth) and **mirrored** by the pickers (§13). Each has a named test (§14).
+
+- **V1 — No region promised to two courts.** Across all `territory_cede` clauses, each `region` appears at most once regardless of `from`/`to`. Violation → `region_double_promised` with both offending clause indices. (`test_no_region_promised_to_two_courts`.)
+- **V2 — Cannot bind a non-covered court.** Every clause's `from`/`to` and dependency roles must be a participant that is proposer-side **or** a court in `covered_enemy_participants`. A clause referencing an uncovered enemy → `clause_target_uncovered` (the cleanup spec already defines this code, `:594`). Dropping a court invalidates clauses that reference it. (`test_clause_cannot_bind_uncovered_court`.)
+- **V3 — from/to must match the correct war side.** Demand clauses burden the accepting side; concession clauses burden the proposer side; the burdened party's side must match its actual side in `war_instance` (reuse `_side_for_nation`, `settlement_preview.py:345`). Violation → `clause_side_mismatch`. (`test_clause_from_to_must_match_war_sides`.)
+- **V4 — No self-reference.** `from != to`; a court cannot cede to or pay itself; for `liberation`, `vassal_nation`, `lord_nation`, `liberator` must be three distinct, correctly-sided nations (already enforced by `evaluate_liberation_eligibility`, `:1644`). This is the rule that kills *France-liberates-France*. (`test_settlement_no_self_referential_clause`.)
+- **V5 — Coverage floor.** At least one covered enemy must remain (`:586`); an empty covered set → `no_covered_enemy_participants`.
+
+V1, V3 (the "right side" generalization across a multi-court set) are the genuinely-multi-party additions; V2, V4, V5 already exist for the single-court path and extend to the set. All five run at POST-preview, at Submit revalidation, and inside the fresh-rescore ratify gate (defense in depth, mirroring SC-5R-1).
+
+---
+
+## 13. Picker valid-by-construction rules (the cure)
+
+Pickers mirror the validator (§12) so the illegal cannot be **authored**, not merely rejected. Authority remains the validator (`SETTLEMENT_UI_CLEANUP_SPEC.md:609`); pickers are a filtered view of it.
+
+- **P1 — Add Clause disabled when a clause type has no valid target.** `_build_clause_control_schema_for_review` (`settlement_preview.py:2976`) computes `enabled` **per clause type** from whether its required pickers have ≥1 valid option after filtering; sets `enabled=False` + `disabled_reason_display` otherwise. This implements the cleanup-spec line-601 contract that was never wired (today it hardcodes `enabled=True` at `:3001`). Applies to: territory with no controlled regions, gold with no payable amount, dependency clauses with no valid target, same-side forced alliances, and **liberation with no valid vassal**.
+- **P2 — Role pickers filtered to valid sides.** Each role picker offers only legal participants:
+  - `liberation.vassal_nation` → **current vassals only** (`_vassal_control_options`, `:2832`); **the `vassal_options or nation_options` fallback at `:2959` is removed** so non-vassals (including France) can never appear.
+  - `liberation.lord_nation` → the vassal's current lord; `liberation.liberator` → opposite-side participants (mirror `evaluate_liberation_eligibility`).
+  - `territory_cede.region` → only regions the selected `from` controls; `from`/`to` filtered to opposite war sides.
+  - `gold_indemnity` payer/payee filtered to opposite sides; `amount` max bounded by payer treasury.
+  - `forced_alliance` → covered enemy targets not already in an equivalent alliance; same-side imposition disabled.
+- **P3 — Pickers update on coverage/focus change.** Toggling `covered_enemy_participants` re-filters every picker and re-computes `enabled` (clauses referencing a now-uncovered court go invalid per V2).
+
+P1 + the P2 liberation fallback removal are exactly the **interim band-aid** (§16); the rest of P2/P3 land with Slice 3.
+
+---
+
+## 14. Slice plan with named behavior tests
+
+Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior test, and every deferred/cut item has an owner row + landing slice + completion definition + test. The interim band-aid is **Slice 0** and is independently shippable (§16).
+
+### Slice 0 — Interim picker band-aid (independent de-risk; lands the cleanup-spec line-601 contract)
+- **Scope:** P1 (`enabled` computation + `disabled_reason_display`) and the P2 liberation `vassal_options or nation_options` fallback removal in `settlement_preview.py`.
+- **Tests:**
+  - `test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause` *(the cleanup-spec line-618 test that never landed)*
+  - `test_liberation_vassal_picker_excludes_non_vassals`
+  - `test_clause_control_schema_enabled_false_carries_disabled_reason`
+  - `test_settlement_no_self_referential_clause` (liberation France-France-France not constructible **or** rejected pre-stage)
+- **Completion:** no live clause type renders an empty picker; liberation offers only real vassals; full suite green.
+
+### Slice 1 — Tier 1 baseline (multi-party, any side) + PROPOSE surface + per-court gate
+- **Scope:** generalize `_compute_concession_baseline` → `compute_settlement_baseline` (per-court direction, OQ#5); add `dialogue_mode="PROPOSE"` + the `per_court_acceptance` / `overall_acceptance` payload (§11.2); add the **per-court ratification gate** (§11.4) — `carries` iff every covered court ≥ threshold, REVIEW carries `per_court_acceptance`, holdout courts surface ease/drop; render the PROPOSE surface; route `propose_common_peace` to land PROPOSE (not blank EDIT).
+- **Tests:**
+  - `test_settlement_baseline_demands_from_winning_courts_concedes_to_losing`
+  - `test_settlement_baseline_per_court_direction_uses_side_pressure`
+  - `test_settlement_baseline_suggestions_are_valid_by_construction`
+  - `test_settlement_baseline_is_deterministic_same_world_same_terms` (no RNG — OQ#6)
+  - `test_propose_mode_payload_shape_per_court_and_overall`
+  - `test_ratify_requires_all_covered_courts_at_or_above_threshold_not_just_leader` (§11.4 gate change)
+  - `test_review_payload_carries_per_court_acceptance`
+  - `test_holdout_court_offers_ease_or_drop_not_dead_end`
+  - `test_propose_does_not_block_end_turn_and_back_out_preserves_scoped_draft`
+  - `test_propose_landing_replaces_blank_edit_as_default`
+- **Completion:** opening settlement lands a populated, valid, per-court PROPOSE surface; ratification gates on every covered court; holdouts are ease/droppable; end turn discards, Back Out preserves; suite green (including any leader-gating fixtures updated to per-court — §11.4 regression surface).
+
+### Slice 2 — Tier 2 intent dials + live per-court acceptance
+- **Scope:** `settlement_dial_harsher` / `settlement_dial_generous` (whole-table + focused court); `settlement_cover_add` / `settlement_cover_drop`; `settlement_focus_court`; live band + delta; Talleyrand targeted-posture advisory line.
+- **Tests:**
+  - `test_harsher_dial_rescores_all_covered_courts`
+  - `test_focused_dial_applies_to_single_court_only`
+  - `test_per_court_acceptance_payload_band_and_top_blocker`
+  - `test_dial_delta_previous_to_current_band_presentation_only`
+  - `test_coverage_drop_court_rescores_and_updates_remaining_wars_and_ignored`
+  - `test_coverage_add_court_redraws_baseline_for_new_set`
+  - `test_targeted_posture_is_voice_only_not_applied`
+  - `test_per_court_scoring_shares_one_direct_score_side_pressure_and_balance_projection_pass` (scale — Golden Rule #8; see §15 balance-projection memoization param)
+- **Completion:** dials move per-court acceptance live, whole-table and focused; coverage edits re-score; advisory targeting never mutates terms; the per-court loop runs one shared score/projection pass; suite green. **Gate 4 manual smoke re-runs here.**
+
+### Slice 3 — Tier 3 valid-by-construction editor (folds in DWL-SET-SC5R-3)
+- **Scope:** `Adjust terms` from PROPOSE → EDIT (optionally focused court); cross-court validity V1–V5 in `validate_settlement_terms`; full P2/P3 picker filtering; **DWL-SET-SC5R-3 inline merge-conflict `Discard new clause` / `Replace active clause` controls** (cleanup spec `:589`).
+- **Tests:**
+  - `test_adjust_terms_from_propose_opens_edit_optionally_focused`
+  - `test_no_region_promised_to_two_courts` (V1)
+  - `test_clause_cannot_bind_uncovered_court` (V2)
+  - `test_clause_from_to_must_match_war_sides` (V3)
+  - `test_merge_conflict_discard_new_clause_control` (DWL-SET-SC5R-3)
+  - `test_merge_conflict_replace_active_clause_control` (DWL-SET-SC5R-3)
+  - `test_tier3_picker_refilters_on_coverage_change` (P3)
+- **Completion:** Tier 3 cannot author any V1–V5 violation; merge-conflict controls work; `DWL-SET-SC5R-3` flips to LANDED; suite green.
+
+### Voice — Multi-court conference voice (NEW; closes Voice Bible gap B4)
+- **Owner / landing:** authored with Slice 1's PROPOSE copy and Slice 2's dial copy; tracked as spec row REFRONT-V.
+- **Scope:** `DIPLOMAT_VOICE_BIBLE.md` gains a **multi-court / conference** section: each covered court's line resolves through its **named diplomat** (Castlereagh/Hardenberg/Metternich/Einsiedel) via the existing resolver/fallback chain (Voice Bible Intro:7, Cross-cast:239-243); **Talleyrand narrates the table** and flags the binding constraint. No anonymous voice at conference beats.
+- **Tests:**
+  - `test_conference_per_court_voice_resolves_named_diplomat_or_chancery_fallback`
+  - `test_talleyrand_narrates_table_and_binding_constraint`
+- **Completion:** Voice Bible has an authored conference family; per-court lines resolve to named diplomats; suite green.
+
+### Deferred / cut items (owned, not orphaned)
+
+| Row | Item | Decision | Landing / completion | Test |
+| --- | --- | --- | --- | --- |
+| **REFRONT-5** | Incoming-offer (SC-5/SC-30) presentation convergence onto per-court model | **DEFER** (post Slices 1–3) | Lands when SC-30 inbound UI is revisited; completion = incoming offers render the same `per_court_acceptance` block | `test_incoming_offer_uses_per_court_presentation` |
+| **REFRONT-6** | Bounded presentation-only novelty variation for repeat conferences | **CUT (default)** | Only if ever wanted: a gated presentation slice; completion = variation provably never changes the scored result | `test_presentation_variation_never_changes_scored_result` |
+| **REFRONT-7** | `_region_control_options` full-region scan hardening for full-Europe | **DEFER** (scale hardening) | Pre-filter region picker by participants' holdings via `get_nation_regions` instead of scanning all regions; completion = no all-regions scan in the Tier-3 schema build | `test_region_picker_options_scale_with_participants_not_world` |
+| **DWL-SET-SC5R-3** | Inline merge-conflict Discard/Replace controls | **FOLDED into Slice 3** | Completion = the two controls land with tests above | (Slice 3 tests) |
+| **Slice G** | AI-ally settlement agency | **SEPARATE / LATER** (unchanged) | Blocked behind Gate 4 smoke per `STATUS.md` | (owned by Slice G spec) |
+
+---
+
+## 15. Concrete reuse map (verified file:line)
+
+Every row was checked against the codebase during v0.2 authoring. "EXTEND" = call/wrap existing code; "FIX" = correct a divergence; "NEW" = genuinely net-new (flagged honestly).
+
+| Need | Reuse (verified file:line) | New vs Extend |
+| --- | --- | --- |
+| Tier-1 baseline, concession direction | `_compute_concession_baseline` `settlement_preview.py:1967`; region pick `_concession_baseline_select_transferable_region:1392`; payer balance `:1333` | **EXTEND** into per-court loop `compute_settlement_baseline` |
+| Tier-1 baseline, demand direction | `generate_suggested_terms` `diplomatic_templates.py:1889` (5-stage, `NATION_DESIRE_PROFILES`, border/coveted selection via cached `world.get_nation_regions()`) | **EXTEND** (borrow demand-stage selection per court) |
+| Per-court live acceptance | `calculate_common_peace_acceptance` `settlement_scoring.py:1884` — already accepts memoized `direct_scores` (:1896) + `side_pressure_result` (:1895) + `raw_total_harshness` (:1897) | **EXTEND** — thin aggregator calls once per covered court over **one** shared `compute_direct_scores_by_enemy:192` + `compute_side_pressure_score:278` pass; **add** one new memoization param so the package-level `project_balance_after_settlement` (:1537) projection is shared across courts (see scale hook below) |
+| Per-court ratification gate | `revalidate_staged_settlement:3877`, `ratify_settlement_confirm:4583`, `can_ratify`/`build_settlement_preview:2434` (today single `accepting_leader`) | **EXTEND** — gate on every covered court (§11.4); deliberate behavior change, regression surface |
+| Intent dials | `modify_harsh` `diplomatic_executor.py:3101` (+ `modify_generous`); option template `diplomatic_templates.py:226-296` | **EXTEND** — apply to settlement package; whole-table vs focused court |
+| Acceptance band display | scorer `band`/`verdict`/`feedback`/`top_components`; `acceptance_breakdown` `diplomatic_executor.py:392-432`; `_enrich_acceptance_display` `settlement_preview.py:274` | **REUSE** as-is |
+| PROPOSE surface + payload | new `dialogue_mode="PROPOSE"`; `per_court_acceptance`/`overall_acceptance` block | **NEW** (thin; composed from scorer + baseline) |
+| Per-court aggregator | wraps the scorer N times sharing one score pass | **NEW** (thin) |
+| Tier-3 editor | `settlement_editor_popup.gd` (CanvasLayer 112); `_build_clause_control_schema_for_review` `settlement_preview.py:2976`; validator `validate_settlement_terms:2180` | **EXTEND** |
+| Picker `enabled` computation | `_build_clause_control_schema_for_review:2976` (hardcodes `enabled=True` at `:3001`) | **FIX** — compute per picker emptiness (cleanup spec `:601`) |
+| Liberation picker filter | `_clause_fields_for_review:2839`; bug at `:2959` (`vassal_options or nation_options`); `_vassal_control_options:2832`; validator `evaluate_liberation_eligibility:1644` | **FIX** — drop `or nation_options` fallback; filter roles to valid sides |
+| Cross-court validity V1–V5 | `validate_settlement_terms:2180`; `_side_for_nation:345`; `_active_cross_side_pairs:360` | **EXTEND** (V1, V3 multi-court additions) |
+| Coverage editing | `_render_covered_enemies` (Godot); `get_coverable_enemy_participants:1291`; checklist re-preview (cleanup spec `:594`) | **REUSE** + conversational prompt over same state |
+| Draft persistence | `save/load/discard_scoped_settlement_draft` `settlement_preview.py:2676/2701/2721`; `pending_settlement_drafts_by_key` (world_state); `suspend_settlement_editor` handler | **REUSE** unchanged |
+| Ratification gate | `ratify_settlement_confirm` fresh-rescore `confirm_settlement` | **REUSE** unchanged |
+| Conference voice | Voice Bible §16.1 families; named-diplomat resolver (Intro:7, Cross-cast:239-243) | **NEW** multi-court resolution rule (Voice Bible has no conference rule today) |
+
+**Scale-readiness design hook (Golden Rule #8).** Per-court scoring is N calls (N = covered courts in **one** war, bounded — typically a handful), invoked on **user dial/coverage actions**, not in a per-turn AI hot path. Three of the scorer's heaviest inputs are **package-level** (identical across the per-court loop) and must be computed once per dial action and shared:
+- `direct_scores` — `compute_direct_scores_by_enemy:192` (the scorer already accepts it memoized at :1896),
+- `side_pressure_result` — `compute_side_pressure_score:278` (side-level quantity, identical across courts; memoized param at :1895),
+- the balance projection — `project_balance_after_settlement:1537` takes `(world, war_id, settlement_terms)` and is **independent of `accepting_leader`**, so it is identical across courts. The scorer currently recomputes it internally with **no** injection param (unlike the three above). **Slice 2 adds one memoization param** (`balance_projection=...`) mirroring the existing pattern, so the aggregator computes the projection once and passes it to each per-court finalization.
+
+With these shared, each per-court call only finalizes the court-specific components (`leader_own_losses`, that court's `war_objective_alignment`, its `burdened_participant_penalty`). No per-court re-scan of `world.regions`; lookups use cached `get_nation_regions()` / `get_active_nations()`. The one remaining all-regions scan (`_region_control_options:2816`, in the Tier-3 schema build) runs once per POST-preview (user-initiated, not per-turn) and is recorded as scale-hardening row REFRONT-7.
+
+---
+
+## 16. Interim de-risk band-aid (optional, independent)
+
+Strictly a symptom patch that can ship **before** the full re-front to unblock the current Gate 4 pass. It is **Slice 0** above and lands a contract that already exists in `SETTLEMENT_UI_CLEANUP_SPEC.md` (line 601) but was never wired:
+
+- Compute `enabled` per clause type in `_build_clause_control_schema_for_review` (P1).
+- Remove the `vassal_options or nation_options` fallback in liberation's `vassal_nation` field (`:2959`) so the picker offers only real vassals (P2 liberation).
+- Land the cleanup-spec line-618 test `test_clause_add_disabled_when_picker_filter_empty_for_each_live_clause` (it does not exist today).
+
+It does **not** add the baseline, dials, per-court acceptance, or conversational front — that is the cure (Slices 1–3). The band-aid has no dependency on the re-front and can land first.
+
+---
+
+## 17. Worked example — war with three courts
 
 France is in one coalition war against **Britain + Prussia + Austria**. France's leverage differs per court: winning decisively vs Prussia, roughly even vs Austria, behind at sea vs Britain. This is the peace conference the model is built for.
 
@@ -142,16 +436,16 @@ SETTLEMENT — War of the Third Coalition          Talleyrand proposes:
   Britain   white peace                             Britain  62%  will sign
                                           OVERALL:  this peace carries
 ```
-Talleyrand explains *why* per court (Prussia broken and able to pay; Austria wary, so ask little; Britain only wants off the Continent). Every clause is a **suggestion the player can change**, and every clause is legal by construction. Nothing was randomly assigned — the suggested regions/amounts come from each court's desires and holdings.
+Per-court direction is chosen from each court's side-pressure (OQ#5): demand from Prussia (France leads), concede/neutral to Austria and Britain. Talleyrand explains *why* per court. Every clause is a **suggestion the player can change**, and every clause is legal by construction. Nothing was randomly assigned.
 
-**Tier 2 — steer by intent, watch each court react live.** Clicking *Harsher* redrafts and **re-scores per court**: Prussia falls to ~44% (now refuses), Austria ~29% (refuses), Britain ~16% (hard reject). One dial, three different consequences, shown before committing.
+**Tier 2 — steer by intent, watch each court react live.** Clicking *Harsher terms* (whole table) re-drafts and **re-scores per court**: Prussia ~44% (now refuses), Austria ~29% (refuses), Britain ~16% (hard reject). One dial, three different consequences, shown before committing. Focusing Prussia and clicking *Harsher* presses only Prussia.
 
-**Coverage lever (multi-party only).** The player can **drop Britain** from the conference; Britain stays at war while Prussia + Austria settle. Talleyrand reads the consequence ("Britain stands alone on the Continent and may sue for terms themselves").
+**Coverage lever (multi-party only).** The player **drops Britain** from the conference; Britain stays at war while Prussia + Austria settle. `ignored_participants[]` / `remaining_wars[]` update; Talleyrand reads the consequence ("Britain stands alone on the Continent").
 
-**Tier 3 — request specifics for the swing court.** Austria is the wobbler. The player opens the deep editor for Austria, **requests** a smaller border region instead of the suggested one and adds a gold sweetener France pays → Austria climbs 56% → ~71%. Pickers only offer regions Austria actually holds; Austria's land cannot be promised to Prussia (valid by construction).
+**Tier 3 — request specifics for the swing court.** Austria is the wobbler. The player clicks *Adjust terms* focused on Austria, **requests** a smaller border region instead of the suggested one and adds a gold sweetener France pays → Austria climbs 56% → ~71%. Pickers only offer regions Austria actually holds; Austria's land cannot be promised to Prussia (V1); France cannot cede to itself (V4).
 
-**Ratify.** Final review shows the per-court outcome and applies each pair's peace transition.
+**Ratify.** `Submit for Review` → REVIEW (fresh rescore). With every covered court at/above threshold, Ratify applies each pair's peace transition. If a court is below threshold, REVIEW omits `confirm_settlement` and blocks until the player eases that court or drops it.
 
 **Why per-court, not blended:** a single averaged number would hide that the same package is generous to Britain and ruinous to Prussia. The conference scores each court independently so the player can see — and shape — exactly where the peace holds or breaks.
 
-**Why it feels novel each time:** the next conference has a different set of courts with different desires, holdings, grievances, and coalition posture, plus Talleyrand's situation-specific read — so it reads fresh without any randomness in the underlying mechanics.
+**Why it feels novel each time:** the next conference has a different set of courts with different desires, holdings, grievances, and coalition posture, plus Talleyrand's situation-specific read — so it reads fresh without any randomness in the underlying mechanics (OQ#6).
