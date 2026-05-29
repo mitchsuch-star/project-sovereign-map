@@ -1,6 +1,6 @@
-# Settlement Conversational Re-front — v0.2 Audit Note
+# Settlement Conversational Re-front — Cumulative Audit Note (v0.2 → v0.5)
 
-**Audits:** `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` **v0.2**
+**Audits:** `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` **v0.2 → v0.5** (cumulative — §2 = first pass → v0.2; §8 = Run #1 → v0.3; §9 = Run #2 → v0.4; §10 = Run #3 → v0.5)
 **Date:** May 28, 2026
 **Verdict:** **GO-with-changes → GO.** The audit found **4 material change items**; all four were **folded into v0.2** during this pass. With them folded, v0.2 is **GO-ready for user approval** (it remains a design gate — `NEEDS APPROVAL`; no code until approved).
 
@@ -136,3 +136,21 @@ v0.3 was audited twice, independently, under the same methodology. **A second-pe
 **Agent pass (corroborating): GO** — 4 MINORs, also folded into v0.4: `acceptance_breakdown` relabeled to the `_execute_diplomatic_feasibility` result key (`diplomatic_executor.py:389-432`); `adjust_terms` cite `:243`→`:245`; Slice 2 split escape hatch added; Voice slice ordering pinned to land before/with Slice 1 (Slice 1 completion now depends on the resolver rule).
 
 With these folded, v0.4 carries zero known CRITICAL/MAJOR. The spec remains a DESIGN GATE pending user approval of v0.4; a fresh audit run against v0.4 is advisable before implementation.
+
+---
+
+## 10. Run #3 — independent re-audit of v0.4 (folded into v0.5)
+
+v0.4 was audited a fourth time. A structured **Codex pass returned NO-GO** (M1 8 / M2 6 / M3 7 / M4 5 / M5 6; **1 CRITICAL + 3 MAJOR**); a parallel agent pass returned GO (all metrics ≥7, zero CRITICAL) but surfaced 1 MAJOR + 2 MINOR clarity items. Every finding was **re-verified against the live code** before folding — `calculate_common_peace_acceptance:1884` (single `accepting_leader:1891`, memoized `side_pressure_result:1895`/`direct_scores:1896`/`raw_total_harshness:1897`, **no** `balance_projection` param), single-leader preview scoring `:2434-2444`, ratify `:4583`, `enabled=True` hardcode `:3001`, liberation fallback `:2959` all re-confirmed exact. All findings were folded into **v0.5**:
+
+| ID | Severity | Summary (verified) | Folded into v0.5 |
+| --- | --- | --- | --- |
+| R3-C1 | **CRITICAL** | §5 reuse summary said "Draft persistence + ratification gate = unchanged," flatly contradicting §7/§11.4/§15 (the per-court gate is the one deliberate mechanics change; §15 even splits gate-EXTEND from mutation-REUSE). | §5 rewritten: "ratification **mutation** path reused unchanged; the **gate decision** is EXTENDED per §11.4 to require every covered court." |
+| R3-M1 | MAJOR | §17 worked example still chose per-court direction from "side-pressure" — the exact wording the v0.4 CRITICAL fix removed from OQ#5. Side pressure is package-level; direction must read `direct_scores[court]`. | §17 reworded to `direct_scores[court]`; side pressure named only as the shared `base_side_pressure` acceptance component. |
+| R3-M2 | MAJOR | §11.2 prose claimed the payload "reuses the scorer shape (`band`/`verdict`/`feedback`/`top_components`)," but the schema omits `feedback`/`top_components` (Tier-3 per OQ#4). | §11.2 prose reconciled: PROPOSE exposes `band`/`verdict`/`hard_stops` + one-line `top_blocker_display`; `feedback`/`top_components` stay Tier-3. |
+| R3-M3 | MAJOR | STATUS.md still said "v0.2" / "USER APPROVAL of v0.2" / "conference-voice slice" / ratify `:4776`; this audit note title said "v0.2" though it contains the v0.3/v0.4 runs. | STATUS.md gained a May 29 v0.5 superseding paragraph (correct ratify `:4583`, "multi-court settlement-table voice"); this note retitled cumulative v0.2→v0.5; CLAUDE.md version tokens realigned. |
+| R3-M4 | MAJOR | Baseline target (`near_acceptable`+, ≥35) sits below the §11.4 carry gate (accept, ≥50), so a concede-direction court can be a default holdout — §17's "this peace carries" over-promised the general case. | §8 OQ#5 gained the baseline-target-vs-carry-gate holdout note + Slice-1 test `test_baseline_concede_court_at_near_acceptable_is_flagged_holdout_not_auto_carry`. |
+| R3-m1 | MINOR | §11.4 `carries` was undefined for hard-stopped courts (`total=null`). | §11.4 `carries` redefined: every court non-null `total` ≥ threshold AND no per-court `hard_stops`; Slice-1 test added. |
+| R3-m2 | MINOR | §17 / Principle 7 "conference" prose could leak into committed copy despite the §2 SC-32 D5 ban. | §17 gained an internal-shorthand callout. |
+
+With these folded, **v0.5** carries zero known CRITICAL/MAJOR and all five metrics re-audit ≥7. The spec remains a DESIGN GATE pending **user approval of v0.5**.
