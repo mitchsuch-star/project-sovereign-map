@@ -115,3 +115,24 @@ A second, independent audit pass was run against v0.2 under the `peace-deals-spe
 | F-6 | MINOR | Tier-1/2 Godot surface choice deferred to Slice 1 impl. | accepted as-is (payload is fixed; surface is an implementation detail) — no change |
 
 Re-verified-accurate cites (sample): `calculate_common_peace_acceptance:1884` (single `accepting_leader:1891`, memoized `side_pressure_result:1895`/`direct_scores:1896`/`raw_total_harshness:1897`), `project_balance_after_settlement:1537` (no leader arg), `_build_clause_control_schema_for_review:2976` (hardcodes `enabled=True` at `:3001`), liberation `vassal_options or nation_options` at `:2959`, `_region_control_options:2816` (all-regions scan, REFRONT-7), cleanup-spec lines 543/570/575/586/589/594/597/601/609/618, Voice Bible §16.1 with no multi-court family. The three new named tests were confirmed absent from `tests/`.
+
+---
+
+## 9. Run #2 — independent re-audits of v0.3 (folded into v0.4)
+
+v0.3 was audited twice, independently, under the same methodology. **A second-personality structured pass (Codex) returned NO-GO** with the stricter findings below; a parallel agent pass scored GO with four MINORs. All findings from both were evaluated against the live code — the two load-bearing Codex findings (F-1, F-4) were **verified true** before agreeing — and **all were folded into v0.4**.
+
+**Codex pass (binding): NO-GO** — M1 6 / M2 6 / M3 6 / M4 4 / M5 6; 1 CRITICAL + 4 MAJOR + 1 MINOR.
+
+| ID | Severity | Summary (verified) | Folded into v0.4 |
+| --- | --- | --- | --- |
+| C-F1 | **CRITICAL** | Per-court *direction* cannot come from the package side-pressure scalar. **Verified:** `compute_side_pressure_score:278` returns one side-level `score`; `compute_direct_scores_by_enemy:192` returns a per-enemy map. v0.3 OQ#5 wrongly said direction reads "that court's side-pressure." | §8 OQ#5 now derives direction from `per_court_direct_score = select_direct_score(direct_scores[court])` (`:243`); a pressure-model note states `base_side_pressure` stays package-level (no per-court scorer param). §4.2 clarified. Renamed test `test_settlement_baseline_per_court_direction_uses_per_court_direct_score_not_side_pressure`. |
+| C-F2 | MAJOR | Slice 1 referenced a `balance_projection` scorer param that §15 only adds in Slice 2. **Verified:** the param does not exist on `calculate_common_peace_acceptance:1884-1901`. | §11.2/§15: `balance_projection` removed from the Slice-1 call contract (scorer recomputes internally in Slice 1; param + sharing is the Slice-2 scale step). |
+| C-F3 | MAJOR | §15 had two ratification rows: one "EXTEND," one "REUSE unchanged." | §15: second row relabeled "Ratification **mutation** (post per-court gate) … REUSE; runs only after every court passes; gate decision is EXTEND above." |
+| C-F4 | MAJOR | "Peace conference"/"conference voice" branding violates cleanup **SC-32 D5**. **Verified:** cleanup lines 69/1278 CUT conference/veto and mandate "no player-facing copy implies conference or veto." | §2 terminology boundary added ("conference" = internal shorthand only; no Congress/veto/round mechanic or player-facing copy). Voice slice renamed "multi-court settlement-table voice"; tests renamed; added `test_committed_multi_court_copy_avoids_conference_congress_veto_terms`. Fixed one mock button + one cross-ref. |
+| C-F5 | MAJOR | Slice G deferral row was orphan-shaped ("owned by Slice G spec"). | §14 row now names the concrete owner (`SETTLEMENT_UI_CLEANUP_SPEC.md` SC-32 / Slice G2 ledger), completion, and a named absence test `test_propose_and_dial_routes_reject_non_player_caller_kind`. |
+| C-F6 | MINOR | OQ#7 had no dedicated test. | Added `test_dial_changes_magnitude_without_silently_swapping_requested_identity` (Slice 2) + `test_tier1_default_identity_remains_replaceable_in_tier3` (Slice 3). |
+
+**Agent pass (corroborating): GO** — 4 MINORs, also folded into v0.4: `acceptance_breakdown` relabeled to the `_execute_diplomatic_feasibility` result key (`diplomatic_executor.py:389-432`); `adjust_terms` cite `:243`→`:245`; Slice 2 split escape hatch added; Voice slice ordering pinned to land before/with Slice 1 (Slice 1 completion now depends on the resolver rule).
+
+With these folded, v0.4 carries zero known CRITICAL/MAJOR. The spec remains a DESIGN GATE pending user approval of v0.4; a fresh audit run against v0.4 is advisable before implementation.
