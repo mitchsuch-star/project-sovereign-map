@@ -1,8 +1,8 @@
-# Settlement Conversational Re-front — Cumulative Audit Note (v0.2 → v0.5)
+# Settlement Conversational Re-front — Cumulative Audit Note (v0.2 → v0.6)
 
-**Audits:** `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` **v0.2 → v0.5** (cumulative — §2 = first pass → v0.2; §8 = Run #1 → v0.3; §9 = Run #2 → v0.4; §10 = Run #3 → v0.5)
-**Date:** May 28, 2026
-**Verdict:** **GO-with-changes → GO.** The audit found **4 material change items**; all four were **folded into v0.2** during this pass. With them folded, v0.2 is **GO-ready for user approval** (it remains a design gate — `NEEDS APPROVAL`; no code until approved).
+**Audits:** `docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` **v0.2 → v0.6** (cumulative — §2 = first pass → v0.2; §8 = Run #1 → v0.3; §9 = Run #2 → v0.4; §10 = Run #3 → v0.5; §11 = Run #4 → v0.6)
+**Date:** May 28–29, 2026
+**Verdict (latest, Run #4 → v0.6): GO after fold.** Run #4 synthesized two independent passes — a Claude pass returning **NO-GO** (1 CRITICAL + 1 MAJOR) and a Codex pass returning **GO** (2 MAJOR + 1 MINOR). Every finding was re-verified against live code and **folded into v0.6**; one Claude finding (DWL-SET-SC5R-3 cited at cleanup `:589`) was **withdrawn on verification** as a correct cite. With the rest folded, **v0.6 carries zero known CRITICAL/MAJOR** and is GO-ready for user approval (design gate — `NEEDS APPROVAL`; no code until approved). *History (first pass): GO-with-changes — 4 material change items folded into v0.2; details below.*
 
 > This is a structured review pass against the project's coherence + Golden-Rule criteria, performed against the live codebase (every reuse claim was checked at file:line). It is not an independent third-party review; findings err toward surfacing risk rather than rubber-stamping.
 
@@ -153,4 +153,30 @@ v0.4 was audited a fourth time. A structured **Codex pass returned NO-GO** (M1 8
 | R3-m1 | MINOR | §11.4 `carries` was undefined for hard-stopped courts (`total=null`). | §11.4 `carries` redefined: every court non-null `total` ≥ threshold AND no per-court `hard_stops`; Slice-1 test added. |
 | R3-m2 | MINOR | §17 / Principle 7 "conference" prose could leak into committed copy despite the §2 SC-32 D5 ban. | §17 gained an internal-shorthand callout. |
 
-With these folded, **v0.5** carries zero known CRITICAL/MAJOR and all five metrics re-audit ≥7. The spec remains a DESIGN GATE pending **user approval of v0.5**.
+With these folded, **v0.5** carried zero known CRITICAL/MAJOR and all five metrics re-audited ≥7 at the time of Run #3. (Run #4 below then found a residual CRITICAL in the OQ#5 direction model and folded it into v0.6.)
+
+---
+
+## 11. Run #4 — synthesis of independent v0.5 passes (folded into v0.6)
+
+v0.5 was audited a fifth time as a **synthesis of two independent passes**, both re-verified against live code before folding:
+
+- **Claude pass (binding): NO-GO** — M1 8 / M2 6 / M3 7 / M4 5 / M5 7; **1 CRITICAL + 1 MAJOR + 3 MINOR** (one MINOR withdrawn on verification).
+- **Codex pass (corroborating): GO** — all metrics ≥7, zero CRITICAL; **2 MAJOR + 1 MINOR**.
+
+The Claude CRITICAL is the load-bearing find — **Codex missed it** — and is exactly why synthesizing both passes mattered: the OQ#5 per-court direction model (untouched by Codex) still did not match the cited function's real signature.
+
+| ID | Severity | Summary (verified against live code) | Folded into v0.6 |
+| --- | --- | --- | --- |
+| R4-C1 (Claude) | **CRITICAL** | §8 OQ#5 read `per_court_direct_score[court].score`, but `select_direct_score` (`settlement_scoring.py:243`) returns `Optional[Tuple[int, str]]` — a `(direct_score, source)` tuple with **no `.score` attribute** — and returns `None` for a court with no active cross-side pair. The spec also implied that case neutral-floors, but live code hard-stops it (`HARD_STOP_NO_DIRECT_WAR_SCORE`, `:353-356`). Verified: the live caller unpacks `direct_score, source = selection` after a `None` guard at `:352-358`. | §8 OQ#5 rewritten: unpack the tuple after a `None` guard; **dead-band → `{"type":"peace"}` floor**, **`None` → per-court hard-stop row** (matching the scorer + §11.4 `carries`). New Slice-1 tests `test_settlement_baseline_no_direct_score_court_is_hard_stopped_not_peace_floored`. |
+| R4-M1 (Claude) | MAJOR | §8 OQ#5 thresholded the per-court **direct** score with `LOSING_SIDE_PRESSURE_THRESHOLD` (= `-20`, `settlement_preview.py:1326`), a constant live code uses **only** against `side_pressure_score` (`:1748/:1865/:2004`). This re-imports the exact direction-vs-side-pressure conflation the v0.4 CRITICAL removed. | §8 OQ#5 + pressure-model note: direction now uses a war-score-scale `DIRECT_SCORE_DIRECTION_MARGIN` dead-band, explicitly **not** the side-pressure constant; constant file cite corrected to `settlement_preview.py:1326`. New test `test_per_court_direction_threshold_is_war_score_margin_not_side_pressure_constant`. |
+| R4-M2 (Codex) | MAJOR | §15 "Acceptance band display" row said the **scorer** provides `band`/`top_components`. Verified: the raw scorer returns `verdict`/`feedback` only; `_enrich_acceptance_display` (`settlement_preview.py:274`) derives `band`/`band_display`/`band_phrase`/`top_components`/`top_blocker_display`. | §15 row rewritten to that split; PROPOSE compact payload exposes only `band` + `top_blocker_display` (OQ#4). |
+| R4-M3 (Codex) | MAJOR | Stale `v0.1`/`v0.2` text: STATUS Quick-Stats "Current Phase" still said v0.1 / "resolve §8 into a v0.2" / "Slices 1-3"; this audit-note title + top verdict still said v0.2 GO-ready. | STATUS Quick-Stats realigned to v0.6 (per-court gate, Slices 0-3 + multi-court voice); this note retitled v0.2→v0.6 with a latest-run top verdict; CLAUDE.md tokens realigned. |
+| R4-m1 (Codex) | MINOR | §15 shared-score-pass list omitted `raw_total_harshness` though §11.2 + the §15 reuse row cite it as shared. | §15 scale-hook bullet adds `raw_total_harshness` (:1897); Slice-2 scale test renamed `..._direct_score_side_pressure_harshness_and_balance_projection_pass`. |
+| R4-m2 (Claude) | MINOR | §14/§15 cited the resolver at "Voice Bible Intro:7"; no such anchor exists (resolver/fallback chain is at `:239-243`). | "Intro:7" dropped; "Cross-cast:239-243" retained. |
+| R4-m3 (Claude) | MINOR | §15 "Intent dials" row read `modify_harsh`/`modify_generous` as functions; they are action-string branches (`diplomatic_executor.py:3101/:3534`). | Caveat "(action-string branches … not standalone functions)" added. |
+| R4-w1 (Claude) | — WITHDRAWN | Claimed DWL-SET-SC5R-3 was cited at the wrong cleanup line (`:589`). | **Verified:** `SETTLEMENT_UI_CLEANUP_SPEC.md:589` *does* contain the `Discard new clause` / `Replace active clause` controls — the cite is correct; no change. |
+
+**Re-verified-accurate cites this run:** `calculate_common_peace_acceptance:1884` (single `accepting_leader:1891`; memoized `side_pressure_result:1895` / `direct_scores:1896` / `raw_total_harshness:1897`; **no** `balance_projection` param), `select_direct_score:243` (`Optional[Tuple[int,str]]`, `None`→hard-stop at `:352-358`), `compute_direct_scores_by_enemy:192`, `compute_side_pressure_score:278`, `project_balance_after_settlement:1537` (no leader arg), `_build_clause_control_schema_for_review:2976` (`enabled=True` at `:3001`), liberation fallback `:2959`, `build_settlement_preview` single-leader scoring `:2431-2444`, `ratify_settlement_confirm:4583`, `_enrich_acceptance_display:274`, `SETTLEMENT_LIVE_CLAUSE_TYPES:131`, `adjust_terms` at `diplomatic_templates.py:245`; cleanup-spec `:543/:556/:570/:575/:586/:589/:594/:597/:601/:609/:613/:618/:69/:1278`; Voice Bible §16.1 present with **no** multi-court rule.
+
+With these folded, **v0.6 carries zero known CRITICAL/MAJOR** and all five metrics re-audit ≥7. On a GO, the next step is **begin Slice 0 / Slice 1**. The spec remains a DESIGN GATE pending **user approval of v0.6**.
