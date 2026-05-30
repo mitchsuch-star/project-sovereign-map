@@ -186,6 +186,14 @@ func send_dialogue_response(choice, callback: Callable):
 	_send_post("/respond_to_diplomatic_dialogue", {"choice": choice}, callback)
 
 
+# Re-front Slice 2: settlement Tier-2 affordances (dials / coverage edits /
+# focus) ride on per-court rows + rail buttons and carry structured `scope` /
+# `nation` params the keyword `choice` path cannot express. The backend resolves
+# `action_params` directly against the staged settlement_confirm.
+func send_dialogue_response_with_params(choice, params: Dictionary, callback: Callable):
+	_send_post("/respond_to_diplomatic_dialogue", {"choice": choice, "action_params": params}, callback)
+
+
 func dismiss_all_notifications(callback: Callable):
 	_send_post("/notifications/dismiss", {"id": "all"}, callback)
 

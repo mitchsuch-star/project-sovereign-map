@@ -1895,6 +1895,7 @@ def calculate_common_peace_acceptance(
     side_pressure_result: Optional[Mapping[str, Any]] = None,
     direct_scores: Optional[Mapping[str, Mapping[str, int]]] = None,
     raw_total_harshness: Optional[float] = None,
+    balance_projection: Optional[Mapping[str, Any]] = None,
     accepting_leader_regions_at_evaluation: Optional[Iterable[str]] = None,
     accepting_leader_mapped_holdings_at_entry: Optional[Iterable[str]] = None,
     apply_war_exhaustion_relevance_cap: bool = False,
@@ -1912,7 +1913,9 @@ def calculate_common_peace_acceptance(
     5. `term_harshness_penalty` — raw from `calculate_raw_treaty_harshness`.
     6. `leader_own_losses` — sub-components summed BEFORE clamp.
     7. `burdened_participant_penalty` — uses memoized direct_scores.
-    8. `projected_hegemony_mod` — from `project_balance_after_settlement()`.
+    8. `projected_hegemony_mod` — from `project_balance_after_settlement()`
+       (or the injected memoized `balance_projection` when a per-court
+       aggregator shares one package-level projection across courts).
     9. `war_objective_alignment` — from WPS objective table.
     10. `concession_credit` — proposer-paid concessions benefit acceptance.
     11. `war_exhaustion` — floor division (spec line 1120).
@@ -2018,11 +2021,21 @@ def calculate_common_peace_acceptance(
         war_objectives_by_enemy=war_objectives_by_enemy,
     )
 
-    # Step 8: projected hegemony.
-    hegemony_debug = project_balance_after_settlement(
-        world,
-        war_id=war_id,
-        settlement_terms=settlement_terms,
+    # Step 8: projected hegemony. The balance projection is independent of
+    # `accepting_leader` (its signature has no leader arg — it is package-level),
+    # so a per-court aggregator that scores N courts over one package can
+    # compute it ONCE and inject it here, mirroring the memoized
+    # `side_pressure_result` / `direct_scores` / `raw_total_harshness` params
+    # (Re-front Slice 2 / spec §15 F-5). When not injected, every existing
+    # single-call caller recomputes it internally and is unchanged.
+    hegemony_debug = (
+        dict(balance_projection)
+        if balance_projection is not None
+        else project_balance_after_settlement(
+            world,
+            war_id=war_id,
+            settlement_terms=settlement_terms,
+        )
     )
 
     # Step 9: war objective alignment.

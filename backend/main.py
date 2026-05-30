@@ -1363,7 +1363,13 @@ async def respond_to_diplomatic_dialogue(request: dict):
                 game_over=True, victory=world.victory)
         dialogue_before = world.pending_diplomatic_dialogue or {}
         choice = request.get("choice")
-        result = executor.handle_diplomatic_dialogue_response(choice, game_state)
+        # Re-front Slice 2: structured settlement Tier-2 affordances (dials /
+        # coverage edits / focus) ride on per-court rows + rail buttons and
+        # carry `scope` / `nation` params the keyword path cannot express.
+        action_params = request.get("action_params")
+        result = executor.handle_diplomatic_dialogue_response(
+            choice, game_state, action_params=action_params,
+        )
 
         response = build_base_response(
             world,

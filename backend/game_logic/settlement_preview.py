@@ -49,6 +49,7 @@ from backend.game_logic.settlement_scoring import (
     HARD_STOP_NO_DIRECT_WAR_SCORE,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     NEAR_ACCEPTANCE_FLOOR,
+    project_balance_after_settlement,
     select_direct_score,
     SETTLEMENT_HARD_STOP_CODES,
     SETTLEMENT_LIVE_CLAUSE_TYPES,
@@ -1356,6 +1357,15 @@ DEMAND_TERRITORY_DIRECT_SCORE = 30
 # (white-peace floor).
 DIRECT_SCORE_DIRECTION_MARGIN = 10
 
+# Re-front Slice 2 / spec §11.3 + OQ#7: Tier-2 intent dials adjust MAGNITUDE at
+# the court level (harsher = press the court / larger demands + smaller
+# concessions; generous = ease the court / smaller demands + larger
+# concessions). Each click steps gold by this amount and adds/removes whole
+# clauses by COUNT — it NEVER swaps the requested region or payer IDENTITY (that
+# is a Tier-3 request). Gold magnitude is bounded by the same hard cap the
+# concession baseline uses so a runaway dial cannot author an absurd indemnity.
+SETTLEMENT_DIAL_GOLD_STEP = 100
+
 
 def _concession_baseline_payer_balance(world: Any, nation: str) -> int:
     """Return the payer nation's available gold balance (int)."""
@@ -2637,6 +2647,7 @@ def compute_per_court_acceptance(
     direct_scores: Optional[Mapping[str, Mapping[str, int]]] = None,
     side_pressure_result: Optional[Mapping[str, Any]] = None,
     raw_total_harshness: Optional[float] = None,
+    balance_projection: Optional[Mapping[str, Any]] = None,
     previous_bands: Optional[Mapping[str, str]] = None,
 ) -> Dict[str, Any]:
     """Re-front Slice 1 / spec §11.2 — the per-court acceptance aggregator.
@@ -2647,9 +2658,15 @@ def compute_per_court_acceptance(
     #8). Each call VARIES ``accepting_leader=<that court>`` while HOLDING
     ``covered_enemy_participants=<the full covered set>`` constant, so every
     court's burden / abandonment components still reflect the whole table
-    (principle 5 — Talleyrand reasons across the table). The
-    ``balance_projection`` memoization param is NOT passed here (the scorer
-    recomputes it internally per call); sharing it is the Slice-2 scale step.
+    (principle 5 — Talleyrand reasons across the table).
+
+    Re-front Slice 2 / spec §15 F-5 — the balance projection
+    (``project_balance_after_settlement``) is also package-level (independent
+    of ``accepting_leader``), so the aggregator computes it ONCE for the whole
+    covered loop and injects it into each scorer call via ``balance_projection``
+    rather than letting the scorer recompute it per court (O(N) projections).
+    A caller may pass a pre-computed ``balance_projection`` (one dial/coverage
+    action shares it across re-scores); when ``None`` it is computed once here.
 
     A covered court with no active cross-side pair (``select_direct_score``
     returns ``None``) is surfaced as a per-court hard-stop row (``total=null``)
@@ -2685,6 +2702,15 @@ def compute_per_court_acceptance(
     if raw_total_harshness is None:
         raw_total_harshness = calculate_raw_treaty_harshness(
             {"clauses": [], "demands": terms}
+        )
+    if balance_projection is None and scoreable:
+        # Slice 2 / §15 F-5: the projection is package-level (no leader arg),
+        # so compute it ONCE for the whole per-court loop and inject it into
+        # each scorer call instead of letting the scorer recompute it per
+        # court. A hard-stop-only covered set (no scoreable court) needs no
+        # projection.
+        balance_projection = project_balance_after_settlement(
+            world, war_id=war_id, settlement_terms=terms,
         )
 
     per_court: List[Dict[str, Any]] = []
@@ -2728,6 +2754,7 @@ def compute_per_court_acceptance(
             side_pressure_result=side_pressure_result,
             direct_scores=direct_scores,
             raw_total_harshness=raw_total_harshness,
+            balance_projection=balance_projection,
         )
         enriched = _enrich_acceptance_display(result)
         total = result.get("score")
@@ -2782,6 +2809,273 @@ def compute_per_court_acceptance(
             "summary_display": summary_display,
         },
     }
+
+
+def _redial_settlement_terms(
+    *,
+    terms: Iterable[Mapping[str, Any]],
+    scope_courts: Iterable[str],
+    direction: str,
+    proposer_side_leader: Optional[str],
+) -> List[Dict[str, Any]]:
+    """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
+    the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
+    amount) and COUNT (whole clauses) only — never the requested region or payer
+    IDENTITY (those are Tier-3 requests).
+
+    For a scoped court:
+
+    - ``harsher`` presses the court: a clause it PAYS/CEDES (``from == court`` —
+      a demand on it) grows by ``SETTLEMENT_DIAL_GOLD_STEP`` (gold, capped); a
+      clause the proposer concedes TO it (``to == court``) shrinks by a step and
+      drops at zero, and a conceded region is dropped (count down).
+    - ``generous`` eases the court: the mirror — demands shrink/drop, the
+      proposer's concessions grow, and a conceded-region demand is dropped.
+
+    A FOCUSED dial (exactly one scoped court) with no material slice for that
+    court seeds a single modest gold clause in the dial direction (press → a
+    demand FROM the court; ease → a concession the proposer PAYS to it) so the
+    one-click ``Ease <holdout>`` / ``press <court>`` affordance actually moves
+    the needle. Whole-table dials never seed (they only steer existing terms).
+    Clauses that touch no scoped court — including the shared ``{"type":
+    "peace"}`` — are copied through untouched.
+    """
+    scope = {str(n) for n in (scope_courts or []) if n}
+    leader = str(proposer_side_leader or "")
+    out: List[Dict[str, Any]] = []
+    touched: Set[str] = set()
+    for term in terms:
+        if not isinstance(term, Mapping):
+            continue
+        clause = dict(term)
+        ttype = str(clause.get("type") or "")
+        frm = str(clause.get("from") or "")
+        to = str(clause.get("to") or "")
+        court = frm if frm in scope else (to if to in scope else "")
+        if not court or ttype == "peace":
+            out.append(clause)
+            continue
+        touched.add(court)
+        is_demand = frm == court  # the court pays/cedes => a demand on it
+        if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            amount = int(clause.get("amount", 0) or 0)
+            # Grow on harsher-demand / generous-concession; shrink otherwise.
+            if (direction == "harsher") == is_demand:
+                amount = min(
+                    amount + SETTLEMENT_DIAL_GOLD_STEP,
+                    CONCESSION_BASELINE_GOLD_HARD_CAP,
+                )
+            else:
+                amount -= SETTLEMENT_DIAL_GOLD_STEP
+            if amount <= 0:
+                continue  # drop the clause (count down) — never below zero
+            clause["amount"] = int(amount)
+            out.append(clause)
+            continue
+        if ttype.startswith("territory"):
+            # Territory is binary (count), never identity. Harsher keeps a
+            # demand and drops a concession; generous the mirror.
+            drop = (not is_demand) if direction == "harsher" else is_demand
+            if drop:
+                continue
+            out.append(clause)
+            continue
+        # Identity-bearing clause types (liberation, alliance, vassalage, …) are
+        # not Tier-2 magnitude levers — pass them through unchanged.
+        out.append(clause)
+    if len(scope) == 1:
+        for court in sorted(scope - touched):
+            if direction == "harsher":
+                out.append({
+                    "type": "gold_indemnity", "from": court, "to": leader,
+                    "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
+                })
+            elif leader:
+                out.append({
+                    "type": "gold_indemnity", "from": leader, "to": court,
+                    "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
+                })
+    return out
+
+
+def _settlement_targeted_posture_advisory(
+    per_court_acceptance: Iterable[Mapping[str, Any]],
+    holdout_courts: Iterable[str],
+) -> str:
+    """Re-front Slice 2 / OQ#1 — a VOICE-ONLY targeted-posture suggestion
+    ("I'd press X and ease Y, Sire").
+
+    Deterministic from the per-court bands: courts that already accept are
+    candidates to *press* (extract more), eased-able holdouts (below threshold
+    but not hard-stopped) are candidates to *ease*. This is advice only — it
+    NEVER applies a dial or mutates terms; the player must click (Golden Rule
+    #6). Returns "" when there is nothing to suggest.
+    """
+    holdout_set = {str(n) for n in (holdout_courts or [])}
+    press: List[str] = []
+    ease: List[str] = []
+    for row in per_court_acceptance:
+        if not isinstance(row, Mapping):
+            continue
+        nation = str(row.get("nation") or "")
+        if not nation:
+            continue
+        if nation in holdout_set:
+            if row.get("total") is not None:  # hard-stops cannot be dialed
+                ease.append(nation)
+        elif str(row.get("band") or "") == "accept":
+            press.append(nation)
+    parts: List[str] = []
+    if press:
+        parts.append("press " + ", ".join(sorted(press)))
+    if ease:
+        parts.append("ease " + ", ".join(sorted(ease)))
+    if not parts:
+        return ""
+    return "I'd " + " and ".join(parts) + ", Sire — the table is yours to shape."
+
+
+def _settlement_remaining_war_courts(
+    world: Any,
+    *,
+    war_id: str,
+    proposer_side: str,
+    covered_enemy_participants: Iterable[str],
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Re-front Slice 2 / spec §11.3 — coverage-edit consequence rows.
+
+    Returns ``(ignored_participants, remaining_wars)`` for a covered set:
+    coverable enemy courts NOT in ``covered_enemy_participants`` are *ignored*
+    (left out of the settlement) and stay at war — so each is also a remaining
+    war pair. Both update whenever the player adds/drops coverage.
+    """
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    coverable = set(get_coverable_enemy_participants(war_instance, proposer_side))
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    ignored = sorted(coverable - covered)
+    remaining = [
+        {"enemy": nation, "war_id": war_id, "status_display": f"{nation} remains at war"}
+        for nation in ignored
+    ]
+    return ignored, remaining
+
+
+def _restage_settlement_after_redraw(
+    world: Any,
+    dialogue: Mapping[str, Any],
+    *,
+    action: str,
+    new_terms: Iterable[Mapping[str, Any]],
+    new_covered: Iterable[str],
+    message: str,
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Re-front Slice 2 — re-preview and re-stage a PROPOSE settlement after a
+    dial or coverage redraw.
+
+    Preserves the dialogue mode (PROPOSE stays an authoring surface — never a
+    hard stop), threads the prior dialogue's per-court bands as ``previous_bands``
+    so each row carries the live band DELTA (presentation only — §11.2 / Golden
+    Rule #6), revalidates the new package, persists the scoped draft, and
+    replaces the mounted dialogue. ``extra`` is merged onto the new dialogue and
+    surfaced on the result (used to carry coverage's ``ignored_participants`` /
+    ``remaining_wars``).
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    proposer_side = str(dialogue.get("proposer_side") or "")
+    caller_kind = str(dialogue.get("caller_kind") or SETTLEMENT_EDITOR_CALLER_KIND)
+    dialogue_mode = str(dialogue.get("dialogue_mode") or "PROPOSE")
+    actor = getattr(world, "player_nation", "France")
+    covered = sorted({str(n) for n in (new_covered or []) if n})
+    terms = [dict(t) for t in (new_terms or []) if isinstance(t, Mapping)]
+    selected_target = str(dialogue.get("selected_target_nation") or "")
+    if selected_target not in covered:
+        selected_target = covered[0] if covered else ""
+    previous_bands = {
+        str(r.get("nation")): str(r.get("band"))
+        for r in (dialogue.get("per_court_acceptance") or [])
+        if isinstance(r, Mapping) and r.get("nation") and r.get("band")
+    }
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    revalidation = validate_settlement_terms(
+        terms, world=world, war_instance=war_instance,
+    )
+    if not revalidation.get("valid"):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "submitted_terms_failed_revalidation",
+            "error_display": _error_display("submitted_terms_failed_revalidation"),
+            "validation_error": revalidation.get("error"),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    preview = build_settlement_preview(
+        world,
+        war_id=war_id,
+        proposer_side=proposer_side,
+        settlement_terms=terms,
+        covered_enemy_participants=covered,
+        actor_nation=actor,
+        ignore_active_dialogue=True,
+        previous_bands=previous_bands,
+    )
+    if not preview.get("success"):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": preview.get("error") or "settlement_redial_failed_preview",
+            "error_display": preview.get("error_display") or (
+                "The settlement could not be re-previewed."
+            ),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    new_dialogue = build_settlement_confirm_dialogue(
+        world,
+        preview,
+        selected_target_nation=selected_target or None,
+        caller_kind=caller_kind,
+        dialogue_mode=dialogue_mode,
+    )
+    if extra:
+        new_dialogue.update(extra)
+    drafts = getattr(world, "pending_settlement_drafts", None)
+    if drafts is None:
+        world.pending_settlement_drafts = {}
+        drafts = world.pending_settlement_drafts
+    drafts[war_id] = [dict(t) for t in terms]
+    save_scoped_settlement_draft(
+        world,
+        war_id=war_id,
+        selected_target_nation=selected_target,
+        covered_enemy_participants=covered,
+        settlement_terms=terms,
+    )
+    world.dialogue_manager.replace(new_dialogue)
+    result = {
+        "success": True,
+        "dialogue_type": "settlement_confirm",
+        "action": action,
+        "war_id": war_id,
+        "diplomatic_dialogue": new_dialogue,
+        "settlement_preview": preview["settlement_preview"],
+        "per_court_acceptance": new_dialogue.get("per_court_acceptance"),
+        "overall_acceptance": new_dialogue.get("overall_acceptance"),
+        "settlement_terms": [dict(t) for t in terms],
+        "awaiting_diplomatic_response": True,
+        "mutated": False,
+        "message": message,
+        "suppress_proposal_result_popup": True,
+    }
+    for key in ("ignored_participants", "remaining_wars", "focused_court"):
+        if extra and key in extra:
+            result[key] = extra[key]
+    return result
 
 
 def evaluate_open_settlement_eligibility(
@@ -3067,6 +3361,7 @@ def build_settlement_preview(
     density: str = "medium",
     ignore_active_dialogue: bool = False,
     generate_baseline_when_empty: bool = False,
+    previous_bands: Optional[Mapping[str, str]] = None,
 ) -> Dict[str, Any]:
     """Build the non-mutating settlement preview response.
 
@@ -3152,6 +3447,7 @@ def build_settlement_preview(
         proposer_side_leader=proposer_leader,
         covered_enemy_participants=covered,
         settlement_terms=terms,
+        previous_bands=previous_bands,
     )
 
     preview = {
@@ -4218,6 +4514,37 @@ def build_settlement_confirm_dialogue(
             if (is_holdout and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND)
             else []
         )
+        # Re-front Slice 2 / OQ#1 + §17: focused dialing ("press Prussia",
+        # "ease Britain") is reached from each per-court ROW, applying the dial
+        # to that one court (scope=court). Every dialable row (a real direct
+        # score — not a hard stop) gets a focused `Press`; non-holdout rows also
+        # get a focused `Ease` (holdout rows already expose Ease via
+        # `holdout_actions`, so this avoids a duplicate). Player-only, mirroring
+        # the holdout/coverage routes. A hard-stopped court cannot be dialed
+        # toward acceptance, so it gets none.
+        is_dialable = row.get("total") is not None and not row.get("hard_stops")
+        dial_actions: List[Dict[str, Any]] = []
+        if is_dialable and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
+            dial_actions.append({
+                "label": f"Press {court}",
+                "action": "settlement_dial_harsher",
+                "scope": court,
+                "nation": court,
+                "war_id": war_id,
+                "draft_key": settlement_draft_key_for_options,
+                "description": f"Press {court} harder — applies to this court only.",
+            })
+            if not is_holdout:
+                dial_actions.append({
+                    "label": f"Ease {court}",
+                    "action": "settlement_dial_generous",
+                    "scope": court,
+                    "nation": court,
+                    "war_id": war_id,
+                    "draft_key": settlement_draft_key_for_options,
+                    "description": f"Ease {court} — applies to this court only.",
+                })
+        row["dial_actions"] = dial_actions
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front (Tiers 1-2): an authoring rail,
         # not a staged-decision rail. Adjust terms (-> EDIT/Tier 3), Submit for
@@ -4227,7 +4554,25 @@ def build_settlement_confirm_dialogue(
         # PROPOSE staging keeps the default non-authoring rail (no `adjust_terms`
         # / `submit_settlement_for_review` / `suspend_settlement_editor`), in
         # lockstep with `can_edit_terms=False` / `editor_route=None` below.
+        # Re-front Slice 2 / OQ#1: the whole-table intent dials are the primary
+        # Tier-2 levers and lead the PROPOSE rail. They re-draft the package
+        # harsher/more-generous across every covered court and re-score live;
+        # focused (per-court) dialing rides on the per-court rows (Ease/press).
         options = [{
+            "label": "Harsher terms",
+            "action": "settlement_dial_harsher",
+            "scope": "table",
+            "war_id": war_id,
+            "draft_key": settlement_draft_key_for_options,
+            "description": "Press every court harder and watch each react live.",
+        }, {
+            "label": "More generous",
+            "action": "settlement_dial_generous",
+            "scope": "table",
+            "war_id": war_id,
+            "draft_key": settlement_draft_key_for_options,
+            "description": "Ease every court and watch each react live.",
+        }, {
             "label": "Adjust terms",
             "action": "adjust_terms",
             "description": "Open the structured editor to shape specific clauses.",
@@ -4236,7 +4581,12 @@ def build_settlement_confirm_dialogue(
             "action": "submit_settlement_for_review",
             "description": "Lock in this package and review it for ratification.",
         }]
-        available_action_ids = ["adjust_terms", "submit_settlement_for_review"]
+        available_action_ids = [
+            "settlement_dial_harsher",
+            "settlement_dial_generous",
+            "adjust_terms",
+            "submit_settlement_for_review",
+        ]
         # PROPOSE Back Out is non-destructive (§10): it suspends the authoring
         # surface and PRESERVES the scoped draft for same-turn reopen, unlike
         # the discarding `back_out_settlement` on REVIEW.
@@ -4324,6 +4674,40 @@ def build_settlement_confirm_dialogue(
         "per_court_acceptance": per_court_acceptance,
         "overall_acceptance": overall_acceptance,
         "multi_court_table_narration": multi_court_table_narration,
+        # Re-front Slice 2 / OQ#1: a VOICE-ONLY targeted-posture recommendation
+        # on the conversational PROPOSE surface ("I'd press Prussia and ease
+        # Britain, Sire"). It never applies a dial — the player must click — so
+        # it is empty outside PROPOSE and carries no mechanical effect.
+        "targeted_posture_advisory": (
+            _settlement_targeted_posture_advisory(per_court_acceptance, holdout_courts)
+            if dialogue_mode == "PROPOSE"
+            else ""
+        ),
+        # Re-front Slice 2 / OQ#2: conversational coverage prompts — one-click
+        # "Bring <court> to the table" suggestions for hostile courts not yet in
+        # the settlement. They write the SAME `covered_enemy_participants` state
+        # as the editor checklist (no second store). PROPOSE-only and player-only.
+        "coverage_add_suggestions": (
+            [
+                {
+                    "label": f"Bring {nation} to the table",
+                    "action": "settlement_cover_add",
+                    "nation": nation,
+                    "war_id": war_id,
+                    "draft_key": settlement_draft_key_for_options,
+                    "description": (
+                        f"Add {nation} to this settlement and re-draft for the new set."
+                    ),
+                }
+                for nation in sorted(
+                    set(get_coverable_enemy_participants(war_instance, proposer_side))
+                    - set(covered)
+                )
+            ]
+            if dialogue_mode == "PROPOSE"
+            and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+            else []
+        ),
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
@@ -6288,18 +6672,207 @@ def _apply_scope_replace_confirm(
     }
 
 
+def _handle_settlement_tier2_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Re-front Slice 2 — Tier-2 intent dials, coverage edits, and court focus
+    on the conversational PROPOSE surface (spec §11.3).
+
+    All five verbs are PLAYER-ONLY (the Slice-G boundary, mirroring the editor
+    ``can_edit_terms`` gate): a non-player staging never reaches an authoring
+    redraw. Dials and coverage edits re-draft + re-score live over one shared
+    score pass and preserve PROPOSE mode; ``settlement_focus_court`` is
+    presentation-only (no term mutation, no re-score).
+    """
+    war_id = str(dialogue.get("war_id") or "")
+    caller_kind = str(dialogue.get("caller_kind") or "")
+    if caller_kind != SETTLEMENT_EDITOR_CALLER_KIND:
+        # Slice-G boundary: only the player authors / steers a settlement.
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "settlement_action_not_player_authored",
+            "error_display": "This settlement is not yours to steer, Sire.",
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    proposer_side = str(dialogue.get("proposer_side") or "")
+    accepting_side = str(dialogue.get("accepting_side") or "") or _other_side(proposer_side)
+    covered = sorted({str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n})
+    terms = [
+        dict(t) for t in (dialogue.get("settlement_terms") or [])
+        if isinstance(t, Mapping)
+    ]
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    staged_leaders = dialogue.get("staged_leaders") or {}
+    proposer_leader = (
+        staged_leaders.get(proposer_side) or _side_leader(war_instance, proposer_side)
+    )
+
+    if action == "settlement_focus_court":
+        # OQ#1 / §11.3: presentation-only focus. No terms change, no re-score —
+        # focusing a row just scopes the next dial click to that court.
+        raw_nation = action_params.get("nation")
+        focused = str(raw_nation).strip() if raw_nation else None
+        if focused and focused not in covered:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "focused_court_not_covered",
+                "error_display": f"{focused} is not part of this settlement, Sire.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        updated = dict(dialogue)
+        updated["focused_court"] = focused
+        world.dialogue_manager.replace(updated)
+        return {
+            "success": True,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "diplomatic_dialogue": updated,
+            "focused_court": focused,
+            "mutated": False,
+            "message": (f"Focused on {focused}." if focused else "Focus cleared."),
+            "suppress_proposal_result_popup": True,
+        }
+
+    if action in ("settlement_dial_harsher", "settlement_dial_generous"):
+        direction = "harsher" if action.endswith("harsher") else "generous"
+        scope = str(action_params.get("scope") or "table").strip() or "table"
+        if scope == "table":
+            scope_courts = list(covered)
+        elif scope in covered:
+            scope_courts = [scope]
+        else:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "dial_scope_not_covered",
+                "error_display": f"{scope} is not part of this settlement, Sire.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        new_terms = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=scope_courts,
+            direction=direction,
+            proposer_side_leader=proposer_leader,
+        )
+        verb = "Pressed" if direction == "harsher" else "Eased"
+        target_label = "the whole table" if scope == "table" else scope
+        return _restage_settlement_after_redraw(
+            world,
+            dialogue,
+            action=action,
+            new_terms=new_terms,
+            new_covered=covered,
+            message=f"{verb} {target_label}.",
+        )
+
+    # settlement_cover_add / settlement_cover_drop
+    nation = str(action_params.get("nation") or "").strip()
+    if not nation:
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "no_coverage_nation",
+            "error_display": "No court was named to add or drop, Sire.",
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    if action == "settlement_cover_add":
+        coverable = set(get_coverable_enemy_participants(war_instance, proposer_side))
+        if nation not in coverable:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "nation_not_coverable",
+                "error_display": f"{nation} cannot be brought to this settlement, Sire.",
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+        new_covered = sorted(set(covered) | {nation})
+    else:  # settlement_cover_drop
+        new_covered = sorted(set(covered) - {nation})
+        if not new_covered:
+            # V5 coverage floor — at least one covered enemy must remain.
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "no_covered_enemy_participants",
+                "error_display": _error_display("no_covered_enemy_participants"),
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+    # §11.3: a coverage edit re-draws the baseline for the new set (this drops
+    # any clause that referenced a removed court — V2 — and authors a fresh
+    # slice for an added court), then re-scores.
+    baseline = compute_settlement_baseline(
+        world,
+        war_id=war_id,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        proposer_side_leader=proposer_leader,
+        covered_enemy_participants=new_covered,
+    )
+    new_terms = baseline["settlement_terms"]
+    ignored, remaining = _settlement_remaining_war_courts(
+        world,
+        war_id=war_id,
+        proposer_side=proposer_side,
+        covered_enemy_participants=new_covered,
+    )
+    verb = "Added" if action == "settlement_cover_add" else "Dropped"
+    return _restage_settlement_after_redraw(
+        world,
+        dialogue,
+        action=action,
+        new_terms=new_terms,
+        new_covered=new_covered,
+        message=f"{verb} {nation}; the settlement was re-drafted.",
+        extra={"ignored_participants": ignored, "remaining_wars": remaining},
+    )
+
+
 def handle_settlement_dialogue_action(
     world: Any,
     *,
     action: str,
     dialogue: Mapping[str, Any],
+    action_params: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Handle C2 settlement dialogue actions.
 
     ``confirm_settlement`` runs the live ratification mutation through
     ``ratify_settlement_confirm``. ``back_out`` / ``revise_terms`` remain
     pure (no mutation, dialogue popped).
+
+    ``action_params`` carries the clicked affordance's structured fields (e.g.
+    a dial's ``scope`` or a coverage edit's ``nation``) for the Re-front Slice 2
+    PROPOSE actions (``settlement_dial_*`` / ``settlement_cover_*`` /
+    ``settlement_focus_court``), which ride on per-court rows and rail buttons
+    rather than the keyword-matched ``options[]`` surface.
     """
+    action_params = dict(action_params or {})
     war_id = str(dialogue.get("war_id") or "")
     dialogue_type = str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
     if dialogue_type == "settlement_scope_replace_confirm":
@@ -6321,6 +6894,16 @@ def handle_settlement_dialogue_action(
             "error": "unknown_settlement_action",
             "mutated": False,
         }
+    if action in (
+        "settlement_dial_harsher",
+        "settlement_dial_generous",
+        "settlement_cover_add",
+        "settlement_cover_drop",
+        "settlement_focus_court",
+    ):
+        return _handle_settlement_tier2_action(
+            world, action=action, dialogue=dialogue, action_params=action_params,
+        )
     if action == "suspend_settlement_editor":
         # SC-5R-2 follow-up: the client-side settlement editor's Back Out
         # closes the staged settlement_confirm hard-stop so ordinary

@@ -106,7 +106,49 @@ func show_dialogue(data: Dictionary):
 		button_container.add_child(btn)
 		idx += 1
 
+	# Re-front Slice 2: per-court row affordances (holdout Ease/Drop, focused
+	# dials) and conversational coverage prompts are NOT in options[] — they ride
+	# on the per-court table and the coverage suggestion list. Render them as
+	# clickable buttons that carry their own structured params (scope / nation).
+	if dtype == "settlement_confirm":
+		_add_settlement_tier2_buttons(data)
+
 	show()
+
+func _add_settlement_tier2_buttons(data: Dictionary):
+	var affordances: Array = []
+	var per_court = data.get("per_court_acceptance", [])
+	if per_court is Array:
+		for row in per_court:
+			if not (row is Dictionary):
+				continue
+			# Focused dials ("Press <court>" / "Ease <court>") ride on every
+			# dialable row; holdout Ease/Drop ride on holdout rows.
+			var dial_actions = row.get("dial_actions", [])
+			if dial_actions is Array:
+				for da in dial_actions:
+					if da is Dictionary and str(da.get("action", "")) != "":
+						affordances.append(da)
+			var holdout_actions = row.get("holdout_actions", [])
+			if holdout_actions is Array:
+				for ha in holdout_actions:
+					if ha is Dictionary and str(ha.get("action", "")) != "":
+						affordances.append(ha)
+	var coverage_suggestions = data.get("coverage_add_suggestions", [])
+	if coverage_suggestions is Array:
+		for cs in coverage_suggestions:
+			if cs is Dictionary and str(cs.get("action", "")) != "":
+				affordances.append(cs)
+	for aff in affordances:
+		var btn = Button.new()
+		btn.text = str(aff.get("label", "???"))
+		btn.tooltip_text = str(aff.get("description", ""))
+		btn.custom_minimum_size = Vector2(160, 40)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_color_override("font_color", Color("#80b0e0"))
+		btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
+		button_container.add_child(btn)
 
 func _build_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
@@ -454,6 +496,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 	var narration = str(data.get("multi_court_table_narration", ""))
 	if narration != "":
 		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
+	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice.
+	var advisory = str(data.get("targeted_posture_advisory", ""))
+	if advisory != "":
+		bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
 	bbcode += "[b]The table[/b]\n"
 	for row in per_court:
 		if not (row is Dictionary):
@@ -472,6 +518,11 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		var blocker = str(row.get("top_blocker_display", ""))
 		if blocker != "" and blocker != "null":
 			bbcode += "      [color=#e0a040]Blocker: %s[/color]\n" % blocker
+		# Re-front Slice 2 / §11.2: the live band delta after a dial (presentation
+		# only — it never feeds the scored result).
+		var delta = str(row.get("delta_display", ""))
+		if delta != "" and delta != "null":
+			bbcode += "      [color=#80b0e0]%s[/color]\n" % delta
 		var voice = str(row.get("voice_line", ""))
 		if voice != "":
 			bbcode += "      [i]%s[/i]\n" % voice
@@ -953,6 +1004,15 @@ func _on_option_selected(action: String):
 	_clear_buttons()
 	hide()
 	choice_made.emit(action, current_data)
+
+func _on_settlement_tier2_affordance(affordance: Dictionary):
+	# Re-front Slice 2: a per-row dial / coverage affordance carries its own
+	# structured params (scope / nation / war_id / draft_key). Emit the affordance
+	# dict as the choice data so main.gd routes it through the structured
+	# `action_params` dialogue path instead of options[] index matching.
+	_clear_buttons()
+	hide()
+	choice_made.emit(str(affordance.get("action", "")), affordance)
 
 func _clear_buttons():
 	for child in button_container.get_children():

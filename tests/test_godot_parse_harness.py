@@ -389,6 +389,14 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     # (`adjust_terms` is NOT here: it is handled client-side in Godot and the
     # bilateral terms-guidance flow owns that backend action id.)
     "submit_settlement_for_review",
+    # Re-front Slice 2 PROPOSE Tier-2 verbs: intent dials, coverage edits, and
+    # court focus. They ride on per-court rows / rail buttons and carry
+    # structured `scope` / `nation` params (routed via `action_params`).
+    "settlement_dial_harsher",
+    "settlement_dial_generous",
+    "settlement_cover_add",
+    "settlement_cover_drop",
+    "settlement_focus_court",
     "open_war_detail",
     "re_author_with_concessions",
     "apply_concession_baseline_replacement",

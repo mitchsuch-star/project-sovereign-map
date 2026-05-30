@@ -616,7 +616,7 @@ class TestOtherEndpointDiplomaticFields:
             "options": [{"label": "Send", "action": "execute_proposal"}],
         })
 
-        def _fake_handle(_choice, _game_state):
+        def _fake_handle(_choice, _game_state, action_params=None):
             fresh_world.dialogue_manager.pop()
             return {
                 "success": True,

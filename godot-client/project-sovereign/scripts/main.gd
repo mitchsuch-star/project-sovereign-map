@@ -43,6 +43,15 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# and never round-trips — and the bilateral terms-guidance flow owns the
 	# backend `adjust_terms` action id.)
 	"submit_settlement_for_review",
+	# Re-front Slice 2 PROPOSE Tier-2 verbs: intent dials (whole-table from the
+	# rail, focused from a per-court row), coverage edits, and court focus. They
+	# round-trip with structured `scope` / `nation` params (sent as
+	# `action_params`) so the backend re-drafts + re-scores per court live.
+	"settlement_dial_harsher",
+	"settlement_dial_generous",
+	"settlement_cover_add",
+	"settlement_cover_drop",
+	"settlement_focus_court",
 	# SC-5R-2 follow-up: the editor's non-destructive Back Out. Pops the
 	# staged settlement_confirm hard-stop while preserving the scoped draft
 	# (back_out_settlement discards; this suspend close does not).
@@ -3346,6 +3355,17 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 						proposal_confirm_popup.hide()
 					add_output("[color=#d9c08c]Opening settlement editor...[/color]")
 					return
+	# Re-front Slice 2: a per-court row affordance (focused dial / holdout
+	# Ease/Drop / coverage add) carries its own structured params (scope / nation)
+	# and is NOT in options[], so the index path below cannot resolve it. The
+	# popup emits the affordance dict as `data`; route it through the structured
+	# `action_params` dialogue path. (Whole-table dials ride in options[] and
+	# resolve via the index path with their server-side `scope: "table"`.)
+	if action in SETTLEMENT_DIALOGUE_ACTIONS and (data.has("scope") or data.has("nation")):
+		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		set_input_enabled(false)
+		api_client.send_dialogue_response_with_params(action, data, _on_command_result)
+		return
 	# Send the raw action directly to dialogue endpoint via 1-based option index.
 	# DO NOT construct natural language — keyword routing causes mismatches.
 	var options = data.get("options", [])

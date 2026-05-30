@@ -14,6 +14,19 @@ from backend.models.world_state import WorldState
 from backend.display_names import proposal_display_name as _proposal_display_name
 
 
+# Re-front Slice 2: settlement PROPOSE Tier-2 verbs that ride on per-court rows
+# / rail buttons and carry structured params (`scope` / `nation`) rather than
+# matching the keyword `options[]` surface. Routed through the structured
+# `action_params` path in `handle_diplomatic_dialogue_response`.
+_SETTLEMENT_TIER2_ACTION_IDS = frozenset({
+    "settlement_dial_harsher",
+    "settlement_dial_generous",
+    "settlement_cover_add",
+    "settlement_cover_drop",
+    "settlement_focus_court",
+})
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -2670,12 +2683,19 @@ class DiplomaticExecutor:
     # DIPLOMATIC DIALOGUE RESPONSE HANDLER
     # ════════════════════════════════════════════════════════════════════════════════
 
-    def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
+    def handle_diplomatic_dialogue_response(
+        self, choice, game_state: Dict, action_params: Optional[Dict] = None,
+    ) -> Dict:
         """Handle player's response to a diplomatic dialogue.
 
         Args:
             choice: int (1-based option index) or str (keyword match)
             game_state: Current game state
+            action_params: structured fields for an affordance that does not
+                ride on the keyword-matched ``options[]`` surface (Re-front
+                Slice 2 settlement Tier-2 dials / coverage edits / focus, which
+                live on per-court rows and rail buttons and carry ``scope`` /
+                ``nation``).
 
         Returns:
             Result dict with success, message, and any new state.
@@ -2689,6 +2709,21 @@ class DiplomaticExecutor:
 
         dialogue = world.pending_diplomatic_dialogue
         options = dialogue.get("options", [])
+
+        # Re-front Slice 2: structured settlement Tier-2 affordances (dials,
+        # coverage edits, focus) ride on per-court rows / rail buttons and carry
+        # `scope` / `nation` params, so resolve them directly against the staged
+        # settlement_confirm rather than through options[]/keyword matching (the
+        # `suspend_settlement_editor` precedent below uses the same direct path).
+        if (
+            isinstance(action_params, dict)
+            and str(action_params.get("action") or "") in _SETTLEMENT_TIER2_ACTION_IDS
+            and str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+            == "settlement_confirm"
+        ):
+            return self._process_dialogue_choice(
+                str(action_params["action"]), dict(action_params), dialogue, world,
+            )
 
         # SC-5R-2 follow-up: the settlement editor's Back Out sends a safe
         # "suspend" close that pops the staged settlement_confirm hard-stop
@@ -2861,6 +2896,16 @@ class DiplomaticExecutor:
             # affordances ride on each per-court ROW; their handlers land in
             # Slice 2.)
             "submit_settlement_for_review",
+            # Re-front Slice 2 PROPOSE Tier-2 verbs (dials, coverage edits,
+            # court focus). Each rides on a per-court row or rail button (not the
+            # keyword-matched options[] surface) and carries structured params
+            # (`scope` / `nation`) through `selected`, threaded into
+            # `handle_settlement_dialogue_action(action_params=...)`.
+            "settlement_dial_harsher",
+            "settlement_dial_generous",
+            "settlement_cover_add",
+            "settlement_cover_drop",
+            "settlement_focus_court",
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
             "re_author_with_concessions",
@@ -2899,7 +2944,7 @@ class DiplomaticExecutor:
                 handle_settlement_dialogue_action,
             )
             return handle_settlement_dialogue_action(
-                world, action=action, dialogue=dialogue,
+                world, action=action, dialogue=dialogue, action_params=selected,
             )
 
         elif action in (
