@@ -1,0 +1,4 @@
+# Keep the tracked git hook script LF-only. It is copied verbatim into
+# .git/hooks/ (see CLAUDE.md "work directly on master"); a CRLF shebang
+# breaks the /bin/sh interpreter on checkout when core.autocrlf=true.
+scripts/git-hooks/pre-commit text eol=lf

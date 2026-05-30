@@ -1,0 +1,29 @@
+#!/bin/sh
+# Pre-commit quality gate for project-sovereign-map (per CLAUDE.md).
+# Enforces the project's quality bar before every commit:
+#   1. ruff lint on backend/
+#   2. the FULL pytest suite (tests/)
+# Any failure aborts the commit. Do NOT bypass with --no-verify; fix the
+# underlying failure instead (CLAUDE.md "work directly on master" workflow).
+
+PYTHON=".venv/Scripts/python.exe"
+RUFF=".venv/Scripts/ruff.exe"
+
+if [ ! -f "$PYTHON" ]; then
+  echo "[pre-commit] venv python not found at $PYTHON" 1>&2
+  echo "[pre-commit] create/restore the project venv, then retry." 1>&2
+  exit 1
+fi
+
+echo "[pre-commit] ruff check backend/ ..."
+if [ -f "$RUFF" ]; then
+  "$RUFF" check backend/ || { echo "[pre-commit] ruff failed -- commit aborted." 1>&2; exit 1; }
+else
+  "$PYTHON" -m ruff check backend/ || { echo "[pre-commit] ruff failed -- commit aborted." 1>&2; exit 1; }
+fi
+
+echo "[pre-commit] full pytest suite (tests/) -- this may take ~30s ..."
+"$PYTHON" -m pytest tests/ -q || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
+
+echo "[pre-commit] OK -- ruff clean, suite green."
+exit 0
