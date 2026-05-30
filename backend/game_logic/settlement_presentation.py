@@ -475,6 +475,18 @@ def _term_display(term: Mapping[str, Any]) -> str:
         amount = int(term.get("amount", 0) or 0)
         turns = int(term.get("turns", 0) or 0)
         return f"{base}: {amount} gold/turn from {t_from} to {t_to} ({turns} turns)"
+    # Lump gold (indemnity / payment) must carry its amount AND the
+    # directional "from <payer> to <recipient>" form. The bare
+    # "{base}: {t_from} to {t_to}" fallback dropped the amount and the
+    # "from", so "Gold indemnity: Britain to France" read ambiguously —
+    # a Gate-4 smoke reviewer parsed it as France paying Britain. Match
+    # the gold_per_turn / territory rows above so payer→recipient is
+    # unmistakable.
+    if ttype in ("gold_indemnity", "gold_lump") and t_from and t_to:
+        amount = int(term.get("amount", 0) or 0)
+        if amount > 0:
+            return f"{base}: {amount} gold from {t_from} to {t_to}"
+        return f"{base}: {t_from} to {t_to}"
     if region and t_from and t_to:
         return f"{base}: {region} from {t_from} to {t_to}"
     if t_from and t_to:

@@ -1202,3 +1202,48 @@ class TestBuildSettlementReviewFromEvent:
         assert "acceptance" in sections["sections"]
         # Compact density default for recent settlements.
         assert sections["density"] == "compact"
+
+
+class TestTermDisplayGoldDirection:
+    """Gate-4 smoke regression: lump-gold term rows must carry the amount
+    AND an unambiguous payer->recipient direction. The bare
+    "Gold indemnity: Britain to France" form (no amount, no "from") read
+    backwards to a reviewer who parsed it as France paying Britain."""
+
+    def test_gold_indemnity_renders_amount_and_from_to(self):
+        # France is the victor; Britain pays France 300 gold.
+        row = sp._term_display(
+            {"type": "gold_indemnity", "from": "Britain", "to": "France", "amount": 300}
+        )
+        assert "300 gold" in row
+        assert "from Britain to France" in row
+        # Payer is named before the recipient — cannot be misread as
+        # France -> Britain.
+        assert row.index("Britain") < row.index("France")
+
+    def test_gold_lump_renders_amount_and_from_to(self):
+        row = sp._term_display(
+            {"type": "gold_lump", "from": "Prussia", "to": "France", "amount": 250}
+        )
+        assert "250 gold" in row
+        assert "from Prussia to France" in row
+
+    def test_gold_indemnity_without_amount_falls_back_cleanly(self):
+        # No amount -> no "0 gold" noise, still directional via from/to.
+        row = sp._term_display(
+            {"type": "gold_indemnity", "from": "Britain", "to": "France"}
+        )
+        assert "0 gold" not in row
+        assert "Britain to France" in row
+
+    def test_territory_cession_direction_preserved(self):
+        row = sp._term_display(
+            {
+                "type": "territory_cede",
+                "from": "Britain",
+                "to": "France",
+                "region": "Waterloo",
+            }
+        )
+        assert "Waterloo" in row
+        assert "from Britain to France" in row

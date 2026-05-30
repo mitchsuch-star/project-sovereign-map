@@ -536,15 +536,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		var voice = _safe_str(row.get("voice_line"))
 		if voice != "":
 			bbcode += "      [i]%s[/i]\n" % voice
-		# Holdout rows expose Ease / Drop affordances (§11.4).
-		var holdout_actions = row.get("holdout_actions", [])
-		if holdout_actions is Array and holdout_actions.size() > 0:
-			var labels = []
-			for ha in holdout_actions:
-				if ha is Dictionary:
-					labels.append(str(ha.get("label", "")))
-			if labels.size() > 0:
-				bbcode += "      [color=#80b0e0]%s[/color]\n" % " | ".join(PackedStringArray(labels))
+			# Rendered as real clickable buttons by _add_settlement_tier2_buttons
+			# (self-labeled, e.g. "Ease Britain") -- intentionally NOT echoed inline.
+			# The old blue "Ease X | Drop X" body text was inert (looked clickable,
+			# did nothing) and duplicated the working buttons; Gate-4 smoke finding.
 	var overall = data.get("overall_acceptance", {})
 	if overall is Dictionary:
 		var summary = str(overall.get("summary_display", ""))
