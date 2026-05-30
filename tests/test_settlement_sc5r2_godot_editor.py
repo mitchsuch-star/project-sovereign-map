@@ -460,9 +460,10 @@ class TestBackendDraftRoundTrip:
         amounts = [int(t.get("amount", 0)) for t in terms if t.get("type") == "gold_indemnity"]
         assert 250 in amounts
 
-    def test_propose_common_peace_no_scoped_draft_starts_empty(self):
-        """When no scoped draft exists, the propose path stages an
-        empty EDIT draft, not a restored draft."""
+    def test_propose_common_peace_no_scoped_draft_lands_fresh_propose(self):
+        """Re-front Slice 1: with no scoped draft, opening a settlement lands
+        the conversational PROPOSE surface with a freshly generated baseline —
+        NOT a restored draft and NOT the old blank EDIT form."""
         world = WorldState()
         _install_common_peace_war(world)
         executor = DiplomaticExecutor(None)
@@ -481,10 +482,12 @@ class TestBackendDraftRoundTrip:
                 {"world": world},
             )
         assert result.get("draft_restored_from_scope") is not True
-        assert result.get("open_editor_on_mount") is True
+        assert result.get("propose_on_mount") is True
+        assert result.get("open_editor_on_mount") is not True
         staged = result.get("diplomatic_dialogue") or {}
-        assert staged.get("can_edit_terms") is True
-        assert staged.get("editor_route", {}).get("staged_settlement_terms") == []
+        assert staged.get("dialogue_mode") == "PROPOSE"
+        # The PROPOSE surface always carries the per-court acceptance block.
+        assert staged.get("per_court_acceptance")
 
     def test_propose_common_peace_submit_for_review_does_not_reopen_editor(self):
         """Submit for Review returns REVIEW; it must not auto-mount EDIT again."""

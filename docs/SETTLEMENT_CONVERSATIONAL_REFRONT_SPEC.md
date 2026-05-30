@@ -1,6 +1,6 @@
 # Settlement Conversational Re-front Spec
 
-**Status:** **v0.6 — APPROVED May 29, 2026.** Design gate cleared; implementation unblocked. **Slice 0 LANDED; Slice 1 is the active next slice.**
+**Status:** **v0.6 — APPROVED May 29, 2026.** Design gate cleared; implementation unblocked. **Slice 0 + Slice 1 + REFRONT-V voice LANDED (May 30); Slice 2 is the active next slice.**
 (Follows the same gate convention as `JEALOUSY_SPEC.md`.)
 
 **Date:** May 28–29, 2026 (v0.1 vision → v0.2 detailed → v0.3 second-audit cleanup → v0.4 third-audit cleanup → v0.5 May 29 fourth-audit consistency fold → **v0.6 May 29 fifth-audit synthesis fold**)
@@ -336,8 +336,9 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
   - `test_settlement_no_self_referential_clause` (liberation France-France-France not constructible **or** rejected pre-stage)
 - **Completion:** no live clause type's schema row renders an *enabled* empty picker (disabled rows carry `enabled=False` + a humanized reason and stay schema keys so `available_clause_types[]` is unchanged); liberation offers only real vassals — and because the Godot picker faithfully renders that options list, **`vassal=France` is unconstructable end-to-end**; full suite green. **What Slice 0 does NOT close:** the full line-601 *editor UX* ("Add Clause control disabled instead of opening an empty picker") for other empty-picker clause types — that needs the Godot consumer in **REFRONT-8 / Slice 3**, so Slice 0 alone does **not** fully unblock the Gate 4 smoke pass.
 
-### Slice 1 — Tier 1 baseline (multi-party, any side) + PROPOSE surface + per-court gate
+### Slice 1 — Tier 1 baseline (multi-party, any side) + PROPOSE surface + per-court gate — **LANDED May 30, 2026** (full deterministic + default-random suites `10278 passed, 1 skipped`; ruff clean; Godot 4.4.1 headless parse exit 0; REFRONT-V voice landed with it)
 - **Scope:** generalize `_compute_concession_baseline` → `compute_settlement_baseline` (per-court direction, OQ#5); add `dialogue_mode="PROPOSE"` + the `per_court_acceptance` / `overall_acceptance` payload (§11.2); add the **per-court ratification gate** (§11.4) — `carries` iff every covered court ≥ threshold, REVIEW carries `per_court_acceptance`, holdout courts surface ease/drop; render the PROPOSE surface; route `propose_common_peace` to land PROPOSE (not blank EDIT).
+- **Implementation clarification (no design change):** the demand-direction baseline gates added demands on the **near-acceptance floor** (don't suggest a demand that would make a court *outright reject*), NOT the accept threshold as this section's OQ#5 prose literally read. Reason: `base_side_pressure` is **package-level** (§11.2), so in a *mixed* war a led court shares the package's middling pressure — an accept-threshold gate would back every demand off to peace, defeating "demands from winning courts." A demand court may therefore seat as a near-acceptable **holdout** the player eases/drops; the baseline guarantees a *valid, non-rejecting* start, not a blanket `carries=true` (already the OQ#5 holdout posture). The PROPOSE→EDIT `Adjust terms` action is handled **client-side** in Godot (it mounts the Tier-3 editor and never round-trips); the bilateral terms-guidance flow keeps sole ownership of the backend `adjust_terms` action id.
 - **Tests:**
   - `test_settlement_baseline_demands_from_winning_courts_concedes_to_losing`
   - `test_settlement_baseline_per_court_direction_uses_per_court_direct_score_not_side_pressure` (OQ#5 — the v0.4 CRITICAL fix: direction reads `direct_scores[court]`, not the package side-pressure scalar)
@@ -386,7 +387,8 @@ Per Golden Rule #9 / the docs deferral rule, every requirement names a behavior 
   - `test_godot_editor_disables_add_clause_for_disabled_type_and_surfaces_reason` (REFRONT-8 — the Godot consumer of Slice 0's `enabled` / `disabled_reason_display`)
 - **Completion:** Tier 3 cannot author any V1–V5 violation; the editor honors `enabled` / `disabled_reason_display` (REFRONT-8 — no disabled clause type opens an empty picker); merge-conflict controls work; `DWL-SET-SC5R-3` and `REFRONT-8` flip to LANDED; suite green.
 
-### Voice — Multi-court settlement-table voice (NEW; closes Voice Bible gap B4)
+### Voice — Multi-court settlement-table voice (NEW; closes Voice Bible gap B4) — **LANDED May 30, 2026 with Slice 1**
+- **Landed as:** `resolve_multi_court_settlement_voice` (`diplomatic_templates.py`) + the `settlement_multi_court_*` template family; `DIPLOMAT_VOICE_BIBLE.md` §16.1a; wired into the per-court rows in `build_settlement_confirm_dialogue` (`voice_line` + `speaker_display` per row, `multi_court_table_narration` on the dialogue). Tests: the 3 §14 Voice tests + the PROPOSE integration pin in `tests/test_settlement_refront_slice1.py`.
 - **Owner / landing:** the resolver rule + family **land before or with Slice 1's PROPOSE copy — not after** (otherwise Slice 1's per-court lines have no resolver contract and risk the anonymous-voice beats §13 forbids); Slice 2's dial copy extends the same family; tracked as spec row REFRONT-V. **Slice 1 completion depends on this resolver rule existing (see Slice 1 completion).**
 - **Scope:** `DIPLOMAT_VOICE_BIBLE.md` gains a **multi-court settlement** section: each covered court's line resolves through its **named diplomat** (Castlereagh/Hardenberg/Metternich/Einsiedel) via the existing resolver/fallback chain (Voice Bible Cross-cast:239-243); **Talleyrand narrates the table** and flags the binding constraint. No anonymous voice at multi-court beats. **Per cleanup SC-32 D5 (§2 boundary), committed copy must not use "conference," "congress," or "veto"** — it uses "settlement," "the table," "these courts," "<court> holds out / signs."
 - **Tests:**

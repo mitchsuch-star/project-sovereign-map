@@ -385,6 +385,10 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     # SC-5R-2 follow-up: non-destructive editor Back Out (pops the
     # settlement_confirm hard-stop, preserves the scoped draft).
     "suspend_settlement_editor",
+    # Re-front Slice 1 PROPOSE rail: Submit for Review re-stages REVIEW.
+    # (`adjust_terms` is NOT here: it is handled client-side in Godot and the
+    # bilateral terms-guidance flow owns that backend action id.)
+    "submit_settlement_for_review",
     "open_war_detail",
     "re_author_with_concessions",
     "apply_concession_baseline_replacement",

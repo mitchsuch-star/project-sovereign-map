@@ -9,7 +9,7 @@ Architecture:
   Each template has text (with {slots}), options, and recommendation index.
 """
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from backend.nation_config import get_player_nation
 
@@ -1416,6 +1416,40 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "is the loudest blocker, and {accepting_leader} is the court whose "
         "acceptance must shift before terms move."
     ),
+    # ───────────────────────────────────────────────────────────────────
+    # Re-front Slice 1 / REFRONT-V — multi-court settlement-table voice
+    # (closes Voice Bible gap B4). Each covered court's line is spoken by
+    # its NAMED diplomat (resolved through `resolve_named_diplomat` /
+    # chancery fallback — no anonymous beats), and Talleyrand narrates the
+    # table and flags the binding constraint. Per cleanup SC-32 D5, NONE of
+    # this committed copy uses "conference", "congress", or "veto".
+    # ───────────────────────────────────────────────────────────────────
+    "settlement_multi_court_court_will_sign": (
+        "{speaker} signals that {court} will sign the settlement of {war_label}."
+    ),
+    "settlement_multi_court_court_leaning": (
+        "{speaker} says {court} leans toward terms, though {top_blocker} still "
+        "gives the court pause."
+    ),
+    "settlement_multi_court_court_holds_out": (
+        "{speaker} holds {court} back from the table — {top_blocker} is the "
+        "sticking point before they will sign."
+    ),
+    "settlement_multi_court_court_hard_stop": (
+        "{speaker} has no standing to settle {court} here — there is no live "
+        "quarrel between us to close."
+    ),
+    "settlement_multi_court_table_talleyrand": (
+        "Sire, this settlement of {war_label} seats {court_count} courts at the "
+        "table. {binding_constraint}"
+    ),
+    "settlement_multi_court_all_carry_talleyrand": (
+        "Every court at the table will sign; the settlement of {war_label} carries."
+    ),
+    "settlement_multi_court_holdout_blocks_talleyrand": (
+        "Sire, {holdout_court} will not sign; the settlement of {war_label} cannot "
+        "be ratified until that court is eased toward terms or dropped to fight on."
+    ),
 }
 
 
@@ -1431,6 +1465,86 @@ def resolve_settlement_voice_line(template_key: str, **slots: Any) -> str:
         return ""
     safe_slots = {key: str(value) for key, value in slots.items()}
     return template.format_map(_MissingSettlementSlot(safe_slots))
+
+
+_MULTI_COURT_BAND_TEMPLATE = {
+    "accept": "settlement_multi_court_court_will_sign",
+    "near_acceptable": "settlement_multi_court_court_leaning",
+    "reject": "settlement_multi_court_court_holds_out",
+}
+
+
+def resolve_multi_court_settlement_voice(
+    world: Any,
+    *,
+    per_court_acceptance: Any,
+    overall_acceptance: Any = None,
+    war_label: str = "",
+) -> Dict[str, Any]:
+    """Re-front Slice 1 / REFRONT-V — resolve the multi-court table voice.
+
+    Returns ``{"per_court_voice": [{nation, speaker, band, line}, ...],
+    "table_narration": str}``. Each covered court's line is spoken by its
+    NAMED diplomat via ``resolve_named_diplomat`` (chancery fallback when the
+    court has no named envoy — never an anonymous beat). Talleyrand narrates
+    the table and names the binding constraint (the first holdout). Committed
+    copy obeys the SC-32 D5 boundary: no "conference"/"congress"/"veto".
+    """
+    rows = list(per_court_acceptance or [])
+    overall = dict(overall_acceptance or {})
+    per_court_voice: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        court = str(row.get("nation") or "")
+        speaker = resolve_named_diplomat("envoy", court, world)
+        hard_stopped = bool(row.get("hard_stops")) and row.get("total") is None
+        band = str(row.get("band") or "reject")
+        top_blocker = str(row.get("top_blocker_display") or "the standing terms")
+        if hard_stopped:
+            template_key = "settlement_multi_court_court_hard_stop"
+        else:
+            template_key = _MULTI_COURT_BAND_TEMPLATE.get(
+                band, "settlement_multi_court_court_holds_out"
+            )
+        line = resolve_settlement_voice_line(
+            template_key,
+            speaker=speaker,
+            court=court,
+            war_label=war_label or "this war",
+            top_blocker=top_blocker,
+        )
+        per_court_voice.append({
+            "nation": court,
+            "speaker": speaker,
+            "band": band,
+            "line": line,
+        })
+
+    holdouts = list(overall.get("holdout_courts") or [])
+    if not rows:
+        binding = ""
+    elif overall.get("carries"):
+        binding = resolve_settlement_voice_line(
+            "settlement_multi_court_all_carry_talleyrand",
+            war_label=war_label or "this war",
+        )
+    else:
+        binding = resolve_settlement_voice_line(
+            "settlement_multi_court_holdout_blocks_talleyrand",
+            holdout_court=(holdouts[0] if holdouts else "a covered court"),
+            war_label=war_label or "this war",
+        )
+    table_narration = resolve_settlement_voice_line(
+        "settlement_multi_court_table_talleyrand",
+        war_label=war_label or "this war",
+        court_count=len(rows),
+        binding_constraint=binding,
+    )
+    return {
+        "per_court_voice": per_court_voice,
+        "table_narration": table_narration,
+    }
 
 
 class _MissingSettlementSlot(dict):

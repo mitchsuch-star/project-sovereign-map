@@ -228,11 +228,25 @@ class DialogueManager:
         """True if current dialogue is a hard-stop type that blocks ALL commands.
 
         PL-27: Only hard-stop dialogues should prevent ordinary command execution.
+
+        Re-front Slice 1 §10: a ``settlement_confirm`` in ``dialogue_mode ==
+        "PROPOSE"`` is an AUTHORING surface (the conversational Tier-1/2 front),
+        not a staged decision. Like EDIT, it must not block ordinary commands or
+        end-turn — the unsubmitted draft simply discards at turn end. Only the
+        staged-decision settlement surfaces (REVIEW / BLOCKED_TERMINAL) remain
+        hard stops.
         """
         if self._current is None:
             return False
         dtype = self._current.get("type", "")
-        return dtype in self.HARD_STOP_TYPES
+        if dtype not in self.HARD_STOP_TYPES:
+            return False
+        if (
+            dtype == "settlement_confirm"
+            and str(self._current.get("dialogue_mode", "")).upper() == "PROPOSE"
+        ):
+            return False
+        return True
 
     def is_soft_stop(self) -> bool:
         """True if current dialogue is a soft-stop type (mailbox or hybrid).

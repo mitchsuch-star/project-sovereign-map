@@ -318,6 +318,26 @@ Existing settlement-reaction families:
 
 Every family must distinguish material contribution from diplomatic weight. A subsidy-only or zero-battle `major` "demands a voice at the table"; it did not necessarily "earn a voice through sacrifice."
 
+### 16.1a Multi-court settlement-table voice (REFRONT-V — Settlement Conversational Re-front Slice 1)
+
+A multi-party settlement seats several enemy courts at one table, each scored independently (`per_court_acceptance`, spec §11.2). The **resolver rule** for this surface:
+
+- **Every covered court's per-court line is spoken by its NAMED diplomat**, resolved through the existing `resolve_named_diplomat("envoy", <court>, world)` / chancery-fallback chain (see Cross-cast guidance). A court without a named envoy resolves to "The Chancery of <court>" — **never an anonymous beat**. (`resolve_multi_court_settlement_voice` in `diplomatic_templates.py`.)
+- **Talleyrand narrates the table and names the binding constraint** — which court holds the settlement back (the first holdout), or that every court carries.
+- The court's line is selected by its acceptance band: will-sign (`accept`), leaning (`near_acceptable`), holds-out (`reject`), or no-standing (a hard-stopped court with no live quarrel).
+
+| Template | Speaker | Band | Exemplar |
+|---|---|---|---|
+| `settlement_multi_court_court_will_sign` | Named diplomat / chancery | accept | "{speaker} signals that {court} will sign the settlement of {war_label}." |
+| `settlement_multi_court_court_leaning` | Named diplomat / chancery | near_acceptable | "{speaker} says {court} leans toward terms, though {top_blocker} still gives the court pause." |
+| `settlement_multi_court_court_holds_out` | Named diplomat / chancery | reject | "{speaker} holds {court} back from the table — {top_blocker} is the sticking point before they will sign." |
+| `settlement_multi_court_court_hard_stop` | Named diplomat / chancery | hard stop | "{speaker} has no standing to settle {court} here — there is no live quarrel between us to close." |
+| `settlement_multi_court_table_talleyrand` | Talleyrand | table narration | "Sire, this settlement of {war_label} seats {court_count} courts at the table. {binding_constraint}" |
+| `settlement_multi_court_all_carry_talleyrand` | Talleyrand | binding (carries) | "Every court at the table will sign; the settlement of {war_label} carries." |
+| `settlement_multi_court_holdout_blocks_talleyrand` | Talleyrand | binding (blocked) | "Sire, {holdout_court} will not sign; the settlement of {war_label} cannot be ratified until that court is eased toward terms or dropped to fight on." |
+
+**Copy boundary (cleanup SC-32 D5 — normative).** This is a *settlement table*, not a Congress. **No committed multi-court copy may contain "conference", "congress", or "veto"** — use "settlement", "the table", "these courts", "<court> holds out / signs". The word "conference" is internal design shorthand only. Enforced by `test_committed_multi_court_copy_avoids_conference_congress_veto_terms`.
+
 ---
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)

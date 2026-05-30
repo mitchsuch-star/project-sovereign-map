@@ -36,6 +36,13 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
 	"revise_settlement_terms",
 	"back_out_settlement",
+	# Re-front Slice 1 PROPOSE rail. `submit_settlement_for_review` round-trips
+	# so the backend re-stages the REVIEW surface for the per-court ratification
+	# gate. (`adjust_terms` is intentionally NOT whitelisted here: it is handled
+	# client-side in _on_proposal_confirm_choice — it mounts the Tier-3 editor
+	# and never round-trips — and the bilateral terms-guidance flow owns the
+	# backend `adjust_terms` action id.)
+	"submit_settlement_for_review",
 	# SC-5R-2 follow-up: the editor's non-destructive Back Out. Pops the
 	# staged settlement_confirm hard-stop while preserving the scoped draft
 	# (back_out_settlement discards; this suspend close does not).
@@ -3314,6 +3321,20 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	# Godot client mounts the EDIT-mode editor locally using the backend
 	# contract instead of round-tripping a dialogue response. The legacy
 	# `revise_settlement_terms` handler is only consulted as a fallback.
+	# Re-front Slice 1: `Adjust terms` from the PROPOSE surface opens the
+	# Tier-3 structured editor locally (the PROPOSE dialogue carries
+	# can_edit_terms + editor_route), exactly like `Revise Terms` on REVIEW.
+	if action == "adjust_terms":
+		var adj_dtype = str(data.get("type", data.get("dialogue_type", "")))
+		var adj_can_edit = bool(data.get("can_edit_terms", false))
+		var adj_editor_route = data.get("editor_route", null)
+		if adj_dtype == "settlement_confirm" and adj_can_edit and adj_editor_route is Dictionary and adj_editor_route.size() > 0:
+			if settlement_editor_popup:
+				if settlement_editor_popup.show_editor(data):
+					if proposal_confirm_popup and proposal_confirm_popup.has_method("hide"):
+						proposal_confirm_popup.hide()
+					add_output("[color=#d9c08c]Opening settlement editor...[/color]")
+					return
 	if action == "revise_settlement_terms":
 		var dtype = str(data.get("type", data.get("dialogue_type", "")))
 		var can_edit = bool(data.get("can_edit_terms", false))

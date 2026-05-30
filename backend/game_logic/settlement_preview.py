@@ -32,17 +32,24 @@ from backend.display_names import (
 from backend.game_logic.diplomatic_templates import (
     calculate_raw_treaty_harshness,
     calculate_treaty_harshness,
+    resolve_multi_court_settlement_voice,
     resolve_settlement_voice_line,
 )
 from backend.game_logic.settlement_scoring import (
+    ACCEPTANCE_THRESHOLD,
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
     CLAUSE_CONFLICT_MATRIX,
     CLAUSE_CONTROL_SCHEMA,
+    compute_direct_scores_by_enemy,
+    compute_side_pressure_score,
     GOLD_PER_TURN_MAX_TURNS,
     GOLD_PER_TURN_MIN_AMOUNT,
     GOLD_PER_TURN_MIN_TURNS,
+    HARD_STOP_NO_DIRECT_WAR_SCORE,
     MAX_SETTLEMENT_CLAUSE_COUNT,
+    NEAR_ACCEPTANCE_FLOOR,
+    select_direct_score,
     SETTLEMENT_HARD_STOP_CODES,
     SETTLEMENT_LIVE_CLAUSE_TYPES,
     SETTLEMENT_MVP_CLAUSE_TYPES,
@@ -1329,6 +1336,26 @@ CONCESSION_BASELINE_GOLD_HARD_CAP = 1500
 CONCESSION_BASELINE_GOLD_FLOOR = 300
 CONCESSION_BASELINE_BFS_MAX_DEPTH = 6
 
+# Re-front Slice 1: a strong-lead threshold for authoring a TERRITORY demand,
+# mirroring `generate_suggested_terms`' bilateral demand stage (which demands a
+# border region at `war_score > 30`). Below this but above the direction margin
+# the baseline demands gold only (a lighter ask); inside the margin it is a
+# neutral peace.
+DEMAND_TERRITORY_DIRECT_SCORE = 30
+
+# Re-front Slice 1 / spec §8 OQ#5: per-court baseline DIRECTION dead-band.
+# This thresholds a single court's raw `direct_score` (the int half of
+# `select_direct_score(direct_scores[court])`, on the [-100, 100] war-score
+# scale) to choose demand vs concede vs neutral-peace. It is deliberately a
+# DISTINCT constant from `LOSING_SIDE_PRESSURE_THRESHOLD`: that one thresholds
+# the power-weighted *side-pressure* scalar (a different scale/quantity), and
+# reusing it here would re-introduce the scale conflation the spec's pressure
+# model note exists to prevent. France clearly leads a court at
+# `direct_score > +MARGIN` (demand), is clearly pressured by it at
+# `direct_score < -MARGIN` (concede), and is in a neutral dead-band in between
+# (white-peace floor).
+DIRECT_SCORE_DIRECTION_MARGIN = 10
+
 
 def _concession_baseline_payer_balance(world: Any, nation: str) -> int:
     """Return the payer nation's available gold balance (int)."""
@@ -2127,6 +2154,566 @@ def _compute_concession_baseline(
     }
 
 
+def _demand_baseline_select_region(
+    world: Any,
+    *,
+    court: str,
+    proposer_side_participants: Iterable[str],
+) -> Optional[str]:
+    """Pick the deterministic demand region a winning court would cede.
+
+    Mirrors the bilateral demand-stage selection in
+    ``generate_suggested_terms`` (border regions the enemy holds adjacent to
+    the demanding side, excluding the enemy's capital — see
+    ``diplomatic_templates.py`` stage 2b). The court keeps its capital; a
+    border province changes hands. Deterministic tie-break is (income value
+    low-first, region name) so the baseline regenerates identically across
+    reruns. Falls back to any non-capital region the court controls when no
+    border province exists, and returns None when the court holds only its
+    capital (no transferable region).
+
+    Golden Rule #8: holdings come from the cached
+    ``world.get_nation_regions(...)`` lookups, not a full ``world.regions``
+    scan.
+    """
+    regions = getattr(world, "regions", None)
+    if not isinstance(regions, Mapping):
+        return None
+    from backend.models.region import NATION_CAPITALS
+
+    court_capital = NATION_CAPITALS.get(court)
+    try:
+        court_regions = list(world.get_nation_regions(court))
+    except Exception:
+        court_regions = []
+    if not court_regions:
+        return None
+    proposer_holdings: set[str] = set()
+    for participant in proposer_side_participants:
+        if not participant:
+            continue
+        try:
+            proposer_holdings.update(world.get_nation_regions(participant))
+        except Exception:
+            continue
+    border: List[Tuple[int, str]] = []
+    fallback: List[Tuple[int, str]] = []
+    for rname in court_regions:
+        if rname == court_capital:
+            continue
+        region = regions.get(rname)
+        if region is None:
+            continue
+        if bool(getattr(region, "is_capital", False)):
+            continue
+        income_value = int(getattr(region, "income_value", 100) or 100)
+        fallback.append((income_value, str(rname)))
+        adjacent = getattr(region, "adjacent_regions", None) or []
+        if any(adj in proposer_holdings for adj in adjacent):
+            border.append((income_value, str(rname)))
+    pool = border or fallback
+    if not pool:
+        return None
+    pool.sort()
+    return pool[0][1]
+
+
+def _score_court_for_baseline(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    court: str,
+    proposer_side_leader: Optional[str],
+    covered: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+    side_pressure_result: Optional[Mapping[str, Any]],
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]],
+) -> Optional[int]:
+    """Score ``court``'s acceptance of a candidate baseline package.
+
+    Shares the package-level ``side_pressure_result`` / ``direct_scores``
+    pass (both term-independent) so the baseline build does not re-walk war
+    scores per candidate; ``raw_total_harshness`` is recomputed per call
+    because it depends on the candidate terms. Returns the int score or None
+    on a scorer hard stop.
+    """
+    result = calculate_common_peace_acceptance(
+        world,
+        war_id=war_id,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        accepting_leader=court,
+        proposer_side_leader=proposer_side_leader,
+        covered_enemy_participants=list(covered),
+        settlement_terms=[dict(t) for t in settlement_terms],
+        side_pressure_result=side_pressure_result,
+        direct_scores=direct_scores,
+    )
+    score = result.get("score")
+    return int(score) if score is not None else None
+
+
+def compute_settlement_baseline(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    proposer_side_leader: Optional[str],
+    covered_enemy_participants: Iterable[str],
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]] = None,
+    side_pressure_result: Optional[Mapping[str, Any]] = None,
+    accept_threshold: int = ACCEPTANCE_THRESHOLD,
+    near_acceptance_floor: int = NEAR_ACCEPTANCE_FLOOR,
+) -> Dict[str, Any]:
+    """Re-front Slice 1 / spec §8 OQ#5 — the multi-party, per-court baseline.
+
+    Generalizes ``_compute_concession_baseline`` (single losing-side draft)
+    into a per-court draft that chooses DIRECTION per covered court from
+    *that court's* direct war score, not the package-level side-pressure
+    scalar (which cannot express per-court direction). For each covered
+    court:
+
+    - ``select_direct_score(direct_scores[court])`` returns a
+      ``(direct_score, source)`` tuple, or ``None`` when the court has no
+      active cross-side pair. A ``None`` court is surfaced as a per-court
+      **hard stop** (matching the scorer's ``HARD_STOP_NO_DIRECT_WAR_SCORE``)
+      — it is NOT neutral-floored.
+    - ``direct_score > +DIRECT_SCORE_DIRECTION_MARGIN`` → **demand** (France
+      leads the court): author a border-region cession + a modest affordable
+      indemnity *from the court*, added only while the court stays at/above
+      the accept threshold (so a demand court lands accept-or-better by
+      construction).
+    - ``direct_score < -DIRECT_SCORE_DIRECTION_MARGIN`` → **concede** (France
+      is pressured by the court): the existing peace→gold→territory
+      escalation paid *by* the proposer leader, escalated only until the
+      court reaches the near-acceptance floor.
+    - inside the dead-band → ``{"type": "peace"}`` neutral floor.
+
+    Returns ``{"settlement_terms": [...], "per_court_baseline": {court: {...}},
+    "hard_stop_courts": [...], "covered_enemy_participants": [...]}``. The
+    combined ``settlement_terms`` is one shared ``{"type": "peace"}`` plus each
+    court's material slice, capped at ``MAX_SETTLEMENT_CLAUSE_COUNT``. The
+    draft is deterministic (sorted court order, no RNG — OQ#6) and
+    valid-by-construction.
+    """
+    covered = sorted({str(n) for n in (covered_enemy_participants or []) if n})
+    proposer_participants = [
+        str(n) for n in (war_instance.get(proposer_side) or []) if n
+    ]
+    if direct_scores is None:
+        direct_scores = compute_direct_scores_by_enemy(
+            world,
+            war_instance,
+            proposer_side=proposer_side,
+            covered_enemy_participants=covered,
+        )
+    if side_pressure_result is None:
+        side_pressure_result = compute_side_pressure_score(
+            world,
+            war_instance,
+            proposer_side=proposer_side,
+            covered_enemy_participants=covered,
+            direct_scores=direct_scores,
+        )
+
+    combined_terms: List[Dict[str, Any]] = [{"type": "peace"}]
+    per_court_baseline: Dict[str, Any] = {}
+    hard_stop_courts: List[str] = []
+
+    for court in covered:
+        selection = select_direct_score(direct_scores.get(court) or {})
+        if selection is None:
+            hard_stop_courts.append(court)
+            per_court_baseline[court] = {
+                "direction": "hard_stop",
+                "direct_score": None,
+                "terms": [],
+                "reason": HARD_STOP_NO_DIRECT_WAR_SCORE,
+            }
+            continue
+        direct_score, _source = selection
+        budget_remaining = MAX_SETTLEMENT_CLAUSE_COUNT - len(combined_terms)
+        court_terms: List[Dict[str, Any]] = []
+
+        if direct_score > DIRECT_SCORE_DIRECTION_MARGIN:
+            direction = "demand"
+            # Author demands on a court France leads, mirroring
+            # `generate_suggested_terms`' bilateral demand stage (border-region
+            # demand at war_score > 30 + calibrated gold). The ask is
+            # deliberately conservative — one border province on a strong lead
+            # plus a modest affordable indemnity — and is NOT acceptance-gated:
+            # `base_side_pressure` is package-level (§11.2), so in a mixed war a
+            # led court shares the package's middling pressure and could be
+            # accept-gated down to nothing. Instead the per-court row shows the
+            # cost live and a demand court that lands below threshold is an
+            # eased/droppable holdout, not auto-carry (§8 OQ#5). Suggestions,
+            # not impositions — the player can lighten or replace them in Tier 3.
+            region = (
+                _demand_baseline_select_region(
+                    world,
+                    court=court,
+                    proposer_side_participants=proposer_participants,
+                )
+                if (
+                    proposer_side_leader
+                    and direct_score > DEMAND_TERRITORY_DIRECT_SCORE
+                    and budget_remaining - len(court_terms) > 0
+                )
+                else None
+            )
+            if region:
+                court_terms.append({
+                    "type": "territory_cede",
+                    "from": court,
+                    "to": proposer_side_leader,
+                    "region": region,
+                })
+            court_balance = _concession_baseline_payer_balance(world, court)
+            gold_candidate = min(
+                court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
+                CONCESSION_BASELINE_GOLD_FLOOR,
+            )
+            if (
+                proposer_side_leader
+                and gold_candidate > 0
+                and budget_remaining - len(court_terms) > 0
+            ):
+                court_terms.append({
+                    "type": "gold_indemnity",
+                    "from": court,
+                    "to": proposer_side_leader,
+                    "amount": int(gold_candidate),
+                })
+        elif direct_score < -DIRECT_SCORE_DIRECTION_MARGIN:
+            direction = "concede"
+            court_terms = _concession_terms_for_court(
+                world, war_id=war_id, war_instance=war_instance,
+                proposer_side=proposer_side, accepting_side=accepting_side,
+                court=court, proposer_side_leader=proposer_side_leader,
+                covered=covered, side_pressure_result=side_pressure_result,
+                direct_scores=direct_scores, near_acceptance_floor=near_acceptance_floor,
+                budget_remaining=budget_remaining,
+            )
+        else:
+            direction = "peace"
+
+        per_court_baseline[court] = {
+            "direction": direction,
+            "direct_score": int(direct_score),
+            "terms": [dict(t) for t in court_terms],
+            "reason": direction,
+        }
+        for term in court_terms:
+            if len(combined_terms) >= MAX_SETTLEMENT_CLAUSE_COUNT:
+                break
+            combined_terms.append(term)
+
+    return {
+        "settlement_terms": combined_terms,
+        "per_court_baseline": per_court_baseline,
+        "hard_stop_courts": hard_stop_courts,
+        "covered_enemy_participants": covered,
+    }
+
+
+def _concession_terms_for_court(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    court: str,
+    proposer_side_leader: Optional[str],
+    covered: Iterable[str],
+    side_pressure_result: Optional[Mapping[str, Any]],
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]],
+    near_acceptance_floor: int,
+    budget_remaining: int,
+) -> List[Dict[str, Any]]:
+    """Author proposer-side concessions (gold, then territory) that move a
+    losing-direction ``court`` toward the near-acceptance floor.
+
+    Mirrors ``_compute_concession_baseline``'s escalation but scoped to one
+    court and sharing the memoized package-level score inputs. Returns the
+    material clauses the proposer leader pays/cedes to the court (no
+    ``{"type": "peace"}`` — the caller owns the shared package peace).
+    """
+    if not proposer_side_leader or budget_remaining <= 0:
+        return []
+    terms: List[Dict[str, Any]] = []
+    peace_score = _score_court_for_baseline(
+        world, war_id=war_id, war_instance=war_instance,
+        proposer_side=proposer_side, accepting_side=accepting_side,
+        court=court, proposer_side_leader=proposer_side_leader,
+        covered=covered, settlement_terms=[{"type": "peace"}],
+        side_pressure_result=side_pressure_result, direct_scores=direct_scores,
+    )
+    if peace_score is not None and peace_score >= near_acceptance_floor:
+        return []
+    # Gold escalation: smallest strictly positive of (treasury - reserve,
+    # hard cap, gap * 100), affordability-gated.
+    payer_balance = _concession_baseline_payer_balance(world, proposer_side_leader)
+    treasury_candidate = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
+    acceptance_gap = max(0, int(near_acceptance_floor) - int(peace_score or 0))
+    gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR, acceptance_gap * 100)
+    if treasury_candidate > 0:
+        positive = [
+            c for c in (treasury_candidate, CONCESSION_BASELINE_GOLD_HARD_CAP, gap_candidate)
+            if c > 0
+        ]
+        gold_amount = int(min(positive)) if positive else None
+    else:
+        gold_amount = None
+    if gold_amount is not None and len(terms) < budget_remaining:
+        terms.append({
+            "type": "gold_indemnity",
+            "from": proposer_side_leader,
+            "to": court,
+            "amount": int(gold_amount),
+        })
+    gold_score = _score_court_for_baseline(
+        world, war_id=war_id, war_instance=war_instance,
+        proposer_side=proposer_side, accepting_side=accepting_side,
+        court=court, proposer_side_leader=proposer_side_leader,
+        covered=covered, settlement_terms=[{"type": "peace"}] + terms,
+        side_pressure_result=side_pressure_result, direct_scores=direct_scores,
+    )
+    escalate_to_territory = (
+        gold_score is None or int(gold_score) < int(near_acceptance_floor)
+    )
+    if escalate_to_territory and len(terms) < budget_remaining:
+        region = _concession_baseline_select_transferable_region(
+            world,
+            proposer_side_participants=list(war_instance.get(proposer_side) or []),
+            accepting_leader=court,
+        )
+        if region:
+            terms.append({
+                "type": "territory_cede",
+                "from": proposer_side_leader,
+                "to": court,
+                "region": region,
+            })
+    return terms
+
+
+def _court_direction_summary(
+    court: str,
+    proposer_side_leader: Optional[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> str:
+    """Humanize one court's slice of the package for the PROPOSE per-court row.
+
+    Reads the clauses that touch ``court`` and renders a one-line
+    "Demanded: <region> + <amount>g" / "Conceded: <region> + <amount>g" /
+    "White peace" summary. Presentation only; never feeds the scored result.
+    """
+    demanded_regions: List[str] = []
+    conceded_regions: List[str] = []
+    demanded_gold = 0
+    conceded_gold = 0
+    for term in settlement_terms:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = term.get("type")
+        frm = str(term.get("from") or "")
+        to = str(term.get("to") or "")
+        if ttype == "territory_cede":
+            if frm == court:
+                demanded_regions.append(str(term.get("region") or ""))
+            elif to == court:
+                conceded_regions.append(str(term.get("region") or ""))
+        elif ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            amount = int(term.get("amount", 0) or 0)
+            if frm == court:
+                demanded_gold += amount
+            elif to == court:
+                conceded_gold += amount
+    demand_parts: List[str] = []
+    demand_parts.extend(r for r in demanded_regions if r)
+    if demanded_gold > 0:
+        demand_parts.append(f"{demanded_gold}g")
+    concede_parts: List[str] = []
+    concede_parts.extend(r for r in conceded_regions if r)
+    if conceded_gold > 0:
+        concede_parts.append(f"{conceded_gold}g")
+    if demand_parts and concede_parts:
+        return f"Demanded: {' + '.join(demand_parts)}; Conceded: {' + '.join(concede_parts)}"
+    if demand_parts:
+        return f"Demanded: {' + '.join(demand_parts)}"
+    if concede_parts:
+        return f"Conceded: {' + '.join(concede_parts)}"
+    return "White peace"
+
+
+def compute_per_court_acceptance(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    proposer_side_leader: Optional[str],
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+    accept_threshold: int = ACCEPTANCE_THRESHOLD,
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]] = None,
+    side_pressure_result: Optional[Mapping[str, Any]] = None,
+    raw_total_harshness: Optional[float] = None,
+    previous_bands: Optional[Mapping[str, str]] = None,
+) -> Dict[str, Any]:
+    """Re-front Slice 1 / spec §11.2 — the per-court acceptance aggregator.
+
+    One ``calculate_common_peace_acceptance`` call per covered court over a
+    single shared score pass (``direct_scores`` + ``side_pressure_result`` +
+    ``raw_total_harshness`` are package-level and computed once — Golden Rule
+    #8). Each call VARIES ``accepting_leader=<that court>`` while HOLDING
+    ``covered_enemy_participants=<the full covered set>`` constant, so every
+    court's burden / abandonment components still reflect the whole table
+    (principle 5 — Talleyrand reasons across the table). The
+    ``balance_projection`` memoization param is NOT passed here (the scorer
+    recomputes it internally per call); sharing it is the Slice-2 scale step.
+
+    A covered court with no active cross-side pair (``select_direct_score``
+    returns ``None``) is surfaced as a per-court hard-stop row (``total=null``)
+    rather than poisoning the shared side-pressure for the scoreable courts.
+
+    ``overall_acceptance.carries`` is True iff *every* covered court has a
+    non-null ``total`` at/above the accept threshold AND no per-court
+    ``hard_stops`` (spec §11.4 — the per-covered-court ratification gate).
+    """
+    covered = sorted({str(n) for n in (covered_enemy_participants or []) if n})
+    terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    if direct_scores is None:
+        direct_scores = compute_direct_scores_by_enemy(
+            world,
+            war_instance,
+            proposer_side=proposer_side,
+            covered_enemy_participants=covered,
+        )
+    scoreable = [
+        court for court in covered
+        if select_direct_score(direct_scores.get(court) or {}) is not None
+    ]
+    if side_pressure_result is None:
+        # Compute pressure over the scoreable subset so a no-direct-score
+        # court does not bubble a hard stop that poisons every scorer call.
+        side_pressure_result = compute_side_pressure_score(
+            world,
+            war_instance,
+            proposer_side=proposer_side,
+            covered_enemy_participants=scoreable,
+            direct_scores={c: dict(direct_scores.get(c) or {}) for c in scoreable},
+        )
+    if raw_total_harshness is None:
+        raw_total_harshness = calculate_raw_treaty_harshness(
+            {"clauses": [], "demands": terms}
+        )
+
+    per_court: List[Dict[str, Any]] = []
+    holdout_courts: List[str] = []
+    carries = True
+    previous_bands = previous_bands or {}
+
+    for court in covered:
+        if court not in scoreable:
+            band = "reject"
+            per_court.append({
+                "nation": court,
+                "band": band,
+                "band_display": acceptance_band_display(band),
+                "total": None,
+                "threshold": int(accept_threshold),
+                "verdict": "reject",
+                "top_blocker_display": acceptance_band_display(band),
+                "direction_summary": _court_direction_summary(
+                    court, proposer_side_leader, terms,
+                ),
+                "previous_band": previous_bands.get(court),
+                "delta_display": None,
+                "hard_stops": [
+                    {"reason": HARD_STOP_NO_DIRECT_WAR_SCORE, "enemy": court}
+                ],
+            })
+            carries = False
+            holdout_courts.append(court)
+            continue
+        result = calculate_common_peace_acceptance(
+            world,
+            war_id=war_id,
+            war_instance=war_instance,
+            proposer_side=proposer_side,
+            accepting_side=accepting_side,
+            accepting_leader=court,
+            proposer_side_leader=proposer_side_leader,
+            covered_enemy_participants=covered,
+            settlement_terms=terms,
+            side_pressure_result=side_pressure_result,
+            direct_scores=direct_scores,
+            raw_total_harshness=raw_total_harshness,
+        )
+        enriched = _enrich_acceptance_display(result)
+        total = result.get("score")
+        band = str(enriched.get("band") or result.get("verdict") or "reject")
+        hard_stops = list(result.get("hard_stops") or [])
+        court_passes = (
+            total is not None and int(total) >= int(accept_threshold) and not hard_stops
+        )
+        below_threshold = total is None or int(total) < int(accept_threshold)
+        top_blocker = enriched.get("top_blocker_display") if below_threshold else None
+        previous_band = previous_bands.get(court)
+        delta_display = None
+        if previous_band and previous_band != band:
+            delta_display = (
+                f"{court} {acceptance_band_display(previous_band)} "
+                f"→ {acceptance_band_display(band)}"
+            )
+        per_court.append({
+            "nation": court,
+            "band": band,
+            "band_display": acceptance_band_display(band),
+            "total": int(total) if total is not None else None,
+            "threshold": int(accept_threshold),
+            "verdict": result.get("verdict"),
+            "top_blocker_display": top_blocker,
+            "direction_summary": _court_direction_summary(
+                court, proposer_side_leader, terms,
+            ),
+            "previous_band": previous_band,
+            "delta_display": delta_display,
+            "hard_stops": hard_stops,
+        })
+        if not court_passes:
+            carries = False
+            holdout_courts.append(court)
+
+    if not covered:
+        carries = False
+    if carries:
+        summary_display = "This peace carries."
+    elif len(holdout_courts) == 1:
+        summary_display = f"{holdout_courts[0]} is the holdout."
+    elif holdout_courts:
+        summary_display = f"{len(holdout_courts)} courts hold out."
+    else:
+        summary_display = "No covered courts."
+    return {
+        "per_court_acceptance": per_court,
+        "overall_acceptance": {
+            "carries": bool(carries),
+            "holdout_courts": holdout_courts,
+            "summary_display": summary_display,
+        },
+    }
+
+
 def evaluate_open_settlement_eligibility(
     world: Any,
     *,
@@ -2409,8 +2996,15 @@ def build_settlement_preview(
     actor_nation: Optional[str] = None,
     density: str = "medium",
     ignore_active_dialogue: bool = False,
+    generate_baseline_when_empty: bool = False,
 ) -> Dict[str, Any]:
-    """Build the non-mutating settlement preview response."""
+    """Build the non-mutating settlement preview response.
+
+    When ``generate_baseline_when_empty`` is True and no ``settlement_terms``
+    are supplied, the PROPOSE landing draws a per-court Talleyrand baseline
+    (``compute_settlement_baseline``) instead of an empty draft, so the
+    player never faces a blank form (Re-front Slice 1 / spec §3a).
+    """
     terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
     eligibility = evaluate_open_settlement_eligibility(
         world,
@@ -2430,6 +3024,21 @@ def build_settlement_preview(
     )
     accepting_leader = eligibility["accepting_leader"]
     proposer_leader = eligibility["proposer_leader"]
+
+    baseline_generated = False
+    baseline_payload: Optional[Dict[str, Any]] = None
+    if generate_baseline_when_empty and not terms:
+        baseline_payload = compute_settlement_baseline(
+            world,
+            war_id=war_id,
+            war_instance=instance,
+            proposer_side=side,
+            accepting_side=accepting_side,
+            proposer_side_leader=proposer_leader,
+            covered_enemy_participants=covered,
+        )
+        terms = [dict(t) for t in baseline_payload.get("settlement_terms") or []]
+        baseline_generated = True
 
     acceptance = calculate_common_peace_acceptance(
         world,
@@ -2461,6 +3070,20 @@ def build_settlement_preview(
             "value": item.get("value"),
         })
 
+    # Re-front Slice 1 §11.2: per-court acceptance + the §11.4 carry gate.
+    # Computed for every preview (PROPOSE and REVIEW) so the displayed
+    # acceptance is the real gate. n=1 collapses to the single leader row.
+    per_court_block = compute_per_court_acceptance(
+        world,
+        war_id=war_id,
+        war_instance=instance,
+        proposer_side=side,
+        accepting_side=accepting_side,
+        proposer_side_leader=proposer_leader,
+        covered_enemy_participants=covered,
+        settlement_terms=terms,
+    )
+
     preview = {
         "war_instance": instance,
         "war_label": _war_label(war_id, instance),
@@ -2473,6 +3096,12 @@ def build_settlement_preview(
         "settlement_terms": copy.deepcopy(terms),
         "acceptance": acceptance,
         "acceptance_components": dict(acceptance.get("components") or {}),
+        "per_court_acceptance": per_court_block["per_court_acceptance"],
+        "overall_acceptance": per_court_block["overall_acceptance"],
+        "baseline_generated": baseline_generated,
+        "baseline_per_court": (
+            baseline_payload.get("per_court_baseline") if baseline_payload else {}
+        ),
         "warnings": warnings,
         "density": density if density in ("compact", "medium", "verbose") else "medium",
     }
@@ -3091,12 +3720,45 @@ def build_settlement_confirm_dialogue(
     caller_kind: str = "player_editor",
     white_peace: bool = False,
     surrender_preset: bool = False,
+    dialogue_mode: str = "REVIEW",
 ) -> Dict[str, Any]:
     preview = copy.deepcopy(preview_response["settlement_preview"])
     war_id = str(preview_response["war_id"])
     proposer_side = preview["proposer_side"]
     accepting_side = preview["accepting_side"]
     war_instance = preview["war_instance"]
+    dialogue_mode = str(dialogue_mode or "REVIEW").upper()
+    if dialogue_mode not in ("REVIEW", "PROPOSE"):
+        dialogue_mode = "REVIEW"
+    # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block + the
+    # per-covered-court carry gate. `per_court_carries` is True only when
+    # every covered court is at/above threshold with no per-court hard stop;
+    # it tightens (never loosens) the single-leader gate below. White peace
+    # ratifies an empty package by design and stays exempt from the gate.
+    per_court_acceptance = list(preview.get("per_court_acceptance") or [])
+    overall_acceptance = dict(preview.get("overall_acceptance") or {})
+    per_court_carries = bool(overall_acceptance.get("carries"))
+    holdout_courts = list(overall_acceptance.get("holdout_courts") or [])
+    # REFRONT-V: each per-court row speaks through its NAMED diplomat (chancery
+    # fallback — never an anonymous beat), and Talleyrand narrates the table.
+    multi_court_voice = resolve_multi_court_settlement_voice(
+        world,
+        per_court_acceptance=per_court_acceptance,
+        overall_acceptance=overall_acceptance,
+        war_label=str(preview.get("war_label") or _war_label(war_id, war_instance)),
+    )
+    _voice_by_court = {
+        str(v.get("nation")): v for v in multi_court_voice.get("per_court_voice") or []
+    }
+    enriched_per_court: List[Dict[str, Any]] = []
+    for row in per_court_acceptance:
+        row = dict(row)
+        voice = _voice_by_court.get(str(row.get("nation"))) or {}
+        row["voice_line"] = voice.get("line", "")
+        row["speaker_display"] = voice.get("speaker", "")
+        enriched_per_court.append(row)
+    per_court_acceptance = enriched_per_court
+    multi_court_table_narration = multi_court_voice.get("table_narration", "")
     leaders = {
         "attackers": war_instance.get("attacker_leader"),
         "defenders": war_instance.get("defender_leader"),
@@ -3139,6 +3801,12 @@ def build_settlement_confirm_dialogue(
         and verdict not in ("reject", "blocked")
         and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
         and not empty_editor_block
+        # Re-front §11.4: the per-covered-court gate. A multi-court settlement
+        # ratifies only when EVERY covered court carries; a single holdout
+        # blocks. n=1 collapses to the leader row, so this is identical to the
+        # legacy single-leader gate for bilateral settlements. White peace is
+        # exempt (it ratifies an empty package by design).
+        and (white_peace or per_court_carries)
     )
     # SC-17 / SC-19: humanize the live-review heading. The raw verdict
     # f-string ("Acceptance: near_acceptable (49)") leaked enum strings
@@ -3435,6 +4103,68 @@ def build_settlement_confirm_dialogue(
         available_action_ids.append("open_war_detail")
     available_action_ids.append("back_out_settlement")
     options.append({"label": "Back Out", "action": "back_out_settlement"})
+
+    # Re-front §11.4: a holdout court is never a dead end. Each below-threshold
+    # covered court ROW exposes one-click `Ease <court>` (focused More generous)
+    # and `Drop <court>` (focused coverage drop) affordances — attached to the
+    # per-court row, not the global rail, so the rail stays clean and the
+    # affordance reads as "this court's escape." The dial / coverage HANDLERS +
+    # interactive wiring land in Slice 2; Slice 1 publishes the row contract.
+    settlement_draft_key_for_options = compute_settlement_draft_key(
+        war_id, resolved_target, covered,
+    )
+    holdout_set = {str(n) for n in holdout_courts}
+    for row in per_court_acceptance:
+        court = str(row.get("nation") or "")
+        is_holdout = court in holdout_set
+        row["is_holdout"] = is_holdout
+        row["holdout_actions"] = (
+            [
+                {
+                    "label": f"Ease {court}",
+                    "action": "settlement_dial_generous",
+                    "scope": court,
+                    "nation": court,
+                    "war_id": war_id,
+                    "draft_key": settlement_draft_key_for_options,
+                    "description": (
+                        f"Soften terms toward {court} to bring them to the table."
+                    ),
+                },
+                {
+                    "label": f"Drop {court}",
+                    "action": "settlement_cover_drop",
+                    "nation": court,
+                    "war_id": war_id,
+                    "draft_key": settlement_draft_key_for_options,
+                    "description": (
+                        f"Drop {court} from the settlement; they remain at war."
+                    ),
+                },
+            ]
+            if is_holdout
+            else []
+        )
+    if dialogue_mode == "PROPOSE":
+        # PROPOSE is the conversational front (Tiers 1-2): an authoring rail,
+        # not a staged-decision rail. Adjust terms (-> EDIT/Tier 3), Submit for
+        # Review (-> REVIEW), Back Out. No `confirm_settlement` — ratification
+        # only ever fires from REVIEW. Holdout Ease/Drop ride on the rows above.
+        options = [{
+            "label": "Adjust terms",
+            "action": "adjust_terms",
+            "description": "Open the structured editor to shape specific clauses.",
+        }, {
+            "label": "Submit for Review",
+            "action": "submit_settlement_for_review",
+            "description": "Lock in this package and review it for ratification.",
+        }]
+        available_action_ids = ["adjust_terms", "submit_settlement_for_review"]
+        # PROPOSE Back Out is non-destructive (§10): it suspends the authoring
+        # surface and PRESERVES the scoped draft for same-turn reopen, unlike
+        # the discarding `back_out_settlement` on REVIEW.
+        options.append({"label": "Back Out", "action": "suspend_settlement_editor"})
+        available_action_ids.append("suspend_settlement_editor")
     ratify_blocked_reason = ""
     if empty_editor_block:
         ratify_blocked_reason = "No settlement terms have been authored."
@@ -3508,7 +4238,15 @@ def build_settlement_confirm_dialogue(
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
-        "dialogue_mode": "REVIEW",
+        "dialogue_mode": dialogue_mode,
+        # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
+        # per-covered-court carry gate ride on every settlement_confirm
+        # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.
+        # REFRONT-V: each per-court row carries `voice_line` + `speaker_display`
+        # (named diplomat / chancery fallback); Talleyrand narrates the table.
+        "per_court_acceptance": per_court_acceptance,
+        "overall_acceptance": overall_acceptance,
+        "multi_court_table_narration": multi_court_table_narration,
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
@@ -3541,7 +4279,10 @@ def build_settlement_confirm_dialogue(
         "message": text,
         "talleyrand_text": text,
         "turn_created": int(getattr(world, "current_turn", 0) or 0),
-        "blocking": True,
+        # Re-front §10: PROPOSE is an authoring surface (like EDIT) — NOT a
+        # hard stop, so the player is never trapped and can end the turn from
+        # it (the unsubmitted draft discards per SC-2). REVIEW stays blocking.
+        "blocking": dialogue_mode != "PROPOSE",
         # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 propagation:
         # `caller_kind` distinguishes player-editor-staged dialogues from
         # AI/system staging so the empty-Ratify gate fires only for
@@ -3655,8 +4396,10 @@ def stage_settlement_confirm(
     caller_kind: str = "player_editor",
     white_peace: bool = False,
     surrender_preset: bool = False,
+    dialogue_mode: str = "REVIEW",
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
+    dialogue_mode = str(dialogue_mode or "REVIEW").upper()
     explicit_covered = _normalize_nation_list(covered_enemy_participants)
     explicit_target = str(selected_target_nation or "").strip()
     if require_explicit_scope and not explicit_covered:
@@ -3832,6 +4575,7 @@ def stage_settlement_confirm(
         actor_nation=actor_nation,
         density=density,
         ignore_active_dialogue=is_same_war_refresh,
+        generate_baseline_when_empty=(dialogue_mode == "PROPOSE"),
     )
     if not preview.get("success"):
         return preview
@@ -3858,6 +4602,7 @@ def stage_settlement_confirm(
             caller_kind=caller_kind,
             white_peace=white_peace,
             surrender_preset=surrender_preset,
+            dialogue_mode=dialogue_mode,
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
@@ -4882,6 +5627,59 @@ def ratify_settlement_confirm(
             ),
         }
 
+    # Re-front Slice 1 §11.4: the per-covered-court ratification gate (defense
+    # in depth beyond the dialogue's `can_ratify`). The single-leader rescore
+    # above is retained for the leader summary + the n=1 path; this
+    # additionally requires EVERY covered court to carry, so a multi-court
+    # settlement cannot ratify while a covered minor holds out. White peace
+    # ratifies an empty package by design and is exempt.
+    if not white_peace and settlement_terms:
+        per_court_block = compute_per_court_acceptance(
+            world,
+            war_id=war_id,
+            war_instance=war_instance,
+            proposer_side=proposer_side,
+            accepting_side=accepting_side,
+            proposer_side_leader=_side_leader(war_instance, proposer_side),
+            covered_enemy_participants=covered,
+            settlement_terms=settlement_terms,
+        )
+        overall = per_court_block["overall_acceptance"]
+        if not overall.get("carries"):
+            holdouts = list(overall.get("holdout_courts") or [])
+            holdout_label = holdouts[0] if holdouts else "a covered court"
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "confirm",
+                "war_id": war_id,
+                "error": "acceptance_rejected",
+                "error_display": _error_display("acceptance_rejected"),
+                "per_court_acceptance": per_court_block["per_court_acceptance"],
+                "overall_acceptance": overall,
+                "holdout_courts": holdouts,
+                "mutated": False,
+                "talleyrand_text": (
+                    resolve_settlement_voice_line(
+                        "settlement_multi_court_holdout_blocks_talleyrand",
+                        war_label=str(dialogue.get("war_label") or war_id),
+                        holdout_court=holdout_label,
+                    )
+                    or (
+                        f"Sire, {holdout_label} will not sign; the settlement "
+                        "cannot be ratified until they are eased or dropped."
+                    )
+                ),
+                "settlement_reactions": _failed_ratification_reaction_summary(
+                    world,
+                    war_id=war_id,
+                    proposer_side=proposer_side,
+                    accepting_side=accepting_side,
+                    covered_enemy_participants=covered,
+                    settlement_terms=settlement_terms,
+                ),
+            }
+
     plan = _build_pair_ratification_plan(
         world,
         war_instance,
@@ -5515,6 +6313,42 @@ def handle_settlement_dialogue_action(
             ),
             "suppress_proposal_result_popup": True,
         }
+    if action == "submit_settlement_for_review":
+        # Re-front Slice 1 §3a: PROPOSE -> REVIEW. Lock in the conversational
+        # draft and re-stage it as the blocking REVIEW surface so the per-court
+        # ratification gate (§11.4) runs against the authored package. Empty
+        # drafts cannot be submitted (mirrors the editor's non-empty gate).
+        terms = [
+            dict(t) for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        if not terms:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "submit_settlement_for_review",
+                "war_id": war_id,
+                "error": "empty_authored_draft",
+                "error_display": _error_display("empty_authored_draft"),
+                "mutated": False,
+                "talleyrand_text": (
+                    "Sire, there are no terms to submit. Shape the settlement first."
+                ),
+            }
+        # Drop the non-blocking PROPOSE surface, then stage REVIEW fresh.
+        world.dialogue_manager.pop()
+        return stage_settlement_confirm(
+            world,
+            war_id=war_id,
+            settlement_terms=terms,
+            selected_target_nation=selected_target or (covered[0] if covered else None),
+            covered_enemy_participants=covered,
+            actor_nation=str(getattr(world, "player_nation", "France") or "France"),
+            caller_kind="player_editor",
+            dialogue_mode="REVIEW",
+        )
     if action == "revise_settlement_terms":
         # SC-2: Revise Terms is hidden until a real editor exists.
         # If somehow called, treat as a no-op re-show.

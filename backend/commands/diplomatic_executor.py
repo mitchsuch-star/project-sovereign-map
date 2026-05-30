@@ -2119,6 +2119,11 @@ class DiplomaticExecutor:
             cmd.get("covered_enemy_participants")
             or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
         )
+        # Re-front Slice 1 §3a: the default landing for opening a settlement is
+        # the conversational PROPOSE surface (Talleyrand baseline + per-court
+        # acceptance + dials), NOT a blank EDIT form. A Submit-for-Review POST
+        # (has_submitted_terms) still lands REVIEW for ratification.
+        landing_mode = "REVIEW" if has_submitted_terms else "PROPOSE"
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
@@ -2129,6 +2134,7 @@ class DiplomaticExecutor:
             density="medium",
             caller_kind="player_editor",
             white_peace=False,
+            dialogue_mode=landing_mode,
         )
         if (
             has_submitted_terms
@@ -2166,13 +2172,40 @@ class DiplomaticExecutor:
             not has_submitted_terms
             and result.get("success")
             and isinstance(result.get("diplomatic_dialogue"), dict)
-            and result["diplomatic_dialogue"].get("can_edit_terms")
-            and result["diplomatic_dialogue"].get("editor_route")
+            and str(result["diplomatic_dialogue"].get("dialogue_mode") or "").upper() == "PROPOSE"
         ):
-            # Initial Open Settlement / reopen flows should land in EDIT.
-            # Submit for Review still has has_submitted_terms=True and
-            # therefore falls through to the normal REVIEW popup.
-            result["open_editor_on_mount"] = True
+            # Re-front Slice 1 §3a: initial Open Settlement / reopen lands the
+            # conversational PROPOSE surface (Talleyrand baseline + per-court
+            # acceptance), replacing the old blank-EDIT mount. Persist the
+            # staged baseline (or restored) terms to the scoped store so a
+            # same-turn Back Out (suspend_settlement_editor) or reopen restores
+            # them; end-turn discard clears the scoped store per SC-5R-1.
+            staged_dialogue = result["diplomatic_dialogue"]
+            staged_terms = [
+                dict(t) for t in (staged_dialogue.get("settlement_terms") or [])
+                if isinstance(t, dict)
+            ]
+            if staged_terms:
+                from backend.game_logic.settlement_preview import (
+                    save_scoped_settlement_draft,
+                )
+                save_scoped_settlement_draft(
+                    world,
+                    war_id=war_id,
+                    selected_target_nation=(
+                        staged_dialogue.get("selected_target_nation") or selected_target
+                    ),
+                    covered_enemy_participants=(
+                        staged_dialogue.get("covered_enemy_participants")
+                        or covered_enemies
+                        or []
+                    ),
+                    settlement_terms=staged_terms,
+                )
+                if getattr(world, "pending_settlement_drafts", None) is None:
+                    world.pending_settlement_drafts = {}
+                world.pending_settlement_drafts[war_id] = staged_terms
+            result["propose_on_mount"] = True
         result.setdefault("awaiting_diplomatic_response", True)
         return result
 
@@ -2819,6 +2852,15 @@ class DiplomaticExecutor:
             # SC-5R-2 follow-up: non-destructive editor close that pops the
             # settlement_confirm hard-stop while preserving the scoped draft.
             "suspend_settlement_editor",
+            # Re-front Slice 1 PROPOSE rail: Submit for Review re-stages the
+            # conversational draft as the blocking REVIEW surface. (`adjust_terms`
+            # is deliberately NOT routed here: the settlement PROPOSE `Adjust
+            # terms` is handled client-side in Godot — it mounts the Tier-3
+            # editor and never round-trips — and the bilateral terms-guidance
+            # flow already owns the `adjust_terms` action id. Holdout Ease/Drop
+            # affordances ride on each per-court ROW; their handlers land in
+            # Slice 2.)
+            "submit_settlement_for_review",
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
             "re_author_with_concessions",

@@ -239,6 +239,11 @@ func _build_settlement_content(data: Dictionary) -> String:
 		bbcode += "[color=#e0a040][b]Still at war:[/b] " + ", ".join(PackedStringArray(uncovered)) + "[/color]\n"
 	bbcode += "\n"
 
+	# Re-front Slice 1 §11.2/§11.4: the per-court table. Each covered court has
+	# its own band, direction summary, and named-diplomat voice; holdouts carry
+	# Ease/Drop affordances on their own row. Talleyrand narrates the table.
+	bbcode += _build_settlement_per_court_block(data)
+
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
 		bbcode += "[b]Allied petitions[/b]\n"
@@ -439,6 +444,56 @@ func _build_settlement_content(data: Dictionary) -> String:
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 	return bbcode
+
+func _build_settlement_per_court_block(data: Dictionary) -> String:
+	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
+	var per_court = data.get("per_court_acceptance", [])
+	if not (per_court is Array) or per_court.size() == 0:
+		return ""
+	var bbcode = ""
+	var narration = str(data.get("multi_court_table_narration", ""))
+	if narration != "":
+		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
+	bbcode += "[b]The table[/b]\n"
+	for row in per_court:
+		if not (row is Dictionary):
+			continue
+		var nation = str(row.get("nation", "?"))
+		var band_display = str(row.get("band_display", row.get("band", "")))
+		var direction = str(row.get("direction_summary", ""))
+		var total = row.get("total", null)
+		var total_text = ""
+		if total != null:
+			total_text = " (%d)" % int(total)
+		bbcode += "  [color=#e0c070]*[/color] [b]%s[/b] - %s%s" % [nation, band_display, total_text]
+		if direction != "":
+			bbcode += " [color=#a0a0a8]%s[/color]" % direction
+		bbcode += "\n"
+		var blocker = str(row.get("top_blocker_display", ""))
+		if blocker != "" and blocker != "null":
+			bbcode += "      [color=#e0a040]Blocker: %s[/color]\n" % blocker
+		var voice = str(row.get("voice_line", ""))
+		if voice != "":
+			bbcode += "      [i]%s[/i]\n" % voice
+		# Holdout rows expose Ease / Drop affordances (§11.4).
+		var holdout_actions = row.get("holdout_actions", [])
+		if holdout_actions is Array and holdout_actions.size() > 0:
+			var labels = []
+			for ha in holdout_actions:
+				if ha is Dictionary:
+					labels.append(str(ha.get("label", "")))
+			if labels.size() > 0:
+				bbcode += "      [color=#80b0e0]%s[/color]\n" % " | ".join(PackedStringArray(labels))
+	var overall = data.get("overall_acceptance", {})
+	if overall is Dictionary:
+		var summary = str(overall.get("summary_display", ""))
+		if summary != "":
+			var carries = bool(overall.get("carries", false))
+			var color = "#60c060" if carries else "#e0a040"
+			bbcode += "[b][color=%s]%s[/color][/b]\n" % [color, summary]
+	bbcode += "\n"
+	return bbcode
+
 
 func _build_settlement_scope_replace_content(data: Dictionary) -> String:
 	var war_label = str(data.get("war_label", data.get("war_id", "Settlement")))
