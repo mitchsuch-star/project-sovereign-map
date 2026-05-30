@@ -1155,6 +1155,52 @@ def _territory_term_regions(term: Mapping[str, Any]) -> List[str]:
     return [region] if region else []
 
 
+def _normalize_staged_terms_for_validation(
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return a canonical-shaped COPY of staged settlement terms for the
+    ratify-time defense-in-depth revalidation (the mutation path keeps
+    consuming the originals — this never mutates ``settlement_terms``).
+
+    Staged packages may carry two apply-format variances that the canonical
+    ``validate_settlement_terms`` schema would otherwise reject (the legacy
+    ratification fixtures + historical drafts the type-only guard tolerates):
+
+    - ``gold_lump`` (``RATIFY_LEGACY_APPLY_CLAUSE_TYPES``) → ``gold_indemnity``.
+    - ``territory_cede`` carrying a plural ``regions`` list → one canonical
+      single-``region`` clause per region (mirrors ``_territory_term_regions``).
+
+    Every other clause passes through untouched, so any genuinely-malformed
+    staged clause still fails revalidation (defense in depth, not laundering).
+    """
+    normalized: List[Dict[str, Any]] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            # Leave non-mappings for the validator to reject.
+            normalized.append(term)  # type: ignore[arg-type]
+            continue
+        clause = dict(term)
+        if clause.get("type") == "gold_lump":
+            clause["type"] = "gold_indemnity"
+        if clause.get("type") == "territory_cede" and isinstance(
+            clause.get("regions"), (list, tuple)
+        ):
+            regions = [str(r) for r in (clause.get("regions") or []) if str(r)]
+            base = {k: v for k, v in clause.items() if k not in ("regions", "region")}
+            if not regions:
+                # No usable region — keep one clause so the schema check still
+                # surfaces the missing `region` rather than silently dropping it.
+                normalized.append(base)
+            else:
+                for region in regions:
+                    single = dict(base)
+                    single["region"] = region
+                    normalized.append(single)
+            continue
+        normalized.append(clause)
+    return normalized
+
+
 def _has_material_concession_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
     return any(
         isinstance(term, Mapping) and term.get("type") != "peace"
@@ -3190,6 +3236,7 @@ def validate_settlement_terms(
     covered_enemy_participants: Optional[Iterable[str]] = None,
     world: Any = None,
     war_instance: Optional[Mapping[str, Any]] = None,
+    enforce_solvency: bool = True,
 ) -> Dict[str, Any]:
     """SC-1 POST preview clause validation.
 
@@ -3231,6 +3278,16 @@ def validate_settlement_terms(
     - ``clause_side_mismatch`` — a value-transfer clause's ``from`` and ``to``
       are not on opposite, known war sides (V3). Enforced when ``war_instance``
       is supplied.
+
+    ``enforce_solvency`` gates only the authoring-time gold budget/solvency
+    check (``_check_gold_payment_budget_conflict``). It is ``True`` for every
+    authoring caller (POST-preview / Submit / restage). The ratify-time
+    defense-in-depth revalidation passes ``False`` because the apply path
+    *clamps* a gold transfer to the payer's available balance rather than
+    blocking it (a winning settlement is never voided by a payer who has since
+    spent down), so re-running the solvency gate there would wrongly reject a
+    clamp-valid package. Every other rule — structural (V1), coverage (V2),
+    war-side (V3), self-reference/dependency eligibility (V4) — still runs.
     """
     if actor_nation and player_nation and actor_nation != player_nation:
         return {
@@ -3421,7 +3478,7 @@ def validate_settlement_terms(
     # max_turns_in_submitted_terms`. Rejects when the combined obligation
     # exceeds capacity. Skipped when `world` is unavailable (legacy
     # schema-only callers).
-    if world is not None:
+    if world is not None and enforce_solvency:
         conflict = _check_gold_payment_budget_conflict(world, terms)
         if conflict is not None:
             return conflict
@@ -3997,12 +4054,57 @@ def _vassal_control_options(world: Any) -> List[Dict[str, Any]]:
     return []
 
 
+def _side_partitioned_options(
+    war_instance: Optional[Mapping[str, Any]],
+    covered_enemy_participants: Optional[Iterable[str]],
+    proposer_side: Optional[str],
+    nation_options: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Split the proposer+covered nation options into (proposer_side, covered)
+    lists for the role-specific Tier-3 pickers (§13 P2).
+
+    Used only for roles whose side is FIXED regardless of demand/concession
+    direction — ``forced_alliance`` (subject = covered enemy, imposer =
+    proposer-side; demand-only per the cleanup matrix) and ``liberation``
+    (lord = covered enemy losing the vassal, liberator = proposer-side). The
+    direction-CHOSEN roles (territory/gold payer↔payee, vassalage/subjugation)
+    keep the full filtered list because either side can legally be ``from`` /
+    ``to``; their opposite-side rule is the validator's V3/V4 authority (the
+    cleanup spec line-609 "validator is authority, pickers are a filtered view"
+    contract — a picker cannot statically know the player's chosen direction).
+
+    When the war-side context is unknown (legacy schema-only callers) both lists
+    fall back to the full ``nation_options`` so no picker is emptied by missing
+    context; the validator stays the authority.
+    """
+    ps = str(proposer_side or "")
+    if not (isinstance(war_instance, Mapping) and ps in VALID_SIDES):
+        return list(nation_options), list(nation_options)
+    proposer_members = {
+        str(n).strip() for n in (war_instance.get(ps) or []) if str(n or "").strip()
+    }
+    covered = {
+        str(n).strip()
+        for n in (covered_enemy_participants or [])
+        if str(n or "").strip()
+    }
+    proposer_opts = [
+        opt for opt in nation_options if str(opt.get("id") or "") in proposer_members
+    ]
+    covered_opts = [
+        opt for opt in nation_options if str(opt.get("id") or "") in covered
+    ]
+    return proposer_opts, covered_opts
+
+
 def _clause_fields_for_review(
     clause_type: str,
     *,
     nation_options: Optional[List[Dict[str, Any]]] = None,
     region_options: Optional[List[Dict[str, Any]]] = None,
     vassal_options: Optional[List[Dict[str, Any]]] = None,
+    proposer_options: Optional[List[Dict[str, Any]]] = None,
+    covered_options: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     nation_picker = {
         "control": "picker",
@@ -4011,6 +4113,18 @@ def _clause_fields_for_review(
         "max_value": None,
         "default": None,
     }
+
+    def _picker_for(options: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
+        # Role-specific option list; falls back to the shared nation list when a
+        # side partition was not supplied (legacy callers).
+        chosen = options if options is not None else nation_options
+        return {
+            "control": "picker",
+            "options": list(chosen or []),
+            "min_value": None,
+            "max_value": None,
+            "default": None,
+        }
     if clause_type == "peace":
         return {}
     if clause_type == "territory_cede":
@@ -4081,14 +4195,17 @@ def _clause_fields_for_review(
             ),
         }
     if clause_type == "forced_alliance":
+        # §13 P2: forced alliance is demand-only — the subject is a covered
+        # enemy, the imposer is a proposer-side court. Same-side imposition is
+        # unauthorable because the two pickers draw from disjoint side lists.
         return {
             "from": _field_schema(
-                **nation_picker,
+                **_picker_for(covered_options),
                 label="Court forced into alliance",
                 direction_metadata={"role": "subject", "direction": "demanded"},
             ),
             "to": _field_schema(
-                **nation_picker,
+                **_picker_for(proposer_options),
                 label="Alliance imposed by",
                 direction_metadata={"role": "imposer", "direction": "demanded"},
             ),
@@ -4126,13 +4243,17 @@ def _clause_fields_for_review(
                 options=list(vassal_options or []),
                 direction_metadata={"role": "subject", "direction": "demanded"},
             ),
+            # §13 P2: the lord losing the vassal is a covered enemy; the
+            # liberator is a proposer-side court (opposite the lord, mirroring
+            # `evaluate_liberation_eligibility`). Disjoint side lists make a
+            # same-side liberation unauthorable, not merely Submit-rejected.
             "lord_nation": _field_schema(
-                **nation_picker,
+                **_picker_for(covered_options),
                 label="Current overlord",
                 direction_metadata={"role": "overlord", "direction": "demanded"},
             ),
             "liberator": _field_schema(
-                **nation_picker,
+                **_picker_for(proposer_options),
                 label="Liberating court",
                 direction_metadata={"role": "liberator", "direction": "demanded"},
             ),
@@ -4180,11 +4301,19 @@ def _build_clause_control_schema_for_review(
 
     Re-front Slice 3 §13: ``proposer_side`` lets the nation/region pickers
     filter to proposer-side + covered courts (P2/P3); a coverage edit rebuilds
-    the dialogue and so re-filters every picker.
+    the dialogue and so re-filters every picker. The fixed-direction roles
+    (``forced_alliance`` subject/imposer, ``liberation`` lord/liberator) are
+    additionally split onto disjoint side lists via ``_side_partitioned_options``
+    so a same-side imposition/liberation cannot be authored; the
+    direction-chosen roles (territory/gold payer↔payee) keep the full filtered
+    list and rely on the validator's V3/V4 authority (cleanup spec line 609).
     """
     schema: Dict[str, Dict[str, Any]] = {}
     nation_options = _nation_control_options(
         world, war_instance, covered_enemy_participants, proposer_side=proposer_side,
+    )
+    proposer_options, covered_options = _side_partitioned_options(
+        war_instance, covered_enemy_participants, proposer_side, nation_options,
     )
     region_options = _region_control_options(world, nation_options)
     vassal_options = _vassal_control_options(world)
@@ -4198,6 +4327,8 @@ def _build_clause_control_schema_for_review(
             nation_options=nation_options,
             region_options=region_options,
             vassal_options=vassal_options,
+            proposer_options=proposer_options,
+            covered_options=covered_options,
         )
         enabled, disabled_reason_display = _clause_enabled_from_pickers(fields)
         schema[clause_type] = {
@@ -6182,6 +6313,50 @@ def ratify_settlement_confirm(
                         "clause and cannot be ratified."
                     ),
                 }
+
+    # Re-front Slice 3 §12 defense-in-depth (CRITICAL audit fix): re-run the
+    # multi-party cross-court validity rules — V1 region double-promise, V2
+    # uncovered court, V3 war-side, V4 self-reference / dependency eligibility —
+    # against the LIVE world before mutation. The authoring gates (POST-preview,
+    # Submit, restage) already enforce these, but staged terms can outlive the
+    # state they were validated against (save/load, a drifting world); without
+    # this gate a stale package mutates state — e.g. a staged liberation whose
+    # vassal's live lord has changed would otherwise release the wrong (and
+    # uncovered) lord's vassal at `_apply_settlement_terms`. Staged terms are
+    # normalized to the canonical shape first (apply-format `gold_lump` / plural
+    # `regions` → canonical) so the strict schema validator accepts the legacy
+    # apply-format the fixtures + historical drafts use, and the authoring-only
+    # solvency gate is skipped (the apply path clamps gold to the payer balance
+    # rather than blocking). White peace ratifies an empty package by design.
+    if settlement_terms and not white_peace:
+        staged_revalidation = validate_settlement_terms(
+            _normalize_staged_terms_for_validation(settlement_terms),
+            proposer_side=proposer_side,
+            covered_enemy_participants=covered,
+            world=world,
+            war_instance=war_instance,
+            enforce_solvency=False,
+        )
+        if not staged_revalidation.get("valid"):
+            world.dialogue_manager.pop()
+            revalidation_error = str(staged_revalidation.get("error") or "")
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "confirm",
+                "war_id": war_id,
+                "error": "submitted_terms_failed_revalidation",
+                "error_display": _error_display("submitted_terms_failed_revalidation"),
+                "validation_error": revalidation_error,
+                "validation_detail": staged_revalidation.get("disabled_reason_display")
+                or _error_display(revalidation_error),
+                "validation_error_index": staged_revalidation.get("error_index"),
+                "mutated": False,
+                "talleyrand_text": (
+                    "Sire, the terms we staged no longer hold against the present "
+                    "situation — this settlement cannot be ratified as written."
+                ),
+            }
 
     fresh_acceptance = calculate_common_peace_acceptance(
         world,

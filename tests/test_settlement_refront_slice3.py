@@ -31,6 +31,7 @@ from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.settlement_preview import (
     _build_clause_control_schema_for_review,
     handle_settlement_dialogue_action,
+    ratify_settlement_confirm,
     stage_settlement_confirm,
     validate_settlement_terms,
 )
@@ -277,6 +278,115 @@ def test_submit_revalidation_enforces_uncovered_court_defense_in_depth():
     assert result.get("validation_error") == "clause_target_uncovered"
 
 
+def test_ratify_blocks_staged_liberation_after_live_lord_drift():
+    """§12 defense-in-depth at the RATIFY gate (CRITICAL audit fix).
+
+    A liberation that is valid when staged (Saxony's lord is the covered enemy
+    Britain) must NOT ratify after the world drifts so Saxony's live lord is a
+    DIFFERENT, uncovered court (Prussia). Before this gate the apply path called
+    `release_vassal(Saxony)` and freed Saxony from whatever its CURRENT lord was
+    — mutating the uncovered party. The ratify-time revalidation now rejects the
+    stale package via `evaluate_liberation_eligibility` (current_lord !=
+    staged lord_nation) and no vassal is released.
+    """
+    world = WorldState()
+    war = make_synthetic_war_instance(
+        "war_lib",
+        attackers=["Britain", "Prussia"],
+        defenders=["France"],
+        attacker_leader="Britain",
+        defender_leader="France",
+    )
+    world.war_instances["war_lib"] = war
+    for pair in war["active_diplo_keys"]:
+        world.diplomatic_states[pair] = "WAR"
+        world.war_scores[pair] = -100 if pair.split("|")[0] == "France" else 100
+    world.invalidate_war_instance_indexes()
+    # Saxony is Britain's vassal at the moment the liberation is staged.
+    world.vassals["Saxony"] = {
+        "lord": "Britain", "loyalty": 50, "autonomy": 1,
+        "path": "treaty", "tribute_rate": 0.5,
+    }
+    terms = [
+        {"type": "peace"},
+        {
+            "type": "liberation",
+            "vassal_nation": "Saxony",
+            "lord_nation": "Britain",
+            "liberator": "France",
+        },
+    ]
+    with patch(_SCORER_PATH, side_effect=_accept_scorer):
+        staged = stage_settlement_confirm(
+            world,
+            war_id="war_lib",
+            settlement_terms=terms,
+            covered_enemy_participants=["Britain"],
+        )
+    assert staged.get("success"), staged
+    dialogue = world.pending_diplomatic_dialogue
+
+    # World drifts under the staged package: Saxony's live lord is now the
+    # UNCOVERED court Prussia (e.g. a rebellion/transfer between stage and
+    # ratify, or a save-loaded draft against a changed world).
+    world.vassals["Saxony"]["lord"] = "Prussia"
+
+    with patch(_SCORER_PATH, side_effect=_accept_scorer):
+        result = ratify_settlement_confirm(world, dialogue)
+
+    assert result.get("success") is False, result
+    assert result.get("error") == "submitted_terms_failed_revalidation"
+    assert result.get("validation_error") == "liberation_lord_mismatch"
+    assert result.get("mutated") is False
+    # The uncovered party's vassal was NOT released — no state mutation.
+    assert "Saxony" in world.vassals
+    assert world.vassals["Saxony"]["lord"] == "Prussia"
+
+
+def test_ratify_normalizes_apply_format_terms_so_valid_package_still_ratifies():
+    """The ratify-time revalidation normalizes apply-format staged terms
+    (`gold_lump` -> `gold_indemnity`, plural `regions` -> single `region`) and
+    skips the authoring-only solvency gate, so a legitimately-staged
+    apply-format package still ratifies and mutates (no regression to the C2
+    fixtures' clamp/plural behavior)."""
+    world = WorldState()
+    war = make_synthetic_war_instance(
+        "war_norm",
+        attackers=["France"],
+        defenders=["Britain", "Prussia"],
+        attacker_leader="France",
+        defender_leader="Britain",
+    )
+    world.war_instances["war_norm"] = war
+    for pair in war["active_diplo_keys"]:
+        world.diplomatic_states[pair] = "WAR"
+        world.war_scores[pair] = 100 if pair.split("|")[0] == "France" else -100
+    world.invalidate_war_instance_indexes()
+    # Britain owes more than it holds — the apply path clamps, the solvency gate
+    # must NOT block at ratify.
+    world.nation_gold["Britain"] = 40
+    world.nation_gold["France"] = 0
+    terms = [
+        {"type": "peace"},
+        {"type": "gold_lump", "from": "Britain", "to": "France", "amount": 500},
+    ]
+    with patch(_SCORER_PATH, side_effect=_accept_scorer):
+        staged = stage_settlement_confirm(
+            world,
+            war_id="war_norm",
+            settlement_terms=terms,
+            covered_enemy_participants=["Britain"],
+        )
+        assert staged.get("success"), staged
+        dialogue = world.pending_diplomatic_dialogue
+        result = ratify_settlement_confirm(world, dialogue)
+    assert result.get("success") is True, result
+    assert result.get("mutated") is True
+    # Clamped to Britain's available balance, not blocked.
+    assert world.nation_gold["Britain"] == 0
+    assert world.nation_gold["France"] == 40
+
+
 # ===========================================================================
 # 7-8. Picker valid-by-construction (§13 P3 + OQ#7)
 # ===========================================================================
@@ -331,6 +441,42 @@ def test_tier1_default_identity_remains_replaceable_in_tier3():
     # of alternatives, not a single locked default.
     region_opts = schema["territory_cede"]["fields"]["region"]["options"]
     assert len(region_opts) >= 2
+
+
+def test_fixed_direction_role_pickers_are_side_filtered():
+    """§13 P2 — fixed-direction roles draw from DISJOINT side lists so a
+    same-side imposition/liberation cannot be authored at all (not merely
+    Submit-rejected). Direction-CHOSEN roles (gold/territory payer↔payee) keep
+    the full filtered list because either side may legally be from/to — their
+    opposite-side rule is the validator's V3 authority (cleanup spec line 609).
+    """
+    # France (attacker / proposer) vs Britain + Prussia + Austria (covered).
+    world, inst = _three_court_world()
+    schema = _build_clause_control_schema_for_review(
+        world,
+        war_instance=inst,
+        covered_enemy_participants=["Britain", "Prussia", "Austria"],
+        proposer_side="attackers",
+    )
+    # forced_alliance: subject = covered enemy only; imposer = proposer only.
+    fa_from = set(_nation_option_ids(schema, "forced_alliance", "from"))
+    fa_to = set(_nation_option_ids(schema, "forced_alliance", "to"))
+    assert fa_from == {"Britain", "Prussia", "Austria"}
+    assert fa_to == {"France"}
+    assert fa_from.isdisjoint(fa_to)  # same-side forced alliance unauthorable
+
+    # liberation: lord (losing the vassal) = covered enemy; liberator = proposer.
+    lib_lord = set(_nation_option_ids(schema, "liberation", "lord_nation"))
+    lib_liberator = set(_nation_option_ids(schema, "liberation", "liberator"))
+    assert lib_lord == {"Britain", "Prussia", "Austria"}
+    assert lib_liberator == {"France"}
+    assert lib_lord.isdisjoint(lib_liberator)  # same-side liberation unauthorable
+
+    # Direction-chosen gold payer/payee keep the full filtered list (V3 is the
+    # authority for opposite-sides because the picker cannot know the direction).
+    assert set(_nation_option_ids(schema, "gold_indemnity", "from")) == {
+        "France", "Britain", "Prussia", "Austria",
+    }
 
 
 # ===========================================================================
@@ -427,3 +573,25 @@ def test_merge_conflict_detection_mirrors_backend_authority():
     pair_body = _function_body(EDITOR_SCRIPT, "_is_conflicting_type_pair")
     for ctype in ("vassalage", "forced_alliance", "subjugation"):
         assert ctype in pair_body
+
+
+def test_merge_conflict_backend_authority_returns_conflicting_index():
+    """Behavioral pin for the authority the client mirror is checked against.
+
+    The GDScript Discard/Replace state transitions cannot run in pytest (the
+    project has no GDScript runtime harness — hence the source-grep pins above),
+    so this asserts the BACKEND authority they mirror: `validate_settlement_terms`
+    rejects a `CLAUSE_CONFLICT_MATRIX` pair (vassalage + forced_alliance on the
+    same from/to) with the `error_index` + `conflicting_index` parity that the
+    inline merge-conflict resolution relies on. This runs before the world-
+    dependent V1–V3 checks, so it needs no world/war_instance."""
+    result = validate_settlement_terms([
+        {"type": "vassalage", "from": "Saxony", "to": "France"},
+        {"type": "forced_alliance", "from": "Saxony", "to": "France"},
+    ])
+    assert result["valid"] is False
+    assert result["error"] == "duplicate_or_conflicting_clauses"
+    # Parity with the V1 region rule: both offending indices are named so the
+    # client can offer Discard new (error_index) / Replace active (conflicting).
+    assert result["error_index"] == 1
+    assert result["conflicting_index"] == 0
