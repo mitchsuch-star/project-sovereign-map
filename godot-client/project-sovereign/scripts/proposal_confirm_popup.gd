@@ -487,17 +487,24 @@ func _build_settlement_content(data: Dictionary) -> String:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
 	return bbcode
 
+func _safe_str(v) -> String:
+	# Coalesce JSON null -> "" so a null field never renders as Godot's literal
+	# "<null>". `row.get(key, "")` returns the present-but-null value (the default
+	# only applies to MISSING keys), and str(null) == "<null>", which leaked into
+	# the per-court table on first paint (delta_display is null before any dial).
+	return "" if v == null else str(v)
+
 func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
 	var per_court = data.get("per_court_acceptance", [])
 	if not (per_court is Array) or per_court.size() == 0:
 		return ""
 	var bbcode = ""
-	var narration = str(data.get("multi_court_table_narration", ""))
+	var narration = _safe_str(data.get("multi_court_table_narration"))
 	if narration != "":
 		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
 	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice.
-	var advisory = str(data.get("targeted_posture_advisory", ""))
+	var advisory = _safe_str(data.get("targeted_posture_advisory"))
 	if advisory != "":
 		bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
 	bbcode += "[b]The table[/b]\n"
@@ -505,8 +512,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		if not (row is Dictionary):
 			continue
 		var nation = str(row.get("nation", "?"))
-		var band_display = str(row.get("band_display", row.get("band", "")))
-		var direction = str(row.get("direction_summary", ""))
+		var band_display = _safe_str(row.get("band_display"))
+		if band_display == "":
+			band_display = _safe_str(row.get("band"))
+		var direction = _safe_str(row.get("direction_summary"))
 		var total = row.get("total", null)
 		var total_text = ""
 		if total != null:
@@ -515,15 +524,16 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		if direction != "":
 			bbcode += " [color=#a0a0a8]%s[/color]" % direction
 		bbcode += "\n"
-		var blocker = str(row.get("top_blocker_display", ""))
-		if blocker != "" and blocker != "null":
+		var blocker = _safe_str(row.get("top_blocker_display"))
+		if blocker != "":
 			bbcode += "      [color=#e0a040]Blocker: %s[/color]\n" % blocker
 		# Re-front Slice 2 / §11.2: the live band delta after a dial (presentation
-		# only — it never feeds the scored result).
-		var delta = str(row.get("delta_display", ""))
-		if delta != "" and delta != "null":
+		# only — it never feeds the scored result). Null on first paint (no
+		# previous band) — _safe_str coalesces so it never prints "<null>".
+		var delta = _safe_str(row.get("delta_display"))
+		if delta != "":
 			bbcode += "      [color=#80b0e0]%s[/color]\n" % delta
-		var voice = str(row.get("voice_line", ""))
+		var voice = _safe_str(row.get("voice_line"))
 		if voice != "":
 			bbcode += "      [i]%s[/i]\n" % voice
 		# Holdout rows expose Ease / Drop affordances (§11.4).

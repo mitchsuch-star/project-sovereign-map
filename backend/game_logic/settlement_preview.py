@@ -2313,6 +2313,97 @@ def _score_court_for_baseline(
     return int(score) if score is not None else None
 
 
+def _relax_baseline_demands_for_package_harshness(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    proposer_side_leader: Optional[str],
+    covered: List[str],
+    combined_terms: List[Dict[str, Any]],
+    per_court_baseline: Dict[str, Any],
+    side_pressure_result: Optional[Mapping[str, Any]],
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]],
+    near_acceptance_floor: int,
+) -> List[Dict[str, Any]]:
+    """Reconcile the per-court demand build with the WHOLE-package score.
+
+    ``_demand_terms_for_court`` floor-checks each court against only that
+    court's OWN slice of harshness, but the live surface
+    (``compute_per_court_acceptance``) scores every covered court against the
+    WHOLE package's ``raw_total_harshness`` (package-level, shared across
+    courts). So in a multi-court demand a court can pass its slice floor yet
+    land far below it once the table's combined harshness applies — a winning
+    multilateral that should carry opens deeply rejected instead (the Gate-4
+    smoke surfaced France-vs-Britain+Prussia opening at 5/50 with both courts
+    holding out despite a decisive lead).
+
+    Strip demand clauses — one per pass, from the worst demand-direction court
+    still below the floor under the FULL package — until every demand court
+    clears ``near_acceptance_floor``, or no demand clause remains for it (a
+    genuine holdout at peace). Concessions are never stripped (they only raise
+    the accepting court's acceptance, so stripping them would deepen a reject).
+    Deterministic (sorted courts, territory-before-gold, then highest index);
+    only REMOVES clauses, so the package stays valid-by-construction and within
+    the clause cap. ``per_court_baseline`` terms are kept in lockstep so the
+    display matches the scored package.
+    """
+    covered_set = {str(c) for c in covered}
+    sorted_covered = sorted(covered_set)
+
+    def _is_demand_clause(clause: Any, court: str) -> bool:
+        return (
+            isinstance(clause, Mapping)
+            and clause.get("type") != "peace"
+            and str(clause.get("from") or "") == court
+        )
+
+    terms = [dict(t) for t in combined_terms]
+    # Bounded: at most one demand clause is removed per pass.
+    for _ in range(len(terms) + 1):
+        below: List[tuple] = []
+        for court in sorted_covered:
+            entry = per_court_baseline.get(court) or {}
+            if entry.get("direction") != "demand":
+                continue
+            if not any(_is_demand_clause(c, court) for c in terms):
+                continue  # nothing left to relax for this court
+            score = _score_court_for_baseline(
+                world, war_id=war_id, war_instance=war_instance,
+                proposer_side=proposer_side, accepting_side=accepting_side,
+                court=court, proposer_side_leader=proposer_side_leader,
+                covered=sorted_covered, settlement_terms=terms,
+                side_pressure_result=side_pressure_result, direct_scores=direct_scores,
+            )
+            if score is not None and int(score) < int(near_acceptance_floor):
+                below.append((int(score), court))
+        if not below:
+            break
+        below.sort()  # lowest score first; court name breaks ties
+        worst = below[0][1]
+        worst_idxs = [i for i, c in enumerate(terms) if _is_demand_clause(c, worst)]
+        # Territory cession is the harshest lever — drop it before gold.
+        territory_idxs = [
+            i for i in worst_idxs if terms[i].get("type") == "territory_cede"
+        ]
+        drop_idx = (territory_idxs or worst_idxs)[-1]
+        dropped = terms.pop(drop_idx)
+        entry = per_court_baseline.get(worst)
+        if isinstance(entry, dict):
+            kept: List[Dict[str, Any]] = []
+            removed = False
+            for t in entry.get("terms") or []:
+                if not removed and t == dropped:
+                    removed = True
+                    continue
+                kept.append(t)
+            entry["terms"] = kept
+            entry["relaxed_for_package_harshness"] = True
+    return terms
+
+
 def compute_settlement_baseline(
     world: Any,
     *,
@@ -2446,6 +2537,25 @@ def compute_settlement_baseline(
             if len(combined_terms) >= MAX_SETTLEMENT_CLAUSE_COUNT:
                 break
             combined_terms.append(term)
+
+    # Each court's demand slice was floor-checked against its OWN harshness, but
+    # the surface scores every court against the WHOLE package's harshness; relax
+    # over-demanded courts so the assembled table clears the near-acceptance
+    # floor it was built to (no spurious all-holdout opening on a winning war).
+    combined_terms = _relax_baseline_demands_for_package_harshness(
+        world,
+        war_id=war_id,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        accepting_side=accepting_side,
+        proposer_side_leader=proposer_side_leader,
+        covered=covered,
+        combined_terms=combined_terms,
+        per_court_baseline=per_court_baseline,
+        side_pressure_result=side_pressure_result,
+        direct_scores=direct_scores,
+        near_acceptance_floor=near_acceptance_floor,
+    )
 
     return {
         "settlement_terms": combined_terms,

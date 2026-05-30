@@ -565,6 +565,43 @@ def test_demand_baseline_keeps_winning_court_at_or_above_near_acceptance_floor()
     assert pru2["terms"] == [], pru2
 
 
+def test_baseline_winning_multilateral_clears_floor_not_gross_reject(monkeypatch):
+    """Audit fix (Gate-4 smoke): a winning multilateral default must not open as
+    a gross reject. Each court's demand was floor-checked against its OWN slice's
+    harshness, but the surface scores every court against the WHOLE package's
+    harshness — so France-vs-Britain+Prussia opened at 5/-4 (both far below the
+    floor). `_relax_baseline_demands_for_package_harshness` now strips
+    over-demanded clauses until every covered demand court clears the
+    near-acceptance floor under the FULL package (parity with the single-court
+    demand baseline). Ratification stays reachable — white peace carries on this
+    decisive win; the demand baseline is near-acceptable and the player eases it.
+    """
+    from backend.game_logic.settlement_scoring import NEAR_ACCEPTANCE_FLOOR
+
+    monkeypatch.setenv("SOVEREIGN_SMOKE_START", "settlement_multilateral")
+    world = WorldState()
+    inst = world.war_instances["war_1"]
+    covered = ["Britain", "Prussia"]
+    kw = dict(
+        war_id="war_1", war_instance=inst, proposer_side="attackers",
+        accepting_side="defenders", proposer_side_leader="France",
+        covered_enemy_participants=covered,
+    )
+    terms = compute_settlement_baseline(world, **kw)["settlement_terms"]
+    block = compute_per_court_acceptance(world, settlement_terms=terms, **kw)
+    covered_set = set(covered)
+    scores = {r["nation"]: r["total"] for r in block["per_court_acceptance"]}
+    for row in block["per_court_acceptance"]:
+        # No gross reject: every covered court is at least near-acceptable under
+        # the FULL package (fails pre-fix at 5/-4; passes post-fix at 44/35).
+        assert row["total"] is not None, row
+        assert row["total"] >= NEAR_ACCEPTANCE_FLOOR, (row["nation"], row["total"], terms)
+    # Relaxation invariant: no court is left below the floor while still demanded.
+    for t in terms:
+        if t.get("type") != "peace" and t.get("from") in covered_set:
+            assert scores[t["from"]] >= NEAR_ACCEPTANCE_FLOOR, (t, scores)
+
+
 def test_propose_end_turn_discards_unsubmitted_scoped_draft():
     # §10: end turn from PROPOSE discards the unsubmitted scoped draft (the SC-2
     # discard contract PROPOSE inherits from EDIT). Proven via real advance_turn,
