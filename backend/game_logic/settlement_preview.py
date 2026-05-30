@@ -2286,9 +2286,12 @@ def compute_settlement_baseline(
       — it is NOT neutral-floored.
     - ``direct_score > +DIRECT_SCORE_DIRECTION_MARGIN`` → **demand** (France
       leads the court): author a border-region cession + a modest affordable
-      indemnity *from the court*, added only while the court stays at/above
-      the accept threshold (so a demand court lands accept-or-better by
-      construction).
+      indemnity *from the court*, each kept only while the court stays at/above
+      the **near-acceptance floor** (so a suggested demand never pushes a
+      winning court into outright reject). If even white peace for the court is
+      below the floor — the shared package-level ``base_side_pressure``
+      dominates — no demand is suggested and the court eases/drops in the
+      conversation.
     - ``direct_score < -DIRECT_SCORE_DIRECTION_MARGIN`` → **concede** (France
       is pressured by the court): the existing peace→gold→territory
       escalation paid *by* the proposer leader, escalated only until the
@@ -2345,51 +2348,25 @@ def compute_settlement_baseline(
             direction = "demand"
             # Author demands on a court France leads, mirroring
             # `generate_suggested_terms`' bilateral demand stage (border-region
-            # demand at war_score > 30 + calibrated gold). The ask is
-            # deliberately conservative — one border province on a strong lead
-            # plus a modest affordable indemnity — and is NOT acceptance-gated:
-            # `base_side_pressure` is package-level (§11.2), so in a mixed war a
-            # led court shares the package's middling pressure and could be
-            # accept-gated down to nothing. Instead the per-court row shows the
-            # cost live and a demand court that lands below threshold is an
-            # eased/droppable holdout, not auto-carry (§8 OQ#5). Suggestions,
-            # not impositions — the player can lighten or replace them in Tier 3.
-            region = (
-                _demand_baseline_select_region(
-                    world,
-                    court=court,
-                    proposer_side_participants=proposer_participants,
-                )
-                if (
-                    proposer_side_leader
-                    and direct_score > DEMAND_TERRITORY_DIRECT_SCORE
-                    and budget_remaining - len(court_terms) > 0
-                )
-                else None
+            # demand at a strong lead + a modest affordable indemnity). The
+            # helper is FLOOR-AWARE: it keeps a demand clause only while the
+            # court stays at/above the near-acceptance floor, and suggests
+            # nothing when even white peace for the court is below the floor
+            # (`base_side_pressure` is package-level — §11.2 — so a led court can
+            # share a negative package pressure). So a suggested demand never
+            # pushes a winning court into outright reject (§8 OQ#5). Suggestions,
+            # not impositions — the player can press harder or replace them in
+            # Tier 3.
+            court_terms = _demand_terms_for_court(
+                world, war_id=war_id, war_instance=war_instance,
+                proposer_side=proposer_side, accepting_side=accepting_side,
+                court=court, proposer_side_leader=proposer_side_leader,
+                proposer_side_participants=proposer_participants,
+                covered=covered, side_pressure_result=side_pressure_result,
+                direct_scores=direct_scores, direct_score=int(direct_score),
+                near_acceptance_floor=near_acceptance_floor,
+                budget_remaining=budget_remaining,
             )
-            if region:
-                court_terms.append({
-                    "type": "territory_cede",
-                    "from": court,
-                    "to": proposer_side_leader,
-                    "region": region,
-                })
-            court_balance = _concession_baseline_payer_balance(world, court)
-            gold_candidate = min(
-                court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
-                CONCESSION_BASELINE_GOLD_FLOOR,
-            )
-            if (
-                proposer_side_leader
-                and gold_candidate > 0
-                and budget_remaining - len(court_terms) > 0
-            ):
-                court_terms.append({
-                    "type": "gold_indemnity",
-                    "from": court,
-                    "to": proposer_side_leader,
-                    "amount": int(gold_candidate),
-                })
         elif direct_score < -DIRECT_SCORE_DIRECTION_MARGIN:
             direction = "concede"
             court_terms = _concession_terms_for_court(
@@ -2502,6 +2479,99 @@ def _concession_terms_for_court(
                 "region": region,
             })
     return terms
+
+
+def _demand_terms_for_court(
+    world: Any,
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    court: str,
+    proposer_side_leader: Optional[str],
+    proposer_side_participants: Iterable[str],
+    covered: Iterable[str],
+    side_pressure_result: Optional[Mapping[str, Any]],
+    direct_scores: Optional[Mapping[str, Mapping[str, int]]],
+    direct_score: int,
+    near_acceptance_floor: int,
+    budget_remaining: int,
+) -> List[Dict[str, Any]]:
+    """Author demands (territory, then gold) on a court France leads, keeping
+    that court at/above the near-acceptance floor.
+
+    Mirrors `generate_suggested_terms`' bilateral demand stage (border-region
+    demand at a strong lead + a modest affordable indemnity) but is
+    **floor-aware**: a candidate clause is kept only when the court still
+    scores at/above ``near_acceptance_floor`` with it (spec §8 OQ#5 — "never
+    suggest a demand that makes a court outright reject"). Because
+    ``base_side_pressure`` is package-level (§11.2), a court France leads can
+    share a middling/negative package pressure; if even white peace for the
+    court is below the floor, NO demand is suggested (the court is an
+    ease/drop holdout regardless of terms, not a court the demand should push
+    further down). Returns the kept demand clauses (no ``{"type": "peace"}`` —
+    the caller owns the shared package peace).
+    """
+    if not proposer_side_leader or budget_remaining <= 0:
+        return []
+    peace_score = _score_court_for_baseline(
+        world, war_id=war_id, war_instance=war_instance,
+        proposer_side=proposer_side, accepting_side=accepting_side,
+        court=court, proposer_side_leader=proposer_side_leader,
+        covered=covered, settlement_terms=[{"type": "peace"}],
+        side_pressure_result=side_pressure_result, direct_scores=direct_scores,
+    )
+    if peace_score is None or int(peace_score) < int(near_acceptance_floor):
+        # Shared package pressure already rejects this court at white peace; a
+        # demand can only make it worse. Suggest nothing — never push below the
+        # floor (the court eases/drops in the conversation).
+        return []
+    kept: List[Dict[str, Any]] = []
+
+    def _stays_acceptable(candidate: List[Dict[str, Any]]) -> bool:
+        score = _score_court_for_baseline(
+            world, war_id=war_id, war_instance=war_instance,
+            proposer_side=proposer_side, accepting_side=accepting_side,
+            court=court, proposer_side_leader=proposer_side_leader,
+            covered=covered, settlement_terms=[{"type": "peace"}] + candidate,
+            side_pressure_result=side_pressure_result, direct_scores=direct_scores,
+        )
+        return score is not None and int(score) >= int(near_acceptance_floor)
+
+    # Border-region cession — strong lead only, mirroring the bilateral demand
+    # stage (`war_score > 30`). Kept only if the court stays acceptable.
+    if direct_score > DEMAND_TERRITORY_DIRECT_SCORE and len(kept) < budget_remaining:
+        region = _demand_baseline_select_region(
+            world,
+            court=court,
+            proposer_side_participants=proposer_side_participants,
+        )
+        if region:
+            candidate = kept + [{
+                "type": "territory_cede",
+                "from": court,
+                "to": proposer_side_leader,
+                "region": region,
+            }]
+            if _stays_acceptable(candidate):
+                kept = candidate
+    # Modest affordable indemnity from the court. Kept only if acceptable.
+    court_balance = _concession_baseline_payer_balance(world, court)
+    gold_candidate = min(
+        court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
+        CONCESSION_BASELINE_GOLD_FLOOR,
+    )
+    if gold_candidate > 0 and len(kept) < budget_remaining:
+        candidate = kept + [{
+            "type": "gold_indemnity",
+            "from": court,
+            "to": proposer_side_leader,
+            "amount": int(gold_candidate),
+        }]
+        if _stays_acceptable(candidate):
+            kept = candidate
+    return kept
 
 
 def _court_direction_summary(
@@ -4142,14 +4212,21 @@ def build_settlement_confirm_dialogue(
                     ),
                 },
             ]
-            if is_holdout
+            # Re-front Slice-G boundary: the dial/coverage affordances are
+            # player-only. A non-player (AI/system) caller never gets the
+            # one-click Ease/Drop routes, mirroring the `can_edit_terms` gate.
+            if (is_holdout and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND)
             else []
         )
-    if dialogue_mode == "PROPOSE":
+    if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front (Tiers 1-2): an authoring rail,
         # not a staged-decision rail. Adjust terms (-> EDIT/Tier 3), Submit for
         # Review (-> REVIEW), Back Out. No `confirm_settlement` — ratification
         # only ever fires from REVIEW. Holdout Ease/Drop ride on the rows above.
+        # The authoring rail is PLAYER-ONLY (Slice-G boundary): a non-player
+        # PROPOSE staging keeps the default non-authoring rail (no `adjust_terms`
+        # / `submit_settlement_for_review` / `suspend_settlement_editor`), in
+        # lockstep with `can_edit_terms=False` / `editor_route=None` below.
         options = [{
             "label": "Adjust terms",
             "action": "adjust_terms",

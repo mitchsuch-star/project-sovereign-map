@@ -138,8 +138,15 @@ def test_settlement_baseline_demands_from_winning_courts_concedes_to_losing():
     baseline = _baseline(world, inst)
     pcb = baseline["per_court_baseline"]
 
+    # Direction is chosen per court from each court's direct score.
     assert pcb["Prussia"]["direction"] == "demand"
-    assert any(t.get("from") == "Prussia" for t in pcb["Prussia"]["terms"]), pcb
+    # Demands (when suggested) are levied FROM the led court — never a
+    # concession TO it. The floor-aware baseline (R6-M1) may suppress the
+    # demand entirely in a mixed war where the shared package pressure already
+    # depresses the led court below the near-acceptance floor; a real demand
+    # term IS produced when the court can absorb it (pinned by
+    # test_demand_baseline_keeps_winning_court_at_or_above_near_acceptance_floor).
+    assert all(t.get("from") == "Prussia" for t in pcb["Prussia"]["terms"]), pcb
     # Never demand FROM a losing court; concessions flow TO it.
     assert pcb["Britain"]["direction"] == "concede"
     assert all(t.get("from") != "Britain" for t in pcb["Britain"]["terms"])
@@ -478,11 +485,13 @@ def test_propose_landing_replaces_blank_edit_as_default():
 
 def test_propose_and_dial_routes_reject_non_player_caller_kind():
     # Slice-G absence test (owned here): the PROPOSE / dial / coverage routes
-    # are player-only. AI/system staging cannot advertise an editable surface.
+    # are player-only. AI/system staging cannot advertise an editable surface
+    # NOR the authoring action rail (R6-M2). Prussia is forced to a holdout so
+    # the dial/coverage-affordance absence assertion is non-vacuous.
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     with patch(
         "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-        side_effect=_make_scorer({}),
+        side_effect=_make_scorer({"Prussia": 20}),
     ):
         staged = stage_settlement_confirm(
             world, war_id="war_rf", actor_nation="France",
@@ -495,6 +504,91 @@ def test_propose_and_dial_routes_reject_non_player_caller_kind():
     assert dialogue["can_edit_terms"] is False
     assert dialogue["editor_route"] is None
     assert dialogue["available_clause_types"] == []
+    # R6-M2: the player-only authoring rail must be absent from a non-player
+    # staging — not just the editor surface.
+    rail = set(dialogue.get("available_action_ids") or [])
+    option_actions = {o.get("action") for o in (dialogue.get("options") or [])}
+    for banned in ("adjust_terms", "submit_settlement_for_review", "suspend_settlement_editor"):
+        assert banned not in rail, rail
+        assert banned not in option_actions, option_actions
+    # No dial/coverage affordances ride on any per-court row for a non-player.
+    for row in dialogue.get("per_court_acceptance") or []:
+        for ha in (row.get("holdout_actions") or []):
+            action = str(ha.get("action", ""))
+            assert not action.startswith("settlement_dial_"), action
+            assert not action.startswith("settlement_cover_"), action
+
+
+def test_demand_baseline_keeps_winning_court_at_or_above_near_acceptance_floor():
+    # R6-M1 regression: a suggested demand must never push a winning court into
+    # outright reject. Real scorer (deterministic from each court's direct_score).
+    from backend.game_logic.settlement_scoring import NEAR_ACCEPTANCE_FLOOR
+
+    # Clean strong lead (bilateral n=1): a demand IS suggested and the court
+    # stays at/above the near-acceptance floor (non-vacuous — demands survive).
+    world = WorldState()
+    inst = make_synthetic_war_instance(
+        "war_rf", attackers=["France"], defenders=["Prussia"],
+        attacker_leader="France", defender_leader="Prussia",
+    )
+    world.war_instances["war_rf"] = inst
+    _set_war_score(world, "France", "Prussia", 70)
+    world.invalidate_war_instance_indexes()
+    base = compute_settlement_baseline(
+        world, war_id="war_rf", war_instance=inst, proposer_side="attackers",
+        accepting_side="defenders", proposer_side_leader="France",
+        covered_enemy_participants=["Prussia"],
+    )
+    pcb = base["per_court_baseline"]["Prussia"]
+    assert pcb["direction"] == "demand"
+    assert pcb["terms"], "a clean strong lead should still be demanded from"
+    acc = compute_per_court_acceptance(
+        world, war_id="war_rf", war_instance=inst, proposer_side="attackers",
+        accepting_side="defenders", proposer_side_leader="France",
+        covered_enemy_participants=["Prussia"], settlement_terms=base["settlement_terms"],
+    )
+    prow = next(r for r in acc["per_court_acceptance"] if r["nation"] == "Prussia")
+    assert prow["total"] is not None and prow["total"] >= NEAR_ACCEPTANCE_FLOOR, prow
+
+    # Catastrophic mixed war: France leads Prussia (+11) but is crushed
+    # elsewhere, so even white peace for Prussia is below the floor (shared
+    # package pressure). The demand branch must suggest NOTHING rather than
+    # deepen the reject — never push a court below the floor via a demand.
+    world2, inst2 = _three_court_world(prussia=11, britain=-95, austria=-90)
+    base2 = compute_settlement_baseline(
+        world2, war_id="war_rf", war_instance=inst2, proposer_side="attackers",
+        accepting_side="defenders", proposer_side_leader="France",
+        covered_enemy_participants=["Britain", "Prussia", "Austria"],
+    )
+    pru2 = base2["per_court_baseline"]["Prussia"]
+    assert pru2["direction"] == "demand"
+    assert pru2["terms"] == [], pru2
+
+
+def test_propose_end_turn_discards_unsubmitted_scoped_draft():
+    # §10: end turn from PROPOSE discards the unsubmitted scoped draft (the SC-2
+    # discard contract PROPOSE inherits from EDIT). Proven via real advance_turn,
+    # not a manual store reset.
+    from backend.game_logic.settlement_preview import save_scoped_settlement_draft
+
+    world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
+    save_terms = [{"type": "peace"}, {
+        "type": "gold_indemnity", "from": "Prussia", "to": "France", "amount": 100,
+    }]
+    save_scoped_settlement_draft(
+        world, war_id="war_rf", selected_target_nation="Austria",
+        covered_enemy_participants=["Britain", "Prussia", "Austria"],
+        settlement_terms=save_terms,
+    )
+    assert load_scoped_settlement_draft(
+        world, war_id="war_rf", selected_target_nation="Austria",
+        covered_enemy_participants=["Britain", "Prussia", "Austria"],
+    ) == save_terms
+    world.advance_turn()
+    assert not load_scoped_settlement_draft(
+        world, war_id="war_rf", selected_target_nation="Austria",
+        covered_enemy_participants=["Britain", "Prussia", "Austria"],
+    )
 
 
 # ===========================================================================
