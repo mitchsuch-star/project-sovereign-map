@@ -2110,6 +2110,10 @@ class DiplomaticExecutor:
                 player_nation=player,
                 proposer_side=actor_side,
                 actor_side_in_war=actor_side,
+                covered_enemy_participants=(
+                    cmd.get("covered_enemy_participants")
+                    or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
+                ),
                 world=world,
                 war_instance=war_instance,
             )

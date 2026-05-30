@@ -554,6 +554,10 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "invalid_clause_type": "One or more clauses use an unrecognized type.",
     "invalid_clause_schema": "One or more clauses are missing required fields.",
     "submitted_terms_failed_revalidation": "The submitted terms failed validation; review and correct them.",
+    # Re-front Slice 3 §12 cross-court validity codes (V1-V3).
+    "region_double_promised": "The same region cannot be promised to two different courts.",
+    "clause_target_uncovered": "A clause names a court that is not part of this settlement.",
+    "clause_side_mismatch": "A clause's giving and receiving courts must be on opposite sides of the war.",
     # SC-3/SC-4 ratification gate codes
     "acceptance_rejected": "The accepting side has rejected these terms.",
     "acceptance_blocked": "A hard stop prevents ratification of these terms.",

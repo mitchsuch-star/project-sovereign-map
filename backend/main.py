@@ -2442,6 +2442,7 @@ def post_diplomatic_preview_endpoint(request: dict):
             player_nation=getattr(world, "player_nation", "France"),
             proposer_side=request.get("proposer_side"),
             actor_side_in_war=actor_side,
+            covered_enemy_participants=request.get("covered_enemy_participants"),
             world=world,
             war_instance=war_instance,
         )

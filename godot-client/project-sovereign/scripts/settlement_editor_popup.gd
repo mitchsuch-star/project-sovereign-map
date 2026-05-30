@@ -46,6 +46,19 @@ var pending_clause_field_controls: Dictionary = {}
 var concession_baseline_button: Button = null
 var inline_error_text: String = ""
 var baseline_replace_pending: bool = false
+# DWL-SET-SC5R-3 inline merge-conflict resolution state. When a newly
+# authored clause overlaps an active clause, the new clause is held here
+# (not appended) until the player chooses Discard new / Replace active.
+var merge_conflict_panel: VBoxContainer = null
+var merge_conflict_label: RichTextLabel = null
+var discard_new_clause_button: Button = null
+var replace_active_clause_button: Button = null
+var pending_conflict_clause: Dictionary = {}
+var pending_conflict_index: int = -1
+# Re-front Slice 3 §14: `Adjust terms` from PROPOSE may open the editor focused
+# on a court (the presentation-only `settlement_focus_court` selection carried
+# on the dialogue). Presentation-only — never changes terms or scoring.
+var focused_court: String = ""
 
 func _ready():
 	hide()
@@ -56,11 +69,39 @@ func _ready():
 	concession_baseline_button.pressed.connect(_on_apply_concession_baseline_pressed)
 	action_rail.add_child(concession_baseline_button)
 	action_rail.move_child(concession_baseline_button, 1)
+	_build_merge_conflict_controls()
 	add_clause_button.pressed.connect(_on_add_clause_pressed)
 	confirm_clause_button.pressed.connect(_on_confirm_clause_pressed)
 	cancel_clause_button.pressed.connect(_on_cancel_clause_pressed)
 	submit_button.pressed.connect(_on_submit_pressed)
 	back_out_button.pressed.connect(_on_back_out_pressed)
+
+func _build_merge_conflict_controls():
+	# DWL-SET-SC5R-3: a dynamically-built merge-conflict banner with the two
+	# resolution sub-controls (cleanup spec line 589). Built in code (like the
+	# concession baseline button) so the .tscn is untouched; mounted just below
+	# the inline clause editor inside the clause section.
+	merge_conflict_panel = VBoxContainer.new()
+	merge_conflict_panel.visible = false
+	merge_conflict_label = RichTextLabel.new()
+	merge_conflict_label.bbcode_enabled = true
+	merge_conflict_label.fit_content = true
+	merge_conflict_label.custom_minimum_size = Vector2(0, 56)
+	merge_conflict_panel.add_child(merge_conflict_label)
+	var button_row = HBoxContainer.new()
+	discard_new_clause_button = Button.new()
+	discard_new_clause_button.text = "Discard new clause"
+	discard_new_clause_button.pressed.connect(_on_discard_new_clause_pressed)
+	button_row.add_child(discard_new_clause_button)
+	replace_active_clause_button = Button.new()
+	replace_active_clause_button.text = "Replace active clause"
+	replace_active_clause_button.pressed.connect(_on_replace_active_clause_pressed)
+	button_row.add_child(replace_active_clause_button)
+	merge_conflict_panel.add_child(button_row)
+	var section = clause_editor_panel.get_parent()
+	if section != null:
+		section.add_child(merge_conflict_panel)
+		section.move_child(merge_conflict_panel, clause_editor_panel.get_index() + 1)
 
 func show_editor(data: Dictionary) -> bool:
 	"""Mount the editor with a staged settlement_confirm payload that
@@ -73,6 +114,7 @@ func show_editor(data: Dictionary) -> bool:
 		return false
 	current_data = data.duplicate(true)
 	inline_error_text = str(data.get("editor_inline_error", ""))
+	focused_court = str(data.get("focused_court", ""))
 	baseline_replace_pending = false
 	editor_route = editor_route_data.duplicate(true)
 	# Seed terms from editor_route.staged_settlement_terms if present;
@@ -127,6 +169,10 @@ func show_editor(data: Dictionary) -> bool:
 	pending_clause_type = ""
 	pending_clause_field_controls = {}
 	clause_editor_panel.visible = false
+	pending_conflict_clause = {}
+	pending_conflict_index = -1
+	if merge_conflict_panel != null:
+		merge_conflict_panel.visible = false
 	_render_header()
 	_render_covered_enemies()
 	_render_clause_list()
@@ -151,6 +197,8 @@ func _render_header():
 	var bbcode = "[b][color=%s]%s — %s[/color][/b]\n" % [COLOR_GOLD, source_display, war_label]
 	if selected_target != "":
 		bbcode += "[color=#a0a0a8]Selected target: %s[/color]\n" % selected_target
+	if focused_court != "":
+		bbcode += "[color=%s]Focused on %s[/color]\n" % [COLOR_GOLD, focused_court]
 	var draft_key = str(editor_route.get("draft_key", current_data.get("draft_key", "")))
 	if draft_key != "":
 		bbcode += "[color=#808080]Draft key: %s[/color]" % draft_key
@@ -267,9 +315,22 @@ func _populate_add_clause_selector():
 	add_clause_button.disabled = false
 	for ttype in available_clause_types:
 		var label = _humanize_clause_type(str(ttype))
+		# REFRONT-8: consume clause_control_schema[type].enabled /
+		# disabled_reason_display (cleanup spec line 601). A clause type whose
+		# pickers have zero valid options is greyed in the dropdown and carries
+		# its reason, instead of opening an empty picker rejected only at Submit.
+		var schema_entry = clause_control_schema.get(str(ttype), {})
+		var type_enabled = true
+		var disabled_reason = ""
+		if schema_entry is Dictionary:
+			type_enabled = bool(schema_entry.get("enabled", true))
+			disabled_reason = str(schema_entry.get("disabled_reason_display", ""))
+		if not type_enabled and disabled_reason != "":
+			label += " — " + disabled_reason
 		add_clause_selector.add_item(label)
 		var idx = add_clause_selector.item_count - 1
 		add_clause_selector.set_item_metadata(idx, str(ttype))
+		add_clause_selector.set_item_disabled(idx, not type_enabled)
 
 func _baseline_terms() -> Array:
 	var baseline = current_data.get("concession_baseline", null)
@@ -321,13 +382,30 @@ func _humanize_clause_type(ttype: String) -> String:
 func _on_add_clause_pressed():
 	if available_clause_types.is_empty():
 		return
+	# Starting a fresh clause abandons any unresolved merge conflict so a stale
+	# pending index can never be acted on by Discard/Replace later.
+	if pending_conflict_index >= 0:
+		pending_conflict_clause = {}
+		pending_conflict_index = -1
+		if merge_conflict_panel != null:
+			merge_conflict_panel.visible = false
 	var idx = add_clause_selector.get_selected_id()
 	if idx < 0:
 		idx = add_clause_selector.selected
 	if idx < 0:
 		idx = 0
 	var meta = add_clause_selector.get_item_metadata(idx)
-	pending_clause_type = str(meta) if meta != null else str(available_clause_types[idx])
+	var selected_type = str(meta) if meta != null else str(available_clause_types[idx])
+	# REFRONT-8: never open an empty picker for a disabled clause type; surface
+	# the backend disabled_reason_display instead (cleanup spec line 601). The
+	# dropdown already greys disabled items; this guards keyboard/programmatic
+	# selection as belt-and-suspenders.
+	var schema_entry = clause_control_schema.get(selected_type, {})
+	if schema_entry is Dictionary and not bool(schema_entry.get("enabled", true)):
+		var reason = str(schema_entry.get("disabled_reason_display", "This clause type is unavailable."))
+		_set_status("[color=%s]%s[/color]" % [COLOR_RED, reason])
+		return
+	pending_clause_type = selected_type
 	clause_editor_label.text = "Add %s clause" % _humanize_clause_type(pending_clause_type)
 	_render_clause_editor_fields(pending_clause_type)
 	clause_editor_panel.visible = true
@@ -445,12 +523,103 @@ func _on_confirm_clause_pressed():
 			", ".join(PackedStringArray(missing)),
 		])
 		return
+	# DWL-SET-SC5R-3: detect a merge conflict with an active clause BEFORE
+	# appending, so the player resolves it inline (Discard new / Replace active)
+	# instead of failing at Submit. The backend validator stays authoritative.
+	var conflict_index = _find_conflict_for_new_clause(clause)
+	if conflict_index >= 0:
+		pending_conflict_clause = clause.duplicate(true)
+		pending_conflict_index = conflict_index
+		clause_editor_panel.visible = false
+		_render_merge_conflict_controls()
+		return
 	baseline_replace_pending = false
 	_render_concession_baseline_button()
 	settlement_terms.append(clause)
 	pending_clause_type = ""
 	pending_clause_field_controls = {}
 	clause_editor_panel.visible = false
+	_render_clause_list()
+	_render_status()
+
+func _find_conflict_for_new_clause(new_clause: Dictionary) -> int:
+	# Returns the index of an active clause the new clause merge-conflicts with,
+	# or -1. Mirrors the backend conflict authority — CLAUSE_CONFLICT_MATRIX in
+	# settlement_scoring.py plus the V1 region-double-promise rule in
+	# validate_settlement_terms — so the inline resolution matches what Submit
+	# would reject. The backend remains the source of truth at Submit time.
+	var ntype = str(new_clause.get("type", ""))
+	for i in range(settlement_terms.size()):
+		var existing = settlement_terms[i]
+		if not (existing is Dictionary):
+			continue
+		var etype = str(existing.get("type", ""))
+		if ntype == "territory_cede" and etype == "territory_cede":
+			var nregion = str(new_clause.get("region", ""))
+			if nregion != "" and nregion == str(existing.get("region", "")):
+				return i
+		elif _is_conflicting_type_pair(ntype, etype):
+			if str(new_clause.get("from", "")) == str(existing.get("from", "")) \
+					and str(new_clause.get("to", "")) == str(existing.get("to", "")):
+				return i
+	return -1
+
+func _is_conflicting_type_pair(a: String, b: String) -> bool:
+	# Unordered match against CLAUSE_CONFLICT_MATRIX (settlement_scoring.py:152):
+	# vassalage/forced_alliance, vassalage/subjugation, subjugation/forced_alliance.
+	var pair = [a, b]
+	pair.sort()
+	var conflicts = [
+		["forced_alliance", "vassalage"],
+		["subjugation", "vassalage"],
+		["forced_alliance", "subjugation"],
+	]
+	for c in conflicts:
+		if pair == c:
+			return true
+	return false
+
+func _render_merge_conflict_controls():
+	if merge_conflict_panel == null:
+		return
+	var new_summary = _format_clause_summary(pending_conflict_clause)
+	var active_summary = "?"
+	if pending_conflict_index >= 0 and pending_conflict_index < settlement_terms.size():
+		active_summary = _format_clause_summary(settlement_terms[pending_conflict_index])
+	merge_conflict_label.text = ""
+	merge_conflict_label.append_text(
+		"[color=%s]Merge conflict — the new clause overlaps an active clause.[/color]\n[color=#a0a0a8]New: %s[/color]\n[color=#a0a0a8]Active: %s[/color]" % [
+			COLOR_RED, new_summary, active_summary,
+		]
+	)
+	merge_conflict_panel.visible = true
+	_render_status()
+
+func _on_discard_new_clause_pressed():
+	# Keep the active clause; abandon the newly authored clause.
+	pending_conflict_clause = {}
+	pending_conflict_index = -1
+	if merge_conflict_panel != null:
+		merge_conflict_panel.visible = false
+	pending_clause_type = ""
+	pending_clause_field_controls = {}
+	_render_clause_list()
+	_render_status()
+
+func _on_replace_active_clause_pressed():
+	# Drop the conflicting active clause, commit the new clause in its place.
+	if pending_conflict_index >= 0 and pending_conflict_index < settlement_terms.size():
+		settlement_terms.remove_at(pending_conflict_index)
+	if not pending_conflict_clause.is_empty():
+		settlement_terms.append(pending_conflict_clause)
+	pending_conflict_clause = {}
+	pending_conflict_index = -1
+	if merge_conflict_panel != null:
+		merge_conflict_panel.visible = false
+	pending_clause_type = ""
+	pending_clause_field_controls = {}
+	baseline_replace_pending = false
+	_render_concession_baseline_button()
 	_render_clause_list()
 	_render_status()
 

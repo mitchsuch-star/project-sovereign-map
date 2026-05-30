@@ -3013,7 +3013,11 @@ def _restage_settlement_after_redraw(
     }
     war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     revalidation = validate_settlement_terms(
-        terms, world=world, war_instance=war_instance,
+        terms,
+        proposer_side=proposer_side,
+        covered_enemy_participants=covered,
+        world=world,
+        war_instance=war_instance,
     )
     if not revalidation.get("valid"):
         return {
@@ -3143,6 +3147,39 @@ def evaluate_open_settlement_eligibility(
     }
 
 
+# Re-front Slice 3 §12 V3: clause types that move value across the war and so
+# must bind two participants on OPPOSITE war sides (demand burdens the accepting
+# side; concession burdens the proposer side — either way `from`/`to` straddle
+# the line). Dependency clauses (vassalage/subjugation/liberation) carry their
+# own cross-side eligibility checks and are excluded here.
+_CROSS_SIDE_TRANSFER_CLAUSE_TYPES = frozenset(
+    {"territory_cede", "gold_indemnity", "gold_per_turn", "forced_alliance"}
+)
+
+
+def _clause_role_nations(clause: Mapping[str, Any]) -> List[str]:
+    """Enemy/proposer courts a clause binds, for the V2 coverage check.
+
+    Every clause binds ``from``/``to`` except ``liberation``, which binds
+    its ``lord_nation`` (the covered enemy losing the vassal) and
+    ``liberator`` (a proposer-side participant). ``vassal_nation`` is
+    deliberately excluded: it is the freed party, not a court bound into
+    the settlement, and ``evaluate_liberation_eligibility`` (§12 V4) never
+    requires it to be a war participant — so checking it here would
+    over-reject valid liberations of a non-participant vassal. ``peace``
+    binds nothing.
+    """
+    if str(clause.get("type") or "") == "liberation":
+        keys = ("lord_nation", "liberator")
+    else:
+        keys = ("from", "to")
+    return [
+        str(clause.get(k)).strip()
+        for k in keys
+        if str(clause.get(k) or "").strip()
+    ]
+
+
 def validate_settlement_terms(
     terms: Any,
     *,
@@ -3150,6 +3187,7 @@ def validate_settlement_terms(
     player_nation: Optional[str] = None,
     proposer_side: Optional[str] = None,
     actor_side_in_war: Optional[str] = None,
+    covered_enemy_participants: Optional[Iterable[str]] = None,
     world: Any = None,
     war_instance: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -3180,6 +3218,19 @@ def validate_settlement_terms(
       match the current lord of ``vassal_nation``.
     - ``liberation_invalid_liberator`` — ``liberator`` is missing,
       equal to the current lord, or not a recognized nation.
+
+    Re-front Slice 3 §12 multi-party cross-court validity rules (defense in
+    depth at POST-preview, Submit revalidation, and dial/coverage restage):
+
+    - ``region_double_promised`` — the same region appears in more than one
+      ``territory_cede`` clause (V1). Always enforced (structural).
+    - ``clause_target_uncovered`` — a clause names a court that is neither
+      proposer-side nor in ``covered_enemy_participants`` (V2). Enforced when
+      ``war_instance`` is supplied and a ``covered_enemy_participants`` /
+      ``proposer_side`` context lets the allowed set be derived.
+    - ``clause_side_mismatch`` — a value-transfer clause's ``from`` and ``to``
+      are not on opposite, known war sides (V3). Enforced when ``war_instance``
+      is supplied.
     """
     if actor_nation and player_nation and actor_nation != player_nation:
         return {
@@ -3260,8 +3311,81 @@ def validate_settlement_terms(
                         "valid": False,
                         "error": "duplicate_or_conflicting_clauses",
                         "error_index": terms.index(cb),
+                        "conflicting_index": terms.index(ca),
                         "disabled_reason_display": _error_display("duplicate_or_conflicting_clauses"),
                     }
+
+    # Re-front Slice 3 §12 V1: no region promised to two courts. Each region may
+    # appear in at most one `territory_cede` clause regardless of from/to. This
+    # is structural (no world/war_instance needed) so it always runs.
+    seen_regions: Dict[str, int] = {}
+    for idx, clause in enumerate(terms):
+        if clause.get("type") != "territory_cede":
+            continue
+        region = str(clause.get("region") or "")
+        if not region:
+            continue
+        if region in seen_regions:
+            return {
+                "valid": False,
+                "error": "region_double_promised",
+                "error_index": idx,
+                "conflicting_index": seen_regions[region],
+                "disabled_reason_display": _error_display("region_double_promised"),
+            }
+        seen_regions[region] = idx
+
+    # Re-front Slice 3 §12 V2/V3: cross-court binding + war-side validity. Both
+    # need the live `war_instance` to resolve sides; bare schema-only callers
+    # (no war_instance) skip them, matching the dependency-clause gate below.
+    if isinstance(war_instance, Mapping) and war_instance:
+        covered_set = {
+            str(n).strip()
+            for n in (covered_enemy_participants or [])
+            if str(n).strip()
+        }
+        ps = str(proposer_side or "")
+        proposer_participants: Set[str] = (
+            {
+                str(n).strip()
+                for n in (war_instance.get(ps) or [])
+                if str(n).strip()
+            }
+            if ps in VALID_SIDES
+            else set()
+        )
+        # V2: every clause role nation must be proposer-side or covered. Only
+        # enforced when BOTH the proposer side and the covered set are known, so
+        # a partial-context caller is never over-constrained.
+        if proposer_participants and covered_set:
+            allowed = proposer_participants | covered_set
+            for idx, clause in enumerate(terms):
+                for role_nation in _clause_role_nations(clause):
+                    if role_nation not in allowed:
+                        return {
+                            "valid": False,
+                            "error": "clause_target_uncovered",
+                            "error_index": idx,
+                            "uncovered_nation": role_nation,
+                            "disabled_reason_display": _error_display(
+                                "clause_target_uncovered"
+                            ),
+                        }
+        # V3: value-transfer clauses must straddle opposite, known war sides.
+        for idx, clause in enumerate(terms):
+            if clause.get("type") not in _CROSS_SIDE_TRANSFER_CLAUSE_TYPES:
+                continue
+            frm = str(clause.get("from") or "")
+            to = str(clause.get("to") or "")
+            from_side = _side_for_nation(war_instance, frm) if frm else None
+            to_side = _side_for_nation(war_instance, to) if to else None
+            if from_side is None or to_side is None or from_side == to_side:
+                return {
+                    "valid": False,
+                    "error": "clause_side_mismatch",
+                    "error_index": idx,
+                    "disabled_reason_display": _error_display("clause_side_mismatch"),
+                }
 
     # SC-33 / G2-Slice-9: per-clause amount + duration bounds for
     # `gold_per_turn` clauses (no silent clamping — submitted values are
@@ -3805,21 +3929,48 @@ def _nation_control_options(
     world: Any,
     war_instance: Optional[Mapping[str, Any]],
     covered_enemy_participants: Optional[Iterable[str]],
+    *,
+    proposer_side: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
+    """Nation picker options for the Tier-3 editor.
+
+    Re-front Slice 3 §13 P2/P3: when the proposer side is known, the picker
+    offers every proposer-side participant plus ONLY the covered accepting-side
+    courts. An uncovered enemy can never be picked (mirrors the V2 validator
+    rule), and dropping a court from ``covered_enemy_participants`` removes it
+    from every picker on the next rebuild (P3 — the conversational coverage edit
+    rebuilds the dialogue and so the schema). Without a known proposer side it
+    falls back to listing every participant (legacy schema-only callers).
+    """
+    covered = {
+        str(n or "").strip()
+        for n in (covered_enemy_participants or [])
+        if str(n or "").strip()
+    }
     nations: List[str] = []
-    if isinstance(war_instance, Mapping):
+
+    def _add(name: Any) -> None:
+        ns = str(name or "").strip()
+        if ns and ns not in nations:
+            nations.append(ns)
+
+    ps = str(proposer_side or "")
+    if isinstance(war_instance, Mapping) and ps in VALID_SIDES:
+        accepting = _other_side(ps)
+        for nation in war_instance.get(ps) or []:
+            _add(nation)
+        for nation in war_instance.get(accepting) or []:
+            if str(nation or "").strip() in covered:
+                _add(nation)
+    elif isinstance(war_instance, Mapping):
         for side in ("attackers", "defenders"):
             for nation in war_instance.get(side) or []:
-                nation_str = str(nation or "").strip()
-                if nation_str and nation_str not in nations:
-                    nations.append(nation_str)
-    for nation in covered_enemy_participants or []:
-        nation_str = str(nation or "").strip()
-        if nation_str and nation_str not in nations:
-            nations.append(nation_str)
-    player = str(getattr(world, "player_nation", "") or "").strip()
-    if player and player not in nations:
-        nations.append(player)
+                _add(nation)
+    # Covered courts stay selectable even if the side lookup missed them
+    # (defensive); the player nation is always present.
+    for nation in covered:
+        _add(nation)
+    _add(getattr(world, "player_nation", ""))
     return [_control_option(nation) for nation in nations]
 
 
@@ -4018,6 +4169,7 @@ def _build_clause_control_schema_for_review(
     *,
     war_instance: Optional[Mapping[str, Any]] = None,
     covered_enemy_participants: Optional[Iterable[str]] = None,
+    proposer_side: Optional[str] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Return the SC-5R clause control schema for live clause types.
 
@@ -4025,10 +4177,14 @@ def _build_clause_control_schema_for_review(
     (spec §Editor Layout Contract). Hidden clause types are absent from
     both the schema and ``available_clause_types[]`` so clients cannot
     synthesize disabled rows for absent types.
+
+    Re-front Slice 3 §13: ``proposer_side`` lets the nation/region pickers
+    filter to proposer-side + covered courts (P2/P3); a coverage edit rebuilds
+    the dialogue and so re-filters every picker.
     """
     schema: Dict[str, Dict[str, Any]] = {}
     nation_options = _nation_control_options(
-        world, war_instance, covered_enemy_participants,
+        world, war_instance, covered_enemy_participants, proposer_side=proposer_side,
     )
     region_options = _region_control_options(world, nation_options)
     vassal_options = _vassal_control_options(world)
@@ -4653,6 +4809,7 @@ def build_settlement_confirm_dialogue(
         world,
         war_instance=war_instance,
         covered_enemy_participants=covered,
+        proposer_side=proposer_side,
     )
     sc5r_available_clause_types = sorted(sc5r_clause_control_schema.keys())
     staged_terms_for_edit = copy.deepcopy(preview.get("settlement_terms") or [])
@@ -6439,6 +6596,8 @@ def _stage_replacement_settlement_terms(
     war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     revalidation = validate_settlement_terms(
         replacement_terms,
+        proposer_side=str(dialogue.get("proposer_side") or ""),
+        covered_enemy_participants=covered,
         world=world,
         war_instance=war_instance,
     )
