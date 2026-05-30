@@ -2836,9 +2836,14 @@ def _redial_settlement_terms(
     court seeds a single modest gold clause in the dial direction (press → a
     demand FROM the court; ease → a concession the proposer PAYS to it) so the
     one-click ``Ease <holdout>`` / ``press <court>`` affordance actually moves
-    the needle. Whole-table dials never seed (they only steer existing terms).
-    Clauses that touch no scoped court — including the shared ``{"type":
-    "peace"}`` — are copied through untouched.
+    the needle — but only while the package is under
+    ``MAX_SETTLEMENT_CLAUSE_COUNT`` and the proposer leader is known (both seed
+    shapes reference the leader). A capped or leaderless package yields a no-op
+    redraft rather than an over-cap / malformed one, so the focused click always
+    produces a valid-by-construction package. Multi-court whole-table dials
+    (scope ≥ 2) never seed — they only steer existing terms. Clauses that touch
+    no scoped court — including the shared ``{"type": "peace"}`` — are copied
+    through untouched.
     """
     scope = {str(n) for n in (scope_courts or []) if n}
     leader = str(proposer_side_leader or "")
@@ -2883,14 +2888,24 @@ def _redial_settlement_terms(
         # Identity-bearing clause types (liberation, alliance, vassalage, …) are
         # not Tier-2 magnitude levers — pass them through unchanged.
         out.append(clause)
-    if len(scope) == 1:
+    # Focused-dial seed. Only fires for exactly one scoped court that the dial
+    # left untouched, only while a proposer leader is known (both seed shapes
+    # reference the leader — symmetric guard), and only while the package is
+    # under the clause cap. A capped package yields a NO-OP redraft rather than
+    # an over-cap one, so the one-click ``Press <court>`` / ``Ease <court>``
+    # affordance always produces a valid-by-construction package (it never
+    # authors a draft the restage revalidation would reject for
+    # ``max_clause_count_exceeded``).
+    if len(scope) == 1 and leader:
         for court in sorted(scope - touched):
+            if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
+                break  # hard cap honored — no over-cap seed
             if direction == "harsher":
                 out.append({
                     "type": "gold_indemnity", "from": court, "to": leader,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
                 })
-            elif leader:
+            else:
                 out.append({
                     "type": "gold_indemnity", "from": leader, "to": court,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),

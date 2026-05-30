@@ -29,6 +29,7 @@ from backend.game_logic.settlement_preview import (
     stage_settlement_confirm,
 )
 from backend.game_logic.settlement_scoring import (
+    MAX_SETTLEMENT_CLAUSE_COUNT,
     calculate_common_peace_acceptance,
     project_balance_after_settlement,
 )
@@ -257,6 +258,64 @@ def test_dial_changes_magnitude_without_silently_swapping_requested_identity():
     # The territory demand is dropped on generous (count down), never replaced
     # with a different region identity.
     assert all(t.get("region") != "Bavaria" for t in generous)
+
+
+def test_focused_seed_honors_clause_cap_no_op_when_package_maxed():
+    # OQ#7 hard-cap contract: a focused dial on an untouched court seeds a
+    # modest clause to move the needle — but NEVER past
+    # MAX_SETTLEMENT_CLAUSE_COUNT. A maxed package yields a valid no-op redraft
+    # (the one-click Press/Ease still produces a valid-by-construction package),
+    # not an over-cap draft that the restage revalidation would reject as
+    # `max_clause_count_exceeded`.
+    terms = [{"type": "peace"}]
+    fillers = ["Prussia", "Britain"]
+    i = 0
+    while len(terms) < MAX_SETTLEMENT_CLAUSE_COUNT:
+        terms.append({
+            "type": "gold_indemnity",
+            "from": fillers[i % len(fillers)],
+            "to": "France",
+            "amount": 100 + i,
+        })
+        i += 1
+    assert len(terms) == MAX_SETTLEMENT_CLAUSE_COUNT  # Austria has no slice
+
+    capped = _redial_settlement_terms(
+        terms=terms, scope_courts=["Austria"], direction="harsher",
+        proposer_side_leader="France",
+    )
+    # No over-cap seed; the untouched focused court stays unseeded (no room).
+    assert len(capped) == MAX_SETTLEMENT_CLAUSE_COUNT
+    assert not any(
+        t.get("from") == "Austria" or t.get("to") == "Austria" for t in capped
+    )
+
+    # Contrast: with one slot free, the same focused dial DOES seed Austria —
+    # proving the cap (not a blanket no-seed) is what suppressed it above.
+    room = terms[:-1]
+    assert len(room) == MAX_SETTLEMENT_CLAUSE_COUNT - 1
+    seeded = _redial_settlement_terms(
+        terms=room, scope_courts=["Austria"], direction="harsher",
+        proposer_side_leader="France",
+    )
+    assert len(seeded) == MAX_SETTLEMENT_CLAUSE_COUNT
+    austria_seed = next(t for t in seeded if t.get("from") == "Austria")
+    assert austria_seed["to"] == "France"
+    assert austria_seed["amount"] == SETTLEMENT_DIAL_GOLD_STEP
+
+
+def test_focused_seed_skips_when_proposer_leader_unknown():
+    # Both seed shapes reference the proposer leader, so an unknown leader
+    # yields NO seed in either direction (a missing leader must never author a
+    # malformed `to: ""` / `from: ""` gold clause — schema validation checks
+    # key presence, not non-emptiness, so it would not be caught downstream).
+    terms = [{"type": "peace"}]
+    for direction in ("harsher", "generous"):
+        out = _redial_settlement_terms(
+            terms=terms, scope_courts=["Austria"], direction=direction,
+            proposer_side_leader="",
+        )
+        assert out == [{"type": "peace"}]
 
 
 # ===========================================================================
