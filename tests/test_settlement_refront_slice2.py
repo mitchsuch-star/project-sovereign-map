@@ -599,3 +599,119 @@ def test_godot_popup_renders_tier2_dial_coverage_and_delta_controls():
     api_client = (scripts / "api_client.gd").read_text(encoding="utf-8")
     assert "func send_dialogue_response_with_params" in api_client
     assert "action_params" in api_client
+
+
+# ===========================================================================
+# Drop-stranding regression (Gate-4 smoke): dropping covered courts must never
+# leave the player with a hidden popup + mounted dialogue and no way to reopen.
+# ===========================================================================
+
+
+def _stage_two_court_holdout(world):
+    """Stage a PROPOSE settlement covering Britain + Prussia, both holdouts."""
+    scorer = _make_scorer({"Britain": 40, "Prussia": 40}, default=40, feedback=True)
+    with patch(_SCORER_PATH, side_effect=scorer):
+        staged = stage_settlement_confirm(
+            world,
+            war_id="war_rf",
+            actor_nation="France",
+            covered_enemy_participants=["Britain", "Prussia"],
+            selected_target_nation="Britain",
+            caller_kind="player_editor",
+            dialogue_mode="PROPOSE",
+        )
+    assert staged.get("success"), staged
+    return staged["diplomatic_dialogue"], scorer
+
+
+def _holdout_labels(dialogue, court):
+    for row in dialogue.get("per_court_acceptance", []):
+        if row.get("nation") == court:
+            return [a.get("label") for a in row.get("holdout_actions", [])]
+    return []
+
+
+def test_last_covered_court_offers_no_drop_affordance():
+    # Fix A: dropping every covered court would hit the V5 floor, hide the
+    # popup, and strand the player. The LAST covered court therefore offers
+    # Ease but NOT Drop.
+    world, _ = _three_court_world()
+    dialogue, scorer = _stage_two_court_holdout(world)
+    assert "Drop Britain" in _holdout_labels(dialogue, "Britain")
+    assert "Drop Prussia" in _holdout_labels(dialogue, "Prussia")
+    with patch(_SCORER_PATH, side_effect=scorer):
+        dropped = handle_settlement_dialogue_action(
+            world, action="settlement_cover_drop",
+            dialogue=dialogue, action_params={"nation": "Britain"},
+        )
+    assert dropped.get("success"), dropped
+    narrowed = dropped["diplomatic_dialogue"]
+    assert narrowed["covered_enemy_participants"] == ["Prussia"]
+    labels = _holdout_labels(narrowed, "Prussia")
+    assert "Ease Prussia" in labels
+    assert "Drop Prussia" not in labels
+
+
+def test_blocked_last_court_drop_reattaches_dialogue_to_reshow():
+    # Fix B: a forced/stale drop of the last court is still blocked by the V5
+    # floor, but the response MUST carry diplomatic_dialogue so the popup
+    # (hidden on the affordance click) re-mounts instead of orphaning.
+    world, _ = _three_court_world()
+    dialogue, scorer = _stage_two_court_holdout(world)
+    with patch(_SCORER_PATH, side_effect=scorer):
+        dropped = handle_settlement_dialogue_action(
+            world, action="settlement_cover_drop",
+            dialogue=dialogue, action_params={"nation": "Britain"},
+        )
+        narrowed = dropped["diplomatic_dialogue"]
+        blocked = handle_settlement_dialogue_action(
+            world, action="settlement_cover_drop",
+            dialogue=narrowed, action_params={"nation": "Prussia"},
+        )
+    assert blocked.get("success") is False
+    assert blocked.get("error") == "no_covered_enemy_participants"
+    assert blocked.get("diplomatic_dialogue")
+    assert blocked["diplomatic_dialogue"]["covered_enemy_participants"] == ["Prussia"]
+
+
+def test_reopen_targeting_dropped_court_snaps_to_narrowed_scope():
+    # Fix C: the war-detail "Open Settlement" reopen targets the war's defender
+    # leader, which the player may have dropped. A pure reopen must snap the
+    # target into the mounted (narrowed) scope and re-show it, not reject
+    # selected_target_not_covered.
+    world, _ = _three_court_world()
+    dialogue, scorer = _stage_two_court_holdout(world)
+    with patch(_SCORER_PATH, side_effect=scorer):
+        handle_settlement_dialogue_action(
+            world, action="settlement_cover_drop",
+            dialogue=dialogue, action_params={"nation": "Britain"},
+        )
+        reopened = stage_settlement_confirm(
+            world, war_id="war_rf", actor_nation="France",
+            selected_target_nation="Britain",  # the dropped court
+            caller_kind="player_editor", dialogue_mode="PROPOSE",
+        )
+    assert reopened.get("success"), reopened
+    narrowed = reopened["diplomatic_dialogue"]
+    assert narrowed["covered_enemy_participants"] == ["Prussia"]
+    assert narrowed["selected_target_nation"] == "Prussia"
+
+
+def test_explicit_scope_edit_with_mismatched_target_still_rejected():
+    # Fix C must NOT weaken validation: an EXPLICIT covered set whose target is
+    # outside it is still a real error (only a scope-less pure reopen snaps).
+    world, _ = _three_court_world()
+    dialogue, scorer = _stage_two_court_holdout(world)
+    with patch(_SCORER_PATH, side_effect=scorer):
+        handle_settlement_dialogue_action(
+            world, action="settlement_cover_drop",
+            dialogue=dialogue, action_params={"nation": "Britain"},
+        )
+        bad = stage_settlement_confirm(
+            world, war_id="war_rf", actor_nation="France",
+            selected_target_nation="Britain",
+            covered_enemy_participants=["Prussia"],  # explicit + mismatched
+            caller_kind="player_editor", dialogue_mode="PROPOSE",
+        )
+    assert bad.get("success") is False
+    assert bad.get("error") == "selected_target_not_covered"

@@ -4896,20 +4896,30 @@ def build_settlement_confirm_dialogue(
         court = str(row.get("nation") or "")
         is_holdout = court in holdout_set
         row["is_holdout"] = is_holdout
-        row["holdout_actions"] = (
-            [
-                {
-                    "label": f"Ease {court}",
-                    "action": "settlement_dial_generous",
-                    "scope": court,
-                    "nation": court,
-                    "war_id": war_id,
-                    "draft_key": settlement_draft_key_for_options,
-                    "description": (
-                        f"Soften terms toward {court} to bring them to the table."
-                    ),
-                },
-                {
+        # Re-front Slice-G boundary: the dial/coverage affordances are
+        # player-only. A non-player (AI/system) caller never gets the
+        # one-click Ease/Drop routes, mirroring the `can_edit_terms` gate.
+        court_holdout_actions: List[Dict[str, Any]] = []
+        if is_holdout and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
+            court_holdout_actions.append({
+                "label": f"Ease {court}",
+                "action": "settlement_dial_generous",
+                "scope": court,
+                "nation": court,
+                "war_id": war_id,
+                "draft_key": settlement_draft_key_for_options,
+                "description": (
+                    f"Soften terms toward {court} to bring them to the table."
+                ),
+            })
+            # V5 coverage floor: a settlement must keep >= 1 covered court, so
+            # the LAST covered court offers NO Drop (dropping it would hit the
+            # floor and strand the surface — the player could otherwise drop
+            # every covered court, the popup would hide on the click, and the
+            # blocked drop returns no dialogue to re-show it). Ease still
+            # applies to a single remaining court.
+            if len(covered) > 1:
+                court_holdout_actions.append({
                     "label": f"Drop {court}",
                     "action": "settlement_cover_drop",
                     "nation": court,
@@ -4918,14 +4928,8 @@ def build_settlement_confirm_dialogue(
                     "description": (
                         f"Drop {court} from the settlement; they remain at war."
                     ),
-                },
-            ]
-            # Re-front Slice-G boundary: the dial/coverage affordances are
-            # player-only. A non-player (AI/system) caller never gets the
-            # one-click Ease/Drop routes, mirroring the `can_edit_terms` gate.
-            if (is_holdout and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND)
-            else []
-        )
+                })
+        row["holdout_actions"] = court_holdout_actions
         # Re-front Slice 2 / OQ#1 + §17: focused dialing ("press Prussia",
         # "ease Britain") is reached from each per-court ROW, applying the dial
         # to that one court (scope=court). Every dialable row (a real direct
@@ -5320,14 +5324,30 @@ def stage_settlement_confirm(
             incoming_covered_for_scope = (
                 explicit_covered if explicit_covered else mounted_covered
             )
-            incoming_target_for_scope = (
-                explicit_target
-                or (
-                    incoming_covered_for_scope[0]
-                    if explicit_covered and incoming_covered_for_scope
-                    else str(mounted.get("selected_target_nation") or "")
+            # A pure reopen / same-war refresh (no explicit covered set) must
+            # treat the MOUNTED scope as authoritative: the war-detail
+            # "Open Settlement" always targets the war's defender leader, but
+            # the player may have dropped that court from their narrowed
+            # coverage. Snap an out-of-scope incoming target to the mounted
+            # dialogue's target (or a covered court) instead of rejecting
+            # `selected_target_not_covered` — this mirrors the dial/coverage
+            # re-stage path (`_restage_settlement_after_redraw`), so reopening
+            # always re-shows the in-progress settlement. An EXPLICIT scope
+            # edit still validates target-in-covered below.
+            mounted_target = str(mounted.get("selected_target_nation") or "")
+            if explicit_covered:
+                incoming_target_for_scope = (
+                    explicit_target
+                    or (incoming_covered_for_scope[0] if incoming_covered_for_scope else "")
                 )
-            )
+            elif explicit_target and explicit_target in incoming_covered_for_scope:
+                incoming_target_for_scope = explicit_target
+            elif mounted_target and mounted_target in incoming_covered_for_scope:
+                incoming_target_for_scope = mounted_target
+            else:
+                incoming_target_for_scope = (
+                    incoming_covered_for_scope[0] if incoming_covered_for_scope else ""
+                )
             if incoming_target_for_scope and (
                 incoming_target_for_scope not in incoming_covered_for_scope
             ):
@@ -5436,10 +5456,20 @@ def stage_settlement_confirm(
                 covered_enemy_participants = list(
                     mounted.get("covered_enemy_participants") or []
                 )
-            if not selected_target_nation:
-                selected_target_nation = str(
-                    mounted.get("selected_target_nation") or ""
-                ) or None
+            # Adopt the scope-resolved target. `incoming_target_for_scope`
+            # above already snapped an out-of-scope pure-reopen target into the
+            # mounted coverage; carry that through so the post-preview
+            # target-in-covered guard does not re-reject the caller's original
+            # (dropped) target and strand the reopen.
+            _refresh_covered = _normalize_nation_list(covered_enemy_participants)
+            if (not selected_target_nation) or (
+                selected_target_nation not in _refresh_covered
+            ):
+                selected_target_nation = (
+                    incoming_target_for_scope
+                    or str(mounted.get("selected_target_nation") or "")
+                    or None
+                )
     preview = build_settlement_preview(
         world,
         war_id=war_id_str,
@@ -7360,9 +7390,33 @@ def handle_settlement_dialogue_action(
         "settlement_cover_drop",
         "settlement_focus_court",
     ):
-        return _handle_settlement_tier2_action(
+        result = _handle_settlement_tier2_action(
             world, action=action, dialogue=dialogue, action_params=action_params,
         )
+        # Re-show safety net: a Tier-2 affordance hides the popup on click
+        # (proposal_confirm_popup.gd::_on_settlement_tier2_affordance) and
+        # relies on the response carrying `diplomatic_dialogue` to re-mount it
+        # (main.gd::_response_has_proposal_confirm_route). A blocked / no-op
+        # action that returns a bare error therefore ORPHANS the popup — the
+        # player is left with no surface while the settlement_confirm dialogue
+        # stays mounted (so the war detail also greys out "Open Settlement" and
+        # any reopen targets the still-mounted scope). Dropping the last
+        # covered court hit exactly this. Re-attach the unchanged mounted
+        # dialogue so the popup re-mounts on its current state with the
+        # humanized reason intact. Player-editor only (a non-player caller has
+        # no popup to strand).
+        if (
+            isinstance(result, Mapping)
+            and not result.get("success")
+            and not result.get("diplomatic_dialogue")
+            and isinstance(dialogue, Mapping)
+            and dialogue
+            and str(dialogue.get("caller_kind") or "") == SETTLEMENT_EDITOR_CALLER_KIND
+        ):
+            result = dict(result)
+            result["diplomatic_dialogue"] = dict(dialogue)
+            result.setdefault("awaiting_diplomatic_response", True)
+        return result
     if action == "suspend_settlement_editor":
         # SC-5R-2 follow-up: the client-side settlement editor's Back Out
         # closes the staged settlement_confirm hard-stop so ordinary
