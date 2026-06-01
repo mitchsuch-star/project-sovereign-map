@@ -2119,12 +2119,24 @@ class DiplomaticExecutor:
             )
             if not validation.get("valid"):
                 from backend.display_names import settlement_disabled_reason_display
+                error_display = settlement_disabled_reason_display(
+                    "submitted_terms_failed_revalidation"
+                )
+                detail = validation.get("disabled_reason_display") or ""
+                # `awaiting_diplomatic_response` routes this failure through
+                # `_build_result_response` at the /command endpoint so the error
+                # codes survive to Godot, where `_maybe_remount_settlement_editor
+                # _after_error` re-opens the editor inline with the reason. Without
+                # it the failure falls through to the generic response builder,
+                # which drops these fields and the rejection looks silent.
                 return {
                     "success": False,
+                    "message": (detail or error_display),
                     "error": "submitted_terms_failed_revalidation",
-                    "error_display": settlement_disabled_reason_display("submitted_terms_failed_revalidation"),
+                    "error_display": error_display,
                     "validation_error": validation.get("error"),
-                    "validation_detail": validation.get("disabled_reason_display"),
+                    "validation_detail": detail,
+                    "awaiting_diplomatic_response": True,
                     "mutated": False,
                 }
         selected_target = (
