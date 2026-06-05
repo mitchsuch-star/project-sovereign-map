@@ -547,6 +547,13 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			var carries = bool(overall.get("carries", false))
 			var color = "#60c060" if carries else "#e0a040"
 			bbcode += "[b][color=%s]%s[/color][/b]\n" % [color, summary]
+	# Re-front UX follow-up: when the package does not carry yet, the PROPOSE
+	# surface spells out the next step (ease until every court accepts, THEN
+	# Submit) so the player does not submit into a blocked, no-Ratify REVIEW.
+	# Backend emits this ONLY on PROPOSE-while-not-carrying.
+	var carry_hint = _safe_str(data.get("propose_carry_hint"))
+	if carry_hint != "":
+		bbcode += "[color=#e0a040]▸ %s[/color]\n" % carry_hint
 	bbcode += "\n"
 	return bbcode
 

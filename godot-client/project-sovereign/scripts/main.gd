@@ -43,6 +43,9 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# and never round-trips — and the bilateral terms-guidance flow owns the
 	# backend `adjust_terms` action id.)
 	"submit_settlement_for_review",
+	# Re-front UX follow-up: a blocked REVIEW offers "Return to terms" to
+	# re-stage the conversational PROPOSE surface (round-trips, no params).
+	"return_to_settlement_terms",
 	# Re-front Slice 2 PROPOSE Tier-2 verbs: intent dials (whole-table from the
 	# rail, focused from a per-court row), coverage edits, and court focus. They
 	# round-trip with structured `scope` / `nation` params (sent as

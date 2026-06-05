@@ -3106,6 +3106,56 @@ def _settlement_targeted_posture_advisory(
     return "I'd " + " and ".join(parts) + ", Sire — the table is yours to shape."
 
 
+def _join_court_names(names: Iterable[str]) -> str:
+    """Oxford-comma join of court names for player-facing guidance copy."""
+    clean = [str(n) for n in (names or []) if str(n)]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0]
+    if len(clean) == 2:
+        return f"{clean[0]} and {clean[1]}"
+    return ", ".join(clean[:-1]) + f", and {clean[-1]}"
+
+
+def _settlement_propose_carry_hint(
+    holdout_courts: Iterable[str],
+    per_court_acceptance: Iterable[Mapping[str, Any]],
+) -> str:
+    """Re-front UX follow-up — a plain guidance line on the PROPOSE surface
+    shown ONLY while the package does not carry yet.
+
+    A winning baseline opens as a near-acceptable DEMAND that no court accepts
+    until the player eases it. Without this hint a player can Submit a
+    non-carrying package straight into a blocked REVIEW with no Ratify button
+    (which reads as "Submit didn't work"). This names the holdout courts and
+    points at the dials. It is UI guidance, not a diplomat voice line (the
+    Talleyrand table narration carries the in-character beat); returns "" when
+    the package already carries / there is nothing to flag.
+    """
+    holdouts = [str(n) for n in (holdout_courts or []) if str(n)]
+    if not holdouts:
+        return ""
+    hard_stopped = {
+        str(row.get("nation") or "")
+        for row in (per_court_acceptance or [])
+        if isinstance(row, Mapping) and row.get("total") is None
+    }
+    easeable = [n for n in holdouts if n not in hard_stopped]
+    names = _join_court_names(holdouts)
+    if easeable:
+        return (
+            f"{names} won't accept these terms yet. Use 'More generous' (or ease "
+            "a court) until each accepts, then 'Submit for Review' to ratify. "
+            "Submitting now only opens a review you cannot ratify."
+        )
+    return (
+        f"{names} cannot accept any terms in this settlement right now. Drop "
+        f"{'them' if len(holdouts) > 1 else 'the court'} from the table, or open "
+        "War Detail — submitting now only opens a review you cannot ratify."
+    )
+
+
 def _settlement_remaining_war_courts(
     world: Any,
     *,
@@ -4803,12 +4853,34 @@ def build_settlement_confirm_dialogue(
             "surrender_preset_preview": surrender_preset_payload,
         })
         available_action_ids.append("author_surrender_terms")
+    # Re-front UX follow-up: a blocked REVIEW is NOT a dead end. Lead the
+    # blocked options with a non-destructive "Return to terms" that re-stages
+    # the conversational PROPOSE surface, so the player can ease the package
+    # toward carry (the winning case) or soften concessions (the losing case)
+    # instead of being pushed only toward the pair-scoped escape hatches below.
+    if (
+        not can_ratify
+        and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+        and staged_terms_for_gate
+    ):
+        options.append({
+            "label": "Return to terms",
+            "action": "return_to_settlement_terms",
+            "description": (
+                "Go back to shaping the terms — ease or press each court, "
+                "then submit again."
+            ),
+        })
+        available_action_ids.append("return_to_settlement_terms")
     # SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs. Only emitted
     # on blocked ratification, with a non-empty selected target, and only
     # when `evaluate_pair_peace_substitute_eligibility(...)` returns
     # eligible=True for each action. Order per failure-state table:
-    # Re-author -> Revise Terms -> Seek Bilateral Peace -> Seek Armistice
-    # Instead -> Open War Detail -> Back Out.
+    # Re-author -> Revise Terms -> Return to terms -> Seek Bilateral Peace ->
+    # Seek Armistice Instead -> Open War Detail -> Back Out. The labels name
+    # the single covered court explicitly so the player knows these ABANDON the
+    # joint settlement for one court (the source of the "only England, reject 5"
+    # confusion in the Gate-4 smoke).
     if not can_ratify and resolved_target:
         actor_for_substitute = str(
             getattr(world, "player_nation", "France") or "France"
@@ -4816,17 +4888,17 @@ def build_settlement_confirm_dialogue(
         for action_id, label, voice_key, description in (
             (
                 "seek_bilateral_peace",
-                "Seek Bilateral Peace",
+                f"Make peace with {resolved_target} only",
                 "settlement_seek_bilateral_peace_instead_talleyrand",
-                "Open a bilateral peace with the selected court only; "
-                "the other hostile pairs remain at war.",
+                f"Leave the joint settlement and make peace with {resolved_target} "
+                "alone; the other courts stay at war.",
             ),
             (
                 "seek_armistice_instead",
-                "Seek Armistice Instead",
+                f"Armistice with {resolved_target} only",
                 "settlement_seek_armistice_instead_talleyrand",
-                "Open an armistice with the selected court only; "
-                "the war continues elsewhere.",
+                f"Leave the joint settlement for an armistice with {resolved_target} "
+                "alone; the war continues elsewhere.",
             ),
         ):
             eligibility = evaluate_pair_peace_substitute_eligibility(
@@ -5098,6 +5170,15 @@ def build_settlement_confirm_dialogue(
         "targeted_posture_advisory": (
             _settlement_targeted_posture_advisory(per_court_acceptance, holdout_courts)
             if dialogue_mode == "PROPOSE"
+            else ""
+        ),
+        # Re-front UX follow-up: a plain guidance line on PROPOSE telling the
+        # player to ease the terms until every court accepts BEFORE Submit, so a
+        # non-carrying package is not submitted into a blocked, no-Ratify REVIEW
+        # dead-end. Empty once the package carries / outside PROPOSE.
+        "propose_carry_hint": (
+            _settlement_propose_carry_hint(holdout_courts, per_court_acceptance)
+            if dialogue_mode == "PROPOSE" and not per_court_carries
             else ""
         ),
         # Re-front Slice 2 / OQ#2: conversational coverage prompts — one-click
@@ -7521,6 +7602,29 @@ def handle_settlement_dialogue_action(
             actor_nation=str(getattr(world, "player_nation", "France") or "France"),
             caller_kind="player_editor",
             dialogue_mode="REVIEW",
+        )
+    if action == "return_to_settlement_terms":
+        # Re-front UX follow-up: REVIEW -> PROPOSE. Re-stage the conversational
+        # authoring surface (whole-table dials + per-court rows) with the current
+        # draft so a blocked REVIEW is recoverable without discarding it. Mirrors
+        # `submit_settlement_for_review` in reverse; the blocked REVIEW surfaces
+        # this so a non-carrying package is never a dead end.
+        terms = [
+            dict(t) for t in (dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        covered = list(dialogue.get("covered_enemy_participants") or [])
+        selected_target = str(dialogue.get("selected_target_nation") or "")
+        world.dialogue_manager.pop()
+        return stage_settlement_confirm(
+            world,
+            war_id=war_id,
+            settlement_terms=terms,
+            selected_target_nation=selected_target or (covered[0] if covered else None),
+            covered_enemy_participants=covered,
+            actor_nation=str(getattr(world, "player_nation", "France") or "France"),
+            caller_kind="player_editor",
+            dialogue_mode="PROPOSE",
         )
     if action == "revise_settlement_terms":
         # SC-2: Revise Terms is hidden until a real editor exists.

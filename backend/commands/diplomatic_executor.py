@@ -2912,6 +2912,9 @@ class DiplomaticExecutor:
             # affordances ride on each per-court ROW; their handlers land in
             # Slice 2.)
             "submit_settlement_for_review",
+            # Re-front UX follow-up: REVIEW -> PROPOSE recovery from a blocked
+            # review (re-stages the conversational authoring surface).
+            "return_to_settlement_terms",
             # Re-front Slice 2 PROPOSE Tier-2 verbs (dials, coverage edits,
             # court focus). Each rides on a per-court row or rail button (not the
             # keyword-matched options[] surface) and carries structured params
