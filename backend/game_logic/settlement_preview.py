@@ -1,86 +1,33 @@
-"""Common-peace settlement preview, dialogue staging, and ratification helpers.
+"""Public door for the settlement package (CH-1 split).
 
-Slice C2 foundation introduced the Open Settlement eligibility / preview /
-dialogue staging contracts around the pure C1b acceptance formula.
+The former 11.6k-line god module is split into seven layered modules; this
+module re-exports the PUBLIC settlement API so external callers and tests
+have one stable import surface. Production code imports true homes; new
+settlement code should too. The layers (each imports only lower ones):
 
-Slice C2 ratification (this slice) closes ``settlement_confirm.confirm`` so
-the staged package mutates state per spec §10.5 / §11 / §11.1: covered
-active hostile pairs resolve to ``PEACE`` (or ``ALLIANCE`` for
-forced-alliance pairs), territory / gold / liberation outcomes apply,
-forced-alliance pairs end in ``ALLIANCE`` with origin metadata + threat,
-covered pairs move to ``resolved_diplo_keys`` (closing contribution
-episodes via ``resolve_pair_to_resolved``), uncovered hostile / armistice
-pairs stay active, and ``war_instances_by_*`` / bloc / active-nation
-caches invalidate before any reaction reader runs. Settlement / cross-war
-reaction routing remains a later slice.
+    settlement_routes.py      L0  routing / reopen / recovery / actionability
+    settlement_validation.py  L1  primitives + eligibility + validate_settlement_terms
+    settlement_baseline.py    L2  baseline generation + presets + per-court acceptance
+    settlement_staging.py     L3  draft stores + confirm build + stage + guided payload
+    settlement_ratify.py      L4  apply / ratify / replacement staging
+    settlement_actions.py     L5  dialogue-action dispatch + handler arms (CH-2 target)
+    settlement_offers.py      L6  incoming offers + ally petitions + recurring payments
+
+Two documented lazy edges run upward (stage_settlement_confirm ->
+settlement_offers petition queueing) via function-level imports — the
+established settlement cycle-break pattern. The scorer patch seam for tests
+is backend.game_logic.settlement_scoring.calculate_common_peace_acceptance
+(all raw call sites resolve it late through the module attribute).
+
+Internal (underscore) helpers are NOT re-exported — import them from their
+true home; patch them on the namespace that consumes them.
 """
 
-from __future__ import annotations
-
-import copy
-import hashlib
-import json
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
-
-from backend.display_names import (
-    SETTLEMENT_DISABLED_REASON_DISPLAY,
-    acceptance_band_display,
-    acceptance_band_phrase,
-    acceptance_component_display,
-    settlement_disabled_reason_display,
-)
-from backend.game_logic.diplomatic_templates import (
-    calculate_raw_treaty_harshness,
-    calculate_treaty_harshness,
-    resolve_multi_court_settlement_voice,
-    resolve_named_diplomat,
-    resolve_settlement_voice_line,
-)
-from backend.game_logic import settlement_scoring
-from backend.game_logic.settlement_scoring import (
-    ACCEPTANCE_THRESHOLD,
-    calculate_common_peace_acceptance,
-    CANONICAL_CLAUSE_TYPES,
-    CLAUSE_CONFLICT_MATRIX,
-    compute_direct_scores_by_enemy,
-    compute_side_pressure_score,
-    CONCESSION_GOLD_CAP,
-    CONCESSION_GOLD_DIVISOR,
-    GOLD_PER_TURN_MAX_TURNS,
-    GOLD_PER_TURN_MIN_AMOUNT,
-    GOLD_PER_TURN_MIN_TURNS,
-    HARD_STOP_NO_DIRECT_WAR_SCORE,
-    MAX_SETTLEMENT_CLAUSE_COUNT,
-    NEAR_ACCEPTANCE_FLOOR,
-    project_balance_after_settlement,
-    select_direct_score,
-    SETTLEMENT_HARD_STOP_CODES,
-    SETTLEMENT_LIVE_CLAUSE_TYPES,
-    SETTLEMENT_MVP_CLAUSE_TYPES,
-)
-from backend.game_logic.settlement_presentation import (
-    _term_display,
-    build_contribution_share_rows,
-    build_settlement_review,
-    detect_awe_set_pieces,
-)
 from backend.game_logic.settlement_routes import (
     SETTLEMENT_ERROR_DISPLAY,
     SETTLEMENT_FAMILY_DIALOGUE_TYPES,
     SETTLEMENT_REOPEN_MAX_ATTEMPTS,
     SETTLEMENT_ROUTE_NAMESPACE,
-    _error_display,
-    _mounted_settlement_dialogue,
-    _no_reopen_target_payload,
-    _normalize_nation_list,
-    _reopen_attempt_store,
-    _reopen_target,
-    _safe_reopen_response,
-    _settlement_dialogue_active,
-    _settlement_history_route,
-    _terminal_recovery_copy,
-    _war_detail_recovery_route,
-    _war_label,
     derive_settlement_review_target,
     evaluate_war_detail_actionability,
     get_reopen_attempts,
@@ -98,26 +45,6 @@ from backend.game_logic.settlement_validation import (
     PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES,
     RATIFY_LEGACY_APPLY_CLAUSE_TYPES,
     VALID_SIDES,
-    _CROSS_SIDE_TRANSFER_CLAUSE_TYPES,
-    _active_cross_side_pairs,
-    _blocked_payload,
-    _check_gold_payment_budget_conflict,
-    _check_vassalage_state,
-    _clause_role_nations,
-    _clause_touches_court,
-    _dependency_eligibility_payload,
-    _estimate_payer_net_income_per_turn,
-    _has_material_concession_terms,
-    _infer_actor_side,
-    _normalize_staged_terms_for_validation,
-    _other_side,
-    _pair_nations,
-    _resolve_war_sides,
-    _side_for_nation,
-    _side_leader,
-    _term_lists_equal,
-    _terms_equal,
-    _territory_term_regions,
     evaluate_liberation_eligibility,
     evaluate_open_settlement_eligibility,
     evaluate_pair_peace_substitute_eligibility,
@@ -135,32 +62,6 @@ from backend.game_logic.settlement_baseline import (
     DEMAND_TERRITORY_DIRECT_SCORE,
     DIRECT_SCORE_DIRECTION_MARGIN,
     SETTLEMENT_DIAL_GOLD_STEP,
-    _GOLD_PER_TURN_PREFILL_TURNS,
-    _acceptance_component_breakdown,
-    _compute_concession_baseline,
-    _compute_recurring_gold_preset,
-    _compute_surrender_preset,
-    _concession_baseline_bfs_distance,
-    _concession_baseline_payer_balance,
-    _concession_baseline_select_transferable_region,
-    _concession_baseline_transferable_candidates,
-    _concession_terms_for_court,
-    _court_direction_from_selection,
-    _court_direction_summary,
-    _degrade_generated_baseline_to_valid,
-    _demand_baseline_region_candidates,
-    _demand_baseline_select_region,
-    _demand_terms_for_court,
-    _enrich_acceptance_display,
-    _format_concession_reasoning,
-    _gold_per_turn_prefill,
-    _guided_gold_offer_default,
-    _guided_region_offer_candidate,
-    _payer_net_income_estimate,
-    _promised_regions_in_terms,
-    _proposer_paid_gold_committed,
-    _relax_baseline_demands_for_package_harshness,
-    _score_court_for_baseline,
     compute_per_court_acceptance,
     compute_settlement_baseline,
     compute_settlement_treasury_line,
@@ -168,28 +69,6 @@ from backend.game_logic.settlement_baseline import (
 from backend.game_logic.settlement_staging import (
     SETTLEMENT_COOLDOWN_TURNS,
     SETTLEMENT_EDITOR_CALLER_KIND,
-    _DEMAND_CLAUSE_CAP_REASON,
-    _build_settlement_scope_replace_confirm_dialogue,
-    _court_current_demand_lines,
-    _court_demand_suggestions,
-    _demand_hard_stop_reason,
-    _dialogue_scope_values,
-    _discard_scoped_settlement_draft_for_dialogue,
-    _guided_line_display,
-    _guided_magnitude_meta,
-    _guided_suggestion,
-    _join_court_names,
-    _redial_settlement_terms,
-    _restage_settlement_after_redraw,
-    _scope_changed,
-    _scope_display,
-    _scoped_settlement_drafts,
-    _settlement_budget_bound_constraint,
-    _settlement_budget_bound_recommendation,
-    _settlement_collision_payload,
-    _settlement_propose_carry_hint,
-    _settlement_remaining_war_courts,
-    _settlement_targeted_posture_advisory,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     compute_settlement_draft_key,
@@ -200,31 +79,10 @@ from backend.game_logic.settlement_staging import (
     stage_settlement_confirm,
 )
 from backend.game_logic.settlement_ratify import (
-    _apply_settlement_terms,
-    _blocked_ratify_reattach,
-    _build_pair_ratification_plan,
-    _capture_pair_pre_cleanup_war_data,
-    _capture_pre_cleanup_snapshots,
-    _failed_ratification_reaction_summary,
-    _record_common_peace_treaties,
-    _resolve_pair_state_transitions,
-    _stage_replacement_settlement_terms,
     ratify_settlement_confirm,
 )
 from backend.game_logic.settlement_actions import (
     SETTLEMENT_DEMAND_VERB_ACTION_IDS,
-    _DEMAND_ADDABLE_CLAUSE_TYPES,
-    _DEMAND_GOLD_MAGNITUDE_CLAUSE_TYPES,
-    _DEMAND_OFFERABLE_CLAUSE_TYPES,
-    _apply_scope_replace_confirm,
-    _build_settlement_replace_confirm_dialogue,
-    _demand_clause_label,
-    _enforce_settlement_response_shape,
-    _handle_pair_peace_substitute_action,
-    _handle_settlement_demand_action,
-    _handle_settlement_dialogue_action_inner,
-    _handle_settlement_tier2_action,
-    _restore_scope_replace_current_dialogue,
     handle_settlement_dialogue_action,
 )
 from backend.game_logic.settlement_offers import (
@@ -235,26 +93,6 @@ from backend.game_logic.settlement_offers import (
     ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS,
     ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
     INCOMING_OFFERS_DEFERRED,
-    _active_objective_claims_for_ally,
-    _active_war_id_for_diplo_key,
-    _ally_petition_summary_text,
-    _ally_petition_voice_family,
-    _are_treaty_allies,
-    _emit_ally_settlement_petition_notification,
-    _find_request_open_settlement_petition_context,
-    _find_warn_sellout_petition_context,
-    _incoming_offer_summary_text,
-    _is_ally_petition_known_to_dialogue_manager,
-    _is_offer_active_dialogue,
-    _is_offer_known_to_dialogue_manager,
-    _is_recurring_payment_nation_eliminated,
-    _is_renewed_war_between,
-    _objective_claim_region,
-    _objective_has_material_claim,
-    _queue_ally_settlement_petition,
-    _remove_pending_settlement_offer,
-    _settlement_terms_satisfy_ally_claim,
-    _war_label_for_id,
     build_ally_settlement_petition_dialogue,
     build_ally_settlement_petition_popup,
     build_incoming_settlement_offer_popup,
@@ -265,4 +103,70 @@ from backend.game_logic.settlement_offers import (
     queue_ally_settlement_petitions_for_player_action,
 )
 
-
+__all__ = [
+    "ALLY_SETTLEMENT_PETITION_ACK_ACTION",
+    "ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE",
+    "ALLY_SETTLEMENT_PETITION_REQUEST_OPEN",
+    "ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES",
+    "ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS",
+    "ALLY_SETTLEMENT_PETITION_WARN_SELLOUT",
+    "CONCESSION_BASELINE_BFS_MAX_DEPTH",
+    "CONCESSION_BASELINE_GOLD_FLOOR",
+    "CONCESSION_BASELINE_GOLD_HARD_CAP",
+    "CONCESSION_BASELINE_TREASURY_RESERVE",
+    "DEMAND_TERRITORY_DIRECT_SCORE",
+    "DIRECT_SCORE_DIRECTION_MARGIN",
+    "INCOMING_OFFERS_DEFERRED",
+    "LOSING_SIDE_PRESSURE_THRESHOLD",
+    "PAIR_SUBSTITUTE_ACTIONS",
+    "PAIR_SUBSTITUTE_REFUSAL_CODES",
+    "PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES",
+    "RATIFY_LEGACY_APPLY_CLAUSE_TYPES",
+    "SETTLEMENT_COOLDOWN_TURNS",
+    "SETTLEMENT_DEMAND_VERB_ACTION_IDS",
+    "SETTLEMENT_DIAL_GOLD_STEP",
+    "SETTLEMENT_EDITOR_CALLER_KIND",
+    "SETTLEMENT_ERROR_DISPLAY",
+    "SETTLEMENT_FAMILY_DIALOGUE_TYPES",
+    "SETTLEMENT_REOPEN_MAX_ATTEMPTS",
+    "SETTLEMENT_ROUTE_NAMESPACE",
+    "VALID_SIDES",
+    "build_ally_settlement_petition_dialogue",
+    "build_ally_settlement_petition_popup",
+    "build_incoming_settlement_offer_popup",
+    "build_settlement_confirm_dialogue",
+    "build_settlement_preview",
+    "compute_per_court_acceptance",
+    "compute_settlement_baseline",
+    "compute_settlement_draft_key",
+    "compute_settlement_treasury_line",
+    "derive_settlement_review_target",
+    "discard_scoped_settlement_draft",
+    "evaluate_liberation_eligibility",
+    "evaluate_open_settlement_eligibility",
+    "evaluate_pair_peace_substitute_eligibility",
+    "evaluate_subjugation_eligibility",
+    "evaluate_vassalage_eligibility",
+    "evaluate_war_detail_actionability",
+    "get_coverable_enemy_participants",
+    "get_reopen_attempts",
+    "handle_ally_settlement_petition_action",
+    "handle_incoming_settlement_offer_action",
+    "handle_settlement_dialogue_action",
+    "is_common_settlement_worth_showing",
+    "is_war_archived",
+    "is_war_known",
+    "load_scoped_settlement_draft",
+    "mint_settlement_route_id",
+    "process_recurring_settlement_payments",
+    "promote_pending_settlement_offers",
+    "queue_ally_settlement_petitions_for_player_action",
+    "ratify_settlement_confirm",
+    "record_reopen_attempt",
+    "reopen_attempt_cap_exceeded",
+    "resolve_settlement_route_click",
+    "revalidate_staged_settlement",
+    "save_scoped_settlement_draft",
+    "stage_settlement_confirm",
+    "validate_settlement_terms",
+]

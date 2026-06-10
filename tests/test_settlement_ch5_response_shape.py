@@ -18,9 +18,11 @@ from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
     SETTLEMENT_EDITOR_CALLER_KIND,
-    _enforce_settlement_response_shape,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_actions import (
+    _enforce_settlement_response_shape,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import (

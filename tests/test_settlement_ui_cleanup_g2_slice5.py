@@ -549,7 +549,7 @@ def test_sc24_record_common_peace_treaty_carries_raw_and_clamped_harshness():
     """SC-24: treaties produced by common-peace ratification carry both
     `raw_harshness` (unclamped) and `harshness` / `clamped_harshness`
     (1.0-ceiling) on the same record, plus `source='common_peace'`."""
-    from backend.game_logic.settlement_preview import _record_common_peace_treaties
+    from backend.game_logic.settlement_ratify import _record_common_peace_treaties
 
     world = WorldState()
     war = _install_common_peace_war(world)

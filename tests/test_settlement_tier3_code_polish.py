@@ -47,9 +47,13 @@ from typing import Any, Dict, List, Mapping
 import pytest
 
 from backend.game_logic.settlement_preview import (
-    _is_offer_known_to_dialogue_manager,
-    _settlement_dialogue_active,
     build_incoming_settlement_offer_popup,
+)
+from backend.game_logic.settlement_offers import (
+    _is_offer_known_to_dialogue_manager,
+)
+from backend.game_logic.settlement_routes import (
+    _settlement_dialogue_active,
 )
 from backend.game_logic.settlement_scoring import (
     FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE,
@@ -161,7 +165,7 @@ class TestTier3ConcessionBaselineUsesGetNationRegions:
     """P2 Rule 8 — no per-region scan in `/diplomatic_preview` hot path."""
 
     def test_concession_baseline_calls_get_nation_regions_for_each_proposer(self):
-        from backend.game_logic import settlement_preview
+        from backend.game_logic import settlement_baseline
 
         world = WorldState()
         world.current_turn = 4
@@ -175,7 +179,7 @@ class TestTier3ConcessionBaselineUsesGetNationRegions:
 
         world.get_nation_regions = _spy  # type: ignore[assignment]
 
-        settlement_preview._concession_baseline_select_transferable_region(
+        settlement_baseline._concession_baseline_select_transferable_region(
             world,
             proposer_side_participants=["France", "Austria"],
             accepting_leader="Britain",
@@ -191,12 +195,12 @@ class TestTier3ConcessionBaselineUsesGetNationRegions:
         # helper twice with the live world and against a stub world
         # whose `get_nation_regions` is deleted so the defensive
         # fallback runs.
-        from backend.game_logic import settlement_preview
+        from backend.game_logic import settlement_baseline
 
         world = WorldState()
         world.current_turn = 4
 
-        original = settlement_preview._concession_baseline_select_transferable_region(
+        original = settlement_baseline._concession_baseline_select_transferable_region(
             world,
             proposer_side_participants=["France"],
             accepting_leader="Britain",
@@ -210,7 +214,7 @@ class TestTier3ConcessionBaselineUsesGetNationRegions:
                 self.region_connections = getattr(src, "region_connections", {})
 
         shim = _Shim(world)
-        fallback = settlement_preview._concession_baseline_select_transferable_region(
+        fallback = settlement_baseline._concession_baseline_select_transferable_region(
             shim,
             proposer_side_participants=["France"],
             accepting_leader="Britain",

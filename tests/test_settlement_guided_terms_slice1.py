@@ -24,12 +24,14 @@ from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
     CONCESSION_BASELINE_GOLD_FLOOR,
-    _guided_gold_offer_default,
-    _guided_region_offer_candidate,
     compute_settlement_treasury_line,
     handle_settlement_dialogue_action,
     load_scoped_settlement_draft,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_baseline import (
+    _guided_gold_offer_default,
+    _guided_region_offer_candidate,
 )
 from backend.game_logic.settlement_scoring import (
     MAX_SETTLEMENT_CLAUSE_COUNT,

@@ -48,7 +48,6 @@ from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
     LOSING_SIDE_PRESSURE_THRESHOLD,
-    _compute_surrender_preset,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     evaluate_liberation_eligibility,
@@ -58,6 +57,9 @@ from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
     stage_settlement_confirm,
     validate_settlement_terms,
+)
+from backend.game_logic.settlement_baseline import (
+    _compute_surrender_preset,
 )
 from backend.game_logic.settlement_scoring import (
     CANONICAL_CLAUSE_TYPES,

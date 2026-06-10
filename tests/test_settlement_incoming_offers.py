@@ -548,8 +548,8 @@ def test_pending_settlement_dialogues_offer_entries_promote_into_mailbox_through
     from scratch. The helper is idempotent: re-running it does not
     duplicate-push the same offer."""
     from backend.game_logic.settlement_preview import (
-        promote_pending_settlement_offers,
-    )
+    promote_pending_settlement_offers,
+)
 
     world = _world_at_turn(5)
     _install_multi_party_war(world)
@@ -586,8 +586,8 @@ def test_settlement_offer_producer_plus_turn_pipeline_emits_notification_and_pop
         NotificationPriority,
     )
     from backend.game_logic.settlement_preview import (
-        promote_pending_settlement_offers,
-    )
+    promote_pending_settlement_offers,
+)
 
     world = _world_at_turn(5)
     _install_multi_party_war(world)

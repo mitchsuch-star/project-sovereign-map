@@ -2319,7 +2319,7 @@ def get_diplomatic_preview_endpoint(
         return {"success": False, "message": "No active game"}
     if mode == "settlement":
         try:
-            from backend.game_logic.settlement_preview import build_settlement_preview
+            from backend.game_logic.settlement_staging import build_settlement_preview
             return build_settlement_preview(
                 world,
                 war_id=war_id,

@@ -26,11 +26,13 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
-    _compute_concession_baseline,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_baseline import (
+    _compute_concession_baseline,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance

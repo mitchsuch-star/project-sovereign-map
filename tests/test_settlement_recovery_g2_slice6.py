@@ -134,7 +134,7 @@ def test_open_war_detail_recovery_preserves_non_empty_draft_without_discard_prom
 
 
 def test_sc14b_attempt_4_runs_actionability_probe_and_falls_back_when_dead():
-    from backend.game_logic.settlement_preview import _safe_reopen_response
+    from backend.game_logic.settlement_routes import _safe_reopen_response
 
     world = WorldState()
     _install_rejected_war(world)

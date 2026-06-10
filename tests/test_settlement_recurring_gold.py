@@ -44,8 +44,6 @@ from backend.game_logic.diplomatic_templates import (
     calculate_raw_treaty_harshness,
 )
 from backend.game_logic.settlement_preview import (
-    _apply_settlement_terms,
-    _check_gold_payment_budget_conflict,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     handle_settlement_dialogue_action,
@@ -53,6 +51,12 @@ from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
     stage_settlement_confirm,
     validate_settlement_terms,
+)
+from backend.game_logic.settlement_ratify import (
+    _apply_settlement_terms,
+)
+from backend.game_logic.settlement_validation import (
+    _check_gold_payment_budget_conflict,
 )
 from backend.game_logic.settlement_presentation import (
     build_applied_clauses_preview,

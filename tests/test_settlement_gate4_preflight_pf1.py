@@ -33,15 +33,17 @@ from fastapi.testclient import TestClient
 from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
 from backend.game_logic.settlement_preview import (
     CONCESSION_BASELINE_TREASURY_RESERVE,
-    _settlement_budget_bound_constraint,
-    _settlement_propose_carry_hint,
-    _settlement_targeted_posture_advisory,
     build_settlement_preview,
     compute_settlement_baseline,
     handle_settlement_dialogue_action,
     ratify_settlement_confirm,
     stage_settlement_confirm,
     validate_settlement_terms,
+)
+from backend.game_logic.settlement_staging import (
+    _settlement_budget_bound_constraint,
+    _settlement_propose_carry_hint,
+    _settlement_targeted_posture_advisory,
 )
 from backend.models.world_state import (
     SMOKE_START_ENV,

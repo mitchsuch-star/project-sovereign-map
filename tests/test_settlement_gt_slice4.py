@@ -29,10 +29,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.game_logic.settlement_preview import (
-    _settlement_propose_carry_hint,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
     validate_settlement_terms,
+)
+from backend.game_logic.settlement_staging import (
+    _settlement_propose_carry_hint,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance

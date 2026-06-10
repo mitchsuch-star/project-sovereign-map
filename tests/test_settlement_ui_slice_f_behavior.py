@@ -36,12 +36,14 @@ from backend.game_logic.settlement_helpers import (
     resolve_or_backfill_war_instance_for_settlement,
 )
 from backend.game_logic.settlement_preview import (
-    _enrich_acceptance_display,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     evaluate_open_settlement_eligibility,
     handle_incoming_settlement_offer_action,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_baseline import (
+    _enrich_acceptance_display,
 )
 from backend.game_logic.settlement_presentation import (
     build_contribution_share_rows,

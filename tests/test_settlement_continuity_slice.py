@@ -389,7 +389,7 @@ def test_reopen_loop_resets_after_end_of_turn():
 def test_reopen_attempt_cap_returns_no_reopen_payload_in_safe_response():
     """When the cap is exceeded, must_reopen is False and the reopen
     target falls back to war_detail with empty target_nation."""
-    from backend.game_logic.settlement_preview import _safe_reopen_response
+    from backend.game_logic.settlement_routes import _safe_reopen_response
 
     world = WorldState()
     _install_war(world)
@@ -420,7 +420,7 @@ def test_reopen_attempt_cap_returns_no_reopen_payload_in_safe_response():
 def test_dual_empty_reopen_returns_no_reopen_with_choose_from_war_detail_copy():
     """SC-13: empty selected target plus empty covered enemies returns a
     non-reopening choose-from-war-detail payload."""
-    from backend.game_logic.settlement_preview import _safe_reopen_response
+    from backend.game_logic.settlement_routes import _safe_reopen_response
 
     world = WorldState()
     _install_war(world)

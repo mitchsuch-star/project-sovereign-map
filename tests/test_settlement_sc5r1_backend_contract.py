@@ -711,9 +711,9 @@ class TestTamperedClauseTypeRevalidation:
         list (e.g. `voluntary_alliance`), `_stage_replacement_settlement_terms`
         must reject pre-staging without writing to the drafts store or
         replacing the active dialogue."""
-        from backend.game_logic.settlement_preview import (
-            _stage_replacement_settlement_terms,
-        )
+        from backend.game_logic.settlement_ratify import (
+    _stage_replacement_settlement_terms,
+)
         world = WorldState()
         _install_common_peace_war(world)
         with patch(

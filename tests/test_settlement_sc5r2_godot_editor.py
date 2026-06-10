@@ -194,8 +194,8 @@ class TestBackendDraftRoundTrip:
         REVIEW carrying the staged terms verbatim — and no editor mount flag
         exists anywhere in the response."""
         from backend.game_logic.settlement_preview import (
-            handle_settlement_dialogue_action,
-        )
+    handle_settlement_dialogue_action,
+)
 
         world = WorldState()
         _install_common_peace_war(world)

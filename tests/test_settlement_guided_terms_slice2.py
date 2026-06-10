@@ -24,11 +24,15 @@ from typing import Mapping
 from unittest.mock import patch
 
 from backend.game_logic.settlement_preview import (
-    _DEMAND_CLAUSE_CAP_REASON,
-    _payer_net_income_estimate,
     compute_settlement_treasury_line,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_baseline import (
+    _payer_net_income_estimate,
+)
+from backend.game_logic.settlement_staging import (
+    _DEMAND_CLAUSE_CAP_REASON,
 )
 from backend.game_logic.settlement_scoring import (
     CONCESSION_GOLD_DIVISOR,

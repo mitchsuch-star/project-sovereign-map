@@ -23,11 +23,13 @@ from backend.game_logic import settlement_scoring as ss
 from backend.game_logic import settlement_baseline as sb
 from backend.game_logic.settlement_preview import (
     SETTLEMENT_DIAL_GOLD_STEP,
-    _redial_settlement_terms,
     build_settlement_preview,
     compute_per_court_acceptance,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
+)
+from backend.game_logic.settlement_staging import (
+    _redial_settlement_terms,
 )
 from backend.game_logic.settlement_scoring import (
     MAX_SETTLEMENT_CLAUSE_COUNT,

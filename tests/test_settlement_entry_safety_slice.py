@@ -338,7 +338,7 @@ class TestSelectedTargetNationThreading:
             density="medium",
         )
         dialogue = result["diplomatic_dialogue"]
-        from backend.game_logic.settlement_preview import _reopen_target
+        from backend.game_logic.settlement_routes import _reopen_target
         reopen = _reopen_target("war_1", dialogue)
         assert reopen["target_nation"] == "Prussia"
         assert "diagnostic_fallback_target" not in reopen
@@ -349,7 +349,7 @@ class TestSelectedTargetNationThreading:
             "covered_enemy_participants": ["Austria", "Prussia"],
             "proposer_side": "attackers",
         }
-        from backend.game_logic.settlement_preview import _reopen_target
+        from backend.game_logic.settlement_routes import _reopen_target
         reopen = _reopen_target("war_1", dialogue)
         assert reopen["target_nation"] == "Austria"
         assert reopen.get("diagnostic_fallback_target") is True

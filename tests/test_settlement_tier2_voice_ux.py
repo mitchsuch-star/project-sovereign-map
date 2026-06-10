@@ -58,11 +58,13 @@ from backend.game_logic.diplomatic_templates import (
     resolve_settlement_voice_line,
 )
 from backend.game_logic.settlement_preview import (
+    build_settlement_confirm_dialogue,
+    build_settlement_preview,
+)
+from backend.game_logic.settlement_baseline import (
     _compute_recurring_gold_preset,
     _compute_surrender_preset,
     _format_concession_reasoning,
-    build_settlement_confirm_dialogue,
-    build_settlement_preview,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import (
