@@ -285,7 +285,7 @@ Incoming settlement-offer families:
 | `settlement_incoming_offer_arrival_metternich` | Metternich | "Vienna submits terms for {war_label}. Metternich asks {amount} gold; the figure is modest by Vienna's reckoning and the alternative is another season of campaign." |
 | `settlement_incoming_offer_arrival_einsiedel` | Einsiedel | "Saxony forwards a settlement of {war_label}. Einsiedel asks {amount} gold, respectfully - small courts cannot afford long wars, and the offer is shaped accordingly." |
 | `settlement_incoming_offer_arrival_chancery` | Foreign chancery | "The chancery of {proposer_leader} has forwarded a settlement of {war_label}. The terms ask {amount} gold; the court awaits France's answer." |
-| `settlement_incoming_offer_request_revision_talleyrand` | Talleyrand | "Sire, I shall open the offered terms for {war_label} for our own hand. We answer the dispatch from {proposer_leader} with a counter draft, not silence." |
+| `settlement_incoming_offer_request_revision_talleyrand` | Talleyrand | "Sire, I shall lay the offered terms for {war_label} on our own table, court by court. We answer the dispatch from {proposer_leader} with a counter draft, not silence." *(Guided Terms §5 copy retarget, GT-Slice-V — the beat lands on the guided settlement table, no longer on an editor.)* |
 | `settlement_incoming_offer_blocked_recovery_talleyrand` | Talleyrand | "Sire, the offer from {proposer_leader} cannot ratify as it stands: {top_blocker}. Request a revision and we answer with our own draft instead of refusing without a reply." |
 
 Settlement recovery routing table:
@@ -340,7 +340,22 @@ A multi-party settlement seats several enemy courts at one table, each scored in
 
 **Error-path register note (PF-1 / UX-6).** Validation and constraint failures are when the player most needs the advisor in character. Talleyrand owns the failure of a draft he helped author ("I cannot carry these terms") and names consequences, never blame; the binding-constraint line states the arithmetic of the purse plainly — Pressburg cut both ways, and France in 1813 could not buy peace from everyone.
 
-**Copy boundary (cleanup SC-32 D5 — normative).** This is a *settlement table*, not a Congress. **No committed multi-court copy may contain "conference", "congress", or "veto"** — use "settlement", "the table", "these courts", "<court> holds out / signs". The word "conference" is internal design shorthand only. Enforced by `test_committed_multi_court_copy_avoids_conference_congress_veto_terms`.
+#### Guided per-court demand authoring (GT-Slice-V — Settlement Guided Terms §9)
+
+The guided rows put Talleyrand's suggestion beat ("I suggest Silesia — {reason}") on every court row and make foreign courts answer the player's authoring live. Three additions to this family, same resolver rule (named diplomat via `resolve_named_diplomat`, chancery fallback, never anonymous):
+
+| Template | Speaker | Trigger | Exemplar |
+|---|---|---|---|
+| `settlement_demand_on_concede_court_caution_talleyrand` | Talleyrand | DC-4 / D5: a demand is authored (demand-group `Add demand`) or seeded (focused-Harsher dial seed) on a **concede-direction** court — France is demanding tribute from a court that is beating her | "They are not the ones suing for peace, Sire — but as you wish." *(verbatim from the Gate-4 pre-flight audit DC-4; legal player agency, priced by the scorer, voiced not blocked)* |
+| `settlement_multi_court_demand_received` | Named diplomat / chancery | a demand line lands on that court's row | "{speaker} receives the demand — {demand_label} — without warmth; {court} will weigh it against the cost of fighting on." |
+| `settlement_multi_court_offer_received` | Named diplomat / chancery | an offer/sweetener line lands on that court's row | "{speaker} notes the offer — {offer_label}; {court} reads it as a reason to keep talking." |
+| `settlement_budget_bound_recommendation_talleyrand` (+ `_concentrate_only` / `_set_aside_only` variants) | Talleyrand | OQ-6 (GT-A2): the treasury is budget-bound and the deterministic cheapest-signature allocation has been computed — the voice extends `settlement_budget_bound_constraint_talleyrand` in the advisory slot | "Sire, what remains in the purse will buy {concentrate_names} — the cheapest signatures at this table. I would let {set_aside_court} keep their war; we are not obliged to purchase every peace at once." *(Golden Rule #6: the arithmetic decides; Talleyrand merely phrases it)* |
+
+These ride the restaged PROPOSE dialogue as one-shot `authoring_voice_beats` (kind = `talleyrand_caution` / `court_reaction`), rendered above the per-court table and dropped on the next restage.
+
+**Suggestion reasons (`settlement_guided_reason_*_talleyrand`).** Every per-court `demand_suggestions[]` option's `reason_display` resolves through a committed template in this family (eleven: territory demand border/yield, gold demand, recurring demand, vassalage, subjugation, forced alliance, liberation, gold offer, territory offer, recurring offer). Register: Talleyrand's arithmetic-with-manners — commerce/court/surgery metaphors, no battlefield vocabulary, no enthusiasm; the reason prices the option, it does not cheer for it. ("A sweetener of {amount} gold — {court}'s resolve has a price, and it is conveniently paid in coin rather than provinces.")
+
+**Copy boundary (cleanup SC-32 D5 — normative).** This is a *settlement table*, not a Congress. **No committed multi-court copy may contain "conference", "congress", or "veto"** — use "settlement", "the table", "these courts", "<court> holds out / signs". The word "conference" is internal design shorthand only. The boundary covers the GT-Slice-V families above (guided reasons, authoring reactions, the DC-4 caution, and the budget-bound recommendation). Enforced by `test_committed_multi_court_copy_avoids_conference_congress_veto_terms` and its GT-Slice-V extension.
 
 ---
 
@@ -408,6 +423,8 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 ---
 
 ## Changelog
+
+- **June 10, 2026** - GT-Slice-V (Settlement Guided Terms §9): added the guided per-court demand-authoring voice family to §16.1a — the DC-4 concede-court caution line (verbatim from the Gate-4 pre-flight audit), the named-court `demand_received` / `offer_received` authoring reactions, the OQ-6 budget-bound recommendation extension of `settlement_budget_bound_constraint_talleyrand`, and the eleven committed `settlement_guided_reason_*_talleyrand` suggestion-reason templates. Retargeted `settlement_incoming_offer_request_revision_talleyrand` onto the guided table (Guided Terms §5 — the beat no longer references opening an editor). SC-32 D5 boundary extended over all new copy.
 
 - **May 8, 2026** - Added explicit 16.1 Imperial Settlement voice-family anchors for blocked ratification, rescored drafts, discard confirmation, active-review collision, reopen-cap recovery, foreign-court observation, and review headings so `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-19 has authored copy in this Voice Bible.
 - **May 4, 2026** - Final Gate copy pass lands committed Imperial Settlement templates in `backend/game_logic/diplomatic_templates.py` for Talleyrand common-peace / defensive advisory, Castlereagh / Hardenberg / Metternich / Einsiedel acceptance and rejection, sold-out-by-leader, rewarded-ally, excluded-ally, plus serial-peace fallout legibility.

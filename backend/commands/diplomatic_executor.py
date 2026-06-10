@@ -2737,14 +2737,26 @@ class DiplomaticExecutor:
         # `scope` / `nation` params, so resolve them directly against the staged
         # settlement_confirm rather than through options[]/keyword matching (the
         # `suspend_settlement_editor` precedent below uses the same direct path).
+        # GT-Slice-3 (the D4-lesson HTTP-boundary fix): the wire shape is
+        # `{"choice": <action>, "action_params": <payload>}` — Godot's
+        # `send_dialogue_response_with_params` carries the verb in `choice`,
+        # and a GT-Slice-2 suggestion's `action_params` deliberately holds
+        # ONLY the fields the verb accepts (no `action` echo). Key on the
+        # embedded action when present (the dial-affordance shape), falling
+        # back to the `choice` verb.
+        structured_action = ""
+        if isinstance(action_params, dict):
+            structured_action = str(action_params.get("action") or "")
+            if not structured_action and isinstance(choice, str):
+                structured_action = choice.strip()
         if (
             isinstance(action_params, dict)
-            and str(action_params.get("action") or "") in _SETTLEMENT_TIER2_ACTION_IDS
+            and structured_action in _SETTLEMENT_TIER2_ACTION_IDS
             and str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
             == "settlement_confirm"
         ):
             return self._process_dialogue_choice(
-                str(action_params["action"]), dict(action_params), dialogue, world,
+                structured_action, dict(action_params), dialogue, world,
             )
 
         # SC-5R-2 follow-up: the settlement editor's Back Out sends a safe

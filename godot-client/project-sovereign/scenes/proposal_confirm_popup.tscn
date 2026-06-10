@@ -56,6 +56,30 @@ text = ""
 scroll_active = true
 fit_content = true
 
+[node name="PerCourtScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PerCourtTable" type="RichTextLabel" parent="PanelContainer/VBoxContainer/PerCourtScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+text = ""
+scroll_active = false
+fit_content = true
+
+[node name="FooterLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+bbcode_enabled = true
+text = ""
+scroll_active = false
+fit_content = true
+
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 

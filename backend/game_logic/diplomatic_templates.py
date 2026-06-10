@@ -1350,13 +1350,15 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "to {claim_region} without blocking ratification."
     ),
     # Request Revision is the accepting-side counter authoring route.
-    # Talleyrand explains that we are opening the editor seeded from the
-    # exact offered package so the player can revise before sending a
-    # counter; this must NOT reuse outgoing "Revise Terms" framing.
+    # Talleyrand explains that the offered package is laid out on OUR
+    # settlement table (the guided per-court PROPOSE surface — Guided
+    # Terms §5 copy retarget, GT-Slice-V) so the player revises before
+    # sending a counter; this must NOT reuse outgoing "Revise Terms"
+    # framing, and it no longer references opening an editor.
     "settlement_incoming_offer_request_revision_talleyrand": (
-        "Sire, I shall open the offered terms for {war_label} for our "
-        "own hand. We answer the dispatch from {proposer_leader} with a "
-        "counter draft, not silence."
+        "Sire, I shall lay the offered terms for {war_label} on our own "
+        "table, court by court. We answer the dispatch from "
+        "{proposer_leader} with a counter draft, not silence."
     ),
     # Blocked recovery for the accepting-side review (player accepted the
     # offer but it cannot ratify in its current form). Talleyrand names
@@ -1469,6 +1471,104 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # for a draft he helped author.
     "settlement_submit_failed_validation_talleyrand": (
         "Sire, I cannot carry these terms to review as written. {blocker}"
+    ),
+    # ───────────────────────────────────────────────────────────────────
+    # Guided Terms GT-Slice-V — voice for guided per-court demand
+    # authoring (spec §9 GT-Slice-V; Voice Bible §16.1a). Three families:
+    # the DC-4 guard line (verbatim from the Gate-4 pre-flight audit),
+    # the named-court authoring reactions, and the OQ-6 budget-bound
+    # recommendation extension. Per cleanup SC-32 D5, none of this
+    # committed copy uses "conference", "congress", or "veto".
+    # ───────────────────────────────────────────────────────────────────
+    # DC-4 / D5 (press-past-zero): fired whenever a demand is authored or
+    # seeded on a concede-direction court — demanding tribute from the
+    # nation that is beating France is legal player agency; Talleyrand
+    # prices the absurdity in character instead of authoring it wordlessly.
+    "settlement_demand_on_concede_court_caution_talleyrand": (
+        "They are not the ones suing for peace, Sire — but as you wish."
+    ),
+    # Named-court reactions when the player authors a line on that court's
+    # row (the §16.1a resolver rule: named diplomat via
+    # `resolve_named_diplomat`, chancery fallback — never anonymous).
+    "settlement_multi_court_demand_received": (
+        "{speaker} receives the demand — {demand_label} — without warmth; "
+        "{court} will weigh it against the cost of fighting on."
+    ),
+    "settlement_multi_court_offer_received": (
+        "{speaker} notes the offer — {offer_label}; {court} reads it as a "
+        "reason to keep talking."
+    ),
+    # OQ-6 (GT-A2) — the budget-bound recommendation, extending
+    # `settlement_budget_bound_constraint_talleyrand`: Talleyrand voices
+    # the COMPUTED cheapest-signature allocation (Golden Rule #6 — the
+    # arithmetic decides; he merely phrases it). Pressburg logic: buy the
+    # peace you can afford and let the dearest enemy fight on.
+    "settlement_budget_bound_recommendation_talleyrand": (
+        "Sire, what remains in the purse will buy {concentrate_names} — "
+        "the cheapest signatures at this table. I would let "
+        "{set_aside_court} keep their war; we are not obliged to purchase "
+        "every peace at once."
+    ),
+    "settlement_budget_bound_recommendation_concentrate_only_talleyrand": (
+        "Sire, what remains in the purse will buy {concentrate_names} — "
+        "the cheapest signatures at this table."
+    ),
+    "settlement_budget_bound_recommendation_set_aside_only_talleyrand": (
+        "Sire, no sum we hold will buy these signatures. I would set "
+        "{set_aside_court} aside; a peace one cannot afford is not a "
+        "peace, it is a debt."
+    ),
+    # ───────────────────────────────────────────────────────────────────
+    # Guided Terms GT-Slice-V — Talleyrand's per-option suggestion
+    # reasons (`reason_display`, spec §3.1 / GT-R1-15). The bilateral
+    # flow's signature beat ("I suggest Silesia — {reason}") generalized
+    # to the per-court rows; resolved by `_court_demand_suggestions` so
+    # the committed register lives here, not in f-strings.
+    # ───────────────────────────────────────────────────────────────────
+    "settlement_guided_reason_territory_demand_border_talleyrand": (
+        "{region} sits beside what we already hold; {court} would keep it "
+        "only on paper."
+    ),
+    "settlement_guided_reason_territory_demand_yield_talleyrand": (
+        "Of {court}'s holdings, {region} is the one they can part with "
+        "and still call themselves whole."
+    ),
+    "settlement_guided_reason_gold_demand_talleyrand": (
+        "{court}'s treasury can bear {amount} gold — priced to wound the "
+        "purse, not the pride."
+    ),
+    "settlement_guided_reason_recurring_demand_talleyrand": (
+        "A tribute of {amount} gold a turn for {turns} turns — collected "
+        "quietly, resented slowly, and well within {court}'s means."
+    ),
+    "settlement_guided_reason_vassalage_talleyrand": (
+        "At {power_pct}% of our strength, {court} is better acquired than "
+        "argued with."
+    ),
+    "settlement_guided_reason_subjugation_talleyrand": (
+        "At {power_pct}% of our strength, {court} cannot decline a "
+        "master; subjugation merely sets it down in ink."
+    ),
+    "settlement_guided_reason_forced_alliance_talleyrand": (
+        "An alliance signed under necessity still signs, Sire — {court}'s "
+        "weight moves to our side of the ledger."
+    ),
+    "settlement_guided_reason_liberation_talleyrand": (
+        "Free {vassal} and {court} loses a servant it never paid well; "
+        "the freed court will remember whose hand opened the door."
+    ),
+    "settlement_guided_reason_gold_offer_talleyrand": (
+        "A sweetener of {amount} gold — {court}'s resolve has a price, "
+        "and it is conveniently paid in coin rather than provinces."
+    ),
+    "settlement_guided_reason_territory_offer_talleyrand": (
+        "Ceding {region} purchases {court}'s signature; a province spent "
+        "at the right table buys more than it earns."
+    ),
+    "settlement_guided_reason_recurring_offer_talleyrand": (
+        "A pension of {amount} gold a turn for {turns} turns — {court}'s "
+        "peace bought on installment, gentler on the treasury than the "
+        "war."
     ),
 }
 

@@ -343,19 +343,53 @@ def test_review_payload_carries_per_court_acceptance():
 
 
 def test_holdout_court_offers_ease_or_drop_not_dead_end():
+    """A holdout is never a dead end — re-pinned to the UX-2 contract
+    (Guided Terms GT-Slice-3): REVIEW is a frozen staged-decision surface
+    whose rows expose NO dial/holdout affordances; the route back is the
+    blocked-REVIEW rail's `Return to terms`, and the one-click Ease/Drop
+    live on the PROPOSE rows."""
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     # Prussia is the only holdout.
     scorer = _make_scorer({"Austria": 60, "Britain": 60, "Prussia": 20})
     staged = _stage_review(world, [{"type": "peace"}], scorer=scorer)
-    rows = staged["diplomatic_dialogue"]["per_court_acceptance"]
+    dialogue = staged["diplomatic_dialogue"]
+    rows = dialogue["per_court_acceptance"]
     prussia = next(r for r in rows if r["nation"] == "Prussia")
     assert prussia["is_holdout"] is True
-    holdout_actions = {a.get("action") for a in prussia["holdout_actions"]}
+    # UX-2 server half: frozen REVIEW rows carry no authoring affordances...
+    assert prussia["holdout_actions"] == []
+    assert prussia["dial_actions"] == []
+    # ...and the blocked rail still offers the route back to shaping.
+    assert "return_to_settlement_terms" in dialogue["available_action_ids"]
+
+    # The one-click Ease/Drop ride the PROPOSE rows (the authoring surface).
+    world.dialogue_manager.pop()  # close the REVIEW staging first
+    with patch(
+        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        side_effect=scorer,
+    ):
+        proposed = stage_settlement_confirm(
+            world,
+            war_id="war_rf",
+            actor_nation="France",
+            settlement_terms=[{"type": "peace"}],
+            covered_enemy_participants=["Britain", "Prussia", "Austria"],
+            selected_target_nation="Austria",
+            caller_kind="player_editor",
+            dialogue_mode="PROPOSE",
+        )
+    assert proposed.get("success"), proposed
+    propose_rows = proposed["diplomatic_dialogue"]["per_court_acceptance"]
+    prussia_propose = next(r for r in propose_rows if r["nation"] == "Prussia")
+    holdout_actions = {a.get("action") for a in prussia_propose["holdout_actions"]}
     assert "settlement_dial_generous" in holdout_actions  # Ease
     assert "settlement_cover_drop" in holdout_actions      # Drop
-    assert all(a.get("nation") == "Prussia" for a in prussia["holdout_actions"])
+    assert all(
+        a.get("nation") == "Prussia"
+        for a in prussia_propose["holdout_actions"]
+    )
     # Non-holdout courts carry no escape affordances.
-    britain = next(r for r in rows if r["nation"] == "Britain")
+    britain = next(r for r in propose_rows if r["nation"] == "Britain")
     assert britain["is_holdout"] is False
     assert britain["holdout_actions"] == []
 
@@ -711,8 +745,16 @@ def test_committed_multi_court_copy_avoids_conference_congress_veto_terms():
     )
 
     banned = ("conference", "congress", "veto")
+    # GT-Slice-V extension: the guided-authoring families (suggestion
+    # reasons, the DC-4 caution, the budget-bound recommendation) sit on
+    # the same multi-court surface, so the D5 boundary covers them too.
+    covered_prefixes = (
+        "settlement_guided_reason_",
+        "settlement_demand_on_concede_court_caution",
+        "settlement_budget_bound_recommendation",
+    )
     for key, template in SETTLEMENT_VOICE_TEMPLATES.items():
-        if "multi_court" not in key:
+        if "multi_court" not in key and not key.startswith(covered_prefixes):
             continue
         lowered = template.lower()
         assert not any(word in lowered for word in banned), key

@@ -13,15 +13,34 @@ signal choice_made(action: String, data: Dictionary)
 # UI References
 @onready var content_label = $PanelContainer/VBoxContainer/ContentLabel
 @onready var button_container = $PanelContainer/VBoxContainer/ButtonContainer
+# GT-Slice-3 (Guided Terms §9) + UX-5: the per-court settlement table lives in
+# its own RichTextLabel inside a ScrollContainer so the inline `Add demand`
+# expansion scrolls instead of growing the popup unbounded (the full-1805
+# court-count horizon). The footer label carries the post-table sections.
+@onready var per_court_scroll = $PanelContainer/VBoxContainer/PerCourtScroll
+@onready var per_court_table = $PanelContainer/VBoxContainer/PerCourtScroll/PerCourtTable
+@onready var footer_label = $PanelContainer/VBoxContainer/FooterLabel
 
 var current_data: Dictionary = {}
+# GT-Slice-3 client-side expansion state for the guided per-court rows.
+# Reset on every show_dialogue (each backend restage re-mounts fresh data;
+# the §3.3 lead-group defaults re-apply).
+var _add_demand_expanded: Dictionary = {}
+var _trailing_group_expanded: Dictionary = {}
+var _suggestion_options_expanded: Dictionary = {}
 
 const COLOR_GOLD = "#d9c08c"
 const COLOR_DIMMED = "#808080"
 const COLOR_RED = "#e04040"
+# GT-Slice-3: client-side magnitude step for the per-line gold controls
+# (mirrors the backend SETTLEMENT_DIAL_GOLD_STEP; the server clamps and
+# revalidates every value — this is presentation-side convenience only).
+const DEMAND_GOLD_MAGNITUDE_STEP = 100
 
 func _ready():
 	hide()
+	if per_court_table:
+		per_court_table.meta_clicked.connect(_on_per_court_meta_clicked)
 
 func _should_label_ask_later(dtype: String, action_str: String, original_label: String) -> bool:
 	if dtype not in ["proposal_confirm", "proposal_execute", "proposal_options", "pushback_confirm"]:
@@ -75,6 +94,24 @@ func show_dialogue(data: Dictionary):
 	content_label.text = ""
 	content_label.append_text(bbcode)
 
+	# GT-Slice-3 + UX-5: the settlement_confirm surface renders in three
+	# regions — header (ContentLabel), the scrollable per-court table
+	# (PerCourtScroll/PerCourtTable), and the post-table footer. Every other
+	# dialogue type keeps the single-label layout.
+	var is_settlement_table = (dtype == "settlement_confirm")
+	_add_demand_expanded = {}
+	_trailing_group_expanded = {}
+	_suggestion_options_expanded = {}
+	if per_court_scroll:
+		per_court_scroll.visible = is_settlement_table
+	if footer_label:
+		footer_label.visible = is_settlement_table
+	if is_settlement_table:
+		_render_per_court_table()
+		if footer_label:
+			footer_label.text = ""
+			footer_label.append_text(_build_settlement_footer(data))
+
 	# Create buttons dynamically from dialogue options
 	_clear_buttons()
 	var options = data.get("options", [])
@@ -116,6 +153,12 @@ func show_dialogue(data: Dictionary):
 	show()
 
 func _add_settlement_tier2_buttons(data: Dictionary):
+	# UX-2 (GT-Slice-3): REVIEW is a frozen staged-decision surface — no
+	# dial / holdout / coverage affordances render there. The backend already
+	# withholds them server-side (rows carry empty lists outside PROPOSE);
+	# this client gate keeps the contract explicit at the render layer too.
+	if str(data.get("dialogue_mode", "REVIEW")) != "PROPOSE":
+		return
 	var affordances: Array = []
 	var per_court = data.get("per_court_acceptance", [])
 	if per_court is Array:
@@ -281,18 +324,40 @@ func _build_settlement_content(data: Dictionary) -> String:
 		bbcode += "[b][color=#e04040]This settlement cannot be ratified now.[/color][/b]\n"
 	bbcode += "[color=#a0a0a8]%s - %s[/color]\n" % [war_label, scope]
 
+	# UX-2 (GT-Slice-3): REVIEW reads as a staged-decision surface, visually
+	# distinct from the PROPOSE authoring surface — the terms are frozen, the
+	# blockers are promoted to the top, and no authoring affordances render
+	# anywhere below (the backend already withholds them server-side).
+	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
+	if dialogue_mode == "REVIEW":
+		bbcode += "[color=#80a0d0][b]STAGED FOR REVIEW[/b] — the terms are frozen. Ratify, revise, or return to shaping.[/color]\n"
+		if not can_ratify_now:
+			var promoted_blocker = str(data.get("ratify_blocked_reason", ""))
+			if promoted_blocker != "":
+				bbcode += "[color=#e0a040]▸ Blocked: %s[/color]\n" % promoted_blocker
+			var overall_review = data.get("overall_acceptance", {})
+			if overall_review is Dictionary:
+				var holdouts = overall_review.get("holdout_courts", [])
+				if holdouts is Array and holdouts.size() > 0:
+					bbcode += "[color=#e0a040]▸ Holding out: %s[/color]\n" % ", ".join(PackedStringArray(holdouts))
+
 	var chips = data.get("covered_enemy_display_chips", data.get("covered_enemy_participants", []))
 	if chips is Array and chips.size() > 0:
 		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
 	var uncovered = data.get("uncovered_enemy_display_chips", review.get("uncovered_enemy_display_chips", [])) if review is Dictionary else []
 	if uncovered is Array and uncovered.size() > 0:
 		bbcode += "[color=#e0a040][b]Still at war:[/b] " + ", ".join(PackedStringArray(uncovered)) + "[/color]\n"
-	bbcode += "\n"
 
-	# Re-front Slice 1 §11.2/§11.4: the per-court table. Each covered court has
-	# its own band, direction summary, and named-diplomat voice; holdouts carry
-	# Ease/Drop affordances on their own row. Talleyrand narrates the table.
-	bbcode += _build_settlement_per_court_block(data)
+	# The per-court table itself renders into the scrollable PerCourtTable
+	# region (GT-Slice-3 / UX-5 — see _render_per_court_table); the post-table
+	# sections render into the footer region (_build_settlement_footer).
+	return bbcode
+
+
+func _build_settlement_footer(data: Dictionary) -> String:
+	var review = data.get("review_sections", {})
+	var sections = review.get("sections", {}) if review is Dictionary else {}
+	var bbcode = ""
 
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
@@ -502,21 +567,68 @@ func _safe_str(v) -> String:
 	# the per-court table on first paint (delta_display is null before any dial).
 	return "" if v == null else str(v)
 
+func _render_per_court_table():
+	# GT-Slice-3 / UX-5: (re)paint the scrollable per-court table region from
+	# current_data. Client-side expansion toggles re-enter here without a
+	# round trip; backend mutations re-mount the whole popup instead.
+	if per_court_table == null:
+		return
+	per_court_table.text = ""
+	per_court_table.append_text(_build_settlement_per_court_block(current_data))
+
 func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
+	# GT-Slice-3 (Guided Terms §3.1-§3.3): on the PROPOSE authoring surface each
+	# row additionally renders its current demand lines (per-line Remove +
+	# magnitude controls), the inline `Add demand` expansion fed by
+	# `demand_suggestions[]`, the §3.4 treasury line, and the REFRONT-9 focused
+	# component breakdown. REVIEW renders the same table frozen (UX-2 — no
+	# links, no authoring affordances).
 	var per_court = data.get("per_court_acceptance", [])
 	if not (per_court is Array) or per_court.size() == 0:
 		return ""
+	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
+	var authoring_surface = (dialogue_mode == "PROPOSE")
 	var bbcode = ""
+	# Guided Terms §3.4 (GT-A1): the shared-treasury allocation line, one pool
+	# across every court's France-paid gold. PROPOSE-only payload.
+	var treasury = data.get("treasury_line", {})
+	if authoring_surface and treasury is Dictionary and treasury.size() > 0:
+		bbcode += "[color=#d9c08c][b]Treasury[/b] %s gold: committed %s / reserve %s / remaining %s[/color]\n" % [
+			Utils.format_number(int(treasury.get("treasury", 0))),
+			Utils.format_number(int(treasury.get("committed", 0))),
+			Utils.format_number(int(treasury.get("reserve", 0))),
+			Utils.format_number(int(treasury.get("remaining", 0))),
+		]
 	var narration = _safe_str(data.get("multi_court_table_narration"))
 	if narration != "":
 		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
-	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice.
+	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice
+	# (PF-1/DC-2 + OQ-6: carries the binding-constraint + budget-bound
+	# recommendation voice when the treasury binds).
 	var advisory = _safe_str(data.get("targeted_posture_advisory"))
 	if advisory != "":
 		bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
+	# GT-Slice-V: one-shot authoring voice beats from the last mutation — the
+	# DC-4 concede-court caution (Talleyrand) and the affected court's
+	# named-diplomat reaction. Dropped by the next restage.
+	var voice_beats = data.get("authoring_voice_beats", [])
+	if voice_beats is Array:
+		for beat in voice_beats:
+			if not (beat is Dictionary):
+				continue
+			var beat_line = _safe_str(beat.get("line"))
+			if beat_line == "":
+				continue
+			if str(beat.get("kind", "")) == "talleyrand_caution":
+				bbcode += "[i][color=#e0c070]\"%s\"[/color][/i]\n" % beat_line
+			else:
+				bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % beat_line
 	bbcode += "[b]The table[/b]\n"
+	var focused_court = _safe_str(data.get("focused_court"))
+	var court_index = -1
 	for row in per_court:
+		court_index += 1
 		if not (row is Dictionary):
 			continue
 		var nation = str(row.get("nation", "?"))
@@ -528,7 +640,17 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		var total_text = ""
 		if total != null:
 			total_text = " (%d)" % int(total)
-		bbcode += "  [color=#e0c070]*[/color] [b]%s[/b] - %s%s" % [nation, band_display, total_text]
+		var is_focused = (focused_court != "" and nation == focused_court)
+		# REFRONT-9 (OQ-5/GT-A4): on PROPOSE the court name is the focus
+		# trigger — clicking it round-trips presentation-only
+		# `settlement_focus_court` and the focused row expands into the full
+		# component breakdown below. Clicking again clears the focus.
+		var name_cell = "[b]%s[/b]" % nation
+		if authoring_surface:
+			name_cell = "[url=focus:%d][b]%s[/b] %s[/url]" % [
+				court_index, nation, "▾" if is_focused else "▸",
+			]
+		bbcode += "  [color=#e0c070]*[/color] %s - %s%s" % [name_cell, band_display, total_text]
 		if direction != "":
 			bbcode += " [color=#a0a0a8]%s[/color]" % direction
 		bbcode += "\n"
@@ -548,6 +670,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			# (self-labeled, e.g. "Ease Britain") -- intentionally NOT echoed inline.
 			# The old blue "Ease X | Drop X" body text was inert (looked clickable,
 			# did nothing) and duplicated the working buttons; Gate-4 smoke finding.
+		if is_focused:
+			bbcode += _build_focused_component_breakdown(row)
+		if authoring_surface:
+			bbcode += _build_court_authoring_lines(row, court_index)
 	var overall = data.get("overall_acceptance", {})
 	if overall is Dictionary:
 		var summary = str(overall.get("summary_display", ""))
@@ -564,6 +690,316 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		bbcode += "[color=#e0a040]▸ %s[/color]\n" % carry_hint
 	bbcode += "\n"
 	return bbcode
+
+
+func _build_focused_component_breakdown(row: Dictionary) -> String:
+	# REFRONT-9 (re-front spec §14 row, re-owned by Guided Terms GT-A4): the
+	# focused court's expanded row renders the FULL component table — all ten
+	# acceptance components incl. concession_credit — from the row's
+	# `component_breakdown` (already computed by the score pass; the focus
+	# trigger stays presentation-only).
+	var breakdown = row.get("component_breakdown", [])
+	if not (breakdown is Array) or breakdown.size() == 0:
+		return ""
+	var nation = str(row.get("nation", "?"))
+	var bbcode = "      [b]Why %s stands here[/b]\n" % nation
+	for entry in breakdown:
+		if not (entry is Dictionary):
+			continue
+		var value = int(entry.get("value", 0))
+		var color = "#80c080" if value > 0 else ("#e08060" if value < 0 else "#a0a0a8")
+		bbcode += "        [color=%s]%s %s[/color]\n" % [
+			color,
+			_safe_str(entry.get("value_display")),
+			_safe_str(entry.get("component_display")),
+		]
+	return bbcode
+
+
+func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
+	# GT-Slice-3 (Guided Terms §3.1/§3.3): the per-court authoring block —
+	# current demand/offer lines with per-line Remove + magnitude controls,
+	# then the inline `Add demand` expansion. All affordances are [url] metas
+	# resolved by _on_per_court_meta_clicked; direction is fixed per option
+	# server-side, so no identity ever crosses this surface.
+	var bbcode = ""
+	var nation = str(row.get("nation", "?"))
+	var current_demands = row.get("current_demands", [])
+	if current_demands is Array:
+		var line_index = -1
+		for line in current_demands:
+			line_index += 1
+			if not (line is Dictionary):
+				continue
+			var tag = _safe_str(line.get("direction_tag"))
+			var tag_color = "#e09040" if tag == "Demanded" else ("#80c0a0" if tag == "Conceded" else "#e0c070")
+			var authored_suffix = ""
+			if str(line.get("authored_by", "")) == "player":
+				authored_suffix = " [color=#808080](yours)[/color]"
+			bbcode += "      [color=%s]%s[/color] · %s%s" % [
+				tag_color, tag, _safe_str(line.get("line_display")), authored_suffix,
+			]
+			var magnitude = line.get("magnitude", null)
+			if magnitude is Dictionary:
+				bbcode += "  [url=mag:%d:%d:amount:-][-][/url][url=mag:%d:%d:amount:+][+][/url]" % [
+					court_index, line_index, court_index, line_index,
+				]
+				if magnitude.has("turns"):
+					bbcode += " [color=#a0a0a8]turns[/color][url=mag:%d:%d:turns:-][-][/url][url=mag:%d:%d:turns:+][+][/url]" % [
+						court_index, line_index, court_index, line_index,
+					]
+			if line.get("remove_action") != null:
+				bbcode += "  [url=rm:%d:%d][color=#e08060]Remove[/color][/url]" % [
+					court_index, line_index,
+				]
+			bbcode += "\n"
+	# The `Add demand` affordance (§3.1): disabled with the humanized reason
+	# (clause cap / hard stop / frozen) when the row cannot author.
+	if not bool(row.get("can_author", false)):
+		var disabled_reason = _safe_str(row.get("authoring_disabled_reason_display"))
+		if disabled_reason != "":
+			bbcode += "      [color=#808080]+ Add demand — %s[/color]\n" % disabled_reason
+		return bbcode
+	var suggestions = row.get("demand_suggestions", [])
+	if not (suggestions is Array) or suggestions.size() == 0:
+		return bbcode
+	if not bool(_add_demand_expanded.get(nation, false)):
+		bbcode += "      [url=addmenu:%d][color=#80b0e0]+ Add demand[/color][/url]\n" % court_index
+		return bbcode
+	bbcode += "      [url=addmenu:%d][color=#80b0e0]− Add demand[/color][/url]\n" % court_index
+	# §3.3: the direction-led group leads and renders expanded; the trailing
+	# group renders collapsed behind a toggle. The dead-band (lead_group
+	# empty) keeps the §3.1 order with BOTH groups behind toggles.
+	var lead_group = str(row.get("lead_group", ""))
+	var groups: Array = []
+	if lead_group == "offer":
+		groups = [["offer", true], ["demand", false]]
+	elif lead_group == "demand":
+		groups = [["demand", true], ["offer", false]]
+	else:
+		groups = [["demand", false], ["offer", false]]
+	for group_spec in groups:
+		var group_name: String = group_spec[0]
+		var pre_expanded: bool = group_spec[1]
+		var entries: Array = []
+		var sugg_index = -1
+		for sugg in suggestions:
+			sugg_index += 1
+			if sugg is Dictionary and str(sugg.get("group", "")) == group_name:
+				entries.append([sugg_index, sugg])
+		if entries.size() == 0:
+			continue
+		var group_label = ("Demands of %s" % nation) if group_name == "demand" else ("Offers to %s" % nation)
+		var group_key = "%s|%s" % [nation, group_name]
+		var expanded = pre_expanded or bool(_trailing_group_expanded.get(group_key, false))
+		if not expanded:
+			bbcode += "        [url=group:%d:%s][color=#a0a0c0]▸ %s (%d)[/color][/url]\n" % [
+				court_index, group_name, group_label, entries.size(),
+			]
+			continue
+		bbcode += "        [color=#a0a0c0]%s[/color]\n" % group_label
+		for entry in entries:
+			bbcode += _build_suggestion_lines(entry[1], court_index, int(entry[0]))
+	return bbcode
+
+
+func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int) -> String:
+	# One Talleyrand-suggested, fully-formed option (§3.1): the act link, the
+	# OQ-1 dropdown toggle when several candidates are valid, and the
+	# GT-Slice-V in-character reason line.
+	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
+		court_index, sugg_index, _safe_str(sugg.get("label")),
+	]
+	var options: Array = []
+	if sugg.get("region_options") is Array:
+		options = sugg.get("region_options")
+	elif sugg.get("vassal_options") is Array:
+		options = sugg.get("vassal_options")
+	if options.size() > 1:
+		bbcode += " [url=suggopts:%d:%d]▾[/url]" % [court_index, sugg_index]
+	if bool(sugg.get("supports_continental_system", false)):
+		bbcode += " [url=suggcs:%d:%d][color=#80b0e0][+ Continental System][/color][/url]" % [
+			court_index, sugg_index,
+		]
+	bbcode += "\n"
+	var reason = _safe_str(sugg.get("reason_display"))
+	if reason != "":
+		bbcode += "            [i][color=#909098]— %s[/color][/i]\n" % reason
+	var options_key = "%d|%d" % [court_index, sugg_index]
+	if options.size() > 1 and bool(_suggestion_options_expanded.get(options_key, false)):
+		var opt_index = -1
+		for opt in options:
+			opt_index += 1
+			bbcode += "            [url=suggpick:%d:%d:%d][color=#9ec0e0]%s[/color][/url]\n" % [
+				court_index, sugg_index, opt_index, str(opt),
+			]
+	return bbcode
+
+
+func _on_per_court_meta_clicked(meta):
+	# GT-Slice-3: dispatch the per-court table's inline affordances. Encoding
+	# is `op:court_index[:...]` with all names resolved from current_data at
+	# click time (indices, never embedded identities). Client-only toggles
+	# repaint the table; everything else round-trips through main.gd's
+	# structured `action_params` path (send_dialogue_response_with_params).
+	var parts = str(meta).split(":")
+	if parts.size() < 2:
+		return
+	var op = parts[0]
+	var row = _per_court_row(int(parts[1]))
+	if row.is_empty():
+		return
+	var nation = str(row.get("nation", ""))
+	match op:
+		"focus":
+			# REFRONT-9: presentation-only focus round trip; clicking the
+			# focused court again clears the focus.
+			var target = "" if str(current_data.get("focused_court", "")) == nation else nation
+			_emit_settlement_action("settlement_focus_court", {
+				"nation": target,
+				"war_id": str(current_data.get("war_id", "")),
+				"draft_key": str(current_data.get("draft_key", "")),
+			})
+		"addmenu":
+			_add_demand_expanded[nation] = not bool(_add_demand_expanded.get(nation, false))
+			_render_per_court_table()
+		"group":
+			if parts.size() >= 3:
+				var group_key = "%s|%s" % [nation, parts[2]]
+				_trailing_group_expanded[group_key] = not bool(_trailing_group_expanded.get(group_key, false))
+				_render_per_court_table()
+		"suggopts":
+			if parts.size() >= 3:
+				var options_key = "%s|%s" % [parts[1], parts[2]]
+				_suggestion_options_expanded[options_key] = not bool(_suggestion_options_expanded.get(options_key, false))
+				_render_per_court_table()
+		"sugg", "suggcs", "suggpick":
+			if parts.size() >= 3:
+				_fire_suggestion(row, int(parts[2]), op, parts)
+		"rm":
+			if parts.size() >= 3:
+				_fire_line_action(row, int(parts[2]), "remove_action", {})
+		"mag":
+			if parts.size() >= 5:
+				_fire_magnitude_step(row, int(parts[2]), parts[3], parts[4])
+
+
+func _per_court_row(court_index: int) -> Dictionary:
+	var per_court = current_data.get("per_court_acceptance", [])
+	if per_court is Array and court_index >= 0 and court_index < per_court.size():
+		var row = per_court[court_index]
+		if row is Dictionary:
+			return row
+	return {}
+
+
+func _fire_suggestion(row: Dictionary, sugg_index: int, op: String, parts: PackedStringArray):
+	# Fire one suggestion verbatim: the payload IS the suggestion's
+	# `action_params` (the exact shape the GT-Slice-1 add verb accepts) plus
+	# the transport keys. `suggpick` overrides the pre-picked region/vassal
+	# with the chosen dropdown candidate; `suggcs` adds the optional
+	# Continental System clause field (§3.1 — an existing clause field, not a
+	# new mechanic).
+	var suggestions = row.get("demand_suggestions", [])
+	if not (suggestions is Array) or sugg_index < 0 or sugg_index >= suggestions.size():
+		return
+	var sugg = suggestions[sugg_index]
+	if not (sugg is Dictionary):
+		return
+	var params = sugg.get("action_params", {})
+	var payload = params.duplicate(true) if params is Dictionary else {}
+	payload["war_id"] = str(sugg.get("war_id", current_data.get("war_id", "")))
+	payload["draft_key"] = str(sugg.get("draft_key", current_data.get("draft_key", "")))
+	if op == "suggcs":
+		payload["includes_continental_system"] = true
+	elif op == "suggpick" and parts.size() >= 4:
+		var options: Array = []
+		var option_field = ""
+		if sugg.get("region_options") is Array:
+			options = sugg.get("region_options")
+			option_field = "region"
+		elif sugg.get("vassal_options") is Array:
+			options = sugg.get("vassal_options")
+			option_field = "vassal_nation"
+		var opt_index = int(parts[3])
+		if option_field == "" or opt_index < 0 or opt_index >= options.size():
+			return
+		payload[option_field] = str(options[opt_index])
+	_emit_settlement_action(str(sugg.get("action", "settlement_demand_add")), payload)
+
+
+func _fire_line_action(row: Dictionary, line_index: int, action_field: String, extra: Dictionary):
+	# Fire a current-demand line's ready-made mutation payload (GT-Slice-2's
+	# `remove_action` / `set_magnitude_action` — clause_index + expected_type,
+	# the stale-click guard).
+	var current_demands = row.get("current_demands", [])
+	if not (current_demands is Array) or line_index < 0 or line_index >= current_demands.size():
+		return
+	var line = current_demands[line_index]
+	if not (line is Dictionary):
+		return
+	var action_dict = line.get(action_field, null)
+	if not (action_dict is Dictionary):
+		return
+	var params = action_dict.get("action_params", {})
+	var payload = params.duplicate(true) if params is Dictionary else {}
+	payload["war_id"] = str(action_dict.get("war_id", current_data.get("war_id", "")))
+	payload["draft_key"] = str(action_dict.get("draft_key", current_data.get("draft_key", "")))
+	# `nation` keys the structured action_params route in main.gd; the
+	# backend verbs key on clause_index, so this is transport-only.
+	payload["nation"] = str(row.get("nation", ""))
+	for key in extra:
+		payload[key] = extra[key]
+	_emit_settlement_action(str(action_dict.get("action", "")), payload)
+
+
+func _fire_magnitude_step(row: Dictionary, line_index: int, field: String, direction: String):
+	# GT-Slice-3 magnitude controls: compute the stepped value client-side
+	# against the GT-Slice-2 magnitude metadata bounds, then fire the
+	# set-magnitude verb with an ABSOLUTE value (the server clamps and
+	# revalidates; a no-op step is skipped without a round trip).
+	var current_demands = row.get("current_demands", [])
+	if not (current_demands is Array) or line_index < 0 or line_index >= current_demands.size():
+		return
+	var line = current_demands[line_index]
+	if not (line is Dictionary):
+		return
+	var magnitude = line.get("magnitude", null)
+	if not (magnitude is Dictionary):
+		return
+	var extra = {}
+	if field == "amount":
+		var step = DEMAND_GOLD_MAGNITUDE_STEP if direction == "+" else -DEMAND_GOLD_MAGNITUDE_STEP
+		var amount_min = int(magnitude.get("amount_min", 1))
+		var new_amount = max(amount_min, int(magnitude.get("amount", 0)) + step)
+		if new_amount == int(magnitude.get("amount", 0)):
+			return
+		extra["amount"] = new_amount
+	elif field == "turns":
+		var turn_step = 1 if direction == "+" else -1
+		var new_turns = clampi(
+			int(magnitude.get("turns", 0)) + turn_step,
+			int(magnitude.get("turns_min", 1)),
+			int(magnitude.get("turns_max", 20)),
+		)
+		if new_turns == int(magnitude.get("turns", 0)):
+			return
+		extra["turns"] = new_turns
+	else:
+		return
+	_fire_line_action(row, line_index, "set_magnitude_action", extra)
+
+
+func _emit_settlement_action(action: String, payload: Dictionary):
+	# Same contract as _on_settlement_tier2_affordance: hide, emit, and let
+	# main.gd route the structured payload through
+	# send_dialogue_response_with_params; the backend re-mounts the popup on
+	# success AND on failure (the CH-5 re-attach + error_display invariant).
+	if action == "":
+		return
+	_clear_buttons()
+	hide()
+	choice_made.emit(action, payload)
 
 
 func _build_settlement_scope_replace_content(data: Dictionary) -> String:

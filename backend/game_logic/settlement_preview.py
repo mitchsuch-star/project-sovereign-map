@@ -33,6 +33,7 @@ from backend.game_logic.diplomatic_templates import (
     calculate_raw_treaty_harshness,
     calculate_treaty_harshness,
     resolve_multi_court_settlement_voice,
+    resolve_named_diplomat,
     resolve_settlement_voice_line,
 )
 from backend.game_logic.settlement_scoring import (
@@ -3247,6 +3248,34 @@ def _demand_hard_stop_reason(court: str) -> str:
     )
 
 
+def _acceptance_component_breakdown(
+    components: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """REFRONT-9 (Guided Terms OQ-5 / GT-A4) — the full component table for
+    one court's score, display-ready for the expanded per-court row.
+
+    Derived from the scorer's already-computed ``components`` map (free data
+    — no extra score pass; the focus trigger stays presentation-only).
+    Ordered by absolute magnitude descending (the biggest factors first),
+    tie-broken by component name for determinism (Golden Rule #6). All
+    values ``int()`` (Golden Rule #2).
+    """
+    rows: List[Dict[str, Any]] = []
+    for component, value in (components or {}).items():
+        try:
+            value_int = int(value)
+        except (TypeError, ValueError):
+            continue
+        rows.append({
+            "component": str(component),
+            "value": value_int,
+            "component_display": acceptance_component_display(str(component)),
+            "value_display": f"{value_int:+d}",
+        })
+    rows.sort(key=lambda r: (-abs(r["value"]), r["component"]))
+    return rows
+
+
 def _guided_magnitude_meta(clause_type: str, amount: int, turns: Optional[int]) -> Dict[str, int]:
     """Magnitude metadata for a gold line/suggestion — the bounds the
     `settlement_demand_set_magnitude` verb enforces, exposed so the row
@@ -3440,8 +3469,10 @@ def _court_demand_suggestions(
 
     ``income_cache`` memoizes the per-payer net-income estimate (§4 — one
     estimate per payer per preview, reused across options). All numerics
-    ``int()`` (Golden Rule #2). Plain functional `reason_display` copy —
-    the in-character register pass is GT-Slice-V's.
+    ``int()`` (Golden Rule #2). ``reason_display`` resolves through the
+    committed ``settlement_guided_reason_*_talleyrand`` voice families
+    (GT-Slice-V — the bilateral "I suggest Silesia — {reason}" beat in
+    Talleyrand's register; Voice Bible §16.1a).
     """
     if not proposer_leader:
         return []
@@ -3466,10 +3497,12 @@ def _court_demand_suggestions(
         region_obj = (getattr(world, "regions", None) or {}).get(region)
         adjacent = getattr(region_obj, "adjacent_regions", None) or []
         is_border = any(adj in proposer_holdings for adj in adjacent)
-        reason = (
-            f"{region} borders our positions — {court} cannot hold it."
+        reason = resolve_settlement_voice_line(
+            "settlement_guided_reason_territory_demand_border_talleyrand"
             if is_border
-            else f"{region} is the lightest holding {court} can yield."
+            else "settlement_guided_reason_territory_demand_yield_talleyrand",
+            region=region,
+            court=court,
         )
         demand_group.append(_guided_suggestion(
             label=f"Take {region} from {court}",
@@ -3492,8 +3525,10 @@ def _court_demand_suggestions(
             label=f"Demand {int(gold_demand_default)} gold from {court}",
             group="demand",
             clause_type="gold_indemnity",
-            reason_display=(
-                f"{court}'s treasury can bear {int(gold_demand_default)} gold."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_gold_demand_talleyrand",
+                court=court,
+                amount=int(gold_demand_default),
             ),
             court=court,
             war_id=war_id,
@@ -3518,9 +3553,11 @@ def _court_demand_suggestions(
             ),
             group="demand",
             clause_type="gold_per_turn",
-            reason_display=(
-                f"A tribute of {amount} gold a turn for {turns} turns sits "
-                f"within {court}'s means."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_recurring_demand_talleyrand",
+                court=court,
+                amount=amount,
+                turns=turns,
             ),
             court=court,
             war_id=war_id,
@@ -3540,9 +3577,10 @@ def _court_demand_suggestions(
             label=f"Vassalize {court}",
             group="demand",
             clause_type="vassalage",
-            reason_display=(
-                f"{court} stands at {power_pct}% of our strength — they can "
-                "be brought under our crown."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_vassalage_talleyrand",
+                court=court,
+                power_pct=power_pct,
             ),
             court=court,
             war_id=war_id,
@@ -3561,9 +3599,10 @@ def _court_demand_suggestions(
             label=f"Subjugate {court}",
             group="demand",
             clause_type="subjugation",
-            reason_display=(
-                f"Outmatched at {power_pct}% of our strength, {court} can be "
-                "made to kneel."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_subjugation_talleyrand",
+                court=court,
+                power_pct=power_pct,
             ),
             court=court,
             war_id=war_id,
@@ -3580,9 +3619,9 @@ def _court_demand_suggestions(
             label=f"Force {court} into alliance",
             group="demand",
             clause_type="forced_alliance",
-            reason_display=(
-                f"Bind {court} to our cause — their arms march with us, "
-                "not the coalition."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_forced_alliance_talleyrand",
+                court=court,
             ),
             court=court,
             war_id=war_id,
@@ -3612,9 +3651,10 @@ def _court_demand_suggestions(
             label=f"Free {court}'s vassal {vassal}",
             group="demand",
             clause_type="liberation",
-            reason_display=(
-                f"Freeing {vassal} strips {court} of a vassal and shortens "
-                "their reach."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_liberation_talleyrand",
+                court=court,
+                vassal=vassal,
             ),
             court=court,
             war_id=war_id,
@@ -3634,9 +3674,10 @@ def _court_demand_suggestions(
             label=f"Offer {int(gold_offer_default)} gold to {court}",
             group="offer",
             clause_type="gold_indemnity",
-            reason_display=(
-                f"A sweetener of {int(gold_offer_default)} gold softens "
-                f"{court}'s resolve at no cost in land."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_gold_offer_talleyrand",
+                court=court,
+                amount=int(gold_offer_default),
             ),
             court=court,
             war_id=war_id,
@@ -3658,9 +3699,10 @@ def _court_demand_suggestions(
             label=f"Offer {region} to {court}",
             group="offer",
             clause_type="territory_cede",
-            reason_display=(
-                f"Ceding {region} buys {court}'s signature without touching "
-                "our heartland."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_territory_offer_talleyrand",
+                court=court,
+                region=region,
             ),
             court=court,
             war_id=war_id,
@@ -3682,9 +3724,11 @@ def _court_demand_suggestions(
             label=f"Offer {court} {amount} gold a turn for {turns} turns",
             group="offer",
             clause_type="gold_per_turn",
-            reason_display=(
-                f"A pension of {amount} gold a turn for {turns} turns "
-                f"spreads the cost of {court}'s peace."
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_recurring_offer_talleyrand",
+                court=court,
+                amount=amount,
+                turns=turns,
             ),
             court=court,
             war_id=war_id,
@@ -3817,6 +3861,9 @@ def compute_per_court_acceptance(
                 ),
                 "previous_band": previous_bands.get(court),
                 "delta_display": None,
+                # REFRONT-9: a hard-stopped court has no score pass, so it
+                # has no component table to expand.
+                "component_breakdown": [],
                 "hard_stops": [
                     {"reason": HARD_STOP_NO_DIRECT_WAR_SCORE, "enemy": court}
                 ],
@@ -3870,6 +3917,13 @@ def compute_per_court_acceptance(
             ),
             "previous_band": previous_band,
             "delta_display": delta_display,
+            # REFRONT-9 (Guided Terms OQ-5 / GT-A4): the full component
+            # table for the expanded per-court row — derived from the score
+            # pass already in hand, so the focus trigger stays
+            # presentation-only (no re-score on expand).
+            "component_breakdown": _acceptance_component_breakdown(
+                result.get("components") or {},
+            ),
             "hard_stops": hard_stops,
         })
         if not court_passes:
@@ -3903,6 +3957,7 @@ def _redial_settlement_terms(
     direction: str,
     proposer_side_leader: Optional[str],
     protected_notes: Optional[List[str]] = None,
+    seeded_events: Optional[List[Dict[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
     the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
@@ -4028,11 +4083,18 @@ def _redial_settlement_terms(
                     "type": "gold_indemnity", "from": court, "to": leader,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
                 })
+                seed_group = "demand"
             else:
                 out.append({
                     "type": "gold_indemnity", "from": leader, "to": court,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
                 })
+                seed_group = "offer"
+            if seeded_events is not None:
+                # GT-Slice-V / DC-4: the dial handler needs to know the seed
+                # fired (and in which arm) so a demand seeded on a court that
+                # is beating France gets Talleyrand's guard line.
+                seeded_events.append({"court": court, "group": seed_group})
     return out
 
 
@@ -4169,10 +4231,12 @@ def _settlement_budget_bound_recommendation(
       Pressburg logic: buy the peace you can afford and let the dearest
       enemy fight on.
 
-    Advice only — the player clicks; nothing here mutates the draft. The
-    in-character register extension of the voice family is GT-Slice-V's;
+    Advice only — the player clicks; nothing here mutates the draft.
     ``recommendation_display`` is plain UI guidance (the carry-hint
-    register). All numerics ``int()``.
+    register); ``recommendation_voice`` is the GT-Slice-V in-character
+    extension of ``settlement_budget_bound_constraint_talleyrand``
+    (Voice Bible §16.1a), resolved from the same computed allocation.
+    All numerics ``int()``.
     """
     if not (budget_bound_constraint or {}).get("budget_bound"):
         return {}
@@ -4227,15 +4291,28 @@ def _settlement_budget_bound_recommendation(
             f"cheapest signature{'s' if len(concentrate) > 1 else ''} still "
             f"within reach — and set {set_aside_court} aside; they fight on."
         )
+        recommendation_voice = resolve_settlement_voice_line(
+            "settlement_budget_bound_recommendation_talleyrand",
+            concentrate_names=_join_court_names(concentrate),
+            set_aside_court=set_aside_court,
+        )
     elif concentrate:
         recommendation_display = (
             f"Concentrate the gold on {_join_court_names(concentrate)} — the "
             "cheapest signatures still within reach."
         )
+        recommendation_voice = resolve_settlement_voice_line(
+            "settlement_budget_bound_recommendation_concentrate_only_talleyrand",
+            concentrate_names=_join_court_names(concentrate),
+        )
     else:
         recommendation_display = (
             "No gold we hold can buy these signatures. Set "
             f"{set_aside_court} aside; they fight on."
+        )
+        recommendation_voice = resolve_settlement_voice_line(
+            "settlement_budget_bound_recommendation_set_aside_only_talleyrand",
+            set_aside_court=set_aside_court,
         )
     return {
         "budget_bound": True,
@@ -4244,6 +4321,7 @@ def _settlement_budget_bound_recommendation(
         "concentrate_courts": concentrate,
         "set_aside_court": set_aside_court,
         "recommendation_display": recommendation_display,
+        "recommendation_voice": recommendation_voice,
     }
 
 
@@ -4438,7 +4516,12 @@ def _restage_settlement_after_redraw(
         "message": message,
         "suppress_proposal_result_popup": True,
     }
-    for key in ("ignored_participants", "remaining_wars", "focused_court"):
+    for key in (
+        "ignored_participants",
+        "remaining_wars",
+        "focused_court",
+        "authoring_voice_beats",
+    ):
         if extra and key in extra:
             result[key] = extra[key]
     return result
@@ -6187,8 +6270,17 @@ def build_settlement_confirm_dialogue(
         # Re-front Slice-G boundary: the dial/coverage affordances are
         # player-only. A non-player (AI/system) caller never gets the
         # one-click Ease/Drop routes, mirroring the `can_edit_terms` gate.
+        # UX-2 (GT-Slice-3, server half): REVIEW is a staged-decision
+        # surface — terms frozen, dials gone — so the per-row authoring
+        # affordances attach on PROPOSE only (absent buttons by
+        # construction; the blocked-REVIEW rail's `Return to terms` is the
+        # route back to shaping).
         court_holdout_actions: List[Dict[str, Any]] = []
-        if is_holdout and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
+        if (
+            is_holdout
+            and dialogue_mode == "PROPOSE"
+            and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+        ):
             court_holdout_actions.append({
                 "label": f"Ease {court}",
                 "action": "settlement_dial_generous",
@@ -6228,7 +6320,11 @@ def build_settlement_confirm_dialogue(
         # toward acceptance, so it gets none.
         is_dialable = row.get("total") is not None and not row.get("hard_stops")
         dial_actions: List[Dict[str, Any]] = []
-        if is_dialable and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
+        if (
+            is_dialable
+            and dialogue_mode == "PROPOSE"
+            and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+        ):
             dial_actions.append({
                 "label": f"Press {court}",
                 "action": "settlement_dial_harsher",
@@ -6433,6 +6529,28 @@ def build_settlement_confirm_dialogue(
         if budget_bound_constraint.get("budget_bound")
         else ""
     )
+    # Guided Terms §8 OQ-6 (GT-A2): the deterministic cheapest-signature
+    # recommendation, computed ONCE here so the payload block and the
+    # GT-Slice-V advisory voice share one allocation pass.
+    budget_bound_recommendation = (
+        _settlement_budget_bound_recommendation(
+            world,
+            proposer_leader=guided_proposer_leader,
+            per_court_acceptance=per_court_acceptance,
+            budget_bound_constraint=budget_bound_constraint,
+            settlement_terms=staged_terms_for_gate,
+        )
+        if budget_bound_constraint.get("budget_bound")
+        else {}
+    )
+    if budget_bound_voice and budget_bound_recommendation.get("recommendation_voice"):
+        # GT-Slice-V — the OQ-6 recommendation extends the binding-constraint
+        # line in the advisory slot: Talleyrand names the constraint, then the
+        # computed allocation (advice only; the player clicks).
+        budget_bound_voice = " ".join([
+            budget_bound_voice,
+            str(budget_bound_recommendation["recommendation_voice"]),
+        ])
     sc5r_editor_route = (
         _build_settlement_editor_route(
             war_id=war_id,
@@ -6525,17 +6643,9 @@ def build_settlement_confirm_dialogue(
         # recommendation for a budget-bound losing table — rank concede
         # holdouts by gap, concentrate the pool on coverable gaps, name the
         # most expensive holdout as the Drop. Advice only; the player clicks.
-        "budget_bound_recommendation": (
-            _settlement_budget_bound_recommendation(
-                world,
-                proposer_leader=guided_proposer_leader,
-                per_court_acceptance=per_court_acceptance,
-                budget_bound_constraint=budget_bound_constraint,
-                settlement_terms=staged_terms_for_gate,
-            )
-            if budget_bound_constraint.get("budget_bound")
-            else {}
-        ),
+        # Computed once above; its GT-Slice-V `recommendation_voice` extends
+        # the binding-constraint advisory line.
+        "budget_bound_recommendation": budget_bound_recommendation,
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
@@ -8702,12 +8812,14 @@ def _handle_settlement_tier2_action(
                 "suppress_proposal_result_popup": True,
             }
         protected_notes: List[str] = []
+        seeded_events: List[Dict[str, str]] = []
         new_terms = _redial_settlement_terms(
             terms=terms,
             scope_courts=scope_courts,
             direction=direction,
             proposer_side_leader=proposer_leader,
             protected_notes=protected_notes,
+            seeded_events=seeded_events,
         )
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope
@@ -8716,6 +8828,29 @@ def _handle_settlement_tier2_action(
             # §3.5: a protected player-authored line is never invisible — the
             # skip/floor is named in the dial's own response message.
             message = " ".join([message, *protected_notes])
+        # GT-Slice-V / DC-4 (D5): the focused-Harsher seed can author a
+        # demand on a court that is beating France (press-past-zero — legal
+        # agency; the scorer prices it). Talleyrand no longer authors it
+        # wordlessly: the guard line rides the restaged dialogue exactly as
+        # it does on the explicit demand-group add.
+        direction_by_court = {
+            str(r.get("nation") or ""): str(r.get("direction") or "")
+            for r in (dialogue.get("per_court_acceptance") or [])
+            if isinstance(r, Mapping)
+        }
+        voice_beats: List[Dict[str, str]] = [
+            {
+                "kind": "talleyrand_caution",
+                "speaker": "Talleyrand",
+                "nation": str(event.get("court") or ""),
+                "line": resolve_settlement_voice_line(
+                    "settlement_demand_on_concede_court_caution_talleyrand",
+                ),
+            }
+            for event in seeded_events
+            if event.get("group") == "demand"
+            and direction_by_court.get(str(event.get("court") or "")) == "concede"
+        ]
         return _restage_settlement_after_redraw(
             world,
             dialogue,
@@ -8723,6 +8858,7 @@ def _handle_settlement_tier2_action(
             new_terms=new_terms,
             new_covered=covered,
             message=message,
+            extra={"authoring_voice_beats": voice_beats} if voice_beats else None,
         )
 
     # settlement_cover_add / settlement_cover_drop
@@ -9298,13 +9434,46 @@ def _handle_settlement_demand_action(
     clause["authored_by"] = "player"
     new_terms = [dict(t) for t in terms] + [clause]
     arm = "Demanded" if group == "demand" else "Offered"
+    # GT-Slice-V — authoring voice beats ride the restaged dialogue:
+    # the DC-4 guard line when a demand lands on a court that is beating
+    # France (D5 press-past-zero stays legal; Talleyrand prices it), and
+    # the affected court's named-diplomat reaction (§16.1a resolver rule —
+    # named envoy via `resolve_named_diplomat`, chancery fallback, never
+    # an anonymous beat).
+    clause_label = _demand_clause_label(clause)
+    voice_beats: List[Dict[str, str]] = []
+    if group == "demand" and direction == "concede":
+        voice_beats.append({
+            "kind": "talleyrand_caution",
+            "speaker": "Talleyrand",
+            "nation": court,
+            "line": resolve_settlement_voice_line(
+                "settlement_demand_on_concede_court_caution_talleyrand",
+            ),
+        })
+    reaction_speaker = resolve_named_diplomat("envoy", court, world)
+    voice_beats.append({
+        "kind": "court_reaction",
+        "speaker": reaction_speaker,
+        "nation": court,
+        "line": resolve_settlement_voice_line(
+            "settlement_multi_court_demand_received"
+            if group == "demand"
+            else "settlement_multi_court_offer_received",
+            speaker=reaction_speaker,
+            court=court,
+            demand_label=clause_label,
+            offer_label=clause_label,
+        ),
+    })
     return _restage_settlement_after_redraw(
         world,
         dialogue,
         action=action,
         new_terms=new_terms,
         new_covered=covered,
-        message=f"{arm} {_demand_clause_label(clause)}.",
+        message=f"{arm} {clause_label}.",
+        extra={"authoring_voice_beats": voice_beats},
     )
 
 
