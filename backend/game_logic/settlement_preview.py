@@ -43,6 +43,8 @@ from backend.game_logic.settlement_scoring import (
     CLAUSE_CONTROL_SCHEMA,
     compute_direct_scores_by_enemy,
     compute_side_pressure_score,
+    CONCESSION_GOLD_CAP,
+    CONCESSION_GOLD_DIVISOR,
     GOLD_PER_TURN_MAX_TURNS,
     GOLD_PER_TURN_MIN_AMOUNT,
     GOLD_PER_TURN_MIN_TURNS,
@@ -1557,6 +1559,110 @@ def _guided_region_offer_candidate(
     return str(region or "")
 
 
+# Guided Terms §4 — the `gold_per_turn` PRE-FILL horizon. The live recurring
+# preset (`_compute_recurring_gold_preset`) drafts 3 turns by default; the
+# guided suggestion uses the same opening horizon, clamped to the validator
+# bounds.
+_GOLD_PER_TURN_PREFILL_TURNS = 3
+
+
+def _payer_net_income_estimate(world: Any, payer: str) -> int:
+    """Per-turn net income estimate via the CACHED ``get_nation_regions``
+    lookup (Golden Rule #8 — the validator's `_estimate_payer_net_income_per_turn`
+    scans every region, which is fine once per restage but not per court per
+    suggestion build). Same semantics: sum of `get_effective_income()` over
+    the payer's controlled regions, clamped at 0. Falls back to the
+    full-scan estimator for thin world stubs without the cached helper.
+    """
+    regions = getattr(world, "regions", None) or {}
+    names: Optional[List[str]] = None
+    if hasattr(world, "get_nation_regions"):
+        try:
+            names = list(world.get_nation_regions(payer))
+        except Exception:
+            names = None
+    if names is None:
+        return _estimate_payer_net_income_per_turn(world, payer)
+    income = 0
+    for name in names:
+        region = regions.get(name) if isinstance(regions, Mapping) else None
+        if region is None:
+            continue
+        try:
+            income += int(region.get_effective_income())
+        except Exception:
+            continue
+    return max(0, int(income))
+
+
+def _gold_per_turn_prefill(
+    world: Any,
+    *,
+    payer: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    income_per_turn: int,
+    cap_total: Optional[int] = None,
+) -> Optional[Dict[str, int]]:
+    """Guided Terms §4 — the capacity-bounded ``gold_per_turn`` pre-fill.
+
+    Capacity rule (mirrors `_check_gold_payment_budget_conflict`):
+    ``capacity = current_gold + max(0, net_income) × turns``, NET of the
+    payer's existing `recurring_settlement_payments` obligations AND the
+    gold the payer already owes inside the staged package (lump at face
+    value, recurring at amount × turns). Conservative by construction: the
+    horizon is the pre-fill's own ``turns`` (the validator widens capacity
+    to the longest recurring clause in the package, so a pre-fill that fits
+    this tighter bound always validates).
+
+    The rate caps at `SETTLEMENT_DIAL_GOLD_STEP` (the live per-click gold
+    step — a sane opening rate, never an absurd auto-drafted tribute) and
+    must clear `GOLD_PER_TURN_MIN_AMOUNT`; ``cap_total`` (the §3.4 shared-
+    treasury ``remaining``, for France-paid offers) bounds the TOTAL
+    obligation. Returns ``{"amount", "turns"}`` (both int) or ``None`` when
+    no valid pre-fill exists — the suggestion is then simply not offered
+    (valid-by-construction: ineligible options never render).
+    """
+    payer = str(payer or "")
+    if not payer:
+        return None
+    turns = max(
+        GOLD_PER_TURN_MIN_TURNS,
+        min(GOLD_PER_TURN_MAX_TURNS, _GOLD_PER_TURN_PREFILL_TURNS),
+    )
+    current_gold = _concession_baseline_payer_balance(world, payer)
+    capacity = current_gold + max(0, int(income_per_turn)) * turns
+    existing = 0
+    for entry in getattr(world, "recurring_settlement_payments", None) or []:
+        if not isinstance(entry, Mapping):
+            continue
+        if str(entry.get("from") or "") != payer:
+            continue
+        existing += int(entry.get("amount_per_turn", 0) or 0) * int(
+            entry.get("turns_remaining", 0) or 0
+        )
+    staged = 0
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if str(term.get("from") or "") != payer:
+            continue
+        ttype = str(term.get("type") or "")
+        amount = int(term.get("amount", 0) or 0)
+        if amount <= 0:
+            continue
+        if ttype in ("gold_indemnity", "gold_lump"):
+            staged += amount
+        elif ttype == "gold_per_turn":
+            staged += amount * max(0, int(term.get("turns", 0) or 0))
+    budget = capacity - existing - staged
+    if cap_total is not None:
+        budget = min(budget, int(cap_total))
+    rate = min(int(SETTLEMENT_DIAL_GOLD_STEP), budget // turns)
+    if rate < GOLD_PER_TURN_MIN_AMOUNT:
+        return None
+    return {"amount": int(rate), "turns": int(turns)}
+
+
 def _concession_baseline_bfs_distance(
     world: Any,
     *,
@@ -1605,14 +1711,14 @@ def _concession_baseline_bfs_distance(
     return None
 
 
-def _concession_baseline_select_transferable_region(
+def _concession_baseline_transferable_candidates(
     world: Any,
     *,
     proposer_side_participants: Iterable[str],
     accepting_leader: str,
     excluded_regions: Optional[Iterable[str]] = None,
-) -> Optional[str]:
-    """Pick the deterministic concession region per the spec algorithm.
+) -> List[str]:
+    """Ranked list of concession-region candidates per the spec algorithm.
 
     Sort key: (BFS distance from `NATION_CAPITALS[accepting_leader]` when
     reachable inside `CONCESSION_BASELINE_BFS_MAX_DEPTH`, else a sentinel
@@ -1627,6 +1733,10 @@ def _concession_baseline_select_transferable_region(
     multi-court concession baseline can never double-promise one region
     (V1 ``region_double_promised``).
 
+    Guided Terms §8 OQ-1: the per-court rows render the FULL valid set as
+    a dropdown, so this returns the whole ranked pool; the single-pick
+    selector below takes the head.
+
     Historical home lookup goes through `region.get_starting_controllers()`
     rather than `region.starting_controller` because the Region class
     stores the starting controller only in the module-level
@@ -1635,13 +1745,13 @@ def _concession_baseline_select_transferable_region(
     """
     proposer_set = {str(n) for n in proposer_side_participants if n}
     if not proposer_set:
-        return None
+        return []
     from backend.models.region import NATION_CAPITALS, get_starting_controllers
 
     target_region = NATION_CAPITALS.get(accepting_leader)
     regions = getattr(world, "regions", None)
     if not isinstance(regions, Mapping):
-        return None
+        return []
     starting_controllers = get_starting_controllers()
 
     # Golden Rule 8: iterate per-participant via the cached
@@ -1691,10 +1801,26 @@ def _concession_baseline_select_transferable_region(
             distance = unreachable_sentinel
         income_value = int(getattr(region, "income_value", 100) or 100)
         candidates.append((distance, income_value, str(name)))
-    if not candidates:
-        return None
     candidates.sort()
-    return candidates[0][2]
+    return [name for _, _, name in candidates]
+
+
+def _concession_baseline_select_transferable_region(
+    world: Any,
+    *,
+    proposer_side_participants: Iterable[str],
+    accepting_leader: str,
+    excluded_regions: Optional[Iterable[str]] = None,
+) -> Optional[str]:
+    """Pick the deterministic concession region — the head of the ranked
+    candidate pool (see `_concession_baseline_transferable_candidates`)."""
+    candidates = _concession_baseline_transferable_candidates(
+        world,
+        proposer_side_participants=proposer_side_participants,
+        accepting_leader=accepting_leader,
+        excluded_regions=excluded_regions,
+    )
+    return candidates[0] if candidates else None
 
 
 def _format_concession_reasoning(
@@ -2352,14 +2478,14 @@ def _compute_concession_baseline(
     }
 
 
-def _demand_baseline_select_region(
+def _demand_baseline_region_candidates(
     world: Any,
     *,
     court: str,
     proposer_side_participants: Iterable[str],
     excluded_regions: Optional[Iterable[str]] = None,
-) -> Optional[str]:
-    """Pick the deterministic demand region a winning court would cede.
+) -> List[str]:
+    """Ranked list of demand-region candidates a winning court would cede.
 
     Mirrors the bilateral demand-stage selection in
     ``generate_suggested_terms`` (border regions the enemy holds adjacent to
@@ -2367,14 +2493,19 @@ def _demand_baseline_select_region(
     ``diplomatic_templates.py`` stage 2b). The court keeps its capital; a
     border province changes hands. Deterministic tie-break is (income value
     low-first, region name) so the baseline regenerates identically across
-    reruns. Falls back to any non-capital region the court controls when no
-    border province exists, and returns None when the court holds only its
-    capital (no transferable region).
+    reruns. The border pool takes precedence — non-border holdings appear
+    only when NO border province exists (the same either/or the single-pick
+    selector always had, so head-of-list semantics are unchanged). Empty
+    when the court holds only its capital (no transferable region).
 
     ``excluded_regions`` (Guided Terms §3.4, mirroring the concede-side
     selector's PF-1 param): regions already promised elsewhere in the
     staged package are ineligible, so a guided demand default can never
     double-promise a region (table-scoped V1).
+
+    Guided Terms §8 OQ-1: the per-court rows render the FULL valid set as
+    a dropdown, so this returns the whole ranked pool; the single-pick
+    selector below takes the head.
 
     Golden Rule #8: holdings come from the cached
     ``world.get_nation_regions(...)`` lookups, not a full ``world.regions``
@@ -2382,7 +2513,7 @@ def _demand_baseline_select_region(
     """
     regions = getattr(world, "regions", None)
     if not isinstance(regions, Mapping):
-        return None
+        return []
     from backend.models.region import NATION_CAPITALS
 
     excluded = {str(r) for r in (excluded_regions or []) if r}
@@ -2392,7 +2523,7 @@ def _demand_baseline_select_region(
     except Exception:
         court_regions = []
     if not court_regions:
-        return None
+        return []
     proposer_holdings: set[str] = set()
     for participant in proposer_side_participants:
         if not participant:
@@ -2419,10 +2550,26 @@ def _demand_baseline_select_region(
         if any(adj in proposer_holdings for adj in adjacent):
             border.append((income_value, str(rname)))
     pool = border or fallback
-    if not pool:
-        return None
     pool.sort()
-    return pool[0][1]
+    return [name for _, name in pool]
+
+
+def _demand_baseline_select_region(
+    world: Any,
+    *,
+    court: str,
+    proposer_side_participants: Iterable[str],
+    excluded_regions: Optional[Iterable[str]] = None,
+) -> Optional[str]:
+    """Pick the deterministic demand region — the head of the ranked
+    candidate pool (see `_demand_baseline_region_candidates`)."""
+    candidates = _demand_baseline_region_candidates(
+        world,
+        court=court,
+        proposer_side_participants=proposer_side_participants,
+        excluded_regions=excluded_regions,
+    )
+    return candidates[0] if candidates else None
 
 
 def _score_court_for_baseline(
@@ -3080,6 +3227,480 @@ def _court_direction_summary(
     return "White peace"
 
 
+# ---------------------------------------------------------------------------
+# Guided Terms GT-Slice-2 — per-court suggestion payload (spec §3/§4/§9)
+# ---------------------------------------------------------------------------
+
+# §3.1 / §3.3 — the two row-authoring refusal reasons, shared verbatim
+# between the GT-Slice-1 add verb (server-side rejection) and the GT-Slice-2
+# row payload (pre-click disabled state) so the copy can never drift.
+_DEMAND_CLAUSE_CAP_REASON = (
+    "The settlement already carries eight clauses, Sire — remove "
+    "one before adding another."
+)
+
+
+def _demand_hard_stop_reason(court: str) -> str:
+    return (
+        f"No terms can move {court} while no live war score binds "
+        "them, Sire — set that court aside instead."
+    )
+
+
+def _guided_magnitude_meta(clause_type: str, amount: int, turns: Optional[int]) -> Dict[str, int]:
+    """Magnitude metadata for a gold line/suggestion — the bounds the
+    `settlement_demand_set_magnitude` verb enforces, exposed so the row
+    control renders valid ranges instead of discovering them by rejection."""
+    meta: Dict[str, int] = {
+        "amount": int(amount),
+        "amount_min": int(
+            GOLD_PER_TURN_MIN_AMOUNT if clause_type == "gold_per_turn" else 1
+        ),
+    }
+    if clause_type == "gold_per_turn":
+        meta["turns"] = int(turns or 0)
+        meta["turns_min"] = int(GOLD_PER_TURN_MIN_TURNS)
+        meta["turns_max"] = int(GOLD_PER_TURN_MAX_TURNS)
+    return meta
+
+
+def _guided_line_display(term: Mapping[str, Any], court: str) -> Tuple[str, str]:
+    """One staged clause as a per-court row line: ``(direction_tag,
+    line_display)`` per spec §3.1, reusing the cleanup-spec direction-tag
+    vocabulary (`Demanded` / `Conceded` / `Mutual`)."""
+    ttype = str(term.get("type") or "")
+    frm = str(term.get("from") or "")
+    amount = int(term.get("amount", 0) or 0)
+    if ttype == "liberation":
+        return "Demanded", f"Free {term.get('vassal_nation')}"
+    if frm == court:
+        tag = "Demanded"
+    elif str(term.get("to") or "") == court:
+        tag = "Conceded"
+    else:
+        tag = "Mutual"
+    if ttype == "territory_cede":
+        display = (
+            f"Cede {term.get('region')}"
+            if frm == court
+            else f"{frm} cedes {term.get('region')}"
+        )
+    elif ttype in ("gold_indemnity", "gold_lump"):
+        display = f"{amount} gold" if frm == court else f"{frm} pays {amount} gold"
+    elif ttype == "gold_per_turn":
+        turns = int(term.get("turns", 0) or 0)
+        display = (
+            f"{amount} gold a turn for {turns} turns"
+            if frm == court
+            else f"{frm} pays {amount} gold a turn for {turns} turns"
+        )
+    elif ttype == "vassalage":
+        display = "Vassalage"
+    elif ttype == "subjugation":
+        display = "Subjugation"
+    elif ttype == "forced_alliance":
+        display = "Forced alliance" + (
+            " (Continental System)" if term.get("includes_continental_system") else ""
+        )
+    else:
+        display = ttype.replace("_", " ") or "Clause"
+    return tag, display
+
+
+def _court_current_demand_lines(
+    court: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    *,
+    war_id: str,
+    draft_key: str,
+) -> List[Dict[str, Any]]:
+    """Guided Terms §3.1 — ``current_demands[]`` for one covered court row.
+
+    Each staged clause touching the court renders as a plain line with
+    magnitude metadata and the per-line mutation affordances, carrying the
+    EXACT ``action_params`` the GT-Slice-1 verbs accept (``clause_index`` +
+    ``expected_type`` — the stale-click guard). The shared ``peace`` clause
+    is not a line (it is the package, not a demand); liberation lands on
+    the LORD court's row (the §4 mapping authors it there).
+    """
+    lines: List[Dict[str, Any]] = []
+    for idx, term in enumerate(settlement_terms or []):
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        if ttype == "peace":
+            continue
+        touches = court in (
+            str(term.get("from") or ""), str(term.get("to") or "")
+        ) or (
+            ttype == "liberation"
+            and str(term.get("lord_nation") or "") == court
+        )
+        if not touches:
+            continue
+        direction_tag, line_display = _guided_line_display(term, court)
+        entry: Dict[str, Any] = {
+            "clause_index": int(idx),
+            "clause_type": ttype,
+            "direction_tag": direction_tag,
+            "line_display": line_display,
+            "authored_by": str(term.get("authored_by") or ""),
+            "magnitude": None,
+            "remove_action": {
+                "action": "settlement_demand_remove",
+                "war_id": war_id,
+                "draft_key": draft_key,
+                "action_params": {
+                    "clause_index": int(idx),
+                    "expected_type": ttype,
+                },
+            },
+            "set_magnitude_action": None,
+        }
+        if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            entry["magnitude"] = _guided_magnitude_meta(
+                ttype,
+                int(term.get("amount", 0) or 0),
+                int(term.get("turns", 0) or 0) if ttype == "gold_per_turn" else None,
+            )
+            entry["set_magnitude_action"] = {
+                "action": "settlement_demand_set_magnitude",
+                "war_id": war_id,
+                "draft_key": draft_key,
+                "action_params": {
+                    "clause_index": int(idx),
+                    "expected_type": ttype,
+                },
+            }
+        lines.append(entry)
+    return lines
+
+
+def _guided_suggestion(
+    *,
+    label: str,
+    group: str,
+    clause_type: str,
+    reason_display: str,
+    court: str,
+    war_id: str,
+    draft_key: str,
+    params: Dict[str, Any],
+    **extra: Any,
+) -> Dict[str, Any]:
+    """One ``demand_suggestions[]`` entry. ``action_params`` is the exact
+    payload the GT-Slice-1 add verb accepts — direction is fixed per option
+    by ``group`` + the court (D3/D4); no identity field ever crosses the
+    transport, so France/France is structurally impossible."""
+    suggestion: Dict[str, Any] = {
+        "label": label,
+        "group": group,
+        "clause_type": clause_type,
+        "reason_display": reason_display,
+        "action": "settlement_demand_add",
+        "war_id": war_id,
+        "draft_key": draft_key,
+        "action_params": {
+            "nation": court,
+            "group": group,
+            "clause_type": clause_type,
+            **params,
+        },
+    }
+    suggestion.update(extra)
+    return suggestion
+
+
+def _court_demand_suggestions(
+    world: Any,
+    *,
+    court: str,
+    direction: str,
+    war_id: str,
+    draft_key: str,
+    war_instance: Mapping[str, Any],
+    proposer_side_participants: List[str],
+    proposer_holdings: Set[str],
+    proposer_leader: str,
+    settlement_terms: List[Mapping[str, Any]],
+    promised_regions: Set[str],
+    treasury_remaining: int,
+    income_cache: Dict[str, int],
+) -> List[Dict[str, Any]]:
+    """Guided Terms §3.1/§3.2/§4 — ``demand_suggestions[]`` for one court row.
+
+    Both option groups per D4 (demands: court → France; offers/sweeteners:
+    France → court), the court's direction choosing which group LEADS the
+    list (§3.3 — a losing court leads with offers; the dead-band offers
+    both unexpanded). Every option is fully formed, eligibility-gated, and
+    TABLE-scoped valid-by-construction (§3.4): gold defaults cap at the
+    shared-treasury ``remaining``, region candidates exclude promised
+    regions, dependency/liberation options run their live eligibility
+    evaluators before rendering. Ineligible options simply do not appear.
+
+    ``income_cache`` memoizes the per-payer net-income estimate (§4 — one
+    estimate per payer per preview, reused across options). All numerics
+    ``int()`` (Golden Rule #2). Plain functional `reason_display` copy —
+    the in-character register pass is GT-Slice-V's.
+    """
+    if not proposer_leader:
+        return []
+
+    def _income(payer: str) -> int:
+        if payer not in income_cache:
+            income_cache[payer] = _payer_net_income_estimate(world, payer)
+        return int(income_cache[payer])
+
+    demand_group: List[Dict[str, Any]] = []
+    offer_group: List[Dict[str, Any]] = []
+
+    # --- Demand group (court → France), §4 listing order -----------------
+    demand_regions = _demand_baseline_region_candidates(
+        world,
+        court=court,
+        proposer_side_participants=proposer_side_participants,
+        excluded_regions=promised_regions,
+    )
+    if demand_regions:
+        region = demand_regions[0]
+        region_obj = (getattr(world, "regions", None) or {}).get(region)
+        adjacent = getattr(region_obj, "adjacent_regions", None) or []
+        is_border = any(adj in proposer_holdings for adj in adjacent)
+        reason = (
+            f"{region} borders our positions — {court} cannot hold it."
+            if is_border
+            else f"{region} is the lightest holding {court} can yield."
+        )
+        demand_group.append(_guided_suggestion(
+            label=f"Take {region} from {court}",
+            group="demand",
+            clause_type="territory_cede",
+            reason_display=reason,
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"region": region},
+            region_options=[str(r) for r in demand_regions],
+        ))
+    court_balance = _concession_baseline_payer_balance(world, court)
+    gold_demand_default = min(
+        court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
+        CONCESSION_BASELINE_GOLD_FLOOR,
+    )
+    if gold_demand_default > 0:
+        demand_group.append(_guided_suggestion(
+            label=f"Demand {int(gold_demand_default)} gold from {court}",
+            group="demand",
+            clause_type="gold_indemnity",
+            reason_display=(
+                f"{court}'s treasury can bear {int(gold_demand_default)} gold."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"amount": int(gold_demand_default)},
+            magnitude=_guided_magnitude_meta(
+                "gold_indemnity", int(gold_demand_default), None
+            ),
+        ))
+    recurring_demand = _gold_per_turn_prefill(
+        world,
+        payer=court,
+        settlement_terms=settlement_terms,
+        income_per_turn=_income(court),
+    )
+    if recurring_demand:
+        amount = int(recurring_demand["amount"])
+        turns = int(recurring_demand["turns"])
+        demand_group.append(_guided_suggestion(
+            label=(
+                f"Demand {amount} gold a turn from {court} for {turns} turns"
+            ),
+            group="demand",
+            clause_type="gold_per_turn",
+            reason_display=(
+                f"A tribute of {amount} gold a turn for {turns} turns sits "
+                f"within {court}'s means."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"amount": amount, "turns": turns},
+            magnitude=_guided_magnitude_meta("gold_per_turn", amount, turns),
+        ))
+    vassalage_eligibility = evaluate_vassalage_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=proposer_leader,
+        target_nation=court,
+    )
+    if vassalage_eligibility.get("eligible"):
+        power_pct = int(vassalage_eligibility.get("power_pct", 0) or 0)
+        demand_group.append(_guided_suggestion(
+            label=f"Vassalize {court}",
+            group="demand",
+            clause_type="vassalage",
+            reason_display=(
+                f"{court} stands at {power_pct}% of our strength — they can "
+                "be brought under our crown."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={},
+        ))
+    subjugation_eligibility = evaluate_subjugation_eligibility(
+        world,
+        war_instance=war_instance,
+        lord_nation=proposer_leader,
+        target_nation=court,
+    )
+    if subjugation_eligibility.get("eligible"):
+        power_pct = int(subjugation_eligibility.get("power_pct", 0) or 0)
+        demand_group.append(_guided_suggestion(
+            label=f"Subjugate {court}",
+            group="demand",
+            clause_type="subjugation",
+            reason_display=(
+                f"Outmatched at {power_pct}% of our strength, {court} can be "
+                "made to kneel."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={},
+        ))
+    already_allied = False
+    try:
+        already_allied = bool(world.are_allies(proposer_leader, court))
+    except Exception:
+        already_allied = False
+    if not already_allied:
+        demand_group.append(_guided_suggestion(
+            label=f"Force {court} into alliance",
+            group="demand",
+            clause_type="forced_alliance",
+            reason_display=(
+                f"Bind {court} to our cause — their arms march with us, "
+                "not the coalition."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={},
+            supports_continental_system=True,
+        ))
+    vassals = getattr(world, "vassals", {}) or {}
+    court_vassals = sorted(
+        str(v) for v, s in vassals.items()
+        if isinstance(s, Mapping)
+        and str(s.get("lord") or s.get("lord_nation") or "") == court
+    )
+    eligible_vassals = [
+        v for v in court_vassals
+        if evaluate_liberation_eligibility(
+            world,
+            war_instance=war_instance,
+            vassal_nation=v,
+            lord_nation=court,
+            liberator=proposer_leader,
+        ).get("eligible")
+    ]
+    if eligible_vassals:
+        vassal = eligible_vassals[0]
+        demand_group.append(_guided_suggestion(
+            label=f"Free {court}'s vassal {vassal}",
+            group="demand",
+            clause_type="liberation",
+            reason_display=(
+                f"Freeing {vassal} strips {court} of a vassal and shortens "
+                "their reach."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"vassal_nation": vassal},
+            vassal_options=list(eligible_vassals),
+        ))
+
+    # --- Offer group (France → court), the D4 sweetener lever ------------
+    gold_offer_default = _guided_gold_offer_default(
+        world,
+        proposer_side_leader=proposer_leader,
+        settlement_terms=settlement_terms,
+    )
+    if gold_offer_default > 0:
+        offer_group.append(_guided_suggestion(
+            label=f"Offer {int(gold_offer_default)} gold to {court}",
+            group="offer",
+            clause_type="gold_indemnity",
+            reason_display=(
+                f"A sweetener of {int(gold_offer_default)} gold softens "
+                f"{court}'s resolve at no cost in land."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"amount": int(gold_offer_default)},
+            magnitude=_guided_magnitude_meta(
+                "gold_indemnity", int(gold_offer_default), None
+            ),
+        ))
+    offer_regions = _concession_baseline_transferable_candidates(
+        world,
+        proposer_side_participants=proposer_side_participants,
+        accepting_leader=court,
+        excluded_regions=promised_regions,
+    )
+    if offer_regions:
+        region = offer_regions[0]
+        offer_group.append(_guided_suggestion(
+            label=f"Offer {region} to {court}",
+            group="offer",
+            clause_type="territory_cede",
+            reason_display=(
+                f"Ceding {region} buys {court}'s signature without touching "
+                "our heartland."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"region": region},
+            region_options=[str(r) for r in offer_regions],
+        ))
+    recurring_offer = _gold_per_turn_prefill(
+        world,
+        payer=proposer_leader,
+        settlement_terms=settlement_terms,
+        income_per_turn=_income(proposer_leader),
+        cap_total=int(treasury_remaining),
+    )
+    if recurring_offer:
+        amount = int(recurring_offer["amount"])
+        turns = int(recurring_offer["turns"])
+        offer_group.append(_guided_suggestion(
+            label=f"Offer {court} {amount} gold a turn for {turns} turns",
+            group="offer",
+            clause_type="gold_per_turn",
+            reason_display=(
+                f"A pension of {amount} gold a turn for {turns} turns "
+                f"spreads the cost of {court}'s peace."
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"amount": amount, "turns": turns},
+            magnitude=_guided_magnitude_meta("gold_per_turn", amount, turns),
+        ))
+
+    # §3.3 — direction picks which group LEADS the flat list; the trailing
+    # group renders collapsed. The dead-band keeps the written §3.1 order
+    # (demands first) with neither pre-expanded (`lead_group` stays empty).
+    if direction == "concede":
+        return offer_group + demand_group
+    return demand_group + offer_group
+
+
 def compute_per_court_acceptance(
     world: Any,
     *,
@@ -3172,6 +3793,13 @@ def compute_per_court_acceptance(
         # consumers — the targeted-posture advisory, the budget-bound carry
         # hint — never recommend pressing a court France is losing to.
         direction = _court_direction_from_selection(selections[court])
+        # Guided Terms §8 OQ-6: each row carries the selected raw
+        # `direct_score` (the int half of the tuple-or-None contract) so
+        # the budget-bound recommendation can tie-break deterministically
+        # on `abs(direct_score)` without re-walking war scores. None on a
+        # hard-stop row (no cross-side pair selects a score).
+        selection = selections[court]
+        row_direct_score = int(selection[0]) if selection is not None else None
         if court not in scoreable:
             band = "reject"
             per_court.append({
@@ -3182,6 +3810,7 @@ def compute_per_court_acceptance(
                 "threshold": int(accept_threshold),
                 "verdict": "reject",
                 "direction": direction,
+                "direct_score": row_direct_score,
                 "top_blocker_display": acceptance_band_display(band),
                 "direction_summary": _court_direction_summary(
                     court, proposer_side_leader, terms,
@@ -3234,6 +3863,7 @@ def compute_per_court_acceptance(
             "threshold": int(accept_threshold),
             "verdict": result.get("verdict"),
             "direction": direction,
+            "direct_score": row_direct_score,
             "top_blocker_display": top_blocker,
             "direction_summary": _court_direction_summary(
                 court, proposer_side_leader, terms,
@@ -3508,6 +4138,113 @@ def _settlement_budget_bound_constraint(
     if _check_gold_payment_budget_conflict(world, probe_terms) is None:
         return {}
     return {"budget_bound": True, "concede_holdouts": concede_holdouts}
+
+
+def _settlement_budget_bound_recommendation(
+    world: Any,
+    *,
+    proposer_leader: str,
+    per_court_acceptance: Iterable[Mapping[str, Any]],
+    budget_bound_constraint: Mapping[str, Any],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Guided Terms §8 OQ-6 (GT-A2) — the deterministic cheapest-signature
+    allocation rule for a budget-bound losing table.
+
+    Triggered by the live PF-1 detector (`_settlement_budget_bound_constraint`
+    — the caller gates on its ``budget_bound``). Talleyrand's recommendation
+    is COMPUTED, never vibes (Golden Rule #6):
+
+    - Rank concede-direction holdouts by ``gap_to_threshold`` ascending
+      (cheapest signature first); tie-break by larger ``abs(direct_score)``,
+      then lexicographic court name.
+    - The allocation pool is what the proposer can pay while keeping the
+      treasury reserve (``treasury − reserve`` — i.e. committed gold the
+      player could re-direct plus the §3.4 ``remaining``).
+    - A gap is *coverable* when one concentrated gold offer can buy it at
+      the live scorer's credit rate: ``gold_needed = gap ×
+      CONCESSION_GOLD_DIVISOR``, bounded by the per-term credit cap
+      (``gap ≤ CONCESSION_GOLD_CAP``) and the pool walked cheapest-first.
+    - The most expensive holdout is named the court to SET ASIDE (Drop) —
+      Pressburg logic: buy the peace you can afford and let the dearest
+      enemy fight on.
+
+    Advice only — the player clicks; nothing here mutates the draft. The
+    in-character register extension of the voice family is GT-Slice-V's;
+    ``recommendation_display`` is plain UI guidance (the carry-hint
+    register). All numerics ``int()``.
+    """
+    if not (budget_bound_constraint or {}).get("budget_bound"):
+        return {}
+    rows_by_nation = {
+        str(row.get("nation") or ""): row
+        for row in (per_court_acceptance or [])
+        if isinstance(row, Mapping)
+    }
+    ranked: List[Dict[str, Any]] = []
+    for nation in budget_bound_constraint.get("concede_holdouts") or []:
+        row = rows_by_nation.get(str(nation)) or {}
+        total = row.get("total")
+        if total is None:
+            continue
+        threshold = int(row.get("threshold") or ACCEPTANCE_THRESHOLD)
+        gap = max(1, threshold - int(total))
+        direct_score = row.get("direct_score")
+        ranked.append({
+            "nation": str(nation),
+            "gap_to_threshold": int(gap),
+            "direct_score": int(direct_score) if direct_score is not None else 0,
+            "gold_needed": int(gap * CONCESSION_GOLD_DIVISOR),
+            "coverable": False,
+        })
+    if not ranked:
+        return {}
+    ranked.sort(key=lambda h: (
+        h["gap_to_threshold"], -abs(h["direct_score"]), h["nation"],
+    ))
+    treasury_line = compute_settlement_treasury_line(
+        world,
+        proposer_side_leader=proposer_leader,
+        settlement_terms=settlement_terms,
+    )
+    pool = max(0, int(treasury_line["treasury"]) - int(treasury_line["reserve"]))
+    pool_left = pool
+    concentrate: List[str] = []
+    for holdout in ranked:
+        if (
+            holdout["gap_to_threshold"] <= CONCESSION_GOLD_CAP
+            and holdout["gold_needed"] <= pool_left
+        ):
+            holdout["coverable"] = True
+            concentrate.append(holdout["nation"])
+            pool_left -= holdout["gold_needed"]
+    # Non-coverable courts are a suffix of the ascending rank (a bigger gap
+    # never costs less), so the most expensive holdout is the set-aside.
+    set_aside_court = ranked[-1]["nation"] if not ranked[-1]["coverable"] else ""
+    if concentrate and set_aside_court:
+        recommendation_display = (
+            f"Concentrate the gold on {_join_court_names(concentrate)} — the "
+            f"cheapest signature{'s' if len(concentrate) > 1 else ''} still "
+            f"within reach — and set {set_aside_court} aside; they fight on."
+        )
+    elif concentrate:
+        recommendation_display = (
+            f"Concentrate the gold on {_join_court_names(concentrate)} — the "
+            "cheapest signatures still within reach."
+        )
+    else:
+        recommendation_display = (
+            "No gold we hold can buy these signatures. Set "
+            f"{set_aside_court} aside; they fight on."
+        )
+    return {
+        "budget_bound": True,
+        "allocation_pool": int(pool),
+        "ranked_holdouts": ranked,
+        "concentrate_courts": concentrate,
+        "set_aside_court": set_aside_court,
+        "recommendation_display": recommendation_display,
+    }
 
 
 def _settlement_propose_carry_hint(
@@ -5400,6 +6137,48 @@ def build_settlement_confirm_dialogue(
     settlement_draft_key_for_options = compute_settlement_draft_key(
         war_id, resolved_target, covered,
     )
+    # Guided Terms §3.4 (GT-A1): ONE treasury-line computation per build,
+    # shared by the payload block, the per-court suggestion defaults, and
+    # the OQ-6 allocation pool. PROPOSE-only (the authoring surface).
+    guided_proposer_leader = str(leaders.get(proposer_side) or "")
+    guided_treasury_line: Dict[str, int] = (
+        compute_settlement_treasury_line(
+            world,
+            proposer_side_leader=guided_proposer_leader,
+            settlement_terms=staged_terms_for_gate,
+        )
+        if dialogue_mode == "PROPOSE"
+        else {}
+    )
+    # GT-Slice-2: per-court demand authoring payload — suggestions, current
+    # demand lines, and the row authoring state (§3.1/§3.3). PROPOSE + the
+    # player editor only (the Slice-G boundary; REVIEW is a frozen
+    # staged-decision surface, so its rows expose NO authoring affordances
+    # — UX-2's server half).
+    guided_authoring = (
+        dialogue_mode == "PROPOSE"
+        and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+    )
+    guided_promised_regions: Set[str] = set()
+    guided_proposer_participants: List[str] = []
+    guided_proposer_holdings: Set[str] = set()
+    guided_income_cache: Dict[str, int] = {}
+    guided_at_clause_cap = False
+    if guided_authoring:
+        guided_promised_regions = _promised_regions_in_terms(staged_terms_for_gate)
+        guided_proposer_participants = [
+            str(n) for n in (war_instance.get(proposer_side) or []) if n
+        ]
+        for participant in guided_proposer_participants:
+            try:
+                guided_proposer_holdings.update(
+                    str(r) for r in world.get_nation_regions(participant)
+                )
+            except Exception:
+                continue
+        guided_at_clause_cap = (
+            len(staged_terms_for_gate) >= MAX_SETTLEMENT_CLAUSE_COUNT
+        )
     holdout_set = {str(n) for n in holdout_courts}
     for row in per_court_acceptance:
         court = str(row.get("nation") or "")
@@ -5470,6 +6249,62 @@ def build_settlement_confirm_dialogue(
                     "description": f"Ease {court} — applies to this court only.",
                 })
         row["dial_actions"] = dial_actions
+        # GT-Slice-2 (Guided Terms §3.1/§3.3): the per-court authoring
+        # payload. Four row states: a hard-stopped court exposes NO
+        # authoring (Drop only — no clause can move a total=null court); a
+        # capped table disables ADD with the shared §3.1 reason but keeps
+        # the current lines (Remove is the way back UNDER the cap); live
+        # courts get both suggestion groups with the direction-led group
+        # first + their current demand lines with mutation affordances.
+        row_direction = str(row.get("direction") or "")
+        if not guided_authoring:
+            row["can_author"] = False
+            row["lead_group"] = ""
+            row["authoring_disabled_reason_display"] = ""
+            row["demand_suggestions"] = []
+            row["current_demands"] = []
+        elif row_direction == "hard_stop":
+            row["can_author"] = False
+            row["lead_group"] = ""
+            row["authoring_disabled_reason_display"] = _demand_hard_stop_reason(court)
+            row["demand_suggestions"] = []
+            row["current_demands"] = []
+        else:
+            lead_group = (
+                "offer" if row_direction == "concede"
+                else ("demand" if row_direction == "demand" else "")
+            )
+            row["lead_group"] = lead_group
+            row["current_demands"] = _court_current_demand_lines(
+                court,
+                staged_terms_for_gate,
+                war_id=war_id,
+                draft_key=settlement_draft_key_for_options,
+            )
+            if guided_at_clause_cap:
+                row["can_author"] = False
+                row["authoring_disabled_reason_display"] = _DEMAND_CLAUSE_CAP_REASON
+                row["demand_suggestions"] = []
+            else:
+                row["can_author"] = True
+                row["authoring_disabled_reason_display"] = ""
+                row["demand_suggestions"] = _court_demand_suggestions(
+                    world,
+                    court=court,
+                    direction=row_direction,
+                    war_id=war_id,
+                    draft_key=settlement_draft_key_for_options,
+                    war_instance=war_instance,
+                    proposer_side_participants=guided_proposer_participants,
+                    proposer_holdings=guided_proposer_holdings,
+                    proposer_leader=guided_proposer_leader,
+                    settlement_terms=staged_terms_for_gate,
+                    promised_regions=guided_promised_regions,
+                    treasury_remaining=int(
+                        guided_treasury_line.get("remaining", 0) or 0
+                    ),
+                    income_cache=guided_income_cache,
+                )
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front (Tiers 1-2): an authoring rail,
         # not a staged-decision rail. Adjust terms (-> EDIT/Tier 3), Submit for
@@ -5683,14 +6518,22 @@ def build_settlement_confirm_dialogue(
         # Guided Terms §3.4 (GT-A1): the shared-treasury allocation block —
         # one pool across every court's France-paid gold. PROPOSE-only (the
         # authoring surface); recomputed on every restage since it derives
-        # from the staged terms. All values int() (Golden Rule #2).
-        "treasury_line": (
-            compute_settlement_treasury_line(
+        # from the staged terms (computed ONCE above, shared with the
+        # suggestion defaults + OQ-6 pool). All values int() (Golden Rule #2).
+        "treasury_line": guided_treasury_line,
+        # Guided Terms §8 OQ-6 (GT-A2): the deterministic cheapest-signature
+        # recommendation for a budget-bound losing table — rank concede
+        # holdouts by gap, concentrate the pool on coverable gaps, name the
+        # most expensive holdout as the Drop. Advice only; the player clicks.
+        "budget_bound_recommendation": (
+            _settlement_budget_bound_recommendation(
                 world,
-                proposer_side_leader=str(leaders.get(proposer_side) or ""),
+                proposer_leader=guided_proposer_leader,
+                per_court_acceptance=per_court_acceptance,
+                budget_bound_constraint=budget_bound_constraint,
                 settlement_terms=staged_terms_for_gate,
             )
-            if dialogue_mode == "PROPOSE"
+            if budget_bound_constraint.get("budget_bound")
             else {}
         ),
         "war_id": war_id,
@@ -8211,12 +9054,9 @@ def _handle_settlement_demand_action(
         )
     if len(terms) >= MAX_SETTLEMENT_CLAUSE_COUNT:
         # §3.1 — mirror of the Slice-2 focused-seed fold: never author an
-        # over-cap draft for the restage validator to bounce.
-        return _fail(
-            "max_clause_count_exceeded",
-            "The settlement already carries eight clauses, Sire — remove "
-            "one before adding another.",
-        )
+        # over-cap draft for the restage validator to bounce. Copy shared
+        # with the GT-Slice-2 row payload's pre-click disabled state.
+        return _fail("max_clause_count_exceeded", _DEMAND_CLAUSE_CAP_REASON)
     direction = ""
     for row in dialogue.get("per_court_acceptance") or []:
         if isinstance(row, Mapping) and str(row.get("nation") or "") == court:
@@ -8224,11 +9064,10 @@ def _handle_settlement_demand_action(
             break
     if direction == "hard_stop":
         # §3.3 — no clause can move a `total=null` court; the scorer
-        # hard-stops it. The row exposes Drop only.
+        # hard-stops it. The row exposes Drop only. Copy shared with the
+        # GT-Slice-2 row payload's disabled state.
         return _fail(
-            "demand_court_hard_stopped",
-            f"No terms can move {court} while no live war score binds "
-            "them, Sire — set that court aside instead.",
+            "demand_court_hard_stopped", _demand_hard_stop_reason(court),
         )
     clause_type = str(action_params.get("clause_type") or "").strip()
     if clause_type not in _DEMAND_ADDABLE_CLAUSE_TYPES:
