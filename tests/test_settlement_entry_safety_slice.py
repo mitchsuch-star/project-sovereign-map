@@ -270,13 +270,13 @@ class TestWarStatusSettlementEligibility:
         world = _make_world()
         _install_multi_party_war(world, "war_1")
 
-        import backend.game_logic.settlement_preview as settlement_preview
+        import backend.game_logic.settlement_validation as settlement_validation
 
         def boom(*args, **kwargs):
             raise RuntimeError("probe failed")
 
         monkeypatch.setattr(
-            settlement_preview, "evaluate_open_settlement_eligibility", boom
+            settlement_validation, "evaluate_open_settlement_eligibility", boom
         )
         wars = build_active_wars(world)
         austria_row = next(

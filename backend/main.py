@@ -2446,6 +2446,8 @@ def post_diplomatic_preview_endpoint(request: dict):
     try:
         from backend.game_logic.settlement_preview import (
             build_settlement_preview,
+        )
+        from backend.game_logic.settlement_validation import (
             validate_settlement_terms,
         )
         actor = request.get("actor_nation") or getattr(world, "player_nation", "France")

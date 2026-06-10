@@ -9857,7 +9857,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             }
         elif settlement_war_id:
             try:
-                from backend.game_logic.settlement_preview import (
+                from backend.game_logic.settlement_validation import (
                     evaluate_open_settlement_eligibility,
                 )
                 settlement_eligibility = evaluate_open_settlement_eligibility(

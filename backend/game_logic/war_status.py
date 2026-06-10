@@ -485,7 +485,7 @@ def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
     instance = (getattr(world, "war_instances", None) or {}).get(war_id)
     if not instance or instance.get("ended_turn") is not None:
         return False
-    from backend.game_logic.settlement_preview import (
+    from backend.game_logic.settlement_validation import (
         is_common_settlement_worth_showing,
     )
 
@@ -530,7 +530,7 @@ def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:
     if not war_id:
         return _blocked("invalid_war_id", war_id=war_id)
     try:
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_validation import (
             evaluate_open_settlement_eligibility,
         )
         eligibility = evaluate_open_settlement_eligibility(
