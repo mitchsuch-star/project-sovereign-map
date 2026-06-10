@@ -9,6 +9,21 @@ def read_repo_file(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def read_settlement_package() -> str:
+    """Concatenated source of the settlement package (CH-1 split modules).
+
+    Backend contract pins assert the contract exists in the package; the
+    CH-1 extraction moves code between settlement_* modules without
+    changing behavior, so pins must not depend on which module holds it.
+    """
+    parts = []
+    for path in sorted(
+        (ROOT / "backend" / "game_logic").glob("settlement_*.py")
+    ):
+        parts.append(path.read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def gdscript_function_body(source: str, function_name: str) -> str:
     match = re.search(rf"^func {re.escape(function_name)}\([^\n]*\).*$", source, re.MULTILINE)
     assert match is not None, f"missing GDScript function {function_name}"
@@ -103,19 +118,19 @@ def test_war_status_and_ledger_do_not_depend_on_raw_settlement_labels() -> None:
 
 
 def test_backend_confirm_payload_carries_review_and_reopen_contract() -> None:
-    preview = read_repo_file("backend/game_logic/settlement_preview.py")
+    package = read_settlement_package()
     main = read_repo_file("backend/main.py")
 
-    assert "build_settlement_review" in preview
-    assert '"review_sections"' in preview
-    assert '"Ratify Settlement"' in preview
-    assert '"available_action_ids"' in preview
-    assert '"actions": ["confirm_settlement"' not in preview
-    assert '"reopen_target"' in preview
-    assert '"review_route"' in preview
-    assert '"settlement_result_feedback"' in preview
-    assert '"error_display"' in preview
-    assert '"disabled_reason_display"' in preview
+    assert "build_settlement_review" in package
+    assert '"review_sections"' in package
+    assert '"Ratify Settlement"' in package
+    assert '"available_action_ids"' in package
+    assert '"actions": ["confirm_settlement"' not in package
+    assert '"reopen_target"' in package
+    assert '"review_route"' in package
+    assert '"settlement_result_feedback"' in package
+    assert '"error_display"' in package
+    assert '"disabled_reason_display"' in package
     assert '"settlement_result_feedback"' in main
 
 

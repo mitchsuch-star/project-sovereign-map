@@ -2061,7 +2061,7 @@ class DiplomaticExecutor:
         # fields are removed with it). Opening a settlement always lands the
         # guided PROPOSE surface; REVIEW is reached only through the
         # `submit_settlement_for_review` dialogue action.
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_staging import (
             stage_settlement_confirm,
             load_scoped_settlement_draft,
         )
@@ -2121,7 +2121,7 @@ class DiplomaticExecutor:
                 if isinstance(t, dict)
             ]
             if staged_terms:
-                from backend.game_logic.settlement_preview import (
+                from backend.game_logic.settlement_staging import (
                     save_scoped_settlement_draft,
                 )
                 save_scoped_settlement_draft(
@@ -2193,7 +2193,7 @@ class DiplomaticExecutor:
                 ),
             }
         war_id = resolution["war_id"]
-        from backend.game_logic.settlement_preview import stage_settlement_confirm
+        from backend.game_logic.settlement_staging import stage_settlement_confirm
         selected_target = (
             cmd.get("selected_target_nation")
             or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")

@@ -2444,7 +2444,7 @@ def post_diplomatic_preview_endpoint(request: dict):
     if request.get("mode") != "settlement":
         return {"success": False, "error": "unsupported_preview_mode"}
     try:
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_staging import (
             build_settlement_preview,
         )
         from backend.game_logic.settlement_validation import (

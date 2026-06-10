@@ -937,7 +937,7 @@ class TestAuthorSurrenderTermsHandler:
         # click time and must refuse without consuming the draft.
         original_draft = list(dialogue.get("settlement_terms") or [])
         with patch(
-            "backend.game_logic.settlement_preview._compute_surrender_preset"
+            "backend.game_logic.settlement_staging._compute_surrender_preset"
         ) as mock_preset:
             mock_preset.return_value = {
                 "losing_for_surrender_preset": True,
