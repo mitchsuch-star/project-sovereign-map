@@ -2162,7 +2162,7 @@ def get_pending_envoy():
     every read so the badge / pending_envoy / mailbox surfaces stay
     consistent.
     """
-    from backend.game_logic.settlement_preview import (
+    from backend.game_logic.settlement_offers import (
         build_ally_settlement_petition_popup,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,
@@ -2217,7 +2217,7 @@ def get_mailbox():
     first-class mailbox rows. Save-loaded saves get promoted on first
     read so badge counts stay accurate across game sessions.
     """
-    from backend.game_logic.settlement_preview import (
+    from backend.game_logic.settlement_offers import (
         promote_pending_settlement_offers,
     )
 
@@ -2249,7 +2249,7 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     Save-loaded saves get promoted into the mailbox queue first so the
     selected `mailbox_id` resolves to a real dialogue.
     """
-    from backend.game_logic.settlement_preview import (
+    from backend.game_logic.settlement_offers import (
         build_ally_settlement_petition_popup,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,

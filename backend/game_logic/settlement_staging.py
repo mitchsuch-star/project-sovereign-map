@@ -2899,9 +2899,8 @@ def stage_settlement_confirm(
     if caller_kind == "player_editor":
         # Function-level import: the petition family lives in the offers layer
         # above staging (CH-1 documented lazy edge — the established
-        # settlement cycle-break pattern). Interim home is settlement_preview
-        # until the offers extraction lands.
-        from backend.game_logic.settlement_preview import (
+        # settlement cycle-break pattern).
+        from backend.game_logic.settlement_offers import (
             build_ally_settlement_petition_popup,
             queue_ally_settlement_petitions_for_player_action,
         )

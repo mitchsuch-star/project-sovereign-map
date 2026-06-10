@@ -2893,7 +2893,7 @@ class DiplomaticExecutor:
             "reject_settlement_offer",
             "request_settlement_revision",
         ):
-            from backend.game_logic.settlement_preview import (
+            from backend.game_logic.settlement_offers import (
                 handle_incoming_settlement_offer_action,
             )
             return handle_incoming_settlement_offer_action(
@@ -2901,7 +2901,7 @@ class DiplomaticExecutor:
             )
 
         elif action == "acknowledge_ally_settlement_petition":
-            from backend.game_logic.settlement_preview import (
+            from backend.game_logic.settlement_offers import (
                 handle_ally_settlement_petition_action,
             )
             return handle_ally_settlement_petition_action(

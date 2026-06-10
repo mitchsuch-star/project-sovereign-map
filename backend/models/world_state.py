@@ -5561,7 +5561,7 @@ class WorldState:
         # per golden rule 8.
         # ════════════════════════════════════════════════════════════
         if self.recurring_settlement_payments:
-            from backend.game_logic.settlement_preview import (
+            from backend.game_logic.settlement_offers import (
                 process_recurring_settlement_payments,
             )
             process_recurring_settlement_payments(self)

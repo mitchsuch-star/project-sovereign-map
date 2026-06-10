@@ -564,21 +564,22 @@ def test_settlement_offer_producer_is_the_only_backend_emitter_of_dialogue_liter
     `backend/game_logic/ai_diplomacy.py` may emit the
     `"type": "incoming_settlement_offer"` dialogue dict from the
     *producer* path. The consumer + popup-builder file
-    `settlement_preview.py` carries the same literal because
+    `settlement_offers.py` (CH-1 home of the incoming-offer family)
+    carries the same literal because
     `build_incoming_settlement_offer_popup` returns the popup view of
     an already-produced offer; that is a derivative payload, not a
     new producer.
 
     Allowed sites (both verified):
     - `backend/game_logic/ai_diplomacy.py` — canonical producer.
-    - `backend/game_logic/settlement_preview.py` — popup payload
+    - `backend/game_logic/settlement_offers.py` — popup payload
       builder for already-produced offers."""
     forbidden = ['"type": "incoming_settlement_offer"']
     forbidden += ["'type': 'incoming_settlement_offer'"]
     backend_dir = REPO_ROOT / "backend"
     allowed_paths = {
         backend_dir / "game_logic" / "ai_diplomacy.py",
-        backend_dir / "game_logic" / "settlement_preview.py",
+        backend_dir / "game_logic" / "settlement_offers.py",
     }
     offenders: list[str] = []
     for path in backend_dir.rglob("*.py"):
@@ -600,12 +601,13 @@ def test_settlement_offer_producer_is_the_only_backend_emitter_of_dialogue_liter
         encoding="utf-8"
     )
     assert '"type": "incoming_settlement_offer"' in canonical
-    # Popup builder is the documented secondary site.
-    preview = (backend_dir / "game_logic" / "settlement_preview.py").read_text(
+    # Popup builder is the documented secondary site (CH-1 home:
+    # settlement_offers.py).
+    offers = (backend_dir / "game_logic" / "settlement_offers.py").read_text(
         encoding="utf-8"
     )
-    assert '"type": "incoming_settlement_offer"' in preview
-    assert "build_incoming_settlement_offer_popup" in preview
+    assert '"type": "incoming_settlement_offer"' in offers
+    assert "build_incoming_settlement_offer_popup" in offers
 
 
 # ---------------------------------------------------------------------------

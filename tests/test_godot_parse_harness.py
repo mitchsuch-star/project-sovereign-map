@@ -221,7 +221,7 @@ def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
 
 def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
     handler_anchor = (
-        "from backend.game_logic.settlement_preview import (\n"
+        "from backend.game_logic.settlement_offers import (\n"
         "                handle_incoming_settlement_offer_action,\n"
         "            )"
     )
@@ -235,7 +235,7 @@ def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
 
 def _extract_executor_ally_petition_dispatch_actions(source: str) -> List[str]:
     handler_anchor = (
-        "from backend.game_logic.settlement_preview import (\n"
+        "from backend.game_logic.settlement_offers import (\n"
         "                handle_ally_settlement_petition_action,\n"
         "            )"
     )

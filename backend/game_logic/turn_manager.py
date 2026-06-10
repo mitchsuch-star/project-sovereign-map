@@ -414,7 +414,7 @@ class TurnManager:
         # inside the producer.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_offers import (
             promote_pending_settlement_offers,
         )
         from backend.notifications import (
