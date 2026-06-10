@@ -1,25 +1,22 @@
-"""SC-5R-2 Godot settlement editor + draft round-trip + active-vs-archived
-routing + incoming-offer label/copy alignment.
+"""Settlement draft round-trip + active-vs-archived routing + incoming-offer
+label/copy alignment (SC-5R-2 lineage, re-homed by GT-Slice-4).
 
-DWL-SET-SC5R-2 lands the player-facing surface that consumes the
-SC-5R-1 EDIT payload contract: the Godot `settlement_editor_popup`
-scene/script renders clause add/edit/remove controls, a covered-enemy
-picker, and a `Submit for Review` button that POSTs the structured
-`propose_common_peace` body the backend expects. `Back Out` keeps the
-scoped draft alive so the player can re-open Settlement and pick up
-where they left off. War-detail re-open of an active war routes back
-to the live review surface; a war that is no longer active in the
-HUD cache routes to the Diplomatic Ledger Treaties tab instead.
+GT-Slice-4 retired the SC-5R-2 freeform editor (scene, script, EDIT payload
+contract, structured Submit-for-Review POST). What this bundle still pins is
+the surviving draft-lifecycle contract on the GUIDED surface:
 
-The audit repair acceptance checklist also requires that incoming
-settlement offer action labels match behavior: `accept_settlement_offer`
-opens a staged review (not an immediate ratification), so the label
-must read `Review Settlement Offer` rather than `Accept Settlement`.
+- the scoped draft store round-trip: Back Out (`suspend_settlement_editor`)
+  preserves the scoped draft; reopening Settlement restores it (PF-2
+  war-scoped fallback) onto the guided PROPOSE surface;
+- Submit for Review is the `submit_settlement_for_review` dialogue action
+  (PROPOSE -> REVIEW), with no editor-mount flag anywhere;
+- war-detail re-open of an active war routes to the live surface; an
+  archived war routes to the Diplomatic Ledger Treaties tab instead;
+- incoming settlement offer action labels match behavior, and Request
+  Revision counter-authoring lands guided PROPOSE seeded from the offer.
 
-This test bundle pins the audited SC-5R-2 surfaces. It does not run a Godot scene
-graph (the headless harness is covered by `tools/godot_parse_report.json`);
-it inspects backend payloads + Godot source so the player-facing
-contract is enforceable from the Python suite.
+The editor scene/script source pins and EDIT-contract gates were deleted
+with the editor itself (spec §5 / §9 GT-Slice-4 editor-test disposition).
 """
 
 from __future__ import annotations
@@ -28,12 +25,9 @@ import re
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.settlement_preview import (
     build_incoming_settlement_offer_popup,
-    compute_settlement_draft_key,
     handle_incoming_settlement_offer_action,
     load_scoped_settlement_draft,
     save_scoped_settlement_draft,
@@ -44,10 +38,7 @@ from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_ins
 
 
 GODOT_ROOT = Path(__file__).resolve().parent.parent / "godot-client" / "project-sovereign"
-EDITOR_SCRIPT = GODOT_ROOT / "scripts" / "settlement_editor_popup.gd"
-EDITOR_SCENE = GODOT_ROOT / "scenes" / "settlement_editor_popup.tscn"
 MAIN_SCRIPT = GODOT_ROOT / "scripts" / "main.gd"
-POPUP_SCRIPT = GODOT_ROOT / "scripts" / "proposal_confirm_popup.gd"
 
 
 def _read_source(path: Path) -> str:
@@ -71,22 +62,6 @@ def _return_lines(function_body: str) -> list[str]:
         if stripped.startswith("return "):
             lines.append(stripped)
     return lines
-
-
-def _scene_node_block(scene_source: str, node_name: str) -> str:
-    match = re.search(
-        rf'(?ms)^\[node name="{re.escape(node_name)}" [^\]]+\]\n(.*?)(?=^\[node |\Z)',
-        scene_source,
-    )
-    assert match, f"scene missing node {node_name}"
-    return match.group(1)
-
-
-def _scene_node_text(scene_source: str, node_name: str) -> str:
-    block = _scene_node_block(scene_source, node_name)
-    match = re.search(r'(?m)^text = "([^"]*)"', block)
-    assert match, f"node {node_name} missing text property"
-    return match.group(1)
 
 
 def _install_common_peace_war(world: WorldState, *, war_score: int = 70) -> dict:
@@ -132,261 +107,16 @@ def _gold_indemnity_clause(amount: int = 200) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# A. Godot editor scene + script presence and structural pins
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-class TestGodotEditorPopupSource:
-    def test_settlement_editor_popup_script_exists(self):
-        """SC-5R-2 ships a dedicated editor script (`settlement_editor_popup.gd`)."""
-        assert EDITOR_SCRIPT.exists(), (
-            f"Missing Godot editor script at {EDITOR_SCRIPT}"
-        )
-
-    def test_settlement_editor_popup_scene_exists(self):
-        """SC-5R-2 ships a dedicated editor scene (`settlement_editor_popup.tscn`)."""
-        assert EDITOR_SCENE.exists(), (
-            f"Missing Godot editor scene at {EDITOR_SCENE}"
-        )
-
-    def test_editor_script_exposes_show_editor_entry_point(self):
-        """`show_editor(data)` is the canonical mount entry point."""
-        body = _function_body(EDITOR_SCRIPT, "show_editor")
-        assert body.startswith("func show_editor(data: Dictionary) -> bool")
-
-    def test_editor_script_exposes_submit_and_back_out_signals(self):
-        """The editor emits the SC-5R-2 action signals
-        so main.gd can forward them through the structured POST or
-        dialogue response endpoint without synthesizing commands."""
-        source = _read_source(EDITOR_SCRIPT)
-        signals = set(re.findall(r"(?m)^signal\s+([^(]+\([^)]*\))", source))
-        assert "submit_requested(payload: Dictionary)" in signals
-        assert "back_out_requested(payload: Dictionary)" in signals
-        assert "concession_baseline_requested(payload: Dictionary)" in signals
-
-    def test_editor_scene_renders_submit_for_review_action_label(self):
-        """SC-25 vocabulary scan: editor uses `Submit for Review`, not bare `Submit`."""
-        scene_source = _read_source(EDITOR_SCENE)
-        assert _scene_node_text(scene_source, "SubmitForReviewButton") == "Submit for Review"
-        # Bare "Submit" appears nowhere as a button label.
-        assert 'text = "Submit"' not in scene_source
-
-    def test_editor_scene_renders_back_out_action_label(self):
-        """Editor action rail exposes `Back Out` per spec line 590."""
-        scene_source = _read_source(EDITOR_SCENE)
-        assert _scene_node_text(scene_source, "BackOutButton") == "Back Out"
-
-    def test_editor_script_reads_clause_control_schema_for_picker_contents(self):
-        """`clause_control_schema` is the backend source of truth for picker
-        contents per spec line 554; the editor must consume it."""
-        body = _function_body(EDITOR_SCRIPT, "_render_clause_editor_fields")
-        assert 'clause_control_schema.get(ttype, {})' in body
-        assert 'schema.get("fields", {})' in body
-
-    def test_editor_script_reads_available_clause_types(self):
-        """`available_clause_types[]` gates Add Clause picker contents."""
-        body = _function_body(EDITOR_SCRIPT, "_populate_add_clause_selector")
-        assert "for ttype in available_clause_types:" in body
-        assert "add_clause_selector.set_item_metadata(idx, str(ttype))" in body
-
-    def test_editor_script_reads_editor_route_payload(self):
-        """The editor consumes the SC-5R-1 `editor_route` payload (war_id,
-        selected_target_nation, covered_enemy_participants, draft_key,
-        staged_settlement_terms)."""
-        show_body = _function_body(EDITOR_SCRIPT, "show_editor")
-        submit_body = _function_body(EDITOR_SCRIPT, "_on_submit_pressed")
-        for field in [
-            "editor_route",
-            "covered_enemy_participants",
-            "staged_settlement_terms",
-        ]:
-            assert field in show_body, f"show_editor must consume {field}"
-        for field in ["draft_key", "selected_target_nation"]:
-            assert field in submit_body, f"submit payload must echo {field}"
-
-    def test_editor_script_emits_propose_common_peace_payload_with_player_editor_caller_kind(
-        self,
-    ):
-        """Submit for Review POST body uses `action=propose_common_peace`
-        and `caller_kind=player_editor`."""
-        body = _function_body(EDITOR_SCRIPT, "_on_submit_pressed")
-        for key in [
-            '"action": "propose_common_peace"',
-            '"war_id"',
-            '"selected_target_nation"',
-            '"covered_enemy_participants"',
-            '"settlement_terms"',
-            '"draft_key"',
-            '"caller_kind": "player_editor"',
-        ]:
-            assert key in body
-
-    def test_editor_renders_concession_baseline_button_inside_edit_surface(self):
-        """The EDIT surface renders the concession baseline button but
-        asks the backend to revalidate the baseline at click time."""
-        source = _read_source(EDITOR_SCRIPT)
-        assert "Generate concession baseline (Talleyrand)" in source
-        assert "concession_baseline_visible" in source
-        assert "func _on_apply_concession_baseline_pressed()" in source
-        apply_body = _function_body(EDITOR_SCRIPT, "_on_apply_concession_baseline_pressed")
-        assert "concession_baseline_requested.emit(payload)" in apply_body
-        assert "settlement_terms = terms" not in apply_body
-        payload_body = _function_body(EDITOR_SCRIPT, "_baseline_request_payload")
-        assert '"action": "re_author_with_concessions"' in payload_body
-        assert '"caller_kind": "player_editor"' in payload_body
-
-    def test_editor_inline_submit_errors_render_in_status_panel(self):
-        """Backend submit errors remount as inline editor status text."""
-        show_body = _function_body(EDITOR_SCRIPT, "show_editor")
-        status_body = _function_body(EDITOR_SCRIPT, "_render_status")
-        assert 'data.get("editor_inline_error", "")' in show_body
-        assert "inline_error_text" in status_body
-        assert "COLOR_RED" in status_body
-
-    def test_editor_scene_layer_is_above_proposal_confirm_popup(self):
-        """The editor (layer 112) must render above the proposal_confirm
-        popup (layer 110) that launched it."""
-        scene_source = _read_source(EDITOR_SCENE)
-        assert "layer = 112" in _scene_node_block(scene_source, "SettlementEditorPopup")
-
-    def test_editor_scene_includes_clause_picker_and_submit_controls(self):
-        """The scene defines the AddClause selector, ClauseList, and
-        SubmitForReview button so the script can populate them at runtime."""
-        scene_source = _read_source(EDITOR_SCENE)
-        declared_nodes = set(re.findall(r'(?m)^\[node name="([^"]+)" ', scene_source))
-        for node in [
-            "AddClauseTypeSelector",
-            "AddClauseButton",
-            "ClauseList",
-            "SubmitForReviewButton",
-            "BackOutButton",
-            "CoveredEnemiesContainer",
-        ]:
-            assert node in declared_nodes, f"scene must declare node {node}"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# B. main.gd wires editor open + Submit + Back Out flow
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-class TestMainGdWiringForEditor:
-    def test_main_registers_settlement_editor_popup_with_dialog_manager(self):
-        """`main.gd::_ready` registers the editor with dialog_manager so
-        it participates in the modal taxonomy."""
-        ready_body = _function_body(MAIN_SCRIPT, "_ready")
-        assert (
-            'dialog_manager.register("settlement_editor", "res://scenes/settlement_editor_popup.tscn")'
-            in ready_body
-        )
-
-    def test_main_connects_editor_submit_and_back_out_signals(self):
-        """Editor signals are wired to the main response handlers."""
-        ready_body = _function_body(MAIN_SCRIPT, "_ready")
-        assert "submit_requested.connect(_on_settlement_editor_submit)" in ready_body
-        assert "back_out_requested.connect(_on_settlement_editor_back_out)" in ready_body
-        assert (
-            "concession_baseline_requested.connect(_on_settlement_editor_concession_baseline_requested)"
-            in ready_body
-        )
-
-    def test_main_intercepts_revise_terms_when_can_edit_terms_true(self):
-        """When the player clicks `Revise Terms` on a settlement_confirm
-        REVIEW dialogue with `can_edit_terms=true` and an `editor_route`,
-        main.gd opens the editor LOCALLY instead of round-tripping a
-        dialogue response (which would just re-stage the same REVIEW
-        per SC-2 today)."""
-        body = _function_body(MAIN_SCRIPT, "_on_proposal_confirm_choice")
-        revise_block = body.split('if action == "revise_settlement_terms":', 1)[1].split(
-            "# Send the raw action", 1,
-        )[0]
-        fallback_block = body.split("# Send the raw action", 1)[1]
-        assert (
-            'dtype == "settlement_confirm" and can_edit and editor_route_data is Dictionary '
-            "and editor_route_data.size() > 0"
-        ) in revise_block
-        assert "settlement_editor_popup.show_editor(data)" in revise_block
-        assert "api_client.send_dialogue_response(choice_index, _on_command_result)" in fallback_block
-        assert body.index("settlement_editor_popup.show_editor(data)") < body.index(
-            "api_client.send_dialogue_response(choice_index, _on_command_result)"
-        )
-
-    def test_main_submit_handler_posts_propose_common_peace_via_structured_command(self):
-        """Submit pushes through `send_structured_command` with the
-        editor's structured payload so the backend re-runs SC-1 POST
-        preview validation."""
-        body = _function_body(MAIN_SCRIPT, "_on_settlement_editor_submit")
-        assert body.startswith("func _on_settlement_editor_submit(payload: Dictionary)")
-        assert "_remember_settlement_editor_payload(payload)" in body
-        assert "api_client.send_structured_command(command, payload, _on_command_result)" in body
-
-    def test_main_routes_initial_open_editor_mount_before_review_popup(self):
-        """Initial Open Settlement / Request Revision responses carry
-        `open_editor_on_mount=true`; main.gd must mount EDIT before the
-        generic settlement_confirm REVIEW popup route can consume the response."""
-        configure_body = _function_body(MAIN_SCRIPT, "_configure_response_routes")
-        assert '"id": "settlement_editor"' in configure_body
-        assert configure_body.index('"id": "settlement_editor"') < configure_body.index(
-            '"id": "proposal_confirm"',
-        )
-        matcher = _function_body(MAIN_SCRIPT, "_response_has_settlement_editor_route")
-        router = _function_body(MAIN_SCRIPT, "_route_settlement_editor_response")
-        assert 'response.get("open_editor_on_mount", false)' in matcher
-        assert "_dialogue_can_open_settlement_editor" in matcher
-        assert "settlement_editor_popup.show_editor(dialogue)" in router
-
-    def test_main_remounts_editor_inline_on_submit_validation_errors(self):
-        """Submit-time editor errors stay inside the editor surface."""
-        body = _function_body(MAIN_SCRIPT, "_maybe_remount_settlement_editor_after_error")
-        for code in [
-            "empty_authored_draft",
-            "submitted_terms_failed_revalidation",
-            "same_war_merge_conflict",
-            "concession_baseline_unavailable",
-        ]:
-            assert code in body
-        assert "_remount_settlement_editor_with_error" in body
-
-    def test_main_concession_baseline_button_uses_dialogue_response_revalidation(self):
-        """The editor baseline button uses the real dialogue action path
-        so backend click-time revalidation stays authoritative."""
-        body = _function_body(MAIN_SCRIPT, "_on_settlement_editor_concession_baseline_requested")
-        assert "_settlement_dialogue_option_index(" in body
-        assert '"re_author_with_concessions"' in body
-        assert "_settlement_editor_pending_baseline_apply = true" in body
-        assert "api_client.send_dialogue_response(choice_index, _on_command_result)" in body
-        continuation = _function_body(MAIN_SCRIPT, "_maybe_continue_settlement_editor_baseline")
-        assert 'response.get("requires_replace_confirm", false)' in continuation
-        assert "api_client.send_dialogue_response(1, _on_command_result)" in continuation
-
-    def test_main_back_out_handler_preserves_draft(self):
-        """Back Out closes the editor and pops the staged settlement_confirm
-        hard-stop on the backend via the non-destructive
-        `suspend_settlement_editor` dialogue action, so the next command is
-        not held by the executor hard-stop gate. It must NOT send the
-        discard close (`back_out_settlement`) and must not call a scoped
-        discard helper — the backend keeps the draft alive under its
-        `draft_key`."""
-        body = _function_body(MAIN_SCRIPT, "_on_settlement_editor_back_out")
-        assert body.startswith("func _on_settlement_editor_back_out(payload: Dictionary)")
-        assert "Settlement draft kept for war" in body
-        assert "discard_scoped_settlement_draft" not in body
-        assert "back_out_settlement" not in body
-        # The fix: pop the staged hard-stop without discarding the draft.
-        assert 'send_dialogue_response("suspend_settlement_editor"' in body
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 # C. Backend draft round-trip via scoped draft_key
 # ═══════════════════════════════════════════════════════════════════════════
 
 
 class TestBackendDraftRoundTrip:
     def test_propose_common_peace_restores_scoped_draft_when_no_terms_passed(self):
-        """SC-5R-2 round-trip: a scoped draft saved on Submit is
-        restored on a subsequent `propose_common_peace` open without
-        explicit `settlement_terms`. The restored draft populates the
-        staged settlement_confirm REVIEW seeded with the prior clauses."""
+        """SC-5R-2 round-trip (GT-Slice-4 re-home): a scoped draft saved on
+        suspend is restored on a subsequent `propose_common_peace` open. The
+        restored draft seeds the staged guided PROPOSE surface with the
+        prior clauses."""
         world = WorldState()
         _install_common_peace_war(world)
         # Save a scoped draft via the canonical helper.
@@ -421,45 +151,6 @@ class TestBackendDraftRoundTrip:
         assert "peace" in types
         assert "gold_indemnity" in types
 
-    def test_propose_common_peace_with_explicit_terms_does_not_restore_scope(self):
-        """When the caller explicitly passes `settlement_terms`, the
-        scoped store is NOT consulted; the explicit terms win."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        save_scoped_settlement_draft(
-            world,
-            war_id="war_1",
-            selected_target_nation="Austria",
-            covered_enemy_participants=["Austria", "Prussia"],
-            settlement_terms=[{"type": "peace"}],
-        )
-        executor = DiplomaticExecutor(None)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            result = executor._execute_propose_common_peace(
-                {
-                    "action": "propose_common_peace",
-                    "target_nation": "Austria",
-                    "war_id": "war_1",
-                    "selected_target_nation": "Austria",
-                    "covered_enemy_participants": ["Austria", "Prussia"],
-                    "settlement_terms": [
-                        {"type": "peace"},
-                        _gold_indemnity_clause(250),
-                    ],
-                },
-                {"world": world},
-            )
-        assert result.get("success"), result
-        assert result.get("draft_restored_from_scope") is not True
-        staged = result.get("diplomatic_dialogue") or {}
-        terms = staged.get("settlement_terms") or []
-        # Explicit terms preserved verbatim; scoped draft was [{"type": "peace"}] only.
-        amounts = [int(t.get("amount", 0)) for t in terms if t.get("type") == "gold_indemnity"]
-        assert 250 in amounts
-
     def test_propose_common_peace_no_scoped_draft_lands_fresh_propose(self):
         """Re-front Slice 1: with no scoped draft, opening a settlement lands
         the conversational PROPOSE surface with a freshly generated baseline —
@@ -489,28 +180,49 @@ class TestBackendDraftRoundTrip:
         # The PROPOSE surface always carries the per-court acceptance block.
         assert staged.get("per_court_acceptance")
 
-    def test_propose_common_peace_submit_for_review_does_not_reopen_editor(self):
-        """Submit for Review returns REVIEW; it must not auto-mount EDIT again."""
+    def test_submit_for_review_from_guided_propose_lands_review_without_editor_mount(self):
+        """GT-Slice-4 migration of the old editor Submit-for-Review round
+        trip: the guided PROPOSE surface submits through the
+        `submit_settlement_for_review` dialogue action and lands the blocking
+        REVIEW carrying the staged terms verbatim — and no editor mount flag
+        exists anywhere in the response."""
+        from backend.game_logic.settlement_preview import (
+            handle_settlement_dialogue_action,
+        )
+
         world = WorldState()
         _install_common_peace_war(world)
-        executor = DiplomaticExecutor(None)
         with patch(
             "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
-            result = executor._execute_propose_common_peace(
-                {
-                    "action": "propose_common_peace",
-                    "target_nation": "Austria",
-                    "war_id": "war_1",
-                    "selected_target_nation": "Austria",
-                    "covered_enemy_participants": ["Austria", "Prussia"],
-                    "settlement_terms": [{"type": "peace"}, _gold_indemnity_clause(275)],
-                },
-                {"world": world},
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause(275)],
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+                dialogue_mode="PROPOSE",
+            )
+            propose_dialogue = staged["diplomatic_dialogue"]
+            assert propose_dialogue["dialogue_mode"] == "PROPOSE"
+            result = handle_settlement_dialogue_action(
+                world,
+                action="submit_settlement_for_review",
+                dialogue=propose_dialogue,
             )
         assert result.get("success"), result
-        assert result.get("open_editor_on_mount") is not True
+        assert "open_editor_on_mount" not in result
+        review = result.get("diplomatic_dialogue") or {}
+        assert review.get("dialogue_mode") == "REVIEW"
+        amounts = [
+            int(t.get("amount", 0))
+            for t in (review.get("settlement_terms") or [])
+            if t.get("type") == "gold_indemnity"
+        ]
+        assert 275 in amounts
 
     def test_scoped_draft_restore_is_war_scoped_with_target_preference(self):
         """PF-2 (Gate-4 pre-flight D4) supersedes the SC-5R-1 isolation pin:
@@ -742,9 +454,10 @@ class TestIncomingOfferLabelsMatchBehavior:
             "reject_settlement_offer",
         }
 
-    def test_request_revision_response_mounts_editor_directly(self):
-        """Request Revision is an explicit counter-editor action, so the
-        backend asks Godot to mount EDIT immediately."""
+    def test_request_revision_routes_to_guided_propose_seeded_from_offer(self):
+        """GT-Slice-4 (§5 re-point, OQ-4(b)): Request Revision lands the
+        guided PROPOSE surface seeded with the exact offered terms — no
+        editor mount — and the counter provenance is preserved."""
         world = WorldState()
         _install_common_peace_war(world)
         offer = self._make_offer(world)
@@ -758,81 +471,15 @@ class TestIncomingOfferLabelsMatchBehavior:
                 dialogue=offer,
             )
         assert result.get("success"), result
-        assert result.get("open_editor_on_mount") is True
+        assert "open_editor_on_mount" not in result
+        assert result.get("counter_to_offer_id") == offer["offer_id"]
+        assert result.get("counter_seed_terms") == offer["settlement_terms"]
         staged = result.get("diplomatic_dialogue") or {}
-        assert staged.get("can_edit_terms") is True
-        assert staged.get("editor_route", {}).get("surface") == "settlement_editor"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# F. Editor mount conditions match the SC-5R-1 EDIT payload contract
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-class TestEditorMountGatesMatchBackendContract:
-    def test_editor_mount_intercept_gated_on_can_edit_terms_true(self):
-        """main.gd refuses to mount the editor when `can_edit_terms=false`,
-        so AI-staged offers + legacy/typed callers fall through to the
-        regular dialogue response path (the same path SC-5R-1 still
-        owns)."""
-        source = _read_source(MAIN_SCRIPT)
-        # The intercept asserts can_edit_terms AND a non-empty editor_route.
-        intercept = source.split('if action == "revise_settlement_terms":', 1)[1].split(
-            "func", 1
-        )[0]
-        assert "can_edit_terms" in intercept
-        assert "editor_route" in intercept
-        assert "editor_route_data.size() > 0" in intercept
-
-    def test_editor_show_editor_self_gates_on_backend_edit_contract(self):
-        """The popup entry point refuses to mount unless the payload itself
-        carries `can_edit_terms=true` and a non-empty editor_route. This
-        protects non-main callers from handing AI/system/debug reviews to
-        the editor."""
-        body = _function_body(EDITOR_SCRIPT, "show_editor")
-        gate_prefix = body.split("current_data = data.duplicate(true)", 1)[0]
-        assert 'data.get("can_edit_terms", false)' in gate_prefix
-        assert "return false" in gate_prefix
-        assert "editor_route_data.size() == 0" in gate_prefix
-        assert body.rstrip().endswith("return true")
-
-    def test_proposal_confirm_popup_still_renders_settlement_review_when_editor_absent(
-        self,
-    ):
-        """The editor is additive. The existing settlement_confirm
-        review render in `proposal_confirm_popup.gd` is unchanged
-        when the editor is not mounted."""
-        source = POPUP_SCRIPT.read_text(encoding="utf-8")
-        assert "_build_settlement_content" in source
-
-    def test_can_edit_terms_propagates_to_editor_mount_payload(self):
-        """Backend payload carries can_edit_terms / editor_route /
-        available_clause_types / clause_control_schema so the Godot
-        editor can mount without an extra round trip."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is True
-        assert isinstance(dialogue.get("editor_route"), dict)
-        assert dialogue["editor_route"].get("surface") == "settlement_editor"
-        assert dialogue["editor_route"].get("draft_key") == compute_settlement_draft_key(
-            "war_1", "Austria", ["Austria", "Prussia"]
-        )
-        # The editor_route payload carries the staged terms verbatim so
-        # the editor can mount without a second POST preview.
-        staged_terms = dialogue["editor_route"].get("staged_settlement_terms") or []
-        types = [str(t.get("type", "")) for t in staged_terms]
-        assert "gold_indemnity" in types
+        assert staged.get("dialogue_mode") == "PROPOSE"
+        assert "can_edit_terms" not in staged
+        seeded_amounts = [
+            int(t.get("amount", 0))
+            for t in (staged.get("settlement_terms") or [])
+            if t.get("type") == "gold_indemnity"
+        ]
+        assert 150 in seeded_amounts

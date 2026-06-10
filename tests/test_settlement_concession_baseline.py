@@ -435,11 +435,14 @@ class TestClickTimeRevalidation:
         )
 
         assert result["success"] is True
-        assert result.get("open_editor_on_mount") is True
+        # GT-Slice-4 (§5 re-point): the concession baseline re-stages the
+        # guided PROPOSE surface — no editor mount flag, ever.
+        assert result.get("open_editor_on_mount") is None
         assert result["mutated"] is False
         assert world.nation_gold == gold_before
         refreshed = world.pending_diplomatic_dialogue
         assert refreshed["type"] == "settlement_confirm"
+        assert refreshed["dialogue_mode"] == "PROPOSE"
         assert refreshed["settlement_terms"]
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert "re_author_with_concessions" not in refreshed["available_action_ids"]
@@ -478,11 +481,14 @@ class TestClickTimeRevalidation:
         assert "Unknown dialogue action" not in str(result.get("message", ""))
         assert result["success"] is True
         assert result["action"] == "re_author_with_concessions"
-        assert result.get("open_editor_on_mount") is True
+        # GT-Slice-4 (§5 re-point): the rail action survives, but its
+        # destination is the guided PROPOSE surface, not an editor mount.
+        assert result.get("open_editor_on_mount") is None
         assert result["mutated"] is False
         assert world.nation_gold == gold_before
         refreshed = world.pending_diplomatic_dialogue
         assert refreshed["type"] == "settlement_confirm"
+        assert refreshed["dialogue_mode"] == "PROPOSE"
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert "re_author_with_concessions" not in refreshed["available_action_ids"]
         assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]

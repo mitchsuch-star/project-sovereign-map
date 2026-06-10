@@ -355,17 +355,18 @@ class TestSelectedTargetNationThreading:
         assert reopen.get("diagnostic_fallback_target") is True
         assert "error_display" in reopen
 
-    def test_executor_forwards_selected_target_to_staged_dialogue(self):
-        """SC-13: executor plumbs selected_target_nation through staging."""
+    def test_executor_threads_target_nation_as_selected_target(self):
+        """SC-13 (GT-Slice-4 re-home): the editor's `selected_target_nation`
+        command field is retired with the structured submit transport; the
+        executor threads `target_nation` into staging and the staged dialogue
+        resolves it as the selected target."""
         world = _make_world()
         _install_multi_party_war(world, "war_1")
         executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
         command = {
             "action": "propose_common_peace",
-            "target_nation": "Austria",
+            "target_nation": "Prussia",
             "war_id": "war_1",
-            "selected_target_nation": "Prussia",
-            "covered_enemy_participants": ["Prussia"],
         }
         result = executor._execute_propose_common_peace(command, {"world": world})
         assert result.get("success") is True

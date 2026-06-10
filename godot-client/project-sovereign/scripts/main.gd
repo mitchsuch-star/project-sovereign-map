@@ -38,10 +38,10 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"back_out_settlement",
 	# Re-front Slice 1 PROPOSE rail. `submit_settlement_for_review` round-trips
 	# so the backend re-stages the REVIEW surface for the per-court ratification
-	# gate. (`adjust_terms` is intentionally NOT whitelisted here: it is handled
-	# client-side in _on_proposal_confirm_choice — it mounts the Tier-3 editor
-	# and never round-trips — and the bilateral terms-guidance flow owns the
-	# backend `adjust_terms` action id.)
+	# gate. (GT-Slice-4: the settlement `adjust_terms` rail verb is retired with
+	# the freeform editor — the guided per-court rows are the deep tier. The
+	# bilateral terms-guidance flow still owns the backend `adjust_terms`
+	# action id and resolves through the option-index path.)
 	"submit_settlement_for_review",
 	# Re-front UX follow-up: a blocked REVIEW offers "Return to terms" to
 	# re-stage the conversational PROPOSE surface (round-trips, no params).
@@ -65,9 +65,9 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"settlement_demand_add",
 	"settlement_demand_remove",
 	"settlement_demand_set_magnitude",
-	# SC-5R-2 follow-up: the editor's non-destructive Back Out. Pops the
-	# staged settlement_confirm hard-stop while preserving the scoped draft
-	# (back_out_settlement discards; this suspend close does not).
+	# SC-5R-2 follow-up: the non-destructive Back Out on the PROPOSE
+	# authoring surface. Pops the staged settlement_confirm while preserving
+	# the scoped draft (back_out_settlement discards; this suspend does not).
 	"suspend_settlement_editor",
 	"open_war_detail",
 	"re_author_with_concessions",
@@ -178,15 +178,10 @@ var sabotage_discovery_popup = null
 # PL-23: talleyrand_redemption_popup removed (trust system deleted)
 var vassal_rebellion_popup = null
 var proposal_confirm_popup = null
-# SC-5R-2: dedicated EDIT-mode settlement editor popup. Mounted from the
-# settlement_confirm REVIEW popup when `can_edit_terms=true` + `editor_route`
-# carries an EDIT route; consumes `available_clause_types[]` +
-# `clause_control_schema`, and submits structured `propose_common_peace`
-# payloads with `caller_kind="player_editor"` and the scoped `draft_key`.
-var settlement_editor_popup = null
-var _last_settlement_editor_data: Dictionary = {}
-var _last_settlement_editor_payload: Dictionary = {}
-var _settlement_editor_pending_baseline_apply: bool = false
+# GT-Slice-4: the SC-5R EDIT-mode settlement editor popup is retired. The
+# guided per-court rows on the proposal_confirm PROPOSE surface are the deep
+# authoring tier; settlement failures re-attach the dialogue + error_display
+# (CH-5) and re-mount the proposal_confirm popup.
 
 # Commitment Paradox Popup (Deep Audit Session 8)
 var commitment_paradox_popup = null
@@ -301,18 +296,6 @@ func _ready():
 	proposal_confirm_popup = dialog_manager.register("proposal_confirm", "res://scenes/proposal_confirm_popup.tscn")
 	if proposal_confirm_popup:
 		proposal_confirm_popup.choice_made.connect(_on_proposal_confirm_choice)
-
-	# SC-5R-2: settlement editor popup. Layer 112 sits above the
-	# proposal_confirm popup (layer 110) so the editor renders over the
-	# REVIEW surface that launched it.
-	settlement_editor_popup = dialog_manager.register("settlement_editor", "res://scenes/settlement_editor_popup.tscn")
-	if settlement_editor_popup:
-		if settlement_editor_popup.has_signal("submit_requested"):
-			settlement_editor_popup.submit_requested.connect(_on_settlement_editor_submit)
-		if settlement_editor_popup.has_signal("back_out_requested"):
-			settlement_editor_popup.back_out_requested.connect(_on_settlement_editor_back_out)
-		if settlement_editor_popup.has_signal("concession_baseline_requested"):
-			settlement_editor_popup.concession_baseline_requested.connect(_on_settlement_editor_concession_baseline_requested)
 
 	talleyrand_objection_popup = dialog_manager.register("talleyrand_objection", "res://scenes/talleyrand_objection_popup.tscn")
 	if talleyrand_objection_popup:
@@ -839,7 +822,6 @@ func _configure_response_routes():
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
 		{"id": "incoming_settlement_offer", "matches": "_response_has_incoming_settlement_offer_route", "show": "_route_incoming_settlement_offer_response"},
-		{"id": "settlement_editor", "matches": "_response_has_settlement_editor_route", "show": "_route_settlement_editor_response"},
 		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
 		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
 		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
@@ -939,48 +921,12 @@ func _route_incoming_settlement_offer_response(response: Dictionary):
 		set_input_enabled(false)
 		proposal_confirm_popup.show_dialogue(dialogue)
 
-func _settlement_editor_dialogue_from_response(response: Dictionary) -> Dictionary:
-	var dialogue = response.get("diplomatic_dialogue", {})
-	if typeof(dialogue) == TYPE_DICTIONARY:
-		return dialogue
-	return {}
-
-func _dialogue_can_open_settlement_editor(dialogue: Dictionary) -> bool:
-	var dtype = str(dialogue.get("type", dialogue.get("dialogue_type", "")))
-	var editor_route_data = dialogue.get("editor_route", null)
-	return (
-		dtype == "settlement_confirm"
-		and bool(dialogue.get("can_edit_terms", false))
-		and editor_route_data is Dictionary
-		and editor_route_data.size() > 0
-	)
-
-func _response_has_settlement_editor_route(response: Dictionary) -> bool:
-	if settlement_editor_popup == null:
-		return false
-	if not bool(response.get("open_editor_on_mount", false)):
-		return false
-	return _dialogue_can_open_settlement_editor(_settlement_editor_dialogue_from_response(response))
-
-func _route_settlement_editor_response(response: Dictionary):
-	var dialogue = _settlement_editor_dialogue_from_response(response)
-	if dialogue.is_empty():
-		return
-	_last_settlement_editor_data = dialogue.duplicate(true)
-	_last_settlement_editor_payload = {}
-	if settlement_editor_popup.show_editor(dialogue):
-		set_input_enabled(false)
-	else:
-		_route_proposal_confirm_response(response)
-
 func _response_has_proposal_confirm_route(response: Dictionary) -> bool:
 	return response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null and proposal_confirm_popup != null
 
 func _route_proposal_confirm_response(response: Dictionary):
 	var dialogue = response.diplomatic_dialogue
 	var dtype = dialogue.get("type", "")
-	if dtype == "settlement_confirm":
-		_clear_settlement_editor_tracking()
 	if dtype not in PROPOSAL_CONFIRM_DIALOGUE_TYPES:
 		push_warning("Unknown diplomatic_dialogue dtype: '%s' - showing as popup (add to PROPOSAL_CONFIRM_DIALOGUE_TYPES)" % dtype)
 	# PF-1 (D3): a failed settlement action (blocked dial, coverage edit,
@@ -1047,110 +993,6 @@ func _route_redemption_response(response: Dictionary):
 		_display_result(response)
 	_show_redemption_dialog(response.redemption_event)
 
-func _clear_settlement_editor_tracking():
-	_last_settlement_editor_data = {}
-	_last_settlement_editor_payload = {}
-	_settlement_editor_pending_baseline_apply = false
-
-func _remember_settlement_editor_payload(payload: Dictionary):
-	_last_settlement_editor_payload = payload.duplicate(true)
-	var data = _last_settlement_editor_data.duplicate(true)
-	if data.is_empty():
-		data = {
-			"type": "settlement_confirm",
-			"dialogue_type": "settlement_confirm",
-			"can_edit_terms": true,
-		}
-	var route = data.get("editor_route", {})
-	if not (route is Dictionary):
-		route = {}
-	route["surface"] = "settlement_editor"
-	route["war_id"] = str(payload.get("war_id", route.get("war_id", "")))
-	route["selected_target_nation"] = str(payload.get("selected_target_nation", route.get("selected_target_nation", "")))
-	route["covered_enemy_participants"] = payload.get("covered_enemy_participants", route.get("covered_enemy_participants", []))
-	route["settlement_terms"] = payload.get("settlement_terms", route.get("settlement_terms", []))
-	route["staged_settlement_terms"] = payload.get("settlement_terms", route.get("staged_settlement_terms", []))
-	route["draft_key"] = str(payload.get("draft_key", route.get("draft_key", data.get("draft_key", ""))))
-	if not route.has("source"):
-		route["source"] = "explicit_revise"
-	data["editor_route"] = route
-	data["can_edit_terms"] = true
-	data["war_id"] = route["war_id"]
-	data["selected_target_nation"] = route["selected_target_nation"]
-	data["covered_enemy_participants"] = route["covered_enemy_participants"]
-	data["settlement_terms"] = payload.get("settlement_terms", [])
-	data["draft_key"] = route["draft_key"]
-	_last_settlement_editor_data = data
-
-func _settlement_editor_error_text(response: Dictionary) -> String:
-	var error_display = str(response.get("error_display", response.get("message", "")))
-	if error_display == "":
-		error_display = "The settlement draft needs correction before review."
-	var validation_detail = str(response.get("validation_detail", ""))
-	if validation_detail != "" and validation_detail != error_display:
-		error_display += "\n" + validation_detail
-	var validation_error = str(response.get("validation_error", ""))
-	if validation_error != "":
-		error_display += "\nValidation: " + validation_error.replace("_", " ")
-	return error_display
-
-func _settlement_dialogue_option_index(action: String, data: Dictionary) -> int:
-	var options = data.get("options", [])
-	if not (options is Array):
-		return -1
-	for i in range(options.size()):
-		var option = options[i]
-		if option is Dictionary and str(option.get("action", "")) == action:
-			return i + 1
-	return -1
-
-func _remount_settlement_editor_with_error(error_text: String, error_code: String = "") -> bool:
-	if settlement_editor_popup == null or _last_settlement_editor_data.is_empty():
-		return false
-	var data = _last_settlement_editor_data.duplicate(true)
-	data["editor_inline_error"] = error_text
-	data["editor_inline_error_code"] = error_code
-	if settlement_editor_popup.show_editor(data):
-		set_input_enabled(false)
-		return true
-	return false
-
-func _maybe_remount_settlement_editor_after_error(response: Dictionary) -> bool:
-	if bool(response.get("success", false)):
-		return false
-	if _last_settlement_editor_data.is_empty():
-		return false
-	var error_code = str(response.get("error", ""))
-	var validation_code = str(response.get("validation_error", ""))
-	var remount_codes = [
-		"empty_authored_draft",
-		"submitted_terms_failed_revalidation",
-		"same_war_merge_conflict",
-		"merge_conflict",
-		"concession_baseline_unavailable",
-		"settlement_replacement_failed_preview",
-	]
-	if error_code not in remount_codes and validation_code not in remount_codes:
-		return false
-	return _remount_settlement_editor_with_error(
-		_settlement_editor_error_text(response),
-		error_code if error_code != "" else validation_code,
-	)
-
-func _maybe_continue_settlement_editor_baseline(response: Dictionary) -> bool:
-	if not _settlement_editor_pending_baseline_apply:
-		return false
-	if not bool(response.get("success", false)):
-		_settlement_editor_pending_baseline_apply = false
-		return false
-	if bool(response.get("requires_replace_confirm", false)):
-		add_output("[color=#d9c08c]Applying refreshed Talleyrand baseline...[/color]")
-		set_input_enabled(false)
-		api_client.send_dialogue_response(1, _on_command_result)
-		return true
-	_settlement_editor_pending_baseline_apply = false
-	return false
-
 func _on_command_result(response):
 	"""Handle command execution result."""
 	# ═══════════════════════════════════════════════════════════
@@ -1171,12 +1013,10 @@ func _on_command_result(response):
 	# Cache response for post-popup war panel refresh (Fix 1)
 	_last_command_response = response
 
-	if _maybe_continue_settlement_editor_baseline(response):
-		return
-
-	if _maybe_remount_settlement_editor_after_error(response):
-		return
-
+	# GT-Slice-4: the settlement editor error-remount hooks are retired. A
+	# failed settlement action re-attaches the dialogue + error_display
+	# (CH-5), so the proposal_confirm route below re-mounts the PROPOSE /
+	# REVIEW popup with the failure rendered (transient_error_display).
 	if _route_response_ui(response, _pre_hud_response_routes):
 		return  # Don't re-enable input or continue processing
 
@@ -3347,36 +3187,12 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	Keyword routing in /command misroutes terms_guidance actions:
 	'territory_no_ap' contains 'territory' → matches territory_yes → Belgium bug.
 	See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 6."""
-	# SC-5R-2: when the player clicks `Revise Terms` on a settlement_confirm
-	# REVIEW dialogue that carries can_edit_terms=true + editor_route, the
-	# Godot client mounts the EDIT-mode editor locally using the backend
-	# contract instead of round-tripping a dialogue response. The legacy
-	# `revise_settlement_terms` handler is only consulted as a fallback.
-	# Re-front Slice 1: `Adjust terms` from the PROPOSE surface opens the
-	# Tier-3 structured editor locally (the PROPOSE dialogue carries
-	# can_edit_terms + editor_route), exactly like `Revise Terms` on REVIEW.
-	if action == "adjust_terms":
-		var adj_dtype = str(data.get("type", data.get("dialogue_type", "")))
-		var adj_can_edit = bool(data.get("can_edit_terms", false))
-		var adj_editor_route = data.get("editor_route", null)
-		if adj_dtype == "settlement_confirm" and adj_can_edit and adj_editor_route is Dictionary and adj_editor_route.size() > 0:
-			if settlement_editor_popup:
-				if settlement_editor_popup.show_editor(data):
-					if proposal_confirm_popup and proposal_confirm_popup.has_method("hide"):
-						proposal_confirm_popup.hide()
-					add_output("[color=#d9c08c]Opening settlement editor...[/color]")
-					return
-	if action == "revise_settlement_terms":
-		var dtype = str(data.get("type", data.get("dialogue_type", "")))
-		var can_edit = bool(data.get("can_edit_terms", false))
-		var editor_route_data = data.get("editor_route", null)
-		if dtype == "settlement_confirm" and can_edit and editor_route_data is Dictionary and editor_route_data.size() > 0:
-			if settlement_editor_popup:
-				if settlement_editor_popup.show_editor(data):
-					if proposal_confirm_popup and proposal_confirm_popup.has_method("hide"):
-						proposal_confirm_popup.hide()
-					add_output("[color=#d9c08c]Opening settlement editor...[/color]")
-					return
+	# GT-Slice-4: the client-side `adjust_terms` / `revise_settlement_terms`
+	# editor mounts are retired with the freeform editor — the guided
+	# per-court rows on the PROPOSE surface are the deep authoring tier, and
+	# a blocked REVIEW routes back to shaping via `Return to terms`. The
+	# bilateral terms-guidance `adjust_terms` still resolves through the
+	# option-index path below.
 	# Re-front Slice 2: a per-court row affordance (focused dial / holdout
 	# Ease/Drop / coverage add) carries its own structured params (scope / nation)
 	# and is NOT in options[], so the index path below cannot resolve it. The
@@ -3893,68 +3709,6 @@ func _is_war_archived_in_cache(war_id: String) -> bool:
 	# notification / treaty rail; otherwise default to active so live
 	# wars without a war_instance_id still reach the backend.
 	return bool(_seen_war_ids.get(war_id, false))
-
-
-func _on_settlement_editor_submit(payload: Dictionary):
-	"""SC-5R-2: Submit for Review path. The editor authored a structured
-	package and emits the canonical `propose_common_peace` structured
-	command body. We forward it through the structured POST so the
-	backend re-runs SC-1 POST preview validation, writes the scoped
-	draft via `pending_settlement_drafts_by_key`, and stages a fresh
-	`settlement_confirm` REVIEW with the authored terms."""
-	var war_id = str(payload.get("war_id", ""))
-	var nation = str(payload.get("selected_target_nation", ""))
-	_remember_settlement_editor_payload(payload)
-	if war_id == "" or nation == "":
-		if not _remount_settlement_editor_with_error(
-			"Settlement editor: missing war or target. Submit aborted.",
-			"missing_settlement_scope",
-		):
-			set_input_enabled(true)
-		return
-	add_output("[color=#d9c08c]Submitting settlement draft for review...[/color]")
-	set_input_enabled(false)
-	var command = "propose common peace with " + nation
-	if api_client.has_method("send_structured_command"):
-		api_client.send_structured_command(command, payload, _on_command_result)
-	else:
-		api_client.send_command(command, _on_command_result)
-
-
-func _on_settlement_editor_concession_baseline_requested(payload: Dictionary):
-	"""SC-5R-2 follow-up: EDIT-side concession baseline requests still
-	round-trip through the backend dialogue action so the losing-side
-	predicate and generated baseline are revalidated at click time."""
-	_remember_settlement_editor_payload(payload)
-	var choice_index = _settlement_dialogue_option_index(
-		"re_author_with_concessions",
-		_last_settlement_editor_data,
-	)
-	if choice_index < 1:
-		if not _remount_settlement_editor_with_error(
-			"Talleyrand's concession baseline is no longer available for this draft.",
-			"concession_baseline_unavailable",
-		):
-			set_input_enabled(true)
-		return
-	add_output("[color=#d9c08c]Refreshing Talleyrand's concession baseline...[/color]")
-	_settlement_editor_pending_baseline_apply = true
-	set_input_enabled(false)
-	api_client.send_dialogue_response(choice_index, _on_command_result)
-
-
-func _on_settlement_editor_back_out(payload: Dictionary):
-	"""SC-5R-2: Back Out path. Closes the editor and pops the staged
-	settlement_confirm hard-stop on the backend via the non-destructive
-	`suspend_settlement_editor` dialogue action, so subsequent commands
-	are not held by the executor hard-stop gate. The scoped draft store
-	(keyed by war_id, selected_target_nation, covered_enemy_participants)
-	is PRESERVED by that action — unlike the discard close — so the
-	player can reopen the same war/scope and pick up where they left off."""
-	var war_id = str(payload.get("war_id", ""))
-	add_output("[color=#d9c08c]Settlement draft kept for war %s. Reopen Settlement to continue editing.[/color]" % war_id)
-	set_input_enabled(false)
-	api_client.send_dialogue_response("suspend_settlement_editor", _on_command_result)
 
 
 func _on_war_ended_notification(message: String):

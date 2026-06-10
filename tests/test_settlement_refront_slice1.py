@@ -535,9 +535,11 @@ def test_propose_and_dial_routes_reject_non_player_caller_kind():
             caller_kind="ai_system", dialogue_mode="PROPOSE",
         )
     dialogue = staged["diplomatic_dialogue"]
-    assert dialogue["can_edit_terms"] is False
-    assert dialogue["editor_route"] is None
-    assert dialogue["available_clause_types"] == []
+    # GT-Slice-4: the SC-5R EDIT payload contract is retired with the freeform
+    # editor — the keys must be ABSENT for every caller, not merely falsy.
+    assert "can_edit_terms" not in dialogue
+    assert "editor_route" not in dialogue
+    assert "available_clause_types" not in dialogue
     # R6-M2: the player-only authoring rail must be absent from a non-player
     # staging — not just the editor surface.
     rail = set(dialogue.get("available_action_ids") or [])
@@ -790,9 +792,9 @@ def test_godot_proposal_popup_renders_per_court_table():
     main_gd = (
         repo / "godot-client" / "project-sovereign" / "scripts" / "main.gd"
     ).read_text(encoding="utf-8")
-    # `Adjust terms` mounts the Tier-3 editor client-side (its own branch,
-    # parallel to the revise intercept).
-    assert 'if action == "adjust_terms":' in main_gd
+    # GT-Slice-4: the client-side `adjust_terms` editor mount is retired —
+    # the guided per-court rows are the deep tier. The branch must be absent.
+    assert 'if action == "adjust_terms":' not in main_gd
     assert '"submit_settlement_for_review"' in main_gd
 
 

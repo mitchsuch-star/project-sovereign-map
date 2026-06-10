@@ -767,16 +767,12 @@ class CommandRequest(BaseModel):
     action: str | None = None
     target_nation: str | None = None
     war_id: str | None = None
-    # SC-5R-2 / Settlement Conversational Re-front: the Tier-3 editor's
-    # Submit-for-Review POSTs a structured `propose_common_peace` body through
-    # /command (api_client.send_structured_command). Without these declared,
-    # Pydantic silently drops them and the backend regenerates a PROPOSE
-    # baseline instead of staging the player's authored package — the authored
-    # terms "don't appear afterwards". The /command handler forwards them into
-    # the parsed command dict so _execute_propose_common_peace can stage REVIEW.
-    settlement_terms: list | None = None
-    selected_target_nation: str | None = None
-    covered_enemy_participants: list | None = None
+    # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
+    # (`settlement_terms` / `selected_target_nation` /
+    # `covered_enemy_participants`) are removed with the freeform editor
+    # after a verify-dead pass — no non-editor producer ever sent them.
+    # `target_nation` + `war_id` predate them and stay: the War Detail
+    # reopen (PF-2) and the diplomacy wizard both send them.
 
 
 class ObjectionResponse(BaseModel):
@@ -978,15 +974,6 @@ def execute_command(request: CommandRequest):
                 parsed["command"]["target_nation"] = request.target_nation
             if request.war_id:
                 parsed["command"]["war_id"] = request.war_id
-            # SC-5R-2 settlement editor Submit-for-Review: forward the authored
-            # structured package so _execute_propose_common_peace stages a REVIEW
-            # with the player's terms rather than regenerating a PROPOSE baseline.
-            if request.settlement_terms is not None:
-                parsed["command"]["settlement_terms"] = request.settlement_terms
-            if request.selected_target_nation:
-                parsed["command"]["selected_target_nation"] = request.selected_target_nation
-            if request.covered_enemy_participants is not None:
-                parsed["command"]["covered_enemy_participants"] = request.covered_enemy_participants
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════

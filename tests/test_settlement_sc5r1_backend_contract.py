@@ -1,40 +1,26 @@
-"""SC-5R-1 backend EDIT payload contract + sub-bug closure.
+"""Settlement staging payload + scoped-draft persistence contract
+(SC-5R-1 lineage, re-homed by GT-Slice-4).
 
-The May 28, 2026 STATUS.md correction reopened the player-quality gate
-under DWL-SET-SC5R: `request_settlement_revision` (and other player-
-editor staging paths) must surface a real EDIT mode payload with
-`can_edit_terms=true`, `available_clause_types[]`, `clause_control_schema`,
-and `editor_route` so SC-5R-2 can mount the Godot editor. The matching
-sub-bugs (gold_indemnity schema validity, tampered cut-clause-type
-revalidation, scoped draft persistence by draft_key) close in this same
-backend slice.
+GT-Slice-4 retired the SC-5R-1 EDIT payload contract with the freeform
+editor: no staging path may publish `can_edit_terms` /
+`available_clause_types[]` / `clause_control_schema` / `editor_route`
+anymore (the guided per-court rows carry their own GT-Slice-2 authoring
+payload). What this bundle still pins:
 
-These tests pin the contract:
-
-- `settlement_confirm` payload publishes the SC-5R-1 EDIT fields
-  (`can_edit_terms`, `available_clause_types[]`, `clause_control_schema`,
-  `editor_route`) per spec line 546-556.
-- `can_edit_terms` is true if and only if
-  `caller_kind == "player_editor"`, the staged dialogue resolves to an
-  active `war_instance`, `settlement_terms` is non-empty, and
-  `available_clause_types[]` is non-empty.
-- `editor_route` is None when `can_edit_terms=false`; absent fields do
-  not leak as disabled labels.
-- `available_clause_types[]` and `clause_control_schema` only expose
-  live clause types per `SETTLEMENT_LIVE_CLAUSE_TYPES` /
-  `CLAUSE_CONTROL_SCHEMA`. Hidden / cut clause types
-  (`voluntary_alliance`) are absent.
+- ABSENCE: the retired editor keys appear on NO staged
+  `settlement_confirm` (player, AI-offer-accept, any caller), and
+  `dialogue_mode` defaults to REVIEW (PROPOSE is requested explicitly).
 - `pending_settlement_drafts_by_key` round-trips through save/load with
   scoped draft_key keys; same-war drafts with different selected
   targets or covered scope do not collide.
-- `_execute_propose_common_peace` dual-writes the authored draft to the
-  scoped store so reopen / War Detail recovery can resolve by
-  `draft_key`.
+- `_execute_propose_common_peace` persists the staged PROPOSE draft to
+  the scoped store so reopen / War Detail recovery can resolve by
+  `draft_key`; a failed open persists nothing.
 - `author_gold_indemnity_terms` produces schema-valid `gold_indemnity`
   clauses (no `turns` key — the previous draft included `turns: 0`
   which the validator rejects as `invalid_clause_schema`).
 - A tampered `voluntary_alliance` clause is rejected pre-staging by
-  `_execute_propose_common_peace` AND pre-ratification by
+  `_stage_replacement_settlement_terms` AND pre-ratification by
   `ratify_settlement_confirm`, so the cut clause type never reaches
   treaty history.
 """
@@ -43,12 +29,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.settlement_preview import (
-    build_settlement_confirm_dialogue,
-    build_settlement_preview,
     compute_settlement_draft_key,
     discard_scoped_settlement_draft,
     handle_settlement_dialogue_action,
@@ -57,10 +39,6 @@ from backend.game_logic.settlement_preview import (
     ratify_settlement_confirm,
     save_scoped_settlement_draft,
     stage_settlement_confirm,
-)
-from backend.game_logic.settlement_scoring import (
-    CLAUSE_CONTROL_SCHEMA,
-    SETTLEMENT_LIVE_CLAUSE_TYPES,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
@@ -113,289 +91,16 @@ def _gold_indemnity_clause(amount: int = 200) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class TestSettlementConfirmEditPayloadContract:
-    def test_settlement_confirm_publishes_can_edit_terms_field(self):
-        """`settlement_confirm` always exposes `can_edit_terms` as bool."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert "can_edit_terms" in dialogue
-        assert isinstance(dialogue["can_edit_terms"], bool)
-
-    def test_can_edit_terms_true_iff_player_editor_and_clause_types_available_and_war_active(
-        self,
-    ):
-        """Spec line 556 + editor layout contract: `can_edit_terms` is true when
-        caller_kind=player_editor AND active war_instance AND non-empty
-        available_clause_types[]. Empty drafts still open EDIT with
-        Submit for Review disabled."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is True
-        assert dialogue["available_clause_types"], "must be non-empty"
-
-    def test_can_edit_terms_false_for_ai_or_debug_caller_kind(self):
-        """AI/system/debug staging cannot advertise editor capability —
-        the field stays false and `editor_route` stays None even if all
-        other conditions are met."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="ai_system",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is False
-        assert dialogue["editor_route"] is None
-        assert dialogue["available_clause_types"] == []
-        assert dialogue["clause_control_schema"] == {}
-
-    def test_can_edit_terms_true_when_settlement_terms_empty_for_open_editor(self):
-        """Open Settlement starts in EDIT even with an empty package;
-        the editor disables Submit for Review until the player authors a clause."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is True
-        assert dialogue["editor_route"]["surface"] == "settlement_editor"
-        assert dialogue["editor_route"]["staged_settlement_terms"] == []
-
-    def test_editor_route_payload_shape_matches_spec_line_548(self):
-        """When `can_edit_terms=true`, `editor_route` carries the exact
-        keys spec line 548 requires."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        route = dialogue["editor_route"]
-        assert route["surface"] == "settlement_editor"
-        assert route["war_id"] == "war_1"
-        assert route["selected_target_nation"] == "Austria"
-        assert route["covered_enemy_participants"] == ["Austria", "Prussia"]
-        assert route["draft_key"] == dialogue["draft_key"]
-        # available_clause_types echoed on top-level + editor_route must match
-        assert (
-            route["available_clause_types"]
-            == dialogue["available_clause_types"]
-        )
-        assert isinstance(route["staged_settlement_terms"], list)
-        assert route["source"] in {
-            "rejected_review",
-            "stale_recovery",
-            "explicit_revise",
-        }
-
-    def test_settlement_review_payload_with_editor_route_carries_available_clause_types_or_editor_route_subschema(
-        self,
-    ):
-        """Spec line 548 required test: when can_edit_terms=true both
-        top-level `available_clause_types[]` and
-        `editor_route.available_clause_types` are present and equal."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        assert dialogue["can_edit_terms"] is True
-        top_level = list(dialogue["available_clause_types"])
-        editor_route_types = list(dialogue["editor_route"]["available_clause_types"])
-        assert top_level == editor_route_types
-        assert top_level, "must be non-empty when can_edit_terms=true"
-
-    def test_clause_control_schema_only_advertises_live_clause_types(self):
-        """`clause_control_schema` and `available_clause_types[]` only
-        expose `SETTLEMENT_LIVE_CLAUSE_TYPES` — cut/hidden clause types
-        (e.g. `voluntary_alliance`) are absent."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        for clause_type in dialogue["available_clause_types"]:
-            assert clause_type in SETTLEMENT_LIVE_CLAUSE_TYPES, (
-                f"{clause_type!r} is not in SETTLEMENT_LIVE_CLAUSE_TYPES"
-            )
-        for clause_type in dialogue["clause_control_schema"]:
-            assert clause_type in SETTLEMENT_LIVE_CLAUSE_TYPES
-        # Cut clause types must not leak as disabled labels either.
-        assert "voluntary_alliance" not in dialogue["available_clause_types"]
-        assert "voluntary_alliance" not in dialogue["clause_control_schema"]
-
-    def test_hidden_clause_types_do_not_leak_as_visible_or_disabled_labels(self):
-        """Spec line 554 required test: any clause type marked
-        `enabled=False` in `CLAUSE_CONTROL_SCHEMA` does not appear in
-        `available_clause_types[]` or `clause_control_schema` rows."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        dialogue = staged["diplomatic_dialogue"]
-        for clause_type, base in CLAUSE_CONTROL_SCHEMA.items():
-            if base.get("enabled"):
-                continue
-            assert clause_type not in dialogue["available_clause_types"]
-            assert clause_type not in dialogue["clause_control_schema"]
-
-    def test_clause_control_schema_rows_match_spec_line_554_shape(self):
-        """The REVIEW payload must give SC-5R-2 real structured controls,
-        not only a list of required keys."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
-            side_effect=_acceptance_accepts,
-        ):
-            staged = stage_settlement_confirm(
-                world,
-                war_id="war_1",
-                actor_nation="France",
-                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
-                selected_target_nation="Austria",
-                covered_enemy_participants=["Austria", "Prussia"],
-                caller_kind="player_editor",
-            )
-        schema = staged["diplomatic_dialogue"]["clause_control_schema"]
-        assert schema
-        for clause_type, row in schema.items():
-            assert set(row) == {"enabled", "disabled_reason_display", "fields"}
-            # Slice 0: `enabled` is now computed per clause type from picker
-            # emptiness. An enabled row carries no reason; a disabled row
-            # (e.g. liberation with no vassals in this world) carries a
-            # humanized reason. The row still appears as a schema key so the
-            # client can grey it out rather than silently dropping it.
-            assert isinstance(row["enabled"], bool)
-            if row["enabled"]:
-                assert row["disabled_reason_display"] is None, clause_type
-            else:
-                assert isinstance(row["disabled_reason_display"], str), clause_type
-                assert row["disabled_reason_display"], clause_type
-            assert isinstance(row["fields"], dict), clause_type
-            for field_name, field in row["fields"].items():
-                assert set(field) == {
-                    "control",
-                    "label",
-                    "options",
-                    "min",
-                    "max",
-                    "default",
-                    "direction_metadata",
-                }, (clause_type, field_name)
-                assert field["control"] in {"picker", "number", "toggle", "readonly"}
-                assert isinstance(field["label"], str) and field["label"]
-                assert isinstance(field["options"], list)
-                for option in field["options"]:
-                    assert set(option) == {
-                        "id",
-                        "label",
-                        "disabled",
-                        "disabled_reason_display",
-                    }, (clause_type, field_name, option)
-                assert isinstance(field["direction_metadata"], dict)
-
-        assert schema["gold_indemnity"]["fields"]["from"]["options"]
-        assert schema["gold_indemnity"]["fields"]["amount"]["control"] == "number"
-        assert schema["forced_alliance"]["fields"][
-            "includes_continental_system"
-        ]["control"] == "toggle"
+class TestSettlementConfirmGuidedPayloadContract:
+    """GT-Slice-4: the SC-5R-1 EDIT payload contract (`can_edit_terms` /
+    `available_clause_types[]` / `clause_control_schema` / `editor_route`)
+    is retired with the freeform editor. The replacement contract is an
+    ABSENCE pin — no staging path may advertise an editor surface — plus
+    the surviving `dialogue_mode` default."""
 
     def test_settlement_confirm_publishes_dialogue_mode_review(self):
-        """Spec line 546 contract: `dialogue_mode` is `REVIEW` on
-        `settlement_confirm`. EDIT mode is owned by SC-5R-2's editor
-        popup and consumes the published `editor_route`."""
+        """`dialogue_mode` defaults to REVIEW on `settlement_confirm`;
+        the guided authoring entry requests PROPOSE explicitly."""
         world = WorldState()
         _install_common_peace_war(world)
         with patch(
@@ -414,9 +119,38 @@ class TestSettlementConfirmEditPayloadContract:
         dialogue = staged["diplomatic_dialogue"]
         assert dialogue["dialogue_mode"] == "REVIEW"
 
-    def test_accepting_incoming_ai_offer_does_not_publish_outgoing_editor_route(self):
-        """Accepting an AI-authored offer is not the outgoing player editor
-        path, so it must not set `can_edit_terms=true`."""
+    def test_edit_payload_contract_keys_absent_for_player_staging(self):
+        """The retired editor keys must be ABSENT (not merely falsy) on a
+        player-staged settlement_confirm — clients can no longer be offered
+        an editor handoff anywhere."""
+        world = WorldState()
+        _install_common_peace_war(world)
+        with patch(
+            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            side_effect=_acceptance_accepts,
+        ):
+            staged = stage_settlement_confirm(
+                world,
+                war_id="war_1",
+                actor_nation="France",
+                settlement_terms=[{"type": "peace"}, _gold_indemnity_clause()],
+                selected_target_nation="Austria",
+                covered_enemy_participants=["Austria", "Prussia"],
+                caller_kind="player_editor",
+            )
+        dialogue = staged["diplomatic_dialogue"]
+        for retired_key in (
+            "can_edit_terms",
+            "available_clause_types",
+            "clause_control_schema",
+            "editor_route",
+        ):
+            assert retired_key not in dialogue, retired_key
+
+    def test_accepting_incoming_ai_offer_stages_non_player_caller_without_editor_keys(self):
+        """Accepting an AI-authored offer is not the outgoing player
+        authoring path: it stages with `caller_kind="ai_system"` and, like
+        every other path, carries none of the retired editor keys."""
         world = WorldState()
         _install_common_peace_war(world)
         offer = {
@@ -448,10 +182,13 @@ class TestSettlementConfirmEditPayloadContract:
         assert result["success"] is True
         dialogue = result["diplomatic_dialogue"]
         assert dialogue["caller_kind"] == "ai_system"
-        assert dialogue["can_edit_terms"] is False
-        assert dialogue["editor_route"] is None
-        assert dialogue["available_clause_types"] == []
-        assert dialogue["clause_control_schema"] == {}
+        for retired_key in (
+            "can_edit_terms",
+            "available_clause_types",
+            "clause_control_schema",
+            "editor_route",
+        ):
+            assert retired_key not in dialogue, retired_key
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -577,57 +314,51 @@ class TestScopedSettlementDraftPersistence:
         restored = WorldState.from_dict(snapshot)
         assert restored.pending_settlement_drafts_by_key == {}
 
-    def test_execute_propose_common_peace_dual_writes_scoped_draft(self):
-        """The structured executor path persists the authored draft
-        under the scoped key so reopen / War Detail recovery can resolve
+    def test_execute_propose_common_peace_persists_staged_propose_draft_to_scoped_store(self):
+        """GT-Slice-4 re-home of the old dual-write pin: opening a settlement
+        stages the guided PROPOSE baseline and persists the staged terms
+        under the scoped key, so reopen / War Detail recovery can resolve
         by `draft_key`, not just `war_id`."""
         world = WorldState()
         _install_common_peace_war(world)
-        terms = [{"type": "peace"}, _gold_indemnity_clause()]
         with patch(
             "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
-            DiplomaticExecutor(None)._execute_propose_common_peace(
+            result = DiplomaticExecutor(None)._execute_propose_common_peace(
                 {
                     "command": {
                         "target_nation": "Austria",
                         "war_id": "war_1",
-                        "selected_target_nation": "Austria",
-                        "covered_enemy_participants": ["Austria", "Prussia"],
-                        "settlement_terms": terms,
                     },
                 },
                 {"world": world},
             )
+        assert result.get("success"), result
+        staged = result.get("diplomatic_dialogue") or {}
+        staged_terms = [dict(t) for t in (staged.get("settlement_terms") or [])]
+        assert staged_terms, staged
         loaded = load_scoped_settlement_draft(
             world,
             war_id="war_1",
-            selected_target_nation="Austria",
-            covered_enemy_participants=["Austria", "Prussia"],
+            selected_target_nation=staged.get("selected_target_nation"),
+            covered_enemy_participants=staged.get("covered_enemy_participants") or [],
         )
-        assert loaded == terms
+        assert loaded == staged_terms
 
     def test_execute_propose_common_peace_does_not_write_draft_when_staging_fails(self):
-        """Validation passing is not enough to persist a draft; the
-        submitted package must actually stage."""
+        """A failed open (not at war) must persist nothing to either store."""
         world = WorldState()
-        _install_common_peace_war(world)
-        terms = [{"type": "peace"}, _gold_indemnity_clause()]
+        # No war installed: resolution fails before any staging.
         result = DiplomaticExecutor(None)._execute_propose_common_peace(
             {
                 "command": {
                     "target_nation": "Austria",
-                    "war_id": "war_1",
-                    "selected_target_nation": "Prussia",
-                    "covered_enemy_participants": ["Austria"],
-                    "settlement_terms": terms,
                 },
             },
             {"world": world},
         )
         assert result["success"] is False
-        assert result["error"] == "selected_target_not_covered"
         assert world.pending_settlement_drafts == {}
         assert world.pending_settlement_drafts_by_key == {}
 
@@ -902,35 +633,11 @@ class TestAuthorGoldIndemnityTermsSchema:
 
 
 class TestTamperedClauseTypeRevalidation:
-    def test_tampered_voluntary_alliance_rejected_pre_staging_by_executor(self):
-        """`_execute_propose_common_peace` already revalidates submitted
-        terms before staging. A tampered `voluntary_alliance` clause
-        (the D3 CUT clause type) must fail validation and stage
-        nothing."""
-        world = WorldState()
-        _install_common_peace_war(world)
-        result = DiplomaticExecutor(None)._execute_propose_common_peace(
-            {
-                "command": {
-                    "target_nation": "Austria",
-                    "war_id": "war_1",
-                    "selected_target_nation": "Austria",
-                    "covered_enemy_participants": ["Austria"],
-                    "settlement_terms": [
-                        {"type": "peace"},
-                        {
-                            "type": "voluntary_alliance",
-                            "from": "Austria",
-                            "to": "France",
-                        },
-                    ],
-                },
-            },
-            {"world": world},
-        )
-        assert result["success"] is False
-        assert result["error"] == "submitted_terms_failed_revalidation"
-        assert result.get("mutated") is False
+    # GT-Slice-4: the old `..._rejected_pre_staging_by_executor` pin died
+    # with the editor's structured submit transport (no command path carries
+    # settlement_terms anymore). Pre-staging rejection of tampered clauses
+    # stays pinned below on `_stage_replacement_settlement_terms` (the
+    # surviving author path); pre-ratification defense-in-depth stays.
 
     def test_tampered_voluntary_alliance_rejected_pre_ratification_defense_in_depth(
         self,

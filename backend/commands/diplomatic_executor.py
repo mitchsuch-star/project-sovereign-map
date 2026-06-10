@@ -2054,158 +2054,58 @@ class DiplomaticExecutor:
                 ),
             }
         war_id = resolution["war_id"]
-        # SC-1: forward authored settlement_terms from command into staging.
-        diplomatic_data = cmd.get("diplomatic_data") or {}
-        has_submitted_terms = False
-        if "settlement_terms" in cmd:
-            settlement_terms = cmd.get("settlement_terms")
-            has_submitted_terms = True
-        elif "settlement_terms" in diplomatic_data:
-            settlement_terms = diplomatic_data.get("settlement_terms")
-            has_submitted_terms = True
-        else:
-            settlement_terms = None
+        # GT-Slice-4: the editor's structured Submit-for-Review POST is
+        # retired (verify-dead pass — no non-editor producer carried
+        # `settlement_terms` / `selected_target_nation` /
+        # `covered_enemy_participants` on /command, and the CommandRequest
+        # fields are removed with it). Opening a settlement always lands the
+        # guided PROPOSE surface; REVIEW is reached only through the
+        # `submit_settlement_for_review` dialogue action.
         from backend.game_logic.settlement_preview import (
             stage_settlement_confirm,
-            validate_settlement_terms,
             load_scoped_settlement_draft,
         )
-        # SC-5R-2 draft round-trip: when the caller opens Settlement without
-        # submitting fresh terms (e.g., from War Detail or the diplomacy
-        # wizard after a Back Out), the backend restores any scoped draft
-        # the player previously authored for the same (war_id,
-        # selected_target_nation, covered_enemy_participants) key. The
-        # editor then mounts with the restored clauses already populated.
-        # Same-turn only: end_turn cleanup clears `pending_settlement_drafts_by_key`.
+        # SC-5R-2 draft round-trip: opening Settlement restores any scoped
+        # draft the player previously authored for the same war (the PF-2
+        # war-scoped fallback inside `load_scoped_settlement_draft`), so a
+        # Back Out -> reopen resumes the in-progress settlement. Same-turn
+        # only: end_turn cleanup clears `pending_settlement_drafts_by_key`.
+        settlement_terms = None
         restored_draft_from_scope = False
-        if not has_submitted_terms:
-            scoped_selected_target = (
-                cmd.get("selected_target_nation")
-                or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
-                or target_nation
+        try:
+            restored = load_scoped_settlement_draft(
+                world,
+                war_id=war_id,
+                selected_target_nation=target_nation,
+                covered_enemy_participants=[],
             )
-            scoped_covered = (
-                cmd.get("covered_enemy_participants")
-                or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
-                or []
-            )
-            try:
-                restored = load_scoped_settlement_draft(
-                    world,
-                    war_id=war_id,
-                    selected_target_nation=scoped_selected_target,
-                    covered_enemy_participants=scoped_covered,
-                )
-            except Exception:
-                restored = None
-            if restored:
-                settlement_terms = [dict(t) for t in restored if isinstance(t, dict)]
-                if settlement_terms:
-                    restored_draft_from_scope = True
-        # SC-1 §15: revalidate authored terms before staging.
-        if has_submitted_terms:
-            war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
-            actor_side = None
-            for side in ("attackers", "defenders"):
-                if player in (war_instance.get(side) or []):
-                    actor_side = side
-                    break
-            validation = validate_settlement_terms(
-                settlement_terms,
-                actor_nation=player,
-                player_nation=player,
-                proposer_side=actor_side,
-                actor_side_in_war=actor_side,
-                covered_enemy_participants=(
-                    cmd.get("covered_enemy_participants")
-                    or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
-                ),
-                world=world,
-                war_instance=war_instance,
-            )
-            if not validation.get("valid"):
-                from backend.display_names import settlement_disabled_reason_display
-                error_display = settlement_disabled_reason_display(
-                    "submitted_terms_failed_revalidation"
-                )
-                detail = validation.get("disabled_reason_display") or ""
-                # `awaiting_diplomatic_response` routes this failure through
-                # `_build_result_response` at the /command endpoint so the error
-                # codes survive to Godot, where `_maybe_remount_settlement_editor
-                # _after_error` re-opens the editor inline with the reason. Without
-                # it the failure falls through to the generic response builder,
-                # which drops these fields and the rejection looks silent.
-                return {
-                    "success": False,
-                    "message": (detail or error_display),
-                    "error": "submitted_terms_failed_revalidation",
-                    "error_display": error_display,
-                    "validation_error": validation.get("error"),
-                    "validation_detail": detail,
-                    "awaiting_diplomatic_response": True,
-                    "mutated": False,
-                }
-        selected_target = (
-            cmd.get("selected_target_nation")
-            or (cmd.get("diplomatic_data") or {}).get("selected_target_nation")
-            or target_nation
-        )
-        covered_enemies = (
-            cmd.get("covered_enemy_participants")
-            or (cmd.get("diplomatic_data") or {}).get("covered_enemy_participants")
-        )
-        # Re-front Slice 1 §3a: the default landing for opening a settlement is
-        # the conversational PROPOSE surface (Talleyrand baseline + per-court
-        # acceptance + dials), NOT a blank EDIT form. A Submit-for-Review POST
-        # (has_submitted_terms) still lands REVIEW for ratification.
-        landing_mode = "REVIEW" if has_submitted_terms else "PROPOSE"
+        except Exception:
+            restored = None
+        if restored:
+            settlement_terms = [dict(t) for t in restored if isinstance(t, dict)]
+            if settlement_terms:
+                restored_draft_from_scope = True
+        # Re-front Slice 1 §3a: the landing for opening a settlement is the
+        # conversational PROPOSE surface (Talleyrand baseline + per-court
+        # acceptance + dials + the guided demand rows).
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
             actor_nation=player,
             settlement_terms=settlement_terms,
-            selected_target_nation=selected_target,
-            covered_enemy_participants=covered_enemies,
+            selected_target_nation=target_nation,
+            covered_enemy_participants=None,
             density="medium",
             caller_kind="player_editor",
             white_peace=False,
-            dialogue_mode=landing_mode,
+            dialogue_mode="PROPOSE",
         )
-        if (
-            has_submitted_terms
-            and result.get("success")
-            and result.get("dialogue_type") == "settlement_confirm"
-        ):
-            staged_dialogue = result.get("diplomatic_dialogue") or {}
-            # SC-1: persist draft for same-turn recovery only after the
-            # submitted package has actually staged.
-            world.pending_settlement_drafts[war_id] = [
-                dict(t) for t in settlement_terms
-            ]
-            from backend.game_logic.settlement_preview import (
-                save_scoped_settlement_draft,
-            )
-            save_scoped_settlement_draft(
-                world,
-                war_id=war_id,
-                selected_target_nation=(
-                    staged_dialogue.get("selected_target_nation")
-                    or selected_target
-                ),
-                covered_enemy_participants=(
-                    staged_dialogue.get("covered_enemy_participants")
-                    or covered_enemies
-                    or []
-                ),
-                settlement_terms=settlement_terms,
-            )
         if resolution.get("backfilled"):
             result["war_instance_backfilled"] = True
         if restored_draft_from_scope:
             result["draft_restored_from_scope"] = True
         if (
-            not has_submitted_terms
-            and result.get("success")
+            result.get("success")
             and isinstance(result.get("diplomatic_dialogue"), dict)
             and str(result["diplomatic_dialogue"].get("dialogue_mode") or "").upper() == "PROPOSE"
         ):
@@ -2228,12 +2128,10 @@ class DiplomaticExecutor:
                     world,
                     war_id=war_id,
                     selected_target_nation=(
-                        staged_dialogue.get("selected_target_nation") or selected_target
+                        staged_dialogue.get("selected_target_nation") or target_nation
                     ),
                     covered_enemy_participants=(
-                        staged_dialogue.get("covered_enemy_participants")
-                        or covered_enemies
-                        or []
+                        staged_dialogue.get("covered_enemy_participants") or []
                     ),
                     settlement_terms=staged_terms,
                 )
@@ -2918,17 +2816,16 @@ class DiplomaticExecutor:
             "confirm_settlement",
             "revise_settlement_terms",
             "back_out_settlement",
-            # SC-5R-2 follow-up: non-destructive editor close that pops the
-            # settlement_confirm hard-stop while preserving the scoped draft.
+            # SC-5R-2 follow-up: the non-destructive PROPOSE Back Out — pops
+            # the settlement_confirm while preserving the scoped draft.
             "suspend_settlement_editor",
             # Re-front Slice 1 PROPOSE rail: Submit for Review re-stages the
-            # conversational draft as the blocking REVIEW surface. (`adjust_terms`
-            # is deliberately NOT routed here: the settlement PROPOSE `Adjust
-            # terms` is handled client-side in Godot — it mounts the Tier-3
-            # editor and never round-trips — and the bilateral terms-guidance
-            # flow already owns the `adjust_terms` action id. Holdout Ease/Drop
-            # affordances ride on each per-court ROW; their handlers land in
-            # Slice 2.)
+            # conversational draft as the blocking REVIEW surface.
+            # (GT-Slice-4: the settlement `adjust_terms` rail verb is retired
+            # with the freeform editor; the bilateral terms-guidance flow
+            # still owns the `adjust_terms` action id elsewhere in this
+            # dispatcher. Holdout Ease/Drop affordances ride on each
+            # per-court ROW.)
             "submit_settlement_for_review",
             # Re-front UX follow-up: REVIEW -> PROPOSE recovery from a blocked
             # review (re-stages the conversational authoring surface).

@@ -20,7 +20,6 @@ from backend.game_logic.settlement_preview import (
     handle_incoming_settlement_offer_action,
     is_war_archived,
     is_war_known,
-    merge_same_war_settlement_drafts,
     mint_settlement_route_id,
     record_reopen_attempt,
     reopen_attempt_cap_exceeded,
@@ -229,7 +228,11 @@ def test_cross_war_settlement_collision_returns_humanized_rejection():
     assert world.pending_diplomatic_dialogue["war_id"] == "war_1"
 
 
-def test_same_war_restage_with_compatible_terms_merges_and_refreshes():
+def test_same_war_restage_keeps_mounted_draft_as_single_source_of_truth():
+    """GT-Slice-4 (Guided Terms §6) supersedes the SC-26 additive merge:
+    there is no editor submit blob to reconcile, so a same-war same-scope
+    refresh re-shows the MOUNTED dialogue's terms — incoming terms never
+    append to a non-empty staged draft."""
     world = WorldState()
     _install_war(world)
     first = stage_settlement_confirm(
@@ -246,7 +249,8 @@ def test_same_war_restage_with_compatible_terms_merges_and_refreshes():
         for t in world.pending_diplomatic_dialogue["settlement_terms"]
     }
 
-    # Same war, compatible additional clause -> merged + refreshed.
+    # Same war, different incoming clause -> the staged draft wins; the
+    # refresh succeeds and the surface re-shows the mounted terms.
     second = stage_settlement_confirm(
         world,
         war_id="war_1",
@@ -256,18 +260,21 @@ def test_same_war_restage_with_compatible_terms_merges_and_refreshes():
         ],
     )
     assert second["success"] is True
-    merged_types = {
+    refreshed_types = {
         t.get("type")
         for t in world.pending_diplomatic_dialogue["settlement_terms"]
     }
-    assert {"territory_cede", "gold_indemnity"} <= merged_types
-    # SC-2 draft store is updated.
-    assert world.pending_settlement_drafts["war_1"]
+    assert refreshed_types == {"territory_cede"}
+    # SC-2 draft store mirrors the kept draft.
     draft_types = {t.get("type") for t in world.pending_settlement_drafts["war_1"]}
-    assert {"territory_cede", "gold_indemnity"} <= draft_types
+    assert draft_types == {"territory_cede"}
 
 
-def test_same_war_restage_with_conflicting_clause_keeps_active_draft():
+def test_same_war_restage_with_differing_clause_keeps_active_draft_without_dead_end():
+    """The old `same_war_merge_conflict` dead end retired with the editor
+    (GT-Slice-4): a same-war refresh carrying a different gold amount keeps
+    the active draft AND succeeds — the player is re-shown the staged
+    settlement instead of hitting a conflict error."""
     world = WorldState()
     _install_war(world)
     stage_settlement_confirm(
@@ -278,8 +285,6 @@ def test_same_war_restage_with_conflicting_clause_keeps_active_draft():
             {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 200, "turns": 0},
         ],
     )
-    # Conflict: same identity (gold_indemnity Austria->France) with different
-    # amount.
     result = stage_settlement_confirm(
         world,
         war_id="war_1",
@@ -288,12 +293,8 @@ def test_same_war_restage_with_conflicting_clause_keeps_active_draft():
             {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 500, "turns": 0},
         ],
     )
-    assert result["success"] is False
-    assert result["error"] == "same_war_merge_conflict"
-    assert result["merge_conflict"] is True
-    assert result["error_display"] == settlement_disabled_reason_display(
-        "same_war_merge_conflict"
-    )
+    assert result["success"] is True
+    assert "merge_conflict" not in result
     # Active draft preserved (200, not 500).
     active_terms = world.pending_diplomatic_dialogue["settlement_terms"]
     assert any(
@@ -304,36 +305,6 @@ def test_same_war_restage_with_conflicting_clause_keeps_active_draft():
         t.get("type") == "gold_indemnity" and t.get("amount") == 500
         for t in active_terms
     )
-
-
-def test_merge_helper_appends_compatible_cross_keys_and_blocks_same_key_diffs():
-    """SC-26 merge semantics tests: same-key different gold amounts conflict,
-    while compatible cross-key terms append."""
-    existing = [
-        {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Bohemia"},
-    ]
-    incoming = [
-        {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 200, "turns": 0},
-    ]
-    ok, merged, conflicts = merge_same_war_settlement_drafts(existing, incoming)
-    assert ok is True
-    assert conflicts == []
-    types = [t["type"] for t in merged]
-    assert types == ["territory_cede", "gold_indemnity"]
-
-    # Same identity, different amount -> conflict.
-    ok2, merged2, conflicts2 = merge_same_war_settlement_drafts(
-        [
-            {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 200, "turns": 0},
-        ],
-        [
-            {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 500, "turns": 0},
-        ],
-    )
-    assert ok2 is False
-    assert len(conflicts2) == 1
-    # Active draft unchanged.
-    assert merged2[0]["amount"] == 200
 
 
 def test_settlement_family_dialogue_types_match_canonical_set():
@@ -780,15 +751,15 @@ def test_no_resolvable_pairs_uses_safe_reopen_response():
     assert target["target_nation"] == "Austria"
 
 
-def test_request_revision_opens_counter_editor_after_sc5_reversal_commit2():
-    """SC-5 reversal commit 2: `request_settlement_revision` opens a
-    real counter editor by staging `settlement_confirm` in
-    player-editor mode seeded with the offered terms. The original
-    offer entry is removed; the staged dialogue carries the offer_id
-    as counter provenance and the request-revision Voice Bible
-    family as `talleyrand_text` so the popup heading reads as
-    "answering with a counter draft" rather than the outgoing
-    `Will they accept?` framing."""
+def test_request_revision_routes_to_guided_propose_counter_surface():
+    """SC-5 reversal commit 2 + GT-Slice-4 (OQ-4(b)):
+    `request_settlement_revision` opens a real counter route by staging the
+    guided PROPOSE `settlement_confirm` seeded with the offered terms. The
+    original offer entry is removed; the staged dialogue carries the
+    offer_id as counter provenance and the request-revision Voice Bible
+    family as `talleyrand_text` so the popup heading reads as "answering
+    with a counter draft" rather than the outgoing `Will they accept?`
+    framing."""
     world = WorldState()
     _install_war(world)
     # Use a real covered enemy so stage_settlement_confirm can resolve
@@ -815,10 +786,13 @@ def test_request_revision_opens_counter_editor_after_sc5_reversal_commit2():
     assert result["offer_id"] == "offer_x"
     assert result["counter_to_offer_id"] == "offer_x"
     assert result["counter_seed_terms"] == [{"type": "peace"}]
-    # The staged settlement_confirm is now the active dialogue.
+    # The staged settlement_confirm is now the active dialogue, on the
+    # guided PROPOSE surface (GT-Slice-4: no editor mount).
     current = world.dialogue_manager.peek()
     assert current is not None
     assert current.get("type") == "settlement_confirm"
+    assert current.get("dialogue_mode") == "PROPOSE"
+    assert "open_editor_on_mount" not in result
     # Request-revision heading appears on the staged dialogue.
     assert "counter draft" in str(current.get("talleyrand_text", "")).lower()
 

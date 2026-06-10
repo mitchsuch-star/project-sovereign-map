@@ -30,7 +30,9 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     "main.gd",
     "diplomacy_wizard.gd",
     "proposal_confirm_popup.gd",
-    "settlement_editor_popup.gd",
+    # GT-Slice-4: settlement_editor_popup.gd retired with the freeform
+    # editor — the guided per-court rows on proposal_confirm_popup.gd are
+    # the deep authoring tier.
     "war_detail_popup.gd",
     "war_status_panel.gd",
     "diplomatic_ledger.gd",

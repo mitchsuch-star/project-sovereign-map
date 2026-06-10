@@ -1,7 +1,7 @@
 {
   "godot_version": "4.4.1-stable (official)",
   "harness": "tools/godot_parse_check.gd",
-  "note": "SETTLEMENT_UI_CLEANUP_SPEC v0.32 May 28 all-tiers audit repair refresh. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+  "note": "GT-Slice-4 refresh: settlement_editor_popup.gd retired (freeform editor removed; guided per-court rows are the deep tier). Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
   "scripts": [
     {
       "errors": [],
@@ -32,12 +32,6 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scripts/proposal_confirm_popup.gd"
-    },
-    {
-      "errors": [],
-      "load_ok": true,
-      "parse_ok": true,
-      "path": "res://scripts/settlement_editor_popup.gd"
     },
     {
       "errors": [],
@@ -76,5 +70,5 @@
       "path": "res://scripts/mailbox_panel.gd"
     }
   ],
-  "timestamp": "2026-06-10T18:01:52Z"
+  "timestamp": "2026-06-10T19:49:25Z"
 }

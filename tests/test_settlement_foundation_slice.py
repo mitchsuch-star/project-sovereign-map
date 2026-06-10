@@ -203,12 +203,18 @@ class TestClauseValidation:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# SC-1: Executor forwards settlement_terms into staging
+# SC-1 (GT-Slice-4 re-home): the executor lands guided PROPOSE; the
+# settlement_terms command transport is retired
 # ═══════════════════════════════════════════════════════════════════════════
 
 
 class TestExecutorForwarding:
-    def test_executor_forwards_settlement_terms_to_staged_dialogue(self):
+    # GT-Slice-4: the SC-1 `settlement_terms` command transport died with the
+    # freeform editor (verify-dead pass — only the editor ever produced it).
+    # `propose_common_peace` now always lands the guided PROPOSE surface, and
+    # a command-carried terms blob is ignored, never staged.
+
+    def test_executor_ignores_command_settlement_terms_and_lands_propose(self):
         world = WorldState()
         _install_common_peace_war(world)
         executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
@@ -223,55 +229,30 @@ class TestExecutorForwarding:
         assert result["success"] is True
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
-        assert len(dialogue["settlement_terms"]) == 1
-        assert dialogue["settlement_terms"][0]["type"] == "territory_cede"
-        assert dialogue["settlement_terms"][0]["region"] == "Bohemia"
+        assert dialogue["dialogue_mode"] == "PROPOSE"
+        # The retired submit-blob transport never reaches the staged draft.
+        assert all(
+            t.get("region") != "Bohemia"
+            for t in dialogue["settlement_terms"]
+        )
 
-    def test_executor_rejects_invalid_terms(self):
+    def test_executor_persists_staged_propose_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
         executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
         cmd = {
             "action": "propose_common_peace",
             "target_nation": "Austria",
-            "settlement_terms": [{"type": "bogus"}],
         }
         result = executor._execute_propose_common_peace(cmd, {"world": world})
-        assert result["success"] is False
-        assert result["error"] == "submitted_terms_failed_revalidation"
-        assert result["mutated"] is False
-
-    def test_executor_rejects_explicit_empty_top_level_terms(self):
-        world = WorldState()
-        _install_common_peace_war(world)
-        executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
-        cmd = {
-            "action": "propose_common_peace",
-            "target_nation": "Austria",
-            "settlement_terms": [],
-            "diplomatic_data": {
-                "settlement_terms": [{"type": "peace"}],
-            },
-        }
-        result = executor._execute_propose_common_peace(cmd, {"world": world})
-        assert result["success"] is False
-        assert result["error"] == "submitted_terms_failed_revalidation"
-        assert result["validation_error"] == "empty_authored_draft"
-        assert world.pending_diplomatic_dialogue is None
-
-    def test_executor_persists_draft(self):
-        world = WorldState()
-        _install_common_peace_war(world)
-        executor = DiplomaticExecutor.__new__(DiplomaticExecutor)
-        terms = [{"type": "forced_alliance", "from": "Austria", "to": "France"}]
-        cmd = {
-            "action": "propose_common_peace",
-            "target_nation": "Austria",
-            "settlement_terms": terms,
-        }
-        executor._execute_propose_common_peace(cmd, {"world": world})
+        assert result["success"] is True
+        dialogue = world.pending_diplomatic_dialogue
+        assert dialogue["settlement_terms"]
         assert "war_1" in world.pending_settlement_drafts
-        assert world.pending_settlement_drafts["war_1"][0]["type"] == "forced_alliance"
+        assert (
+            world.pending_settlement_drafts["war_1"]
+            == dialogue["settlement_terms"]
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════

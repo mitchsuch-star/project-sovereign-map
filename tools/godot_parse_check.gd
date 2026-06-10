@@ -27,7 +27,6 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/main.gd",
 	"res://scripts/diplomacy_wizard.gd",
 	"res://scripts/proposal_confirm_popup.gd",
-	"res://scripts/settlement_editor_popup.gd",
 	"res://scripts/war_detail_popup.gd",
 	"res://scripts/war_status_panel.gd",
 	"res://scripts/diplomatic_ledger.gd",
@@ -44,7 +43,7 @@ func _init():
 		"timestamp": Time.get_datetime_string_from_system(true, false) + "Z",
 		"godot_version": Engine.get_version_info().get("string", ""),
 		"harness": "tools/godot_parse_check.gd",
-		"note": "SETTLEMENT_UI_CLEANUP_SPEC v0.32 May 28 all-tiers audit repair refresh. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+		"note": "GT-Slice-4 refresh: settlement_editor_popup.gd retired (freeform editor removed; guided per-court rows are the deep tier). Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
 		"scripts": [],
 	}
 	var any_failed = false

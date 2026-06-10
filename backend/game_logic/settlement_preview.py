@@ -41,7 +41,6 @@ from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     CANONICAL_CLAUSE_TYPES,
     CLAUSE_CONFLICT_MATRIX,
-    CLAUSE_CONTROL_SCHEMA,
     compute_direct_scores_by_enemy,
     compute_side_pressure_score,
     CONCESSION_GOLD_CAP,
@@ -1082,23 +1081,6 @@ def _safe_reopen_response(
 # ---------------------------------------------------------------------------
 
 
-def _clause_identity_key(term: Mapping[str, Any]) -> Tuple[str, str, str, str]:
-    """Type-specific identity tuple per SC-26 same-war merge semantics.
-
-    Same-key entries with differing values conflict; cross-key entries
-    are non-conflicting and merge by append. The canonical identity is
-    (type, from, to, region) for clauses that have all four; missing
-    fields collapse to "" so key uniqueness aligns with the canonical
-    schema.
-    """
-    return (
-        str(term.get("type") or ""),
-        str(term.get("from") or ""),
-        str(term.get("to") or ""),
-        str(term.get("region") or ""),
-    )
-
-
 def _terms_equal(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
     """Strict equality for clause merge conflict detection.
 
@@ -1111,43 +1093,6 @@ def _terms_equal(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
         if a.get(key) != b.get(key):
             return False
     return True
-
-
-def merge_same_war_settlement_drafts(
-    existing_terms: Iterable[Mapping[str, Any]],
-    new_terms: Iterable[Mapping[str, Any]],
-) -> Tuple[bool, List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """SC-26 merge contract: keep authored draft, fold compatible new terms.
-
-    Returns (ok, merged_terms, conflicts):
-      - ok=True when every new term is either compatible with the active
-        draft (same identity AND same fields => duplicate, kept once) or
-        adds a new identity (appended). The merged list keeps existing
-        draft order and appends compatible additions.
-      - ok=False when any new term collides with an existing draft term
-        on the same identity but differs in fields. The merged list is
-        the unchanged existing draft (per SC-26 "active draft unchanged")
-        and the conflicts list contains the offending pairs.
-    """
-    existing_list = [dict(t) for t in (existing_terms or []) if isinstance(t, Mapping)]
-    additions: List[Dict[str, Any]] = []
-    conflicts: List[Dict[str, Any]] = []
-    by_key: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {
-        _clause_identity_key(term): term for term in existing_list
-    }
-    for term in new_terms or []:
-        if not isinstance(term, Mapping):
-            continue
-        key = _clause_identity_key(term)
-        if key in by_key:
-            if _terms_equal(by_key[key], term):
-                continue  # duplicate -> idempotent merge
-            conflicts.append({"existing": dict(by_key[key]), "incoming": dict(term)})
-        else:
-            additions.append(dict(term))
-    if conflicts:
-        return False, existing_list, conflicts
-    return True, existing_list + additions, []
 
 
 def _territory_term_regions(term: Mapping[str, Any]) -> List[str]:
@@ -4345,7 +4290,8 @@ def _settlement_propose_carry_hint(
     cannot raise the offer further, the generic "use 'More generous' until
     each accepts" guidance is a lie (every further gold ease would fail
     validation — D3's silent wall). The hint pivots to the binding
-    constraint instead: drop a court, or pay in land via 'Adjust terms'.
+    constraint instead: drop a court, or pay in land via a territory offer
+    on the court's row (GT-Slice-4: the guided rows replaced 'Adjust terms').
     """
     holdouts = [str(n) for n in (holdout_courts or []) if str(n)]
     if not holdouts:
@@ -4361,7 +4307,7 @@ def _settlement_propose_carry_hint(
         return (
             f"{names} won't accept, and the treasury cannot raise the gold "
             "offer further. Drop a court from the table (they fight on), or "
-            "use 'Adjust terms' to pay in land instead."
+            "add a territory offer on the court's row to pay in land instead."
         )
     if easeable:
         return (
@@ -5222,7 +5168,6 @@ def build_settlement_preview(
 
 
 SETTLEMENT_EDITOR_CALLER_KIND = "player_editor"
-SETTLEMENT_EDITOR_SOURCES = frozenset({"rejected_review", "stale_recovery", "explicit_revise"})
 
 # SC-5R-1 pre-ratification clause-type guard allowlist for legacy aliases
 # the apply path still tolerates (`gold_lump` is a pre-cleanup alias for
@@ -5361,440 +5306,6 @@ def _discard_scoped_settlement_draft_for_dialogue(
     if draft_key and isinstance(drafts, dict):
         removed = drafts.pop(draft_key, None) is not None or removed
     return removed
-
-
-def _field_schema(
-    *,
-    control: str,
-    label: str,
-    options: Optional[List[Dict[str, Any]]] = None,
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
-    default: Any = None,
-    direction_metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    return {
-        "control": control,
-        "label": label,
-        "options": list(options or []),
-        "min": min_value,
-        "max": max_value,
-        "default": default,
-        "direction_metadata": dict(direction_metadata or {}),
-    }
-
-
-def _control_option(
-    option_id: str,
-    *,
-    label: Optional[str] = None,
-    disabled: bool = False,
-    disabled_reason_display: Optional[str] = None,
-) -> Dict[str, Any]:
-    return {
-        "id": str(option_id),
-        "label": str(label if label is not None else option_id),
-        "disabled": bool(disabled),
-        "disabled_reason_display": disabled_reason_display,
-    }
-
-
-def _nation_control_options(
-    world: Any,
-    war_instance: Optional[Mapping[str, Any]],
-    covered_enemy_participants: Optional[Iterable[str]],
-    *,
-    proposer_side: Optional[str] = None,
-) -> List[Dict[str, Any]]:
-    """Nation picker options for the Tier-3 editor.
-
-    Re-front Slice 3 §13 P2/P3: when the proposer side is known, the picker
-    offers every proposer-side participant plus ONLY the covered accepting-side
-    courts. An uncovered enemy can never be picked (mirrors the V2 validator
-    rule), and dropping a court from ``covered_enemy_participants`` removes it
-    from every picker on the next rebuild (P3 — the conversational coverage edit
-    rebuilds the dialogue and so the schema). Without a known proposer side it
-    falls back to listing every participant (legacy schema-only callers).
-    """
-    covered = {
-        str(n or "").strip()
-        for n in (covered_enemy_participants or [])
-        if str(n or "").strip()
-    }
-    nations: List[str] = []
-
-    def _add(name: Any) -> None:
-        ns = str(name or "").strip()
-        if ns and ns not in nations:
-            nations.append(ns)
-
-    ps = str(proposer_side or "")
-    if isinstance(war_instance, Mapping) and ps in VALID_SIDES:
-        accepting = _other_side(ps)
-        for nation in war_instance.get(ps) or []:
-            _add(nation)
-        for nation in war_instance.get(accepting) or []:
-            if str(nation or "").strip() in covered:
-                _add(nation)
-    elif isinstance(war_instance, Mapping):
-        for side in ("attackers", "defenders"):
-            for nation in war_instance.get(side) or []:
-                _add(nation)
-    # Covered courts stay selectable even if the side lookup missed them
-    # (defensive); the player nation is always present.
-    for nation in covered:
-        _add(nation)
-    _add(getattr(world, "player_nation", ""))
-    return [_control_option(nation) for nation in nations]
-
-
-def _region_control_options(
-    world: Any,
-    nation_options: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    allowed_controllers = {str(option.get("id") or "") for option in nation_options}
-    regions = getattr(world, "regions", None) or {}
-    options: List[Dict[str, Any]] = []
-    for region_name in sorted(regions):
-        region = regions.get(region_name)
-        controller = str(getattr(region, "controller", "") or "")
-        if allowed_controllers and controller not in allowed_controllers:
-            continue
-        options.append(_control_option(str(region_name)))
-    return options
-
-
-def _vassal_control_options(world: Any) -> List[Dict[str, Any]]:
-    vassals = getattr(world, "vassals", None) or {}
-    if isinstance(vassals, Mapping):
-        return [_control_option(str(nation)) for nation in sorted(vassals)]
-    return []
-
-
-def _side_partitioned_options(
-    war_instance: Optional[Mapping[str, Any]],
-    covered_enemy_participants: Optional[Iterable[str]],
-    proposer_side: Optional[str],
-    nation_options: List[Dict[str, Any]],
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Split the proposer+covered nation options into (proposer_side, covered)
-    lists for the role-specific Tier-3 pickers (§13 P2).
-
-    Used only for roles whose side is FIXED regardless of demand/concession
-    direction — ``forced_alliance`` (subject = covered enemy, imposer =
-    proposer-side; demand-only per the cleanup matrix) and ``liberation``
-    (lord = covered enemy losing the vassal, liberator = proposer-side). The
-    direction-CHOSEN roles (territory/gold payer↔payee, vassalage/subjugation)
-    keep the full filtered list because either side can legally be ``from`` /
-    ``to``; their opposite-side rule is the validator's V3/V4 authority (the
-    cleanup spec line-609 "validator is authority, pickers are a filtered view"
-    contract — a picker cannot statically know the player's chosen direction).
-
-    When the war-side context is unknown (legacy schema-only callers) both lists
-    fall back to the full ``nation_options`` so no picker is emptied by missing
-    context; the validator stays the authority.
-    """
-    ps = str(proposer_side or "")
-    if not (isinstance(war_instance, Mapping) and ps in VALID_SIDES):
-        return list(nation_options), list(nation_options)
-    proposer_members = {
-        str(n).strip() for n in (war_instance.get(ps) or []) if str(n or "").strip()
-    }
-    covered = {
-        str(n).strip()
-        for n in (covered_enemy_participants or [])
-        if str(n or "").strip()
-    }
-    proposer_opts = [
-        opt for opt in nation_options if str(opt.get("id") or "") in proposer_members
-    ]
-    covered_opts = [
-        opt for opt in nation_options if str(opt.get("id") or "") in covered
-    ]
-    return proposer_opts, covered_opts
-
-
-def _clause_fields_for_review(
-    clause_type: str,
-    *,
-    nation_options: Optional[List[Dict[str, Any]]] = None,
-    region_options: Optional[List[Dict[str, Any]]] = None,
-    vassal_options: Optional[List[Dict[str, Any]]] = None,
-    proposer_options: Optional[List[Dict[str, Any]]] = None,
-    covered_options: Optional[List[Dict[str, Any]]] = None,
-) -> Dict[str, Dict[str, Any]]:
-    nation_picker = {
-        "control": "picker",
-        "options": list(nation_options or []),
-        "min_value": None,
-        "max_value": None,
-        "default": None,
-    }
-
-    def _picker_for(options: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
-        # Role-specific option list; falls back to the shared nation list when a
-        # side partition was not supplied (legacy callers).
-        chosen = options if options is not None else nation_options
-        return {
-            "control": "picker",
-            "options": list(chosen or []),
-            "min_value": None,
-            "max_value": None,
-            "default": None,
-        }
-    if clause_type == "peace":
-        return {}
-    if clause_type == "territory_cede":
-        return {
-            "from": _field_schema(
-                **nation_picker,
-                label="Ceding court",
-                direction_metadata={"role": "payer", "direction": "conceded"},
-            ),
-            "to": _field_schema(
-                **nation_picker,
-                label="Receiving court",
-                direction_metadata={"role": "recipient", "direction": "demanded"},
-            ),
-            "region": _field_schema(
-                control="picker",
-                label="Region",
-                options=list(region_options or []),
-                direction_metadata={"role": "asset", "direction": "demanded"},
-            ),
-        }
-    if clause_type == "gold_indemnity":
-        return {
-            "from": _field_schema(
-                **nation_picker,
-                label="Paying court",
-                direction_metadata={"role": "payer", "direction": "demanded"},
-            ),
-            "to": _field_schema(
-                **nation_picker,
-                label="Receiving court",
-                direction_metadata={"role": "recipient", "direction": "demanded"},
-            ),
-            "amount": _field_schema(
-                control="number",
-                label="Gold",
-                min_value=1,
-                default=200,
-                direction_metadata={"role": "amount", "direction": "demanded"},
-            ),
-        }
-    if clause_type == "gold_per_turn":
-        return {
-            "from": _field_schema(
-                **nation_picker,
-                label="Paying court",
-                direction_metadata={"role": "payer", "direction": "demanded"},
-            ),
-            "to": _field_schema(
-                **nation_picker,
-                label="Receiving court",
-                direction_metadata={"role": "recipient", "direction": "demanded"},
-            ),
-            "amount": _field_schema(
-                control="number",
-                label="Gold per turn",
-                min_value=GOLD_PER_TURN_MIN_AMOUNT,
-                default=max(GOLD_PER_TURN_MIN_AMOUNT, 50),
-                direction_metadata={"role": "amount", "direction": "demanded"},
-            ),
-            "turns": _field_schema(
-                control="number",
-                label="Turns",
-                min_value=GOLD_PER_TURN_MIN_TURNS,
-                max_value=GOLD_PER_TURN_MAX_TURNS,
-                default=3,
-                direction_metadata={"role": "duration", "direction": "demanded"},
-            ),
-        }
-    if clause_type == "forced_alliance":
-        # §13 P2: forced alliance is demand-only — the subject is a covered
-        # enemy, the imposer is a proposer-side court. Same-side imposition is
-        # unauthorable because the two pickers draw from disjoint side lists.
-        return {
-            "from": _field_schema(
-                **_picker_for(covered_options),
-                label="Court forced into alliance",
-                direction_metadata={"role": "subject", "direction": "demanded"},
-            ),
-            "to": _field_schema(
-                **_picker_for(proposer_options),
-                label="Alliance imposed by",
-                direction_metadata={"role": "imposer", "direction": "demanded"},
-            ),
-            "includes_continental_system": _field_schema(
-                control="toggle",
-                label="Continental System inclusion",
-                default=False,
-                direction_metadata={"role": "modifier", "direction": "demanded"},
-            ),
-        }
-    if clause_type in {"vassalage", "subjugation"}:
-        return {
-            "from": _field_schema(
-                **nation_picker,
-                label="Subject court",
-                direction_metadata={"role": "subject", "direction": "demanded"},
-            ),
-            "to": _field_schema(
-                **nation_picker,
-                label="Overlord court",
-                direction_metadata={"role": "overlord", "direction": "demanded"},
-            ),
-        }
-    if clause_type == "liberation":
-        return {
-            "vassal_nation": _field_schema(
-                control="picker",
-                label="Vassal to liberate",
-                # Slice 0 / cleanup spec line 601: the picker offers only real
-                # vassals. The old `or nation_options` fallback let non-vassals
-                # (including France) appear, which is what produced the
-                # France-liberates-France nonsense the validator only caught at
-                # Submit. With no vassals the picker is empty and the clause is
-                # disabled (see _build_clause_control_schema_for_review).
-                options=list(vassal_options or []),
-                direction_metadata={"role": "subject", "direction": "demanded"},
-            ),
-            # §13 P2: the lord losing the vassal is a covered enemy; the
-            # liberator is a proposer-side court (opposite the lord, mirroring
-            # `evaluate_liberation_eligibility`). Disjoint side lists make a
-            # same-side liberation unauthorable, not merely Submit-rejected.
-            "lord_nation": _field_schema(
-                **_picker_for(covered_options),
-                label="Current overlord",
-                direction_metadata={"role": "overlord", "direction": "demanded"},
-            ),
-            "liberator": _field_schema(
-                **_picker_for(proposer_options),
-                label="Liberating court",
-                direction_metadata={"role": "liberator", "direction": "demanded"},
-            ),
-        }
-    return {}
-
-
-def _clause_enabled_from_pickers(
-    fields: Mapping[str, Mapping[str, Any]],
-) -> Tuple[bool, Optional[str]]:
-    """Compute per-clause-type ``enabled`` from picker emptiness.
-
-    Slice 0 / cleanup spec line 601 contract: a live clause type whose
-    required picker fields have zero options after filtering cannot author
-    a valid clause, so its Add Clause control is disabled with a humanized
-    reason naming the empty picker(s). Number / toggle fields never gate
-    ``enabled`` (only ``picker`` controls carry a target list), and a
-    clause type with no fields at all (``peace``) is always enabled.
-    """
-    empty_picker_labels = [
-        str(field.get("label") or name)
-        for name, field in fields.items()
-        if field.get("control") == "picker" and not field.get("options")
-    ]
-    if empty_picker_labels:
-        return False, "No eligible options available for: " + ", ".join(
-            empty_picker_labels
-        )
-    return True, None
-
-
-def _build_clause_control_schema_for_review(
-    world: Any = None,
-    *,
-    war_instance: Optional[Mapping[str, Any]] = None,
-    covered_enemy_participants: Optional[Iterable[str]] = None,
-    proposer_side: Optional[str] = None,
-) -> Dict[str, Dict[str, Any]]:
-    """Return the SC-5R clause control schema for live clause types.
-
-    The schema is the backend source of truth for Godot picker contents
-    (spec §Editor Layout Contract). Hidden clause types are absent from
-    both the schema and ``available_clause_types[]`` so clients cannot
-    synthesize disabled rows for absent types.
-
-    Re-front Slice 3 §13: ``proposer_side`` lets the nation/region pickers
-    filter to proposer-side + covered courts (P2/P3); a coverage edit rebuilds
-    the dialogue and so re-filters every picker. The fixed-direction roles
-    (``forced_alliance`` subject/imposer, ``liberation`` lord/liberator) are
-    additionally split onto disjoint side lists via ``_side_partitioned_options``
-    so a same-side imposition/liberation cannot be authored; the
-    direction-chosen roles (territory/gold payer↔payee) keep the full filtered
-    list and rely on the validator's V3/V4 authority (cleanup spec line 609).
-    """
-    schema: Dict[str, Dict[str, Any]] = {}
-    nation_options = _nation_control_options(
-        world, war_instance, covered_enemy_participants, proposer_side=proposer_side,
-    )
-    proposer_options, covered_options = _side_partitioned_options(
-        war_instance, covered_enemy_participants, proposer_side, nation_options,
-    )
-    region_options = _region_control_options(world, nation_options)
-    vassal_options = _vassal_control_options(world)
-    for clause_type, base in CLAUSE_CONTROL_SCHEMA.items():
-        if not base.get("enabled"):
-            continue
-        if clause_type not in SETTLEMENT_LIVE_CLAUSE_TYPES:
-            continue
-        fields = _clause_fields_for_review(
-            clause_type,
-            nation_options=nation_options,
-            region_options=region_options,
-            vassal_options=vassal_options,
-            proposer_options=proposer_options,
-            covered_options=covered_options,
-        )
-        enabled, disabled_reason_display = _clause_enabled_from_pickers(fields)
-        schema[clause_type] = {
-            "enabled": enabled,
-            "disabled_reason_display": disabled_reason_display,
-            "fields": fields,
-        }
-    return schema
-
-
-def _available_clause_types_for_review() -> List[str]:
-    """Return the ordered list of live clause types for ``available_clause_types[]``."""
-    schema = _build_clause_control_schema_for_review()
-    return sorted(schema.keys())
-
-
-def _build_settlement_editor_route(
-    *,
-    war_id: str,
-    selected_target_nation: str,
-    covered_enemy_participants: Iterable[str],
-    draft_key: str,
-    available_clause_types: Iterable[str],
-    staged_settlement_terms: Iterable[Mapping[str, Any]],
-    source_route_id: Optional[str] = None,
-    source: str = "explicit_revise",
-) -> Dict[str, Any]:
-    """Build the SC-5R ``editor_route`` payload for an EDIT-capable review.
-
-    The shape is exact per spec line 548; SC-5R-2 will consume this on
-    the Godot side to mount the editor surface.
-    """
-    if source not in SETTLEMENT_EDITOR_SOURCES:
-        source = "explicit_revise"
-    return {
-        "surface": "settlement_editor",
-        "war_id": str(war_id or ""),
-        "selected_target_nation": str(selected_target_nation or ""),
-        "covered_enemy_participants": [
-            str(n) for n in (covered_enemy_participants or []) if str(n)
-        ],
-        "draft_key": str(draft_key or ""),
-        "available_clause_types": list(available_clause_types or []),
-        "staged_settlement_terms": [
-            dict(t) for t in (staged_settlement_terms or []) if isinstance(t, Mapping)
-        ],
-        "source_route_id": str(source_route_id) if source_route_id else None,
-        "source": source,
-    }
 
 
 def build_settlement_confirm_dialogue(
@@ -6269,7 +5780,7 @@ def build_settlement_confirm_dialogue(
         row["is_holdout"] = is_holdout
         # Re-front Slice-G boundary: the dial/coverage affordances are
         # player-only. A non-player (AI/system) caller never gets the
-        # one-click Ease/Drop routes, mirroring the `can_edit_terms` gate.
+        # one-click Ease/Drop routes.
         # UX-2 (GT-Slice-3, server half): REVIEW is a staged-decision
         # surface — terms frozen, dials gone — so the per-row authoring
         # affordances attach on PROPOSE only (absent buttons by
@@ -6402,14 +5913,15 @@ def build_settlement_confirm_dialogue(
                     income_cache=guided_income_cache,
                 )
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
-        # PROPOSE is the conversational front (Tiers 1-2): an authoring rail,
-        # not a staged-decision rail. Adjust terms (-> EDIT/Tier 3), Submit for
-        # Review (-> REVIEW), Back Out. No `confirm_settlement` — ratification
-        # only ever fires from REVIEW. Holdout Ease/Drop ride on the rows above.
+        # PROPOSE is the conversational front: an authoring rail, not a
+        # staged-decision rail. Submit for Review (-> REVIEW), Back Out. No
+        # `confirm_settlement` — ratification only ever fires from REVIEW.
+        # Holdout Ease/Drop and the guided demand authoring ride on the rows
+        # above (GT-Slice-4: the per-court ROWS are the deep tier — the
+        # freeform editor and its `adjust_terms` rail verb are retired).
         # The authoring rail is PLAYER-ONLY (Slice-G boundary): a non-player
-        # PROPOSE staging keeps the default non-authoring rail (no `adjust_terms`
-        # / `submit_settlement_for_review` / `suspend_settlement_editor`), in
-        # lockstep with `can_edit_terms=False` / `editor_route=None` below.
+        # PROPOSE staging keeps the default non-authoring rail (no
+        # `submit_settlement_for_review` / `suspend_settlement_editor`).
         # Re-front Slice 2 / OQ#1: the whole-table intent dials are the primary
         # Tier-2 levers and lead the PROPOSE rail. They re-draft the package
         # harsher/more-generous across every covered court and re-score live;
@@ -6429,10 +5941,6 @@ def build_settlement_confirm_dialogue(
             "draft_key": settlement_draft_key_for_options,
             "description": "Ease every court and watch each react live.",
         }, {
-            "label": "Adjust terms",
-            "action": "adjust_terms",
-            "description": "Open the structured editor to shape specific clauses.",
-        }, {
             "label": "Submit for Review",
             "action": "submit_settlement_for_review",
             "description": "Lock in this package and review it for ratification.",
@@ -6440,7 +5948,6 @@ def build_settlement_confirm_dialogue(
         available_action_ids = [
             "settlement_dial_harsher",
             "settlement_dial_generous",
-            "adjust_terms",
             "submit_settlement_for_review",
         ]
         # PROPOSE Back Out is non-destructive (§10): it suspends the authoring
@@ -6478,32 +5985,11 @@ def build_settlement_confirm_dialogue(
             "top_components": [],
             "blocker_display": ratify_blocked_reason,
         }
-    # SC-5R-1/2: publish the EDIT payload contract per spec line 543-556
-    # plus the editor-layout empty-draft rule at line 595.
-    # `can_edit_terms` is the gate for showing `Revise Terms` on REVIEW;
-    # SC-5R-2 will consume `available_clause_types[]` + `clause_control_schema`
-    # + `editor_route` to mount the Godot editor surface. Hidden clause
-    # types are absent from both fields so clients cannot synthesize
-    # disabled rows for absent types.
-    war_active = bool(
-        war_instance
-        and isinstance(war_instance, Mapping)
-        and war_instance.get("ended_turn") is None
-    )
-    sc5r_clause_control_schema = _build_clause_control_schema_for_review(
-        world,
-        war_instance=war_instance,
-        covered_enemy_participants=covered,
-        proposer_side=proposer_side,
-    )
-    sc5r_available_clause_types = sorted(sc5r_clause_control_schema.keys())
-    staged_terms_for_edit = copy.deepcopy(preview.get("settlement_terms") or [])
-    can_edit_terms = bool(
-        str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
-        and war_active
-        and not white_peace
-        and sc5r_available_clause_types
-    )
+    # GT-Slice-4: the SC-5R EDIT payload contract (`can_edit_terms` /
+    # `available_clause_types[]` / `clause_control_schema` / `editor_route`)
+    # is retired with the freeform editor — the guided per-court rows are
+    # the deep authoring tier and carry their own valid-by-construction
+    # suggestion payloads (GT-Slice-2).
     sc5r_draft_key = compute_settlement_draft_key(war_id, resolved_target, covered)
     # PF-1 / DC-2: detect the solvency-bound table ONCE for both guidance
     # surfaces — the carry hint pivots to the binding constraint and the
@@ -6551,20 +6037,6 @@ def build_settlement_confirm_dialogue(
             budget_bound_voice,
             str(budget_bound_recommendation["recommendation_voice"]),
         ])
-    sc5r_editor_route = (
-        _build_settlement_editor_route(
-            war_id=war_id,
-            selected_target_nation=resolved_target,
-            covered_enemy_participants=covered,
-            draft_key=sc5r_draft_key,
-            available_clause_types=sc5r_available_clause_types,
-            staged_settlement_terms=staged_terms_for_edit,
-            source_route_id=route_id,
-            source="explicit_revise",
-        )
-        if can_edit_terms
-        else None
-    )
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -6758,26 +6230,6 @@ def build_settlement_confirm_dialogue(
         "forced_alliance_continental_toggle_differential": list(
             preview.get("forced_alliance_continental_toggle_differential") or []
         ),
-        # SC-5R-1 EDIT payload contract per spec §Full Treaty Settlement
-        # Flow line 546-556 plus the editor-layout empty-draft rule.
-        # `can_edit_terms` is true when the staged dialogue is a
-        # player-editor draft on an active war with at least one live
-        # clause type authorable; empty packages open EDIT with Submit
-        # disabled instead of blocking editor mount. White peace remains
-        # a REVIEW-only empty-package ratification path.
-        # `available_clause_types[]` and
-        # `clause_control_schema` are absent (empty) when not editable
-        # so hidden clause types cannot leak as disabled labels;
-        # `editor_route` is None when not editable so SC-5R-2 cannot
-        # advertise an editor handoff for non-editor staging.
-        "can_edit_terms": can_edit_terms,
-        "available_clause_types": (
-            list(sc5r_available_clause_types) if can_edit_terms else []
-        ),
-        "clause_control_schema": (
-            copy.deepcopy(sc5r_clause_control_schema) if can_edit_terms else {}
-        ),
-        "editor_route": sc5r_editor_route,
     }
 
 
@@ -6918,48 +6370,22 @@ def stage_settlement_confirm(
                     "message": replace_dialogue["talleyrand_text"],
                     "suppress_proposal_result_popup": True,
                 }
+            # GT-Slice-4 (Guided Terms §6): there is no editor submit blob to
+            # reconcile — the STAGED draft is the single source of truth. A
+            # same-war same-scope refresh (War Detail reopen, wizard Open
+            # Settlement) re-shows the mounted dialogue's terms; the caller's
+            # terms (the scoped store's copy of the same draft) only seed an
+            # empty mounted draft. The old additive merge — and its
+            # `same_war_merge_conflict` dead end — retired with the editor.
             existing_terms = list(mounted.get("settlement_terms") or [])
             incoming_terms = list(settlement_terms or [])
-            ok, merged_terms, conflicts = merge_same_war_settlement_drafts(
-                existing_terms, incoming_terms,
-            )
+            refreshed_terms = existing_terms if existing_terms else incoming_terms
             drafts = getattr(world, "pending_settlement_drafts", None)
             if drafts is None:
                 world.pending_settlement_drafts = {}
                 drafts = world.pending_settlement_drafts
-            if not ok:
-                # Preserve the active draft per SC-26 — return without
-                # restaging. Drafts store holds the existing draft.
-                drafts[war_id_str] = [dict(t) for t in existing_terms]
-                # SC-5R-1 scoped draft persistence: dual-write the
-                # preserved draft to the scoped store under the active
-                # dialogue's scope so reopen / War Detail recovery
-                # finds it under `draft_key`, not just `war_id`.
-                save_scoped_settlement_draft(
-                    world,
-                    war_id=war_id_str,
-                    selected_target_nation=str(
-                        mounted.get("selected_target_nation") or ""
-                    ),
-                    covered_enemy_participants=mounted_covered,
-                    settlement_terms=existing_terms,
-                )
-                return _settlement_collision_payload(
-                    error="same_war_merge_conflict",
-                    active_war_id=war_id_str,
-                    incoming_war_id=war_id_str,
-                    extra={
-                        "dialogue_type": "settlement_confirm",
-                        "war_id": war_id_str,
-                        "merge_conflict": True,
-                        "conflicts": conflicts,
-                        "preserved_terms": [dict(t) for t in existing_terms],
-                    },
-                )
-            # Compatible merge: persist merged draft + restage with merged
-            # terms so preview/acceptance reflect the new authored set.
-            drafts[war_id_str] = [dict(t) for t in merged_terms]
-            # SC-5R-1: dual-write the merged draft to the scoped store
+            drafts[war_id_str] = [dict(t) for t in refreshed_terms]
+            # SC-5R-1: dual-write the refreshed draft to the scoped store
             # under the incoming scope (same-war refresh adopts the
             # caller's scope when present).
             save_scoped_settlement_draft(
@@ -6967,9 +6393,9 @@ def stage_settlement_confirm(
                 war_id=war_id_str,
                 selected_target_nation=incoming_target_for_scope,
                 covered_enemy_participants=incoming_covered_for_scope,
-                settlement_terms=merged_terms,
+                settlement_terms=refreshed_terms,
             )
-            settlement_terms = merged_terms
+            settlement_terms = refreshed_terms
             is_same_war_refresh = True
             # Same-war refresh inherits the mounted dialogue's selected
             # target/covered set when the caller did not re-author them.
@@ -8449,6 +7875,7 @@ def _stage_replacement_settlement_terms(
     terms: Iterable[Mapping[str, Any]],
     message: str,
     surrender_preset: bool = False,
+    dialogue_mode: str = "REVIEW",
 ) -> Dict[str, Any]:
     war_id = str(dialogue.get("war_id") or "")
     covered = list(dialogue.get("covered_enemy_participants") or [])
@@ -8519,6 +7946,7 @@ def _stage_replacement_settlement_terms(
         caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
         white_peace=bool(dialogue.get("white_peace", False)),
         surrender_preset=surrender_preset,
+        dialogue_mode=dialogue_mode,
     )
     drafts = getattr(world, "pending_settlement_drafts", None)
     if drafts is None:
@@ -8552,12 +7980,6 @@ def _stage_replacement_settlement_terms(
         "message": message,
         "suppress_proposal_result_popup": True,
     }
-    if (
-        action == "apply_concession_baseline_replacement"
-        and new_dialogue.get("can_edit_terms")
-        and new_dialogue.get("editor_route")
-    ):
-        result["open_editor_on_mount"] = True
     return result
 
 
@@ -8729,9 +8151,8 @@ def _handle_settlement_tier2_action(
     """Re-front Slice 2 — Tier-2 intent dials, coverage edits, and court focus
     on the conversational PROPOSE surface (spec §11.3).
 
-    All five verbs are PLAYER-ONLY (the Slice-G boundary, mirroring the editor
-    ``can_edit_terms`` gate): a non-player staging never reaches an authoring
-    redraw. Dials and coverage edits re-draft + re-score live over one shared
+    All five verbs are PLAYER-ONLY (the Slice-G boundary): a non-player
+    staging never reaches an authoring redraw. Dials and coverage edits re-draft + re-score live over one shared
     score pass and preserve PROPOSE mode; ``settlement_focus_court`` is
     presentation-only (no term mutation, no re-score).
     """
@@ -9873,6 +9294,9 @@ def _handle_settlement_dialogue_action_inner(
             message="Talleyrand's recurring-gold draft has replaced the current draft.",
         )
     if action == "apply_concession_baseline_replacement":
+        # GT-Slice-4 (§5 re-point): the applied concession baseline re-stages
+        # the guided PROPOSE surface (no editor mount) — the player lands on
+        # the per-court authoring rows seeded with Talleyrand's baseline.
         covered = list(dialogue.get("covered_enemy_participants") or [])
         actor = getattr(world, "player_nation", "France")
         fresh_empty_preview = build_settlement_preview(
@@ -9924,6 +9348,7 @@ def _handle_settlement_dialogue_action_inner(
             action=action,
             terms=baseline_terms,
             message="Talleyrand's concession baseline has replaced the current draft.",
+            dialogue_mode="PROPOSE",
         )
     if action == "apply_surrender_preset_replacement":
         covered = list(dialogue.get("covered_enemy_participants") or [])
@@ -10110,12 +9535,16 @@ def _handle_settlement_dialogue_action_inner(
                 "mutated": False,
                 "suppress_proposal_result_popup": True,
             }
+        # GT-Slice-4 (§5 re-point): the rail action survives; only its
+        # destination changes — the concession baseline re-stages the guided
+        # PROPOSE surface seeded from the baseline (no editor mount).
         new_dialogue = build_settlement_confirm_dialogue(
             world,
             baseline_preview,
             selected_target_nation=selected_target or None,
             caller_kind=str(dialogue.get("caller_kind") or "player_editor"),
             white_peace=False,
+            dialogue_mode="PROPOSE",
         )
         drafts = getattr(world, "pending_settlement_drafts", None)
         if drafts is None:
@@ -10143,8 +9572,6 @@ def _handle_settlement_dialogue_action_inner(
             "message": "Talleyrand's concession baseline has been drafted for review.",
             "suppress_proposal_result_popup": True,
         }
-        if new_dialogue.get("can_edit_terms") and new_dialogue.get("editor_route"):
-            result["open_editor_on_mount"] = True
         return result
     if action == "author_recurring_gold_terms":
         selected_target = str(dialogue.get("selected_target_nation") or "")
@@ -11621,17 +11048,16 @@ def handle_incoming_settlement_offer_action(
         }
 
     if action == "request_settlement_revision":
-        # SC-5 reversal commit 2: `request_settlement_revision` opens a
-        # real counter / edit route by staging `settlement_confirm` in
-        # player-editor mode seeded with the exact offered terms. The
-        # player can revise and then submit / ratify as a counter, or
-        # back out of the editor without sending a counter. The original
-        # offer entry is removed because the player has explicitly
+        # SC-5 reversal commit 2 + GT-Slice-4 (OQ-4(b)): counter-authoring
+        # lands on the guided PROPOSE surface seeded with the exact offered
+        # terms. The player reshapes the package on the per-court rows and
+        # submits as a counter, or backs out without sending one. The
+        # original offer entry is removed because the player has explicitly
         # chosen to counter (rather than leaving the offer open in the
-        # mailbox alongside an editor draft). Click-time revalidation
+        # mailbox alongside a counter draft). Click-time revalidation
         # still runs through `stage_settlement_confirm`, so a
         # state-changed war returns a humanized error instead of
-        # opening a stale editor.
+        # opening a stale counter surface.
         offered_terms = list(dialogue.get("settlement_terms") or [])
         covered_enemies = list(dialogue.get("covered_enemy_participants") or [])
         offer_proposer_nation = dialogue.get("proposer_nation")
@@ -11709,12 +11135,14 @@ def handle_incoming_settlement_offer_action(
             "war_id": war_id,
             "actor_nation": actor,
             "density": "medium",
-            # Player-editor mode so the editor controls (Submit for
-            # Review, clause edits, Back Out / discard confirm) appear
-            # the way they do for the standard player-authored
-            # settlement review. The offered terms become the initial
-            # draft.
+            # Player caller kind so the authoring controls (per-court
+            # demand rows, dials, Submit for Review, Back Out) appear the
+            # way they do for the standard player-authored settlement.
+            # The offered terms become the initial draft, and PROPOSE is
+            # the landing surface (GT-Slice-4: guided counter-authoring,
+            # no editor mount).
             "caller_kind": "player_editor",
+            "dialogue_mode": "PROPOSE",
         }
         if offered_terms:
             stage_kwargs["settlement_terms"] = offered_terms
@@ -11727,18 +11155,8 @@ def handle_incoming_settlement_offer_action(
         result["dialogue_type"] = "settlement_confirm"
         result["action"] = "request_settlement_revision"
         result["offer_id"] = offer_id
-        if (
-            result.get("success")
-            and isinstance(result.get("diplomatic_dialogue"), dict)
-            and result["diplomatic_dialogue"].get("can_edit_terms")
-            and result["diplomatic_dialogue"].get("editor_route")
-        ):
-            # Request Revision is an explicit counter-authoring choice;
-            # mount EDIT immediately instead of making the player click
-            # Revise Terms on an intermediate REVIEW popup.
-            result["open_editor_on_mount"] = True
         # Echo the originating offer terms so audits / observers can
-        # confirm the counter editor was seeded from the exact offered
+        # confirm the counter surface was seeded from the exact offered
         # package. The staged draft itself can drift as the player
         # edits, but `counter_to_offer_id` + `counter_seed_terms` pin
         # the conversation provenance for the SC-30 voice-routing tests.
