@@ -191,7 +191,7 @@ def test_d7_replacement_stage_failure_reattaches_dialogue():
     mounted = world.dialogue_manager.peek()
     assert mounted is not None
     with patch(
-        "backend.game_logic.settlement_preview.validate_settlement_terms",
+        "backend.game_logic.settlement_ratify.validate_settlement_terms",
         return_value={
             "valid": False,
             "error": "region_double_promised",
