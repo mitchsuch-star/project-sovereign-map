@@ -2881,7 +2881,7 @@ class DiplomaticExecutor:
             "replace_current_scope_draft",
             "keep_current_scope_draft",
         ):
-            from backend.game_logic.settlement_preview import (
+            from backend.game_logic.settlement_actions import (
                 handle_settlement_dialogue_action,
             )
             return handle_settlement_dialogue_action(

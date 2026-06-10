@@ -207,7 +207,7 @@ def _extract_post_hud_route_ids(source: str) -> List[str]:
 
 def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
     handler_anchor = (
-        "from backend.game_logic.settlement_preview import (\n"
+        "from backend.game_logic.settlement_actions import (\n"
         "                handle_settlement_dialogue_action,\n"
         "            )"
     )
@@ -322,8 +322,8 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
             f"{action!r}."
         )
 
-    settlement_preview_text = (
-        REPO_ROOT / "backend" / "game_logic" / "settlement_preview.py"
+    settlement_actions_text = (
+        REPO_ROOT / "backend" / "game_logic" / "settlement_actions.py"
     ).read_text(encoding="utf-8")
     for action in SETTLEMENT_FAMILY_ACTION_IDS - {
         "propose_common_peace",
@@ -333,8 +333,8 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
         "reject_settlement_offer",
         "request_settlement_revision",
     }:
-        assert f'action == "{action}"' in settlement_preview_text, (
-            f"settlement_preview.py missing dialogue handler branch for "
+        assert f'action == "{action}"' in settlement_actions_text, (
+            f"settlement_actions.py missing dialogue handler branch for "
             f"{action!r}; visible settlement action would become a no-op."
         )
 
@@ -456,7 +456,7 @@ def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler()
     # Find the `elif action in (...)` dispatch tuple that routes to
     # `handle_settlement_dialogue_action`. The arm is the only place
     # in _process_dialogue_choice that imports that handler.
-    handler_anchor = "from backend.game_logic.settlement_preview import (\n                handle_settlement_dialogue_action,\n            )"
+    handler_anchor = "from backend.game_logic.settlement_actions import (\n                handle_settlement_dialogue_action,\n            )"
     assert handler_anchor in text, (
         "diplomatic_executor.py no longer imports "
         "handle_settlement_dialogue_action inside _process_dialogue_choice; "
