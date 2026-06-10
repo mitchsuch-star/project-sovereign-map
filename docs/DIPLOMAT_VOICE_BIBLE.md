@@ -335,6 +335,10 @@ A multi-party settlement seats several enemy courts at one table, each scored in
 | `settlement_multi_court_table_talleyrand` | Talleyrand | table narration | "Sire, this settlement of {war_label} seats {court_count} courts at the table. {binding_constraint}" |
 | `settlement_multi_court_all_carry_talleyrand` | Talleyrand | binding (carries) | "Every court at the table will sign; the settlement of {war_label} carries." |
 | `settlement_multi_court_holdout_blocks_talleyrand` | Talleyrand | binding (blocked) | "Sire, {holdout_court} will not sign; the settlement of {war_label} cannot be ratified until that court is eased toward terms or dropped to fight on." |
+| `settlement_budget_bound_constraint_talleyrand` | Talleyrand | binding constraint (PF-1/DC-2: treasury cannot satisfy every concede-direction holdout in gold) | "Sire, the treasury cannot satisfy {holdout_names} in gold — what remains will not move them. Set a court aside to fight on, or pay in land." |
+| `settlement_submit_failed_validation_talleyrand` | Talleyrand | submit-time validation failure (PF-1/UX-6: error paths stay in character) | "Sire, I cannot carry these terms to review as written. {blocker}" |
+
+**Error-path register note (PF-1 / UX-6).** Validation and constraint failures are when the player most needs the advisor in character. Talleyrand owns the failure of a draft he helped author ("I cannot carry these terms") and names consequences, never blame; the binding-constraint line states the arithmetic of the purse plainly — Pressburg cut both ways, and France in 1813 could not buy peace from everyone.
 
 **Copy boundary (cleanup SC-32 D5 — normative).** This is a *settlement table*, not a Congress. **No committed multi-court copy may contain "conference", "congress", or "veto"** — use "settlement", "the table", "these courts", "<court> holds out / signs". The word "conference" is internal design shorthand only. Enforced by `test_committed_multi_court_copy_avoids_conference_congress_veto_terms`.
 

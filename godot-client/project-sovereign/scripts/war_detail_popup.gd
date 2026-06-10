@@ -302,6 +302,12 @@ func _render_war_detail(w: Dictionary):
 	if tier_display:
 		bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
 
+	# PF-2 (D4/UX-1): make the Back Out "Settlement draft kept" promise
+	# visible where the player reopens — the badge appears iff a same-turn
+	# scoped draft would actually restore.
+	if bool(w.get("settlement_draft_kept", false)):
+		bbcode += "[color=" + COLOR_GOLD + "]▸ Draft kept — Open Settlement resumes your terms.[/color]\n"
+
 	var objective = w.get("objective", null)
 	if objective != null and objective is Dictionary:
 		var obj_type = str(objective.get("type_display", "Objective"))

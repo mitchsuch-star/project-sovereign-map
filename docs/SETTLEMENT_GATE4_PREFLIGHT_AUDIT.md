@@ -1,10 +1,11 @@
 # Settlement Gate-4 Pre-flight Audit — losing/rejected scenarios + Re-front holistic review
 
-**Status:** OPEN — defect ledger D1–D7 unfixed as of June 9, 2026. **`settlement_losing` smoke is BLOCKED until fix slice PF-1 lands** (D1/D2 reproduce within the first three clicks). `settlement_rejected` is smokeable today with known walls (D3 after the first ease on turn 1; all dials walled on turn 2+).
-**Date:** June 9, 2026
+**Status:** **PF-1 + PF-2 + PF-3 LANDED on master June 9, 2026** — defect ledger D1–D6 FIXED; D7 stays latent (structural cure is CH-5, §9). The `settlement_losing` smoke is UNBLOCKED (the fixture now opens to a validator-clean baseline with honest holdout bands and the DC-2 binding-constraint guidance; blocked ratifies re-attach with a rendered reason). Verification: `tests/test_settlement_gate4_preflight_pf1.py` (12), `tests/test_settlement_gate4_preflight_pf2.py` (4), `tests/test_settlement_baseline_scenario_matrix.py` (36 — the §6 standing harness); full suite green; ruff clean; Godot 4.4.1 parse 0 failures.
+**Smoke re-sequencing (user decision, June 9, 2026):** the Gate 4 manual settlement smoke is deferred to run ONCE at the END of the settlement queue — after the Guided Terms gate (with §7 GT-A1..4 folded) and the remaining queued settlement items — NOT immediately after PF-1. Rationale: this pre-flight audit plus the PF-3 scenario matrix already caught the defect classes the per-slice manual smoke targeted; one consolidated end-of-queue smoke covers the integrated surface. The smoke retains its owner (Gate 4, `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32) and its completion definition (the §"Verification focus" scenarios incl. `settlement_rejected` + `settlement_losing`); only its position in the sequence changed.
+**Date:** June 9, 2026 (audit); PF slices landed June 9, 2026
 **Method:** Static trace + read-only in-memory simulation of the exact `SOVEREIGN_SMOKE_START` fixture worlds, driving the real staging/dial/submit/ratify handlers (no server, no file mutation), plus a Godot-layer render/routing audit and a diplo-wide design sweep. Headline defects (D1, D2 mechanism, D3 mechanism, D4) were re-verified line-by-line by hand; remaining cites are agent-traced (re-verify line numbers before patching — see §12 confidence key).
 **Scope:** the Settlement Conversational Re-front (`SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` v0.6, Slices 0–3 + REFRONT-V landed) at its current Gate-4-smoke state, plus design / UX / code-health / diplo-wide commentary requested by the user.
-**How to use this doc:** a fresh session should (1) implement **PF-1** (§4), (2) implement **PF-2** (§5), (3) resume the Gate 4 smoke (`settlement_rejected` first, `settlement_losing` only after PF-1), (4) fold the §7 design amendments into the Guided Terms approval gate, (5) queue §9 code-health work post-smoke. Defect ownership lives HERE (PF slices below), not in `BUG_FIXES.md` (closed queue with a no-new-PL-items scope guard).
+**How to use this doc:** PF-1 (§4), PF-2 (§5), and PF-3 (§6) are LANDED — do not re-implement them. A fresh session should (1) take the **Guided Terms approval gate** next, folding the §7 design amendments **GT-A1..4** before approval (design gate — DO NOT CODE without user approval), (2) work the remaining settlement queue (REFRONT-9 folds into the Guided Terms expanded row per GT-A4; §9 code-health CH-1..7; then cleanup-spec Slice G1), (3) run the **single end-of-queue Gate 4 manual smoke** (`settlement_rejected` + `settlement_losing` + the v0.32 verification-focus scenarios), then Slice G. Defect ownership lives HERE (PF slices below), not in `BUG_FIXES.md` (closed queue with a no-new-PL-items scope guard).
 
 ---
 
@@ -82,7 +83,7 @@ Fixtures (`backend/models/world_state.py`): `settlement_rejected` (:879) — Fra
 
 ---
 
-## 4. Fix slice PF-1 — losing-baseline validity + failure-path visibility (BLOCKS the `settlement_losing` smoke)
+## 4. Fix slice PF-1 — losing-baseline validity + failure-path visibility — **LANDED June 9, 2026**
 
 - **Scope (backend):**
   1. Thread cross-court state through `compute_settlement_baseline`'s loop: a running gold budget (split `treasury_candidate` across concede courts — even split is fine for the baseline; the player redistributes via dials/Tier-3) and a promised-region exclusion set passed into `_concession_baseline_select_transferable_region`.
@@ -93,13 +94,13 @@ Fixtures (`backend/models/world_state.py`): `settlement_rejected` (:879) — Fra
 - **Completion:** `settlement_losing` opens to a VALID baseline (validator-clean), with honest per-court bands; an unaffordable table opens as holdouts with the binding-constraint guidance (DC-2), not a false carry; no settlement action can leave the player with neither a popup nor a rendered reason; full suite green; ruff clean; Godot parse exit 0.
 - **Named tests:** `test_losing_multicourt_baseline_validates_clean` (runs the real `settlement_losing` fixture; fails pre-fix on `region_double_promised` + budget), `test_losing_baseline_splits_treasury_across_concede_courts`, `test_generated_baseline_is_validated_before_staging_propose_and_submit`, `test_blocked_ratify_reattaches_dialogue_with_error_display`, `test_dialogue_response_passes_handler_message_not_default`, `test_failed_dial_renders_error_display_not_silent_noop` (Godot source pin), `test_advisory_never_presses_concede_direction_court`.
 
-## 5. Fix slice PF-2 — draft-restore honesty (D4)
+## 5. Fix slice PF-2 — draft-restore honesty (D4) — **LANDED June 9, 2026** (suspend/dial lifecycle now single-store scoped; restore falls back (war, target)-prefix → war-prefix, most recent wins; cross-war isolation retained)
 
 - **Scope:** `load_scoped_settlement_draft` falls back to a `(war_id, selected_target)`-prefix scoped lookup when the exact key misses (or consults the legacy `pending_settlement_drafts[war_id]` — then DELETE whichever store loses; do not keep both — CH-3); War Detail gains a "Draft kept" indicator when a same-turn scoped draft exists for that war.
 - **Completion:** Back Out → reopen restores the dialed terms on the REAL client payload shape (no explicit covered list); the badge appears iff a draft would actually restore; suite green.
 - **Named tests:** `test_reopen_without_covered_list_restores_scoped_draft` (HTTP-boundary shape, NOT executor-direct — the D4 lesson), `test_war_detail_exposes_draft_kept_indicator`, `test_single_draft_store_no_dual_write`.
 
-## 6. PF-3 — scenario-matrix fixture harness (the systemic guard)
+## 6. PF-3 — scenario-matrix fixture harness (the systemic guard) — **LANDED June 9, 2026** (36 tests: 18 cells × {validity+honest-carry, Tier-2-verb invariant}; courts axis = COVERED courts of a multi-party war, since a strict 1v1 war is settlement-ineligible by design)
 
 A standing parametrized suite: direction {winning, losing, mixed} × covered courts {1, 2, 3} × treasury {rich, poor}, asserting for every cell: (a) the generated baseline passes `validate_settlement_terms`; (b) `overall_acceptance.carries` claims match a fresh scorer pass; (c) every Tier-2 verb on the resulting table either succeeds or returns a dialogue + `error_display`. ~18 cheap tests that would have caught D1, D2, D3, and the May-30 5/-4 winning-side finding before any human smoked anything. **Owner:** lands with or immediately after PF-1. **Named test file:** `tests/test_settlement_baseline_scenario_matrix.py`.
 
@@ -157,14 +158,14 @@ A standing parametrized suite: direction {winning, losing, mixed} × covered cou
 
 ---
 
-## 11. Recommended sequencing
+## 11. Recommended sequencing (updated June 9, 2026 — PF slices landed; smoke re-sequenced by user decision)
 
-1. **PF-1** (D1–D3 + DC-2 binding-constraint copy + D6 guard). Do NOT smoke `settlement_losing` before this lands.
-2. **PF-2** (D4 + War Detail draft badge) — small; can ride PF-1's commit or follow it.
-3. **PF-3** scenario matrix (with or immediately after PF-1).
-4. Resume **Gate 4**: `settlement_rejected` first (smokeable now; expect the turn-1 one-ease budget wall — post-PF-1 it should render the constraint instead of silently walling), then `settlement_losing`.
-5. Approve **Guided Terms** with amendments GT-A1..A4 folded.
-6. Post-smoke: **CH-1/CH-2/CH-4** split slice, **CH-5** invariant, then **Slice G1**.
+1. ~~**PF-1** (D1–D3 + DC-2 binding-constraint copy + D6 guard).~~ **LANDED.**
+2. ~~**PF-2** (D4 + War Detail draft badge).~~ **LANDED.**
+3. ~~**PF-3** scenario matrix.~~ **LANDED** (`tests/test_settlement_baseline_scenario_matrix.py`).
+4. Approve **Guided Terms** with amendments GT-A1..A4 folded (design gate — user approval required before code).
+5. Remaining settlement queue: Guided Terms implementation (REFRONT-9 folds into its expanded row per GT-A4), **CH-1/CH-2/CH-4** split slice, **CH-5** invariant (closes D7's latent class).
+6. **Gate 4 manual smoke — ONCE, at the end of the queue** (user decision June 9, 2026): `settlement_rejected` + `settlement_losing` + the v0.32 verification-focus scenarios, then **Slice G1**.
 
 ## 12. Confidence & verification key
 

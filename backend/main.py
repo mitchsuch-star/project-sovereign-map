@@ -1390,11 +1390,27 @@ async def respond_to_diplomatic_dialogue(request: dict):
             choice, game_state, action_params=action_params,
         )
 
+        # PF-1 / D2: pass the handler's own text through instead of swallowing
+        # it behind a literal "Response processed". Settlement failure arms
+        # speak through `talleyrand_text` (in character) and `error_display`
+        # (humanized reason) and may omit `message`; the old `.get` default
+        # printed "Response processed" in red with no explanation.
         response = build_base_response(
             world,
             success=result.get("success", False),
-            message=result.get("message", "Response processed"),
+            message=(
+                result.get("message")
+                or result.get("talleyrand_text")
+                or result.get("error_display")
+                or "Response processed"
+            ),
         )
+        # PF-1 / D3: surface the failure fields so the client can render the
+        # reason on a re-mounted dialogue instead of a silent no-op.
+        for failure_key in ("error", "error_display", "validation_error",
+                            "validation_detail", "validation_error_index"):
+            if result.get(failure_key) is not None:
+                response[failure_key] = result[failure_key]
 
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):

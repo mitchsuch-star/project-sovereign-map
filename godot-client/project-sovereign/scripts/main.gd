@@ -973,6 +973,15 @@ func _route_proposal_confirm_response(response: Dictionary):
 		_clear_settlement_editor_tracking()
 	if dtype not in PROPOSAL_CONFIRM_DIALOGUE_TYPES:
 		push_warning("Unknown diplomatic_dialogue dtype: '%s' - showing as popup (add to PROPOSAL_CONFIRM_DIALOGUE_TYPES)" % dtype)
+	# PF-1 (D3): a failed settlement action (blocked dial, coverage edit,
+	# Submit, Ratify) re-attaches the unchanged dialogue so the popup
+	# re-mounts. Carry the failure reason onto that re-mount — otherwise the
+	# popup repaints identical state and the click reads as a silent no-op.
+	if not bool(response.get("success", true)):
+		var err_text = str(response.get("error_display", response.get("message", "")))
+		if err_text != "":
+			dialogue = dialogue.duplicate(true)
+			dialogue["transient_error_display"] = err_text
 	proposal_confirm_popup.show_dialogue(dialogue)
 
 func _show_confirm_dialogue_from_response(response: Dictionary, missing_message: String):

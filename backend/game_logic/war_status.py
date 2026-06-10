@@ -182,6 +182,13 @@ def build_active_wars(world) -> Dict[str, Any]:
             opponent,
             settlement_eligibility.get("coverable_enemy_participants", []),
         )
+        # PF-2 / D4 + UX-1: "Draft kept" badge — true iff a same-turn scoped
+        # settlement draft exists for this war (drafts are cleared at turn
+        # end, so existence == same-turn), making the Back Out promise
+        # visible AND true on the reopen surface.
+        settlement_draft_kept = _war_has_kept_settlement_draft(
+            world, contribution.get("war_id", ""),
+        )
 
         wars.append({
             "opponent": opponent,
@@ -212,6 +219,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             ),
             "war_instance_id": contribution.get("war_id", ""),
             "settlement_available": settlement_available,
+            "settlement_draft_kept": settlement_draft_kept,
             "settlement_eligibility": settlement_eligibility,
             "war_detail_actionability": war_detail_actionability,
             "settlement_disabled_reason": settlement_eligibility.get(
@@ -482,6 +490,26 @@ def _is_common_settlement_worth_showing(world, war_id: str) -> bool:
     )
 
     return is_common_settlement_worth_showing(instance)
+
+
+def _war_has_kept_settlement_draft(world, war_id: str) -> bool:
+    """PF-2 / D4 + UX-1: does a same-turn scoped settlement draft exist?
+
+    True iff the SC-5R scoped draft store holds a non-empty entry for this
+    war (`settlement_draft:{war_id}:` key prefix). The store is cleared at
+    turn end, so existence implies same-turn; the badge appears iff a
+    reopen would actually restore something.
+    """
+    if not war_id:
+        return False
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if not isinstance(drafts, dict):
+        return False
+    prefix = f"settlement_draft:{war_id}:"
+    return any(
+        isinstance(key, str) and key.startswith(prefix) and entry
+        for key, entry in drafts.items()
+    )
 
 
 def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:

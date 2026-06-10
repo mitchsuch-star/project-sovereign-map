@@ -1477,6 +1477,7 @@ def _concession_baseline_select_transferable_region(
     *,
     proposer_side_participants: Iterable[str],
     accepting_leader: str,
+    excluded_regions: Optional[Iterable[str]] = None,
 ) -> Optional[str]:
     """Pick the deterministic concession region per the spec algorithm.
 
@@ -1487,6 +1488,11 @@ def _concession_baseline_select_transferable_region(
     participant, not a capital, and not the historical home of any proposer-
     side participant (so a captured rival region returns to the accepting
     leader rather than the proposer ceding home territory).
+
+    ``excluded_regions`` (PF-1 / D1): regions already promised to another
+    covered court in the same generated package are ineligible, so a
+    multi-court concession baseline can never double-promise one region
+    (V1 ``region_double_promised``).
 
     Historical home lookup goes through `region.get_starting_controllers()`
     rather than `region.starting_controller` because the Region class
@@ -1525,9 +1531,12 @@ def _concession_baseline_select_transferable_region(
             if str(getattr(region, "controller", "") or "") in proposer_set:
                 candidate_names.add(name)
 
+    excluded = {str(r) for r in (excluded_regions or []) if r}
     candidates: List[Tuple[int, int, str]] = []
     unreachable_sentinel = CONCESSION_BASELINE_BFS_MAX_DEPTH + 1
     for name in candidate_names:
+        if str(name) in excluded:
+            continue
         region = regions.get(name)
         if region is None:
             continue
@@ -2404,6 +2413,70 @@ def _relax_baseline_demands_for_package_harshness(
     return terms
 
 
+def _clause_touches_court(clause: Any, court: str) -> bool:
+    """True when a material clause names ``court`` on either side."""
+    if not isinstance(clause, Mapping) or clause.get("type") == "peace":
+        return False
+    return court in (
+        str(clause.get("from") or ""),
+        str(clause.get("to") or ""),
+    )
+
+
+def _degrade_generated_baseline_to_valid(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    covered: List[str],
+    combined_terms: List[Dict[str, Any]],
+    per_court_baseline: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """PF-1 / D1 — never return an invalid generated baseline.
+
+    Runs ``validate_settlement_terms`` on the assembled package. While the
+    package fails validation, the LAST covered court (reverse sorted order —
+    the courts authored latest are "the unaffordable remainder") that still
+    holds material clauses is degraded to the shared ``{"type": "peace"}``
+    floor and the package is re-validated. Bounded, deterministic, and never
+    raises; the worst case is the bare shared-peace package. With the
+    cross-court budget/region threading upstream this pass is defense in
+    depth — it exists so no caller can ever stage a generated draft the
+    player-authoring gates would reject (DC-1: validity is a property of the
+    draft store, not of the author).
+    """
+    terms = [dict(t) for t in combined_terms]
+    covered_sorted = sorted({str(c) for c in covered if c})
+    for _ in range(len(covered_sorted) + 1):
+        validation = validate_settlement_terms(
+            terms,
+            proposer_side=proposer_side,
+            covered_enemy_participants=covered_sorted,
+            world=world,
+            war_instance=war_instance,
+        )
+        if validation.get("valid"):
+            return terms
+        stripped = False
+        for court in reversed(covered_sorted):
+            material_idxs = [
+                i for i, t in enumerate(terms) if _clause_touches_court(t, court)
+            ]
+            if not material_idxs:
+                continue
+            for i in reversed(material_idxs):
+                terms.pop(i)
+            entry = per_court_baseline.get(court)
+            if isinstance(entry, dict):
+                entry["terms"] = []
+                entry["degraded_to_peace_floor"] = True
+            stripped = True
+            break
+        if not stripped:
+            break
+    return terms
+
+
 def compute_settlement_baseline(
     world: Any,
     *,
@@ -2476,8 +2549,34 @@ def compute_settlement_baseline(
     per_court_baseline: Dict[str, Any] = {}
     hard_stop_courts: List[str] = []
 
+    # PF-1 / D1 cross-court state: the per-court loop below used to size each
+    # concede court against the FULL treasury and pick its region with no
+    # knowledge of the other courts, so a two-concede-court table could
+    # double-spend gold (2×(T−reserve) > T) and double-promise the one prime
+    # cedeable region. Pre-compute each court's direction once, split the ONE
+    # affordable treasury evenly across the concede-direction courts (the
+    # player redistributes via dials / Tier 3), and thread a running
+    # promised-region set through the region selector.
+    selections: Dict[str, Optional[Tuple[int, str]]] = {
+        court: select_direct_score(direct_scores.get(court) or {})
+        for court in covered
+    }
+    concede_courts = [
+        court for court in covered
+        if selections[court] is not None
+        and selections[court][0] < -DIRECT_SCORE_DIRECTION_MARGIN
+    ]
+    concession_gold_share: Optional[int] = None
+    if proposer_side_leader and concede_courts:
+        payer_balance = _concession_baseline_payer_balance(
+            world, proposer_side_leader
+        )
+        affordable = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
+        concession_gold_share = max(0, affordable) // len(concede_courts)
+    promised_regions: set = set()
+
     for court in covered:
-        selection = select_direct_score(direct_scores.get(court) or {})
+        selection = selections[court]
         if selection is None:
             hard_stop_courts.append(court)
             per_court_baseline[court] = {
@@ -2523,6 +2622,8 @@ def compute_settlement_baseline(
                 covered=covered, side_pressure_result=side_pressure_result,
                 direct_scores=direct_scores, near_acceptance_floor=near_acceptance_floor,
                 budget_remaining=budget_remaining,
+                gold_budget_cap=concession_gold_share,
+                promised_regions=promised_regions,
             )
         else:
             direction = "peace"
@@ -2557,6 +2658,19 @@ def compute_settlement_baseline(
         near_acceptance_floor=near_acceptance_floor,
     )
 
+    # PF-1 / DC-1: a GENERATED baseline is held to the same validity bar as a
+    # player-authored package — validate the assembled table and degrade the
+    # unaffordable remainder to the shared peace floor rather than ever
+    # returning an invalid draft (never stage invalid; never crash).
+    combined_terms = _degrade_generated_baseline_to_valid(
+        world,
+        war_instance=war_instance,
+        proposer_side=proposer_side,
+        covered=covered,
+        combined_terms=combined_terms,
+        per_court_baseline=per_court_baseline,
+    )
+
     return {
         "settlement_terms": combined_terms,
         "per_court_baseline": per_court_baseline,
@@ -2579,6 +2693,8 @@ def _concession_terms_for_court(
     direct_scores: Optional[Mapping[str, Mapping[str, int]]],
     near_acceptance_floor: int,
     budget_remaining: int,
+    gold_budget_cap: Optional[int] = None,
+    promised_regions: Optional[set] = None,
 ) -> List[Dict[str, Any]]:
     """Author proposer-side concessions (gold, then territory) that move a
     losing-direction ``court`` toward the near-acceptance floor.
@@ -2587,6 +2703,13 @@ def _concession_terms_for_court(
     court and sharing the memoized package-level score inputs. Returns the
     material clauses the proposer leader pays/cedes to the court (no
     ``{"type": "peace"}`` — the caller owns the shared package peace).
+
+    PF-1 / D1 cross-court state: ``gold_budget_cap`` is this court's share of
+    the ONE treasury (the caller splits ``payer_balance - reserve`` across all
+    concede-direction courts so the assembled table never commits more gold
+    than the proposer holds), and ``promised_regions`` is the running set of
+    regions already ceded to other courts in this package (mutated in place
+    when this court takes a region) so one region is never promised twice.
     """
     if not proposer_side_leader or budget_remaining <= 0:
         return []
@@ -2601,9 +2724,12 @@ def _concession_terms_for_court(
     if peace_score is not None and peace_score >= near_acceptance_floor:
         return []
     # Gold escalation: smallest strictly positive of (treasury - reserve,
-    # hard cap, gap * 100), affordability-gated.
+    # hard cap, gap * 100), affordability-gated. The cross-court budget cap
+    # bounds this court's draw on the shared treasury.
     payer_balance = _concession_baseline_payer_balance(world, proposer_side_leader)
     treasury_candidate = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
+    if gold_budget_cap is not None:
+        treasury_candidate = min(treasury_candidate, int(gold_budget_cap))
     acceptance_gap = max(0, int(near_acceptance_floor) - int(peace_score or 0))
     gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR, acceptance_gap * 100)
     if treasury_candidate > 0:
@@ -2636,6 +2762,7 @@ def _concession_terms_for_court(
             world,
             proposer_side_participants=list(war_instance.get(proposer_side) or []),
             accepting_leader=court,
+            excluded_regions=promised_regions,
         )
         if region:
             terms.append({
@@ -2644,6 +2771,8 @@ def _concession_terms_for_court(
                 "to": court,
                 "region": region,
             })
+            if promised_regions is not None:
+                promised_regions.add(str(region))
     return terms
 
 
@@ -2738,6 +2867,26 @@ def _demand_terms_for_court(
         if _stays_acceptable(candidate):
             kept = candidate
     return kept
+
+
+def _court_direction_from_selection(
+    selection: Optional[Tuple[int, str]],
+) -> str:
+    """Map a ``select_direct_score`` result to the baseline direction enum.
+
+    The SAME dead-band rule ``compute_settlement_baseline`` applies:
+    ``demand`` above +margin, ``concede`` below -margin, ``peace`` inside the
+    band, ``hard_stop`` when the court has no active cross-side pair
+    (``selection is None`` — the tuple-or-``None`` contract).
+    """
+    if selection is None:
+        return "hard_stop"
+    score = int(selection[0])
+    if score > DIRECT_SCORE_DIRECTION_MARGIN:
+        return "demand"
+    if score < -DIRECT_SCORE_DIRECTION_MARGIN:
+        return "concede"
+    return "peace"
 
 
 def _court_direction_summary(
@@ -2841,10 +2990,11 @@ def compute_per_court_acceptance(
             proposer_side=proposer_side,
             covered_enemy_participants=covered,
         )
-    scoreable = [
-        court for court in covered
-        if select_direct_score(direct_scores.get(court) or {}) is not None
-    ]
+    selections = {
+        court: select_direct_score(direct_scores.get(court) or {})
+        for court in covered
+    }
+    scoreable = [court for court in covered if selections[court] is not None]
     if side_pressure_result is None:
         # Compute pressure over the scoreable subset so a no-direct-score
         # court does not bubble a hard stop that poisons every scorer call.
@@ -2875,6 +3025,11 @@ def compute_per_court_acceptance(
     previous_bands = previous_bands or {}
 
     for court in covered:
+        # PF-1 / D6: each row carries the court's war-score DIRECTION (the
+        # same dead-band rule the baseline generator uses) so presentation
+        # consumers — the targeted-posture advisory, the budget-bound carry
+        # hint — never recommend pressing a court France is losing to.
+        direction = _court_direction_from_selection(selections[court])
         if court not in scoreable:
             band = "reject"
             per_court.append({
@@ -2884,6 +3039,7 @@ def compute_per_court_acceptance(
                 "total": None,
                 "threshold": int(accept_threshold),
                 "verdict": "reject",
+                "direction": direction,
                 "top_blocker_display": acceptance_band_display(band),
                 "direction_summary": _court_direction_summary(
                     court, proposer_side_leader, terms,
@@ -2935,6 +3091,7 @@ def compute_per_court_acceptance(
             "total": int(total) if total is not None else None,
             "threshold": int(accept_threshold),
             "verdict": result.get("verdict"),
+            "direction": direction,
             "top_blocker_display": top_blocker,
             "direction_summary": _court_direction_summary(
                 court, proposer_side_leader, terms,
@@ -3081,6 +3238,10 @@ def _settlement_targeted_posture_advisory(
     but not hard-stopped) are candidates to *ease*. This is advice only — it
     NEVER applies a dial or mutates terms; the player must click (Golden Rule
     #6). Returns "" when there is nothing to suggest.
+
+    PF-1 / D6 guard: a CONCEDE-direction court (France losing the pair) is
+    never a press candidate, whatever its band — Talleyrand does not counsel
+    pressing the court that is winning.
     """
     holdout_set = {str(n) for n in (holdout_courts or [])}
     press: List[str] = []
@@ -3094,7 +3255,10 @@ def _settlement_targeted_posture_advisory(
         if nation in holdout_set:
             if row.get("total") is not None:  # hard-stops cannot be dialed
                 ease.append(nation)
-        elif str(row.get("band") or "") == "accept":
+        elif (
+            str(row.get("band") or "") == "accept"
+            and str(row.get("direction") or "") != "concede"
+        ):
             press.append(nation)
     parts: List[str] = []
     if press:
@@ -3118,9 +3282,58 @@ def _join_court_names(names: Iterable[str]) -> str:
     return ", ".join(clean[:-1]) + f", and {clean[-1]}"
 
 
+def _settlement_budget_bound_constraint(
+    world: Any,
+    *,
+    proposer_leader: str,
+    per_court_acceptance: Iterable[Mapping[str, Any]],
+    holdout_courts: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """PF-1 / DC-2 — detect the solvency-bound table (D5's lying hint).
+
+    Returns ``{"budget_bound": True, "concede_holdouts": [...]}`` when at
+    least one easeable holdout is a CONCEDE-direction court AND the next
+    'More generous' gold step would already breach the proposer leader's
+    solvency — i.e. gold escalation is exhausted, so "ease until each
+    accepts" is unreachable and the honest guidance is the binding
+    constraint: drop a court, or pay in land. Detection probes the REAL
+    validator rule (``_check_gold_payment_budget_conflict`` with one extra
+    ``SETTLEMENT_DIAL_GOLD_STEP`` clause) so the hint flips exactly when the
+    dials would start failing. Deterministic, presentation-only. Returns
+    ``{}`` when the constraint does not bind.
+    """
+    if not proposer_leader:
+        return {}
+    holdout_set = {str(n) for n in (holdout_courts or []) if str(n)}
+    concede_holdouts = sorted(
+        str(row.get("nation") or "")
+        for row in (per_court_acceptance or [])
+        if isinstance(row, Mapping)
+        and str(row.get("nation") or "") in holdout_set
+        and str(row.get("direction") or "") == "concede"
+        and row.get("total") is not None
+    )
+    if not concede_holdouts:
+        return {}
+    probe_terms = [
+        dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)
+    ]
+    probe_terms.append({
+        "type": "gold_indemnity",
+        "from": str(proposer_leader),
+        "to": concede_holdouts[0],
+        "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
+    })
+    if _check_gold_payment_budget_conflict(world, probe_terms) is None:
+        return {}
+    return {"budget_bound": True, "concede_holdouts": concede_holdouts}
+
+
 def _settlement_propose_carry_hint(
     holdout_courts: Iterable[str],
     per_court_acceptance: Iterable[Mapping[str, Any]],
+    budget_bound_constraint: Optional[Mapping[str, Any]] = None,
 ) -> str:
     """Re-front UX follow-up — a plain guidance line on the PROPOSE surface
     shown ONLY while the package does not carry yet.
@@ -3132,6 +3345,12 @@ def _settlement_propose_carry_hint(
     points at the dials. It is UI guidance, not a diplomat voice line (the
     Talleyrand table narration carries the in-character beat); returns "" when
     the package already carries / there is nothing to flag.
+
+    PF-1 / D5 + DC-2: when ``budget_bound_constraint`` reports the treasury
+    cannot raise the offer further, the generic "use 'More generous' until
+    each accepts" guidance is a lie (every further gold ease would fail
+    validation — D3's silent wall). The hint pivots to the binding
+    constraint instead: drop a court, or pay in land via 'Adjust terms'.
     """
     holdouts = [str(n) for n in (holdout_courts or []) if str(n)]
     if not holdouts:
@@ -3143,6 +3362,12 @@ def _settlement_propose_carry_hint(
     }
     easeable = [n for n in holdouts if n not in hard_stopped]
     names = _join_court_names(holdouts)
+    if easeable and (budget_bound_constraint or {}).get("budget_bound"):
+        return (
+            f"{names} won't accept, and the treasury cannot raise the gold "
+            "offer further. Drop a court from the table (they fight on), or "
+            "use 'Adjust terms' to pay in land instead."
+        )
     if easeable:
         return (
             f"{names} won't accept these terms yet. Use 'More generous' (or ease "
@@ -3269,11 +3494,10 @@ def _restage_settlement_after_redraw(
     )
     if extra:
         new_dialogue.update(extra)
-    drafts = getattr(world, "pending_settlement_drafts", None)
-    if drafts is None:
-        world.pending_settlement_drafts = {}
-        drafts = world.pending_settlement_drafts
-    drafts[war_id] = [dict(t) for t in terms]
+    # PF-2 / CH-3: the scoped store is the ONE draft store for the PROPOSE
+    # authoring lifecycle (dial → suspend → reopen). The legacy war_id-keyed
+    # dual-write is gone — reopen never read it, and the two-stores-one-reader
+    # split is exactly what broke the "Settlement draft kept" promise (D4).
     save_scoped_settlement_draft(
         world,
         war_id=war_id,
@@ -4056,17 +4280,50 @@ def load_scoped_settlement_draft(
     selected_target_nation: Optional[str],
     covered_enemy_participants: Optional[Iterable[str]],
 ) -> Optional[List[Dict[str, Any]]]:
-    """Return the scoped draft for the given war/scope, or ``None``."""
-    draft_key = compute_settlement_draft_key(
-        war_id, selected_target_nation, covered_enemy_participants,
-    )
+    """Return the scoped draft for the given war/scope, or ``None``.
+
+    PF-2 / D4 (Gate-4 pre-flight audit): the only real reopen route — War
+    Detail's "Open Settlement" — sends ``{war_id, target_nation}`` with NO
+    covered list, so the exact key (which hashes the covered set) can never
+    match a draft suspended under explicit coverage and "Settlement draft
+    kept" was a broken promise. When the exact key misses, fall back to the
+    most recently saved draft under the ``(war_id, selected_target)`` key
+    prefix, then under the ``war_id`` prefix (the player's mental model of
+    the promise is war-scoped). Dict insertion order makes "most recent"
+    deterministic and it round-trips through save/load.
+    """
     drafts = getattr(world, "pending_settlement_drafts_by_key", None)
     if not isinstance(drafts, dict):
         return None
-    entry = drafts.get(draft_key)
-    if not isinstance(entry, list):
+
+    def _coerce(entry: Any) -> Optional[List[Dict[str, Any]]]:
+        if not isinstance(entry, list):
+            return None
+        return [dict(t) for t in entry if isinstance(t, Mapping)]
+
+    draft_key = compute_settlement_draft_key(
+        war_id, selected_target_nation, covered_enemy_participants,
+    )
+    exact = _coerce(drafts.get(draft_key))
+    if exact is not None:
+        return exact
+    war_key = str(war_id or "")
+    if not war_key:
         return None
-    return [dict(t) for t in entry if isinstance(t, Mapping)]
+    selected_key = str(selected_target_nation or "").strip() or "_none"
+    for prefix in (
+        f"settlement_draft:{war_key}:{selected_key}:",
+        f"settlement_draft:{war_key}:",
+    ):
+        matches = [
+            key for key in drafts
+            if isinstance(key, str) and key.startswith(prefix)
+        ]
+        for key in reversed(matches):
+            entry = _coerce(drafts.get(key))
+            if entry:
+                return entry
+    return None
 
 
 def discard_scoped_settlement_draft(
@@ -5137,6 +5394,30 @@ def build_settlement_confirm_dialogue(
         and sc5r_available_clause_types
     )
     sc5r_draft_key = compute_settlement_draft_key(war_id, resolved_target, covered)
+    # PF-1 / DC-2: detect the solvency-bound table ONCE for both guidance
+    # surfaces — the carry hint pivots to the binding constraint and the
+    # advisory slot speaks Talleyrand's voice line for it (PROPOSE only).
+    budget_bound_constraint = (
+        _settlement_budget_bound_constraint(
+            world,
+            proposer_leader=str(leaders.get(proposer_side) or ""),
+            per_court_acceptance=per_court_acceptance,
+            holdout_courts=holdout_courts,
+            settlement_terms=staged_terms_for_gate,
+        )
+        if dialogue_mode == "PROPOSE" and not per_court_carries
+        else {}
+    )
+    budget_bound_voice = (
+        resolve_settlement_voice_line(
+            "settlement_budget_bound_constraint_talleyrand",
+            holdout_names=_join_court_names(
+                budget_bound_constraint.get("concede_holdouts") or []
+            ),
+        )
+        if budget_bound_constraint.get("budget_bound")
+        else ""
+    )
     sc5r_editor_route = (
         _build_settlement_editor_route(
             war_id=war_id,
@@ -5167,17 +5448,30 @@ def build_settlement_confirm_dialogue(
         # on the conversational PROPOSE surface ("I'd press Prussia and ease
         # Britain, Sire"). It never applies a dial — the player must click — so
         # it is empty outside PROPOSE and carries no mechanical effect.
+        # PF-1 / DC-2: when the treasury binds, the advisory slot carries
+        # Talleyrand's binding-constraint line instead of press/ease advice
+        # (which would point at dials that can only fail validation).
         "targeted_posture_advisory": (
-            _settlement_targeted_posture_advisory(per_court_acceptance, holdout_courts)
+            (
+                budget_bound_voice
+                or _settlement_targeted_posture_advisory(
+                    per_court_acceptance, holdout_courts
+                )
+            )
             if dialogue_mode == "PROPOSE"
             else ""
         ),
         # Re-front UX follow-up: a plain guidance line on PROPOSE telling the
         # player to ease the terms until every court accepts BEFORE Submit, so a
         # non-carrying package is not submitted into a blocked, no-Ratify REVIEW
-        # dead-end. Empty once the package carries / outside PROPOSE.
+        # dead-end. Empty once the package carries / outside PROPOSE. PF-1/DC-2:
+        # pivots to the binding-constraint guidance when the treasury binds.
         "propose_carry_hint": (
-            _settlement_propose_carry_hint(holdout_courts, per_court_acceptance)
+            _settlement_propose_carry_hint(
+                holdout_courts,
+                per_court_acceptance,
+                budget_bound_constraint=budget_bound_constraint,
+            )
             if dialogue_mode == "PROPOSE" and not per_court_carries
             else ""
         ),
@@ -6342,6 +6636,60 @@ def _capture_pre_cleanup_snapshots(
     return snapshots
 
 
+def _blocked_ratify_reattach(
+    dialogue: Mapping[str, Any],
+    *,
+    war_id: str,
+    error: str,
+    talleyrand_text: str,
+    validation_error: Optional[str] = None,
+    validation_detail: Optional[str] = None,
+    validation_error_index: Optional[int] = None,
+    extra: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """PF-1 / D2 — the blocked-ratify response contract.
+
+    A blocked ratification leaves the staged ``settlement_confirm`` REVIEW
+    MOUNTED (the dialogue manager is not popped) and re-attaches it on the
+    response together with a rendered ``error_display``, mirroring the Tier-2
+    safety net: the Godot popup hides itself on every affordance click and
+    only re-mounts from a returned ``diplomatic_dialogue``, so a bare
+    success=False would orphan the surface and read as a silent dead end
+    (the June 9 pre-flight D2 "Response processed" loop). The player keeps
+    the full REVIEW rail (Return to terms / Adjust terms / Back Out) to
+    repair or abandon the draft.
+
+    Live-world contradictions (archived war, leader change) do NOT route
+    here — `revalidate_staged_settlement` failures keep the SC-2/SC-14b
+    pop + `must_reopen` recovery contract because their staged surface is
+    stale by definition.
+    """
+    error_display = _error_display(error)
+    payload: Dict[str, Any] = {
+        "success": False,
+        "dialogue_type": "settlement_confirm",
+        "action": "confirm",
+        "war_id": war_id,
+        "error": error,
+        "error_display": error_display,
+        "mutated": False,
+        "diplomatic_dialogue": dict(dialogue),
+        "awaiting_diplomatic_response": True,
+        "talleyrand_text": talleyrand_text,
+        "message": talleyrand_text or error_display,
+        "suppress_proposal_result_popup": True,
+    }
+    if validation_error is not None:
+        payload["validation_error"] = validation_error
+    if validation_detail is not None:
+        payload["validation_detail"] = validation_detail
+    if validation_error_index is not None:
+        payload["validation_error_index"] = validation_error_index
+    if extra:
+        payload.update(dict(extra))
+    return payload
+
+
 def ratify_settlement_confirm(
     world: Any,
     dialogue: Mapping[str, Any],
@@ -6458,18 +6806,16 @@ def ratify_settlement_confirm(
         and not settlement_terms
         and not white_peace
     ):
-        return {
-            "success": False,
-            "dialogue_type": "settlement_confirm",
-            "action": "confirm",
-            "war_id": war_id,
-            "error": "empty_editor_draft_ratification",
-            "error_display": _error_display("empty_authored_draft"),
-            "mutated": False,
-            "talleyrand_text": (
+        result = _blocked_ratify_reattach(
+            dialogue,
+            war_id=war_id,
+            error="empty_editor_draft_ratification",
+            talleyrand_text=(
                 "Sire, this settlement cannot be ratified without authored terms."
             ),
-        }
+        )
+        result["error_display"] = _error_display("empty_authored_draft")
+        return result
 
     # SC-5R-1 pre-ratification clause-type revalidation: defense in
     # depth for dialogues that bypass the submit-time `validate_settlement_terms`
@@ -6487,53 +6833,39 @@ def ratify_settlement_confirm(
     if settlement_terms and not white_peace:
         for idx, clause in enumerate(settlement_terms):
             if not isinstance(clause, Mapping):
-                world.dialogue_manager.pop()
-                return {
-                    "success": False,
-                    "dialogue_type": "settlement_confirm",
-                    "action": "confirm",
-                    "war_id": war_id,
-                    "error": "submitted_terms_failed_revalidation",
-                    "error_display": _error_display(
-                        "submitted_terms_failed_revalidation"
-                    ),
-                    "validation_error": "invalid_clause_schema",
-                    "validation_detail": _error_display(
-                        "invalid_clause_schema"
-                    ),
-                    "validation_error_index": idx,
-                    "mutated": False,
-                    "talleyrand_text": (
+                # PF-1 / D2: a blocked ratify keeps the staged REVIEW mounted
+                # and re-attaches it (the Tier-2 net pattern) so the popup
+                # re-mounts with the failure rendered — never a popped
+                # dialogue with no surface and no reason.
+                return _blocked_ratify_reattach(
+                    dialogue,
+                    war_id=war_id,
+                    error="submitted_terms_failed_revalidation",
+                    validation_error="invalid_clause_schema",
+                    validation_detail=_error_display("invalid_clause_schema"),
+                    validation_error_index=idx,
+                    talleyrand_text=(
                         "Sire, the settlement draft is malformed and cannot "
                         "be ratified."
                     ),
-                }
+                )
             clause_type = clause.get("type")
             if (
                 clause_type not in CANONICAL_CLAUSE_TYPES
                 and clause_type not in RATIFY_LEGACY_APPLY_CLAUSE_TYPES
             ):
-                world.dialogue_manager.pop()
-                return {
-                    "success": False,
-                    "dialogue_type": "settlement_confirm",
-                    "action": "confirm",
-                    "war_id": war_id,
-                    "error": "submitted_terms_failed_revalidation",
-                    "error_display": _error_display(
-                        "submitted_terms_failed_revalidation"
-                    ),
-                    "validation_error": "invalid_clause_type",
-                    "validation_detail": _error_display(
-                        "invalid_clause_type"
-                    ),
-                    "validation_error_index": idx,
-                    "mutated": False,
-                    "talleyrand_text": (
+                return _blocked_ratify_reattach(
+                    dialogue,
+                    war_id=war_id,
+                    error="submitted_terms_failed_revalidation",
+                    validation_error="invalid_clause_type",
+                    validation_detail=_error_display("invalid_clause_type"),
+                    validation_error_index=idx,
+                    talleyrand_text=(
                         "Sire, the settlement draft contains an unsupported "
                         "clause and cannot be ratified."
                     ),
-                }
+                )
 
     # Re-front Slice 3 §12 defense-in-depth (CRITICAL audit fix): re-run the
     # multi-party cross-court validity rules — V1 region double-promise, V2
@@ -6559,25 +6891,22 @@ def ratify_settlement_confirm(
             enforce_solvency=False,
         )
         if not staged_revalidation.get("valid"):
-            world.dialogue_manager.pop()
             revalidation_error = str(staged_revalidation.get("error") or "")
-            return {
-                "success": False,
-                "dialogue_type": "settlement_confirm",
-                "action": "confirm",
-                "war_id": war_id,
-                "error": "submitted_terms_failed_revalidation",
-                "error_display": _error_display("submitted_terms_failed_revalidation"),
-                "validation_error": revalidation_error,
-                "validation_detail": staged_revalidation.get("disabled_reason_display")
-                or _error_display(revalidation_error),
-                "validation_error_index": staged_revalidation.get("error_index"),
-                "mutated": False,
-                "talleyrand_text": (
+            return _blocked_ratify_reattach(
+                dialogue,
+                war_id=war_id,
+                error="submitted_terms_failed_revalidation",
+                validation_error=revalidation_error,
+                validation_detail=str(
+                    staged_revalidation.get("disabled_reason_display")
+                    or _error_display(revalidation_error)
+                ),
+                validation_error_index=staged_revalidation.get("error_index"),
+                talleyrand_text=(
                     "Sire, the terms we staged no longer hold against the present "
                     "situation — this settlement cannot be ratified as written."
                 ),
-            }
+            )
 
     fresh_acceptance = calculate_common_peace_acceptance(
         world,
@@ -6628,33 +6957,35 @@ def ratify_settlement_confirm(
                     or top_blocker
                 )
         top_blocker = top_blocker or "a hard condition"
-        return {
-            "success": False,
-            "dialogue_type": "settlement_confirm",
-            "action": "confirm",
-            "war_id": war_id,
-            "error": error,
-            "error_display": _error_display(error),
-            "acceptance_verdict": fresh_verdict,
-            "acceptance_score": fresh_score,
-            "acceptance_threshold": fresh_threshold,
-            "hard_stops": fresh_hard_stops,
-            "mutated": False,
-            "talleyrand_text": resolve_settlement_voice_line(
+        # PF-1 / D2: re-attach the still-mounted REVIEW (the popup hides on
+        # every affordance click and only re-mounts from a returned
+        # `diplomatic_dialogue`), so a rescore-blocked Ratify renders its
+        # reason instead of orphaning the surface.
+        return _blocked_ratify_reattach(
+            dialogue,
+            war_id=war_id,
+            error=error,
+            talleyrand_text=resolve_settlement_voice_line(
                 "settlement_rescored_after_staging_talleyrand",
                 war_label=str(dialogue.get("war_label") or war_id),
                 acceptance_band=band_display,
                 top_blocker=top_blocker,
             ),
-            "settlement_reactions": _failed_ratification_reaction_summary(
-                world,
-                war_id=war_id,
-                proposer_side=proposer_side,
-                accepting_side=accepting_side,
-                covered_enemy_participants=covered,
-                settlement_terms=settlement_terms,
-            ),
-        }
+            extra={
+                "acceptance_verdict": fresh_verdict,
+                "acceptance_score": fresh_score,
+                "acceptance_threshold": fresh_threshold,
+                "hard_stops": fresh_hard_stops,
+                "settlement_reactions": _failed_ratification_reaction_summary(
+                    world,
+                    war_id=war_id,
+                    proposer_side=proposer_side,
+                    accepting_side=accepting_side,
+                    covered_enemy_participants=covered,
+                    settlement_terms=settlement_terms,
+                ),
+            },
+        )
 
     # Re-front Slice 1 §11.4: the per-covered-court ratification gate (defense
     # in depth beyond the dialogue's `can_ratify`). The single-leader rescore
@@ -7515,11 +7846,11 @@ def handle_settlement_dialogue_action(
         covered = list(dialogue.get("covered_enemy_participants") or [])
         selected_target = str(dialogue.get("selected_target_nation") or "")
         if terms:
-            drafts = getattr(world, "pending_settlement_drafts", None)
-            if drafts is None:
-                world.pending_settlement_drafts = {}
-                drafts = world.pending_settlement_drafts
-            drafts[war_id] = terms
+            # PF-2 / D4 + CH-3: the scoped store is the ONE draft store for
+            # the suspend→reopen promise. The legacy war_id-keyed dual-write
+            # is gone — it was never consulted on reopen, and two stores with
+            # one reader is exactly how the "Settlement draft kept" promise
+            # broke.
             save_scoped_settlement_draft(
                 world,
                 war_id=war_id,
@@ -7590,6 +7921,45 @@ def handle_settlement_dialogue_action(
                 "talleyrand_text": (
                     "Sire, there are no terms to submit. Shape the settlement first."
                 ),
+            }
+        # PF-1 / D1-D2: the submit arm is a staging point — validate the draft
+        # (generated baseline or dialed) BEFORE popping PROPOSE, so an invalid
+        # package can never reach the REVIEW ratification gate. On failure the
+        # still-mounted PROPOSE dialogue is re-attached (the Tier-2 net
+        # pattern) with the failure rendered, never a silent dead end.
+        submit_validation = validate_settlement_terms(
+            terms,
+            proposer_side=str(dialogue.get("proposer_side") or ""),
+            covered_enemy_participants=covered,
+            world=world,
+            war_instance=(getattr(world, "war_instances", {}) or {}).get(war_id) or {},
+        )
+        if not submit_validation.get("valid"):
+            blocker = str(
+                submit_validation.get("disabled_reason_display")
+                or _error_display(str(submit_validation.get("error") or ""))
+            )
+            talleyrand_line = resolve_settlement_voice_line(
+                "settlement_submit_failed_validation_talleyrand",
+                war_label=str(dialogue.get("war_label") or war_id or "this war"),
+                blocker=blocker,
+            )
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": "submit_settlement_for_review",
+                "war_id": war_id,
+                "error": "submitted_terms_failed_revalidation",
+                "error_display": blocker
+                or _error_display("submitted_terms_failed_revalidation"),
+                "validation_error": submit_validation.get("error"),
+                "validation_error_index": submit_validation.get("error_index"),
+                "mutated": False,
+                "diplomatic_dialogue": dict(dialogue),
+                "awaiting_diplomatic_response": True,
+                "talleyrand_text": talleyrand_line,
+                "message": talleyrand_line or blocker,
+                "suppress_proposal_result_popup": True,
             }
         # Drop the non-blocking PROPOSE surface, then stage REVIEW fresh.
         world.dialogue_manager.pop()

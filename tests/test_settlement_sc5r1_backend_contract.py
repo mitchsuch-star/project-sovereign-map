@@ -713,8 +713,10 @@ class TestScopedSettlementDraftPersistence:
         """SC-5R-2 follow-up: `suspend_settlement_editor` is the editor's
         non-destructive Back Out. It pops the staged settlement_confirm
         hard-stop (so ordinary commands are no longer held by the executor
-        gate) while PRESERVING both the legacy and scoped drafts — the
-        complement of `back_out_settlement`, which discards."""
+        gate) while PRESERVING the scoped draft — the complement of
+        `back_out_settlement`, which discards. PF-2 (Gate-4 pre-flight
+        D4/CH-3): the scoped store is the ONE store; suspend no longer
+        dual-writes the legacy war_id-keyed store nothing read."""
         world = WorldState()
         _install_common_peace_war(world)
         terms = [{"type": "peace"}, _gold_indemnity_clause()]
@@ -743,8 +745,9 @@ class TestScopedSettlementDraftPersistence:
         assert result["draft_preserved"] is True
         # The staged hard-stop is popped so the next command is not held.
         assert world.dialogue_manager.is_hard_stop() is False
-        # Both draft stores survive (unlike back_out_settlement).
-        assert world.pending_settlement_drafts["war_1"] == terms
+        # PF-2 single-store contract: the scoped draft survives (unlike
+        # back_out_settlement); the legacy store gains nothing.
+        assert "war_1" not in (world.pending_settlement_drafts or {})
         assert (
             load_scoped_settlement_draft(
                 world,
@@ -979,9 +982,15 @@ class TestTamperedClauseTypeRevalidation:
         assert result["success"] is False
         assert result["error"] == "submitted_terms_failed_revalidation"
         assert result["mutated"] is False
-        # Defense in depth: the dialogue is popped so the player is not
-        # left on a tampered staged review.
-        assert world.dialogue_manager.peek() is None
+        # PF-1 / D2 contract: the blocked ratify keeps the staged REVIEW
+        # mounted and re-attaches it with a rendered reason, so the player
+        # repairs or backs out from a live surface instead of being dropped
+        # with no popup and no explanation. The clause still never reaches
+        # `_apply_settlement_terms` (mutated is False above).
+        assert world.dialogue_manager.peek() is not None
+        assert result.get("diplomatic_dialogue")
+        assert result.get("error_display")
+        assert result.get("message")
 
     def test_author_handler_with_invalid_clause_type_fails_pre_staging(self):
         """If an author handler were ever to construct a tampered clause

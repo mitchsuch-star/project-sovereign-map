@@ -237,6 +237,14 @@ func _build_settlement_content(data: Dictionary) -> String:
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
 
+	# PF-1 (D3): a failed settlement action re-mounts this popup on its
+	# unchanged dialogue with the failure reason attached by main.gd. Render
+	# it as the first line so a blocked dial / Submit / Ratify never reads
+	# as a silent no-op blink.
+	var transient_error = _safe_str(data.get("transient_error_display"))
+	if transient_error != "":
+		bbcode += "[color=#e0a040]⚠ %s[/color]\n\n" % transient_error
+
 	# SC-17: Humanize the malformed-payload guard. Players never need to
 	# see raw structured key names; the voice-resolved talleyrand_text
 	# below stays mounted while the player escapes via Back Out / war

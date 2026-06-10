@@ -1450,6 +1450,26 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Sire, {holdout_court} will not sign; the settlement of {war_label} cannot "
         "be ratified until that court is eased toward terms or dropped to fight on."
     ),
+    # ───────────────────────────────────────────────────────────────────
+    # PF-1 / DC-2 (Gate-4 pre-flight audit) — the binding-constraint voice.
+    # Spoken in the PROPOSE advisory slot when the treasury can no longer
+    # raise the gold offer to every concede-direction holdout (the
+    # solvency ceiling caps reachable acceptance): Talleyrand names the
+    # constraint instead of counselling dials that would only fail.
+    # France in 1813 could not buy peace from everyone; the game says so.
+    # ───────────────────────────────────────────────────────────────────
+    "settlement_budget_bound_constraint_talleyrand": (
+        "Sire, the treasury cannot satisfy {holdout_names} in gold — what "
+        "remains will not move them. Set a court aside to fight on, or pay "
+        "in land."
+    ),
+    # PF-1 / UX-6 — submit-time validation failure stays in character. The
+    # {blocker} slot carries the humanized validator reason (a full
+    # sentence); Talleyrand owns the failure rather than blaming the player
+    # for a draft he helped author.
+    "settlement_submit_failed_validation_talleyrand": (
+        "Sire, I cannot carry these terms to review as written. {blocker}"
+    ),
 }
 
 

@@ -512,10 +512,14 @@ class TestBackendDraftRoundTrip:
         assert result.get("success"), result
         assert result.get("open_editor_on_mount") is not True
 
-    def test_scoped_draft_key_for_different_target_does_not_collide(self):
-        """SC-5R-1 contract: drafts for the same war but different
-        selected_target_nation are stored under different draft_keys
-        and do not restore into each other."""
+    def test_scoped_draft_restore_is_war_scoped_with_target_preference(self):
+        """PF-2 (Gate-4 pre-flight D4) supersedes the SC-5R-1 isolation pin:
+        the real reopen route cannot reconstruct the suspend-time scope (it
+        sends no covered list and always targets the war's defender leader),
+        so same-war lookups fall back — exact key, then (war, target)
+        prefix, then war-wide most-recent. A settlement is ONE multi-court
+        table per war (SC-26), so war-scoped restore matches the player's
+        "draft kept" mental model. Cross-WAR isolation still holds."""
         world = WorldState()
         _install_common_peace_war(world)
         save_scoped_settlement_draft(
@@ -525,14 +529,38 @@ class TestBackendDraftRoundTrip:
             covered_enemy_participants=["Austria"],
             settlement_terms=[_gold_indemnity_clause(150)],
         )
-        # A different selected target's scoped store starts empty.
+        # Same war, different target: the war-wide fallback restores the
+        # kept draft instead of silently regenerating a baseline (D4).
         restored = load_scoped_settlement_draft(
             world,
             war_id="war_1",
             selected_target_nation="Prussia",
             covered_enemy_participants=["Prussia"],
         )
-        assert restored is None or restored == []
+        assert restored == [_gold_indemnity_clause(150)]
+        # Cross-war isolation holds: nothing bleeds across war ids.
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_2",
+            selected_target_nation="Austria",
+            covered_enemy_participants=["Austria"],
+        ) is None
+        # Target preference: when the asked-for target has its own draft,
+        # it wins over another court's more recent save.
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="Prussia",
+            covered_enemy_participants=["Prussia"],
+            settlement_terms=[_gold_indemnity_clause(75)],
+        )
+        restored_austria = load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="Austria",
+            covered_enemy_participants=[],
+        )
+        assert restored_austria == [_gold_indemnity_clause(150)]
 
     def test_suspend_settlement_editor_choice_pops_hardstop_and_keeps_draft(self):
         """SC-5R-2 follow-up bug fix: the editor Back Out sends the string
