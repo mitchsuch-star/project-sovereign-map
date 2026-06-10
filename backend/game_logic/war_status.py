@@ -555,7 +555,7 @@ def _evaluate_war_detail_actionability(
 ) -> Dict[str, Any]:
     """Return SC-10b recovery metadata for the War Detail row."""
     try:
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_routes import (
             evaluate_war_detail_actionability,
         )
         return dict(evaluate_war_detail_actionability(

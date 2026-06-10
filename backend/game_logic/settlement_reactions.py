@@ -1014,7 +1014,7 @@ def _emit_settlement_summary_event(
     # never staged through `build_settlement_confirm_dialogue`.
     resolved_route_id = str(staged_route_id or route_id or "").strip()
     if not resolved_route_id:
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_routes import (
             mint_settlement_route_id,
         )
         resolved_route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)
@@ -1134,7 +1134,7 @@ def _emit_settlement_digest_event(  # noqa: D401
     # the digest under the same focus as the matching summary event.
     resolved_route_id = str(staged_route_id or route_id or "").strip()
     if not resolved_route_id:
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_routes import (
             mint_settlement_route_id,
         )
         resolved_route_id = mint_settlement_route_id(world, war_id=war_id, turn=turn)

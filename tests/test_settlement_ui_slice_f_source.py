@@ -145,17 +145,22 @@ def test_route_id_uses_event_format_consistently() -> None:
     `mint_settlement_route_id(...)`. The reaction event consumes the
     staged value verbatim instead of recomputing."""
     preview = read_repo_file("backend/game_logic/settlement_preview.py")
+    routes = read_repo_file("backend/game_logic/settlement_routes.py")
     reactions = read_repo_file("backend/game_logic/settlement_reactions.py")
 
     # Legacy `settlement_summary:` prefix must remain absent.
     assert 'f"settlement_summary:{war_id}' not in preview
+    assert 'f"settlement_summary:{war_id}' not in routes
     # Legacy `{war_id}:{turn}` route id literal MUST NOT regress.
     assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' \
         not in preview
+    assert 'f"{war_id}:{int(getattr(world, \'current_turn\', 0) or 0)}"' \
+        not in routes
     assert 'f"{war_id}:{turn}"' not in reactions
-    # New SC-14c surface: route id minting + namespace constant.
-    assert "mint_settlement_route_id" in preview
-    assert 'SETTLEMENT_ROUTE_NAMESPACE = "settlement"' in preview
+    # New SC-14c surface: route id minting + namespace constant (CH-1: the
+    # routing family lives in settlement_routes.py).
+    assert "mint_settlement_route_id" in routes
+    assert 'SETTLEMENT_ROUTE_NAMESPACE = "settlement"' in routes
     # Reaction emitters consume the staged route id and only fall back to
     # `mint_settlement_route_id` when no staged id was supplied.
     assert "staged_route_id" in reactions

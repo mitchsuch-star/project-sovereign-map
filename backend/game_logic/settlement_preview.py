@@ -63,25 +63,37 @@ from backend.game_logic.settlement_presentation import (
     build_settlement_review,
     detect_awe_set_pieces,
 )
+from backend.game_logic.settlement_routes import (
+    SETTLEMENT_ERROR_DISPLAY,
+    SETTLEMENT_FAMILY_DIALOGUE_TYPES,
+    SETTLEMENT_REOPEN_MAX_ATTEMPTS,
+    SETTLEMENT_ROUTE_NAMESPACE,
+    _error_display,
+    _mounted_settlement_dialogue,
+    _no_reopen_target_payload,
+    _normalize_nation_list,
+    _reopen_attempt_store,
+    _reopen_target,
+    _safe_reopen_response,
+    _settlement_dialogue_active,
+    _settlement_history_route,
+    _terminal_recovery_copy,
+    _war_detail_recovery_route,
+    _war_label,
+    derive_settlement_review_target,
+    evaluate_war_detail_actionability,
+    get_reopen_attempts,
+    is_war_archived,
+    is_war_known,
+    mint_settlement_route_id,
+    record_reopen_attempt,
+    reopen_attempt_cap_exceeded,
+    resolve_settlement_route_click,
+)
 
 
 VALID_SIDES = {"attackers", "defenders"}
 SETTLEMENT_COOLDOWN_TURNS = 3
-
-# G2-Slice-3 SC-14b: stale-recovery reopen cap per (war_id, turn). Attempts
-# 1..MAX may reopen when the target is valid; attempt MAX+1 returns
-# `must_reopen=False` with the SC-14b choose-from-war-detail copy.
-SETTLEMENT_REOPEN_MAX_ATTEMPTS = 3
-
-# G2-Slice-3 SC-14c: route id namespace + format
-#   `settlement:{war_id}:{turn}:{seq}` where `seq` is a per-(war_id, turn)
-# monotonic counter starting at 1, persisted on
-# `world.settlement_route_seq[war_id][turn]`.
-SETTLEMENT_ROUTE_NAMESPACE = "settlement"
-
-SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
-    {"settlement_confirm", "incoming_settlement_offer", "settlement_scope_replace_confirm"}
-)
 
 ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE = "ally_settlement_petition"
 ALLY_SETTLEMENT_PETITION_REQUEST_OPEN = "request_open_settlement"
@@ -107,13 +119,6 @@ ALLY_SETTLEMENT_PETITION_ACK_ACTION = "acknowledge_ally_settlement_petition"
 # named constant for stale-save defensive paths and audit-trail
 # clarity but defaults to False.
 INCOMING_OFFERS_DEFERRED: bool = False
-
-SETTLEMENT_ERROR_DISPLAY = SETTLEMENT_DISABLED_REASON_DISPLAY
-
-
-def _error_display(code: str) -> str:
-    return settlement_disabled_reason_display(code)
-
 
 def _blocked_payload(code: str, **extra: Any) -> Dict[str, Any]:
     display = _error_display(code)
@@ -305,41 +310,6 @@ def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
     return enriched
 
 
-def _war_label(war_id: str, war_instance: Mapping[str, Any]) -> str:
-    attackers = list(war_instance.get("attackers") or [])
-    defenders = list(war_instance.get("defenders") or [])
-    if attackers and defenders:
-        return f"{attackers[0]} vs {defenders[0]}"
-    return war_id or "Settlement"
-
-
-def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
-    preview = dialogue.get("settlement_preview") or {}
-    covered = list(dialogue.get("covered_enemy_participants") or preview.get("covered_enemy_participants") or [])
-    selected = str(dialogue.get("selected_target_nation") or "")
-    if not selected and covered:
-        selected = covered[0]
-    diagnostic_fallback = not bool(dialogue.get("selected_target_nation"))
-    result: Dict[str, Any] = {
-        "surface": "settlement_review",
-        "target": "settlement_review",
-        "war_id": war_id,
-        "nation": selected,
-        "target_nation": selected,
-        "proposer_side": str(dialogue.get("proposer_side") or preview.get("proposer_side") or ""),
-    }
-    if diagnostic_fallback and selected:
-        result["diagnostic_fallback_target"] = True
-        result["error_display"] = "This settlement lost its selected court. Reopen from war detail."
-    return result
-
-
-def _normalize_nation_list(values: Optional[Iterable[str]]) -> List[str]:
-    if values is None:
-        return []
-    return sorted({str(value) for value in values if str(value or "").strip()})
-
-
 def _other_side(side: str) -> str:
     return "defenders" if side == "attackers" else "attackers"
 
@@ -388,70 +358,6 @@ def _active_cross_side_pairs(
     return sorted(pairs)
 
 
-def _settlement_dialogue_active(world: Any, war_id: str) -> bool:
-    current = getattr(world, "pending_diplomatic_dialogue", None)
-    dm = getattr(world, "dialogue_manager", None)
-    queued = list(dm.iter_queue()) if dm is not None and hasattr(dm, "iter_queue") else []
-    for dialogue in ([current] if current else []) + queued:
-        if not isinstance(dialogue, Mapping):
-            continue
-        if dialogue.get("type") not in ("settlement_confirm", "incoming_settlement_offer"):
-            continue
-        if str(dialogue.get("war_id") or "") == str(war_id):
-            return True
-    return False
-
-
-def _settlement_history_route(
-    *,
-    war_id: str,
-    route_id: str = "",
-    reason: str = "",
-) -> Dict[str, Any]:
-    route = {
-        "surface": "settlement_history",
-        "target": "settlement_history",
-        "war_id": str(war_id or ""),
-        "route_id": str(route_id or ""),
-    }
-    if reason:
-        route["reason"] = reason
-    return route
-
-
-def _war_detail_recovery_route(
-    *,
-    war_id: str,
-    selected_target_nation: str = "",
-    covered_enemy_participants: Optional[Iterable[str]] = None,
-    source_route_id: str = "",
-    reason: str = "",
-) -> Dict[str, Any]:
-    route = {
-        "surface": "war_detail",
-        "target": "war_detail",
-        "war_id": str(war_id or ""),
-        "selected_target_nation": str(selected_target_nation or ""),
-        "target_nation": str(selected_target_nation or ""),
-        "nation": str(selected_target_nation or ""),
-        "covered_enemy_participants": list(covered_enemy_participants or []),
-        "source_route_id": str(source_route_id or ""),
-    }
-    if reason:
-        route["reason"] = reason
-    return route
-
-
-def _terminal_recovery_copy(war_id: str = "") -> str:
-    return resolve_settlement_voice_line(
-        "settlement_no_alternative_route_chancery",
-        war_label=str(war_id or "this war"),
-    ) or (
-        "This settlement cannot currently be recovered from the existing "
-        "surfaces. Close this review and reassess the war next turn."
-    )
-
-
 def compute_settlement_draft_key(
     war_id: str,
     selected_target_nation: Optional[str],
@@ -498,115 +404,6 @@ def _scope_changed(
     incoming_selected = str(incoming_selected_target or "").strip()
     incoming_scope = _normalize_nation_list(incoming_covered)
     return current_selected != incoming_selected or current_covered != incoming_scope
-
-
-def evaluate_war_detail_actionability(
-    world: Any,
-    *,
-    war_id: str,
-    selected_target_nation: Optional[str] = None,
-    covered_enemy_participants: Optional[Iterable[str]] = None,
-    source_route_id: str = "",
-    actor_nation: Optional[str] = None,
-) -> Dict[str, Any]:
-    """SC-10b: decide whether blocked review may show Open War Detail.
-
-    This helper deliberately answers only whether War Detail is a real
-    recovery surface for the selected live pair. It does not expose direct
-    pair-substitute actions from settlement_confirm; War Detail remains the
-    owner of bilateral peace / armistice controls.
-    """
-    war_id_str = str(war_id or "")
-    actor = str(actor_nation or getattr(world, "player_nation", "France") or "France")
-    selected = str(selected_target_nation or "").strip()
-    covered = _normalize_nation_list(covered_enemy_participants)
-
-    def _blocked(code: str, **extra: Any) -> Dict[str, Any]:
-        display = _error_display(code)
-        return {
-            "actionable": False,
-            "war_id": war_id_str,
-            "selected_target_nation": selected,
-            "covered_enemy_participants": covered,
-            "refusal_code": code,
-            "refusal_code_display": display,
-            "error": code,
-            "error_display": display,
-            "peace_seeking_controls": [],
-            **extra,
-        }
-
-    if not war_id_str:
-        return _blocked("malformed_route")
-    instance = (getattr(world, "war_instances", {}) or {}).get(war_id_str)
-    if not isinstance(instance, Mapping):
-        if is_war_archived(world, war_id_str):
-            return _blocked(
-                "war_archived",
-                recovery_route=_settlement_history_route(
-                    war_id=war_id_str,
-                    route_id=source_route_id,
-                    reason="war_archived",
-                ),
-            )
-        return _blocked("war_archived" if is_war_known(world, war_id_str) else "malformed_route")
-    if instance.get("ended_turn") is not None:
-        return _blocked(
-            "war_archived",
-            recovery_route=_settlement_history_route(
-                war_id=war_id_str,
-                route_id=source_route_id,
-                reason="war_archived",
-            ),
-        )
-    mounted = _mounted_settlement_dialogue(world)
-    if mounted is not None and str(mounted.get("war_id") or "") not in ("", war_id_str):
-        return _blocked("settlement_collision_active")
-    if not selected:
-        return _blocked("selected_pair_missing")
-
-    side_by_nation = instance.get("side_by_nation") or {}
-    actor_side = side_by_nation.get(actor)
-    selected_side = side_by_nation.get(selected)
-    if not actor_side or not selected_side or actor_side == selected_side:
-        return _blocked("selected_pair_missing")
-
-    pair = world._make_diplo_key(actor, selected) if hasattr(world, "_make_diplo_key") else "|".join(sorted([actor, selected]))
-    meta = instance.get("diplo_key_meta") or {}
-    pair_meta = meta.get(pair) or {}
-    resolved_pairs = set(instance.get("resolved_diplo_keys") or [])
-    if pair in resolved_pairs or pair_meta.get("pair_status") == "resolved":
-        return _blocked("pair_already_resolved")
-    active_pairs = set(instance.get("active_diplo_keys") or [])
-    if pair not in active_pairs:
-        return _blocked("selected_pair_missing")
-    if pair_meta.get("pair_status", "war") != "war":
-        return _blocked("pair_not_at_war")
-    if (getattr(world, "diplomatic_states", {}) or {}).get(pair) != "WAR":
-        return _blocked("pair_not_at_war")
-
-    route = _war_detail_recovery_route(
-        war_id=war_id_str,
-        selected_target_nation=selected,
-        covered_enemy_participants=covered,
-        source_route_id=source_route_id,
-        reason="blocked_settlement_recovery",
-    )
-    return {
-        "actionable": True,
-        "war_id": war_id_str,
-        "selected_target_nation": selected,
-        "covered_enemy_participants": covered,
-        "refusal_code": "",
-        "refusal_code_display": "",
-        "peace_seeking_controls": ["negotiate_peace"],
-        "recovery_route": route,
-    }
-
-
-# ---------------------------------------------------------------------------
-# SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs
-# ---------------------------------------------------------------------------
 
 
 PAIR_SUBSTITUTE_ACTIONS = frozenset({"seek_armistice_instead", "seek_bilateral_peace"})
@@ -783,301 +580,6 @@ def evaluate_pair_peace_substitute_eligibility(
 
 # ---------------------------------------------------------------------------
 # G2-Slice-3 helpers: route id, collision, reopen cap, active-vs-archived
-# ---------------------------------------------------------------------------
-
-
-def _mounted_settlement_dialogue(world: Any) -> Optional[Mapping[str, Any]]:
-    """Return the *current* settlement-family dialogue, or None.
-
-    SC-14 / SC-26 mounted means the current hard-stop dialogue. Queued or
-    dismissed settlement-family items don't count for live-route precedence
-    or collision protection.
-    """
-    current = getattr(world, "pending_diplomatic_dialogue", None)
-    if not isinstance(current, Mapping):
-        return None
-    if current.get("type") not in SETTLEMENT_FAMILY_DIALOGUE_TYPES:
-        return None
-    return current
-
-
-def mint_settlement_route_id(
-    world: Any,
-    *,
-    war_id: str,
-    turn: Optional[int] = None,
-) -> str:
-    """SC-14c: mint a unique `settlement:{war_id}:{turn}:{seq}` route id.
-
-    `seq` is a per-(war_id, turn) monotonic counter starting at 1, persisted
-    on `world.settlement_route_seq[war_id][turn]` so two settlement events
-    in the same turn do not collide. The staged dialogue owns the id; every
-    downstream consumer (reaction event, dispatch, ledger, notification,
-    result feedback) reads the staged value verbatim and never recomputes.
-    """
-    if turn is None:
-        turn = int(getattr(world, "current_turn", 0) or 0)
-    else:
-        turn = int(turn)
-    store = getattr(world, "settlement_route_seq", None)
-    if store is None:
-        world.settlement_route_seq = {}
-        store = world.settlement_route_seq
-    per_war = store.setdefault(str(war_id), {})
-    last = int(per_war.get(turn, 0) or 0)
-    seq = last + 1
-    per_war[turn] = seq
-    return f"{SETTLEMENT_ROUTE_NAMESPACE}:{war_id}:{turn}:{seq}"
-
-
-def _reopen_attempt_store(world: Any) -> Dict[str, Dict[int, int]]:
-    store = getattr(world, "settlement_reopen_attempts", None)
-    if store is None:
-        world.settlement_reopen_attempts = {}
-        store = world.settlement_reopen_attempts
-    return store
-
-
-def get_reopen_attempts(world: Any, *, war_id: str) -> int:
-    """Read the SC-14b reopen attempt count for the current `(war_id, turn)`."""
-    if not war_id:
-        return 0
-    turn = int(getattr(world, "current_turn", 0) or 0)
-    return int((_reopen_attempt_store(world).get(str(war_id)) or {}).get(turn, 0))
-
-
-def record_reopen_attempt(world: Any, *, war_id: str) -> int:
-    """SC-14b: increment + return the per-(war_id, turn) reopen attempt count.
-
-    Attempt 1..SETTLEMENT_REOPEN_MAX_ATTEMPTS may reopen when the target is
-    valid; the next attempt must return `must_reopen=False` with the
-    `reopen_attempt_cap_exceeded` SC-14b choose-from-war-detail copy.
-    """
-    if not war_id:
-        return 0
-    turn = int(getattr(world, "current_turn", 0) or 0)
-    store = _reopen_attempt_store(world)
-    per_war = store.setdefault(str(war_id), {})
-    per_war[turn] = int(per_war.get(turn, 0) or 0) + 1
-    return int(per_war[turn])
-
-
-def reopen_attempt_cap_exceeded(world: Any, *, war_id: str) -> bool:
-    """True when a further reopen for this `(war_id, turn)` must NOT fire."""
-    return get_reopen_attempts(world, war_id=war_id) >= SETTLEMENT_REOPEN_MAX_ATTEMPTS
-
-
-def is_war_archived(world: Any, war_id: str) -> bool:
-    """SC-14/14d/14e: the war is archived (or no longer active) right now.
-
-    Click-time check: an active `war_instance` with no `ended_turn` is
-    live; anything else (ended, missing, or in `archived_war_instances`)
-    must route to the archived ledger row.
-    """
-    if not war_id:
-        return False
-    instances = getattr(world, "war_instances", {}) or {}
-    instance = instances.get(str(war_id))
-    if isinstance(instance, Mapping):
-        if instance.get("ended_turn") is not None:
-            return True
-        return False
-    archived = getattr(world, "archived_war_instances", None) or []
-    for entry in archived:
-        if isinstance(entry, Mapping) and str(entry.get("war_id") or "") == str(war_id):
-            return True
-    return False
-
-
-def is_war_known(world: Any, war_id: str) -> bool:
-    """True if `war_id` resolves to either an active or archived instance."""
-    if not war_id:
-        return False
-    instances = getattr(world, "war_instances", {}) or {}
-    if str(war_id) in instances:
-        return True
-    archived = getattr(world, "archived_war_instances", None) or []
-    return any(
-        isinstance(entry, Mapping) and str(entry.get("war_id") or "") == str(war_id)
-        for entry in archived
-    )
-
-
-def derive_settlement_review_target(world: Any, *, war_id: str) -> str:
-    """SC-14/14d/14e click-time re-resolution.
-
-    Returns the canonical review-target string to use *now*, regardless of
-    what was rendered into a notification, dispatch, or result feedback row
-    when it was first emitted. Active war -> live settlement review surface;
-    archived (ended/no longer in `war_instances`) -> archived ledger row.
-    """
-    from backend.game_logic.settlement_presentation import (
-        SETTLEMENT_REVIEW_TARGET_ACTIVE,
-        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-    )
-
-    if is_war_archived(world, war_id):
-        return SETTLEMENT_REVIEW_TARGET_ARCHIVED
-    return SETTLEMENT_REVIEW_TARGET_ACTIVE
-
-
-def resolve_settlement_route_click(
-    world: Any,
-    *,
-    war_id: str,
-    route_id: Optional[str] = None,
-    recent_window_route_ids: Optional[Iterable[str]] = None,
-) -> Dict[str, Any]:
-    """SC-14/14d/14e: re-resolve a settlement route click against live state.
-
-    Returns a structured payload describing what the click should do *now*:
-
-    - `available=True, review_target="settlement_review", war_id=...` for
-      live wars (route the click into an in-flight active surface).
-    - `available=True, review_target="ledger_settlements", war_id=..., route_id=...`
-      for archived rows still inside the recent-settlement window.
-    - `available=False, error="settlement_no_longer_in_recent_window"` when
-      `recent_window_route_ids` is supplied and the route id is no longer
-      present (SC-14e aged-out dispatch link).
-    - `available=False, error="invalid_war_id"` for unknown wars.
-
-    Callers pass `recent_window_route_ids` (the route ids visible in the
-    current recent-settlement window) when they care about aged-out
-    routing; callers that don't care (live result feedback) leave it
-    None and just get archived/active routing.
-    """
-    from backend.game_logic.settlement_presentation import (
-        SETTLEMENT_REVIEW_TARGET_ACTIVE,
-        SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-    )
-
-    war_id_str = str(war_id or "")
-    if not war_id_str or not is_war_known(world, war_id_str):
-        return {
-            "available": False,
-            "war_id": war_id_str,
-            "route_id": str(route_id or ""),
-            "review_target": "",
-            "error": "invalid_war_id",
-            "error_display": _error_display("invalid_war_id"),
-        }
-    archived = is_war_archived(world, war_id_str)
-    if archived and recent_window_route_ids is not None:
-        window = {str(r or "") for r in recent_window_route_ids if r is not None}
-        if route_id and str(route_id) not in window:
-            return {
-                "available": False,
-                "war_id": war_id_str,
-                "route_id": str(route_id or ""),
-                "review_target": SETTLEMENT_REVIEW_TARGET_ARCHIVED,
-                "error": "settlement_no_longer_in_recent_window",
-                "error_display": _error_display(
-                    "settlement_no_longer_in_recent_window"
-                ),
-            }
-    return {
-        "available": True,
-        "war_id": war_id_str,
-        "route_id": str(route_id or ""),
-        "review_target": (
-            SETTLEMENT_REVIEW_TARGET_ARCHIVED
-            if archived
-            else SETTLEMENT_REVIEW_TARGET_ACTIVE
-        ),
-        "war_archived": bool(archived),
-    }
-
-
-def _no_reopen_target_payload(
-    war_id: str,
-    *,
-    error: str = "no_reopen_target_available",
-) -> Dict[str, Any]:
-    """SC-13 / SC-14b / SC-7b dual-empty / cap-exceeded fallback payload.
-
-    Returns the structured response fields used when reopen cannot be
-    safely fired and the player must be redirected to war detail. The
-    caller is responsible for adding success/dialogue_type/action.
-    """
-    payload = {
-        "must_reopen": False,
-        "reopen_target": {
-            "surface": "war_detail",
-            "target": "war_detail",
-            "war_id": war_id,
-            "nation": "",
-            "target_nation": "",
-        },
-        "error": error,
-        "error_display": _error_display(error),
-    }
-    if error == "reopen_attempt_cap_exceeded":
-        payload["talleyrand_text"] = resolve_settlement_voice_line(
-            "settlement_reopen_cap_exhausted_talleyrand",
-            war_label=war_id or "this war",
-        )
-    return payload
-
-
-def _safe_reopen_response(
-    world: Any,
-    *,
-    war_id: str,
-    dialogue: Mapping[str, Any],
-    fallback_error: str = "no_reopen_target_available",
-) -> Dict[str, Any]:
-    """Build the SC-2/SC-3/SC-13 reopen payload with the SC-14b cap applied.
-
-    Honors SC-7b (no `must_reopen=True` with empty target), SC-13
-    (dual-empty fallback) and SC-14b (per-(war_id, turn) attempt cap).
-    The caller then merges this payload into its action result.
-    """
-    selected = str(dialogue.get("selected_target_nation") or "")
-    covered = list(dialogue.get("covered_enemy_participants") or [])
-    has_target = bool(selected) or bool(covered)
-    if not has_target:
-        return _no_reopen_target_payload(war_id, error=fallback_error)
-    if reopen_attempt_cap_exceeded(world, war_id=war_id):
-        actionability = evaluate_war_detail_actionability(
-            world,
-            war_id=war_id,
-            selected_target_nation=selected or (str(covered[0]) if covered else ""),
-            covered_enemy_participants=covered,
-            source_route_id=str(dialogue.get("route_id") or ""),
-        )
-        payload = {
-            "must_reopen": False,
-            "error": "reopen_attempt_cap_exceeded",
-            "error_display": _error_display("reopen_attempt_cap_exceeded"),
-            "war_detail_actionability": actionability,
-            "talleyrand_text": resolve_settlement_voice_line(
-                "settlement_reopen_cap_exhausted_talleyrand",
-                war_label=war_id or "this war",
-            ),
-        }
-        if actionability.get("actionable"):
-            route = dict(actionability.get("recovery_route") or {})
-            payload["recovery_route"] = route
-            payload["reopen_target"] = route
-        else:
-            payload["terminal_recovery_copy"] = _terminal_recovery_copy(war_id)
-            payload["reopen_target"] = {
-                "surface": "blocked_terminal",
-                "target": "blocked_terminal",
-                "war_id": war_id,
-                "nation": selected,
-                "target_nation": selected,
-            }
-        return payload
-    record_reopen_attempt(world, war_id=war_id)
-    return {
-        "must_reopen": True,
-        "reopen_target": _reopen_target(war_id, dialogue),
-    }
-
-
-# ---------------------------------------------------------------------------
-# G2-Slice-3 SC-26: same-war / cross-war collision support
 # ---------------------------------------------------------------------------
 
 

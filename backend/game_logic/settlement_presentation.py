@@ -214,7 +214,7 @@ def settlement_review_target(
     payload renderers) keep the legacy stamped behavior.
     """
     if world is not None and isinstance(event, Mapping):
-        from backend.game_logic.settlement_preview import (
+        from backend.game_logic.settlement_routes import (
             derive_settlement_review_target,
             is_war_known,
         )
