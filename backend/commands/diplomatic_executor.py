@@ -18,12 +18,18 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 # / rail buttons and carry structured params (`scope` / `nation`) rather than
 # matching the keyword `options[]` surface. Routed through the structured
 # `action_params` path in `handle_diplomatic_dialogue_response`.
+# GT-Slice-1 (Guided Terms §7 wiring point 2): the three guided demand-mutation
+# verbs ride the same structured transport (`nation` / `group` / `clause_type`
+# / `clause_index` / magnitudes — never identities).
 _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
     "settlement_dial_harsher",
     "settlement_dial_generous",
     "settlement_cover_add",
     "settlement_cover_drop",
     "settlement_focus_court",
+    "settlement_demand_add",
+    "settlement_demand_remove",
+    "settlement_demand_set_magnitude",
 })
 
 
@@ -2925,6 +2931,13 @@ class DiplomaticExecutor:
             "settlement_cover_add",
             "settlement_cover_drop",
             "settlement_focus_court",
+            # GT-Slice-1 guided demand-mutation verbs (Guided Terms §7
+            # wiring point 2) — same structured-params transport as the
+            # dials; the options[]-matched fallback keeps fixture-staged
+            # and save-loaded dialogues dispatchable.
+            "settlement_demand_add",
+            "settlement_demand_remove",
+            "settlement_demand_set_magnitude",
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
             "re_author_with_concessions",

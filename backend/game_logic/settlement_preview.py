@@ -1424,6 +1424,139 @@ def _concession_baseline_payer_balance(world: Any, nation: str) -> int:
     return 0
 
 
+def _proposer_paid_gold_committed(
+    settlement_terms: Iterable[Mapping[str, Any]],
+    proposer_side_leader: str,
+) -> int:
+    """Total gold the proposer leader pays across the staged package —
+    lump indemnities at face value, recurring obligations at
+    ``amount × turns`` (the same total-obligation basis the solvency
+    check projects)."""
+    leader = str(proposer_side_leader or "")
+    if not leader:
+        return 0
+    committed = 0
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if str(term.get("from") or "") != leader:
+            continue
+        ttype = str(term.get("type") or "")
+        try:
+            amount = int(term.get("amount", 0) or 0)
+        except (TypeError, ValueError):
+            amount = 0
+        if amount <= 0:
+            continue
+        if ttype in ("gold_indemnity", "gold_lump"):
+            committed += amount
+        elif ttype == "gold_per_turn":
+            try:
+                turns = int(term.get("turns", 0) or 0)
+            except (TypeError, ValueError):
+                turns = 0
+            committed += amount * max(0, turns)
+    return int(committed)
+
+
+def compute_settlement_treasury_line(
+    world: Any,
+    *,
+    proposer_side_leader: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, int]:
+    """Guided Terms §3.4 (GT-A1) — ONE treasury, many courts.
+
+    Multiple courts can take the proposer's gold but the treasury is one
+    pool: two individually-affordable offers can jointly overdraw it and
+    die at the table-level solvency check (`gold_payment_budget_conflict`).
+    This block makes the shared budget visible while authoring, so the
+    guided flow never re-creates that over-commit with the player driving.
+
+    Returns ``{"treasury", "committed", "reserve", "remaining"}`` — all
+    ``int()`` (Golden Rule #2):
+
+    - ``treasury`` — the proposer leader's current gold balance;
+    - ``committed`` — gold the leader pays across the staged package
+      (lump at face value, recurring at ``amount × turns``);
+    - ``reserve`` — the concession-baseline hold-back, shrunk to what is
+      actually left after commitments (``min(RESERVE, treasury −
+      committed)``, floored at 0 — a fully-committed treasury shows
+      ``reserve 0 / remaining 0``, per the spec's probe example);
+    - ``remaining`` — what suggestion defaults may still spend:
+      ``max(0, treasury − committed − reserve)``.
+    """
+    treasury = _concession_baseline_payer_balance(world, str(proposer_side_leader or ""))
+    committed = _proposer_paid_gold_committed(settlement_terms, proposer_side_leader)
+    reserve = min(
+        CONCESSION_BASELINE_TREASURY_RESERVE, max(0, treasury - committed)
+    )
+    remaining = max(0, treasury - committed - reserve)
+    return {
+        "treasury": int(treasury),
+        "committed": int(committed),
+        "reserve": int(reserve),
+        "remaining": int(remaining),
+    }
+
+
+def _promised_regions_in_terms(
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Set[str]:
+    """Regions already promised by ANY ``territory_cede`` clause in the
+    staged package (V1 is table-scoped: one region, one clause —
+    regardless of which court the clause touches)."""
+    promised: Set[str] = set()
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if str(term.get("type") or "") != "territory_cede":
+            continue
+        region = str(term.get("region") or "")
+        if region:
+            promised.add(region)
+    return promised
+
+
+def _guided_gold_offer_default(
+    world: Any,
+    *,
+    proposer_side_leader: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> int:
+    """Guided Terms §3.4 — the default magnitude for a France-pays gold
+    offer authored from a court row, capped at the TABLE-scoped
+    ``remaining`` budget (never the row-local balance). 0 means the
+    treasury has nothing left to offer (the add verb rejects cleanly)."""
+    line = compute_settlement_treasury_line(
+        world,
+        proposer_side_leader=proposer_side_leader,
+        settlement_terms=settlement_terms,
+    )
+    return int(min(CONCESSION_BASELINE_GOLD_FLOOR, line["remaining"]))
+
+
+def _guided_region_offer_candidate(
+    world: Any,
+    *,
+    court: str,
+    proposer_side_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> str:
+    """Guided Terms §3.4 — the default region for a France-cedes offer on a
+    court row: the settlement concede-side selector with the staged
+    package's promised regions excluded (table-scoped V1, the same
+    exclusion PF-1 threads through the baseline loop). Empty string when
+    nothing transferable remains."""
+    region = _concession_baseline_select_transferable_region(
+        world,
+        proposer_side_participants=proposer_side_participants,
+        accepting_leader=str(court or ""),
+        excluded_regions=_promised_regions_in_terms(settlement_terms),
+    )
+    return str(region or "")
+
+
 def _concession_baseline_bfs_distance(
     world: Any,
     *,
@@ -2224,6 +2357,7 @@ def _demand_baseline_select_region(
     *,
     court: str,
     proposer_side_participants: Iterable[str],
+    excluded_regions: Optional[Iterable[str]] = None,
 ) -> Optional[str]:
     """Pick the deterministic demand region a winning court would cede.
 
@@ -2237,6 +2371,11 @@ def _demand_baseline_select_region(
     border province exists, and returns None when the court holds only its
     capital (no transferable region).
 
+    ``excluded_regions`` (Guided Terms §3.4, mirroring the concede-side
+    selector's PF-1 param): regions already promised elsewhere in the
+    staged package are ineligible, so a guided demand default can never
+    double-promise a region (table-scoped V1).
+
     Golden Rule #8: holdings come from the cached
     ``world.get_nation_regions(...)`` lookups, not a full ``world.regions``
     scan.
@@ -2246,6 +2385,7 @@ def _demand_baseline_select_region(
         return None
     from backend.models.region import NATION_CAPITALS
 
+    excluded = {str(r) for r in (excluded_regions or []) if r}
     court_capital = NATION_CAPITALS.get(court)
     try:
         court_regions = list(world.get_nation_regions(court))
@@ -2265,6 +2405,8 @@ def _demand_baseline_select_region(
     fallback: List[Tuple[int, str]] = []
     for rname in court_regions:
         if rname == court_capital:
+            continue
+        if str(rname) in excluded:
             continue
         region = regions.get(rname)
         if region is None:
@@ -3130,6 +3272,7 @@ def _redial_settlement_terms(
     scope_courts: Iterable[str],
     direction: str,
     proposer_side_leader: Optional[str],
+    protected_notes: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
     the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
@@ -3144,6 +3287,18 @@ def _redial_settlement_terms(
       drops at zero, and a conceded region is dropped (count down).
     - ``generous`` eases the court: the mirror — demands shrink/drop, the
       proposer's concessions grow, and a conceded-region demand is dropped.
+
+    **Guided Terms §3.5 (dial composition rule):** the dial is a TUNING verb
+    over Talleyrand-suggested lines; per-line ``Remove`` is the player's
+    deletion verb. A clause tagged ``authored_by == "player"`` (hand-authored
+    via the guided demand verbs, or hand-set magnitude) is therefore never
+    silently DROPPED by a dial sweep: its gold shrinks toward — never past —
+    the ``SETTLEMENT_DIAL_GOLD_STEP`` floor, and a territory line that the
+    sweep would drop is skipped (copied through unchanged). Each protected
+    line appends a player-facing note ("Your demand for Silesia stands,
+    Sire.") to ``protected_notes`` when the caller supplies the collector, so
+    the protection is never invisible. Untagged (suggested/seeded) clauses
+    keep the full legacy semantics above.
 
     A FOCUSED dial (exactly one scoped court) with no material slice for that
     court seeds a single modest gold clause in the dial direction (press → a
@@ -3162,6 +3317,7 @@ def _redial_settlement_terms(
     leader = str(proposer_side_leader or "")
     out: List[Dict[str, Any]] = []
     touched: Set[str] = set()
+    notes = protected_notes if protected_notes is not None else []
     for term in terms:
         if not isinstance(term, Mapping):
             continue
@@ -3175,6 +3331,7 @@ def _redial_settlement_terms(
             continue
         touched.add(court)
         is_demand = frm == court  # the court pays/cedes => a demand on it
+        player_authored = str(clause.get("authored_by") or "") == "player"
         if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
             amount = int(clause.get("amount", 0) or 0)
             # Grow on harsher-demand / generous-concession; shrink otherwise.
@@ -3185,7 +3342,20 @@ def _redial_settlement_terms(
                 )
             else:
                 amount -= SETTLEMENT_DIAL_GOLD_STEP
-            if amount <= 0:
+            if amount < SETTLEMENT_DIAL_GOLD_STEP and player_authored:
+                # §3.5: a player-authored gold line shrinks toward (never
+                # past) the dial-step floor instead of dropping.
+                clipped = max(int(clause.get("amount", 0) or 0), 0)
+                amount = min(SETTLEMENT_DIAL_GOLD_STEP, clipped) or SETTLEMENT_DIAL_GOLD_STEP
+                if is_demand:
+                    notes.append(
+                        f"Your demand of {amount} gold from {court} stands, Sire."
+                    )
+                else:
+                    notes.append(
+                        f"Your offer of {amount} gold to {court} stands, Sire."
+                    )
+            elif amount <= 0:
                 continue  # drop the clause (count down) — never below zero
             clause["amount"] = int(amount)
             out.append(clause)
@@ -3195,6 +3365,16 @@ def _redial_settlement_terms(
             # demand and drops a concession; generous the mirror.
             drop = (not is_demand) if direction == "harsher" else is_demand
             if drop:
+                if player_authored:
+                    # §3.5: the sweep skips player-authored territory lines —
+                    # per-line Remove is the player's deletion verb.
+                    region = str(clause.get("region") or "")
+                    if is_demand:
+                        notes.append(f"Your demand for {region} stands, Sire.")
+                    else:
+                        notes.append(f"Your offer of {region} stands, Sire.")
+                    out.append(clause)
+                    continue
                 continue
             out.append(clause)
             continue
@@ -5500,6 +5680,19 @@ def build_settlement_confirm_dialogue(
             and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
             else []
         ),
+        # Guided Terms §3.4 (GT-A1): the shared-treasury allocation block —
+        # one pool across every court's France-paid gold. PROPOSE-only (the
+        # authoring surface); recomputed on every restage since it derives
+        # from the staged terms. All values int() (Golden Rule #2).
+        "treasury_line": (
+            compute_settlement_treasury_line(
+                world,
+                proposer_side_leader=str(leaders.get(proposer_side) or ""),
+                settlement_terms=staged_terms_for_gate,
+            )
+            if dialogue_mode == "PROPOSE"
+            else {}
+        ),
         "war_id": war_id,
         "war_label": war_label,
         "route_id": route_id,
@@ -7665,21 +7858,28 @@ def _handle_settlement_tier2_action(
                 "mutated": False,
                 "suppress_proposal_result_popup": True,
             }
+        protected_notes: List[str] = []
         new_terms = _redial_settlement_terms(
             terms=terms,
             scope_courts=scope_courts,
             direction=direction,
             proposer_side_leader=proposer_leader,
+            protected_notes=protected_notes,
         )
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope
+        message = f"{verb} {target_label}."
+        if protected_notes:
+            # §3.5: a protected player-authored line is never invisible — the
+            # skip/floor is named in the dial's own response message.
+            message = " ".join([message, *protected_notes])
         return _restage_settlement_after_redraw(
             world,
             dialogue,
             action=action,
             new_terms=new_terms,
             new_covered=covered,
-            message=f"{verb} {target_label}.",
+            message=message,
         )
 
     # settlement_cover_add / settlement_cover_drop
@@ -7754,14 +7954,534 @@ def _handle_settlement_tier2_action(
     )
 
 
-def handle_settlement_dialogue_action(
+# GT-Slice-1 (Guided Terms §3.1/§4): the per-court demand-mutation verbs.
+# Direction is fixed PER OPTION (D3/D4) — the verb derives every from/to
+# from (court, group); no identity ever arrives in `action_params`.
+SETTLEMENT_DEMAND_VERB_ACTION_IDS = (
+    "settlement_demand_add",
+    "settlement_demand_remove",
+    "settlement_demand_set_magnitude",
+)
+# Clause types the guided `Add demand` may author (§4 — `peace` is the
+# shared package clause, never a per-court line).
+_DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
+    "territory_cede", "gold_indemnity", "gold_per_turn",
+    "vassalage", "subjugation", "forced_alliance", "liberation",
+})
+# Types with an OFFER arm (France → court). Dependency / forced-alliance /
+# liberation clauses are demand-only per the §4 mapping (a losing player
+# cannot force the victor; France self-vassalage is not a player verb).
+_DEMAND_OFFERABLE_CLAUSE_TYPES = frozenset({
+    "territory_cede", "gold_indemnity", "gold_per_turn",
+})
+_DEMAND_GOLD_MAGNITUDE_CLAUSE_TYPES = frozenset({
+    "gold_indemnity", "gold_per_turn",
+})
+
+
+def _demand_clause_label(clause: Mapping[str, Any]) -> str:
+    """A short player-facing line for one clause, used in restage messages
+    ("Struck the cession of Silesia."). Full voice beats land in GT-Slice-V."""
+    ttype = str(clause.get("type") or "")
+    if ttype == "territory_cede":
+        return f"the cession of {clause.get('region')}"
+    if ttype in ("gold_indemnity", "gold_lump"):
+        return f"{int(clause.get('amount', 0) or 0)} gold from {clause.get('from')}"
+    if ttype == "gold_per_turn":
+        return (
+            f"{int(clause.get('amount', 0) or 0)} gold a turn for "
+            f"{int(clause.get('turns', 0) or 0)} turns from {clause.get('from')}"
+        )
+    if ttype == "vassalage":
+        return f"the vassalage of {clause.get('from')}"
+    if ttype == "subjugation":
+        return f"the subjugation of {clause.get('from')}"
+    if ttype == "forced_alliance":
+        return f"the alliance forced upon {clause.get('from')}"
+    if ttype == "liberation":
+        return f"the liberation of {clause.get('vassal_nation')}"
+    return ttype.replace("_", " ") or "the clause"
+
+
+def _handle_settlement_demand_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """GT-Slice-1 — guided per-court demand authoring on the PROPOSE surface
+    (Guided Terms spec §3.1/§3.2/§4/§7).
+
+    Three mutation verbs against the staged ``settlement_confirm``:
+
+    - ``settlement_demand_add`` — author one fully-formed clause on a covered
+      court. ``group`` picks the arm: ``demand`` (court → France) or ``offer``
+      (France → court, the D4 sweetener lever); omitted, it defaults to the
+      court's direction-led group (§3.3 — a losing court leads with offers).
+      Options are valid-by-construction at TABLE scope (§3.4): eligibility
+      gates run before authoring, gold defaults cap at the shared-treasury
+      ``remaining``, region defaults exclude already-promised regions.
+    - ``settlement_demand_remove`` — strike one line by ``clause_index``
+      (the shared ``peace`` clause is not a line and cannot be struck).
+    - ``settlement_demand_set_magnitude`` — adjust gold ``amount`` /
+      ``turns`` on one line; identity (payer / payee / region) is immutable
+      (remove + add is the identity verb).
+
+    Every mutation routes through ``_restage_settlement_after_redraw``
+    (validate → re-preview → re-stage → persist the scoped draft), so the
+    validator stays the authority and the §11.2 live re-score is automatic.
+    Guards (§7 / GT-R1-5): player-only (the Slice-G boundary) AND
+    ``dialogue_mode == "PROPOSE"`` — REVIEW is a frozen staged-decision
+    surface, guarded server-side here rather than by absent buttons.
+    Failures rely on the CH-5 wrapper for the dialogue re-attach +
+    ``error_display`` invariant, with arm-rendered reasons provided here.
+    """
+    war_id = str(dialogue.get("war_id") or "")
+
+    def _fail(error: str, error_display: str = "", **extra: Any) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": error,
+            "error_display": error_display or _error_display(error),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+        payload.update(extra)
+        return payload
+
+    caller_kind = str(dialogue.get("caller_kind") or "")
+    if caller_kind != SETTLEMENT_EDITOR_CALLER_KIND:
+        # Slice-G boundary: only the player authors / steers a settlement.
+        return _fail(
+            "settlement_action_not_player_authored",
+            "This settlement is not yours to steer, Sire.",
+        )
+    if str(dialogue.get("dialogue_mode") or "") != "PROPOSE":
+        # §7 guard: REVIEW is the frozen staged-decision surface. Today's
+        # dials rely on absent buttons; the mutation verbs guard explicitly.
+        return _fail(
+            "settlement_demand_requires_propose",
+            "The terms are staged for review, Sire — return to shaping "
+            "before changing them.",
+        )
+
+    proposer_side = str(dialogue.get("proposer_side") or "")
+    covered = sorted({
+        str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n
+    })
+    terms = [
+        dict(t) for t in (dialogue.get("settlement_terms") or [])
+        if isinstance(t, Mapping)
+    ]
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    staged_leaders = dialogue.get("staged_leaders") or {}
+    proposer_leader = str(
+        staged_leaders.get(proposer_side)
+        or _side_leader(war_instance, proposer_side)
+        or ""
+    )
+
+    if action == "settlement_demand_remove":
+        try:
+            clause_index = int(action_params.get("clause_index"))
+        except (TypeError, ValueError):
+            return _fail(
+                "invalid_clause_index", "No clause was named to strike, Sire.",
+            )
+        if clause_index < 0 or clause_index >= len(terms):
+            return _fail(
+                "invalid_clause_index",
+                "That clause is no longer in the draft, Sire.",
+            )
+        clause = terms[clause_index]
+        expected_type = str(action_params.get("expected_type") or "")
+        if expected_type and str(clause.get("type") or "") != expected_type:
+            return _fail(
+                "clause_index_stale",
+                "The draft changed under that click, Sire — review the "
+                "terms again.",
+            )
+        if str(clause.get("type") or "") == "peace":
+            return _fail(
+                "peace_clause_not_removable",
+                "The peace itself is not a line to strike, Sire — back out "
+                "of the settlement instead.",
+            )
+        new_terms = [t for i, t in enumerate(terms) if i != clause_index]
+        return _restage_settlement_after_redraw(
+            world,
+            dialogue,
+            action=action,
+            new_terms=new_terms,
+            new_covered=covered,
+            message=f"Struck {_demand_clause_label(clause)}.",
+        )
+
+    if action == "settlement_demand_set_magnitude":
+        try:
+            clause_index = int(action_params.get("clause_index"))
+        except (TypeError, ValueError):
+            return _fail(
+                "invalid_clause_index", "No clause was named to adjust, Sire.",
+            )
+        if clause_index < 0 or clause_index >= len(terms):
+            return _fail(
+                "invalid_clause_index",
+                "That clause is no longer in the draft, Sire.",
+            )
+        clause = dict(terms[clause_index])
+        ttype = str(clause.get("type") or "")
+        expected_type = str(action_params.get("expected_type") or "")
+        if expected_type and ttype != expected_type:
+            return _fail(
+                "clause_index_stale",
+                "The draft changed under that click, Sire — review the "
+                "terms again.",
+            )
+        if ttype not in _DEMAND_GOLD_MAGNITUDE_CLAUSE_TYPES:
+            # Identity is immutable (D3): region / payer changes are
+            # remove + add, never an in-place swap.
+            return _fail(
+                "magnitude_not_adjustable",
+                "Only gold lines carry an adjustable magnitude, Sire — "
+                "strike the clause and author another instead.",
+            )
+        raw_amount = action_params.get("amount")
+        raw_turns = action_params.get("turns")
+        if raw_amount is None and raw_turns is None:
+            return _fail(
+                "no_magnitude_given", "No new magnitude was named, Sire.",
+            )
+        if raw_amount is not None:
+            try:
+                amount = int(raw_amount)
+            except (TypeError, ValueError):
+                return _fail(
+                    "invalid_magnitude", "That is not a sum of gold, Sire.",
+                )
+            floor = GOLD_PER_TURN_MIN_AMOUNT if ttype == "gold_per_turn" else 1
+            if amount < floor:
+                return _fail(
+                    "invalid_magnitude",
+                    f"The sum must be at least {floor} gold, Sire.",
+                )
+            clause["amount"] = int(amount)
+        if raw_turns is not None and ttype == "gold_per_turn":
+            try:
+                turns = int(raw_turns)
+            except (TypeError, ValueError):
+                return _fail(
+                    "invalid_magnitude", "That is not a term of turns, Sire.",
+                )
+            if not (GOLD_PER_TURN_MIN_TURNS <= turns <= GOLD_PER_TURN_MAX_TURNS):
+                return _fail(
+                    "invalid_magnitude",
+                    f"The term must run between {GOLD_PER_TURN_MIN_TURNS} "
+                    f"and {GOLD_PER_TURN_MAX_TURNS} turns, Sire.",
+                )
+            clause["turns"] = int(turns)
+        # A hand-set magnitude is player intent — §3.5: the dial sweep now
+        # protects this line like any hand-authored one.
+        clause["authored_by"] = "player"
+        new_terms = [dict(t) for t in terms]
+        new_terms[clause_index] = clause
+        return _restage_settlement_after_redraw(
+            world,
+            dialogue,
+            action=action,
+            new_terms=new_terms,
+            new_covered=covered,
+            message=f"Set {_demand_clause_label(clause)}.",
+        )
+
+    # settlement_demand_add
+    court = str(action_params.get("nation") or "").strip()
+    if not court:
+        return _fail(
+            "no_demand_court", "No court was named for the demand, Sire.",
+        )
+    if court not in covered:
+        return _fail(
+            "demand_court_not_covered",
+            f"{court} is not part of this settlement, Sire.",
+        )
+    if len(terms) >= MAX_SETTLEMENT_CLAUSE_COUNT:
+        # §3.1 — mirror of the Slice-2 focused-seed fold: never author an
+        # over-cap draft for the restage validator to bounce.
+        return _fail(
+            "max_clause_count_exceeded",
+            "The settlement already carries eight clauses, Sire — remove "
+            "one before adding another.",
+        )
+    direction = ""
+    for row in dialogue.get("per_court_acceptance") or []:
+        if isinstance(row, Mapping) and str(row.get("nation") or "") == court:
+            direction = str(row.get("direction") or "")
+            break
+    if direction == "hard_stop":
+        # §3.3 — no clause can move a `total=null` court; the scorer
+        # hard-stops it. The row exposes Drop only.
+        return _fail(
+            "demand_court_hard_stopped",
+            f"No terms can move {court} while no live war score binds "
+            "them, Sire — set that court aside instead.",
+        )
+    clause_type = str(action_params.get("clause_type") or "").strip()
+    if clause_type not in _DEMAND_ADDABLE_CLAUSE_TYPES:
+        return _fail("invalid_clause_type")
+    group = str(action_params.get("group") or "").strip().lower()
+    if not group:
+        # §3.3: the court's direction picks which group leads — and which
+        # arm an unqualified add lands on (a losing court leads with offers).
+        group = "offer" if direction == "concede" else "demand"
+    if group not in ("demand", "offer"):
+        return _fail(
+            "invalid_demand_group",
+            "Terms are either demanded of a court or offered to it, Sire.",
+        )
+    if not proposer_leader:
+        return _fail(
+            "no_proposer_leader",
+            "The proposing side has no leader to carry the terms, Sire.",
+        )
+    if group == "offer" and clause_type not in _DEMAND_OFFERABLE_CLAUSE_TYPES:
+        return _fail(
+            "offer_group_not_available",
+            "That term can only be demanded of a court, Sire — never "
+            "offered.",
+        )
+
+    promised = _promised_regions_in_terms(terms)
+    proposer_participants = [
+        str(n) for n in (war_instance.get(proposer_side) or []) if n
+    ]
+    clause: Dict[str, Any]
+    if clause_type == "territory_cede":
+        region = str(action_params.get("region") or "").strip()
+        if group == "demand":
+            try:
+                court_regions = {str(r) for r in world.get_nation_regions(court)}
+            except Exception:
+                court_regions = set()
+            if not region:
+                region = str(
+                    _demand_baseline_select_region(
+                        world,
+                        court=court,
+                        proposer_side_participants=proposer_participants,
+                        excluded_regions=promised,
+                    )
+                    or ""
+                )
+            if not region or region not in court_regions:
+                return _fail(
+                    "no_transferable_region",
+                    f"{court} holds no region we may demand, Sire."
+                    if not region
+                    else f"{court} does not hold {region}, Sire.",
+                )
+            payer, payee = court, proposer_leader
+        else:
+            if not region:
+                region = _guided_region_offer_candidate(
+                    world,
+                    court=court,
+                    proposer_side_participants=proposer_participants,
+                    settlement_terms=terms,
+                )
+            proposer_holdings: Set[str] = set()
+            for participant in proposer_participants:
+                try:
+                    proposer_holdings.update(
+                        str(r) for r in world.get_nation_regions(participant)
+                    )
+                except Exception:
+                    continue
+            if not region or region not in proposer_holdings:
+                return _fail(
+                    "no_transferable_region",
+                    "We hold no region left to offer, Sire."
+                    if not region
+                    else f"We do not hold {region}, Sire.",
+                )
+            payer, payee = proposer_leader, court
+        if region in promised:
+            # Table-scoped V1, pre-checked so the suggestion path never
+            # authors a draft the restage validator must bounce.
+            return _fail(
+                "region_double_promised",
+                f"{region} is already promised elsewhere in this "
+                "settlement, Sire.",
+            )
+        clause = {
+            "type": "territory_cede", "from": payer, "to": payee,
+            "region": region,
+        }
+    elif clause_type == "gold_indemnity":
+        raw_amount = action_params.get("amount")
+        if raw_amount is None:
+            if group == "demand":
+                court_balance = _concession_baseline_payer_balance(world, court)
+                amount = min(
+                    court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
+                    CONCESSION_BASELINE_GOLD_FLOOR,
+                )
+            else:
+                # §3.4: the offer default caps at the TABLE-scoped remaining
+                # treasury, never the row-local balance.
+                amount = _guided_gold_offer_default(
+                    world,
+                    proposer_side_leader=proposer_leader,
+                    settlement_terms=terms,
+                )
+            if amount <= 0:
+                return _fail(
+                    "no_affordable_gold",
+                    f"{court} has no gold to yield, Sire."
+                    if group == "demand"
+                    else "The treasury has nothing left to offer, Sire.",
+                )
+        else:
+            try:
+                amount = int(raw_amount)
+            except (TypeError, ValueError):
+                return _fail(
+                    "invalid_magnitude", "That is not a sum of gold, Sire.",
+                )
+            if amount < 1:
+                return _fail(
+                    "invalid_magnitude",
+                    "The sum must be at least 1 gold, Sire.",
+                )
+        payer, payee = (
+            (court, proposer_leader) if group == "demand"
+            else (proposer_leader, court)
+        )
+        clause = {
+            "type": "gold_indemnity", "from": payer, "to": payee,
+            "amount": int(amount),
+        }
+    elif clause_type == "gold_per_turn":
+        # Slice-1 contract: recurring gold takes explicit magnitude (the §4
+        # capacity-bounded PRE-FILL is the GT-Slice-2 suggestion payload).
+        try:
+            amount = int(action_params.get("amount"))
+            turns = int(action_params.get("turns"))
+        except (TypeError, ValueError):
+            return _fail(
+                "invalid_magnitude",
+                "Name the rate and the term of turns, Sire.",
+            )
+        if amount < GOLD_PER_TURN_MIN_AMOUNT:
+            return _fail(
+                "invalid_magnitude",
+                f"The rate must be at least {GOLD_PER_TURN_MIN_AMOUNT} "
+                "gold a turn, Sire.",
+            )
+        if not (GOLD_PER_TURN_MIN_TURNS <= turns <= GOLD_PER_TURN_MAX_TURNS):
+            return _fail(
+                "invalid_magnitude",
+                f"The term must run between {GOLD_PER_TURN_MIN_TURNS} and "
+                f"{GOLD_PER_TURN_MAX_TURNS} turns, Sire.",
+            )
+        payer, payee = (
+            (court, proposer_leader) if group == "demand"
+            else (proposer_leader, court)
+        )
+        clause = {
+            "type": "gold_per_turn", "from": payer, "to": payee,
+            "amount": int(amount), "turns": int(turns),
+        }
+    elif clause_type in ("vassalage", "subjugation"):
+        evaluator = (
+            evaluate_vassalage_eligibility
+            if clause_type == "vassalage"
+            else evaluate_subjugation_eligibility
+        )
+        eligibility = evaluator(
+            world,
+            war_instance=war_instance,
+            lord_nation=proposer_leader,
+            target_nation=court,
+        )
+        if not eligibility.get("eligible"):
+            return _fail(
+                str(eligibility.get("refusal_code") or "dependency_invalid"),
+                str(eligibility.get("disabled_reason_display") or ""),
+            )
+        clause = {"type": clause_type, "from": court, "to": proposer_leader}
+    elif clause_type == "forced_alliance":
+        clause = {
+            "type": "forced_alliance", "from": court, "to": proposer_leader,
+        }
+        if action_params.get("includes_continental_system"):
+            clause["includes_continental_system"] = True
+    else:  # liberation
+        vassals = getattr(world, "vassals", {}) or {}
+        court_vassals = sorted(
+            str(v) for v, s in vassals.items()
+            if isinstance(s, Mapping)
+            and str(s.get("lord") or s.get("lord_nation") or "") == court
+        )
+        vassal_nation = str(action_params.get("vassal_nation") or "").strip()
+        if not vassal_nation:
+            if not court_vassals:
+                return _fail(
+                    "liberation_target_not_vassal",
+                    f"{court} holds no vassal to free, Sire.",
+                )
+            vassal_nation = court_vassals[0]
+        eligibility = evaluate_liberation_eligibility(
+            world,
+            war_instance=war_instance,
+            vassal_nation=vassal_nation,
+            lord_nation=court,
+            liberator=proposer_leader,
+        )
+        if not eligibility.get("eligible"):
+            return _fail(
+                str(eligibility.get("refusal_code") or "liberation_invalid"),
+                str(eligibility.get("disabled_reason_display") or ""),
+            )
+        clause = {
+            "type": "liberation",
+            "vassal_nation": vassal_nation,
+            "lord_nation": court,
+            "liberator": proposer_leader,
+        }
+
+    # §3.5: hand-authored lines carry provenance — the dial sweep protects
+    # them; per-line Remove is the player's deletion verb.
+    clause["authored_by"] = "player"
+    new_terms = [dict(t) for t in terms] + [clause]
+    arm = "Demanded" if group == "demand" else "Offered"
+    return _restage_settlement_after_redraw(
+        world,
+        dialogue,
+        action=action,
+        new_terms=new_terms,
+        new_covered=covered,
+        message=f"{arm} {_demand_clause_label(clause)}.",
+    )
+
+
+def _handle_settlement_dialogue_action_inner(
     world: Any,
     *,
     action: str,
     dialogue: Mapping[str, Any],
     action_params: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Handle C2 settlement dialogue actions.
+    """Handle C2 settlement dialogue actions (the per-action dispatch arms).
+
+    Callers use the public ``handle_settlement_dialogue_action`` wrapper,
+    which enforces the CH-5 response-shape invariant on every arm's result —
+    arms here may return bare failures and rely on the wrapper to re-attach
+    the mounted dialogue and render ``error_display``.
 
     ``confirm_settlement`` runs the live ratification mutation through
     ``ratify_settlement_confirm``. ``back_out`` / ``revise_terms`` remain
@@ -7802,33 +8522,21 @@ def handle_settlement_dialogue_action(
         "settlement_cover_drop",
         "settlement_focus_court",
     ):
-        result = _handle_settlement_tier2_action(
+        # CH-5: the old per-arm re-show safety net that lived here (re-attach
+        # the mounted dialogue on a bare Tier-2 failure) is subsumed by the
+        # `_enforce_settlement_response_shape` wrapper, which applies it to
+        # EVERY arm — not just these five verbs.
+        return _handle_settlement_tier2_action(
             world, action=action, dialogue=dialogue, action_params=action_params,
         )
-        # Re-show safety net: a Tier-2 affordance hides the popup on click
-        # (proposal_confirm_popup.gd::_on_settlement_tier2_affordance) and
-        # relies on the response carrying `diplomatic_dialogue` to re-mount it
-        # (main.gd::_response_has_proposal_confirm_route). A blocked / no-op
-        # action that returns a bare error therefore ORPHANS the popup — the
-        # player is left with no surface while the settlement_confirm dialogue
-        # stays mounted (so the war detail also greys out "Open Settlement" and
-        # any reopen targets the still-mounted scope). Dropping the last
-        # covered court hit exactly this. Re-attach the unchanged mounted
-        # dialogue so the popup re-mounts on its current state with the
-        # humanized reason intact. Player-editor only (a non-player caller has
-        # no popup to strand).
-        if (
-            isinstance(result, Mapping)
-            and not result.get("success")
-            and not result.get("diplomatic_dialogue")
-            and isinstance(dialogue, Mapping)
-            and dialogue
-            and str(dialogue.get("caller_kind") or "") == SETTLEMENT_EDITOR_CALLER_KIND
-        ):
-            result = dict(result)
-            result["diplomatic_dialogue"] = dict(dialogue)
-            result.setdefault("awaiting_diplomatic_response", True)
-        return result
+    if action in SETTLEMENT_DEMAND_VERB_ACTION_IDS:
+        # GT-Slice-1 (§7 wiring point 1): the guided demand-mutation verbs
+        # join the dispatch INSIDE the CH-5 wrapper — their failure contract
+        # (re-attached dialogue + error_display, never neither) is enforced
+        # by `_enforce_settlement_response_shape`, not a per-arm net.
+        return _handle_settlement_demand_action(
+            world, action=action, dialogue=dialogue, action_params=action_params,
+        )
     if action == "suspend_settlement_editor":
         # SC-5R-2 follow-up: the client-side settlement editor's Back Out
         # closes the staged settlement_confirm hard-stop so ordinary
@@ -8744,6 +9452,72 @@ def handle_settlement_dialogue_action(
     if action == "confirm_settlement":
         return ratify_settlement_confirm(world, dialogue)
     return {"success": False, "error": "unknown_settlement_action", "mutated": False}
+
+
+def _enforce_settlement_response_shape(
+    result: Any,
+    dialogue: Mapping[str, Any],
+) -> Any:
+    """CH-5 (pre-flight audit §9) — the ONE structural invariant for every
+    settlement dialogue arm: a failed/blocked action returns a re-attached
+    ``diplomatic_dialogue`` AND a rendered ``error_display`` — never neither.
+
+    Every settlement defect class found at the Gate-4 pre-flight (the
+    drop-stranding orphan, D2's "Response processed", D3's silent dials, and
+    D7's latent replacement-stage orphan) was this invariant violated at a
+    different arm. Enforcing it once at the dispatch boundary replaces the
+    retired per-arm Tier-2 re-attach net and covers every arm — including
+    the replacement-stage preset family (`re_author_with_concessions` /
+    `author_*` / `apply_*_replacement` / `keep_current_settlement_draft`)
+    that the old net never reached, and every future arm by construction.
+
+    - Failure + no ``diplomatic_dialogue`` while a PLAYER-editor dialogue is
+      mounted → re-attach the unchanged mounted dialogue (the failure left it
+      mounted; the popup re-mounts on its current state). A non-player caller
+      has no popup to strand (Slice-G boundary), so it is not re-attached.
+    - Failure + no ``error_display`` → synthesize one from the ``error`` code
+      via the settlement display map (humanized fallback for unknown codes),
+      so a failure is never silent.
+    - Successes — including dialogue-closing ones (back out, suspend,
+      ratify) — pass through untouched.
+    """
+    if not isinstance(result, Mapping):
+        return result
+    if result.get("success"):
+        return result
+    shaped = dict(result)
+    if (
+        not shaped.get("diplomatic_dialogue")
+        and isinstance(dialogue, Mapping)
+        and dialogue
+        and str(dialogue.get("caller_kind") or "") == SETTLEMENT_EDITOR_CALLER_KIND
+    ):
+        shaped["diplomatic_dialogue"] = dict(dialogue)
+        shaped.setdefault("awaiting_diplomatic_response", True)
+    if not shaped.get("error_display"):
+        shaped["error_display"] = _error_display(str(shaped.get("error") or ""))
+    return shaped
+
+
+def handle_settlement_dialogue_action(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Public settlement dialogue dispatch — the per-action arms live in
+    ``_handle_settlement_dialogue_action_inner``.
+
+    CH-5: every result passes through ``_enforce_settlement_response_shape``,
+    so a failed arm always re-attaches the mounted player dialogue and always
+    renders an ``error_display`` — one wrapper instead of accreting per-arm
+    safety nets (the structural cure for the D2/D3/D7 orphan class).
+    """
+    result = _handle_settlement_dialogue_action_inner(
+        world, action=action, dialogue=dialogue, action_params=action_params,
+    )
+    return _enforce_settlement_response_shape(result, dialogue)
 
 
 def _handle_pair_peace_substitute_action(

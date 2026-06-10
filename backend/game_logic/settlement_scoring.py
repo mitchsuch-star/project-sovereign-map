@@ -90,15 +90,21 @@ SETTLEMENT_HARD_STOP_CODES = frozenset({
 })
 
 # SC-1: canonical clause types and required keys per spec table.
+# GT-Slice-1 (Guided Terms §3.5): every clause type optionally carries
+# `authored_by` — clause provenance for the dial composition rule
+# ("player" = hand-authored via the guided demand verbs; absent =
+# Talleyrand-suggested baseline/seed). Clauses are plain dicts in the
+# staged dialogue and the scoped draft store, so the tag serializes with
+# them; the validator admits it here, the dial sweep reads it.
 CANONICAL_CLAUSE_TYPES = {
-    "peace": {"required": {"type"}, "optional": set()},
-    "territory_cede": {"required": {"type", "from", "to", "region"}, "optional": set()},
-    "gold_indemnity": {"required": {"type", "from", "to", "amount"}, "optional": set()},
-    "gold_per_turn": {"required": {"type", "from", "to", "amount", "turns"}, "optional": set()},
-    "forced_alliance": {"required": {"type", "from", "to"}, "optional": {"includes_continental_system"}},
-    "vassalage": {"required": {"type", "from", "to"}, "optional": set()},
-    "subjugation": {"required": {"type", "from", "to"}, "optional": set()},
-    "liberation": {"required": {"type", "vassal_nation", "lord_nation", "liberator"}, "optional": set()},
+    "peace": {"required": {"type"}, "optional": {"authored_by"}},
+    "territory_cede": {"required": {"type", "from", "to", "region"}, "optional": {"authored_by"}},
+    "gold_indemnity": {"required": {"type", "from", "to", "amount"}, "optional": {"authored_by"}},
+    "gold_per_turn": {"required": {"type", "from", "to", "amount", "turns"}, "optional": {"authored_by"}},
+    "forced_alliance": {"required": {"type", "from", "to"}, "optional": {"includes_continental_system", "authored_by"}},
+    "vassalage": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
+    "subjugation": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
+    "liberation": {"required": {"type", "vassal_nation", "lord_nation", "liberator"}, "optional": {"authored_by"}},
 }
 
 # G2-Slice-1 live MVP clause types.

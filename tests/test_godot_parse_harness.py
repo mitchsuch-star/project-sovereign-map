@@ -399,6 +399,12 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "settlement_cover_add",
     "settlement_cover_drop",
     "settlement_focus_court",
+    # GT-Slice-1 guided demand-mutation verbs (Guided Terms §7): per-court
+    # add / remove / set-magnitude with structured `nation` / `group` /
+    # `clause_type` / `clause_index` params — same transport as the dials.
+    "settlement_demand_add",
+    "settlement_demand_remove",
+    "settlement_demand_set_magnitude",
     "open_war_detail",
     "re_author_with_concessions",
     "apply_concession_baseline_replacement",

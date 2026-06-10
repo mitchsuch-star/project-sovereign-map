@@ -233,3 +233,84 @@ def test_every_tier2_verb_succeeds_or_renders_its_failure(
         assert world.dialogue_manager.peek() is not None, (
             f"{verb} left no mounted settlement dialogue"
         )
+
+
+@pytest.mark.parametrize("direction,court_count,treasury_name", MATRIX_CELLS)
+def test_settlement_matrix_demand_verbs_succeed_or_reattach_with_error_display(
+    direction, court_count, treasury_name,
+):
+    """GT-Slice-1 (Guided Terms §9 / audit GT-R1-9): the three demand-mutation
+    verbs driven across every direction × coverage × treasury cell with the
+    REAL generator / validator / scorer. Same invariant as the Tier-2 sweep —
+    each call either succeeds (new dialogue attached) or fails with a
+    re-attached dialogue AND a rendered error_display (the CH-5 contract);
+    the mounted PROPOSE surface is never lost. Includes deliberate
+    cell-dependent failures (offer defaults on a poor treasury, demands on
+    concede courts' holdings, an uncovered court) so the failure path is
+    exercised in every cell, not just the happy path."""
+    world, war, covered = _build_matrix_world(
+        direction, court_count, TREASURIES[treasury_name],
+    )
+    staged = stage_settlement_confirm(
+        world,
+        war_id="war_1",
+        actor_nation="France",
+        selected_target_nation=covered[0],
+        covered_enemy_participants=covered,
+        caller_kind="player_editor",
+        dialogue_mode="PROPOSE",
+    )
+    assert staged.get("success"), staged
+
+    verb_calls = [
+        # Explicit demand-arm gold on the lead court (succeeds unless the
+        # cell's court cannot pay — then it must render the rejection).
+        ("settlement_demand_add", {
+            "nation": covered[0], "group": "demand",
+            "clause_type": "gold_indemnity", "amount": 150,
+        }),
+        # Offer-arm gold with the §3.4 table-scoped DEFAULT magnitude —
+        # poor-treasury cells reject cleanly ("nothing left to offer").
+        ("settlement_demand_add", {
+            "nation": covered[0], "group": "offer",
+            "clause_type": "gold_indemnity",
+        }),
+        # Direction-led default group + default region selection.
+        ("settlement_demand_add", {
+            "nation": covered[-1], "clause_type": "territory_cede",
+        }),
+        # Magnitude adjust on whatever sits at index 1 (succeeds on a gold
+        # line, renders a stale/identity rejection otherwise).
+        ("settlement_demand_set_magnitude", {"clause_index": 1, "amount": 200}),
+        # Strike the same line (peace-clause and bounds rejections render).
+        ("settlement_demand_remove", {"clause_index": 1}),
+        # A court not at the table must always render its refusal.
+        ("settlement_demand_add", {
+            "nation": "Denmark-Norway", "group": "demand",
+            "clause_type": "gold_indemnity", "amount": 100,
+        }),
+    ]
+    for verb, params in verb_calls:
+        mounted = world.dialogue_manager.peek()
+        assert mounted is not None, f"dialogue lost before {verb} {params}"
+        result = handle_settlement_dialogue_action(
+            world,
+            action=verb,
+            dialogue=mounted,
+            action_params={"action": verb, **params},
+        )
+        if result.get("success"):
+            assert result.get("diplomatic_dialogue"), (
+                f"{verb} succeeded without re-attaching a dialogue"
+            )
+        else:
+            assert result.get("diplomatic_dialogue"), (
+                f"{verb} failed without re-attaching the dialogue "
+                f"(orphaned popup): {result}"
+            )
+            assert result.get("error_display"), (
+                f"{verb} failed silently (no error_display): {result}"
+            )
+        assert world.dialogue_manager.peek() is not None, (
+            f"{verb} left no mounted settlement dialogue"
+        )
