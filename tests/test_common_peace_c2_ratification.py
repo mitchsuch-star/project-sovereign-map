@@ -46,9 +46,18 @@ from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
 
 
+# CH-1 stable-seam note: the scorer is patched at
+# backend.game_logic.settlement_scoring.calculate_common_peace_acceptance,
+# so wrap-the-real side effects must capture the real function at import
+# time (a lazy import inside the side effect would fetch the mock).
+from backend.game_logic.settlement_scoring import (
+    calculate_common_peace_acceptance as _REAL_COMMON_PEACE_ACCEPTANCE,
+)
+
+
 def _acceptance_always_passes(*args, **kwargs):
     """Monkeypatch helper: acceptance always passes for mutation tests."""
-    from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance as real
+    real = _REAL_COMMON_PEACE_ACCEPTANCE
     result = real(*args, **kwargs)
     result["score"] = 100
     result["verdict"] = "accept"
@@ -244,7 +253,7 @@ def test_confirm_territory_cession_transfers_regions_and_invalidates_cache():
     ]
 
 
-@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
+@patch("backend.game_logic.settlement_scoring.calculate_common_peace_acceptance", _acceptance_always_passes)
 def test_confirm_canonical_territory_cede_region_transfers_region():
     """The canonical SC-1 schema uses singular `region`; it must not
     validate/stage and then become a ratification no-op."""
@@ -302,7 +311,7 @@ def test_confirm_gold_lump_transfers_gold_clamped_to_payer_balance():
     assert gold_clauses[0]["amount"] == 80
 
 
-@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
+@patch("backend.game_logic.settlement_scoring.calculate_common_peace_acceptance", _acceptance_always_passes)
 def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
     world = WorldState()
     _install_two_v_two_war(world)
@@ -348,7 +357,7 @@ def test_confirm_forced_alliance_pair_ends_in_alliance_with_origin_and_threat():
     assert fa_event["forced_nation"] == "Austria"
 
 
-@patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
+@patch("backend.game_logic.settlement_scoring.calculate_common_peace_acceptance", _acceptance_always_passes)
 def test_confirm_forced_alliance_with_territory_keeps_final_alliance_and_records_treaty():
     world = WorldState()
     _install_two_v_two_war(world)

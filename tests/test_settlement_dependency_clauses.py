@@ -522,7 +522,7 @@ class TestSurrenderPresetAlgorithm:
 
         with patch.object(
             __import__(
-                "backend.game_logic.settlement_preview",
+                "backend.game_logic.settlement_baseline",
                 fromlist=["evaluate_subjugation_eligibility"],
             ),
             "evaluate_subjugation_eligibility",
@@ -534,7 +534,7 @@ class TestSurrenderPresetAlgorithm:
             # helper to a hardcoded eligible payload so the test pins the
             # fallback path explicitly.
             with patch(
-                "backend.game_logic.settlement_preview."
+                "backend.game_logic.settlement_baseline."
                 "evaluate_vassalage_eligibility",
                 return_value={
                     "eligible": True,
@@ -672,7 +672,7 @@ class TestBlockedPopupAuthorSurrenderOption:
         # acceptance scorer to return a rejecting verdict; the surrender
         # preset payload must still appear because the predicate fires.
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -729,7 +729,7 @@ class TestBlockedPopupAuthorSurrenderOption:
         world.invalidate_active_nations_cache()
         world.invalidate_war_instance_indexes()
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -769,7 +769,7 @@ def _stage_blocked_surrender_dialogue(world: WorldState, *, with_draft=None):
     preset visible, optionally carrying a non-empty draft."""
     terms = with_draft or [{"type": "peace"}]
     with patch(
-        "backend.game_logic.settlement_preview."
+        "backend.game_logic.settlement_scoring."
         "calculate_common_peace_acceptance"
     ) as mock_accept:
         mock_accept.return_value = {
@@ -803,7 +803,7 @@ class TestAuthorSurrenderTermsHandler:
         _install_power_legal_surrender_war(world)
         dialogue = _stage_blocked_surrender_dialogue(world)
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -849,7 +849,7 @@ class TestAuthorSurrenderTermsHandler:
             }],
         )
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -894,7 +894,7 @@ class TestAuthorSurrenderTermsHandler:
             }],
         )
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -970,7 +970,7 @@ class TestAuthorSurrenderTermsHandler:
         )
 
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance"
         ) as mock_accept:
             mock_accept.return_value = {
@@ -1028,7 +1028,7 @@ class TestSettlementSummarySurrenderPresetFlag:
         world = WorldState()
         _install_power_legal_surrender_war(world)
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance",
             return_value=_force_acceptance(),
         ):
@@ -1065,7 +1065,7 @@ class TestSettlementSummarySurrenderPresetFlag:
         world = WorldState()
         _install_power_legal_surrender_war(world)
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance",
             return_value=_force_acceptance(),
         ):
@@ -1098,7 +1098,7 @@ class TestSettlementSummarySurrenderPresetFlag:
         world = WorldState()
         _install_power_legal_surrender_war(world)
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance",
             return_value=_force_acceptance(),
         ):
@@ -1140,7 +1140,7 @@ class TestAppliedClausesPreviewFields:
         world = WorldState()
         _install_power_legal_surrender_war(world)
         with patch(
-            "backend.game_logic.settlement_preview."
+            "backend.game_logic.settlement_scoring."
             "calculate_common_peace_acceptance",
             return_value=_force_acceptance(),
         ):

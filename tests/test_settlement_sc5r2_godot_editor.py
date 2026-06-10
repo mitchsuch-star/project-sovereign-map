@@ -41,6 +41,15 @@ GODOT_ROOT = Path(__file__).resolve().parent.parent / "godot-client" / "project-
 MAIN_SCRIPT = GODOT_ROOT / "scripts" / "main.gd"
 
 
+# CH-1 stable-seam note: the scorer is patched at
+# backend.game_logic.settlement_scoring.calculate_common_peace_acceptance,
+# so wrap-the-real side effects must capture the real function at import
+# time (a lazy import inside the side effect would fetch the mock).
+from backend.game_logic.settlement_scoring import (
+    calculate_common_peace_acceptance as _REAL_COMMON_PEACE_ACCEPTANCE,
+)
+
+
 def _read_source(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -85,9 +94,7 @@ def _install_common_peace_war(world: WorldState, *, war_score: int = 70) -> dict
 
 
 def _acceptance_accepts(*args, **kwargs):
-    from backend.game_logic.settlement_scoring import (
-        calculate_common_peace_acceptance as real,
-    )
+    real = _REAL_COMMON_PEACE_ACCEPTANCE
     result = real(*args, **kwargs)
     result["score"] = 100
     result["verdict"] = "accept"
@@ -129,7 +136,7 @@ class TestBackendDraftRoundTrip:
         )
         executor = DiplomaticExecutor(None)
         with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
             result = executor._execute_propose_common_peace(
@@ -159,7 +166,7 @@ class TestBackendDraftRoundTrip:
         _install_common_peace_war(world)
         executor = DiplomaticExecutor(None)
         with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
             result = executor._execute_propose_common_peace(
@@ -193,7 +200,7 @@ class TestBackendDraftRoundTrip:
         world = WorldState()
         _install_common_peace_war(world)
         with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
             staged = stage_settlement_confirm(
@@ -286,7 +293,7 @@ class TestBackendDraftRoundTrip:
         _install_common_peace_war(world)
         terms = [{"type": "peace"}, _gold_indemnity_clause(150)]
         with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
             stage_settlement_confirm(
@@ -462,7 +469,7 @@ class TestIncomingOfferLabelsMatchBehavior:
         _install_common_peace_war(world)
         offer = self._make_offer(world)
         with patch(
-            "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+            "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=_acceptance_accepts,
         ):
             result = handle_incoming_settlement_offer_action(

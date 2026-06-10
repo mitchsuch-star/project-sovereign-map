@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 from backend.game_logic import settlement_preview as sp
 from backend.game_logic import settlement_scoring as ss
+from backend.game_logic import settlement_baseline as sb
 from backend.game_logic.settlement_preview import (
     SETTLEMENT_DIAL_GOLD_STEP,
     _redial_settlement_terms,
@@ -38,7 +39,7 @@ from tests.helpers.full_europe_settlement_fixtures import (
     make_synthetic_war_instance,
 )
 
-_SCORER_PATH = "backend.game_logic.settlement_preview.calculate_common_peace_acceptance"
+_SCORER_PATH = "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance"
 
 
 # ===========================================================================
@@ -506,14 +507,14 @@ def test_cover_drop_last_court_blocked_by_coverage_floor():
 def test_per_court_scoring_shares_one_direct_score_side_pressure_harshness_and_balance_projection_pass():
     world, inst = _three_court_world()
     with patch.object(
-        sp, "project_balance_after_settlement",
-        wraps=sp.project_balance_after_settlement,
+        sb, "project_balance_after_settlement",
+        wraps=ss.project_balance_after_settlement,
     ) as proj, patch.object(
-        sp, "compute_direct_scores_by_enemy",
-        wraps=sp.compute_direct_scores_by_enemy,
+        sb, "compute_direct_scores_by_enemy",
+        wraps=ss.compute_direct_scores_by_enemy,
     ) as ds, patch.object(
-        sp, "compute_side_pressure_score",
-        wraps=sp.compute_side_pressure_score,
+        sb, "compute_side_pressure_score",
+        wraps=ss.compute_side_pressure_score,
     ) as sps:
         block = compute_per_court_acceptance(
             world, war_id="war_rf", war_instance=inst,

@@ -29,6 +29,15 @@ from tests.helpers.full_europe_settlement_fixtures import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+# CH-1 stable-seam note: the scorer is patched at
+# backend.game_logic.settlement_scoring.calculate_common_peace_acceptance,
+# so wrap-the-real side effects must capture the real function at import
+# time (a lazy import inside the side effect would fetch the mock).
+from backend.game_logic.settlement_scoring import (
+    calculate_common_peace_acceptance as _REAL_COMMON_PEACE_ACCEPTANCE,
+)
+
+
 def _install_war(
     world: WorldState,
     war_id: str,
@@ -131,10 +140,7 @@ def _ally_petitions(world: WorldState) -> list[Mapping[str, object]]:
 
 
 def _acceptance_accepts(*args, **kwargs):
-    from backend.game_logic.settlement_scoring import (
-        calculate_common_peace_acceptance as real,
-    )
-
+    real = _REAL_COMMON_PEACE_ACCEPTANCE
     result = real(*args, **kwargs)
     result["score"] = 100
     result["verdict"] = "accept"
@@ -253,7 +259,7 @@ def test_ally_petition_warn_against_sellout_fires_on_settlement_excluding_ally()
     world = _seed_warn_sellout_world()
 
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_acceptance_accepts,
     ):
         result = stage_settlement_confirm(
@@ -276,7 +282,7 @@ def test_ally_petition_warn_against_sellout_does_not_block_ratification():
     world = _seed_warn_sellout_world()
 
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_acceptance_accepts,
     ):
         result = stage_settlement_confirm(
@@ -298,7 +304,7 @@ def test_ally_petition_warn_against_sellout_renders_named_ally_voice_not_generic
     world = _seed_warn_sellout_world()
 
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_acceptance_accepts,
     ):
         result = stage_settlement_confirm(

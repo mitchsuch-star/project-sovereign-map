@@ -269,7 +269,7 @@ def test_per_court_call_varies_leader_and_holdings_holds_covered_set():
         return _make_scorer({})(world, accepting_leader=accepting_leader, **kw)
 
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_spy,
     ):
         compute_per_court_acceptance(
@@ -294,7 +294,7 @@ def _stage_review(world, terms, *, scorer=None):
     if scorer is None:
         scorer = _make_scorer({})
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=scorer,
     ):
         return stage_settlement_confirm(
@@ -322,7 +322,7 @@ def test_ratify_requires_all_covered_courts_at_or_above_threshold_not_just_leade
     assert dialogue["overall_acceptance"]["carries"] is False
     assert "confirm_settlement" not in dialogue["available_action_ids"]
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=scorer,
     ):
         result = ratify_settlement_confirm(world, dialogue)
@@ -365,7 +365,7 @@ def test_holdout_court_offers_ease_or_drop_not_dead_end():
     # The one-click Ease/Drop ride the PROPOSE rows (the authoring surface).
     world.dialogue_manager.pop()  # close the REVIEW staging first
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=scorer,
     ):
         proposed = stage_settlement_confirm(
@@ -400,7 +400,7 @@ def test_baseline_concede_court_at_near_acceptable_is_flagged_holdout_not_auto_c
     # holdout under the >=50 carry gate, NOT auto-carry.
     scorer = _make_scorer({"Prussia": 80, "Austria": 60, "Britain": 40})
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=scorer,
     ):
         block = compute_per_court_acceptance(
@@ -422,7 +422,7 @@ def test_overall_carries_false_when_any_covered_court_hard_stopped_total_null():
     # Russia covered but never WAR-stamped -> no direct score -> hard stop.
     scorer = _make_scorer({"Austria": 80, "Britain": 80, "Prussia": 80})
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=scorer,
     ):
         block = compute_per_court_acceptance(
@@ -448,7 +448,7 @@ def test_propose_does_not_block_end_turn_and_back_out_preserves_scoped_draft():
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     # PROPOSE landing.
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_make_scorer({}),
     ):
         propose = stage_settlement_confirm(
@@ -495,7 +495,7 @@ def test_propose_landing_replaces_blank_edit_as_default():
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     executor = DiplomaticExecutor(None)
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_make_scorer({}),
     ):
         result = executor._execute_propose_common_peace(
@@ -524,7 +524,7 @@ def test_propose_and_dial_routes_reject_non_player_caller_kind():
     # the dial/coverage-affordance absence assertion is non-vacuous.
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_make_scorer({"Prussia": 20}),
     ):
         staged = stage_settlement_confirm(
@@ -802,7 +802,7 @@ def test_propose_dialogue_per_court_rows_carry_named_voice():
     # Integration: the staged PROPOSE surface carries named per-court voice.
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_make_scorer({}),
     ):
         staged = stage_settlement_confirm(

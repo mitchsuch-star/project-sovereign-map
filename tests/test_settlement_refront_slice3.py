@@ -31,7 +31,7 @@ from tests.helpers.full_europe_settlement_fixtures import (
     make_synthetic_war_instance,
 )
 
-_SCORER_PATH = "backend.game_logic.settlement_preview.calculate_common_peace_acceptance"
+_SCORER_PATH = "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance"
 
 
 # ===========================================================================

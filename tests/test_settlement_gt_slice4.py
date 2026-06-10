@@ -148,7 +148,7 @@ def test_staged_dialogue_never_carries_editor_contract_keys():
     world = WorldState()
     _install_common_peace_war(world)
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_acceptance_accepts,
     ):
         for mode in ("PROPOSE", "REVIEW"):
@@ -257,7 +257,7 @@ def test_old_editor_submit_body_is_stripped_and_lands_guided_propose(
         "caller_kind": "player_editor",
     }
     with patch(
-        "backend.game_logic.settlement_preview.calculate_common_peace_acceptance",
+        "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
         side_effect=_acceptance_accepts,
     ):
         response = client.post("/command", json=body)

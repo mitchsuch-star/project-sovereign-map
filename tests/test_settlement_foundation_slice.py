@@ -28,10 +28,18 @@ from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
 
 
+# CH-1 stable-seam note: the scorer is patched at
+# backend.game_logic.settlement_scoring.calculate_common_peace_acceptance,
+# so wrap-the-real side effects must capture the real function at import
+# time (a lazy import inside the side effect would fetch the mock).
+from backend.game_logic.settlement_scoring import (
+    calculate_common_peace_acceptance as _REAL_COMMON_PEACE_ACCEPTANCE,
+)
+
+
 def _acceptance_always_passes(*args, **kwargs):
     """Patch helper for tests that isolate post-acceptance mutation."""
-    from backend.game_logic.settlement_scoring import calculate_common_peace_acceptance as real
-
+    real = _REAL_COMMON_PEACE_ACCEPTANCE
     result = real(*args, **kwargs)
     result["score"] = 100
     result["verdict"] = "accept"
@@ -279,7 +287,7 @@ class TestRatificationAcceptanceGate:
         assert result["mutated"] is False
         assert dict(world.diplomatic_states) == before_states
 
-    @patch("backend.game_logic.settlement_preview.calculate_common_peace_acceptance", _acceptance_always_passes)
+    @patch("backend.game_logic.settlement_scoring.calculate_common_peace_acceptance", _acceptance_always_passes)
     def test_accepted_settlement_ratifies(self):
         world = WorldState()
         war = make_synthetic_war_instance(

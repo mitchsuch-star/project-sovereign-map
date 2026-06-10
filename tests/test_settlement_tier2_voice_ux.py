@@ -177,7 +177,7 @@ class TestTier2PresetReasoningRoutesThroughResolver:
         war = _install_basic_war(world)
 
         with patch(
-            "backend.game_logic.settlement_preview.evaluate_subjugation_eligibility",
+            "backend.game_logic.settlement_baseline.evaluate_subjugation_eligibility",
             _stub_eligible,
         ):
             result = _compute_surrender_preset(
