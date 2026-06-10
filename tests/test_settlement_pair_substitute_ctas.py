@@ -12,13 +12,15 @@ G2-Slice-7 required-tests list at the bottom of the slice budget table.
 from __future__ import annotations
 
 from backend.game_logic.settlement_preview import (
-    PAIR_SUBSTITUTE_REFUSAL_CODES,
-    PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     evaluate_pair_peace_substitute_eligibility,
     get_reopen_attempts,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
+    PAIR_SUBSTITUTE_REFUSAL_CODES,
+    PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES,
+    save_scoped_settlement_draft,
     stage_settlement_confirm,
 )
 from backend.models.world_state import WorldState
@@ -413,13 +415,24 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
     # Draft covering Austria — pair substitute on Austria invalidates it.
     terms = [{"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50}]
     dialogue = _stage_rejected_dialogue(world, selected_target="Austria")
-    world.pending_settlement_drafts["war_1"] = list(terms)
+    save_scoped_settlement_draft(
+        world,
+        war_id="war_1",
+        selected_target_nation=dialogue.get("selected_target_nation"),
+        covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+        settlement_terms=list(terms),
+    )
     result = handle_settlement_dialogue_action(
         world, action="seek_bilateral_peace", dialogue=dialogue,
     )
     assert result["success"] is True
     assert result["draft_invalidated"] is True
-    assert "war_1" not in world.pending_settlement_drafts
+    assert load_scoped_settlement_draft(
+        world,
+        war_id="war_1",
+        selected_target_nation=dialogue.get("selected_target_nation"),
+        covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+    ) is None
 
     # Preservation branch: dialogue's covered scope does NOT include the
     # substitute target. Per spec line 1164, draft invalidation is
@@ -427,7 +440,13 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
     # scope, the saved draft remains valid for the OTHER pairs.
     world2 = WorldState()
     _install_rejected_war(world2)
-    world2.pending_settlement_drafts["war_1"] = list(terms)
+    save_scoped_settlement_draft(
+        world2,
+        war_id="war_1",
+        selected_target_nation="Prussia",
+        covered_enemy_participants=["Austria"],
+        settlement_terms=list(terms),
+    )
     dialogue_off_scope = {
         "type": "settlement_confirm",
         "war_id": "war_1",
@@ -445,7 +464,12 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
     # draft (scoped to this dialogue's Austria coverage) is preserved.
     assert result_off_scope["success"] is True
     assert result_off_scope["draft_invalidated"] is False
-    assert world2.pending_settlement_drafts.get("war_1") == terms
+    assert load_scoped_settlement_draft(
+        world2,
+        war_id="war_1",
+        selected_target_nation="Prussia",
+        covered_enemy_participants=["Austria"],
+    ) == terms
 
 
 def test_pair_substitute_cross_war_collision_uses_closed_refusal_code():

@@ -1,10 +1,12 @@
 """Settlement baseline generation and acceptance computation (CH-1 split, layer 2).
 
-Concession/demand baseline generation (compute_settlement_baseline and the
-legacy _compute_concession_baseline pending CH-4), surrender/recurring-gold
-presets, treasury line, guided candidate prefills, per-court direction, and
-compute_per_court_acceptance. Split from settlement_preview.py (CH-1); may
-import settlement_routes / settlement_validation.
+Concession/demand baseline generation (compute_settlement_baseline — the ONE
+baseline generator since CH-4 deleted the legacy single-court author; the
+losing-side payload adapter is compute_concession_baseline_payload),
+surrender/recurring-gold presets, treasury line, guided candidate prefills,
+per-court direction, and compute_per_court_acceptance. Split from
+settlement_preview.py (CH-1); may import settlement_routes /
+settlement_validation.
 """
 
 from __future__ import annotations
@@ -530,39 +532,85 @@ def _concession_baseline_select_transferable_region(
     return candidates[0] if candidates else None
 
 
+def _join_reasoning_phrases(phrases: List[str]) -> str:
+    if len(phrases) <= 1:
+        return phrases[0] if phrases else ""
+    if len(phrases) == 2:
+        return " and ".join(phrases)
+    return ", ".join(phrases[:-1]) + ", and " + phrases[-1]
+
+
 def _format_concession_reasoning(
     *,
     proposer_leader: str,
-    accepting_leader: str,
-    gold_amount: Optional[int],
-    region: Optional[str],
+    terms: Iterable[Mapping[str, Any]],
 ) -> str:
     """Humanized one-line rationale for the baseline draft.
 
-    May 24, 2026 audit punch list Tier 2: the final reasoning string now
+    May 24, 2026 audit punch list Tier 2: the final reasoning string
     routes through `settlement_concession_authored_talleyrand` (Voice
-    Bible §16.1) instead of returning a hard-coded f-string. The parts
-    construction logic above remains unchanged so the popup keeps
-    rendering "pay X gold and cede Y" baseline summaries; only the
-    surrounding Talleyrand frame moves into the template registry.
+    Bible §16.1) instead of returning a hard-coded f-string. CH-4: the
+    summary is built from the authored material clauses themselves (the
+    per-court ``compute_settlement_baseline`` output), so one formatter
+    covers the single-court degenerate case ("France would pay Britain
+    500 gold") and the multi-court split, including demand-direction
+    slices on courts France leads.
     """
-    parts: List[str] = []
-    if gold_amount is not None and gold_amount > 0:
-        parts.append(
-            f"{proposer_leader} would pay {accepting_leader} {gold_amount} gold"
-        )
-    if region:
-        if parts:
-            parts.append(f"and cede {region}")
+    phrases: List[str] = []
+    counterparts: List[str] = []
+
+    def _note_counterpart(nation: Any) -> None:
+        name = str(nation or "")
+        if name and name != proposer_leader and name not in counterparts:
+            counterparts.append(name)
+
+    for term in terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        if ttype == "peace":
+            continue
+        payer = str(term.get("from") or "")
+        payee = str(term.get("to") or "")
+        if ttype == "gold_indemnity":
+            amount = int(term.get("amount", 0) or 0)
+            if payer == proposer_leader:
+                phrases.append(f"pay {payee} {amount} gold")
+                _note_counterpart(payee)
+            else:
+                phrases.append(f"take {amount} gold of {payer}")
+                _note_counterpart(payer)
+        elif ttype == "gold_per_turn":
+            amount = int(term.get("amount", 0) or 0)
+            turns = int(term.get("turns", 0) or 0)
+            if payer == proposer_leader:
+                phrases.append(f"pay {payee} {amount} gold a turn for {turns} turns")
+                _note_counterpart(payee)
+            else:
+                phrases.append(
+                    f"take {amount} gold a turn for {turns} turns of {payer}"
+                )
+                _note_counterpart(payer)
+        elif ttype == "territory_cede":
+            region = str(term.get("region") or "")
+            if payer == proposer_leader:
+                phrases.append(f"cede {region} to {payee}")
+                _note_counterpart(payee)
+            else:
+                phrases.append(f"take {region} from {payer}")
+                _note_counterpart(payer)
         else:
-            parts.append(f"{proposer_leader} would cede {region} to {accepting_leader}")
-    if not parts:
+            label = ttype.replace("_", " ")
+            phrases.append(f"settle {label} with {payer or payee}")
+            _note_counterpart(payer or payee)
+    if not phrases:
         return ""
-    summary = " ".join(parts)
+    summary = f"{proposer_leader} would " + _join_reasoning_phrases(phrases)
+    accepting_label = _join_reasoning_phrases(counterparts) or "the covered courts"
     return resolve_settlement_voice_line(
         "settlement_concession_authored_talleyrand",
         summary=summary,
-        accepting_leader=accepting_leader,
+        accepting_leader=accepting_label,
     ) or ("Talleyrand's draft: " + summary + " to improve acceptance.")
 
 
@@ -840,35 +888,38 @@ def _compute_recurring_gold_preset(
     }
 
 
-def _compute_concession_baseline(
+def compute_concession_baseline_payload(
     world: Any,
     *,
     war_id: str,
     war_instance: Mapping[str, Any],
     proposer_side: str,
     accepting_side: str,
-    accepting_leader: str,
     proposer_side_leader: Optional[str],
     covered_enemy_participants: Iterable[str],
     side_pressure_score: Optional[int],
-    accept_threshold: int = 50,
-    near_acceptance_floor: int = 35,
+    near_acceptance_floor: int = NEAR_ACCEPTANCE_FLOOR,
 ) -> Dict[str, Any]:
     """Return the deterministic losing-side concession baseline payload.
 
-    Result shape:
+    Result shape (the G2-Slice-W1 presentation contract, unchanged):
 
     - ``{"losing_for_concession_baseline": bool, "concession_baseline_visible":
       bool, "concession_baseline": {"terms": List[Clause], "reasoning": str} |
       None, "concession_baseline_reason": str}``
 
-    Visibility is the conjunction of the side-pressure predicate
-    (``side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD``) and the
-    algorithm's ability to author at least one material concession (gold,
-    territory, or both). When the predicate passes but no material concession
-    is possible, ``concession_baseline_visible`` is False and
-    ``concession_baseline`` is None per spec §"Concession And Treaty
-    Conversation Contract".
+    CH-4 (Gate-4 pre-flight audit §9): the legacy single-court authoring
+    path is deleted — the terms come from ``compute_settlement_baseline``,
+    the SAME per-court generator the PROPOSE front door mounts, so the
+    "Re-author with concessions" rail seeds exactly the baseline the front
+    door would author (n=1 is the degenerate case the re-front spec
+    promises; the cross-court treasury split and promised-region threading
+    are PF-1's, for free). Visibility keeps the package-level losing gate
+    (``side_pressure_score <= LOSING_SIDE_PRESSURE_THRESHOLD``) in
+    conjunction with the generator authoring at least one material clause.
+    When the predicate passes but no material concession is possible,
+    ``concession_baseline_visible`` is False and ``concession_baseline``
+    is None per spec §"Concession And Treaty Conversation Contract".
     """
     if side_pressure_score is None:
         return {
@@ -885,99 +936,24 @@ def _compute_concession_baseline(
             "concession_baseline": None,
             "concession_baseline_reason": "not_losing_side",
         }
-    if not proposer_side_leader or not accepting_leader:
+    if not proposer_side_leader:
         return {
             "losing_for_concession_baseline": True,
             "concession_baseline_visible": False,
             "concession_baseline": None,
             "concession_baseline_reason": "missing_leaders",
         }
-    covered = [str(n) for n in (covered_enemy_participants or []) if n]
-    proposer_participants = list(war_instance.get(proposer_side) or [])
-    peace_floor_result = settlement_scoring.calculate_common_peace_acceptance(
+    baseline = compute_settlement_baseline(
         world,
         war_id=war_id,
         war_instance=war_instance,
         proposer_side=proposer_side,
         accepting_side=accepting_side,
-        accepting_leader=accepting_leader,
         proposer_side_leader=proposer_side_leader,
-        covered_enemy_participants=covered,
-        settlement_terms=[{"type": "peace"}],
+        covered_enemy_participants=covered_enemy_participants,
+        near_acceptance_floor=near_acceptance_floor,
     )
-    peace_only_score = peace_floor_result.get("score")
-    if peace_only_score is None:
-        return {
-            "losing_for_concession_baseline": True,
-            "concession_baseline_visible": False,
-            "concession_baseline": None,
-            "concession_baseline_reason": "peace_only_score_unavailable",
-        }
-    acceptance_gap = max(0, int(accept_threshold) - int(peace_only_score))
-    payer_balance = _concession_baseline_payer_balance(world, proposer_side_leader)
-    treasury_candidate = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
-    gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR, acceptance_gap * 100)
-    # Affordability first: gold is offered only when treasury - 500 is
-    # strictly positive (the spec's "available treasury above a 500-gold
-    # reserve" / "strictly positive payable amount" promise). The 1500
-    # hard cap and the gap-derived candidate cap the amount when the
-    # payer can afford a non-trivial indemnity; they cannot themselves
-    # mint a payment from a near-empty treasury.
-    if treasury_candidate > 0:
-        positive_candidates = [
-            c for c in (treasury_candidate, CONCESSION_BASELINE_GOLD_HARD_CAP, gap_candidate)
-            if c > 0
-        ]
-        gold_amount: Optional[int] = (
-            int(min(positive_candidates)) if positive_candidates else None
-        )
-    else:
-        gold_amount = None
-
-    draft_terms: List[Dict[str, Any]] = [{"type": "peace"}]
-    if gold_amount is not None:
-        draft_terms.append({
-            "type": "gold_indemnity",
-            "from": proposer_side_leader,
-            "to": accepting_leader,
-            "amount": int(gold_amount),
-        })
-
-    hypothetical = (
-        settlement_scoring.calculate_common_peace_acceptance(
-            world,
-            war_id=war_id,
-            war_instance=war_instance,
-            proposer_side=proposer_side,
-            accepting_side=accepting_side,
-            accepting_leader=accepting_leader,
-            proposer_side_leader=proposer_side_leader,
-            covered_enemy_participants=covered,
-            settlement_terms=draft_terms,
-        )
-        if gold_amount is not None
-        else peace_floor_result
-    )
-    hypothetical_score = hypothetical.get("score")
-    escalate_to_territory = (
-        hypothetical_score is None
-        or int(hypothetical_score) < int(near_acceptance_floor)
-    )
-    region_choice: Optional[str] = None
-    if escalate_to_territory:
-        region_choice = _concession_baseline_select_transferable_region(
-            world,
-            proposer_side_participants=proposer_participants,
-            accepting_leader=accepting_leader,
-        )
-        if region_choice:
-            draft_terms.append({
-                "type": "territory_cede",
-                "from": proposer_side_leader,
-                "to": accepting_leader,
-                "region": region_choice,
-            })
-
+    draft_terms = [dict(t) for t in (baseline.get("settlement_terms") or [])]
     material_terms = [t for t in draft_terms if t.get("type") != "peace"]
     if not material_terms:
         return {
@@ -988,9 +964,7 @@ def _compute_concession_baseline(
         }
     reasoning = _format_concession_reasoning(
         proposer_leader=str(proposer_side_leader),
-        accepting_leader=str(accepting_leader),
-        gold_amount=gold_amount,
-        region=region_choice,
+        terms=material_terms,
     )
     return {
         "losing_for_concession_baseline": True,
@@ -1297,8 +1271,8 @@ def compute_settlement_baseline(
 ) -> Dict[str, Any]:
     """Re-front Slice 1 / spec §8 OQ#5 — the multi-party, per-court baseline.
 
-    Generalizes ``_compute_concession_baseline`` (single losing-side draft)
-    into a per-court draft that chooses DIRECTION per covered court from
+    The ONE baseline generator (CH-4 deleted the legacy single-losing-side
+    author): a per-court draft that chooses DIRECTION per covered court from
     *that court's* direct war score, not the package-level side-pressure
     scalar (which cannot express per-court direction). For each covered
     court:
@@ -1503,8 +1477,8 @@ def _concession_terms_for_court(
     """Author proposer-side concessions (gold, then territory) that move a
     losing-direction ``court`` toward the near-acceptance floor.
 
-    Mirrors ``_compute_concession_baseline``'s escalation but scoped to one
-    court and sharing the memoized package-level score inputs. Returns the
+    The peace→gold→territory escalation, scoped to one court and sharing
+    the memoized package-level score inputs. Returns the
     material clauses the proposer leader pays/cedes to the court (no
     ``{"type": "peace"}`` — the caller owns the shared package peace).
 

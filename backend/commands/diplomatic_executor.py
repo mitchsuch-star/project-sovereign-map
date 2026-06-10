@@ -2135,9 +2135,6 @@ class DiplomaticExecutor:
                     ),
                     settlement_terms=staged_terms,
                 )
-                if getattr(world, "pending_settlement_drafts", None) is None:
-                    world.pending_settlement_drafts = {}
-                world.pending_settlement_drafts[war_id] = staged_terms
             result["propose_on_mount"] = True
         result.setdefault("awaiting_diplomatic_response", True)
         return result

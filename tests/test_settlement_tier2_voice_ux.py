@@ -254,12 +254,18 @@ class TestTier2PresetReasoningRoutesThroughResolver:
     def test_concession_baseline_reasoning_routes_through_template_not_fstring(self):
         # Direct unit test of the helper — keeps the assertion focused
         # on the template wiring rather than the full settlement
-        # preview pipeline.
+        # preview pipeline. CH-4: the formatter reads the authored
+        # material clauses themselves (the per-court baseline output).
         reasoning = _format_concession_reasoning(
             proposer_leader="France",
-            accepting_leader="Britain",
-            gold_amount=500,
-            region=None,
+            terms=[
+                {
+                    "type": "gold_indemnity",
+                    "from": "France",
+                    "to": "Britain",
+                    "amount": 500,
+                },
+            ],
         )
         expected = resolve_settlement_voice_line(
             "settlement_concession_authored_talleyrand",

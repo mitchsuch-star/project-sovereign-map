@@ -9,6 +9,8 @@ from backend.game_logic.diplomatic_templates import resolve_settlement_voice_lin
 from backend.game_logic.settlement_preview import (
     compute_settlement_draft_key,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
+    save_scoped_settlement_draft,
     stage_settlement_confirm,
 )
 from backend.models.world_state import WorldState
@@ -108,8 +110,7 @@ def test_scope_replace_confirm_accept_replace_clears_existing_draft():
     _install_war(world)
     current_dialogue, chooser = _stage_austria_then_prussia(world)
     old_key = current_dialogue["draft_key"]
-    world.pending_settlement_drafts[old_key] = _austrian_terms()
-    world.pending_settlement_drafts["war_1"] = _austrian_terms()
+    world.pending_settlement_drafts_by_key[old_key] = _austrian_terms()
 
     result = handle_settlement_dialogue_action(
         world,
@@ -120,7 +121,7 @@ def test_scope_replace_confirm_accept_replace_clears_existing_draft():
     assert result["success"] is True
     assert result["scope_replaced"] is True
     assert result["cleared_draft_key"] == old_key
-    assert old_key not in world.pending_settlement_drafts
+    assert old_key not in world.pending_settlement_drafts_by_key
     assert world.pending_diplomatic_dialogue["type"] == "settlement_confirm"
     assert world.pending_diplomatic_dialogue["selected_target_nation"] == "Prussia"
     assert world.pending_diplomatic_dialogue["covered_enemy_participants"] == ["Prussia"]

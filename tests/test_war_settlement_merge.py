@@ -104,16 +104,36 @@ def test_three_instance_chain_merge_collapses_to_one_survivor():
 def test_merge_rewrites_settlement_continuity_state_for_absorbed_wars():
     """SC-26 continuity integration: war-instance merge migrates Slice 3
     settlement draft, route-sequence, and reopen-attempt state from
-    absorbed war ids to the survivor."""
+    absorbed war ids to the survivor. CH-3: drafts live in the scoped
+    store — merge re-keys each absorbed-war scoped entry to the surviving
+    war id (scope suffix preserved), so a reopen of the survivor restores
+    the absorbed war's draft through the war-prefix fallback."""
+    from backend.game_logic.settlement_staging import (
+        load_scoped_settlement_draft,
+        save_scoped_settlement_draft,
+    )
+
     world = _clean_world()
     inserted = build_three_instance_chain_merge_fixture(world)
     war_a, war_b, war_c = sorted(inserted.keys())
-    world.pending_settlement_drafts[war_a] = [
-        {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50},
-    ]
-    world.pending_settlement_drafts[war_b] = [
-        {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
-    ]
+    save_scoped_settlement_draft(
+        world,
+        war_id=war_a,
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria"],
+        settlement_terms=[
+            {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50},
+        ],
+    )
+    save_scoped_settlement_draft(
+        world,
+        war_id=war_b,
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria", "Prussia"],
+        settlement_terms=[
+            {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
+        ],
+    )
     world.settlement_route_seq[war_a] = {7: 2}
     world.settlement_route_seq[war_b] = {7: 5, 8: 1}
     world.settlement_reopen_attempts[war_b] = {7: 3}
@@ -123,11 +143,28 @@ def test_merge_rewrites_settlement_continuity_state_for_absorbed_wars():
 
     assert result["ok"] is True
     assert result["surviving_war_id"] == war_a
-    assert war_b not in world.pending_settlement_drafts
+    assert not any(
+        str(key).startswith(f"settlement_draft:{war_b}:")
+        for key in world.pending_settlement_drafts_by_key
+    )
     assert war_b not in world.settlement_route_seq
     assert war_c not in world.settlement_reopen_attempts
-    assert world.pending_settlement_drafts[war_a] == [
+    # Both scopes now address the survivor: the survivor's own draft at
+    # its exact scope, the absorbed draft re-keyed under the survivor.
+    assert load_scoped_settlement_draft(
+        world,
+        war_id=war_a,
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria"],
+    ) == [
         {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 50},
+    ]
+    assert load_scoped_settlement_draft(
+        world,
+        war_id=war_a,
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria", "Prussia"],
+    ) == [
         {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
     ]
     assert world.settlement_route_seq[war_a] == {7: 5, 8: 1}

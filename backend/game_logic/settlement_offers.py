@@ -1097,8 +1097,8 @@ def handle_incoming_settlement_offer_action(
 
         # Remove the offer first so the mailbox no longer renders it and
         # the one-active-offer-per-war producer guard re-opens for the
-        # next AI tick. Editor state lives in
-        # `world.pending_settlement_drafts[war_id]` from `stage_settlement_confirm`.
+        # next AI tick. Draft state lives in the scoped
+        # `pending_settlement_drafts_by_key` store from `stage_settlement_confirm`.
         _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
         if _is_offer_active_dialogue(world, dialogue):
             world.dialogue_manager.pop()

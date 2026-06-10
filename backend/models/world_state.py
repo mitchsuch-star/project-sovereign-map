@@ -692,18 +692,14 @@ class WorldState:
         # and separate from bilateral AI proposal cooldowns.
         self.pending_settlement_dialogues: List[Dict[str, Any]] = []
         self.ai_settlement_cooldowns: Dict[str, int] = {}
-        # Settlement UI Cleanup Spec G2-Slice-1: unratified draft storage
-        # keyed by war_id. Persists within a turn; discarded on turn end.
-        self.pending_settlement_drafts: Dict[str, List[Dict[str, Any]]] = {}
         # SC-5R-1 scoped settlement draft store keyed by
         # `compute_settlement_draft_key(war_id, selected_target_nation,
         # covered_enemy_participants)`. Same-war drafts with different
-        # selected targets / covered scope do not collide here. The
-        # legacy `pending_settlement_drafts` (war_id keyed) is preserved
-        # for backward compatibility within SC-5R-1; SC-5R-2 routes the
-        # Godot editor through the scoped store and may decommission the
-        # legacy one. Persists within a turn; discarded on turn end with
-        # the legacy store.
+        # selected targets / covered scope do not collide here. CH-3:
+        # this is the ONE draft store — the legacy war_id-keyed
+        # `pending_settlement_drafts` is deleted (PF-2 picked the scoped
+        # survivor; old saves migrate on load). Persists within a turn;
+        # discarded on turn end.
         self.pending_settlement_drafts_by_key: Dict[str, List[Dict[str, Any]]] = {}
         # Settlement UI Cleanup SC-28: one-shot notices for drafts discarded
         # by turn advance / recovery invalidation. Drained at response render.
@@ -4121,10 +4117,6 @@ class WorldState:
                 str(war_id): int(turn)
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
-            "pending_settlement_drafts": {
-                str(wid): [copy.deepcopy(c) for c in clauses]
-                for wid, clauses in self.pending_settlement_drafts.items()
-            },
             "pending_settlement_drafts_by_key": {
                 str(key): [copy.deepcopy(c) for c in clauses]
                 for key, clauses in self.pending_settlement_drafts_by_key.items()
@@ -4614,10 +4606,6 @@ class WorldState:
             str(war_id): int(turn)
             for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
         }
-        world.pending_settlement_drafts = {
-            str(wid): [copy.deepcopy(c) for c in clauses if isinstance(c, dict)]
-            for wid, clauses in (data.get("pending_settlement_drafts") or {}).items()
-        }
         # SC-5R-1 scoped store: old saves without this key default to an
         # empty dict; explicit entries round-trip with deep-copied clauses.
         world.pending_settlement_drafts_by_key = {
@@ -4626,6 +4614,32 @@ class WorldState:
                 data.get("pending_settlement_drafts_by_key") or {}
             ).items()
         }
+        # CH-3: the legacy war_id-keyed `pending_settlement_drafts` store is
+        # deleted. A pre-SC-5R save may still carry a draft ONLY in the
+        # legacy key; migrate any war with no scoped counterpart under the
+        # war-scoped fallback shape `load_scoped_settlement_draft` reads, so
+        # no save loses an authored draft silently.
+        legacy_drafts = data.get("pending_settlement_drafts") or {}
+        if legacy_drafts:
+            from backend.game_logic.settlement_staging import (
+                compute_settlement_draft_key,
+            )
+            for wid, clauses in legacy_drafts.items():
+                war_key = str(wid)
+                war_prefix = f"settlement_draft:{war_key}:"
+                if any(
+                    str(key).startswith(war_prefix)
+                    for key in world.pending_settlement_drafts_by_key
+                ):
+                    continue
+                migrated = [
+                    copy.deepcopy(c) for c in (clauses or []) if isinstance(c, dict)
+                ]
+                if not migrated:
+                    continue
+                world.pending_settlement_drafts_by_key[
+                    compute_settlement_draft_key(war_key, None, [])
+                ] = migrated
         world.pending_settlement_draft_notices = [
             copy.deepcopy(entry)
             for entry in (data.get("pending_settlement_draft_notices") or [])
@@ -5297,30 +5311,46 @@ class WorldState:
 
         # G2-Slice-1 / SC-28: discard unratified settlement drafts at turn
         # end and leave a one-shot player signal instead of silently losing
-        # authored clauses.
-        discarded_settlement_drafts = getattr(self, "pending_settlement_drafts", {}) or {}
-        if discarded_settlement_drafts:
+        # authored clauses. CH-3: the scoped store is the ONE draft store;
+        # the notice per war reflects the draft a reopen would actually have
+        # restored (the most recently saved scoped entry for that war — the
+        # same "most recent wins" rule `load_scoped_settlement_draft` uses).
+        discarded_scoped_drafts = (
+            getattr(self, "pending_settlement_drafts_by_key", {}) or {}
+        )
+        if discarded_scoped_drafts:
             notices = getattr(self, "pending_settlement_draft_notices", None)
             if notices is None:
                 self.pending_settlement_draft_notices = []
                 notices = self.pending_settlement_draft_notices
-            for wid, clauses in discarded_settlement_drafts.items():
-                clause_count = len(clauses or [])
-                if clause_count <= 0:
+            latest_by_war: Dict[str, Any] = {}
+            for key, clauses in discarded_scoped_drafts.items():
+                if not clauses:
                     continue
+                key_str = str(key)
+                prefix = "settlement_draft:"
+                if not key_str.startswith(prefix):
+                    continue
+                try:
+                    wid, selected, _scope_hash = key_str[len(prefix):].rsplit(
+                        ":", 2
+                    )
+                except ValueError:
+                    continue
+                # Insertion order: the last non-empty entry per war wins.
+                latest_by_war[wid] = (selected, clauses)
+            for wid, (selected, clauses) in latest_by_war.items():
                 notices.append({
                     "war_id": str(wid),
                     "turn_discarded": int(self.current_turn),
-                    "draft_clause_count": int(clause_count),
-                    "selected_target_nation": "",
+                    "draft_clause_count": int(len(clauses)),
+                    "selected_target_nation": (
+                        "" if selected == "_none" else str(selected)
+                    ),
                     "message_display": (
                         "Unratified settlement draft discarded at turn end."
                     ),
                 })
-        self.pending_settlement_drafts = {}
-        # SC-5R-1 scoped draft store shares the per-turn discard contract
-        # with the legacy store: unratified scoped drafts are cleared at
-        # turn end so the next turn opens with a clean editor slate.
         self.pending_settlement_drafts_by_key = {}
         # G2-Slice-3 SC-14b: per-turn reset of reopen attempts so the
         # SC-14b player escape is restored each turn (a new turn can

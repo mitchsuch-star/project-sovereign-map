@@ -53,7 +53,6 @@ from backend.game_logic.settlement_baseline import (
     CONCESSION_BASELINE_GOLD_HARD_CAP,
     CONCESSION_BASELINE_TREASURY_RESERVE,
     SETTLEMENT_DIAL_GOLD_STEP,
-    _compute_concession_baseline,
     _compute_recurring_gold_preset,
     _compute_surrender_preset,
     _concession_baseline_payer_balance,
@@ -64,6 +63,7 @@ from backend.game_logic.settlement_baseline import (
     _guided_gold_offer_default,
     _payer_net_income_estimate,
     _promised_regions_in_terms,
+    compute_concession_baseline_payload,
     compute_per_court_acceptance,
     compute_settlement_baseline,
     compute_settlement_treasury_line,
@@ -1504,21 +1504,18 @@ def build_settlement_preview(
     # POST preview is the source of truth for `losing_for_concession_baseline`,
     # `concession_baseline_visible`, and `concession_baseline`. The dialogue
     # builder later copies these onto the staged `settlement_confirm` payload.
-    baseline_payload = _compute_concession_baseline(
+    # CH-4: the payload adapter rides compute_settlement_baseline — the same
+    # per-court generator the PROPOSE mount uses — so the rail's seed and the
+    # front door's baseline can never diverge again.
+    baseline_payload = compute_concession_baseline_payload(
         world,
         war_id=war_id,
         war_instance=instance,
         proposer_side=side,
         accepting_side=accepting_side,
-        accepting_leader=str(accepting_leader or ""),
         proposer_side_leader=str(proposer_leader or ""),
         covered_enemy_participants=covered,
         side_pressure_score=acceptance.get("side_pressure_score"),
-        accept_threshold=int(
-            acceptance.get("accept_threshold")
-            or review_acceptance.get("threshold")
-            or 50
-        ),
         near_acceptance_floor=int(
             acceptance.get("near_acceptable_threshold") or 35
         ),
@@ -1614,9 +1611,8 @@ def _scoped_settlement_drafts(world: Any) -> Dict[str, List[Dict[str, Any]]]:
 
     Storage is keyed by ``compute_settlement_draft_key(...)`` so same-war
     drafts with different ``selected_target_nation`` / covered scope do not
-    collide. The legacy ``pending_settlement_drafts`` (war_id keyed) store
-    remains for backward compatibility within SC-5R-1; SC-5R-2 routes the
-    editor through the scoped store.
+    collide. CH-3: this is the ONE draft store — the legacy war_id-keyed
+    ``pending_settlement_drafts`` is deleted (old saves migrate on load).
     """
     drafts = getattr(world, "pending_settlement_drafts_by_key", None)
     if drafts is None:
@@ -2718,11 +2714,9 @@ def stage_settlement_confirm(
                 },
             )
         if active_war_id and active_war_id == war_id_str:
-            # Same-war restage: refresh the mounted dialogue and merge
-            # non-conflicting authored draft terms through the
-            # `pending_settlement_drafts` store. Conflicting clauses keep
-            # the active draft unchanged and surface a humanized merge
-            # conflict beat.
+            # Same-war restage: refresh the mounted dialogue; the scoped
+            # draft store keeps the refreshed terms addressable for a
+            # later reopen (GT-Slice-4 §6 mounted-draft-wins semantics).
             mounted_covered = _normalize_nation_list(
                 mounted.get("covered_enemy_participants") or []
             )
@@ -2812,12 +2806,7 @@ def stage_settlement_confirm(
             existing_terms = list(mounted.get("settlement_terms") or [])
             incoming_terms = list(settlement_terms or [])
             refreshed_terms = existing_terms if existing_terms else incoming_terms
-            drafts = getattr(world, "pending_settlement_drafts", None)
-            if drafts is None:
-                world.pending_settlement_drafts = {}
-                drafts = world.pending_settlement_drafts
-            drafts[war_id_str] = [dict(t) for t in refreshed_terms]
-            # SC-5R-1: dual-write the refreshed draft to the scoped store
+            # SC-5R-1: persist the refreshed draft to the scoped store
             # under the incoming scope (same-war refresh adopts the
             # caller's scope when present).
             save_scoped_settlement_draft(

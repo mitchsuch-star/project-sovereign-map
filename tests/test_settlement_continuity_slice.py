@@ -11,19 +11,20 @@ from __future__ import annotations
 
 from backend.display_names import settlement_disabled_reason_display
 from backend.game_logic.settlement_preview import (
-    SETTLEMENT_FAMILY_DIALOGUE_TYPES,
-    SETTLEMENT_REOPEN_MAX_ATTEMPTS,
-    SETTLEMENT_ROUTE_NAMESPACE,
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     derive_settlement_review_target,
     handle_incoming_settlement_offer_action,
     is_war_archived,
     is_war_known,
+    load_scoped_settlement_draft,
     mint_settlement_route_id,
     record_reopen_attempt,
     reopen_attempt_cap_exceeded,
     resolve_settlement_route_click,
+    SETTLEMENT_FAMILY_DIALOGUE_TYPES,
+    SETTLEMENT_REOPEN_MAX_ATTEMPTS,
+    SETTLEMENT_ROUTE_NAMESPACE,
     stage_settlement_confirm,
 )
 from backend.game_logic.settlement_presentation import (
@@ -265,8 +266,18 @@ def test_same_war_restage_keeps_mounted_draft_as_single_source_of_truth():
         for t in world.pending_diplomatic_dialogue["settlement_terms"]
     }
     assert refreshed_types == {"territory_cede"}
-    # SC-2 draft store mirrors the kept draft.
-    draft_types = {t.get("type") for t in world.pending_settlement_drafts["war_1"]}
+    # SC-2 draft store mirrors the kept draft (CH-3: the scoped store).
+    draft_types = {
+        t.get("type")
+        for t in load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=world.pending_diplomatic_dialogue.get(
+                "selected_target_nation"
+            ),
+            covered_enemy_participants=["Austria"],
+        )
+    }
     assert draft_types == {"territory_cede"}
 
 

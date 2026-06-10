@@ -1480,19 +1480,27 @@ def _rewrite_absorbed_war_id_in_settlement_continuity_state(
         return 0
     rewritten = 0
 
-    drafts = getattr(world, "pending_settlement_drafts", None)
-    if isinstance(drafts, dict):
-        survivor_terms = list(drafts.get(surviving) or [])
+    # CH-3: the scoped store is the ONE draft store. Re-key any scoped
+    # draft saved under an absorbed war id to the surviving id (the scope
+    # suffix — selected target + covered hash — stays valid because merge
+    # unions participants without renaming nations). On an exact-key
+    # collision the survivor's own draft wins, mirroring the GT-Slice-4 §6
+    # mounted-draft-wins refresh semantics.
+    scoped_drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if isinstance(scoped_drafts, dict):
+        surviving_prefix = f"settlement_draft:{surviving}:"
         for absorbed_id in sorted(absorbed_set):
-            if absorbed_id not in drafts:
-                continue
-            absorbed_terms = drafts.pop(absorbed_id) or []
-            for term in absorbed_terms:
-                if term not in survivor_terms:
-                    survivor_terms.append(term)
-            rewritten += 1
-        if survivor_terms:
-            drafts[surviving] = survivor_terms
+            absorbed_prefix = f"settlement_draft:{absorbed_id}:"
+            absorbed_keys = [
+                key for key in list(scoped_drafts.keys())
+                if isinstance(key, str) and key.startswith(absorbed_prefix)
+            ]
+            for key in absorbed_keys:
+                entry = scoped_drafts.pop(key)
+                new_key = surviving_prefix + key[len(absorbed_prefix):]
+                if new_key not in scoped_drafts:
+                    scoped_drafts[new_key] = entry
+                rewritten += 1
 
     for state_field in ("settlement_route_seq", "settlement_reopen_attempts"):
         store = getattr(world, state_field, None)

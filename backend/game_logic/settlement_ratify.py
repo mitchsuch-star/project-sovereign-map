@@ -1296,9 +1296,6 @@ def ratify_settlement_confirm(
     )
 
     world.dialogue_manager.pop()
-    drafts = getattr(world, "pending_settlement_drafts", None)
-    if isinstance(drafts, dict):
-        drafts.pop(war_id, None)
     _discard_scoped_settlement_draft_for_dialogue(world, dialogue)
 
     result_message = (
@@ -1438,18 +1435,10 @@ def _stage_replacement_settlement_terms(
         surrender_preset=surrender_preset,
         dialogue_mode=dialogue_mode,
     )
-    drafts = getattr(world, "pending_settlement_drafts", None)
-    if drafts is None:
-        world.pending_settlement_drafts = {}
-        drafts = world.pending_settlement_drafts
-    drafts[war_id] = [dict(t) for t in replacement_terms]
-    # SC-5R-1 scoped draft persistence: dual-write the replacement
-    # draft into the scoped store keyed by `compute_settlement_draft_key`
-    # so a same-war restage with a different selected target /
-    # covered scope keeps both drafts addressable. Legacy
-    # `pending_settlement_drafts[war_id]` storage is preserved for
-    # backward compatibility within SC-5R-1 (SC-5R-2 routes the
-    # Godot editor through the scoped store and may decommission it).
+    # SC-5R-1 scoped draft persistence (CH-3: the ONE store): the
+    # replacement draft is keyed by `compute_settlement_draft_key` so a
+    # same-war restage with a different selected target / covered scope
+    # keeps both drafts addressable.
     save_scoped_settlement_draft(
         world,
         war_id=war_id,

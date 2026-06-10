@@ -322,9 +322,13 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
             f"{action!r}."
         )
 
-    settlement_actions_text = (
-        REPO_ROOT / "backend" / "game_logic" / "settlement_actions.py"
-    ).read_text(encoding="utf-8")
+    # CH-2: the dialogue arms live in dispatch tables, so the whitelist is
+    # asserted against the tables themselves (runtime truth) instead of the
+    # old `action == "..."` source scan — a registered key IS a handler.
+    from backend.game_logic.settlement_actions import (
+        SETTLEMENT_ACTION_DISPATCH,
+        SETTLEMENT_SCOPE_REPLACE_DISPATCH,
+    )
     for action in SETTLEMENT_FAMILY_ACTION_IDS - {
         "propose_common_peace",
         "propose_white_peace",
@@ -333,10 +337,18 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
         "reject_settlement_offer",
         "request_settlement_revision",
     }:
-        assert f'action == "{action}"' in settlement_actions_text, (
-            f"settlement_actions.py missing dialogue handler branch for "
+        assert (
+            action in SETTLEMENT_ACTION_DISPATCH
+            or action in SETTLEMENT_SCOPE_REPLACE_DISPATCH
+        ), (
+            f"settlement_actions.py dispatch tables missing handler for "
             f"{action!r}; visible settlement action would become a no-op."
         )
+    for action, handler in {
+        **SETTLEMENT_ACTION_DISPATCH,
+        **SETTLEMENT_SCOPE_REPLACE_DISPATCH,
+    }.items():
+        assert callable(handler), f"dispatch entry {action!r} is not callable"
 
     # The wizard must have a `_build_command` arm for the settlement
     # wizard entry ids it surfaces.

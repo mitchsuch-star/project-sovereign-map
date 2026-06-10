@@ -8,12 +8,13 @@ Contract" pins:
 - POST preview AND the staged dialogue emit
   `losing_for_concession_baseline`, `concession_baseline_visible`, and
   `concession_baseline` (terms + reasoning) at canonical positions.
-- Acceptance gap reads from a peace-only rerun of the scorer against the
-  spec accept threshold.
-- Gold candidate is the smallest strictly positive of (treasury - 500
-  reserve, 1500 hard cap, max(300, acceptance_gap * 100)); territory
-  escalation kicks in when gold-only acceptance stays below
-  `near_acceptance_floor`.
+- CH-4: the payload terms come from `compute_settlement_baseline` — the
+  per-court generator the PROPOSE mount uses (n=1 is the degenerate
+  case) — so the per-court escalation is peace → gold → territory, gold
+  sized as the smallest strictly positive of (this court's share of
+  treasury - 500 reserve, 1500 hard cap, max(300, gap-to-near-floor *
+  100)); territory escalation kicks in when gold-only acceptance stays
+  below `near_acceptance_floor`.
 - `concession_baseline_visible=False` when only the peace floor can be
   generated (no positive gold + no transferable region).
 - Click-time revalidation is performed by re-POSTing the preview; if the
@@ -29,10 +30,11 @@ from backend.game_logic.settlement_preview import (
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
     stage_settlement_confirm,
 )
 from backend.game_logic.settlement_baseline import (
-    _compute_concession_baseline,
+    compute_concession_baseline_payload,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
@@ -120,39 +122,36 @@ class TestPredicate:
         world = _make_world()
         war = _install_balanced_war(world)
         # -21: predicate fires.
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=-21,
         )
         assert result["losing_for_concession_baseline"] is True
         # -20: boundary inclusive.
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=-20,
         )
         assert result["losing_for_concession_baseline"] is True
         # -19: predicate does not fire.
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=-19,
@@ -163,13 +162,12 @@ class TestPredicate:
     def test_winning_side_predicate_does_not_fire(self):
         world = _make_world()
         war = _install_balanced_war(world)
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=40,
@@ -225,7 +223,8 @@ class TestPayloadSchema:
 class TestAlgorithm:
     def test_concession_baseline_real_gameplay_chooses_payable_amount_and_transferable_region_outside_fixture(self):
         """Normal-gameplay algorithm picks deterministic gold (smallest
-        positive candidate) and a non-capital, non-home region currently
+        positive candidate, CH-4: per concede court against that court's
+        treasury share) and a non-capital, non-home region currently
         controlled by the proposer side."""
         world = _make_world(gold=2000)
         war = _install_losing_war(world)
@@ -235,17 +234,15 @@ class TestAlgorithm:
         # Simulate by setting controller on a representative region.
         if "Bavaria" in world.regions:
             world.regions["Bavaria"].controller = "France"
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=-40,
-            accept_threshold=50,
             near_acceptance_floor=35,
         )
         if not result["concession_baseline_visible"]:
@@ -257,11 +254,12 @@ class TestAlgorithm:
             return
         terms = result["concession_baseline"]["terms"]
         gold_terms = [t for t in terms if t.get("type") == "gold_indemnity"]
-        # Spec algorithm: positive candidates are
-        #   treasury - 500 = 1500
+        # Per-court algorithm: positive candidates per concede court are
+        #   min(treasury - 500, this court's share of the split) = 750
         #   hard cap = 1500
         #   max(300, gap * 100) = something >= 300
-        # The min(...) is therefore 1500 or lower.
+        # The min(...) is therefore 1500 or lower. Sorted court order puts
+        # Austria's slice first.
         if gold_terms:
             assert gold_terms[0]["from"] == "France"
             assert gold_terms[0]["to"] == "Austria"
@@ -278,9 +276,10 @@ class TestAlgorithm:
                 f"baseline must not cede proposer-home region {r['region']}"
             )
 
-    def test_concession_baseline_acceptance_gap_uses_peace_only_score_against_threshold(self):
-        """Acceptance gap is computed as (threshold - peace_only_score),
-        clamped at 0. The third gold candidate floors at max(300,
+    def test_concession_baseline_acceptance_gap_uses_peace_only_score_against_near_floor(self):
+        """CH-4 (per-court generator): the acceptance gap is computed as
+        (near_acceptance_floor - peace_only_score), clamped at 0, per
+        concede court. The third gold candidate floors at max(300,
         gap * 100)."""
         world = _make_world(gold=5000)
         war = _install_losing_war(world)
@@ -296,22 +295,21 @@ class TestAlgorithm:
             "backend.game_logic.settlement_scoring.calculate_common_peace_acceptance",
             side_effect=fake_acceptance,
         ):
-            result = _compute_concession_baseline(
+            result = compute_concession_baseline_payload(
                 world,
                 war_id="war_1",
                 war_instance=war,
                 proposer_side="attackers",
                 accepting_side="defenders",
-                accepting_leader="Austria",
                 proposer_side_leader="France",
                 covered_enemy_participants=["Austria", "Prussia"],
                 side_pressure_score=-40,
-                accept_threshold=50,
                 near_acceptance_floor=35,
             )
-        # peace_only_score=10 → acceptance_gap = 40 → gap_candidate = 4000.
-        # Treasury candidate = 5000-500=4500. Hard cap = 1500.
-        # Positive candidates = [4500, 1500, 4000]. min = 1500.
+        # peace_only_score=10 → gap to the 35 floor = 25 → gap_candidate
+        # = 2500. Treasury share per concede court = (5000-500)//2 = 2250.
+        # Hard cap = 1500. Positive candidates = [2250, 1500, 2500].
+        # min = 1500 for each court's slice.
         if result["concession_baseline_visible"]:
             gold_terms = [
                 t for t in result["concession_baseline"]["terms"]
@@ -333,13 +331,12 @@ class TestAlgorithm:
             if starting != "France" and getattr(region, "controller", "") == "France":
                 # Reset to historical controller so baseline cannot pick it.
                 region.controller = starting or region.controller
-        result = _compute_concession_baseline(
+        result = compute_concession_baseline_payload(
             world,
             war_id="war_1",
             war_instance=war,
             proposer_side="attackers",
             accepting_side="defenders",
-            accepting_leader="Austria",
             proposer_side_leader="France",
             covered_enemy_participants=["Austria", "Prussia"],
             side_pressure_score=-50,
@@ -455,7 +452,12 @@ class TestClickTimeRevalidation:
         assert refreshed["settlement_terms"]
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert "re_author_with_concessions" not in refreshed["available_action_ids"]
-        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=refreshed.get("selected_target_nation"),
+            covered_enemy_participants=refreshed.get("covered_enemy_participants"),
+        ) == refreshed["settlement_terms"]
 
     def test_dialogue_response_routes_re_author_with_concessions_through_executor_dispatch(self):
         """Gate 4 repair regression: the visible concession action must
@@ -500,7 +502,12 @@ class TestClickTimeRevalidation:
         assert refreshed["dialogue_mode"] == "PROPOSE"
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert "re_author_with_concessions" not in refreshed["available_action_ids"]
-        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=refreshed.get("selected_target_nation"),
+            covered_enemy_participants=refreshed.get("covered_enemy_participants"),
+        ) == refreshed["settlement_terms"]
 
     def test_re_author_with_concessions_mounts_replace_confirm_for_non_empty_draft(self):
         """A non-empty draft cannot return a dead requires_replace_confirm
@@ -571,7 +578,12 @@ class TestClickTimeRevalidation:
         assert refreshed["settlement_terms"]
         assert any(t.get("type") != "peace" for t in refreshed["settlement_terms"])
         assert "re_author_with_concessions" not in refreshed["available_action_ids"]
-        assert world.pending_settlement_drafts["war_1"] == refreshed["settlement_terms"]
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=refreshed.get("selected_target_nation"),
+            covered_enemy_participants=refreshed.get("covered_enemy_participants"),
+        ) == refreshed["settlement_terms"]
 
 
 class TestConcessionAcceptanceDirection:

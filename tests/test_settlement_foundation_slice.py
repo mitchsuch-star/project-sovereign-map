@@ -13,6 +13,8 @@ from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.game_logic.settlement_preview import (
     build_settlement_preview,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
+    save_scoped_settlement_draft,
     stage_settlement_confirm,
     validate_settlement_terms,
 )
@@ -256,11 +258,13 @@ class TestExecutorForwarding:
         assert result["success"] is True
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue["settlement_terms"]
-        assert "war_1" in world.pending_settlement_drafts
-        assert (
-            world.pending_settlement_drafts["war_1"]
-            == dialogue["settlement_terms"]
-        )
+        # CH-3: the scoped store is the ONE draft store.
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=dialogue.get("selected_target_nation"),
+            covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+        ) == dialogue["settlement_terms"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -423,20 +427,32 @@ class TestReviseTermsAndBackOut:
     def test_back_out_clears_persisted_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
-        world.pending_settlement_drafts["war_1"] = [
-            {"type": "forced_alliance", "from": "Austria", "to": "France"},
-        ]
         stage_settlement_confirm(
             world, war_id="war_1",
             settlement_terms=[{"type": "forced_alliance", "from": "Austria", "to": "France"}],
         )
         dialogue = world.pending_diplomatic_dialogue
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=dialogue.get("selected_target_nation"),
+            covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+            settlement_terms=[
+                {"type": "forced_alliance", "from": "Austria", "to": "France"},
+            ],
+        )
         result = handle_settlement_dialogue_action(
             world, action="back_out_settlement", dialogue=dialogue,
         )
         assert result["success"] is True
         assert result["had_draft"] is True
-        assert "war_1" not in world.pending_settlement_drafts
+        # CH-3: back-out discards the scoped draft for the dialogue's scope.
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=dialogue.get("selected_target_nation"),
+            covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+        ) is None
 
     def test_back_out_empty_draft_no_discard_prompt(self):
         world = WorldState()
@@ -470,22 +486,56 @@ class TestDraftPersistence:
     def test_drafts_discarded_on_turn_end(self):
         world = WorldState()
         _install_common_peace_war(world)
-        world.pending_settlement_drafts["war_1"] = [{"type": "peace"}]
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="Austria",
+            covered_enemy_participants=["Austria"],
+            settlement_terms=[{"type": "peace"}],
+        )
         world.advance_turn()
-        assert world.pending_settlement_drafts == {}
+        assert world.pending_settlement_drafts_by_key == {}
 
     def test_drafts_round_trip_serialization(self):
         world = WorldState()
-        world.pending_settlement_drafts = {
-            "war_1": [{"type": "territory_cede", "from": "A", "to": "B", "region": "X"}],
-        }
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="B",
+            covered_enemy_participants=["B"],
+            settlement_terms=[
+                {"type": "territory_cede", "from": "A", "to": "B", "region": "X"},
+            ],
+        )
         world.settlement_route_seq = {"war_1": {7: 2}}
         data = world.to_dict()
         restored = WorldState.from_dict(data)
-        assert restored.pending_settlement_drafts == {
+        assert load_scoped_settlement_draft(
+            restored,
+            war_id="war_1",
+            selected_target_nation="B",
+            covered_enemy_participants=["B"],
+        ) == [{"type": "territory_cede", "from": "A", "to": "B", "region": "X"}]
+        assert restored.settlement_route_seq == {"war_1": {7: 2}}
+
+    def test_pre_sc5r_save_with_only_legacy_drafts_migrates_to_scoped_store(self):
+        """CH-3: an old save carrying a draft ONLY in the deleted
+        war_id-keyed `pending_settlement_drafts` key migrates into the
+        scoped store on load — the war-scoped reopen fallback restores it,
+        so no authored draft is silently dropped."""
+        world = WorldState()
+        data = world.to_dict()
+        data.pop("pending_settlement_drafts_by_key", None)
+        data["pending_settlement_drafts"] = {
             "war_1": [{"type": "territory_cede", "from": "A", "to": "B", "region": "X"}],
         }
-        assert restored.settlement_route_seq == {"war_1": {7: 2}}
+        restored = WorldState.from_dict(data)
+        assert load_scoped_settlement_draft(
+            restored,
+            war_id="war_1",
+            selected_target_nation=None,
+            covered_enemy_participants=[],
+        ) == [{"type": "territory_cede", "from": "A", "to": "B", "region": "X"}]
 
     def test_settlement_route_ids_are_unique_same_war_same_turn(self):
         world = WorldState()

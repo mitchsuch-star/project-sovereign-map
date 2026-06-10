@@ -32,6 +32,7 @@ from backend.game_logic.settlement_preview import (
     build_settlement_confirm_dialogue,
     build_settlement_preview,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
     ratify_settlement_confirm,
     stage_settlement_confirm,
 )
@@ -233,7 +234,12 @@ class TestEmptyRatifyGate:
         assert result["success"] is True
         assert result["draft_preserved"] is True
         assert world.pending_diplomatic_dialogue is None
-        assert world.pending_settlement_drafts["war_1"] == dialogue["settlement_terms"]
+        assert load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=dialogue.get("selected_target_nation"),
+            covered_enemy_participants=dialogue.get("covered_enemy_participants"),
+        ) == dialogue["settlement_terms"]
 
     def test_open_settlement_editor_enables_ratify_after_first_clause_authored(self):
         """Authoring at least one material clause re-enables Ratify if

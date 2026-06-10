@@ -5,7 +5,9 @@ from __future__ import annotations
 from backend.game_logic.settlement_preview import (
     evaluate_war_detail_actionability,
     handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
     record_reopen_attempt,
+    save_scoped_settlement_draft,
     stage_settlement_confirm,
 )
 from backend.models.world_state import (
@@ -129,7 +131,13 @@ def test_open_war_detail_recovery_preserves_non_empty_draft_without_discard_prom
     assert result["draft_preserved"] is True
     assert result["recovery_route"]["surface"] == "war_detail"
     assert world.pending_diplomatic_dialogue is None
-    assert world.pending_settlement_drafts["war_1"] == terms
+    # CH-3: the preserved draft lives in the scoped store.
+    assert load_scoped_settlement_draft(
+        world,
+        war_id="war_1",
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria"],
+    ) == terms
     assert "had_draft" not in result
 
 
@@ -172,11 +180,17 @@ def test_sc14b_attempt_4_runs_actionability_probe_and_falls_back_when_dead():
 
 def test_draft_discard_notice_clear_flag_is_persisted_at_render_time():
     world = WorldState()
-    world.pending_settlement_drafts["war_1"] = [{"type": "peace"}]
+    save_scoped_settlement_draft(
+        world,
+        war_id="war_1",
+        selected_target_nation="Austria",
+        covered_enemy_participants=["Austria"],
+        settlement_terms=[{"type": "peace"}],
+    )
 
     world.advance_turn()
 
-    assert world.pending_settlement_drafts == {}
+    assert world.pending_settlement_drafts_by_key == {}
     assert len(world.pending_settlement_draft_notices) == 1
     saved_before_render = world.to_dict()
     drained = world.drain_settlement_draft_notices()

@@ -366,10 +366,9 @@ class TestScopedSettlementDraftPersistence:
             {"world": world},
         )
         assert result["success"] is False
-        assert world.pending_settlement_drafts == {}
         assert world.pending_settlement_drafts_by_key == {}
 
-    def test_back_out_discards_legacy_and_scoped_draft(self):
+    def test_back_out_discards_scoped_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
         terms = [{"type": "peace"}, _gold_indemnity_clause()]
@@ -387,7 +386,6 @@ class TestScopedSettlementDraftPersistence:
                 caller_kind="player_editor",
             )
         dialogue = staged["diplomatic_dialogue"]
-        world.pending_settlement_drafts["war_1"] = list(terms)
         save_scoped_settlement_draft(
             world,
             war_id="war_1",
@@ -401,7 +399,6 @@ class TestScopedSettlementDraftPersistence:
         )
 
         assert result["success"] is True
-        assert world.pending_settlement_drafts == {}
         assert (
             load_scoped_settlement_draft(
                 world,
@@ -412,7 +409,7 @@ class TestScopedSettlementDraftPersistence:
             is None
         )
 
-    def test_open_war_detail_preserves_legacy_and_scoped_draft(self):
+    def test_open_war_detail_preserves_scoped_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
         terms = [{"type": "peace"}, _gold_indemnity_clause()]
@@ -436,7 +433,6 @@ class TestScopedSettlementDraftPersistence:
         )
 
         assert result["success"] is True
-        assert world.pending_settlement_drafts["war_1"] == terms
         assert (
             load_scoped_settlement_draft(
                 world,
@@ -483,9 +479,8 @@ class TestScopedSettlementDraftPersistence:
         assert result["draft_preserved"] is True
         # The staged hard-stop is popped so the next command is not held.
         assert world.dialogue_manager.is_hard_stop() is False
-        # PF-2 single-store contract: the scoped draft survives (unlike
-        # back_out_settlement); the legacy store gains nothing.
-        assert "war_1" not in (world.pending_settlement_drafts or {})
+        # PF-2/CH-3 single-store contract: the scoped draft survives
+        # (unlike back_out_settlement).
         assert (
             load_scoped_settlement_draft(
                 world,
@@ -496,7 +491,7 @@ class TestScopedSettlementDraftPersistence:
             == terms
         )
 
-    def test_ratification_discards_legacy_and_scoped_draft(self):
+    def test_ratification_discards_scoped_draft(self):
         world = WorldState()
         _install_common_peace_war(world)
         terms = [{"type": "peace"}, _gold_indemnity_clause()]
@@ -514,7 +509,6 @@ class TestScopedSettlementDraftPersistence:
                 caller_kind="player_editor",
             )
             dialogue = staged["diplomatic_dialogue"]
-            world.pending_settlement_drafts["war_1"] = list(terms)
             save_scoped_settlement_draft(
                 world,
                 war_id="war_1",
@@ -525,7 +519,6 @@ class TestScopedSettlementDraftPersistence:
             result = ratify_settlement_confirm(world, dialogue)
 
         assert result["success"] is True
-        assert "war_1" not in world.pending_settlement_drafts
         assert (
             load_scoped_settlement_draft(
                 world,
