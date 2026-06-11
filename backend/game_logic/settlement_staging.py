@@ -745,6 +745,7 @@ def _redial_settlement_terms(
     proposer_side_leader: Optional[str],
     protected_notes: Optional[List[str]] = None,
     seeded_events: Optional[List[Dict[str, str]]] = None,
+    payer_gold_budgets: Optional[Mapping[str, int]] = None,
 ) -> List[Dict[str, Any]]:
     """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
     the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
@@ -784,11 +785,37 @@ def _redial_settlement_terms(
     (scope ≥ 2) never seed — they only steer existing terms. Clauses that touch
     no scoped court — including the shared ``{"type": "peace"}`` — are copied
     through untouched.
+
+    **Gate-4 G4F-2 (DC-1):** ``payer_gold_budgets`` (from
+    ``compute_gold_payer_budgets`` — the clamp-side mirror of the SC-1/SC-33
+    budget validator) bounds every gold grow at the payer's REMAINING
+    capacity, consumed line by line across the sweep, and gates the focused
+    seed the same way. A press at the payer's ceiling yields the unchanged
+    amount plus a player-facing note ("Prussia can pay no more, Sire.")
+    instead of an over-budget draft the restage validator would bounce —
+    valid-by-construction applies to the system author too.
     """
     scope = {str(n) for n in (scope_courts or []) if n}
     leader = str(proposer_side_leader or "")
     out: List[Dict[str, Any]] = []
     touched: Set[str] = set()
+    remaining_budget: Optional[Dict[str, int]] = (
+        dict(payer_gold_budgets) if payer_gold_budgets is not None else None
+    )
+
+    def _gold_consumption(clause: Mapping[str, Any]) -> int:
+        amount = int(clause.get("amount", 0) or 0)
+        if str(clause.get("type") or "") == "gold_per_turn":
+            turns = int(clause.get("turns", 0) or 0)
+            return abs(amount) * max(0, turns)
+        return abs(amount)
+
+    def _consume_budget(clause: Mapping[str, Any]) -> None:
+        if remaining_budget is None:
+            return
+        payer = str(clause.get("from") or "")
+        if payer in remaining_budget:
+            remaining_budget[payer] -= _gold_consumption(clause)
     notes = protected_notes if protected_notes is not None else []
     for term in terms:
         if not isinstance(term, Mapping):
@@ -800,6 +827,10 @@ def _redial_settlement_terms(
         court = frm if frm in scope else (to if to in scope else "")
         if not court or ttype == "peace":
             out.append(clause)
+            # G4F-2: an out-of-scope gold line still draws on its payer's
+            # capacity — count it so a scoped grow cannot overspend.
+            if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+                _consume_budget(clause)
             continue
         touched.add(court)
         is_demand = frm == court  # the court pays/cedes => a demand on it
@@ -808,10 +839,31 @@ def _redial_settlement_terms(
             amount = int(clause.get("amount", 0) or 0)
             # Grow on harsher-demand / generous-concession; shrink otherwise.
             if (direction == "harsher") == is_demand:
-                amount = min(
+                grown = min(
                     amount + SETTLEMENT_DIAL_GOLD_STEP,
                     CONCESSION_BASELINE_GOLD_HARD_CAP,
                 )
+                # G4F-2 / DC-1: bound the grow at the payer's remaining gold
+                # capacity so a sweep never authors a package the budget
+                # validator would bounce as `gold_payment_budget_conflict`.
+                if remaining_budget is not None and frm in remaining_budget:
+                    per_unit = (
+                        max(1, int(clause.get("turns", 0) or 0))
+                        if ttype == "gold_per_turn"
+                        else 1
+                    )
+                    affordable = max(0, remaining_budget[frm]) // per_unit
+                    if grown > affordable:
+                        grown = max(amount, affordable)
+                if grown == amount:
+                    # A press at the ceiling — budget OR the 1500 hard cap —
+                    # keeps the amount and SAYS so (the D3 silent-dial class:
+                    # a no-op click must never be wordless).
+                    if is_demand:
+                        notes.append(f"{court} can pay no more, Sire.")
+                    else:
+                        notes.append("The treasury can bear no more, Sire.")
+                amount = grown
             else:
                 amount -= SETTLEMENT_DIAL_GOLD_STEP
             if amount < SETTLEMENT_DIAL_GOLD_STEP and player_authored:
@@ -831,6 +883,7 @@ def _redial_settlement_terms(
                 continue  # drop the clause (count down) — never below zero
             clause["amount"] = int(amount)
             out.append(clause)
+            _consume_budget(clause)
             continue
         if ttype.startswith("territory"):
             # Territory is binary (count), never identity. Harsher keeps a
@@ -865,18 +918,34 @@ def _redial_settlement_terms(
         for court in sorted(scope - touched):
             if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
                 break  # hard cap honored — no over-cap seed
+            seed_payer = court if direction == "harsher" else leader
+            if (
+                remaining_budget is not None
+                and seed_payer in remaining_budget
+                and max(0, remaining_budget[seed_payer])
+                < SETTLEMENT_DIAL_GOLD_STEP
+            ):
+                # G4F-2: a seed the payer cannot fund is skipped with a
+                # note, never authored for the validator to bounce.
+                if direction == "harsher":
+                    notes.append(f"{court} can pay no more, Sire.")
+                else:
+                    notes.append("The treasury can bear no more, Sire.")
+                continue
             if direction == "harsher":
-                out.append({
+                seed = {
                     "type": "gold_indemnity", "from": court, "to": leader,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
-                })
+                }
                 seed_group = "demand"
             else:
-                out.append({
+                seed = {
                     "type": "gold_indemnity", "from": leader, "to": court,
                     "amount": int(SETTLEMENT_DIAL_GOLD_STEP),
-                })
+                }
                 seed_group = "offer"
+            out.append(seed)
+            _consume_budget(seed)
             if seeded_events is not None:
                 # GT-Slice-V / DC-4: the dial handler needs to know the seed
                 # fired (and in which arm) so a demand seeded on a court that
@@ -1234,13 +1303,21 @@ def _restage_settlement_after_redraw(
         war_instance=war_instance,
     )
     if not revalidation.get("valid"):
+        # G4F-2 residual (UX-6): this bounce should now be unreachable from
+        # the budget-clamped dials, but any residual restage failure names
+        # the validator's binding constraint instead of the generic
+        # blame-the-player copy.
         return {
             "success": False,
             "dialogue_type": "settlement_confirm",
             "action": action,
             "war_id": war_id,
             "error": "submitted_terms_failed_revalidation",
-            "error_display": _error_display("submitted_terms_failed_revalidation"),
+            "error_display": str(
+                revalidation.get("disabled_reason_display")
+                or _error_display(str(revalidation.get("error") or ""))
+                or _error_display("submitted_terms_failed_revalidation")
+            ),
             "validation_error": revalidation.get("error"),
             "mutated": False,
             "suppress_proposal_result_popup": True,

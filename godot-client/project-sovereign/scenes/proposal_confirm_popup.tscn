@@ -58,7 +58,7 @@ fit_content = true
 
 [node name="PerCourtScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(0, 190)
+custom_minimum_size = Vector2(0, 320)
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0

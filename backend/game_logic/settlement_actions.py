@@ -74,6 +74,7 @@ from backend.game_logic.settlement_validation import (
     _other_side,
     _side_leader,
     _term_lists_equal,
+    compute_gold_payer_budgets,
     evaluate_liberation_eligibility,
     evaluate_pair_peace_substitute_eligibility,
     evaluate_subjugation_eligibility,
@@ -81,6 +82,70 @@ from backend.game_logic.settlement_validation import (
     get_coverable_enemy_participants,
     validate_settlement_terms,
 )
+
+
+def _gold_headroom_for_payer(
+    world: Any,
+    candidate_terms: List[Dict[str, Any]],
+    *,
+    payer: str,
+    exclude_index: int,
+) -> int:
+    """Remaining gold capacity for ``payer`` in ``candidate_terms`` once
+    every OTHER gold line is funded (Gate-4 G4F-2 / DC-1).
+
+    The clamp-side mirror of ``_check_gold_payment_budget_conflict``: the
+    guided magnitude verbs refuse an explicit amount above this bound with a
+    humanized in-voice reason instead of authoring a draft the restage
+    validator bounces as ``gold_payment_budget_conflict``.
+    """
+    budgets = compute_gold_payer_budgets(
+        world, candidate_terms, extra_payers=[payer],
+    )
+    used = 0
+    for idx, term in enumerate(candidate_terms):
+        if idx == exclude_index:
+            continue
+        if not isinstance(term, Mapping):
+            continue
+        if term.get("type") not in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            continue
+        if str(term.get("from") or "") != payer:
+            continue
+        amount = abs(int(term.get("amount", 0) or 0))
+        if term.get("type") == "gold_per_turn":
+            used += amount * max(0, int(term.get("turns", 0) or 0))
+        else:
+            used += amount
+    return max(0, int(budgets.get(payer, 0)) - used)
+
+
+def _payer_budget_refusal_display(
+    *,
+    payer: str,
+    clause: Mapping[str, Any],
+    headroom: int,
+) -> str:
+    """In-voice refusal for an explicit gold magnitude beyond the payer's
+    capacity (G4F-2 / UX-6 — the error path names the binding constraint
+    instead of the generic blame-the-player validation copy)."""
+    amount = int(clause.get("amount", 0) or 0)
+    if headroom <= 0:
+        return (
+            f"{payer} cannot raise that, Sire — their treasury bears "
+            "nothing more."
+        )
+    if str(clause.get("type") or "") == "gold_per_turn":
+        turns = max(1, int(clause.get("turns", 0) or 0))
+        per_turn_cap = headroom // turns
+        return (
+            f"{payer} cannot sustain {amount} gold a turn for {turns} "
+            f"turns, Sire — at most {per_turn_cap} a turn over that term."
+        )
+    return (
+        f"{payer} cannot raise {amount} gold, Sire — {headroom} is the "
+        "most their treasury bears."
+    )
 
 
 def _build_settlement_replace_confirm_dialogue(
@@ -386,6 +451,17 @@ def _handle_settlement_tier2_action(
             }
         protected_notes: List[str] = []
         seeded_events: List[Dict[str, str]] = []
+        # G4F-2 / DC-1: every gold grow (and the focused seed) is bounded by
+        # the payer's real capacity — the same SC-1/SC-33 formula the budget
+        # validator enforces — so a dial click can never author a package the
+        # restage revalidation would bounce.
+        payer_gold_budgets = compute_gold_payer_budgets(
+            world,
+            terms,
+            extra_payers=[
+                n for n in [str(proposer_leader or ""), *scope_courts] if n
+            ],
+        )
         new_terms = _redial_settlement_terms(
             terms=terms,
             scope_courts=scope_courts,
@@ -393,6 +469,7 @@ def _handle_settlement_tier2_action(
             proposer_side_leader=proposer_leader,
             protected_notes=protected_notes,
             seeded_events=seeded_events,
+            payer_gold_budgets=payer_gold_budgets,
         )
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope
@@ -742,6 +819,26 @@ def _handle_settlement_demand_action(
                     f"and {GOLD_PER_TURN_MAX_TURNS} turns, Sire.",
                 )
             clause["turns"] = int(turns)
+        # G4F-2 / DC-1: an explicit magnitude beyond the payer's capacity is
+        # refused HERE with the binding constraint named, never authored for
+        # the restage validator to bounce as a generic failure.
+        payer = str(clause.get("from") or "")
+        if payer:
+            candidate_terms = [dict(t) for t in terms]
+            candidate_terms[clause_index] = dict(clause)
+            headroom = _gold_headroom_for_payer(
+                world, candidate_terms, payer=payer, exclude_index=clause_index,
+            )
+            consumption = int(clause.get("amount", 0) or 0)
+            if ttype == "gold_per_turn":
+                consumption *= max(0, int(clause.get("turns", 0) or 0))
+            if consumption > headroom:
+                return _fail(
+                    "gold_payment_budget_conflict",
+                    _payer_budget_refusal_display(
+                        payer=payer, clause=clause, headroom=headroom,
+                    ),
+                )
         # A hand-set magnitude is player intent — §3.5: the dial sweep now
         # protects this line like any hand-authored one.
         clause["authored_by"] = "player"
@@ -1008,6 +1105,30 @@ def _handle_settlement_demand_action(
             "liberator": proposer_leader,
         }
 
+    # G4F-2 / DC-1: a gold line the payer cannot fund (explicit over-balance
+    # amount, or a default colliding with the payer's other package gold) is
+    # refused here with the binding constraint named — never authored for
+    # the restage validator to bounce.
+    if clause.get("type") in ("gold_indemnity", "gold_per_turn"):
+        gold_payer = str(clause.get("from") or "")
+        if gold_payer:
+            candidate_terms = [dict(t) for t in terms] + [dict(clause)]
+            headroom = _gold_headroom_for_payer(
+                world,
+                candidate_terms,
+                payer=gold_payer,
+                exclude_index=len(candidate_terms) - 1,
+            )
+            consumption = int(clause.get("amount", 0) or 0)
+            if clause.get("type") == "gold_per_turn":
+                consumption *= max(0, int(clause.get("turns", 0) or 0))
+            if consumption > headroom:
+                return _fail(
+                    "gold_payment_budget_conflict",
+                    _payer_budget_refusal_display(
+                        payer=gold_payer, clause=clause, headroom=headroom,
+                    ),
+                )
     # §3.5: hand-authored lines carry provenance — the dial sweep protects
     # them; per-line Remove is the player's deletion verb.
     clause["authored_by"] = "player"

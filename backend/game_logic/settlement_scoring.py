@@ -622,6 +622,42 @@ def calculate_term_harshness_penalty(raw_total_harshness: float) -> Dict[str, An
     }
 
 
+def compute_settlement_package_raw_harshness(
+    settlement_terms: Iterable[Mapping[str, Any]],
+    *,
+    proposer_side_participants: Iterable[str],
+) -> float:
+    """Gate-4 G4F-1 — raw harshness over the terms that BURDEN the accepting
+    side, in the existing clause weights (spec §6.acceptance line 1115).
+
+    The acceptance components are direction-partitioned:
+    ``term_harshness_penalty`` prices what the package EXTRACTS from the
+    accepting side, while ``concession_credit`` rewards what the proposer
+    pays, cedes, or submits to it (see ``calculate_concession_credit`` —
+    "the broader harshness pipeline already penalizes terms that burden the
+    accepting side; this component covers the opposite direction"). A
+    proposer-paid clause is therefore EXCLUDED here: pricing it as harshness
+    would make a sweetener LOWER acceptance, inverting the concession
+    contract. The burdened party for a clause is its payer/ceder/subject
+    (``from``); for ``liberation`` it is the ``lord_nation`` losing the
+    vassal. Directionless clauses (the shared ``peace``) carry no weight in
+    the accumulator either way.
+    """
+    proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
+    burden_terms: List[Dict[str, Any]] = []
+    for term in _iter_terms(settlement_terms):
+        burden_party = str(term.get("from") or term.get("lord_nation") or "")
+        if burden_party and burden_party in proposer_set:
+            continue
+        burden_terms.append(dict(term))
+    from backend.game_logic.diplomatic_templates import (
+        calculate_raw_treaty_harshness,
+    )
+    return calculate_raw_treaty_harshness(
+        {"clauses": [], "demands": burden_terms}
+    )
+
+
 def calculate_settlement_tier_legitimacy(
     side_pressure_score: int,
     raw_total_harshness: float,
@@ -1984,9 +2020,12 @@ def calculate_common_peace_acceptance(
     base_debug = calculate_base_side_pressure(side_pressure_score)
 
     # Step 4-5: tier legitimacy + harshness penalty share raw harshness.
+    # G4F-1: computed over the accepting-side burden terms only — proposer
+    # concessions belong to concession_credit, never to harshness.
     if raw_total_harshness is None:
-        raw_total_harshness = calculate_raw_treaty_harshness(
-            {"clauses": [], "demands": list(_iter_terms(settlement_terms))}
+        raw_total_harshness = compute_settlement_package_raw_harshness(
+            settlement_terms,
+            proposer_side_participants=proposer_participants,
         )
     tier_debug = calculate_settlement_tier_legitimacy(
         side_pressure_score, raw_total_harshness, settlement_terms,

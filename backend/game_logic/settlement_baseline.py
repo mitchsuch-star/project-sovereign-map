@@ -32,6 +32,7 @@ from backend.game_logic.settlement_scoring import (
     SETTLEMENT_LIVE_CLAUSE_TYPES,
     calculate_common_peace_acceptance,
     compute_direct_scores_by_enemy,
+    compute_settlement_package_raw_harshness,
     compute_side_pressure_score,
     project_balance_after_settlement,
     select_direct_score,
@@ -1817,8 +1818,14 @@ def compute_per_court_acceptance(
             direct_scores={c: dict(direct_scores.get(c) or {}) for c in scoreable},
         )
     if raw_total_harshness is None:
-        raw_total_harshness = calculate_raw_treaty_harshness(
-            {"clauses": [], "demands": terms}
+        # G4F-1: package harshness prices the accepting-side burden terms
+        # only (the scorer's own direction partition) — memoized here once
+        # for the whole per-court loop.
+        raw_total_harshness = compute_settlement_package_raw_harshness(
+            terms,
+            proposer_side_participants=list(
+                war_instance.get(proposer_side) or []
+            ),
         )
     if balance_projection is None and scoreable:
         # Slice 2 / §15 F-5: the projection is package-level (no leader arg),

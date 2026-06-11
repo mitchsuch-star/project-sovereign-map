@@ -2687,6 +2687,19 @@ class DiplomaticExecutor:
                     selected = options[idx - 1]
             except (ValueError, TypeError):
                 pass
+            # Gate-4 G4F-4: exact action-id match BEFORE any fuzzy keyword
+            # matching. The popup buttons carry the option's action id; the
+            # fuzzy matcher cannot see underscored ids ("submit_settlement_
+            # for_review" matches no label), which is how per-id carve-outs
+            # like `suspend_settlement_editor` accreted. Exact equality is
+            # safe — it can never misroute the way substring keywords can
+            # (the May-31 Belgium bug class).
+            if not selected:
+                choice_id = choice.strip()
+                for opt in options:
+                    if str(opt.get("action") or "") == choice_id:
+                        selected = opt
+                        break
             # Keyword matching
             if not selected:
                 choice_lower = choice.lower()

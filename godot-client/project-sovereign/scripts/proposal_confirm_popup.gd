@@ -107,6 +107,12 @@ func show_dialogue(data: Dictionary):
 	if footer_label:
 		footer_label.visible = is_settlement_table
 	if is_settlement_table:
+		# Gate-4 G4F-3: the treasury / narration / advisory / voice-beat
+		# preamble renders in the HEADER (above the scroll), so the scroll
+		# viewport holds only the court rows — at 2 courts the second
+		# court and the Add demand affordances were below the fold and the
+		# guided authoring surface read as missing.
+		content_label.append_text(_build_settlement_table_preamble(data))
 		_render_per_court_table()
 		if footer_label:
 			footer_label.text = ""
@@ -570,20 +576,20 @@ func _safe_str(v) -> String:
 func _render_per_court_table():
 	# GT-Slice-3 / UX-5: (re)paint the scrollable per-court table region from
 	# current_data. Client-side expansion toggles re-enter here without a
-	# round trip; backend mutations re-mount the whole popup instead.
+	# round trip; backend mutations re-mount the whole popup instead. The
+	# preamble (G4F-3) lives in the header label, so toggles never repaint it.
 	if per_court_table == null:
 		return
 	per_court_table.text = ""
 	per_court_table.append_text(_build_settlement_per_court_block(current_data))
 
-func _build_settlement_per_court_block(data: Dictionary) -> String:
-	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
-	# GT-Slice-3 (Guided Terms §3.1-§3.3): on the PROPOSE authoring surface each
-	# row additionally renders its current demand lines (per-line Remove +
-	# magnitude controls), the inline `Add demand` expansion fed by
-	# `demand_suggestions[]`, the §3.4 treasury line, and the REFRONT-9 focused
-	# component breakdown. REVIEW renders the same table frozen (UX-2 — no
-	# links, no authoring affordances).
+
+func _build_settlement_table_preamble(data: Dictionary) -> String:
+	# Gate-4 G4F-3: the table preamble — treasury line, table narration,
+	# targeted-posture advisory, and one-shot authoring voice beats — renders
+	# in the HEADER above PerCourtScroll so the scroll viewport spends its
+	# whole height on court rows (at 2 courts the second court and the Add
+	# demand affordances sat below the fold and read as missing).
 	var per_court = data.get("per_court_acceptance", [])
 	if not (per_court is Array) or per_court.size() == 0:
 		return ""
@@ -624,6 +630,22 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 				bbcode += "[i][color=#e0c070]\"%s\"[/color][/i]\n" % beat_line
 			else:
 				bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % beat_line
+	return bbcode
+
+func _build_settlement_per_court_block(data: Dictionary) -> String:
+	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
+	# GT-Slice-3 (Guided Terms §3.1-§3.3): on the PROPOSE authoring surface each
+	# row additionally renders its current demand lines (per-line Remove +
+	# magnitude controls), the inline `Add demand` expansion fed by
+	# `demand_suggestions[]`, the §3.4 treasury line, and the REFRONT-9 focused
+	# component breakdown. REVIEW renders the same table frozen (UX-2 — no
+	# links, no authoring affordances).
+	var per_court = data.get("per_court_acceptance", [])
+	if not (per_court is Array) or per_court.size() == 0:
+		return ""
+	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
+	var authoring_surface = (dialogue_mode == "PROPOSE")
+	var bbcode = ""
 	bbcode += "[b]The table[/b]\n"
 	var focused_court = _safe_str(data.get("focused_court"))
 	var court_index = -1

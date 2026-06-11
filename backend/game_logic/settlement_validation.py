@@ -176,6 +176,66 @@ def _check_gold_payment_budget_conflict(
     return None
 
 
+def compute_gold_payer_budgets(
+    world: Any,
+    terms: Iterable[Mapping[str, Any]],
+    extra_payers: Iterable[str] = (),
+) -> Dict[str, int]:
+    """Per-payer TOTAL gold capacity for a candidate package — the clamp-side
+    mirror of ``_check_gold_payment_budget_conflict`` (Gate-4 G4F-2 / DC-1).
+
+    Same capacity formula the validator enforces: current gold plus
+    ``max(0, net income) * the payer's longest submitted gold_per_turn
+    stream``, minus the payer's existing ``recurring_settlement_payments``
+    obligations. The Tier-2 dial and the guided magnitude verbs consume this
+    budget line by line so a system-authored mutation can never produce a
+    package the restage validator would bounce with
+    ``gold_payment_budget_conflict`` — valid-by-construction applies to the
+    author, not just the player (pre-flight audit DC-1).
+
+    ``extra_payers`` adds payers with no gold line yet (the focused-dial
+    seed's court / the proposer leader) so the seed can be budget-checked.
+    Returned budgets are floored at 0.
+    """
+    term_list = [t for t in (terms or []) if isinstance(t, Mapping)]
+    payers: Set[str] = {str(n) for n in (extra_payers or []) if n}
+    max_turns_by_payer: Dict[str, int] = {}
+    for clause in term_list:
+        if clause.get("type") not in ("gold_indemnity", "gold_lump", "gold_per_turn"):
+            continue
+        payer = str(clause.get("from") or "")
+        if not payer:
+            continue
+        payers.add(payer)
+        if clause.get("type") == "gold_per_turn":
+            turns = int(clause.get("turns", 0) or 0)
+            if turns > 0:
+                max_turns_by_payer[payer] = max(
+                    max_turns_by_payer.get(payer, 0), turns
+                )
+    nation_gold = getattr(world, "nation_gold", None) or {}
+    existing = getattr(world, "recurring_settlement_payments", None) or []
+    budgets: Dict[str, int] = {}
+    for payer in payers:
+        existing_obligation = 0
+        for entry in existing:
+            if not isinstance(entry, Mapping):
+                continue
+            if str(entry.get("from") or "") != payer:
+                continue
+            existing_obligation += int(
+                int(entry.get("amount_per_turn", 0) or 0)
+                * int(entry.get("turns_remaining", 0) or 0)
+            )
+        current_gold = int(nation_gold.get(payer, 0) or 0)
+        net_income = _estimate_payer_net_income_per_turn(world, payer)
+        capacity = current_gold + max(0, net_income) * max(
+            0, max_turns_by_payer.get(payer, 0)
+        )
+        budgets[payer] = max(0, int(capacity) - existing_obligation)
+    return budgets
+
+
 def _other_side(side: str) -> str:
     return "defenders" if side == "attackers" else "attackers"
 

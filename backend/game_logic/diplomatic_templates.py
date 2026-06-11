@@ -2708,14 +2708,33 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
                 )
             else:
                 harshness += 0.1 * (clause.get("amount", 0) / 100)
+        elif ctype == "gold_indemnity":
+            # Gate-4 G4F-1: settlement lump-sum gold uses the same
+            # 0.08-per-100-gold weight as the bilateral `gold_lump` demand.
+            # The settlement type name was never priced here, so ratified
+            # common-peace treaty records (settlement_ratify rates
+            # `{"clauses": pair_terms}`) stored zero gold harshness.
+            harshness += 0.08 * ((clause.get("amount", 0) or 0) / 100)
         elif ctype == "territory_cede":
-            harshness += 0.3 * len(clause.get("regions", []))
+            # Settlement clauses carry a singular `region`; bilateral treaty
+            # clauses carry a `regions` list. Count whichever is present so
+            # the settlement shape no longer rates 0.0 (G4F-1).
+            regions = clause.get("regions", [])
+            region_count = (
+                len(regions) if regions else (1 if clause.get("region") else 0)
+            )
+            harshness += 0.3 * region_count
         elif ctype == "manpower_per_turn":
             harshness += 0.15
         elif ctype == "forced_alliance":
             harshness += 0.4
         elif ctype == "liberation":
             harshness += 0.3
+        elif ctype in ("vassalage", "subjugation"):
+            # Settlement dependency clauses (G4F-1): the same 0.5 weight the
+            # demands dialect applies. Bilateral clauses never carry these
+            # type names, so bilateral sums are unchanged.
+            harshness += 0.5
     # PL-12-B: Include demands in harshness calculation
     for demand in treaty.get("demands", []):
         if not isinstance(demand, dict):
@@ -2739,7 +2758,11 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.3 * max(1, amt)
         elif dtype == "manpower_per_turn":
             harshness += 0.15
-        elif dtype == "gold_lump":
+        elif dtype in ("gold_lump", "gold_indemnity"):
+            # Gate-4 G4F-1: `gold_indemnity` is the settlement name for the
+            # same lump-sum demand — it fell through unmatched, so every
+            # settlement gold demand priced at ZERO acceptance cost and the
+            # Harsher/Ease gold dials could never move a court's score.
             harshness += 0.08 * (amt / 100)
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery", "manpower"):
             harshness += 0.15
