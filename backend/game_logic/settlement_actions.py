@@ -474,10 +474,13 @@ def _handle_settlement_tier2_action(
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope
         message = f"{verb} {target_label}."
-        if protected_notes:
+        # De-duplicate while preserving order — a whole-table sweep can emit
+        # the same treasury note once per concession line.
+        unique_notes = list(dict.fromkeys(protected_notes))
+        if unique_notes:
             # §3.5: a protected player-authored line is never invisible — the
             # skip/floor is named in the dial's own response message.
-            message = " ".join([message, *protected_notes])
+            message = " ".join([message, *unique_notes])
         # GT-Slice-V / DC-4 (D5): the focused-Harsher seed can author a
         # demand on a court that is beating France (press-past-zero — legal
         # agency; the scorer prices it). Talleyrand no longer authors it
@@ -501,6 +504,20 @@ def _handle_settlement_tier2_action(
             if event.get("group") == "demand"
             and direction_by_court.get(str(event.get("court") or "")) == "concede"
         ]
+        # G4F-5: the ceiling/protection notes must reach the PLAYER, not just
+        # the terminal — the dial response's `message` prints behind the modal
+        # popup, so a press at the ceiling read as a wordless flash. The notes
+        # ride the restaged dialogue as one-shot voice beats (the same carrier
+        # as the DC-4 caution), which the popup preamble already renders.
+        voice_beats.extend(
+            {
+                "kind": "dial_note",
+                "speaker": "Talleyrand",
+                "nation": "",
+                "line": note,
+            }
+            for note in unique_notes
+        )
         return _restage_settlement_after_redraw(
             world,
             dialogue,

@@ -21,6 +21,18 @@ shapes and fixed:
 - G4L1-3: the per-court scroll viewport (190px) hid the second court and
   every ``Add demand`` affordance below the fold; the preamble now renders
   in the header and the viewport fits the court rows.
+- G4F-5 (leg-2+ follow-up, June 11): the whole-table Harsher/More generous
+  dial was a SILENT DEAD CLICK on a gold-free table — the sweep only tunes
+  existing gold/territory lines, the seed was gated to focused
+  (``len(scope) == 1``) dials on clause-less courts, and the multilateral
+  smoke baseline authors no gold. Six Harsher clicks changed nothing,
+  wordlessly ("Pressed the whole table." printed behind the modal popup).
+  Fix: the dial seeds a modest gold clause on EVERY scoped court the sweep
+  left unchanged and unnoted (budget/cap/leader-gated, cap break appends a
+  note), and the ceiling/protection notes now ride the restaged dialogue as
+  one-shot ``authoring_voice_beats`` (kind ``dial_note``) so the popup
+  preamble renders them — the D3 never-wordless contract, in the popup the
+  player is actually looking at.
 """
 
 from __future__ import annotations
@@ -29,12 +41,17 @@ from backend.game_logic.diplomatic_templates import (
     calculate_raw_treaty_harshness,
 )
 from backend.game_logic.settlement_preview import (
+    SETTLEMENT_DIAL_GOLD_STEP,
     handle_settlement_dialogue_action,
     stage_settlement_confirm,
 )
 from backend.game_logic.settlement_scoring import (
+    MAX_SETTLEMENT_CLAUSE_COUNT,
     calculate_common_peace_acceptance,
     compute_settlement_package_raw_harshness,
+)
+from backend.game_logic.settlement_staging import (
+    _redial_settlement_terms,
 )
 from backend.models.world_state import WorldState
 from tests.helpers.full_europe_settlement_fixtures import (
@@ -447,3 +464,230 @@ class TestPerCourtViewport:
         scroll_chunk = scene.split('[node name="PerCourtScroll"', 1)[1]
         scroll_chunk = scroll_chunk.split("[node", 1)[0]
         assert "custom_minimum_size = Vector2(0, 320)" in scroll_chunk
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-5 — the whole-table dial is never a silent dead click
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _strip_to_peace_only(world, dialogue):
+    """Replace the staged draft's terms with the bare shared peace clause —
+    the live leg-2 smoke shape (the tuned multilateral baseline authored no
+    gold, so the whole-table sweep had nothing to tune)."""
+    refreshed = dict(dialogue)
+    refreshed["settlement_terms"] = [{"type": "peace"}]
+    world.dialogue_manager.replace(refreshed)
+    return refreshed
+
+
+class TestWholeTableDialSeedsUnpressedCourts:
+    def test_whole_table_harsher_seeds_every_unpressed_court(self):
+        """The live dead click: peace + a kept territory demand, no gold.
+        Pre-fix the whole-table sweep changed nothing (territory demands are
+        KEPT on harsher, the seed was focused-only) — now every scoped court
+        without a material delta gets the modest seed."""
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "territory_cede",
+                "from": "Britain",
+                "to": "France",
+                "region": "Netherlands",
+            },
+        ]
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+        )
+        # The kept territory demand survives untouched (identity is Tier 3).
+        terr = [t for t in out if t.get("type") == "territory_cede"]
+        assert len(terr) == 1 and terr[0]["region"] == "Netherlands"
+        # BOTH courts now carry a pressed gold demand — the click moved the
+        # needle for every court the label claims to press.
+        for court in ("Britain", "Prussia"):
+            seeds = [
+                t for t in out
+                if t.get("type") == "gold_indemnity" and t.get("from") == court
+            ]
+            assert len(seeds) == 1, f"no seed for {court}: {out}"
+            assert seeds[0]["to"] == "France"
+            assert seeds[0]["amount"] == SETTLEMENT_DIAL_GOLD_STEP
+
+    def test_repeat_whole_table_clicks_accumulate(self):
+        """Click 2 grows what click 1 seeded — repeated presses escalate
+        instead of re-producing the same package."""
+        terms = [{"type": "peace"}]
+        first = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+        )
+        second = _redial_settlement_terms(
+            terms=first,
+            scope_courts=["Britain", "Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+        )
+        for court in ("Britain", "Prussia"):
+            gold = [
+                t for t in second
+                if t.get("type") == "gold_indemnity" and t.get("from") == court
+            ]
+            assert len(gold) == 1
+            assert gold[0]["amount"] == 2 * SETTLEMENT_DIAL_GOLD_STEP
+
+    def test_focused_press_on_territory_only_court_seeds_gold(self):
+        """A focused Press on a court whose only slice is a KEPT territory
+        demand was equally dead pre-fix (the court counted as touched, so the
+        seed never fired). Unchanged-and-unnoted is the seed condition now."""
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "territory_cede",
+                "from": "Prussia",
+                "to": "France",
+                "region": "Silesia",
+            },
+        ]
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+        )
+        gold = [
+            t for t in out
+            if t.get("type") == "gold_indemnity" and t.get("from") == "Prussia"
+        ]
+        assert len(gold) == 1 and gold[0]["amount"] == SETTLEMENT_DIAL_GOLD_STEP
+        assert any(t.get("region") == "Silesia" for t in out)
+
+    def test_whole_table_generous_eases_every_court_across_clicks(self):
+        """The generous mirror: click 1 drops the suggested demand (that IS
+        Britain's delta) and seeds a proposer concession to clause-less
+        Prussia; click 2 seeds the now clause-less Britain and grows
+        Prussia's concession."""
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "territory_cede",
+                "from": "Britain",
+                "to": "France",
+                "region": "Netherlands",
+            },
+        ]
+        first = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="generous",
+            proposer_side_leader="France",
+        )
+        # The suggested territory demand dropped; no Britain seed on the same
+        # click (the drop is Britain's material delta).
+        assert not any(t.get("type") == "territory_cede" for t in first)
+        assert not any(t.get("to") == "Britain" for t in first)
+        prussia = [t for t in first if t.get("to") == "Prussia"]
+        assert len(prussia) == 1
+        assert prussia[0]["from"] == "France"
+        assert prussia[0]["amount"] == SETTLEMENT_DIAL_GOLD_STEP
+
+        second = _redial_settlement_terms(
+            terms=first,
+            scope_courts=["Britain", "Prussia"],
+            direction="generous",
+            proposer_side_leader="France",
+        )
+        britain = [t for t in second if t.get("to") == "Britain"]
+        assert len(britain) == 1
+        assert britain[0]["amount"] == SETTLEMENT_DIAL_GOLD_STEP
+        prussia2 = [t for t in second if t.get("to") == "Prussia"]
+        assert prussia2[0]["amount"] == 2 * SETTLEMENT_DIAL_GOLD_STEP
+
+    def test_capped_package_notes_instead_of_silent_break(self):
+        """At MAX_SETTLEMENT_CLAUSE_COUNT the seed loop must SAY it has no
+        room (the D3 never-wordless contract) — not break silently."""
+        terms = [{"type": "peace"}]
+        i = 0
+        while len(terms) < MAX_SETTLEMENT_CLAUSE_COUNT:
+            terms.append({
+                "type": "gold_indemnity",
+                "from": "Britain",
+                "to": "France",
+                "amount": 1500,  # at the hard cap — presses note, not grow
+            })
+            i += 1
+        notes: list = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+            protected_notes=notes,
+        )
+        # No over-cap seed for clause-less Prussia...
+        assert len(out) == MAX_SETTLEMENT_CLAUSE_COUNT
+        assert not any(t.get("from") == "Prussia" for t in out)
+        # ...and the refusal is named, never wordless.
+        assert any("no further terms" in n for n in notes), notes
+
+
+class TestDialFeedbackReachesThePopup:
+    def test_whole_table_press_on_peace_only_draft_moves_terms_live(self):
+        """The exact live repro, through the real handler + real scorer: a
+        peace-only PROPOSE draft, one whole-table press → both courts carry
+        a gold demand and the response restages the dialogue."""
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        refreshed = _strip_to_peace_only(world, dialogue)
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=refreshed,
+            action_params={
+                "action": "settlement_dial_harsher",
+                "scope": "table",
+            },
+        )
+        assert result["success"] is True, result.get("error_display")
+        terms = result["diplomatic_dialogue"].get("settlement_terms") or []
+        assert _gold_for(terms, "Britain") == SETTLEMENT_DIAL_GOLD_STEP
+        assert _gold_for(terms, "Prussia") == SETTLEMENT_DIAL_GOLD_STEP
+
+    def test_ceiling_notes_ride_the_restaged_dialogue_as_voice_beats(self):
+        """G4F-5b: `message` prints to the terminal BEHIND the modal popup,
+        so a ceiling press still read as a wordless flash. The notes must
+        ride the restaged dialogue as one-shot `authoring_voice_beats` —
+        the carrier the popup preamble renders."""
+        world, _war = _winning_two_court_world(prussia_gold=0)
+        dialogue = _stage_propose(world)
+        refreshed = _strip_to_peace_only(world, dialogue)
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=refreshed,
+            action_params={
+                "action": "settlement_dial_harsher",
+                "scope": "table",
+            },
+        )
+        assert result["success"] is True, result.get("error_display")
+        new_dialogue = result["diplomatic_dialogue"]
+        # Britain (funded) seeded; Prussia (broke) skipped with a note.
+        terms = new_dialogue.get("settlement_terms") or []
+        assert _gold_for(terms, "Britain") == SETTLEMENT_DIAL_GOLD_STEP
+        assert _gold_for(terms, "Prussia") == 0
+        beats = new_dialogue.get("authoring_voice_beats") or []
+        note_lines = [
+            str(b.get("line") or "")
+            for b in beats
+            if b.get("kind") == "dial_note"
+        ]
+        assert any("Prussia can pay no more" in line for line in note_lines), (
+            f"the skip note must reach the popup, got beats: {beats}"
+        )
+        # The terminal message still carries it too.
+        assert "Prussia can pay no more" in str(result.get("message") or "")

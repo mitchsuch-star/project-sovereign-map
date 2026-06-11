@@ -773,18 +773,24 @@ def _redial_settlement_terms(
     the protection is never invisible. Untagged (suggested/seeded) clauses
     keep the full legacy semantics above.
 
-    A FOCUSED dial (exactly one scoped court) with no material slice for that
-    court seeds a single modest gold clause in the dial direction (press → a
-    demand FROM the court; ease → a concession the proposer PAYS to it) so the
-    one-click ``Ease <holdout>`` / ``press <court>`` affordance actually moves
-    the needle — but only while the package is under
-    ``MAX_SETTLEMENT_CLAUSE_COUNT`` and the proposer leader is known (both seed
-    shapes reference the leader). A capped or leaderless package yields a no-op
-    redraft rather than an over-cap / malformed one, so the focused click always
-    produces a valid-by-construction package. Multi-court whole-table dials
-    (scope ≥ 2) never seed — they only steer existing terms. Clauses that touch
-    no scoped court — including the shared ``{"type": "peace"}`` — are copied
-    through untouched.
+    **Gate-4 G4F-5 (dial dead-click):** any scoped court the sweep leaves
+    WITHOUT a material delta — no slice at all, only a kept territory demand,
+    only identity-bearing clauses — is seeded with a single modest gold clause
+    in the dial direction (press → a demand FROM the court; ease → a
+    concession the proposer PAYS to it), so a dial click always moves the
+    needle for every court it claims to press/ease. This applies to the
+    whole-table dial and the focused dial alike (pre-G4F-5 only a focused dial
+    on a clause-LESS court seeded, so "Harsher terms" on a gold-free
+    multi-court table was a silent dead click — the same D3 silent-dial class
+    the leg-1 fixes outlawed at the gold ceiling). Seeds stay valid by
+    construction: they fire only while the package is under
+    ``MAX_SETTLEMENT_CLAUSE_COUNT`` (a capped package appends a player-facing
+    note instead of seeding) and only while the proposer leader is known (both
+    seed shapes reference the leader; a leaderless package yields a no-op
+    redraft rather than a malformed clause). A court that already drew a
+    ceiling/protection note this sweep is not additionally seeded — the note
+    is its feedback. Clauses that touch no scoped court — including the shared
+    ``{"type": "peace"}`` — are copied through untouched.
 
     **Gate-4 G4F-2 (DC-1):** ``payer_gold_budgets`` (from
     ``compute_gold_payer_budgets`` — the clamp-side mirror of the SC-1/SC-33
@@ -798,7 +804,12 @@ def _redial_settlement_terms(
     scope = {str(n) for n in (scope_courts or []) if n}
     leader = str(proposer_side_leader or "")
     out: List[Dict[str, Any]] = []
-    touched: Set[str] = set()
+    # G4F-5: `changed` = courts that took a material delta this sweep (grown /
+    # shrunk / dropped clause); `noted` = courts whose lack of movement already
+    # produced a player-facing note (ceiling, §3.5 protection). Courts in
+    # NEITHER set are the silent dead-click class — they get the seed below.
+    changed: Set[str] = set()
+    noted: Set[str] = set()
     remaining_budget: Optional[Dict[str, int]] = (
         dict(payer_gold_budgets) if payer_gold_budgets is not None else None
     )
@@ -832,11 +843,11 @@ def _redial_settlement_terms(
             if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
                 _consume_budget(clause)
             continue
-        touched.add(court)
         is_demand = frm == court  # the court pays/cedes => a demand on it
         player_authored = str(clause.get("authored_by") or "") == "player"
         if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
             amount = int(clause.get("amount", 0) or 0)
+            original_amount = amount
             # Grow on harsher-demand / generous-concession; shrink otherwise.
             if (direction == "harsher") == is_demand:
                 grown = min(
@@ -859,6 +870,7 @@ def _redial_settlement_terms(
                     # A press at the ceiling — budget OR the 1500 hard cap —
                     # keeps the amount and SAYS so (the D3 silent-dial class:
                     # a no-op click must never be wordless).
+                    noted.add(court)
                     if is_demand:
                         notes.append(f"{court} can pay no more, Sire.")
                     else:
@@ -871,6 +883,7 @@ def _redial_settlement_terms(
                 # past) the dial-step floor instead of dropping.
                 clipped = max(int(clause.get("amount", 0) or 0), 0)
                 amount = min(SETTLEMENT_DIAL_GOLD_STEP, clipped) or SETTLEMENT_DIAL_GOLD_STEP
+                noted.add(court)
                 if is_demand:
                     notes.append(
                         f"Your demand of {amount} gold from {court} stands, Sire."
@@ -880,8 +893,11 @@ def _redial_settlement_terms(
                         f"Your offer of {amount} gold to {court} stands, Sire."
                     )
             elif amount <= 0:
+                changed.add(court)  # the drop IS the material delta
                 continue  # drop the clause (count down) — never below zero
             clause["amount"] = int(amount)
+            if int(amount) != original_amount:
+                changed.add(court)
             out.append(clause)
             _consume_budget(clause)
             continue
@@ -893,6 +909,7 @@ def _redial_settlement_terms(
                 if player_authored:
                     # §3.5: the sweep skips player-authored territory lines —
                     # per-line Remove is the player's deletion verb.
+                    noted.add(court)
                     region = str(clause.get("region") or "")
                     if is_demand:
                         notes.append(f"Your demand for {region} stands, Sire.")
@@ -900,24 +917,31 @@ def _redial_settlement_terms(
                         notes.append(f"Your offer of {region} stands, Sire.")
                     out.append(clause)
                     continue
+                changed.add(court)  # the drop IS the material delta
                 continue
             out.append(clause)
             continue
         # Identity-bearing clause types (liberation, alliance, vassalage, …) are
         # not Tier-2 magnitude levers — pass them through unchanged.
         out.append(clause)
-    # Focused-dial seed. Only fires for exactly one scoped court that the dial
-    # left untouched, only while a proposer leader is known (both seed shapes
-    # reference the leader — symmetric guard), and only while the package is
-    # under the clause cap. A capped package yields a NO-OP redraft rather than
-    # an over-cap one, so the one-click ``Press <court>`` / ``Ease <court>``
-    # affordance always produces a valid-by-construction package (it never
-    # authors a draft the restage revalidation would reject for
-    # ``max_clause_count_exceeded``).
-    if len(scope) == 1 and leader:
-        for court in sorted(scope - touched):
+    # G4F-5 unpressed-court seed. The sweep above only TUNES existing material
+    # lines, so any scoped court it left without a delta or a note (no slice
+    # at all, a kept territory demand, identity-only clauses) would make the
+    # dial a silent dead click — six "Harsher terms" clicks on a gold-free
+    # multi-court table changed nothing, wordlessly. Every such court now gets
+    # the modest gold seed the focused dial always had (press → a demand FROM
+    # the court; ease → a concession the proposer PAYS), still gated by the
+    # proposer-leader guard (both seed shapes reference the leader — symmetric
+    # guard) and the clause cap. A capped package appends a player-facing note
+    # rather than seeding (never an over-cap draft the restage revalidation
+    # would reject for ``max_clause_count_exceeded``) and never breaks
+    # silently.
+    if leader:
+        for court in sorted(scope - changed - noted):
             if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
-                break  # hard cap honored — no over-cap seed
+                # Hard cap honored — no over-cap seed, but never wordless.
+                notes.append("The accord can bear no further terms, Sire.")
+                break
             seed_payer = court if direction == "harsher" else leader
             if (
                 remaining_budget is not None
