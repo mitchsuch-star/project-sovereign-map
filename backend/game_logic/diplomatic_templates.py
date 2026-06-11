@@ -1570,6 +1570,21 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "peace bought on installment, gentler on the treasury than the "
         "war."
     ),
+    # ───────────────────────────────────────────────────────────────────
+    # GT-A5 (GT-Slice-5) — the dial's ceiling escalation, voiced. Fired
+    # as `talleyrand_line` authoring beats when a press/ease at an
+    # exhausted gold lever authors the court's suggested territory clause
+    # instead (spec §3.5 GT-A5; re-front OQ#7 amendment). Per cleanup
+    # SC-32 D5, no "conference"/"congress"/"veto" copy.
+    # ───────────────────────────────────────────────────────────────────
+    "settlement_dial_escalation_demand_talleyrand": (
+        "{court}'s purse is spent, Sire, so I have asked for land in its "
+        "place — {region}."
+    ),
+    "settlement_dial_escalation_offer_talleyrand": (
+        "The treasury can spare no more coin, Sire — I have offered "
+        "{court} {region} instead."
+    ),
 }
 
 

@@ -746,6 +746,7 @@ def _redial_settlement_terms(
     protected_notes: Optional[List[str]] = None,
     seeded_events: Optional[List[Dict[str, str]]] = None,
     payer_gold_budgets: Optional[Mapping[str, int]] = None,
+    territory_escalations: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
     the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
@@ -800,16 +801,33 @@ def _redial_settlement_terms(
     amount plus a player-facing note ("Prussia can pay no more, Sire.")
     instead of an over-budget draft the restage validator would bounce —
     valid-by-construction applies to the system author too.
+
+    **GT-A5 (user-approved June 11, 2026 — the OQ#7 crossing):**
+    ``territory_escalations`` (court → ready territory clause, built by the
+    dial handler from the SAME selectors the guided row suggestions show)
+    lets a court whose gold lever is EXHAUSTED this sweep — grow at the
+    budget/hard cap, or the unpressed-court seed unfundable — escalate ONCE
+    into the suggested territory clause in the dial direction instead of
+    merely noting (the bilateral ``modify_harsh`` round-2 ladder). The
+    caller pre-applies the anti-balloon guards (one escalated territory per
+    court per direction, promised-region dedupe, never vassalage-class);
+    this pass honors the clause cap and records a ``territory_escalation``
+    seeded event so the handler can voice the authored line. Exhausted
+    courts that do not escalate keep the D3 ceiling note — never wordless.
     """
     scope = {str(n) for n in (scope_courts or []) if n}
     leader = str(proposer_side_leader or "")
     out: List[Dict[str, Any]] = []
     # G4F-5: `changed` = courts that took a material delta this sweep (grown /
     # shrunk / dropped clause); `noted` = courts whose lack of movement already
-    # produced a player-facing note (ceiling, §3.5 protection). Courts in
-    # NEITHER set are the silent dead-click class — they get the seed below.
+    # produced a §3.5 protection note. Courts in NEITHER set (nor `ceiling`)
+    # are the silent dead-click class — they get the seed below.
+    # GT-A5: `ceiling` = courts whose gold lever exhausted this sweep (grow at
+    # the budget/hard cap, or the seed unfundable). They escalate into their
+    # suggested territory clause in the tail pass, or fall back to the D3 note.
     changed: Set[str] = set()
     noted: Set[str] = set()
+    ceiling: Set[str] = set()
     remaining_budget: Optional[Dict[str, int]] = (
         dict(payer_gold_budgets) if payer_gold_budgets is not None else None
     )
@@ -868,13 +886,11 @@ def _redial_settlement_terms(
                         grown = max(amount, affordable)
                 if grown == amount:
                     # A press at the ceiling — budget OR the 1500 hard cap —
-                    # keeps the amount and SAYS so (the D3 silent-dial class:
-                    # a no-op click must never be wordless).
-                    noted.add(court)
-                    if is_demand:
-                        notes.append(f"{court} can pay no more, Sire.")
-                    else:
-                        notes.append("The treasury can bear no more, Sire.")
+                    # keeps the amount. GT-A5: the note is DEFERRED to the
+                    # tail pass, which first tries the territory escalation
+                    # and only then falls back to the D3 ceiling note (a
+                    # no-op click must still never be wordless).
+                    ceiling.add(court)
                 amount = grown
             else:
                 amount -= SETTLEMENT_DIAL_GOLD_STEP
@@ -937,7 +953,7 @@ def _redial_settlement_terms(
     # would reject for ``max_clause_count_exceeded``) and never breaks
     # silently.
     if leader:
-        for court in sorted(scope - changed - noted):
+        for court in sorted(scope - changed - noted - ceiling):
             if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
                 # Hard cap honored — no over-cap seed, but never wordless.
                 notes.append("The accord can bear no further terms, Sire.")
@@ -949,12 +965,10 @@ def _redial_settlement_terms(
                 and max(0, remaining_budget[seed_payer])
                 < SETTLEMENT_DIAL_GOLD_STEP
             ):
-                # G4F-2: a seed the payer cannot fund is skipped with a
-                # note, never authored for the validator to bounce.
-                if direction == "harsher":
-                    notes.append(f"{court} can pay no more, Sire.")
-                else:
-                    notes.append("The treasury can bear no more, Sire.")
+                # G4F-2: a seed the payer cannot fund is never authored for
+                # the validator to bounce. GT-A5: ceiling class — the tail
+                # pass escalates to territory or notes.
+                ceiling.add(court)
                 continue
             if direction == "harsher":
                 seed = {
@@ -975,6 +989,38 @@ def _redial_settlement_terms(
                 # fired (and in which arm) so a demand seeded on a court that
                 # is beating France gets Talleyrand's guard line.
                 seeded_events.append({"court": court, "group": seed_group})
+    # GT-A5 escalation tail (user-approved June 11, 2026). A FULLY-STUCK
+    # ceiling court (no material delta anywhere in its slice) authors the
+    # caller-supplied suggestion-engine territory clause in the dial
+    # direction — once per court per direction; the caller's candidate map
+    # already enforces that guard plus promised-region dedupe and the
+    # never-vassalage-class scope. Courts that cannot escalate (no candidate,
+    # cap reached, or a partial delta elsewhere in their slice) keep the D3
+    # ceiling note — the click is never wordless.
+    escalated: Set[str] = set()
+    if leader:
+        for court in sorted(ceiling - changed):
+            candidate = (territory_escalations or {}).get(court)
+            if not isinstance(candidate, Mapping):
+                continue
+            if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
+                notes.append("The accord can bear no further terms, Sire.")
+                break
+            clause = dict(candidate)
+            out.append(clause)
+            escalated.add(court)
+            if seeded_events is not None:
+                seeded_events.append({
+                    "court": court,
+                    "group": "demand" if direction == "harsher" else "offer",
+                    "kind": "territory_escalation",
+                    "region": str(clause.get("region") or ""),
+                })
+    for court in sorted(ceiling - escalated):
+        if direction == "harsher":
+            notes.append(f"{court} can pay no more, Sire.")
+        else:
+            notes.append("The treasury can bear no more, Sire.")
     return out
 
 

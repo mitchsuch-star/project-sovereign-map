@@ -358,6 +358,96 @@ def _apply_scope_replace_confirm(
     }
 
 
+def _dial_territory_escalation_candidates(
+    world: Any,
+    *,
+    terms: List[Mapping[str, Any]],
+    scope_courts: List[str],
+    direction: str,
+    proposer_side_participants: List[str],
+    proposer_leader: str,
+) -> Dict[str, Dict[str, Any]]:
+    """GT-A5 (user-approved June 11, 2026) — one ready-to-author territory
+    clause per scoped court that may legally escalate, sourced from the SAME
+    selectors the guided row suggestions show (`Take <region>` /
+    `Offer <region>` — never a dial-invented identity). The redial tail
+    authors a candidate only for a court whose gold lever exhausted this
+    sweep (ceiling class), under the clause cap.
+
+    Anti-balloon guards applied HERE (the spec §3.5 GT-A5 rule):
+    - at most ONE escalated territory clause per court per direction — a
+      court with an existing direction-matching territory line never gets a
+      second from the dial (the bilateral ``modify_harsh`` ``has_territory``
+      guard, direction-scoped); further land is an explicit row click;
+    - promised-region dedupe across the package AND across this click's own
+      candidates (two courts may not be promised the same France-held
+      region);
+    - territory only — vassalage/subjugation/liberation-class clauses are
+      never auto-authored.
+    """
+    leader = str(proposer_leader or "")
+    if not leader:
+        return {}
+    claimed = set(_promised_regions_in_terms(terms))
+    candidates: Dict[str, Dict[str, Any]] = {}
+    for raw_court in scope_courts:
+        court = str(raw_court or "")
+        if not court:
+            continue
+        if direction == "harsher":
+            already_escalated = any(
+                isinstance(t, Mapping)
+                and str(t.get("type") or "").startswith("territory")
+                and str(t.get("from") or "") == court
+                for t in terms
+            )
+            if already_escalated:
+                continue
+            region = str(
+                _demand_baseline_select_region(
+                    world,
+                    court=court,
+                    proposer_side_participants=proposer_side_participants,
+                    excluded_regions=claimed,
+                )
+                or ""
+            )
+            if not region or region in claimed:
+                continue
+            claimed.add(region)
+            candidates[court] = {
+                "type": "territory_cede", "from": court, "to": leader,
+                "region": region, "authored_by": "talleyrand",
+            }
+        else:
+            already_escalated = any(
+                isinstance(t, Mapping)
+                and str(t.get("type") or "").startswith("territory")
+                and str(t.get("from") or "") == leader
+                and str(t.get("to") or "") == court
+                for t in terms
+            )
+            if already_escalated:
+                continue
+            region = str(
+                _guided_region_offer_candidate(
+                    world,
+                    court=court,
+                    proposer_side_participants=proposer_side_participants,
+                    settlement_terms=terms,
+                )
+                or ""
+            )
+            if not region or region in claimed:
+                continue
+            claimed.add(region)
+            candidates[court] = {
+                "type": "territory_cede", "from": leader, "to": court,
+                "region": region, "authored_by": "talleyrand",
+            }
+    return candidates
+
+
 def _handle_settlement_tier2_action(
     world: Any,
     *,
@@ -462,6 +552,19 @@ def _handle_settlement_tier2_action(
                 n for n in [str(proposer_leader or ""), *scope_courts] if n
             ],
         )
+        # GT-A5: pre-compute the suggestion-engine territory escalation each
+        # scoped court could take if its gold lever exhausts this sweep —
+        # the redial tail authors one only for ceiling-class courts.
+        territory_escalations = _dial_territory_escalation_candidates(
+            world,
+            terms=terms,
+            scope_courts=scope_courts,
+            direction=direction,
+            proposer_side_participants=[
+                str(n) for n in (war_instance.get(proposer_side) or []) if n
+            ],
+            proposer_leader=str(proposer_leader or ""),
+        )
         new_terms = _redial_settlement_terms(
             terms=terms,
             scope_courts=scope_courts,
@@ -470,10 +573,27 @@ def _handle_settlement_tier2_action(
             protected_notes=protected_notes,
             seeded_events=seeded_events,
             payer_gold_budgets=payer_gold_budgets,
+            territory_escalations=territory_escalations,
         )
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope
         message = f"{verb} {target_label}."
+        # GT-A5: every territory escalation the redraw authored is VOICED —
+        # Talleyrand explains the pivot from coin to land in the popup beat
+        # AND the terminal message.
+        escalation_lines = [
+            resolve_settlement_voice_line(
+                "settlement_dial_escalation_demand_talleyrand"
+                if event.get("group") == "demand"
+                else "settlement_dial_escalation_offer_talleyrand",
+                court=str(event.get("court") or ""),
+                region=str(event.get("region") or ""),
+            )
+            for event in seeded_events
+            if event.get("kind") == "territory_escalation"
+        ]
+        if escalation_lines:
+            message = " ".join([message, *escalation_lines])
         # De-duplicate while preserving order — a whole-table sweep can emit
         # the same treasury note once per concession line.
         unique_notes = list(dict.fromkeys(protected_notes))
@@ -491,7 +611,25 @@ def _handle_settlement_tier2_action(
             for r in (dialogue.get("per_court_acceptance") or [])
             if isinstance(r, Mapping)
         }
+        # GT-A5: the escalation lines lead (they explain WHAT the click
+        # authored); the DC-4 caution follows where it applies — an escalated
+        # demand on a concede-direction court draws BOTH.
         voice_beats: List[Dict[str, str]] = [
+            {
+                "kind": "talleyrand_line",
+                "speaker": "Talleyrand",
+                "nation": str(event.get("court") or ""),
+                "line": line,
+            }
+            for event, line in zip(
+                [
+                    e for e in seeded_events
+                    if e.get("kind") == "territory_escalation"
+                ],
+                escalation_lines,
+            )
+        ]
+        voice_beats.extend(
             {
                 "kind": "talleyrand_caution",
                 "speaker": "Talleyrand",
@@ -503,7 +641,7 @@ def _handle_settlement_tier2_action(
             for event in seeded_events
             if event.get("group") == "demand"
             and direction_by_court.get(str(event.get("court") or "")) == "concede"
-        ]
+        )
         # G4F-5: the ceiling/protection notes must reach the PLAYER, not just
         # the terminal — the dial response's `message` prints behind the modal
         # popup, so a press at the ceiling read as a wordless flash. The notes

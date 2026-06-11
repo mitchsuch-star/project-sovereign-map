@@ -50,6 +50,9 @@ from backend.game_logic.settlement_scoring import (
     calculate_common_peace_acceptance,
     compute_settlement_package_raw_harshness,
 )
+from backend.game_logic.settlement_actions import (
+    _dial_territory_escalation_candidates,
+)
 from backend.game_logic.settlement_staging import (
     _redial_settlement_terms,
 )
@@ -311,9 +314,13 @@ class TestDialBudgetClamp:
             "G4F-1: pressed gold must move the pressed court's score"
         )
 
-    def test_focused_press_seed_skipped_when_court_cannot_fund(self):
-        """A focused press on a court with no slice and no treasury skips the
-        seed with a note instead of authoring an unpayable demand."""
+    def test_focused_press_on_broke_court_never_authors_gold(self):
+        """A focused press on a court with no slice and no treasury never
+        authors an unpayable gold demand (G4F-2). GT-A5: the exhausted gold
+        lever now escalates into the court's suggested TERRITORY demand —
+        the press still moves the needle, just not in coin — and the pivot
+        is voiced; a SECOND press (territory already escalated) falls back
+        to the ceiling note."""
         world, _war = _winning_two_court_world(prussia_gold=0)
         dialogue = _stage_propose(world)
         # Strike every Prussia-touching material clause so the focused press
@@ -339,7 +346,37 @@ class TestDialBudgetClamp:
         assert result["success"] is True, result.get("error_display")
         new_terms = result["diplomatic_dialogue"].get("settlement_terms") or []
         assert _gold_for(new_terms, "Prussia") == 0
-        assert "can pay no more" in str(result.get("message") or "")
+        prussia_territory = [
+            t for t in new_terms
+            if str(t.get("type") or "").startswith("territory")
+            and t.get("from") == "Prussia"
+        ]
+        assert len(prussia_territory) == 1, new_terms
+        assert prussia_territory[0].get("authored_by") == "talleyrand"
+        assert "asked for land" in str(result.get("message") or "")
+
+        # Second press: gold still unfundable, territory already escalated —
+        # the once-per-court-per-direction guard holds and the click falls
+        # back to the D3 ceiling note (never a second land grab, never
+        # wordless).
+        second = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=result["diplomatic_dialogue"],
+            action_params={
+                "action": "settlement_dial_harsher",
+                "scope": "Prussia",
+            },
+        )
+        assert second["success"] is True, second.get("error_display")
+        second_terms = second["diplomatic_dialogue"].get("settlement_terms") or []
+        assert _gold_for(second_terms, "Prussia") == 0
+        assert len([
+            t for t in second_terms
+            if str(t.get("type") or "").startswith("territory")
+            and t.get("from") == "Prussia"
+        ]) == 1
+        assert "can pay no more" in str(second.get("message") or "")
 
 
 class TestMagnitudeBudgetRefusals:
@@ -657,11 +694,13 @@ class TestDialFeedbackReachesThePopup:
         assert _gold_for(terms, "Britain") == SETTLEMENT_DIAL_GOLD_STEP
         assert _gold_for(terms, "Prussia") == SETTLEMENT_DIAL_GOLD_STEP
 
-    def test_ceiling_notes_ride_the_restaged_dialogue_as_voice_beats(self):
+    def test_ceiling_feedback_rides_the_restaged_dialogue_as_voice_beats(self):
         """G4F-5b: `message` prints to the terminal BEHIND the modal popup,
-        so a ceiling press still read as a wordless flash. The notes must
-        ride the restaged dialogue as one-shot `authoring_voice_beats` —
-        the carrier the popup preamble renders."""
+        so ceiling feedback must ride the restaged dialogue as one-shot
+        `authoring_voice_beats` — the carrier the popup preamble renders.
+        Click 1: the broke court ESCALATES (GT-A5) and the pivot is a
+        `talleyrand_line` beat. Click 2: escalation exhausted — the D3
+        ceiling note arrives as a `dial_note` beat."""
         world, _war = _winning_two_court_world(prussia_gold=0)
         dialogue = _stage_propose(world)
         refreshed = _strip_to_peace_only(world, dialogue)
@@ -676,18 +715,278 @@ class TestDialFeedbackReachesThePopup:
         )
         assert result["success"] is True, result.get("error_display")
         new_dialogue = result["diplomatic_dialogue"]
-        # Britain (funded) seeded; Prussia (broke) skipped with a note.
+        # Britain (funded) seeded gold; Prussia (broke) escalated to land.
         terms = new_dialogue.get("settlement_terms") or []
         assert _gold_for(terms, "Britain") == SETTLEMENT_DIAL_GOLD_STEP
         assert _gold_for(terms, "Prussia") == 0
+        assert any(
+            str(t.get("type") or "").startswith("territory")
+            and t.get("from") == "Prussia"
+            for t in terms
+        )
         beats = new_dialogue.get("authoring_voice_beats") or []
-        note_lines = [
+        escalation_lines = [
             str(b.get("line") or "")
             for b in beats
+            if b.get("kind") == "talleyrand_line"
+        ]
+        assert any("asked for land" in line for line in escalation_lines), (
+            f"the escalation must reach the popup, got beats: {beats}"
+        )
+
+        # Click 2: Prussia's gold is still unfundable and its territory is
+        # already escalated — the ceiling NOTE now reaches the popup as a
+        # `dial_note` beat (the original G4F-5b contract).
+        second = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=new_dialogue,
+            action_params={
+                "action": "settlement_dial_harsher",
+                "scope": "table",
+            },
+        )
+        assert second["success"] is True, second.get("error_display")
+        second_dialogue = second["diplomatic_dialogue"]
+        note_lines = [
+            str(b.get("line") or "")
+            for b in (second_dialogue.get("authoring_voice_beats") or [])
             if b.get("kind") == "dial_note"
         ]
         assert any("Prussia can pay no more" in line for line in note_lines), (
-            f"the skip note must reach the popup, got beats: {beats}"
+            "the ceiling note must reach the popup once escalation is "
+            f"exhausted, got: {second_dialogue.get('authoring_voice_beats')}"
         )
         # The terminal message still carries it too.
-        assert "Prussia can pay no more" in str(result.get("message") or "")
+        assert "Prussia can pay no more" in str(second.get("message") or "")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GT-A5 (GT-Slice-5) — ceiling-triggered territory escalation
+# (user-approved June 11, 2026: the OQ#7 crossing — spec §3.5 GT-A5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestDialTerritoryEscalation:
+    def test_press_at_gold_cap_escalates_once_then_notes(self):
+        """The bilateral modify_harsh ladder on the settlement table: a
+        court whose gold grow is exhausted authors its candidate territory
+        demand ONCE; with the candidate consumed the next press falls back
+        to the ceiling note."""
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "gold_indemnity", "from": "Prussia", "to": "France",
+                "amount": 500,
+            },
+        ]
+        events: list = []
+        notes: list = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+            protected_notes=notes,
+            seeded_events=events,
+            payer_gold_budgets={"Prussia": 500},  # grow blocked at 500
+            territory_escalations={
+                "Prussia": {
+                    "type": "territory_cede", "from": "Prussia",
+                    "to": "France", "region": "Silesia",
+                    "authored_by": "talleyrand",
+                },
+            },
+        )
+        terr = [t for t in out if t.get("type") == "territory_cede"]
+        assert len(terr) == 1 and terr[0]["region"] == "Silesia"
+        assert terr[0]["authored_by"] == "talleyrand"
+        # Gold held at the budget — never grown past capacity.
+        gold = next(t for t in out if t.get("type") == "gold_indemnity")
+        assert gold["amount"] == 500
+        assert [e for e in events if e.get("kind") == "territory_escalation"]
+        assert not notes  # the escalation IS the feedback this click
+
+        # Next press: candidate consumed (the handler's once-per-direction
+        # guard supplies none) — the D3 ceiling note returns.
+        notes2: list = []
+        out2 = _redial_settlement_terms(
+            terms=out,
+            scope_courts=["Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+            protected_notes=notes2,
+            payer_gold_budgets={"Prussia": 500},
+            territory_escalations={},
+        )
+        assert [
+            t for t in out2 if t.get("type") == "territory_cede"
+        ] == terr
+        assert any("can pay no more" in n for n in notes2)
+
+    def test_ease_at_treasury_cap_escalates_to_france_territory_offer(self):
+        """The symmetric ladder (Building Blocks — the same machinery must
+        serve Slice G1's AI offer producer): an ease at France's treasury
+        ceiling offers the court a region instead."""
+        terms = [
+            {"type": "peace"},
+            {
+                "type": "gold_indemnity", "from": "France", "to": "Prussia",
+                "amount": 300,
+            },
+        ]
+        events: list = []
+        notes: list = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Prussia"],
+            direction="generous",
+            proposer_side_leader="France",
+            protected_notes=notes,
+            seeded_events=events,
+            payer_gold_budgets={"France": 300},  # treasury fully committed
+            territory_escalations={
+                "Prussia": {
+                    "type": "territory_cede", "from": "France",
+                    "to": "Prussia", "region": "Bavaria",
+                    "authored_by": "talleyrand",
+                },
+            },
+        )
+        terr = [t for t in out if t.get("type") == "territory_cede"]
+        assert len(terr) == 1
+        assert terr[0]["from"] == "France" and terr[0]["to"] == "Prussia"
+        escalations = [
+            e for e in events if e.get("kind") == "territory_escalation"
+        ]
+        assert escalations and escalations[0]["group"] == "offer"
+        assert not notes
+
+    def test_escalation_respects_clause_cap_and_still_notes(self):
+        """A maxed package never gains an over-cap escalation clause — and
+        the refusal is voiced, never silent."""
+        terms = [{"type": "peace"}]
+        while len(terms) < MAX_SETTLEMENT_CLAUSE_COUNT:
+            terms.append({
+                "type": "gold_indemnity", "from": "Britain", "to": "France",
+                "amount": 100 + len(terms),
+            })
+        notes: list = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Prussia"],
+            direction="harsher",
+            proposer_side_leader="France",
+            protected_notes=notes,
+            payer_gold_budgets={"Prussia": 0},  # seed unfundable → ceiling
+            territory_escalations={
+                "Prussia": {
+                    "type": "territory_cede", "from": "Prussia",
+                    "to": "France", "region": "Silesia",
+                    "authored_by": "talleyrand",
+                },
+            },
+        )
+        assert len(out) == MAX_SETTLEMENT_CLAUSE_COUNT
+        assert not any(t.get("type") == "territory_cede" for t in out)
+        assert any("no further terms" in n for n in notes)
+
+    def test_candidates_builder_applies_the_anti_balloon_guards(self):
+        """The candidate map enforces the GT-A5 guards: identity from the
+        suggestion selectors only, one territory per court per direction,
+        cross-candidate region dedupe, territory-only scope."""
+        world, _war = _winning_two_court_world()
+        # Harsher: both courts draw a candidate from their OWN holdings.
+        candidates = _dial_territory_escalation_candidates(
+            world,
+            terms=[{"type": "peace"}],
+            scope_courts=["Britain", "Prussia"],
+            direction="harsher",
+            proposer_side_participants=["France"],
+            proposer_leader="France",
+        )
+        for court, clause in candidates.items():
+            assert clause["type"] == "territory_cede"
+            assert clause["from"] == court and clause["to"] == "France"
+            assert clause["authored_by"] == "talleyrand"
+            assert clause["region"] in {
+                str(r) for r in world.get_nation_regions(court)
+            }
+        regions = [c["region"] for c in candidates.values()]
+        assert len(regions) == len(set(regions))
+
+        # An existing direction-matching territory line suppresses that
+        # court's candidate (once per court per direction).
+        if "Prussia" in candidates:
+            suppressed = _dial_territory_escalation_candidates(
+                world,
+                terms=[
+                    {"type": "peace"},
+                    {
+                        "type": "territory_cede", "from": "Prussia",
+                        "to": "France",
+                        "region": candidates["Prussia"]["region"],
+                    },
+                ],
+                scope_courts=["Britain", "Prussia"],
+                direction="harsher",
+                proposer_side_participants=["France"],
+                proposer_leader="France",
+            )
+            assert "Prussia" not in suppressed
+
+        # Generous: offers come from the proposer side's holdings, and two
+        # courts are never promised the same region in one click.
+        offers = _dial_territory_escalation_candidates(
+            world,
+            terms=[{"type": "peace"}],
+            scope_courts=["Britain", "Prussia"],
+            direction="generous",
+            proposer_side_participants=["France"],
+            proposer_leader="France",
+        )
+        for court, clause in offers.items():
+            assert clause["from"] == "France" and clause["to"] == court
+        offer_regions = [c["region"] for c in offers.values()]
+        assert len(offer_regions) == len(set(offer_regions))
+
+    def test_ease_with_empty_treasury_offers_land_through_the_handler(self):
+        """End to end through the real handler + scorer: France with an
+        empty treasury eases the whole table — the courts receive France
+        territory offers (distinct regions), voiced as escalation beats.
+        France must hold CAPTURED land first: the transferable-region
+        selector never cedes proposer home territory, so a fresh-start
+        France legitimately has nothing to offer."""
+        world, _war = _winning_two_court_world(france_gold=0)
+        for captured in ("Rhineland", "Waterloo"):
+            world.regions[captured].controller = "France"
+        world.invalidate_active_nations_cache()
+        dialogue = _stage_propose(world)
+        refreshed = _strip_to_peace_only(world, dialogue)
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_generous",
+            dialogue=refreshed,
+            action_params={
+                "action": "settlement_dial_generous",
+                "scope": "table",
+            },
+        )
+        assert result["success"] is True, result.get("error_display")
+        new_dialogue = result["diplomatic_dialogue"]
+        terms = new_dialogue.get("settlement_terms") or []
+        offers = [
+            t for t in terms
+            if str(t.get("type") or "").startswith("territory")
+            and t.get("from") == "France"
+        ]
+        assert offers, terms
+        assert _gold_for(terms, "France") == 0
+        offer_regions = [str(t.get("region")) for t in offers]
+        assert len(offer_regions) == len(set(offer_regions))
+        beats = new_dialogue.get("authoring_voice_beats") or []
+        assert any(
+            b.get("kind") == "talleyrand_line"
+            and "offered" in str(b.get("line") or "")
+            for b in beats
+        ), beats
