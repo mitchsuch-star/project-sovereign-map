@@ -952,13 +952,16 @@ def _emit_settlement_summary_event(
         SETTLEMENT_EVENT_FAMILY,
         SETTLEMENT_REVIEW_TARGET_ACTIVE,
         SETTLEMENT_REVIEW_TARGET_ARCHIVED,
+        _term_display,
         detect_awe_set_pieces,
     )
     turn = int(getattr(world, "current_turn", 0) or 0)
-    terms_summary = [
-        f"{c.get('type')}: {c.get('from','')}→{c.get('to','')}"
-        for c in applied_clauses[:3]
-    ]
+    # G4F-11 (term-reflection audit): the dispatch line and the
+    # recent-settlements record read these — the old thin
+    # "type: from→to" form dropped the gold amount and the ceded
+    # region's NAME. Use the same rich formatter the review rows use
+    # ("Gold indemnity: 200 gold from Britain to France").
+    terms_summary = [_term_display(c) for c in applied_clauses[:3]]
     instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     # Pre-cleanup overrides win when the caller supplied them; otherwise
     # fall back to the live war_instance state. Cleanup_war_end empties
@@ -995,8 +998,11 @@ def _emit_settlement_summary_event(
             attackers_for_label = list(instance.get("attackers") or [])
         if not defenders_for_label:
             defenders_for_label = list(instance.get("defenders") or [])
+        # G4F-11: full-sides label (the first-vs-first form undersold a
+        # multilateral settlement as a pair).
         war_label = (
-            f"{attackers_for_label[0]} vs {defenders_for_label[0]}"
+            f"{' + '.join(attackers_for_label)} vs "
+            f"{' + '.join(defenders_for_label)}"
             if attackers_for_label and defenders_for_label
             else war_id
         )

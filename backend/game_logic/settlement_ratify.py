@@ -1217,8 +1217,14 @@ def ratify_settlement_confirm(
     pre_cleanup_attackers = list(war_instance.get("attackers") or [])
     pre_cleanup_defenders = list(war_instance.get("defenders") or [])
     if pre_cleanup_attackers and pre_cleanup_defenders:
+        # G4F-11 (term-reflection audit): name BOTH full sides — the
+        # first-vs-first pair label rendered the multilateral ratification
+        # as "Settlement of France vs Britain" on the dispatch/ledger
+        # record, the same Britain-only misreading class G4F-7 fixed on
+        # the dialogue surface.
         pre_cleanup_war_label = (
-            f"{pre_cleanup_attackers[0]} vs {pre_cleanup_defenders[0]}"
+            f"{' + '.join(pre_cleanup_attackers)} vs "
+            f"{' + '.join(pre_cleanup_defenders)}"
         )
     pre_cleanup_proposer_members = (
         list(pre_cleanup_attackers)

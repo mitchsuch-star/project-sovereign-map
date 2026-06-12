@@ -1153,6 +1153,64 @@ class TestSuggestEstimateConvergence:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# G4F-11 — the ratification event names amounts, regions, and the full table
+# (term-reflection audit: the dispatch line and the recent-settlements
+# record read "Settlement of France vs Britain: Gold indemnity:
+# Britain→France" — leader-pair label, no amount, no region name)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestRatificationEventRichness:
+    def test_settlement_summary_carries_rich_terms_and_full_sides_label(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        # Ease once so the package carries (real scorer), then submit and
+        # ratify through the live handler chain.
+        eased = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_generous",
+            dialogue=dialogue,
+            action_params={
+                "action": "settlement_dial_generous", "scope": "table",
+            },
+        )
+        assert eased["success"] is True
+        review = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=eased["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        assert review["success"] is True
+        overall = review["diplomatic_dialogue"].get("overall_acceptance") or {}
+        assert overall.get("carries"), overall
+        ratified = handle_settlement_dialogue_action(
+            world,
+            action="confirm_settlement",
+            dialogue=review["diplomatic_dialogue"],
+            action_params={"action": "confirm_settlement"},
+        )
+        assert ratified["success"] is True, ratified.get("error_display")
+        summaries = [
+            e for e in world.event_log
+            if e.get("type") == "settlement_summary"
+        ]
+        assert summaries, world.event_log
+        event = summaries[-1]
+        # Full-sides label — never the first-vs-first pair form.
+        assert event.get("war_label") == "France vs Britain + Prussia"
+        lines = [str(line) for line in event.get("terms_summary") or []]
+        assert lines
+        # Rich formatter: a gold line names its amount and direction; the
+        # thin "type: from→to" form named neither.
+        gold_lines = [ln for ln in lines if "gold" in ln.lower()]
+        if gold_lines:
+            assert any("gold from" in ln for ln in gold_lines), lines
+        # No thin arrow-form remnants.
+        assert not any("→" in ln and " from " not in ln for ln in lines), lines
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # GT-A5 (GT-Slice-5) — ceiling-triggered territory escalation
 # (user-approved June 11, 2026: the OQ#7 crossing — spec §3.5 GT-A5)
 # ═══════════════════════════════════════════════════════════════════════════
